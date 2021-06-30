@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <title> Tuplex WebUI </title>
+
+  <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="image/x-icon">
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="image/x-icon">
+
+  <!-- Bootstrap CSS local file -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/prism.css') }}">
+
+  <!-- Tabulator -->
+  <!-- <link href="https://unpkg.com/tabulator-tables@4.0.5/dist/css/tabulator.min.css" rel="stylesheet"> -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tabulator_bootstrap4.min.css') }}">
+
+
+  <!-- Font awesome -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
+</head>
+
+<body>
+  <!-- Image and text -->
+  <nav class="navbar navbar-expand-md navbar-dark fixed-top tuplex-navbar">
+    <img src="{{ url_for('static', filename='img/outline.png') }}" style="max-width: 32px; margin-left: 8px; margin-right: 8px;">
+    <a class="navbar-brand" href="#">
+      <!-- <img src="/docs/4.0/assets/brand/bootstrap-solid.svg" width="30" height="30" class="d-inline-block align-top" alt=""> -->
+      Tuplex {{ version }}
+    </a>
+    <span class="text-sm"><a class="text-white mx-4" href="/">Back to Overview</a></span>
+    </nav>
+
+
+  <main role="main" class="container">
+    <div class="row">
+      <div>
+        <p></p>
+        <!--Different options for the pipeline-->
+        <h5>Pipeline</h5>
+        <p>
+          <div class="alert alert-danger" role="alert">
+              <p>
+        <strong>Could not find history for job.</strong>
+      </p><p>There is no history available for a job with ID <i>{{ jobid }}</i> in the backend.
+        <br>Please check whether a job with this ID exists.</p><p> To go back to the overview
+        of available jobs, click <a href="/" class="text-danger">here.</a></p>
+          </div>
+        </p>
+        <p></p>
+      </div>
+    </div>
+
+    <!-- <div class="row"><hr></div> -->
+
+    <!-- check https://codepen.io/disjfa/pen/EZdMpe -->
+
+
+  </main>
+
+  <!-- // place holder -->
+  <div style="height:24px;"></div>
+
+  <footer class="footer">
+    <div class="container">
+      <p class="text-sm-center" style="margin-bottom:0; font-size: 0.8rem;"><span class="text-muted">(c) 2017-2019 L.Spiegelberg @ Brown University</span></p>
+    </div>
+  </footer>
+  <!-- Optional JavaScript - comes at BOTTOM of page -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <!-- The ORDER is VERY important! -->
+  <!-- <script src="{{ url_for('static', filename='js/jquery-slim.min.js') }}"></script> -->
+  <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/prism.js') }}"></script>
+  <!-- DO NOT forget your closing tags! -->
+  <!-- Tabulator -->
+  <!-- <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.0.5/dist/js/tabulator.min.js"></script> -->
+  <script type="text/javascript" src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/custom.js') }}"></script>
+
+  <script src="{{ url_for('static', filename='js/moment-with-locales.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/moment-duration-format.js') }}"></script>
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+
+</body>
+
+</html>

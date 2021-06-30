@@ -1,0 +1,84 @@
+name: Build
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # note: 1. potentially add big sur, though 10.15 catalina build should work on big sur as well.
+        #          no M1 build available yet.
+        #       2. Mac OS not working yet (delocate produces invalid package)
+        #          hence, use only ubuntu for now
+        #os: [ ubuntu-20.04, macos-10.15 ]
+        os: [ ubuntu-20.04 ]
+
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # this is not required because boost-python3 pulls automatically recent python3.9 version.
+      #- uses: actions/setup-python@v2
+      #  name: Install Python
+      #  with:
+      #    python-version: '3.9' # 3.9 is the default version on mac os 10.15
+      #
+      # - name: Set up QEMU
+      #   if: runner.os == 'Linux'
+      #   uses: docker/setup-qemu-action@v1
+      #   with:
+      #     platforms: all
+
+      - name: MacOS dependencies
+        if: runner.os == 'macOS'
+        run: bash ./scripts/ci/setup-macos.sh
+        shell: bash
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v1.11.1.post1
+        env:
+          # configure cibuildwheel to build native archs ('auto'), and some
+          # emulated ones
+          CIBW_ARCHS_LINUX: native
+          CIBW_MANYLINUX_X86_64_IMAGE: 'registry-1.docker.io/tuplex/ci:latest'
+          # build python 3.7, 3.8, 3.9 on linux.
+          # only build python 3.9 on macos
+
+          # production version:
+          CIBW_BUILD: "cp3{7,8,9}-*"
+          CIBW_SKIP: "cp3{5,6,7,8}-macosx* pp*"
+
+          ## for debugging purposes (only linux build)
+          #CIBW_BUILD: "cp38-*"
+          #CIBW_SKIP: "cp3{5,6,7,8}-macosx* pp*"
+
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
+          CIBW_BEFORE_BUILD_MACOS: ./scripts/ci/setup-macos.sh
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
+  # cf. https://github.com/pypa/cibuildwheel/blob/main/examples/github-deploy.yml
+  # potentially also create a sdist.
+  upload_pypi:
+    needs: [ build_wheels ]
+    runs-on: ubuntu-20.04
+    # remove repository url to publish to default pypi.
+    # upload to PyPI on every tag starting with 'v'
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+    # alternatively, to publish when a GitHub Release is created, use the following rule:
+    # if: github.event_name == 'release' && github.event.action == 'published'
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          user: ${{ secrets.pypi_user }}
+          password: ${{ secrets.pypi_password }}
+          # repository_url: https://test.pypi.org/legacy/ # uncomment for test purposes

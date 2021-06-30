@@ -1,0 +1,12 @@
+|l_shipdate: vec[i32], l_discount: vec[f64], l_quantity: vec[f64], l_ep: vec[f64]|
+    result(for(
+        map(
+            filter(
+                zip(l_shipdate, l_discount, l_quantity, l_ep), 
+                |x| x.$0 >= 19940101 && x.$0 < 19950101 && x.$1 >= 0.05 && x.$1 <= 0.07 && x.$2 < 24.0
+            ), |x| x.$1 * x.$3
+        ), 
+        merger[f64,+], 
+        |b,i,x| merge(b,x)
+    ))
+

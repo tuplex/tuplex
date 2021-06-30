@@ -1,0 +1,78 @@
+# struct Lineitem {
+#     struct weld_vector<int32_t> l_partkeys;
+#     struct weld_vector<double> l_quantities;
+#     struct weld_vector<double> l_extendedprices;
+#     struct weld_vector<double> l_discounts;
+#     struct weld_vector<int32_t> l_shipinstructs;
+#     struct weld_vector<int32_t> l_shipmodes;
+# };
+# 
+# struct Part {
+#     struct weld_vector<int32_t> p_partkeys;
+#     struct weld_vector<int32_t> p_brands;
+#     struct weld_vector<int32_t> p_sizes;
+#     struct weld_vector<int32_t> p_containers;
+# };
+
+# LINEITEM DICTIONARIES
+# {13: {'DELIVER IN PERSON': 0, 'TAKE BACK RETURN': 1, 'NONE': 2, 'COLLECT COD': 3}, 14: {'TRUCK': 0, 'MAIL': 1, 'REG AIR': 2, 'AIR': 3, 'FOB': 4, 'RAIL': 5, 'SHIP': 6}}
+
+# PART DICTIONARIES
+# {3: {'Brand#13': 13, 'Brand#42': 42, 'Brand#34': 34, 'Brand#32': 32, 'Brand#24': 24, 'Brand#11': 11, 'Brand#44': 44, 'Brand#43': 43, 'Brand#54': 54, 'Brand#25': 25, 'Brand#33': 33, 'Brand#55': 55, 'Brand#15': 15, 'Brand#23': 23, 'Brand#12': 12, 'Brand#35': 35, 'Brand#52': 52, 'Brand#14': 14, 'Brand#53': 53, 'Brand#22': 22, 'Brand#45': 45, 'Brand#21': 21, 'Brand#41': 41, 'Brand#51': 51, 'Brand#31': 31}, 6: {'JUMBO PKG': 0, 'LG CASE': 1, 'WRAP CASE': 2, 'MED DRUM': 3, 'SM PKG': 4, 'MED BAG': 5, 'SM BAG': 6, 'LG DRUM': 7, 'LG CAN': 8, 'WRAP BOX': 9, 'JUMBO CASE': 10, 'JUMBO PACK': 11, 'JUMBO BOX': 12, 'MED PACK': 13, 'LG BOX': 14, 'JUMBO JAR': 15, 'MED CASE': 16, 'JUMBO BAG': 17, 'SM CASE': 18, 'MED PKG': 19, 'LG BAG': 20, 'LG PKG': 21, 'JUMBO CAN': 22, 'SM JAR': 23, 'WRAP JAR': 24, 'SM PACK': 25, 'WRAP BAG': 26, 'WRAP PKG': 27, 'WRAP DRUM': 28, 'LG PACK': 29, 'MED CAN': 30, 'SM BOX': 31, 'LG JAR': 32, 'SM CAN': 33, 'WRAP PACK': 34, 'MED JAR': 35, 'WRAP CAN': 36, 'SM DRUM': 37, 'MED BOX': 38, 'JUMBO DRUM': 39}}
+
+|lineitem: {vec[i32], vec[f64], vec[f64], vec[f64], vec[i32], vec[i32]}, part: {vec[i32], vec[i32], vec[i32], vec[i32]}|
+    # build mapping {p_partkey : joined row }
+    let part_by_partkey = result(for(
+        zip(part.$0, part.$1, part.$2, part.$3),
+        groupmerger[i32,{i32,i32,i32}], 
+        |b,i,x| merge(b, {x.$0, {x.$1, x.$2, x.$3}})
+    ));
+    let join_vec = flatten(result(for(
+        zip(lineitem.$0, lineitem.$1, lineitem.$2, lineitem.$3, lineitem.$4, lineitem.$5),
+        appender[vec[{i32,i32,i32,i32,f64,f64,f64,i32,i32}]],
+        |b,i,x| let vals = result(for(
+          lookup(part_by_partkey, x.$0),
+          appender[{i32,i32,i32,i32,f64,f64,f64,i32,i32}],
+          |b,i,p| merge(b, {p.$0,p.$1,p.$2,x.$0,x.$1,x.$2,x.$3,x.$4,x.$5})
+        ));
+        merge(b, vals)
+    )));
+    result(for(
+        map(
+            filter(
+                join_vec,
+                |j| let p_brand = j.$0;
+                let p_size = j.$1;
+                let p_container = j.$2;
+                let l_quantity = j.$4;
+                let l_extendedprice = j.$5;
+                let l_discount = j.$6;
+                let l_shipinstruct = j.$7;
+                let l_shipmode = j.$8;
+                (p_brand == 12 &&
+                 (p_container == 18 || p_container == 31 || p_container == 25 || p_container == 4) &&
+                 (l_quantity >= 1.0 && l_quantity <= 11.0) &&
+                 (p_size >= 1 && p_size <= 5) &&
+                 (l_shipinstruct == 0) &&
+                 (l_shipmode == 7 || l_shipmode == 3)
+                ) ||
+                (p_brand == 23 &&
+                 (p_container == 5 || p_container == 38 || p_container == 19 || p_container == 13) &&
+                 (l_quantity >= 10.0 && l_quantity <= 20.0) &&
+                 (p_size >= 1 && p_size <= 10) &&
+                 (l_shipinstruct == 0) &&
+                 (l_shipmode == 7 || l_shipmode == 3)
+                ) ||
+                (p_brand == 34 &&
+                 (p_container == 1 || p_container == 14 || p_container == 29 || p_container == 21) &&
+                 (l_quantity >= 20.0 && l_quantity <= 30.0) &&
+                 (p_size >= 1 && p_size <= 15) &&
+                 (l_shipinstruct == 0) &&
+                 (l_shipmode == 7 || l_shipmode == 3)
+                )
+            ), |j| j.$5 * (1.0 - j.$6)
+        ), 
+        merger[f64,+], 
+        |b,i,x| merge(b,x)
+    ))
+

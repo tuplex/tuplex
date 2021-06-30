@@ -1,0 +1,101 @@
+# SELECT
+#    sum(l_extendedprice* (1 - l_discount)) as revenue
+# FROM
+#    lineitem,
+#    part
+# WHERE
+#     (
+#         p_partkey = l_partkey
+#         AND p_brand = 'Brand#12'
+#         AND p_container in ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
+#         AND l_quantity >= 1 AND l_quantity <= 1 + 10
+#         AND p_size between 1 AND 5
+#         AND l_shipmode in ('AIR', 'AIR REG')
+#         AND l_shipinstruct = 'DELIVER IN PERSON'
+#     )
+#     OR
+#     (
+#         p_partkey = l_partkey
+#         AND p_brand = 'Brand#23'
+#         AND p_container in ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
+#         AND l_quantity >= 10 AND l_quantity <= 10 + 10
+#         AND p_size between 1 AND 10
+#         AND l_shipmode in ('AIR', 'AIR REG')
+#         AND l_shipinstruct = 'DELIVER IN PERSON'
+#     )
+#     OR
+#     (
+#         p_partkey = l_partkey
+#         AND p_brand = 'Brand#34'
+#         AND p_container in ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')
+#         AND l_quantity >= 20 AND l_quantity <= 20 + 10
+#         AND p_size between 1 AND 15
+#         AND l_shipmode in ('AIR', 'AIR REG')
+#         AND l_shipinstruct = 'DELIVER IN PERSON'
+#     );
+#
+# Anoter implementation for building partkey index
+# update(dict[int, long],
+#     map(range(0L, len(part.0)),
+#     (i : long) => {lookup(part.0, i), i}),
+#     (x: long, y: long) => y)
+#
+# part: vec[partkey, brand, size, container]
+# lineitem: vec[partkey, quantity, extprice, discnt, shipinstruct, shipmode]]
+(lineitem: {vec[int], vec[int], vec[double], vec[double], vec[int], vec[int]}, part: {vec[int], vec[int], vec[int], vec[int]}) => {
+  pk_index := res(
+    for(
+      range(0L,len(part.0)),
+      dictMerger[int,(a:long,b:long)=>b],
+      (b:dictMerger[int,(a:long,b:long)=>b],i:long,x:long) =>
+        merge(b,{lookup(part.0,i),i})
+    )
+  );
+  agg(
+    map(
+      filter(
+          range(0L, len(lineitem.0)),
+          (i : long) =>
+            lp0 := lookup(lineitem.0, i);
+            lp1 := lookup(lineitem.1, i);
+            lp2 := lookup(lineitem.2, i);
+            lp3 := lookup(lineitem.3, i);
+            lp4 := lookup(lineitem.4, i);
+            lp5 := lookup(lineitem.5, i);
+            pk := lookup(pk_index, lp0);
+            pr := {
+              lookup(part.0, pk),
+              lookup(part.1, pk),
+              lookup(part.2, pk),
+              lookup(part.3, pk)
+            };
+            (pr.1 == 12 &&
+             (pr.3 == 11 || pr.3 == 16 || pr.3 == 17 || pr.3 == 13) &&
+             (lp1 >= 1 && lp1 <= 11) &&
+             (pr.2 >= 1 && pr.2 <= 5) &&
+             (lp4 == 1) &&
+             (lp5 == 2 || lp5 == 3)
+            ) ||
+            (pr.1 == 23 &&
+             (pr.3 == 24 || pr.3 == 26 || pr.3 == 23 || pr.3 == 27) &&
+             (lp1 >= 10 && lp1 <= 20) &&
+             (pr.2 >= 1 && pr.2 <= 10) &&
+             (lp4 == 1) &&
+             (lp5 == 2 || lp5 == 3)
+            ) ||
+            (pr.1 == 34 &&
+             (pr.3 == 31 || pr.3 == 36 || pr.3 == 37 || pr.3 == 33) &&
+             (lp1 >= 20 && lp1 <=30) &&
+             (pr.2 >= 1 && pr.2 <= 15) &&
+             (lp4 == 1) &&
+             (lp5 == 2 || lp5 == 3)
+            )
+      ),
+      (i : long) =>
+        lookup(lineitem.2, i) * (1.0 - lookup(lineitem.3, i))
+    ),
+    0.0,
+    (x: double, y: double) => x + y
+  )
+}
+

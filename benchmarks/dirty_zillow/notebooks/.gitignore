@@ -1,0 +1,6 @@
+*.txt
+*.stderr
+results_dirty_zillow/
+zillow_dirty_flow_graph
+*.png
+*.pdf

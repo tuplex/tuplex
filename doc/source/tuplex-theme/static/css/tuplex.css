@@ -1,0 +1,326 @@
+#left-column {
+  float: left;
+  position: fixed;
+  height: 100%;
+  border-right: 1px solid #e0e0e0;
+  width: 256px;
+  overflow: auto;
+  background: #fafafa;
+}
+
+#right-column {
+    /* padding-top: 20px; */
+    margin-left: 256px;
+    margin-right: 32px;
+    max-width: 60%;
+    background-color: #fafafa;
+    height: 100vh;
+
+    /* fixed navbar overcome */
+    padding-top: 57px;
+}
+
+
+#main-wrapper {
+  padding-left: 32px;
+  background-color: #fff;
+  padding-bottom: 12px;
+  padding-top: 20px;
+}
+
+#main-footer {
+    /* background-color: #d0d0d0; */
+    color: #777;
+    min-height: 64px;
+    background-color: #fafafa;
+    border-top: 1px solid #e0e0e0;
+    font-size: 10px;
+}
+
+code {
+  color: #ef158a;
+}
+.coyright {
+    font-size: 9px;
+    color: #ddd;
+}
+
+.admonition {
+  border: 1px solid;
+  padding: 8px;
+  margin-bottom: 12px;
+  margin-top: 12px;
+}
+
+.warning {
+  font-size: 14px;
+  border-color: #ffdd82;
+  background-color: rgba(255, 221, 130, 0.4);
+  color: #ca9700;
+}
+
+.note {
+  font-size: 14px;
+  border-color: #4d9ad6;
+  background-color: #b3d7ff29;
+  color: #3e89cb;
+}
+
+.admonition-title {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+a {
+  color: #428bca;
+  text-decoration: none;
+}
+
+a:hover {
+    color: #153c6b;
+    /* text-decoration: none; */
+}
+
+.bg-nav {
+    background-color: #f7f7f7;
+    border-bottom: 1px solid #e0e0e0;
+
+    -webkit-box-shadow: 0px 2px 2px 0px rgba(143,143,143,0.08);
+-moz-box-shadow: 0px 2px 2px 0px rgba(143,143,143,0.08);
+box-shadow: 0px 2px 2px 0px rgba(143,143,143,0.08);
+}
+
+.sidebar-wrapper {
+  /* padding: 0 22px; */
+}
+
+.sidebar-wrapper h2 {
+  border-bottom:none;
+  /* margin: 0 0 17px 0; */
+  font-size: 15px;
+  padding: 0 0 6px 0;
+  text-transform: uppercase;
+  color: #606060;
+  text-align: center;
+}
+
+
+nav ul li {
+  display: inline-block;
+  margin-left: 12px;
+}
+
+.sidebar-wrapper ul {
+  /* margin: 0 0 4px 0; */
+  list-style-type: none;
+  color: #000;
+  padding: 0 !important;
+}
+
+.sidebar-wrapper ul li {
+
+}
+
+.sidebar-wrapper ul li a {
+  text-decoration: none;
+  color: #888;
+  font-size: 16px;
+}
+
+.sidebar-wrapper ul li a:hover {
+  text-decoration: none;
+  color: #333;
+}
+
+
+/* styling of body content */
+/* get subnav styling form https://developer.github.com/v3/ */
+
+.sub-nav {
+    border-bottom: 1px solid #ddd;
+    position: relative;
+    margin-bottom: 12px;
+}
+
+h1 {
+  font-size: 26px;
+  /* color: #606060; */
+  color: #153c6b;
+}
+
+.sub-nav h1 {
+  font-size: 26px;
+  /* color: #606060; */
+  color: #153c6b;
+}
+
+.sub-nav ul li {
+    display: inline-block;
+    width: auto;
+    font-size: 16px;
+    font-weight: normal;
+    margin-left: 12px;
+    padding: 0 0 6px;
+      color: #808080;
+}
+
+.sub-nav ul li a {
+  color: #808080;
+  text-decoration: none;
+}
+.sub-nav ul li a:hover {
+  color: rgba(0,0,0,.7);
+  text-decoration: none;
+}
+
+.sub-nav ul {
+    display: block;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+h2 {
+  font-size: 24px;
+  /* color: #005c7a; */
+  color: #1d5292;
+}
+
+h6 {
+    font-size: 18px;
+    /* color: #005c7a; */
+    color: #1d5292;
+}
+
+h3 {
+  font-size: 21px;
+
+}
+
+/* hide this ugly thing... */
+a.headerlink {
+    visibility: hidden;
+}
+.headerlink {
+  color: #f0f0f0;
+  text-decoration: none
+}
+a:hover.headerlink {
+  visibility: hidden;
+}
+
+/* Styling of the menu items */
+.sidebar-toc ul li.toctree-l1 a {
+  padding: 8px 24px;
+}
+
+.sidebar-toc ul li.toctree-l2 a {
+  padding: 8px 48px;
+  background-color: #e6e6e6;
+}
+
+.sidebar-toc ul li.toctree-l3 a {
+  padding: 8px 64px;
+}
+.sidebar-toc > ul {
+    padding: 0 !important;
+    list-style-type: none;
+    margin: 0;
+}
+
+.sidebar-toc ul li a {
+  display: block;
+}
+
+.sidebar-toc ul li a:hover {
+  /* background-color: #428bca; */
+  /* background-color: #153c6b; primary Tuplex bliue*/
+  /* background-color: #005c7a; */
+  background-color: #1d5292;
+  color: #fff;
+}
+
+.sidebar-toc ul li.current > a,
+.sidebar-toc ul li.current > a:hover {
+  background-color: #c6c6c6;
+  color: #444;
+}
+
+/* CSS trick for jumping anchors */
+/* .anchor:target {padding-top: 75px; */
+div.anchor:before {
+  display: block;
+  height: 69px;   /* 57px for navbar + 12px for margin */
+  margin-top: -69px;  /* negative margin equal to the header height */
+  visibility: hidden;
+  content: "";
+}
+
+.no-gutter > [class*='col-'] {
+    padding-right:0;
+    padding-left:0;
+}
+
+.no-padding {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+footer {
+  display: flex;
+  align-items: center;
+}
+
+/* styling for code */
+dl dl {
+  padding-left: 20px;
+}
+
+ul.first {
+  list-style: none;
+  padding-left: 20px;
+}
+
+ul.first.simple {
+  list-style: none;
+}
+
+ul.first.simple li {
+    margin-bottom: 8px;
+}
+
+span.viewcode-link {
+  visibility: hidden;
+}
+
+code {
+  color: #1d5292;
+}
+
+.section img {
+  margin-bottom: 14px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.install-command {
+  font-family: monospace;
+  font-weight: 500;
+  font-size: 1.2rem;
+  float: left;
+  background-color: #f8f9fa;
+  padding: 8px 15px;
+  border: 1px solid #153c6b;
+}
+
+.install-command-button {
+  color: black;
+  line-height: 28px;
+  float: left;
+  cursor: pointer;
+  padding: 8px 15px;
+  border: 1px dotted #153c6b;
+}

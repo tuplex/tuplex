@@ -1,0 +1,12 @@
+{
+  "webui.enable": false,
+  "executorMemory": "16G",
+  "executorCount": "16",
+  "driverMemory": "16G",
+  "partitionSize": "8MB",
+  "runTimeMemory": "256MB",
+  "useLLVMOptimizer": true,
+  "optimizer.nullValueOptimization": false,
+  "csv.selectionPushdown": false,
+  "optimizer.generateParser": false
+}

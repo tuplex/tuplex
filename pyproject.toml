@@ -1,0 +1,11 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "pip>9",
+    "wheel",
+    "cloudpickle",
+    "numpy",
+    "ninja; sys_platform != 'win32'",
+    "cmake>=3.12",
+]
+build-backend = "setuptools.build_meta"

@@ -1,0 +1,87 @@
+syntax = "proto3";
+package tuplex.messages;
+
+enum FileFormat {
+    FF_UNKNOWN = 0;
+    FF_TUPLEX = 1;
+    FF_CSV = 2;
+    FF_TEXT = 3;
+}
+
+enum EndPointMode {
+    EPM_UNKNOWN = 0;
+    EPM_MEMORY = 1;
+    EPM_FILE = 2;
+    EPM_HASHTABLE = 3;
+}
+
+message TransformStage {
+    bytes bitcode = 1;
+    repeated string inputColumns = 2;
+    repeated string outputColumns = 3;
+
+    string readSchema = 4;
+    string inputSchema = 5;
+    string outputSchema = 6;
+    string normalCaseInputSchema = 7;
+    string normalCaseOutputSchema = 8;
+    uint32 outputDataSetID = 9;
+    uint32 inputNodeID = 10;
+    EndPointMode inputMode = 11;
+    EndPointMode outputMode = 12;
+    repeated uint32 inputColumnsToKeep = 13;
+    string outputURI = 14;
+    FileFormat inputFormat = 15;
+    FileFormat outputFormat = 16;
+    bool persistSeparateCases = 17;
+    string funcStageName = 18;
+    string funcMemoryWriteCallbackName = 19;
+    string funcFileWriteCallbackName = 20;
+    string funcHashWriteCallbackName = 21;
+    string funcExceptionCallback = 22;
+    string funcInitStageName = 23;
+    string funcReleaseStageName = 24;
+    string resolveRowFunctionName = 25;
+    string resolveRowWriteCallbackName = 26;
+    string resolveRowExceptionCallbackName = 27;
+    string resolveHashCallbackName = 28;
+    uint32 stageNumber = 29;
+    uint32 numColumns = 30;
+    string pycode = 31;
+
+    // file input + output params as dict
+    map<string, string> inputParameters = 32;
+    map<string, string> outputParameters = 33;
+}
+
+message InvocationRequest {
+    repeated string inputURIS = 1;
+    repeated uint64 inputSizes = 2;
+    string outputURI = 3;
+    TransformStage stage = 4;
+}
+
+message InvocationResponse {
+    enum Status {
+        SUCCESS = 0;
+        ERROR = 1;
+    }
+    Status status = 1;
+    string errorMessage = 2;
+
+    repeated string inputURIS = 3;
+    repeated string outputURIs = 4;
+
+    uint64 numRowsWritten = 5;
+    uint64 numExceptions = 6;
+    uint64 numBytesWritten = 7;
+
+
+    bool containerReused = 8;
+    double awsInitTime = 9;
+    string containerID = 10;
+    double taskExecutionTime = 11;
+    double remainingLambdaTime = 12;
+    map<string, uint64> s3Stats = 13;
+    map<string, double> breakdownTimes = 14;
+}

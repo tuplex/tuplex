@@ -1,0 +1,24 @@
+# FastETL configuration file
+# 	created 2019-02-17 16:45:09.940033 UTC
+tuplex:
+    -   allowUndefinedBehavior: false
+    -   autoUpcast: false
+    -   csv:
+            -   comments: ["#", "~"]
+            -   generateParser: true
+            -   maxDetectionMemory: 256KB
+            -   maxDetectionRows: 100
+            -   quotechar: "\""
+            -   selectionPushdown: true
+            -   separators: [",", ;, "|", "\t"]
+    -   driverMemory: 1GB
+    -   executorCount: 4
+    -   executorMemory: 1GB
+    -   logDir: .
+    -   normalcaseThreshold: 0.9
+    -   partitionSize: 1MB
+    -   runTimeLibrary: tuplex_runtime
+    -   runTimeMemory: 32MB
+    -   runTimeMemoryBlockSize: 4MB
+    -   scratchDir: /tmp
+    -   useLLVMOptimizer: true

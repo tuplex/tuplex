@@ -1,0 +1,32 @@
+# C/C++ with GCC
+# Build your C/C++ project with GCC using make.
+# Add steps that publish test results, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/apps/c-cpp/gcc
+
+# edit here triggers, cf. https://docs.microsoft.com/en-us/azure/devops/pipelines/repos/github?view=azure-devops&tabs=yaml
+trigger:
+- master
+pr:
+  autoCancel: true
+  branches:
+    include:
+    - master
+
+pool:
+  vmImage: 'ubuntu-18.04'
+jobs:
+  - job: 'tuplex'
+    timeoutInMinutes: 180
+    steps:
+      - script: sudo bash scripts/ubuntu1804/install_reqs.sh
+        displayName: 'Install required packages'
+      - script: sudo apt-get install python3-setuptools && sudo apt-get remove python-pexpect python3-pexpect && sudo python3.7 -m pip install --upgrade pip && sudo python3.7 -m pip uninstall -y pygments && sudo python3.7 -m pip install pygments>=2.4.1 pexpect setuptools astor PyYAML jupyter nbformat && jupyter --version
+        displayName: 'Install python dependencies'
+      - script: cd tuplex && mkdir build && cd build && cmake -DLLVM_ROOT_DIR=/usr/lib/llvm-9 -DCMAKE_BUILD_TYPE=Release -DBUILD_FOR_CI=ON .. && make -j$(nproc)
+        displayName: 'Build Tuplex'
+      - script: cd tuplex && cd build && ctest --timeout 180 --output-on-failure
+        displayName: 'C++ tests'
+      - script: cd tuplex/build/dist/python && python3.7 setup.py install --user && rm -rf build/third_party && sudo rm -rf tmp/*
+        displayName: 'Install tuplex package and clear tmp files'
+      - script: cd tuplex/build/dist/python && python3.7 -m pytest -x --full-trace -l
+        displayName: 'Python tests'

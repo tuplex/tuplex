@@ -1,0 +1,1 @@
+g++ -std=c++17 -msse4.2 -mcx16 -Wall -Wextra -O3 -march=native -DNDEBUG -o tester zillow.cpp

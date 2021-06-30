@@ -1,0 +1,14 @@
+{
+  "webui.enable": false,
+  "executorMemory": "16GB",
+  "executorCount": "0",
+  "driverMemory": "32GB",
+  "partitionSize": "8MB",
+  "inputSplitSize": "1GB",
+  "runTimeMemory": "256MB",
+  "useLLVMOptimizer": true,
+  "optimizer.nullValueOptimization": true,
+  "csv.selectionPushdown": true,
+  "optimizer.generateParser": true,
+  "optimizer.filterPushdown": true
+}

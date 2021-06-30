@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <title> Tuplex WebUI </title>
+
+  <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="image/x-icon">
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="image/x-icon">
+
+  <!-- Bootstrap CSS local file -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/prism.css') }}">
+
+    <!--DataTables-->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css">
+
+
+  <!-- Font awesome -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
+
+<style type="text/css">
+    table.dataTable thead .sorting:after, table.dataTable thead .sorting_asc:after, table.dataTable thead .sorting_desc:after, table.dataTable thead .sorting_asc_disabled:after, table.dataTable thead .sorting_desc_disabled:after {
+        content: "";
+    }
+
+    table.dataTable thead .sorting:before, table.dataTable thead .sorting_asc:before, table.dataTable thead .sorting_desc:before, table.dataTable thead .sorting_asc_disabled:before, table.dataTable thead .sorting_desc_disabled:before {
+        content: "";
+    }
+
+    table.dataTable thead>tr>th.sorting_asc, table.dataTable thead>tr>th.sorting_desc, table.dataTable thead>tr>th.sorting, table.dataTable thead>tr>td.sorting_asc, table.dataTable thead>tr>td.sorting_desc, table.dataTable thead>tr>td.sorting {
+        padding-right: 0px;
+    }
+</style>
+</head>
+
+<body>
+  <!-- Image and text -->
+  <nav class="navbar navbar-expand-md navbar-dark fixed-top tuplex-navbar">
+    <img src="{{ url_for('static', filename='img/outline.png') }}" style="max-width: 32px; margin-left: 8px; margin-right: 8px;">
+    <a class="navbar-brand" href="#">
+      <!-- <img src="/docs/4.0/assets/brand/bootstrap-solid.svg" width="30" height="30" class="d-inline-block align-top" alt=""> -->
+      Tuplex {{ version }}
+    </a>
+
+
+    <!--<span class="pull-right" style="margin-left: auto;"><a href="/api/shutdown" data-toggle="tooltip" title="shutdown history server"><i class="fas fa-power-off" style="color:white;"></i></a></span>-->
+    <span class="pull-right" style="margin-left: auto;"><button class="btn btn-light" id="clearjobbtn">Reset jobs</button></span>
+  </nav>
+
+
+  <main role="main" class="container">
+    <div class="row" >
+
+        <p></p>
+      <h6 class="mt-3 mb-3">Overview of the <span id="num-jobs">{{num_jobs }}</span> most recent jobs:</h6>
+          <!--<p>Move details to action (make clickable)</p>-->
+          <!--<p>implement counter + persisting of job updates</p>-->
+          <!--<p>collapse started/submitted/finished columns into one or two columns. Started/Finished to duration.</p>-->
+          <!--<p>perhaps add for job page on LLVM code/Assembly code that was generated.</p>-->
+          <!--<p>add to context at like in Spark Webui for origin. Link to notebook.</p>-->
+        <p><div class="alert alert-warning alert-dismissible collapse" role="alert" id="socketio-error">
+          <strong>Not connected to socket.io live updates.</strong> Please check your configuration and consult the documentation.
+          To get the current status, please refresh this page manually.
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div></p>
+
+<div class="table-responsive" >
+      <table class="table table-sm table-striped table-bordered text-center align-middle" id="job-table">
+        <thead>
+    <tr>
+      <th scope="col" class="sorting_disabled">Action</th>
+        <th scope="col">Context</th>
+      <th scope="col">Status</th>
+<!--      <th scope="col">User</th>-->
+<!--        <th scope="col">Driver</th>-->
+        <th scope="col">Submitted</th>
+      <th scope="col">Duration</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for job in jobs %}
+
+    <!--table-success-->
+      <tr data-jobid="{{ job.id }}">
+        <td class="align-middle">{{ job.action }}</td>
+
+          <!--jupyter notebook will add links for convenience-->
+          {% if job.context.jupyter_url %}
+          <td class="align-middle">{{ job.context.name }} (<a href="{{ job.context.jupyter_url }}">{{ job.context.mode }}</a>)</td>
+          {% else %}
+          <td class="align-middle">{{ job.context.name }} ({{ job.context.mode }})</td>
+          {% endif %}
+
+
+
+        <td class="align-middle">{{ job.status }}</td>
+<!--        <td class="align-middle">{{ job.context.user }}</td>-->
+<!--          <td class="align-middle">{{ job.context.host }}</td>-->
+
+          <td class="align-middle">{{ job.state_info.submitted|strftime }}</td>
+        <td class="align-middle">
+
+            {% if job.status == 'running' %}
+
+            <span role="timer" data-from="{{ job.state_info.started }}"></span>
+
+            {% else %}
+                {% if job.state_info.duration %}
+                    {{ job.state_info.duration |humanizetime }}
+                {% endif %}
+            {% endif %}
+        </td>
+        <td class="align-middle"><a href="ui/job?id={{ job.id }}">details</a></td>
+      </tr>
+    {% endfor %}
+
+  </tbody>
+      </table>
+    </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- // place holder -->
+  <div style="height:24px;"></div>
+
+  <footer class="footer">
+    <div class="container">
+      <p class="text-sm-center" style="margin-bottom:0; font-size: 0.8rem;"><span class="text-muted">(c) 2017-2019 L.Spiegelberg @ Brown University</span></p>
+    </div>
+  </footer>
+  <!-- Optional JavaScript - comes at BOTTOM of page -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <!-- The ORDER is VERY important! -->
+  <!-- <script src="{{ url_for('static', filename='js/jquery-slim.min.js') }}"></script> -->
+  <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/prism.js') }}"></script>
+  <!-- DO NOT forget your closing tags! -->
+  <!-- Tabulator -->
+  <!-- <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.0.5/dist/js/tabulator.min.js"></script> -->
+  <script type="text/javascript" src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/custom.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/moment-with-locales.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/moment-duration-format.js') }}"></script>
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+
+  <script type="text/javascript" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+  <script type="text/javascript" src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
+<script type="text/javascript">
+
+
+
+    function updateStatus() {
+        // find all spans who have role timer
+        $('span[role="timer"]').each(function(index) {
+            let start_time = $(this).attr("data-from");
+            let diff_time = moment.utc().diff(start_time); // all times in utc
+            let elapsed_time = moment.duration(diff_time).format("d[d] h[h] m[m] s[s]", {trim: "both"});
+           $(this).text(elapsed_time);
+        });
+    }
+
+    // format date in iso format (should be same as filter defined in views.py)
+    function strftime(datestr) {
+        return moment(datestr).format('MMM Do, H:mm:ss')
+    }
+
+
+    $(document).ready(function() {
+
+      let table_indices = {"Action" : 0,
+        "Context" : 1,
+        "Status" : 2,
+        "Submitted" : 3,
+        "Duration" : 4,
+      "details" : 5}
+
+      // drop jobs if button was clicked
+      $("#clearjobbtn").button().click(function() {
+        $.post("/api/clearjobs", function() {
+
+        });
+        window.location.reload();
+      });
+
+
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        // need to do this separately...
+        updateStatus();
+        setInterval(function() {
+           updateStatus();
+        }, 1000);
+
+
+        // // this screws currently with the dynamic rows being added.
+        // // make table sortable? ==> search for plugin
+        // $('#job-table').DataTable({
+        //     "paging":   false,
+        //     "info":     false,
+        //     "searching" : false,
+        //     "ordering" : true,
+        //     "targets": 'no-sort',
+        //     "bSort": false,
+        //     "order": []
+        //     });
+
+
+        socket.on('connect_error', function(error) {
+            console.log('error while connecting, details: ' + error);
+            $('#socketio-error').removeClass('collapse'); // show connection error alert.
+        });
+
+        // received status update from backend
+        socket.on('status', function(data) {
+
+            console.log(data);
+
+            // update row with data-jobid attribute matching the id
+            var row = $('#job-table > tbody > tr[data-jobid="' + data.jobid +'"]');
+
+            // NOTE: fixed indices here, when changing order, make sure to update this.
+            row.find('td').eq(table_indices["Status"]).html(data.status);
+
+            // special messages: started/finished
+            if(data.status === 'started') {
+                // add timer to
+                // <span role="timer" data-from="..."></span>
+                row.find('td').eq(table_indices["Duration"]).html("<span role=\"timer\" data-test=\"42\" data-from=\"" + data.state_info.started + "\"></span>");
+            }
+            if(data.status === 'finished') {
+                // update finished field with duration (this also removes the timer)
+                row.find('td').eq(table_indices["Duration"]).html(humanize_time(data.state_info.duration));
+            }
+        });
+
+        // recevied new job (add to table!)
+        socket.on('newjob', function(data) {
+
+            // for debug purposes
+            // console.log(data);
+
+            var new_row = "<tr data-jobid='" + data.id + "'>";
+            new_row += "<td class=\"align-middle\">" + data.action + "</td>";
+
+            // check if jupyter_url is there. If so, add link for convenience
+            if(data.context.jupyter_url)
+                new_row += "<td class=\"align-middle\">" + data.context.name + " (<a href=\"" + data.context.jupyter_url + "\">" + data.context.mode + "</a>)</td>";
+            else
+                new_row += "<td class=\"align-middle\">" + data.context.name + " (" + data.context.mode + ")</td>";
+            new_row += "<td class=\"align-middle\">" + data.status + "</td>";
+            // new_row += "<td class=\"align-middle\">" + data.context.user + "</td>";
+            // new_row += "<td class=\"align-middle\">" + data.context.host + "</td>";
+
+            if(data.state_info && data.state_info.submitted)
+                new_row += "<td class=\"align-middle\">" + strftime(data.state_info.submitted) +"</td>";
+            else new_row += "<td class=\"align-middle\"></td>";
+            if(data.state_info.duration)
+                new_row += "<td class=\"align-middle\">" + strftime(data.state_info.duration) + "</td>"; // started
+            else new_row += "<td class=\"align-middle\"></td>";
+            new_row += "<td class=\"align-middle\"><a href=\"ui/job?id=" + data.id + "\">details</a></td>";
+            new_row += "</tr>";
+            $('#job-table > tbody').prepend(new_row);
+
+            // inc counter
+            num_jobs = parseInt($('span#num-jobs').text()) + 1;
+            $('#num-jobs').text(`${num_jobs}`);
+
+        });
+
+    });
+    </script>
+</body>
+
+</html>

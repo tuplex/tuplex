@@ -1,0 +1,15 @@
+output.csv/
+output.csv
+data/
+flights_on_time_performance_*.csv
+*_ONTIME*.csv
+*.tar.gz
+spark_output/
+dask_output/
+tuplex_output/
+pyspark_output/
+*.txt
+*.csv
+dask-worker-space/
+dask-worker-space
+*_instances.json

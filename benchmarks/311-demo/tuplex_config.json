@@ -1,0 +1,1 @@
+{"webui.enable": false, "executorMemory": "4G", "executorCount": 63, "driverMemory": "4G", "partitionSize": "32MB", "runTimeMemory": "4MB", "inputSplitSize": "8MB", "useLLVMOptimizer": true, "optimizer.nullValueOptimization": false, "csv.selectionPushdown": true, "optimizer.generateParser": false, "optimizer.mergeExceptionsInOrder": false, "optimizer.filterPushdown": true}

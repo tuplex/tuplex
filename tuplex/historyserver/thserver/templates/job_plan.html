@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <title> Tuplex WebUI </title>
+
+  <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="image/x-icon">
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="image/x-icon">
+
+  <!-- Bootstrap CSS local file -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/prism.css') }}">
+
+  <!-- Tabulator -->
+  <!-- <link href="https://unpkg.com/tabulator-tables@4.0.5/dist/css/tabulator.min.css" rel="stylesheet"> -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tabulator_bootstrap4.min.css') }}">
+
+
+  <!-- Font awesome -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
+
+  <!-- highlight js -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles/github.css') }}">
+
+  <style>
+    /* for block of numbers */
+    .hljs-ln-numbers {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+
+      text-align: center;
+      color: #ccc;
+      vertical-align: top;
+      padding-right: 20px;
+
+      /* your custom style here */
+    }
+
+    /* for block of code */
+    .hljs-ln td {
+      /*need to force styles because of bootstrap*/
+      padding-left: 20px !important;
+      padding-right: 5px !important;
+      padding-top: 1px !important;
+      padding-bottom: 1px !important;
+    }
+
+    .hljs {
+      background-color: transparent !important;
+    }
+
+    .tab-content {
+      /*bootstrap color borders*/
+      border-left: 1px solid #dee2e6;
+      border-right: 1px solid #dee2e6;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+  </style>
+</head>
+
+<body>
+  <!-- Image and text -->
+  <nav class="navbar navbar-expand-md navbar-dark fixed-top tuplex-navbar">
+    <img src="{{ url_for('static', filename='img/outline.png') }}" style="max-width: 32px; margin-left: 8px; margin-right: 8px;">
+    <a class="navbar-brand" href="#">
+      <!-- <img src="/docs/4.0/assets/brand/bootstrap-solid.svg" width="30" height="30" class="d-inline-block align-top" alt=""> -->
+      Tuplex {{ version }}
+    </a>
+    {% include 'navbar.html' %}
+    </nav>
+
+
+  <main role="main" class="container">
+    <div class="row">
+      <div class="col-12">
+        <p></p>
+        <!--Different options for the pipeline-->
+        <h5>Generated Code</h5>
+
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+          <li class="nav-item">
+            <a class="nav-link active" id="unoptimizedIR-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">Unoptimized LLVM IR</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="optimizedIR-tab" data-toggle="tab" href="#profile" role="tab" aria-controls="profile" aria-selected="false">Optimized LLVM IR</a>
+          </li>
+        </ul>
+
+        <!-- Tab panes -->
+        <div class="tab-content">
+          <div class="tab-pane active" id="home" role="tabpanel" aria-labelledby="unoptimizedIR-tab">
+            <pre><code class="llvm">{{ plan.unoptimizedIR }}</code></pre>
+          </div>
+          <div class="tab-pane" id="profile" role="tabpanel" aria-labelledby="optimizedIR-tab">
+            <pre><code class="llvm">{{ plan.optimizedIR }}</code></pre>
+          </div>
+        </div>
+
+
+
+
+
+
+        <p></p>
+      </div>
+    </div>
+
+    <!-- <div class="row"><hr></div> -->
+
+    <!-- check https://codepen.io/disjfa/pen/EZdMpe -->
+
+
+  </main>
+
+  <!-- // place holder -->
+  <div style="height:24px;"></div>
+
+  <footer class="footer">
+    <div class="container">
+      <p class="text-sm-center" style="margin-bottom:0; font-size: 0.8rem;"><span class="text-muted">(c) 2017-2019 L.Spiegelberg @ Brown University</span></p>
+    </div>
+  </footer>
+  <!-- Optional JavaScript - comes at BOTTOM of page -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <!-- The ORDER is VERY important! -->
+  <!-- <script src="{{ url_for('static', filename='js/jquery-slim.min.js') }}"></script> -->
+  <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/prism.js') }}"></script>
+  <!-- DO NOT forget your closing tags! -->
+  <!-- Tabulator -->
+  <!-- <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.0.5/dist/js/tabulator.min.js"></script> -->
+  <script type="text/javascript" src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/custom.js') }}"></script>
+
+  <script src="{{ url_for('static', filename='js/moment-with-locales.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/moment-duration-format.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/socket.io.1.3.6.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/highlight.pack.js') }}"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.7.0/highlightjs-line-numbers.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();hljs.initLineNumbersOnLoad();</script>
+</body>
+
+</html>

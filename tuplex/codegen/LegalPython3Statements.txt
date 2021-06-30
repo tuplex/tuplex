@@ -1,0 +1,29 @@
+
+# specifying an argument is optional for a lambda expression!
+lambda: 10
+
+
+
+# weird python statements
+def fun(*, x):
+    pass
+
+
+
+
+bool can be combined with int...
+
+True + 1 = 2
+1 + True = 2
+
+same goes for float
+True + 1. = 2.
+
+
+# indexing fun
+
+x = ((0), (1), (2))
+or
+x = ((0), 1, 2, 3) ==> different return types...
+
+x[x[0]] is perfectly legal... ==> how to do type inference for that

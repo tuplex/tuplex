@@ -1,0 +1,48 @@
+services:
+  spark:
+    version: 2.4.5
+    # git-commit: latest  # if not 'latest', provide a full commit SHA; e.g. d6dc12ef0146ae409834c78737c116050961f350
+    # git-repository:  # optional; defaults to https://github.com/apache/spark
+    # optional; defaults to download from from the official Spark S3 bucket
+    #   - must contain a {v} template corresponding to the version
+    #   - Spark must be pre-built
+    #   - must be a tar.gz file
+    download-source: "https://archive.apache.org/dist/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz"
+    # executor-instances: 1
+
+provider: ec2
+
+providers:
+  ec2:
+    key-name: tuplex
+    identity-file: "/Users/leonhards/.ssh/tuplex.pem"
+    instance-type: m5.xlarge
+    region: us-east-1
+    # availability-zone: <name>
+    ami: ami-0b8d0d6ac70e5750c  # Amazon Linux 1, same as Lambda uses
+    user: ec2-user
+    # ami: ami-61bbf104  # CentOS 7, us-east-1
+    # user: centos
+    # spot-price: <price>
+    # vpc-id: <id>
+    # subnet-id: <id>
+    # placement-group: <name>
+    # security-groups:
+    #   - group-name1
+    #   - group-name2
+    # instance-profile-name:
+    # tags:
+    #   - key1,value1
+    #   - key2, value2  # leading/trailing spaces are trimmed
+    #   - key3,  # value will be empty
+    # min-root-ebs-size-gb: <size-gb>
+    tenancy: default  # default | dedicated
+    ebs-optimized: no  # yes | no
+    instance-initiated-shutdown-behavior: terminate  # terminate | stop
+    # user-data: /path/to/userdata/script
+
+launch:
+  num-slaves: 32
+  install-spark: True
+
+debug: True

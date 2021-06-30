@@ -1,0 +1,7 @@
+spark_output*/
+dask_output*/
+tuplex_output_strip/
+tuplex_output_regex/
+*.txt
+*.pdf
+dask-worker-space/

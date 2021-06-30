@@ -1,0 +1,6 @@
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+python_backup/
+python_patched/
+*.tgz
+

@@ -1,0 +1,59 @@
+html {
+  font-size: 18px;
+}
+/* This is the ONLY place you should use px with Bootstrap 4
+   It sets a base size that will be used by all other styles in
+   the Bootstrap 4 CSS
+   */
+
+body {
+  font-family: 'Manuale', 'Calibri', 'Georgia', serif;
+  /* Manuale is a Google font */
+  padding-bottom: 2rem;
+  /* I like some added white space at the bottom of the page */ 
+}
+
+/* Bootstrap's default font stack for body is:
+   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+   This uses native fonts on Mac and Windows OS.
+
+   rem ---
+   ALL of Bootstrap's font sizes inherit from body. ALL use rem.
+   The default size in body is:  1rem
+   rem inherits from the size in html - so I have set that to 18px here
+   a typical browser has 16px (built in) as its default
+
+   Ideally, all padding, margin, etc., should be in rems in Bootstrap 4.
+
+   Read about rem vs. em here:
+   https://zellwk.com/blog/rem-vs-em/
+   */
+
+h1 {
+  font-family: 'Sacramento', sans-serif;
+  font-size: 3.5rem; /* big! */
+  padding-top: 2rem;
+  padding-bottom: 0.5rem;
+}
+
+.my-caption {
+  font-family: 'Sacramento', sans-serif;
+  font-size: 1.7rem;
+}
+
+/*  Note:
+  Sacramento is a Google font.
+  It is a fancy handwriting font, but I do not want the system to
+  substitute a cursive generic, because those can be ugly (like
+  Brush Script, ugh). sans-serif is a poor substitute, but at least
+  it will be legible if used.
+  */
+
+p.my-caption {
+  padding-top: 1rem;
+  padding-bottom: 2rem;
+}
+
+img {
+  padding-top: 0.5rem;
+}

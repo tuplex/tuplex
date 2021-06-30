@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <title> Tuplex WebUI </title>
+
+  <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="image/x-icon">
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="image/x-icon">
+
+  <!-- Bootstrap CSS local file -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/prism.css') }}">
+
+  <!-- Tabulator -->
+  <!-- <link href="https://unpkg.com/tabulator-tables@4.0.5/dist/css/tabulator.min.css" rel="stylesheet"> -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tabulator_bootstrap4.min.css') }}">
+
+
+  <!-- Font awesome -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
+</head>
+
+<body>
+  <!-- Image and text -->
+  <nav class="navbar navbar-expand-md navbar-dark fixed-top tuplex-navbar">
+    <img src="{{ url_for('static', filename='img/outline.png') }}" style="max-width: 32px; margin-left: 8px; margin-right: 8px;">
+    <a class="navbar-brand" href="#">
+      <!-- <img src="/docs/4.0/assets/brand/bootstrap-solid.svg" width="30" height="30" class="d-inline-block align-top" alt=""> -->
+      Tuplex {{ version }}
+    </a>
+    {% include 'navbar.html' %}
+    <!--<span class="text-sm">Job {{ id }}</span>-->
+    <!--<span class="pull-right" style="margin-left: auto;"><a href="/api/shutdown" data-toggle="tooltip" title="shutdown history server"><i class="fas fa-power-off" style="color:white;"></i></a></span>-->
+  </nav>
+
+
+  <main role="main" class="container">
+    <div class="row">
+      <div>
+        <p></p>
+        <!--Different options for the pipeline-->
+        <!--<h6>Pipeline (took 454ms to complete, 0 exceptions):</h6>-->
+        <h5>Pipeline</h5><h6><span id="jobstatus">
+              {% if status=='running' %}
+              started <span role="timer" data-from="{{ started }}">0s</span> ago,
+              {% elif status=='finished' %}
+              took {{ duration |humanizetime }} to complete,
+              {% else %}
+              not yet started,
+              {% endif %}
+          </span>
+        <span id="global-ncount" class="normalcase-counter-inline">{{ ncount }}</span>good rows, <span id="global-ecount" class="exception-counter-inline">{{ ecount }}</span> exceptions</h6>
+        <!--<h6>Pipeline (started 0s ago):</h6>-->
+        <!--<h6>Pipeline (canceled):</h6>-->
+        <!--<h6>Pipeline (failed):</h6>-->
+        <p>
+          <div class="alert alert-warning alert-dismissible collapse" role="alert" id="socketio-error">
+              <strong>Not connected to socket.io live updates.</strong> Please check your configuration and consult the documentation.
+              To get the current status, please refresh this page manually.
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+        </p>
+        <p></p>
+        <!-- <p>
+        <table class="table table-condensed">
+          <thead>
+            <tr>
+              <th>Overview</th><th></th>
+            </tr>
+          </thead>
+          <tr><td>User:</td><td>leonhards</td></tr>
+          <tr><td>Active Contexts:</td><td>1</td></tr>
+          <tr><td>Uptime:</td><td>12s</td></tr>
+          <tr><td>Job Submitted:</td><td>28/11/2018 2:52pm</td></tr>
+        </table>
+      </p> -->
+      </div>
+    </div>
+
+    <!-- <div class="row"><hr></div> -->
+
+    <!-- check https://codepen.io/disjfa/pen/EZdMpe -->
+
+    {% for stage in stages %}
+        <div class="row">
+            <h6>Stage {{ stage.number }}: <span style="color: #999999; font-weight: normal;">({{ stage.ncount }} normal / {{ stage.ecount }} exceptional)</span></h6>
+
+        </div>
+        {% for op in stage.operators %}
+            <div class="row">
+
+              <!-- Note here the conditional on data-toggle which only activates the toggling iff exceptions are present -->
+              <div class="col-xs-12 {{ opcssclass[op.name] }}-operator operator-header panel-footer collapsed" data-toggle="{{ 'collapse' if op.exceptions }}" data-target="#collapse{{ op.id }}" id="op-header-{{ op.id }}">
+                <span class="pull-left">
+                  {{ op.name }}
+                </span>
+                <span>
+                  <!-- 22/27 tasks -->
+                </span>
+                <span class="pull-right" id="op-progress-{{ op.id }}">
+                  {% if op.ecount %}
+                  <span class="exception-counter">{{ op.ecount }}</span>
+                  {% endif %}
+                </span>
+              </div>
+
+              <div class="col-12 nopadding" style="padding: 0px 0px;">
+                <!--add here collapse in-->
+                <div id="collapse{{ op.id }}" class="collapse in">
+                  <!-- for smooth animation wrap content in div -->
+                  <div class="{{ opcssclass[op.name] }}-details" id="exception-details-{{ op.id }}">
+                    <!-- are there exceptions? then print them out -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {% if not loop.last %}
+            <div class="row ">
+                <div class="arrow-down"></div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+
+
+
+
+
+
+  </main>
+
+  <!-- // place holder -->
+  <div style="height:24px;"></div>
+
+  <footer class="footer">
+    <div class="container">
+      <p class="text-sm-center" style="margin-bottom:0; font-size: 0.8rem;"><span class="text-muted">(c) 2017-2019 L.Spiegelberg @ Brown University</span></p>
+    </div>
+  </footer>
+  <!-- Optional JavaScript - comes at BOTTOM of page -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <!-- The ORDER is VERY important! -->
+  <!-- <script src="{{ url_for('static', filename='js/jquery-slim.min.js') }}"></script> -->
+  <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/prism.js') }}"></script>
+  <!-- DO NOT forget your closing tags! -->
+  <!-- Tabulator -->
+  <!-- <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.0.5/dist/js/tabulator.min.js"></script> -->
+  <script type="text/javascript" src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/custom.js') }}"></script>
+
+  <script src="{{ url_for('static', filename='js/moment-with-locales.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/moment-duration-format.js') }}"></script>
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+
+  <!-- add here data to divs -->
+
+  <script type="text/javascript">
+
+      function escapeHtml() {
+        return this.replace(/[&<>"'\/]/g, function (s) {
+          var entityMap = {
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': '&quot;',
+              "'": '&#39;',
+              "/": '&#x2F;'
+            };
+
+          return entityMap[s];
+        });
+      }
+
+      if (typeof(String.prototype.escapeHtml) !== 'function') {
+        String.prototype.escapeHtml = escapeHtml;
+      }
+
+      // Todo: refactor this stuff
+    function updateStatus() {
+        // find all spans who have role timer
+        $('span[role="timer"]').each(function(index) {
+            let start_time = $(this).attr("data-from");
+            let diff_time = moment.utc().diff(start_time); // all times in utc
+            let elapsed_time = moment.duration(diff_time).format("d[d] h[h] m[m] s[s]", {trim: "both"});
+           $(this).text(elapsed_time);
+        });
+    }
+
+    function fillTable(tableid, columns, values) {
+      // tableid is the HTML id for the table
+      // columns is an array of strings with the columns names
+      // values is an array of arrays for the rows
+
+      var num_columns = columns.length;
+      var num_rows = values.length;
+
+      // create table
+      var tableHTML = '<thead><tr>';
+      $.each(columns, function(i, col_name) {
+        tableHTML += '<th>' + col_name + '</th>';
+      });
+      tableHTML+='</tr></thead><tbody>';
+
+      var i, j;
+      for(i = 0; i < num_rows; i++) {
+        var row = values[i];
+        tableHTML += '<tr>';
+        for(j = 0; j < num_columns; j++) {
+          tableHTML += '<td>' + row[j] + '</td>';
+        }
+        tableHTML += '</tr>';
+      }
+      tableHTML += '</tbody>';
+      $("#" + tableid).html(tableHTML);
+
+    }
+
+    function createHTMLTable(columns, values) {
+        var num_columns = columns.length;
+          var num_rows = values.length;
+
+          // create table
+          var tableHTML = '<thead><tr>';
+          columns.forEach(function(col_name) {
+            tableHTML += '<th scope="col">' + col_name + '</th>';
+          });
+          tableHTML+='</tr></thead><tbody>';
+
+          var i, j;
+          for(i = 0; i < num_rows; i++) {
+            var row = values[i];
+            tableHTML += '<tr>';
+            for(j = 0; j < num_columns; j++) {
+              tableHTML += '<td class="align-middle">' + row[j] + '</td>';
+            }
+            tableHTML += '</tr>';
+          }
+          tableHTML += '</tbody>';
+          return tableHTML;
+    }
+
+    $(document).ready(function() {
+
+        // connect for realtime updates, add error handling too...
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        let job_id = "{{ id }}";
+
+        // need to do this separately...
+        updateStatus();
+        setInterval(function() {
+           updateStatus();
+        }, 1000);
+
+        socket.on('connect_error', function(error) {
+            console.log('error while connecting, details: ' + error);
+            $('#socketio-error').removeClass('collapse'); // show connection error alert.
+        });
+
+
+        // received job status update from backend
+        socket.on('status', function(data) {
+
+            // update row with data-jobid attribute matching the id
+            // only update if jobid matches this jobs id
+            if(data.jobid === job_id) {
+                 // special messages: started/finished
+                if(data.status === 'started') {
+                    // add timer to
+                    // <span role="timer" data-from="..."></span>
+                    $('#jobstatus').html("started <span role=\"timer\" data-from=\"" + data.state_info.started + "\"></span> ago,");
+                }
+                if(data.status === 'finished') {
+                    $('#jobstatus').text("took " + humanize_time(data.state_info.duration) + " to complete, ");
+                }
+            }
+        });
+
+        // received task update (i.e. change counters)
+        socket.on('task_status', function(data) {
+            if(data.jobid === job_id) {
+                // update global counters
+                $('#global-ncount').text(data.ncount);
+                $('#global-ecount').text(data.ecount);
+            }
+        });
+
+
+        function fillInOperatorDetails(opid, details) {
+
+            // no exceptions? return!
+
+            // table with count overview of exceptions
+            var tableHTML = '<thead><tr><th class="text-left">Exception type</th><th class="text-right">count</th></thead></tr></thead>';
+            tableHTML += '<tbody>';
+                details.exceptions.forEach(function(exc){
+                     tableHTML += '<tr><td class="text-left">' + exc.code + '</td><td class="text-right">' + exc.count + '</td></tr>';
+                    });
+            tableHTML += '</tbody>';
+
+
+            // highlight python code
+            var udfCode = "";
+            try {
+              udfCode = Prism.highlight(details.udf, Prism.languages.python, 'python');
+            } catch(err) {
+              udfCode = details.udf; // just take plain text.
+            }
+
+            // add traceback for each exception
+            var tracebackHTML = "";
+            details.exceptions.forEach(function(exc){
+                tracebackHTML += "<div class=\"col-xs-12 col-md-12\">\n" +
+                    "<hr>\n" +
+                    "</div>\n" +
+                    "<div class=\"col-xs-12 col-md-12\">\n" +
+                    "<h6>Detailed overview for rows throwing " + exc.code + " exceptions: </h6>\n" +
+                    "<p></p>\n" +
+                    "<p>error traceback on first sample:</p>\n" +
+                    "<p>\n" +
+                    "<pre>" + exc.first_row_traceback.escapeHtml() + "</pre>\n" +
+                    "</p>" +
+                    "<span style=\"font-weight: 500;\">Data sample:</span>" +
+                    "<div class='table-responsive mt-3'><table class='table table-striped table-bordered table-sm text-center'>" +
+                    createHTMLTable(details.previous_operator_columns, exc.sample) +
+                    "</table>" +
+                    "</div>" +
+                    "</div>";
+            });
+
+            let fillInHTML = "<div class='row'><div class=\"col-xs-6 col-md-6\">" +
+                    "<h6>User Defined Function:</h6>" +
+                    "<div><pre class='line-numbers' data-start=\"1\"><code class=\"language-python\">" +
+                    udfCode +
+                    "</code></pre></div>" +
+                "</div>";
+
+            fillInHTML += "<div class=\"col-xs-6 col-md-6\">" +
+                "<h6>Raised Exceptions:</h6>" +
+                    "<table class='table table-bordered table-striped'>" +
+                    tableHTML +
+                "</table>" +
+                "</div></div>";
+            fillInHTML += "<div class='row'>" + tracebackHTML + "</div>";
+            // global fill in div for details
+            $('#exception-details-' + opid).html(fillInHTML);
+
+            // activate toggling
+            $('#op-header-' + opid).attr('data-toggle', 'collapse').attr('data-target', '#collapse' + opid);
+
+            // hightlight code & add line numbers
+            Prism.highlightAll();
+        }
+
+        // received operator status update (i.e. sample, count etc. changed)
+        socket.on('operator_status', function(data) {
+           // console.log(data);
+           if(data.jobid === job_id) {
+               // update operator span
+               var html = "";
+               if(data.ncount > 0)
+                html += "<span class=\"normalcase-counter\">" + data.ncount + "</span>"
+               if(data.ecount > 0)
+                html += "<span class=\"exception-counter\">" + data.ecount + "</span>";
+               $('span#op-progress-' + data.opid).html(html);
+
+               // perform JSON request to get sample & op details
+               // with additional data fill in details
+                $.getJSON("/api/operator", {
+                  jobid : data.jobid,
+                  opid : data.opid
+                }, function(details) {
+                    // console.log(details);
+                    fillInOperatorDetails(data.opid, details);
+                });
+           }
+        });
+
+      // enable tooltips
+      $('[data-toggle="tooltip"]').tooltip();
+
+      // fetch sample data via AJAX
+      {% for stage in stages %}
+        {% for op in stage.operators %}
+          {% if op.exceptions %}
+          {% for eentry in op.exceptions %}
+            $.getJSON("/api/operator", {
+                      jobid : "{{ id }}",
+                      opid : "{{ op.id }}"
+                    }, function(details) {
+                        fillInOperatorDetails("{{ op.id }}", details);
+                        // fillTable('sample-{{ op.id }}-{{ eentry.code }}', data['columns'], data['data']);
+                    });
+          {% endfor %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+
+    });
+  </script>
+
+</body>
+
+</html>

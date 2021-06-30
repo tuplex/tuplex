@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="utf-8">
+  <title>Tuplex: Data Science in Python at Native Code Speed</title>
+
+  <link rel="shortcut icon" href="{{ pathto('_static/favicon.ico', 1) }}" type="image/x-icon">
+  <!-- <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/tuplex.css"> -->
+  <link rel="stylesheet" href="{{ pathto('_static/css/bootstrap.min.css', 1) }}">
+  <link rel="stylesheet" href="{{ pathto('_static/css/tuplex.css', 1) }}">
+  <link rel="stylesheet" href="{{ pathto('_static/css/pygments.css', 1) }}">
+  <link href="{{ pathto('_static/css/fontawesome.min.css', 1) }}" rel="stylesheet">
+
+  {% include 'analytics.html' %}
+</head>
+
+<body>
+  <!-- Image and text -->
+  {% include 'navbar_without_logo.html' %}
+
+  <div class="container" style="padding-top: 10px;">
+
+    <div class="row mt-4">
+      <div class="col-2"></div>
+      <!-- calculate height to make footer be at the bottom, i.e 64px for footer + 57px for navbar -->
+      <div class="col-8" style="min-height: calc(100vh - 151px);">
+        <div class="row">
+          <div class="col-md-12 no-padding">
+            <h2>Tuplex: Blazing Fast Python Data Science</h2>
+          </div>
+          <div class="col-md-12 no-padding">
+            <div class="col-md-12 no-padding">
+              <img class="img-responsive float-right" alt="200x200" style="width: 200px; height: 200px; margin-left: 28px;" src="{{ pathto('_static/img/logo.png', 1) }}" data-holder-rendered="true">
+
+              <p class="text-justify"> Tuplex is a parallel big data processing framework that <b>runs data science pipelines written in Python at the speed of compiled code</b>.
+                Tuplex has similar Python APIs to <a href="https://spark.apache.org/">Apache Spark</a> or <a href="https://dask.org/">Dask</a>, but rather than invoking the Python interpreter, Tuplex generates optimized LLVM bytecode for the given
+                pipeline and input data set.
+                Under the hood, Tuplex is based on <b>data-driven compilation</b> and <b>dual-mode processing</b>, two key techniques that make it possible for Tuplex to provide speed comparable to a pipeline written in hand-optimized C++.
+              </p>
+            </div>
+          </div>
+          <div class="col-md-12 no-padding">
+            <h6>Subscribe here to get Tuplex first!</h6>
+            <p>
+                <i>We're currently in the process of releasing Tuplex to the public in the next days, if you're excited to try it and don't want to miss out on the release, please subscribe here to get an official release email!</i>
+            {% include 'mailchimp.html' %}
+            </p>
+          </div>
+        </div>
+        <!-- <div class="row mb-3">
+            <div class="embed-responsive embed-responsive-16by9 rounded">
+              <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/Pj9LPili_fs?autoplay=1&showinfo=0&controls=0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div> -->
+        <!-- </div> -->
+        <hr class="mt-2">
+        <div class="row">
+          <h6>Native Code Speed</h6>
+          <p>Because Tuplex compiles data science pipelines with inline Python to native
+            code, it runs them 5&ndash;91x faster than systems that call into a Python
+            interpreter.
+          </p>
+        </div>
+        <div class="row">
+          <h6>Easy to Use</h6>
+          <p>Tuplex makes wrangling data easy: it works interactively in the Python
+            toplevel, integrates with Jupyter Notebooks, and provides familiar APIs,
+            all backed by its data-driven compiler.
+            Tuplex jobs never crash on malformed
+            inputs because Tuplex's dual-mode execution model separates the common-case inputs
+            from exception-case inputs (e.g., malformed data, wrong types) and reports them
+            separately.</p>
+        </div>
+        <hr class="mt-2">
+        <div class="row">
+          <h6>Start using Tuplex</h6>
+          <p>Getting started with Tuplex is easy: we provide a
+            <a href="https://pypi.org/project/tuplex">Python package</a>,
+            <a href="https://hub.docker.com/r/tuplex/tuplex">Docker image</a>, and
+            <a href="gettingstarted.html#building-tuplex-from-source">instructions to build from source</a>.
+          </p>
+          <table class="mb-2 table table-borderless">
+            <tr>
+              <td><b>Linux, Python 3.7-3.9:</b></td>
+            </tr>
+            <tr>
+              <td>
+                <span class="install-command">$ <span id="pip-install-command">pip install tuplex</span></span>
+                <button type="button" class="install-command-button copy-btn" data-clipboard-target="#pip-install-command" data-tooltip-label="Copy to clipboard">
+                  <i class="fa fa-copy" aria-hidden="true"></i>
+                  <span class="sr-only">Copy PIP instructions</span>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td><b>macOS, Catalina or later:</b></td>
+            </tr>
+            <tr>
+              <td>
+                <span class="install-command">$ <span id="docker-install-command">docker run tuplex/tuplex</span></span>
+                <button type="button" class="install-command-button copy-btn" data-clipboard-target="#docker-install-command" data-tooltip-label="Copy to clipboard">
+                  <i class="fa fa-copy" aria-hidden="true"></i>
+                  <span class="sr-only">Copy Docker instructions</span>
+                </button>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <hr class="mt-2">
+        <div class="row">
+          <h6>Publications</h6>
+          <table class="table table-sm table-borderless" style="font-size: 14px;">
+            <tr>
+              <td><a href="https://cs.brown.edu/people/malte/pub/papers/2021-sigmod-tuplex.pdf"><img width="32px" class="mr-3" src="_images/pdf_icon.svg"></a></td>
+              <td>Leonhard&nbsp;F. Spiegelberg, Rahul Yesantharao, Malte Schwarzkopf and Tim Kraska. Tuplex: Data Science in Python at Native Code Speed. <em>Proceedings of SIGMOD 2021</em>, June 2021. URL: <a class="reference external"
+                  href="https://doi.org/10.14778/3352063.3352109">https://doi.org/10.1145/3448016.3457244</a>.</td>
+            </tr>
+            <tr>
+              <td><a href="http://www.vldb.org/pvldb/vol12/p1958-spiegelberg.pdf"><img width="32px" class="mr-3" src="_images/pdf_icon.svg"></a></td>
+              <td>Leonhard&nbsp;F. Spiegelberg and Tim Kraska. Tuplex: robust, efficient analytics when python rules. <em>Proc. VLDB Endow.</em>, 12(12):1958–1961, August 2019. URL: <a class="reference external"
+                  href="https://doi.org/10.14778/3352063.3352109">https://doi.org/10.14778/3352063.3352109</a>.</td>
+            </tr>
+          </table>
+        </div>
+        <hr class="mt-2">
+        <div class="row">
+          <h6>Team</h6><br>
+          <table class="table table-borderless">
+            <tr>
+              <td class="text-center" style="padding: 0px;">
+                <figure class="figure text-center" style="margin-bottom: 0px;">
+                  <a href="https://cs.brown.edu/~lspiegel/">
+                    <img src="_images/leonhard.jpg" style="max-height: 112px" class="rounded-circle" alt="Leonhard Spiegelberg">
+                  </a>
+                  <figcaption class="figcaption">Leonhard</figcaption>
+                </figure>
+              </td>
+              <td class="text-center" style="padding: 0px;">
+                <figure class="figure text-center" style="margin-bottom: 0px;">
+                  <a href="https://rahulyesantharao.com/">
+                    <img src="_images/rahul.jpg" style="max-height: 112px" class="rounded-circle" alt="Rahul Yesantharao">
+                  </a>
+                  <figcaption class="figcaption">Rahul</figcaption>
+                </figure>
+              </td>
+              <td class="text-center" style="padding: 0px;">
+                <figure class="figure text-center" style="margin-bottom: 0px;">
+                  <a href="http://cs.brown.edu/people/malte/">
+                    <img src="_images/malte.jpg" style="max-height: 112px" class="rounded-circle" alt="Malte Schwarzkopf">
+                  </a>
+                  <figcaption class="figcaption">Malte</figcaption>
+                </figure>
+              </td>
+              <td class="text-center" style="padding: 0px;">
+                <figure class="figure text-center" style="margin-bottom: 0px;">
+                  <a href="http://people.csail.mit.edu/kraska/">
+                    <img src="_images/tim.jpg" style="max-height: 112px" class="rounded-circle" alt="Tim Kraska">
+                  </a>
+                  <figcaption class="figcaption">Tim</figcaption>
+                </figure>
+              </td>
+          </table>
+
+          <b>Contributors and Alumni:</b>
+          <table class="mt-2 mb-2 table table-sm table-borderless">
+            <tr>
+              <td class="text-center p-3" style="padding: 0px;">
+                Andrew Wei
+              </td>
+              <td class="text-center p-3" style="padding: 0px;">
+                Andy Ly
+              </td>
+              <td class="text-center p-3" style="padding: 0px;">
+                Benjamin Givertz
+              </td>
+            </tr>
+            <tr>
+              <td class="text-center p-3" style="padding: 0px;">
+                Colby Anderson
+              </td>
+              <td class="text-center p-3" style="padding: 0px;">
+                Yunzhi Shao
+              </td>
+              <td class="text-center p-3" style="padding: 0px;">
+                Raghu Nimmagadda
+              </td>
+            </tr>
+            <tr>
+              <td class="text-center p-3" style="padding: 0px;">
+                Willam Riley
+              </td>
+              <td class="text-center p-3" style="padding: 0px;"></td>
+              <td class="text-center p-3" style="padding: 0px;"></td>
+            </tr>
+          </table>
+        </div>
+        <hr class="mt-2">
+        <div class="row mb-4">
+          <div>
+          <h6>Getting Involved</h6>
+          If you're a Brown student interested in systems research, please check out our <a href="gettinginvolved.html">guide and starter projects</a>.
+      </div>
+      </div>
+      <div class="col-2"></div>
+    </div>
+  </div>
+
+  <footer id="main-footer" style="height: 64px">
+    <div class="col-12 text-center">{{ copyright }}</div>
+  </footer>
+</body>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="{{ pathto('_static/js/bootstrap.min.js', 1) }}" charset="utf-8"></script>
+<script src="{{ pathto('_static/js/clipboard.min.js', 1) }}"></script>
+<script>
+  var clipboard = new ClipboardJS('.copy-btn');
+</script>
+
+</html>

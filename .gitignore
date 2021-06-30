@@ -1,0 +1,93 @@
+
+__pycache__/
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# mac os x
+.DS_Store
+
+# typical cmake output folder
+build/
+
+# CLion
+cmake-build-debug/
+cmake-build-release/
+.idea/
+
+# GraphViz files (exclude pdf + dot files)
+*.pdf
+*.dot
+
+# logs
+log.txt
+
+# Spark shell files
+derby.log
+metastore_db/
+# virtualenv
+.env/*
+
+Testing/
+cmake*/
+
+# cmake files
+cmake-build-*/
+cmake-build-debug-amazon-linux/
+cmake-build-debug-aws-remote-host/
+cmake-build-release-amazon-linux/
+cmake-build-release-aws-remote-host/
+experiments/awslambda/
+scripts/.ipynb_checkpoints/
+debug/
+expout.csv
+
+.ipynb_checkpoints/
+
+# vim artifact
+*.swp
+
+# Dask locks
+*.dirlock
+*.lock
+
+# all build dirs
+build2/
+build-*/
+
+# setup.py dirs...
+dist/
+python/tuplex.egg-info/
+tuplex.egg-info/
+
+wheelhouse/

@@ -1,0 +1,21 @@
+*.txt
+*.csv
+
+# ignore all experimental output folders
+pyspark*/
+python*/
+dask*/
+tuplex*/
+pandas*/
+
+# ignore generated file
+funcs.py
+funcs.c
+funcs.pyi
+funcs.build/
+baseline/tester
+
+benchmark_results/
+benchmark_output/
+*.crc
+_SUCCESS

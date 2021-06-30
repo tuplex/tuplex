@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# (c) L.Spiegelberg
+# entry point script to manipulate the Tuplex History server
+
+SCRIPT_NAME=${0##*/}
+
+PORT=6543
+HOST=localhost
+MONGO_URI="mongodb://localhost:27017/tuplex-history"
+LOG_DIR="/var/log/tuplex"
+GUNICORN_LOGFILE=$LOG_DIR"/gunicorn.log"
+
+touch $GUNICORN_LOGFILE
+
+display_usage() {
+	echo "This script faciliates to start or stop the Tuplex History server."
+	echo -e "\nUsage:\t$SCRIPT_NAME stop|start logfile [host] [port] [mongouri]\n"
+	}
+
+#start_mongodb() {
+#    # check whether mongod is installed and executable
+#    if ! [ -x "$(command -v mongod)" ]; then
+#      echo 'Error: MongoDB daemon command "mongod" not found in path or is not executable. Please fix.' >&2
+#      exit 1
+#    fi
+#
+#    # add logfile
+#    MONGOLOG="mongodb.log"
+#    MONGODBPATH=$TUPLEX_HISTORY_DIR"/thistory"
+#    touch $MONGOLOG
+#    mkdir -p $MONGODBPATH
+#
+#
+#    # check whether mongod is running, if not start
+#    if ! pgrep -x "mongod" > /dev/null
+#    then
+#        echo "MongoDB is not running, starting..."
+#
+#        mongod --quiet --logpath $MONGOLOG --logappend --dbpath $MONGODBPATH &
+#
+#        echo "MongoDB started."
+#    fi
+#    # first function argument is $1
+#}
+
+# if less than one argument supplied, display usage
+if [  $# -lt 1 ]
+then
+	display_usage
+	exit 1
+fi
+
+# check whether user had supplied -h or --help . If yes display usage
+if [[ ( $# == "--help") ||  $# == "-h" ]]
+then
+	display_usage
+	exit 0
+fi
+
+# check whether second argument is start or stop. if not, display help
+if [[ ( $1 != "start") &&  $1 != "stop" ]]
+then
+	echo "$SCRIPT_NAME: illegal option \"$1\". Run $SCRIPT_NAME -h to display help." >&2
+	exit 1
+fi
+
+
+if [[ ( -z $2 ) && ( $1 == "start" ) ]];
+then
+    echo "ERROR: need to specify logfile for gunicorn"
+    exit 1
+else
+    GUNICORN_LOGFILE=$2
+fi
+
+# parse optional arguments
+if [ ! -z $3 ];
+then
+    HOST=$3
+fi
+
+if [ ! -z $4 ];
+then
+    PORT=$4
+fi
+
+if [ ! -z $5 ];
+then
+    MONGO_URI=$5
+fi
+
+
+# should server be stopped or started?
+if [ $1 == "start" ]
+then
+
+    if ! [ -x "$(command -v gunicorn)" ]; then
+      echo 'Error: Gunicorn not found in path or is not executable. Please install.' >&2
+      exit 1
+    fi
+
+    echo "starting Tuplex History server..."
+    if ! pgrep -x "mongod" > /dev/null
+    then
+        echo "Error: MongoDB is not running, please start first." >&2
+        exit 1
+    fi
+
+    # important to start with worker class eventlet! Else, this is insanely slow...
+
+    env MONGO_URI=$MONGO_URI gunicorn --daemon --worker-class eventlet --log-file $GUNICORN_LOGFILE -b $HOST:$PORT thserver:app
+#    env MONGO_URI=$MONGO_URI gunicorn --worker-class eventlet --log-file $GUNICORN_LOGFILE -b $HOST:$PORT thserver:app
+
+    # start directly, no daemon
+    # gunicorn --worker-class eventlet -b $HOST:$PORT thserver:app
+	echo "available under $HOST:$PORT."
+else
+    kill -9 `ps aux |grep gunicorn |grep thserver | awk '{ print $2 }'`  # will kill all of the workers
+	echo "stopped Tuplex History server."
+fi

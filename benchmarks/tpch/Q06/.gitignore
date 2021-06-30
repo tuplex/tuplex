@@ -1,0 +1,7 @@
+*.log
+*.pyc
+.DS_Store
+.idea/
+*.hyper
+results/
+results_preprocessed/

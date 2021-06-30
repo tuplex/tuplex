@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    {% include 'analytics.html' %}
+    <meta charset="utf-8">
+    <title>Tuplex Documentation</title>
+
+    <link rel="shortcut icon" href="{{ pathto('_static/favicon.ico', 1) }}" type="image/x-icon">
+    <!-- <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/tuplex.css"> -->
+    <link rel="stylesheet" href="{{ pathto('_static/css/bootstrap.min.css', 1) }}">
+    <link rel="stylesheet" href="{{ pathto('_static/css/tuplex.css', 1) }}">
+    <link rel="stylesheet" href="{{ pathto('_static/css/pygments.css', 1) }}">
+  </head>
+  <body>
+    <!-- Image and text -->
+    {% include 'navbar.html' %}
+
+<div class="container-wrapper">
+<div id="left-column">
+  <div class="sidebar-wrapper mt-4">
+    <h2>Table of Contents</h2>
+      <div class="sidebar-toc">
+        <!-- Global navigation -->
+        {{ toctree(collapse=True, maxdepth=2) }}
+      </div>
+  </div>
+
+</div>
+<div id="right-column">
+  <div id="main-wrapper">
+    <!-- <div class="sub-nav" style="padding-top: 18px;">
+      <h2>Installation</h2>
+      <ul>
+        <li>prev</li>
+        <li>next</li>
+      </ul>
+    </div> -->
+    {% block body %} {% endblock %}
+
+    <div class="row">
+      {% if prev %}
+      <!-- exclude contents -->
+      {% if prev.title == 'contents' %}
+      <div class="col-6 text-left my-3"></div>
+      {% else %}
+      <div class="col-6 text-left my-3"><a href="{{ prev.link|e }}">&larr; {{ prev.title }} </a></div>
+      {% endif %}
+      {% endif %}
+      {% if next %}
+      <div class="col-6 text-right my-3"><a href="{{ next.link|e }}">{{ next.title }} &rarr;</a></div>
+      {% endif %}
+
+    </div>
+
+
+  </div>
+  <!-- Footer -->
+  <footer id="main-footer">
+    <div class="col-12 text-center">
+        <span class="copyright">{{ copyright }}</span>
+    </div>
+  </footer>
+</div>
+
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="{{ pathto('_static/js/bootstrap.min.js', 1) }}" charset="utf-8"></script>
+
+<script style="text/javascript">
+  $(document).ready(function() {
+        // add prev/next navigation to first h1
+        $('h1').wrap('<div class="sub-nav"></div>');
+
+        // template based code, construct with next/prev
+        let subnavhtml = '<ul>';
+        {% if prev %}subnavhtml += '<li><a href="{{ prev.link|e }}">prev</a></li>';{% endif %}
+        {% if next %}subnavhtml += '<li><a href="{{ next.link|e }}">next</a></li>';{% endif %}
+        subnavhtml += '</ul>';
+
+        $('h1').append(subnavhtml);
+
+        $('div.section').addClass("anchor");
+  });
+</script>
+  </body>
+</html>

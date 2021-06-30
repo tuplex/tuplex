@@ -1,0 +1,25 @@
+<!-- template for the navbar -->
+<nav class="navbar sticky-top navbar-light bg-nav">
+    <ul class="navbar-nav mr-auto ml-auto" style="display: inline-block;">
+      <!-- add class active to mark -->
+          <li class="nav-item">
+            <a class="nav-link {{ 'active' if pagename == 'gettingstarted'}}" href="gettingstarted.html">Getting Started</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {{ 'active' if pagename == 'examples'}}" href="examples.html">Examples</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {{ 'active' if pagename == 'python-api'}}" href="python-api.html">Python API</a>
+          </li>
+          <!-- Todo -->
+          <!-- <li class="nav-item">
+            <a class="nav-link" href="#">C++ API</a>
+          </li> -->
+          <li class="nav-item">
+            <a class="nav-link {{ 'active' if pagename == 'gettinginvolved'}}" href="gettinginvolved.html">Getting Involved</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {{ 'active' if pagename == 'publications'}}" href="publications.html">Publications</a>
+          </li>
+        </ul>
+</nav>

@@ -95,7 +95,7 @@ Depending on your configuration, this might take a while since Tuplex may start 
 
 Alternatively, you can write your pipeline in a file :file:`pipeline.py` and execute it via ``python3 pipeline.py``.
 
-Tuplex can be also used in Jupyter notebooks.
+Tuplex can be also used in Jupyter notebooks. Our Docker container exposes the notebook at ``localhost:8888``.
 
 .. image:: img/jupyter.png
   :scale: 40 %

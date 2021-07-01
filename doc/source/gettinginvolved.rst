@@ -9,11 +9,11 @@ Starter projects
 
 Before attempting any project on your own, please familiarize yourself with the core ideas of the Tuplex project (e.g., by reading `the preprint <http://cs.brown.edu/~lspiegel/files/Tuplex_Preprint2020.pdf>`_) and install Tuplex on your machine (`build instructions <gettingstarted.html#installation>`_). Then, try out one of the examples in the ``examples/`` folder.
 Tuplex only works on Mac OS X or a Linux distribution currently. If your machine runs Windows, you might want to consider using either `Docker <https://www.docker.com/get-started>`_ or a `Virtual Machine <https://www.virtualbox.org/>`_.
-When attempting one of these starter projects, use the master to setup your own development branch.
+When attempting one of these starter projects, fork the Tuplex repository and create a development branch in your fork.
 
 .. code-block:: bash
 
-  git clone https://github.com/LeonhardFS/Tuplex.git
+  git clone https://github.com/YOURGITHUBUSERNAME/tuplex.git
   git checkout -b tplx-<your branchname>
 
 

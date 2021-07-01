@@ -41,13 +41,6 @@
               </p>
             </div>
           </div>
-          <div class="col-md-12 no-padding">
-            <h6>Subscribe here to get Tuplex first!</h6>
-            <p>
-                <i>We're currently in the process of releasing Tuplex to the public in the next days, if you're excited to try it and don't want to miss out on the release, please subscribe here to get an official release email!</i>
-            {% include 'mailchimp.html' %}
-            </p>
-          </div>
         </div>
         <!-- <div class="row mb-3">
             <div class="embed-responsive embed-responsive-16by9 rounded">
@@ -98,13 +91,26 @@
             </tr>
             <tr>
               <td>
-                <span class="install-command">$ <span id="docker-install-command">docker run tuplex/tuplex</span></span>
+                <span class="install-command">$ <span id="docker-install-command">docker run -p 8888:8888 tuplex/tuplex</span></span>
                 <button type="button" class="install-command-button copy-btn" data-clipboard-target="#docker-install-command" data-tooltip-label="Copy to clipboard">
                   <i class="fa fa-copy" aria-hidden="true"></i>
                   <span class="sr-only">Copy Docker instructions</span>
                 </button>
               </td>
             </tr>
+            <tr>
+              <td><b>Development version from <a href="https://github.com/tuplex/tuplex">our Github repository</a>:</b></td>
+            </tr>
+            <tr>
+              <td>
+                <span class="install-command">$ <span id="github-install-command">git clone https://github.com/tuplex/tuplex</span></span>
+                <button type="button" class="install-command-button copy-btn" data-clipboard-target="#github-install-command" data-tooltip-label="Copy to clipboard">
+                  <i class="fa fa-copy" aria-hidden="true"></i>
+                  <span class="sr-only">Copy Github instructions</span>
+                </button>
+              </td>
+            </tr>
+
           </table>
         </div>
         <hr class="mt-2">
@@ -194,6 +200,15 @@
               <td class="text-center p-3" style="padding: 0px;"></td>
             </tr>
           </table>
+        </div>
+        <hr class="mt-2">
+        <div class="row mb-4">
+          <div class="col-md-12 no-padding">
+            <h6>Subscribe to get news on Tuplex first!</h6>
+            <p>If you want to receive updates about Tuplex releases, new features, and development progress, sign up for our updates below.
+            {% include 'mailchimp.html' %}
+            </p>
+          </div>
         </div>
         <hr class="mt-2">
         <div class="row mb-4">

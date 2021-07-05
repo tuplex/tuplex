@@ -56,9 +56,9 @@ class CMakeBuild(build_ext):
 
         cfg = "Debug" if self.debug else "Release"
 
-        # debug version
-        cfg = 'Debug'
-        cfg = 'Release'
+        # because still alpha, use RelWithDebInfo
+        cfg = "Debug" if self.debug else "RelWithDebInfo"
+
 
         # CMake lets you override the generator - we need to check this.
         # Can be set with Conda-Build, for example.
@@ -87,7 +87,7 @@ class CMakeBuild(build_ext):
             #       -DBoost_INCLUDE_DIR=/opt/boost/python3.7/include/ \
             #       -DLLVM_ROOT=/usr/lib64/llvm9.0/ ..
             # llvm_root = '/usr/lib64/llvm9.0/' # yum based
-            llvm_root = '/opt/llvm-9.0/'  # manual install
+            llvm_root = '/opt/llvm-9.0'  # manual install
             boost_include_dir = '/opt/boost/python{}/include/'.format(py_maj_min)
             py_include_dir = pyconfig.get_paths()['include']
             py_libs_dir = pyconfig.get_paths()['stdlib']
@@ -127,6 +127,15 @@ class CMakeBuild(build_ext):
 
         if llvm_root is not None:
             cmake_args.append('-DLLVM_ROOT={}'.format(llvm_root))
+            if os.environ.get('CIBUILDWHEEL', '0') == '1':
+                print('setting prefix path...')
+                # ci buildwheel?
+                # /opt/llvm-9.0/lib/cmake/llvm/
+                prefix_path = "/opt/llvm-9.0/lib/cmake/llvm/" #os.path.join(llvm_root, '/lib/cmake/llvm')
+                #cmake_args.append('-DCMAKE_PREFIX_PATH={}'.format(prefix_path))
+                cmake_args.append('-DLLVM_DIR={}'.format(prefix_path))
+                cmake_args.append('-DLLVM_ROOT_DIR={}'.format(llvm_root))
+
         if py_include_dir is not None:
             cmake_args.append('-DPython3_INCLUDE_DIRS={}'.format(py_include_dir))
         if py_libs_dir is not None:
@@ -290,8 +299,7 @@ def read_readme():
 
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
-setup(
-    name="tuplex",
+setup(name="tuplex",
     python_requires='>=3.7.0',
     version="0.3.0",
     author="Leonhard Spiegelberg",
@@ -302,6 +310,10 @@ setup(
     long_description_content_type='text/markdown',
     packages=discover_packages(where="tuplex/python"),
     package_dir={"": "tuplex/python"},
+    package_data={
+      # include libs in libexec
+    'tuplex.libexec' : ['*.so', '*.dylib']
+    },
     ext_modules=[CMakeExtension("tuplex.libexec.tuplex", "tuplex"), CMakeExtension("tuplex.libexec.tuplex_runtime", "tuplex")],
     cmdclass={"build_ext": CMakeBuild},
     # deactivate for now, first fix python sources to work properly!
@@ -323,10 +335,6 @@ setup(
         'jupyter',
         'nbformat'
     ],
-    package_data={
-        # include libs in libexec
-        'tuplex.libexec': ['*.so', '*.dylib']
-    },
     # metadata for upload to PyPI
     url="https://tuplex.cs.brown.edu",
     license="Apache 2.0",

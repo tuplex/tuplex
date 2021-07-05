@@ -1,0 +1,4 @@
+recursive-include tuplex/libexec *
+recursive-include tuplex/tuplex/libexec *
+include *.so
+include *.dll

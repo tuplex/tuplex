@@ -44,7 +44,7 @@ namespace tuplex {
         // init AWS SDK to get access to S3 filesystem
         auto aws_credentials = AWSCredentials::get();
         Timer timer;
-        initAWS(aws_credentials, options.AWS_REQUESTER_PAY());
+        bool aws_init_rc = initAWS(aws_credentials, options.AWS_REQUESTER_PAY());
         logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
 #endif
 
@@ -59,6 +59,16 @@ namespace tuplex {
 #ifndef BUILD_WITH_AWS
                 throw std::runtime_error("Build Tuplex with -DBUILD_WITH_AWS to enable the AWS Lambda backend");
 #else
+                // warn if credentials are not found.
+                if(!aws_init_rc) {
+                    if(aws_credentials.access_key.empty() || aws_credentials.secret_key.empty())
+                        throw std::runtime_error("To use Tuplex Lambda backend, please specify valid AWS credentials."
+                                                 " E.g., run aws configure or add two environment variables"
+                                                 " AWS_SECRET_ACCESS_KEY and AWS_ACCESS_KEY_ID");
+                    else
+                        throw std::runtime_error("Requesting Tuplex Lambda backend, but initialization failed.");
+                }
+
                 _ee = std::make_unique<AwsLambdaBackend>(AWSCredentials::get(), "tplxlam", options);
 #endif
                 break;

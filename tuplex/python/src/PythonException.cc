@@ -14,10 +14,9 @@
 namespace tuplex {
 
     void translateCCException(const PythonException& e) {
-        
-
+        // this is buggy... --> switch to pybind11?
         std::cerr<<"C++ exception raised: "<<e.what()<<std::endl;
-	std::cerr.flush();
+	    std::cerr.flush();
 
 #ifndef NDEBUG
         printf("C++ exception raised: %s", e.what());

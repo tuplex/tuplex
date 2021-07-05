@@ -9,10 +9,15 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <PythonException.h>
+#include <iostream>
 
 namespace tuplex {
 
     void translateCCException(const PythonException& e) {
+        
+
+        std::cerr<<"C++ exception raised: "<<e.what()<<std::endl;
+	std::cerr.flush();
 
 #ifndef NDEBUG
         printf("C++ exception raised: %s", e.what());

@@ -59,6 +59,7 @@ class CMakeBuild(build_ext):
         # because still alpha, use RelWithDebInfo
         cfg = "Debug" if self.debug else "RelWithDebInfo"
 
+        cfg = "Debug"
 
         # CMake lets you override the generator - we need to check this.
         # Can be set with Conda-Build, for example.

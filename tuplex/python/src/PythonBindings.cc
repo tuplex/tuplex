@@ -35,7 +35,7 @@ PYMODULE {
     // std::cout<<"init done"<<std::endl;
 
 
-    register_exception_translator<tuplex::PythonException>(&tuplex::translateCCException);
+    //register_exception_translator<tuplex::PythonException>(&tuplex::translateCCException);
 
     class_<tuplex::PythonDataSet>("_DataSet")
             .def("show", &tuplex::PythonDataSet::show)

@@ -42,7 +42,7 @@ setup(
         'dill>=0.2.7.1',
         'pluggy>=0.6.0, <1.0.0',
         'py>=1.5.2',
-        'pygments',
+        'pygments>=2.4.1',
         'pytest>=5.3.2',
         'six>=1.11.0',
         'wcwidth>=0.1.7',

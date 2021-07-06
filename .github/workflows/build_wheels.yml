@@ -92,7 +92,8 @@ jobs:
     needs: [ build_wheels ]
     runs-on: ubuntu-20.04
     # inverse condition, always create test release, any repo with passwords can work with this.
-    if: github.event_name != 'push' || startsWith(github.event.ref, 'refs/tags/v') != true
+    # note, pull requests are not sharing secrets...
+    if: github.event_name != 'pull_request' && (github.event_name != 'push' || startsWith(github.event.ref, 'refs/tags/v') != true)
     steps:
       - uses: actions/download-artifact@v2
         with:

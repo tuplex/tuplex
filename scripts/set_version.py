@@ -6,7 +6,7 @@ import logging
 import sys
 import requests
 import re
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 
 # to create a testpypi version use X.Y.devN
 version = '0.3.0'
@@ -24,7 +24,7 @@ def get_latest_pypi_version(url='https://pypi.org/simple/tuplex/'):
     # extract version string & sort
     links = {link[len('tuplex-'):link.find('-cp')] for link in links}
 
-    links = sorted(list(links), key=StrictVersion)
+    links = sorted(list(links), key=LooseVersion)
 
     # what's the latest version?
     return links[-1]

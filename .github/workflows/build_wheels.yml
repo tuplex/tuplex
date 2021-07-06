@@ -106,3 +106,6 @@ jobs:
           repository_url: https://test.pypi.org/legacy/ # uncomment for test purposes
 
       # TODO: add here test checkout using matrix of python versions to validate everything runs...
+      - name: Pip check
+        run: python3 -m pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple tuplex && python3 -c 'import tuplex; c = tuplex.Context()'
+        shell: bash

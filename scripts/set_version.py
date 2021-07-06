@@ -73,7 +73,7 @@ if __name__ == '__main__':
             patch = 'dev' + str(no + 1)
 
             # to avoid conflicts use datetime as version!
-            patch = 'dev' + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            patch = 'dev' + datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
 
         dev_version = '{}.{}.{}'.format(major, minor, patch)
         version = dev_version

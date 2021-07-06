@@ -31,6 +31,11 @@ jobs:
       #   with:
       #     platforms: all
 
+      - name: Create dev version
+        if: github.event_name != 'push' || startsWith(github.event.ref, 'refs/tags/v') != true
+        run: cd ./scripts && python3 set_version.py --dev
+        shell: bash
+
       - name: MacOS dependencies
         if: runner.os == 'macOS'
         run: bash ./scripts/ci/setup-macos.sh
@@ -67,8 +72,8 @@ jobs:
     needs: [ build_wheels ]
     runs-on: ubuntu-20.04
     # remove repository url to publish to default pypi.
-    # upload to PyPI on every tag starting with 'v'
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+    # upload to PyPI on every tag starting with 'v' ONLY on official tuplex repo.
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') && github.repository == 'tuplex/tuplex'
     # alternatively, to publish when a GitHub Release is created, use the following rule:
     # if: github.event_name == 'release' && github.event.action == 'published'
     steps:
@@ -82,3 +87,22 @@ jobs:
           user: ${{ secrets.pypi_user }}
           password: ${{ secrets.pypi_password }}
           # repository_url: https://test.pypi.org/legacy/ # uncomment for test purposes
+
+  upload_testpypi:
+    needs: [ build_wheels ]
+    runs-on: ubuntu-20.04
+    # inverse condition, always create test release, any repo with passwords can work with this.
+    if: github.event_name != 'push' || startsWith(github.event.ref, 'refs/tags/v') != true
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          user: ${{ secrets.pypi_user }}
+          password: ${{ secrets.pypi_password }}
+          repository_url: https://test.pypi.org/legacy/ # uncomment for test purposes
+
+      # TODO: add here test checkout using matrix of python versions to validate everything runs...

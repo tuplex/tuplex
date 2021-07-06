@@ -43,6 +43,8 @@ if __name__ == '__main__':
                         help='version string to use (better modify this file)')
     parser.add_argument('--dev', dest='dev', action="store_true",
                         help="whether to create a latest dev version or not")
+    parser.add_argument('-f', '--force', dest='force', action="store_true",
+                        help="whether to force version on files")
     args = parser.parse_args()
 
     if version != args.version:
@@ -69,10 +71,11 @@ if __name__ == '__main__':
             no = int(patch[len('dev'):])
             patch = 'dev' + str(no + 1)
         dev_version = '{}.{}.{}'.format(major, minor, patch)
+        version = dev_version
         logging.info('creating dev version {}'.format(dev_version))
     else:
         # skip if requested version is on test pypi
-        if StrictVersion(version) <= StrictVersion(version_pypi):
+        if not args.force and StrictVersion(version) <= StrictVersion(version_pypi):
             logging.error("newer version on pypi.org, abort")
             sys.exit(1)
 
@@ -82,7 +85,6 @@ if __name__ == '__main__':
     setup_py_path = '../tuplex/python/setup.py'
     toplevel_setup_py_path = '../setup.py'
     version_hist_path = '../tuplex/historyserver/thserver/version.py'
-
 
     # modify files...
     with open(version_py_path, 'w') as fp:

@@ -324,11 +324,13 @@ setup(name="tuplex",
     # deactivate for now, first fix python sources to work properly!
     zip_safe=False,
     install_requires=[
+        'jupyter',
+        'nbformat',
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
         'pluggy>=0.6.0, <1.0.0',
         'py>=1.5.2',
-        'Pygments>=2.3.1',
+        'pygments',
         'pytest>=5.3.2',
         'six>=1.11.0',
         'wcwidth>=0.1.7',
@@ -336,9 +338,7 @@ setup(name="tuplex",
         'prompt_toolkit>=2.0.7',
         'jedi>=0.13.2',
         'cloudpickle>=0.6.1',
-        'PyYAML>=3.13',
-        'jupyter',
-        'nbformat'
+        'PyYAML>=3.13'
     ],
     # metadata for upload to PyPI
     url="https://tuplex.cs.brown.edu",

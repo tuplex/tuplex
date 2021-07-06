@@ -23,7 +23,7 @@ files = list(filter(lambda x: '__pycache__' not in x and not x.endswith('.pyc'),
 
 setup(
     name="Tuplex",
-    version="0.3.0",
+    version="0.3.1",
     packages=find_packages(),
     package_data={
       # include libs in libexec
@@ -36,11 +36,13 @@ setup(
     license="Apache 2.0",
     keywords="ETL BigData Python LLVM UDF",
     install_requires=[
+        'jupyter',
+        'nbformat',
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
         'pluggy>=0.6.0, <1.0.0',
         'py>=1.5.2',
-        'Pygments>=2.3.1',
+        'pygments>=2.4.1',
         'pytest>=5.3.2',
         'six>=1.11.0',
         'wcwidth>=0.1.7',
@@ -48,9 +50,7 @@ setup(
         'prompt_toolkit>=2.0.7',
         'jedi>=0.13.2',
         'cloudpickle>=0.6.1',
-        'PyYAML>=3.13',
-        'jupyter',
-        'nbformat'
+        'PyYAML>=3.13'
     ],
     url="https://tuplex.cs.brown.edu"
     #,

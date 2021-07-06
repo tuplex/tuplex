@@ -14,7 +14,7 @@ from setuptools.command.build_ext import build_ext
 from distutils import sysconfig
 
 import fnmatch
-
+import re
 
 def find_files(pattern, path):
     result = []
@@ -56,9 +56,11 @@ class CMakeBuild(build_ext):
 
         cfg = "Debug" if self.debug else "Release"
 
-        # debug version
-        cfg = 'Debug'
-        cfg = 'Release'
+        # because still alpha, use RelWithDebInfo
+        cfg = "Debug" if self.debug else "RelWithDebInfo"
+
+        # force release version
+        cfg = "Release"
 
         # CMake lets you override the generator - we need to check this.
         # Can be set with Conda-Build, for example.
@@ -87,7 +89,7 @@ class CMakeBuild(build_ext):
             #       -DBoost_INCLUDE_DIR=/opt/boost/python3.7/include/ \
             #       -DLLVM_ROOT=/usr/lib64/llvm9.0/ ..
             # llvm_root = '/usr/lib64/llvm9.0/' # yum based
-            llvm_root = '/opt/llvm-9.0/'  # manual install
+            llvm_root = '/opt/llvm-9.0'  # manual install
             boost_include_dir = '/opt/boost/python{}/include/'.format(py_maj_min)
             py_include_dir = pyconfig.get_paths()['include']
             py_libs_dir = pyconfig.get_paths()['stdlib']
@@ -120,13 +122,26 @@ class CMakeBuild(build_ext):
         cmake_args = [
             # "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}".format(extdir),
             "-DPYTHON_EXECUTABLE={}".format(sys.executable),
-            "-DVERSION_INFO={}".format(self.distribution.get_version()),
             "-DCMAKE_BUILD_TYPE={}".format(cfg),  # not used on MSVC, but no harm
             "-DPYTHON3_VERSION={}".format(py_maj_min),
         ]
 
+        # add version info if not dev
+        version_cmake = "-DVERSION_INFO={}".format(self.distribution.get_version())
+        if re.match(r'\d+.\d+.\d+', version_cmake):
+            cmake_args.append(version_cmake)
+
         if llvm_root is not None:
             cmake_args.append('-DLLVM_ROOT={}'.format(llvm_root))
+            if os.environ.get('CIBUILDWHEEL', '0') == '1':
+                print('setting prefix path...')
+                # ci buildwheel?
+                # /opt/llvm-9.0/lib/cmake/llvm/
+                prefix_path = "/opt/llvm-9.0/lib/cmake/llvm/" #os.path.join(llvm_root, '/lib/cmake/llvm')
+                #cmake_args.append('-DCMAKE_PREFIX_PATH={}'.format(prefix_path))
+                cmake_args.append('-DLLVM_DIR={}'.format(prefix_path))
+                cmake_args.append('-DLLVM_ROOT_DIR={}'.format(llvm_root))
+
         if py_include_dir is not None:
             cmake_args.append('-DPython3_INCLUDE_DIRS={}'.format(py_include_dir))
         if py_libs_dir is not None:
@@ -290,10 +305,9 @@ def read_readme():
 
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
-setup(
-    name="tuplex",
+setup(name="tuplex",
     python_requires='>=3.7.0',
-    version="0.3.0",
+    version="0.3.1",
     author="Leonhard Spiegelberg",
     author_email="tuplex@cs.brown.edu",
     description="Tuplex is a novel big data analytics framework incorporating a Python UDF compiler based on LLVM "
@@ -302,16 +316,22 @@ setup(
     long_description_content_type='text/markdown',
     packages=discover_packages(where="tuplex/python"),
     package_dir={"": "tuplex/python"},
+    package_data={
+      # include libs in libexec
+    'tuplex.libexec' : ['*.so', '*.dylib']
+    },
     ext_modules=[CMakeExtension("tuplex.libexec.tuplex", "tuplex"), CMakeExtension("tuplex.libexec.tuplex_runtime", "tuplex")],
     cmdclass={"build_ext": CMakeBuild},
     # deactivate for now, first fix python sources to work properly!
     zip_safe=False,
     install_requires=[
+        'jupyter',
+        'nbformat',
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
         'pluggy>=0.6.0, <1.0.0',
         'py>=1.5.2',
-        'Pygments>=2.3.1',
+        'pygments>=2.4.1',
         'pytest>=5.3.2',
         'six>=1.11.0',
         'wcwidth>=0.1.7',
@@ -319,14 +339,8 @@ setup(
         'prompt_toolkit>=2.0.7',
         'jedi>=0.13.2',
         'cloudpickle>=0.6.1',
-        'PyYAML>=3.13',
-        'jupyter',
-        'nbformat'
+        'PyYAML>=3.13'
     ],
-    package_data={
-        # include libs in libexec
-        'tuplex.libexec': ['*.so', '*.dylib']
-    },
     # metadata for upload to PyPI
     url="https://tuplex.cs.brown.edu",
     license="Apache 2.0",

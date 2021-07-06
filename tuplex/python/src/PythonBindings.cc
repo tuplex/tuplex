@@ -34,8 +34,8 @@ PYMODULE {
     // std::cout<<"Status of PyEval_ThreadsInitialized threads: "<<PyEval_ThreadsInitialized()<<std::endl;
     // std::cout<<"init done"<<std::endl;
 
-
-    //register_exception_translator<tuplex::PythonException>(&tuplex::translateCCException);
+    // deactivated C++ -> python exception translation, because it's buggy for some reason.
+    // register_exception_translator<tuplex::PythonException>(&tuplex::translateCCException);
 
     class_<tuplex::PythonDataSet>("_DataSet")
             .def("show", &tuplex::PythonDataSet::show)

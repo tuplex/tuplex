@@ -9,7 +9,7 @@ import re
 from distutils.version import LooseVersion
 
 # to create a testpypi version use X.Y.devN
-version = '0.3.0'
+version = '0.3.1'
 
 # https://pypi.org/simple/tuplex/
 # or https://test.pypi.org/simple/tuplex/
@@ -75,7 +75,7 @@ if __name__ == '__main__':
         logging.info('creating dev version {}'.format(dev_version))
     else:
         # skip if requested version is on test pypi
-        if not args.force and StrictVersion(version) <= StrictVersion(version_pypi):
+        if not args.force and LooseVersion(version) <= LooseVersion(version_pypi):
             logging.error("newer version on pypi.org, abort")
             sys.exit(1)
 

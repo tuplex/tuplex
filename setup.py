@@ -59,7 +59,8 @@ class CMakeBuild(build_ext):
         # because still alpha, use RelWithDebInfo
         cfg = "Debug" if self.debug else "RelWithDebInfo"
 
-        cfg = "Debug"
+        # force release version
+        cfg = "Release"
 
         # CMake lets you override the generator - we need to check this.
         # Can be set with Conda-Build, for example.
@@ -306,7 +307,7 @@ def read_readme():
 # logic and declaration, and simpler if you include description/version in a file.
 setup(name="tuplex",
     python_requires='>=3.7.0',
-    version="0.3.0",
+    version="0.3.1",
     author="Leonhard Spiegelberg",
     author_email="tuplex@cs.brown.edu",
     description="Tuplex is a novel big data analytics framework incorporating a Python UDF compiler based on LLVM "

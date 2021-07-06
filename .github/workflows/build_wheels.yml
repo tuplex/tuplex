@@ -31,6 +31,7 @@ jobs:
       #   with:
       #     platforms: all
 
+      # this will create a dummy dev version based on the current time to avoid conflicts on test.pypi.org
       - name: Create dev version
         if: github.event_name != 'push' || startsWith(github.event.ref, 'refs/tags/v') != true
         run: cd ./scripts && python3 set_version.py --dev
@@ -106,7 +107,7 @@ jobs:
           password: ${{ secrets.pypi_password }}
           repository_url: https://test.pypi.org/legacy/ # uncomment for test purposes
 
-      # TODO: add here test checkout using matrix of python versions to validate everything runs...
+      # test checkout of the created dev version. Note: There might be a version conflict, but else this should be alright.
       - name: Pip check
-        run: python3 -m pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple tuplex && python3 -c 'import tuplex; c = tuplex.Context()'
+        run: python3 -m pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple "tuplex==$(cat ./scripts/dev.version)" && python3 -c 'import tuplex; c = tuplex.Context()'
         shell: bash

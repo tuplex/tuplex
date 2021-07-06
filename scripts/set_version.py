@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import re
 import datetime
@@ -70,9 +71,17 @@ if __name__ == '__main__':
             # patch should be dev...
             no = int(patch[len('dev'):])
             patch = 'dev' + str(no + 1)
+
+            # to avoid conflicts use datetime as version!
+            patch = 'dev' + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
         dev_version = '{}.{}.{}'.format(major, minor, patch)
         version = dev_version
         logging.info('creating dev version {}'.format(dev_version))
+
+        # write to file
+        with open('dev.version', 'w') as fp:
+            fp.write(dev_version)
     else:
         # skip if requested version is on test pypi
         if not args.force and LooseVersion(version) <= LooseVersion(version_pypi):

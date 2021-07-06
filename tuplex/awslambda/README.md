@@ -2,7 +2,7 @@
 
 This folder contains code for the AWS C++ Lambda executor which can be deployed when using the AWS Lambda backend.
 
-Can only built on Linux.
+Is only built on Linux (for MacOS use the hosted package).
 
 # Setup Guide
 ## Initial AWS Setup
@@ -19,6 +19,7 @@ Can only built on Linux.
 - Go to `benchmark/distributed/tuplex/`
 - Run `python runtuplex.py --output-path s3://<your-bucket>/zillow.csv --scratch-dir s3://<your-bucket>/scratch` 
 - You can add `--path s3://tuplex-public/data/1000GB/*.csv` to the command above to run over 1000GB instead of the default (100GB).
+
 ### AWS Parameters
 - Some relevant parameters that can be set up in the tuplex config are:
   - `scratchDir`: an s3 location that tuplex can use for scratch files (MUST BE SET TO RUN ANY PIPELINE!)
@@ -27,8 +28,7 @@ Can only built on Linux.
   - `aws.connectTimeout`: the connection timeout (s),
   - `aws.maxConcurrency`: the maximum amount of executors to be used concurrently,
   - `aws.requesterPay`: whether to make the requester pay to access s3 files (required for `s3://tuplex-public`),
-
-
+    
 ## Debugging
  - We can view logs on Cloudwatch to debug lambda execution
    - Go to CloudWatch > CloudWatch Logs > Log Groups > /aws/lambda/tplxlam
@@ -50,15 +50,3 @@ Can only built on Linux.
 ## Debugging:
 `sudo yum install elfutils-devel` or `sudo yum install binutils-devel` on Amazon Linux.
 This will enable further debug info in cloud logs.
-
-# Old Information (Amazon Linux 1)
-On Amazon Linux 1, `gdb` is outdated (7.6.1). In order to work with CLion, update it to a more recent version via
-
-```
-# CLion 2021 supports 7.8.x - 10.1 (https://www.jetbrains.com/help/clion/configuring-debugger-options.html)
-
-wget ftp://ftp.gnu.org/gnu/gdb/gdb-10.1.tar.gz
-cd gdb-10.1
-make -j8
-sudo make install
-```

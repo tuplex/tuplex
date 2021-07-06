@@ -14,7 +14,7 @@ from setuptools.command.build_ext import build_ext
 from distutils import sysconfig
 
 import fnmatch
-
+import re
 
 def find_files(pattern, path):
     result = []
@@ -121,10 +121,14 @@ class CMakeBuild(build_ext):
         cmake_args = [
             # "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}".format(extdir),
             "-DPYTHON_EXECUTABLE={}".format(sys.executable),
-            "-DVERSION_INFO={}".format(self.distribution.get_version()),
             "-DCMAKE_BUILD_TYPE={}".format(cfg),  # not used on MSVC, but no harm
             "-DPYTHON3_VERSION={}".format(py_maj_min),
         ]
+
+        # add version info if not dev
+        version_cmake = "-DVERSION_INFO={}".format(self.distribution.get_version())
+        if re.match(r'\d+.\d+.\d+', version_cmake):
+            cmake_args.append(version_cmake)
 
         if llvm_root is not None:
             cmake_args.append('-DLLVM_ROOT={}'.format(llvm_root))

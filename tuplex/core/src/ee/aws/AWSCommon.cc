@@ -60,10 +60,8 @@ namespace tuplex {
     bool initAWS(const AWSCredentials& credentials, bool requesterPay) {
         initAWSSDK();
 
-#ifndef BUILD_FOR_CI
         if(credentials.secret_key.empty() || credentials.access_key.empty())
-            throw std::runtime_error("empty AWS credentials, please specify them!");
-#endif
+           return false;
 
         // add S3 file system
         VirtualFileSystem::addS3FileSystem(credentials.access_key, credentials.secret_key, "", false, requesterPay);

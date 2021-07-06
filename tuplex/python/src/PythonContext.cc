@@ -1152,7 +1152,7 @@ namespace tuplex {
 
         ContextOptions co = ContextOptions::defaults();
 
-#warning "uncomment this code, because it will cause a deadlock sometimes... (Weird python output shit)"
+#warning "this code is commented, because it will cause a deadlock sometimes... Uncomment to activate output in Jupyter notebook."
         // init logging system here
         // @TODO: add as context option
         // note: this should come BEFORE any Logger::instance()... calls
@@ -1187,12 +1187,28 @@ namespace tuplex {
         // for context creation release GIL
         assert(PyGILState_Check()); // make sure this thread holds the GIL!
         python::unlockGIL();
-        _context = new Context(co);
-        if(!name.empty())
-            _context->setName(name);
+        std::string err_message = ""; // leave this as empty string!
+        try {
+            _context = new Context(co);
+            if(!name.empty())
+                _context->setName(name);
+        } catch(const std::exception& e) {
+            err_message = e.what();
+            assert(!err_message.empty());
+            Logger::instance().defaultLogger().error(err_message);
+        } catch(...) {
+            err_message = "unknown C++ exception occurred, please change type s.t. it's derived from std::exception for meaningful display.";
+            Logger::instance().defaultLogger().error(err_message);
+        }
+
         // restore GIL
         python::lockGIL();
         Logger::instance().flushAll();
+
+        // manually set python error -> do not trust boost::python exception translation, it's faulty!
+        if(!err_message.empty()) {
+            PyErr_SetString(PyExc_RuntimeError, err_message.c_str());
+        }
     }
 
 

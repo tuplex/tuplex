@@ -65,7 +65,10 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          path: ./wheelhouse/*.whl
+          path: |
+            ./wheelhouse/*.whl
+            ./scripts/*.version
+            ./scripts/test_pypi.sh
 
   # cf. https://github.com/pypa/cibuildwheel/blob/main/examples/github-deploy.yml
   # potentially also create a sdist.
@@ -107,7 +110,21 @@ jobs:
           password: ${{ secrets.pypi_password }}
           repository_url: https://test.pypi.org/legacy/ # uncomment for test purposes
 
+
+      # for debugging purposes
+      - name: display dir
+        run: ls -R
+
+      - name: test
+        run: ls ./scripts
+
+      - name: test2
+        runt: ls dist
+
+      - name: 'Echo download path'
+        run: echo ${{steps.download.outputs.download-path}}
+
       # test checkout of the created dev version. Note: There might be a version conflict, but else this should be alright.
       - name: Pip check
-        run: ./scripts/test_pypi.sh
+        run: ./dist/scripts/test_pypi.sh
         shell: bash

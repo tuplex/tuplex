@@ -63,7 +63,7 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
           CIBW_BEFORE_BUILD_MACOS: ./scripts/ci/setup-macos.sh
       - name: reorganize files
-        run: cp ./scripts/*.version ./wheelhouse && cp ./scripts/test_pypi.sj ./wheelhouse
+        run: cp ./scripts/*.version ./wheelhouse && cp ./scripts/test_pypi.sh ./wheelhouse
       - uses: actions/upload-artifact@v2
         with:
           path: |

@@ -62,13 +62,14 @@ jobs:
 
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
           CIBW_BEFORE_BUILD_MACOS: ./scripts/ci/setup-macos.sh
-
+      - name: reorganize files
+        run: cp ./scripts/*.version ./wheelhouse && cp ./scripts/test_pypi.sj ./wheelhouse
       - uses: actions/upload-artifact@v2
         with:
           path: |
             ./wheelhouse/*.whl
-            ./scripts/*.version
-            ./scripts/test_pypi.sh
+            ./wheelhouse/*.version
+            ./wheelhouse/test_pypi.sh
 
   # cf. https://github.com/pypa/cibuildwheel/blob/main/examples/github-deploy.yml
   # potentially also create a sdist.
@@ -86,11 +87,13 @@ jobs:
           name: artifact
           path: dist
 
+      - name: remove test files
+        run: rm dist/*.version && rm dist/*.sh
+
       - uses: pypa/gh-action-pypi-publish@v1.4.2
         with:
           user: ${{ secrets.pypi_user }}
           password: ${{ secrets.pypi_password }}
-          # repository_url: https://test.pypi.org/legacy/ # uncomment for test purposes
 
   upload_testpypi:
     needs: [ build_wheels ]
@@ -104,12 +107,8 @@ jobs:
           name: artifact
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@v1.4.2
-        with:
-          user: ${{ secrets.pypi_user }}
-          password: ${{ secrets.pypi_password }}
-          repository_url: https://test.pypi.org/legacy/ # uncomment for test purposes
-
+      - name: reorganize
+        run: mkdir -p scripts && mv dist/*.sh ./scripts/ && mv dist/*.version ./scripts/ && chmod +x ./scripts/test_pypi.sh
 
       # for debugging purposes
       - name: display dir
@@ -124,7 +123,13 @@ jobs:
       - name: 'Echo download path'
         run: echo ${{steps.download.outputs.download-path}}
 
+      - uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          user: ${{ secrets.pypi_user }}
+          password: ${{ secrets.pypi_password }}
+          repository_url: https://test.pypi.org/legacy/ # uncomment for test purposes
+
       # test checkout of the created dev version. Note: There might be a version conflict, but else this should be alright.
       - name: Pip check
-        run: ./dist/scripts/test_pypi.sh
+        run: ./scripts/test_pypi.sh
         shell: bash

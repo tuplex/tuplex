@@ -119,7 +119,7 @@ jobs:
         run: ls ./scripts
 
       - name: test2
-        runt: ls dist
+        run: ls dist
 
       - name: 'Echo download path'
         run: echo ${{steps.download.outputs.download-path}}

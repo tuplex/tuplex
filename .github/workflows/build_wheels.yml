@@ -62,6 +62,7 @@ jobs:
 
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
           CIBW_BEFORE_BUILD_MACOS: ./scripts/ci/setup-macos.sh
+
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./scripts/test_pypi.sh ./wheelhouse
 

@@ -4,4 +4,4 @@ python_backup/
 python_patched/
 *.tgz
 *.log
-
+*.version

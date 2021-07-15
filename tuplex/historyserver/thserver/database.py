@@ -40,6 +40,8 @@ class Job:
             job['created'] = current_utc_timestamp()
             job['stages'] = []
             job['status'] = 'created'
+            job['ncount'] = 0
+            job['ecount'] = 0
 
             # retrieve id
             self._id = mongo.db.jobs.insert_one(job).inserted_id
@@ -101,8 +103,7 @@ class Job:
         for stage in stages:
 
             # add empty count stages here
-            self.stages.append({'stageid' : stage['id'], 'ncount' : 0, 'ecount' : 0})
-
+            self.stages.append({'stageid' : stage['id'], 'ncount' : 0, 'ecount' : 0, 'predecessors': stage["predecessors"]})
             if 'operators' in stage.keys():
                 operators = stage['operators']
 

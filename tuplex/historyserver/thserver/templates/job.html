@@ -88,11 +88,52 @@
 
     <!-- check https://codepen.io/disjfa/pen/EZdMpe -->
 
-    {% for stage in stages %}
-        <div class="row">
-            <h6>Stage {{ stage.number }}: <span style="color: #999999; font-weight: normal;">({{ stage.ncount }} normal / {{ stage.ecount }} exceptional)</span></h6>
+      {% for op in operators %}
+      <div class="row">
+          <!-- Note here the conditional on data-toggle which only activates the toggling iff exceptions are present -->
+          <div class="col-xs-12 {{ opcssclass[op.name] }}-operator operator-header panel-footer collapsed" data-toggle="{{ 'collapse' if op.exceptions }}" data-target="#collapse{{ op.id }}" id="op-header-{{ op.id }}">
+         <span class="pull-left">
+           {{ op.name }}
+         </span>
+              <span>
+           <!-- 22/27 tasks -->
+         </span>
+              <span class="pull-right" id="op-progress-{{ op.id }}">
+           {% if op.ncount %}
+           <span class="normalcase-counter">{{ op.ncount }}</span>
+           {% endif %}
+           {% if op.ecount %}
+           <span class="exception-counter">{{ op.ecount }}</span>
+           {% endif %}
+         </span>
+          </div>
+          <div class="col-12 nopadding" style="padding: 0px 0px;">
+              <!--add here collapse in-->
+              <div id="collapse{{ op.id }}" class="collapse in">
+                  <!-- for smooth animation wrap content in div -->
+                  <div class="{{ opcssclass[op.name] }}-details" id="exception-details-{{ op.id }}">
+                      <!-- are there exceptions? then print them out -->
+                  </div>
+              </div>
+          </div>
+      </div>
 
-        </div>
+      {% if not loop.last %}
+      <div class="row ">
+          <div class="arrow-down"></div>
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% for stage in stages %}
+      <div class="row" style="padding-top: 10px">
+          <h6>Stage {{ stage.number }} Counts: <span style="color: #999999; font-weight: normal;">({{ stage.ncount }} normal / {{ stage.ecount }} exceptional)</span></h6>
+      </div>
+      {% if stage.dependencies %}
+      <div class="row">
+          <h6>Stage {{ stage.number }} Dependencies: <span style="color: #999999; font-weight: normal;">{{ stage.dependencies }}</span></h6>
+      </div>
+      {% endif %}
+
         {% for op in stage.operators %}
             <div class="row">
 
@@ -298,66 +339,126 @@
 
         function fillInOperatorDetails(opid, details) {
 
-            // no exceptions? return!
-
-            // table with count overview of exceptions
-            var tableHTML = '<thead><tr><th class="text-left">Exception type</th><th class="text-right">count</th></thead></tr></thead>';
-            tableHTML += '<tbody>';
-                details.exceptions.forEach(function(exc){
-                     tableHTML += '<tr><td class="text-left">' + exc.code + '</td><td class="text-right">' + exc.count + '</td></tr>';
-                    });
-            tableHTML += '</tbody>';
-
-
-            // highlight python code
-            var udfCode = "";
-            try {
-              udfCode = Prism.highlight(details.udf, Prism.languages.python, 'python');
-            } catch(err) {
-              udfCode = details.udf; // just take plain text.
+            if (typeof details.exceptions !== 'undefined') {
+                console.log("uno");
+                var tableHTML = '<thead><tr><th class="text-left">Exception type</th><th class="text-right">count</th></thead></tr></thead>';
+                tableHTML += '<tbody>';
+                details.exceptions.forEach(function (exc) {
+                    tableHTML += '<tr><td class="text-left">' + exc.code + '</td><td class="text-right">' + exc.count + '</td></tr>';
+                });
+                tableHTML += '</tbody>';
             }
 
-            // add traceback for each exception
-            var tracebackHTML = "";
-            details.exceptions.forEach(function(exc){
-                tracebackHTML += "<div class=\"col-xs-12 col-md-12\">\n" +
-                    "<hr>\n" +
-                    "</div>\n" +
-                    "<div class=\"col-xs-12 col-md-12\">\n" +
-                    "<h6>Detailed overview for rows throwing " + exc.code + " exceptions: </h6>\n" +
-                    "<p></p>\n" +
-                    "<p>error traceback on first sample:</p>\n" +
-                    "<p>\n" +
-                    "<pre>" + exc.first_row_traceback.escapeHtml() + "</pre>\n" +
-                    "</p>" +
-                    "<span style=\"font-weight: 500;\">Data sample:</span>" +
-                    "<div class='table-responsive mt-3'><table class='table table-striped table-bordered table-sm text-center'>" +
-                    createHTMLTable(details.previous_operator_columns, exc.sample) +
-                    "</table>" +
-                    "</div>" +
-                    "</div>";
-            });
 
-            let fillInHTML = "<div class='row'><div class=\"col-xs-6 col-md-6\">" +
+            if (typeof details.combiner_udf !== 'undefined') {
+                console.log("dos");
+                var udfCode = "";
+                try {
+                    combinerUdfCode = Prism.highlight(details.udf, Prism.languages.python, 'python');
+                } catch (err) {
+                    combinerUdfCode = details.combiner_udf; // just take plain text.
+
+                }
+            }
+            if (typeof details.aggregator_udf !== 'undefined') {
+                console.log("dos");
+                var udfCode = "";
+                try {
+                    aggregatorUdfCode = Prism.highlight(details.udf, Prism.languages.python, 'python');
+                } catch (err) {
+                    aggregatorUdfCode = details.aggregator_udf; // just take plain text.
+
+                }
+            }
+
+            if (typeof details.udf !== 'undefined') {
+                console.log("dos");
+                var udfCode = "";
+                try {
+                    udfCode = Prism.highlight(details.udf, Prism.languages.python, 'python');
+                } catch (err) {
+                    udfCode = details.udf; // just take plain text.
+
+                }
+            }
+
+            if (typeof details.exceptions !== 'undefined') {
+                console.log("tres");
+                var tracebackHTML = "";
+                details.exceptions.forEach(function (exc) {
+                    tracebackHTML += "<div class=\"col-xs-12 col-md-12\">\n" +
+                        "<hr>\n" +
+                        "</div>\n" +
+                        "<div class=\"col-xs-12 col-md-12\">\n" +
+                        "<h6>Detailed overview for rows throwing " + exc.code + " exceptions: </h6>\n" +
+                        "<p></p>\n" +
+                        "<p>error traceback on first sample:</p>\n" +
+                        "<p>\n" +
+                        "<pre>" + exc.first_row_traceback.escapeHtml() + "</pre>\n" +
+                        "</p>" +
+                        "<span style=\"font-weight: 500;\">Data sample:</span>" +
+                        "<div class='table-responsive mt-3'><table class='table table-striped table-bordered table-sm text-center'>" +
+                        createHTMLTable(details.previous_operator_columns, exc.sample) +
+                        "</table>" +
+                        "</div>" +
+                        "</div>";
+                });
+            }
+            let fillInHTML = "";
+            if (typeof details.udf !== 'undefined') {
+                console.log("quatro");
+                fillInHTML += "<div class='row'><div class=\"col-xs-6 col-md-6\">" +
                     "<h6>User Defined Function:</h6>" +
                     "<div><pre class='line-numbers' data-start=\"1\"><code class=\"language-python\">" +
                     udfCode +
                     "</code></pre></div>" +
                 "</div>";
 
+            }
+            if (typeof details.combiner_udf !== 'undefined') {
+                fillInHTML += "<div class='row'><div class=\"col-xs-6 col-md-6\">" +
+                    "<h6>Combiner User Defined Function:</h6>" +
+                    "<div><pre class='line-numbers' data-start=\"1\"><code class=\"language-python\">" +
+                    combinerUdfCode +
+                    "</code></pre></div>" +
+                    "</div>";
+            }
+            if (typeof details.aggregator_udf !== 'undefined') {
+
+
+
             fillInHTML += "<div class=\"col-xs-6 col-md-6\">" +
-                "<h6>Raised Exceptions:</h6>" +
+                "<h6>Aggregator User Defined Function:</h6>" +
+                "<div><pre class='line-numbers' data-start=\"1\"><code class=\"language-python\">" +
+                aggregatorUdfCode +
+                "</code></pre></div>" +
+                "</div>";
+            }
+            if (typeof details.exceptions !== 'undefined') {
+
+                fillInHTML += "<div class=\"col-xs-6 col-md-6\">" +
+                    "<h6>Raised Exceptions:</h6>" +
                     "<table class='table table-bordered table-striped'>" +
                     tableHTML +
-                "</table>" +
-                "</div></div>";
-            fillInHTML += "<div class='row'>" + tracebackHTML + "</div>";
-            // global fill in div for details
-            $('#exception-details-' + opid).html(fillInHTML);
+                    "</table>" +
+                    "</div></div>";
+                fillInHTML += "<div class='row'>" + tracebackHTML + "</div>";
+            }
+            if (typeof fillInHTML !== "undefined") {
+                console.log("seis");
+                // global fill in div for details
+                $('#exception-details-' + opid).html(fillInHTML);
+            }
+                badOps = ['collect', 'parallelize'];
+                if (details.name !== "undefined" && !badOps.includes(details.name) ) {
+                    console.log("siete");
 
             // activate toggling
-            $('#op-header-' + opid).attr('data-toggle', 'collapse').attr('data-target', '#collapse' + opid);
-
+                    badOps = ['collect', 'parallelize'];
+                    if (details.name !== "undefined" && !badOps.includes(details.name) ) {
+                        console.log("siete");
+                        $('#op-header-' + opid).attr('data-toggle', 'collapse').attr('data-target', '#collapse' + opid);
+                    }
             // hightlight code & add line numbers
             Prism.highlightAll();
         }
@@ -392,8 +493,7 @@
       // fetch sample data via AJAX
       {% for stage in stages %}
         {% for op in stage.operators %}
-          {% if op.exceptions %}
-          {% for eentry in op.exceptions %}
+
             $.getJSON("/api/operator", {
                       jobid : "{{ id }}",
                       opid : "{{ op.id }}"
@@ -401,8 +501,6 @@
                         fillInOperatorDetails("{{ op.id }}", details);
                         // fillTable('sample-{{ op.id }}-{{ eentry.code }}', data['columns'], data['data']);
                     });
-          {% endfor %}
-          {% endif %}
         {% endfor %}
       {% endfor %}
 

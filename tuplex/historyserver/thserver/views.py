@@ -13,7 +13,7 @@ from thserver import app
 from thserver.database import *
 from thserver.config import *
 from thserver.common import current_utc_string, string_to_utc
-from thserver.rest import get_jobs
+from thserver.rest import get_jobs, get_job
 from thserver.version import __version__
 from flask import render_template, request, abort, jsonify, make_response
 
@@ -29,6 +29,22 @@ from datetime import datetime, tzinfo, timedelta
 def suffix(d):
     return 'th' if 11 <= d <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(d % 10, 'th')
 
+def fix(a):
+    ret = ""
+    for b in a:
+        ret += "Stage " + str(b) + ","
+    return ret[:-1]
+
+def check_jobs_syntax(jobs):
+    return "action" in jobs and \
+           "status" in jobs and \
+           "user" in jobs and \
+           "context" in jobs and \
+           "submitted" in jobs and \
+           "started" in jobs and \
+           "finished" in jobs and \
+           "progress" in jobs and \
+           "id" in jobs
 
 def custom_strftime(format, t):
     return t.strftime(format).replace('{S}', str(t.day) + suffix(t.day))
@@ -191,7 +207,7 @@ def showjob():
     job_id = request.args.get('id')
 
     # fetch job from mongo db
-    job = Job(job_id).get()
+    job = get_job(job_id)
 
     if not job:
         # show job not found page
@@ -207,7 +223,11 @@ def showjob():
                   'mapColumn': 'map',
                   'selectColumns': 'map',
                   'resolve': 'resolve',
-                  'filter': 'filter'}
+                  'filter': 'filter',
+                  'aggregate_by_key': 'aggregate',
+                  'aggregate': 'aggregate',
+                  'join': 'join',
+                  'left_join': 'join'}
 
     operators = job['operators']
 
@@ -249,10 +269,15 @@ def showjob():
         # find stage in job['stages']
         if i in stage_info.keys():
             ncount = stage_info[i]['ncount']
-            ecount = stage_info[i]['ecount']
+            ecount = 0
+            a = stages[i]
+            for idx, _ in enumerate(stages[i]):
+                ecount += stages[i][idx]['ecount']
             sorted_stages.append({'number': i,
                                   'operators': list(sorted(stages[i], key=lambda op: op['idx'])),
                                   'ncount': ncount, 'ecount': ecount})
+            if i != 0:
+                sorted_stages[i]['dependencies'] = fix(stage_info[i]["predecessors"])
         else:
             sorted_stages.append({'number' : i,
                                   'operators' : list(sorted(stages[i], key=lambda op: op['idx']))})

@@ -228,7 +228,9 @@
 
             // update row with data-jobid attribute matching the id
             var row = $('#job-table > tbody > tr[data-jobid="' + data.jobid +'"]');
-
+          if (row.find('td').eq(table_indices["Status"]).html() === "finished") {
+            return;
+          }
             // NOTE: fixed indices here, when changing order, make sure to update this.
             row.find('td').eq(table_indices["Status"]).html(data.status);
 

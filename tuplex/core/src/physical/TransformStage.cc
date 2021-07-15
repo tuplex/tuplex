@@ -746,12 +746,15 @@ namespace tuplex {
         JobMetrics dummy_metrics;
         JobMetrics& metrics = PhysicalStage::plan() ? PhysicalStage::plan()->getContext().metrics() : dummy_metrics;
 
+        auto unoptimizedIR = code();
+        std::string optimizedIR = "Not currently optimized.";
+
         logger.info("retrieved metrics object");
 
         // step 1: run optimizer if desired
         if(optimizer) {
             optimizer->optimizeModule(*mod.get());
-
+            optimizedIR = code();
             double llvm_optimization_time = timer.time();
             metrics.setLLVMOptimizationTime(llvm_optimization_time);
             logger.info("Optimization via LLVM passes took " + std::to_string(llvm_optimization_time) + " ms");
@@ -860,6 +863,12 @@ namespace tuplex {
         //            std::string optimizedCode = "no optimization here yet";
         //            _historyServer->sendStagePlan("Stage" + std::to_string(tstage->number()), unoptimizedCode, optimizedCode, "");
         //        }
+
+        if(_historyServer) {
+            //                    auto unoptimizedCode = "";
+            std::string optimizedCode = "no optimization here yet";
+            _historyServer->sendStagePlan("Stage" + std::to_string(number()), unoptimizedIR, optimizedIR, "");
+        }
         return _syms;
     }
 

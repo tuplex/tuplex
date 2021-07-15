@@ -85,7 +85,7 @@ def create_task():
 
     jr = request.get_json()['job']
     print(jr)
-
+    operators = request.get_json()['operators']
     job = Job() # creates new mongodb job
 
     # set_context(self, host, mode, name, user, conf, update=False):
@@ -102,6 +102,10 @@ def create_task():
 
     # save all data to respective documents
     job.persist()
+
+    # add each operator to operators collection
+    operators = [{'idx' : idx, 'jobid' : job.jobid, 'ecount' : 0, 'ncount' : 0, **op} for idx, op in enumerate(operators)]
+    mongo.db.operators.insert(operators)
 
     # notify all socketio clients
     msg = job.socketio_overview()
@@ -184,7 +188,8 @@ def update_task():
     # save to mongodb
     mongo.db.jobs.update_one({'_id': ObjectId(jobid), 'stages.stageid': stageid},
                        {'$inc': {'stages.$.ncount': ncount_delta, 'stages.$.ecount': ecount_delta}})
-
+    mongo.db.jobs.update_one({'_id': ObjectId(jobid)},
+                         { '$inc': { 'ncount': ncount_delta, 'ecount' :  ecount_delta }})
     # query full values
     status = mongo.db.jobs.find_one({'_id': ObjectId(jobid)},
                            {'_id': 0, 'ncount': 1, 'ecount': 1})
@@ -254,7 +259,7 @@ def update_operator():
         inc_dict['detailed_ecounts.' + key] = val
 
     # upsert will create inc fields
-    mongo.db.operators.update_one({'jobid': ObjectId(jobid), 'id' : opid},
+    mongo.db.operators.update_one({'jobid': jobid, 'id' : opid},
                                   {'$inc': inc_dict},
                                   upsert=True)
 
@@ -271,6 +276,48 @@ def update_operator():
     socketio.emit('operator_status', status)
 
     return jsonify({'status': 'ok'})
+
+def get_job(jobid):
+
+
+    # check whether id is valid, else return None
+    if not ObjectId.is_valid(jobid):
+        return None
+
+    # merge with operators belonging to this job
+    # and sort after idx!
+    res = list(mongo.db.jobs.aggregate([
+        {'$match': {'_id' : ObjectId(jobid)}},
+        { "$addFields": { "article_id": { "$toString": "$_id" }}},
+        {'$lookup' : {
+            'from' : 'operators',
+            'localField' : 'article_id',
+            'foreignField' : 'jobid',
+            'as' : 'operators'
+        }}, {'$sort' : {'idx' : 1}}
+    ]))
+
+
+    if 0 == len(res):
+        return None
+
+    assert len(res) <= 1
+    job = res[0]
+
+    # change ObjectId fields
+    job['id'] = str(job['_id'])
+    del job['_id']
+
+    def clean_op(op):
+        res = op.copy()
+        res['jobid'] = str(res['jobid'])
+        del res['_id']
+        return res
+
+
+    job['operators'] = [clean_op(op) for op in job['operators']]
+
+    return job
 
 
 @app.route('/api/operators', methods=['GET'])
@@ -293,18 +340,25 @@ def get_operator_details():
     jobid = request.args.get('jobid')
     opid = request.args.get('opid')
 
-    res = mongo.db.operators.find_one({'id': opid, 'jobid': ObjectId(jobid)})
+res = mongo.db.operators.find_one({'id': opid, 'jobid': jobid})
+if 'exceptions' in res:
     res['exceptions'] = sorted(res['exceptions'], key=lambda x: x['code'])
     # update exceptions nicely
     for exc in res['exceptions']:
         exc['count'] = res['detailed_ecounts'][exc['code']]
     res['opid'] = res['id']
     res['jobid'] = str(res['jobid'])
-    del res['_id']
+    # del res['_id']
     del res['detailed_ecounts']
     if not res:
         return jsonify({'error' : 'no result found for opid={} and jobid={}'.format(opid, jobid)})
+if 'exceptions' not in res and 'detailed_ecounts' in res:
+    res['exceptions'] = []
 
+    # get detailed_ecounts
+    for key in sorted(res['detailed_ecounts'].keys()):
+        res['exceptions'].append({'count': res['detailed_ecounts'][key], 'code': key})
+res['_id'] = str(res['_id'])
     return jsonify(res)
 
 @app.route('/api/exception', methods=['POST'])
@@ -349,7 +403,7 @@ def update_exception():
         assert 'sample' in exception
         assert 'count' in exception
 
-    mongo.db.operators.update_one({'jobid': ObjectId(jobid), 'id': opid}, {'$set' : {'exceptions' : exceptions,
+    mongo.db.operators.update_one({'jobid': jobid, 'id': opid}, {'$set' : {'exceptions' : exceptions,
                                                                                       'previous_operator_columns' : previous_operator_columns}})
 
     return jsonify({'status' : 'ok'})

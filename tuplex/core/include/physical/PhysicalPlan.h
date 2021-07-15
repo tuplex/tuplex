@@ -41,8 +41,9 @@ namespace tuplex {
 
         IBackend* backend() const { return _context.backend(); }
 
-        std::shared_ptr<HistoryServerConnector> _hs;
-
+//        std::shared_ptr<HistoryServerConnector> _hs;
+        size_t getNumStages() const {return _num_stages;}
+        std::vector<LogicalOperator*> operators;
         // ---- OLD CODE -----
         // experimental: AWS backend
         LogicalPlan *_lp;

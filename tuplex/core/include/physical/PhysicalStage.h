@@ -17,6 +17,8 @@
 #include "ResultSet.h"
 #define EOF (-1)
 #include <nlohmann/json.hpp>
+#include <HistoryServerConnector.h>
+#include <logical/LogicalOperator.h>
 
 namespace tuplex {
 
@@ -26,6 +28,8 @@ namespace tuplex {
     class LogicalPlan;
     class Context;
     class ResultSet;
+    class LogicalOperator;
+    class HistoryServerConnector;
 
     // various sinks/sources/...
     enum class EndPointMode {
@@ -44,15 +48,22 @@ namespace tuplex {
         std::vector<PhysicalStage*> _predecessors;
         int64_t _number;
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> _ecounts; //! exception counts for this stage.
+        std::vector<LogicalOperator*> _opids;
     protected:
         IBackend* _backend;
+        std::shared_ptr<HistoryServerConnector> _historyServer;
     public:
+        void setHistoryServer(std::shared_ptr<HistoryServerConnector> hsc) { _historyServer = hsc; }
         PhysicalStage() = delete;
         PhysicalStage(PhysicalPlan *plan, IBackend* backend, int64_t number, std::vector<PhysicalStage*> predecessors=std::vector<PhysicalStage*>()) : _plan(plan), _backend(backend), _number(number), _predecessors(predecessors)   {
             // allow plan/backend to be nullptrs for dummy stage in lambda executor.
         }
 
         virtual ~PhysicalStage();
+
+        std::vector<LogicalOperator*> get_ops() const {return _opids;}
+
+        void set_ops(std::vector<LogicalOperator*> opids) {_opids  = opids;}
 
         std::vector<PhysicalStage*> predecessors() const { return _predecessors; }
 

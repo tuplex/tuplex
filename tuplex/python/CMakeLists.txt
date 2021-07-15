@@ -120,6 +120,7 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_tuples.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_index.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_filter.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_multi.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_sort.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_fallback.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_config.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_parallelize.py

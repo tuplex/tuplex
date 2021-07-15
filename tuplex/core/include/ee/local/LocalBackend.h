@@ -21,6 +21,7 @@
 #include <numeric>
 #include <physical/TransformTask.h>
 #include <physical/ResolveTask.h>
+#include <physical/SortStage.h>
 
 namespace tuplex {
 
@@ -49,6 +50,8 @@ namespace tuplex {
         Executor *_driver; //! driver from local backend...
         std::vector<Executor*> _executors; //! drivers to be used
         std::unique_ptr<JITCompiler> _compiler;
+
+        void executeSortStage(SortStage* sstage);
 
         HistoryServerConnection _historyConn;
         std::shared_ptr<HistoryServerConnector> _historyServer;

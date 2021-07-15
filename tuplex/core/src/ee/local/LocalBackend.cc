@@ -14,7 +14,7 @@
 #include <physical/ResolveTask.h>
 #include <physical/TransformTask.h>
 #include <physical/SimpleFileWriteTask.h>
-
+#include "Sort.cc"
 #include <memory>
 
 #include <ee/IBackend.h>
@@ -132,6 +132,11 @@ namespace tuplex {
         auto tstage = dynamic_cast<TransformStage*>(stage);
         if(tstage)
             executeTransformStage(tstage);
+        else if (dynamic_cast<SortStage*>(stage)) {
+            auto stg = dynamic_cast<SortStage*>(stage);
+            stg->setResultSet(stage->resultSet());
+            executeSortStage(stg);
+        }
         else if(dynamic_cast<HashJoinStage*>(stage)) {
             executeHashJoinStage(dynamic_cast<HashJoinStage*>(stage));
         } else if(dynamic_cast<AggregateStage*>(stage)) {
@@ -146,6 +151,22 @@ namespace tuplex {
         if(_historyServer) {
             _historyServer->sendStatus(JobStatus::FINISHED);
         }
+    }
+
+    void LocalBackend::executeSortStage(tuplex::SortStage *sstage) {
+        assert(sstage);
+        auto rs = sstage->predecessors()[0]->resultSet(); assert(rs);
+        Timer timer;
+
+
+        std::vector<tuplex::Partition*> partitions = sortMultiplePartitions(
+                rs->partitions(), driver(), sstage->order(), sstage->orderEnum());
+
+
+        std::stringstream ss;
+        ss<<"finished sort stage "<<sstage->number()<<" in "<<timer.time()<<"s";
+        logger().info(ss.str());
+        sstage->setResultSet(std::make_shared<ResultSet>(rs->schema(), partitions));
     }
 
     int64_t calc_bucket_size(uint8_t* ptr) {

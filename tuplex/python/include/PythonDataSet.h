@@ -49,6 +49,8 @@ namespace tuplex {
 
         PythonDataSet unique();
 
+        PythonDataSet sort(boost::python::list order, boost::python::list enumInOrder);
+
         /*!
          * add a map operator to the pipeline
          * @param lambda_code string representation of the code

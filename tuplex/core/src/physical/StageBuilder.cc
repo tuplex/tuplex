@@ -351,6 +351,9 @@ namespace tuplex {
                         opt_ops.push_back(op);
                         break;
                     }
+                    case LogicalOperatorType::SORT: {
+                        break;
+                    }
                         // construct clone with parents & retype
                     case LogicalOperatorType::FILTER:
                     case LogicalOperatorType::MAP:
@@ -676,6 +679,10 @@ namespace tuplex {
                 assert(node);
                 UDFOperator *udfop = dynamic_cast<UDFOperator *>(node);
                 switch (node->type()) {
+                    case LogicalOperatorType::SORT: {
+                        // TODO: COLBY
+                        break;
+                    }
                     case LogicalOperatorType::MAP: {
                         if (!pip->mapOperation(node->getID(), udfop->getUDF(), _allowUndefinedBehavior,
                                                _sharedObjectPropagation)) {

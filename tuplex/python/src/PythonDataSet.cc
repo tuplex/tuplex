@@ -105,6 +105,72 @@ namespace tuplex {
         }
     }
 
+    PythonDataSet PythonDataSet::sort(boost::python::list order, boost::python::list enumInOrder) {
+        assert(this->_dataset);
+        // error data set
+        if (_dataset->isError()) {
+            PythonDataSet pds;
+            pds.wrap(this->_dataset);
+            return pds;
+        }
+
+        // empty dataset
+        if (_dataset->isEmpty()) {
+            PythonDataSet pds;
+            pds.wrap(this->_dataset);
+            return pds;
+        }
+
+        // there are two possible modes how list can be given:
+        // 1.) selection using positive integers
+        // 2.) via strings
+        // ==> mixture also ok...
+        auto rowType = _dataset->schema().getRowType();
+        assert(rowType.isTupleType());
+        auto num_cols = rowType.parameters().size();
+
+        // go through list
+        std::vector<std::size_t> convOrder;
+        std::vector<std::size_t> convOrderEnum;
+        auto columns = _dataset->columns();
+
+        PyObject * listObj1 = order.ptr();
+        PyObject * listObj2 = enumInOrder.ptr();
+        for (unsigned i = 0; i < boost::python::len(order); ++i) {
+            PyObject * obj1 = PyList_GetItem(listObj1, i);
+            PyObject * obj2 = PyList_GetItem(listObj2, i);
+
+            // check type:
+            if (PyObject_IsInstance(obj1, reinterpret_cast<PyObject *>(&PyLong_Type)) &&
+                PyObject_IsInstance(obj2, reinterpret_cast<PyObject *>(&PyLong_Type))) {
+                int index = boost::python::extract<int>(order[i]);
+                int enumSort = boost::python::extract<int>(enumInOrder[i]);
+
+                if (index < 0 || index >= num_cols || enumSort <= 0 || enumSort > 4) {
+                    throw std::runtime_error("invalid index " + std::to_string(index)
+                                             + " found, has to be -" + std::to_string(num_cols)
+                                             + ",...0,...," + std::to_string(num_cols - 1));
+                }
+                assert(0 <= index && index < num_cols && enumSort <= 0 && enumSort > 4);
+
+                convOrder.push_back(static_cast<size_t>(index));
+                convOrderEnum.push_back(static_cast<size_t>(enumSort));
+            } else {
+                throw std::runtime_error("select columns only accepts integers or string!");
+            }
+        }
+        PythonDataSet pds;
+        // GIL release & reacquire
+        assert(PyGILState_Check()); // make sure this thread holds the GIL!
+        python::unlockGIL();
+        DataSet *ds = &_dataset->sort(convOrder, convOrderEnum);
+        python::lockGIL();
+        pds.wrap(ds);
+        Logger::instance().flushAll();
+        return pds;
+    }
+
+
     boost::python::object PythonDataSet::take(const int64_t numRows) {
         // make sure a dataset is wrapped
         assert(this->_dataset);

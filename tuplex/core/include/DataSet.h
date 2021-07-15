@@ -86,6 +86,16 @@ namespace tuplex {
 
         virtual ~DataSet();
 
+        /*!
+         * add a sort operation T -> S to the logical graph
+         * @param order std::vector<std::size_t> the order of columns (represented
+         * as indices) to sort by
+         * @param orderEnums std::vector<std::size_t> an enum corresponding to
+         * a column in order denoting to sort by ascending, descending, length, etc.
+         * @return DataSet after the sort operation
+         */
+        virtual DataSet &sort(std::vector<std::size_t> order, std::vector<std::size_t> orderEnums);
+
         // NOTE: When defining new functions here, make sure to override them in ErrorDataSet!
         /*!
          * add a map operation T -> S to the logical graph

@@ -406,6 +406,10 @@ namespace tuplex {
                 // op is valid
                 assert(op);
                 switch(op->type()) {
+                    case LogicalOperatorType::SORT: {
+                        // TODO: COLBY
+                        break;
+                    }
                     case LogicalOperatorType::MAP:
                     case LogicalOperatorType::FILTER:
                     case LogicalOperatorType::WITHCOLUMN: {

@@ -26,6 +26,8 @@
 #include <logical/CacheOperator.h>
 #include <RuntimeInterface.h>
 #include <Signals.h>
+#include <physical/SortStage.h>
+#include <logical/SortOperator.h>
 
 namespace tuplex {
 
@@ -96,7 +98,15 @@ namespace tuplex {
                     }
 
                     // do nothing
-                } else if(node->type() == LogicalOperatorType::AGGREGATE) {
+                } else if(node->type() == LogicalOperatorType::SORT) {
+                    auto sop = dynamic_cast<SortOperator*>(node); assert(sop);
+                    auto pred = createStage(sop->parent(), sop, false, EndPointMode::MEMORY);
+                    auto stage = new SortStage(this, backend(), _num_stages++, _context.getOptions().UNDEFINED_BEHAVIOR_FOR_OPERATORS(), sop->order(), sop->orderEnum());
+                    dependents.emplace_back(stage);
+                    stage->dependOn(pred);
+                    continue;
+                }
+                else if(node->type() == LogicalOperatorType::AGGREGATE) {
                     auto aop = dynamic_cast<AggregateOperator*>(node); assert(aop);
                     if(aop->aggType() == AggregateType::AGG_UNIQUE) {
                         dependents.emplace_back(createStage(aop->parent(), aop, false, EndPointMode::HASHTABLE)); // hashtable because we need to find unique rows
@@ -272,6 +282,10 @@ namespace tuplex {
                 case LogicalOperatorType::CACHE: {
                     // special case here: cache needs to be passed too, in order to generate certain stuff
                     builder.addOperator(op);
+                    break;
+                }
+                case LogicalOperatorType::SORT:{
+                    // TODO: COLBY throw internal error
                     break;
                 }
                 case LogicalOperatorType::MAP:

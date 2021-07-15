@@ -16,6 +16,7 @@ namespace tuplex {
         UNKNOWN,
         MAP,
         FILTER,
+        SORT,
         TAKE, // i.e. output to python / in memory
         PARALLELIZE, // i.e. input from python
         FILEINPUT,

@@ -44,25 +44,25 @@ Context c(co);
 //    EXPECT_EQ(res1[0].toPythonString(), "(84,None,-1)");
 //    EXPECT_EQ(res1[1].toPythonString(), "(84,None,-2)");
 
-auto combine12 = UDF("lambda a, b: a + b");
-auto agg12 = UDF("lambda a, x: a + x[0] * x[2]");
-auto &ds12 = c.parallelize({Row(1, "abc", 0),Row(-10, "ijk", 0), Row(2, "xyz", 1), Row(4, "xyz", 2), Row(3, "abc", -1), Row(40, "abc", -1)}, {"col0", "col1", "col2"})
-        .filter(UDF("lambda x: x[0] < 30.0"))
-                //            .map(UDF("lambda a, b, c: a + 10.0, b, c"))
-        .aggregateByKey(combine12, agg12, Row(0), {"col1"})
-        .map(UDF("lambda x: 10 / x[1]"));
-int i2 = 0;
+//auto combine12 = UDF("lambda a, b: a + b");
+//auto agg12 = UDF("lambda a, x: a + x[0] * x[2]");
+//auto &ds12 = c.parallelize({Row(1, "abc", 0),Row(-10, "ijk", 0), Row(2, "xyz", 1), Row(4, "xyz", 2), Row(3, "abc", -1), Row(40, "abc", -1)}, {"col0", "col1", "col2"})
+//        .filter(UDF("lambda x: x[0] < 30.0"))
+//                            .map(UDF("lambda a, b, c: a + 10.0, b, c"))
+//        .aggregateByKey(combine12, agg12, Row(0), {"col1"});
+//        .map(UDF("lambda x: 10 / x[1]"));
+//int i2 = 0;
 
 auto combine1 = UDF("lambda a, b: a + b");
 auto agg1 = UDF("lambda a, x: a + x[0] * x[2]");
-auto &ds1 = c.parallelize({Row(1, "abc", 0),Row(-10, "ijk", 0), Row(2, "xyz", 1), Row(4, "xyz", 2), Row(3, "abc", -1), Row(40, "abc", -1)}, {"col0", "col1", "col2"})
+auto ds1 = c.parallelize({Row(1, "abc", 0),Row(-10, "ijk", 0), Row(2, "xyz", 1), Row(4, "xyz", 2), Row(3, "abc", -1), Row(40, "abc", -1)}, {"col0", "col1", "col2"})
         .filter(UDF("lambda x: x[0] < 30.0"))
-                //            .map(UDF("lambda a, b, c: a + 10.0, b, c"))
+//                            .map(UDF("lambda a, b, c: a + 10.0, b, c"))
         .aggregateByKey(combine1, agg1, Row(0), {"col1"})
-        .map(UDF("lambda x: 10 / x[1]"));
+        .map(UDF("lambda x: 10 / x[1]")).collectAsVector();
 int i = 0;
 
-auto res2 = ds12.join(ds1, std::string("col1"), std::string("col1")).collectAsVector();
+//auto res2 = ds12.join(ds1, std::string("col1"), std::string("col1")).collectAsVector();
 
 
 

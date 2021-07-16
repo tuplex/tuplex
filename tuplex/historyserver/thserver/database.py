@@ -1,13 +1,5 @@
-#!/usr/bin/env python3
-#----------------------------------------------------------------------------------------------------------------------#
-#                                                                                                                      #
-#                                       Tuplex: Blazing Fast Python Data Science                                       #
-#                                                                                                                      #
-#                                                                                                                      #
-#  (c) 2017 - 2021, Tuplex team                                                                                        #
-#  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
-#  License: Apache 2.0                                                                                                 #
-#----------------------------------------------------------------------------------------------------------------------#
+# (c) 2019 L.Spiegelberg
+# handle interactions with mongo db database (i.e. ORM)
 
 from thserver import app, socketio, mongo
 from thserver.config import *
@@ -104,17 +96,18 @@ class Job:
 
             # add empty count stages here
             self.stages.append({'stageid' : stage['id'], 'ncount' : 0, 'ecount' : 0, 'predecessors': stage["predecessors"]})
+
             if 'operators' in stage.keys():
                 operators = stage['operators']
 
                 # add each operator to operators collection
                 # ncount for a stage is same across all operators
                 self.operators += [{'idx' : idx,
-                                   'jobid' : self._id,
-                                   'stageid' : stage['id'],
-                                   'ecount' : 0,
-                                   'ncount' : 0,
-                                   **op} for idx, op in enumerate(operators)]
+                                    'jobid' : self._id,
+                                    'stageid' : stage['id'],
+                                    'ecount' : 0,
+                                    'ncount' : 0,
+                                    **op} for idx, op in enumerate(operators)]
 
         if update:
             mongo.db.operators.insert(self.operators)
@@ -123,7 +116,6 @@ class Job:
             mongo.db.jobs.update_one({'_id': self._id}, {'$set': {'stages': self.stages}})
 
     def set_plan(self, ir):
-        print('hello')
         # insert into mongo for job
         return mongo.db.jobs.update_one({'_id': self._id}, {'$set': {'plan': ir}})
 
@@ -266,20 +258,20 @@ class Job:
                 set_dict = {'ecount': info['count']}
                 total_ecounts += info['count']
                 mongo.db.operators.update_one({'jobid': self._id, 'stageid' : stageid, 'idx' : info['idx']},
-                                         {'$set': set_dict})
+                                              {'$set': set_dict})
 
             assert num_exception_rows == total_ecounts, 'numbers are not matching'
 
             # compute normal / exception count for job across all stages
             # aggregate query to figure out total ncount AND ecount for a job
             grouped_stage_counts = list(mongo.db.operators.aggregate([{'$match': {'jobid': self._id}},
-                                                                {'$group': {'_id': '$stageid',
-                                                                            'ecount': {'$sum': '$ecount'}}},
-                                                                {'$project': {'stageid': '$_id', '_id': False,
-                                                                              'ecount': True}}]))
+                                                                      {'$group': {'_id': '$stageid',
+                                                                                  'ecount': {'$sum': '$ecount'}}},
+                                                                      {'$project': {'stageid': '$_id', '_id': False,
+                                                                                    'ecount': True}}]))
             ecount = reduce(lambda a, b: a['ecount'] + b['ecount'], grouped_stage_counts, {'ecount': 0})
 
 
         # update counts for stage id on job
         mongo.db.jobs.update_one({'_id': self._id, 'stages.stageid' : stageid},
-                           {'$set': {'stages.$.ecount': ecount, 'stages.$.ncount': ncount}})
+                                 {'$set': {'stages.$.ecount': ecount, 'stages.$.ncount': ncount}})

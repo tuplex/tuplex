@@ -1863,8 +1863,8 @@ namespace tuplex {
                 else hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
 
                 // delete task
-                delete tasks[i];
-                tasks[i] = nullptr;
+//                delete tasks[i];
+//                tasks[i] = nullptr;
             }
             return sink;
         }

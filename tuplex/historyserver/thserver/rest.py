@@ -1,14 +1,3 @@
-#!/usr/bin/env python3
-#----------------------------------------------------------------------------------------------------------------------#
-#                                                                                                                      #
-#                                       Tuplex: Blazing Fast Python Data Science                                       #
-#                                                                                                                      #
-#                                                                                                                      #
-#  (c) 2017 - 2021, Tuplex team                                                                                        #
-#  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
-#  License: Apache 2.0                                                                                                 #
-#----------------------------------------------------------------------------------------------------------------------#
-
 from thserver import app, socketio, mongo
 from thserver.database import *
 from thserver.config import *
@@ -120,7 +109,6 @@ def update_status():
     """
     update status of a job
     Returns:
-
     """
     if not request.json:
         abort(400)
@@ -172,7 +160,6 @@ def update_task():
     """
     updates summary info for task, i.e. how many normal case integers occurred, which etc.
     Returns:
-
     """
     if not request.json:
         abort(400)
@@ -187,12 +174,12 @@ def update_task():
 
     # save to mongodb
     mongo.db.jobs.update_one({'_id': ObjectId(jobid), 'stages.stageid': stageid},
-                       {'$inc': {'stages.$.ncount': ncount_delta, 'stages.$.ecount': ecount_delta}})
+                             {'$inc': {'stages.$.ncount': ncount_delta, 'stages.$.ecount': ecount_delta}})
     mongo.db.jobs.update_one({'_id': ObjectId(jobid)},
-                         { '$inc': { 'ncount': ncount_delta, 'ecount' :  ecount_delta }})
+                             { '$inc': { 'ncount': ncount_delta, 'ecount' :  ecount_delta }})
     # query full values
     status = mongo.db.jobs.find_one({'_id': ObjectId(jobid)},
-                           {'_id': 0, 'ncount': 1, 'ecount': 1})
+                                    {'_id': 0, 'ncount': 1, 'ecount': 1})
     status['jobid'] = jobid
 
     print('/api/task:\n{}'.format(status))
@@ -206,7 +193,6 @@ def update_plan():
     """
     stores plan info for physical plan page
     Returns:
-
     """
     if not request.json:
         abort(400)
@@ -231,7 +217,6 @@ def update_operator():
     """
     updates a single exception type for one op in one job
     Returns:
-
     """
     print('operator progress update request')
     if not request.json:
@@ -265,17 +250,19 @@ def update_operator():
 
     # fetch operator info
     status = mongo.db.operators.find_one({'jobid': ObjectId(jobid), 'id' : opid},
-                                    {'_id': 0,
-                                     'ncount': 1,
-                                     'ecount': 1})
+                                         {'_id': 0,
+                                          'ncount': 1,
+                                          'ecount': 1})
 
     assert status
     # query full and sent socketio update
     # send status update to all socketio clients
     status.update({'jobid' : jobid, 'opid' : opid})
     socketio.emit('operator_status', status)
+    print("ok")
 
     return jsonify({'status': 'ok'})
+
 
 def get_job(jobid):
 
@@ -319,10 +306,9 @@ def get_job(jobid):
 
     return job
 
-
 @app.route('/api/operators', methods=['GET'])
 def display_all_operators():
-
+    print("api operators reached")
     res = normalize_from_mongo(mongo.db.operators.find({}))
 
     print(res)
@@ -335,30 +321,30 @@ def get_operator_details():
     """
     get details for operator
     Returns:
-
     """
+    print("api operator reached")
     jobid = request.args.get('jobid')
     opid = request.args.get('opid')
 
-res = mongo.db.operators.find_one({'id': opid, 'jobid': jobid})
-if 'exceptions' in res:
-    res['exceptions'] = sorted(res['exceptions'], key=lambda x: x['code'])
-    # update exceptions nicely
-    for exc in res['exceptions']:
-        exc['count'] = res['detailed_ecounts'][exc['code']]
-    res['opid'] = res['id']
-    res['jobid'] = str(res['jobid'])
-    # del res['_id']
-    del res['detailed_ecounts']
-    if not res:
-        return jsonify({'error' : 'no result found for opid={} and jobid={}'.format(opid, jobid)})
-if 'exceptions' not in res and 'detailed_ecounts' in res:
-    res['exceptions'] = []
+    res = mongo.db.operators.find_one({'id': opid, 'jobid': jobid})
+    if 'exceptions' in res:
+        res['exceptions'] = sorted(res['exceptions'], key=lambda x: x['code'])
+        # update exceptions nicely
+        for exc in res['exceptions']:
+            exc['count'] = res['detailed_ecounts'][exc['code']]
+        res['opid'] = res['id']
+        res['jobid'] = str(res['jobid'])
+        # del res['_id']
+        del res['detailed_ecounts']
+        if not res:
+            return jsonify({'error' : 'no result found for opid={} and jobid={}'.format(opid, jobid)})
+    if 'exceptions' not in res and 'detailed_ecounts' in res:
+        res['exceptions'] = []
 
-    # get detailed_ecounts
-    for key in sorted(res['detailed_ecounts'].keys()):
-        res['exceptions'].append({'count': res['detailed_ecounts'][key], 'code': key})
-res['_id'] = str(res['_id'])
+        # get detailed_ecounts
+        for key in sorted(res['detailed_ecounts'].keys()):
+            res['exceptions'].append({'count': res['detailed_ecounts'][key], 'code': key})
+    res['_id'] = str(res['_id'])
     return jsonify(res)
 
 @app.route('/api/exception', methods=['POST'])
@@ -366,7 +352,6 @@ def update_exception():
     """
     updates a single exception type for one op in one job
     Returns:
-
     """
     print('exception (details) update request')
     if not request.json:
@@ -404,7 +389,7 @@ def update_exception():
         assert 'count' in exception
 
     mongo.db.operators.update_one({'jobid': jobid, 'id': opid}, {'$set' : {'exceptions' : exceptions,
-                                                                                      'previous_operator_columns' : previous_operator_columns}})
+                                                                           'previous_operator_columns' : previous_operator_columns}})
 
     return jsonify({'status' : 'ok'})
 

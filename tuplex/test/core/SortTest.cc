@@ -7,11 +7,13 @@
 class SortTest : public PyTest {};
 
 
-//class SortBy(Enum):
-//ASCENDING = 1
-//DESCENDING = 2
-//LENGTH = 3
-//LEXICOGRAPHICALLY = 4
+//    class SortBy(Enum):
+//            ASCENDING = 1
+//    DESCENDING = 2
+//    ASCENDING_LENGTH = 3
+//    DESCENDING_LENGTH = 4
+//    ASCENDING_LEXICOGRAPHICALLY = 5
+//    DESCENDING_LEXICOGRAPHICALLY = 6
 
 std::vector<tuplex::Partition*> constructTestPartitions(
         tuplex::Executor* executor, const std::vector<tuplex::Row>& rows,
@@ -133,6 +135,34 @@ TEST_F(SortTest, SinglePartitionSort1ColumnAscInt) {
 
     EXPECT_TRUE(checkEqualPartitions(sortedPartitions, sortedPartitions2));
 }
+
+TEST_F(SortTest, SinglePartitionTupleLengthSort) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+    tuplex::Executor* executor = c.getDriver();
+
+    std::vector<tuplex::Row> rows = {
+            tuplex::Row(Tuple(0, 3, 1)),
+            tuplex::Row(Tuple(0, 3)),
+            tuplex::Row(Tuple(0, 3, 1, 1)),
+            tuplex::Row(Tuple(0, 3)),
+    };
+    std::vector<tuplex::Row> sortedRows = {
+            tuplex::Row(Tuple(0, 3)),
+            tuplex::Row(Tuple(0, 3)),
+            tuplex::Row(Tuple(0, 3, 1)),
+            tuplex::Row(Tuple(0, 3, 1, 1)),
+    };
+    std::vector<size_t> order = {0};
+    std::vector<size_t> orderEnums = {1};
+    auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
+
+    const python::Type& type = python::Type::makeTupleType({python::Type::I64});
+    std::vector<tuplex::Partition*> sortedPartitions2 = constructTestPartitions(executor, sortedRows, type);
+
+    EXPECT_TRUE(checkEqualPartitions(sortedPartitions, sortedPartitions2));
+}
+
 
 // single partition. 1 column. integers. descending.
 // no duplicates.
@@ -760,6 +790,11 @@ TEST_F(SortTest, MultiplePartitionSort2ColumnAscIntDupCstmOrdr) {
 
     std::vector<size_t> order = {1, 0};
     std::vector<size_t> orderEnums = {1, 1};
+    auto sortedPartitions00 = c.parallelize(rows).sort(order, orderEnums).collectAsVector();
+    std::vector<int> acai;
+    for (int i = 0; i < sortedPartitions00.size(); i++) {
+        acai.push_back(sortedPartitions00.at(i).getInt(1));
+    }
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64, python::Type::I64});
@@ -898,6 +933,12 @@ TEST_F(SortTest, MultiplePartitionSort1ColRandNum) {
 
     std::vector<size_t> order = {0};
     std::vector<size_t> orderEnums = {1};
+
+    auto sortedPartitions00 = c.parallelize(rows).sort(order, orderEnums).collectAsVector();
+    std::vector<int> acai;
+    for (int i = 0; i < sortedPartitions00.size(); i++) {
+        acai.push_back(sortedPartitions00.at(i).getInt(0));
+    }
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64});

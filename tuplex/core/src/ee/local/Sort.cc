@@ -324,7 +324,36 @@ struct TuplexSortComparator {
                     return lBool < rBool;
                 }
                 // doesn't support other types yet
-            } else {
+            }
+            // TODO: Test Handle Generic Tuple
+            else if (colType == python::Type::GENERICTUPLE) {
+                bool lBool = lRow.getTuple(currentColIndex).numElements();
+                bool rBool = rRow.getTuple(currentColIndex).numElements();
+                if (lBool == rBool) {continue;}
+                else if (orderEnum.at(counter-1) == 4) {
+                    return lBool > rBool;
+                }
+                else {
+                    return lBool < rBool;
+                }
+                // doesn't support other types yet
+            }
+
+
+                // TODO: Test Handle Generic List
+//            else if (colType == python::Type::GENERICLIST) {
+//                bool lBool = lRow.getList(currentColIndex).numElements();
+//                bool rBool = rRow.getList(currentColIndex).numElements();
+//                if (lBool == rBool) {continue;}
+//                else if (orderEnum.at(counter-1) == 4) {
+//                    return lBool > rBool;
+//                }
+//                else {
+//                    return lBool < rBool;
+//                }
+//                // doesn't support other types yet
+//            }
+            else {
                 std::cout << "ERROR" << std::endl;
             }
         }
@@ -443,6 +472,26 @@ std::vector<tuplex::Partition*> mergeKPartitions(
         offsetsPerPartition.push_back(offsets);
     }
     // define the comparator to use in the heap
+    for (int i = 0; i < orderEnum.size(); i++) {
+        if (orderEnum[i] == 1) {
+            orderEnum[i] = 2;
+        }
+        else if (orderEnum[i] == 2) {
+            orderEnum[i] = 1;
+        }
+        else if (orderEnum[i] == 3) {
+            orderEnum[i] = 4;
+        }
+        else if (orderEnum[i] == 4) {
+            orderEnum[i] = 3;
+        }
+        else if (orderEnum[i] == 5) {
+            orderEnum[i] = 6;
+        }
+        else if (orderEnum[i] == 6) {
+            orderEnum[i] = 5;
+        }
+    }
     auto a = TuplexSortComparator(partitionPtrs, schema, order, orderEnum);
     // define the minimum priority queue that will be used to do the k-way merge
     std::priority_queue<PartitionSortType, std::vector<PartitionSortType>, TuplexSortComparator> frontierIndices(a);

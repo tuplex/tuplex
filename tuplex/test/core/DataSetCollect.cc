@@ -16,6 +16,81 @@
 
 class DataSetTest : public PyTest {};
 
+// TODO: DELETE THIS WHEN GIT COMMITTING
+TEST_F(DataSetTest, MixedTransformWebUI) {
+    using namespace tuplex;
+    ContextOptions co = testOptions();
+    co.set("tuplex.partitionSize", "100B");
+    co.set("tuplex.executorMemory", "1MB");
+    co.set("tuplex.useLLVMOptimizer", "false");
+    co.set("tuplex.useLLVMOptimizer", "false"); // colby changed .. set back to false
+    co.set("tuplex.webui.enable", "true");
+
+    Context c(co);
+//    Row row1(10.0);
+//    Row row2(20.0);
+//    Row row3(30.0);
+//    Row row4(40.0);
+//    Row row5(50.0);
+
+
+//    auto &dsA = c.parallelize({Row(option<std::string>("abc"), 42),
+//                               Row(option<std::string>::none, 84),
+//                               Row(option<std::string>("xyz"), 100)},
+//                              std::vector<std::string>{"a", "b"});
+//    auto &dsB = c.parallelize({Row(Field::null(), -1),
+//                               Row(Field::null(), -2)}, std::vector<std::string>{"x", "y"});
+//    auto res1 = dsA.join(dsB, std::string("a"), std::string("x")).collectAsVector();
+//    ASSERT_EQ(res1.size(), 2);
+//    EXPECT_EQ(res1[0].toPythonString(), "(84,None,-1)");
+//    EXPECT_EQ(res1[1].toPythonString(), "(84,None,-2)");
+
+//auto combine12 = UDF("lambda a, b: a + b");
+//auto agg12 = UDF("lambda a, x: a + x[0] * x[2]");
+//auto &ds12 = c.parallelize({Row(1, "abc", 0),Row(-10, "ijk", 0), Row(2, "xyz", 1), Row(4, "xyz", 2), Row(3, "abc", -1), Row(40, "abc", -1)}, {"col0", "col1", "col2"})
+//        .filter(UDF("lambda x: x[0] < 30.0"))
+//                            .map(UDF("lambda a, b, c: a + 10.0, b, c"))
+//        .aggregateByKey(combine12, agg12, Row(0), {"col1"});
+//        .map(UDF("lambda x: 10 / x[1]"));
+//int i2 = 0;
+
+    auto combine1 = UDF("lambda a, b: a + b");
+    auto agg1 = UDF("lambda a, x: a + x[0] * x[2]");
+    auto ds1 = c.parallelize({Row(1, "abc", 0),Row(-10, "ijk", 0), Row(2, "xyz", 1), Row(4, "xyz", 2), Row(3, "abc", -1), Row(40, "abc", -1)}, {"col0", "col1", "col2"})
+            .filter(UDF("lambda x: x[0] < 30.0"))
+//                            .map(UDF("lambda a, b, c: a + 10.0, b, c"))
+            .aggregateByKey(combine1, agg1, Row(0), {"col1"})
+            .map(UDF("lambda x: 10 / x[1]")).collectAsVector();
+    int i = 0;
+
+//auto res2 = ds12.join(ds1, std::string("col1"), std::string("col1")).collectAsVector();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//    auto v1 = ds1.collectAsVector();
+//    auto v = c.parallelize({row1, row2, row3, row4, row5})
+//            .filter(UDF("lambda x: x > 25.0"))
+//            .map(UDF("lambda x: x * 15.0"))
+//            .map(UDF("lambda x: x + 20.0")).collectAsVector();
+//
+//    ASSERT_EQ(v.size(), 3);
+//    EXPECT_EQ(v[0].getString(0), "a");
+//    EXPECT_EQ(v[1].getString(0), "test");
+//    EXPECT_EQ(v[2].getString(0), "!");
+}
+
 TEST_F(DataSetTest, MixedTransform) {
     using namespace tuplex;
 

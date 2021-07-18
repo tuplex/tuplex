@@ -12,3 +12,4 @@
 from tuplex.repl import *
 from .context import Context
 from .dataset import DataSet
+from .dataset import SortBy

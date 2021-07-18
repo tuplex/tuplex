@@ -21,6 +21,7 @@
 #include <logical/AggregateOperator.h>
 #include <logical/CacheOperator.h>
 #include <physical/ResultSet.h>
+#include <logical/SortOperator.h>
 #include <Utils.h>
 #include <ErrorDataSet.h>
 #include <Signals.h>
@@ -162,6 +163,47 @@ namespace tuplex {
         // !!! never return the pointer above
         return *op->getDataSet();
     }
+
+    DataSet &DataSet::sort(std::vector<std::size_t> order, std::vector<std::size_t> orderEnums) {
+        // if error dataset, return itself
+        if (isError())
+            return *this;
+
+        assert(_context);
+        assert(this->_operator);
+
+        // parameter checking
+        assert(order.size() == orderEnums.size());
+
+        // sanity check/print for order and orderEnums
+        //        for (int i = 0; i < order.size(); i++) {
+        //            printf("o: %d, e: %d\n", order[i], orderEnums[i]);
+        //        }
+
+        LogicalOperator *op = _context->addOperator(new SortOperator(this->_operator, order, orderEnums));
+
+        if (!op->good()) {
+            Logger::instance().defaultLogger().error("failed to create sort operator");
+            return _context->makeError("failed to add sort operator to logical plan");
+        }
+        // action, perform it!
+        DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
+        dsptr->_operator = op;
+        dsptr->setColumns(_columnNames); // sort doesn't change column names
+        op->setDataSet(dsptr);
+
+        // signal check
+        if(check_and_forward_signals()) {
+#ifndef NDEBUG
+            Logger::instance().defaultLogger().info("received signal handler sig, returning error dataset");
+#endif
+            return _context->makeError("job aborted (signal received)");
+        }
+
+        // !!! never return the pointer above
+        return *op->getDataSet();
+    }
+
 
     DataSet & DataSet::cache(const Schema::MemoryLayout &memoryLayout, bool storeSpecialized) {
         // if error dataset, return itself

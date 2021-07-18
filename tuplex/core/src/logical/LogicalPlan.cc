@@ -115,6 +115,11 @@ namespace tuplex {
             assert(udfop);
 
             switch(op->type()) {
+                case LogicalOperatorType::SORT: {
+                    // TODO: COLBY
+                    // seems that I don't code here since no UDF.
+                    break;
+                }
                 case LogicalOperatorType::MAP:
                 case LogicalOperatorType::WITHCOLUMN:
                 case LogicalOperatorType::FILTER: {
@@ -631,6 +636,10 @@ namespace tuplex {
                 } else {
                     throw std::runtime_error("unsupported aggregation type");
                 }
+            }
+            case LogicalOperatorType::SORT: {
+                // TODO: COLBY
+                break;
             }
             case LogicalOperatorType::MAP: {
                 // empty? i.e. rename? switch ok

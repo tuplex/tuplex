@@ -99,11 +99,6 @@ namespace tuplex {
         return hsc;
     }
 
-
-
-
-
-
     std::shared_ptr<HistoryServerConnector> HistoryServerConnector::registerNewJob(const tuplex::HistoryServerConnection &conn,
                                                                   const std::string &contextName,
                                                                   const PhysicalPlan* plan,
@@ -153,17 +148,14 @@ namespace tuplex {
 
         // add operators...
         std::vector<json> ops;
-        //        TransformStage* trafoStage = dynamic_cast<TransformStage*>(_stage);
         assert(plan);
         plan->foreachStage([&](const PhysicalStage* stage) {
-            for(auto op: stage->get_ops()) {
+            for(auto op: stage->operators()) {
                 json val;
                 val["name"] = op->name();
                 val["id"] = "op" + std::to_string(op->getID());
-                // @Todo: solve this...
                 val["columns"] = std::vector<std::string>();
                 val["stageid"] = stage->getID();
-                // UDF code @TODO
                 if(hasUDF(op)) {
                     UDFOperator *udfop = (UDFOperator*)op;
                     assert(udfop);
@@ -216,7 +208,6 @@ namespace tuplex {
                 track_url, options.WEBUI_EXCEPTION_DISPLAY_LIMIT(), plan, maxExceptions));
     }
 
-
     HistoryServerConnector::HistoryServerConnector(const tuplex::HistoryServerConnection &conn,
                                                    const std::string &jobID,
                                                    const std::string &contextName,
@@ -264,12 +255,12 @@ namespace tuplex {
             // is trafo stage?
             const TransformStage* tstage = nullptr;
             if(tstage = dynamic_cast<const TransformStage*>(stage)) {
-                auto operators = tstage->get_ops();
+                auto operators = tstage->operators();
                 if(operators.empty())
                     return;
                 auto reservoir = std::make_shared<TransformStageExceptionReservoir>(tstage, operators, _exceptionDisplayLimit);
 
-                for(auto& op : operators)
+                for(const auto& op : operators)
                     _reservoirLookup[op->getID()] = reservoir;
                 _reservoirs.emplace_back(reservoir);
             }
@@ -663,6 +654,5 @@ namespace tuplex {
         // get stage processor
         return _reservoirLookup[opID]->getOperatorIndex(opID);
     }
-
 
 }

@@ -48,7 +48,7 @@ namespace tuplex {
         std::vector<PhysicalStage*> _predecessors;
         int64_t _number;
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> _ecounts; //! exception counts for this stage.
-        std::vector<LogicalOperator*> _opids;
+        std::vector<LogicalOperator*> _operators;
     protected:
         IBackend* _backend;
         std::shared_ptr<HistoryServerConnector> _historyServer;
@@ -61,9 +61,9 @@ namespace tuplex {
 
         virtual ~PhysicalStage();
 
-        std::vector<LogicalOperator*> get_ops() const {return _opids;}
+        std::vector<LogicalOperator*> operators() const {return _operators;}
 
-        void set_ops(std::vector<LogicalOperator*> opids) {_opids  = opids;}
+        void setOperators(std::vector<LogicalOperator*> operators) {_operators  = operators;}
 
         std::vector<PhysicalStage*> predecessors() const { return _predecessors; }
 

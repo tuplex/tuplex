@@ -228,6 +228,10 @@
 
             // update row with data-jobid attribute matching the id
             var row = $('#job-table > tbody > tr[data-jobid="' + data.jobid +'"]');
+            // this next conditional checks to make sure that a status update is not being
+          // called on a job that has already been marked as finished. (should never
+          // be true if the historyserver is implemented correctly unless requests
+          // get sent out of order).
           if (row.find('td').eq(table_indices["Status"]).html() === "finished") {
             return;
           }

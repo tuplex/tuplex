@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+#----------------------------------------------------------------------------------------------------------------------#
+#                                                                                                                      #
+#                                       Tuplex: Blazing Fast Python Data Science                                       #
+#                                                                                                                      #
+#                                                                                                                      #
+#  (c) 2017 - 2021, Tuplex team                                                                                        #
+#  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
+#  License: Apache 2.0                                                                                                 #
+#----------------------------------------------------------------------------------------------------------------------#
+
+
 from thserver import app, socketio, mongo
 from thserver.database import *
 from thserver.config import *
@@ -259,11 +271,14 @@ def update_operator():
     # send status update to all socketio clients
     status.update({'jobid' : jobid, 'opid' : opid})
     socketio.emit('operator_status', status)
-    print("ok")
 
     return jsonify({'status': 'ok'})
 
 
+"""
+This method gets a job from mongodb based on
+the inputted jobid.
+"""
 def get_job(jobid):
 
 
@@ -308,7 +323,6 @@ def get_job(jobid):
 
 @app.route('/api/operators', methods=['GET'])
 def display_all_operators():
-    print("api operators reached")
     res = normalize_from_mongo(mongo.db.operators.find({}))
 
     print(res)
@@ -322,7 +336,6 @@ def get_operator_details():
     get details for operator
     Returns:
     """
-    print("api operator reached")
     jobid = request.args.get('jobid')
     opid = request.args.get('opid')
 

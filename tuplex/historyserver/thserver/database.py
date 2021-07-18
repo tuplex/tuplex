@@ -1,4 +1,14 @@
-# (c) 2019 L.Spiegelberg
+#!/usr/bin/env python3
+#----------------------------------------------------------------------------------------------------------------------#
+#                                                                                                                      #
+#                                       Tuplex: Blazing Fast Python Data Science                                       #
+#                                                                                                                      #
+#                                                                                                                      #
+#  (c) 2017 - 2021, Tuplex team                                                                                        #
+#  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
+#  License: Apache 2.0                                                                                                 #
+#----------------------------------------------------------------------------------------------------------------------#
+
 # handle interactions with mongo db database (i.e. ORM)
 
 from thserver import app, socketio, mongo

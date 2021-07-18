@@ -113,7 +113,10 @@ namespace tuplex {
         // history server connection should be established
         bool useWebUI = _options.USE_WEBUI();
         // register new job
-        if(useWebUI && stage->predecessors().size() == 0) {
+        // checks if we should use the WebUI and if we are starting a new
+        // job (hence there are no stages that come before the current stage
+        // we are executing).
+        if(useWebUI && stage->predecessors().empty()) {
             _historyServer.reset();
             _historyServer = HistoryServerConnector::registerNewJob(_historyConn,
                     "local backend", stage->plan(), _options);
@@ -138,6 +141,9 @@ namespace tuplex {
             throw std::runtime_error("unknown stage encountered in local backend!");
 
         // send final message to history server to signal job ended
+        // checks whether the historyserver has been set as well as
+        // if all stages have been iterated through (we are currently on the
+        // last stage) because this means the job is finished.
         if(_historyServer && stage->predecessors().size() == stage->plan()->getNumStages() - 1) {
             _historyServer->sendStatus(JobStatus::FINISHED);
             _driver->setHistoryServer(nullptr);

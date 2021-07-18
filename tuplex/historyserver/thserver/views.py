@@ -106,17 +106,6 @@ def _jinja2_filter_humanizetime(dt, fmt=None):
 # /api/job              add job with some data
 # /api/
 
-def check_jobs_syntax(jobs):
-    return "action" in jobs and \
-           "status" in jobs and \
-           "user" in jobs and \
-           "context" in jobs and \
-           "submitted" in jobs and \
-           "started" in jobs and \
-           "finished" in jobs and \
-           "progress" in jobs and \
-           "id" in jobs
-
 @app.route('/')
 @app.route('/ui')
 @app.route('/ui/jobs')
@@ -137,10 +126,6 @@ def index():
 
     # perform REST request to get jobs...
     jobs = get_jobs().json
-    # if not check_jobs_syntax(jobs):
-    #     jobs = []
-    #     print("Warning: Jobs gathered from MongoDB had missing"
-    #           "information. Setting gathered jobs to 0.\n")
 
     return render_template('overview.html', version=__version__, num_jobs=len(jobs), jobs=jobs)
 
@@ -223,42 +208,7 @@ def showjob():
                   'left_join': 'join'}
 
     operators = job['operators']
-    # for op in operators:
-    #
-    #     if 'detailed_ecounts' in op:
-    #
-    #         # artifically add exception array if missing
-    #         if 'exceptions' not in op:
-    #             op['exceptions'] = []
-    #
-    #             # get detailed_ecounts
-    #             for key in sorted(op['detailed_ecounts'].keys()):
-    #                 op['exceptions'].append({'count' : op['detailed_ecounts'][key], 'code' : key})
-    #         else:
-    #             # # for each detailed count update
-    #             # for exc_name, count in op['detailed_ecounts'].items():
-    #             for j, exc in enumerate(op['exceptions']):
-    #                 if exc['code'] in op['detailed_ecounts']:
-    #                     op['exceptions'][j]['count'] = op['detailed_ecounts'][exc['code']]
-    #
-    #         del op['detailed_ecounts']
-    #
-    # kwargs = {'version': __version__,
-    #           'ncount': job['ncount'],
-    #           'ecount': job['ecount'],
-    #           # 'status': job['status'],
-    #           # 'ncount': 0,
-    #           # 'ecount': 0,
-    #           'status': "finished",
-    #           'operators': operators,
-    #           'opcssclass': opcssclass,
-    #           'id': job_id}
-    # # duration?
-    # if 'duration' in job['state_info']:
-    #     kwargs['duration'] = job['state_info']['duration']
-    # if 'started' in job['state_info']:
-    #     kwargs['started'] = job['state_info']['started']
-    # return render_template('job.html', **kwargs)
+
     # sort operators into stages!
     stages = {}
 

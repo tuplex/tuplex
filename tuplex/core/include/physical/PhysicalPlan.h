@@ -41,8 +41,6 @@ namespace tuplex {
 
         IBackend* backend() const { return _context.backend(); }
 
-//        std::shared_ptr<HistoryServerConnector> _hs;
-
         // ---- OLD CODE -----
         // experimental: AWS backend
         LogicalPlan *_lp;
@@ -72,8 +70,11 @@ namespace tuplex {
         void executeWithParts(const tuplex::PhysicalPlan::File2FilePipeline &pip);
         double aggregateSamplingTime() const;
     public:
+        /*!
+         * gets the number of stages in a physical plan
+         * @returns number of stages in the physical plan
+         */
         size_t getNumStages() const {return _num_stages;}
-        std::vector<LogicalOperator*> operators;
         PhysicalPlan(LogicalPlan* optimizedPlan, LogicalPlan* originalPlan, const Context& context);
 
         ~PhysicalPlan();

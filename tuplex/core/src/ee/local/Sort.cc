@@ -67,33 +67,10 @@ static std::vector<PartitionSortType> staticallyComputeOffsets(const std::vector
 std::vector<PartitionSortType> computeOffsets(const tuplex::Schema& schema, const size_t partitionCapacity, const uint8_t* ptr, int64_t numRows, int partitionNum = 0) {
     python::Type type = schema.getRowType();
     std::vector<python::Type> colTypes = type.parameters();
-    auto aa = python::Type::GENERICTUPLE.hash();
-    auto aab = python::Type::GENERICLIST.hash();
-    auto aabb = python::Type::GENERICDICT.hash();
-    auto aabbb = python::Type::ANY.hash();
-    auto aabbbb = python::Type::BOOLEAN.hash();
-    auto aac = python::Type::EMPTYTUPLE.hash();
-    auto aad = python::Type::EMPTYDICT.hash();
-    auto aae = python::Type::EMPTYLIST.hash();
-    auto aaf = python::Type::VOID.hash();
-    auto aag = python::Type::F64.hash();
-    auto aah = python::Type::INF.hash();
-    auto aai = python::Type::MATCHOBJECT.hash();
-    auto aaj = python::Type::PYOBJECT.hash();
-    auto aaq = python::Type::MODULE.hash();
-    auto aar = python::Type::NULLVALUE.hash();
-    auto aas = python::Type::RANGE.hash();
-    auto aat = python::Type::UNKNOWN.hash();
-    auto aau = python::Type::STRING.hash();
     auto fixedTypeComparator = [&](const python::Type& type) {
         return !type.isFixedSizeType();
     };
-    std::string dd;
-    for (int i = 0; i < colTypes.size(); i++) {
-        dd = colTypes[i].desc();
-    }
     auto x = std::find_if(colTypes.begin(), colTypes.end(), fixedTypeComparator);
-//    auto y = std::find(colTypes.begin(), colTypes.end(), python::Type::);
     if (x != colTypes.end()) {
         // there are var length types
         return dynamicallyComputeOffsets(schema, partitionCapacity, ptr, numRows, partitionNum);
@@ -290,7 +267,7 @@ struct TuplexSortComparator {
                 std::string lStr = lRow.getString(currentColIndex);
                 std::string rStr = rRow.getString(currentColIndex);
                 if (lStr == rStr) {continue;}
-                else if (orderEnum.at(counter-1) == 2 || orderEnum.at(counter-1) == 5) {
+                else if (orderEnum.at(counter-1) == 2 || orderEnum.at(counter-1) == 6) {
                     return lStr > rStr;
                 } else if (orderEnum.at(counter-1) == 3) {
                     return lStr.length() < rStr.length();
@@ -349,18 +326,18 @@ struct TuplexSortComparator {
                 // doesn't support other types yet
             }
             // TODO: Test Handle Generic Tuple
-            else if (colType == python::Type::GENERICTUPLE) {
-                bool lBool = lRow.getTuple(currentColIndex).numElements();
-                bool rBool = rRow.getTuple(currentColIndex).numElements();
-                if (lBool == rBool) {continue;}
-                else if (orderEnum.at(counter-1) == 4) {
-                    return lBool > rBool;
-                }
-                else {
-                    return lBool < rBool;
-                }
-                // doesn't support other types yet
-            }
+//            else if (colType == python::Type::GENERICTUPLE) {
+//                bool lBool = lRow.getTuple(currentColIndex).numElements();
+//                bool rBool = rRow.getTuple(currentColIndex).numElements();
+//                if (lBool == rBool) {continue;}
+//                else if (orderEnum.at(counter-1) == 4) {
+//                    return lBool > rBool;
+//                }
+//                else {
+//                    return lBool < rBool;
+//                }
+//                // doesn't support other types yet
+//            }
 
 
                 // TODO: Test Handle Generic List

@@ -8,12 +8,6 @@ class TestSort(unittest.TestCase):
         self.conf = {"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"}
 
     def testSort(self):
-        # base case where nothing is passed into sort
-        c = Context(self.conf)
-        ds = c.parallelize([1, 2, 3, 4, 5])
-        res1 = ds.sort()
-        print("A", res1.collect())
-        assert res1.collect() == [1, 2, 3, 4, 5]
 
         # base case where by is empty dict
         c = Context(self.conf)

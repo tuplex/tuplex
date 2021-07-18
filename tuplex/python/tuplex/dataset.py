@@ -54,46 +54,46 @@ class DataSet:
         ds._dataSet = self._dataSet.unique()
         return ds
 
-def sort(self, by):
-    """
+    def sort(self, by):
+        """
 
-    Args:
-        by (dict): key (column name or index) -> value (SortBy Enum). Columns
-        that are not specified in keys will be ignored.
-    Returns:
-        tuplex.dataset.DataSet: A Tuplex Dataset object that allows further ETL operations
-    """
-    assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
-    if by is None or len(by) == 0: return self._dataSet
-    assert isinstance(by, dict), 'by must be a dict'
-    order = list()
-    enumInOrder = list()
-    columns = []
-    sortbytypes = [SortBy.ASCENDING, SortBy.DESCENDING, SortBy.ASCENDING_LENGTH, SortBy.DESCENDING_LENGTH,
-                   SortBy.ASCENDING_LEXICOGRAPHICALLY, SortBy.DESCENDING_LEXICOGRAPHICALLY]
-    if len(self._dataSet.columns()) > 0:
-        columns = makeDictColumns(self._dataSet.columns())
-    else:
-        columns = makeDictColumns(self._dataSet.types())
-    for key in by:
-        if isinstance(key, str) and key in columns and (isinstance(by[key], int) or isinstance(by[key], SortBy)) and \
-                1 <= by[key] <= 6:
-            order.append(columns[key])
-            enumInOrder.append((by[key]))
-        # key = column index. column index must be a valid index for a column of the dataset.
-        # value corresponding key must be an integer 1-4 since there are four enums
-        # the value could be
-        elif isinstance(key, int) and 0 <= key < len(columns) and ((isinstance(by[key], int) and 1 <= by[key] <= 6) or (isinstance(by[key], SortBy) and by[key] in sortbytypes)):
-            order.append(key)
-            if isinstance(by[key], int):
-                enumInOrder.append((by[key]))
-            else:
-                enumInOrder.append((by[key].value))
+        Args:
+            by (dict): key (column name or index) -> value (SortBy Enum). Columns
+            that are not specified in keys will be ignored.
+        Returns:
+            tuplex.dataset.DataSet: A Tuplex Dataset object that allows further ETL operations
+        """
+        assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
+        if by is None or len(by) == 0: return self._dataSet
+        assert isinstance(by, dict), 'by must be a dict'
+        order = list()
+        enumInOrder = list()
+        columns = []
+        sortbytypes = [SortBy.ASCENDING, SortBy.DESCENDING, SortBy.ASCENDING_LENGTH, SortBy.DESCENDING_LENGTH,
+                       SortBy.ASCENDING_LEXICOGRAPHICALLY, SortBy.DESCENDING_LEXICOGRAPHICALLY]
+        if len(self._dataSet.columns()) > 0:
+            columns = makeDictColumns(self._dataSet.columns())
         else:
-            raise Exception("Error: Unsupported key type")
-        assert(len(order) == len(enumInOrder), "Internal error when constructing arguments to be passed"
-                                               "into backend from the by parameter")
-    return self._dataSet.sort(order, enumInOrder)
+            columns = makeDictColumns(self._dataSet.types())
+        for key in by:
+            if isinstance(key, str) and key in columns and (isinstance(by[key], int) or isinstance(by[key], SortBy)) and \
+                    1 <= by[key] <= 6:
+                order.append(columns[key])
+                enumInOrder.append((by[key]))
+            # key = column index. column index must be a valid index for a column of the dataset.
+            # value corresponding key must be an integer 1-4 since there are four enums
+            # the value could be
+            elif isinstance(key, int) and 0 <= key < len(columns) and ((isinstance(by[key], int) and 1 <= by[key] <= 6) or (isinstance(by[key], SortBy) and by[key] in sortbytypes)):
+                order.append(key)
+                if isinstance(by[key], int):
+                    enumInOrder.append((by[key]))
+                else:
+                    enumInOrder.append((by[key].value))
+            else:
+                raise Exception("Error: Unsupported key type")
+            assert(len(order) == len(enumInOrder), "Internal error when constructing arguments to be passed"
+                                                   "into backend from the by parameter")
+        return self._dataSet.sort(order, enumInOrder)
 
     def map(self, ftor):
         """ performs a map operation using the provided udf function over the dataset and

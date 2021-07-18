@@ -1552,6 +1552,25 @@ TEST_F(WrapperTest, TupleParallelizeI) {
     }
 }
 
+TEST_F(WrapperTest, Sort) {
+    using namespace tuplex;
+
+    PyObject* listObj = python::runAndGet("L = [5, 3, 1, 4, 2]", "L");
+    PyObject * l0 = PyList_New(1);
+    PyList_SET_ITEM(l0, 0, PyLong_FromLong(0));
+
+    PyObject * l1 = PyList_New(1);
+    PyList_SET_ITEM(l1, 0, PyLong_FromLong(1));
+
+    PythonContext c("");
+    {
+        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list0 = boost::python::list(boost::python::handle<>(l0));
+        auto list1 = boost::python::list(boost::python::handle<>(l1));
+        c.parallelize(list).sort(list0, list1).show();
+    }
+}
+
 TEST_F(WrapperTest, TupleParallelizeII) {
     using namespace tuplex;
 

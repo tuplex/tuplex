@@ -146,12 +146,12 @@ namespace tuplex {
                 int index = boost::python::extract<int>(order[i]);
                 int enumSort = boost::python::extract<int>(enumInOrder[i]);
 
-                if (index < 0 || index >= num_cols || enumSort <= 0 || enumSort > 4) {
+                if (index < 0 || index >= num_cols || enumSort <= 0 || enumSort > 6) {
                     throw std::runtime_error("invalid index " + std::to_string(index)
                                              + " found, has to be -" + std::to_string(num_cols)
                                              + ",...0,...," + std::to_string(num_cols - 1));
                 }
-                assert(0 <= index && index < num_cols && enumSort <= 0 && enumSort > 4);
+                assert(0 <= index && index < num_cols && enumSort > 0 && enumSort < 7);
 
                 convOrder.push_back(static_cast<size_t>(index));
                 convOrderEnum.push_back(static_cast<size_t>(enumSort));

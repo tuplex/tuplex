@@ -58,7 +58,7 @@ PYMODULE {
             .def("aggregate", &tuplex::PythonDataSet::aggregate)
             .def("aggregateByKey", &tuplex::PythonDataSet::aggregateByKey)
             .def("types", &tuplex::PythonDataSet::types)
-            .def("exception_counts", &tuplex::PythonDataSet::exception_counts);
+            .def("exception_counts", &tuplex::PythonDataSet::exception_counts)
             .def("sort", &tuplex::PythonDataSet::sort);
 
     class_<tuplex::PythonContext>("_Context", init<std::string, std::string, std::string>())

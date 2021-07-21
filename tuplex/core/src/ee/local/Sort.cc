@@ -4,6 +4,7 @@
 
 #include <PartitionWriter.h>
 #include "Row.h"
+#include <PythonSerializer.h>
 
 // pair<pair<index # into partitions, row # into partition>, pair<beg. offset, end. offset>>
 using PartitionSortType = std::pair<std::pair<size_t, size_t>, std::pair<size_t, size_t>>;
@@ -326,24 +327,37 @@ struct TuplexSortComparator {
                 // doesn't support other types yet
             }
             // TODO: Test Handle Generic Tuple
-//            else if (colType == python::Type::GENERICTUPLE) {
-//                bool lBool = lRow.getTuple(currentColIndex).numElements();
-//                bool rBool = rRow.getTuple(currentColIndex).numElements();
-//                if (lBool == rBool) {continue;}
-//                else if (orderEnum.at(counter-1) == 4) {
-//                    return lBool > rBool;
-//                }
-//                else {
-//                    return lBool < rBool;
-//                }
-//                // doesn't support other types yet
-//            }
-
-
+            else if (colType.isTupleType()) {
+                return true;
+            }
+            else if (colType == python::Type::EMPTYTUPLE) {
+                return true;
+                // doesn't support other types yet
+            }
                 // TODO: Test Handle Generic List
-//            else if (colType == python::Type::GENERICLIST) {
-//                bool lBool = lRow.getList(currentColIndex).numElements();
-//                bool rBool = rRow.getList(currentColIndex).numElements();
+            else if (colType.isListType()) {
+                size_t lBool = lRow.getList(currentColIndex).numElements();
+                size_t rBool = rRow.getList(currentColIndex).numElements();
+                if (lBool == rBool) {continue;}
+                else if (orderEnum.at(counter-1) == 4) {
+                    return lBool > rBool;
+                }
+                else {
+                    return lBool < rBool;
+                }
+                // doesn't support other types yet
+            }
+            else if (colType == python::Type::EMPTYLIST) {
+                return true;
+                // doesn't support other types yet
+            }
+//            else if (colType.isDictionaryType()) {
+////                     wrap 351/352 with a cjson function that will take in the ptr
+////                     and cast to obj. then call method to get length
+////                     ask Rahul if any problems arise
+//                ));
+//                size_t lBool = cpython::PyDict_FromCJSON(cJSON_Parse((char*)lRow.get(currentColIndex).getPtr()));
+//                size_t rBool = PyDict_FromCJSON(cJSON_Parse((char*)lRow.get(currentColIndex).getPtr()));
 //                if (lBool == rBool) {continue;}
 //                else if (orderEnum.at(counter-1) == 4) {
 //                    return lBool > rBool;
@@ -353,6 +367,10 @@ struct TuplexSortComparator {
 //                }
 //                // doesn't support other types yet
 //            }
+            else if (colType == python::Type::EMPTYDICT) {
+                return true;
+                // doesn't support other types yet
+            }
             else {
                 std::cout << "ERROR" << std::endl;
             }

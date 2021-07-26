@@ -502,14 +502,14 @@ class DataSet:
         agg_code, agg_code_pickled = '', ''
         try:
             # convert code object to str representation
-            comb_code = get_lambda_source(combine)
+            comb_code = get_udf_source(combine)
             comb_code_pickled = cloudpickle.dumps(combine)
         except:
             print('{} is not a lambda function or its code could not be extracted'.format(combine))
 
         try:
             # convert code object to str representation
-            agg_code = get_lambda_source(aggregate)
+            agg_code = get_udf_source(aggregate)
             agg_code_pickled = cloudpickle.dumps(aggregate)
         except:
             print('{} is not a lambda function or its code could not be extracted'.format(aggregate))

@@ -106,6 +106,7 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/__init__.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/jupyter.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/reflection.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/source_vault.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/framework.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/tracebacks.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/version.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/globs.py

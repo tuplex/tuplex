@@ -11,10 +11,12 @@
 
 import cloudpickle
 import sys
+import logging
 
 from .libexec.tuplex import _Context, _DataSet
 from tuplex.utils.reflection import get_source as get_udf_source
 from tuplex.utils.reflection import get_globals
+from tuplex.utils.framework import UDFCodeExtractionError
 from tuplex.utils.source_vault import SourceVault
 from .exceptions import classToExceptionCode
 
@@ -60,8 +62,8 @@ class DataSet:
         try:
             # convert code object to str representation
             code = get_udf_source(ftor)
-        except Exception as e:
-            raise Exception('Could not extract code for {}. Details:\n{}'.format(ftor, e)) from None
+        except UDFCodeExtractionError as e:
+            logging.warn('Could not extract code for {}. Details:\n{}'.format(ftor, e))
 
         g = get_globals(ftor)
 
@@ -89,8 +91,8 @@ class DataSet:
         try:
             # convert code object to str representation
             code = get_udf_source(ftor)
-        except Exception as e:
-            raise Exception('Could not extract code for {}.Details:\n{}'.format(ftor, e))
+        except UDFCodeExtractionError as e:
+            logging.warn('Could not extract code for {}. Details:\n{}'.format(ftor, e))
 
         g = get_globals(ftor)
         ds = DataSet()
@@ -167,8 +169,8 @@ class DataSet:
         try:
             # convert code object to str representation
             code = get_udf_source(ftor)
-        except Exception as e:
-            raise Exception('Could not extract code for {}.Details:\n{}'.format(ftor, e))
+        except UDFCodeExtractionError as e:
+            logging.warn('Could not extract code for {}. Details:\n{}'.format(ftor, e))
 
         g = get_globals(ftor)
         ds = DataSet()
@@ -196,8 +198,8 @@ class DataSet:
         try:
             # convert code object to str representation
             code = get_udf_source(ftor)
-        except Exception as e:
-            raise Exception('Could not extract code for {}.Details:\n{}'.format(ftor, e))
+        except UDFCodeExtractionError as e:
+            logging.warn('Could not extract code for {}. Details:\n{}'.format(ftor, e))
         g = get_globals(ftor)
         ds = DataSet()
         ds._dataSet = self._dataSet.withColumn(column, code, cloudpickle.dumps(ftor), g)
@@ -225,8 +227,8 @@ class DataSet:
         try:
             # convert code object to str representation
             code = get_udf_source(ftor)
-        except Exception as e:
-            raise Exception('Could not extract code for {}.Details:\n{}'.format(ftor, e)) from None
+        except UDFCodeExtractionError as e:
+            logging.warn('Could not extract code for {}. Details:\n{}'.format(ftor, e))
         g = get_globals(ftor)
         ds = DataSet()
         ds._dataSet = self._dataSet.mapColumn(column, code, cloudpickle.dumps(ftor), g)
@@ -441,8 +443,8 @@ class DataSet:
             try:
                 # convert code object to str representation
                 code = get_udf_source(part_name_generator)
-            except Exception as e:
-                raise Exception('Could not extract code for {}.Details:\n{}'.format(part_name_generator, e))
+            except UDFCodeExtractionError as e:
+                logging.warn('Could not extract code for {}. Details:\n{}'.format(ftor, e))
 
         # clamp max rows
         if num_rows > max_rows:
@@ -470,14 +472,14 @@ class DataSet:
         try:
             # convert code object to str representation
             comb_code = get_udf_source(combine)
-        except Exception as e:
-            raise Exception('Could not extract code for {}.Details:\n{}'.format(combine, e))
+        except UDFCodeExtractionError as e:
+            logging.warn('Could not extract code for combine UDF {}. Details:\n{}'.format(combine, e))
 
         try:
             # convert code object to str representation
             agg_code = get_udf_source(aggregate)
-        except Exception as e:
-            raise Exception('Could not extract code for {}.Details:\n{}'.format(aggregate, e))
+        except UDFCodeExtractionError as e:
+            logging.warn('Could not extract code for aggregate UDF {}. Details:\n{}'.format(aggregate, e))
 
         g_comb = get_globals(combine)
         g_agg = get_globals(aggregate)
@@ -502,20 +504,17 @@ class DataSet:
         agg_code, agg_code_pickled = '', ''
         try:
             # convert code object to str representation
-            comb_code = get_lambda_source(combine)
+            comb_code = get_udf_source(combine)
             comb_code_pickled = cloudpickle.dumps(combine)
-        except:
-            print('{} is not a lambda function or its code could not be extracted'.format(combine))
+        except UDFCodeExtractionError as e:
+            logging.warn('Could not extract code for combine UDF {}. Details:\n{}'.format(ftor, e))
 
         try:
             # convert code object to str representation
-            agg_code = get_lambda_source(aggregate)
+            agg_code = get_udf_source(aggregate)
             agg_code_pickled = cloudpickle.dumps(aggregate)
-        except:
-            print('{} is not a lambda function or its code could not be extracted'.format(aggregate))
-
-        print(comb_code)
-        print(agg_code)
+        except UDFCodeExtractionError as e:
+            logging.warn('Could not extract code for aggregate UDF {}. Details:\n{}'.format(ftor, e))
 
         ds = DataSet()
         ds._dataSet = self._dataSet.aggregateByKey(comb_code, comb_code_pickled,

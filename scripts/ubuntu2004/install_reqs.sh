@@ -135,6 +135,14 @@ cd /tmp &&
   ./configure --prefix=/opt --enable-jit=auto --disable-shared CFLAGS="-O2 -fPIC" && make -j 32 && make install
 popd
 
+cd /tmp &&
+curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.12.0/protobuf-cpp-3.12.0.tar.gz &&
+tar xf protobuf-cpp-3.12.0.tar.gz &&
+pushd protobuf-3.12.0 &&
+./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" &&
+make -j4 && make install && ldconfig &&
+popd
+
 # install python packages for tuplex (needs cloudpickle to compile, numpy to run certain tests)
 pip3 install cloudpickle numpy
 

@@ -108,7 +108,7 @@ popd &&
 
 # AWS SDK
 cd /tmp &&
-  git clone https://github.com/aws/aws-sdk-cpp.git &&
+  git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git &&
   cd aws-sdk-cpp && mkdir build && pushd build &&
   cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=/opt .. &&
   make -j32 &&

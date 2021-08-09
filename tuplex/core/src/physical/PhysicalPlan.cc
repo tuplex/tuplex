@@ -101,7 +101,7 @@ namespace tuplex {
                 } else if(node->type() == LogicalOperatorType::SORT) {
                     auto sop = dynamic_cast<SortOperator*>(node); assert(sop);
                     auto pred = createStage(sop->parent(), sop, false, EndPointMode::MEMORY);
-                    auto stage = new SortStage(this, backend(), _num_stages++, _context.getOptions().UNDEFINED_BEHAVIOR_FOR_OPERATORS(), sop->order(), sop->orderEnum());
+                    auto stage = new SortStage(this, backend(), _num_stages++, _context.getOptions().UNDEFINED_BEHAVIOR_FOR_OPERATORS(), sop->colIndicesInOrderToSortBy(), sop->orderEnum());
                     dependents.emplace_back(stage);
                     stage->dependOn(pred);
                     continue;

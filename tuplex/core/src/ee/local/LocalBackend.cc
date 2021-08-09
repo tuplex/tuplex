@@ -133,6 +133,7 @@ namespace tuplex {
         if(tstage)
             executeTransformStage(tstage);
         else if (dynamic_cast<SortStage*>(stage)) {
+            auto a = (dynamic_cast<SortStage*>(stage))->inputPartitions();
             auto stg = dynamic_cast<SortStage*>(stage);
             stg->setResultSet(stage->resultSet());
             executeSortStage(stg);
@@ -160,7 +161,7 @@ namespace tuplex {
 
 
         std::vector<tuplex::Partition*> partitions = sortMultiplePartitions(
-                rs->partitions(), driver(), sstage->order(), sstage->orderEnum());
+                rs->partitions(), driver(), sstage->colIndicesInOrderToSortBy(), sstage->orderEnum());
 
 
         std::stringstream ss;

@@ -9,8 +9,8 @@ namespace tuplex {
     SortStage::SortStage(PhysicalPlan *plan, IBackend *backend,
                          int64_t number,
                          bool allowUndefinedBehavior,
-                         std::vector<size_t> order, std::vector<size_t> orderEnum) : PhysicalStage::PhysicalStage(plan, backend, number),
-                                                                                     _order(order), _orderEnum(orderEnum) {}
+                         std::vector<size_t> colIndicesInOrderToSortBy, std::vector<SortBy> orderEnum) : PhysicalStage::PhysicalStage(plan, backend, number),
+                                                                                                         _colIndicesInOrderToSortBy(colIndicesInOrderToSortBy), _orderEnum(orderEnum) {}
 
     void SortStage::execute(const Context &context) {
         using namespace std;

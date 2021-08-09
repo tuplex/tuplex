@@ -28,6 +28,7 @@ namespace tuplex {
          */
         extern bool fromSerializedMemory(const uint8_t *ptr, int64_t capacity, const Schema &schema, PyObject **obj,
                                          const uint8_t **nextptr = nullptr);
+//        PyObject *PyDict_FromCJSON(const cJSON *dict);
     }
 
 }

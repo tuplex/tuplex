@@ -4,15 +4,15 @@
 
 #include <PartitionWriter.h>
 #include "Row.h"
-#include <PythonSerializer.h>
-
+#include <SortBy.h>
+//#include <PythonSerializer.h>
+#include "PythonSerializer_private.h"
 // pair<pair<index # into partitions, row # into partition>, pair<beg. offset, end. offset>>
 using PartitionSortType = std::pair<std::pair<size_t, size_t>, std::pair<size_t, size_t>>;
 
 // gets the given number of bytes allocated for a specific
 // fixed python type
 static size_t fixedLengthTypeSerializationSize(const python::Type& type) {
-    assert(type.isNumericType());
     if (type.isNumericType()) {
         return sizeof(int64_t);
     } else {
@@ -69,8 +69,12 @@ std::vector<PartitionSortType> computeOffsets(const tuplex::Schema& schema, cons
     python::Type type = schema.getRowType();
     std::vector<python::Type> colTypes = type.parameters();
     auto fixedTypeComparator = [&](const python::Type& type) {
-        return !type.isFixedSizeType();
+        return (!type.isFixedSizeType() ||  type.isTupleType() || type.isListType() || type.isDictionaryType() || type.isOptionType());
     };
+    // return !isFix || isTup
+    // tup.....false || true   -> true
+    // int...false || false      -> false
+    // str....true || false      -> true
     auto x = std::find_if(colTypes.begin(), colTypes.end(), fixedTypeComparator);
     if (x != colTypes.end()) {
         // there are var length types
@@ -101,11 +105,11 @@ std::vector<size_t> genComparisonOrder(int numColumns, std::vector<size_t> order
     //    return ret;
 }
 
-std::vector<size_t> genComparisonOrderEnum(int numColumns, std::vector<size_t> orderEnum) {
-    std::vector<size_t> ret;
+std::vector<tuplex::SortBy> genComparisonOrderEnum(int numColumns, std::vector<tuplex::SortBy> orderEnum) {
+    std::vector<tuplex::SortBy> ret;
     if (orderEnum.empty()) {
         for (int i = 0; i < numColumns; i++) {
-            ret.push_back(i);
+            ret.push_back(tuplex::SortBy::ASCENDING);
         }
     } else {
         return orderEnum;
@@ -133,11 +137,11 @@ struct TuplexSortComparator {
     // const std::vector<size_t>& indicesToSort: the columns to sort by
     TuplexSortComparator(
             std::vector<const uint8_t*> partitionPtrs,
-            const tuplex::Schema& schema, std::vector<size_t> order, std::vector<size_t> orderEnum) :
+            const tuplex::Schema& schema, std::vector<size_t> colIndicesInOrderToSortBy, std::vector<tuplex::SortBy> orderEnum) :
             partitionPtrs(std::move(partitionPtrs)), schema(schema) {
         int numColumns = schema.getRowType().parameters().size();
         // generates the order of columns that the partition should be sorted by
-        this->order = genComparisonOrder(numColumns, order);
+        this->colIndicesInOrderToSortBy = genComparisonOrder(numColumns, colIndicesInOrderToSortBy);
         this->orderEnum = genComparisonOrderEnum(numColumns, orderEnum);
     }
 
@@ -163,18 +167,21 @@ struct TuplexSortComparator {
         // gets a list of the types for each column
         std::vector<python::Type> colTypes = schema.getRowType().parameters();
         int counter = 0;
-        while (counter != order.size()) {
+        while (counter != colIndicesInOrderToSortBy.size()) {
             // gets the current column to sort by
-            int currentColIndex = order.at(counter);
+            int currentColIndex = colIndicesInOrderToSortBy.at(counter);
             // gets the current type of this current column
             python::Type colType = colTypes.at(currentColIndex);
+            if (colType.isOptionType()) {
+                colType = colType.elementType();
+            }
             // sorting for integer
             counter++;
             if (colType == python::Type::I64) {
                 int64_t lInt = lRow.getInt(currentColIndex);
                 int64_t rInt = rRow.getInt(currentColIndex);
                 if (lInt == rInt) {continue;} // edge case where there is no other column to sort by
-                else if (orderEnum.at(counter-1) == 3) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LENGTH) {
                     std::ostringstream o1;
                     std::ostringstream o2;
                     o1 << lInt;
@@ -183,7 +190,7 @@ struct TuplexSortComparator {
                     std::string rStrInt = o2.str();
                     return lStrInt.length() < rStrInt.length();
                 }
-                else if (orderEnum.at(counter-1) == 4) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LENGTH) {
                     std::ostringstream o1;
                     std::ostringstream o2;
                     o1 << lInt;
@@ -192,7 +199,7 @@ struct TuplexSortComparator {
                     std::string rStrInt = o2.str();
                     return lStrInt.length() > rStrInt.length();
                 }
-                else if (orderEnum.at(counter-1) == 5) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LEXICOGRAPHICALLY) {
                     std::ostringstream o1;
                     std::ostringstream o2;
                     o1 << lInt;
@@ -201,7 +208,7 @@ struct TuplexSortComparator {
                     std::string rStrInt = o2.str();
                     return lStrInt < rStrInt;
                 }
-                else if (orderEnum.at(counter-1) == 6) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY) {
                     std::ostringstream o1;
                     std::ostringstream o2;
                     o1 << lInt;
@@ -210,7 +217,7 @@ struct TuplexSortComparator {
                     std::string rStrInt = o2.str();
                     return lStrInt > rStrInt;
                 }
-                else if (orderEnum.at(counter-1) == 2) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING) {
                     return lInt > rInt;
                 }
                 else {
@@ -221,7 +228,7 @@ struct TuplexSortComparator {
                 double lDub = lRow.getDouble(currentColIndex);
                 double rDub = rRow.getDouble(currentColIndex);
                 if (lDub == rDub) {continue;}
-                else if (orderEnum.at(counter-1) == 3) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LENGTH) {
                     std::ostringstream o1;
                     std::ostringstream o2;
                     o1 << lDub;
@@ -230,7 +237,7 @@ struct TuplexSortComparator {
                     std::string rStrDub = o2.str();
                     return lStrDub.length() < rStrDub.length();
                 }
-                else if (orderEnum.at(counter-1) == 4) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LENGTH) {
                     std::ostringstream o1;
                     std::ostringstream o2;
                     o1 << lDub;
@@ -239,7 +246,7 @@ struct TuplexSortComparator {
                     std::string rStrDub = o2.str();
                     return lStrDub.length() > rStrDub.length();
                 }
-                else if (orderEnum.at(counter-1) == 5) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LEXICOGRAPHICALLY) {
                     std::ostringstream o1;
                     std::ostringstream o2;
                     o1 << lDub;
@@ -248,7 +255,7 @@ struct TuplexSortComparator {
                     std::string rStrDub = o2.str();
                     return lStrDub < rStrDub;
                 }
-                else if (orderEnum.at(counter-1) == 6) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY) {
                     std::ostringstream o1;
                     std::ostringstream o2;
                     o1 << lDub;
@@ -257,7 +264,7 @@ struct TuplexSortComparator {
                     std::string rStrDub = o2.str();
                     return lStrDub > rStrDub;
                 }
-                else if (orderEnum.at(counter-1) == 2) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING) {
                     return lDub > rDub;
                 }
                 else {
@@ -268,11 +275,11 @@ struct TuplexSortComparator {
                 std::string lStr = lRow.getString(currentColIndex);
                 std::string rStr = rRow.getString(currentColIndex);
                 if (lStr == rStr) {continue;}
-                else if (orderEnum.at(counter-1) == 2 || orderEnum.at(counter-1) == 6) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING || orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY) {
                     return lStr > rStr;
-                } else if (orderEnum.at(counter-1) == 3) {
+                } else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LENGTH) {
                     return lStr.length() < rStr.length();
-                } else if (orderEnum.at(counter-1) == 4) {
+                } else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LENGTH) {
                     return lStr.length() > rStr.length();
                 } else {
                     return lStr < rStr;
@@ -282,7 +289,7 @@ struct TuplexSortComparator {
                 bool lBool = lRow.getBoolean(currentColIndex);
                 bool rBool = rRow.getBoolean(currentColIndex);
                 if (lBool == rBool) {continue;}
-                else if (orderEnum.at(counter-1) == 3) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LENGTH) {
                     std::ostringstream o1;
                     std::ostringstream o2;
                     o1 << lBool;
@@ -291,7 +298,7 @@ struct TuplexSortComparator {
                     std::string rStrBool = o2.str();
                     return lStrBool.length() < rStrBool.length();
                 }
-                else if (orderEnum.at(counter-1) == 4) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LENGTH) {
                     std::ostringstream o1;
                     std::ostringstream o2;
                     o1 << lBool;
@@ -300,7 +307,7 @@ struct TuplexSortComparator {
                     std::string rStrBool = o2.str();
                     return lStrBool.length() > rStrBool.length();
                 }
-                else if (orderEnum.at(counter-1) == 5) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LEXICOGRAPHICALLY) {
                     std::ostringstream o1;
                     std::ostringstream o2;
                     o1 << lBool;
@@ -309,7 +316,7 @@ struct TuplexSortComparator {
                     std::string rStrBool = o2.str();
                     return lStrBool < rStrBool;
                 }
-                else if (orderEnum.at(counter-1) == 6) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY) {
                     std::ostringstream o1;
                     std::ostringstream o2;
                     o1 << lBool;
@@ -318,7 +325,7 @@ struct TuplexSortComparator {
                     std::string rStrBool = o2.str();
                     return lStrBool > rStrBool;
                 }
-                else if (orderEnum.at(counter-1) == 2) {
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING) {
                     return lBool > rBool;
                 }
                 else {
@@ -334,30 +341,10 @@ struct TuplexSortComparator {
                 return true;
                 // doesn't support other types yet
             }
-                // TODO: Test Handle Generic List
-            else if (colType.isListType()) {
-                size_t lBool = lRow.getList(currentColIndex).numElements();
-                size_t rBool = rRow.getList(currentColIndex).numElements();
-                if (lBool == rBool) {continue;}
-                else if (orderEnum.at(counter-1) == 4) {
-                    return lBool > rBool;
-                }
-                else {
-                    return lBool < rBool;
-                }
-                // doesn't support other types yet
-            }
-            else if (colType == python::Type::EMPTYLIST) {
-                return true;
-                // doesn't support other types yet
-            }
-//            else if (colType.isDictionaryType()) {
-////                     wrap 351/352 with a cjson function that will take in the ptr
-////                     and cast to obj. then call method to get length
-////                     ask Rahul if any problems arise
-//                ));
-//                size_t lBool = cpython::PyDict_FromCJSON(cJSON_Parse((char*)lRow.get(currentColIndex).getPtr()));
-//                size_t rBool = PyDict_FromCJSON(cJSON_Parse((char*)lRow.get(currentColIndex).getPtr()));
+            // TODO: getList not defined in Row.cc, only declared in Row.h
+//            else if (colType.isListType()) {
+//                size_t lBool = lRow.getList(currentColIndex).numElements();
+//                size_t rBool = rRow.getList(currentColIndex).numElements();
 //                if (lBool == rBool) {continue;}
 //                else if (orderEnum.at(counter-1) == 4) {
 //                    return lBool > rBool;
@@ -367,6 +354,29 @@ struct TuplexSortComparator {
 //                }
 //                // doesn't support other types yet
 //            }
+            else if (colType == python::Type::EMPTYLIST) {
+                return true;
+                // doesn't support other types yet
+            }
+            else if (colType.isDictionaryType()) {
+//                     wrap 351/352 with a cjson function that will take in the ptr
+//                     and cast to obj. then call method to get length
+//                     ask Rahul if any problems arise
+//                ));
+//PyDict_
+//                auto lBool = PyByteArray_Size(tuplex::cpython::PyDict_FromCJSON(cJSON_Parse((char*)lRow.get(currentColIndex).getPtr())));
+//                auto rBool = PyByteArray_Size(tuplex::cpython::PyDict_FromCJSON(cJSON_Parse((char*)rRow.get(currentColIndex).getPtr())));
+                auto lBool = PyByteArray_Size(tuplex::cpython::createPyDictFromMemory((uint8_t*)lRow.get(currentColIndex).getPtr()));
+                auto rBool = PyByteArray_Size(tuplex::cpython::createPyDictFromMemory((uint8_t*)rRow.get(currentColIndex).getPtr()));
+                if (lBool == rBool) {continue;}
+                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LENGTH) {
+                    return lBool > rBool;
+                }
+                else {
+                    return lBool < rBool;
+                }
+                // doesn't support other types yet
+            }
             else if (colType == python::Type::EMPTYDICT) {
                 return true;
                 // doesn't support other types yet
@@ -383,18 +393,18 @@ struct TuplexSortComparator {
     // schema of the partitions that the rows belong too
     tuplex::Schema schema;
     // the order of columns to sort by
-    std::vector<size_t> order;
-    std::vector<size_t> orderEnum;
+    std::vector<size_t> colIndicesInOrderToSortBy;
+    std::vector<tuplex::SortBy> orderEnum;
 };
 
 // standardSort sorts a partition's offsets using the TuplexSortComparator
 std::vector<PartitionSortType> standardSort(
         std::vector<PartitionSortType> offsets, const uint8_t* ptr,
-        const tuplex::Schema& schema, std::vector<size_t> order, std::vector<size_t> orderEnum) {
+        const tuplex::Schema& schema, std::vector<size_t> colIndicesInOrderToSortBy, std::vector<tuplex::SortBy> orderEnum) {
 
     std::vector<const uint8_t*> partitionPtrs {ptr};
     // call std::sort using TuplexSortComparator
-    std::sort(offsets.begin(), offsets.end(), TuplexSortComparator(partitionPtrs, schema, order, orderEnum));
+    std::sort(offsets.begin(), offsets.end(), TuplexSortComparator(partitionPtrs, schema, colIndicesInOrderToSortBy, orderEnum));
     return offsets;
 }
 
@@ -412,9 +422,21 @@ std::vector<PartitionSortType> standardSort(
 tuplex::Partition* reconstructPartition(
         const tuplex::Partition* partition,
         const std::vector<PartitionSortType>& sortedOffsets,
-        const uint8_t* readPtr, tuplex::Executor* executor,
+        const uint8_t* readPtr, int64_t num_rows, tuplex::Executor* executor,
         const int dataSetID = -1) {
     tuplex::Schema schema = partition->schema();
+//    tuplex::PartitionWriter pw(executor, schema, -1, 32);
+//    for (const PartitionSortType sortedOffset : sortedOffsets) {
+//        tuplex::Row row = tuplex::Row::fromMemory(schema, readPtr + sortedOffset.second.first,
+//                                                  sortedOffset.second.second - sortedOffset.second.first);
+//        printf("Writing...Partition Number: %d. Row Number: %d. Starting Offset: %d. Ending Offset: %d. Length: %d.\n",
+//               sortedOffset.first.first, sortedOffset.first.second,
+//               sortedOffset.second.first, sortedOffset.second.second, row.serializedLength());
+//        pw.writeRow(row);
+//    }
+//    auto part =  pw.getOutputPartitions().at(0);
+//    part->setNumRows(sortedOffsets.size());
+//    return part;
     auto requiredSize = partition->size();
     // set up new partition to write to
     tuplex::Partition* outputPartition = executor->allocWritablePartition(requiredSize, schema, dataSetID);
@@ -423,12 +445,16 @@ tuplex::Partition* reconstructPartition(
     auto writePtr = outputPartition->lockWriteRaw();
     // copy the first value of the partition which represents the number
     // of rows that the partition has
-    memcpy(writePtr, readPtr - sizeof(int64_t), sizeof(int64_t));
+    *((int64_t*)writePtr) = num_rows;
     // increment the write pointer to point to where the first row
     // should be
+    memcpy(writePtr, readPtr-sizeof(int64_t), sizeof(int64_t));
     writePtr += sizeof(int64_t);
     for (const PartitionSortType sortedOffset : sortedOffsets) {
         // copy the row from the old partition
+//        printf("Writing...Partition Number: %d. Row Number: %d. Starting Offset: %d. Ending Offset: %d.\n",
+//               sortedOffset.first.first, sortedOffset.first.second,
+//               sortedOffset.second.first, sortedOffset.second.second);
         memcpy(writePtr, readPtr + sortedOffset.second.first, sortedOffset.second.second - sortedOffset.second.first);
         // update the writeptr to point to where the next row should go
         writePtr += sortedOffset.second.second - sortedOffset.second.first;
@@ -458,7 +484,7 @@ tuplex::Partition* reconstructPartition(
 // The default is set to an empty list (which implies sort columns by order)
 std::vector<tuplex::Partition*> mergeKPartitions(
         std::vector<tuplex::Partition*> partitions,
-        tuplex::Executor* executor, std::vector<size_t> order, std::vector<size_t> orderEnum) {
+        tuplex::Executor* executor, std::vector<size_t> colIndicesInOrderToSortBy, std::vector<tuplex::SortBy> orderEnum) {
     // base cases: if there is only one partition, then it should already
     // be sorted according to the assumptions of this function.
     // if there are no partitions, then there is nothing to sort
@@ -491,26 +517,26 @@ std::vector<tuplex::Partition*> mergeKPartitions(
     }
     // define the comparator to use in the heap
     for (int i = 0; i < orderEnum.size(); i++) {
-        if (orderEnum[i] == 1) {
-            orderEnum[i] = 2;
+        if (orderEnum[i] == tuplex::SortBy::ASCENDING) {
+            orderEnum[i] = tuplex::SortBy::DESCENDING;
         }
-        else if (orderEnum[i] == 2) {
-            orderEnum[i] = 1;
+        else if (orderEnum[i] == tuplex::SortBy::DESCENDING) {
+            orderEnum[i] = tuplex::SortBy::ASCENDING;
         }
-        else if (orderEnum[i] == 3) {
-            orderEnum[i] = 4;
+        else if (orderEnum[i] == tuplex::SortBy::ASCENDING_LENGTH) {
+            orderEnum[i] = tuplex::SortBy::DESCENDING_LENGTH;
         }
-        else if (orderEnum[i] == 4) {
-            orderEnum[i] = 3;
+        else if (orderEnum[i] == tuplex::SortBy::DESCENDING_LENGTH) {
+            orderEnum[i] = tuplex::SortBy::ASCENDING_LENGTH;
         }
-        else if (orderEnum[i] == 5) {
-            orderEnum[i] = 6;
+        else if (orderEnum[i] == tuplex::SortBy::ASCENDING_LEXICOGRAPHICALLY) {
+            orderEnum[i] = tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY;
         }
-        else if (orderEnum[i] == 6) {
-            orderEnum[i] = 5;
+        else if (orderEnum[i] == tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY) {
+            orderEnum[i] = tuplex::SortBy::ASCENDING_LEXICOGRAPHICALLY;
         }
     }
-    auto a = TuplexSortComparator(partitionPtrs, schema, order, orderEnum);
+    auto a = TuplexSortComparator(partitionPtrs, schema, colIndicesInOrderToSortBy, orderEnum);
     // define the minimum priority queue that will be used to do the k-way merge
     std::priority_queue<PartitionSortType, std::vector<PartitionSortType>, TuplexSortComparator> frontierIndices(a);
     // add the first offset of each partition to the minimum priority queue
@@ -562,7 +588,7 @@ std::vector<tuplex::Partition*> mergeKPartitions(
 // The default is set to an empty list (which implies sort columns by order)
 tuplex::Partition* sortSinglePartition(
         tuplex::Partition* partition,
-        tuplex::Executor* executor, std::vector<size_t> order, std::vector<size_t> orderEnum) {
+        tuplex::Executor* executor, std::vector<size_t> colIndicesInOrderToSortBy, std::vector<tuplex::SortBy> orderEnum) {
     // partition is locked (read only) so no other threads mutate the partition during sorting
     // read only lock is used since sorting is not in place
     const uint8_t* ptr = partition->lockRaw();
@@ -570,7 +596,8 @@ tuplex::Partition* sortSinglePartition(
     // cast the pointer to a pointer to an int64, then dereference the pointer
     // to actually get the int64 value
     int64_t numRows = *(int64_t*)ptr;
-
+//    int64_t numRows = 3;
+    int i =0;
     // First value of the partition is an int64 representing the number of rows
     // in the partition. Next value represents the first row. So add sizeof(int64_t)
     // to ptr in order for ptr to point to the first row.
@@ -587,12 +614,12 @@ tuplex::Partition* sortSinglePartition(
 
     // sorts the previously computed offsets, so that now the offsets
     // (representing row locations) are now in sorted order.
-    std::vector<PartitionSortType> sortedOffsets = standardSort(offsets, ptr, schema, order, orderEnum);
+    std::vector<PartitionSortType> sortedOffsets = standardSort(offsets, ptr, schema, colIndicesInOrderToSortBy, orderEnum);
 
     // Now that the offsets are in sorted order, we just need to iterate
     // through these offsets, loading the rows in, and writing them to a new
     // partition in that order
-    tuplex::Partition* outputPartition = reconstructPartition(partition, sortedOffsets, ptr, executor);
+    tuplex::Partition* outputPartition = reconstructPartition(partition, sortedOffsets, ptr, numRows, executor);
 
     // free up our read only lock on the partition
     partition->unlock();
@@ -613,11 +640,12 @@ tuplex::Partition* sortSinglePartition(
 // The default is set to an empty list (which implies sort columns by order)
 std::vector<tuplex::Partition*> sortMultiplePartitions(
         std::vector<tuplex::Partition*> partitions,
-        tuplex::Executor* executor, std::vector<size_t> order, std::vector<size_t> orderEnum) {
+        tuplex::Executor* executor, std::vector<size_t> colIndicesInOrderToSortBy, std::vector<tuplex::SortBy> orderEnum) {
     // sorts each individual partition (not in place)
     for (auto & partition : partitions) {
-        partition = sortSinglePartition(partition, executor, order, orderEnum);
+        partition = sortSinglePartition(partition, executor, colIndicesInOrderToSortBy, orderEnum);
     }
+//    return partitions;
     // does a k-way merge of sorted partitions
-    return mergeKPartitions(partitions, executor, order, orderEnum);
+    return mergeKPartitions(partitions, executor, colIndicesInOrderToSortBy, orderEnum);
 }

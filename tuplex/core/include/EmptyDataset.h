@@ -33,7 +33,7 @@ namespace tuplex {
 
         virtual bool isEmpty() const override { return true; }
 
-        virtual DataSet& sort(std::vector<std::size_t> order, std::vector<std::size_t> orderEnums) override { return *this; }
+        virtual DataSet& sort(const std::vector<std::size_t>& colIndicesInOrderToSortBy, const  std::vector<SortBy>& orderEnums) override { return *this; }
 
         // need to overwrite all the functions of DataSet!
         virtual DataSet& map(const UDF& udf) override { return *this; }

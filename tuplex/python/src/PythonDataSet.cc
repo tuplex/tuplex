@@ -131,7 +131,7 @@ namespace tuplex {
 
         // go through list
         std::vector<std::size_t> convOrder;
-        std::vector<std::size_t> convOrderEnum;
+        std::vector<tuplex::SortBy> convOrderEnum;
         auto columns = _dataset->columns();
 
         PyObject * listObj1 = order.ptr();
@@ -154,7 +154,7 @@ namespace tuplex {
                 assert(0 <= index && index < num_cols && enumSort > 0 && enumSort < 7);
 
                 convOrder.push_back(static_cast<size_t>(index));
-                convOrderEnum.push_back(static_cast<size_t>(enumSort));
+                convOrderEnum.push_back(static_cast<tuplex::SortBy>(enumSort));
             } else {
                 throw std::runtime_error("select columns only accepts integers or string!");
             }

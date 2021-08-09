@@ -164,7 +164,7 @@ namespace tuplex {
         return *op->getDataSet();
     }
 
-    DataSet &DataSet::sort(std::vector<std::size_t> order, std::vector<std::size_t> orderEnums) {
+    DataSet &DataSet::sort(const std::vector<std::size_t>& colIndicesInOrderToSortBy, const std::vector<SortBy>& orderEnums) {
         // if error dataset, return itself
         if (isError())
             return *this;
@@ -173,14 +173,14 @@ namespace tuplex {
         assert(this->_operator);
 
         // parameter checking
-        assert(order.size() == orderEnums.size());
+        assert(colIndicesInOrderToSortBy.size() == orderEnums.size());
 
         // sanity check/print for order and orderEnums
         //        for (int i = 0; i < order.size(); i++) {
         //            printf("o: %d, e: %d\n", order[i], orderEnums[i]);
         //        }
 
-        LogicalOperator *op = _context->addOperator(new SortOperator(this->_operator, order, orderEnums));
+        LogicalOperator *op = _context->addOperator(new SortOperator(this->_operator, colIndicesInOrderToSortBy, orderEnums));
 
         if (!op->good()) {
             Logger::instance().defaultLogger().error("failed to create sort operator");

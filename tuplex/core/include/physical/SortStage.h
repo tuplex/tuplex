@@ -29,7 +29,7 @@ namespace tuplex {
         SortStage(PhysicalPlan* plan,
                   IBackend* backend,
                   int64_t number,
-                  bool allowUndefinedBehavior, std::vector<size_t> order, std::vector<size_t> orderEnum);
+                  bool allowUndefinedBehavior, std::vector<size_t> colIndicesInOrderToSortBy, std::vector<SortBy> orderEnum);
 
         ~SortStage() override = default;
 
@@ -49,12 +49,12 @@ namespace tuplex {
          * @return resultset of this stage
          */
         std::shared_ptr<ResultSet> resultSet() const override { return _rs;}
-        std::vector<size_t> order() { return _order;};
-        std::vector<size_t> orderEnum() { return _orderEnum;};
+        std::vector<size_t> colIndicesInOrderToSortBy() { return _colIndicesInOrderToSortBy;};
+        std::vector<SortBy> orderEnum() { return _orderEnum;};
     private:
 
-        std::vector<size_t> _order;
-        std::vector<size_t> _orderEnum;
+        std::vector<size_t> _colIndicesInOrderToSortBy;
+        std::vector<SortBy> _orderEnum;
         std::vector<Partition*> _inputPartitions; //! memory input partitions for this task.
         std::shared_ptr<ResultSet> _rs; //! result set
     };

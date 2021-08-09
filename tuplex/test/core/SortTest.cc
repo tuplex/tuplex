@@ -3,6 +3,7 @@
 //
 #include "TestUtils.h"
 #include <PartitionWriter.h>
+#include <SortBy.h>
 
 class SortTest : public PyTest {};
 
@@ -127,7 +128,7 @@ TEST_F(SortTest, SinglePartitionSort1ColumnAscInt) {
             tuplex::Row(9),
     };
     std::vector<size_t> order = {0};
-    std::vector<size_t> orderEnums = {1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64});
@@ -136,35 +137,208 @@ TEST_F(SortTest, SinglePartitionSort1ColumnAscInt) {
     EXPECT_TRUE(checkEqualPartitions(sortedPartitions, sortedPartitions2));
 }
 
-// TODO: comment back in when tuple sorting is integrated.
-//TEST_F(SortTest, SinglePartitionTupleLengthSort) {
+
+TEST_F(SortTest, SinglePartitionTupleSort) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+    tuplex::Executor* executor = c.getDriver();
+
+    std::vector<tuplex::Row> rows = {
+            tuplex::Row(Tuple(0, 3)),
+            tuplex::Row(Tuple(10, 3)),
+            tuplex::Row(Tuple(0, 13)),
+            tuplex::Row(Tuple(110, 3)),
+    };
+    std::vector<tuplex::Row> sortedRows = {
+            tuplex::Row(Tuple(0, 3)),
+            tuplex::Row(Tuple(10, 3)),
+            tuplex::Row(Tuple(0, 13)),
+            tuplex::Row(Tuple(110, 3)),
+    };
+    std::vector<size_t> order = {0};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING};
+    auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
+
+    const python::Type& type = python::Type::makeTupleType({python::Type::makeTupleType(std::vector<python::Type>{python::Type::I64, python::Type::I64})});
+    std::vector<tuplex::Partition*> sortedPartitions2 = constructTestPartitions(executor, sortedRows, type);
+
+    EXPECT_TRUE(checkEqualPartitions(sortedPartitions, sortedPartitions2));
+}
+
+TEST_F(SortTest, SinglePartitionEmptyTupleSort) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+    tuplex::Executor* executor = c.getDriver();
+
+    std::vector<tuplex::Row> rows = {
+            tuplex::Row(Field::empty_tuple()),
+            tuplex::Row(Field::empty_tuple()),
+    };
+    std::vector<tuplex::Row> sortedRows = {
+            tuplex::Row(Field::empty_tuple()),
+            tuplex::Row(Field::empty_tuple()),
+    };
+    std::vector<size_t> order = {0};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING};
+    auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collectAsVector();
+
+    EXPECT_TRUE(sortedPartitions.size() == 2);
+}
+// TODO: waiting
+//TEST_F(SortTest, SinglePartitionListSort) {
 //    using namespace tuplex;
 //    Context c(microTestOptions());
 //    tuplex::Executor* executor = c.getDriver();
 //
 //    std::vector<tuplex::Row> rows = {
-//            tuplex::Row(Tuple(0, 3, 1)),
-//            tuplex::Row(Tuple(0, 3)),
-//            tuplex::Row(Tuple(0, 3, 1, 1)),
-//            tuplex::Row(Tuple(0, 3)),
+//            tuplex::Row(List(4, 5, 2)),
+//            tuplex::Row(List(9, 2)),
+//            tuplex::Row(List(4, 5, 2)),
+//            tuplex::Row(List(9, 2, 1, 2)),
 //    };
 //    std::vector<tuplex::Row> sortedRows = {
-//            tuplex::Row(Tuple(0, 3)),
-//            tuplex::Row(Tuple(0, 3)),
-//            tuplex::Row(Tuple(0, 3, 1)),
-//            tuplex::Row(Tuple(0, 3, 1, 1)),
+//            tuplex::Row(List(9, 2, 1, 2)),
+//            tuplex::Row(List(4, 5, 2)),
+//            tuplex::Row(List(4, 5, 2)),
+//            tuplex::Row(List(9, 2)),
 //    };
 //    std::vector<size_t> order = {0};
 //    std::vector<size_t> orderEnums = {1};
 //    auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 //
-//    const python::Type& type = python::Type::makeTupleType({python::Type::I64});
+//    const python::Type& type = python::Type::makeTupleType({python::Type::makeListType(python::Type::I64)});
 //    std::vector<tuplex::Partition*> sortedPartitions2 = constructTestPartitions(executor, sortedRows, type);
 //
 //    EXPECT_TRUE(checkEqualPartitions(sortedPartitions, sortedPartitions2));
 //}
 
+TEST_F(SortTest, SinglePartitionEmptyListSort) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+    tuplex::Executor* executor = c.getDriver();
 
+    std::vector<tuplex::Row> rows = {
+            tuplex::Row(Field::empty_list()),
+            tuplex::Row(Field::empty_list()),
+    };
+    std::vector<tuplex::Row> sortedRows = {
+            tuplex::Row(Field::empty_list()),
+            tuplex::Row(Field::empty_list()),
+    };
+    std::vector<size_t> order = {0};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING};
+    auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collectAsVector();
+
+    EXPECT_TRUE(sortedPartitions.size() == 2);
+}
+
+TEST_F(SortTest, SinglePartitionIntOptSort) {
+    using namespace tuplex;
+    ContextOptions co = microTestOptions();
+    co.set("tuplex.partitionSize", "32MB");
+    co.set("tuplex.webui.enable", "False");
+    co.set("tuplex.executorMemory", "1G");
+    co.set("tuplex.driverMemory", "1G");
+    co.set("tuplex.runTimeMemory", "32MB");
+    co.set("tuplex.useLLVMOptimizer", "True");
+    co.set("tuplex.optimizer.nullValueOptimization", "True");
+    co.set("tuplex.csv.selectionPushdown", "True");
+    co.set("tuplex.optimizer.generateParser", "True");
+    co.set("tuplex.optimizer.mergeExceptionsInOrder", "False");
+    co.set("tuplex.csv.filterPushdown", "True");
+    Context c(co);
+//    tuplex::Executor* executor = c.getDriver();
+//    auto f1 = Field((int64_t)9);
+//    f1.makeOptional();
+//    auto f2 = Field((int64_t)4);
+//    f2.makeOptional();
+//    auto f3 = Field((int64_t)5);
+//    f3.makeOptional();
+//    auto f4 = Field((int64_t)1);
+//    f4.makeOptional();
+//    std::vector<tuplex::Row> rows = {
+//            tuplex::Row(f1),
+//            tuplex::Row(f2),
+//            tuplex::Row(f3),
+//            tuplex::Row(f4),
+//    };
+//    std::vector<tuplex::Row> sortedRows = {
+//            tuplex::Row(f4),
+//            tuplex::Row(f3),
+//            tuplex::Row(f2),
+//            tuplex::Row(f1),
+//    };
+//    std::vector<size_t> order = {0};
+//    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING};
+//    auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collectAsVector();
+//    EXPECT_EQ(sortedPartitions[0].getInt(0), 1);
+//    EXPECT_EQ(sortedPartitions[1].getInt(0), 4);
+//    EXPECT_EQ(sortedPartitions[2].getInt(0), 5);
+//    EXPECT_EQ(sortedPartitions[3].getInt(0), 9);
+
+    c.csv("../resources/pipelines/flights/sortsample10.csv").map(UDF("lambda x: x[0] + 1")).collectAsVector();
+    c.csv(
+            "../resources/pipelines/flights/sortsample10.csv"
+            ).sort({3}, {tuplex::SortBy::ASCENDING}).tocsv(URI("/Users/nathanealpitt/Desktop/tuplex/tuplex/test/core/sortsampleoutput.csv"));
+//    for (int i = 0; i < d.size(); i++) {
+//        std::cout << d[i].getInt(3) << std::endl;
+//        std::cout << d[i].toPythonString() << std::endl;
+//    }
+//    auto i = 0;
+//    const python::Type& type = python::Type::makeTupleType({python::Type::I64});
+//    std::vector<tuplex::Partition*> sortedPartitions2 = constructTestPartitions(executor, sortedRows, type);
+//
+//    EXPECT_TRUE(checkEqualPartitions(sortedPartitions, sortedPartitions2));
+}
+
+// TODO: dict tests
+//TEST_F(SortTest, SinglePartitionEmptyDictSort) {
+//    using namespace tuplex;
+//    Context c(microTestOptions());
+//    tuplex::Executor* executor = c.getDriver();
+//
+//    std::vector<tuplex::Row> rows = {
+//            tuplex::Row(Field::from_str_data("{\"key1\": \"val1\", \"key2\": \"val2\"}", python::Type::makeDictionaryType(python::Type::STRING, python::Type::STRING)),
+//            tuplex::Row(List()),
+//    };
+//    std::vector<tuplex::Row> sortedRows = {
+//            tuplex::Row(List()),
+//            tuplex::Row(List()),
+//    };
+//    std::vector<size_t> order = {0};
+//    std::vector<size_t> orderEnums = {1};
+//    auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collectAsVector();
+//
+//    EXPECT_TRUE(sortedPartitions.size() == 2);
+//}
+
+//TEST_F(SortTest, SinglePartitionDictSort) {
+//    using namespace tuplex;
+//    Context c(microTestOptions());
+//    tuplex::Executor* executor = c.getDriver();
+//
+//    std::vector<tuplex::Row> rows = {
+//            tuplex::Row(Tuple(0, 3)),
+//            tuplex::Row(Tuple(10, 3)),
+//            tuplex::Row(Tuple(0, 13)),
+//            tuplex::Row(Tuple(110, 3)),
+//    };
+//    std::vector<tuplex::Row> sortedRows = {
+//            tuplex::Row(Tuple(0, 3)),
+//            tuplex::Row(Tuple(10, 3)),
+//            tuplex::Row(Tuple(0, 13)),
+//            tuplex::Row(Tuple(110, 3)),
+//    };
+//    std::vector<size_t> order = {0};
+//    std::vector<size_t> orderEnums = {1};
+//    auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
+//
+//    const python::Type& type = python::Type::makeTupleType({python::Type::makeTupleType(std::vector<python::Type>{python::Type::I64, python::Type::I64})});
+//    std::vector<tuplex::Partition*> sortedPartitions2 = constructTestPartitions(executor, sortedRows, type);
+//
+//    EXPECT_TRUE(checkEqualPartitions(sortedPartitions, sortedPartitions2));
+//}
+//
 // single partition. 1 column. integers. descending.
 // no duplicates.
 TEST_F(SortTest, SinglePartitionSort1ColumnDesInt) {
@@ -189,7 +363,7 @@ TEST_F(SortTest, SinglePartitionSort1ColumnDesInt) {
     // should be 9, 7, 5, 3, 2
 
     std::vector<size_t> order = {0};
-    std::vector<size_t> orderEnums = {2};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::DESCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64});
@@ -225,7 +399,7 @@ TEST_F(SortTest, SinglePartitionSort1ColumnDesIntDup) {
     // should be 7, 7, 5, 3, 2
 
     std::vector<size_t> order = {0};
-    std::vector<size_t> orderEnums = {2};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::DESCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64});
@@ -264,7 +438,7 @@ TEST_F(SortTest, SinglePartitionSort1ColumnDesIntDup33) {
     };
 
     std::vector<size_t> order = {0};
-    std::vector<size_t> orderEnums = {2};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::DESCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64});
@@ -301,7 +475,7 @@ TEST_F(SortTest, SinglePartitionSort2ColumnDesIntDup) {
     // should be (7, 2), (7, 1), (5, 4), (3, 0), (2, 4)
 
     std::vector<size_t> order = {0, 1};
-    std::vector<size_t> orderEnums = {2, 2};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::DESCENDING, tuplex::SortBy::DESCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64, python::Type::I64});
@@ -336,7 +510,7 @@ TEST_F(SortTest, SinglePartitionSort2ColumnDesIntDup2) {
     // should be (7, 2), (7, 1), (2, 0), (2, 0), (1, 4)
 
     std::vector<size_t> order = {0, 1};
-    std::vector<size_t> orderEnums = {2, 2};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::DESCENDING, tuplex::SortBy::DESCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64, python::Type::I64});
@@ -371,7 +545,7 @@ TEST_F(SortTest, SinglePartitionSort2ColumnAscIntDup2) {
     // should be (1, 4), (2, 0), (2, 0), (7, 1), (7, 2)
 
     std::vector<size_t> order = {0, 1};
-    std::vector<size_t> orderEnums = {1, 1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING, tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64, python::Type::I64});
@@ -406,7 +580,7 @@ TEST_F(SortTest, SinglePartitionSort2ColumnAscIntDup) {
     // should be (2, 4), (3, 0), (3, 2), (5, 4), (7, 1),
 
     std::vector<size_t> order = {0, 1};
-    std::vector<size_t> orderEnums = {1, 1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING, tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64, python::Type::I64});
@@ -439,7 +613,7 @@ TEST_F(SortTest, SinglePartitionLengthAscending) {
     // should be (2, 4), (3, 0), (3, 2), (5, 4), (7, 1),
 
     std::vector<size_t> order = {0, 1};
-    std::vector<size_t> orderEnums = {3, 1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING_LENGTH, tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::STRING, python::Type::I64});
@@ -472,7 +646,7 @@ TEST_F(SortTest, SinglePartitionLengthDescending) {
     // should be (2, 4), (3, 0), (3, 2), (5, 4), (7, 1),
 
     std::vector<size_t> order = {0, 1};
-    std::vector<size_t> orderEnums = {4, 1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::DESCENDING_LENGTH, tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::STRING, python::Type::I64});
@@ -499,7 +673,7 @@ TEST_F(SortTest, SinglePartitionBasicLexicoAsc) {
             tuplex::Row("d"),
     };
     std::vector<size_t> order = {0};
-    std::vector<size_t> orderEnums = {5};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING_LEXICOGRAPHICALLY};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::STRING});
@@ -532,7 +706,7 @@ TEST_F(SortTest, SinglePartitionLengthCastAscending) {
     // should be (2, 4), (3, 0), (3, 2), (5, 4), (7, 1),
 
     std::vector<size_t> order = {0, 1};
-    std::vector<size_t> orderEnums = {3, 1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING_LENGTH, tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64, python::Type::I64});
@@ -566,7 +740,7 @@ TEST_F(SortTest, SinglePartitionLengthCastDescending) {
     // should be (2, 4), (3, 0), (3, 2), (5, 4), (7, 1),
 
     std::vector<size_t> order = {0, 1};
-    std::vector<size_t> orderEnums = {4, 1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::DESCENDING_LENGTH, tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64, python::Type::I64});
@@ -599,7 +773,7 @@ TEST_F(SortTest, SinglePartitionLexicoCastAscending) {
     // should be (2, 4), (3, 0), (3, 2), (5, 4), (7, 1),
 
     std::vector<size_t> order = {0, 1};
-    std::vector<size_t> orderEnums = {5, 1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING_LEXICOGRAPHICALLY, tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64, python::Type::I64});
@@ -633,7 +807,7 @@ TEST_F(SortTest, SinglePartitionLexicoCastDescending) {
     // should be (2, 4), (3, 0), (3, 2), (5, 4), (7, 1),
 
     std::vector<size_t> order = {0, 1};
-    std::vector<size_t> orderEnums = {6, 1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY, tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64, python::Type::I64});
@@ -680,7 +854,7 @@ TEST_F(SortTest, SinglePartitionSort2ColumnAscIntDup22) {
     // is (2, 4), (7, 1), (3, 2), (3, 0), (5, 4), (19, 0), (5, 4), (-99, 4), (-3, 1), (5, -5)
     // should be (-99, 4), (-3, 1), (2, 4), (3, 0), (3, 2), (5, -5), (5, 4), (5, 4), (7, 1), (19, 0)
     std::vector<size_t> order = {0, 1};
-    std::vector<size_t> orderEnums = {1, 1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING, tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64, python::Type::I64});
@@ -728,7 +902,7 @@ TEST_F(SortTest, MultiplePartitionSort2ColumnAscIntDup) {
     // should be (-99, 4), (-3, 1), (2, 4), (3, 0), (3, 2), (5, -5), (5, 4), (5, 4), (7, 1), (19, 0)
 
     std::vector<size_t> order = {0, 1};
-    std::vector<size_t> orderEnums = {1, 1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING, tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64, python::Type::I64});
@@ -771,7 +945,7 @@ TEST_F(SortTest, MultiplePartitionSort2ColumnAscIntDupCstmOrdr22) {
     };
 
     std::vector<size_t> order = {1, 0};
-    std::vector<size_t> orderEnums = {1, 1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING, tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::I64, python::Type::I64});
@@ -816,7 +990,7 @@ TEST_F(SortTest, MultiplePartitionSort2ColumnAscIntDupCstmOrdr) {
     };
 
     std::vector<size_t> order = {1, 0};
-    std::vector<size_t> orderEnums = {1, 1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING, tuplex::SortBy::ASCENDING};
     auto sortedPartitions00 = c.parallelize(rows).sort(order, orderEnums).collectAsVector();
     std::vector<int> acai;
     for (int i = 0; i < sortedPartitions00.size(); i++) {
@@ -852,7 +1026,7 @@ TEST_F(SortTest, SinglePartitionSort1ColumnAscBool) {
     };
 
     std::vector<size_t> order = {0};
-    std::vector<size_t> orderEnums = {1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::BOOLEAN});
@@ -887,7 +1061,7 @@ TEST_F(SortTest, SinglePartitionSort1ColumnAscFloat) {
     };
 
     std::vector<size_t> order = {0};
-    std::vector<size_t> orderEnums = {1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::F64});
@@ -922,7 +1096,7 @@ TEST_F(SortTest, SinglePartitionSort1ColumnAscStr) {
     };
 
     std::vector<size_t> order = {0};
-    std::vector<size_t> orderEnums = {1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING};
     auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collect()->partitions();
 
     const python::Type& type = python::Type::makeTupleType({python::Type::STRING});
@@ -959,7 +1133,7 @@ TEST_F(SortTest, MultiplePartitionSort1ColRandNum) {
     }
 
     std::vector<size_t> order = {0};
-    std::vector<size_t> orderEnums = {1};
+    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING};
 
     auto sortedPartitions00 = c.parallelize(rows).sort(order, orderEnums).collectAsVector();
     std::vector<int> acai;

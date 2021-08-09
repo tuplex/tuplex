@@ -13,7 +13,6 @@
 
 
 #include <DataSet.h>
-
 #include <utility>
 
 namespace tuplex {
@@ -38,7 +37,7 @@ namespace tuplex {
 
         bool isError() const override { return true; }
         bool isEmpty() const override { return false; }
-        DataSet& sort(std::vector<std::size_t> order, std::vector<std::size_t> orderEnums) override { return *this; }
+        DataSet& sort(const std::vector<std::size_t>& colIndicesInOrderToSortBy, const std::vector<SortBy>& orderEnums) override { return *this; }
 
         std::string getError() const { return _error; }
 

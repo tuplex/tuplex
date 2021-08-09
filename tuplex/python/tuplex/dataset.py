@@ -93,7 +93,9 @@ class DataSet:
                 raise Exception("Error: Unsupported key type")
             assert(len(order) == len(enumInOrder), "Internal error when constructing arguments to be passed"
                                                    "into backend from the by parameter")
-        return self._dataSet.sort(order, enumInOrder)
+        ds = DataSet()
+        ds._dataSet = self._dataSet.sort(order, enumInOrder)
+        return ds
 
     def map(self, ftor):
         """ performs a map operation using the provided udf function over the dataset and

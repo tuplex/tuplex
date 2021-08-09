@@ -6,7 +6,7 @@
 
 namespace tuplex {
 
-    SortOperator::SortOperator(LogicalOperator *parent, std::vector<size_t> order, std::vector<size_t> orderEnum)  : LogicalOperator::LogicalOperator(parent), _order(order), _orderEnum(orderEnum) {
+    SortOperator::SortOperator(LogicalOperator *parent, std::vector<size_t> colIndicesInOrderToSortBy, std::vector<SortBy> orderEnum)  : LogicalOperator::LogicalOperator(parent), _colIndicesInOrderToSortBy(colIndicesInOrderToSortBy), _orderEnum(orderEnum) {
         // take schema from parent node
         setSchema(this->parent()->getOutputSchema());
     }
@@ -16,7 +16,6 @@ namespace tuplex {
     }
 
     std::vector<Row> SortOperator::getSample(size_t num) const {
-        // TODO: COLBY ?
         std::vector<Row> v;
         return v;
     }
@@ -31,7 +30,7 @@ namespace tuplex {
 
     LogicalOperator *SortOperator::clone() {
         // create clone of this operator
-        auto copy = new SortOperator(parent()->clone(), _order, _orderEnum);
+        auto copy = new SortOperator(parent()->clone(), _colIndicesInOrderToSortBy, _orderEnum);
 
         copy->setDataSet(getDataSet()); // weak ptr to old dataset...
         copy->copyMembers(this);

@@ -51,6 +51,10 @@ namespace tuplex {
         std::vector<Executor*> _executors; //! drivers to be used
         std::unique_ptr<JITCompiler> _compiler;
 
+        /*!
+         * executes the sorting stage from a previous stage
+         * @param sstage the previous stage.
+         */
         void executeSortStage(SortStage* sstage);
 
         HistoryServerConnection _historyConn;

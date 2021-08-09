@@ -193,12 +193,18 @@ extern "C" void *rtmalloc(const size_t requested_size) noexcept {
         return nullptr;
     }
 #endif
-
+    if (requested_size >= 8000) {
+        int i = 10;
+        printf("D");
+    }
     if(!heap)
         heap = new MemoryHeap();
 
     size_t size = alignHeapSize(requested_size); // align to nearest multiple of heap alignment
-
+    if (size == 1082147808) {
+        int i = 10;
+        printf("D");
+    }
     assert(size >= requested_size);
 
     // make sure size does not exceed default block size!

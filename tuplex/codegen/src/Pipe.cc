@@ -41,13 +41,14 @@ int Pipe::pipe(const std::string& file_input) {
             // @TODO: global temp dir should be used...
             // needs to be a configurable option...
 
-            // deprecated
-            // @TODO
-            std::string tmppath = std::tmpnam(nullptr);
-            std::ofstream ofs(tmppath + ".py");
-            ofs<<file_input;
-            ofs.close();
-            cmd += " " + tmppath + ".py";
+            char tmpname[22];
+            sprintf(tmpname, "/tmp/tuplex-XXXXXX.py");
+            int fd = mkstemps(tmpname, 3);
+
+            std::FILE* tmp = fdopen(fd, "w");
+            fwrite(file_input.c_str(), file_input.size(), 1, tmp);
+            fclose(tmp);
+            cmd += " " + std::string(tmpname);
         }
 
         child c(cmd, std_err > pipe_stderr, std_out > pipe_stdout);

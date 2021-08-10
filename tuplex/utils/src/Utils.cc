@@ -199,9 +199,4 @@ namespace tuplex {
             os << "|" << std::endl;
         }
     }
-
-    std::string temporaryPathName() {
-        // reimplement safer...
-        return std::tmpnam(nullptr);
-    }
 }

@@ -16,7 +16,7 @@
 #include <fstream>
 #include <cstdlib>
 
-int Pipe::pipe(const std::string& file_input) {
+int Pipe::pipe(const std::string& file_input, const std::string& tmpdir) {
 
     try {
 
@@ -41,11 +41,22 @@ int Pipe::pipe(const std::string& file_input) {
             // @TODO: global temp dir should be used...
             // needs to be a configurable option...
 
-            char tmpname[22];
-            sprintf(tmpname, "/tmp/tuplex-XXXXXX.py");
+            char* tmpname = new char[tmpdir.size() + 13];
+            snprintf(tmpname, tmpdir.size() + 13, "%s/pipe-XXXXXX", tmpdir.c_str());
             int fd = mkstemps(tmpname, 3);
+            if (fd < 0) {
+                Logger::instance().logger("pipe").error(std::string("error while creating temporary file"));
+                _retval = 1;
+                return retval();
+            }
 
             std::FILE* tmp = fdopen(fd, "w");
+            if (!tmp) {
+                Logger::instance().logger("pipe").error(std::string("error opening temporary file"));
+                _retval = 1;
+                return retval();
+            }
+
             fwrite(file_input.c_str(), file_input.size(), 1, tmp);
             fclose(tmp);
             cmd += " " + std::string(tmpname);

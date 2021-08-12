@@ -43,7 +43,7 @@ int Pipe::pipe(const std::string& file_input, const std::string& tmpdir) {
 
             char* tmpname = new char[tmpdir.size() + 13];
             snprintf(tmpname, tmpdir.size() + 13, "%s/pipe-XXXXXX", tmpdir.c_str());
-            int fd = mkstemps(tmpname, 3);
+            int fd = mkstemp(tmpname);
             if (fd < 0) {
                 Logger::instance().logger("pipe").error(std::string("error while creating temporary file"));
                 _retval = 1;

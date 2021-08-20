@@ -4,7 +4,7 @@
 #define FMT_HEADER_ONLY
 #include "./fmt/include/fmt/format.h"
 
-static const int OUTPUT_DATA_SIZE = 200'000'000;
+static const size_t OUTPUT_DATA_SIZE = 4'000'000'000;
 // UTILITY FUNCTIONS ----------------------
 static inline const char *CleanCode(const std::string &cancellation_code) {
   if (cancellation_code == "A")

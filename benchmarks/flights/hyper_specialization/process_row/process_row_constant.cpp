@@ -7,7 +7,7 @@ void ProcessRow(int64_t day_of_month, int64_t day_of_week, const std::string &fl
                 const std::string &_op_unique_carrier, int64_t _crs_dep_time, int64_t _crs_arr_time,
                 double _cancelled, const std::string &_cancellation_code, double _diverted,
                 const std::string &_div_reached_dest, const std::string &_div_actual_elapsed_time,
-                char output_data[], int &output_size) {
+                char output_data[], size_t &output_size) {
   // constants
   const int64_t year = 2019;
   const int64_t quarter = 1;

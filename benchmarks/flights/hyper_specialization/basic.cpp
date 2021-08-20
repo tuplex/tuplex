@@ -31,11 +31,11 @@ auto pr_path = pr_constant;
 static std::vector<std::string> input_files;
 static char const *output_path;
 
-static const int NUM_INPUT_ROWS = 48740299;
+// static const int NUM_INPUT_ROWS = 48740299;
 
-static int output_size = 0;
-static const int OUTPUT_DATA_SIZE = 200'000'000;
-static char output_data[OUTPUT_DATA_SIZE];  // 200 MB
+static size_t output_size = 0;
+static const size_t OUTPUT_DATA_SIZE = 4'000'000'000;
+static char *output_data;  // [OUTPUT_DATA_SIZE];  // 4 GB
 static bool preload;
 
 // Timestamp helpers
@@ -110,6 +110,9 @@ static inline void InitializeHeader() {
 }
 
 int main(int argc, char **argv) {
+  // allocate output space
+  output_data = new char[OUTPUT_DATA_SIZE];  // 4 GB
+
   // parse input
   ParseArguments(argc, argv);
   std::cout << input_files.size() << " input files found" << std::endl;
@@ -153,7 +156,7 @@ int main(int argc, char **argv) {
   void (*ProcessRow)(int64_t, int64_t, const std::string &, const std::string &,
                      const std::string &, double, int64_t, int64_t, int64_t, const std::string &,
                      int64_t, int64_t, double, const std::string &, double, const std::string &,
-                     const std::string &, char[], int &);
+                     const std::string &, char[], size_t &);
   char *error;
   std::cout << "SO Path: " << pr_path << std::endl;
   handle = dlopen(pr_path, RTLD_LAZY);
@@ -186,13 +189,21 @@ int main(int argc, char **argv) {
       // immediately process the row
       while (reader.read_row()) {
         // TODO: override csvmonkey to get other data types out for the range specialization idea
-        ProcessRow(day_of_month->as_double(), day_of_week->as_double(), fl_date->as_str(),
-                   origin_city_name->as_str(), dest_city_name->as_str(),
-                   actual_elapsed_time->as_double(), year->as_double(), quarter->as_double(),
-                   month->as_double(), op_unique_carrier->as_str(), crs_dep_time->as_double(),
-                   crs_arr_time->as_double(), cancelled->as_double(), cancellation_code->as_str(),
-                   diverted->as_double(), div_reached_dest->as_str(),
-                   div_actual_elapsed_time->as_str(), output_data, output_size);
+        ProcessRow(
+            day_of_month->as_double(), day_of_week->as_double(), fl_date->as_str(),
+            origin_city_name->as_str(), dest_city_name->as_str(), actual_elapsed_time->as_double()
+#if (PR_VERSION == PR_ORIG)
+                                                                      ,
+            year->as_double(), quarter->as_double(), month->as_double(),
+            op_unique_carrier->as_str(), crs_dep_time->as_double(), crs_arr_time->as_double(),
+            cancelled->as_double(), cancellation_code->as_str(), diverted->as_double(),
+            div_reached_dest->as_str(), div_actual_elapsed_time->as_str()
+#elif (PR_VERSION == PR_CONSTANT)
+                                                                      ,
+            0, 0, 0, "", 0, 0, 0, "", 0, "", ""
+#endif
+                                            ,
+            output_data, output_size);
       }
       close(fd);
     }
@@ -218,7 +229,10 @@ int main(int argc, char **argv) {
   auto ofile = open(ofile_name.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0664);
 
   // dump output
-  write(ofile, output_data, output_size);
+  auto r = write(ofile, output_data, output_size);
+  if (r < 0) {
+    throw std::runtime_error("write failed!");
+  }
   close(ofile);
   auto end_output = std::chrono::high_resolution_clock::now();
   Timestamp("output", start_output, end_output);

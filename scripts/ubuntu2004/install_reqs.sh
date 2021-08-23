@@ -25,6 +25,11 @@ apt-get install -y build-essential software-properties-common wget libedit-dev l
   libgflags-dev libncurses-dev \
   awscli openjdk-8-jdk libyaml-dev
 
+# use GCC 10, as Tuplex doesn't work with GCC 9
+update-alternatives --remove-all gcc
+update-alternatives --remove-all g++
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
+
 # LLVM 9 packages (prob not all of them needed, but here for complete install)
 wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh &&
 ./llvm.sh 9 && rm -rf llvm.sh

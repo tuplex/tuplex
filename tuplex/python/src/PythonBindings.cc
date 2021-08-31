@@ -54,6 +54,7 @@ PYMODULE {
             .def("columns", &tuplex::PythonDataSet::columns)
             .def("cache", &tuplex::PythonDataSet::cache)
             .def("tocsv", &tuplex::PythonDataSet::tocsv)
+            .def("toorc", &tuplex::PythonDataSet::toorc)
             .def("unique", &tuplex::PythonDataSet::unique)
             .def("aggregate", &tuplex::PythonDataSet::aggregate)
             .def("aggregateByKey", &tuplex::PythonDataSet::aggregateByKey)

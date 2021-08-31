@@ -14,6 +14,7 @@
 #include <physical/ResolveTask.h>
 #include <physical/TransformTask.h>
 #include <physical/SimpleFileWriteTask.h>
+#include <physical/SimpleOrcWriteTask.h>
 
 #include <memory>
 
@@ -1503,6 +1504,20 @@ namespace tuplex {
         }
     }
 
+    // get default file extension for supported file formats
+    std::string fileFormatDefaultExtension(FileFormat fmt) {
+        switch (fmt) {
+            case FileFormat::OUTFMT_TEXT:
+                return ".txt";
+            case FileFormat::OUTFMT_CSV:
+                return ".csv";
+            case FileFormat::OUTFMT_ORC:
+                return ".orc";
+            default:
+                throw std::runtime_error("file format not yet supported!");
+        }
+    }
+
     /*!
      * construct output path based either on a base URI or via a udf
      * @param udf
@@ -1535,8 +1550,7 @@ namespace tuplex {
                 // --> call ensureOutputFolderExists before using this function here!
 
                 // change to correct file format extension
-                assert(fmt == FileFormat::OUTFMT_CSV);
-                return URI(path + "/part" + std::to_string(partNo) + ".csv");
+                return URI(path + "/part" + std::to_string(partNo) + fileFormatDefaultExtension(fmt));
             } else {
                 base = path.substr(0, ext_pos);
                 ext = path.substr(ext_pos + 1);
@@ -1871,9 +1885,8 @@ namespace tuplex {
         using namespace std;
 
         Timer timer;
-        // check output format to be CSV
+        // check output format to be supported
         assert(tstage->outputMode() == EndPointMode::FILE);
-        assert(tstage->outputFormat() == FileFormat::OUTFMT_CSV);
 
         // now simply go over the partitions and write the full buffers out
         // check all the params from TrafoStage
@@ -1947,15 +1960,39 @@ namespace tuplex {
 
             if(bytesInList >= bytesPerExecutor) {
                 // spawn task
-                //const URI& uri, uint8_t *header, size_t header_length, const std::vector<Partition *> &partitions
-                wtasks.emplace_back(new SimpleFileWriteTask(outputURI(udf, uri, partNo++, fmt), header, header_length, partitions));
+                // const URI& uri, uint8_t *header, size_t header_length, const std::vector<Partition *> &partitions
+                IExecutorTask* wtask;
+                switch(tstage->outputFormat()) {
+                    case FileFormat::OUTFMT_CSV:
+                        wtask = new SimpleFileWriteTask(outputURI(udf, uri, partNo++, fmt), header, header_length, partitions);
+                        break;
+                    case FileFormat::OUTFMT_ORC:
+                        wtask = new SimpleOrcWriteTask(outputURI(udf, uri, partNo++, fmt), partitions, tstage->outputSchema(), outOptions["columnNames"]);
+                        break;
+                    default:
+                        throw std::runtime_error("file output format not supported.");
+                }
+                wtasks.emplace_back(wtask);
                 partitions.clear();
                 bytesInList = 0;
             }
         }
         // add last task (remaining partitions)
         if(!partitions.empty()) {
-            auto wtask = new SimpleFileWriteTask(outputURI(udf, uri, partNo++, fmt), header, header_length, partitions);
+            IExecutorTask* wtask;
+            switch (tstage->outputFormat()) {
+                case FileFormat::OUTFMT_TEXT:
+                case FileFormat::OUTFMT_CSV: {
+                    wtask = new SimpleFileWriteTask(outputURI(udf, uri, partNo++, fmt), header, header_length, partitions);
+                    break;
+                }
+                case FileFormat::OUTFMT_ORC: {
+                    wtask = new SimpleOrcWriteTask(outputURI(udf, uri, partNo++, fmt), partitions, tstage->outputSchema(), outOptions["columnNames"]));
+                    break;
+                }
+                default:
+                    throw std::runtime_error("file output format not supported.");
+            }
             wtasks.emplace_back(std::move(wtask));
             partitions.clear();
         }

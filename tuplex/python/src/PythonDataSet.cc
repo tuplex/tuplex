@@ -723,6 +723,35 @@ namespace tuplex {
         }
     }
 
+    void PythonDataSet::toorc(const std::string &file_path, const std::string &lambda_code, const std::string &pickled_code,
+                              size_t fileCount, size_t shardSize, size_t limit) {
+        assert(this->_dataset);
+
+        std::unordered_map<std::string, std::string> outputOptions = defaultORCOutputOptions();
+
+        if (this->_dataset->isError()) {
+            ErrorDataSet *eds = static_cast<ErrorDataSet *>(this->_dataset);
+            boost::python::list L;
+            L.append(eds->getError());
+            Logger::instance().flushAll();
+        } else {
+            assert(PyGILState_Check());
+
+            outputOptions["columnNames"] = csvToHeader(_dataset->columns());
+
+            python::unlockGIL();
+            _dataset->tofile(FileFormat::OUTFMT_ORC,
+                             URI(file_path),
+                             UDF(lambda_code, pickled_code),
+                             fileCount,
+                             shardSize,
+                             outputOptions,
+                             limit);
+            Logger::instance().flushAll();
+            python::lockGIL();
+        }
+    }
+
     void PythonDataSet::show(const int64_t numRows) {
 
         // make sure a dataset is wrapped

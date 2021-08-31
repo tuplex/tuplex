@@ -44,6 +44,11 @@ namespace tuplex {
         return m;
     }
 
+    inline std::unordered_map<std::string, std::string> defaultORCOutputOptions() {
+        std::unordered_map<std::string, std::string> m;
+        return m;
+    }
+
     // maybe CRTP (Curiously recurring template pattern may be used here)
     // but likely it is going to be difficult
     // since the structure is already quite complicated
@@ -271,11 +276,20 @@ namespace tuplex {
                             size_t limit = std::numeric_limits<size_t>::max(),
                             std::ostream &os = std::cout);
 
+        // TODO: Add doc
         void tocsv(const URI &uri,
                    const std::unordered_map<std::string, std::string> &outputOptions = defaultCSVOutputOptions(),
                    std::ostream &os = std::cout) {
             // empty udf...
             tofile(FileFormat::OUTFMT_CSV, uri, UDF(""), 0, 0, outputOptions, std::numeric_limits<size_t>::max(),
+                   os);
+        }
+
+        // TODO: Add doc
+        void toorc(const URI &uri,
+                   const std::unordered_map<std::string, std::string> &outputOptions = defaultORCOutputOptions(),
+                   std::ostream &os = std::cout) {
+            tofile(FileFormat::OUTFMT_ORC, uri, UDF(""), 0, 0, outputOptions, std::numeric_limits<size_t>::max(),
                    os);
         }
 

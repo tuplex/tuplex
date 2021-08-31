@@ -129,6 +129,14 @@ namespace tuplex {
               size_t limit=std::numeric_limits<size_t>::max(),
               const std::string& null_value="",
               boost::python::object header=boost::python::object());
+
+        // TOOD: Doc string
+        void toorc(const std::string &file_path,
+                   const std::string &lambda_code = "",
+                   const std::string &pickled_code = "",
+                   size_t fileCount = 0,
+                   size_t shardSize = 0,
+                   size_t limit = std::numeric_limits<size_t>::max());
     };
 
     /*!

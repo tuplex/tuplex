@@ -889,6 +889,10 @@ namespace tuplex {
                                                        true, csvOutputDelimiter(), csvOutputQuotechar());
                             break;
                         }
+                        case FileFormat::OUTFMT_ORC: {
+                            pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID);
+                            break;
+                        }
                         default:
                             throw std::runtime_error("unsupported output fmt encountered, can't codegen!");
                     }
@@ -1257,31 +1261,40 @@ namespace tuplex {
             if (_fileOutputParameters.find("null_value") == _fileOutputParameters.end())
                 _fileOutputParameters["null_value"] = ""; // empty string for now // @TODO: make this an option in the python API
 
-            if (fop->fileFormat() == FileFormat::OUTFMT_CSV) {
-                // sanitize options: If write Header is true and neither csvHeader nor columns are given, set to false
-                if (fop->columns().empty() && _fileOutputParameters.find("csvHeader") == _fileOutputParameters.end()) {
-                    _fileOutputParameters["header"] = "false";
-                }
+            switch (fop->fileFormat()) {
+                case FileFormat::OUTFMT_CSV: {
+                    // sanitize options: If write Header is true and neither csvHeader nor columns are given, set to false
+                    if (fop->columns().empty() && _fileOutputParameters.find("csvHeader") == _fileOutputParameters.end()) {
+                        _fileOutputParameters["header"] = "false";
+                    }
 
-                bool writeHeader = stringToBool(get_or(_fileOutputParameters, "header", "false"));
+                    bool writeHeader = stringToBool(get_or(_fileOutputParameters, "header", "false"));
 
-                if (writeHeader) {
-                    assert(!fop->columns().empty());
+                    if (writeHeader) {
+                        assert(!fop->columns().empty());
 
-                    if (_fileOutputParameters.find("csvHeader") == _fileOutputParameters.end()) {
-                        auto headerLine = csvToHeader(fop->columns()) + "\n";
-                        _fileOutputParameters["csvHeader"] = headerLine;
-                    } else {
-                        // check correct number of arguments
-                        auto v = jsonToStringArray(_fileOutputParameters["csvHeader"]);
-                        if (v.size() != fop->columns().size()) {
-                            std::stringstream ss;
-                            ss << "number of ouput column names given to tocsv operator (" << v.size()
-                               << ") does not equal number of elements from pipeline (" << fop->columns().size() << ")";
-                            throw std::runtime_error(ss.str());
+                        if (_fileOutputParameters.find("csvHeader") == _fileOutputParameters.end()) {
+                            auto headerLine = csvToHeader(fop->columns()) + "\n";
+                            _fileOutputParameters["csvHeader"] = headerLine;
+                        } else {
+                            // check correct number of arguments
+                            auto v = jsonToStringArray(_fileOutputParameters["csvHeader"]);
+                            if (v.size() != fop->columns().size()) {
+                                std::stringstream ss;
+                                ss << "number of ouput column names given to tocsv operator (" << v.size()
+                                   << ") does not equal number of elements from pipeline (" << fop->columns().size() << ")";
+                                throw std::runtime_error(ss.str());
+                            }
                         }
                     }
+                    break;
                 }
+                case FileFormat::OUTFMT_ORC: {
+                    _fileOutputParameters["columnNames"] = csvToHeader(fop->columns());
+                    break;
+                }
+                default:
+                    throw std::runtime_error("unsupported file output format!");
             }
 
             _outputFileFormat = fop->fileFormat();

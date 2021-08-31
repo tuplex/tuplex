@@ -973,9 +973,10 @@ default:
                 return csvOffsetToNextLine(reinterpret_cast<const char*>(_normalPtr), _normalPtrBytesRemaining, delimiter, quotechar);
                 break;
             }
-            case FileFormat::OUTFMT_TEXT: {
-                throw std::runtime_error("unsupported file output format!");
-                break;
+            case FileFormat::OUTFMT_ORC: {
+                // tuplex in memory format
+                assert(_deserializerNormalOutputCase);
+                return std::min(_deserializerNormalOutputCase->inferLength(buf), bufSize);
             }
             default: {
                 throw std::runtime_error("unsupported output format in resolve task!");

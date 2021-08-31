@@ -21,6 +21,7 @@
 #include <orc/StringBatch.h>
 #include <orc/ListBatch.h>
 #include <orc/DictBatch.h>
+#include <orc/TupleBatch.h>
 #include <orc/VirtualOutputStream.h>
 
 namespace tuplex {
@@ -183,6 +184,13 @@ namespace tuplex {
                 auto valueType = rowType.valueType();
                 auto value = rowTypeToOrcBatch(rowType.valueType(), map->elements.get(), numRows, isOption);
                 return new orc::DictBatch(orcType, key, value, keyType, valueType, numRows, isOption);
+            } else if (rowType.isTupleType()) {
+                auto structType = static_cast<::orc::StructVectorBatch *>(orcType);
+                std::vector<orc::OrcBatch *> children;
+                for (int i = 0; i < rowType.parameters().size(); ++i) {
+                    children.push_back(rowTypeToOrcBatch(rowType.parameters().at(i), structType->fields[i], numRows, isOption));
+                }
+                return new orc::TupleBatch(orcType, children, numRows, isOption);
             }
             abort("Could not convert row type to orc batch");
             // Will not get here

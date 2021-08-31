@@ -58,6 +58,34 @@ namespace tuplex { namespace orc {
                 }
             }
 
+            void setBatch(::orc::ColumnVectorBatch *newBatch) override {
+                auto mapBatch = static_cast<::orc::MapVectorBatch *>(newBatch);
+                _orcBatch = mapBatch;
+                _keyBatch->setBatch(mapBatch->keys.get());
+                _valueBatch->setBatch(mapBatch->elements.get());
+            }
+
+            tuplex::Field getField(uint64_t row) override {
+                auto numElements = _orcBatch->offsets[row + 1] - _orcBatch->offsets[row];
+                std::stringstream ss;
+                ss << "{";
+                for (int i = 0; i < numElements; i++) {
+                    if (_keyType != python::Type::STRING) {
+                        ss << "\"" << fieldToStr(_keyType, _keyBatch->getField(_nextIndex)) << "\"";
+                    } else {
+                        ss << fieldToStr(_keyType, _keyBatch->getField(_nextIndex));
+                    }
+                    ss << ":";
+                    ss << fieldToStr(_valueType, _valueBatch->getField(_nextIndex));
+                    if (i != numElements - 1) {
+                        ss << ",";
+                    }
+                    _nextIndex++;
+                }
+                ss << "}";
+                return tuplex::Field::from_str_data(ss.str(), python::Type::makeDictionaryType(_keyType, _valueType));
+            }
+
         private:
             ::orc::MapVectorBatch *_orcBatch;
             OrcBatch *_keyBatch;
@@ -65,6 +93,19 @@ namespace tuplex { namespace orc {
             python::Type _keyType;
             python::Type _valueType;
             uint64_t _nextIndex;
+
+            std::string fieldToStr(python::Type rowType, tuplex::Field field) {
+                if (rowType == python::Type::I64) {
+                    return std::to_string(field.getInt());
+                } else if (rowType == python::Type::F64) {
+                    return std::to_string(field.getDouble());
+                } else if (rowType == python::Type::STRING) {
+                    return "\"" + std::string(reinterpret_cast<char*>(field.getPtr())) + "\"";
+                } else if (rowType == python::Type::BOOLEAN) {
+                    return field.getInt() ? "true" : "false";
+                }
+                return "";
+            }
 
             tuplex::Field keyToField(cJSON *entry, const python::Type &type) {
                 using namespace tuplex;

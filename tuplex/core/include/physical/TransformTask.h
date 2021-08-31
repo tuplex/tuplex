@@ -148,6 +148,7 @@ namespace tuplex {
                                 char delimiter,
                                 char quotechar,
                                 const std::vector<bool>& colsToKeep,
+                                size_t partitionSize,
                                 FileFormat fmt);
 
         void sinkOutputToMemory(const Schema& outputSchema, int64_t outputDataSetID);

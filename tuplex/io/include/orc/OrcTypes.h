@@ -33,10 +33,31 @@ namespace tuplex { namespace orc {
 * ::orc::DATE
 *
 * @param rowType: Orc row type
-* @param orcBatch: Batch associated with type
+* @param columnHasNull: If each column has null values
 * @return Python Type object
 */
-python::Type orcRowTypeToTuplex(const ::orc::Type &rowType, ::orc::ColumnVectorBatch *orcBatch);
+python::Type orcRowTypeToTuplex(const ::orc::Type &rowType, std::vector<bool> &columnHasNull);
+
+/*!
+* Takes an Orc type and converts it to its corresponding
+* Tuplex type.
+*
+* The following mappings exist for special cases:
+* ::orc::DECIMAL -> python::F64
+* ::orc::VARCHAR -> python::STRING
+* ::orc::CHAR -> python::STRING
+*
+* The following ORC cases are currently undefined:
+* ::orc::BINARY
+* ::orc::TIMESTAMP
+* ::orc::UNION
+* ::orc::DATE
+*
+* @param type: Orc row type
+* @param hasNull: If the type will be optional
+* @return Python Type object
+*/
+python::Type orcTypeToTuplex(const ::orc::Type &type, bool hasNull);
 
 /*!
 * Takes a Tuplex row type and converts it to its corresponding

@@ -8,44 +8,47 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#ifndef TUPLEX_ORCBATCH_H
-#define TUPLEX_ORCBATCH_H
+#ifndef TUPLEX_VIRTUALINPUTSTREAM_H
+#define TUPLEX_VIRTUALINPUTSTREAM_H
+
+#include <orc/OrcFile.hh>
 
 namespace tuplex { namespace orc {
 
 /*!
- * Interface for reading and writing to Orc batches from Tuplex fields
- */
-        class OrcBatch {
-        public:
-            /*!
-             * destructor must ensure all child batches are destroyed.
-             */
-            virtual ~OrcBatch() = default;
+* Implementation of orc InputStream using tuplex's VirtualFileSystem.
+*/
+class VirtualInputStream : public ::orc::InputStream {
+public:
+    VirtualInputStream(const URI &uri): _file(VirtualFileSystem::open_file(uri, VirtualFileMode::VFS_READ)), _filename(uri.toString()), _currentPosition(0) {}
 
-            /*!
-             * sets the the data in a row of an Orc batch from a tuplecx field.
-             * @param field
-             * @param rowIndex
-             */
-            virtual void setData(tuplex::Field field, uint64_t rowIndex) = 0;
+    uint64_t getLength() const override {
+        return _file->size();
+    }
 
+    uint64_t getNaturalReadSize() const override {
+        return 128 * 1024;
+    }
 
-            /*!
-             * gets a tuplex field from an orc batch given the row.
-             * @param row
-             * @return Field
-             */
-            virtual tuplex::Field getField(uint64_t row) = 0;
+    void read(void *buf, uint64_t length, uint64_t offset) override {
+        int64_t seekDelta = offset - _currentPosition;
+        _file->seek(seekDelta);
+        _currentPosition += seekDelta;
 
-            /*!
-             * updates the orc batch used to read data from.
-             * @param newBatch
-             */
-            virtual void setBatch(::orc::ColumnVectorBatch *newBatch) = 0;
+        _file->read(buf, length);
+        _currentPosition += length;
+    }
 
-        };
+    const std::string& getName() const override {
+        return _filename;
+    }
 
-    }}
+private:
+    std::unique_ptr<VirtualFile> _file;
+    size_t _currentPosition;
+    std::string _filename;
+};
 
-#endif //TUPLEX_ORCBATCH_H
+}}
+
+#endif //TUPLEX_VIRTUALINPUTSTREAM_H

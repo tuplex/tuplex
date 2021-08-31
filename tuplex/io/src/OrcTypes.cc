@@ -48,11 +48,25 @@ ORC_UNIQUE_PTR<::orc::Type> tuplexRowTypeToOrcType(const python::Type &rowType, 
     throw std::runtime_error("Tuplex row type unable to be mapped to Orc row type");
 }
 
-python::Type orcRowTypeToTuplex(const ::orc::Type &rowType, ::orc::ColumnVectorBatch *orcBatch) {
-    switch (rowType.getKind()) {
+python::Type orcRowTypeToTuplex(const ::orc::Type &rowType, std::vector<bool> &columnHasNull) {
+    using namespace ::orc;
+    std::vector<python::Type> types;
+    for (uint64_t i = 0; i < rowType.getSubtypeCount(); i++) {
+        auto hasNull = columnHasNull.at(i);
+        auto el = orcTypeToTuplex(*rowType.getSubtype(i), hasNull);
+        if (hasNull) {
+            types.push_back(python::Type::makeOptionType(el));
+        } else {
+            types.push_back(el);
+        }
+    }
+    return python::Type::makeTupleType(types);
+}
+
+python::Type orcTypeToTuplex(const ::orc::Type &type, bool hasNull) {
+    switch (type.getKind()) {
         case ::orc::BOOLEAN: {
-            auto longBatch = static_cast<::orc::LongVectorBatch *>(orcBatch);
-            if (longBatch->hasNulls) {
+            if (hasNull) {
                 return python::Type::makeOptionType(python::Type::BOOLEAN);
             } else {
                 return python::Type::BOOLEAN;
@@ -62,8 +76,7 @@ python::Type orcRowTypeToTuplex(const ::orc::Type &rowType, ::orc::ColumnVectorB
         case ::orc::SHORT:
         case ::orc::INT:
         case ::orc::LONG: {
-            auto longBatch = static_cast<::orc::LongVectorBatch *>(orcBatch);
-            if (longBatch->hasNulls) {
+            if (hasNull) {
                 return python::Type::makeOptionType(python::Type::I64);
             } else {
                 return python::Type::I64;
@@ -71,64 +84,53 @@ python::Type orcRowTypeToTuplex(const ::orc::Type &rowType, ::orc::ColumnVectorB
         }
         case ::orc::FLOAT:
         case ::orc::DOUBLE: {
-            auto doubleBatch = static_cast<::orc::DoubleVectorBatch *>(orcBatch);
-            if (doubleBatch->hasNulls) {
+            if (hasNull) {
                 return python::Type::makeOptionType(python::Type::F64);
             } else {
                 return python::Type::F64;
             }
         }
+        case ::orc::VARCHAR:
+        case ::orc::CHAR:
         case ::orc::STRING: {
-            auto strBatch = static_cast<::orc::StringVectorBatch *>(orcBatch);
-            if (strBatch->hasNulls) {
+            if (hasNull) {
                 return python::Type::makeOptionType(python::Type::STRING);
             } else {
                 return python::Type::STRING;
             }
         }
         case ::orc::LIST: {
-            auto listBatch = static_cast<::orc::ListVectorBatch *>(orcBatch);
-            auto elementType = orcRowTypeToTuplex(*rowType.getSubtype(0), listBatch->elements.get());
-            if (listBatch->hasNulls) {
+            auto elementType = orcTypeToTuplex(*type.getSubtype(0), hasNull);
+            if (hasNull) {
                 return python::Type::makeOptionType(python::Type::makeListType(elementType));
             } else {
                 return python::Type::makeListType(elementType);
             }
         }
         case ::orc::MAP: {
-            auto mapBatch = static_cast<::orc::MapVectorBatch *>(orcBatch);
-            auto keyType = orcRowTypeToTuplex(*rowType.getSubtype(0), mapBatch->keys.get());
-            auto valueType = orcRowTypeToTuplex(*rowType.getSubtype(1), mapBatch->elements.get());
-            if (mapBatch->hasNulls) {
+            auto keyType = orcTypeToTuplex(*type.getSubtype(0), hasNull);
+            auto valueType = orcTypeToTuplex(*type.getSubtype(1), hasNull);
+            if (hasNull) {
                 return python::Type::makeOptionType(python::Type::makeDictionaryType(keyType, valueType));
             } else {
                 return python::Type::makeDictionaryType(keyType, valueType);
             }
         }
         case ::orc::STRUCT: {
-            auto structBatch = static_cast<::orc::StructVectorBatch *>(orcBatch);
             std::vector<python::Type> types;
-            for (uint64_t i = 0; i < rowType.getSubtypeCount(); i++) {
-                auto el = orcRowTypeToTuplex(*rowType.getSubtype(i), structBatch->fields[i]);
+            for (uint64_t i = 0; i < type.getSubtypeCount(); i++) {
+                auto el = orcTypeToTuplex(*type.getSubtype(i), hasNull);
                 types.push_back(el);
             }
-            if (structBatch->hasNulls) {
+            if (hasNull) {
                 return python::Type::makeOptionType(python::Type::makeTupleType(types));
             } else {
                 return python::Type::makeTupleType(types);
-            }
-        }
-        case ::orc::VARCHAR:
-        case ::orc::CHAR: {
-            auto strBatch = static_cast<::orc::StringVectorBatch *>(orcBatch);
-            if (strBatch->hasNulls) {
-                return python::Type::makeOptionType(python::Type::STRING);
-            } else {
-                return python::Type::STRING;
             }
         }
         default:
             throw std::runtime_error("Orc row type unable to be converted to Tuplex type");
     }
 }
+
 }}

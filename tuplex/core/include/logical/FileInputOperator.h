@@ -88,12 +88,25 @@ namespace tuplex {
         // for text files can use a simplified version, it also should store automatically a correct hint!
         FileInputOperator(const std::string& pattern, const ContextOptions& co, const std::vector<std::string>& null_values);
 
+        /*!
+        * create a new orc File Input operator.
+        * @param pattern files to search for
+        * @param co ContextOptions, pipeline will take configuration for planning from there
+        */
+        FileInputOperator(const std::string& pattern, const ContextOptions& co);
+
+
         std::string name() override {
-            if(_fmt == FileFormat::OUTFMT_CSV)
-                return "csv";
-            if(_fmt == FileFormat::OUTFMT_TEXT)
-                return "txt";
-            return "unknown file input operator";
+            switch (_fmt) {
+                case FileFormat::OUTFMT_CSV:
+                    return "csv";
+                case FileFormat::OUTFMT_TEXT:
+                    return "txt";
+                case FileFormat::OUTFMT_ORC:
+                    return "orc";
+                default:
+                    return "unknown file input operator";
+            }
         }
 
         LogicalOperatorType type() const override { return LogicalOperatorType::FILEINPUT; }

@@ -65,6 +65,7 @@ PYMODULE {
             .def(init<std::string>()) // default C++ ctor
             .def("csv", &tuplex::PythonContext::csv)
             .def("text", &tuplex::PythonContext::text)
+            .def("orc", &tuplex::PythonContext::orc)
             .def("parallelize", &tuplex::PythonContext::parallelize)
             .def("options", &tuplex::PythonContext::options)
             .def("getMetrics", &tuplex::PythonContext::getMetrics)

@@ -56,15 +56,20 @@ namespace tuplex {
 
             // check what input type of Stage is
             if(_inputMode == EndPointMode::FILE) {
-                // only csv yet supported!
-                if(_inputFileFormat != FileFormat::OUTFMT_CSV && _inputFileFormat != FileFormat::OUTFMT_TEXT)
-                    throw std::runtime_error("only csv and text yet supported!");
                 auto fop = dynamic_cast<FileInputOperator*>(_inputNode); assert(fop);
-                if(_inputFileFormat == FileFormat::OUTFMT_CSV) {
-                    ppb.cellInput(_inputNode->getID(), fop->inputColumns(), fop->null_values(), fop->typeHints(),
-                                  fop->inputColumnCount(), fop->projectionMap());
-                } else {
-                    ppb.objInput(fop->getID(), fop->inputColumns());
+                switch (_inputFileFormat) {
+                    case FileFormat::OUTFMT_CSV: {
+                        ppb.cellInput(_inputNode->getID(), fop->inputColumns(), fop->null_values(), fop->typeHints(),
+                                      fop->inputColumnCount(), fop->projectionMap());
+                        break;
+                    }
+                    case FileFormat::OUTFMT_TEXT:
+                    case FileFormat::OUTFMT_ORC: {
+                        ppb.objInput(fop->getID(), fop->inputColumns());
+                        break;
+                    }
+                    default:
+                        throw std::runtime_error("file input format not yet supported!");
                 }
             } else {
                 ppb.objInput(_inputNode->getID(), _inputNode->inputColumns());
@@ -978,24 +983,32 @@ namespace tuplex {
                 // note: null_values may be empty!
                 auto null_values = jsonToStringArray(_fileInputParameters.at("null_values"));
 
-                // @TODO: null values as parameter!
-                // check whether parser should be generated or not
-                if (_generateParser) {
-                    tb = make_shared<codegen::JITCSVSourceTaskBuilder>(env,
-                                                                       readSchema,
-                                                                       _columnsToRead,
-                                                                       funcStageName,
-                                                                       _inputNodeID,
-                                                                       null_values,
-                                                                       delimiter,
-                                                                       quotechar);
-                } else {
-                    tb = make_shared<codegen::CellSourceTaskBuilder>(env, readSchema, _columnsToRead,
-                                                                     funcStageName,
-                                                                     _inputNodeID, null_values);
+                switch (_inputFileFormat) {
+                    case FileFormat::OUTFMT_CSV:
+                    case FileFormat::OUTFMT_TEXT: {
+                        if (_generateParser) {
+                            tb = make_shared<codegen::JITCSVSourceTaskBuilder>(env,
+                                                                               readSchema,
+                                                                               _columnsToRead,
+                                                                               funcStageName,
+                                                                               _inputNodeID,
+                                                                               null_values,
+                                                                               delimiter,
+                                                                               quotechar);
+                        } else {
+                            tb = make_shared<codegen::CellSourceTaskBuilder>(env, readSchema, _columnsToRead,
+                                                                             funcStageName,
+                                                                             _inputNodeID, null_values);
+                        }
+                        break;
+                    }
+                    case FileFormat::OUTFMT_ORC: {
+                        tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, inSchema, funcStageName);
+                        break;
+                    }
+                    default:
+                        throw std::runtime_error("file input format not yet supported!");
                 }
-
-
             } else {
                 // tuplex (in-memory) reader
                 tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, inSchema, funcStageName);

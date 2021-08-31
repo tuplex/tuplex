@@ -238,6 +238,22 @@ class Context:
         ds = DataSet()
         ds._dataSet = self._context.text(pattern, null_values)
         return ds
+
+    def orc(self, pattern, columns=None):
+        """ reads orc files.
+        Args:
+            pattern (str): a file glob pattern, e.g. /data/file.csv or /data/\*.csv or /\*/\*csv
+            columns (list): optional list of columns, will be used as header for the CSV file.
+        Returns:
+            tuplex.dataset.DataSet: A Tuplex Dataset object that allows further ETL operations
+        """
+
+        assert isinstance(pattern, str), 'file pattern must be given as str'
+        assert isinstance(columns, list) or columns is None, 'columns must be a list or None'
+
+        ds = DataSet()
+        ds._dataSet = self._context.orc(pattern, columns)
+        return ds
     
     def options(self, nested=False):
         """ retrieves all framework parameters as dictionary

@@ -1105,6 +1105,34 @@ namespace tuplex {
         return pds;
     }
 
+    PythonDataSet PythonContext::orc(const std::string &pattern,
+                                     boost::python::object cols) {
+        assert(_context);
+
+        // reset signals
+        if(check_and_forward_signals(true))
+            return makeError("job aborted via signal");
+
+        PythonDataSet pds;
+        DataSet *ds = nullptr;
+
+        assert(PyGILState_Check()); // make sure this thread holds the GIL!
+
+        // extract columns (if not none)
+        auto columns = extractFromListOfStrings(cols.ptr(), "columns ");
+
+        python::unlockGIL();
+        ds = &_context->orc(pattern, columns);
+        python::lockGIL();
+
+        // assign dataset to wrapper
+        pds.wrap(ds);
+
+        Logger::instance().flushAll();
+
+        return pds;
+    }
+
     ContextOptions updateOptionsWithDict(ContextOptions co, const std::string& options) {
         // convert json dictionary to C++ map
         auto m = jsonToMap(options);

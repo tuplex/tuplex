@@ -36,6 +36,23 @@ namespace tuplex { namespace orc {
                 }
             }
 
+            void setBatch(::orc::ColumnVectorBatch *newBatch) override {
+                _orcBatch = static_cast<::orc::LongVectorBatch *>(newBatch);
+            }
+
+            tuplex::Field getField(uint64_t row) override {
+                using namespace tuplex;
+                if (_orcBatch->hasNulls) {
+                    if (_orcBatch->notNull[row]) {
+                        return Field(option<int64_t>(_orcBatch->data[row]));
+                    } else {
+                        return Field(option<int64_t>::none);
+                    }
+                } else {
+                    return Field(_orcBatch->data[row]);
+                }
+            }
+
         private:
             ::orc::LongVectorBatch *_orcBatch;
         };

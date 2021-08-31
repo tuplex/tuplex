@@ -47,6 +47,25 @@ namespace tuplex { namespace orc {
                 }
             }
 
+            void setBatch(::orc::ColumnVectorBatch *newBatch) override {
+                _orcBatch = static_cast<::orc::StringVectorBatch *>(newBatch);
+            }
+
+            tuplex::Field getField(uint64_t row) override {
+                using namespace tuplex;
+                if (_orcBatch->hasNulls) {
+                    if (_orcBatch->notNull[row]) {
+                        std::string str(_orcBatch->data[row], _orcBatch->data[row] + _orcBatch->length[row]);
+                        return Field(option<std::string>(str));
+                    } else {
+                        return Field(option<std::string>::none);
+                    }
+                } else {
+                    std::string str(_orcBatch->data[row], _orcBatch->data[row] + _orcBatch->length[row]);
+                    return Field(str);
+                }
+            }
+
         private:
             ::orc::StringVectorBatch *_orcBatch;
             std::vector<char *> _buffers;

@@ -10,9 +10,11 @@
 
 #include <logical/FileInputOperator.h>
 #include <VirtualFileSystem.h>
+#include <orc/VirtualInputStream.h>
 #include <CSVUtils.h>
 #include <CSVStatistic.h>
 #include <algorithm>
+#include <orc/OrcTypes.h>
 
 namespace tuplex {
 
@@ -299,6 +301,58 @@ namespace tuplex {
             // header? ignore first row!
             if(_header && !_sample.empty())
                 _sample.erase(_sample.begin());
+        } else {
+            logger.warn("no input files found, can't infer type from sample.");
+            setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+        }
+        _sampling_time_s += timer.time();
+    }
+
+    FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co): _sampling_time_s(0.0) {
+        auto &logger = Logger::instance().logger("fileinputoperator");
+        _fmt = FileFormat::OUTFMT_ORC;
+
+        Timer timer;
+        detectFiles(pattern);
+
+        if (!_fileURIs.empty()) {
+            auto uri = _fileURIs.front();
+
+            using namespace ::orc;
+            auto inStream = std::make_unique<orc::VirtualInputStream>(uri);
+            ReaderOptions options;
+            ORC_UNIQUE_PTR<Reader> reader = createReader(std::move(inStream), options);
+
+            auto &orcType = reader->getType();
+            auto numRows = reader->getNumberOfRows();
+            std::vector<bool> columnHasNull;
+            for (int i = 0; i < orcType.getSubtypeCount(); ++i) {
+                columnHasNull.push_back(reader->getColumnStatistics(i + 1)->hasNull());
+            }
+            auto tuplexType = tuplex::orc::orcRowTypeToTuplex(orcType, columnHasNull);
+
+            _normalCaseRowType = tuplexType;
+            _estimatedRowCount = numRows * _fileURIs.size();
+
+            bool unset = true;
+            for (uint64_t i = 0; i < orcType.getSubtypeCount(); ++i) {
+                const auto& name = orcType.getFieldName(i);
+                if (!name.empty()) {
+                    unset = false;
+                }
+                _columnNames.push_back(name);
+            }
+            if (unset) {
+                _columnNames.clear();
+            }
+
+            inStream.reset();
+            reader.reset();
+
+            setSchema(Schema(Schema::MemoryLayout::ROW, tuplexType));
+
+            setProjectionDefaults();
+
         } else {
             logger.warn("no input files found, can't infer type from sample.");
             setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));

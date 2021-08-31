@@ -511,7 +511,7 @@ namespace tuplex {
                         task->setFunctor(functor);
                         task->setInputFileSource(uri, normalCaseEnabled, tstage->fileInputOperatorID(), inputRowType, header,
                                                  !options.OPT_GENERATE_PARSER(),
-                                                 numColumns, 0, 0, delimiter, quotechar, colsToKeep, tstage->inputFormat());
+                                                 numColumns, 0, 0, delimiter, quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
                         // hash table or memory output?
                         if(tstage->outputMode() == EndPointMode::HASHTABLE) {
                             if (tstage->hashtableKeyByteWidth() == 8)
@@ -545,7 +545,7 @@ namespace tuplex {
                             task->setInputFileSource(uri, normalCaseEnabled, tstage->fileInputOperatorID(), inputRowType, header,
                                                      !options.OPT_GENERATE_PARSER(),
                                                      numColumns, 0, 0, delimiter,
-                                                     quotechar, colsToKeep, tstage->inputFormat());
+                                                     quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
                             // hash table or memory output?
                             if(tstage->outputMode() == EndPointMode::HASHTABLE) {
                                 if (tstage->hashtableKeyByteWidth() == 8)
@@ -581,7 +581,7 @@ namespace tuplex {
                                 task->setInputFileSource(uri, normalCaseEnabled, tstage->fileInputOperatorID(), inputRowType, header,
                                                          !options.OPT_GENERATE_PARSER(),
                                                          numColumns, rangeStart, rangeEnd - rangeStart, delimiter,
-                                                         quotechar, colsToKeep, tstage->inputFormat());
+                                                         quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
                                 // hash table or memory output?
                                 if(tstage->outputMode() == EndPointMode::HASHTABLE) {
                                     if (tstage->hashtableKeyByteWidth() == 8)

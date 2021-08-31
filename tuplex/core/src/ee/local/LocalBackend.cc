@@ -1507,8 +1507,6 @@ namespace tuplex {
     // get default file extension for supported file formats
     std::string fileFormatDefaultExtension(FileFormat fmt) {
         switch (fmt) {
-            case FileFormat::OUTFMT_TEXT:
-                return ".txt";
             case FileFormat::OUTFMT_CSV:
                 return ".csv";
             case FileFormat::OUTFMT_ORC:

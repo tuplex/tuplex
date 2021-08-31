@@ -276,7 +276,12 @@ namespace tuplex {
                             size_t limit = std::numeric_limits<size_t>::max(),
                             std::ostream &os = std::cout);
 
-        // TODO: Add doc
+        /*!
+         * saves dataset as a csv file.
+         * @param uri URI of the file (if tuplex should save to multiple files, then this will create a folder, where tuplex places part files.
+         * @param outputOptions Options for writing the csv file.
+         * @param os
+         */
         void tocsv(const URI &uri,
                    const std::unordered_map<std::string, std::string> &outputOptions = defaultCSVOutputOptions(),
                    std::ostream &os = std::cout) {
@@ -285,7 +290,12 @@ namespace tuplex {
                    os);
         }
 
-        // TODO: Add doc
+        /*!
+         * saves dataset as an orc file.
+         * @param uri URI of the file (if tuplex should save to multiple files, then this will create a folder, where tuplex places part files.
+         * @param outputOptions Options for writing the orc file.
+         * @param os
+         */
         void toorc(const URI &uri,
                    const std::unordered_map<std::string, std::string> &outputOptions = defaultORCOutputOptions(),
                    std::ostream &os = std::cout) {

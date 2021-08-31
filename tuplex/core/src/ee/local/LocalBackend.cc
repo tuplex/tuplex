@@ -1981,19 +1981,18 @@ namespace tuplex {
         if(!partitions.empty()) {
             IExecutorTask* wtask;
             switch (tstage->outputFormat()) {
-                case FileFormat::OUTFMT_TEXT:
                 case FileFormat::OUTFMT_CSV: {
                     wtask = new SimpleFileWriteTask(outputURI(udf, uri, partNo++, fmt), header, header_length, partitions);
                     break;
                 }
                 case FileFormat::OUTFMT_ORC: {
-                    wtask = new SimpleOrcWriteTask(outputURI(udf, uri, partNo++, fmt), partitions, tstage->outputSchema(), outOptions["columnNames"]));
+                    wtask = new SimpleOrcWriteTask(outputURI(udf, uri, partNo++, fmt), partitions, tstage->outputSchema(), outOptions["columnNames"]);
                     break;
                 }
                 default:
                     throw std::runtime_error("file output format not supported.");
             }
-            wtasks.emplace_back(std::move(wtask));
+            wtasks.emplace_back(wtask);
             partitions.clear();
         }
 

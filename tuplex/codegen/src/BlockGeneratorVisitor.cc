@@ -5153,7 +5153,6 @@ namespace tuplex {
             auto exprType = forStmt->expression->getInferredType();
             auto targetType = forStmt->target->getInferredType();
             auto targetASTType = forStmt->target->type();
-            std::cout << targetType.desc() << " target type is ?" << std::endl;
             std::vector<NIdentifier*> loopVal;
             if(targetASTType == ASTNodeType::Identifier) {
                 auto id = static_cast<NIdentifier*>(forStmt->target);

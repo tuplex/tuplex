@@ -97,7 +97,7 @@ namespace codegen {
 
             // simplify interfaces a bit
             inline codegen::SerializableValue load(llvm::IRBuilder<>& builder) const {
-                assert(ptr && sizePtr);
+                // assert(ptr && sizePtr);
 
                 // GlobalValue is a constant...
                 // // hack to make certain things faster, i.e. for global constants don't do the loading instructions...
@@ -108,12 +108,13 @@ namespace codegen {
                 //         assert(llvm::isa<llvm::Constant>(nullPtr));
                 // }
 
-                return codegen::SerializableValue(builder.CreateLoad(ptr), builder.CreateLoad(sizePtr),
+                // iterator slot may does not have ptr yet
+                return codegen::SerializableValue(ptr ? builder.CreateLoad(ptr) : nullptr, builder.CreateLoad(sizePtr),
                         nullPtr ? builder.CreateLoad(nullPtr) : nullptr);
             }
 
             inline void store(llvm::IRBuilder<>& builder, const codegen::SerializableValue& val) {
-                assert(ptr && sizePtr);
+                // assert(ptr && sizePtr);
 
                 if(val.val) {
 
@@ -135,6 +136,9 @@ namespace codegen {
                         assert(val.val->getType()->getPointerTo(0) == ptr->getType());
                         builder.CreateStore(val.val, ptr);
                     }
+                } else {
+                    // iterator val slot may not have ptr yet
+                    ptr = nullptr;
                 }
 
                 if(val.size) {

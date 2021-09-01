@@ -76,6 +76,12 @@ namespace tuplex {
             std::unique_ptr<llvm::Module> _module;
             std::map<python::Type, llvm::Type *> _generatedTupleTypes;
             std::map<python::Type, llvm::Type *> _generatedListTypes;
+            std::map<python::Type, llvm::Type *> _generatedIterIteratorTypes;
+            // use llvm struct member types for map key since argType may contain iterator types, and iterators with the same yieldType may have different llvm structs
+            std::map<std::vector<llvm::Type *>, llvm::Type *> _generatedZipIteratorTypes;
+            std::map<std::vector<llvm::Type *>, llvm::Type *> _generatedEnumerateIteratorTypes;
+            // string: function name; BlockAddress*: BlockAddress* to be filled in an iterator struct
+            std::map<std::string, llvm::BlockAddress *> _generatedIteratorUpdateIndexFunctions;
             std::map<llvm::Type *, python::Type> _typeMapping;
             llvm::Type *createTupleStructType(const python::Type &type, const std::string &twine = "tuple");
 
@@ -208,6 +214,39 @@ namespace tuplex {
              * @return llvm Type to be used as the given listType
              */
             llvm::Type *getListType(const python::Type &listType, const std::string &twine = "list");
+
+            /*!
+             * return LLVM type that is used to represent a iterator internally
+             * @param iteratorInfo iterator-specific annotation of the target iterator
+             * @return llvm type corresponding to the iterator with iteratorInfo
+             */
+            llvm::Type *getIteratorType(IteratorInfo *iteratorInfo);
+
+            /*!
+             * return LLVM type that is used to represent a iterator generated from iter() call internally
+             * @param iterableType argument type of the iter() call
+             * @param twine
+             * @return llvm type corresponding to the iterator with iteratorInfo
+             */
+            llvm::Type *getIterIteratorType(const python::Type &iterableType, const std::string &twine = "iterator");
+
+            /*!
+             * return LLVM type that is used to represent a iterator generated from zip() call internally
+             * @param argsType type of arguments of the zip() call
+             * @param argsIteratorInfo iterator-specific annotations of arguments of the zip() call
+             * @param twine
+             * @return llvm type corresponding to the iterator with iteratorInfo
+             */
+            llvm::Type *getZipIteratorType(const python::Type &argsType, const std::vector<IteratorInfo *> &argsIteratorInfo, const std::string &twine = "zip_iterator");
+
+            /*!
+             * return LLVM type that is used to represent a iterator generated from enumerate() call internally
+             * @param argType type of the first argument of the enumerate() call
+             * @param argIteratorInfo iterator-specific annotation of the first argument of the enumerate() call
+             * @param twine
+             * @return llvm type corresponding to the iterator with iteratorInfo
+             */
+            llvm::Type *getEnumerateIteratorType(const python::Type &argType, IteratorInfo *argIteratorInfo, const std::string &twine = "enumerate_iterator");
 
             /*!
              * retrieve tuple element from pointer
@@ -766,6 +805,16 @@ namespace tuplex {
              * @return codegenerated i1 true/false
              */
             llvm::Value* matchExceptionHierarchy(llvm::IRBuilder<>& builder, llvm::Value* codeValue, const ExceptionCode& ec);
+
+            /*!
+             * Create or get a llvm function with signature i1(struct.iterator) that does the following:
+             * Increments index field of the input struct.iterator,
+             * then returns true if the iterator is exhausted, and false otherwise.
+             * @param builder
+             * @param iterableType
+             * @return llvm::BlockAddress* to be stored in an iterator struct later
+             */
+            llvm::BlockAddress *getUpdateIteratorIndexFunction(llvm::IRBuilder<> &builder, const python::Type &iterableType);
         };
 
 // i.e. there should be a function

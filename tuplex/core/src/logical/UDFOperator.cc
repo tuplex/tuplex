@@ -49,10 +49,12 @@ namespace tuplex {
             bool success = _udf.hintInputSchema(parentSchema, false, false);
             if(!success) {
 
+                _udf.clearTypeError();
                 // 2. try by annotating with if-blocks getting ignored statically...
                 logger.info("performing static typing with partially ignoring branches for UDF in operator " + name());
                 success = _udf.hintInputSchema(parentSchema, true, false);
                 if(!success) {
+                    _udf.clearTypeError();
                     // 3. type by tracing a small sample from the parent!
                     // => only use rows which match parent type.
                     // => general case rows thus get transferred to interpreter...
@@ -62,28 +64,30 @@ namespace tuplex {
 
                     // only exceptions?
                     // => report, abort compilation!
-                    if(!success) {
-                        Logger::instance().defaultLogger().info("was not able to detect type for UDF, statically and via tracing."
-                                                                " Provided parent row type was " + parentSchema.getRowType().desc() );
-                        // 4. mark as uncompilable UDF, but sample output row type, so at least subsequent operators
-                        //    can get compiled!
-                        _udf.markAsNonCompilable();
-                        throw std::runtime_error("TODO: implement via sampling of Python UDF executed most likely type, so pipeline can still get compiled.");
-                        return Schema::UNKNOWN;
-                    } else {
-                        // check what return type was given
-                        auto output_type = _udf.getOutputSchema().getRowType();
-                        if(output_type.isExceptionType()) {
+                    if(_udf.getTypeError().empty()) {
+                        if(!success) {
+                            Logger::instance().defaultLogger().info("was not able to detect type for UDF, statically and via tracing."
+                                                                    " Provided parent row type was " + parentSchema.getRowType().desc() );
+                            // 4. mark as uncompilable UDF, but sample output row type, so at least subsequent operators
+                            //    can get compiled!
                             _udf.markAsNonCompilable();
-                            // exception type? => sample produced only exceptions! warn user.
-                            Logger::instance().defaultLogger().error("Tracing via sample produced mostly"
-                                                                     " exceptions, please increase sample size"
-                                                                     " or alter UDF to not yield exceptions only.");
-                            // @TODO: print nice traceback with sample...
-                            // => should use beefed up sample processor class for this...
+                            throw std::runtime_error("TODO: implement via sampling of Python UDF executed most likely type, so pipeline can still get compiled.");
                             return Schema::UNKNOWN;
                         } else {
-                            // all good, keep sampled type but mark as non compilable
+                            // check what return type was given
+                            auto output_type = _udf.getOutputSchema().getRowType();
+                            if(output_type.isExceptionType()) {
+                                _udf.markAsNonCompilable();
+                                // exception type? => sample produced only exceptions! warn user.
+                                Logger::instance().defaultLogger().error("Tracing via sample produced mostly"
+                                                                         " exceptions, please increase sample size"
+                                                                         " or alter UDF to not yield exceptions only.");
+                                // @TODO: print nice traceback with sample...
+                                // => should use beefed up sample processor class for this...
+                                return Schema::UNKNOWN;
+                            } else {
+                                // all good, keep sampled type but mark as non compilable
+                            }
                         }
                     }
                 }

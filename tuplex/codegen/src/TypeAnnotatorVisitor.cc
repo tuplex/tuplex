@@ -1590,6 +1590,9 @@ namespace tuplex {
             }
             forelse->target->setInferredType(expectedTargetType);
             for (int i = 0; i < idTuple.size(); i++) {
+                if(idTuple[i]->type() != ASTNodeType::Identifier) {
+                    addTypeError(CompileError::TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST);
+                }
                 auto element = static_cast<NIdentifier*>(idTuple[i]);
                 _nameTable[element->_name] = idTypeTuple[i];
                 element->setInferredType(idTypeTuple[i]);

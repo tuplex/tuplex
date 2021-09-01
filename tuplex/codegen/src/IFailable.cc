@@ -68,6 +68,9 @@ std::string IFailable::compileErrorToStr(const CompileError &err) {
         case CompileError::TYPE_ERROR_NEXT_CALL_DIFFERENT_DEFAULT_TYPE:
             errMsg = "next(iterator[, default]) not yet supported when default value type differing from iterator yield type";
             break;
+        case CompileError::TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST:
+            errMsg = "mixed use of tuple/list of identifiers and single identifier in exprlist not yet supported";
+            break;
         default:
             break;
     }

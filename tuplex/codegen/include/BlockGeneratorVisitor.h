@@ -40,6 +40,7 @@
 #include <LambdaFunction.h>
 #include <FunctionRegistry.h>
 #include <stack>
+#include <IteratorContextProxy.h>
 
 namespace tuplex {
 
@@ -344,6 +345,8 @@ namespace codegen {
         // store current iteration ending block and loop ending block for for and while loops
         std::deque<llvm::BasicBlock*> _loopBlockStack;
 
+        IteratorContextProxy *_icp;
+
         void init() {
 
             if (!_blockStack.empty()) {
@@ -360,6 +363,7 @@ namespace codegen {
             //_block = nullptr;
             _funcNames = std::stack<std::string>();
             _numLambdaFunctionsEncountered = 0;
+            _icp = new IteratorContextProxy(_env);
         }
 
         /*!

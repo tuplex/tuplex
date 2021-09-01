@@ -1659,6 +1659,19 @@ namespace tuplex {
                     keyval.second = std::vector<python::Type>{python::Type::UNKNOWN}; // save result
                 }
 
+                if(keyval.second.front().isIteratorType()) {
+                    VariableSlot slot;
+                    slot.type = keyval.second.front();
+                    slot.definedPtr = _env->CreateFirstBlockAlloca(builder, _env->i1Type(), keyval.first + "_defined");
+                    builder.CreateStore(_env->i1Const(false), slot.definedPtr);
+                    slot.var = Variable();
+                    slot.var.ptr = nullptr;
+                    slot.var.sizePtr = _env->CreateFirstBlockAlloca(builder, _env->i64Type(), keyval.first + "_size");;
+                    slot.var.name = keyval.first;
+                    _variableSlots[keyval.first] = slot;
+                    continue;
+                }
+
                 // add var to lookup but mark as undefined yet.
                 if(keyval.second.front() != python::Type::UNKNOWN) {
                     VariableSlot slot;
@@ -1742,7 +1755,16 @@ namespace tuplex {
                 // if not, simply alloc a new variable which takes the place.
 
                 auto targetType = target->getInferredType();
-
+                if(targetType.isIteratorType()) {
+                    auto iteratorInfo = target->annotation().iteratorInfo;
+                    if(targetType == python::Type::EMPTYITERATOR) {
+                        slot->var.ptr = _env->CreateFirstBlockAlloca(builder, _env->i64Type(), slot->var.name);
+                    } else {
+                        slot->var.ptr = _env->CreateFirstBlockAlloca(builder, llvm::PointerType::get(_env->getIteratorType(iteratorInfo), 0), slot->var.name);
+                    }
+                    slot->var.store(builder, val);
+                    return;
+                }
                 if(targetType != slot->type || !slot->var.ptr) {
                     // LLVM endlifetime for this variable here, this hint helps the optimizer.
                     //slot->var.endLife(builder);
@@ -2845,7 +2867,7 @@ namespace tuplex {
 
                 // get loadable struct type
                 auto ret = ft.getLoad(builder);
-                assert(ret->getType()->isStructTy());
+                // assert(ret->getType()->isStructTy());
                 auto size = ft.getSize(builder);
                 addInstruction(ret, size);
             }
@@ -3015,11 +3037,27 @@ namespace tuplex {
                     if (elementType == python::Type::BOOLEAN)
                         element_byte_size = 1; // single character elements
                     // allocate the array
-                    auto list_arr_malloc = builder.CreatePointerCast(_env->malloc(builder, _env->i64Const(element_byte_size * list->_elements.size())), llvmType->getStructElementType(2));
+                    llvm::Value *malloc_size;
+                    if(elementType.isTupleType() && elementType.isFixedSizeType()) {
+                        // if tuple is fixed size, store the actual tuple struct
+                        // if tuple has varlen field, store a pointer to the tuple
+                        auto ft = FlattenedTuple::fromLLVMStructVal(_env, builder, vals[0].val, elementType);
+                        malloc_size = builder.CreateMul(ft.getSize(builder), _env->i64Const(list->_elements.size()));
+                    } else {
+                        malloc_size = _env->i64Const(element_byte_size * list->_elements.size());
+                    }
+                    auto list_arr_malloc = builder.CreatePointerCast(_env->malloc(builder, malloc_size), llvmType->getStructElementType(2));
                     // store the values
                     for(size_t i = 0; i < vals.size(); i++) {
                         auto list_el = builder.CreateGEP(list_arr_malloc, _env->i32Const(i));
-                        builder.CreateStore(vals[i].val, list_el);
+                        if(elementType.isTupleType() && !elementType.isFixedSizeType()) {
+                            // list_el has type struct.tuple**
+                            auto el_tuple = _env->CreateFirstBlockAlloca(builder, _env->pythonToLLVMType(elementType), "tuple_alloc");
+                            builder.CreateStore(vals[i].val, el_tuple);
+                            builder.CreateStore(el_tuple, list_el);
+                        } else {
+                            builder.CreateStore(vals[i].val, list_el);
+                        }
                     }
                     // store the new array back into the array pointer
                     auto list_arr = _env->CreateStructGEP(builder, listAlloc, 2);
@@ -3044,6 +3082,11 @@ namespace tuplex {
                         builder.CreateStore(list_sizearr_malloc, list_sizearr);
                     }
                 }
+
+                // TODO:
+                // --> change to passing around the pointer to the list, not the semi-loaded struct
+                // ---> THIS WILL HAVE IMPLICATIONS WHEREVER LISTS ARE USED.
+                // also listSize here is wrong. The listSize should be stored as part of the pointer. You can either pass 8 as listsize or null.
 
                 addInstruction(builder.CreateLoad(listAlloc), listSize);
             }
@@ -4210,7 +4253,12 @@ namespace tuplex {
                         funcName = ann.symbol->fullyQualifiedName(); // need this to lookup module entries!
 
                     // this creates a general call. Might create an exception block within the current function!
-                    ret = _functionRegistry->createGlobalSymbolCall(*_lfb, builder, funcName, argsType, retType, args);
+                    // handle iterator-related calls separately since an additional argument iteratorInfo is needed
+                    if(call->hasAnnotation() && call->annotation().iteratorInfo) {
+                        ret = _functionRegistry->createIteratorRelatedSymbolCall(*_lfb, builder, funcName, argsType, retType, args, call->annotation().iteratorInfo);
+                    } else {
+                        ret = _functionRegistry->createGlobalSymbolCall(*_lfb, builder, funcName, argsType, retType, args);
+                    }
 
                     // e.g., len(...) won't cause an exception, hence it is very fast...
                     // however, calling int(...), float(...) causes an exception potentially (i.e. parse error)
@@ -5105,13 +5153,13 @@ namespace tuplex {
             auto exprType = forStmt->expression->getInferredType();
             auto targetType = forStmt->target->getInferredType();
             auto targetASTType = forStmt->target->type();
+            std::cout << targetType.desc() << " target type is ?" << std::endl;
             std::vector<NIdentifier*> loopVal;
             if(targetASTType == ASTNodeType::Identifier) {
                 auto id = static_cast<NIdentifier*>(forStmt->target);
                 loopVal.push_back(id);
             } else if(targetASTType == ASTNodeType::Tuple || targetASTType == ASTNodeType::List) {
                 auto idTuple = getForLoopMultiTarget(forStmt->target);
-                assert(exprType.elementType().parameters().size() == idTuple.size());
                 loopVal.resize(idTuple.size());
                 std::transform(idTuple.begin(), idTuple.end(), loopVal.begin(), [](ASTNode* x){return static_cast<NIdentifier*>(x);});
             } else {
@@ -5144,11 +5192,12 @@ namespace tuplex {
             _loopBlockStack.push_back(afterLoop);
             _loopBlockStack.push_back(iterEndBB);
 
-            // retrieve expression (list, string or range)
+            // retrieve expression (list, string, range, or iterator)
             auto exprAlloc = _blockStack.back();
             _blockStack.pop_back();
 
             llvm::Value *start=nullptr, *step=nullptr, *end=nullptr;
+            IteratorInfo *iteratorInfo = nullptr;
             if(exprType.isListType()) {
                 start = _env->i64Const(0);
                 step = _env->i64Const(1);
@@ -5165,24 +5214,37 @@ namespace tuplex {
                 start = builder.CreateLoad(_env->CreateStructGEP(builder, exprAlloc.val, 0));
                 end = builder.CreateLoad(_env->CreateStructGEP(builder, exprAlloc.val, 1));
                 step = builder.CreateLoad(_env->CreateStructGEP(builder, exprAlloc.val, 2));
+            } else if(exprType.isIteratorType()) {
+                assert(forStmt->expression->hasAnnotation() && forStmt->expression->annotation().iteratorInfo);
+                iteratorInfo = forStmt->expression->annotation().iteratorInfo;
             } else {
                 fatal_error("unsupported expression type '" + exprType.desc() + "' in for loop encountered");
             }
             builder.CreateBr(condBB);
 
             // loop ending condition test
-            builder.SetInsertPoint(condBB);
-            llvm::PHINode *curr = builder.CreatePHI(_env->i64Type(), 2);
-            curr->addIncoming(start, entryBB);
-            curr->addIncoming(builder.CreateAdd(curr, step), iterEndBB);
+            llvm::PHINode *curr = nullptr;
             llvm::Value *loopCond = nullptr;
-            if(exprType == python::Type::RANGE) {
-                // step can be negative in range
-                loopCond = builder.CreateICmpSLT(builder.CreateMul(curr, step), builder.CreateMul(end, step));
+            builder.SetInsertPoint(condBB);
+            if(!exprType.isIteratorType()) {
+                curr = builder.CreatePHI(_env->i64Type(), 2);
+                curr->addIncoming(start, entryBB);
+                curr->addIncoming(builder.CreateAdd(curr, step), iterEndBB);
+                if(exprType == python::Type::RANGE) {
+                    // step can be negative in range
+                    loopCond = builder.CreateICmpSLT(builder.CreateMul(curr, step), builder.CreateMul(end, step));
+                } else {
+                    loopCond = builder.CreateICmpSLT(curr, end);
+                }
+                builder.CreateCondBr(loopCond, loopBB, elseBB);
             } else {
-                loopCond = builder.CreateICmpSLT(curr, end);
+                if(exprType == python::Type::EMPTYITERATOR) {
+                    loopCond = _env->i1Const(true);
+                }
+                loopCond = _icp->updateIteratorIndex(builder, exprAlloc.val, iteratorInfo);
+                // here loopCond indicates whether iterator is exhausted, so loopCond == true will end the loop
+                builder.CreateCondBr(loopCond, elseBB, loopBB);
             }
-            builder.CreateCondBr(loopCond, loopBB, elseBB);
 
             // handle loop body
             builder.SetInsertPoint(loopBB);
@@ -5190,29 +5252,26 @@ namespace tuplex {
 
             if(exprType.isListType()) {
                 if(exprType != python::Type::EMPTYLIST) {
+                    auto currVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {2}), curr));
                     if(targetType == python::Type::I64 || targetType == python::Type::F64) {
                         // loop variable is of type i64 or f64 (has size 8)
-                        auto currVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {2}), curr));
                         addInstruction(currVal, _env->i64Const(8));
                     } else if(targetType == python::Type::STRING || targetType.isDictionaryType()) {
                         // loop variable is of type string or dictionary (need to extract size)
-                        auto currVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {2}), curr));
                         auto currSize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {3}), curr));
                         addInstruction(currVal, currSize);
                     } else if(targetType == python::Type::BOOLEAN) {
                         // loop variable is of type bool (has size 1)
-                        auto currVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {2}), curr));
                         addInstruction(currVal, _env->i64Const(1));
                     } else if(targetType.isTupleType()) {
                         // target is of tuple type
                         // either target is a single identifier and needs to be assigned the entire tuple
                         // or target has multiple identifiers and each corresponds to a value in the tuple
-                        auto currVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {2}), curr)); // get pointer to the tuple
                         FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder, currVal, targetType);
                         // add value to stack for all identifiers in target
                         if(loopVal.size() == 1) {
                             // single identifier
-                            addInstruction(currVal, ft.getSize(builder));
+                            addInstruction(currVal, _env->i64Const(8));
                         } else {
                             // multiple identifiers, add each value in tuple to stack in reverse order
                             for (int i = loopVal.size() - 1; i >= 0 ; --i) {
@@ -5226,15 +5285,62 @@ namespace tuplex {
                 }
             } else if(exprType == python::Type::STRING) {
                 // target is a single character
-                auto currVal = builder.CreateGEP(exprAlloc.val, curr);
-                addInstruction(currVal, _env->i64Const(2));
+                // allocate new string (1-byte character with a 1-byte null terminator)
+                auto currCharPtr = builder.CreateGEP(exprAlloc.val, curr);
+                auto currSize = _env->i64Const(2);
+                auto currVal = builder.CreatePointerCast(_env->malloc(builder, currSize), _env->i8ptrType());
+                builder.CreateStore(builder.CreateLoad(currCharPtr), currVal);
+                auto nullCharPtr = builder.CreateGEP(_env->i8Type(), currVal, _env->i32Const(1));
+                builder.CreateStore(_env->i8Const(0), nullCharPtr);
+                addInstruction(currVal, currSize);
             } else if(exprType == python::Type::RANGE) {
                 addInstruction(curr, _env->i64Const(8));
+            } else if(exprType.isIteratorType()) {
+                if(exprType != python::Type::EMPTYITERATOR) {
+                    auto currVal = _icp->getIteratorNextElement(builder, exprType.yieldType(), exprAlloc.val, iteratorInfo);
+                    if(exprType.yieldType().isListType()) {
+                        if(loopVal.size() == 1) {
+                            addInstruction(currVal.val, currVal.size);
+                        } else {
+                            // multiple identifiers, add each value in list to stack in reverse order
+                            for (int i = loopVal.size() - 1; i >= 0 ; --i) {
+                                auto idVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {2}), _env->i32Const(i)));
+                                auto idType = loopVal[i]->getInferredType();
+                                if(idType == python::Type::I64 || targetType == python::Type::F64) {
+                                    addInstruction(idVal, _env->i64Const(8));
+                                } else if(idType == python::Type::BOOLEAN) {
+                                    addInstruction(idVal, _env->i64Const(1));
+                                } else if(idType == python::Type::STRING || idType.isDictionaryType()) {
+                                    auto idValSize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {3}), _env->i32Const(i)));
+                                    addInstruction(idVal, idValSize);
+                                } else if(idType.isTupleType()) {
+                                    addInstruction(idVal, _env->i64Const(8));
+                                } else {
+                                    fatal_error("unsupported target type '" + idType.desc() + "' in for loop encountered");
+                                }
+                            }
+                        }
+                    } else if(exprType.yieldType().isTupleType()) {
+                        FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder, currVal.val, targetType);
+                        // add value to stack for all identifiers in target
+                        if(loopVal.size() == 1) {
+                            addInstruction(currVal.val, currVal.size);
+                        } else {
+                            // multiple identifiers, add each value in tuple to stack in reverse order
+                            for (int i = loopVal.size() - 1; i >= 0 ; --i) {
+                                auto idVal = ft.getLoad(builder, {i}); // get the value for the ith identifier from tuple
+                                addInstruction(idVal.val, idVal.size);
+                            }
+                        }
+                    } else {
+                        addInstruction(currVal.val, currVal.size);
+                    }
+                }
             } else {
                 fatal_error("unsupported expression type '" + exprType.desc() + "' in for loop encountered");
             }
 
-            if(exprType != python::Type::EMPTYLIST) {
+            if(exprType != python::Type::EMPTYLIST && exprType != python::Type::EMPTYITERATOR) {
                 // assign value for each identifier in target
                 for (const auto & id : loopVal) {
                     assignToSingleVariable(id, id->getInferredType());

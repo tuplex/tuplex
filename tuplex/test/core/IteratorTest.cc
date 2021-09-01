@@ -331,8 +331,8 @@ TEST_F(IteratorTest, CodegenTestEmptyIteratorI) {
                 "    return (b1, b2)";
 
     auto v = c.parallelize({
-                                   Row(0)
-                           }).map(UDF(func)).collectAsVector();
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
 
     EXPECT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row("None", 0));
@@ -349,8 +349,8 @@ TEST_F(IteratorTest, CodegenTestEmptyIteratorII) {
                 "    return (b1, b2)";
 
     auto v = c.parallelize({
-                                   Row(0)
-                           }).map(UDF(func)).collectAsVector();
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
 
     EXPECT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row("#", -1));
@@ -367,8 +367,8 @@ TEST_F(IteratorTest, CodegenTestEmptyIteratorIII) {
                 "    return (b1, b2)";
 
     auto v = c.parallelize({
-                                   Row(0)
-                           }).map(UDF(func)).collectAsVector();
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
 
     EXPECT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row("None", 0));

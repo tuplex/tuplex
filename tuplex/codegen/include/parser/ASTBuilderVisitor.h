@@ -121,6 +121,9 @@ namespace tuplex {
 
         virtual antlrcpp::Any visitPower(antlr4::Python3Parser::PowerContext *ctx) override;
 
+        // deal with the case when expression (also called testlist) in for loop contains multiple elements
+        virtual antlrcpp::Any visitTestlist(antlr4::Python3Parser::TestlistContext *ctx) override;
+
         // list comprehensions
         virtual antlrcpp::Any visitExprlist(antlr4::Python3Parser::ExprlistContext *context) override;
 //        virtual antlrcpp::Any visitComp_iter(antlr4::Python3Parser::Comp_iterContext *context) override;

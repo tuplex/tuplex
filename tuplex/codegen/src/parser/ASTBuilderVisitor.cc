@@ -1118,6 +1118,30 @@ namespace tuplex {
         return nullptr;
     }
 
+    antlrcpp::Any ASTBuilderVisitor::visitTestlist(antlr4::Python3Parser::TestlistContext *context) {
+        visitChildren(context);
+
+        // if more than one tests in testlist, wrap them in a tuple so that for loop can recognize it as a single node
+        int testlist_elements = context->test().size();
+        assert(nodes.size() >= testlist_elements);
+        std::vector<ASTNode*> testlist;
+        for (int i = 0; i < testlist_elements; ++i) {
+            testlist.push_back(popNode());
+        }
+        std::reverse(testlist.begin(), testlist.end());
+
+        // push tuple of tests or single test
+        if(1 == testlist_elements) {
+            pushNode(testlist.front());
+        } else {
+            auto t = new NTuple();
+            t->_elements = testlist;
+            pushNode(t);
+        }
+
+        return nullptr;
+    }
+
     antlrcpp::Any ASTBuilderVisitor::visitExprlist(antlr4::Python3Parser::ExprlistContext *context) {
         visitChildren(context);
 

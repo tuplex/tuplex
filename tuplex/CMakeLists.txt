@@ -139,6 +139,14 @@ if(GENERATE_PDFS)
 else()
     message(STATUS "PDF generation for ASTs and logical plans disabled. Enable by setting -DGENERATE_PDFS=ON.")
 endif()
+
+# suppress "#warning" directive otuput
+option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
+if(SHOW_EXPLICIT_WARNINGS)
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-cpp")
+endif()
+
 ###########################################################################
 # (1) supported compilers and fixes
 ###########################################################################

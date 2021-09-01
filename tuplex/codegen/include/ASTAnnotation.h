@@ -86,7 +86,6 @@ public:
      * @return true if a specialized function type could be generated, false else.
      */
     inline bool findFunctionTypeBasedOnParameterType(const python::Type& parameterType, python::Type& specializedFunctionType) {
-
         // check if typer function is there?
         auto generic_result = functionTyper(parameterType);
         if(generic_result != python::Type::UNKNOWN) {
@@ -352,13 +351,20 @@ private:
     }
 };
 
+///! iterator-specific annotation: iterator name i.e. from which function the iterator was generated, arguments' type of the function, iteratorInfo of arguments
+struct IteratorInfo {
+    std::string iteratorName;
+    python::Type argsType;
+    std::vector<IteratorInfo *> argsIteratorInfo;
+};
+
 // simple class used to annotate ast nodes
 class ASTAnnotation {
 public:
 
-    ASTAnnotation() : numTimesVisited(0), symbol(nullptr), iMin(0), iMax(0), negativeValueCount(0), positiveValueCount(0)    {}
+    ASTAnnotation() : numTimesVisited(0), symbol(nullptr), iMin(0), iMax(0), negativeValueCount(0), positiveValueCount(0), iteratorInfo(nullptr) {}
     ASTAnnotation(const ASTAnnotation& other) : numTimesVisited(other.numTimesVisited), iMin(other.iMin), iMax(other.iMax),
-    negativeValueCount(other.negativeValueCount), positiveValueCount(other.positiveValueCount), symbol(other.symbol), types(other.types) {}
+    negativeValueCount(other.negativeValueCount), positiveValueCount(other.positiveValueCount), symbol(other.symbol), types(other.types), iteratorInfo(other.iteratorInfo) {}
 
     ///! how often was node visited? Helpful annotation for if-branches
     size_t numTimesVisited;
@@ -381,6 +387,9 @@ public:
 
     ///! traced types
     std::vector<python::Type> types;
+
+    ///! iterator-specific info
+    IteratorInfo *iteratorInfo;
 
     inline python::Type majorityType() const {
         if(types.empty())

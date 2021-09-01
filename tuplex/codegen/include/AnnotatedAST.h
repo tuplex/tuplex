@@ -15,7 +15,7 @@
 #include <Logger.h>
 #include <SymbolTable.h>
 #include <ClosureEnvironment.h>
-#include <ASTHelpers.h>
+#include <IFailable.h>
 
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/STLExtras.h>
@@ -38,7 +38,7 @@ namespace tuplex {
         };
 
         // class holding an abstract syntax tree
-        class AnnotatedAST {
+        class AnnotatedAST : public IFailable {
         private:
 
             // name of the function/last statement within the IR module
@@ -52,7 +52,6 @@ namespace tuplex {
             // holds the AST tree after successful parsing
             ASTNode *_root;
             bool _typesDefined; // lazy check variable whether types are already defined or not
-            CompileError _typeError; // temporary variable for dealing with unsupported type
 
             ClosureEnvironment _globals; // global variables + modules
 
@@ -74,9 +73,9 @@ namespace tuplex {
             // updates function ast with type & also updates the param nodes...
             void setFunctionType(ASTNode* node, const python::Type& type);
         public:
-            AnnotatedAST(): _root(nullptr), _typesDefined(false), _allowNumericTypeUnification(false), _typeError(CompileError::TYPE_ERROR_NONE) {}
+            AnnotatedAST(): _root(nullptr), _typesDefined(false), _allowNumericTypeUnification(false) {}
 
-            AnnotatedAST(const AnnotatedAST& other) : _root(nullptr), _typesDefined(other._typesDefined), _globals(other._globals), _allowNumericTypeUnification(other._allowNumericTypeUnification), _typeError(other._typeError) {
+            AnnotatedAST(const AnnotatedAST& other) : _root(nullptr), _typesDefined(other._typesDefined), _globals(other._globals), _allowNumericTypeUnification(other._allowNumericTypeUnification) {
                 cloneFrom(other);
             }
 
@@ -165,7 +164,7 @@ namespace tuplex {
             /*!
              * throw exception for unsupported types
              */
-            void checkTypeError();
+            void checkReturnTypeError();
 
             /*!
              * set/upcast return type to target type

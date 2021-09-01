@@ -43,7 +43,6 @@ namespace tuplex {
             if(!_udf.rewriteDictAccessInAST(_columnNames))
                 return Schema::UNKNOWN;
 
-
             // 3-stage typing
             // 1. try to type statically by simply annotating the AST
             logger.info("performing static typing for UDF in operator " + name());
@@ -90,30 +89,39 @@ namespace tuplex {
                 }
             }
 
-            return _udf.getOutputSchema();
-        } else {
+            if(_udf.getTypeError().empty() || _udf.getReturnTypeError() != CompileError::TYPE_ERROR_NONE) {
+                // if unsupported types presented, use sample to determine type and use fallback mode (except for list return type error, only print error messages for now)
+                return _udf.getOutputSchema();
+            }
 
-            // @Todo: support here dict syntax...
-            // @TODO: this feels redundant, i.e. tracerecord visitor should have already dealt with this...
-
-            auto pickledCode = _udf.getPickledCode();
-            auto processed_sample = getSample(typeDetectionSampleSize);
-
-            std::vector<python::Type> retrieved_types;
-            for(auto r : processed_sample)
-                retrieved_types.push_back(r.getRowType());
-            auto detectedType = mostFrequentItem(retrieved_types);
-
-            // set manually for codegen type
-            Schema schema = Schema(Schema::MemoryLayout::ROW, detectedType);
-            _udf.setOutputSchema(schema);
-            _udf.setInputSchema(parentSchema);
-
-            std::stringstream ss;
-            ss<<"detected type for " + name() + " operator using "<<typeDetectionSampleSize<<" samples as "<<detectedType.desc();
-            Logger::instance().defaultLogger().info(ss.str());
-            return schema;
+            // unsupported type exists, print warning
+            _udf.markAsNonCompilable();
+            for (const auto& err : _udf.getTypeError()) {
+                Logger::instance().defaultLogger().error(_udf.compileErrorToStr(err));
+            }
+            Logger::instance().defaultLogger().error("will use fallback mode");
         }
+
+        // @Todo: support here dict syntax...
+        // @TODO: this feels redundant, i.e. tracerecord visitor should have already dealt with this...
+
+        auto pickledCode = _udf.getPickledCode();
+        auto processed_sample = getSample(typeDetectionSampleSize);
+
+        std::vector<python::Type> retrieved_types;
+        for(auto r : processed_sample)
+            retrieved_types.push_back(r.getRowType());
+        auto detectedType = mostFrequentItem(retrieved_types);
+
+        // set manually for codegen type
+        Schema schema = Schema(Schema::MemoryLayout::ROW, detectedType);
+        _udf.setOutputSchema(schema);
+        _udf.setInputSchema(parentSchema);
+
+        std::stringstream ss;
+        ss<<"detected type for " + name() + " operator using "<<typeDetectionSampleSize<<" samples as "<<detectedType.desc();
+        Logger::instance().defaultLogger().info(ss.str());
+        return schema;
     }
 
     bool hasUDF(const LogicalOperator* op) {

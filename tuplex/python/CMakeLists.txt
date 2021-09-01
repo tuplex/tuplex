@@ -106,6 +106,7 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/__init__.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/jupyter.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/reflection.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/source_vault.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/framework.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/tracebacks.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/version.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/globs.py
@@ -135,6 +136,7 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_tuples.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_closure.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_import.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_math.py
+          ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_aggregates.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/helper.py
         DESTINATION ${PYTHON_DIST_DIR}/tests)
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/libexec/__init__.py DESTINATION ${PYTHON_DIST_DIR}/tuplex/libexec)

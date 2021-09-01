@@ -34,6 +34,7 @@
 #include <Token.h>
 #include <LambdaFunction.h>
 #include <unordered_map>
+#include <IteratorContextProxy.h>
 
 #include <Utils.h>
 
@@ -46,7 +47,9 @@ namespace tuplex {
          */
         class FunctionRegistry {
         public:
-            FunctionRegistry(LLVMEnvironment& env, bool sharedObjectPropagation) : _env(env), _sharedObjectPropagation(sharedObjectPropagation)  {}
+            FunctionRegistry(LLVMEnvironment& env, bool sharedObjectPropagation) : _env(env), _sharedObjectPropagation(sharedObjectPropagation) {
+                _icp = new IteratorContextProxy(&env);
+            }
 
             codegen::SerializableValue createGlobalSymbolCall(LambdaFunctionBuilder& lfb,
                     llvm::IRBuilder<>& builder,
@@ -101,6 +104,41 @@ namespace tuplex {
 
             SerializableValue createRandomChoiceCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const python::Type &argType, const SerializableValue &arg);
 
+            SerializableValue createIterCall(LambdaFunctionBuilder &lfb,
+                                             llvm::IRBuilder<>& builder,
+                                             const python::Type &argsType,
+                                             const python::Type &retType,
+                                             const std::vector<tuplex::codegen::SerializableValue> &args);
+
+            SerializableValue createNextCall(LambdaFunctionBuilder &lfb,
+                                             llvm::IRBuilder<>& builder,
+                                             const python::Type &argsType,
+                                             const python::Type &retType,
+                                             const std::vector<tuplex::codegen::SerializableValue> &args,
+                                             IteratorInfo *iteratorInfo);
+
+            SerializableValue createZipCall(LambdaFunctionBuilder &lfb,
+                                             llvm::IRBuilder<>& builder,
+                                             const python::Type &argsType,
+                                             const python::Type &retType,
+                                             const std::vector<tuplex::codegen::SerializableValue> &args,
+                                             IteratorInfo *IteratorInfo);
+
+            SerializableValue createEnumerateCall(LambdaFunctionBuilder &lfb,
+                                            llvm::IRBuilder<>& builder,
+                                            const python::Type &argsType,
+                                            const python::Type &retType,
+                                            const std::vector<tuplex::codegen::SerializableValue> &args,
+                                            IteratorInfo *iteratorInfo);
+
+            SerializableValue createIteratorRelatedSymbolCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
+                                                              llvm::IRBuilder<> &builder,
+                                                              const std::string &symbol,
+                                                              const python::Type &argsType,
+                                                              const python::Type &retType,
+                                                              const std::vector<tuplex::codegen::SerializableValue> &args,
+                                                              IteratorInfo *iteratorInfo);
+
             SerializableValue createDictConstructor(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
             void getValueFromcJSON(llvm::IRBuilder<> &builder, llvm::Value *cjson_val, python::Type retType,
                                    llvm::Value *retval,
@@ -139,6 +177,7 @@ namespace tuplex {
         private:
             LLVMEnvironment& _env;
             bool _sharedObjectPropagation;
+            IteratorContextProxy *_icp;
 
             // lookup (symbolname, typehash)
             std::unordered_map<std::tuple<std::string, python::Type>, llvm::Function*> _funcMap;

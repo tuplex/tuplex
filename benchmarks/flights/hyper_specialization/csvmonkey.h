@@ -357,6 +357,17 @@ namespace csvmonkey {
             return strtod(ptr, NULL);
 #endif
         }
+
+        unsigned long as_ulong() {
+          return strtoul(ptr, NULL, 10);
+        }
+
+        uint8_t as_uint8() {
+          return (uint8_t)as_ulong();
+        }
+        uint16_t as_uint16() {
+          return (uint16_t)as_ulong();
+        }
     };
 
 

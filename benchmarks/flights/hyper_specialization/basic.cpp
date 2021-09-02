@@ -2,7 +2,8 @@
 //#define SPECIALIZE_CONSTANTS
 #define PR_ORIG 0
 #define PR_CONSTANT 1
-#define PR_VERSION PR_ORIG
+#define PR_NARROW 2
+#define PR_VERSION PR_NARROW
 
 #include "./csvmonkey.h"
 
@@ -20,11 +21,14 @@
 // dynamic libraries
 auto pr_orig = "./process_row/process_row_orig.so";
 auto pr_constant = "./process_row/process_row_constant.so";
+auto pr_narrow = "./process_row/process_row_narrow.so";
 
 #if PR_VERSION == PR_ORIG
 auto pr_path = pr_orig;
 #elif PR_VERSION == PR_CONSTANT
 auto pr_path = pr_constant;
+#elif PR_VERSION == PR_NARROW
+auto pr_path = pr_narrow;
 #endif
 // ----
 
@@ -153,10 +157,17 @@ int main(int argc, char **argv) {
   // 2. also, split [ProcessRow] out to a different library, compile and load this function at
   // runtime in this driver program
   void *handle;
+#if (PR_VERSION == PR_ORIG || PR_VERSION == PR_CONSTANT)
   void (*ProcessRow)(int64_t, int64_t, const std::string &, const std::string &,
                      const std::string &, double, int64_t, int64_t, int64_t, const std::string &,
                      int64_t, int64_t, double, const std::string &, double, const std::string &,
                      const std::string &, char[], size_t &);
+#elif (PR_VERSION == PR_NARROW)
+  void (*ProcessRow)(uint8_t, uint8_t, const std::string &, const std::string &,
+                     const std::string &, double, uint16_t, uint8_t, uint8_t, const std::string &,
+                     uint16_t, uint16_t, double, const std::string &, double, const std::string &,
+                     const std::string &, char[], size_t &);
+#endif
   char *error;
   std::cout << "SO Path: " << pr_path << std::endl;
   handle = dlopen(pr_path, RTLD_LAZY);
@@ -190,8 +201,10 @@ int main(int argc, char **argv) {
       while (reader.read_row()) {
         // TODO: override csvmonkey to get other data types out for the range specialization idea
         ProcessRow(
+#if (PR_VERSION == PR_ORIG || PR_VERSION == PR_CONSTANT)
             day_of_month->as_double(), day_of_week->as_double(), fl_date->as_str(),
             origin_city_name->as_str(), dest_city_name->as_str(), actual_elapsed_time->as_double()
+#endif
 #if (PR_VERSION == PR_ORIG)
                                                                       ,
             year->as_double(), quarter->as_double(), month->as_double(),
@@ -199,8 +212,14 @@ int main(int argc, char **argv) {
             cancelled->as_double(), cancellation_code->as_str(), diverted->as_double(),
             div_reached_dest->as_str(), div_actual_elapsed_time->as_str()
 #elif (PR_VERSION == PR_CONSTANT)
-                                                                      ,
-            0, 0, 0, "", 0, 0, 0, "", 0, "", ""
+            , 0, 0, 0, "", 0, 0, 0, "", 0, "", ""
+#elif (PR_VERSION == PR_NARROW)
+            day_of_month->as_uint8(), day_of_week->as_uint8(), fl_date->as_str(),
+            origin_city_name->as_str(), dest_city_name->as_str(), actual_elapsed_time->as_double(),
+            year->as_uint16(), quarter->as_uint8(), month->as_uint8(), op_unique_carrier->as_str(),
+            crs_dep_time->as_uint16(), crs_arr_time->as_uint16(), cancelled->as_double(),
+            cancellation_code->as_str(), diverted->as_double(), div_reached_dest->as_str(),
+            div_actual_elapsed_time->as_str()
 #endif
                                             ,
             output_data, output_size);

@@ -20,10 +20,6 @@ include_directories(${Boost_INCLUDE_DIR})
 find_package(Protobuf REQUIRED)
 get_filename_component(Protobuf_HOME "${Protobuf_INCLUDE_DIRS}" DIRECTORY)
 
-MESSAGE(STATUS "PROTO HOME: ${Protobuf_HOME}")
-MESSAGE(STATUS "PROTO INLCUDE: ${Protobuf_INCLUDE_DIRS}")
-MESSAGE(STATUS "PROTO LIBS: ${Protobuf_LIBRARIES}")
-
 include(ExternalProject)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
 ExternalProject_Add(orc
@@ -44,6 +40,12 @@ set_target_properties(liborc PROPERTIES IMPORTED_LOCATION ${orc_LIBRARY})
 add_dependencies(liborc orc)
 include_directories(${orc_INCLUDE_DIR})
 
+target_link_libraries(liborc INTERFACE
+        ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a
+        ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a
+        ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a
+        ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a)
+
 add_library(libio STATIC
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 set_target_properties(libio PROPERTIES PREFIX "")
@@ -55,12 +57,7 @@ target_include_directories(libio PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 
 #Note: If awssdk not found, then awssdk_link_librarires is empty...
 # Specify here the libraries this program depends on
-target_link_libraries(libio libutils
-        ${AWSSDK_LINK_LIBRARIES} ${LibMagic_LIBRARIES}
-        ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a
-        ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a
-        ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a
-        ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a
-        liborc)
+target_link_libraries(libio libutils liborc
+        ${AWSSDK_LINK_LIBRARIES} ${LibMagic_LIBRARIES})
 
 install(TARGETS libio DESTINATION bin)

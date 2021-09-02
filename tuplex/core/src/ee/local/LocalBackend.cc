@@ -129,13 +129,14 @@ namespace tuplex {
             _historyServer->sendStatus(JobStatus::STARTED);
 
         // check what type of stage it is
+        // print stage schema for csv to file
         auto tstage = dynamic_cast<TransformStage*>(stage);
         if(tstage)
             executeTransformStage(tstage);
         else if (dynamic_cast<SortStage*>(stage)) {
             auto a = (dynamic_cast<SortStage*>(stage))->inputPartitions();
             auto stg = dynamic_cast<SortStage*>(stage);
-            stg->setResultSet(stage->resultSet());
+//            stg->setResultSet(stage->resultSet());
             executeSortStage(stg);
         }
         else if(dynamic_cast<HashJoinStage*>(stage)) {

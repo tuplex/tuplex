@@ -17,7 +17,7 @@ parser.add_argument(
     "--path",
     type=str,
     dest="data_path",
-    default="../../test/resources/pipelines/flights/sortsample.csv",
+    default="../../tuplex/test/resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv",
     help="path or pattern to flights data",
 )
 parser.add_argument('--output-path', type=str, dest='output_path', default='tuplex_output/',
@@ -79,12 +79,7 @@ df = ctx.csv(
     # type_hints={0: typing.Optional[str]},
 )
 # Do the pipeline
-byy = {4: tuplex.SortBy.ASCENDING}
-print("hi", df.types)
-df = df.sort(by=byy)
-print("hi2", df.types)
-# Output to csv
-print("hi ", output_path)
-df.tocsv(output_path)
+byy = {3: tuplex.SortBy.ASCENDING}
+df = df.sort(by=byy).tocsv(output_path)
 job_time = time.time() - tstart
 print(json.dumps({"startupTime": startup_time, "jobTime": job_time}))

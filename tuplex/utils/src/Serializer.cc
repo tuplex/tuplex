@@ -975,17 +975,18 @@ namespace tuplex {
         assert(phys_col >= 0);
         assert(phys_col < (inferLength(_buffer) - sizeof(int64_t)) / sizeof(int64_t)); // sharper bound because of varlen
         uint64_t offset = *((uint64_t *) ((uint8_t *) _buffer + sizeof(int64_t) * phys_col + calcBitmapSize(_requiresBitmap)));
-
+//        std::cout << offset << std::endl;
         // new:
         // offset is in the lower 32bit, the upper are the size of the var entry
         int64_t len = ((offset & 0xFFFFFFFFul << 32) >> 32) - 1; // -1 because it actually is the size
-
+//        std::cout << len << std::endl;
         assert(len >= 0);
         offset = offset & 0xFFFFFFFFul;
-
+//        std::cout << offset << std::endl;
         // secure strlen estimate, to be sure it doesn't crash
-        uint8_t *ptr = (uint8_t *) _buffer + sizeof(int64_t) * phys_col + calcBitmapSize(_requiresBitmap) + offset;
-
+        auto aa = calcBitmapSize(_requiresBitmap);
+        uint8_t *ptr = (uint8_t *) _buffer + sizeof(int64_t) * phys_col + aa + offset;
+//        std::cout << ptr << std::endl;
         char *cstr = (char *) ptr;
         int i = sizeof(int64_t) * col + offset;
 
@@ -1002,6 +1003,7 @@ namespace tuplex {
 
             return std::string("NULL");
         } else {
+//            std::cout << std::string((const char *) ptr) << std::endl;
             return std::string((const char *) ptr);
         }
     }

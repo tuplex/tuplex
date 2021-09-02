@@ -1,11 +1,546 @@
-21/07/30 14:10:33 WARN Utils: Your hostname, Nathaneals-MacBook-Pro.local resolves to a loopback address: 127.0.0.1; using 192.168.1.49 instead (on interface en0)
-21/07/30 14:10:33 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
 WARNING: An illegal reflective access operation has occurred
 WARNING: Illegal reflective access by org.apache.spark.unsafe.Platform (file:/usr/local/lib/python3.9/site-packages/pyspark/jars/spark-unsafe_2.12-3.1.2.jar) to constructor java.nio.DirectByteBuffer(long,int)
 WARNING: Please consider reporting this to the maintainers of org.apache.spark.unsafe.Platform
 WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
 WARNING: All illegal access operations will be denied in a future release
-21/07/30 14:10:33 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
-log4j:WARN No appenders could be found for logger (org.apache.spark.util.ShutdownHookManager).
-log4j:WARN Please initialize the log4j system properly.
-log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
+21/08/13 13:53:14 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Using Spark's default log4j profile: org/apache/spark/log4j-defaults.properties
+21/08/13 13:53:14 INFO SparkContext: Running Spark version 3.1.2
+21/08/13 13:53:14 INFO ResourceUtils: ==============================================================
+21/08/13 13:53:14 INFO ResourceUtils: No custom resources configured for spark.driver.
+21/08/13 13:53:14 INFO ResourceUtils: ==============================================================
+21/08/13 13:53:14 INFO SparkContext: Submitted application: Sorting
+21/08/13 13:53:14 INFO ResourceProfile: Default ResourceProfile created, executor resources: Map(cores -> name: cores, amount: 1, script: , vendor: , memory -> name: memory, amount: 1024, script: , vendor: , offHeap -> name: offHeap, amount: 0, script: , vendor: ), task resources: Map(cpus -> name: cpus, amount: 1.0)
+21/08/13 13:53:14 INFO ResourceProfile: Limiting resource is cpu
+21/08/13 13:53:14 INFO ResourceProfileManager: Added ResourceProfile id: 0
+21/08/13 13:53:14 INFO SecurityManager: Changing view acls to: nathanealpitt
+21/08/13 13:53:14 INFO SecurityManager: Changing modify acls to: nathanealpitt
+21/08/13 13:53:14 INFO SecurityManager: Changing view acls groups to: 
+21/08/13 13:53:15 INFO SecurityManager: Changing modify acls groups to: 
+21/08/13 13:53:15 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users  with view permissions: Set(nathanealpitt); groups with view permissions: Set(); users  with modify permissions: Set(nathanealpitt); groups with modify permissions: Set()
+21/08/13 13:53:15 INFO Utils: Successfully started service 'sparkDriver' on port 60880.
+21/08/13 13:53:15 INFO SparkEnv: Registering MapOutputTracker
+21/08/13 13:53:15 INFO SparkEnv: Registering BlockManagerMaster
+21/08/13 13:53:15 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+21/08/13 13:53:15 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+21/08/13 13:53:15 INFO SparkEnv: Registering BlockManagerMasterHeartbeat
+21/08/13 13:53:15 INFO DiskBlockManager: Created local directory at /private/var/folders/lw/x630y74n1mv16rp2j68rkby80000gn/T/blockmgr-a1bf65a7-af5d-4068-8709-09c0f17fbdb5
+21/08/13 13:53:15 INFO MemoryStore: MemoryStore started with capacity 4.6 GiB
+21/08/13 13:53:15 INFO SparkEnv: Registering OutputCommitCoordinator
+21/08/13 13:53:15 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+21/08/13 13:53:15 INFO SparkUI: Bound SparkUI to 0.0.0.0, and started at http://192.168.1.49:4040
+21/08/13 13:53:15 INFO Executor: Starting executor ID driver on host 192.168.1.49
+21/08/13 13:53:15 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 60881.
+21/08/13 13:53:15 INFO NettyBlockTransferService: Server created on 192.168.1.49:60881
+21/08/13 13:53:15 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+21/08/13 13:53:15 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, 192.168.1.49, 60881, None)
+21/08/13 13:53:15 INFO BlockManagerMasterEndpoint: Registering block manager 192.168.1.49:60881 with 4.6 GiB RAM, BlockManagerId(driver, 192.168.1.49, 60881, None)
+21/08/13 13:53:15 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, 192.168.1.49, 60881, None)
+21/08/13 13:53:15 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, 192.168.1.49, 60881, None)
+21/08/13 13:53:16 INFO SharedState: Setting hive.metastore.warehouse.dir ('null') to the value of spark.sql.warehouse.dir ('file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/spark-warehouse').
+21/08/13 13:53:16 INFO SharedState: Warehouse path is 'file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/spark-warehouse'.
+21/08/13 13:53:16 INFO InMemoryFileIndex: It took 35 ms to list leaf files for 1 paths.
+21/08/13 13:53:16 INFO MemoryStore: Block broadcast_0 stored as values in memory (estimated size 175.9 KiB, free 4.6 GiB)
+21/08/13 13:53:16 INFO MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 27.9 KiB, free 4.6 GiB)
+21/08/13 13:53:16 INFO BlockManagerInfo: Added broadcast_0_piece0 in memory on 192.168.1.49:60881 (size: 27.9 KiB, free: 4.6 GiB)
+21/08/13 13:53:16 INFO SparkContext: Created broadcast 0 from csv at NativeMethodAccessorImpl.java:0
+21/08/13 13:53:17 INFO FileInputFormat: Total input files to process : 1
+21/08/13 13:53:17 INFO FileInputFormat: Total input files to process : 1
+21/08/13 13:53:17 INFO SparkContext: Starting job: csv at NativeMethodAccessorImpl.java:0
+21/08/13 13:53:17 INFO DAGScheduler: Got job 0 (csv at NativeMethodAccessorImpl.java:0) with 1 output partitions
+21/08/13 13:53:17 INFO DAGScheduler: Final stage: ResultStage 0 (csv at NativeMethodAccessorImpl.java:0)
+21/08/13 13:53:17 INFO DAGScheduler: Parents of final stage: List()
+21/08/13 13:53:17 INFO DAGScheduler: Missing parents: List()
+21/08/13 13:53:17 INFO DAGScheduler: Submitting ResultStage 0 (MapPartitionsRDD[2] at csv at NativeMethodAccessorImpl.java:0), which has no missing parents
+21/08/13 13:53:17 INFO MemoryStore: Block broadcast_1 stored as values in memory (estimated size 6.4 KiB, free 4.6 GiB)
+21/08/13 13:53:17 INFO MemoryStore: Block broadcast_1_piece0 stored as bytes in memory (estimated size 3.7 KiB, free 4.6 GiB)
+21/08/13 13:53:17 INFO BlockManagerInfo: Added broadcast_1_piece0 in memory on 192.168.1.49:60881 (size: 3.7 KiB, free: 4.6 GiB)
+21/08/13 13:53:17 INFO SparkContext: Created broadcast 1 from broadcast at DAGScheduler.scala:1388
+21/08/13 13:53:17 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 0 (MapPartitionsRDD[2] at csv at NativeMethodAccessorImpl.java:0) (first 15 tasks are for partitions Vector(0))
+21/08/13 13:53:17 INFO TaskSchedulerImpl: Adding task set 0.0 with 1 tasks resource profile 0
+21/08/13 13:53:17 INFO TaskSetManager: Starting task 0.0 in stage 0.0 (TID 0) (192.168.1.49, executor driver, partition 0, PROCESS_LOCAL, 4675 bytes) taskResourceAssignments Map()
+21/08/13 13:53:17 INFO Executor: Running task 0.0 in stage 0.0 (TID 0)
+21/08/13 13:53:17 INFO BinaryFileRDD: Input split: Paths:/Users/nathanealpitt/Desktop/tuplex/tuplex/test/resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv:0+4514649
+21/08/13 13:53:17 INFO Executor: Finished task 0.0 in stage 0.0 (TID 0). 2785 bytes result sent to driver
+21/08/13 13:53:17 INFO TaskSetManager: Finished task 0.0 in stage 0.0 (TID 0) in 145 ms on 192.168.1.49 (executor driver) (1/1)
+21/08/13 13:53:17 INFO TaskSchedulerImpl: Removed TaskSet 0.0, whose tasks have all completed, from pool 
+21/08/13 13:53:17 INFO DAGScheduler: ResultStage 0 (csv at NativeMethodAccessorImpl.java:0) finished in 0.204 s
+21/08/13 13:53:17 INFO DAGScheduler: Job 0 is finished. Cancelling potential speculative or zombie tasks for this job
+21/08/13 13:53:17 INFO TaskSchedulerImpl: Killing all running tasks in stage 0: Stage finished
+21/08/13 13:53:17 INFO DAGScheduler: Job 0 finished: csv at NativeMethodAccessorImpl.java:0, took 0.231716 s
+21/08/13 13:53:17 INFO SparkContext: Starting job: csv at NativeMethodAccessorImpl.java:0
+21/08/13 13:53:17 INFO DAGScheduler: Got job 1 (csv at NativeMethodAccessorImpl.java:0) with 1 output partitions
+21/08/13 13:53:17 INFO DAGScheduler: Final stage: ResultStage 1 (csv at NativeMethodAccessorImpl.java:0)
+21/08/13 13:53:17 INFO DAGScheduler: Parents of final stage: List()
+21/08/13 13:53:17 INFO DAGScheduler: Missing parents: List()
+21/08/13 13:53:17 INFO DAGScheduler: Submitting ResultStage 1 (MapPartitionsRDD[3] at csv at NativeMethodAccessorImpl.java:0), which has no missing parents
+21/08/13 13:53:17 INFO MemoryStore: Block broadcast_2 stored as values in memory (estimated size 9.4 KiB, free 4.6 GiB)
+21/08/13 13:53:17 INFO MemoryStore: Block broadcast_2_piece0 stored as bytes in memory (estimated size 4.8 KiB, free 4.6 GiB)
+21/08/13 13:53:17 INFO BlockManagerInfo: Added broadcast_2_piece0 in memory on 192.168.1.49:60881 (size: 4.8 KiB, free: 4.6 GiB)
+21/08/13 13:53:17 INFO SparkContext: Created broadcast 2 from broadcast at DAGScheduler.scala:1388
+21/08/13 13:53:17 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 1 (MapPartitionsRDD[3] at csv at NativeMethodAccessorImpl.java:0) (first 15 tasks are for partitions Vector(0))
+21/08/13 13:53:17 INFO TaskSchedulerImpl: Adding task set 1.0 with 1 tasks resource profile 0
+21/08/13 13:53:17 INFO TaskSetManager: Starting task 0.0 in stage 1.0 (TID 1) (192.168.1.49, executor driver, partition 0, PROCESS_LOCAL, 4675 bytes) taskResourceAssignments Map()
+21/08/13 13:53:17 INFO Executor: Running task 0.0 in stage 1.0 (TID 1)
+21/08/13 13:53:17 INFO BinaryFileRDD: Input split: Paths:/Users/nathanealpitt/Desktop/tuplex/tuplex/test/resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv:0+4514649
+21/08/13 13:53:17 INFO BlockManagerInfo: Removed broadcast_1_piece0 on 192.168.1.49:60881 in memory (size: 3.7 KiB, free: 4.6 GiB)
+21/08/13 13:53:17 INFO Executor: Finished task 0.0 in stage 1.0 (TID 1). 1780 bytes result sent to driver
+21/08/13 13:53:17 INFO TaskSetManager: Finished task 0.0 in stage 1.0 (TID 1) in 437 ms on 192.168.1.49 (executor driver) (1/1)
+21/08/13 13:53:17 INFO TaskSchedulerImpl: Removed TaskSet 1.0, whose tasks have all completed, from pool 
+21/08/13 13:53:17 INFO DAGScheduler: ResultStage 1 (csv at NativeMethodAccessorImpl.java:0) finished in 0.446 s
+21/08/13 13:53:17 INFO DAGScheduler: Job 1 is finished. Cancelling potential speculative or zombie tasks for this job
+21/08/13 13:53:17 INFO TaskSchedulerImpl: Killing all running tasks in stage 1: Stage finished
+21/08/13 13:53:17 INFO DAGScheduler: Job 1 finished: csv at NativeMethodAccessorImpl.java:0, took 0.449808 s
+21/08/13 13:53:17 INFO BlockManagerInfo: Removed broadcast_2_piece0 on 192.168.1.49:60881 in memory (size: 4.8 KiB, free: 4.6 GiB)
+21/08/13 13:53:19 INFO FileSourceStrategy: Pushed Filters: 
+21/08/13 13:53:19 INFO FileSourceStrategy: Post-Scan Filters: 
+21/08/13 13:53:19 INFO FileSourceStrategy: Output Data Schema: struct<YEAR: int, QUARTER: int, MONTH: int, DAY_OF_MONTH: int, DAY_OF_WEEK: int ... 108 more fields>
+21/08/13 13:53:19 WARN package: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+21/08/13 13:53:19 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:19 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:19 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:19 INFO MemoryStore: Block broadcast_3 stored as values in memory (estimated size 175.4 KiB, free 4.6 GiB)
+21/08/13 13:53:19 INFO MemoryStore: Block broadcast_3_piece0 stored as bytes in memory (estimated size 27.8 KiB, free 4.6 GiB)
+21/08/13 13:53:19 INFO BlockManagerInfo: Added broadcast_3_piece0 in memory on 192.168.1.49:60881 (size: 27.8 KiB, free: 4.6 GiB)
+21/08/13 13:53:19 INFO SparkContext: Created broadcast 3 from csv at NativeMethodAccessorImpl.java:0
+21/08/13 13:53:19 INFO FileSourceScanExec: Planning scan with bin packing, max size: 4194304 bytes, open cost is considered as scanning 4194304 bytes.
+21/08/13 13:53:19 INFO CodeGenerator: Code generated in 126.906808 ms
+21/08/13 13:53:19 INFO SparkContext: Starting job: csv at NativeMethodAccessorImpl.java:0
+21/08/13 13:53:19 INFO DAGScheduler: Got job 2 (csv at NativeMethodAccessorImpl.java:0) with 1 output partitions
+21/08/13 13:53:19 INFO DAGScheduler: Final stage: ResultStage 2 (csv at NativeMethodAccessorImpl.java:0)
+21/08/13 13:53:19 INFO DAGScheduler: Parents of final stage: List()
+21/08/13 13:53:19 INFO DAGScheduler: Missing parents: List()
+21/08/13 13:53:19 INFO DAGScheduler: Submitting ResultStage 2 (MapPartitionsRDD[8] at csv at NativeMethodAccessorImpl.java:0), which has no missing parents
+21/08/13 13:53:19 INFO MemoryStore: Block broadcast_4 stored as values in memory (estimated size 28.5 KiB, free 4.6 GiB)
+21/08/13 13:53:19 INFO MemoryStore: Block broadcast_4_piece0 stored as bytes in memory (estimated size 11.2 KiB, free 4.6 GiB)
+21/08/13 13:53:19 INFO BlockManagerInfo: Added broadcast_4_piece0 in memory on 192.168.1.49:60881 (size: 11.2 KiB, free: 4.6 GiB)
+21/08/13 13:53:19 INFO SparkContext: Created broadcast 4 from broadcast at DAGScheduler.scala:1388
+21/08/13 13:53:19 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 2 (MapPartitionsRDD[8] at csv at NativeMethodAccessorImpl.java:0) (first 15 tasks are for partitions Vector(0))
+21/08/13 13:53:19 INFO TaskSchedulerImpl: Adding task set 2.0 with 1 tasks resource profile 0
+21/08/13 13:53:19 INFO TaskSetManager: Starting task 0.0 in stage 2.0 (TID 2) (192.168.1.49, executor driver, partition 0, PROCESS_LOCAL, 4954 bytes) taskResourceAssignments Map()
+21/08/13 13:53:19 INFO Executor: Running task 0.0 in stage 2.0 (TID 2)
+21/08/13 13:53:19 INFO CodeGenerator: Code generated in 8.929953 ms
+21/08/13 13:53:19 INFO FileScanRDD: Reading File path: file:///Users/nathanealpitt/Desktop/tuplex/tuplex/test/resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv, range: 0-4514649, partition values: [empty row]
+21/08/13 13:53:19 INFO CodeGenerator: Code generated in 66.386786 ms
+21/08/13 13:53:19 WARN CSVHeaderChecker: CSV header does not conform to the schema.
+ Header: YEAR, QUARTER, MONTH, DAY_OF_MONTH, DAY_OF_WEEK, FL_DATE, OP_UNIQUE_CARRIER, OP_CARRIER_AIRLINE_ID, OP_CARRIER, TAIL_NUM, OP_CARRIER_FL_NUM, ORIGIN_AIRPORT_ID, ORIGIN_AIRPORT_SEQ_ID, ORIGIN_CITY_MARKET_ID, ORIGIN, ORIGIN_CITY_NAME, ORIGIN_STATE_ABR, ORIGIN_STATE_FIPS, ORIGIN_STATE_NM, ORIGIN_WAC, DEST_AIRPORT_ID, DEST_AIRPORT_SEQ_ID, DEST_CITY_MARKET_ID, DEST, DEST_CITY_NAME, DEST_STATE_ABR, DEST_STATE_FIPS, DEST_STATE_NM, DEST_WAC, CRS_DEP_TIME, DEP_TIME, DEP_DELAY, DEP_DELAY_NEW, DEP_DEL15, DEP_DELAY_GROUP, DEP_TIME_BLK, TAXI_OUT, WHEELS_OFF, WHEELS_ON, TAXI_IN, CRS_ARR_TIME, ARR_TIME, ARR_DELAY, ARR_DELAY_NEW, ARR_DEL15, ARR_DELAY_GROUP, ARR_TIME_BLK, CANCELLED, CANCELLATION_CODE, DIVERTED, CRS_ELAPSED_TIME, ACTUAL_ELAPSED_TIME, AIR_TIME, FLIGHTS, DISTANCE, DISTANCE_GROUP, CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY, FIRST_DEP_TIME, TOTAL_ADD_GTIME, LONGEST_ADD_GTIME, DIV_AIRPORT_LANDINGS, DIV_REACHED_DEST, DIV_ACTUAL_ELAPSED_TIME, DIV_ARR_DELAY, DIV_DISTANCE, DIV1_AIRPORT, DIV1_AIRPORT_ID, DIV1_AIRPORT_SEQ_ID, DIV1_WHEELS_ON, DIV1_TOTAL_GTIME, DIV1_LONGEST_GTIME, DIV1_WHEELS_OFF, DIV1_TAIL_NUM, DIV2_AIRPORT, DIV2_AIRPORT_ID, DIV2_AIRPORT_SEQ_ID, DIV2_WHEELS_ON, DIV2_TOTAL_GTIME, DIV2_LONGEST_GTIME, DIV2_WHEELS_OFF, DIV2_TAIL_NUM, DIV3_AIRPORT, DIV3_AIRPORT_ID, DIV3_AIRPORT_SEQ_ID, DIV3_WHEELS_ON, DIV3_TOTAL_GTIME, DIV3_LONGEST_GTIME, DIV3_WHEELS_OFF, DIV3_TAIL_NUM, DIV4_AIRPORT, DIV4_AIRPORT_ID, DIV4_AIRPORT_SEQ_ID, DIV4_WHEELS_ON, DIV4_TOTAL_GTIME, DIV4_LONGEST_GTIME, DIV4_WHEELS_OFF, DIV4_TAIL_NUM, DIV5_AIRPORT, DIV5_AIRPORT_ID, DIV5_AIRPORT_SEQ_ID, DIV5_WHEELS_ON, DIV5_TOTAL_GTIME, DIV5_LONGEST_GTIME, DIV5_WHEELS_OFF, DIV5_TAIL_NUM, 
+ Schema: YEAR, QUARTER, MONTH, DAY_OF_MONTH, DAY_OF_WEEK, FL_DATE, OP_UNIQUE_CARRIER, OP_CARRIER_AIRLINE_ID, OP_CARRIER, TAIL_NUM, OP_CARRIER_FL_NUM, ORIGIN_AIRPORT_ID, ORIGIN_AIRPORT_SEQ_ID, ORIGIN_CITY_MARKET_ID, ORIGIN, ORIGIN_CITY_NAME, ORIGIN_STATE_ABR, ORIGIN_STATE_FIPS, ORIGIN_STATE_NM, ORIGIN_WAC, DEST_AIRPORT_ID, DEST_AIRPORT_SEQ_ID, DEST_CITY_MARKET_ID, DEST, DEST_CITY_NAME, DEST_STATE_ABR, DEST_STATE_FIPS, DEST_STATE_NM, DEST_WAC, CRS_DEP_TIME, DEP_TIME, DEP_DELAY, DEP_DELAY_NEW, DEP_DEL15, DEP_DELAY_GROUP, DEP_TIME_BLK, TAXI_OUT, WHEELS_OFF, WHEELS_ON, TAXI_IN, CRS_ARR_TIME, ARR_TIME, ARR_DELAY, ARR_DELAY_NEW, ARR_DEL15, ARR_DELAY_GROUP, ARR_TIME_BLK, CANCELLED, CANCELLATION_CODE, DIVERTED, CRS_ELAPSED_TIME, ACTUAL_ELAPSED_TIME, AIR_TIME, FLIGHTS, DISTANCE, DISTANCE_GROUP, CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY, FIRST_DEP_TIME, TOTAL_ADD_GTIME, LONGEST_ADD_GTIME, DIV_AIRPORT_LANDINGS, DIV_REACHED_DEST, DIV_ACTUAL_ELAPSED_TIME, DIV_ARR_DELAY, DIV_DISTANCE, DIV1_AIRPORT, DIV1_AIRPORT_ID, DIV1_AIRPORT_SEQ_ID, DIV1_WHEELS_ON, DIV1_TOTAL_GTIME, DIV1_LONGEST_GTIME, DIV1_WHEELS_OFF, DIV1_TAIL_NUM, DIV2_AIRPORT, DIV2_AIRPORT_ID, DIV2_AIRPORT_SEQ_ID, DIV2_WHEELS_ON, DIV2_TOTAL_GTIME, DIV2_LONGEST_GTIME, DIV2_WHEELS_OFF, DIV2_TAIL_NUM, DIV3_AIRPORT, DIV3_AIRPORT_ID, DIV3_AIRPORT_SEQ_ID, DIV3_WHEELS_ON, DIV3_TOTAL_GTIME, DIV3_LONGEST_GTIME, DIV3_WHEELS_OFF, DIV3_TAIL_NUM, DIV4_AIRPORT, DIV4_AIRPORT_ID, DIV4_AIRPORT_SEQ_ID, DIV4_WHEELS_ON, DIV4_TOTAL_GTIME, DIV4_LONGEST_GTIME, DIV4_WHEELS_OFF, DIV4_TAIL_NUM, DIV5_AIRPORT, DIV5_AIRPORT_ID, DIV5_AIRPORT_SEQ_ID, DIV5_WHEELS_ON, DIV5_TOTAL_GTIME, DIV5_LONGEST_GTIME, DIV5_WHEELS_OFF, DIV5_TAIL_NUM, _c109
+Expected: _c109 but found: 
+CSV file: file:///Users/nathanealpitt/Desktop/tuplex/tuplex/test/resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv
+21/08/13 13:53:19 INFO Executor: Finished task 0.0 in stage 2.0 (TID 2). 333237 bytes result sent to driver
+21/08/13 13:53:19 INFO TaskSetManager: Finished task 0.0 in stage 2.0 (TID 2) in 426 ms on 192.168.1.49 (executor driver) (1/1)
+21/08/13 13:53:19 INFO TaskSchedulerImpl: Removed TaskSet 2.0, whose tasks have all completed, from pool 
+21/08/13 13:53:19 INFO DAGScheduler: ResultStage 2 (csv at NativeMethodAccessorImpl.java:0) finished in 0.433 s
+21/08/13 13:53:19 INFO DAGScheduler: Job 2 is finished. Cancelling potential speculative or zombie tasks for this job
+21/08/13 13:53:19 INFO TaskSchedulerImpl: Killing all running tasks in stage 2: Stage finished
+21/08/13 13:53:19 INFO DAGScheduler: Job 2 finished: csv at NativeMethodAccessorImpl.java:0, took 0.436383 s
+21/08/13 13:53:19 INFO SparkContext: Starting job: csv at NativeMethodAccessorImpl.java:0
+21/08/13 13:53:19 INFO DAGScheduler: Registering RDD 9 (csv at NativeMethodAccessorImpl.java:0) as input to shuffle 0
+21/08/13 13:53:19 INFO DAGScheduler: Got job 3 (csv at NativeMethodAccessorImpl.java:0) with 32 output partitions
+21/08/13 13:53:19 INFO DAGScheduler: Final stage: ResultStage 4 (csv at NativeMethodAccessorImpl.java:0)
+21/08/13 13:53:19 INFO DAGScheduler: Parents of final stage: List(ShuffleMapStage 3)
+21/08/13 13:53:19 INFO DAGScheduler: Missing parents: List(ShuffleMapStage 3)
+21/08/13 13:53:19 INFO DAGScheduler: Submitting ShuffleMapStage 3 (MapPartitionsRDD[9] at csv at NativeMethodAccessorImpl.java:0), which has no missing parents
+21/08/13 13:53:19 INFO MemoryStore: Block broadcast_5 stored as values in memory (estimated size 32.0 KiB, free 4.6 GiB)
+21/08/13 13:53:19 INFO MemoryStore: Block broadcast_5_piece0 stored as bytes in memory (estimated size 12.7 KiB, free 4.6 GiB)
+21/08/13 13:53:19 INFO BlockManagerInfo: Added broadcast_5_piece0 in memory on 192.168.1.49:60881 (size: 12.7 KiB, free: 4.6 GiB)
+21/08/13 13:53:19 INFO SparkContext: Created broadcast 5 from broadcast at DAGScheduler.scala:1388
+21/08/13 13:53:19 INFO DAGScheduler: Submitting 1 missing tasks from ShuffleMapStage 3 (MapPartitionsRDD[9] at csv at NativeMethodAccessorImpl.java:0) (first 15 tasks are for partitions Vector(0))
+21/08/13 13:53:19 INFO TaskSchedulerImpl: Adding task set 3.0 with 1 tasks resource profile 0
+21/08/13 13:53:19 INFO TaskSetManager: Starting task 0.0 in stage 3.0 (TID 3) (192.168.1.49, executor driver, partition 0, PROCESS_LOCAL, 4943 bytes) taskResourceAssignments Map()
+21/08/13 13:53:19 INFO Executor: Running task 0.0 in stage 3.0 (TID 3)
+21/08/13 13:53:20 INFO FileScanRDD: Reading File path: file:///Users/nathanealpitt/Desktop/tuplex/tuplex/test/resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv, range: 0-4514649, partition values: [empty row]
+21/08/13 13:53:20 WARN CSVHeaderChecker: CSV header does not conform to the schema.
+ Header: YEAR, QUARTER, MONTH, DAY_OF_MONTH, DAY_OF_WEEK, FL_DATE, OP_UNIQUE_CARRIER, OP_CARRIER_AIRLINE_ID, OP_CARRIER, TAIL_NUM, OP_CARRIER_FL_NUM, ORIGIN_AIRPORT_ID, ORIGIN_AIRPORT_SEQ_ID, ORIGIN_CITY_MARKET_ID, ORIGIN, ORIGIN_CITY_NAME, ORIGIN_STATE_ABR, ORIGIN_STATE_FIPS, ORIGIN_STATE_NM, ORIGIN_WAC, DEST_AIRPORT_ID, DEST_AIRPORT_SEQ_ID, DEST_CITY_MARKET_ID, DEST, DEST_CITY_NAME, DEST_STATE_ABR, DEST_STATE_FIPS, DEST_STATE_NM, DEST_WAC, CRS_DEP_TIME, DEP_TIME, DEP_DELAY, DEP_DELAY_NEW, DEP_DEL15, DEP_DELAY_GROUP, DEP_TIME_BLK, TAXI_OUT, WHEELS_OFF, WHEELS_ON, TAXI_IN, CRS_ARR_TIME, ARR_TIME, ARR_DELAY, ARR_DELAY_NEW, ARR_DEL15, ARR_DELAY_GROUP, ARR_TIME_BLK, CANCELLED, CANCELLATION_CODE, DIVERTED, CRS_ELAPSED_TIME, ACTUAL_ELAPSED_TIME, AIR_TIME, FLIGHTS, DISTANCE, DISTANCE_GROUP, CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY, FIRST_DEP_TIME, TOTAL_ADD_GTIME, LONGEST_ADD_GTIME, DIV_AIRPORT_LANDINGS, DIV_REACHED_DEST, DIV_ACTUAL_ELAPSED_TIME, DIV_ARR_DELAY, DIV_DISTANCE, DIV1_AIRPORT, DIV1_AIRPORT_ID, DIV1_AIRPORT_SEQ_ID, DIV1_WHEELS_ON, DIV1_TOTAL_GTIME, DIV1_LONGEST_GTIME, DIV1_WHEELS_OFF, DIV1_TAIL_NUM, DIV2_AIRPORT, DIV2_AIRPORT_ID, DIV2_AIRPORT_SEQ_ID, DIV2_WHEELS_ON, DIV2_TOTAL_GTIME, DIV2_LONGEST_GTIME, DIV2_WHEELS_OFF, DIV2_TAIL_NUM, DIV3_AIRPORT, DIV3_AIRPORT_ID, DIV3_AIRPORT_SEQ_ID, DIV3_WHEELS_ON, DIV3_TOTAL_GTIME, DIV3_LONGEST_GTIME, DIV3_WHEELS_OFF, DIV3_TAIL_NUM, DIV4_AIRPORT, DIV4_AIRPORT_ID, DIV4_AIRPORT_SEQ_ID, DIV4_WHEELS_ON, DIV4_TOTAL_GTIME, DIV4_LONGEST_GTIME, DIV4_WHEELS_OFF, DIV4_TAIL_NUM, DIV5_AIRPORT, DIV5_AIRPORT_ID, DIV5_AIRPORT_SEQ_ID, DIV5_WHEELS_ON, DIV5_TOTAL_GTIME, DIV5_LONGEST_GTIME, DIV5_WHEELS_OFF, DIV5_TAIL_NUM, 
+ Schema: YEAR, QUARTER, MONTH, DAY_OF_MONTH, DAY_OF_WEEK, FL_DATE, OP_UNIQUE_CARRIER, OP_CARRIER_AIRLINE_ID, OP_CARRIER, TAIL_NUM, OP_CARRIER_FL_NUM, ORIGIN_AIRPORT_ID, ORIGIN_AIRPORT_SEQ_ID, ORIGIN_CITY_MARKET_ID, ORIGIN, ORIGIN_CITY_NAME, ORIGIN_STATE_ABR, ORIGIN_STATE_FIPS, ORIGIN_STATE_NM, ORIGIN_WAC, DEST_AIRPORT_ID, DEST_AIRPORT_SEQ_ID, DEST_CITY_MARKET_ID, DEST, DEST_CITY_NAME, DEST_STATE_ABR, DEST_STATE_FIPS, DEST_STATE_NM, DEST_WAC, CRS_DEP_TIME, DEP_TIME, DEP_DELAY, DEP_DELAY_NEW, DEP_DEL15, DEP_DELAY_GROUP, DEP_TIME_BLK, TAXI_OUT, WHEELS_OFF, WHEELS_ON, TAXI_IN, CRS_ARR_TIME, ARR_TIME, ARR_DELAY, ARR_DELAY_NEW, ARR_DEL15, ARR_DELAY_GROUP, ARR_TIME_BLK, CANCELLED, CANCELLATION_CODE, DIVERTED, CRS_ELAPSED_TIME, ACTUAL_ELAPSED_TIME, AIR_TIME, FLIGHTS, DISTANCE, DISTANCE_GROUP, CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY, FIRST_DEP_TIME, TOTAL_ADD_GTIME, LONGEST_ADD_GTIME, DIV_AIRPORT_LANDINGS, DIV_REACHED_DEST, DIV_ACTUAL_ELAPSED_TIME, DIV_ARR_DELAY, DIV_DISTANCE, DIV1_AIRPORT, DIV1_AIRPORT_ID, DIV1_AIRPORT_SEQ_ID, DIV1_WHEELS_ON, DIV1_TOTAL_GTIME, DIV1_LONGEST_GTIME, DIV1_WHEELS_OFF, DIV1_TAIL_NUM, DIV2_AIRPORT, DIV2_AIRPORT_ID, DIV2_AIRPORT_SEQ_ID, DIV2_WHEELS_ON, DIV2_TOTAL_GTIME, DIV2_LONGEST_GTIME, DIV2_WHEELS_OFF, DIV2_TAIL_NUM, DIV3_AIRPORT, DIV3_AIRPORT_ID, DIV3_AIRPORT_SEQ_ID, DIV3_WHEELS_ON, DIV3_TOTAL_GTIME, DIV3_LONGEST_GTIME, DIV3_WHEELS_OFF, DIV3_TAIL_NUM, DIV4_AIRPORT, DIV4_AIRPORT_ID, DIV4_AIRPORT_SEQ_ID, DIV4_WHEELS_ON, DIV4_TOTAL_GTIME, DIV4_LONGEST_GTIME, DIV4_WHEELS_OFF, DIV4_TAIL_NUM, DIV5_AIRPORT, DIV5_AIRPORT_ID, DIV5_AIRPORT_SEQ_ID, DIV5_WHEELS_ON, DIV5_TOTAL_GTIME, DIV5_LONGEST_GTIME, DIV5_WHEELS_OFF, DIV5_TAIL_NUM, _c109
+Expected: _c109 but found: 
+CSV file: file:///Users/nathanealpitt/Desktop/tuplex/tuplex/test/resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv
+21/08/13 13:53:20 INFO BlockManagerInfo: Removed broadcast_4_piece0 on 192.168.1.49:60881 in memory (size: 11.2 KiB, free: 4.6 GiB)
+21/08/13 13:53:20 INFO Executor: Finished task 0.0 in stage 3.0 (TID 3). 1777 bytes result sent to driver
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 0.0 in stage 3.0 (TID 3) in 211 ms on 192.168.1.49 (executor driver) (1/1)
+21/08/13 13:53:20 INFO TaskSchedulerImpl: Removed TaskSet 3.0, whose tasks have all completed, from pool 
+21/08/13 13:53:20 INFO DAGScheduler: ShuffleMapStage 3 (csv at NativeMethodAccessorImpl.java:0) finished in 0.226 s
+21/08/13 13:53:20 INFO DAGScheduler: looking for newly runnable stages
+21/08/13 13:53:20 INFO DAGScheduler: running: Set()
+21/08/13 13:53:20 INFO DAGScheduler: waiting: Set(ResultStage 4)
+21/08/13 13:53:20 INFO DAGScheduler: failed: Set()
+21/08/13 13:53:20 INFO DAGScheduler: Submitting ResultStage 4 (MapPartitionsRDD[11] at csv at NativeMethodAccessorImpl.java:0), which has no missing parents
+21/08/13 13:53:20 INFO MemoryStore: Block broadcast_6 stored as values in memory (estimated size 199.3 KiB, free 4.6 GiB)
+21/08/13 13:53:20 INFO MemoryStore: Block broadcast_6_piece0 stored as bytes in memory (estimated size 72.1 KiB, free 4.6 GiB)
+21/08/13 13:53:20 INFO BlockManagerInfo: Added broadcast_6_piece0 in memory on 192.168.1.49:60881 (size: 72.1 KiB, free: 4.6 GiB)
+21/08/13 13:53:20 INFO SparkContext: Created broadcast 6 from broadcast at DAGScheduler.scala:1388
+21/08/13 13:53:20 INFO DAGScheduler: Submitting 32 missing tasks from ResultStage 4 (MapPartitionsRDD[11] at csv at NativeMethodAccessorImpl.java:0) (first 15 tasks are for partitions Vector(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+21/08/13 13:53:20 INFO TaskSchedulerImpl: Adding task set 4.0 with 32 tasks resource profile 0
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 0.0 in stage 4.0 (TID 4) (192.168.1.49, executor driver, partition 0, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 1.0 in stage 4.0 (TID 5) (192.168.1.49, executor driver, partition 1, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 2.0 in stage 4.0 (TID 6) (192.168.1.49, executor driver, partition 2, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 3.0 in stage 4.0 (TID 7) (192.168.1.49, executor driver, partition 3, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Running task 0.0 in stage 4.0 (TID 4)
+21/08/13 13:53:20 INFO Executor: Running task 1.0 in stage 4.0 (TID 5)
+21/08/13 13:53:20 INFO Executor: Running task 2.0 in stage 4.0 (TID 6)
+21/08/13 13:53:20 INFO Executor: Running task 3.0 in stage 4.0 (TID 7)
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (68.0 KiB) non-empty blocks including 1 (68.0 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 6 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 6 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 6 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 6 ms
+21/08/13 13:53:20 INFO CodeGenerator: Code generated in 4.91723 ms
+21/08/13 13:53:20 INFO CodeGenerator: Code generated in 4.419848 ms
+21/08/13 13:53:20 INFO BlockManagerInfo: Removed broadcast_5_piece0 on 192.168.1.49:60881 in memory (size: 12.7 KiB, free: 4.6 GiB)
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO BlockManagerInfo: Removed broadcast_0_piece0 on 192.168.1.49:60881 in memory (size: 27.9 KiB, free: 4.6 GiB)
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353195430523651153960825_0004_m_000002_6' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353195430523651153960825_0004_m_000002
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353191333451234533058163_0004_m_000003_7' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353191333451234533058163_0004_m_000003
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353191899146833735186657_0004_m_000000_4' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353191899146833735186657_0004_m_000000
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353195430523651153960825_0004_m_000002_6: Committed
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_20210813135319462952406389592695_0004_m_000001_5' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_20210813135319462952406389592695_0004_m_000001
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353191333451234533058163_0004_m_000003_7: Committed
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_20210813135319462952406389592695_0004_m_000001_5: Committed
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353191899146833735186657_0004_m_000000_4: Committed
+21/08/13 13:53:20 INFO Executor: Finished task 1.0 in stage 4.0 (TID 5). 4015 bytes result sent to driver
+21/08/13 13:53:20 INFO Executor: Finished task 2.0 in stage 4.0 (TID 6). 4015 bytes result sent to driver
+21/08/13 13:53:20 INFO Executor: Finished task 0.0 in stage 4.0 (TID 4). 4015 bytes result sent to driver
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 4.0 in stage 4.0 (TID 8) (192.168.1.49, executor driver, partition 4, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Finished task 3.0 in stage 4.0 (TID 7). 4015 bytes result sent to driver
+21/08/13 13:53:20 INFO Executor: Running task 4.0 in stage 4.0 (TID 8)
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 5.0 in stage 4.0 (TID 9) (192.168.1.49, executor driver, partition 5, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 1.0 in stage 4.0 (TID 5) in 323 ms on 192.168.1.49 (executor driver) (1/32)
+21/08/13 13:53:20 INFO Executor: Running task 5.0 in stage 4.0 (TID 9)
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 6.0 in stage 4.0 (TID 10) (192.168.1.49, executor driver, partition 6, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 2.0 in stage 4.0 (TID 6) in 324 ms on 192.168.1.49 (executor driver) (2/32)
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 7.0 in stage 4.0 (TID 11) (192.168.1.49, executor driver, partition 7, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Running task 6.0 in stage 4.0 (TID 10)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 0.0 in stage 4.0 (TID 4) in 327 ms on 192.168.1.49 (executor driver) (3/32)
+21/08/13 13:53:20 INFO Executor: Running task 7.0 in stage 4.0 (TID 11)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 3.0 in stage 4.0 (TID 7) in 325 ms on 192.168.1.49 (executor driver) (4/32)
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (68.0 KiB) non-empty blocks including 1 (68.0 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (68.0 KiB) non-empty blocks including 1 (68.0 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 1 ms
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353197396148646955804070_0004_m_000006_10' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353197396148646955804070_0004_m_000006
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353197396148646955804070_0004_m_000006_10: Committed
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353198927080005889684426_0004_m_000004_8' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353198927080005889684426_0004_m_000004
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353198927080005889684426_0004_m_000004_8: Committed
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353194396444893897846109_0004_m_000005_9' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353194396444893897846109_0004_m_000005
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353194396444893897846109_0004_m_000005_9: Committed
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353196450930159516493606_0004_m_000007_11' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353196450930159516493606_0004_m_000007
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353196450930159516493606_0004_m_000007_11: Committed
+21/08/13 13:53:20 INFO Executor: Finished task 5.0 in stage 4.0 (TID 9). 3972 bytes result sent to driver
+21/08/13 13:53:20 INFO Executor: Finished task 4.0 in stage 4.0 (TID 8). 3972 bytes result sent to driver
+21/08/13 13:53:20 INFO Executor: Finished task 7.0 in stage 4.0 (TID 11). 3972 bytes result sent to driver
+21/08/13 13:53:20 INFO Executor: Finished task 6.0 in stage 4.0 (TID 10). 3972 bytes result sent to driver
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 8.0 in stage 4.0 (TID 12) (192.168.1.49, executor driver, partition 8, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Running task 8.0 in stage 4.0 (TID 12)
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 9.0 in stage 4.0 (TID 13) (192.168.1.49, executor driver, partition 9, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 5.0 in stage 4.0 (TID 9) in 110 ms on 192.168.1.49 (executor driver) (5/32)
+21/08/13 13:53:20 INFO Executor: Running task 9.0 in stage 4.0 (TID 13)
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 10.0 in stage 4.0 (TID 14) (192.168.1.49, executor driver, partition 10, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 4.0 in stage 4.0 (TID 8) in 112 ms on 192.168.1.49 (executor driver) (6/32)
+21/08/13 13:53:20 INFO Executor: Running task 10.0 in stage 4.0 (TID 14)
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 11.0 in stage 4.0 (TID 15) (192.168.1.49, executor driver, partition 11, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 7.0 in stage 4.0 (TID 11) in 111 ms on 192.168.1.49 (executor driver) (7/32)
+21/08/13 13:53:20 INFO Executor: Running task 11.0 in stage 4.0 (TID 15)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 6.0 in stage 4.0 (TID 10) in 112 ms on 192.168.1.49 (executor driver) (8/32)
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (56.2 KiB) non-empty blocks including 1 (56.2 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353197068747996599619396_0004_m_000009_13' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353197068747996599619396_0004_m_000009
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353197068747996599619396_0004_m_000009_13: Committed
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353194863181857332608800_0004_m_000010_14' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353194863181857332608800_0004_m_000010
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353194863181857332608800_0004_m_000010_14: Committed
+21/08/13 13:53:20 INFO Executor: Finished task 9.0 in stage 4.0 (TID 13). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 12.0 in stage 4.0 (TID 16) (192.168.1.49, executor driver, partition 12, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Finished task 10.0 in stage 4.0 (TID 14). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO Executor: Running task 12.0 in stage 4.0 (TID 16)
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 13.0 in stage 4.0 (TID 17) (192.168.1.49, executor driver, partition 13, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 9.0 in stage 4.0 (TID 13) in 78 ms on 192.168.1.49 (executor driver) (9/32)
+21/08/13 13:53:20 INFO Executor: Running task 13.0 in stage 4.0 (TID 17)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 10.0 in stage 4.0 (TID 14) in 77 ms on 192.168.1.49 (executor driver) (10/32)
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353192961590902036078238_0004_m_000011_15' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353192961590902036078238_0004_m_000011
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353192961590902036078238_0004_m_000011_15: Committed
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353192897429980718502967_0004_m_000008_12' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353192897429980718502967_0004_m_000008
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353192897429980718502967_0004_m_000008_12: Committed
+21/08/13 13:53:20 INFO Executor: Finished task 8.0 in stage 4.0 (TID 12). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO Executor: Finished task 11.0 in stage 4.0 (TID 15). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 14.0 in stage 4.0 (TID 18) (192.168.1.49, executor driver, partition 14, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Running task 14.0 in stage 4.0 (TID 18)
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 15.0 in stage 4.0 (TID 19) (192.168.1.49, executor driver, partition 15, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 8.0 in stage 4.0 (TID 12) in 86 ms on 192.168.1.49 (executor driver) (11/32)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 11.0 in stage 4.0 (TID 15) in 83 ms on 192.168.1.49 (executor driver) (12/32)
+21/08/13 13:53:20 INFO Executor: Running task 15.0 in stage 4.0 (TID 19)
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 2 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353195424178492641558734_0004_m_000012_16' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353195424178492641558734_0004_m_000012
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353195424178492641558734_0004_m_000012_16: Committed
+21/08/13 13:53:20 INFO Executor: Finished task 12.0 in stage 4.0 (TID 16). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 16.0 in stage 4.0 (TID 20) (192.168.1.49, executor driver, partition 16, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Running task 16.0 in stage 4.0 (TID 20)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 12.0 in stage 4.0 (TID 16) in 81 ms on 192.168.1.49 (executor driver) (13/32)
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353191542263837885548023_0004_m_000013_17' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353191542263837885548023_0004_m_000013
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353191542263837885548023_0004_m_000013_17: Committed
+21/08/13 13:53:20 INFO Executor: Finished task 13.0 in stage 4.0 (TID 17). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 17.0 in stage 4.0 (TID 21) (192.168.1.49, executor driver, partition 17, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Running task 17.0 in stage 4.0 (TID 21)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 13.0 in stage 4.0 (TID 17) in 93 ms on 192.168.1.49 (executor driver) (14/32)
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353194245958070318547698_0004_m_000014_18' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353194245958070318547698_0004_m_000014
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353194245958070318547698_0004_m_000014_18: Committed
+21/08/13 13:53:20 INFO Executor: Finished task 14.0 in stage 4.0 (TID 18). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353197127590572504547423_0004_m_000015_19' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353197127590572504547423_0004_m_000015
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353197127590572504547423_0004_m_000015_19: Committed
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 18.0 in stage 4.0 (TID 22) (192.168.1.49, executor driver, partition 18, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Running task 18.0 in stage 4.0 (TID 22)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 14.0 in stage 4.0 (TID 18) in 89 ms on 192.168.1.49 (executor driver) (15/32)
+21/08/13 13:53:20 INFO Executor: Finished task 15.0 in stage 4.0 (TID 19). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 19.0 in stage 4.0 (TID 23) (192.168.1.49, executor driver, partition 19, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Running task 19.0 in stage 4.0 (TID 23)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 15.0 in stage 4.0 (TID 19) in 90 ms on 192.168.1.49 (executor driver) (16/32)
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (56.2 KiB) non-empty blocks including 1 (56.2 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (56.2 KiB) non-empty blocks including 1 (56.2 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 1 ms
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353197396701345307829016_0004_m_000016_20' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353197396701345307829016_0004_m_000016
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353197396701345307829016_0004_m_000016_20: Committed
+21/08/13 13:53:20 INFO Executor: Finished task 16.0 in stage 4.0 (TID 20). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 20.0 in stage 4.0 (TID 24) (192.168.1.49, executor driver, partition 20, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Running task 20.0 in stage 4.0 (TID 24)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 16.0 in stage 4.0 (TID 20) in 76 ms on 192.168.1.49 (executor driver) (17/32)
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 1 ms
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353195756750017517889023_0004_m_000019_23' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353195756750017517889023_0004_m_000019
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353195756750017517889023_0004_m_000019_23: Committed
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353194692049874639718896_0004_m_000017_21' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353194692049874639718896_0004_m_000017
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353194692049874639718896_0004_m_000017_21: Committed
+21/08/13 13:53:20 INFO Executor: Finished task 19.0 in stage 4.0 (TID 23). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353197576335706880290576_0004_m_000018_22' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353197576335706880290576_0004_m_000018
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353197576335706880290576_0004_m_000018_22: Committed
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 21.0 in stage 4.0 (TID 25) (192.168.1.49, executor driver, partition 21, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Finished task 17.0 in stage 4.0 (TID 21). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO Executor: Running task 21.0 in stage 4.0 (TID 25)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 19.0 in stage 4.0 (TID 23) in 92 ms on 192.168.1.49 (executor driver) (18/32)
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 22.0 in stage 4.0 (TID 26) (192.168.1.49, executor driver, partition 22, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Finished task 18.0 in stage 4.0 (TID 22). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 17.0 in stage 4.0 (TID 21) in 98 ms on 192.168.1.49 (executor driver) (19/32)
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 23.0 in stage 4.0 (TID 27) (192.168.1.49, executor driver, partition 23, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Running task 22.0 in stage 4.0 (TID 26)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 18.0 in stage 4.0 (TID 22) in 96 ms on 192.168.1.49 (executor driver) (20/32)
+21/08/13 13:53:20 INFO Executor: Running task 23.0 in stage 4.0 (TID 27)
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (51.1 KiB) non-empty blocks including 1 (51.1 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:20 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353195674291197867018988_0004_m_000020_24' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353195674291197867018988_0004_m_000020
+21/08/13 13:53:20 INFO SparkHadoopMapRedUtil: attempt_202108131353195674291197867018988_0004_m_000020_24: Committed
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO Executor: Finished task 20.0 in stage 4.0 (TID 24). 3929 bytes result sent to driver
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:20 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:20 INFO TaskSetManager: Starting task 24.0 in stage 4.0 (TID 28) (192.168.1.49, executor driver, partition 24, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:20 INFO Executor: Running task 24.0 in stage 4.0 (TID 28)
+21/08/13 13:53:20 INFO TaskSetManager: Finished task 20.0 in stage 4.0 (TID 24) in 67 ms on 192.168.1.49 (executor driver) (21/32)
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Getting 1 (56.2 KiB) non-empty blocks including 1 (56.2 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:20 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 1 ms
+21/08/13 13:53:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:21 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:21 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353198260001778940347903_0004_m_000023_27' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353198260001778940347903_0004_m_000023
+21/08/13 13:53:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:21 INFO SparkHadoopMapRedUtil: attempt_202108131353198260001778940347903_0004_m_000023_27: Committed
+21/08/13 13:53:21 INFO Executor: Finished task 23.0 in stage 4.0 (TID 27). 3929 bytes result sent to driver
+21/08/13 13:53:21 INFO TaskSetManager: Starting task 25.0 in stage 4.0 (TID 29) (192.168.1.49, executor driver, partition 25, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:21 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353193151972690786537689_0004_m_000022_26' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353193151972690786537689_0004_m_000022
+21/08/13 13:53:21 INFO SparkHadoopMapRedUtil: attempt_202108131353193151972690786537689_0004_m_000022_26: Committed
+21/08/13 13:53:21 INFO Executor: Running task 25.0 in stage 4.0 (TID 29)
+21/08/13 13:53:21 INFO TaskSetManager: Finished task 23.0 in stage 4.0 (TID 27) in 65 ms on 192.168.1.49 (executor driver) (22/32)
+21/08/13 13:53:21 INFO Executor: Finished task 22.0 in stage 4.0 (TID 26). 3929 bytes result sent to driver
+21/08/13 13:53:21 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353193698980726989299536_0004_m_000021_25' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353193698980726989299536_0004_m_000021
+21/08/13 13:53:21 INFO SparkHadoopMapRedUtil: attempt_202108131353193698980726989299536_0004_m_000021_25: Committed
+21/08/13 13:53:21 INFO TaskSetManager: Starting task 26.0 in stage 4.0 (TID 30) (192.168.1.49, executor driver, partition 26, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:21 INFO Executor: Running task 26.0 in stage 4.0 (TID 30)
+21/08/13 13:53:21 INFO TaskSetManager: Finished task 22.0 in stage 4.0 (TID 26) in 69 ms on 192.168.1.49 (executor driver) (23/32)
+21/08/13 13:53:21 INFO Executor: Finished task 21.0 in stage 4.0 (TID 25). 3929 bytes result sent to driver
+21/08/13 13:53:21 INFO TaskSetManager: Starting task 27.0 in stage 4.0 (TID 31) (192.168.1.49, executor driver, partition 27, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:21 INFO Executor: Running task 27.0 in stage 4.0 (TID 31)
+21/08/13 13:53:21 INFO TaskSetManager: Finished task 21.0 in stage 4.0 (TID 25) in 73 ms on 192.168.1.49 (executor driver) (24/32)
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 1 ms
+21/08/13 13:53:21 INFO FileOutputCommitter: Saved output of task 'attempt_20210813135319490721373360883154_0004_m_000024_28' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_20210813135319490721373360883154_0004_m_000024
+21/08/13 13:53:21 INFO SparkHadoopMapRedUtil: attempt_20210813135319490721373360883154_0004_m_000024_28: Committed
+21/08/13 13:53:21 INFO Executor: Finished task 24.0 in stage 4.0 (TID 28). 3972 bytes result sent to driver
+21/08/13 13:53:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:21 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:21 INFO TaskSetManager: Starting task 28.0 in stage 4.0 (TID 32) (192.168.1.49, executor driver, partition 28, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:21 INFO TaskSetManager: Finished task 24.0 in stage 4.0 (TID 28) in 65 ms on 192.168.1.49 (executor driver) (25/32)
+21/08/13 13:53:21 INFO Executor: Running task 28.0 in stage 4.0 (TID 32)
+21/08/13 13:53:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:21 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:21 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Getting 1 (68.0 KiB) non-empty blocks including 1 (68.0 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:21 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:21 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353198299411047553607957_0004_m_000027_31' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353198299411047553607957_0004_m_000027
+21/08/13 13:53:21 INFO SparkHadoopMapRedUtil: attempt_202108131353198299411047553607957_0004_m_000027_31: Committed
+21/08/13 13:53:21 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353195382039853544484383_0004_m_000026_30' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353195382039853544484383_0004_m_000026
+21/08/13 13:53:21 INFO SparkHadoopMapRedUtil: attempt_202108131353195382039853544484383_0004_m_000026_30: Committed
+21/08/13 13:53:21 INFO Executor: Finished task 27.0 in stage 4.0 (TID 31). 3972 bytes result sent to driver
+21/08/13 13:53:21 INFO Executor: Finished task 26.0 in stage 4.0 (TID 30). 3972 bytes result sent to driver
+21/08/13 13:53:21 INFO TaskSetManager: Starting task 29.0 in stage 4.0 (TID 33) (192.168.1.49, executor driver, partition 29, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:21 INFO Executor: Running task 29.0 in stage 4.0 (TID 33)
+21/08/13 13:53:21 INFO TaskSetManager: Starting task 30.0 in stage 4.0 (TID 34) (192.168.1.49, executor driver, partition 30, NODE_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:21 INFO TaskSetManager: Finished task 27.0 in stage 4.0 (TID 31) in 90 ms on 192.168.1.49 (executor driver) (26/32)
+21/08/13 13:53:21 INFO TaskSetManager: Finished task 26.0 in stage 4.0 (TID 30) in 92 ms on 192.168.1.49 (executor driver) (27/32)
+21/08/13 13:53:21 INFO Executor: Running task 30.0 in stage 4.0 (TID 34)
+21/08/13 13:53:21 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353195478925303982399761_0004_m_000025_29' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353195478925303982399761_0004_m_000025
+21/08/13 13:53:21 INFO SparkHadoopMapRedUtil: attempt_202108131353195478925303982399761_0004_m_000025_29: Committed
+21/08/13 13:53:21 INFO Executor: Finished task 25.0 in stage 4.0 (TID 29). 3972 bytes result sent to driver
+21/08/13 13:53:21 INFO TaskSetManager: Starting task 31.0 in stage 4.0 (TID 35) (192.168.1.49, executor driver, partition 31, PROCESS_LOCAL, 4453 bytes) taskResourceAssignments Map()
+21/08/13 13:53:21 INFO TaskSetManager: Finished task 25.0 in stage 4.0 (TID 29) in 99 ms on 192.168.1.49 (executor driver) (28/32)
+21/08/13 13:53:21 INFO Executor: Running task 31.0 in stage 4.0 (TID 35)
+21/08/13 13:53:21 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353196024023602369175137_0004_m_000028_32' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353196024023602369175137_0004_m_000028
+21/08/13 13:53:21 INFO SparkHadoopMapRedUtil: attempt_202108131353196024023602369175137_0004_m_000028_32: Committed
+21/08/13 13:53:21 INFO Executor: Finished task 28.0 in stage 4.0 (TID 32). 3929 bytes result sent to driver
+21/08/13 13:53:21 INFO TaskSetManager: Finished task 28.0 in stage 4.0 (TID 32) in 80 ms on 192.168.1.49 (executor driver) (29/32)
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Getting 1 (61.8 KiB) non-empty blocks including 1 (61.8 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Getting 1 (51.1 KiB) non-empty blocks including 1 (51.1 KiB) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Getting 0 (0.0 B) non-empty blocks including 0 (0.0 B) local and 0 (0.0 B) host-local and 0 (0.0 B) remote blocks
+21/08/13 13:53:21 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+21/08/13 13:53:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:21 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:21 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/08/13 13:53:21 INFO FileOutputCommitter: FileOutputCommitter skip cleanup _temporary folders under output directory:false, ignore cleanup failures: false
+21/08/13 13:53:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/08/13 13:53:21 INFO SparkHadoopMapRedUtil: No need to commit output of task because needsTaskCommit=false: attempt_202108131353196606615379510724840_0004_m_000031_35
+21/08/13 13:53:21 INFO Executor: Finished task 31.0 in stage 4.0 (TID 35). 3843 bytes result sent to driver
+21/08/13 13:53:21 INFO TaskSetManager: Finished task 31.0 in stage 4.0 (TID 35) in 34 ms on 192.168.1.49 (executor driver) (30/32)
+21/08/13 13:53:21 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353193748728622077677494_0004_m_000029_33' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353193748728622077677494_0004_m_000029
+21/08/13 13:53:21 INFO SparkHadoopMapRedUtil: attempt_202108131353193748728622077677494_0004_m_000029_33: Committed
+21/08/13 13:53:21 INFO FileOutputCommitter: Saved output of task 'attempt_202108131353195719984170397158656_0004_m_000030_34' to file:/Users/nathanealpitt/Desktop/tuplex/benchmarks/sort/results/output/spark_output/_temporary/0/task_202108131353195719984170397158656_0004_m_000030
+21/08/13 13:53:21 INFO SparkHadoopMapRedUtil: attempt_202108131353195719984170397158656_0004_m_000030_34: Committed
+21/08/13 13:53:21 INFO Executor: Finished task 29.0 in stage 4.0 (TID 33). 3929 bytes result sent to driver
+21/08/13 13:53:21 INFO Executor: Finished task 30.0 in stage 4.0 (TID 34). 3929 bytes result sent to driver
+21/08/13 13:53:21 INFO TaskSetManager: Finished task 29.0 in stage 4.0 (TID 33) in 64 ms on 192.168.1.49 (executor driver) (31/32)
+21/08/13 13:53:21 INFO TaskSetManager: Finished task 30.0 in stage 4.0 (TID 34) in 63 ms on 192.168.1.49 (executor driver) (32/32)
+21/08/13 13:53:21 INFO TaskSchedulerImpl: Removed TaskSet 4.0, whose tasks have all completed, from pool 
+21/08/13 13:53:21 INFO DAGScheduler: ResultStage 4 (csv at NativeMethodAccessorImpl.java:0) finished in 0.960 s
+21/08/13 13:53:21 INFO DAGScheduler: Job 3 is finished. Cancelling potential speculative or zombie tasks for this job
+21/08/13 13:53:21 INFO TaskSchedulerImpl: Killing all running tasks in stage 4: Stage finished
+21/08/13 13:53:21 INFO DAGScheduler: Job 3 finished: csv at NativeMethodAccessorImpl.java:0, took 1.202814 s
+21/08/13 13:53:21 INFO FileFormatWriter: Write Job bc4e6f23-f9e8-4760-a91f-3042208df989 committed.
+21/08/13 13:53:21 INFO FileFormatWriter: Finished processing stats for write job bc4e6f23-f9e8-4760-a91f-3042208df989.
+21/08/13 13:53:21 INFO SparkUI: Stopped Spark web UI at http://192.168.1.49:4040
+21/08/13 13:53:21 INFO MapOutputTrackerMasterEndpoint: MapOutputTrackerMasterEndpoint stopped!
+21/08/13 13:53:21 INFO MemoryStore: MemoryStore cleared
+21/08/13 13:53:21 INFO BlockManager: BlockManager stopped
+21/08/13 13:53:21 INFO BlockManagerMaster: BlockManagerMaster stopped
+21/08/13 13:53:21 INFO OutputCommitCoordinator$OutputCommitCoordinatorEndpoint: OutputCommitCoordinator stopped!
+21/08/13 13:53:21 INFO SparkContext: Successfully stopped SparkContext
+21/08/13 13:53:21 INFO ShutdownHookManager: Shutdown hook called
+21/08/13 13:53:21 INFO ShutdownHookManager: Deleting directory /private/var/folders/lw/x630y74n1mv16rp2j68rkby80000gn/T/spark-06e5ba27-3274-47cf-aad3-298feacbaf8e
+21/08/13 13:53:21 INFO ShutdownHookManager: Deleting directory /private/var/folders/lw/x630y74n1mv16rp2j68rkby80000gn/T/spark-74cb35a6-687c-4cb3-ae67-3ca23a785eb0
+21/08/13 13:53:21 INFO ShutdownHookManager: Deleting directory /private/var/folders/lw/x630y74n1mv16rp2j68rkby80000gn/T/spark-06e5ba27-3274-47cf-aad3-298feacbaf8e/pyspark-70e3b8ac-8f02-4a75-affc-b64b3d3e5002

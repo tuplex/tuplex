@@ -1,1 +1,3 @@
-found no 311 data to process, abort.
+PySpark startup time: 1.9923717975616455
+PySpark job time: 4.81825590133667 s
+{"startupTime": 1.9923717975616455, "jobTime": 4.81825590133667}

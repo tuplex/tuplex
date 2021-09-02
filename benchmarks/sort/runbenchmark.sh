@@ -2,8 +2,8 @@
 
 # use 5 runs (3 for very long jobs) and a timeout after 180min/3h
 NUM_RUNS=1
-TIMEOUT=60
-DATA_PATH='../../tuplex/test/resources/pipelines/flights/sortsample.csv'
+TIMEOUT=1000
+DATA_PATH='../../tuplex/test/resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv'
 RESDIR=./results/logs
 OUTPUT_DIR=./results/output
 PYTHON=python3.9

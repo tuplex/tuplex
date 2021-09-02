@@ -10,6 +10,8 @@
 // pair<pair<index # into partitions, row # into partition>, pair<beg. offset, end. offset>>
 using PartitionSortType = std::pair<std::pair<size_t, size_t>, std::pair<size_t, size_t>>;
 
+double globtime = 0;
+
 // gets the given number of bytes allocated for a specific
 // fixed python type
 static size_t fixedLengthTypeSerializationSize(const python::Type& type) {
@@ -25,16 +27,25 @@ static size_t fixedLengthTypeSerializationSize(const python::Type& type) {
 // calculated by iterating through the rows of the partition and getting
 // the serialized lengths
 static std::vector<PartitionSortType> dynamicallyComputeOffsets(const tuplex::Schema& schema, const size_t partitionCapacity, const uint8_t* ptr, const int64_t numRows, int partitionNum = 0) {
+
+    tuplex::Timer timer;
+
     std::vector<PartitionSortType> offsets;
     offsets.reserve(numRows);
     size_t totalAllocated = 0;
     for (size_t i = 0; i < numRows; i++) {
         tuplex::Row row = tuplex::Row::fromMemory(schema, ptr + totalAllocated, partitionCapacity - totalAllocated);
+//        std::cout << "Comp. Offset - Row: " << row.toPythonString() << std::endl;
         size_t length = row.serializedLength();
+//        std::cout << "Comp. Offset - Length: " << length << std::endl;
         auto offset = std::make_pair(totalAllocated, totalAllocated + length);
         offsets.emplace_back(std::make_pair(std::make_pair(partitionNum, i), offset));
         totalAllocated += length;
     }
+
+    std::cout << "\t\t\tFinished dynamicallyComputeOffsets in " << timer.time() << "s" << std::endl;
+
+
     return offsets;
 }
 
@@ -45,6 +56,9 @@ static std::vector<PartitionSortType> dynamicallyComputeOffsets(const tuplex::Sc
 // are computed from the row length information since each row should be the same
 // number of bytes.
 static std::vector<PartitionSortType> staticallyComputeOffsets(const std::vector<python::Type>& colTypes, int64_t numRows, int partitionNum = 0) {
+
+    tuplex::Timer timer;
+
     std::vector<PartitionSortType> offsets;
     int bytesPerRow = 0;
     for (const python::Type& colType : colTypes) {
@@ -56,6 +70,9 @@ static std::vector<PartitionSortType> staticallyComputeOffsets(const std::vector
         offsets.emplace_back(std::make_pair(std::make_pair(partitionNum, i), offset));
         totalAllocated += bytesPerRow;
     }
+
+    std::cout << "\t\t\tFinished staticallyComputeOffsets in " << timer.time() << "s" << std::endl;
+
     return offsets;
 }
 
@@ -66,6 +83,9 @@ static std::vector<PartitionSortType> staticallyComputeOffsets(const std::vector
 // the offsets. Otherwise, it will can a helper function to dynamically
 // generate the offsets.
 std::vector<PartitionSortType> computeOffsets(const tuplex::Schema& schema, const size_t partitionCapacity, const uint8_t* ptr, int64_t numRows, int partitionNum = 0) {
+
+    tuplex::Timer timer;
+
     python::Type type = schema.getRowType();
     std::vector<python::Type> colTypes = type.parameters();
     auto fixedTypeComparator = [&](const python::Type& type) {
@@ -78,10 +98,14 @@ std::vector<PartitionSortType> computeOffsets(const tuplex::Schema& schema, cons
     auto x = std::find_if(colTypes.begin(), colTypes.end(), fixedTypeComparator);
     if (x != colTypes.end()) {
         // there are var length types
-        return dynamicallyComputeOffsets(schema, partitionCapacity, ptr, numRows, partitionNum);
+        auto dd = dynamicallyComputeOffsets(schema, partitionCapacity, ptr, numRows, partitionNum);
+        std::cout << "\t\tFinished computeOffsets in " << timer.time() << "s" << std::endl;
+        return dd;
     } else {
         // no var length types
-        return staticallyComputeOffsets(colTypes, numRows, partitionNum);
+        auto dd = staticallyComputeOffsets(colTypes, numRows, partitionNum);
+        std::cout << "\t\tFinished computeOffsets in " << timer.time() << "s" << std::endl;
+        return dd;
     }
 }
 
@@ -125,7 +149,19 @@ std::vector<tuplex::SortBy> genComparisonOrderEnum(int numColumns, std::vector<t
     //    return ret;
 }
 
+size_t calcBitmapSize(const std::vector<bool> &bitmap) {
+    int num_nullable_fields = 0;
+    for (auto b : bitmap)
+        num_nullable_fields += b;
 
+    // compute how many bytes are required to store the bitmap!
+    size_t num = 0;
+    while (num_nullable_fields > 0) {
+        num++;
+        num_nullable_fields -= 64;
+    }
+    return num * sizeof(int64_t); // multiple of 64bit because of alignment
+}
 
 struct TuplexSortComparator {
     // constructor
@@ -143,6 +179,14 @@ struct TuplexSortComparator {
         // generates the order of columns that the partition should be sorted by
         this->colIndicesInOrderToSortBy = genComparisonOrder(numColumns, colIndicesInOrderToSortBy);
         this->orderEnum = genComparisonOrderEnum(numColumns, orderEnum);
+        // get flattened type representation
+
+        // determine from flattened Schema which fields are varlength
+        auto params = schema.getRowType().parameters();
+        for (int i = 0; i < params.size(); ++i) {
+            auto el = params[i];
+            _requiresBitmap.push_back(el.isOptionType());
+        }
     }
 
     //    class SortBy(Enum):
@@ -158,15 +202,34 @@ struct TuplexSortComparator {
 
     // returns true or false depending on which row should be sorted
     bool operator() (PartitionSortType l, PartitionSortType r) const {
+        tuplex::Timer timer;
+//        if (it()) {
+//            auto left_val;
+//            auto right_val;
+//            if (basicType()) {
+//                left_val = *(partitionPtrs.at(l.first.first) + l.second.first + x * 8);
+//                right_val = *(partitionPtrs.at(r.first.first) + r.second.first + x * 8);
+//            } else {
+//                // get offset info
+//                // get ptr and length
+//            }
+//            // comparison
+//        }
+//        globtime += timer.time();
+//        return left_val < right_val;
+
         // gets the "left" row
-        tuplex::Row lRow = tuplex::Row::fromMemory(schema, partitionPtrs.at(l.first.first) + l.second.first,
-                                                   l.second.second - l.second.first);
-        // gets the "right" row
-        tuplex::Row rRow = tuplex::Row::fromMemory(schema, partitionPtrs.at(r.first.first) + r.second.first,
-                                                   r.second.second - r.second.first);
-        // gets a list of the types for each column
+//        tuplex::Row lRow = tuplex::Row::fromMemory(schema, partitionPtrs.at(l.first.first) + l.second.first,
+//                                                   l.second.second - l.second.first);
+//        std::cout <<  "Left Row: " << lRow.toPythonString() << std::endl;
+//        // gets the "right" row
+//        tuplex::Row rRow = tuplex::Row::fromMemory(schema, partitionPtrs.at(r.first.first) + r.second.first,
+//                                                   r.second.second - r.second.first);
+//        std::cout << "Right Row: " << rRow.toPythonString() << std::endl;
+//         gets a list of the types for each column
         std::vector<python::Type> colTypes = schema.getRowType().parameters();
         int counter = 0;
+//        globtime += timer.time();
         while (counter != colIndicesInOrderToSortBy.size()) {
             // gets the current column to sort by
             int currentColIndex = colIndicesInOrderToSortBy.at(counter);
@@ -178,9 +241,9 @@ struct TuplexSortComparator {
             // sorting for integer
             counter++;
             if (colType == python::Type::I64) {
-                int64_t lInt = lRow.getInt(currentColIndex);
-                int64_t rInt = rRow.getInt(currentColIndex);
-                if (lInt == rInt) {continue;} // edge case where there is no other column to sort by
+                int64_t lInt = *(partitionPtrs.at(l.first.first) + l.second.first + currentColIndex * 8);
+                int64_t rInt = *(partitionPtrs.at(r.first.first) + r.second.first + currentColIndex * 8);
+                if (lInt == rInt) {globtime += timer.time(); continue;} // edge case where there is no other column to sort by
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LENGTH) {
                     std::ostringstream o1;
                     std::ostringstream o2;
@@ -188,6 +251,7 @@ struct TuplexSortComparator {
                     o2 << rInt;
                     std::string lStrInt = o1.str();
                     std::string rStrInt = o2.str();
+                    globtime += timer.time();
                     return lStrInt.length() < rStrInt.length();
                 }
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LENGTH) {
@@ -197,6 +261,7 @@ struct TuplexSortComparator {
                     o2 << rInt;
                     std::string lStrInt = o1.str();
                     std::string rStrInt = o2.str();
+                    globtime += timer.time();
                     return lStrInt.length() > rStrInt.length();
                 }
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LEXICOGRAPHICALLY) {
@@ -206,6 +271,7 @@ struct TuplexSortComparator {
                     o2 << rInt;
                     std::string lStrInt = o1.str();
                     std::string rStrInt = o2.str();
+                    globtime += timer.time();
                     return lStrInt < rStrInt;
                 }
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY) {
@@ -215,19 +281,22 @@ struct TuplexSortComparator {
                     o2 << rInt;
                     std::string lStrInt = o1.str();
                     std::string rStrInt = o2.str();
+                    globtime += timer.time();
                     return lStrInt > rStrInt;
                 }
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING) {
+                    globtime += timer.time();
                     return lInt > rInt;
                 }
                 else {
+                    globtime += timer.time();
                     return lInt < rInt;
                 }
                 // sorting for floats
             } else if (colType == python::Type::F64) {
-                double lDub = lRow.getDouble(currentColIndex);
-                double rDub = rRow.getDouble(currentColIndex);
-                if (lDub == rDub) {continue;}
+                double lDub = *(partitionPtrs.at(l.first.first) + l.second.first + currentColIndex * 8);
+                double rDub = *(partitionPtrs.at(r.first.first) + r.second.first + currentColIndex * 8);
+                if (lDub == rDub) {globtime += timer.time(); continue;}
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LENGTH) {
                     std::ostringstream o1;
                     std::ostringstream o2;
@@ -235,6 +304,7 @@ struct TuplexSortComparator {
                     o2 << rDub;
                     std::string lStrDub = o1.str();
                     std::string rStrDub = o2.str();
+                    globtime += timer.time();
                     return lStrDub.length() < rStrDub.length();
                 }
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LENGTH) {
@@ -244,6 +314,7 @@ struct TuplexSortComparator {
                     o2 << rDub;
                     std::string lStrDub = o1.str();
                     std::string rStrDub = o2.str();
+                    globtime += timer.time();
                     return lStrDub.length() > rStrDub.length();
                 }
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LEXICOGRAPHICALLY) {
@@ -253,6 +324,7 @@ struct TuplexSortComparator {
                     o2 << rDub;
                     std::string lStrDub = o1.str();
                     std::string rStrDub = o2.str();
+                    globtime += timer.time();
                     return lStrDub < rStrDub;
                 }
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY) {
@@ -262,33 +334,83 @@ struct TuplexSortComparator {
                     o2 << rDub;
                     std::string lStrDub = o1.str();
                     std::string rStrDub = o2.str();
+                    globtime += timer.time();
                     return lStrDub > rStrDub;
                 }
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING) {
+                    globtime += timer.time();
                     return lDub > rDub;
                 }
                 else {
+                    globtime += timer.time();
                     return lDub < rDub;
                 }
                 // sorting for strings
             } else if (colType == python::Type::STRING) {
-                std::string lStr = lRow.getString(currentColIndex);
-                std::string rStr = rRow.getString(currentColIndex);
-                if (lStr == rStr) {continue;}
+//                std::cout << "kaka" << std::endl;
+//                tuplex::Row lRow = tuplex::Row::fromMemory(schema, partitionPtrs.at(l.first.first) + l.second.first,
+//                                                           l.second.second - l.second.first);
+//                std::string lStr2 = lRow.getString(currentColIndex);
+//                std::cout << "lStr2: " << lStr2 << std::endl;
+                uint64_t lOffset = *((uint64_t *)((uint8_t *) partitionPtrs.at(l.first.first) + l.second.first + currentColIndex * sizeof(int64_t) +calcBitmapSize(_requiresBitmap)));
+//                std::cout << "lOffset (0): " <<lOffset << std::endl;
+                uint64_t rOffset = *((uint64_t *)((uint8_t *) partitionPtrs.at(r.first.first) + r.second.first + currentColIndex * sizeof(int64_t)+calcBitmapSize(_requiresBitmap)));
+                int64_t lLen = ((lOffset & 0xFFFFFFFFul << 32) >> 32) - 1;
+//                std::cout << "lLen: " << lLen << std::endl;
+                int64_t rLen = ((rOffset & 0xFFFFFFFFul << 32) >> 32) - 1;
+                lOffset = lOffset & 0xFFFFFFFFul;
+//                std::cout << "lOffset: " << lOffset << std::endl;
+                rOffset = rOffset & 0xFFFFFFFFul;
+                uint8_t *lPtr = (uint8_t *) partitionPtrs.at(l.first.first) + l.second.first + currentColIndex * 8 + calcBitmapSize(_requiresBitmap) + lOffset;
+//                std::cout << "lPtr: " << lPtr << std::endl;
+                uint8_t *rPtr = (uint8_t *) partitionPtrs.at(r.first.first) + r.second.first + currentColIndex * 8 + calcBitmapSize(_requiresBitmap) + rOffset;
+//                assert(lLen >= 0);
+//                assert(rLen >= 0);
+                char *Lcstr = (char *) lPtr;
+                char *Rcstr = (char *) rPtr;
+                std::string lStr;
+                std::string rStr;
+                // check that string is properly terminated with '\0'
+                if (Lcstr[lLen] != '\0') {
+                    Logger::instance().logger("memory").error(
+                            "corrupted memory found. Left. Could not extract varlen string");
+                    lStr = std::string("NULL");
+                } else {
+                    lStr = std::string((const char *) lPtr);
+                }
+                if (Rcstr[rLen] != '\0') {
+                    Logger::instance().logger("memory").error(
+                            "corrupted memory found. Right. Could not extract varlen string");
+                    rStr = std::string("NULL");
+                } else {
+                    rStr = std::string((const char *) rPtr);
+                }
+//                std::cout << "lStr: " << lStr << std::endl;
+
+                // abaci
+//                assert(false);
+//
+//                std::string lStr = lRow.getString(currentColIndex);
+//                std::string rStr = rRow.getString(currentColIndex);
+                if (lStr == rStr) {globtime += timer.time(); continue;}
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING || orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY) {
+                    globtime += timer.time();
                     return lStr > rStr;
                 } else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LENGTH) {
+                    globtime += timer.time();
                     return lStr.length() < rStr.length();
                 } else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LENGTH) {
+                    globtime += timer.time();
                     return lStr.length() > rStr.length();
                 } else {
+                    globtime += timer.time();
                     return lStr < rStr;
                 }
                 // sorting for booleans
             } else if (colType == python::Type::BOOLEAN) {
-                bool lBool = lRow.getBoolean(currentColIndex);
-                bool rBool = rRow.getBoolean(currentColIndex);
-                if (lBool == rBool) {continue;}
+                bool lBool = *(partitionPtrs.at(l.first.first) + l.second.first + currentColIndex * 8) > 0;
+                bool rBool = *(partitionPtrs.at(r.first.first) + r.second.first + currentColIndex * 8) > 0;
+                if (lBool == rBool) {globtime += timer.time(); continue;}
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LENGTH) {
                     std::ostringstream o1;
                     std::ostringstream o2;
@@ -296,6 +418,7 @@ struct TuplexSortComparator {
                     o2 << rBool;
                     std::string lStrBool = o1.str();
                     std::string rStrBool = o2.str();
+                    globtime += timer.time();
                     return lStrBool.length() < rStrBool.length();
                 }
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LENGTH) {
@@ -305,6 +428,7 @@ struct TuplexSortComparator {
                     o2 << rBool;
                     std::string lStrBool = o1.str();
                     std::string rStrBool = o2.str();
+                    globtime += timer.time();
                     return lStrBool.length() > rStrBool.length();
                 }
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::ASCENDING_LEXICOGRAPHICALLY) {
@@ -314,6 +438,7 @@ struct TuplexSortComparator {
                     o2 << rBool;
                     std::string lStrBool = o1.str();
                     std::string rStrBool = o2.str();
+                    globtime += timer.time();
                     return lStrBool < rStrBool;
                 }
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY) {
@@ -323,21 +448,26 @@ struct TuplexSortComparator {
                     o2 << rBool;
                     std::string lStrBool = o1.str();
                     std::string rStrBool = o2.str();
+                    globtime += timer.time();
                     return lStrBool > rStrBool;
                 }
                 else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING) {
+                    globtime += timer.time();
                     return lBool > rBool;
                 }
                 else {
+                    globtime += timer.time();
                     return lBool < rBool;
                 }
-                // doesn't support other types yet
+//                 doesn't support other types yet
             }
             // TODO: Test Handle Generic Tuple
             else if (colType.isTupleType()) {
+                globtime += timer.time();
                 return true;
             }
             else if (colType == python::Type::EMPTYTUPLE) {
+                globtime += timer.time();
                 return true;
                 // doesn't support other types yet
             }
@@ -355,6 +485,7 @@ struct TuplexSortComparator {
 //                // doesn't support other types yet
 //            }
             else if (colType == python::Type::EMPTYLIST) {
+                globtime += timer.time();
                 return true;
                 // doesn't support other types yet
             }
@@ -366,18 +497,19 @@ struct TuplexSortComparator {
 //PyDict_
 //                auto lBool = PyByteArray_Size(tuplex::cpython::PyDict_FromCJSON(cJSON_Parse((char*)lRow.get(currentColIndex).getPtr())));
 //                auto rBool = PyByteArray_Size(tuplex::cpython::PyDict_FromCJSON(cJSON_Parse((char*)rRow.get(currentColIndex).getPtr())));
-                auto lBool = PyByteArray_Size(tuplex::cpython::createPyDictFromMemory((uint8_t*)lRow.get(currentColIndex).getPtr()));
-                auto rBool = PyByteArray_Size(tuplex::cpython::createPyDictFromMemory((uint8_t*)rRow.get(currentColIndex).getPtr()));
-                if (lBool == rBool) {continue;}
-                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LENGTH) {
-                    return lBool > rBool;
-                }
-                else {
-                    return lBool < rBool;
-                }
+//                auto lBool = PyByteArray_Size(tuplex::cpython::createPyDictFromMemory((uint8_t*)lRow.get(currentColIndex).getPtr()));
+//                auto rBool = PyByteArray_Size(tuplex::cpython::createPyDictFromMemory((uint8_t*)rRow.get(currentColIndex).getPtr()));
+//                if (lBool == rBool) {continue;}
+//                else if (orderEnum.at(counter-1) == tuplex::SortBy::DESCENDING_LENGTH) {
+//                    return lBool > rBool;
+//                }
+//                else {
+//                    return lBool < rBool;
+//                }
                 // doesn't support other types yet
             }
             else if (colType == python::Type::EMPTYDICT) {
+                globtime += timer.time();
                 return true;
                 // doesn't support other types yet
             }
@@ -395,6 +527,7 @@ struct TuplexSortComparator {
     // the order of columns to sort by
     std::vector<size_t> colIndicesInOrderToSortBy;
     std::vector<tuplex::SortBy> orderEnum;
+    std::vector<bool> _requiresBitmap;
 };
 
 // standardSort sorts a partition's offsets using the TuplexSortComparator
@@ -402,9 +535,15 @@ std::vector<PartitionSortType> standardSort(
         std::vector<PartitionSortType> offsets, const uint8_t* ptr,
         const tuplex::Schema& schema, std::vector<size_t> colIndicesInOrderToSortBy, std::vector<tuplex::SortBy> orderEnum) {
 
+    tuplex::Timer timer;
+
     std::vector<const uint8_t*> partitionPtrs {ptr};
     // call std::sort using TuplexSortComparator
     std::sort(offsets.begin(), offsets.end(), TuplexSortComparator(partitionPtrs, schema, colIndicesInOrderToSortBy, orderEnum));
+
+    std::cout << "\t\tFinished standardSort in " << timer.time() << "s" << std::endl;
+
+
     return offsets;
 }
 
@@ -424,6 +563,9 @@ tuplex::Partition* reconstructPartition(
         const std::vector<PartitionSortType>& sortedOffsets,
         const uint8_t* readPtr, int64_t num_rows, tuplex::Executor* executor,
         const int dataSetID = -1) {
+
+    tuplex::Timer timer;
+
     tuplex::Schema schema = partition->schema();
 //    tuplex::PartitionWriter pw(executor, schema, -1, 32);
 //    for (const PartitionSortType sortedOffset : sortedOffsets) {
@@ -462,6 +604,9 @@ tuplex::Partition* reconstructPartition(
     // release the write lock
     outputPartition->unlockWrite();
 
+    std::cout << "\t\tFinished reconstructPartition in " << timer.time() << "s" << std::endl;
+
+
     return outputPartition;
 }
 
@@ -485,6 +630,9 @@ tuplex::Partition* reconstructPartition(
 std::vector<tuplex::Partition*> mergeKPartitions(
         std::vector<tuplex::Partition*> partitions,
         tuplex::Executor* executor, std::vector<size_t> colIndicesInOrderToSortBy, std::vector<tuplex::SortBy> orderEnum) {
+
+    tuplex::Timer timer;
+
     // base cases: if there is only one partition, then it should already
     // be sorted according to the assumptions of this function.
     // if there are no partitions, then there is nothing to sort
@@ -551,26 +699,90 @@ std::vector<tuplex::Partition*> mergeKPartitions(
         // get the row corresponding with the offset
         tuplex::Row row = tuplex::Row::fromMemory(schema, partitionPtrs.at(min.first.first) + min.second.first,
                                                   min.second.first + min.second.second);
-        // write this row in new partition
-        pw.writeRow(row);
+
+        // **** DEBUG:  PRINTING OUT PROBLEM ROW
+//        if (row.getInt(3) == 27) {
+//            std::cout << "mergeKPartitions Write - Row: " << row.toPythonString() << std::endl;
+//            size_t length = row.serializedLength();
+//            std::cout << "mergeKPartitions Write - Row (mem): " << std::endl;
+//            for (int i = 0; i < row.serializedLength() - 8; i++) {
+//                auto x = *(partitionPtrs.at(min.first.first) + min.second.first + i);
+//                std::cout<< (int)x;
+//                i += 7;
+//            }
+//            std::cout << "\n";
+//        }
+//
+        // ***** END DEBUG
+
+//        auto bbool = pw.writeRow(row);
+
+        auto bbool = pw.writeSerializedRow(row.getRowType(), partitionPtrs.at(min.first.first) + min.second.first,
+                                        min.second.second - min.second.first);
+
+        if (!bbool) {
+            std::cout << "Uh oh: couldn't write row" << std::endl;
+        }
         // remove top of heap
         frontierIndices.pop();
         // the partition that this offset came from, if that was the last offset
         // meaning it was the last row, no need to add the next row/offset of this
         // partition to the heap since there is no next row
-        if (min.first.second + 1 >= numRowsPerPartition.at(min.first.first)) {
+        if (min.first.second + 1 == numRowsPerPartition.at(min.first.first)) {
             continue;
+        } else {
+            // the partition that this offset came from, add the next row/offset from
+            // this partition to the heap
+            frontierIndices.push(offsetsPerPartition.at(min.first.first).at(min.first.second + 1));
         }
-        // the partition that this offset came from, add the next row/offset from
-        // this partition to the heap
-        frontierIndices.push(offsetsPerPartition.at(min.first.first).at(min.first.second + 1));
     }
 
     // release the read only lock from all partitions
     for (int i = 0; i < partitions.size(); i++) {
         partitions[i]->unlock();
     }
-    return pw.getOutputPartitions();
+
+    auto partitionsRes = pw.getOutputPartitions();
+
+    // **** DEBUG:  PRINTING OUT PROBLEM ROW
+
+//    for (const auto & p : partitionsRes) {
+//        std::cout << "Partition Rows: " << std::endl;
+//        const uint8_t* partitionPtr = p->lockRaw();
+//        // the pointer of the partition initially points to an int64 of how
+//        // many rows the partition contains. we have to increment pointer by
+//        // this size in order to point to the first row of the partition
+//        int64_t numRows = *(int64_t*)partitionPtr;
+//        numRowsPerPartition.push_back(numRows);
+//        partitionPtr += sizeof(int64_t);
+//        auto totalAllocated = 0;
+//        auto partitionCapacity = p->capacity();
+//        for (size_t i = 0; i < numRows; i++) {
+//            tuplex::Row row = tuplex::Row::fromMemory(schema, partitionPtr + totalAllocated, partitionCapacity - totalAllocated);
+
+//            if (row.getInt(3) == 0) {
+//                std::cout << "mergeKPartitions End - Row: " << row.toPythonString() << std::endl;
+//                size_t length = row.serializedLength();
+//                std::cout << "mergeKPartitions End - Row (mem): " << std::endl;
+//                for (int i = 0; i < row.serializedLength() - 8; i++) {
+//                    auto x = *(partitionPtr + totalAllocated + i);
+//                    std::cout<< (int)x;
+//                    i += 7;
+//                }
+//                std::cout << "\n";
+//            }
+//
+//            totalAllocated += row.serializedLength();
+//        }
+//        p->unlock();
+//    }
+//
+    // ***** END DEBUG
+
+    std::cout << "\tFinished mergeKPartitions in " << timer.time() << "s" << std::endl;
+
+
+    return partitionsRes;
 }
 
 // sortSinglePartition sorts a single partition by first computing the offsets
@@ -589,6 +801,9 @@ std::vector<tuplex::Partition*> mergeKPartitions(
 tuplex::Partition* sortSinglePartition(
         tuplex::Partition* partition,
         tuplex::Executor* executor, std::vector<size_t> colIndicesInOrderToSortBy, std::vector<tuplex::SortBy> orderEnum) {
+
+    tuplex::Timer timer;
+
     // partition is locked (read only) so no other threads mutate the partition during sorting
     // read only lock is used since sorting is not in place
     const uint8_t* ptr = partition->lockRaw();
@@ -597,7 +812,7 @@ tuplex::Partition* sortSinglePartition(
     // to actually get the int64 value
     int64_t numRows = *(int64_t*)ptr;
 //    int64_t numRows = 3;
-    int i =0;
+//    int i =0;
     // First value of the partition is an int64 representing the number of rows
     // in the partition. Next value represents the first row. So add sizeof(int64_t)
     // to ptr in order for ptr to point to the first row.
@@ -623,6 +838,34 @@ tuplex::Partition* sortSinglePartition(
 
     // free up our read only lock on the partition
     partition->unlock();
+
+    // **** DEBUG:  PRINTING OUT PROBLEM ROW
+
+//    const uint8_t* partitionPtr = outputPartition->lockRaw();
+//    int64_t numRows5 = *(int64_t*)partitionPtr;
+//    partitionPtr += sizeof(int64_t);
+//    auto totalAllocated = 0;
+//    auto partitionCapacity = outputPartition->capacity();
+//    for (size_t i = 0; i < numRows5; i++) {
+//        tuplex::Row row = tuplex::Row::fromMemory(schema, partitionPtr + totalAllocated, partitionCapacity - totalAllocated);
+//        if (row.getInt(3) == 27) {
+//            std::cout << "sortSinglePartition - Row: " << row.toPythonString() << std::endl;
+//            std::cout << "sortSinglePartition - Row (mem): " << std::endl;
+//            for (int i = 0; i < row.serializedLength() - 8; i++) {
+//                auto x = *(partitionPtr + totalAllocated + i);
+//                std::cout<< (int)x;
+//                i += 7;
+//            }
+//            std::cout << "\n";
+//        }
+//        totalAllocated += row.serializedLength();
+//    }
+//    outputPartition->unlock();
+
+    // ***** END DEBUG
+
+    std::cout << "\tFinished sortSinglePartition in " << timer.time() << "s" << std::endl;
+
     return outputPartition;
 }
 
@@ -641,11 +884,48 @@ tuplex::Partition* sortSinglePartition(
 std::vector<tuplex::Partition*> sortMultiplePartitions(
         std::vector<tuplex::Partition*> partitions,
         tuplex::Executor* executor, std::vector<size_t> colIndicesInOrderToSortBy, std::vector<tuplex::SortBy> orderEnum) {
+
+    // **** DEBUG:  PRINTING OUT PROBLEM ROW
+
+//    auto schema = partitions.at(0)->schema();
+//    for (const auto & p : partitions) {
+//        const uint8_t* partitionPtr = p->lockRaw();
+//        int64_t numRows = *(int64_t*)partitionPtr;
+//        partitionPtr += sizeof(int64_t);
+//        auto totalAllocated = 0;
+//        auto partitionCapacity = p->capacity();
+//        for (size_t i = 0; i < numRows; i++) {
+//            tuplex::Row row = tuplex::Row::fromMemory(schema, partitionPtr + totalAllocated, partitionCapacity - totalAllocated);
+//            if (row.getInt(3) == 27) {
+//                std::cout << "sortMultiplePartitions - Row: " << row.toPythonString() << std::endl;
+//                std::cout << "sortMultiplePartitions - Row (mem): " << std::endl;
+//                for (int i = 0; i < row.serializedLength() - 8; i++) {
+//                    auto x = *(partitionPtr + totalAllocated + i);
+//                    std::cout<< (int)x;
+//                    i += 7;
+//                }
+//                std::cout << "\n";
+//            }
+//            totalAllocated += row.serializedLength();
+//        }
+//        p->unlock();
+//    }
+
+
+
+
+    // ***** END DEBUG
+
+    tuplex::Timer timer;
+
     // sorts each individual partition (not in place)
     for (auto & partition : partitions) {
         partition = sortSinglePartition(partition, executor, colIndicesInOrderToSortBy, orderEnum);
     }
 //    return partitions;
     // does a k-way merge of sorted partitions
-    return mergeKPartitions(partitions, executor, colIndicesInOrderToSortBy, orderEnum);
+    auto dd =  mergeKPartitions(partitions, executor, colIndicesInOrderToSortBy, orderEnum);
+    std::cout << "Finished sortMultiplePartitions in " << timer.time() << "s" << std::endl;
+    std::cout << "Time spent in sort comparator: " << globtime << "s" << std::endl;
+    return dd;
 }

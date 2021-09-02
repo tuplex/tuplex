@@ -67,6 +67,9 @@ namespace tuplex {
             close();
         }
 
+        bool writeSerializedRow(const python::Type schema, const uint8_t* readPtr,
+                                                 const uint64_t length);
+
         bool writeRow(const Row& row);
 
         bool writeData(const uint8_t* data, size_t size);

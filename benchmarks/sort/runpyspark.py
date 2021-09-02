@@ -22,7 +22,7 @@ parser.add_argument(
     "--path",
     type=str,
     dest="data_path",
-    default="../../test/resources/pipelines/flights/sortsample.csv",
+    default="../../tuplex/test/resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv",
     help="path or pattern to flights data",
 )
 parser.add_argument('--output-path', type=str, dest='output_path', default='spark_output',

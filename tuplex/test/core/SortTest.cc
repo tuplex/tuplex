@@ -4,6 +4,12 @@
 #include "TestUtils.h"
 #include <PartitionWriter.h>
 #include <SortBy.h>
+#include <string>
+#include <fstream>
+#include <vector>
+#include <utility>
+#include <stdexcept>
+#include <sstream>
 
 class SortTest : public PyTest {};
 
@@ -232,7 +238,166 @@ TEST_F(SortTest, SinglePartitionEmptyListSort) {
     EXPECT_TRUE(sortedPartitions.size() == 2);
 }
 
-TEST_F(SortTest, SinglePartitionIntOptSort) {
+TEST_F(SortTest, FlightSampleTest9999) {
+    using namespace tuplex;
+    ContextOptions co = microTestOptions();
+    co.set("tuplex.partitionSize", "32MB");
+    co.set("tuplex.webui.enable", "False");
+    co.set("tuplex.executorMemory", "1G");
+    co.set("tuplex.driverMemory", "1G");
+    co.set("tuplex.runTimeMemory", "32MB");
+    co.set("tuplex.useLLVMOptimizer", "True");
+    co.set("tuplex.optimizer.nullValueOptimization", "True");
+    co.set("tuplex.csv.selectionPushdown", "True");
+    co.set("tuplex.optimizer.generateParser", "True");
+    co.set("tuplex.optimizer.mergeExceptionsInOrder", "False");
+    co.set("tuplex.csv.filterPushdown", "True");
+    co.set("tuplex.executorCount", "0");
+    Context c(co);
+    auto file_name = "../resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv";
+//    auto file_name = "../resources/pipelines/flights/sortsample.csv";
+    auto output_path = "/Users/nathanealpitt/Desktop/tuplex/tuplex/test/core/flightoutput.csv";
+    c.csv(
+            file_name
+    ).sort({3, 15, 2}, {tuplex::SortBy::ASCENDING, tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY, tuplex::SortBy::DESCENDING}).tocsv(URI(output_path));
+
+//    std::ifstream myFile(output_path);
+//    std::vector<std::string> row;
+//    std::vector<std::string> prev_row;
+//    std::string line, word;
+//    std::getline(myFile, line);
+//    while (myFile.good()) {
+//        row.clear();
+//        // read an entire row and
+//        // store it in a string variable 'line'
+//        std::getline(myFile, line);
+//        // used for breaking words
+//        std::stringstream s(line);
+//        // read every column data of a row and
+//        // store it in a string variable, 'word'
+//        while (std::getline(s, word, ',')) {
+//            // add all the column data
+//            // of a row to a vector
+//            row.push_back(word);
+//        }
+//        if (!prev_row.empty()) {
+//            EXPECT_TRUE(std::stoi(prev_row.at(3)) <= std::stoi(row.at(3)));
+//        }
+//        prev_row = row;
+//
+//    }
+}
+
+TEST_F(SortTest, FlightSampleTest0) {
+    using namespace tuplex;
+    ContextOptions co = microTestOptions();
+    co.set("tuplex.partitionSize", "32MB");
+    co.set("tuplex.webui.enable", "False");
+    co.set("tuplex.executorMemory", "1G");
+    co.set("tuplex.driverMemory", "1G");
+    co.set("tuplex.runTimeMemory", "32MB");
+    co.set("tuplex.useLLVMOptimizer", "True");
+    co.set("tuplex.optimizer.nullValueOptimization", "True");
+    co.set("tuplex.csv.selectionPushdown", "True");
+    co.set("tuplex.optimizer.generateParser", "True");
+    co.set("tuplex.optimizer.mergeExceptionsInOrder", "False");
+    co.set("tuplex.csv.filterPushdown", "True");
+    co.set("tuplex.executorCount", "0");
+    Context c(co);
+    auto file_name = "../resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv";
+//    auto file_name = "../resources/pipelines/flights/sortsample.csv";
+    auto output_path = "/Users/nathanealpitt/Desktop/tuplex/tuplex/test/core/flightoutput.csv";
+    c.csv(
+            file_name
+            ).sort({15, 3, 2}, {tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY, tuplex::SortBy::ASCENDING, tuplex::SortBy::DESCENDING}).tocsv(URI(output_path));
+
+//    std::ifstream myFile(output_path);
+//    std::vector<std::string> row;
+//    std::vector<std::string> prev_row;
+//    std::string line, word;
+//    std::getline(myFile, line);
+//    while (myFile.good()) {
+//        row.clear();
+//        // read an entire row and
+//        // store it in a string variable 'line'
+//        std::getline(myFile, line);
+//        // used for breaking words
+//        std::stringstream s(line);
+//        // read every column data of a row and
+//        // store it in a string variable, 'word'
+//        while (std::getline(s, word, ',')) {
+//            // add all the column data
+//            // of a row to a vector
+//            row.push_back(word);
+//        }
+//        if (!prev_row.empty()) {
+//            EXPECT_TRUE(std::stoi(prev_row.at(3)) <= std::stoi(row.at(3)));
+//        }
+//        prev_row = row;
+//
+//    }
+}
+
+TEST_F(SortTest, FlightSampleTest1) {
+    using namespace tuplex;
+    ContextOptions co = microTestOptions();
+    co.set("tuplex.partitionSize", "32MB");
+    co.set("tuplex.webui.enable", "False");
+    co.set("tuplex.executorMemory", "1G");
+    co.set("tuplex.driverMemory", "1G");
+    co.set("tuplex.runTimeMemory", "32MB");
+    co.set("tuplex.useLLVMOptimizer", "True");
+    co.set("tuplex.optimizer.nullValueOptimization", "True");
+    co.set("tuplex.csv.selectionPushdown", "True");
+    co.set("tuplex.optimizer.generateParser", "True");
+    co.set("tuplex.optimizer.mergeExceptionsInOrder", "False");
+    co.set("tuplex.csv.filterPushdown", "True");
+    co.set("tuplex.executorCount", "0");
+    Context c(co);
+    auto file_name = "../resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv";
+//    auto file_name = "../resources/pipelines/flights/sortsample.csv";
+    auto output_path = "/Users/nathanealpitt/Desktop/tuplex/tuplex/test/core/flightoutput.csv";
+    c.csv(
+            file_name
+    ).sort({4, 3}, {tuplex::SortBy::DESCENDING, tuplex::SortBy::ASCENDING}).tocsv(URI(output_path));
+
+    std::ifstream myFile(output_path);
+    std::vector<std::string> row;
+    std::vector<std::string> prev_row;
+    std::string line, word;
+    std::getline(myFile, line);
+    while (myFile.good()) {
+        row.clear();
+        // read an entire row and
+        // store it in a string variable 'line'
+        std::getline(myFile, line);
+        // used for breaking words
+        std::stringstream s(line);
+        // read every column data of a row and
+        // store it in a string variable, 'word'
+        while (std::getline(s, word, ',')) {
+            // add all the column data
+            // of a row to a vector
+            row.push_back(word);
+        }
+        if (!prev_row.empty()) {
+            std::cout << "Start" << std::endl;
+            std::cout << prev_row.at(4) << std::endl;
+            std::cout << row.at(4) << std::endl;
+            std::cout << prev_row.at(3) << std::endl;
+            std::cout << row.at(3) << std::endl;
+            std::cout << "End" << std::endl;
+            EXPECT_TRUE(std::stoi(prev_row.at(4)) >= std::stoi(row.at(4)));
+            if (std::stoi(prev_row.at(4)) == std::stoi(row.at(4))) {
+                EXPECT_TRUE(std::stoi(prev_row.at(3)) <= std::stoi(row.at(3)));
+            }
+        }
+        prev_row = row;
+
+    }
+}
+
+TEST_F(SortTest, FlightSampleTest2) {
     using namespace tuplex;
     ContextOptions co = microTestOptions();
     co.set("tuplex.partitionSize", "32MB");
@@ -247,48 +412,42 @@ TEST_F(SortTest, SinglePartitionIntOptSort) {
     co.set("tuplex.optimizer.mergeExceptionsInOrder", "False");
     co.set("tuplex.csv.filterPushdown", "True");
     Context c(co);
-//    tuplex::Executor* executor = c.getDriver();
-//    auto f1 = Field((int64_t)9);
-//    f1.makeOptional();
-//    auto f2 = Field((int64_t)4);
-//    f2.makeOptional();
-//    auto f3 = Field((int64_t)5);
-//    f3.makeOptional();
-//    auto f4 = Field((int64_t)1);
-//    f4.makeOptional();
-//    std::vector<tuplex::Row> rows = {
-//            tuplex::Row(f1),
-//            tuplex::Row(f2),
-//            tuplex::Row(f3),
-//            tuplex::Row(f4),
-//    };
-//    std::vector<tuplex::Row> sortedRows = {
-//            tuplex::Row(f4),
-//            tuplex::Row(f3),
-//            tuplex::Row(f2),
-//            tuplex::Row(f1),
-//    };
-//    std::vector<size_t> order = {0};
-//    std::vector<tuplex::SortBy> orderEnums = {tuplex::SortBy::ASCENDING};
-//    auto sortedPartitions = c.parallelize(rows).sort(order, orderEnums).collectAsVector();
-//    EXPECT_EQ(sortedPartitions[0].getInt(0), 1);
-//    EXPECT_EQ(sortedPartitions[1].getInt(0), 4);
-//    EXPECT_EQ(sortedPartitions[2].getInt(0), 5);
-//    EXPECT_EQ(sortedPartitions[3].getInt(0), 9);
+    auto file_name = "../resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv";
+//    auto file_name = "../resources/pipelines/flights/sortsample.csv";
+    auto output_path = "/Users/nathanealpitt/Desktop/tuplex/tuplex/test/core/flightoutput.csv";
 
-    c.csv("../resources/pipelines/flights/sortsample10.csv").map(UDF("lambda x: x[0] + 1")).collectAsVector();
     c.csv(
-            "../resources/pipelines/flights/sortsample10.csv"
-            ).sort({3}, {tuplex::SortBy::ASCENDING}).tocsv(URI("/Users/nathanealpitt/Desktop/tuplex/tuplex/test/core/sortsampleoutput.csv"));
-//    for (int i = 0; i < d.size(); i++) {
-//        std::cout << d[i].getInt(3) << std::endl;
-//        std::cout << d[i].toPythonString() << std::endl;
-//    }
-//    auto i = 0;
-//    const python::Type& type = python::Type::makeTupleType({python::Type::I64});
-//    std::vector<tuplex::Partition*> sortedPartitions2 = constructTestPartitions(executor, sortedRows, type);
-//
-//    EXPECT_TRUE(checkEqualPartitions(sortedPartitions, sortedPartitions2));
+            file_name
+    ).sort({3, 15}, {tuplex::SortBy::ASCENDING_LENGTH, tuplex::SortBy::DESCENDING_LEXICOGRAPHICALLY}).tocsv(URI(output_path));
+
+    std::ifstream myFile(output_path);
+    std::vector<std::string> row;
+    std::vector<std::string> prev_row;
+    std::string line, word;
+    std::getline(myFile, line);
+    while (myFile.good()) {
+        row.clear();
+        // read an entire row and
+        // store it in a string variable 'line'
+        std::getline(myFile, line);
+        // used for breaking words
+        std::stringstream s(line);
+        // read every column data of a row and
+        // store it in a string variable, 'word'
+        while (std::getline(s, word, ',')) {
+            // add all the column data
+            // of a row to a vector
+            row.push_back(word);
+        }
+        if (!prev_row.empty()) {
+            EXPECT_TRUE(prev_row.at(3).length() <= row.at(3).length());
+            if (prev_row.at(3).length() == row.at(3).length()) {
+                EXPECT_TRUE(prev_row.at(15) >= row.at(15));
+            }
+        }
+        prev_row = row;
+
+    }
 }
 
 // TODO: dict tests

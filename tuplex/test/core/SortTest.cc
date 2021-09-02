@@ -254,7 +254,8 @@ TEST_F(SortTest, FlightSampleTest9999) {
     co.set("tuplex.csv.filterPushdown", "True");
     co.set("tuplex.executorCount", "0");
     Context c(co);
-    auto file_name = "../resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv";
+   // auto file_name = "../resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv";
+    auto file_name = "/hot/data/flights/flights_on_time_performance_2009_01.csv";
 //    auto file_name = "../resources/pipelines/flights/sortsample.csv";
     auto output_path = "/Users/nathanealpitt/Desktop/tuplex/tuplex/test/core/flightoutput.csv";
     c.csv(
@@ -304,7 +305,8 @@ TEST_F(SortTest, FlightSampleTest0) {
     co.set("tuplex.csv.filterPushdown", "True");
     co.set("tuplex.executorCount", "0");
     Context c(co);
-    auto file_name = "../resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv";
+    //auto file_name = "../resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv";
+        auto file_name = "/hot/data/flights/flights_on_time_performance_2009_01.csv";
 //    auto file_name = "../resources/pipelines/flights/sortsample.csv";
     auto output_path = "/Users/nathanealpitt/Desktop/tuplex/tuplex/test/core/flightoutput.csv";
     c.csv(

@@ -22,6 +22,77 @@ static size_t fixedLengthTypeSerializationSize(const python::Type& type) {
     }
 }
 
+size_t calcBitmapSize(const std::vector<bool> &bitmap) {
+    int num_nullable_fields = 0;
+    for (auto b : bitmap)
+        num_nullable_fields += b;
+
+    // compute how many bytes are required to store the bitmap!
+    size_t num = 0;
+    while (num_nullable_fields > 0) {
+        num++;
+        num_nullable_fields -= 64;
+    }
+    return num * sizeof(int64_t); // multiple of 64bit because of alignment
+}
+
+bool hasSchemaVarLenFields(std::vector<bool> isVarLenField) {
+    // from _isVarLenField, if any element is set to true return true
+    return std::any_of(isVarLenField.begin(), isVarLenField.end(), [](bool b) { return b; });
+}
+
+size_t inferLength(const void *ptr, size_t bitmapSize, size_t numSerializedFields, std::vector<bool> isVarLenField,
+                   python::Type flattenedRowType, std::unordered_map<size_t, size_t> idxMap) {
+    // it is sure that there 8 x _isVarLenField.size() bytes readable from ptr
+    int fixedLenFieldsLength = sizeof(int64_t) * numSerializedFields;
+
+    // compute bitmap size
+    fixedLenFieldsLength += bitmapSize;
+
+    // check two versions:
+    // 1st consistency?
+    size_t altSize = 0;
+
+    // is there a varfield? then fetch length!
+    size_t varLenFieldsLength = hasSchemaVarLenFields(isVarLenField) ? *((int64_t *) ((uint8_t *) ptr + fixedLenFieldsLength))
+                                                        : 0;
+    for (int i = 0; i < isVarLenField.size(); ++i) {
+        if (isVarLenField[i]) {
+
+            // NULL, empty dict, empty tuple should not be varlen fields...
+            auto el_type = flattenedRowType.parameters()[i];
+            assert(el_type != python::Type::NULLVALUE &&
+                   el_type != python::Type::EMPTYDICT &&
+                   el_type != python::Type::EMPTYTUPLE &&
+                   el_type != python::Type::EMPTYLIST);
+
+            auto phys_col = idxMap.at(i);
+            // extract!
+            int64_t offset = *((int64_t *) ((uint8_t *) ptr + sizeof(int64_t) * phys_col + bitmapSize));
+            int64_t size = ((offset & (0xFFFFFFFFul << 32ul)) >> 32);
+            altSize += size;
+        }
+    }
+
+    assert(altSize == varLenFieldsLength);
+
+    // is any varlenfield contained?
+    if (hasSchemaVarLenFields(isVarLenField)) {
+        // decode var len size
+        return fixedLenFieldsLength + sizeof(int64_t) + varLenFieldsLength;
+    } else {
+        return fixedLenFieldsLength;
+    }
+}
+
+#include <TupleTree.h>
+
+python::Type flattenedType(const python::Type& type) {
+    tuplex::TupleTree<int> tree(type);
+
+    return python::Type::makeTupleType(tree.fieldTypes());
+}
+
 // offsets of the form <offset of beginning of row from start of partition...
 // ..., offset of end of row from start of partition> are dynamically
 // calculated by iterating through the rows of the partition and getting
@@ -32,17 +103,65 @@ static std::vector<PartitionSortType> dynamicallyComputeOffsets(const tuplex::Sc
 
     std::vector<PartitionSortType> offsets;
     offsets.reserve(numRows);
-    size_t totalAllocated = 0;
-    for (size_t i = 0; i < numRows; i++) {
-        tuplex::Row row = tuplex::Row::fromMemory(schema, ptr + totalAllocated, partitionCapacity - totalAllocated);
-//        std::cout << "Comp. Offset - Row: " << row.toPythonString() << std::endl;
-        size_t length = row.serializedLength();
-//        std::cout << "Comp. Offset - Length: " << length << std::endl;
-        auto offset = std::make_pair(totalAllocated, totalAllocated + length);
-        offsets.emplace_back(std::make_pair(std::make_pair(partitionNum, i), offset));
-        totalAllocated += length;
+
+    python::Type flattenedRowType = flattenedType(schema.getRowType());
+    // determine from flattened Schema which fields are varlength
+    auto params = flattenedRowType.parameters();
+
+    size_t curIdx = 0;
+    size_t numSerializedFields = 0;
+    std::unordered_map<size_t, size_t> idxMap = {};
+    std::vector<bool> requiresBitmap = {};
+    std::vector<bool> isVarLenField = {};
+    for (int i = 0; i < params.size(); ++i) {
+        auto el = params[i];
+
+        auto type = el.isOptionType() ? el.getReturnType() : el;
+
+        // types that do not get serialized, because they're constants
+        if(!type.isSingleValued()) {
+            numSerializedFields++;
+            idxMap[i] = curIdx++;
+        }
+
+        // only option types require a bitmap entry!
+        requiresBitmap.push_back(el.isOptionType());
+
+        // IMPORTANT: _isVarLenField has a value for every single object, so it is not the exact same as _isVarLenField in Serializer
+        if(type.isSingleValued()) {
+            isVarLenField.push_back(false); // Opt[()], Opt[{}] are not varlenfields
+        } else if (type == python::Type::BOOLEAN
+                   || type == python::Type::I64
+                   || type == python::Type::F64
+                   || (type.isListType() && type.elementType().isSingleValued())) {
+            isVarLenField.push_back(false); // logical
+        } else if (type == python::Type::STRING ||
+                   type == python::Type::PYOBJECT ||
+                   type.isDictionaryType() ||
+                   type == python::Type::GENERICDICT ||
+                   (type.isListType() && !type.elementType().isSingleValued())) {
+            isVarLenField.push_back(true);
+        } else {
+            Logger::instance().logger("core").error("non deserializable type '" + el.desc() + "' detected");
+        }
     }
 
+    // TODO
+    auto bitmapsize = calcBitmapSize(requiresBitmap);
+    auto total_allocated = 0;
+    tuplex::Timer timee;
+    for (size_t i = 0; i < numRows; i++) {
+        size_t length = inferLength(ptr + total_allocated, bitmapsize, numSerializedFields,
+                                    isVarLenField, flattenedRowType, idxMap);
+//        std::cout << "length: " << length << std::endl;
+//        auto gotchu = sizeof(int64_t) * numSerializedFields + bitmapsize;
+//        gotchu += *((int64_t *) ptr + total_allocated + gotchu);
+//        std::cout << "gotchu: " << gotchu << std::endl;
+        auto offset = std::make_pair(total_allocated, total_allocated + length);
+        offsets.emplace_back(std::make_pair(std::make_pair(partitionNum, i), offset));
+        total_allocated += length;
+    }
+    std::cout << "echo: " << timee.time() << std::endl;
     std::cout << "\t\t\tFinished dynamicallyComputeOffsets in " << timer.time() << "s" << std::endl;
 
 
@@ -149,20 +268,6 @@ std::vector<tuplex::SortBy> genComparisonOrderEnum(int numColumns, std::vector<t
     //    return ret;
 }
 
-size_t calcBitmapSize(const std::vector<bool> &bitmap) {
-    int num_nullable_fields = 0;
-    for (auto b : bitmap)
-        num_nullable_fields += b;
-
-    // compute how many bytes are required to store the bitmap!
-    size_t num = 0;
-    while (num_nullable_fields > 0) {
-        num++;
-        num_nullable_fields -= 64;
-    }
-    return num * sizeof(int64_t); // multiple of 64bit because of alignment
-}
-
 struct TuplexSortComparator {
     // constructor
     // std::vector<const uint8_t*> partitionPtrs: the partitions that
@@ -181,12 +286,14 @@ struct TuplexSortComparator {
         this->orderEnum = genComparisonOrderEnum(numColumns, orderEnum);
         // get flattened type representation
 
+        std::vector<bool> requiresBitmap;
         // determine from flattened Schema which fields are varlength
         auto params = schema.getRowType().parameters();
         for (int i = 0; i < params.size(); ++i) {
             auto el = params[i];
-            _requiresBitmap.push_back(el.isOptionType());
+            requiresBitmap.push_back(el.isOptionType());
         }
+        _bitmap_size = calcBitmapSize(requiresBitmap);
     }
 
     //    class SortBy(Enum):
@@ -352,18 +459,18 @@ struct TuplexSortComparator {
 //                                                           l.second.second - l.second.first);
 //                std::string lStr2 = lRow.getString(currentColIndex);
 //                std::cout << "lStr2: " << lStr2 << std::endl;
-                uint64_t lOffset = *((uint64_t *)((uint8_t *) partitionPtrs.at(l.first.first) + l.second.first + currentColIndex * sizeof(int64_t) +calcBitmapSize(_requiresBitmap)));
+                uint64_t lOffset = *((uint64_t *)((uint8_t *) partitionPtrs.at(l.first.first) + l.second.first + currentColIndex * sizeof(int64_t) + _bitmap_size));
 //                std::cout << "lOffset (0): " <<lOffset << std::endl;
-                uint64_t rOffset = *((uint64_t *)((uint8_t *) partitionPtrs.at(r.first.first) + r.second.first + currentColIndex * sizeof(int64_t)+calcBitmapSize(_requiresBitmap)));
+                uint64_t rOffset = *((uint64_t *)((uint8_t *) partitionPtrs.at(r.first.first) + r.second.first + currentColIndex * sizeof(int64_t)+ _bitmap_size));
                 int64_t lLen = ((lOffset & 0xFFFFFFFFul << 32) >> 32) - 1;
 //                std::cout << "lLen: " << lLen << std::endl;
                 int64_t rLen = ((rOffset & 0xFFFFFFFFul << 32) >> 32) - 1;
                 lOffset = lOffset & 0xFFFFFFFFul;
 //                std::cout << "lOffset: " << lOffset << std::endl;
                 rOffset = rOffset & 0xFFFFFFFFul;
-                uint8_t *lPtr = (uint8_t *) partitionPtrs.at(l.first.first) + l.second.first + currentColIndex * 8 + calcBitmapSize(_requiresBitmap) + lOffset;
+                uint8_t *lPtr = (uint8_t *) partitionPtrs.at(l.first.first) + l.second.first + currentColIndex * 8 + _bitmap_size + lOffset;
 //                std::cout << "lPtr: " << lPtr << std::endl;
-                uint8_t *rPtr = (uint8_t *) partitionPtrs.at(r.first.first) + r.second.first + currentColIndex * 8 + calcBitmapSize(_requiresBitmap) + rOffset;
+                uint8_t *rPtr = (uint8_t *) partitionPtrs.at(r.first.first) + r.second.first + currentColIndex * 8 + _bitmap_size + rOffset;
 //                assert(lLen >= 0);
 //                assert(rLen >= 0);
                 char *Lcstr = (char *) lPtr;
@@ -527,7 +634,7 @@ struct TuplexSortComparator {
     // the order of columns to sort by
     std::vector<size_t> colIndicesInOrderToSortBy;
     std::vector<tuplex::SortBy> orderEnum;
-    std::vector<bool> _requiresBitmap;
+    size_t _bitmap_size;
 };
 
 // standardSort sorts a partition's offsets using the TuplexSortComparator
@@ -697,8 +804,8 @@ std::vector<tuplex::Partition*> mergeKPartitions(
         // get the next smallest value of all the partitions (top of heap)
         PartitionSortType min = frontierIndices.top();
         // get the row corresponding with the offset
-        tuplex::Row row = tuplex::Row::fromMemory(schema, partitionPtrs.at(min.first.first) + min.second.first,
-                                                  min.second.first + min.second.second);
+//        tuplex::Row row = tuplex::Row::fromMemory(schema, partitionPtrs.at(min.first.first) + min.second.first,
+//                                                  min.second.first + min.second.second);
 
         // **** DEBUG:  PRINTING OUT PROBLEM ROW
 //        if (row.getInt(3) == 27) {
@@ -717,7 +824,7 @@ std::vector<tuplex::Partition*> mergeKPartitions(
 
 //        auto bbool = pw.writeRow(row);
 
-        auto bbool = pw.writeSerializedRow(row.getRowType(), partitionPtrs.at(min.first.first) + min.second.first,
+        auto bbool = pw.writeSerializedRow(partitionPtrs.at(min.first.first) + min.second.first,
                                         min.second.second - min.second.first);
 
         if (!bbool) {

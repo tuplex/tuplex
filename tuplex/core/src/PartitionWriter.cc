@@ -41,14 +41,8 @@ namespace tuplex {
         assert(bytesRequired <= _capacityLeft);
     }
 
-    bool PartitionWriter::writeSerializedRow(const python::Type schema, const uint8_t* readPtr,
+    bool PartitionWriter::writeSerializedRow(const uint8_t* readPtr,
                                              const uint64_t length) {
-        if(python::Type::propagateToTupleType(schema) != _schema.getRowType()) {
-#ifndef NDEBUG
-            Logger::instance().defaultLogger().error("attempting to write row with type");
-#endif
-            return false;
-        }
 
         // write to current partition...
         makeSpace(length);

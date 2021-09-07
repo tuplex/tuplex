@@ -738,6 +738,8 @@ namespace tuplex {
     }
 
 
+
+
     size_t Serializer::length() {
         // just use the size calculations from above
         // if not done, fix schema

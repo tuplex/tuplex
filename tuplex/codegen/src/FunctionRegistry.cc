@@ -151,6 +151,9 @@ namespace tuplex {
                         {args.front().val});
                 return SerializableValue(obj_size, i64Size);
             } else if(argType.isListType() || argType == python::Type::GENERICLIST) {
+                if(argType == python::Type::EMPTYLIST) {
+                    return SerializableValue(_env.i64Const(0), _env.i64Const(8));
+                }
                 assert(args.front().val);
                 auto name = _env.getLLVMTypeName(args.front().val->getType());
                 return SerializableValue(_env.getListSize(builder, args.front().val, argType), _env.i64Const(sizeof(int64_t)));

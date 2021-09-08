@@ -620,4 +620,19 @@ TEST_F(DataSetTest, LenEmptyListDictTuple) {
     EXPECT_EQ(res.size(), 2);
     EXPECT_EQ(res[0].getInt(0), 0);
     EXPECT_EQ(res[1].getInt(0), 0);
+
+    res = c.parallelize({Row(0), Row(1)}).map(UDF("lambda x: len([])")).collectAsVector();
+    EXPECT_EQ(res.size(), 2);
+    EXPECT_EQ(res[0].getInt(0), 0);
+    EXPECT_EQ(res[1].getInt(0), 0);
+
+    res = c.parallelize({Row(0), Row(1)}).map(UDF("lambda x: len({})")).collectAsVector();
+    EXPECT_EQ(res.size(), 2);
+    EXPECT_EQ(res[0].getInt(0), 0);
+    EXPECT_EQ(res[1].getInt(0), 0);
+
+    res = c.parallelize({Row(0), Row(1)}).map(UDF("lambda x: len(())")).collectAsVector();
+    EXPECT_EQ(res.size(), 2);
+    EXPECT_EQ(res[0].getInt(0), 0);
+    EXPECT_EQ(res[1].getInt(0), 0);
 }

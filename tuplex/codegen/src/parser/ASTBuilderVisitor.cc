@@ -1118,30 +1118,6 @@ namespace tuplex {
         return nullptr;
     }
 
-    antlrcpp::Any ASTBuilderVisitor::visitTestlist(antlr4::Python3Parser::TestlistContext *context) {
-        visitChildren(context);
-
-        // if more than one tests in testlist, wrap them in a tuple so that for loop can recognize it as a single node
-        int testlist_elements = context->test().size();
-        assert(nodes.size() >= testlist_elements);
-        std::vector<ASTNode*> testlist;
-        for (int i = 0; i < testlist_elements; ++i) {
-            testlist.push_back(popNode());
-        }
-        std::reverse(testlist.begin(), testlist.end());
-
-        // push tuple of tests or single test
-        if(1 == testlist_elements) {
-            pushNode(testlist.front());
-        } else {
-            auto t = new NTuple();
-            t->_elements = testlist;
-            pushNode(t);
-        }
-
-        return nullptr;
-    }
-
     antlrcpp::Any ASTBuilderVisitor::visitExprlist(antlr4::Python3Parser::ExprlistContext *context) {
         visitChildren(context);
 
@@ -1224,24 +1200,34 @@ namespace tuplex {
     antlrcpp::Any ASTBuilderVisitor::visitFor_stmt(antlr4::Python3Parser::For_stmtContext *ctx) {
         visitChildren(ctx);
 
+        // for exprlist in testlist
         assert(ctx->FOR());
         assert(ctx->IN());
 
-        ASTNode* suite_else;
+        ASTNode* suite_else = nullptr;
         if(ctx->ELSE()) {
             // for ... else ...
             suite_else = popNode();
             assert(suite_else->type() == ASTNodeType::Suite);
-        } else {
-            // for ... statement only
-            suite_else = nullptr;
         }
         auto suite_body = popNode();
         assert(suite_body->type() == ASTNodeType::Suite);
-        auto lst = popNode();
-        auto target = popNode();
+        // if multiple tests in testlist, wrap them in a tuple
+        auto testlist_size = ctx->testlist()->test().size();
+        assert(nodes.size() >= testlist_size+1);
+        std::vector<ASTNode*> testlist(testlist_size);
+        for (auto i = testlist_size-1; i >= 0; --i) {
+            testlist[i] = popNode();
+        }
+        auto exprlist = popNode(); // handled in visitExprlist
 
-        pushNode(new NFor(target, lst, suite_body, suite_else));
+        if(testlist_size == 1) {
+            auto tuple = new NTuple;
+            tuple->_elements = testlist;
+            pushNode(new NFor(exprlist, tuple, suite_body, suite_else));
+        } else {
+            pushNode(new NFor(exprlist, testlist.front(), suite_body, suite_else));
+        }
         return nullptr;
     }
 

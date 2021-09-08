@@ -108,16 +108,17 @@ namespace codegen {
                 //         assert(llvm::isa<llvm::Constant>(nullPtr));
                 // }
 
-                // iterator slot may does not have ptr yet
+                // iterator slot may not have ptr yet
                 return codegen::SerializableValue(ptr ? builder.CreateLoad(ptr) : nullptr, builder.CreateLoad(sizePtr),
                         nullPtr ? builder.CreateLoad(nullPtr) : nullptr);
             }
 
             inline void store(llvm::IRBuilder<>& builder, const codegen::SerializableValue& val) {
-                // assert(ptr && sizePtr);
+                // assert(sizePtr);
+                // iterator slot may not have ptr yet
 
                 if(val.val) {
-
+                    assert(ptr);
                     // if tuples etc. are used, then there could be a pointer. When this happens, load & then assign
                     if(val.val->getType() == ptr->getType()) {
                         // load val
@@ -136,9 +137,6 @@ namespace codegen {
                         assert(val.val->getType()->getPointerTo(0) == ptr->getType());
                         builder.CreateStore(val.val, ptr);
                     }
-                } else {
-                    // iterator val slot may not have ptr yet
-                    ptr = nullptr;
                 }
 
                 if(val.size) {

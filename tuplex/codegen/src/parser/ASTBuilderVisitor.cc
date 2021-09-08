@@ -1216,12 +1216,12 @@ namespace tuplex {
         auto testlist_size = ctx->testlist()->test().size();
         assert(nodes.size() >= testlist_size+1);
         std::vector<ASTNode*> testlist(testlist_size);
-        for (auto i = testlist_size-1; i >= 0; --i) {
-            testlist[i] = popNode();
+        for (auto i = 0; i < testlist_size; ++i) {
+            testlist[testlist_size-1-i] = popNode();
         }
         auto exprlist = popNode(); // handled in visitExprlist
 
-        if(testlist_size == 1) {
+        if(testlist_size > 1) {
             auto tuple = new NTuple;
             tuple->_elements = testlist;
             pushNode(new NFor(exprlist, tuple, suite_body, suite_else));

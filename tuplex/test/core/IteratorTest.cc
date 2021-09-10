@@ -419,7 +419,7 @@ TEST_F(IteratorTest, CodegenTestNestedIteratorII) {
     EXPECT_EQ(v[0].toPythonString(), "((((0,10,'A','a'),(1,20,'B','b'),0,10),(2,30,'C','c'),'A','a'),(((3,40,'D','d'),(4,50,'E','e'),1,20),(5,60,'F','f'),'B','b'))");
 }
 
-TEST_F(IteratorTest, CodegenTestIfWithIterator) {
+TEST_F(IteratorTest, CodegenTestIfWithIteratorI) {
     using namespace tuplex;
     Context c(microTestOptions());
 
@@ -436,4 +436,25 @@ TEST_F(IteratorTest, CodegenTestIfWithIterator) {
 
     EXPECT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], 1);
+}
+
+TEST_F(IteratorTest, CodegenTestIfWithIteratorII) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    a = iter(x)\n"
+                "    while True:\n"
+                "        if next(a) == 3:\n"
+                "            break\n"
+                "        else:\n"
+                "            next(a)\n"
+                "    return next(a)\n";
+
+    auto v = c.parallelize({
+        Row(List(1, 2, 3, 4))
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(4));
 }

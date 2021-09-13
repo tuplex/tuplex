@@ -32,6 +32,7 @@ namespace tuplex { namespace orc {
             }
 
             uint64_t getNaturalWriteSize() const override {
+                // Constant value from Orc's `OrcFile.cc` definition.
                 return 128 * 1024;
             }
 

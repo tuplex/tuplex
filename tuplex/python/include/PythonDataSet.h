@@ -130,7 +130,15 @@ namespace tuplex {
               const std::string& null_value="",
               boost::python::object header=boost::python::object());
 
-        // TOOD: Doc string
+        /*!
+         * save dataset to one or more orc files. Triggers execution of pipeline.
+         * @param file_path path where to save files to
+         * @param lambda_code UDF string
+         * @param pickled_code UDF string
+         * @param fileCount number of parts to split output into. The last part will be the smallest
+         * @param shardSize optional size in bytes for each part to not exceed
+         * @param limit maximum number of rows
+         */
         void toorc(const std::string &file_path,
                    const std::string &lambda_code = "",
                    const std::string &pickled_code = "",

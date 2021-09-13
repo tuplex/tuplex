@@ -44,8 +44,9 @@ ORC_UNIQUE_PTR<::orc::Type> tuplexRowTypeToOrcType(const python::Type &rowType, 
         return ::orc::createListType(std::move(elementType));
     } else if (rowType.isOptionType()) {
         return tuplexRowTypeToOrcType(rowType.elementType());
+    } else {
+        throw std::runtime_error("Tuplex row type unable to be mapped to Orc row type");
     }
-    throw std::runtime_error("Tuplex row type unable to be mapped to Orc row type");
 }
 
 python::Type orcRowTypeToTuplex(const ::orc::Type &rowType, std::vector<bool> &columnHasNull) {
@@ -129,7 +130,7 @@ python::Type orcTypeToTuplex(const ::orc::Type &type, bool hasNull) {
             }
         }
         default:
-            throw std::runtime_error("Orc row type unable to be converted to Tuplex type");
+            throw std::runtime_error("Orc row type: " + type.toString() + " unable to be converted to Tuplex type");
     }
 }
 

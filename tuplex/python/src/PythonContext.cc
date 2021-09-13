@@ -1122,7 +1122,17 @@ namespace tuplex {
         auto columns = extractFromListOfStrings(cols.ptr(), "columns ");
 
         python::unlockGIL();
-        ds = &_context->orc(pattern, columns);
+        DataSet *ds = nullptr;
+        std::string err_message = "";
+        try {
+            ds = &_context->orc(pattern, columns);
+        } catch(const std::exception& e) {
+            err_message = e.what();
+            Logger::instance().defaultLogger().error(err_message);
+        } catch(...) {
+            err_message = "unknown C++ exception occurred, please change type.";
+            Logger::instance().defaultLogger().error(err_message);
+        }
         python::lockGIL();
 
         // assign dataset to wrapper

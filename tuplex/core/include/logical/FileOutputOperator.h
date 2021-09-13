@@ -63,6 +63,7 @@ namespace tuplex {
                     // single string (per row)
                     return Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(python::Type::STRING));
                 case FileFormat::OUTFMT_ORC:
+                    // No translation performed on rows
                     return getInputSchema();
                 default:
                     throw std::runtime_error("file output operator get output schema not supported yet!");

@@ -456,7 +456,7 @@ class DataSet:
         self._dataSet.tocsv(path, code, code_pickled, num_parts, part_size, num_rows, null_value, header)
 
     def toorc(self, path, part_size=0, num_rows=max_rows, num_parts=0, part_name_generator=None):
-        """ save dataset to one or more orc files. Triggers exection of pipeline.
+        """ save dataset to one or more orc files. Triggers execution of pipeline.
         Args:
         path: path where to save files to
         split_size: optional size in bytes for each part to not exceed.
@@ -475,8 +475,8 @@ class DataSet:
             try:
                 # convert code object to str representation
                 code = get_udf_source(part_name_generator)
-            except Exception as e:
-                raise Exception('Could not extract code for {}.Details:\n{}'.format(part_name_generator, e))
+            except UDFCodeExtractionError as e:
+                logging.warn('Could not extract code for {}. Details:\n{}'.format(ftor, e))
 
         if num_rows > max_rows:
             raise Exception('Tuplex supports at most {} rows'.format(max_rows))

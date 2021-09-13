@@ -35,6 +35,10 @@ namespace tuplex {
         size_t inputRowCount() const override { return _numRowsRead; }
         virtual ~OrcReader() {}
 
+        /*!
+         * read the contents of an Orc file into Tuplex memory
+         * @param inputFilePath
+         */
         void read(const URI& inputFilePath) override {
             using namespace ::orc;
             auto inStream = std::make_unique<orc::VirtualInputStream>(inputFilePath);
@@ -120,6 +124,8 @@ namespace tuplex {
                     return new StringBatch(orcType, numRows, isOption);
                 } else if (rowType == python::Type::BOOLEAN) {
                     return new BoolBatch(orcType, numRows, isOption);
+                } else {
+                    throw std::runtime_error("python row type is unsupported")
                 }
             } else if (rowType.isListType()) {
                 auto list = static_cast<::orc::ListVectorBatch *>(orcType);
@@ -139,8 +145,9 @@ namespace tuplex {
                     children.push_back(rowTypeToOrcBatch(rowType.parameters().at(i), structType->fields[i], numRows, isOption));
                 }
                 return new TupleBatch(orcType, children, numRows, isOption);
+            } else {
+                throw std::runtime_error("python row type is unsupported")
             }
-            return nullptr;
         }
     };
 }

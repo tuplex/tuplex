@@ -740,13 +740,22 @@ namespace tuplex {
             outputOptions["columnNames"] = csvToHeader(_dataset->columns());
 
             python::unlockGIL();
-            _dataset->tofile(FileFormat::OUTFMT_ORC,
-                             URI(file_path),
-                             UDF(lambda_code, pickled_code),
-                             fileCount,
-                             shardSize,
-                             outputOptions,
-                             limit);
+            std::string err_message = "";
+            try {
+                _dataset->tofile(FileFormat::OUTFMT_ORC,
+                                 URI(file_path),
+                                 UDF(lambda_code, pickled_code),
+                                 fileCount,
+                                 shardSize,
+                                 outputOptions,
+                                 limit);
+            } catch(const std::exception& e) {
+                err_message = e.what();
+                Logger::instance().defaultLogger().error(err_message);
+            } catch(...) {
+                err_message = "unknown C++ exception occurred, please change type.";
+                Logger::instance().defaultLogger().error(err_message);
+            }
             Logger::instance().flushAll();
             python::lockGIL();
         }

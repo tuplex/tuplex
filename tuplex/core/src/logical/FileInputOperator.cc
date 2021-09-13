@@ -334,15 +334,15 @@ namespace tuplex {
             _normalCaseRowType = tuplexType;
             _estimatedRowCount = numRows * _fileURIs.size();
 
-            bool unset = true;
+            bool hasColumnNames = false;
             for (uint64_t i = 0; i < orcType.getSubtypeCount(); ++i) {
                 const auto& name = orcType.getFieldName(i);
                 if (!name.empty()) {
-                    unset = false;
+                    hasColumnNames = true;
                 }
                 _columnNames.push_back(name);
             }
-            if (unset) {
+            if (!hasColumnNames) {
                 _columnNames.clear();
             }
 

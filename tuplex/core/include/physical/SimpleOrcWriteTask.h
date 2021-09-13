@@ -27,176 +27,177 @@
 namespace tuplex {
 
 /*!
- * Simple class to write several blocks of memory to Orc file format.
+ * Simple class to write several Tuplex in-memory blocks to Orc file format.
  */
-    class SimpleOrcWriteTask : public IExecutorTask {
-    public:
-        SimpleOrcWriteTask() = delete;
-        SimpleOrcWriteTask(const URI& uri, const std::vector<Partition *> &partitions, const Schema &schema, const std::string &columns) : _uri(uri),
-                                                                                                                                           _partitions(partitions.begin(), partitions.end()), _schema(schema), _columns(columnStringToVector(columns)) {}
+class SimpleOrcWriteTask : public IExecutorTask {
+public:
+    SimpleOrcWriteTask() = delete;
+    SimpleOrcWriteTask(const URI& uri, const std::vector<Partition *> &partitions, const Schema &schema, const std::string &columns) : _uri(uri),
+                                                                                                                                       _partitions(partitions.begin(), partitions.end()), _schema(schema), _columns(columnStringToVector(columns)) {}
 
-        void execute() override {
-            auto& logger = Logger::instance().defaultLogger();
+    void execute() override {
+        auto& logger = Logger::instance().defaultLogger();
 
-            Timer timer;
+        Timer timer;
 
-            if (_uri == URI::INVALID) {
-                abort("invalid URI to ORC writeToFile Task given");
-            }
-
-            if (_partitions.empty()) {
-                return;
-            }
-
-            using namespace ::orc;
-            auto outStream = new orc::VirtualOutputStream(_uri);
-            ORC_UNIQUE_PTR<Type> schema(orc::tuplexRowTypeToOrcType(_schema.getRowType(), _columns));
-            if (!schema) {
-                abort("error creating Orc schema.");
-            }
-
-            WriterOptions options; // TODO: See if want to designate options or let user decide any
-            ORC_UNIQUE_PTR<Writer> writer = createWriter(*schema, outStream, options);
-            if (!writer) {
-                abort("error creating Orc writer.");
-            }
-
-            size_t totalBytes = 0;
-            size_t totalRows = 0;
-            for (auto p : _partitions) {
-                auto numBytes = p->bytesWritten();
-                auto numRows = p->getNumRows();
-
-                totalBytes += numBytes;
-                totalRows += numRows;
-
-                auto ptr = p->lock();
-                auto endptr = ptr + p->capacity();
-
-                ORC_UNIQUE_PTR<ColumnVectorBatch> batch = writer->createRowBatch(numRows);
-
-                std::vector<orc::OrcBatch *> orcColumns;
-                std::unordered_map<int, int> orcColumnToRowIndexMap;
-                int nextIndex = 0;
-
-                initColumns(_schema.getRowType(), batch.get(), numRows, nextIndex, _schema.getRowType().isOptionType(), orcColumns, orcColumnToRowIndexMap);
-
-                auto tree = TupleTree<int>(_schema.getRowType());
-                auto flattenedSchema = Schema(_schema.getMemoryLayout(), python::Type::makeTupleType(tree.fieldTypes()));
-
-                for (uint64_t r = 0; r < numRows; ++r) {
-                    Row row = Row::fromMemory(flattenedSchema, ptr, endptr - ptr);
-                    for (uint64_t i = 0; i < orcColumns.size(); ++i) {
-                        auto rowInd = orcColumnToRowIndexMap[i];
-                        orcColumns.at(i)->setData(row.get(rowInd), r);
-                    }
-                    ptr += row.serializedLength();
-                }
-
-                writer->add(*batch);
-
-                batch.reset();
-
-                for (auto el : orcColumns) {
-                    delete el;
-                }
-
-                p->unlock();
-                p->invalidate();
-            }
-
-            writer->close();
-            delete outStream;
-            schema.reset();
-            writer.reset();
-
-            std::stringstream ss;
-            ss<<"[Task Finished] write to file in "
-              <<std::to_string(timer.time())<<"s (";
-            ss<<pluralize(totalRows, "row")<<", "<<sizeToMemString(totalBytes)<<")";
-            owner()->info(ss.str());
+        if (_uri == URI::INVALID) {
+            abort("invalid URI to ORC writeToFile Task given");
         }
 
-        TaskType type() const override { return TaskType::SIMPLEFILEWRITE; }
-        std::vector<Partition*> getOutputPartitions() const override { return std::vector<Partition*>{}; }
-
-    private:
-        URI _uri;
-        std::vector<Partition *> _partitions;
-        Schema _schema;
-        std::vector<std::string> _columns;
-
-        void abort(const std::string& message) {
-            throw std::runtime_error(message);
+        if (_partitions.empty()) {
+            return;
         }
 
-        void initColumns(const python::Type& rowType, ::orc::ColumnVectorBatch *orcType, const size_t numRows, int &nextIndex, bool isOption, std::vector<orc::OrcBatch *>& orcColumns, std::unordered_map<int, int>& orcColumnToRowIndexMap) {
-            using namespace ::orc;
-            if (rowType.isTupleType()) {
-                auto batch = static_cast<StructVectorBatch *>(orcType);
-                batch->numElements = numRows;
-                batch->hasNulls = isOption;
-                for (int i = 0; i < rowType.parameters().size(); ++i) {
-                    initColumns(rowType.parameters().at(i), batch->fields[i], numRows,nextIndex, isOption, orcColumns, orcColumnToRowIndexMap);
+        using namespace ::orc;
+        auto outStream = new orc::VirtualOutputStream(_uri);
+        ORC_UNIQUE_PTR<Type> schema(orc::tuplexRowTypeToOrcType(_schema.getRowType(), _columns));
+        if (!schema) {
+            abort("error creating Orc schema.");
+        }
+
+        WriterOptions options; // TODO: See if want to designate options or let user decide any
+        ORC_UNIQUE_PTR<Writer> writer = createWriter(*schema, outStream, options);
+        if (!writer) {
+            abort("error creating Orc writer.");
+        }
+
+        size_t totalBytes = 0;
+        size_t totalRows = 0;
+        for (auto p : _partitions) {
+            auto numBytes = p->bytesWritten();
+            auto numRows = p->getNumRows();
+
+            totalBytes += numBytes;
+            totalRows += numRows;
+
+            auto ptr = p->lock();
+            auto endptr = ptr + p->capacity();
+
+            ORC_UNIQUE_PTR<ColumnVectorBatch> batch = writer->createRowBatch(numRows);
+
+            std::vector<orc::OrcBatch *> orcColumns;
+            std::unordered_map<int, int> orcColumnToRowIndexMap;
+            int nextIndex = 0;
+
+            initColumns(_schema.getRowType(), batch.get(), numRows, nextIndex, _schema.getRowType().isOptionType(), orcColumns, orcColumnToRowIndexMap);
+
+            auto tree = TupleTree<int>(_schema.getRowType());
+            auto flattenedSchema = Schema(_schema.getMemoryLayout(), python::Type::makeTupleType(tree.fieldTypes()));
+
+            for (uint64_t r = 0; r < numRows; ++r) {
+                Row row = Row::fromMemory(flattenedSchema, ptr, endptr - ptr);
+                for (uint64_t i = 0; i < orcColumns.size(); ++i) {
+                    auto rowInd = orcColumnToRowIndexMap[i];
+                    orcColumns.at(i)->setData(row.get(rowInd), r);
                 }
-            } else if (rowType.isOptionType()) {
-                initColumns(rowType.elementType(), orcType, numRows,  nextIndex, true, orcColumns, orcColumnToRowIndexMap);
-            }  else {
-                auto col = rowTypeToOrcBatch(rowType, orcType, numRows, isOption);
-                orcColumnToRowIndexMap[orcColumns.size()] = nextIndex;
-                nextIndex += 1;
-                orcColumns.push_back(col);
+                ptr += row.serializedLength();
+            }
+
+            writer->add(*batch);
+
+            batch.reset();
+
+            for (auto el : orcColumns) {
+                delete el;
+            }
+
+            p->unlock();
+            p->invalidate();
+        }
+
+        writer->close();
+        delete outStream;
+        schema.reset();
+        writer.reset();
+
+        std::stringstream ss;
+        ss<<"[Task Finished] write to file in "
+          <<std::to_string(timer.time())<<"s (";
+        ss<<pluralize(totalRows, "row")<<", "<<sizeToMemString(totalBytes)<<")";
+        owner()->info(ss.str());
+    }
+
+    TaskType type() const override { return TaskType::SIMPLEFILEWRITE; }
+    std::vector<Partition*> getOutputPartitions() const override { return std::vector<Partition*>{}; }
+
+private:
+    URI _uri;
+    std::vector<Partition *> _partitions;
+    Schema _schema;
+    std::vector<std::string> _columns;
+
+    void abort(const std::string& message) {
+        throw std::runtime_error(message);
+    }
+
+    void initColumns(const python::Type& rowType, ::orc::ColumnVectorBatch *orcType, const size_t numRows, int &nextIndex, bool isOption, std::vector<orc::OrcBatch *>& orcColumns, std::unordered_map<int, int>& orcColumnToRowIndexMap) {
+        using namespace ::orc;
+        if (rowType.isTupleType()) {
+            auto batch = static_cast<StructVectorBatch *>(orcType);
+            batch->numElements = numRows;
+            batch->hasNulls = isOption;
+            for (int i = 0; i < rowType.parameters().size(); ++i) {
+                initColumns(rowType.parameters().at(i), batch->fields[i], numRows,nextIndex, isOption, orcColumns, orcColumnToRowIndexMap);
+            }
+        } else if (rowType.isOptionType()) {
+            initColumns(rowType.elementType(), orcType, numRows,  nextIndex, true, orcColumns, orcColumnToRowIndexMap);
+        }  else {
+            auto col = rowTypeToOrcBatch(rowType, orcType, numRows, isOption);
+            orcColumnToRowIndexMap[orcColumns.size()] = nextIndex;
+            nextIndex += 1;
+            orcColumns.push_back(col);
+        }
+    }
+
+    static std::vector<std::string> columnStringToVector(const std::string& columns) {
+        std::vector<std::string> result;
+        if (!columns.empty()) {
+            std::stringstream css(columns);
+            while (css.good()) {
+                std::string substr;
+                getline(css, substr, ',');
+                result.push_back(substr);
             }
         }
+        return result;
+    }
 
-        static std::vector<std::string> columnStringToVector(const std::string& columns) {
-            std::vector<std::string> result;
-            if (!columns.empty()) {
-                std::stringstream css(columns);
-                while (css.good()) {
-                    std::string substr;
-                    getline(css, substr, ',');
-                    result.push_back(substr);
-                }
+    orc::OrcBatch *rowTypeToOrcBatch(const python::Type& rowType, ::orc::ColumnVectorBatch *orcType, const size_t numRows, bool isOption) {
+        if (rowType.isPrimitiveType()) {
+            if (rowType == python::Type::I64) {
+                return new orc::I64Batch(orcType, numRows, isOption);
+            } else if (rowType == python::Type::F64) {
+                return new orc::F64Batch(orcType, numRows, isOption);
+            } else if (rowType == python::Type::STRING) {
+                return new orc::StringBatch(orcType, numRows, isOption);
+            } else if (rowType == python::Type::BOOLEAN) {
+                return new orc::BoolBatch(orcType, numRows, isOption);
+            } else {
+                throw std::runtime_error("could not convert row type to orc batch.")
             }
-            return result;
-        }
-
-        orc::OrcBatch *rowTypeToOrcBatch(const python::Type& rowType, ::orc::ColumnVectorBatch *orcType, const size_t numRows, bool isOption) {
-            if (rowType.isPrimitiveType()) {
-                if (rowType == python::Type::I64) {
-                    return new orc::I64Batch(orcType, numRows, isOption);
-                } else if (rowType == python::Type::F64) {
-                    return new orc::F64Batch(orcType, numRows, isOption);
-                } else if (rowType == python::Type::STRING) {
-                    return new orc::StringBatch(orcType, numRows, isOption);
-                } else if (rowType == python::Type::BOOLEAN) {
-                    return new orc::BoolBatch(orcType, numRows, isOption);
-                }
-            } else if (rowType.isListType()) {
-                auto list = static_cast<::orc::ListVectorBatch *>(orcType);
-                auto child = rowTypeToOrcBatch(rowType.elementType(), list->elements.get(), numRows, isOption);
-                return new orc::ListBatch(orcType, child, numRows, isOption);
-            } else if (rowType.isDictionaryType()) {
-                auto map = static_cast<::orc::MapVectorBatch *>(orcType);
-                auto keyType = rowType.keyType();
-                auto key = rowTypeToOrcBatch(rowType.keyType(), map->keys.get(), numRows, isOption);
-                auto valueType = rowType.valueType();
-                auto value = rowTypeToOrcBatch(rowType.valueType(), map->elements.get(), numRows, isOption);
-                return new orc::DictBatch(orcType, key, value, keyType, valueType, numRows, isOption);
-            } else if (rowType.isTupleType()) {
-                auto structType = static_cast<::orc::StructVectorBatch *>(orcType);
-                std::vector<orc::OrcBatch *> children;
-                for (int i = 0; i < rowType.parameters().size(); ++i) {
-                    children.push_back(rowTypeToOrcBatch(rowType.parameters().at(i), structType->fields[i], numRows, isOption));
-                }
-                return new orc::TupleBatch(orcType, children, numRows, isOption);
+        } else if (rowType.isListType()) {
+            auto list = static_cast<::orc::ListVectorBatch *>(orcType);
+            auto child = rowTypeToOrcBatch(rowType.elementType(), list->elements.get(), numRows, isOption);
+            return new orc::ListBatch(orcType, child, numRows, isOption);
+        } else if (rowType.isDictionaryType()) {
+            auto map = static_cast<::orc::MapVectorBatch *>(orcType);
+            auto keyType = rowType.keyType();
+            auto key = rowTypeToOrcBatch(rowType.keyType(), map->keys.get(), numRows, isOption);
+            auto valueType = rowType.valueType();
+            auto value = rowTypeToOrcBatch(rowType.valueType(), map->elements.get(), numRows, isOption);
+            return new orc::DictBatch(orcType, key, value, keyType, valueType, numRows, isOption);
+        } else if (rowType.isTupleType()) {
+            auto structType = static_cast<::orc::StructVectorBatch *>(orcType);
+            std::vector<orc::OrcBatch *> children;
+            for (int i = 0; i < rowType.parameters().size(); ++i) {
+                children.push_back(rowTypeToOrcBatch(rowType.parameters().at(i), structType->fields[i], numRows, isOption));
             }
-            abort("Could not convert row type to orc batch");
-            // Will not get here
-            return nullptr;
+            return new orc::TupleBatch(orcType, children, numRows, isOption);
+        } else {
+            throw std::runtime_error("could not convert row type to orc batch.");
         }
-    };
+    }
+};
 
 }
 #endif //TUPLEX_SIMPLEORCWRITETASK_H

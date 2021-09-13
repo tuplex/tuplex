@@ -44,6 +44,10 @@ namespace tuplex {
         return m;
     }
 
+    /*!
+     * default output options for Orc file format
+     * @return Key-value string map of options
+     */
     inline std::unordered_map<std::string, std::string> defaultORCOutputOptions() {
         std::unordered_map<std::string, std::string> m;
         return m;
@@ -292,6 +296,8 @@ namespace tuplex {
 
         /*!
          * saves dataset as an orc file.
+         * supported options:
+         * - "columnNames" -> column names as csv string.
          * @param uri URI of the file (if tuplex should save to multiple files, then this will create a folder, where tuplex places part files.
          * @param outputOptions Options for writing the orc file.
          * @param os

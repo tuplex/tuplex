@@ -55,7 +55,7 @@ public:
             abort("error creating Orc schema.");
         }
 
-        WriterOptions options; // TODO: See if want to designate options or let user decide any
+        WriterOptions options;
         ORC_UNIQUE_PTR<Writer> writer = createWriter(*schema, outStream, options);
         if (!writer) {
             abort("error creating Orc writer.");
@@ -173,7 +173,7 @@ private:
             } else if (rowType == python::Type::BOOLEAN) {
                 return new orc::BoolBatch(orcType, numRows, isOption);
             } else {
-                throw std::runtime_error("could not convert row type to orc batch.")
+                throw std::runtime_error("could not convert row type to orc batch.");
             }
         } else if (rowType.isListType()) {
             auto list = static_cast<::orc::ListVectorBatch *>(orcType);

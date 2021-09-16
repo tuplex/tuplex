@@ -22,7 +22,7 @@ cp ../../ubuntu1804/install_reqs.sh .
 docker build -t tuplex/ubuntu1804 . || exit 1
 
 # is upload set?
-if [[ "${UPLOAD}" == 'SET' ]]; then
-  docker login
-  docker push tuplex/ubuntu1804
-fi
+# if [[ "${UPLOAD}" == 'SET' ]]; then
+#   docker login
+#   docker push tuplex/ubuntu1804
+# fi

@@ -16,61 +16,61 @@ namespace tuplex { namespace orc {
 /*!
  * Implementation of OrcBatch for tuplex STRING types.
  */
-        class StringBatch : public OrcBatch {
-        public:
+class StringBatch : public OrcBatch {
+public:
 
-            StringBatch(::orc::ColumnVectorBatch *orcBatch, uint64_t numRows, bool isOption) : _orcBatch(
-                    static_cast<::orc::StringVectorBatch *>(orcBatch)), _buffers({}) {
-                _orcBatch->numElements = numRows;
-                _orcBatch->hasNulls = isOption;
+    StringBatch(::orc::ColumnVectorBatch *orcBatch, uint64_t numRows, bool isOption) : _orcBatch(
+            static_cast<::orc::StringVectorBatch *>(orcBatch)), _buffers({}) {
+        _orcBatch->numElements = numRows;
+        _orcBatch->hasNulls = isOption;
+    }
+
+    ~StringBatch() override {
+        for (auto el : _buffers) {
+            delete[] el;
+        }
+    }
+
+    void setData(tuplex::Field field, uint64_t row) override {
+        if (row == _orcBatch->capacity) {
+            _orcBatch->resize(_orcBatch->capacity * 2);
+        }
+        auto notNull = !field.isNull();
+        _orcBatch->notNull[row] = notNull;
+        if (notNull) {
+            auto str = std::string(reinterpret_cast<char *>(field.getPtr()));
+            char *buf = new char[str.size() + 1];
+            str.copy(buf, str.size());
+            _buffers.push_back(buf);
+            _orcBatch->data[row] = buf;
+            _orcBatch->length[row] = str.size();
+        }
+    }
+
+    void setBatch(::orc::ColumnVectorBatch *newBatch) override {
+        _orcBatch = static_cast<::orc::StringVectorBatch *>(newBatch);
+    }
+
+    tuplex::Field getField(uint64_t row) override {
+        using namespace tuplex;
+        if (_orcBatch->hasNulls) {
+            if (_orcBatch->notNull[row]) {
+                std::string str(_orcBatch->data[row], _orcBatch->data[row] + _orcBatch->length[row]);
+                return Field(option<std::string>(str));
+            } else {
+                return Field(option<std::string>::none);
             }
+        } else {
+            std::string str(_orcBatch->data[row], _orcBatch->data[row] + _orcBatch->length[row]);
+            return Field(str);
+        }
+    }
 
-            ~StringBatch() override {
-                for (auto el : _buffers) {
-                    delete[] el;
-                }
-            }
+private:
+    ::orc::StringVectorBatch *_orcBatch;
+    std::vector<char *> _buffers;
+};
 
-            void setData(tuplex::Field field, uint64_t row) override {
-                if (row == _orcBatch->capacity) {
-                    _orcBatch->resize(_orcBatch->capacity * 2);
-                }
-                auto notNull = !field.isNull();
-                _orcBatch->notNull[row] = notNull;
-                if (notNull) {
-                    auto str = std::string(reinterpret_cast<char *>(field.getPtr()));
-                    char *buf = new char[str.size() + 1];
-                    str.copy(buf, str.size());
-                    _buffers.push_back(buf);
-                    _orcBatch->data[row] = buf;
-                    _orcBatch->length[row] = str.size();
-                }
-            }
-
-            void setBatch(::orc::ColumnVectorBatch *newBatch) override {
-                _orcBatch = static_cast<::orc::StringVectorBatch *>(newBatch);
-            }
-
-            tuplex::Field getField(uint64_t row) override {
-                using namespace tuplex;
-                if (_orcBatch->hasNulls) {
-                    if (_orcBatch->notNull[row]) {
-                        std::string str(_orcBatch->data[row], _orcBatch->data[row] + _orcBatch->length[row]);
-                        return Field(option<std::string>(str));
-                    } else {
-                        return Field(option<std::string>::none);
-                    }
-                } else {
-                    std::string str(_orcBatch->data[row], _orcBatch->data[row] + _orcBatch->length[row]);
-                    return Field(str);
-                }
-            }
-
-        private:
-            ::orc::StringVectorBatch *_orcBatch;
-            std::vector<char *> _buffers;
-        };
-
-    }}
+}}
 
 #endif //TUPLEX_STRINGBATCH_H

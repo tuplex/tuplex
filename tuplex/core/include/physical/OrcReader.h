@@ -47,7 +47,6 @@ namespace tuplex {
 
             RowReaderOptions rowReaderOptions;
             ORC_UNIQUE_PTR<RowReader> rowReader = reader->createRowReader(rowReaderOptions);
-            // TODO: How many rows to read in each batch?
             ORC_UNIQUE_PTR<ColumnVectorBatch> batch = rowReader->createRowBatch(1024);
             PartitionWriter pw(_task->owner(), _schema, _id, _partitionSize);
 
@@ -74,12 +73,19 @@ namespace tuplex {
             int64_t numNormalRows = 0;
             int64_t numBadRows = 0;
 
-            for (auto partition : pw.getOutputPartitions()) {
-                int64_t size = partition->size();
-                const uint8_t *ptr = partition->lockRaw();
-                _functor(_task, ptr, size, &numNormalRows, &numBadRows, false);
-                partition->unlock();
-                partition->invalidate();
+            try {
+                for (auto partition : pw.getOutputPartitions()) {
+                    int64_t size = partition->size();
+                    const uint8_t *ptr = partition->lockRaw();
+                    _functor(_task, ptr, size, &numNormalRows, &numBadRows, false);
+                    partition->unlock();
+                    partition->invalidate();
+                }
+            } catch (std::exception& e) {
+                for (auto el : columns) {
+                    delete el;
+                }
+                throw e;
             }
 
             for (auto el : columns) {
@@ -125,7 +131,7 @@ namespace tuplex {
                 } else if (rowType == python::Type::BOOLEAN) {
                     return new BoolBatch(orcType, numRows, isOption);
                 } else {
-                    throw std::runtime_error("python row type is unsupported")
+                    throw std::runtime_error("python row type is unsupported");
                 }
             } else if (rowType.isListType()) {
                 auto list = static_cast<::orc::ListVectorBatch *>(orcType);
@@ -146,7 +152,7 @@ namespace tuplex {
                 }
                 return new TupleBatch(orcType, children, numRows, isOption);
             } else {
-                throw std::runtime_error("python row type is unsupported")
+                throw std::runtime_error("python row type is unsupported");
             }
         }
     };

@@ -13,59 +13,59 @@
 
 namespace tuplex { namespace orc {
 
-        class ListBatch : public OrcBatch {
-        public:
-            ListBatch(::orc::ColumnVectorBatch *orcBatch, OrcBatch *child, size_t numRows, bool isOption) : _orcBatch(
-                    static_cast<::orc::ListVectorBatch *>(orcBatch)), _nextIndex(0), _child(child) {
-                _orcBatch->numElements = numRows;
-                _orcBatch->hasNulls = isOption;
-                _orcBatch->resize(numRows);
-                _orcBatch->offsets[0] = 0;
+class ListBatch : public OrcBatch {
+public:
+    ListBatch(::orc::ColumnVectorBatch *orcBatch, OrcBatch *child, size_t numRows, bool isOption) : _orcBatch(
+            static_cast<::orc::ListVectorBatch *>(orcBatch)), _nextIndex(0), _child(child) {
+        _orcBatch->numElements = numRows;
+        _orcBatch->hasNulls = isOption;
+        _orcBatch->resize(numRows);
+        _orcBatch->offsets[0] = 0;
+    }
+
+    ~ListBatch() override {
+        delete _child;
+    }
+
+    void setData(tuplex::Field field, uint64_t row) override {
+        auto notNull = !field.isNull();
+        _orcBatch->notNull[row] = notNull;
+        _orcBatch->offsets[row + 1] = _orcBatch->offsets[row];
+        if (notNull) {
+            auto list = (tuplex::List *) field.getPtr();
+            auto numElements = list->numElements();
+            _orcBatch->offsets[row + 1] += numElements;
+
+            for (uint64_t i = 0; i < numElements; ++i) {
+                _child->setData(list->getField(i), _nextIndex);
+                _nextIndex++;
             }
+        }
+    }
 
-            ~ListBatch() override {
-                delete _child;
-            }
+    void setBatch(::orc::ColumnVectorBatch *newBatch) override {
+        auto listBatch = static_cast<::orc::ListVectorBatch *>(newBatch);
+        _orcBatch = listBatch;
+        _child->setBatch(listBatch->elements.get());
+    }
 
-            void setData(tuplex::Field field, uint64_t row) override {
-                auto notNull = !field.isNull();
-                _orcBatch->notNull[row] = notNull;
-                _orcBatch->offsets[row + 1] = _orcBatch->offsets[row];
-                if (notNull) {
-                    auto list = (tuplex::List *) field.getPtr();
-                    auto numElements = list->numElements();
-                    _orcBatch->offsets[row + 1] += numElements;
+    tuplex::Field getField(uint64_t row) override {
+        using namespace tuplex;
+        auto numElements = _orcBatch->offsets[row + 1] - _orcBatch->offsets[row];
+        std::vector<Field> elements;
+        for (int i = 0; i < numElements; ++i) {
+            elements.push_back(_child->getField(_nextIndex));
+            _nextIndex++;
+        }
+        return Field(List::from_vector(elements));
+    }
 
-                    for (uint64_t i = 0; i < numElements; ++i) {
-                        _child->setData(list->getField(i), _nextIndex);
-                        _nextIndex++;
-                    }
-                }
-            }
+private:
+    ::orc::ListVectorBatch *_orcBatch;
+    uint64_t _nextIndex;
+    OrcBatch *_child;
+};
 
-            void setBatch(::orc::ColumnVectorBatch *newBatch) override {
-                auto listBatch = static_cast<::orc::ListVectorBatch *>(newBatch);
-                _orcBatch = listBatch;
-                _child->setBatch(listBatch->elements.get());
-            }
-
-            tuplex::Field getField(uint64_t row) override {
-                using namespace tuplex;
-                auto numElements = _orcBatch->offsets[row + 1] - _orcBatch->offsets[row];
-                std::vector<Field> elements;
-                for (int i = 0; i < numElements; ++i) {
-                    elements.push_back(_child->getField(_nextIndex));
-                    _nextIndex++;
-                }
-                return Field(List::from_vector(elements));
-            }
-
-        private:
-            ::orc::ListVectorBatch *_orcBatch;
-            uint64_t _nextIndex;
-            OrcBatch *_child;
-        };
-
-    }}
+}}
 
 #endif //TUPLEX_LISTBATCH_H

@@ -1114,7 +1114,6 @@ namespace tuplex {
             return makeError("job aborted via signal");
 
         PythonDataSet pds;
-        DataSet *ds = nullptr;
 
         assert(PyGILState_Check()); // make sure this thread holds the GIL!
 

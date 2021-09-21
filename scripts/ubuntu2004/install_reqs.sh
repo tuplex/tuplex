@@ -19,11 +19,16 @@ add-apt-repository -y ppa:deadsnakes/ppa
 apt-get update
 
 apt-get install -y build-essential software-properties-common wget libedit-dev libz-dev \
-  python-yaml pkg-config libssl-dev libcurl4-openssl-dev curl \
-  uuid-dev git libffi-dev \
+  python-yaml python3-pip pkg-config libssl-dev libcurl4-openssl-dev curl \
+  uuid-dev git libffi-dev libmagic-dev \
   doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \
   libgflags-dev libncurses-dev \
   awscli openjdk-8-jdk libyaml-dev
+
+# use GCC 10, as Tuplex doesn't work with GCC 9
+update-alternatives --remove-all gcc
+update-alternatives --remove-all g++
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
 
 # LLVM 9 packages (prob not all of them needed, but here for complete install)
 wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh &&
@@ -108,7 +113,7 @@ popd &&
 
 # AWS SDK
 cd /tmp &&
-  git clone https://github.com/aws/aws-sdk-cpp.git &&
+  git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git &&
   cd aws-sdk-cpp && mkdir build && pushd build &&
   cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=/opt .. &&
   make -j32 &&
@@ -133,6 +138,14 @@ cd /tmp &&
   rm pcre2-10.34.zip &&
   pushd pcre2-10.34 &&
   ./configure --prefix=/opt --enable-jit=auto --disable-shared CFLAGS="-O2 -fPIC" && make -j 32 && make install
+popd
+
+cd /tmp &&
+curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.12.0/protobuf-cpp-3.12.0.tar.gz &&
+tar xf protobuf-cpp-3.12.0.tar.gz &&
+pushd protobuf-3.12.0 &&
+./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" &&
+make -j4 && make install && ldconfig &&
 popd
 
 # install python packages for tuplex (needs cloudpickle to compile, numpy to run certain tests)

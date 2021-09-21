@@ -364,7 +364,7 @@ private:
 struct IteratorInfo {
     std::string iteratorName; // from which built-in function the iterator was generated, currently can be "iter", "zip", "enumerate".
     python::Type argsType; // concrete type of arguments of the iterator generating function.
-    std::vector<IteratorInfo *> argsIteratorInfo; // pointers to IteratorInfo of each argument.
+    std::vector<std::shared_ptr<IteratorInfo>> argsIteratorInfo; // pointers to IteratorInfo of each argument.
 };
 
 // simple class used to annotate ast nodes
@@ -398,7 +398,7 @@ public:
     std::vector<python::Type> types;
 
     ///! iterator-specific info
-    IteratorInfo *iteratorInfo;
+    std::shared_ptr<IteratorInfo> iteratorInfo;
 
     inline python::Type majorityType() const {
         if(types.empty())

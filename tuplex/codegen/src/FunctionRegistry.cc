@@ -1637,7 +1637,7 @@ namespace tuplex {
                                                                             const python::Type &argsType,
                                                                             const python::Type &retType,
                                                                             const std::vector<tuplex::codegen::SerializableValue> &args,
-                                                                            IteratorInfo *iteratorInfo) {
+                                                                            const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             if(symbol == "iter") {
                 return createIterCall(lfb, builder, argsType, retType, args);
             }
@@ -1676,7 +1676,7 @@ namespace tuplex {
         SerializableValue FunctionRegistry::createZipCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
                                                            const python::Type &argsType, const python::Type &retType,
                                                            const std::vector<tuplex::codegen::SerializableValue> &args,
-                                                          IteratorInfo *iteratorInfo) {
+                                                           const std::shared_ptr<IteratorInfo> &iteratorInfo) {
 
             return _icp->initZipContext(lfb, builder, args, iteratorInfo);
         }
@@ -1684,7 +1684,7 @@ namespace tuplex {
         SerializableValue FunctionRegistry::createEnumerateCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
                                                           const python::Type &argsType, const python::Type &retType,
                                                           const std::vector<tuplex::codegen::SerializableValue> &args,
-                                                          IteratorInfo *iteratorInfo) {
+                                                          const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             python::Type argType = argsType.parameters().front();
             auto *ils = new IteratorContextProxy(&_env);
 
@@ -1703,7 +1703,7 @@ namespace tuplex {
         SerializableValue FunctionRegistry::createNextCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
                                                            const python::Type &argsType, const python::Type &retType,
                                                            const std::vector<tuplex::codegen::SerializableValue> &args,
-                                                           IteratorInfo *iteratorInfo) {
+                                                           const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             if(argsType.parameters().size() == 1) {
                 if(argsType.parameters().front() == python::Type::EMPTYITERATOR) {
                     // always raise exception when next is called on empty iterator

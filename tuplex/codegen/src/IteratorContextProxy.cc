@@ -63,8 +63,8 @@ namespace tuplex {
         }
 
         SerializableValue IteratorContextProxy::initZipContext(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
-                                                           const std::vector<SerializableValue> &iterables,
-                                                           IteratorInfo *iteratorInfo) {
+                                                               const std::vector<SerializableValue> &iterables,
+                                                               const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
 
             if(iterables.empty()) {
@@ -102,7 +102,7 @@ namespace tuplex {
                                                                      llvm::IRBuilder<> &builder,
                                                                      const SerializableValue &iterable,
                                                                      llvm::Value *startVal,
-                                                                     IteratorInfo *iteratorInfo) {
+                                                                     const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
 
             auto iterableType = iteratorInfo->argsType;
@@ -132,7 +132,7 @@ namespace tuplex {
                                                                    const python::Type &yieldType,
                                                                    llvm::Value *iterator,
                                                                    const SerializableValue &defaultArg,
-                                                                   IteratorInfo *iteratorInfo) {
+                                                                   const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
 
             BasicBlock *currBB = builder.GetInsertBlock();
@@ -175,7 +175,7 @@ namespace tuplex {
 
         llvm::Value *IteratorContextProxy::updateIteratorIndex(llvm::IRBuilder<> &builder,
                                                                llvm::Value *iterator,
-                                                               IteratorInfo *iteratorInfo) {
+                                                               const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
 
             llvm::Type *iteratorContextType = iterator->getType()->getPointerElementType();
@@ -222,7 +222,7 @@ namespace tuplex {
         SerializableValue IteratorContextProxy::getIteratorNextElement(llvm::IRBuilder<> &builder,
                                                                    const python::Type &yieldType,
                                                                    llvm::Value *iterator,
-                                                                   IteratorInfo *iteratorInfo) {
+                                                                   const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
 
             llvm::Type *iteratorContextType = iterator->getType()->getPointerElementType();
@@ -320,7 +320,7 @@ namespace tuplex {
 
         llvm::Value *IteratorContextProxy::updateZipIndex(llvm::IRBuilder<> &builder,
                                                           llvm::Value *iterator,
-                                                          IteratorInfo *iteratorInfo) {
+                                                          const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
 
             auto argsType = iteratorInfo->argsType;
@@ -378,9 +378,9 @@ namespace tuplex {
         }
 
         SerializableValue IteratorContextProxy::getZipNextElement(llvm::IRBuilder<> &builder,
-                                            const python::Type &yieldType,
-                                            llvm::Value *iterator,
-                                            IteratorInfo *iteratorInfo) {
+                                                                  const python::Type &yieldType,
+                                                                  llvm::Value *iterator,
+                                                                  const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
             auto argsType = iteratorInfo->argsType;
             auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
@@ -407,7 +407,7 @@ namespace tuplex {
 
         llvm::Value *IteratorContextProxy::updateEnumerateIndex(llvm::IRBuilder<> &builder,
                                                                 llvm::Value *iterator,
-                                                                IteratorInfo *iteratorInfo) {
+                                                                const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
 
             auto argIteratorInfo = iteratorInfo->argsIteratorInfo.front();
@@ -421,7 +421,7 @@ namespace tuplex {
         SerializableValue IteratorContextProxy::getEnumerateNextElement(llvm::IRBuilder<> &builder,
                                                                   const python::Type &yieldType,
                                                                   llvm::Value *iterator,
-                                                                  IteratorInfo *iteratorInfo) {
+                                                                  const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
 
             auto argIteratorInfo = iteratorInfo->argsIteratorInfo.front();
@@ -445,7 +445,7 @@ namespace tuplex {
             return SerializableValue(retVal, retSize);
         }
 
-        void IteratorContextProxy::incrementIteratorIndex(llvm::IRBuilder<> &builder, llvm::Value *iterator, IteratorInfo *iteratorInfo, int offset) {
+        void IteratorContextProxy::incrementIteratorIndex(llvm::IRBuilder<> &builder, llvm::Value *iterator, const std::shared_ptr<IteratorInfo> &iteratorInfo, int offset) {
             using namespace llvm;
 
             auto iteratorName = iteratorInfo->iteratorName;

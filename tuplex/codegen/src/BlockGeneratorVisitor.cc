@@ -5196,7 +5196,7 @@ namespace tuplex {
             _blockStack.pop_back();
 
             llvm::Value *start=nullptr, *step=nullptr, *end=nullptr;
-            IteratorInfo *iteratorInfo = nullptr;
+            std::shared_ptr<IteratorInfo> iteratorInfo = nullptr;
             if(exprType.isListType()) {
                 start = _env->i64Const(0);
                 step = _env->i64Const(1);

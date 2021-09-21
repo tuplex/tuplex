@@ -42,7 +42,7 @@ namespace tuplex {
             SerializableValue initZipContext(LambdaFunctionBuilder& lfb,
                                              llvm::IRBuilder<> &builder,
                                              const std::vector<SerializableValue> &iterables,
-                                             IteratorInfo *iteratorInfo);
+                                             const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             /*!
              * Initialize iterator context for enumerate() call.
@@ -57,7 +57,7 @@ namespace tuplex {
                                                    llvm::IRBuilder<> &builder,
                                                    const SerializableValue &iterable,
                                                    llvm::Value *startVal,
-                                                   IteratorInfo *iteratorInfo);
+                                                   const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             /*!
              * Create next() call on an iterator by calling updateIteratorIndex and then getIteratorNextElement
@@ -75,7 +75,7 @@ namespace tuplex {
                                                      const python::Type &yieldType,
                                                      llvm::Value *iterator,
                                                      const SerializableValue &defaultArg,
-                                                     IteratorInfo *iteratorInfo);
+                                                     const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             /*!
              * Update index for a general iterator in preparing for the getIteratorNextElement call.
@@ -86,7 +86,7 @@ namespace tuplex {
              */
             llvm::Value *updateIteratorIndex(llvm::IRBuilder<> &builder,
                                              llvm::Value *iterator,
-                                             IteratorInfo *iteratorInfo);
+                                             const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             /*!
              * Generate the next element of a general iterator.
@@ -100,7 +100,7 @@ namespace tuplex {
             SerializableValue getIteratorNextElement(llvm::IRBuilder<> &builder,
                                                      const python::Type &yieldType,
                                                      llvm::Value *iterator,
-                                                     IteratorInfo *iteratorInfo);
+                                                     const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             /*!
              * Update index for a zip iterator in preparing for the getIteratorNextElement call by calling updateIteratorIndex on each argument.
@@ -113,7 +113,7 @@ namespace tuplex {
              */
             llvm::Value *updateZipIndex(llvm::IRBuilder<> &builder,
                                         llvm::Value *iterator,
-                                        IteratorInfo *iteratorInfo);
+                                        const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             /*!
              * Generate the next element of a zip iterator.
@@ -127,7 +127,7 @@ namespace tuplex {
             SerializableValue getZipNextElement(llvm::IRBuilder<> &builder,
                                                 const python::Type &yieldType,
                                                 llvm::Value *iterator,
-                                                IteratorInfo *iteratorInfo);
+                                                const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             /*!
              * Generate the next element of a enumerate iterator.
@@ -139,7 +139,7 @@ namespace tuplex {
              */
             llvm::Value *updateEnumerateIndex(llvm::IRBuilder<> &builder,
                                               llvm::Value *iterator,
-                                              IteratorInfo *iteratorInfo);
+                                              const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             /*!
              * Generate the next element of a enumerate iterator.
@@ -153,7 +153,7 @@ namespace tuplex {
             SerializableValue getEnumerateNextElement(llvm::IRBuilder<> &builder,
                                                       const python::Type &yieldType,
                                                       llvm::Value *iterator,
-                                                      IteratorInfo *iteratorInfo);
+                                                      const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             /*!
              * Increment index field of a list/string/tuple iterator by offset.
@@ -164,7 +164,7 @@ namespace tuplex {
              * @param iteratorInfo
              * @param offset can be negative
              */
-            void incrementIteratorIndex(llvm::IRBuilder<> &builder, llvm::Value *iterator, IteratorInfo *iteratorInfo, int offset);
+            void incrementIteratorIndex(llvm::IRBuilder<> &builder, llvm::Value *iterator, const std::shared_ptr<IteratorInfo> &iteratorInfo, int offset);
         };
     }
 }

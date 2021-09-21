@@ -73,7 +73,7 @@ namespace tuplex {
         SymbolTable& _symbolTable; // global symbol table for everything.
         bool _allowNumericTypeUnification; // whether bool/i64 get autoupcasted and merged when type conflicts exist within if-branches.
         std::unordered_map<std::string, python::Type> _nameTable; // i.e. mini symbol table for assignments.
-        std::unordered_map<std::string, IteratorInfo*> _iteratorInfoTable; // i.e. name table for storing iteratorInfo of variables.
+        std::unordered_map<std::string, std::shared_ptr<IteratorInfo>> _iteratorInfoTable; // i.e. name table for storing iteratorInfo of variables.
 
         void resolveNameConflicts(const std::unordered_map<std::string, python::Type>& table);
         void resolveNamesForIfStatement(std::unordered_map<std::string, python::Type>& if_table,

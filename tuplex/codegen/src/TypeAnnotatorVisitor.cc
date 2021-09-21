@@ -349,12 +349,12 @@ namespace tuplex {
     }
 
     void TypeAnnotatorVisitor::annotateIteratorRelatedCalls(std::string &funcName, NCall* call) {
+        auto iteratorInfo = std::make_shared<IteratorInfo>();
         if(funcName == "iter") {
             if (call->_positionalArguments.size() != 1) {
                 error("iter() currently takes exactly 1 argument");
             }
             auto iterableType = _lastCallParameterType.top().parameters().front();
-            auto iteratorInfo = new IteratorInfo();
             iteratorInfo->iteratorName = "iter";
             iteratorInfo->argsType = iterableType;
             if(iterableType.isIteratorType()) {
@@ -369,17 +369,16 @@ namespace tuplex {
             auto iterablesType = _lastCallParameterType.top().parameters();
             auto arguments = call->_positionalArguments;
             assert(arguments.size() == iterablesType.size());
-            auto iteratorInfo = new IteratorInfo();
             iteratorInfo->iteratorName = "zip";
             iteratorInfo->argsType = _lastCallParameterType.top();
-            std::vector<IteratorInfo *> argsIteratorInfo = {};
+            std::vector<std::shared_ptr<IteratorInfo>> argsIteratorInfo = {};
             for (int i = 0; i < arguments.size(); ++i) {
                 if(iterablesType[i].isIteratorType()) {
                     // add iteratorInfo of the current argument
                     argsIteratorInfo.push_back(call->_positionalArguments[i]->annotation().iteratorInfo);
                 } else {
                     // current argument type is list/tuple/string/range, create new IteratorInfo
-                    auto currIteratorInfo = new IteratorInfo;
+                    auto currIteratorInfo = std::make_shared<IteratorInfo>();
                     currIteratorInfo->iteratorName = "iter";
                     currIteratorInfo->argsType = iterablesType[i];
                     currIteratorInfo->argsIteratorInfo = {nullptr};
@@ -393,7 +392,6 @@ namespace tuplex {
                 error("enumerate() takes 1 or 2 arguments");
             }
             auto iterableType = _lastCallParameterType.top().parameters().front();
-            auto iteratorInfo = new IteratorInfo();
             iteratorInfo->iteratorName = "enumerate";
             iteratorInfo->argsType = iterableType;
             if(iterableType.isIteratorType()) {
@@ -401,7 +399,7 @@ namespace tuplex {
                 iteratorInfo->argsIteratorInfo = {call->_positionalArguments[0]->annotation().iteratorInfo};
             } else {
                 // current argument type is list/tuple/string/range, create new IteratorInfo
-                auto currIteratorInfo = new IteratorInfo;
+                auto currIteratorInfo = std::make_shared<IteratorInfo>();
                 currIteratorInfo->iteratorName = "iter";
                 currIteratorInfo->argsType = iterableType;
                 currIteratorInfo->argsIteratorInfo = {nullptr};

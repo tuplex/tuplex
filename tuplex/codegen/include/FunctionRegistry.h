@@ -115,29 +115,41 @@ namespace tuplex {
                                              const python::Type &argsType,
                                              const python::Type &retType,
                                              const std::vector<tuplex::codegen::SerializableValue> &args,
-                                             IteratorInfo *iteratorInfo);
+                                             const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             SerializableValue createZipCall(LambdaFunctionBuilder &lfb,
                                              llvm::IRBuilder<>& builder,
                                              const python::Type &argsType,
                                              const python::Type &retType,
                                              const std::vector<tuplex::codegen::SerializableValue> &args,
-                                             IteratorInfo *IteratorInfo);
+                                             const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             SerializableValue createEnumerateCall(LambdaFunctionBuilder &lfb,
                                             llvm::IRBuilder<>& builder,
                                             const python::Type &argsType,
                                             const python::Type &retType,
                                             const std::vector<tuplex::codegen::SerializableValue> &args,
-                                            IteratorInfo *iteratorInfo);
+                                            const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
+            /*!
+             * Create calls related to iterators. Including iterator generating calls (iter(), zip(), enumerate())
+             * or function calls that take iteratorType as argument (next())
+             * @param lfb
+             * @param builder
+             * @param symbol
+             * @param argsType
+             * @param retType
+             * @param args
+             * @param iteratorInfo
+             * @return
+             */
             SerializableValue createIteratorRelatedSymbolCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
                                                               llvm::IRBuilder<> &builder,
                                                               const std::string &symbol,
                                                               const python::Type &argsType,
                                                               const python::Type &retType,
                                                               const std::vector<tuplex::codegen::SerializableValue> &args,
-                                                              IteratorInfo *iteratorInfo);
+                                                              const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             SerializableValue createDictConstructor(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
             void getValueFromcJSON(llvm::IRBuilder<> &builder, llvm::Value *cjson_val, python::Type retType,

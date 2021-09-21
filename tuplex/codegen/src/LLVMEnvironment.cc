@@ -361,7 +361,7 @@ namespace tuplex {
             return retType;
         }
 
-        llvm::Type *LLVMEnvironment::getIteratorType(IteratorInfo *iteratorInfo) {
+        llvm::Type *LLVMEnvironment::getIteratorType(const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
 
             auto iteratorName = iteratorInfo->iteratorName;
@@ -426,7 +426,7 @@ namespace tuplex {
             return iteratorContextType;
         }
 
-        llvm::Type *LLVMEnvironment::getZipIteratorType(const python::Type &argsType, const std::vector<IteratorInfo *> &argsIteratorInfo, const std::string &twine) {
+        llvm::Type *LLVMEnvironment::getZipIteratorType(const python::Type &argsType, const std::vector<std::shared_ptr<IteratorInfo>> &argsIteratorInfo, const std::string &twine) {
             using namespace llvm;
 
             if(argsType.parameters().empty()) {
@@ -459,7 +459,7 @@ namespace tuplex {
             return iteratorContextType;
         }
 
-        llvm::Type *LLVMEnvironment::getEnumerateIteratorType(const python::Type &argType, IteratorInfo *argIteratorInfo, const std::string &twine) {
+        llvm::Type *LLVMEnvironment::getEnumerateIteratorType(const python::Type &argType, const std::shared_ptr<IteratorInfo> &argIteratorInfo, const std::string &twine) {
             using namespace llvm;
 
             if(argType == python::Type::EMPTYITERATOR || argType == python::Type::EMPTYLIST || argType == python::Type::EMPTYTUPLE) {

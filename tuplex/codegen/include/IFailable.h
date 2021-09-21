@@ -15,10 +15,10 @@
 #include <Logger.h>
 
 /*!
- * error handling for unsupported types (i.e. valid python type but not supported yet in Tuplex)
+ * error handling for unsupported language features (i.e. valid python UDF codes but not supported yet in Tuplex)
  */
 enum class CompileError {
-    TYPE_ERROR_NONE,
+    COMPILE_ERROR_NONE,
     TYPE_ERROR_LIST_OF_LISTS,
     TYPE_ERROR_RETURN_LIST_OF_TUPLES,
     TYPE_ERROR_RETURN_LIST_OF_DICTS,
@@ -41,7 +41,7 @@ private:
     bool _succeeded;
     bool _silentMode; // don't issue warnings
     std::vector<std::tuple<std::string, std::string>> _messages; //! stores messages in silent mode
-    std::vector<CompileError> _typeError;
+    std::vector<CompileError> _compileErrors;
 
 protected:
     /*!
@@ -59,20 +59,20 @@ protected:
     void reset() {
         _succeeded = true;
         _messages.clear();
-        _typeError.clear();
+        _compileErrors.clear();
     }
 
     /*!
-     * add all CompileErrors in err to _typeError
+     * add all CompileErrors in err to _compileErrors
      * @param err
      */
-    void concatenateTypeError(const std::vector<CompileError> &err) {_typeError.insert(_typeError.begin(), err.begin(), err.end());}
+    void addCompileErrors(const std::vector<CompileError> &err) {_compileErrors.insert(_compileErrors.begin(), err.begin(), err.end());}
 
     /*!
-     * add single CompileError to _typeError
+     * add single CompileError to _compileErrors
      * @param err
      */
-    void addTypeError(const CompileError& err) {_typeError.push_back(err);}
+    void addCompileError(const CompileError& err) {_compileErrors.push_back(err);}
 
 public:
 
@@ -94,18 +94,18 @@ public:
      * return all type errors (errors generated from unsupported types) encountered for the current class instance.
      * @return
      */
-    std::vector<CompileError> getTypeError() {return _typeError;}
+    std::vector<CompileError> getCompileErrors() {return _compileErrors;}
 
     /*!
-     * return CompileError of returning list of lists/tuples/dicts/multi-types. If no such error exists, return TYPE_ERROR_NONE.
+     * return CompileError of returning list of lists/tuples/dicts/multi-types. If no such error exists, return COMPILE_ERROR_NONE.
      * @return
      */
     CompileError getReturnTypeError();
 
     /*!
-     * clear all type errors (errors generated from unsupported types) for the current class instance.
+     * clear all compile errors (errors generated from unsupported language features) for the current class instance.
      */
-    void clearTypeError() {_typeError.clear();}
+    void clearCompileErrors() {_compileErrors.clear();}
 
     /*!
      * return detailed error message of a CompileError.

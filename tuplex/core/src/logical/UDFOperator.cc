@@ -49,12 +49,12 @@ namespace tuplex {
             bool success = _udf.hintInputSchema(parentSchema, false, false);
             if(!success) {
 
-                _udf.clearTypeError();
+                _udf.clearCompileErrors();
                 // 2. try by annotating with if-blocks getting ignored statically...
                 logger.info("performing static typing with partially ignoring branches for UDF in operator " + name());
                 success = _udf.hintInputSchema(parentSchema, true, false);
                 if(!success) {
-                    _udf.clearTypeError();
+                    _udf.clearCompileErrors();
                     // 3. type by tracing a small sample from the parent!
                     // => only use rows which match parent type.
                     // => general case rows thus get transferred to interpreter...
@@ -64,7 +64,7 @@ namespace tuplex {
 
                     // only exceptions?
                     // => report, abort compilation!
-                    if(_udf.getTypeError().empty()) {
+                    if(_udf.getCompileErrors().empty()) {
                         if(!success) {
                             Logger::instance().defaultLogger().info("was not able to detect type for UDF, statically and via tracing."
                                                                     " Provided parent row type was " + parentSchema.getRowType().desc() );
@@ -93,14 +93,14 @@ namespace tuplex {
                 }
             }
 
-            if(_udf.getTypeError().empty() || _udf.getReturnTypeError() != CompileError::TYPE_ERROR_NONE) {
+            if(_udf.getCompileErrors().empty() || _udf.getReturnTypeError() != CompileError::COMPILE_ERROR_NONE) {
                 // if unsupported types presented, use sample to determine type and use fallback mode (except for list return type error, only print error messages for now)
                 return _udf.getOutputSchema();
             }
 
             // unsupported type exists, print warning
             _udf.markAsNonCompilable();
-            for (const auto& err : _udf.getTypeError()) {
+            for (const auto& err : _udf.getCompileErrors()) {
                 Logger::instance().defaultLogger().error(_udf.compileErrorToStr(err));
             }
             Logger::instance().defaultLogger().error("will use fallback mode");

@@ -807,12 +807,12 @@ namespace tuplex {
             for(auto& el : list->_elements) {
                 if(el->getInferredType().isListType() && el->getInferredType() != python::Type::EMPTYLIST) {
                     list->setInferredType(python::Type::makeListType(python::Type::PYOBJECT));
-                    addTypeError(CompileError::TYPE_ERROR_LIST_OF_LISTS);
+                    addCompileError(CompileError::TYPE_ERROR_LIST_OF_LISTS);
                     return;
                 }
                 if (el->getInferredType() != valType) {
                     list->setInferredType(python::Type::makeListType(python::Type::PYOBJECT));
-                    addTypeError(CompileError::TYPE_ERROR_LIST_OF_MULTITYPES);
+                    addCompileError(CompileError::TYPE_ERROR_LIST_OF_MULTITYPES);
                     return;
                 }
             }
@@ -1589,7 +1589,7 @@ namespace tuplex {
             forelse->target->setInferredType(expectedTargetType);
             for (int i = 0; i < idTuple.size(); i++) {
                 if(idTuple[i]->type() != ASTNodeType::Identifier) {
-                    addTypeError(CompileError::TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST);
+                    addCompileError(CompileError::TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST);
                 }
                 auto element = static_cast<NIdentifier*>(idTuple[i]);
                 _nameTable[element->_name] = idTypeTuple[i];
@@ -1608,29 +1608,29 @@ namespace tuplex {
     void TypeAnnotatorVisitor::checkRetType(python::Type t) {
 
         if(t.isIteratorType()) {
-            addTypeError(CompileError::TYPE_ERROR_RETURN_ITERATOR);
+            addCompileError(CompileError::TYPE_ERROR_RETURN_ITERATOR);
             return;
         }
 
         if(t.isListType() && !(t == python::Type::EMPTYLIST)) {
             if(t.elementType() == python::Type::PYOBJECT) {
-                addTypeError(CompileError::TYPE_ERROR_RETURN_LIST_OF_MULTITYPES);
+                addCompileError(CompileError::TYPE_ERROR_RETURN_LIST_OF_MULTITYPES);
                 error(compileErrorToStr(CompileError::TYPE_ERROR_RETURN_LIST_OF_MULTITYPES));
                 return;
             }
 
             if(t.elementType().isTupleType() && t.elementType() != python::Type::EMPTYTUPLE) {
-                addTypeError(CompileError::TYPE_ERROR_RETURN_LIST_OF_TUPLES);
+                addCompileError(CompileError::TYPE_ERROR_RETURN_LIST_OF_TUPLES);
                 error(compileErrorToStr(CompileError::TYPE_ERROR_RETURN_LIST_OF_TUPLES));
                 return;
             }
             if(t.elementType().isDictionaryType() && t.elementType() != python::Type::EMPTYDICT) {
-                addTypeError(CompileError::TYPE_ERROR_RETURN_LIST_OF_DICTS);
+                addCompileError(CompileError::TYPE_ERROR_RETURN_LIST_OF_DICTS);
                 error(compileErrorToStr(CompileError::TYPE_ERROR_RETURN_LIST_OF_DICTS));
                 return;
             }
             if(t.elementType().isListType() && t.elementType() != python::Type::EMPTYLIST) {
-                addTypeError(CompileError::TYPE_ERROR_RETURN_LIST_OF_LISTS);
+                addCompileError(CompileError::TYPE_ERROR_RETURN_LIST_OF_LISTS);
                 error(compileErrorToStr(CompileError::TYPE_ERROR_RETURN_LIST_OF_LISTS));
                 return;
             }

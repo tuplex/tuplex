@@ -165,7 +165,7 @@ namespace tuplex {
             }
 
             if(iterableType.isDictionaryType()) {
-                addTypeError(CompileError::TYPE_ERROR_ITER_CALL_WITH_DICTIONARY);
+                addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_DICTIONARY);
                 return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(iterableType.keyType()));
             }
 
@@ -174,7 +174,7 @@ namespace tuplex {
                     return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
                 }
                 if(!tupleElementsHaveSameType(iterableType)) {
-                    addTypeError(CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE);
+                    addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE);
                 }
                 return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(iterableType.parameters().front()));
             }
@@ -205,14 +205,14 @@ namespace tuplex {
                 } else if(iterableType == python::Type::RANGE) {
                     types.push_back(python::Type::I64);
                 } else if(iterableType.isDictionaryType()) {
-                    addTypeError(CompileError::TYPE_ERROR_ITER_CALL_WITH_DICTIONARY);
+                    addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_DICTIONARY);
                     types.push_back(iterableType.keyType());
                 } else if(iterableType.isTupleType()) {
                     if(iterableType == python::Type::EMPTYTUPLE) {
                         return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
                     }
                     if(!tupleElementsHaveSameType(iterableType)) {
-                        addTypeError(CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE);
+                        addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE);
                     }
                     types.push_back(iterableType.parameters().front());
                 } else {
@@ -249,7 +249,7 @@ namespace tuplex {
             }
 
             if(iterableType.isDictionaryType()) {
-                addTypeError(CompileError::TYPE_ERROR_ITER_CALL_WITH_DICTIONARY);
+                addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_DICTIONARY);
                 return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::makeTupleType({python::Type::I64, iterableType.keyType()})));
             }
 
@@ -258,7 +258,7 @@ namespace tuplex {
                     return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
                 }
                 if(!tupleElementsHaveSameType(iterableType)) {
-                    addTypeError(CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE);
+                    addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE);
                 }
                 return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::makeTupleType({python::Type::I64, iterableType.parameters().front()})));
             }
@@ -290,7 +290,7 @@ namespace tuplex {
                         return python::Type::makeFunctionType(parameterType, defaultType);
                     }
                     if(iteratorType.yieldType() != defaultType) {
-                        addTypeError(CompileError::TYPE_ERROR_NEXT_CALL_DIFFERENT_DEFAULT_TYPE);
+                        addCompileError(CompileError::TYPE_ERROR_NEXT_CALL_DIFFERENT_DEFAULT_TYPE);
                     }
                     return python::Type::makeFunctionType(parameterType, iteratorType.yieldType());
                 }

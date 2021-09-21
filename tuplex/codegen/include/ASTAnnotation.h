@@ -351,11 +351,20 @@ private:
     }
 };
 
-///! iterator-specific annotation: iterator name i.e. from which function the iterator was generated, arguments' type of the function, iteratorInfo of arguments
+/*!
+ * iterator-specific annotation for NIdentifier (identifiers with iteratorType) and NCall (iterator related function calls including iter(), zip(), enumerate(), next())
+ * For an iterator generating NCall (iter(), zip() or enumerate()), its IteratorInfo saves info about the current call.
+ * For an NIdentifier with _name=x, its IteratorInfo reveals how x was generated.
+ * For NCall next() with _positionalArguments=x, its IteratorInfo is the same as x's.
+ * Example:
+ * x = iter("abcd") // both NIdentifier x and NCall iter() are annotated with *info1 = {"iter", str, {nullptr})}
+ * y = zip(x, [1, 2]) // both NIdentifier y and NCall zip() are annotated with *info3 = {"zip", (Iterator[str], [I64]), {info1, info2}} where *info2 = {"iter", [I64], {nullptr}} since zip() implicitly converts any non-iteratorType member to an iterator
+ * z = next(y) // NCall next() is annotated with info4 = info3
+ */
 struct IteratorInfo {
-    std::string iteratorName;
-    python::Type argsType;
-    std::vector<IteratorInfo *> argsIteratorInfo;
+    std::string iteratorName; // from which built-in function the iterator was generated, currently can be "iter", "zip", "enumerate".
+    python::Type argsType; // concrete type of arguments of the iterator generating function.
+    std::vector<IteratorInfo *> argsIteratorInfo; // pointers to IteratorInfo of each argument.
 };
 
 // simple class used to annotate ast nodes

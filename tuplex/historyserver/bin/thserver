@@ -107,7 +107,6 @@ then
     fi
 
     # important to start with worker class eventlet! Else, this is insanely slow...
-
     env MONGO_URI=$MONGO_URI gunicorn --daemon --worker-class eventlet --log-file $GUNICORN_LOGFILE -b $HOST:$PORT thserver:app
 #    env MONGO_URI=$MONGO_URI gunicorn --worker-class eventlet --log-file $GUNICORN_LOGFILE -b $HOST:$PORT thserver:app
 

@@ -458,3 +458,54 @@ TEST_F(IteratorTest, CodegenTestIfWithIteratorII) {
     EXPECT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(4));
 }
+
+TEST_F(IteratorTest, CodegenTestIfWithIteratorIII) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    t = iter(x[1])\n"
+                "    if x[0] > 0:\n"
+                "        if next(t) > 0:\n"
+                "            next(t)\n"
+                "            next(t)\n"
+                "        next(t)\n"
+                "        y = next(t)\n"
+                "    else:\n"
+                "        y = -10\n"
+                "    return y\n";
+
+    auto v = c.parallelize({
+        Row(1, List(10, 20, 30, 40, 50, 60))
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(50));
+}
+
+TEST_F(IteratorTest, CodegenTestIfWithIteratorIV) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    t = enumerate(x)\n"
+                "    while True:\n"
+                "        if next(t)[0] < 4:\n"
+                "            continue\n"
+                "        else:\n"
+                "            break\n"
+                "    if next(t)[1] == 'f':\n"
+                "        if next(t)[1] == 'g':\n"
+                "            return next(t)[1]\n"
+                "        else:\n"
+                "            return 'fail'\n"
+                "    else:\n"
+                "        return 'fail'\n";
+
+    auto v = c.parallelize({
+        Row("a", "b", "c", "d", "e", "f", "g", "h")
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row("h"));
+}

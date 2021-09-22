@@ -48,7 +48,7 @@ namespace tuplex {
         class FunctionRegistry {
         public:
             FunctionRegistry(LLVMEnvironment& env, bool sharedObjectPropagation) : _env(env), _sharedObjectPropagation(sharedObjectPropagation) {
-                _icp = new IteratorContextProxy(&env);
+                _icp = std::make_shared<IteratorContextProxy>(&env);
             }
 
             codegen::SerializableValue createGlobalSymbolCall(LambdaFunctionBuilder& lfb,
@@ -189,7 +189,7 @@ namespace tuplex {
         private:
             LLVMEnvironment& _env;
             bool _sharedObjectPropagation;
-            IteratorContextProxy *_icp;
+            std::shared_ptr<IteratorContextProxy> _icp;
 
             // lookup (symbolname, typehash)
             std::unordered_map<std::tuple<std::string, python::Type>, llvm::Function*> _funcMap;

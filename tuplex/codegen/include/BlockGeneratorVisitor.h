@@ -347,7 +347,7 @@ namespace codegen {
         // store current iteration ending block and loop ending block for for and while loops
         std::deque<llvm::BasicBlock*> _loopBlockStack;
 
-        IteratorContextProxy *_icp;
+        std::shared_ptr<IteratorContextProxy> _icp;
 
         void init() {
 
@@ -365,7 +365,7 @@ namespace codegen {
             //_block = nullptr;
             _funcNames = std::stack<std::string>();
             _numLambdaFunctionsEncountered = 0;
-            _icp = new IteratorContextProxy(_env);
+            _icp = std::make_shared<IteratorContextProxy>(_env);
         }
 
         /*!

@@ -336,12 +336,14 @@ namespace tuplex {
                     memberTypes.push_back(doublePointerType());
                 } else if(elementType == python::Type::BOOLEAN) {
                     memberTypes.push_back(getBooleanPointerType());
-                } else if(elementType.isTupleType() && elementType.isFixedSizeType()) {
-                    // list stores the actual tuple structs
-                    memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(elementType)), 0));
                 } else if(elementType.isTupleType()) {
-                    // list stores pointers to tuple structs
-                    memberTypes.push_back(llvm::PointerType::get(llvm::PointerType::get(getOrCreateTupleType(flattenedType(elementType)), 0), 0));
+                    if(elementType.isFixedSizeType()) {
+                        // list stores the actual tuple structs
+                        memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(elementType)), 0));
+                    } else {
+                        // list stores pointers to tuple structs
+                        memberTypes.push_back(llvm::PointerType::get(llvm::PointerType::get(getOrCreateTupleType(flattenedType(elementType)), 0), 0));
+                    }
                 }
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
@@ -361,7 +363,7 @@ namespace tuplex {
             return retType;
         }
 
-        llvm::Type *LLVMEnvironment::getIteratorType(const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+        llvm::Type *LLVMEnvironment::createOrGetIteratorType(const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
 
             auto iteratorName = iteratorInfo->iteratorName;
@@ -369,20 +371,21 @@ namespace tuplex {
             auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
             if(iteratorName == "iter") {
                 if(argsType.isIteratorType()) {
-                    return getIteratorType(argsIteratorInfo.front());
+                    return createOrGetIteratorType(argsIteratorInfo.front());
                 } else {
                     // arg is of type list, tuple, string, or range
-                    return getIterIteratorType(argsType);
+                    return createOrGetIterIteratorType(argsType);
                 }
             } else if(iteratorName == "zip") {
-                return getZipIteratorType(argsType, argsIteratorInfo);
+                return createOrGetZipIteratorType(argsType, argsIteratorInfo);
             } else if(iteratorName == "enumerate") {
-                return getEnumerateIteratorType(argsType, argsIteratorInfo.front());
+                return createOrGetEnumerateIteratorType(argsType, argsIteratorInfo.front());
             }
+            throw std::runtime_error("cannot get iterator type for" + iteratorName);
             return nullptr;
         }
 
-        llvm::Type *LLVMEnvironment::getIterIteratorType(const python::Type &iterableType, const std::string &twine) {
+        llvm::Type *LLVMEnvironment::createOrGetIterIteratorType(const python::Type &iterableType, const std::string &twine) {
             using namespace llvm;
 
             if(iterableType == python::Type::EMPTYLIST || iterableType == python::Type::EMPTYTUPLE) {
@@ -417,6 +420,8 @@ namespace tuplex {
                     iteratorName = "tuple_";
                     memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(iterableType)), 0));
                     memberTypes.push_back(llvm::Type::getInt64Ty(_context));
+                } else {
+                    throw std::runtime_error("unsupported iterable type" + iterableType.desc());
                 }
             }
 
@@ -426,10 +431,12 @@ namespace tuplex {
             return iteratorContextType;
         }
 
-        llvm::Type *LLVMEnvironment::getZipIteratorType(const python::Type &argsType, const std::vector<std::shared_ptr<IteratorInfo>> &argsIteratorInfo, const std::string &twine) {
+        llvm::Type *LLVMEnvironment::createOrGetZipIteratorType(const python::Type &argsType, const std::vector<std::shared_ptr<IteratorInfo>> &argsIteratorInfo, const std::string &twine) {
             using namespace llvm;
 
             if(argsType.parameters().empty()) {
+                // no argument provided, zip is an empty iterator
+                // use dummy type for empty iterator
                 return i64Type();
             }
 
@@ -438,13 +445,15 @@ namespace tuplex {
             for (int i = 0; i < argsType.parameters().size(); ++i) {
                 auto iterableType = argsType.parameters()[i];
                 if(iterableType == python::Type::EMPTYITERATOR || iterableType == python::Type::EMPTYLIST || iterableType == python::Type::EMPTYTUPLE) {
+                    // if any argument is empty, zip returns an empty iterator.
+                    // use dummy type for empty iterator
                     return i64Type();
                 }
                 assert(iterableType.isIterableType());
                 if(iterableType.isIteratorType()) {
-                    memberTypes.push_back(llvm::PointerType::get(getIteratorType(argsIteratorInfo[i]), 0));
+                    memberTypes.push_back(llvm::PointerType::get(createOrGetIteratorType(argsIteratorInfo[i]), 0));
                 } else {
-                    memberTypes.push_back(llvm::PointerType::get(getIterIteratorType(iterableType), 0));
+                    memberTypes.push_back(llvm::PointerType::get(createOrGetIterIteratorType(iterableType), 0));
                 }
             }
 
@@ -459,10 +468,11 @@ namespace tuplex {
             return iteratorContextType;
         }
 
-        llvm::Type *LLVMEnvironment::getEnumerateIteratorType(const python::Type &argType, const std::shared_ptr<IteratorInfo> &argIteratorInfo, const std::string &twine) {
+        llvm::Type *LLVMEnvironment::createOrGetEnumerateIteratorType(const python::Type &argType, const std::shared_ptr<IteratorInfo> &argIteratorInfo, const std::string &twine) {
             using namespace llvm;
 
             if(argType == python::Type::EMPTYITERATOR || argType == python::Type::EMPTYLIST || argType == python::Type::EMPTYTUPLE) {
+                // use dummy type for empty iterator
                 return i64Type();
             }
 
@@ -470,9 +480,9 @@ namespace tuplex {
             // zip iterator struct: { count (i64), pointer to the child iterator struct type }
             memberTypes.push_back(llvm::Type::getInt64Ty(_context));
             if(argType.isIteratorType()) {
-                memberTypes.push_back(llvm::PointerType::get(getIteratorType(argIteratorInfo), 0));
+                memberTypes.push_back(llvm::PointerType::get(createOrGetIteratorType(argIteratorInfo), 0));
             } else {
-                memberTypes.push_back(llvm::PointerType::get(getIterIteratorType(argType), 0));
+                memberTypes.push_back(llvm::PointerType::get(createOrGetIterIteratorType(argType), 0));
             }
 
             auto it = _generatedEnumerateIteratorTypes.find(memberTypes);
@@ -1887,7 +1897,7 @@ namespace tuplex {
             return builder.CreateFCmpOLT(fabs_value, eps);
         }
 
-        llvm::BlockAddress* LLVMEnvironment::getUpdateIteratorIndexFunction(llvm::IRBuilder<> &builder, const python::Type &iterableType) {
+        llvm::BlockAddress* LLVMEnvironment::createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(llvm::IRBuilder<> &builder, const python::Type &iterableType) {
             using namespace llvm;
 
             std::string funcName;
@@ -1910,7 +1920,7 @@ namespace tuplex {
 
             BasicBlock *currBB = builder.GetInsertBlock();
 
-            llvm::Type *iteratorContextType = getIterIteratorType(iterableType);
+            llvm::Type *iteratorContextType = createOrGetIterIteratorType(iterableType);
             // function type: i1(*struct.iterator) ; bool value indicate whether iterator is exhausted
             FunctionType *ft = llvm::FunctionType::get(llvm::Type::getInt1Ty(_context),
                                                        {llvm::PointerType::get(iteratorContextType, 0)}, false);

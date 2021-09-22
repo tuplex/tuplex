@@ -1766,7 +1766,7 @@ namespace tuplex {
                     if(targetType == python::Type::EMPTYITERATOR) {
                         newPtrType = _env->i64Type();
                     } else {
-                        newPtrType = llvm::PointerType::get(_env->getIteratorType(iteratorInfo), 0);
+                        newPtrType = llvm::PointerType::get(_env->createOrGetIteratorType(iteratorInfo), 0);
                     }
 
                     if(!slot->var.ptr || slot->var.ptr->getType() != newPtrType) {

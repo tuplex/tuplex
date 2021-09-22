@@ -220,7 +220,7 @@ namespace tuplex {
              * @param iteratorInfo iterator-specific annotation of the target iterator
              * @return llvm type corresponding to the iterator with iteratorInfo
              */
-            llvm::Type *getIteratorType(const std::shared_ptr<IteratorInfo> &iteratorInfo);
+            llvm::Type *createOrGetIteratorType(const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             /*!
              * return LLVM type that is used to represent a iterator generated from iter() call internally
@@ -228,7 +228,7 @@ namespace tuplex {
              * @param twine
              * @return llvm type corresponding to the iterator with iteratorInfo
              */
-            llvm::Type *getIterIteratorType(const python::Type &iterableType, const std::string &twine = "iterator");
+            llvm::Type *createOrGetIterIteratorType(const python::Type &iterableType, const std::string &twine = "iterator");
 
             /*!
              * return LLVM type that is used to represent a iterator generated from zip() call internally
@@ -237,7 +237,7 @@ namespace tuplex {
              * @param twine
              * @return llvm type corresponding to the iterator with iteratorInfo
              */
-            llvm::Type *getZipIteratorType(const python::Type &argsType, const std::vector<std::shared_ptr<IteratorInfo>> &argsIteratorInfo, const std::string &twine = "zip_iterator");
+            llvm::Type *createOrGetZipIteratorType(const python::Type &argsType, const std::vector<std::shared_ptr<IteratorInfo>> &argsIteratorInfo, const std::string &twine = "zip_iterator");
 
             /*!
              * return LLVM type that is used to represent a iterator generated from enumerate() call internally
@@ -246,7 +246,7 @@ namespace tuplex {
              * @param twine
              * @return llvm type corresponding to the iterator with iteratorInfo
              */
-            llvm::Type *getEnumerateIteratorType(const python::Type &argType, const std::shared_ptr<IteratorInfo> &argIteratorInfo, const std::string &twine = "enumerate_iterator");
+            llvm::Type *createOrGetEnumerateIteratorType(const python::Type &argType, const std::shared_ptr<IteratorInfo> &argIteratorInfo, const std::string &twine = "enumerate_iterator");
 
             /*!
              * retrieve tuple element from pointer
@@ -814,7 +814,7 @@ namespace tuplex {
              * @param iterableType
              * @return llvm::BlockAddress* to be stored in an iterator struct later
              */
-            llvm::BlockAddress *getUpdateIteratorIndexFunction(llvm::IRBuilder<> &builder, const python::Type &iterableType);
+            llvm::BlockAddress *createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(llvm::IRBuilder<> &builder, const python::Type &iterableType);
         };
 
 // i.e. there should be a function

@@ -23,8 +23,8 @@ namespace tuplex {
                 return SerializableValue(_env->i64Const(0), _env->i64Const(8));
             }
 
-            llvm::Type *iteratorContextType = _env->getIterIteratorType(iterableType);
-            auto initBBAddr = _env->getUpdateIteratorIndexFunction(builder, iterableType);
+            llvm::Type *iteratorContextType = _env->createOrGetIterIteratorType(iterableType);
+            auto initBBAddr = _env->createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder, iterableType);
             auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder, iteratorContextType, "iter_iterator_alloc");
             llvm::Value *iterableStruct;
             if(iterableType.isListType() || iterableType.isTupleType()) {
@@ -84,7 +84,7 @@ namespace tuplex {
 
             auto iterablesType = iteratorInfo->argsType;
             auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
-            llvm::Type *iteratorContextType = _env->getZipIteratorType(iterablesType, argsIteratorInfo);
+            llvm::Type *iteratorContextType = _env->createOrGetZipIteratorType(iterablesType, argsIteratorInfo);
             if(iteratorContextType == _env->i64Type()) {
                 // empty iterator
                 return SerializableValue(_env->i64Const(0), _env->i64Const(8));
@@ -121,7 +121,7 @@ namespace tuplex {
                 return SerializableValue(_env->i64Const(0), _env->i64Const(8));
             }
             auto argIteratorInfo = iteratorInfo->argsIteratorInfo.front();
-            llvm::Type *iteratorContextType = _env->getEnumerateIteratorType(iterableType, argIteratorInfo);
+            llvm::Type *iteratorContextType = _env->createOrGetEnumerateIteratorType(iterableType, argIteratorInfo);
             auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder, iteratorContextType, "enumerate_iterator_alloc");
             auto startValPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(0)});
             builder.CreateStore(startVal, startValPtr);

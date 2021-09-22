@@ -1659,26 +1659,22 @@ namespace tuplex {
                     keyval.second = std::vector<python::Type>{python::Type::UNKNOWN}; // save result
                 }
 
-                if(keyval.second.front().isIteratorType()) {
-                    VariableSlot slot;
-                    slot.type = keyval.second.front();
-                    slot.definedPtr = _env->CreateFirstBlockAlloca(builder, _env->i1Type(), keyval.first + "_defined");
-                    builder.CreateStore(_env->i1Const(false), slot.definedPtr);
-                    slot.var = Variable();
-                    slot.var.ptr = nullptr;
-                    slot.var.sizePtr = _env->CreateFirstBlockAlloca(builder, _env->i64Type(), keyval.first + "_size");;
-                    slot.var.name = keyval.first;
-                    _variableSlots[keyval.first] = slot;
-                    continue;
-                }
-
                 // add var to lookup but mark as undefined yet.
                 if(keyval.second.front() != python::Type::UNKNOWN) {
                     VariableSlot slot;
                     slot.type = keyval.second.front();
                     slot.definedPtr = _env->CreateFirstBlockAlloca(builder, _env->i1Type(), keyval.first + "_defined");
                     builder.CreateStore(_env->i1Const(false), slot.definedPtr);
-                    slot.var = Variable(*_env, builder, keyval.second.front(), keyval.first);
+                    if(keyval.second.front().isIteratorType()) {
+                        // python iteratorType to llvm iterator type is a one-to-many mapping
+                        // initialize ptr to nullptr and fill in concrete llvm type later
+                        slot.var = Variable();
+                        slot.var.ptr = nullptr;
+                        slot.var.sizePtr = _env->CreateFirstBlockAlloca(builder, _env->i64Type(), keyval.first + "_size");;
+                        slot.var.name = keyval.first;
+                    } else {
+                        slot.var = Variable(*_env, builder, keyval.second.front(), keyval.first);
+                    }
                     _variableSlots[keyval.first] = slot;
                 } else {
                     // this is a variable which has multiple types assigned to names.
@@ -1755,16 +1751,31 @@ namespace tuplex {
                 // if not, simply alloc a new variable which takes the place.
 
                 auto targetType = target->getInferredType();
+
                 if(targetType.isIteratorType()) {
                     auto iteratorInfo = target->annotation().iteratorInfo;
+                    llvm::Type *newPtrType = nullptr;
+
+                    if (targetType != slot->type) {
+                        // set curr slot to iteratorType if it's not.
+                        // Since python iteratorType to llvm iterator type is a one-to-many mapping,
+                        // may need to update ptr later even if current slot type is iteratorType
+                        slot->type = targetType;
+                    }
+
                     if(targetType == python::Type::EMPTYITERATOR) {
-                        slot->var.ptr = _env->CreateFirstBlockAlloca(builder, _env->i64Type(), slot->var.name);
+                        newPtrType = _env->i64Type();
                     } else {
-                        slot->var.ptr = _env->CreateFirstBlockAlloca(builder, llvm::PointerType::get(_env->getIteratorType(iteratorInfo), 0), slot->var.name);
+                        newPtrType = llvm::PointerType::get(_env->getIteratorType(iteratorInfo), 0);
+                    }
+
+                    if(!slot->var.ptr || slot->var.ptr->getType() != newPtrType) {
+                        slot->var.ptr = _env->CreateFirstBlockAlloca(builder, newPtrType, slot->var.name);
                     }
                     slot->var.store(builder, val);
                     return;
                 }
+
                 if(targetType != slot->type || !slot->var.ptr) {
                     // LLVM endlifetime for this variable here, this hint helps the optimizer.
                     //slot->var.endLife(builder);
@@ -2867,7 +2878,7 @@ namespace tuplex {
 
                 // get loadable struct type
                 auto ret = ft.getLoad(builder);
-                // assert(ret->getType()->isStructTy());
+                assert(ret->getType()->isStructTy());
                 auto size = ft.getSize(builder);
                 addInstruction(ret, size);
             }

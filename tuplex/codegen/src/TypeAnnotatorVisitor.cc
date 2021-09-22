@@ -1573,7 +1573,8 @@ namespace tuplex {
             // target is tuple of identifier (x, y)
             // expression should have (or can yield) the form [(type1, type2), (type1, type2), ...]
             auto idTuple = getForLoopMultiTarget(forelse->target);
-            if(!(exprType.isListType() && exprType.elementType().isTupleType() || exprType.isIteratorType() && exprType.yieldType().isTupleType())) {
+            if(!(exprType.isListType() && exprType.elementType().isTupleType() ||
+            exprType.isIteratorType() && (exprType.yieldType().isTupleType() || exprType.yieldType().isListType()))) {
                 error("unsupported for loop expression type");
             }
             python::Type expectedTargetType;
@@ -1582,19 +1583,35 @@ namespace tuplex {
             } else if(exprType.isIteratorType()) {
                 expectedTargetType = exprType.yieldType();
             }
-            auto idTypeTuple = expectedTargetType.parameters();
-            if(idTuple.size() != idTypeTuple.size()) {
-                error("cannot unpack for loop expression");
-            }
+
             forelse->target->setInferredType(expectedTargetType);
-            for (int i = 0; i < idTuple.size(); i++) {
-                if(idTuple[i]->type() != ASTNodeType::Identifier) {
-                    addCompileError(CompileError::TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST);
+            if(expectedTargetType.isTupleType()) {
+                auto idTypeTuple = expectedTargetType.parameters();
+                if(idTuple.size() != idTypeTuple.size()) {
+                    error("cannot unpack for loop expression");
                 }
-                auto element = static_cast<NIdentifier*>(idTuple[i]);
-                _nameTable[element->_name] = idTypeTuple[i];
-                element->setInferredType(idTypeTuple[i]);
+                for (int i = 0; i < idTuple.size(); i++) {
+                    if(idTuple[i]->type() != ASTNodeType::Identifier) {
+                        addCompileError(CompileError::TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST);
+                    }
+                    auto element = static_cast<NIdentifier*>(idTuple[i]);
+                    _nameTable[element->_name] = idTypeTuple[i];
+                    element->setInferredType(idTypeTuple[i]);
+                }
+            } else if(expectedTargetType.isListType()) {
+                auto idType = expectedTargetType.elementType();
+                for (const auto& id : idTuple) {
+                    if(id->type() != ASTNodeType::Identifier) {
+                        addCompileError(CompileError::TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST);
+                    }
+                    auto element = static_cast<NIdentifier*>(id);
+                    _nameTable[element->_name] = idType;
+                    element->setInferredType(idType);
+                }
+            } else {
+                error("unexpected target type");
             }
+
         } else {
             fatal_error("unsupported AST node encountered in NFor");
         }

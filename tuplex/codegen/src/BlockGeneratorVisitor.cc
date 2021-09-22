@@ -5284,7 +5284,7 @@ namespace tuplex {
                         // add value to stack for all identifiers in target
                         if(loopVal.size() == 1) {
                             // single identifier
-                            addInstruction(currVal, _env->i64Const(8));
+                            addInstruction(currVal, ft.getSize(builder));
                         } else {
                             // multiple identifiers, add each value in tuple to stack in reverse order
                             for (int i = loopVal.size() - 1; i >= 0 ; --i) {
@@ -5317,17 +5317,18 @@ namespace tuplex {
                         } else {
                             // multiple identifiers, add each value in list to stack in reverse order
                             for (int i = loopVal.size() - 1; i >= 0 ; --i) {
-                                auto idVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {2}), _env->i32Const(i)));
+                                auto idVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(currVal.val, {2}), _env->i32Const(i)));
                                 auto idType = loopVal[i]->getInferredType();
                                 if(idType == python::Type::I64 || targetType == python::Type::F64) {
                                     addInstruction(idVal, _env->i64Const(8));
                                 } else if(idType == python::Type::BOOLEAN) {
                                     addInstruction(idVal, _env->i64Const(1));
                                 } else if(idType == python::Type::STRING || idType.isDictionaryType()) {
-                                    auto idValSize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {3}), _env->i32Const(i)));
+                                    auto idValSize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(currVal.val, {3}), _env->i32Const(i)));
                                     addInstruction(idVal, idValSize);
                                 } else if(idType.isTupleType()) {
-                                    addInstruction(idVal, _env->i64Const(8));
+                                    FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder, idVal, idType);
+                                    addInstruction(idVal, ft.getSize(builder));
                                 } else {
                                     fatal_error("unsupported target type '" + idType.desc() + "' in for loop encountered");
                                 }

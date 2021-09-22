@@ -1134,7 +1134,7 @@ TEST_F(LoopTest, CodegenTestExprWithoutParentheses) {
     EXPECT_EQ(v2[0], std::string("abcdefghi"));
 }
 
-TEST_F(LoopTest, CodegenTestLoopWithIterIterator) {
+TEST_F(LoopTest, CodegenTestLoopWithIterIteratorI) {
     using namespace tuplex;
     Context c(microTestOptions());
 
@@ -1149,6 +1149,24 @@ TEST_F(LoopTest, CodegenTestLoopWithIterIterator) {
 
     EXPECT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(11));
+}
+
+TEST_F(LoopTest, CodegenTestLoopWithIterIteratorII) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    t = ([(1, 2), (3, 4)], [(5, 6), (7, 8)])\n"
+                "    for (i, j) in iter(t):\n"
+                "        x += i[0]*i[1]*j[0]*j[1]\n"
+                "    return x";
+
+    auto v = c.parallelize({
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(1704));
 }
 
 TEST_F(LoopTest, CodegenTestLoopWithEnumerateIterator) {

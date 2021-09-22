@@ -1296,3 +1296,49 @@ TEST_F(LoopTest, CodegenTestLoopWithIteratorGeneralIV) {
     EXPECT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row("!", "d", Tuple(17, "!")));
 }
+
+TEST_F(LoopTest, CodegenTestLoopOverInputData1) {
+    using namespace tuplex;
+
+    ClosureEnvironment ce;
+    ce.importModuleAs("math", "math");
+
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    total = 0\n"
+                "    n = len(x[1])\n"
+                "    for num in x[1]:\n"
+                "        total += num\n"
+                "    mean_val = total/n\n"
+                "    var_denominator = 0.0\n"
+                "    for num in x[1]:\n"
+                "        var_denominator += (num-mean_val) ** 2\n"
+                "    std = math.sqrt(var_denominator/n)\n"
+                "    return std\n";
+
+    auto v = c.parallelize({
+        Row(10, List(1, 2, 3, 4))
+    }).map(UDF(func, "", ce)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_DOUBLE_EQ(v[0].getDouble(0), sqrt(1.25));
+}
+
+TEST_F(LoopTest, CodegenTestLoopOverInputData2) {
+using namespace tuplex;
+Context c(microTestOptions());
+
+auto func = "def f(x):\n"
+            "    s = ''\n"
+            "    for i in x:\n"
+            "        s += i\n"
+            "    return s";
+
+auto v = c.parallelize({
+    Row(List("a", "bc", "def", "ghij", "k"))
+}).map(UDF(func)).collectAsVector();
+
+EXPECT_EQ(v.size(), 1);
+EXPECT_EQ(v[0], Row("abcdefghijk"));
+}

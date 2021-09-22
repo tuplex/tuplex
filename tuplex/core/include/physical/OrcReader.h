@@ -151,22 +151,22 @@ namespace tuplex {
                 }
                 case ::orc::LIST: {
                     auto list = static_cast<::orc::ListVectorBatch *>(orcBatch);
-                    auto child = rowTypeToOrcBatch(rowType.elementType(), orcType, list->elements.get(), numRows, isOption);
+                    auto child = rowTypeToOrcBatch(rowType.elementType(), orcType->getSubtype(0), list->elements.get(), numRows, isOption);
                     return new ListBatch(orcBatch, child, numRows, isOption);
                 }
                 case ::orc::MAP: {
                     auto map = static_cast<::orc::MapVectorBatch *>(orcBatch);
                     auto keyType = rowType.keyType();
-                    auto key = rowTypeToOrcBatch(keyType, orcType, map->keys.get(), numRows, isOption);
+                    auto key = rowTypeToOrcBatch(keyType, orcType->getSubtype(0), map->keys.get(), numRows, isOption);
                     auto valueType = rowType.valueType();
-                    auto value = rowTypeToOrcBatch(valueType, orcType, map->elements.get(), numRows, isOption);
+                    auto value = rowTypeToOrcBatch(valueType, orcType->getSubtype(1), map->elements.get(), numRows, isOption);
                     return new DictBatch(orcBatch, key, value, keyType, valueType, numRows, isOption);
                 }
                 case ::orc::STRUCT: {
                     auto structType = static_cast<::orc::StructVectorBatch *>(orcBatch);
                     std::vector<OrcBatch *> children;
                     for (int i = 0; i < rowType.parameters().size(); ++i) {
-                        children.push_back(rowTypeToOrcBatch(rowType.parameters().at(i), orcType, structType->fields[i], numRows, isOption));
+                        children.push_back(rowTypeToOrcBatch(rowType.parameters().at(i), orcType->getSubtype(i), structType->fields[i], numRows, isOption));
                     }
                     return new TupleBatch(orcBatch, children, numRows, isOption);
                 }

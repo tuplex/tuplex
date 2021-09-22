@@ -270,7 +270,7 @@ namespace tuplex {
                 if(yieldType == python::Type::I64 || yieldType == python::Type::F64) {
                     retSize = _env->i64Const(8);
                 } else if(yieldType == python::Type::BOOLEAN) {
-                    retSize = _env->i64Const(1);
+                    retSize = _env->i64Const(8);
                 } else if(yieldType == python::Type::STRING || yieldType.isDictionaryType()) {
                     auto sizeArrayPtr = builder.CreateGEP(_env->getListType(iterablesType), iterableAlloc, {_env->i32Const(0), _env->i32Const(3)});
                     auto sizeArray = builder.CreateLoad(sizeArrayPtr);

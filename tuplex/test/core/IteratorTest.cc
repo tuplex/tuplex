@@ -113,6 +113,26 @@ TEST_F(IteratorTest, CodegenTestListIteratorV) {
     EXPECT_EQ(v[0].toPythonString(), "({1:2,3:4},{5:6,7:8})");
 }
 
+TEST_F(IteratorTest, CodegenTestListIteratorVI) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    a = [True, True, False, False, True, x]\n"
+                "    b = iter(a)\n"
+                "    total = 0\n"
+                "    for i in b:\n"
+                "        total += i\n"
+                "    return total";
+
+    auto v = c.parallelize({
+        Row(true)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], 4);
+}
+
 TEST_F(IteratorTest, CodegenTestStringIterator) {
     using namespace tuplex;
     Context c(microTestOptions());

@@ -107,7 +107,7 @@ namespace tuplex {
          * @param funcName
          * @param call
          */
-        void annotateIteratorRelatedCalls(std::string &funcName, NCall* call);
+        void annotateIteratorRelatedCalls(const std::string &funcName, NCall* call);
 
     public:
 

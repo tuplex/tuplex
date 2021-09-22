@@ -348,7 +348,7 @@ namespace tuplex {
         }
     }
 
-    void TypeAnnotatorVisitor::annotateIteratorRelatedCalls(std::string &funcName, NCall* call) {
+    void TypeAnnotatorVisitor::annotateIteratorRelatedCalls(const std::string &funcName, NCall* call) {
         auto iteratorInfo = std::make_shared<IteratorInfo>();
         if(funcName == "iter") {
             if (call->_positionalArguments.size() != 1) {

@@ -3048,7 +3048,7 @@ namespace tuplex {
                     if (elementType == python::Type::BOOLEAN)
                         element_byte_size = 1; // single character elements
                     // allocate the array
-                    llvm::Value *malloc_size;
+                    llvm::Value *malloc_size = nullptr;
                     if(elementType.isTupleType() && elementType.isFixedSizeType()) {
                         // if tuple is fixed size, store the actual tuple struct
                         // if tuple has varlen field, store a pointer to the tuple
@@ -5232,29 +5232,32 @@ namespace tuplex {
             }
             builder.CreateBr(condBB);
 
-            // loop ending condition test
+            // loop ending condition test. If loop ends, jump to elseBB, otherwise jump to loopBB (the main loop body).
+            // loopCond indicates whether loop should continue. i.e. loopCond == false will end the loop.
             llvm::PHINode *curr = nullptr;
             llvm::Value *loopCond = nullptr;
             builder.SetInsertPoint(condBB);
-            if(!exprType.isIteratorType()) {
+            if(exprType.isIteratorType()) {
+                // if expression (testlist) is an iterator. Check if iterator exhausted
+                if(exprType == python::Type::EMPTYITERATOR) {
+                    loopCond = _env->i1Const(true);
+                }
+                auto iteratorExhausted = _icp->updateIteratorIndex(builder, exprAlloc.val, iteratorInfo);
+                // loopCond = !iteratorExhausted i.e. if iterator exhausted, ends the loop
+                loopCond = builder.CreateICmpEQ(iteratorExhausted, _env->i1Const(false));
+            } else {
+                // expression is list, string or range. Check if curr exceeds end.
                 curr = builder.CreatePHI(_env->i64Type(), 2);
                 curr->addIncoming(start, entryBB);
                 curr->addIncoming(builder.CreateAdd(curr, step), iterEndBB);
                 if(exprType == python::Type::RANGE) {
-                    // step can be negative in range
+                    // step can be negative in range. Check if
                     loopCond = builder.CreateICmpSLT(builder.CreateMul(curr, step), builder.CreateMul(end, step));
                 } else {
                     loopCond = builder.CreateICmpSLT(curr, end);
                 }
-                builder.CreateCondBr(loopCond, loopBB, elseBB);
-            } else {
-                if(exprType == python::Type::EMPTYITERATOR) {
-                    loopCond = _env->i1Const(true);
-                }
-                loopCond = _icp->updateIteratorIndex(builder, exprAlloc.val, iteratorInfo);
-                // here loopCond indicates whether iterator is exhausted, so loopCond == true will end the loop
-                builder.CreateCondBr(loopCond, elseBB, loopBB);
             }
+            builder.CreateCondBr(loopCond, loopBB, elseBB);
 
             // handle loop body
             builder.SetInsertPoint(loopBB);

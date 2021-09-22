@@ -549,7 +549,7 @@ namespace tuplex {
             }
 
             logger.info("upcasting function return type from " + rt.desc() + " to " + targetType.desc());
-            cg.checkUnsupportedReturnType();
+            cg.checkReturnError();
             cg.setReturnType(targetType);
             cf.output_type = cg.getReturnType();
         }

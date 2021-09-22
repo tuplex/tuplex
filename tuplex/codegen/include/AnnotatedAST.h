@@ -166,7 +166,7 @@ namespace tuplex {
              * currently returning list of lists/tuples/dicts/multi-types will raise exception.
              * TODO: Add support for returning list of tuples/dicts and use fallback mode for other cases
              */
-            void checkUnsupportedReturnType();
+            void checkReturnError();
 
             /*!
              * set/upcast return type to target type

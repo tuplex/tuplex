@@ -537,8 +537,8 @@ namespace tuplex {
             return success;
         }
 
-        void AnnotatedAST::checkUnsupportedReturnType() {
-            auto err = getReturnTypeError();
+        void AnnotatedAST::checkReturnError() {
+            auto err = getReturnError();
             if(err != CompileError::COMPILE_ERROR_NONE) {
                 throw std::runtime_error(compileErrorToStr(err));
             }

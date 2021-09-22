@@ -93,7 +93,7 @@ namespace tuplex {
                 }
             }
 
-            if(_udf.getCompileErrors().empty() || _udf.getReturnTypeError() != CompileError::COMPILE_ERROR_NONE) {
+            if(_udf.getCompileErrors().empty() || _udf.getReturnError() != CompileError::COMPILE_ERROR_NONE) {
                 // if unsupported types presented, use sample to determine type and use fallback mode (except for list return type error, only print error messages for now)
                 return _udf.getOutputSchema();
             }

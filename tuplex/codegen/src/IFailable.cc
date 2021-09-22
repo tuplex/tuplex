@@ -77,7 +77,7 @@ std::string IFailable::compileErrorToStr(const CompileError &err) {
     return errMsg;
 }
 
-CompileError IFailable::getReturnTypeError() {
+CompileError IFailable::getReturnError() {
     auto it = std::find_if(_compileErrors.begin(), _compileErrors.end(),
                            [](const CompileError &e){return e == CompileError::TYPE_ERROR_RETURN_LIST_OF_TUPLES || e == CompileError::TYPE_ERROR_RETURN_LIST_OF_LISTS || e == CompileError::TYPE_ERROR_RETURN_LIST_OF_DICTS || e == CompileError::TYPE_ERROR_RETURN_LIST_OF_MULTITYPES;});
     if(it != _compileErrors.end()) {

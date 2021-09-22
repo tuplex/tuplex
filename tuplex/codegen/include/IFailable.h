@@ -100,7 +100,7 @@ public:
      * return CompileError of returning list of lists/tuples/dicts/multi-types. If no such error exists, return COMPILE_ERROR_NONE.
      * @return
      */
-    CompileError getReturnTypeError();
+    CompileError getReturnError();
 
     /*!
      * clear all compile errors (errors generated from unsupported language features) for the current class instance.

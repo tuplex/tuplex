@@ -73,6 +73,9 @@ python::Type orcTypeToTuplex(const ::orc::Type &type, bool hasNull) {
                 return python::Type::BOOLEAN;
             }
         }
+        case ::orc::DATE:
+        case ::orc::TIMESTAMP:
+        case ::orc::TIMESTAMP_INSTANT:
         case ::orc::BYTE:
         case ::orc::SHORT:
         case ::orc::INT:
@@ -91,6 +94,7 @@ python::Type orcTypeToTuplex(const ::orc::Type &type, bool hasNull) {
                 return python::Type::F64;
             }
         }
+        case ::orc::BINARY:
         case ::orc::VARCHAR:
         case ::orc::CHAR:
         case ::orc::STRING: {

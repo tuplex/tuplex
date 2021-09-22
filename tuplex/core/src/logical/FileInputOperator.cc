@@ -98,6 +98,11 @@ namespace tuplex {
         return sample;
     }
 
+    FileInputOperator *FileInputOperator::fromText(const std::string &pattern, const ContextOptions &co,
+                                                    const std::vector<std::string> &null_values) {
+        return new FileInputOperator(pattern, co, null_values);
+    }
+
     FileInputOperator::FileInputOperator(const std::string& pattern,
             const ContextOptions& co,
             const std::vector<std::string>& null_values) : _null_values(null_values), _estimatedRowCount(0), _sampling_time_s(0.0) {
@@ -150,6 +155,17 @@ namespace tuplex {
         logger.info("Created file input operator for text file");
 #endif
         _sampling_time_s = timer.time();
+    }
+
+    FileInputOperator *FileInputOperator::fromCsv(const std::string &pattern, const ContextOptions &co,
+                                                   option<bool> hasHeader,
+                                                   option<char> delimiter,
+                                                   option<char> quotechar,
+                                                   const std::vector<std::string> &null_values,
+                                                   const std::vector<std::string>& column_name_hints,
+                                                   const std::unordered_map<size_t, python::Type>& index_based_type_hints,
+                                                   const std::unordered_map<std::string, python::Type>& column_based_type_hints) {
+        return new FileInputOperator(pattern, co, hasHeader, delimiter, quotechar, null_values, column_name_hints, index_based_type_hints, column_based_type_hints);
     }
 
     FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co,
@@ -306,6 +322,10 @@ namespace tuplex {
             setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
         }
         _sampling_time_s += timer.time();
+    }
+
+    FileInputOperator *FileInputOperator::fromOrc(const std::string &pattern, const ContextOptions &co) {
+        return new FileInputOperator(pattern, co);
     }
 
     FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co): _sampling_time_s(0.0) {

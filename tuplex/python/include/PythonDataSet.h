@@ -121,6 +121,17 @@ namespace tuplex {
          */
         boost::python::object exception_counts();
 
+        /*!
+         * save dataset to one or more csv files. Triggers execution of pipeline.
+         * @param file_path path where to save files to
+         * @param lambda_code UDF string
+         * @param pickled_code UDF string
+         * @param num_parts number of parts to split output into. The last part will be the smallest
+         * @param split_size optional size in bytes for each part to not exceed
+         * @param num_rows maximum number of rows
+         * @param null_value string to represent null values. None equals empty string. Must provide explicit quoting for this argument.
+         * @param header bool to indicate whether to write a header or not or a list of strings to specify explicitly a header to write. number of names provided must match the column count.
+         */
         void tocsv(const std::string &file_path,
               const std::string &lambda_code ="",
               const std::string &pickled_code = "",

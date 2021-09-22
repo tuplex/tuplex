@@ -23,14 +23,15 @@ namespace tuplex { namespace orc {
 *
 * The following mappings exist for special cases:
 * orc::DECIMAL -> tuplex::F64
-* orc::VARCHAR -> tuplex::STRING
-* orc::CHAR -> tuplex::STRING
+* orc::VARCHAR -> tuplex::String
+* orc::CHAR -> tuplex::String
+* orc::TIMESTAMP -> tuplex::I64
+* orc::DATE -> tuplex::I64
+* orc::BINARY -> tuplex::String
 *
 * The following ORC cases are currently unsupported:
-* orc::BINARY
 * orc::UNION
-* orc::TIMESTAMP
-* orc::DATE
+* orc::DECIMAL
 *
 * @param rowType: Orc row type
 * @param columnHasNull: If each column has null values
@@ -44,14 +45,15 @@ python::Type orcRowTypeToTuplex(const ::orc::Type &rowType, std::vector<bool> &c
 *
 * The following mappings exist for special cases:
 * orc::DECIMAL -> tuplex::F64
-* orc::VARCHAR -> tuplex::STRING
-* orc::CHAR -> tuplex::STRING
+* orc::VARCHAR -> tuplex::String
+* orc::CHAR -> tuplex::String
+* orc::TIMESTAMP -> tuplex::I64
+* orc::DATE -> tuplex::I64
+* orc::BINARY -> tuplex::String
 *
 * The following ORC cases are currently unsupported:
-* orc::BINARY
 * orc::UNION
-* orc::TIMESTAMP
-* orc::DATE
+* orc::DECIMAL
 *
 * @param type: Orc row type
 * @param hasNull: If the type will be optional

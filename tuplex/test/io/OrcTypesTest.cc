@@ -33,14 +33,20 @@ TEST(ORC, ORCToTuplexPrimitives) {
 
     auto charType = orcTypeToTuplex(*orc::createCharType(orc::CHAR, 1), false);
     EXPECT_EQ(python::Type::STRING, charType);
+
+    auto binaryType = orcTypeToTuplex(*orc::createPrimitiveType(orc::BINARY), false);
+    EXPECT_EQ(python::Type::STRING, binaryType);
+
+    auto timestampType = orcTypeToTuplex(*orc::createPrimitiveType(orc::TIMESTAMP), false);
+    EXPECT_EQ(python::Type::I64, timestampType);
+
+    auto dateType = orcTypeToTuplex(*orc::createPrimitiveType(orc::DATE), false);
+    EXPECT_EQ(python::Type::I64, dateType);
 }
 
 TEST(ORC, ORCToTuplexUndefined) {
     using namespace tuplex::orc;
-    EXPECT_THROW(orcTypeToTuplex(*orc::createPrimitiveType(orc::BINARY), false), std::runtime_error);
-    EXPECT_THROW(orcTypeToTuplex(*orc::createPrimitiveType(orc::TIMESTAMP), false), std::runtime_error);
     EXPECT_THROW(orcTypeToTuplex(*orc::createUnionType(), false), std::runtime_error);
-    EXPECT_THROW(orcTypeToTuplex(*orc::createPrimitiveType(orc::DATE), false), std::runtime_error);
 }
 
 TEST(ORC, ORCToTuplexLists) {

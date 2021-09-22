@@ -21,6 +21,7 @@
 #include <orc/StringBatch.h>
 #include <orc/BoolBatch.h>
 #include <orc/TupleBatch.h>
+#include <orc/TimestampBatch.h>
 #include <orc/VirtualInputStream.h>
 
 namespace tuplex {
@@ -44,6 +45,7 @@ namespace tuplex {
             auto inStream = std::make_unique<orc::VirtualInputStream>(inputFilePath);
             ReaderOptions options;
             ORC_UNIQUE_PTR<Reader> reader = createReader(std::move(inStream), options);
+            auto &orcType = reader->getType();
 
             RowReaderOptions rowReaderOptions;
             ORC_UNIQUE_PTR<RowReader> rowReader = reader->createRowReader(rowReaderOptions);
@@ -55,7 +57,7 @@ namespace tuplex {
                 auto structBatch = static_cast<::orc::StructVectorBatch *>(batch.get());
                 auto cols = _schema.getRowType().parameters();
                 for (int i = 0; i < cols.size(); ++i) {
-                    auto rowType = rowTypeToOrcBatch(cols.at(i), structBatch->fields[i], batch->numElements, cols.at(i).isOptionType());
+                    auto rowType = rowTypeToOrcBatch(cols.at(i), orcType.getSubtype(i), structBatch->fields[i], batch->numElements, cols.at(i).isOptionType());
                     columns.push_back(rowType);
                 }
 
@@ -117,42 +119,59 @@ namespace tuplex {
             _numRowsRead += batch->numElements;
         }
 
-        static tuplex::orc::OrcBatch *rowTypeToOrcBatch(const python::Type& rowType, ::orc::ColumnVectorBatch *orcType, const size_t numRows, bool isOption) {
+        static tuplex::orc::OrcBatch *rowTypeToOrcBatch(const python::Type& rowType, const ::orc::Type *orcType, ::orc::ColumnVectorBatch *orcBatch, const size_t numRows, bool isOption) {
             using namespace tuplex::orc;
             if (rowType.isOptionType()) {
-                return rowTypeToOrcBatch(rowType.elementType(), orcType, numRows, true);
-            } else if (rowType.isPrimitiveType()) {
-                if (rowType == python::Type::I64) {
-                    return new I64Batch(orcType, numRows, isOption);
-                } else if (rowType == python::Type::F64) {
-                    return new F64Batch(orcType, numRows, isOption);
-                } else if (rowType == python::Type::STRING) {
-                    return new StringBatch(orcType, numRows, isOption);
-                } else if (rowType == python::Type::BOOLEAN) {
-                    return new BoolBatch(orcType, numRows, isOption);
-                } else {
-                    throw std::runtime_error("python row type is unsupported");
+                return rowTypeToOrcBatch(rowType.elementType(), orcType, orcBatch, numRows, true);
+            }
+
+            switch (orcType->getKind()) {
+                case ::orc::BOOLEAN: {
+                    return new BoolBatch(orcBatch, numRows, isOption);
                 }
-            } else if (rowType.isListType()) {
-                auto list = static_cast<::orc::ListVectorBatch *>(orcType);
-                auto child = rowTypeToOrcBatch(rowType.elementType(), list->elements.get(), numRows, isOption);
-                return new ListBatch(orcType, child, numRows, isOption);
-            } else if (rowType.isDictionaryType()) {
-                auto map = static_cast<::orc::MapVectorBatch *>(orcType);
-                auto keyType = rowType.keyType();
-                auto key = rowTypeToOrcBatch(keyType, map->keys.get(), numRows, isOption);
-                auto valueType = rowType.valueType();
-                auto value = rowTypeToOrcBatch(valueType, map->elements.get(), numRows, isOption);
-                return new DictBatch(orcType, key, value, keyType, valueType, numRows, isOption);
-            } else if (rowType.isTupleType()) {
-                auto structType = static_cast<::orc::StructVectorBatch *>(orcType);
-                std::vector<OrcBatch *> children;
-                for (int i = 0; i < rowType.parameters().size(); ++i) {
-                    children.push_back(rowTypeToOrcBatch(rowType.parameters().at(i), structType->fields[i], numRows, isOption));
+                case ::orc::BYTE:
+                case ::orc::SHORT:
+                case ::orc::INT:
+                case ::orc::LONG:
+                case ::orc::DATE: {
+                    return new I64Batch(orcBatch, numRows, isOption);
                 }
-                return new TupleBatch(orcType, children, numRows, isOption);
-            } else {
-                throw std::runtime_error("python row type is unsupported");
+                case ::orc::FLOAT:
+                case ::orc::DOUBLE: {
+                    return new F64Batch(orcBatch, numRows, isOption);
+                }
+                case ::orc::BINARY:
+                case ::orc::VARCHAR:
+                case ::orc::CHAR:
+                case ::orc::STRING: {
+                    return new StringBatch(orcBatch, numRows, isOption);
+                }
+                case ::orc::TIMESTAMP: {
+                    return new TimestampBatch(orcBatch, numRows, isOption);
+                }
+                case ::orc::LIST: {
+                    auto list = static_cast<::orc::ListVectorBatch *>(orcBatch);
+                    auto child = rowTypeToOrcBatch(rowType.elementType(), orcType, list->elements.get(), numRows, isOption);
+                    return new ListBatch(orcBatch, child, numRows, isOption);
+                }
+                case ::orc::MAP: {
+                    auto map = static_cast<::orc::MapVectorBatch *>(orcBatch);
+                    auto keyType = rowType.keyType();
+                    auto key = rowTypeToOrcBatch(keyType, orcType, map->keys.get(), numRows, isOption);
+                    auto valueType = rowType.valueType();
+                    auto value = rowTypeToOrcBatch(valueType, orcType, map->elements.get(), numRows, isOption);
+                    return new DictBatch(orcBatch, key, value, keyType, valueType, numRows, isOption);
+                }
+                case ::orc::STRUCT: {
+                    auto structType = static_cast<::orc::StructVectorBatch *>(orcBatch);
+                    std::vector<OrcBatch *> children;
+                    for (int i = 0; i < rowType.parameters().size(); ++i) {
+                        children.push_back(rowTypeToOrcBatch(rowType.parameters().at(i), orcType, structType->fields[i], numRows, isOption));
+                    }
+                    return new TupleBatch(orcBatch, children, numRows, isOption);
+                }
+                default:
+                    throw std::runtime_error("Orc row type: " + orcType->toString() + " unable to be converted to Tuplex type");
             }
         }
     };

@@ -56,25 +56,7 @@ namespace tuplex {
 
         void detectFiles(const std::string& pattern);
 
-        FileInputOperator(FileInputOperator& other); // specialized copy constructor!
-
-        aligned_string loadSample(size_t sampleSize);
-
-        double _sampling_time_s;
-    public:
-
-        // for CSV
-        // new version!!!
-        /*!
-         * create a new CSV File Input operator
-         * @param pattern files to search for
-         * @param co ContextOptions, pipeline will take configuration for planning from there
-         * @param hasHeader whether file has a header or not
-         * @param delimiter delimiter
-         * @param quotechar quote char, i.e. only understood dialect is RFC compliant one
-         * @param null_values which strings to interpret as null values
-         * @param type_hints an optional mapping of column index to type if a certain type should be enforced for a column
-         */
+        // CSV Constructor
         FileInputOperator(const std::string& pattern,
                           const ContextOptions& co,
                           option<bool> hasHeader,
@@ -85,16 +67,59 @@ namespace tuplex {
                           const std::unordered_map<size_t, python::Type>& index_based_type_hints,
                           const std::unordered_map<std::string, python::Type>& column_based_type_hints);
 
-        // for text files can use a simplified version, it also should store automatically a correct hint!
-        FileInputOperator(const std::string& pattern, const ContextOptions& co, const std::vector<std::string>& null_values);
+        // Text Constructor
+        FileInputOperator(const std::string& pattern,
+                          const ContextOptions& co,
+                          const std::vector<std::string>& null_values);
+
+        // Orc Constructor
+        FileInputOperator(const std::string& pattern,
+                          const ContextOptions& co);
+
+        FileInputOperator(FileInputOperator& other); // specialized copy constructor!
+
+        aligned_string loadSample(size_t sampleSize);
+
+        double _sampling_time_s;
+
+    public:
+        /*!
+         * create a new CSV File Input operator
+         * @param pattern files to search for
+         * @param co ContextOptions, pipeline will take configuration for planning from there
+         * @param hasHeader whether file has a header or not
+         * @param delimiter delimiter
+         * @param quotechar quote char, i.e. only understood dialect is RFC compliant one
+         * @param null_values which strings to interpret as null values
+         * @param type_hints an optional mapping of column index to type if a certain type should be enforced for a column
+         */
+        static FileInputOperator *fromCsv(const std::string& pattern,
+                                         const ContextOptions& co,
+                                         option<bool> hasHeader,
+                                         option<char> delimiter,
+                                         option<char> quotechar,
+                                         const std::vector<std::string>& null_values,
+                                         const std::vector<std::string>& column_name_hints,
+                                         const std::unordered_map<size_t, python::Type>& index_based_type_hints,
+                                         const std::unordered_map<std::string, python::Type>& column_based_type_hints);
+
+        /*!
+         * create a new Text File Input operator
+         * @param pattern files to search for
+         * @param co ContextOptions, pipeline will take configuration for planning from there
+         * @param null_values which strings to interpret as null values
+         */
+        static FileInputOperator *fromText(const std::string& pattern,
+                                          const ContextOptions& co,
+                                          const std::vector<std::string>& null_values);
 
         /*!
         * create a new orc File Input operator.
         * @param pattern files to search for
         * @param co ContextOptions, pipeline will take configuration for planning from there
         */
-        FileInputOperator(const std::string& pattern, const ContextOptions& co);
-
+        static FileInputOperator *fromOrc(const std::string& pattern,
+                                         const ContextOptions& co);
 
         std::string name() override {
             switch (_fmt) {

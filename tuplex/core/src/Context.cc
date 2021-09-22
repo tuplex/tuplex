@@ -372,7 +372,7 @@ namespace tuplex {
         DataSet *dsptr = createDataSet(schema);
 
         dsptr->_operator = addOperator(
-                new FileInputOperator(pattern, this->_options, hasHeader, delimiter, quotechar, null_values, columns,
+                FileInputOperator::fromCsv(pattern, this->_options, hasHeader, delimiter, quotechar, null_values, columns,
                                       index_based_type_hints, column_based_type_hints));
         auto op = ((FileInputOperator*)dsptr->_operator);
 
@@ -430,7 +430,7 @@ namespace tuplex {
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
 
-        dsptr->_operator = addOperator(new FileInputOperator(pattern, this->_options, null_values));
+        dsptr->_operator = addOperator(FileInputOperator::fromText(pattern, this->_options, null_values));
 
         auto detectedColumns = ((FileInputOperator*)dsptr->_operator)->columns();
         dsptr->setColumns(detectedColumns);
@@ -459,7 +459,7 @@ namespace tuplex {
 
 
         dsptr->_operator = addOperator(
-                new FileInputOperator(pattern, this->_options));
+                FileInputOperator::fromOrc(pattern, this->_options));
         auto op = ((FileInputOperator*)dsptr->_operator);
 
         // check whether files were found, else return empty dataset!

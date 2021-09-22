@@ -729,10 +729,11 @@ namespace tuplex {
                 }
             }
 
+#ifdef NDEBUG
             // important, make check that sizes match
             Deserializer ds(this->_schema);
             assert(ds.inferLength(ptr) == size);
-
+#endif
             return size;
         }
     }

@@ -1744,26 +1744,7 @@ namespace tuplex {
                 auto targetType = target->getInferredType();
 
                 if(targetType.isIteratorType()) {
-                    auto iteratorInfo = target->annotation().iteratorInfo;
-                    llvm::Type *newPtrType = nullptr;
-
-                    if (targetType != slot->type) {
-                        // set curr slot to iteratorType if it's not.
-                        // Since python iteratorType to llvm iterator type is a one-to-many mapping,
-                        // may need to update ptr later even if current slot type is iteratorType
-                        slot->type = targetType;
-                    }
-
-                    if(targetType == python::Type::EMPTYITERATOR) {
-                        newPtrType = _env->i64Type();
-                    } else {
-                        newPtrType = llvm::PointerType::get(_env->createOrGetIteratorType(iteratorInfo), 0);
-                    }
-
-                    if(!slot->var.ptr || slot->var.ptr->getType() != newPtrType) {
-                        slot->var.ptr = _env->CreateFirstBlockAlloca(builder, newPtrType, slot->var.name);
-                    }
-                    slot->var.store(builder, val);
+                    updateIteratorVariableSlot(builder, slot, val, targetType, target->annotation().iteratorInfo);
                     return;
                 }
 
@@ -5659,6 +5640,30 @@ namespace tuplex {
             phi->addIncoming(upcast_base_zero_power, bbBaseZero);
             phi->addIncoming(upcast_power, bbBaseNonZero);
             return phi;
+        }
+
+        void BlockGeneratorVisitor::updateIteratorVariableSlot(llvm::IRBuilder<> &builder, VariableSlot *slot,
+                                                               const SerializableValue &val,
+                                                               const python::Type &targetType,
+                                                               const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+            if (targetType != slot->type) {
+                // set curr slot to iteratorType if it's not.
+                slot->type = targetType;
+            }
+
+            llvm::Type *newPtrType = nullptr;
+            if(targetType == python::Type::EMPTYITERATOR) {
+                newPtrType = _env->i64Type();
+            } else {
+                newPtrType = llvm::PointerType::get(_env->createOrGetIteratorType(iteratorInfo), 0);
+            }
+
+            if(!slot->var.ptr || slot->var.ptr->getType() != newPtrType) {
+                // Since python iteratorType to llvm iterator type is a one-to-many mapping,
+                // may need to update ptr later even if current slot type is iteratorType
+                slot->var.ptr = _env->CreateFirstBlockAlloca(builder, newPtrType, slot->var.name);
+            }
+            slot->var.store(builder, val);
         }
     }
 }

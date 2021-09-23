@@ -638,6 +638,22 @@ namespace codegen {
                                         const std::unordered_map<std::string, VariableRealization> &else_var_realizations);
 
         llvm::Value *generateConstantIntegerPower(llvm::IRBuilder<>& builder, llvm::Value *base, int64_t exponent);
+
+        /*!
+         * should get called when targetType is iteratorType
+         * use targetType and iteratorInfo annotation to get concrete LLVM type for iterator variable
+         * allocate iterator struct and update slot ptr if the current slot ptr type is different from the concrete LLVM type
+         * @param builder
+         * @param slot
+         * @param val
+         * @param targetType
+         * @param iteratorInfo
+         */
+        void updateIteratorVariableSlot(llvm::IRBuilder<> &builder,
+                                        VariableSlot *slot,
+                                        const SerializableValue &val,
+                                        const python::Type &targetType,
+                                        const std::shared_ptr<IteratorInfo> &iteratorInfo);
     };
 }
 }

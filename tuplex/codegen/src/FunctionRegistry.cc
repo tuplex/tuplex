@@ -1654,7 +1654,7 @@ namespace tuplex {
                 return createNextCall(lfb, builder, argsType, retType, args, iteratorInfo);
             }
 
-            Logger::instance().defaultLogger().error("encountered unsupported symbol");
+            Logger::instance().defaultLogger().error("unsupported symbol encountered");
             return SerializableValue(nullptr, nullptr);
         }
 

@@ -457,14 +457,14 @@ namespace tuplex {
                 }
             }
 
-            auto it = _generatedZipIteratorTypes.find(memberTypes);
-            if(_generatedZipIteratorTypes.end() != it) {
+            auto it = _generatedZipOrEnumerateIteratorTypes.find(memberTypes);
+            if(_generatedZipOrEnumerateIteratorTypes.end() != it) {
                 return it->second;
             }
 
             llvm::ArrayRef<llvm::Type*> members(memberTypes);
             auto iteratorContextType = llvm::StructType::create(_context, members, "struct." + twine);
-            _generatedZipIteratorTypes[memberTypes] = iteratorContextType;
+            _generatedZipOrEnumerateIteratorTypes[memberTypes] = iteratorContextType;
             return iteratorContextType;
         }
 
@@ -485,14 +485,14 @@ namespace tuplex {
                 memberTypes.push_back(llvm::PointerType::get(createOrGetIterIteratorType(argType), 0));
             }
 
-            auto it = _generatedEnumerateIteratorTypes.find(memberTypes);
-            if(_generatedEnumerateIteratorTypes.end() != it) {
+            auto it = _generatedZipOrEnumerateIteratorTypes.find(memberTypes);
+            if(_generatedZipOrEnumerateIteratorTypes.end() != it) {
                 return it->second;
             }
 
             llvm::ArrayRef<llvm::Type*> members(memberTypes);
             auto iteratorContextType = llvm::StructType::create(_context, members, "struct." + twine);
-            _generatedEnumerateIteratorTypes[memberTypes] = iteratorContextType;
+            _generatedZipOrEnumerateIteratorTypes[memberTypes] = iteratorContextType;
             return iteratorContextType;
         }
 

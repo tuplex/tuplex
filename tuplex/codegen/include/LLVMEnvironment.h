@@ -78,8 +78,7 @@ namespace tuplex {
             std::map<python::Type, llvm::Type *> _generatedListTypes;
             std::map<python::Type, llvm::Type *> _generatedIterIteratorTypes;
             // use llvm struct member types for map key since argType may contain iterator types, and iterators with the same yieldType may have different llvm structs
-            std::map<std::vector<llvm::Type *>, llvm::Type *> _generatedZipIteratorTypes;
-            std::map<std::vector<llvm::Type *>, llvm::Type *> _generatedEnumerateIteratorTypes;
+            std::map<std::vector<llvm::Type *>, llvm::Type *> _generatedZipOrEnumerateIteratorTypes;
             // string: function name; BlockAddress*: BlockAddress* to be filled in an iterator struct
             std::map<std::string, llvm::BlockAddress *> _generatedIteratorUpdateIndexFunctions;
             std::map<llvm::Type *, python::Type> _typeMapping;

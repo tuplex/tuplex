@@ -1,4 +1,4 @@
-Pull `python_resources` from `s3://tuplex-test-rahuly/python_resources.zip`
+Pull `python_resources` from `s3://tuplex-test-rahuly/python_resources.zip` (or copy from `../../../tuplex/awslambda/python38_resources.zip`)
 
 In each folder, run `init.sh` (if it exists) to initialize the package, and then run `update.sh` to upload to Lambda
 

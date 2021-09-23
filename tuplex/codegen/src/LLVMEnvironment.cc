@@ -1125,6 +1125,14 @@ namespace tuplex {
             if(t.isListType())
                 return getListType(t);
 
+            if(t.isIteratorType()) {
+                // python iteratorType to LLVM iterator type is a one-to-many mapping, so not able to return LLVM type given only python type t
+                // this is only called during variable declaration to avoid iterator variable's slot ptr being nullptr
+                // slot ptr needs to be assigned pointer to concrete iterator LLVM struct later
+                // to get concrete LLVM type, use createOrGetIteratorType()
+                return Type::getInt64Ty(_context);
+            }
+
             // option type ==> create mini struct type consisting of underlying type + i1 do indicate null status.
             if (t.isOptionType()) {
                 auto rt = t.getReturnType();

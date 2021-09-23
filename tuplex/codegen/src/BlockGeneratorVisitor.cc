@@ -1665,16 +1665,7 @@ namespace tuplex {
                     slot.type = keyval.second.front();
                     slot.definedPtr = _env->CreateFirstBlockAlloca(builder, _env->i1Type(), keyval.first + "_defined");
                     builder.CreateStore(_env->i1Const(false), slot.definedPtr);
-                    if(keyval.second.front().isIteratorType()) {
-                        // python iteratorType to llvm iterator type is a one-to-many mapping
-                        // initialize ptr to nullptr and fill in concrete llvm type later
-                        slot.var = Variable();
-                        slot.var.ptr = nullptr;
-                        slot.var.sizePtr = _env->CreateFirstBlockAlloca(builder, _env->i64Type(), keyval.first + "_size");;
-                        slot.var.name = keyval.first;
-                    } else {
-                        slot.var = Variable(*_env, builder, keyval.second.front(), keyval.first);
-                    }
+                    slot.var = Variable(*_env, builder, keyval.second.front(), keyval.first);
                     _variableSlots[keyval.first] = slot;
                 } else {
                     // this is a variable which has multiple types assigned to names.

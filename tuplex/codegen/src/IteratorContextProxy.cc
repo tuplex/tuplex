@@ -23,10 +23,14 @@ namespace tuplex {
                 return SerializableValue(_env->i64Const(0), _env->i64Const(8));
             }
 
+            if(!(iterableType.isListType() || iterableType.isTupleType() || iterableType == python::Type::RANGE || iterableType == python::Type::STRING)) {
+                throw std::runtime_error("unsupported iterable type" + iterableType.desc());
+            }
+
             llvm::Type *iteratorContextType = _env->createOrGetIterIteratorType(iterableType);
             auto initBBAddr = _env->createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder, iterableType);
             auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder, iteratorContextType, "iter_iterator_alloc");
-            llvm::Value *iterableStruct;
+            llvm::Value *iterableStruct = nullptr;
             if(iterableType.isListType() || iterableType.isTupleType()) {
                 // TODO: need to change this when codegen for lists gets updated
                 iterableStruct = _env->CreateFirstBlockAlloca(builder, iterable.val->getType(), "iterable_alloc");
@@ -91,7 +95,7 @@ namespace tuplex {
             }
             auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder, iteratorContextType, "zip_iterator_alloc");
             // store pointers to iterator structs
-            for (int i = 0; i < iterablesType.parameters().size(); ++i) {
+            for (size_t i = 0; i < iterablesType.parameters().size(); ++i) {
                 auto currType = iterablesType.parameters()[i];
                 assert(currType.isIterableType());
                 auto iterablePtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(i)});
@@ -99,6 +103,9 @@ namespace tuplex {
                 if(currType.isIteratorType()) {
                     iteratorVal = iterables[i].val;
                 } else {
+                    if(!(currType.isListType() || currType.isTupleType() || currType == python::Type::RANGE || currType == python::Type::STRING)) {
+                        throw std::runtime_error("unsupported iterable type" + currType.desc());
+                    }
                     iteratorVal = initIterContext(lfb, builder, currType, iterables[i]).val;
                 }
                 builder.CreateStore(iteratorVal, iterablePtr);
@@ -119,6 +126,9 @@ namespace tuplex {
             if(iterableType == python::Type::EMPTYITERATOR || iterableType == python::Type::EMPTYLIST || iterableType == python::Type::EMPTYTUPLE) {
                 // empty iterator
                 return SerializableValue(_env->i64Const(0), _env->i64Const(8));
+            }
+            if(!(iterableType.isIteratorType() || iterableType.isListType() || iterableType.isTupleType() || iterableType == python::Type::RANGE || iterableType == python::Type::STRING)) {
+                throw std::runtime_error("unsupported iterable type" + iterableType.desc());
             }
             auto argIteratorInfo = iteratorInfo->argsIteratorInfo.front();
             llvm::Type *iteratorContextType = _env->createOrGetEnumerateIteratorType(iterableType, argIteratorInfo);
@@ -200,7 +210,9 @@ namespace tuplex {
                 return updateEnumerateIndex(builder, iterator, iteratorInfo);
             }
 
-            assert(iteratorName == "iter");
+            if(iteratorName != "iter") {
+                throw std::runtime_error("unsupported iterator" + iteratorName);
+            }
             auto iterablesType = iteratorInfo->argsType;
             auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
             if(iterablesType.isIteratorType()) {
@@ -247,7 +259,9 @@ namespace tuplex {
                 return getEnumerateNextElement(builder, yieldType, iterator, iteratorInfo);
             }
 
-            assert(iteratorName == "iter");
+            if(iteratorName != "iter") {
+                throw std::runtime_error("unsupported iterator" + iteratorName);
+            }
             auto iterablesType = iteratorInfo->argsType;
             auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
             if(iterablesType.isIteratorType()) {
@@ -477,7 +491,9 @@ namespace tuplex {
                 return;
             }
 
-            assert(iteratorName == "iter");
+            if(iteratorName != "iter") {
+                throw std::runtime_error("unsupported iterator" + iteratorName);
+            }
             auto iterablesType = iteratorInfo->argsType;
             if(iterablesType.isIteratorType()) {
                 // iter() call on an iterator, ignore the outer iter and call again

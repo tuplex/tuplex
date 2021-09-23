@@ -1,0 +1,11 @@
+/usr/bin/python3.8 -> bin/python3
+
+/usr/lib64/libpython3.8.so
+/usr/lib64/libpython3.8.so.1.0
+/usr/lib/python3.8 -> lib/ (only take the most basic packages - i.e. pip, setuptools, pkg_resources)
+
+/usr/local/lib/python3.8/ -> usr_lib/ (only cloudpickle dirs)
+
+/usr/include/python3.8 -> include
+
+/usr/lib64/python3.8 -> lib64

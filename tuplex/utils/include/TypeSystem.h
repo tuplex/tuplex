@@ -182,7 +182,7 @@ namespace python {
         bool isPrimitiveType() const;
 
         /*!
-         * check whether a given type is iterable. Currently true for iterator, list, tuple, string and range.
+         * check whether a given type is iterable. Currently true for iterator, list, tuple, string, range and dictionary.
          * @return
          */
         bool isIterableType() const;

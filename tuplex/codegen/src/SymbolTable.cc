@@ -134,7 +134,7 @@ namespace tuplex {
         addSymbol("abs", python::Type::makeFunctionType(python::Type::I64, python::Type::I64));
         addSymbol("abs", python::Type::makeFunctionType(python::Type::F64, python::Type::F64));
 
-        // use functionTyper to dynamically infer function type for iterator-related functions (currently: iter, zip, enumerate, next)
+        // use functionTyper to dynamically infer function type for iterator-related functions (currently: iter, zip, enumerate, reversed, next)
         auto iterFunctionTyper = [this](const python::Type& parameterType) {
 
             if(parameterType.parameters().size() != 1) {
@@ -177,6 +177,47 @@ namespace tuplex {
                     addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE);
                 }
                 return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(iterableType.parameters().front()));
+            }
+            return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
+        };
+
+        auto reversedFunctionTyper = [this](const python::Type& parameterType) {
+
+            if(parameterType.parameters().size() != 1) {
+                // reversed takes exactly one argument
+                return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
+            }
+
+            auto sequenceType = parameterType.parameters().front();
+
+            if(sequenceType.isListType()) {
+                if(sequenceType == python::Type::EMPTYLIST) {
+                    return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
+                }
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(sequenceType.elementType()));
+            }
+
+            if(sequenceType == python::Type::STRING) {
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::STRING));
+            }
+
+            if(sequenceType == python::Type::RANGE) {
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::I64));
+            }
+
+            if(sequenceType.isDictionaryType()) {
+                addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_DICTIONARY);
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(sequenceType.keyType()));
+            }
+
+            if(sequenceType.isTupleType()) {
+                if(sequenceType == python::Type::EMPTYTUPLE) {
+                    return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
+                }
+                if(!tupleElementsHaveSameType(sequenceType)) {
+                    addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE);
+                }
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(sequenceType.parameters().front()));
             }
             return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
         };
@@ -300,6 +341,7 @@ namespace tuplex {
         };
 
         addSymbol(make_shared<Symbol>("iter", iterFunctionTyper));
+        addSymbol(make_shared<Symbol>("reversed", reversedFunctionTyper));
         addSymbol(make_shared<Symbol>("zip", zipFunctionTyper));
         addSymbol(make_shared<Symbol>("enumerate", enumerateFunctionTyper));
         addSymbol(make_shared<Symbol>("next", nextFunctionTyper));

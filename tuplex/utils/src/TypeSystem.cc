@@ -413,7 +413,7 @@ namespace python {
     }
 
     bool Type::isIterableType() const {
-        return (*this).isIteratorType() || (*this).isListType() || (*this).isTupleType() || *this == python::Type::STRING || *this == python::Type::RANGE;
+        return (*this).isIteratorType() || (*this).isListType() || (*this).isTupleType() || *this == python::Type::STRING || *this == python::Type::RANGE || (*this).isDictionaryType();
     }
 
     bool Type::isFixedSizeType() const {

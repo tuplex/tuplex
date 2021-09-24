@@ -1297,7 +1297,7 @@ TEST_F(LoopTest, CodegenTestLoopWithIteratorGeneralIV) {
     EXPECT_EQ(v[0], Row("!", "d", Tuple(17, "!")));
 }
 
-TEST_F(LoopTest, CodegenTestLoopOverInputData1) {
+TEST_F(LoopTest, CodegenTestLoopOverInputDataI) {
     using namespace tuplex;
 
     ClosureEnvironment ce;
@@ -1325,7 +1325,7 @@ TEST_F(LoopTest, CodegenTestLoopOverInputData1) {
     EXPECT_DOUBLE_EQ(v[0].getDouble(0), sqrt(1.25));
 }
 
-TEST_F(LoopTest, CodegenTestLoopOverInputData2) {
+TEST_F(LoopTest, CodegenTestLoopOverInputDataII) {
 using namespace tuplex;
 Context c(microTestOptions());
 

@@ -124,6 +124,7 @@ public:
             initColumns(_schema.getRowType(), batch.get(), numRows, nextIndex, _schema.getRowType().isOptionType(), orcColumns, orcColumnToRowIndexMap);
 
             for (uint64_t r = 0; r < numRows; ++r) {
+                ds.deserialize(ptr, endptr-ptr);
                 for (uint64_t i = 0; i < orcColumns.size(); ++i) {
                     auto rowInd = orcColumnToRowIndexMap[i];
                     orcColumns.at(i)->setData(ds, rowInd, r);

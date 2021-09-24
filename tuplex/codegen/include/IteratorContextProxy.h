@@ -29,7 +29,7 @@ namespace tuplex {
             explicit IteratorContextProxy(LLVMEnvironment *env) : _env(env) {}
 
             /*!
-             * Initialize list/string/tuple iterator context for iter() call.
+             * Initialize list/string/tuple/range iterator context for iter() call.
              * @param lfb
              * @param builder
              * @param iterableType
@@ -40,6 +40,20 @@ namespace tuplex {
                                               llvm::IRBuilder<> &builder,
                                               const python::Type &iterableType,
                                               const SerializableValue &iterable);
+
+
+            /*!
+             * Initialize list/string/tuple/range iterator context for reversed() call.
+             * @param lfb
+             * @param builder
+             * @param argType
+             * @param arg
+             * @return SerializableValue with val being a pointer to llvm struct representing the list/string/tuple iterator context
+             */
+            SerializableValue initReversedContext(LambdaFunctionBuilder &lfb,
+                                              llvm::IRBuilder<> &builder,
+                                              const python::Type &argType,
+                                              const SerializableValue &arg);
 
             /*!
              * Initialize iterator context for zip() call.
@@ -168,7 +182,8 @@ namespace tuplex {
             /*!
              * Increment index field of a list/string/tuple iterator by offset.
              * Increment index field of a range iterator by step * offset.
-             * For zip and enumerate, will use recursive calls on their arguments until a list/string/tuple iterator is reached.
+             * Decrement index field of any reverseiterator by offset.
+             * For zip and enumerate, will use recursive calls on their arguments until a list/string/tuple iterator or a reverseiterator is reached.
              * @param builder
              * @param iterator
              * @param iteratorInfo

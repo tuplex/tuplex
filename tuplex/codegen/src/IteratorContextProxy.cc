@@ -34,7 +34,7 @@ namespace tuplex {
             llvm::Value *iterableStruct = nullptr;
             if(iterableType.isListType() || iterableType.isTupleType()) {
                 // TODO: need to change this when codegen for lists gets updated
-                iterableStruct = _env->CreateFirstBlockAlloca(builder, iterable.val->getType(), "iterable_alloc");
+                iterableStruct = _env->CreateFirstBlockAlloca(builder, iterable.val->getType(), "iter_arg_alloc");
             } else {
                 iterableStruct = iterable.val;
             }
@@ -43,26 +43,27 @@ namespace tuplex {
             auto blockAddrPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(0)});
             builder.CreateStore(initBBAddr, blockAddrPtr);
 
-            // initialize index to -1
+            // initialize index
             auto indexPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(1)});
             if(iterableType == python::Type::RANGE) {
+                // initialize index to -step
                 auto startPtr = builder.CreateGEP(_env->getRangeObjectType(), iterableStruct, {_env->i32Const(0), _env->i32Const(0)});
                 auto start = builder.CreateLoad(startPtr);
                 auto stepPtr = builder.CreateGEP(_env->getRangeObjectType(), iterableStruct, {_env->i32Const(0), _env->i32Const(2)});
                 auto step = builder.CreateLoad(stepPtr);
                 builder.CreateStore(builder.CreateSub(start, step), indexPtr);
             } else {
+                // initialize index to -1
                 builder.CreateStore(_env->i32Const(-1), indexPtr);
             }
 
             // store pointer to iterable struct
             auto iterablePtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(2)});
             if(iterableType.isListType() || iterableType.isTupleType()) {
+                // copy original struct
                 builder.CreateStore(iterable.val, iterableStruct);
-                builder.CreateStore(iterableStruct, iterablePtr);
-            } else {
-                builder.CreateStore(iterableStruct, iterablePtr);
             }
+            builder.CreateStore(iterableStruct, iterablePtr);
 
             // store length for string or tuple
             if(iterableType == python::Type::STRING) {
@@ -72,6 +73,85 @@ namespace tuplex {
                 auto iterableLengthPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(3)});
                 builder.CreateStore(_env->i64Const(iterableType.parameters().size()), iterableLengthPtr);
             }
+
+            auto* dl = new DataLayout(_env->getModule().get());
+            return SerializableValue(iteratorContextStruct, _env->i64Const(dl->getTypeAllocSize(iteratorContextType)));
+        }
+
+        SerializableValue IteratorContextProxy::initReversedContext(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
+                                                                const python::Type &argType,
+                                                                const SerializableValue &arg) {
+            using namespace llvm;
+
+            if(argType == python::Type::EMPTYLIST || argType == python::Type::EMPTYTUPLE) {
+                // use dummy value for empty iterator
+                return SerializableValue(_env->i64Const(0), _env->i64Const(8));
+            }
+
+            if(!(argType.isListType() || argType.isTupleType() || argType == python::Type::RANGE || argType == python::Type::STRING)) {
+                throw std::runtime_error("cannot reverse" + argType.desc());
+            }
+
+            llvm::Type *iteratorContextType = _env->createOrGetReversedIteratorType(argType);
+            auto initBBAddr = _env->createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder, argType,true);
+            auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder, iteratorContextType, "reversed_iterator_alloc");
+            llvm::Value *seqStruct = nullptr;
+            if(argType.isListType() || argType.isTupleType()) {
+                // TODO: need to change this when codegen for lists gets updated
+                seqStruct = _env->CreateFirstBlockAlloca(builder, arg.val->getType(), "reversed_arg_alloc");
+            } else if(argType == python::Type::RANGE) {
+                seqStruct = _env->CreateFirstBlockAlloca(builder, _env->getRangeObjectType(), "reversed_arg_alloc");
+            } else {
+                seqStruct = arg.val;
+            }
+
+            // initialize block address in iterator struct to initBB
+            auto blockAddrPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(0)});
+            builder.CreateStore(initBBAddr, blockAddrPtr);
+
+            // initialize index
+            auto indexPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(1)});
+            // initialize index to object length for list, tuple or string object
+            if(argType.isListType()) {
+                builder.CreateStore(builder.CreateTrunc(builder.CreateExtractValue(arg.val, {1}), _env->i32Type()), indexPtr);
+            } else if(argType.isTupleType()) {
+                builder.CreateStore(_env->i32Const(argType.parameters().size()), indexPtr);
+            } else if(argType == python::Type::STRING) {
+                builder.CreateStore(builder.CreateTrunc(builder.CreateSub(arg.size, _env->i64Const(1)), _env->i32Type()), indexPtr);
+            } else if(argType == python::Type::RANGE) {
+                // use the following logic to reverse the range:
+                // given a range(start, end, step)
+                // stepSign = (step >> 63) | 1 , i.e. stepSign = 1 if step > 0 else -1; stepSign is guaranteed non-zero
+                // rangeLength = (end - start - stepSign) // step + 1 , rangeLength is the number of integers within the range
+                // rangeLength = rangeLength & ~(rangeLength >> 63) , i.e. if rangeLength < 0, set it to 0
+                // reversedRange = range(start-step+rangeLength*step, start-step, -step)
+                auto start = builder.CreateLoad(builder.CreateGEP(_env->getRangeObjectType(), arg.val, {_env->i32Const(0), _env->i32Const(0)}));
+                auto end = builder.CreateLoad(builder.CreateGEP(_env->getRangeObjectType(), arg.val, {_env->i32Const(0), _env->i32Const(1)}));
+                auto step = builder.CreateLoad(builder.CreateGEP(_env->getRangeObjectType(), arg.val, {_env->i32Const(0), _env->i32Const(2)}));
+                auto stepSign = builder.CreateOr(builder.CreateAShr(step, _env->i64Const(63)), _env->i64Const(1));
+                auto rangeLength = builder.CreateAdd(builder.CreateSDiv(builder.CreateSub(builder.CreateSub(end, start), stepSign), step), _env->i64Const(1));
+                rangeLength = builder.CreateAnd(rangeLength, builder.CreateNot(builder.CreateAShr(rangeLength, _env->i64Const(63))));
+                auto newEnd = builder.CreateSub(start, step);
+                auto newStep = builder.CreateNeg(step);
+                auto newStart = builder.CreateAdd(newEnd, builder.CreateMul(rangeLength, step));
+                // store new start, end, step values to seqStruct
+                auto newStartPtr = builder.CreateGEP(_env->getRangeObjectType(), seqStruct, {_env->i32Const(0), _env->i32Const(0)});
+                auto newEndPtr = builder.CreateGEP(_env->getRangeObjectType(), seqStruct, {_env->i32Const(0), _env->i32Const(1)});
+                auto newStepPtr = builder.CreateGEP(_env->getRangeObjectType(), seqStruct, {_env->i32Const(0), _env->i32Const(2)});
+                builder.CreateStore(newStart, newStartPtr);
+                builder.CreateStore(newEnd, newEndPtr);
+                builder.CreateStore(newStep, newStepPtr);
+                // initialize index to newStart - newStep
+                builder.CreateStore(builder.CreateSub(newStart, newStep), indexPtr);
+            }
+
+            // store pointer to iterable struct
+            auto seqPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(2)});
+            if(argType.isListType() || argType.isTupleType()) {
+                // copy original struct
+                builder.CreateStore(arg.val, seqStruct);
+            }
+            builder.CreateStore(seqStruct, seqPtr);
 
             auto* dl = new DataLayout(_env->getModule().get());
             return SerializableValue(iteratorContextStruct, _env->i64Const(dl->getTypeAllocSize(iteratorContextType)));
@@ -211,25 +291,30 @@ namespace tuplex {
                 return updateEnumerateIndex(builder, iterator, iteratorInfo);
             }
 
-            if(iteratorName != "iter") {
-                throw std::runtime_error("unsupported iterator" + iteratorName);
-            }
             auto iterablesType = iteratorInfo->argsType;
             auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
-            if(iterablesType.isIteratorType()) {
-                // iter() call on an iterator, ignore the outer iter and call again
-                assert(argsIteratorInfo.front());
-                return updateIteratorIndex(builder, iterator, argsIteratorInfo.front());
+            std::string prefix;
+            if(iteratorName == "iter") {
+                if(iterablesType.isIteratorType()) {
+                    // iter() call on an iterator, ignore the outer iter and call again
+                    assert(argsIteratorInfo.front());
+                    return updateIteratorIndex(builder, iterator, argsIteratorInfo.front());
+                }
+            } else if(iteratorName == "reversed") {
+                prefix = "reverse";
+            } else {
+                throw std::runtime_error("unsupported iterator" + iteratorName);
             }
 
             if(iterablesType.isListType()) {
-                funcName = "list_iterator_update";
+                funcName = "list_" + prefix + "iterator_update";
             } else if(iterablesType == python::Type::STRING) {
-                funcName = "str_iterator_update";
+                funcName = "str_" + prefix + "iterator_update";
             } else if(iterablesType == python::Type::RANGE){
+                // range_iterator is always used
                 funcName = "range_iterator_update";
             } else if(iterablesType.isTupleType()) {
-                funcName = "tuple_iterator_update";
+                funcName = "tuple_" + prefix + "iterator_update";
             } else {
                 throw std::runtime_error("Iterator struct " + _env->getLLVMTypeName(iteratorContextType) + " does not have the corresponding LLVM UpdateIteratorIndex function");
             }
@@ -260,15 +345,16 @@ namespace tuplex {
                 return getEnumerateNextElement(builder, yieldType, iterator, iteratorInfo);
             }
 
-            if(iteratorName != "iter") {
-                throw std::runtime_error("unsupported iterator" + iteratorName);
-            }
             auto iterablesType = iteratorInfo->argsType;
             auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
-            if(iterablesType.isIteratorType()) {
-                // iter() call on an iterator, ignore the outer iter and call again
-                assert(argsIteratorInfo.front());
-                return getIteratorNextElement(builder, yieldType, iterator, argsIteratorInfo.front());
+            if(iteratorName == "iter") {
+                if(iterablesType.isIteratorType()) {
+                    // iter() call on an iterator, ignore the outer iter and call again
+                    assert(argsIteratorInfo.front());
+                    return getIteratorNextElement(builder, yieldType, iterator, argsIteratorInfo.front());
+                }
+            } else if(iteratorName != "reversed") {
+                throw std::runtime_error("unsupported iterator" + iteratorName);
             }
 
             // get current element value and size of current value
@@ -282,9 +368,8 @@ namespace tuplex {
                 auto valArray = builder.CreateLoad(valArrayPtr);
                 auto currValPtr = builder.CreateGEP(valArray, index);
                 retVal = builder.CreateLoad(currValPtr);
-                if(yieldType == python::Type::I64 || yieldType == python::Type::F64) {
-                    retSize = _env->i64Const(8);
-                } else if(yieldType == python::Type::BOOLEAN) {
+                if(yieldType == python::Type::I64 || yieldType == python::Type::F64 || yieldType == python::Type::BOOLEAN) {
+                    // note: list internal representation currently uses 1 byte for bool (although this field is never used)
                     retSize = _env->i64Const(8);
                 } else if(yieldType == python::Type::STRING || yieldType.isDictionaryType()) {
                     auto sizeArrayPtr = builder.CreateGEP(_env->getListType(iterablesType), iterableAlloc, {_env->i32Const(0), _env->i32Const(3)});
@@ -492,15 +577,19 @@ namespace tuplex {
                 return;
             }
 
-            if(iteratorName != "iter") {
-                throw std::runtime_error("unsupported iterator" + iteratorName);
-            }
             auto iterablesType = iteratorInfo->argsType;
-            if(iterablesType.isIteratorType()) {
-                // iter() call on an iterator, ignore the outer iter and call again
-                assert(argsIteratorInfo.front());
-                incrementIteratorIndex(builder, iterator, argsIteratorInfo.front(), offset);
-                return;
+            if(iteratorName == "iter") {
+                if(iterablesType.isIteratorType()) {
+                    // iter() call on an iterator, ignore the outer iter and call again
+                    assert(argsIteratorInfo.front());
+                    incrementIteratorIndex(builder, iterator, argsIteratorInfo.front(), offset);
+                    return;
+                }
+            } else if(iteratorName == "reversed") {
+                // for reverseiterator, need to decrement index by offset
+                offset = -offset;
+            } else {
+                throw std::runtime_error("unsupported iterator" + iteratorName);
             }
 
             // change index field

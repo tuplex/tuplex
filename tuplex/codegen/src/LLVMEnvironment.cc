@@ -376,6 +376,8 @@ namespace tuplex {
                     // arg is of type list, tuple, string, or range
                     return createOrGetIterIteratorType(argsType);
                 }
+            } else if(iteratorName == "reversed") {
+                return createOrGetReversedIteratorType(argsType);
             } else if(iteratorName == "zip") {
                 return createOrGetZipIteratorType(argsType, argsIteratorInfo);
             } else if(iteratorName == "enumerate") {
@@ -391,11 +393,6 @@ namespace tuplex {
             if(iterableType == python::Type::EMPTYLIST || iterableType == python::Type::EMPTYTUPLE) {
                 // use dummy type for empty iterator
                 return i64Type();
-            }
-
-            auto it = _generatedIterIteratorTypes.find(iterableType);
-            if(_generatedIterIteratorTypes.end() != it) {
-                return it->second;
             }
 
             std::string iteratorName;
@@ -425,9 +422,56 @@ namespace tuplex {
                 }
             }
 
+            auto it = _generatedIteratorTypes.find(memberTypes);
+            if(_generatedIteratorTypes.end() != it) {
+                return it->second;
+            }
+
             llvm::ArrayRef<llvm::Type*> members(memberTypes);
             auto iteratorContextType = llvm::StructType::create(_context, members, "struct." + iteratorName + twine);
-            _generatedIterIteratorTypes[iterableType] = iteratorContextType;
+            _generatedIteratorTypes[memberTypes] = iteratorContextType;
+            return iteratorContextType;
+        }
+
+        llvm::Type *LLVMEnvironment::createOrGetReversedIteratorType(const python::Type &argType, const std::string &twine) {
+            using namespace llvm;
+
+            if(argType == python::Type::EMPTYLIST || argType == python::Type::EMPTYTUPLE) {
+                // use dummy type for empty iterator
+                return i64Type();
+            }
+
+            if(argType == python::Type::RANGE) {
+                return createOrGetIterIteratorType(argType);
+            }
+
+            std::string iteratorName;
+            std::vector<llvm::Type*> memberTypes;
+            // iter iterator struct: { pointer to block address (i8*), current index (i64 for range otherwise i32), pointer to arg object struct type,
+            // iterable length (for string and tuple)}
+            memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
+            memberTypes.push_back(llvm::Type::getInt32Ty(_context));
+            if(argType.isListType()) {
+                iteratorName = "list_";
+                memberTypes.push_back(llvm::PointerType::get(getListType(argType), 0));
+            } else if(argType == python::Type::STRING) {
+                iteratorName = "str_";
+                memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
+            } else if(argType.isTupleType()) {
+                iteratorName = "tuple_";
+                memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(argType)), 0));
+            } else {
+                throw std::runtime_error("unsupported argument type for reversed()" + argType.desc());
+            }
+
+            auto it = _generatedIteratorTypes.find(memberTypes);
+            if(_generatedIteratorTypes.end() != it) {
+                return it->second;
+            }
+
+            llvm::ArrayRef<llvm::Type*> members(memberTypes);
+            auto iteratorContextType = llvm::StructType::create(_context, members, "struct." + iteratorName + twine);
+            _generatedIteratorTypes[memberTypes] = iteratorContextType;
             return iteratorContextType;
         }
 
@@ -457,14 +501,14 @@ namespace tuplex {
                 }
             }
 
-            auto it = _generatedZipOrEnumerateIteratorTypes.find(memberTypes);
-            if(_generatedZipOrEnumerateIteratorTypes.end() != it) {
+            auto it = _generatedIteratorTypes.find(memberTypes);
+            if(_generatedIteratorTypes.end() != it) {
                 return it->second;
             }
 
             llvm::ArrayRef<llvm::Type*> members(memberTypes);
             auto iteratorContextType = llvm::StructType::create(_context, members, "struct." + twine);
-            _generatedZipOrEnumerateIteratorTypes[memberTypes] = iteratorContextType;
+            _generatedIteratorTypes[memberTypes] = iteratorContextType;
             return iteratorContextType;
         }
 
@@ -485,14 +529,14 @@ namespace tuplex {
                 memberTypes.push_back(llvm::PointerType::get(createOrGetIterIteratorType(argType), 0));
             }
 
-            auto it = _generatedZipOrEnumerateIteratorTypes.find(memberTypes);
-            if(_generatedZipOrEnumerateIteratorTypes.end() != it) {
+            auto it = _generatedIteratorTypes.find(memberTypes);
+            if(_generatedIteratorTypes.end() != it) {
                 return it->second;
             }
 
             llvm::ArrayRef<llvm::Type*> members(memberTypes);
             auto iteratorContextType = llvm::StructType::create(_context, members, "struct." + twine);
-            _generatedZipOrEnumerateIteratorTypes[memberTypes] = iteratorContextType;
+            _generatedIteratorTypes[memberTypes] = iteratorContextType;
             return iteratorContextType;
         }
 
@@ -1920,7 +1964,8 @@ namespace tuplex {
             } else if(iterableType == python::Type::STRING) {
                 funcName = "str_" + prefix + "iterator_update";
             } else if(iterableType == python::Type::RANGE) {
-                funcName = "range_" + prefix + "iterator_update";
+                // range_iterator is always used
+                funcName = "range_iterator_update";
             } else if(iterableType.isTupleType()) {
                 funcName = "tuple_" + prefix + "iterator_update";
             } else {
@@ -1963,20 +2008,19 @@ namespace tuplex {
             builder.SetInsertPoint(updateIndexBB);
             auto indexPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
                                                   {i32Const(0), i32Const(1)});
-            llvm::Value *rightOperand = nullptr;
             if(iterableType == python::Type::RANGE) {
                 auto rangePtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
                                                  {i32Const(0), i32Const(2)});
                 auto rangeAlloc = builder.CreateLoad(rangePtr);
                 auto stepPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(2)});
-                rightOperand= builder.CreateLoad(stepPtr);
+                auto step = builder.CreateLoad(stepPtr);
+                builder.CreateStore(builder.CreateAdd(builder.CreateLoad(indexPtr), step), indexPtr);
             } else {
-                rightOperand = i32Const(1);
-            }
-            if(reverse) {
-                builder.CreateStore(builder.CreateSub(builder.CreateLoad(indexPtr), rightOperand), indexPtr);
-            } else {
-                builder.CreateStore(builder.CreateAdd(builder.CreateLoad(indexPtr), rightOperand), indexPtr);
+                if(reverse) {
+                    builder.CreateStore(builder.CreateSub(builder.CreateLoad(indexPtr), i32Const(1)), indexPtr);
+                } else {
+                    builder.CreateStore(builder.CreateAdd(builder.CreateLoad(indexPtr), i32Const(1)), indexPtr);
+                }
             }
             builder.CreateBr(loopCondBB);
 
@@ -2014,17 +2058,10 @@ namespace tuplex {
                 // positive step -> stepSign = 1, negative step -> stepSign = -1
                 // stepSign = (step >> 63) | 1 , use arithmetic shift
                 auto stepSign = builder.CreateOr(builder.CreateAShr(step, i64Const(63)), i64Const(1));
-                if(reverse) {
-                    auto startPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(0)});
-                    auto start = builder.CreateLoad(startPtr);
-                    // step can be negative in range. Check if curr * stepSign >= start * stepSign
-                    loopContinue = builder.CreateICmpSGE(builder.CreateMul(currIndex, stepSign), builder.CreateMul(start, stepSign));
-                } else {
-                    auto endPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(1)});
-                    auto end = builder.CreateLoad(endPtr);
-                    // step can be negative in range. Check if curr * stepSign < end * stepSign
-                    loopContinue = builder.CreateICmpSLT(builder.CreateMul(currIndex, stepSign), builder.CreateMul(end, stepSign));
-                }
+                auto endPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(1)});
+                auto end = builder.CreateLoad(endPtr);
+                // step can be negative in range. Check if curr * stepSign < end * stepSign
+                loopContinue = builder.CreateICmpSLT(builder.CreateMul(currIndex, stepSign), builder.CreateMul(end, stepSign));
             } else {
                 if(reverse) {
                     loopContinue = builder.CreateICmpSGE(currIndex, i32Const(0));
@@ -2034,7 +2071,7 @@ namespace tuplex {
             }
             builder.CreateCondBr(loopContinue, loopBB, loopExitBB);
 
-            // current index < iterable length, set block address in iterator struct to updateIndexBB and return false
+            // current index inside iterable index range, set block address in iterator struct to updateIndexBB and return false
             builder.SetInsertPoint(loopBB);
             auto nextBlockAddrPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
                                                       {i32Const(0), i32Const(0)});

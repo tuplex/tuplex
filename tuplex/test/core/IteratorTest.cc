@@ -264,6 +264,127 @@ TEST_F(IteratorTest, CodegenTestTupleIteratorIII) {
     EXPECT_EQ(v[0], Row(List(1, 2), List(3, 4), List(5, 6), List(7, 8)));
 }
 
+TEST_F(IteratorTest, CodegenTestListReverseIterator) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    a = reversed(x)\n"
+                "    b1 = next(a)\n"
+                "    b2 = next(a)\n"
+                "    b3 = next(a)\n"
+                "    b4 = next(a)\n"
+                "    b5 = next(a, 0)\n"
+                "    b6 = next(a, -1)\n"
+                "    return (b1, b2, b3, b4, b5, b6)";
+
+    auto v = c.parallelize({
+        Row(List(1, 2, 3, 4))
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(4, 3, 2, 1, 0, -1));
+}
+
+TEST_F(IteratorTest, CodegenTestTupleReverseIterator) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    a = reversed(x)\n"
+                "    b = next(a)\n"
+                "    for i in a:\n"
+                "        b += i\n"
+                "    b += next(a, 'abc')\n"
+                "    return b";
+
+    auto v = c.parallelize({
+        Row("yz", "x", "uvw", "rst", "q")
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row("qrstuvwxyzabc"));
+}
+
+TEST_F(IteratorTest, CodegenTestStringReverseIterator) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    a = reversed(x)\n"
+                "    b1 = next(a)\n"
+                "    b2 = next(a)\n"
+                "    b2 += next(a)\n"
+                "    b3 = ''\n"
+                "    for s in a:\n"
+                "        b3 += s\n"
+                "    b4 = next(a, 'end')\n"
+                "    return (b1, b2, b3, b4)";
+
+    auto v = c.parallelize({
+        Row("hgfedcba")
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row("a", "bc", "defgh", "end"));
+}
+
+TEST_F(IteratorTest, CodegenTestRangeReverseIteratorI) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    r1 = range(-100, x, 17)\n"
+                "    a = reversed(r1)\n"
+                "    total1 = 0\n"
+                "    while True:\n"
+                "        b = next(a)\n"
+                "        if b < -20:\n"
+                "            break\n"
+                "        total1 += b\n"
+                "    total2 = 0\n"
+                "    r2 = reversed(range(-x, -25000, -171))\n"
+                "    for i in r2:\n"
+                "        total2 += i\n"
+                "    total2 += next(r2, total1)\n"
+                "    return total1, total2\n";
+
+    auto v = c.parallelize({
+        Row(1000)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(29190, -1799580));
+}
+
+TEST_F(IteratorTest, CodegenTestRangeReverseIteratorII) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    r1 = reversed(range(4, 15, 2))\n"
+                "    a1 = next(r1)\n"
+                "    a2 = next(r1)\n"
+                "    a3 = next(r1)\n"
+                "    a4 = next(r1)\n"
+                "    a5 = next(r1)\n"
+                "    a6 = next(r1)\n"
+                "    a7 = next(r1, -1)\n"
+                "    r2 = reversed(range(8, 6, -1))\n"
+                "    b1 = next(r2)\n"
+                "    b2 = next(r2, -1)\n"
+                "    b3 = next(r2, -2)\n"
+                "    b4 = next(r2, -3)\n"
+                "    return (a1, a2, a3, a4, a5, a6, a7, b1, b2, b3, b4)\n";
+
+    auto v = c.parallelize({
+        Row(1000)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(14, 12, 10, 8, 6, 4, -1, 7, 8, -2, -3));
+}
+
 TEST_F(IteratorTest, CodegenTestZipIteratorI) {
     using namespace tuplex;
     Context c(microTestOptions());
@@ -394,6 +515,24 @@ TEST_F(IteratorTest, CodegenTestEmptyIteratorIII) {
     EXPECT_EQ(v[0], Row("None", 0));
 }
 
+TEST_F(IteratorTest, CodegenTestEmptyIteratorIV) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    a = reversed(x)\n"
+                "    b1 = next(a, -1)\n"
+                "    b2 = next(a, 'empty')\n"
+                "    return (b1, b2)";
+
+    auto v = c.parallelize({
+        Row(Field::empty_list())
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(-1, "empty"));
+}
+
 TEST_F(IteratorTest, CodegenTestNestedIteratorI) {
     using namespace tuplex;
     Context c(microTestOptions());
@@ -437,6 +576,56 @@ TEST_F(IteratorTest, CodegenTestNestedIteratorII) {
 
     EXPECT_EQ(v.size(), 1);
     EXPECT_EQ(v[0].toPythonString(), "((((0,10,'A','a'),(1,20,'B','b'),0,10),(2,30,'C','c'),'A','a'),(((3,40,'D','d'),(4,50,'E','e'),1,20),(5,60,'F','f'),'B','b'))");
+}
+
+TEST_F(IteratorTest, CodegenTestNestedIteratorIII) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    a = reversed(range(4, 15, 2))\n"
+                "    b = enumerate(reversed(['a', 'b', 'c', 'd']))\n"
+                "    c = iter((1, 2, 3, 4))\n"
+                "    d = zip(a, b, c, reversed(x))\n"
+                "    e1 = next(d)\n"
+                "    e2 = next(d)\n"
+                "    e3 = next(d)\n"
+                "    e4 = next(d)\n"
+                "    e5 = next(d, (0, (0, 'EMPTY'), 0, 'EMPTY'))\n"
+                "    return (e1, e2, e3, e4, e5)";
+
+    auto v = c.parallelize({
+        Row("!@#$%^&*")
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0].toPythonString(), "((14,(0,'d'),1,'*'),(12,(1,'c'),2,'&'),(10,(2,'b'),3,'^'),(8,(3,'a'),4,'%'),(0,(0,'EMPTY'),0,'EMPTY'))");
+}
+
+TEST_F(IteratorTest, CodegenTestNestedIteratorIV) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    for index, k in enumerate(zip(reversed(range(x[0], x[1], x[2])), enumerate(reversed('abcdefghijklmnopqrstuvwxyz')), range(2022, -100, -105))):\n"
+                "        if index == 0:\n"
+                "            index0 = k\n"
+                "        if index == 5:\n"
+                "            index5 = k\n"
+                "        if index == 10:\n"
+                "            index10 = k\n"
+                "        if index == 15:\n"
+                "            index15 = k\n"
+                "        if index == 20:\n"
+                "            index20 = k\n"
+                "    return (index0, index5, index10, index15, index20)";
+
+    auto v = c.parallelize({
+        Row(List(-1111, 2021, 21))
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0].toPythonString(), "((2018,(0,'z'),2022),(1913,(5,'u'),1497),(1808,(10,'p'),972),(1703,(15,'k'),447),(1598,(20,'f'),-78))");
 }
 
 TEST_F(IteratorTest, CodegenTestIfWithIteratorI) {

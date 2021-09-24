@@ -76,9 +76,8 @@ namespace tuplex {
             std::unique_ptr<llvm::Module> _module;
             std::map<python::Type, llvm::Type *> _generatedTupleTypes;
             std::map<python::Type, llvm::Type *> _generatedListTypes;
-            std::map<python::Type, llvm::Type *> _generatedIterIteratorTypes;
-            // use llvm struct member types for map key since argType may contain iterator types, and iterators with the same yieldType may have different llvm structs
-            std::map<std::vector<llvm::Type *>, llvm::Type *> _generatedZipOrEnumerateIteratorTypes;
+            // use llvm struct member types for map key since iterators with the same yieldType may have different llvm structs
+            std::map<std::vector<llvm::Type *>, llvm::Type *> _generatedIteratorTypes;
             // string: function name; BlockAddress*: BlockAddress* to be filled in an iterator struct
             std::map<std::string, llvm::BlockAddress *> _generatedIteratorUpdateIndexFunctions;
             std::map<llvm::Type *, python::Type> _typeMapping;
@@ -225,9 +224,17 @@ namespace tuplex {
              * return LLVM type that is used to represent a iterator generated from iter() call internally
              * @param iterableType argument type of the iter() call
              * @param twine
-             * @return llvm type corresponding to the iterator with iteratorInfo
+             * @return llvm type corresponding to the iterator generated from iterableType
              */
             llvm::Type *createOrGetIterIteratorType(const python::Type &iterableType, const std::string &twine = "iterator");
+
+            /*!
+             * return LLVM type that is used to represent a reverseiterator generated from reversed() call internally
+             * @param argType argument type of the reversed() call, currently can be list, tuple, string, range
+             * @param twine
+             * @return llvm type corresponding to the reverseiterator generated from argType
+             */
+            llvm::Type *createOrGetReversedIteratorType(const python::Type &argType, const std::string &twine = "reverseiterator");
 
             /*!
              * return LLVM type that is used to represent a iterator generated from zip() call internally

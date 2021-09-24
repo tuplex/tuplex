@@ -365,6 +365,21 @@ namespace tuplex {
                 iteratorInfo->argsIteratorInfo = {nullptr};
             }
             call->annotation().iteratorInfo = iteratorInfo;
+        } else if(funcName == "reversed") {
+            if (call->_positionalArguments.size() != 1) {
+                error("reversed() takes exactly 1 argument");
+            }
+            auto seqType = _lastCallParameterType.top().parameters().front();
+            if(seqType == python::Type::RANGE) {
+                // treat any reversed range iterator as a normal range_iterator, since a reversed range object will be placed in the iterator struct later
+                iteratorInfo->iteratorName = "iter";
+            } else {
+                // same argument object will be placed in the iterator struct later. Use "reversed" to hint the correct direction for updating index
+                iteratorInfo->iteratorName = "reversed";
+            }
+            iteratorInfo->argsType = seqType;
+            iteratorInfo->argsIteratorInfo = {nullptr};
+            call->annotation().iteratorInfo = iteratorInfo;
         } else if(funcName == "zip") {
             auto iterablesType = _lastCallParameterType.top().parameters();
             auto arguments = call->_positionalArguments;

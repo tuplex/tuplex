@@ -1642,6 +1642,10 @@ namespace tuplex {
                 return createIterCall(lfb, builder, argsType, retType, args);
             }
 
+            if(symbol == "reversed") {
+                return createReversedCall(lfb, builder, argsType, retType, args);
+            }
+
             if(symbol == "zip") {
                 return createZipCall(lfb, builder, argsType, retType, args, iteratorInfo);
             }
@@ -1672,6 +1676,18 @@ namespace tuplex {
                 return args.front();
             }
             return _icp->initIterContext(lfb, builder, argType, args.front());
+        }
+
+        SerializableValue FunctionRegistry::createReversedCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
+                                                           const python::Type &argsType, const python::Type &retType,
+                                                           const std::vector<tuplex::codegen::SerializableValue> &args) {
+            if(argsType.parameters().size() != 1) {
+                Logger::instance().defaultLogger().error("reversed() takes exactly one argument");
+                return SerializableValue(nullptr, nullptr);
+            }
+
+            python::Type argType = argsType.parameters().front();
+            return _icp->initReversedContext(lfb, builder, argType, args.front());
         }
 
         SerializableValue FunctionRegistry::createZipCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,

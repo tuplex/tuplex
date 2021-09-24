@@ -807,13 +807,16 @@ namespace tuplex {
 
             /*!
              * Create or get a llvm function with signature i1(struct.iterator) that does the following:
-             * Increments index field of the input struct.iterator,
+             * Increments (or decrements if reverse==true) index field of the input struct.iterator,
              * then returns true if the iterator is exhausted, and false otherwise.
              * @param builder
              * @param iterableType
+             * @param reverse should only be used for reverseiterator
              * @return llvm::BlockAddress* to be stored in an iterator struct later
              */
-            llvm::BlockAddress *createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(llvm::IRBuilder<> &builder, const python::Type &iterableType);
+            llvm::BlockAddress *createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(llvm::IRBuilder<> &builder,
+                                                                                          const python::Type &iterableType,
+                                                                                          bool reverse=false);
         };
 
 // i.e. there should be a function

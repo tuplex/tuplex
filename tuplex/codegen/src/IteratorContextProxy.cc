@@ -28,7 +28,8 @@ namespace tuplex {
             }
 
             llvm::Type *iteratorContextType = _env->createOrGetIterIteratorType(iterableType);
-            auto initBBAddr = _env->createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder, iterableType);
+            auto initBBAddr = _env->createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder, iterableType,
+                                                                                              false);
             auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder, iteratorContextType, "iter_iterator_alloc");
             llvm::Value *iterableStruct = nullptr;
             if(iterableType.isListType() || iterableType.isTupleType()) {

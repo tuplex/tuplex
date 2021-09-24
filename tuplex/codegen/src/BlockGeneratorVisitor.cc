@@ -5223,8 +5223,11 @@ namespace tuplex {
                 curr->addIncoming(start, entryBB);
                 curr->addIncoming(builder.CreateAdd(curr, step), iterEndBB);
                 if(exprType == python::Type::RANGE) {
-                    // step can be negative in range. Check if
-                    loopCond = builder.CreateICmpSLT(builder.CreateMul(curr, step), builder.CreateMul(end, step));
+                    // step can be negative in range. Check if curr * stepSign < end * stepSign
+                    // positive step -> stepSign = 1, negative step -> stepSign = -1
+                    // stepSign = (step >> 63) | 1 , use arithmetic shift
+                    auto stepSign = builder.CreateOr(builder.CreateAShr(step, _env->i64Const(63)), _env->i64Const(1));
+                    loopCond = builder.CreateICmpSLT(builder.CreateMul(curr, stepSign), builder.CreateMul(end, stepSign));
                 } else {
                     loopCond = builder.CreateICmpSLT(curr, end);
                 }

@@ -1905,18 +1905,24 @@ namespace tuplex {
             return builder.CreateFCmpOLT(fabs_value, eps);
         }
 
-        llvm::BlockAddress* LLVMEnvironment::createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(llvm::IRBuilder<> &builder, const python::Type &iterableType) {
+        llvm::BlockAddress * LLVMEnvironment::createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(llvm::IRBuilder<> &builder,
+                                                                                                        const python::Type &iterableType,
+                                                                                                        bool reverse) {
             using namespace llvm;
 
-            std::string funcName;
+            std::string funcName, prefix;
+            if(reverse) {
+                prefix = "reverse";
+            } // else: empty string
+
             if(iterableType.isListType()) {
-                funcName = "list_iterator_update";
+                funcName = "list_" + prefix + "iterator_update";
             } else if(iterableType == python::Type::STRING) {
-                funcName = "str_iterator_update";
+                funcName = "str_" + prefix + "iterator_update";
             } else if(iterableType == python::Type::RANGE) {
-                funcName = "range_iterator_update";
+                funcName = "range_" + prefix + "iterator_update";
             } else if(iterableType.isTupleType()) {
-                funcName = "tuple_iterator_update";
+                funcName = "tuple_" + prefix + "iterator_update";
             } else {
                 throw std::runtime_error("Cannot generate LLVM UpdateIteratorIndex function for iterator generated from iterable type" + iterableType.desc());
             }
@@ -1957,14 +1963,20 @@ namespace tuplex {
             builder.SetInsertPoint(updateIndexBB);
             auto indexPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
                                                   {i32Const(0), i32Const(1)});
+            llvm::Value *rightOperand = nullptr;
             if(iterableType == python::Type::RANGE) {
                 auto rangePtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
                                                  {i32Const(0), i32Const(2)});
                 auto rangeAlloc = builder.CreateLoad(rangePtr);
                 auto stepPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(2)});
-                builder.CreateStore(builder.CreateAdd(builder.CreateLoad(indexPtr), builder.CreateLoad(stepPtr)), indexPtr);
+                rightOperand= builder.CreateLoad(stepPtr);
             } else {
-                builder.CreateStore(builder.CreateAdd(builder.CreateLoad(indexPtr), i32Const(1)), indexPtr);
+                rightOperand = i32Const(1);
+            }
+            if(reverse) {
+                builder.CreateStore(builder.CreateSub(builder.CreateLoad(indexPtr), rightOperand), indexPtr);
+            } else {
+                builder.CreateStore(builder.CreateAdd(builder.CreateLoad(indexPtr), rightOperand), indexPtr);
             }
             builder.CreateBr(loopCondBB);
 
@@ -1972,35 +1984,53 @@ namespace tuplex {
             builder.SetInsertPoint(loopCondBB);
             // retrieve iterable length
             llvm::Value *iterableLength = nullptr;
-            if(iterableType.isListType()) {
-                if (iterableType == python::Type::EMPTYLIST) {
-                    iterableLength = i32Const(0);
-                } else {
-                    auto listPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
-                                                     {i32Const(0), i32Const(2)});
-                    auto listAlloc = builder.CreateLoad(listPtr);
-                    auto listLengthPtr = builder.CreateGEP(pythonToLLVMType(iterableType), listAlloc, {i32Const(0), i32Const(1)});
-                    iterableLength = builder.CreateLoad(listLengthPtr);
+            if(!reverse) {
+                // need to retrieve length for list, tuple or string
+                if(iterableType.isListType()) {
+                    if (iterableType == python::Type::EMPTYLIST) {
+                        iterableLength = i32Const(0);
+                    } else {
+                        auto listPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
+                                                         {i32Const(0), i32Const(2)});
+                        auto listAlloc = builder.CreateLoad(listPtr);
+                        auto listLengthPtr = builder.CreateGEP(pythonToLLVMType(iterableType), listAlloc, {i32Const(0), i32Const(1)});
+                        iterableLength = builder.CreateLoad(listLengthPtr);
+                    }
+                } else if(iterableType == python::Type::STRING || iterableType.isTupleType()) {
+                    auto iterableLengthPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
+                                                               {i32Const(0), i32Const(3)});
+                    iterableLength = builder.CreateLoad(iterableLengthPtr);
                 }
-            } else if(iterableType == python::Type::STRING || iterableType.isTupleType()) {
-                auto iterableLengthPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
-                                                           {i32Const(0), i32Const(3)});
-                iterableLength = builder.CreateLoad(iterableLengthPtr);
             }
-            // retrieve current index
+            // retrieve current index (i64 for range_iterator, i32 for others)
             auto currIndex = builder.CreateLoad(indexPtr);
             llvm::Value *loopContinue;
             if(iterableType == python::Type::RANGE) {
                 auto rangePtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
                                                   {i32Const(0), i32Const(2)});
                 auto rangeAlloc = builder.CreateLoad(rangePtr);
-                auto endPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(1)});
-                auto end = builder.CreateLoad(endPtr);
                 auto stepPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(2)});
                 auto step = builder.CreateLoad(stepPtr);
-                loopContinue = builder.CreateICmpSLT(builder.CreateMul(currIndex, step), builder.CreateMul(end, step));
+                // positive step -> stepSign = 1, negative step -> stepSign = -1
+                // stepSign = (step >> 63) | 1 , use arithmetic shift
+                auto stepSign = builder.CreateOr(builder.CreateAShr(step, i64Const(63)), i64Const(1));
+                if(reverse) {
+                    auto startPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(0)});
+                    auto start = builder.CreateLoad(startPtr);
+                    // step can be negative in range. Check if curr * stepSign >= start * stepSign
+                    loopContinue = builder.CreateICmpSGE(builder.CreateMul(currIndex, stepSign), builder.CreateMul(start, stepSign));
+                } else {
+                    auto endPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(1)});
+                    auto end = builder.CreateLoad(endPtr);
+                    // step can be negative in range. Check if curr * stepSign < end * stepSign
+                    loopContinue = builder.CreateICmpSLT(builder.CreateMul(currIndex, stepSign), builder.CreateMul(end, stepSign));
+                }
             } else {
-                loopContinue = builder.CreateICmpSLT(builder.CreateZExt(currIndex, i64Type()), iterableLength);
+                if(reverse) {
+                    loopContinue = builder.CreateICmpSGE(currIndex, i32Const(0));
+                } else {
+                    loopContinue = builder.CreateICmpSLT(builder.CreateZExt(currIndex, i64Type()), iterableLength);
+                }
             }
             builder.CreateCondBr(loopContinue, loopBB, loopExitBB);
 
@@ -2011,7 +2041,7 @@ namespace tuplex {
             builder.CreateStore(llvm::BlockAddress::get(func, updateIndexBB), nextBlockAddrPtr);
             builder.CreateRet(i1Const(false));
 
-            // current index = iterable length, set block address to endBB
+            // current index out of iterable index range (iterator exhausted), set block address to endBB
             builder.SetInsertPoint(loopExitBB);
             auto endBlockAddrPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
                                                      {i32Const(0), i32Const(0)});

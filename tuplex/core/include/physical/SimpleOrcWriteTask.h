@@ -124,12 +124,11 @@ public:
             initColumns(_schema.getRowType(), batch.get(), numRows, nextIndex, _schema.getRowType().isOptionType(), orcColumns, orcColumnToRowIndexMap);
 
             for (uint64_t r = 0; r < numRows; ++r) {
-                Row row = Row::fromMemory(ds, ptr, endptr - ptr);
                 for (uint64_t i = 0; i < orcColumns.size(); ++i) {
                     auto rowInd = orcColumnToRowIndexMap[i];
                     orcColumns.at(i)->setData(ds, rowInd, r);
                 }
-                ptr += row.serializedLength();
+                ptr += ds.rowSize();
             }
 
             writer->add(*batch);

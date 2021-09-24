@@ -5214,7 +5214,7 @@ namespace tuplex {
                 if(exprType == python::Type::EMPTYITERATOR) {
                     loopCond = _env->i1Const(true);
                 }
-                auto iteratorExhausted = _icp->updateIteratorIndex(builder, exprAlloc.val, iteratorInfo);
+                auto iteratorExhausted = _iteratorContextProxy->updateIteratorIndex(builder, exprAlloc.val, iteratorInfo);
                 // loopCond = !iteratorExhausted i.e. if iterator exhausted, ends the loop
                 loopCond = builder.CreateICmpEQ(iteratorExhausted, _env->i1Const(false));
             } else {
@@ -5285,7 +5285,7 @@ namespace tuplex {
                 addInstruction(curr, _env->i64Const(8));
             } else if(exprType.isIteratorType()) {
                 if(exprType != python::Type::EMPTYITERATOR) {
-                    auto currVal = _icp->getIteratorNextElement(builder, exprType.yieldType(), exprAlloc.val, iteratorInfo);
+                    auto currVal = _iteratorContextProxy->getIteratorNextElement(builder, exprType.yieldType(), exprAlloc.val, iteratorInfo);
                     if(exprType.yieldType().isListType()) {
                         if(loopVal.size() == 1) {
                             addInstruction(currVal.val, currVal.size);

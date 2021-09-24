@@ -1658,7 +1658,7 @@ namespace tuplex {
                 return createNextCall(lfb, builder, argsType, retType, args, iteratorInfo);
             }
 
-            Logger::instance().defaultLogger().error("unsupported symbol encountered");
+            Logger::instance().defaultLogger().error("unsupported symbol " + symbol + " encountered");
             return SerializableValue(nullptr, nullptr);
         }
 
@@ -1675,7 +1675,7 @@ namespace tuplex {
                 // iter() call on a iterator. Simply return the iterator as it is.
                 return args.front();
             }
-            return _icp->initIterContext(lfb, builder, argType, args.front());
+            return _iteratorContextProxy->initIterContext(lfb, builder, argType, args.front());
         }
 
         SerializableValue FunctionRegistry::createReversedCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
@@ -1687,7 +1687,7 @@ namespace tuplex {
             }
 
             python::Type argType = argsType.parameters().front();
-            return _icp->initReversedContext(lfb, builder, argType, args.front());
+            return _iteratorContextProxy->initReversedContext(lfb, builder, argType, args.front());
         }
 
         SerializableValue FunctionRegistry::createZipCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
@@ -1695,7 +1695,7 @@ namespace tuplex {
                                                            const std::vector<tuplex::codegen::SerializableValue> &args,
                                                            const std::shared_ptr<IteratorInfo> &iteratorInfo) {
 
-            return _icp->initZipContext(lfb, builder, args, iteratorInfo);
+            return _iteratorContextProxy->initZipContext(lfb, builder, args, iteratorInfo);
         }
 
         SerializableValue FunctionRegistry::createEnumerateCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
@@ -1727,14 +1727,14 @@ namespace tuplex {
                     lfb.addException(builder, ExceptionCode::STOPITERATION, _env.i1Const(true));
                     return SerializableValue(_env.i64Const(0), _env.i64Const(8));
                 }
-                return _icp->createIteratorNextCall(lfb, builder, argsType.parameters().front().yieldType(), args[0].val, SerializableValue(nullptr, nullptr), iteratorInfo);
+                return _iteratorContextProxy->createIteratorNextCall(lfb, builder, argsType.parameters().front().yieldType(), args[0].val, SerializableValue(nullptr, nullptr), iteratorInfo);
             }
 
             if(argsType.parameters().size() == 2) {
                 if(argsType.parameters().front() == python::Type::EMPTYITERATOR) {
                     return args[1];
                 }
-                return _icp->createIteratorNextCall(lfb, builder, argsType.parameters().front().yieldType(), args[0].val, args[1], iteratorInfo);
+                return _iteratorContextProxy->createIteratorNextCall(lfb, builder, argsType.parameters().front().yieldType(), args[0].val, args[1], iteratorInfo);
             }
 
             Logger::instance().defaultLogger().error("next() takes 1 or 2 arguments");

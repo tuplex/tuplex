@@ -816,6 +816,12 @@ namespace tuplex {
              * Create or get a llvm function with signature i1(struct.iterator) that does the following:
              * Increments (or decrements if reverse==true) index field of the input struct.iterator,
              * then returns true if the iterator is exhausted, and false otherwise.
+             * Explaination about the BlockAddress: It's one of the fields of list/tuple/... iterator structs.
+             * Normally it's the address of the block that updates and checks an iterator's index, but as soon as the iterator is exhausted,
+             * this field will be set to the address of a block that always returns true. When next() gets called on an exhausted iterator,
+             * it can then tell whether the iterator is exhausted without having to check if index+1 > iterableObjectLength.
+             * (It's not the only way to achieve this given the current implementation,
+             * and can be replaced by an additional field "i1 iteratorExhausted" in iterator struct.)
              * @param builder
              * @param iterableType
              * @param reverse should only be used for reverseiterator

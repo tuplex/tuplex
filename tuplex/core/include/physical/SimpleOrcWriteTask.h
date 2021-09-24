@@ -24,6 +24,8 @@
 #include <orc/TupleBatch.h>
 #include <orc/VirtualOutputStream.h>
 
+#include <LLVMEnvironment.h>
+
 namespace tuplex {
 
 /*!
@@ -34,6 +36,42 @@ public:
     SimpleOrcWriteTask() = delete;
     SimpleOrcWriteTask(const URI& uri, const std::vector<Partition *> &partitions, const Schema &schema, const std::string &columns) : _uri(uri),
                                                                                                                                        _partitions(partitions.begin(), partitions.end()), _schema(schema), _columns(columnStringToVector(columns)) {}
+//
+//    void codegenFunctor(codegen::LLVMEnvironment *env, std::string function_name) {
+//        using namespace llvm;
+//
+//        auto &context = env->getContext();
+//        auto mod = env->getModule().get();
+//
+//        FunctionType *FT = FunctionType::get(Type::getVoidTy(context), {}, false);
+//        Function *func = Function::Create(FT, Function::ExternalLinkage, "orcFunctor", mod);
+//
+//        auto argNumRows = arg("numRows");
+//
+//        BasicBlock *bbEntry = BasicBlock::Create(env->getContext(), "entry", func);
+//        IRBuilder<> builder(bbEntry);
+//
+//        Value *rowVar = builder.CreateAlloca(env().i64Type(), 0, nullptr);
+//        builder.CreateStore(env().i64Const(0), rowVar);
+//
+//        // For loop
+//        BasicBlock *bbLoopHeader = BasicBlock::Create(env->getContext(), "loopHeader", func);
+//        BasicBlock *bbLoopBody = BasicBlock::Create(env->getContext(), "loopBody", func);
+//        BasicBlock *bbLoopExit = BasicBlock::Create(env->getContext(), "loopExit", func);
+//
+//        builder.CreateBr(bbLoopHeader);
+//
+//        builder.SetInsertPoint(bbLoopHeader);
+//        Value *row = builder.CreateLoad(rowVar, "row");
+//        Value *nextRow = builder.CreateAdd(env().i64Const(1), row);
+//        Value *numRows = builder.CreateLoad(numRowsVar, "numRows");
+//        builder.CreateStore(nextRow, rowVar, "row");
+//        auto cond = builder.CreateICmpSLT(nextRow, numRows);
+//        builder.CreateCondBr(cond, bbLoopBody, bbLoopExit);
+//
+//
+//    }
+//
 
     void execute() override {
         auto& logger = Logger::instance().defaultLogger();
@@ -61,6 +99,10 @@ public:
             abort("error creating Orc writer.");
         }
 
+        auto tree = TupleTree<int>(_schema.getRowType());
+        auto flattenedSchema = Schema(_schema.getMemoryLayout(), python::Type::makeTupleType(tree.fieldTypes()));
+        auto ds = tuplex::Deserializer(flattenedSchema);
+
         size_t totalBytes = 0;
         size_t totalRows = 0;
         for (auto p : _partitions) {
@@ -81,11 +123,8 @@ public:
 
             initColumns(_schema.getRowType(), batch.get(), numRows, nextIndex, _schema.getRowType().isOptionType(), orcColumns, orcColumnToRowIndexMap);
 
-            auto tree = TupleTree<int>(_schema.getRowType());
-            auto flattenedSchema = Schema(_schema.getMemoryLayout(), python::Type::makeTupleType(tree.fieldTypes()));
-
             for (uint64_t r = 0; r < numRows; ++r) {
-                Row row = Row::fromMemory(flattenedSchema, ptr, endptr - ptr);
+                Row row = Row::fromMemory(ds, ptr, endptr - ptr);
                 for (uint64_t i = 0; i < orcColumns.size(); ++i) {
                     auto rowInd = orcColumnToRowIndexMap[i];
                     orcColumns.at(i)->setData(row.get(rowInd), r);

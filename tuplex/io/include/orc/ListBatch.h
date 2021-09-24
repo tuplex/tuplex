@@ -27,20 +27,29 @@ public:
         delete _child;
     }
 
-    void setData(tuplex::Field field, uint64_t row) override {
-        auto notNull = !field.isNull();
+    void setData(List *list, bool notNull, uint64_t row) {
         _orcBatch->notNull[row] = notNull;
         _orcBatch->offsets[row + 1] = _orcBatch->offsets[row];
         if (notNull) {
-            auto list = (tuplex::List *) field.getPtr();
             auto numElements = list->numElements();
             _orcBatch->offsets[row + 1] += numElements;
-
             for (uint64_t i = 0; i < numElements; ++i) {
                 _child->setData(list->getField(i), _nextIndex);
                 _nextIndex++;
             }
         }
+    }
+
+    void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
+        auto notNull = !ds.isNull(col);
+        auto list = ds.getList(col);
+        setData(&list, notNull, row);
+    }
+
+    void setData(tuplex::Field field, uint64_t row) override {
+        auto notNull = !field.isNull();
+        auto list = (tuplex::List *) field.getPtr();
+        setData(list, notNull, row);
     }
 
     void setBatch(::orc::ColumnVectorBatch *newBatch) override {

@@ -37,6 +37,17 @@ public:
         }
     }
 
+    void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
+        using namespace tuplex;
+        auto notNull = !ds.isNull(col);
+        if (notNull) {
+            auto tuple = ds.getTuple();
+            for (uint64_t i = 0; i < tuple.numElements(); ++i) {
+                _children.at(i)->setData(tuple.getField(i), row);
+            }
+        }
+    }
+
     void setBatch(::orc::ColumnVectorBatch *newBatch) override {
         auto structBatch = static_cast<::orc::StructVectorBatch *>(newBatch);
         _orcBatch = structBatch;

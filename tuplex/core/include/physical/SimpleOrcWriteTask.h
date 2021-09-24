@@ -127,7 +127,7 @@ public:
                 Row row = Row::fromMemory(ds, ptr, endptr - ptr);
                 for (uint64_t i = 0; i < orcColumns.size(); ++i) {
                     auto rowInd = orcColumnToRowIndexMap[i];
-                    orcColumns.at(i)->setData(row.get(rowInd), r);
+                    orcColumns.at(i)->setData(ds, rowInd, r);
                 }
                 ptr += row.serializedLength();
             }

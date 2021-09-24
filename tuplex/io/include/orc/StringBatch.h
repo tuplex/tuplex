@@ -23,6 +23,7 @@ public:
             static_cast<::orc::StringVectorBatch *>(orcBatch)), _buffers({}) {
         _orcBatch->numElements = numRows;
         _orcBatch->hasNulls = isOption;
+        _orcBatch->resize(numRows);
     }
 
     ~StringBatch() override {
@@ -31,19 +32,32 @@ public:
         }
     }
 
-    void setData(tuplex::Field field, uint64_t row) override {
+    void setData(std::string value, uint64_t row) {
         if (row == _orcBatch->capacity) {
             _orcBatch->resize(_orcBatch->capacity * 2);
         }
+        char *buf = new char[value.size() + 1];
+        value.copy(buf, value.size());
+        _buffers.push_back(buf);
+        _orcBatch->data[row] = buf;
+        _orcBatch->length[row] = value.size();
+    }
+
+    void setData(tuplex::Field field, uint64_t row) override {
         auto notNull = !field.isNull();
         _orcBatch->notNull[row] = notNull;
         if (notNull) {
-            auto str = std::string(reinterpret_cast<char *>(field.getPtr()));
-            char *buf = new char[str.size() + 1];
-            str.copy(buf, str.size());
-            _buffers.push_back(buf);
-            _orcBatch->data[row] = buf;
-            _orcBatch->length[row] = str.size();
+            auto value = std::string(reinterpret_cast<char *>(field.getPtr()));
+            setData(value, row);
+        }
+    }
+
+    void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
+        auto notNull = !ds.isNull(col);
+        _orcBatch->notNull[row] = notNull;
+        if (notNull) {
+            auto value = ds.getString(col);
+            setData(value, row);
         }
     }
 

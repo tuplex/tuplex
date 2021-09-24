@@ -23,17 +23,29 @@ public:
             static_cast<::orc::DoubleVectorBatch *>(orcBatch)) {
         _orcBatch->numElements = numRows;
         _orcBatch->hasNulls = isOption;
+        _orcBatch->resize(numRows);
     }
 
-    void setData(tuplex::Field field, uint64_t row) override {
+    void setData(double value, bool notNull, uint64_t row) {
         if (row == _orcBatch->capacity) {
             _orcBatch->resize(_orcBatch->capacity * 2);
         }
-        auto notNull = !field.isNull();
         _orcBatch->notNull[row] = notNull;
         if (notNull) {
-            _orcBatch->data[row] = field.getDouble();
+            _orcBatch->data[row] = value;
         }
+    }
+
+    void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
+        auto notNull = !ds.isNull(col);
+        auto value = ds.getDouble(col);
+        setData(value, notNull, row);
+    }
+
+    void setData(tuplex::Field field, uint64_t row) override {
+        auto notNull = !field.isNull();
+        auto value = field.getDouble();
+        setData(value, notNull, row);
     }
 
     void setBatch(::orc::ColumnVectorBatch *newBatch) override {

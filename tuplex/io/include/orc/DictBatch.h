@@ -58,6 +58,29 @@ public:
         }
     }
 
+    void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
+        auto notNull = !ds.isNull(col);
+
+        assert(row <= _orcBatch->capacity);
+        _orcBatch->notNull[row] = notNull;
+        _orcBatch->offsets[row + 1] = _orcBatch->offsets[row];
+
+        if (notNull) {
+            auto dict = cJSON_Parse(reinterpret_cast<const char *>(ds.getPtr(col)));
+
+            auto cur = dict->child;
+            while (cur) {
+                auto key = keyToField(cur, _keyType);
+                _keyBatch->setData(keyToField(cur, _keyType), _nextIndex);
+                auto val = valueToField(cur, _valueType);
+                _valueBatch->setData(valueToField(cur, _valueType), _nextIndex);
+                _nextIndex++;
+                cur = cur->next;
+                _orcBatch->offsets[row + 1]++;
+            }
+        }
+    }
+
     void setBatch(::orc::ColumnVectorBatch *newBatch) override {
         auto mapBatch = static_cast<::orc::MapVectorBatch *>(newBatch);
         _orcBatch = mapBatch;

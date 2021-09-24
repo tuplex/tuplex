@@ -25,11 +25,13 @@ public:
 
     /*!
      * sets the the data in a row of an Orc batch from a tuplecx field.
-     * @param field
+     * @param ds
+     * @parm col
      * @param rowIndex
      */
-    virtual void setData(tuplex::Field field, uint64_t rowIndex) = 0;
+    virtual void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t rowIndex) = 0;
 
+    virtual void setData(tuplex::Field field, uint64_t row) = 0;
 
     /*!
      * gets a tuplex field from an orc batch given the row.

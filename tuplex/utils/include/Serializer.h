@@ -199,6 +199,7 @@ namespace tuplex {
             return std::any_of(_requiresBitmap.begin(), _requiresBitmap.end(), [](const bool b) { return b; });
         }
 
+    public:
         inline bool isNull(int col) const {
             assert(0 <= col && col < _isVarLenField.size());
             assert(_buffer);
@@ -216,7 +217,6 @@ namespace tuplex {
             return is_null;
         }
 
-    public:
         Deserializer(const Schema& schema);
 
         ~Deserializer() {

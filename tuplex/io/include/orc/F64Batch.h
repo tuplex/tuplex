@@ -26,26 +26,26 @@ public:
         _orcBatch->resize(numRows);
     }
 
-    void setData(double value, bool notNull, uint64_t row) {
+    void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
         if (row == _orcBatch->capacity) {
             _orcBatch->resize(_orcBatch->capacity * 2);
         }
+        auto notNull = !ds.isNull(col);
         _orcBatch->notNull[row] = notNull;
         if (notNull) {
-            _orcBatch->data[row] = value;
+            _orcBatch->data[row] = ds.getDouble(col);
         }
     }
 
-    void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
-        auto notNull = !ds.isNull(col);
-        auto value = ds.getDouble(col);
-        setData(value, notNull, row);
-    }
-
     void setData(tuplex::Field field, uint64_t row) override {
+        if (row == _orcBatch->capacity) {
+            _orcBatch->resize(_orcBatch->capacity * 2);
+        }
         auto notNull = !field.isNull();
-        auto value = field.getDouble();
-        setData(value, notNull, row);
+        _orcBatch->notNull[row] = notNull;
+        if (notNull) {
+            _orcBatch->data[row] = field.getDouble();
+        }
     }
 
     void setBatch(::orc::ColumnVectorBatch *newBatch) override {

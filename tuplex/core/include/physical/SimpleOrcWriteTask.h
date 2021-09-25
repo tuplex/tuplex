@@ -34,44 +34,10 @@ namespace tuplex {
 class SimpleOrcWriteTask : public IExecutorTask {
 public:
     SimpleOrcWriteTask() = delete;
-    SimpleOrcWriteTask(const URI& uri, const std::vector<Partition *> &partitions, const Schema &schema, const std::string &columns) : _uri(uri),
-                                                                                                                                       _partitions(partitions.begin(), partitions.end()), _schema(schema), _columns(columnStringToVector(columns)) {}
-//
-//    void codegenFunctor(codegen::LLVMEnvironment *env, std::string function_name) {
-//        using namespace llvm;
-//
-//        auto &context = env->getContext();
-//        auto mod = env->getModule().get();
-//
-//        FunctionType *FT = FunctionType::get(Type::getVoidTy(context), {}, false);
-//        Function *func = Function::Create(FT, Function::ExternalLinkage, "orcFunctor", mod);
-//
-//        auto argNumRows = arg("numRows");
-//
-//        BasicBlock *bbEntry = BasicBlock::Create(env->getContext(), "entry", func);
-//        IRBuilder<> builder(bbEntry);
-//
-//        Value *rowVar = builder.CreateAlloca(env().i64Type(), 0, nullptr);
-//        builder.CreateStore(env().i64Const(0), rowVar);
-//
-//        // For loop
-//        BasicBlock *bbLoopHeader = BasicBlock::Create(env->getContext(), "loopHeader", func);
-//        BasicBlock *bbLoopBody = BasicBlock::Create(env->getContext(), "loopBody", func);
-//        BasicBlock *bbLoopExit = BasicBlock::Create(env->getContext(), "loopExit", func);
-//
-//        builder.CreateBr(bbLoopHeader);
-//
-//        builder.SetInsertPoint(bbLoopHeader);
-//        Value *row = builder.CreateLoad(rowVar, "row");
-//        Value *nextRow = builder.CreateAdd(env().i64Const(1), row);
-//        Value *numRows = builder.CreateLoad(numRowsVar, "numRows");
-//        builder.CreateStore(nextRow, rowVar, "row");
-//        auto cond = builder.CreateICmpSLT(nextRow, numRows);
-//        builder.CreateCondBr(cond, bbLoopBody, bbLoopExit);
-//
-//
-//    }
-//
+    SimpleOrcWriteTask(const URI& uri,
+                       const std::vector<Partition *> &partitions,
+                       const Schema &schema,
+                       const std::string &columns) : _uri(uri), _partitions(partitions.begin(), partitions.end()), _schema(schema), _columns(columnStringToVector(columns)) {}
 
     void execute() override {
         auto& logger = Logger::instance().defaultLogger();

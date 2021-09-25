@@ -18,6 +18,7 @@ public:
     TupleBatch(::orc::ColumnVectorBatch *orcBatch, std::vector<OrcBatch *> children, size_t numRows, bool isOption): _orcBatch(static_cast<::orc::StructVectorBatch *>(orcBatch)), _children(children) {
         _orcBatch->numElements = numRows;
         _orcBatch->hasNulls = isOption;
+        _orcBatch->resize(numRows);
     }
 
     ~TupleBatch() override {
@@ -28,7 +29,11 @@ public:
 
     void setData(tuplex::Field field, uint64_t row) override {
         using namespace tuplex;
+        if (row == _orcBatch->capacity) {
+            _orcBatch->resize(_orcBatch->capacity * 2);
+        }
         auto notNull = !field.isNull();
+        _orcBatch->notNull[row] = notNull;
         if (notNull) {
             Tuple *tuple = (Tuple *) field.getPtr();
             for (uint64_t i = 0; i < tuple->numElements(); ++i) {
@@ -39,7 +44,11 @@ public:
 
     void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
         using namespace tuplex;
+        if (row == _orcBatch->capacity) {
+            _orcBatch->resize(_orcBatch->capacity * 2);
+        }
         auto notNull = !ds.isNull(col);
+        _orcBatch->notNull[row] = notNull;
         if (notNull) {
             auto tuple = ds.getTuple();
             for (uint64_t i = 0; i < tuple.numElements(); ++i) {
@@ -67,7 +76,7 @@ public:
 
 
 private:
-    ::orc::StructVectorBatch *_orcBatch{};
+    ::orc::StructVectorBatch *_orcBatch;
     std::vector<OrcBatch *> _children;
 };
 

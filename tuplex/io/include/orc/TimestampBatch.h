@@ -25,31 +25,37 @@ public:
         _orcBatch->hasNulls = isOption;
     }
 
-    void setData(int64_t value, bool notNull, uint64_t row) {
-        if (row == _orcBatch->capacity) {
-            _orcBatch->resize(_orcBatch->capacity * 2);
+    void setData(int64_t value, uint64_t row) {
+        _orcBatch->data[row] = value;
+        auto nanos = value * 1000000000;
+        if (nanos != 0 && nanos / value != 1000000000) {
+            nanos = 2147483647;
         }
-        _orcBatch->notNull[row] = notNull;
-        if (notNull) {
-            _orcBatch->data[row] = value;
-            auto nanos = value * 1000000000;
-            if (nanos != 0 && nanos / value != 1000000000) {
-                nanos = 2147483647;
-            }
-            _orcBatch->nanoseconds[row] = nanos;
-        }
+        _orcBatch->nanoseconds[row] = nanos;
     }
 
     void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
+        if (row == _orcBatch->capacity) {
+            _orcBatch->resize(_orcBatch->capacity * 2);
+        }
         auto notNull = !ds.isNull(col);
-        auto value = ds.getInt(col);
-        setData(value, notNull, row);
+        _orcBatch->notNull[row] = notNull;
+        if (notNull) {
+            auto value = ds.getInt(col);
+            setData(value, row);
+        }
     }
 
     void setData(tuplex::Field field, uint64_t row) override {
+        if (row == _orcBatch->capacity) {
+            _orcBatch->resize(_orcBatch->capacity * 2);
+        }
         auto notNull = !field.isNull();
-        auto value = field.getInt();
-        setData(value, notNull, row);
+        _orcBatch->notNull[row] = notNull;
+        if (notNull) {
+            auto value = field.getInt();
+            setData(value, row);
+        }
     }
 
     void setBatch(::orc::ColumnVectorBatch *newBatch) override {

@@ -18,11 +18,13 @@ namespace tuplex { namespace orc {
  */
 class DictBatch : public OrcBatch {
 public:
-    DictBatch(::orc::ColumnVectorBatch *orcBatch, OrcBatch *keyBatch, OrcBatch *valueBatch, python::Type keyType,
-              python::Type valueType, size_t numRows, bool isOption) : _orcBatch(
-            static_cast<::orc::MapVectorBatch *>(orcBatch)), _keyBatch(keyBatch), _valueBatch(valueBatch),
-                                                                       _keyType(keyType), _valueType(valueType),
-                                                                       _nextIndex(0) {
+    DictBatch(::orc::ColumnVectorBatch *orcBatch,
+              OrcBatch *keyBatch, OrcBatch *valueBatch,
+              python::Type keyType,
+              python::Type valueType,
+              size_t numRows,
+              bool isOption) : _orcBatch(static_cast<::orc::MapVectorBatch *>(orcBatch)), _keyBatch(keyBatch), _valueBatch(valueBatch),
+                                _keyType(keyType), _valueType(valueType), _nextIndex(0) {
         _orcBatch->numElements = numRows;
         _orcBatch->hasNulls = isOption;
         _orcBatch->resize(numRows);
@@ -34,50 +36,40 @@ public:
         delete _valueBatch;
     }
 
-    void setData(tuplex::Field field, uint64_t row) override {
-        auto notNull = !field.isNull();
+    void setData(cJSON *dict, uint64_t row) {
+        auto cur = dict->child;
+        while (cur) {
+            _keyBatch->setData(keyToField(cur, _keyType), _nextIndex);
+            _valueBatch->setData(valueToField(cur, _valueType), _nextIndex);
+            _nextIndex++;
+            cur = cur->next;
+            _orcBatch->offsets[row + 1]++;
+        }
+    }
 
-        assert(row <= _orcBatch->capacity);
+    void setData(tuplex::Field field, uint64_t row) override {
+        if (row == _orcBatch->capacity) {
+            _orcBatch->resize(_orcBatch->capacity * 2);
+        }
+        auto notNull = !field.isNull();
         _orcBatch->notNull[row] = notNull;
         _orcBatch->offsets[row + 1] = _orcBatch->offsets[row];
-
         if (notNull) {
-            assert(field.getPtr());
             auto dict = cJSON_Parse(reinterpret_cast<char *>(field.getPtr()));
-
-            auto cur = dict->child;
-            while (cur) {
-                auto key = keyToField(cur, _keyType);
-                _keyBatch->setData(keyToField(cur, _keyType), _nextIndex);
-                auto val = valueToField(cur, _valueType);
-                _valueBatch->setData(valueToField(cur, _valueType), _nextIndex);
-                _nextIndex++;
-                cur = cur->next;
-                _orcBatch->offsets[row + 1]++;
-            }
+            setData(dict, row);
         }
     }
 
     void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
+        if (row == _orcBatch->capacity) {
+            _orcBatch->resize(_orcBatch->capacity * 2);
+        }
         auto notNull = !ds.isNull(col);
-
-        assert(row <= _orcBatch->capacity);
         _orcBatch->notNull[row] = notNull;
         _orcBatch->offsets[row + 1] = _orcBatch->offsets[row];
-
         if (notNull) {
-            auto dict = cJSON_Parse(reinterpret_cast<const char *>(ds.getPtr(col)));
-
-            auto cur = dict->child;
-            while (cur) {
-                auto key = keyToField(cur, _keyType);
-                _keyBatch->setData(keyToField(cur, _keyType), _nextIndex);
-                auto val = valueToField(cur, _valueType);
-                _valueBatch->setData(valueToField(cur, _valueType), _nextIndex);
-                _nextIndex++;
-                cur = cur->next;
-                _orcBatch->offsets[row + 1]++;
-            }
+            auto dict = cJSON_Parse(ds.getDictionary(col).c_str());
+            setData(dict, row);
         }
     }
 

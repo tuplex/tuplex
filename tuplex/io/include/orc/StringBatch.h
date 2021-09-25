@@ -33,9 +33,6 @@ public:
     }
 
     void setData(std::string value, uint64_t row) {
-        if (row == _orcBatch->capacity) {
-            _orcBatch->resize(_orcBatch->capacity * 2);
-        }
         char *buf = new char[value.size() + 1];
         value.copy(buf, value.size());
         _buffers.push_back(buf);
@@ -44,6 +41,9 @@ public:
     }
 
     void setData(tuplex::Field field, uint64_t row) override {
+        if (row == _orcBatch->capacity) {
+            _orcBatch->resize(_orcBatch->capacity * 2);
+        }
         auto notNull = !field.isNull();
         _orcBatch->notNull[row] = notNull;
         if (notNull) {
@@ -53,6 +53,9 @@ public:
     }
 
     void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
+        if (row == _orcBatch->capacity) {
+            _orcBatch->resize(_orcBatch->capacity * 2);
+        }
         auto notNull = !ds.isNull(col);
         _orcBatch->notNull[row] = notNull;
         if (notNull) {

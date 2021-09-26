@@ -80,6 +80,18 @@ public:
         return Field(List::from_vector(elements));
     }
 
+    void getField(Serializer &serializer, uint64_t row) override {
+        using namespace tuplex;
+        auto numElements = _orcBatch->offsets[row + 1] - _orcBatch->offsets[row];
+        std::vector<Field> elements;
+        for (int i = 0; i < numElements; ++i) {
+            elements.push_back(_child->getField(_nextIndex));
+            _nextIndex++;
+        }
+        auto list = List::from_vector(elements);
+        serializer.append(list);
+    }
+
 private:
     ::orc::ListVectorBatch *_orcBatch;
     uint64_t _nextIndex;

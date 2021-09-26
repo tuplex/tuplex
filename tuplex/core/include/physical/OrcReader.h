@@ -108,13 +108,28 @@ namespace tuplex {
 
         size_t _numRowsRead;
 
+//        void writeBatchToPartition(PartitionWriter &pw, ::orc::ColumnVectorBatch *batch, std::vector<tuplex::orc::OrcBatch *> &columns) {
+//            for (uint64_t r = 0; r < batch->numElements; ++r) {
+//                std::vector<Field> fields;
+//                fields.reserve(columns.size());
+//                for (auto col : columns) {
+//                    fields.push_back(col->getField(r));
+//                }
+//                pw.writeRow(Row::from_vector(fields));
+//            }
+//            _numRowsRead += batch->numElements;
+//        }
+
         void writeBatchToPartition(PartitionWriter &pw, ::orc::ColumnVectorBatch *batch, std::vector<tuplex::orc::OrcBatch *> &columns) {
             for (uint64_t r = 0; r < batch->numElements; ++r) {
-                std::vector<Field> fields;
+                Serializer serializer;
                 for (auto col : columns) {
-                    fields.push_back(col->getField(r));
+                    col->getField(serializer, r);
                 }
-                pw.writeRow(Row::from_vector(fields));
+                auto len = serializer.length();
+                const uint8_t *ptr = new uint8_t[len];
+                serializer.serialize((void *) ptr, len);
+                pw.writeData(ptr, len);
             }
             _numRowsRead += batch->numElements;
         }

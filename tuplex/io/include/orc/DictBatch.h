@@ -101,6 +101,27 @@ public:
         return tuplex::Field::from_str_data(ss.str(), python::Type::makeDictionaryType(_keyType, _valueType));
     }
 
+    void getField(Serializer &serializer, uint64_t row) override {
+        auto numElements = _orcBatch->offsets[row + 1] - _orcBatch->offsets[row];
+        std::stringstream ss;
+        ss << "{";
+        for (int i = 0; i < numElements; i++) {
+            if (_keyType != python::Type::STRING) {
+                ss << "\"" << fieldToStr(_keyType, _keyBatch->getField(_nextIndex)) << "\"";
+            } else {
+                ss << fieldToStr(_keyType, _keyBatch->getField(_nextIndex));
+            }
+            ss << ":";
+            ss << fieldToStr(_valueType, _valueBatch->getField(_nextIndex));
+            if (i != numElements - 1) {
+                ss << ",";
+            }
+            _nextIndex++;
+        }
+        ss << "}";
+        serializer.append(ss.str(), python::Type::makeDictionaryType(_keyType, _valueType));
+    }
+
 private:
     ::orc::MapVectorBatch *_orcBatch;
     OrcBatch *_keyBatch;

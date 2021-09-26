@@ -26,17 +26,6 @@ public:
         _orcBatch->resize(numRows);
     }
 
-    void setData(tuplex::Field field, uint64_t row) override {
-        if (row == _orcBatch->capacity) {
-            _orcBatch->resize(_orcBatch->capacity * 2);
-        }
-        auto notNull = !field.isNull();
-        _orcBatch->notNull[row] = notNull;
-        if (notNull) {
-            _orcBatch->data[row] = field.getInt();
-        }
-    }
-
     void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
         if (row == _orcBatch->capacity) {
             _orcBatch->resize(_orcBatch->capacity * 2);
@@ -48,8 +37,32 @@ public:
         }
     }
 
+    void setData(tuplex::Field field, uint64_t row) override {
+        if (row == _orcBatch->capacity) {
+            _orcBatch->resize(_orcBatch->capacity * 2);
+        }
+        auto notNull = !field.isNull();
+        _orcBatch->notNull[row] = notNull;
+        if (notNull) {
+            _orcBatch->data[row] = field.getInt();
+        }
+    }
+
     void setBatch(::orc::ColumnVectorBatch *newBatch) override {
         _orcBatch = static_cast<::orc::LongVectorBatch *>(newBatch);
+    }
+
+    void getField(Serializer &serializer, uint64_t row) override {
+        using namespace tuplex;
+        if (_orcBatch->hasNulls) {
+            if (_orcBatch->notNull[row]) {
+                serializer.append(option<bool>((bool) _orcBatch->data[row]));
+            } else {
+                serializer.append(option<bool>::none);
+            }
+        } else {
+            serializer.append((bool) _orcBatch->data[row]);
+        }
     }
 
     tuplex::Field getField(uint64_t row) override {

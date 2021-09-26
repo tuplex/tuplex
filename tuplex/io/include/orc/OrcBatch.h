@@ -40,6 +40,8 @@ public:
      */
     virtual tuplex::Field getField(uint64_t row) = 0;
 
+    virtual void getField(Serializer &serializer, uint64_t row) = 0;
+
     /*!
      * updates the orc batch used to read data from.
      * @param newBatch

@@ -51,6 +51,19 @@ public:
         _orcBatch = static_cast<::orc::LongVectorBatch *>(newBatch);
     }
 
+    void getField(Serializer &serializer, uint64_t row) override {
+        using namespace tuplex;
+        if (_orcBatch->hasNulls) {
+            if (_orcBatch->notNull[row]) {
+                serializer.append(option<int>(_orcBatch->data[row]));
+            } else {
+                serializer.append(option<int>::none);
+            }
+        } else {
+            serializer.append(_orcBatch->data[row]);
+        }
+    }
+
     tuplex::Field getField(uint64_t row) override {
         using namespace tuplex;
         if (_orcBatch->hasNulls) {

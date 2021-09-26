@@ -65,6 +65,15 @@ public:
         }
     }
 
+    void getField(Serializer &serializer, uint64_t row) override {
+        using namespace tuplex;
+        std::vector <Field> elements;
+        for (auto child : _children) {
+            elements.push_back(child->getField(row));
+        }
+        serializer.append(Tuple::from_vector(elements));
+    }
+
     tuplex::Field getField(uint64_t row) override {
         using namespace tuplex;
         std::vector <Field> elements;
@@ -73,7 +82,6 @@ public:
         }
         return Field(Tuple::from_vector(elements));
     }
-
 
 private:
     ::orc::StructVectorBatch *_orcBatch;

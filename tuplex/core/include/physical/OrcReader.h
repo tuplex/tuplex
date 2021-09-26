@@ -122,7 +122,8 @@ namespace tuplex {
 
         void writeBatchToPartition(PartitionWriter &pw, ::orc::ColumnVectorBatch *batch, std::vector<tuplex::orc::OrcBatch *> &columns) {
             for (uint64_t r = 0; r < batch->numElements; ++r) {
-                Serializer serializer;
+                Serializer serializer(false);
+                serializer.setSchema(_schema);
                 for (auto col : columns) {
                     col->getField(serializer, r);
                 }

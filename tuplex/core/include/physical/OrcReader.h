@@ -97,9 +97,6 @@ namespace tuplex {
             rowReader.reset();
             reader.reset();
             inStream.reset();
-
-            auto& logger = Logger::instance().defaultLogger();
-            logger.info("wrote " + std::to_string(numNormalRows) + " rows");
         }
 
     private:

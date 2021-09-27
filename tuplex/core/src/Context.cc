@@ -452,12 +452,11 @@ namespace tuplex {
     DataSet& Context::orc(const std::string &pattern,
                           const std::vector<std::string>& columns) {
         using namespace std;
+        this->_options.set("inputSplitSize", "0");
 
         Schema schema;
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
-
-
         dsptr->_operator = addOperator(
                 FileInputOperator::fromOrc(pattern, this->_options));
         auto op = ((FileInputOperator*)dsptr->_operator);

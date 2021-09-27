@@ -331,7 +331,6 @@ namespace tuplex {
     FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co): _sampling_time_s(0.0) {
         auto &logger = Logger::instance().logger("fileinputoperator");
         _fmt = FileFormat::OUTFMT_ORC;
-
         Timer timer;
         detectFiles(pattern);
 
@@ -372,7 +371,6 @@ namespace tuplex {
             setSchema(Schema(Schema::MemoryLayout::ROW, tuplexType));
 
             setProjectionDefaults();
-
         } else {
             logger.warn("no input files found, can't infer type from sample.");
             setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));

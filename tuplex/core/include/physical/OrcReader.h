@@ -36,6 +36,11 @@ namespace tuplex {
         size_t inputRowCount() const override { return _numRowsRead; }
         virtual ~OrcReader() {}
 
+        void setRange(size_t start, size_t len) {
+            _rangeStart = start;
+            _rangeLen = len;
+        }
+
         /*!
          * read the contents of an Orc file into Tuplex memory
          * @param inputFilePath
@@ -48,6 +53,7 @@ namespace tuplex {
             auto &orcType = reader->getType();
 
             RowReaderOptions rowReaderOptions;
+            rowReaderOptions.range(_rangeStart, _rangeLen);
             ORC_UNIQUE_PTR<RowReader> rowReader = reader->createRowReader(rowReaderOptions);
             ORC_UNIQUE_PTR<ColumnVectorBatch> batch = rowReader->createRowBatch(1024);
             PartitionWriter pw(_task->owner(), _schema, _id, _partitionSize);
@@ -97,6 +103,9 @@ namespace tuplex {
             rowReader.reset();
             reader.reset();
             inStream.reset();
+
+            auto& logger = Logger::instance().defaultLogger();
+            logger.info("Read " + std::to_string(numNormalRows) + " from file");
         }
 
     private:
@@ -107,6 +116,9 @@ namespace tuplex {
         Schema _schema;
 
         size_t _numRowsRead;
+
+        size_t _rangeStart;
+        size_t _rangeLen;
 
         void writeBatchToPartition(PartitionWriter &pw, ::orc::ColumnVectorBatch *batch, std::vector<tuplex::orc::OrcBatch *> &columns) {
             for (uint64_t r = 0; r < batch->numElements; ++r) {

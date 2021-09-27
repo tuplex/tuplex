@@ -452,7 +452,7 @@ namespace tuplex {
     DataSet& Context::orc(const std::string &pattern,
                           const std::vector<std::string>& columns) {
         using namespace std;
-        this->_options.set("inputSplitSize", "0");
+        this->_options.set("tuplex.inputSplitSize", "0");
 
         Schema schema;
         int dataSetID = getNextDataSetID();

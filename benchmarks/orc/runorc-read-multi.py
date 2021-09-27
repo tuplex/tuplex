@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     # configuration, make sure to give enough runtime memory to the executors!
     conf = {"webui.enable" : False,
-            "executorCount" : 16,
+            "executorCount" : 5,
             "executorMemory" : "2G",
             "driverMemory" : "2G",
             "partitionSize" : "32MB",

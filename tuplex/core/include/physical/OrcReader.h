@@ -53,7 +53,9 @@ namespace tuplex {
             auto &orcType = reader->getType();
 
             RowReaderOptions rowReaderOptions;
-            rowReaderOptions.range(_rangeStart, _rangeLen);
+            if (_rangeLen > 0) {
+                rowReaderOptions.range(_rangeStart, _rangeLen);
+            }
             ORC_UNIQUE_PTR<RowReader> rowReader = reader->createRowReader(rowReaderOptions);
             ORC_UNIQUE_PTR<ColumnVectorBatch> batch = rowReader->createRowBatch(1024);
             PartitionWriter pw(_task->owner(), _schema, _id, _partitionSize);

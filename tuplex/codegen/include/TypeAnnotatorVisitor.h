@@ -73,6 +73,7 @@ namespace tuplex {
         SymbolTable& _symbolTable; // global symbol table for everything.
         bool _allowNumericTypeUnification; // whether bool/i64 get autoupcasted and merged when type conflicts exist within if-branches.
         std::unordered_map<std::string, python::Type> _nameTable; // i.e. mini symbol table for assignments.
+        std::unordered_map<std::string, std::shared_ptr<IteratorInfo>> _iteratorInfoTable; // i.e. name table for storing iteratorInfo of variables.
 
         void resolveNameConflicts(const std::unordered_map<std::string, python::Type>& table);
         void resolveNamesForIfStatement(std::unordered_map<std::string, python::Type>& if_table,
@@ -101,7 +102,13 @@ namespace tuplex {
                                        const python::Type& b);
         void assignHelper(NIdentifier *id, python::Type type);
         void checkRetType(python::Type t);
-        CompileError _typeError;
+        /*!
+         * Annotate iterator-related NCall with iterator-specific info
+         * @param funcName
+         * @param call
+         */
+        void annotateIteratorRelatedCalls(const std::string &funcName, NCall* call);
+
     public:
 
         void reset() {
@@ -109,13 +116,11 @@ namespace tuplex {
             _annotationLookup.clear();
             _funcReturnTypes.clear();
             IFailable::reset();
-            _typeError = CompileError::TYPE_ERROR_NONE;
         }
 
         explicit TypeAnnotatorVisitor(SymbolTable& symbolTable,
                                       bool allowNumericTypeUnification): _symbolTable(symbolTable),
-                                                                         _allowNumericTypeUnification(allowNumericTypeUnification),
-                                                                         _typeError(CompileError::TYPE_ERROR_NONE) {
+                                                                         _allowNumericTypeUnification(allowNumericTypeUnification) {
             init();
         }
 
@@ -154,7 +159,6 @@ namespace tuplex {
         void visit(NFor*) override;
 
         TSet<std::string> getMissingIdentifiers() { return _missingIdentifiers; }
-        CompileError getTypeError() {return _typeError;}
     };
 }
 

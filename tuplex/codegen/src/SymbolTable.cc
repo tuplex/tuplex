@@ -134,6 +134,218 @@ namespace tuplex {
         addSymbol("abs", python::Type::makeFunctionType(python::Type::I64, python::Type::I64));
         addSymbol("abs", python::Type::makeFunctionType(python::Type::F64, python::Type::F64));
 
+        // use functionTyper to dynamically infer function type for iterator-related functions (currently: iter, zip, enumerate, reversed, next)
+        auto iterFunctionTyper = [this](const python::Type& parameterType) {
+
+            if(parameterType.parameters().size() != 1) {
+                // iter() currently supports single iterable as arguments only
+                return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
+            }
+
+            auto iterableType = parameterType.parameters().front();
+
+            if(iterableType.isIteratorType()) {
+                // iter(iteratorType) simply returns iteratorType back
+                return python::Type::makeFunctionType(parameterType, iterableType);
+            }
+
+            if(iterableType.isListType()) {
+                if(iterableType == python::Type::EMPTYLIST) {
+                    return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
+                }
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(iterableType.elementType()));
+            }
+
+            if(iterableType == python::Type::STRING) {
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::STRING));
+            }
+
+            if(iterableType == python::Type::RANGE) {
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::I64));
+            }
+
+            if(iterableType.isDictionaryType()) {
+                addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_DICTIONARY);
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(iterableType.keyType()));
+            }
+
+            if(iterableType.isTupleType()) {
+                if(iterableType == python::Type::EMPTYTUPLE) {
+                    return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
+                }
+                if(!tupleElementsHaveSameType(iterableType)) {
+                    addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE);
+                }
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(iterableType.parameters().front()));
+            }
+            return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
+        };
+
+        auto reversedFunctionTyper = [this](const python::Type& parameterType) {
+
+            if(parameterType.parameters().size() != 1) {
+                // reversed takes exactly one argument
+                return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
+            }
+
+            auto sequenceType = parameterType.parameters().front();
+
+            if(sequenceType.isListType()) {
+                if(sequenceType == python::Type::EMPTYLIST) {
+                    return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
+                }
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(sequenceType.elementType()));
+            }
+
+            if(sequenceType == python::Type::STRING) {
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::STRING));
+            }
+
+            if(sequenceType == python::Type::RANGE) {
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::I64));
+            }
+
+            if(sequenceType.isDictionaryType()) {
+                addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_DICTIONARY);
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(sequenceType.keyType()));
+            }
+
+            if(sequenceType.isTupleType()) {
+                if(sequenceType == python::Type::EMPTYTUPLE) {
+                    return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
+                }
+                if(!tupleElementsHaveSameType(sequenceType)) {
+                    addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE);
+                }
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(sequenceType.parameters().front()));
+            }
+            return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
+        };
+
+        auto zipFunctionTyper = [this](const python::Type& parameterType) {
+
+            if(parameterType.parameters().empty()) {
+                return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
+            }
+
+            // construct yield type tuple
+            std::vector<python::Type> types;
+            for (const auto& iterableType : parameterType.parameters()) {
+                if(iterableType.isIteratorType()) {
+                    if(iterableType == python::Type::EMPTYITERATOR) {
+                        return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
+                    }
+                    types.push_back(iterableType.yieldType());
+                } else if(iterableType.isListType()) {
+                    if(iterableType == python::Type::EMPTYLIST) {
+                        return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
+                    }
+                    types.push_back(iterableType.elementType());
+                } else if(iterableType == python::Type::STRING) {
+                    types.push_back(python::Type::STRING);
+                } else if(iterableType == python::Type::RANGE) {
+                    types.push_back(python::Type::I64);
+                } else if(iterableType.isDictionaryType()) {
+                    addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_DICTIONARY);
+                    types.push_back(iterableType.keyType());
+                } else if(iterableType.isTupleType()) {
+                    if(iterableType == python::Type::EMPTYTUPLE) {
+                        return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
+                    }
+                    if(!tupleElementsHaveSameType(iterableType)) {
+                        addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE);
+                    }
+                    types.push_back(iterableType.parameters().front());
+                } else {
+                    return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
+                }
+            }
+
+            return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::makeTupleType(types)));
+        };
+
+        auto enumerateFunctionTyper = [this](const python::Type& parameterType) {
+            if(parameterType.parameters().size() != 1 && parameterType.parameters().size() != 2) {
+                return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
+            }
+
+            auto iterableType = parameterType.parameters().front();
+            if(iterableType.isIteratorType()) {
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::makeTupleType({python::Type::I64, iterableType.yieldType()})));
+            }
+
+            if(iterableType.isListType()) {
+                if(iterableType == python::Type::EMPTYLIST) {
+                    return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
+                }
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::makeTupleType({python::Type::I64, iterableType.elementType()})));
+            }
+
+            if(iterableType == python::Type::STRING) {
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::makeTupleType({python::Type::I64, python::Type::STRING})));
+            }
+
+            if(iterableType == python::Type::RANGE) {
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::makeTupleType({python::Type::I64, python::Type::I64})));
+            }
+
+            if(iterableType.isDictionaryType()) {
+                addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_DICTIONARY);
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::makeTupleType({python::Type::I64, iterableType.keyType()})));
+            }
+
+            if(iterableType.isTupleType()) {
+                if(iterableType == python::Type::EMPTYTUPLE) {
+                    return python::Type::makeFunctionType(parameterType, python::Type::EMPTYITERATOR);
+                }
+                if(!tupleElementsHaveSameType(iterableType)) {
+                    addCompileError(CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE);
+                }
+                return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::makeTupleType({python::Type::I64, iterableType.parameters().front()})));
+            }
+
+            return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
+        };
+
+        auto nextFunctionTyper = [this](const python::Type& parameterType) {
+            if(parameterType.parameters().size() == 1) {
+                // always return yield type of an iterator
+                auto iteratorType = parameterType.parameters().front();
+                if(iteratorType.isIteratorType()) {
+                    if(iteratorType == python::Type::EMPTYITERATOR) {
+                        // will raise exception later, return dummy function type
+                        return python::Type::makeFunctionType(parameterType, python::Type::I64);
+                    }
+                    return python::Type::makeFunctionType(parameterType, iteratorType.yieldType());
+                }
+            }
+
+            if(parameterType.parameters().size() == 2) {
+                // has default value
+                auto iteratorType = parameterType.parameters()[0];
+                auto defaultType = parameterType.parameters()[1];
+
+                if(iteratorType.isIteratorType()) {
+                    if(iteratorType == python::Type::EMPTYITERATOR) {
+                        // always yield default type for empty iterator
+                        return python::Type::makeFunctionType(parameterType, defaultType);
+                    }
+                    if(iteratorType.yieldType() != defaultType) {
+                        addCompileError(CompileError::TYPE_ERROR_NEXT_CALL_DIFFERENT_DEFAULT_TYPE);
+                    }
+                    return python::Type::makeFunctionType(parameterType, iteratorType.yieldType());
+                }
+            }
+
+            return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
+        };
+
+        addSymbol(make_shared<Symbol>("iter", iterFunctionTyper));
+        addSymbol(make_shared<Symbol>("reversed", reversedFunctionTyper));
+        addSymbol(make_shared<Symbol>("zip", zipFunctionTyper));
+        addSymbol(make_shared<Symbol>("enumerate", enumerateFunctionTyper));
+        addSymbol(make_shared<Symbol>("next", nextFunctionTyper));
+
         // TODO: other parameters? i.e. step size and Co?
         // also, boolean, float? etc.?
         addSymbol("range", python::Type::makeFunctionType(python::Type::I64, python::Type::RANGE));

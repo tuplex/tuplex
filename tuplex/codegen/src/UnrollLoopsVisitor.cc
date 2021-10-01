@@ -46,9 +46,11 @@ namespace tuplex {
                     expr = static_cast<NTuple*>(forStmt->expression);
                 } else if(forStmt->expression->type() == ASTNodeType::Identifier) {
                     auto id = static_cast<NIdentifier*>(forStmt->expression);
-                    if(nameTable.at(id->_name)->type() == ASTNodeType::Tuple) {
+                    if(nameTable.find(id->_name) != nameTable.end() && nameTable[id->_name]->type() == ASTNodeType::Tuple) {
                         expr = static_cast<NTuple*>(nameTable.at(id->_name));
                     } else {
+                        // the expression identifier is not in nameTable (either it hasn't been declared or it can be the parameter variable) or it is not associated with an NTuple
+                        // no need to unroll
                         return next;
                     }
                 } else {

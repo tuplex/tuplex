@@ -423,6 +423,7 @@ namespace tuplex {
 
             // reset err messages
             _typingErrMessages.clear();
+            clearCompileErrors();
 
             if(!_root)
                 return false;
@@ -458,19 +459,20 @@ namespace tuplex {
             // TypeAnnotatorVisitor may throw an exception when fatal error is reached, hence surround with try/catch
             try {
                 _root->accept(tav);
-                _typeError = tav.getTypeError();
+                addCompileErrors(table->getCompileErrors());
+                addCompileErrors(tav.getCompileErrors());
                 // table->exitScope(); // leave module/function level scope
                 // table->exitScope();  // leave global scope
                 // table->exitScope(); // leave builtin scope
 
                 // did tav fail? if so remove branches & try again
                 if(removeBranches) {
-                    _typeError = CompileError::TYPE_ERROR_NONE;
+                    clearCompileErrors();
                     RemoveDeadBranchesVisitor rdb;
                     _root->accept(rdb);
-                    _typeError = tav.getTypeError();
 
                     // run again
+                    table->clearCompileErrors();
                     table->resetScope();
                     tav.reset();
                     tav.setFailingMode(silentMode);
@@ -478,6 +480,8 @@ namespace tuplex {
                     table->enterScope(); // enter global scope
                     table->enterScope(); // enter module/function level scope
                     _root->accept(tav);
+                    addCompileErrors(table->getCompileErrors());
+                    addCompileErrors(tav.getCompileErrors());
                     table->resetScope();
                 }
             } catch(const std::runtime_error& e) {
@@ -533,9 +537,10 @@ namespace tuplex {
             return success;
         }
 
-        void AnnotatedAST::checkTypeError() {
-            if(_typeError != CompileError::TYPE_ERROR_NONE) {
-                throw std::runtime_error(compileErrorToStr(_typeError));
+        void AnnotatedAST::checkReturnError() {
+            auto err = getReturnError();
+            if(err != CompileError::COMPILE_ERROR_NONE) {
+                throw std::runtime_error(compileErrorToStr(err));
             }
         }
 

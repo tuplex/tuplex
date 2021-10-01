@@ -14,7 +14,7 @@
 
 class LoopTest : public PyTest {};
 
-TEST_F(LoopTest, TestTargetTypeAnnotation) {
+TEST_F(LoopTest, TargetTypeAnnotation) {
 
     using namespace tuplex;
 
@@ -862,7 +862,7 @@ TEST_F(LoopTest, CodegenTestForEmptyExprWithElse) {
     EXPECT_EQ(v3[0], Row(1));
 }
 
-TEST_F(LoopTest, CodegenTestGeneral1) {
+TEST_F(LoopTest, CodegenTestGeneralI) {
     using namespace tuplex;
     Context c(microTestOptions());
 
@@ -891,7 +891,7 @@ TEST_F(LoopTest, CodegenTestGeneral1) {
                                 "b12342b123412b.52b.42b.32b.2b.1"));
 }
 
-TEST_F(LoopTest, CodegenTestGeneral2) {
+TEST_F(LoopTest, CodegenTestGeneralII) {
     using namespace tuplex;
     Context c(microTestOptions());
 
@@ -928,7 +928,7 @@ TEST_F(LoopTest, CodegenTestGeneral2) {
     EXPECT_EQ(v[0], 4898);
 }
 
-TEST_F(LoopTest, CodegenTestMultiIdTuple1) {
+TEST_F(LoopTest, CodegenTestMultiIdTupleI) {
     using namespace tuplex;
     Context c(microTestOptions());
 
@@ -946,7 +946,7 @@ TEST_F(LoopTest, CodegenTestMultiIdTuple1) {
     EXPECT_EQ(v[0], Row(110));
 }
 
-TEST_F(LoopTest, CodegenTestMultiIdTuple2) {
+TEST_F(LoopTest, CodegenTestMultiIdTupleII) {
     using namespace tuplex;
     Context c(microTestOptions());
 
@@ -981,7 +981,7 @@ TEST_F(LoopTest, CodegenTestListofTuple) {
     EXPECT_EQ(v[0], Row(171.0));
 }
 
-TEST_F(LoopTest, CodegenTestMultiIdList1) {
+TEST_F(LoopTest, CodegenTestMultiIdListI) {
     using namespace tuplex;
     Context c(microTestOptions());
 
@@ -998,7 +998,7 @@ TEST_F(LoopTest, CodegenTestMultiIdList1) {
     EXPECT_EQ(v[0], Row(100));
 }
 
-TEST_F(LoopTest, CodegenTestMultiIdList2) {
+TEST_F(LoopTest, CodegenTestMultiIdListII) {
     using namespace tuplex;
     Context c(microTestOptions());
 
@@ -1041,7 +1041,7 @@ TEST_F(LoopTest, CodegenTestMultiIdList2) {
     EXPECT_EQ(v3[0], Row(10));
 }
 
-TEST_F(LoopTest, CodegenTestListOfMultiId1) {
+TEST_F(LoopTest, CodegenTestListAsExprlistI) {
     using namespace tuplex;
     Context c(microTestOptions());
 
@@ -1062,7 +1062,7 @@ TEST_F(LoopTest, CodegenTestListOfMultiId1) {
     EXPECT_EQ(v[0], Row(280));
 }
 
-TEST_F(LoopTest, CodegenTestListOfMultiId2) {
+TEST_F(LoopTest, CodegenTestListAsExprlistII) {
     using namespace tuplex;
     Context c(microTestOptions());
 
@@ -1103,4 +1103,242 @@ TEST_F(LoopTest, CodegenTestLoopInIf) {
     EXPECT_EQ(v.size(), 2);
     EXPECT_EQ(v[0], Row(20));
     EXPECT_EQ(v[1], Row(2));
+}
+
+TEST_F(LoopTest, CodegenTestExprWithoutParentheses) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func1 = "def f(x):\n"
+                 "    for a, b in (1, 2), (3, 4), :\n"
+                 "        x = x + a + b\n"
+                 "    return x";
+
+    auto v1 = c.parallelize({
+        Row(10)
+    }).map(UDF(func1)).collectAsVector();
+
+    EXPECT_EQ(v1.size(), 1);
+    EXPECT_EQ(v1[0], Row(20));
+
+    auto func2 = "def f(x):\n"
+                 "    for i, j, k in ['a', 'b', 'c'], ('d', 'e', 'f'), ['g', 'h', 'i']:\n"
+                 "        x = x + i + j + k\n"
+                 "    return x";
+
+    auto v2 = c.parallelize({
+        Row("")
+    }).map(UDF(func2)).collectAsVector();
+
+    EXPECT_EQ(v2.size(), 1);
+    EXPECT_EQ(v2[0], std::string("abcdefghi"));
+}
+
+TEST_F(LoopTest, CodegenTestLoopWithIterIteratorI) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    for i in iter([1, 2, 3, 4]):\n"
+                "        x += i\n"
+                "    return x";
+
+    auto v = c.parallelize({
+        Row(1)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(11));
+}
+
+TEST_F(LoopTest, CodegenTestLoopWithIterIteratorII) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    t = ([(1, 2), (3, 4)], [(5, 6), (7, 8)])\n"
+                "    for (i, j) in iter(t):\n"
+                "        x += i[0]*i[1]*j[0]*j[1]\n"
+                "    return x";
+
+    auto v = c.parallelize({
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(1704));
+}
+
+TEST_F(LoopTest, CodegenTestLoopWithEnumerateIterator) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    y = ''\n"
+                "    for index, val in enumerate('abcd', 2):\n"
+                "        x += index\n"
+                "        y += val\n"
+                "    return (x, y)";
+
+    auto v = c.parallelize({
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(14, "abcd"));
+}
+
+TEST_F(LoopTest, CodegenTestLoopWithZipIterator) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    y = ''\n"
+                "    for a, b, c in zip([1, 2], 'abcd', (10, 20)):\n"
+                "        x += a * c\n"
+                "        y += b\n"
+                "    return (x, y)";
+
+    auto v = c.parallelize({
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(50, "ab"));
+}
+
+TEST_F(LoopTest, CodegenTestLoopWithIteratorGeneralI) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    t = iter([1, 2, 3, 4])\n"
+                "    count = 0\n"
+                "    for a, b in zip(t, t):\n"
+                "        count += 1\n"
+                "        x += a + b\n"
+                "    return (count, x)";
+
+    auto v = c.parallelize({
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(2, 10));
+}
+
+TEST_F(LoopTest, CodegenTestLoopWithIteratorGeneralII) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    t = iter([1, 2, 3, 4])\n"
+                "    q = iter('ab')\n"
+                "    p = enumerate((10, 20, 30, 40))\n"
+                "    for a, b, c in zip(t, q, p):\n"
+                "        continue\n"
+                "    r1 = next(t)\n"
+                "    r2 = next(p)\n"
+                "    return (r1, r2)";
+
+    auto v = c.parallelize({
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(4, Tuple(2, 30)));
+}
+
+TEST_F(LoopTest, CodegenTestLoopWithIteratorGeneralIII) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    l = iter([1000.5, 2000.5, 3000.0, 4000.0, 5000.5, x])\n"
+                "    for index, value in enumerate(l):\n"
+                "        if index == 3:\n"
+                "            break\n"
+                "    b1 = next(l)\n"
+                "    b2 = next(l)\n"
+                "    return (b1, b2)";
+
+    auto v = c.parallelize({
+        Row(6000.0)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(5000.5, 6000.0));
+}
+
+TEST_F(LoopTest, CodegenTestLoopWithIteratorGeneralIV) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    a = 'a!b!c!d!A!B!C!D!'\n"
+                "    t = enumerate(a, 4)\n"
+                "    for i, v in t:\n"
+                "        if i == 5:\n"
+                "            b1 = v\n"
+                "        if i == 10:\n"
+                "            b2 = v\n"
+                "        if i == 16:\n"
+                "            break\n"
+                "    else:\n"
+                "        next(t)\n"
+                "    c = next(t)\n"
+                "    return (b1, b2, c)";
+
+    auto v = c.parallelize({
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row("!", "d", Tuple(17, "!")));
+}
+
+TEST_F(LoopTest, CodegenTestLoopOverInputDataI) {
+    using namespace tuplex;
+
+    ClosureEnvironment ce;
+    ce.importModuleAs("math", "math");
+
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    total = 0\n"
+                "    n = len(x[1])\n"
+                "    for num in x[1]:\n"
+                "        total += num\n"
+                "    mean_val = total/n\n"
+                "    var_denominator = 0.0\n"
+                "    for num in x[1]:\n"
+                "        var_denominator += (num-mean_val) ** 2\n"
+                "    std = math.sqrt(var_denominator/n)\n"
+                "    return std\n";
+
+    auto v = c.parallelize({
+        Row(10, List(1, 2, 3, 4))
+    }).map(UDF(func, "", ce)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_DOUBLE_EQ(v[0].getDouble(0), sqrt(1.25));
+}
+
+TEST_F(LoopTest, CodegenTestLoopOverInputDataII) {
+using namespace tuplex;
+Context c(microTestOptions());
+
+auto func = "def f(x):\n"
+            "    s = ''\n"
+            "    for i in x:\n"
+            "        s += i\n"
+            "    return s";
+
+auto v = c.parallelize({
+    Row(List("a", "bc", "def", "ghij", "k"))
+}).map(UDF(func)).collectAsVector();
+
+EXPECT_EQ(v.size(), 1);
+EXPECT_EQ(v[0], Row("abcdefghijk"));
 }

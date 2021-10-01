@@ -43,17 +43,18 @@ namespace tuplex {
             if(!_udf.rewriteDictAccessInAST(_columnNames))
                 return Schema::UNKNOWN;
 
-
             // 3-stage typing
             // 1. try to type statically by simply annotating the AST
             logger.info("performing static typing for UDF in operator " + name());
             bool success = _udf.hintInputSchema(parentSchema, false, false);
             if(!success) {
 
+                _udf.clearCompileErrors();
                 // 2. try by annotating with if-blocks getting ignored statically...
                 logger.info("performing static typing with partially ignoring branches for UDF in operator " + name());
                 success = _udf.hintInputSchema(parentSchema, true, false);
                 if(!success) {
+                    _udf.clearCompileErrors();
                     // 3. type by tracing a small sample from the parent!
                     // => only use rows which match parent type.
                     // => general case rows thus get transferred to interpreter...
@@ -63,57 +64,69 @@ namespace tuplex {
 
                     // only exceptions?
                     // => report, abort compilation!
-                    if(!success) {
-                        Logger::instance().defaultLogger().info("was not able to detect type for UDF, statically and via tracing."
-                                                                " Provided parent row type was " + parentSchema.getRowType().desc() );
-                        // 4. mark as uncompilable UDF, but sample output row type, so at least subsequent operators
-                        //    can get compiled!
-                        _udf.markAsNonCompilable();
-                        throw std::runtime_error("TODO: implement via sampling of Python UDF executed most likely type, so pipeline can still get compiled.");
-                        return Schema::UNKNOWN;
-                    } else {
-                        // check what return type was given
-                        auto output_type = _udf.getOutputSchema().getRowType();
-                        if(output_type.isExceptionType()) {
+                    if(_udf.getCompileErrors().empty()) {
+                        if(!success) {
+                            Logger::instance().defaultLogger().info("was not able to detect type for UDF, statically and via tracing."
+                                                                    " Provided parent row type was " + parentSchema.getRowType().desc() );
+                            // 4. mark as uncompilable UDF, but sample output row type, so at least subsequent operators
+                            //    can get compiled!
                             _udf.markAsNonCompilable();
-                            // exception type? => sample produced only exceptions! warn user.
-                            Logger::instance().defaultLogger().error("Tracing via sample produced mostly"
-                                                                     " exceptions, please increase sample size"
-                                                                     " or alter UDF to not yield exceptions only.");
-                            // @TODO: print nice traceback with sample...
-                            // => should use beefed up sample processor class for this...
+                            throw std::runtime_error("TODO: implement via sampling of Python UDF executed most likely type, so pipeline can still get compiled.");
                             return Schema::UNKNOWN;
                         } else {
-                            // all good, keep sampled type but mark as non compilable
+                            // check what return type was given
+                            auto output_type = _udf.getOutputSchema().getRowType();
+                            if(output_type.isExceptionType()) {
+                                _udf.markAsNonCompilable();
+                                // exception type? => sample produced only exceptions! warn user.
+                                Logger::instance().defaultLogger().error("Tracing via sample produced mostly"
+                                                                         " exceptions, please increase sample size"
+                                                                         " or alter UDF to not yield exceptions only.");
+                                // @TODO: print nice traceback with sample...
+                                // => should use beefed up sample processor class for this...
+                                return Schema::UNKNOWN;
+                            } else {
+                                // all good, keep sampled type but mark as non compilable
+                                // cannot statically type AST, but sampling yields common-case output type to propagate to subsequent stages
+                            }
                         }
                     }
                 }
             }
 
-            return _udf.getOutputSchema();
-        } else {
+            if(_udf.getCompileErrors().empty() || _udf.getReturnError() != CompileError::COMPILE_ERROR_NONE) {
+                // if unsupported types presented, use sample to determine type and use fallback mode (except for list return type error, only print error messages for now)
+                return _udf.getOutputSchema();
+            }
 
-            // @Todo: support here dict syntax...
-            // @TODO: this feels redundant, i.e. tracerecord visitor should have already dealt with this...
-
-            auto pickledCode = _udf.getPickledCode();
-            auto processed_sample = getSample(typeDetectionSampleSize);
-
-            std::vector<python::Type> retrieved_types;
-            for(auto r : processed_sample)
-                retrieved_types.push_back(r.getRowType());
-            auto detectedType = mostFrequentItem(retrieved_types);
-
-            // set manually for codegen type
-            Schema schema = Schema(Schema::MemoryLayout::ROW, detectedType);
-            _udf.setOutputSchema(schema);
-            _udf.setInputSchema(parentSchema);
-
-            std::stringstream ss;
-            ss<<"detected type for " + name() + " operator using "<<typeDetectionSampleSize<<" samples as "<<detectedType.desc();
-            Logger::instance().defaultLogger().info(ss.str());
-            return schema;
+            // unsupported type exists, print warning
+            _udf.markAsNonCompilable();
+            for (const auto& err : _udf.getCompileErrors()) {
+                Logger::instance().defaultLogger().error(_udf.compileErrorToStr(err));
+            }
+            Logger::instance().defaultLogger().error("will use fallback mode");
         }
+
+        // @Todo: support here dict syntax...
+        // @TODO: this feels redundant, i.e. tracerecord visitor should have already dealt with this...
+
+        auto pickledCode = _udf.getPickledCode();
+        auto processed_sample = getSample(typeDetectionSampleSize);
+
+        std::vector<python::Type> retrieved_types;
+        for(auto r : processed_sample)
+            retrieved_types.push_back(r.getRowType());
+        auto detectedType = mostFrequentItem(retrieved_types);
+
+        // set manually for codegen type
+        Schema schema = Schema(Schema::MemoryLayout::ROW, detectedType);
+        _udf.setOutputSchema(schema);
+        _udf.setInputSchema(parentSchema);
+
+        std::stringstream ss;
+        ss<<"detected type for " + name() + " operator using "<<typeDetectionSampleSize<<" samples as "<<detectedType.desc();
+        Logger::instance().defaultLogger().info(ss.str());
+        return schema;
     }
 
     bool hasUDF(const LogicalOperator* op) {

@@ -18,9 +18,10 @@
 #include <LLVMEnvironment.h>
 #include <Python.h>
 #include <ClosureEnvironment.h>
+#include <IFailable.h>
 
 namespace tuplex {
-    class UDF {
+    class UDF : public IFailable {
     private:
         codegen::AnnotatedAST _ast;    //! annotated abstract syntax tree for this UDF
         bool _isCompiled; //! indicate whether the UDF could be compiled or not

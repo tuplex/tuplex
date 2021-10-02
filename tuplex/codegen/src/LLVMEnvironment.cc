@@ -337,7 +337,13 @@ namespace tuplex {
                 } else if(elementType == python::Type::BOOLEAN) {
                     memberTypes.push_back(getBooleanPointerType());
                 } else if(elementType.isTupleType()) {
-                    memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(elementType)), 0));
+                    if(elementType.isFixedSizeType()) {
+                        // list stores the actual tuple structs
+                        memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(elementType)), 0));
+                    } else {
+                        // list stores pointers to tuple structs
+                        memberTypes.push_back(llvm::PointerType::get(llvm::PointerType::get(getOrCreateTupleType(flattenedType(elementType)), 0), 0));
+                    }
                 }
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
@@ -355,6 +361,183 @@ namespace tuplex {
 
             _generatedListTypes[listType] = retType;
             return retType;
+        }
+
+        llvm::Type *LLVMEnvironment::createOrGetIteratorType(const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+            using namespace llvm;
+
+            auto iteratorName = iteratorInfo->iteratorName;
+            auto argsType = iteratorInfo->argsType;
+            auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
+            if(iteratorName == "iter") {
+                if(argsType.isIteratorType()) {
+                    return createOrGetIteratorType(argsIteratorInfo.front());
+                } else {
+                    // arg is of type list, tuple, string, or range
+                    return createOrGetIterIteratorType(argsType);
+                }
+            } else if(iteratorName == "reversed") {
+                return createOrGetReversedIteratorType(argsType);
+            } else if(iteratorName == "zip") {
+                return createOrGetZipIteratorType(argsType, argsIteratorInfo);
+            } else if(iteratorName == "enumerate") {
+                return createOrGetEnumerateIteratorType(argsType, argsIteratorInfo.front());
+            }
+            throw std::runtime_error("cannot get iterator type for" + iteratorName);
+            return nullptr;
+        }
+
+        llvm::Type *LLVMEnvironment::createOrGetIterIteratorType(const python::Type &iterableType, const std::string &twine) {
+            using namespace llvm;
+
+            if(iterableType == python::Type::EMPTYLIST || iterableType == python::Type::EMPTYTUPLE) {
+                // use dummy type for empty iterator
+                return i64Type();
+            }
+
+            std::string iteratorName;
+            std::vector<llvm::Type*> memberTypes;
+            // iter iterator struct: { pointer to block address (i8*), current index (i64 for range otherwise i32), pointer to iterable struct type,
+            // iterable length (for string and tuple)}
+            memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
+            if(iterableType == python::Type::RANGE) {
+                iteratorName = "range_";
+                memberTypes.push_back(llvm::Type::getInt64Ty(_context));
+                memberTypes.push_back(llvm::PointerType::get(getRangeObjectType(), 0));
+            } else {
+                memberTypes.push_back(llvm::Type::getInt32Ty(_context));
+                if(iterableType.isListType()) {
+                    iteratorName = "list_";
+                    memberTypes.push_back(llvm::PointerType::get(getListType(iterableType), 0));
+                } else if(iterableType == python::Type::STRING) {
+                    iteratorName = "str_";
+                    memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
+                    memberTypes.push_back(llvm::Type::getInt64Ty(_context));
+                } else if(iterableType.isTupleType()) {
+                    iteratorName = "tuple_";
+                    memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(iterableType)), 0));
+                    memberTypes.push_back(llvm::Type::getInt64Ty(_context));
+                } else {
+                    throw std::runtime_error("unsupported iterable type" + iterableType.desc());
+                }
+            }
+
+            auto it = _generatedIteratorTypes.find(memberTypes);
+            if(_generatedIteratorTypes.end() != it) {
+                return it->second;
+            }
+
+            llvm::ArrayRef<llvm::Type*> members(memberTypes);
+            auto iteratorContextType = llvm::StructType::create(_context, members, "struct." + iteratorName + twine);
+            _generatedIteratorTypes[memberTypes] = iteratorContextType;
+            return iteratorContextType;
+        }
+
+        llvm::Type *LLVMEnvironment::createOrGetReversedIteratorType(const python::Type &argType, const std::string &twine) {
+            using namespace llvm;
+
+            if(argType == python::Type::EMPTYLIST || argType == python::Type::EMPTYTUPLE) {
+                // use dummy type for empty iterator
+                return i64Type();
+            }
+
+            if(argType == python::Type::RANGE) {
+                return createOrGetIterIteratorType(argType);
+            }
+
+            std::string iteratorName;
+            std::vector<llvm::Type*> memberTypes;
+            // iter iterator struct: { pointer to block address (i8*), current index (i64 for range otherwise i32), pointer to arg object struct type,
+            // iterable length (for string and tuple)}
+            memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
+            memberTypes.push_back(llvm::Type::getInt32Ty(_context));
+            if(argType.isListType()) {
+                iteratorName = "list_";
+                memberTypes.push_back(llvm::PointerType::get(getListType(argType), 0));
+            } else if(argType == python::Type::STRING) {
+                iteratorName = "str_";
+                memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
+            } else if(argType.isTupleType()) {
+                iteratorName = "tuple_";
+                memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(argType)), 0));
+            } else {
+                throw std::runtime_error("unsupported argument type for reversed()" + argType.desc());
+            }
+
+            auto it = _generatedIteratorTypes.find(memberTypes);
+            if(_generatedIteratorTypes.end() != it) {
+                return it->second;
+            }
+
+            llvm::ArrayRef<llvm::Type*> members(memberTypes);
+            auto iteratorContextType = llvm::StructType::create(_context, members, "struct." + iteratorName + twine);
+            _generatedIteratorTypes[memberTypes] = iteratorContextType;
+            return iteratorContextType;
+        }
+
+        llvm::Type *LLVMEnvironment::createOrGetZipIteratorType(const python::Type &argsType, const std::vector<std::shared_ptr<IteratorInfo>> &argsIteratorInfo, const std::string &twine) {
+            using namespace llvm;
+
+            if(argsType.parameters().empty()) {
+                // no argument provided, zip is an empty iterator
+                // use dummy type for empty iterator
+                return i64Type();
+            }
+
+            std::vector<llvm::Type*> memberTypes;
+            // zip iterator struct: { pointer to each child iterator struct type }
+            for (int i = 0; i < argsType.parameters().size(); ++i) {
+                auto iterableType = argsType.parameters()[i];
+                if(iterableType == python::Type::EMPTYITERATOR || iterableType == python::Type::EMPTYLIST || iterableType == python::Type::EMPTYTUPLE) {
+                    // if any argument is empty, zip returns an empty iterator.
+                    // use dummy type for empty iterator
+                    return i64Type();
+                }
+                assert(iterableType.isIterableType());
+                if(iterableType.isIteratorType()) {
+                    memberTypes.push_back(llvm::PointerType::get(createOrGetIteratorType(argsIteratorInfo[i]), 0));
+                } else {
+                    memberTypes.push_back(llvm::PointerType::get(createOrGetIterIteratorType(iterableType), 0));
+                }
+            }
+
+            auto it = _generatedIteratorTypes.find(memberTypes);
+            if(_generatedIteratorTypes.end() != it) {
+                return it->second;
+            }
+
+            llvm::ArrayRef<llvm::Type*> members(memberTypes);
+            auto iteratorContextType = llvm::StructType::create(_context, members, "struct." + twine);
+            _generatedIteratorTypes[memberTypes] = iteratorContextType;
+            return iteratorContextType;
+        }
+
+        llvm::Type *LLVMEnvironment::createOrGetEnumerateIteratorType(const python::Type &argType, const std::shared_ptr<IteratorInfo> &argIteratorInfo, const std::string &twine) {
+            using namespace llvm;
+
+            if(argType == python::Type::EMPTYITERATOR || argType == python::Type::EMPTYLIST || argType == python::Type::EMPTYTUPLE) {
+                // use dummy type for empty iterator
+                return i64Type();
+            }
+
+            std::vector<llvm::Type*> memberTypes;
+            // zip iterator struct: { count (i64), pointer to the child iterator struct type }
+            memberTypes.push_back(llvm::Type::getInt64Ty(_context));
+            if(argType.isIteratorType()) {
+                memberTypes.push_back(llvm::PointerType::get(createOrGetIteratorType(argIteratorInfo), 0));
+            } else {
+                memberTypes.push_back(llvm::PointerType::get(createOrGetIterIteratorType(argType), 0));
+            }
+
+            auto it = _generatedIteratorTypes.find(memberTypes);
+            if(_generatedIteratorTypes.end() != it) {
+                return it->second;
+            }
+
+            llvm::ArrayRef<llvm::Type*> members(memberTypes);
+            auto iteratorContextType = llvm::StructType::create(_context, members, "struct." + twine);
+            _generatedIteratorTypes[memberTypes] = iteratorContextType;
+            return iteratorContextType;
         }
 
 
@@ -985,6 +1168,14 @@ namespace tuplex {
 
             if(t.isListType())
                 return getListType(t);
+
+            if(t.isIteratorType()) {
+                // python iteratorType to LLVM iterator type is a one-to-many mapping, so not able to return LLVM type given only python type t
+                // this is only called during variable declaration to avoid iterator variable's slot ptr being nullptr
+                // slot ptr needs to be assigned pointer to concrete iterator LLVM struct later
+                // to get concrete LLVM type, use createOrGetIteratorType()
+                return Type::getInt64Ty(_context);
+            }
 
             // option type ==> create mini struct type consisting of underlying type + i1 do indicate null status.
             if (t.isOptionType()) {
@@ -1758,5 +1949,152 @@ namespace tuplex {
             return builder.CreateFCmpOLT(fabs_value, eps);
         }
 
+        llvm::BlockAddress * LLVMEnvironment::createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(llvm::IRBuilder<> &builder,
+                                                                                                        const python::Type &iterableType,
+                                                                                                        bool reverse) {
+            using namespace llvm;
+
+            std::string funcName, prefix;
+            if(reverse) {
+                prefix = "reverse";
+            } // else: empty string
+
+            if(iterableType.isListType()) {
+                funcName = "list_" + prefix + "iterator_update";
+            } else if(iterableType == python::Type::STRING) {
+                funcName = "str_" + prefix + "iterator_update";
+            } else if(iterableType == python::Type::RANGE) {
+                // range_iterator is always used
+                funcName = "range_iterator_update";
+            } else if(iterableType.isTupleType()) {
+                funcName = "tuple_" + prefix + "iterator_update";
+            } else {
+                throw std::runtime_error("Cannot generate LLVM UpdateIteratorIndex function for iterator generated from iterable type" + iterableType.desc());
+            }
+
+            auto it = _generatedIteratorUpdateIndexFunctions.find(funcName);
+            if(_generatedIteratorUpdateIndexFunctions.end() != it) {
+                return it->second;
+            }
+
+            BasicBlock *currBB = builder.GetInsertBlock();
+
+            llvm::Type *iteratorContextType = createOrGetIterIteratorType(iterableType);
+            // function type: i1(*struct.iterator) ; bool value indicate whether iterator is exhausted
+            FunctionType *ft = llvm::FunctionType::get(llvm::Type::getInt1Ty(_context),
+                                                       {llvm::PointerType::get(iteratorContextType, 0)}, false);
+
+            Function *func = Function::Create(ft, Function::InternalLinkage, funcName, getModule().get());
+
+            BasicBlock *entryBB = BasicBlock::Create(_context, "entryBB", func);
+            BasicBlock *updateIndexBB = BasicBlock::Create(_context, "updateIndexBB", func);
+            BasicBlock *loopCondBB = BasicBlock::Create(_context, "loopCondBB", func);
+            BasicBlock *loopBB = BasicBlock::Create(_context, "loopBB", func);
+            BasicBlock *loopExitBB = BasicBlock::Create(_context, "loopExitBB", func);
+            BasicBlock *endBB = BasicBlock::Create(_context, "endBB", func);
+
+            // redirect based on the block address in the iterator struct
+            builder.SetInsertPoint(entryBB);
+            // retrieve the block address to resume
+            auto blockAddrPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
+                                                  {i32Const(0), i32Const(0)});
+            auto blockAddr = builder.CreateLoad(blockAddrPtr);
+            // indirect branch to block updateIndexBB or endBB
+            auto indirectBr = builder.CreateIndirectBr(blockAddr, 2);
+            indirectBr->addDestination(updateIndexBB);
+            indirectBr->addDestination(endBB);
+
+            // increment index in iterator struct
+            builder.SetInsertPoint(updateIndexBB);
+            auto indexPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
+                                                  {i32Const(0), i32Const(1)});
+            if(iterableType == python::Type::RANGE) {
+                auto rangePtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
+                                                 {i32Const(0), i32Const(2)});
+                auto rangeAlloc = builder.CreateLoad(rangePtr);
+                auto stepPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(2)});
+                auto step = builder.CreateLoad(stepPtr);
+                builder.CreateStore(builder.CreateAdd(builder.CreateLoad(indexPtr), step), indexPtr);
+            } else {
+                if(reverse) {
+                    builder.CreateStore(builder.CreateSub(builder.CreateLoad(indexPtr), i32Const(1)), indexPtr);
+                } else {
+                    builder.CreateStore(builder.CreateAdd(builder.CreateLoad(indexPtr), i32Const(1)), indexPtr);
+                }
+            }
+            builder.CreateBr(loopCondBB);
+
+            // check whether iterator is exhausted
+            builder.SetInsertPoint(loopCondBB);
+            // retrieve iterable length
+            llvm::Value *iterableLength = nullptr;
+            if(!reverse) {
+                // need to retrieve length for list, tuple or string
+                if(iterableType.isListType()) {
+                    if (iterableType == python::Type::EMPTYLIST) {
+                        iterableLength = i32Const(0);
+                    } else {
+                        auto listPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
+                                                         {i32Const(0), i32Const(2)});
+                        auto listAlloc = builder.CreateLoad(listPtr);
+                        auto listLengthPtr = builder.CreateGEP(pythonToLLVMType(iterableType), listAlloc, {i32Const(0), i32Const(1)});
+                        iterableLength = builder.CreateLoad(listLengthPtr);
+                    }
+                } else if(iterableType == python::Type::STRING || iterableType.isTupleType()) {
+                    auto iterableLengthPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
+                                                               {i32Const(0), i32Const(3)});
+                    iterableLength = builder.CreateLoad(iterableLengthPtr);
+                }
+            }
+            // retrieve current index (i64 for range_iterator, i32 for others)
+            auto currIndex = builder.CreateLoad(indexPtr);
+            llvm::Value *loopContinue;
+            if(iterableType == python::Type::RANGE) {
+                auto rangePtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
+                                                  {i32Const(0), i32Const(2)});
+                auto rangeAlloc = builder.CreateLoad(rangePtr);
+                auto stepPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(2)});
+                auto step = builder.CreateLoad(stepPtr);
+                // positive step -> stepSign = 1, negative step -> stepSign = -1
+                // stepSign = (step >> 63) | 1 , use arithmetic shift
+                auto stepSign = builder.CreateOr(builder.CreateAShr(step, i64Const(63)), i64Const(1));
+                auto endPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(1)});
+                auto end = builder.CreateLoad(endPtr);
+                // step can be negative in range. Check if curr * stepSign < end * stepSign
+                loopContinue = builder.CreateICmpSLT(builder.CreateMul(currIndex, stepSign), builder.CreateMul(end, stepSign));
+            } else {
+                if(reverse) {
+                    loopContinue = builder.CreateICmpSGE(currIndex, i32Const(0));
+                } else {
+                    loopContinue = builder.CreateICmpSLT(builder.CreateZExt(currIndex, i64Type()), iterableLength);
+                }
+            }
+            builder.CreateCondBr(loopContinue, loopBB, loopExitBB);
+
+            // current index inside iterable index range, set block address in iterator struct to updateIndexBB and return false
+            builder.SetInsertPoint(loopBB);
+            auto nextBlockAddrPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
+                                                      {i32Const(0), i32Const(0)});
+            builder.CreateStore(llvm::BlockAddress::get(func, updateIndexBB), nextBlockAddrPtr);
+            builder.CreateRet(i1Const(false));
+
+            // current index out of iterable index range (iterator exhausted), set block address to endBB
+            builder.SetInsertPoint(loopExitBB);
+            auto endBlockAddrPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
+                                                     {i32Const(0), i32Const(0)});
+            builder.CreateStore(llvm::BlockAddress::get(func, endBB), endBlockAddrPtr);
+            builder.CreateBr(endBB);
+
+            // iterator exhausted, function will always return true when called from now on
+            builder.SetInsertPoint(endBB);
+            builder.CreateRet(i1Const(true));
+
+            // restore insert point
+            builder.SetInsertPoint(currBB);
+
+            auto retAddr = llvm::BlockAddress::get(func, updateIndexBB);
+            _generatedIteratorUpdateIndexFunctions[funcName] = retAddr;
+            return retAddr;
+        }
     }
 }

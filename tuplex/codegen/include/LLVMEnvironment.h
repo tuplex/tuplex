@@ -76,6 +76,10 @@ namespace tuplex {
             std::unique_ptr<llvm::Module> _module;
             std::map<python::Type, llvm::Type *> _generatedTupleTypes;
             std::map<python::Type, llvm::Type *> _generatedListTypes;
+            // use llvm struct member types for map key since iterators with the same yieldType may have different llvm structs
+            std::map<std::vector<llvm::Type *>, llvm::Type *> _generatedIteratorTypes;
+            // string: function name; BlockAddress*: BlockAddress* to be filled in an iterator struct
+            std::map<std::string, llvm::BlockAddress *> _generatedIteratorUpdateIndexFunctions;
             std::map<llvm::Type *, python::Type> _typeMapping;
             llvm::Type *createTupleStructType(const python::Type &type, const std::string &twine = "tuple");
 
@@ -208,6 +212,47 @@ namespace tuplex {
              * @return llvm Type to be used as the given listType
              */
             llvm::Type *getListType(const python::Type &listType, const std::string &twine = "list");
+
+            /*!
+             * return LLVM type that is used to represent a iterator internally
+             * @param iteratorInfo iterator-specific annotation of the target iterator
+             * @return llvm type corresponding to the iterator with iteratorInfo
+             */
+            llvm::Type *createOrGetIteratorType(const std::shared_ptr<IteratorInfo> &iteratorInfo);
+
+            /*!
+             * return LLVM type that is used to represent a iterator generated from iter() call internally
+             * @param iterableType argument type of the iter() call
+             * @param twine
+             * @return llvm type corresponding to the iterator generated from iterableType
+             */
+            llvm::Type *createOrGetIterIteratorType(const python::Type &iterableType, const std::string &twine = "iterator");
+
+            /*!
+             * return LLVM type that is used to represent a reverseiterator generated from reversed() call internally
+             * @param argType argument type of the reversed() call, currently can be list, tuple, string, range
+             * @param twine
+             * @return llvm type corresponding to the reverseiterator generated from argType
+             */
+            llvm::Type *createOrGetReversedIteratorType(const python::Type &argType, const std::string &twine = "reverseiterator");
+
+            /*!
+             * return LLVM type that is used to represent a iterator generated from zip() call internally
+             * @param argsType type of arguments of the zip() call
+             * @param argsIteratorInfo iterator-specific annotations of arguments of the zip() call
+             * @param twine
+             * @return llvm type corresponding to the iterator with iteratorInfo
+             */
+            llvm::Type *createOrGetZipIteratorType(const python::Type &argsType, const std::vector<std::shared_ptr<IteratorInfo>> &argsIteratorInfo, const std::string &twine = "zip_iterator");
+
+            /*!
+             * return LLVM type that is used to represent a iterator generated from enumerate() call internally
+             * @param argType type of the first argument of the enumerate() call
+             * @param argIteratorInfo iterator-specific annotation of the first argument of the enumerate() call
+             * @param twine
+             * @return llvm type corresponding to the iterator with iteratorInfo
+             */
+            llvm::Type *createOrGetEnumerateIteratorType(const python::Type &argType, const std::shared_ptr<IteratorInfo> &argIteratorInfo, const std::string &twine = "enumerate_iterator");
 
             /*!
              * retrieve tuple element from pointer
@@ -766,6 +811,25 @@ namespace tuplex {
              * @return codegenerated i1 true/false
              */
             llvm::Value* matchExceptionHierarchy(llvm::IRBuilder<>& builder, llvm::Value* codeValue, const ExceptionCode& ec);
+
+            /*!
+             * Create or get a llvm function with signature i1(struct.iterator) that does the following:
+             * Increments (or decrements if reverse==true) index field of the input struct.iterator,
+             * then returns true if the iterator is exhausted, and false otherwise.
+             * Explaination about the BlockAddress: It's one of the fields of list/tuple/... iterator structs.
+             * Normally it's the address of the block that updates and checks an iterator's index, but as soon as the iterator is exhausted,
+             * this field will be set to the address of a block that always returns true. When next() gets called on an exhausted iterator,
+             * it can then tell whether the iterator is exhausted without having to check if index+1 > iterableObjectLength.
+             * (It's not the only way to achieve this given the current implementation,
+             * and can be replaced by an additional field "i1 iteratorExhausted" in iterator struct.)
+             * @param builder
+             * @param iterableType
+             * @param reverse should only be used for reverseiterator
+             * @return llvm::BlockAddress* to be stored in an iterator struct later
+             */
+            llvm::BlockAddress *createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(llvm::IRBuilder<> &builder,
+                                                                                          const python::Type &iterableType,
+                                                                                          bool reverse=false);
         };
 
 // i.e. there should be a function

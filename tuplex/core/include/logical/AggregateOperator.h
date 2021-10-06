@@ -30,7 +30,7 @@ namespace tuplex {
     public:
         virtual ~AggregateOperator() override = default;
 
-        AggregateOperator(LogicalOperator* parent,
+        AggregateOperator(const std::shared_ptr<LogicalOperator> &parent,
                           const AggregateType& at,
                           bool allowNumericTypeUnification,
                           const UDF& combiner=UDF("",""),
@@ -138,6 +138,10 @@ namespace tuplex {
          */
         std::vector<size_t> keyColsInParent() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyColsInParent; }
         python::Type keyType() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyType; }
+
+        // cereal serialization functions
+        template<class Archive>
+        void serialize(Archive &archive);
     private:
         AggregateType _aggType;
 

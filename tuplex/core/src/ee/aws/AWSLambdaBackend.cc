@@ -325,7 +325,7 @@ namespace tuplex {
             // check whether scratch dir exists.
             auto scratch = scratchDir(hintsFromTransformStage(tstage));
             if(scratch == URI::INVALID) {
-                throw std::runtime_error("temporaty AWS Lambda scratch dir required to write output, please specify via tuplex.aws.scratchDir key");
+                throw std::runtime_error("temporary AWS Lambda scratch dir required to write output, please specify via tuplex.aws.scratchDir key");
                 return;
             }
         }
@@ -368,7 +368,7 @@ namespace tuplex {
 
             // make invocation
             std::stringstream ss;
-            ss<<"LAMDA request "<<(i+1)<<"/"<<uri_infos.size()<<" on "<<sizeToMemString(inputSize);
+            ss<<"LAMBDA request "<<(i+1)<<"/"<<uri_infos.size()<<" on "<<sizeToMemString(inputSize);
             logger().info(ss.str());
 
             // debug, save to protobuf!

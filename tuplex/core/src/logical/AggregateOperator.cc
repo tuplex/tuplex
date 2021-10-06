@@ -141,4 +141,13 @@ namespace tuplex {
             return false;
         }
     }
+
+    // cereal serialization functions
+    template<class Archive>
+    void AggregateOperator::serialize(Archive &archive) {
+        UDF _combiner;
+        UDF _aggregator;
+        Row _initialValue;
+        archive(_aggType, _aggregateOutputType, _combiner, _aggregator, _initialValue, _keys, _keyColsInParent, _keyType);
+    }
 }

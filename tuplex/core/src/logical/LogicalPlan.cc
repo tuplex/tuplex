@@ -27,25 +27,25 @@
 #include <ApplyVisitor.h>
 #include <logical/AggregateOperator.h>
 #include <FilterBreakdownVisitor.h>
+#include "cereal/types/memory.hpp"
 
 namespace tuplex {
     LogicalPlan::LogicalPlan(LogicalOperator *action) {
         assert(action->isActionable());
 
-        _action = action->clone();
+        _action = std::unique_ptr<LogicalOperator>(action->clone());
     }
 
     LogicalPlan::~LogicalPlan() {
         // simply call free on operator
         _action->freeParents();
-        delete _action;
-        _action = nullptr;
     }
 
     PhysicalPlan* LogicalPlan::createPhysicalPlan(const Context& context) {
 
         Timer timer;
 
+        // TODO: I don't think this is correct anymore!
         // first step is to separate out the stages. As of now, only filter/map operations are supported.
         // Hence, there is a single stage.
         // Also, need to separate between narrow & wide stages (i.e. those with and without shuffling)
@@ -1068,7 +1068,7 @@ namespace tuplex {
         std::vector<LogicalOperator*> v_filters;
         // @TODO: maybe define a logical tree visitor class because they're so convenient
         std::queue<LogicalOperator*> q; // BFS
-        q.push(_action);
+        q.push(_action.get());
         while(!q.empty()) {
             auto node = q.front(); q.pop();
             if(node->type() == LogicalOperatorType::FILTER)
@@ -1106,7 +1106,7 @@ namespace tuplex {
         std::vector<LogicalOperator*> v_filters;
         // @TODO: maybe define a logical tree visitor class because they're so convenient
         std::queue<LogicalOperator*> q; // BFS
-        q.push(_action);
+        q.push(_action.get());
         while(!q.empty()) {
             auto node = q.front(); q.pop();
             if(node->type() == LogicalOperatorType::FILTER)
@@ -1255,7 +1255,7 @@ namespace tuplex {
         // first step: find all join operators
         std::vector<LogicalOperator*> v_joins;
         std::queue<LogicalOperator*> q; // BFS
-        q.push(_action);
+        q.push(_action.get());
         while(!q.empty()) {
             auto node = q.front(); q.pop();
             if(node->type() == LogicalOperatorType::JOIN)
@@ -1301,7 +1301,7 @@ namespace tuplex {
 #endif
 
 #ifndef NDEBUG
-        assert(verifyLogicalPlan(_action));
+        assert(verifyLogicalPlan(_action.get()));
 #endif
 
         if(context.getOptions().OPT_FILTER_PUSHDOWN()) {
@@ -1310,14 +1310,14 @@ namespace tuplex {
         }
 
 #ifndef NDEBUG
-        assert(verifyLogicalPlan(_action));
+        assert(verifyLogicalPlan(_action.get()));
 #endif
 
         if(context.getOptions().OPT_OPERATOR_REORDERING())
             reorderDataProcessingOperators();
 
 #ifndef NDEBUG
-        assert(verifyLogicalPlan(_action));
+        assert(verifyLogicalPlan(_action.get()));
 #endif
 
         // projectionPushdown (to csv parser etc. if possible)
@@ -1332,7 +1332,7 @@ namespace tuplex {
              auto num_cols = _action->getInputSchema().getRowType().parameters().size();
              for(unsigned i = 0; i < num_cols; ++i)
                  cols.emplace_back(i);
-             projectionPushdown(_action, nullptr, cols);
+             projectionPushdown(_action.get(), nullptr, cols);
 
             // note: could remove identity functions...
             // i.e. lambda x: x or lambda x: (x[0], x[1], ..., x[len(x) - 1]) same for def...
@@ -1343,7 +1343,7 @@ namespace tuplex {
 #endif
 
 #ifndef NDEBUG
-            assert(verifyLogicalPlan(_action));
+            assert(verifyLogicalPlan(_action.get()));
 #endif
         }
 
@@ -1384,7 +1384,7 @@ namespace tuplex {
 
     void LogicalPlan::toPDF(const std::string &path) const {
         GraphVizBuilder b;
-        recursiveLPBuilder(b, _action);
+        recursiveLPBuilder(b, _action.get());
         b.saveToPDF(path);
     }
 
@@ -1394,5 +1394,18 @@ namespace tuplex {
 
         // perform a deep copy of the plan...
         return new LogicalPlan(_action->clone());
+    }
+
+    // cereal serialization functions
+    template<class Archive>
+    void LogicalPlan::serialize(Archive &archive) {
+        archive(_action);
+    }
+
+    template<class Archive>
+    void LogicalPlan::load_and_construct(Archive &archive, cereal::construct<LogicalPlan> &construct) {
+        std::unique_ptr<LogicalOperator> action;
+        archive(action);
+        construct(action);
     }
 }

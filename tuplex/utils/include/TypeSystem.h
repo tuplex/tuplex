@@ -18,6 +18,15 @@
 #include <algorithm>
 #include <TTuple.h>
 
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/archives/binary.hpp"
+
 namespace python {
 
     class Type {
@@ -260,6 +269,19 @@ namespace python {
 
         static Type byName(const std::string& name);
 
+        // cereal serialization functions
+        template<class Archive>
+        void load(Archive &archive);
+
+//        template<class Archive>
+//        static void load_and_construct(Archive &archive, cereal::construct<Type> &construct) {
+//            int hash;
+//            archive(hash);
+//            construct(fromHash(hash));
+//        }
+
+        template<class Archive>
+        void save(Archive &archive) const;
     };
 
     extern bool isLiteralType(const Type& type);
@@ -271,6 +293,7 @@ namespace python {
     class TypeFactory {
         // hide internal interfaces and make them only available to Type
         friend class Type;
+        friend class cereal::access;
     private:
 
         enum class AbstractType {
@@ -300,6 +323,11 @@ namespace python {
                         const std::vector<Type>& baseClasses=std::vector<Type>{},
                         bool isVarLen=false) : _desc(desc), _type(at), _params(params), _ret(ret), _baseClasses(baseClasses), _isVarLen(isVarLen) {}
             TypeEntry(const TypeEntry& other) : _desc(other._desc), _type(other._type), _params(other._params), _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen) {}
+
+            template <class Archive>
+            void serialize(Archive &ar) {
+                ar(_desc, _type, _params, _isVarLen, _ret, _baseClasses);
+            }
 
             std::string desc();
         };

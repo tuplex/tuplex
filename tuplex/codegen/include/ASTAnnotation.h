@@ -18,6 +18,15 @@
 #include <TypeSystem.h>
 #include <Field.h>
 
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/archives/binary.hpp"
+
 enum class SymbolType {
     TYPE,
     VARIABLE,
@@ -349,6 +358,9 @@ private:
 
         return python::Type::propagateToTupleType(type);
     }
+
+    template <class Archive>
+    void serialize(Archive &ar) { ar(name, qualifiedName, types, symbolType, parent, constantData); }
 };
 
 /*!
@@ -405,14 +417,14 @@ public:
             return python::Type::UNKNOWN;
 
         std::unordered_map<python::Type, int> counts;
-        for(auto t : types) {
+        for(const auto &t : types) {
             if(counts.find(t) == counts.end())
                 counts[t] = 0;
             counts[t]++;
         }
         int count = 0;
         python::Type t = types.front();
-        for(auto kv : counts) {
+        for(const auto &kv : counts) {
             if(kv.second >= count) {
                 count = kv.second;
                 t = kv.first;
@@ -420,6 +432,9 @@ public:
         }
         return t;
     }
+
+    template <class Archive>
+    void serialize(Archive &ar) { ar(numTimesVisited, iMin, iMax, negativeValueCount, positiveValueCount, symbol, types); }
 };
 
 #endif //TUPLEX_ASTANNOTATION_H

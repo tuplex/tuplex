@@ -1041,4 +1041,18 @@ namespace python {
         }
         return python::Type::UNKNOWN;
     }
+
+    template<class Archive>
+    void Type::load(Archive &archive) {
+        TypeFactory::TypeEntry type_entry;
+        archive(_hash, type_entry);
+        // register the type again
+        TypeFactory::instance().registerOrGetType(type_entry._desc, type_entry._type, type_entry._params,
+                                                  type_entry._ret, type_entry._baseClasses, type_entry._isVarLen);
+    }
+
+    template<class Archive>
+    void Type::save(Archive &archive) const {
+        archive(_hash, TypeFactory::instance()._typeMap[_hash]);
+    }
 }

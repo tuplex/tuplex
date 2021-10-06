@@ -116,18 +116,18 @@ namespace tuplex {
 
         if(root->type() == ASTNodeType::Lambda) {
             auto lam = (NLambda*)root;
-            for(auto arg : lam->_arguments->_args) {
+            for(auto &arg : lam->_arguments->_args) {
                 assert(arg->type() == ASTNodeType::Parameter);
-                auto param = (NParameter*)arg;
+                auto param = (NParameter*)arg.get();
                 v.emplace_back(param->_identifier->_name);
             }
             return v;
         }
         if(root->type() == ASTNodeType::Function) {
             auto func = (NFunction*)root;
-            for(auto arg : func->_parameters->_args) {
+            for(auto &arg : func->_parameters->_args) {
                 assert(arg->type() == ASTNodeType::Parameter);
-                auto param = (NParameter*)arg;
+                auto param = (NParameter*)arg.get();
                 v.emplace_back(param->_identifier->_name);
             }
             return v;
@@ -183,7 +183,7 @@ namespace tuplex {
 
 
 // Note: need to check this better for try/except in the future
-    bool isExitPath(ASTNode* node) {
+    bool isExitPath(const ASTNode* node) {
         if(!node)
             return false;
 
@@ -199,7 +199,7 @@ namespace tuplex {
 
                 // if and else are valid.
                 // => check if each is exit path
-                return isExitPath(ifelse->_then) && isExitPath(ifelse->_else);
+                return isExitPath(ifelse->_then.get()) && isExitPath(ifelse->_else.get());
 
                 break;
             }
@@ -210,9 +210,9 @@ namespace tuplex {
 
                 // I.e., if there is a return statement directly within this suite, it's on an escape path!
                 NSuite* suite = (NSuite*)node;
-                for(auto stmt : suite->_statements) {
+                for(auto &stmt : suite->_statements) {
                     // check recursively, if one is found then all good!
-                    if(isExitPath(stmt))
+                    if(isExitPath(stmt.get()))
                         return true;
                 }
 
@@ -226,7 +226,7 @@ namespace tuplex {
                 if(!forStmt->suite_else) {
                     return false;
                 }
-                return isExitPath(forStmt->suite_body) && isExitPath(forStmt->suite_else);
+                return isExitPath(forStmt->suite_body.get()) && isExitPath(forStmt->suite_else.get());
                 break;
             }
             case ASTNodeType::While: {
@@ -234,7 +234,7 @@ namespace tuplex {
                 if(!whileStmt->suite_else) {
                     return false;
                 }
-                return isExitPath(whileStmt->suite_body) && isExitPath(whileStmt->suite_else);
+                return isExitPath(whileStmt->suite_body.get()) && isExitPath(whileStmt->suite_else.get());
                 break;
             }
 
@@ -268,10 +268,16 @@ namespace tuplex {
     std::vector<ASTNode *> getForLoopMultiTarget(ASTNode *target) {
         std::vector<ASTNode *> idTuple;
         if(target->type() == ASTNodeType::Tuple) {
-            idTuple = static_cast<NTuple*>(target)->_elements;
+            auto tuple_target = dynamic_cast<NTuple*>(target);
+            idTuple.resize(tuple_target->_elements.size());
+            std::transform(tuple_target->_elements.begin(), tuple_target->_elements.end(), idTuple.begin(),
+                           [](std::unique_ptr<ASTNode> &e) { return e.get(); });
         }
         if(target->type() == ASTNodeType::List) {
-            idTuple = static_cast<NList*>(target)->_elements;
+            auto list_target = dynamic_cast<NList*>(target);
+            idTuple.resize(list_target->_elements.size());
+            std::transform(list_target->_elements.begin(), list_target->_elements.end(), idTuple.begin(),
+                           [](std::unique_ptr<ASTNode> &e) { return e.get(); });
         }
         return idTuple;
     }

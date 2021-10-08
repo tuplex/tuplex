@@ -152,7 +152,11 @@ namespace tuplex {
 
 
         // after all the type hints, try to define final types
-        return _ast.defineTypes(silent, removeBranches);
+        auto res = _ast.defineTypes(silent, removeBranches);
+        if(!_ast.getCompileErrors().empty()) {
+            addCompileErrors(_ast.getCompileErrors());
+        }
+        return res;
     }
 
 
@@ -545,7 +549,7 @@ namespace tuplex {
             }
 
             logger.info("upcasting function return type from " + rt.desc() + " to " + targetType.desc());
-            cg.checkTypeError();
+            cg.checkReturnError();
             cg.setReturnType(targetType);
             cf.output_type = cg.getReturnType();
         }

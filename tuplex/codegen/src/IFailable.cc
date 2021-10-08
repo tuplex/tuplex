@@ -9,6 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <IFailable.h>
+#include <algorithm>
 
 void IFailable::error(const std::string &message, const std::string &logger) {
     _succeeded = false;
@@ -32,4 +33,55 @@ void IFailable::logMessages() {
         else
             Logger::instance().defaultLogger().error(message);
     }
+}
+
+std::string IFailable::compileErrorToStr(const CompileError &err) {
+    std::string errMsg;
+    switch(err) {
+        case CompileError::TYPE_ERROR_LIST_OF_LISTS:
+            errMsg = "list of lists not yet supported in UDF";
+            break;
+        case CompileError::TYPE_ERROR_RETURN_LIST_OF_TUPLES:
+            errMsg = "returning list of tuples not yet supported";
+            break;
+        case CompileError::TYPE_ERROR_RETURN_LIST_OF_DICTS:
+            errMsg = "returning list of dictionaries not yet supported";
+            break;
+        case CompileError::TYPE_ERROR_RETURN_LIST_OF_LISTS:
+            errMsg = "returning list of lists not yet supported";
+            break;
+        case CompileError::TYPE_ERROR_RETURN_LIST_OF_MULTITYPES:
+            errMsg = "returning list of different types not yet supported";
+            break;
+        case CompileError::TYPE_ERROR_LIST_OF_MULTITYPES:
+            errMsg = "lists only supported with a single element type";
+            break;
+        case CompileError::TYPE_ERROR_ITER_CALL_WITH_NONHOMOGENEOUS_TUPLE:
+            errMsg = "generating iterator from non-homogeneous tuple not yet supported";
+            break;
+        case CompileError::TYPE_ERROR_ITER_CALL_WITH_DICTIONARY:
+            errMsg = "generating iterator from dictionary not yet supported";
+            break;
+        case CompileError::TYPE_ERROR_RETURN_ITERATOR:
+            errMsg = "returning iterator not yet supported";
+            break;
+        case CompileError::TYPE_ERROR_NEXT_CALL_DIFFERENT_DEFAULT_TYPE:
+            errMsg = "next(iterator[, default]) not yet supported when default value type differing from iterator yield type";
+            break;
+        case CompileError::TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST:
+            errMsg = "mixed use of tuple/list of identifiers and single identifier in exprlist not yet supported";
+            break;
+        default:
+            break;
+    }
+    return errMsg;
+}
+
+CompileError IFailable::getReturnError() {
+    auto it = std::find_if(_compileErrors.begin(), _compileErrors.end(),
+                           [](const CompileError &e){return e == CompileError::TYPE_ERROR_RETURN_LIST_OF_TUPLES || e == CompileError::TYPE_ERROR_RETURN_LIST_OF_LISTS || e == CompileError::TYPE_ERROR_RETURN_LIST_OF_DICTS || e == CompileError::TYPE_ERROR_RETURN_LIST_OF_MULTITYPES;});
+    if(it != _compileErrors.end()) {
+        return *it;
+    }
+    return CompileError::COMPILE_ERROR_NONE;
 }

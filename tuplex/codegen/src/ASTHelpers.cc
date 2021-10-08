@@ -275,25 +275,4 @@ namespace tuplex {
         }
         return idTuple;
     }
-
-    std::string compileErrorToStr(const CompileError &err) {
-        std::string errMsg;
-        switch(err) {
-            case CompileError::TYPE_ERROR_LIST_OF_LISTS:
-                errMsg = "list of lists not yet supported in UDF";
-                break;
-            case CompileError::TYPE_ERROR_LIST_OF_TUPLES:
-                errMsg = "returning list of tuples not yet supported";
-                break;
-            case CompileError::TYPE_ERROR_LIST_OF_DICTS:
-                errMsg = "returning list of dictionaries not yet supported";
-                break;
-            case CompileError::TYPE_ERROR_LIST_OF_MULTITYPES:
-                errMsg = "lists only supported with a single element type";
-                break;
-            default:
-                break;
-        }
-        return errMsg;
-    }
 }

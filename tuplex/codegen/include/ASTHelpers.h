@@ -76,19 +76,6 @@ namespace tuplex {
  * @return vector of identifiers
  */
     extern std::vector<ASTNode *> getForLoopMultiTarget(ASTNode* target);
-
-/*!
- * error handling for unsupported types
- */
-    enum class CompileError {
-        TYPE_ERROR_NONE,
-        TYPE_ERROR_LIST_OF_LISTS,
-        TYPE_ERROR_LIST_OF_TUPLES,
-        TYPE_ERROR_LIST_OF_DICTS,
-        TYPE_ERROR_LIST_OF_MULTITYPES
-    };
-
-    extern std::string compileErrorToStr(const CompileError& err);
 }
 
 #endif //TUPLEX_ASTHELPERS_H

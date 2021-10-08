@@ -151,6 +151,9 @@ namespace tuplex {
                         {args.front().val});
                 return SerializableValue(obj_size, i64Size);
             } else if(argType.isListType() || argType == python::Type::GENERICLIST) {
+                if(argType == python::Type::EMPTYLIST) {
+                    return SerializableValue(_env.i64Const(0), _env.i64Const(8));
+                }
                 assert(args.front().val);
                 auto name = _env.getLLVMTypeName(args.front().val->getType());
                 return SerializableValue(_env.getListSize(builder, args.front().val, argType), _env.i64Const(sizeof(int64_t)));
@@ -1626,6 +1629,116 @@ namespace tuplex {
             }
 
             return SerializableValue();
+        }
+
+        SerializableValue FunctionRegistry::createIteratorRelatedSymbolCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
+                                                                            llvm::IRBuilder<> &builder,
+                                                                            const std::string &symbol,
+                                                                            const python::Type &argsType,
+                                                                            const python::Type &retType,
+                                                                            const std::vector<tuplex::codegen::SerializableValue> &args,
+                                                                            const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+            if(symbol == "iter") {
+                return createIterCall(lfb, builder, argsType, retType, args);
+            }
+
+            if(symbol == "reversed") {
+                return createReversedCall(lfb, builder, argsType, retType, args);
+            }
+
+            if(symbol == "zip") {
+                return createZipCall(lfb, builder, argsType, retType, args, iteratorInfo);
+            }
+
+            if(symbol == "enumerate") {
+                return createEnumerateCall(lfb, builder, argsType, retType, args, iteratorInfo);
+            }
+
+            if(symbol == "next") {
+                return createNextCall(lfb, builder, argsType, retType, args, iteratorInfo);
+            }
+
+            Logger::instance().defaultLogger().error("unsupported symbol " + symbol + " encountered in createIteratorRelatedSymbolCall");
+            return SerializableValue(nullptr, nullptr);
+        }
+
+        SerializableValue FunctionRegistry::createIterCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
+                                                           const python::Type &argsType, const python::Type &retType,
+                                                           const std::vector<tuplex::codegen::SerializableValue> &args) {
+            if(argsType.parameters().size() != 1) {
+                Logger::instance().defaultLogger().error("iter() currently takes single iterable as argument only");
+                return SerializableValue(nullptr, nullptr);
+            }
+
+            python::Type argType = argsType.parameters().front();
+            if(argType.isIteratorType()) {
+                // iter() call on a iterator. Simply return the iterator as it is.
+                return args.front();
+            }
+            return _iteratorContextProxy->initIterContext(lfb, builder, argType, args.front());
+        }
+
+        SerializableValue FunctionRegistry::createReversedCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
+                                                           const python::Type &argsType, const python::Type &retType,
+                                                           const std::vector<tuplex::codegen::SerializableValue> &args) {
+            if(argsType.parameters().size() != 1) {
+                Logger::instance().defaultLogger().error("reversed() takes exactly one argument");
+                return SerializableValue(nullptr, nullptr);
+            }
+
+            python::Type argType = argsType.parameters().front();
+            return _iteratorContextProxy->initReversedContext(lfb, builder, argType, args.front());
+        }
+
+        SerializableValue FunctionRegistry::createZipCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
+                                                           const python::Type &argsType, const python::Type &retType,
+                                                           const std::vector<tuplex::codegen::SerializableValue> &args,
+                                                           const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+
+            return _iteratorContextProxy->initZipContext(lfb, builder, args, iteratorInfo);
+        }
+
+        SerializableValue FunctionRegistry::createEnumerateCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
+                                                          const python::Type &argsType, const python::Type &retType,
+                                                          const std::vector<tuplex::codegen::SerializableValue> &args,
+                                                          const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+            python::Type argType = argsType.parameters().front();
+            auto *ils = new IteratorContextProxy(&_env);
+
+            if(argsType.parameters().size() == 1) {
+                return ils->initEnumerateContext(lfb, builder, args[0], _env.i64Const(0), iteratorInfo);
+            }
+
+            if(argsType.parameters().size() == 2) {
+                return ils->initEnumerateContext(lfb, builder, args[0], args[1].val, iteratorInfo);
+            }
+
+            Logger::instance().defaultLogger().error("enumerate() takes 1 or 2 arguments");
+            return SerializableValue(nullptr, nullptr);
+        }
+
+        SerializableValue FunctionRegistry::createNextCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
+                                                           const python::Type &argsType, const python::Type &retType,
+                                                           const std::vector<tuplex::codegen::SerializableValue> &args,
+                                                           const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+            if(argsType.parameters().size() == 1) {
+                if(argsType.parameters().front() == python::Type::EMPTYITERATOR) {
+                    // always raise exception when next is called on empty iterator
+                    lfb.addException(builder, ExceptionCode::STOPITERATION, _env.i1Const(true));
+                    return SerializableValue(_env.i64Const(0), _env.i64Const(8));
+                }
+                return _iteratorContextProxy->createIteratorNextCall(lfb, builder, argsType.parameters().front().yieldType(), args[0].val, SerializableValue(nullptr, nullptr), iteratorInfo);
+            }
+
+            if(argsType.parameters().size() == 2) {
+                if(argsType.parameters().front() == python::Type::EMPTYITERATOR) {
+                    return args[1];
+                }
+                return _iteratorContextProxy->createIteratorNextCall(lfb, builder, argsType.parameters().front().yieldType(), args[0].val, args[1], iteratorInfo);
+            }
+
+            Logger::instance().defaultLogger().error("next() takes 1 or 2 arguments");
+            return SerializableValue(nullptr, nullptr);
         }
 
         /*!

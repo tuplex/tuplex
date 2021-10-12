@@ -1516,7 +1516,7 @@ namespace tuplex {
             case FileFormat::OUTFMT_ORC:
                 return ".orc";
             default:
-                throw std::runtime_error("file format not yet supported!");
+                throw std::runtime_error("file format: " + std::to_string((int) fmt) + " not yet supported!");
         }
     }
 

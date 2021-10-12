@@ -318,7 +318,7 @@ namespace tuplex {
             if(_header && !_sample.empty())
                 _sample.erase(_sample.begin());
         } else {
-            logger.warn("no input files found, can't infer type from sample.");
+            logger.warn("no input files found, can't infer type from given path: " + pattern);
             setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
         }
         _sampling_time_s += timer.time();

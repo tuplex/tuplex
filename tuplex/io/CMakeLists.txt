@@ -17,6 +17,8 @@ include_directories("include")
 include_directories(${Boost_INCLUDE_DIR})
 
 # Install and build ORC C++ APIs
+# Orc provides builds for the following libraries:
+# - liblz4, libsnappy, libz, and libzstd
 find_package(Protobuf REQUIRED)
 get_filename_component(Protobuf_HOME "${Protobuf_INCLUDE_DIRS}" DIRECTORY)
 

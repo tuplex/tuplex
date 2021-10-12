@@ -136,6 +136,24 @@ namespace tuplex {
 
         void setInputMemorySource(Partition* partition, bool invalidateAfterUse=true);
         void setInputMemorySources(const std::vector<Partition*>& partitions, bool invalidateAfterUse=true);
+
+        /*!
+         * add a FileInputReader to the task
+         * @param inputFile path to input file
+         * @param makeParseExceptionsInternal csv option
+         * @param operatorID operator ID
+         * @param rowType schema
+         * @param header csv option
+         * @param cellBasedFunctor code generation
+         * @param numColumns number of columns in row
+         * @param rangeStart start byte
+         * @param rangeSize number of bytes to read
+         * @param delimiter csv option
+         * @param quotechar csv option
+         * @param colsToKeep columns that will be used
+         * @param partitionSize size to create partitions
+         * @param fmt file format
+         */
         void setInputFileSource(const URI& inputFile,
                                 bool makeParseExceptionsInternal,
                                 int64_t operatorID,

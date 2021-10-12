@@ -56,6 +56,8 @@ namespace tuplex {
 
         void detectFiles(const std::string& pattern);
 
+        // TODO: Refactor constructors
+
         // CSV Constructor
         FileInputOperator(const std::string& pattern,
                           const ContextOptions& co,
@@ -130,7 +132,11 @@ namespace tuplex {
                 case FileFormat::OUTFMT_ORC:
                     return "orc";
                 default:
-                    return "unknown file input operator";
+                    auto &logger = Logger::instance().logger("fileinputoperator");
+                    std::stringstream ss;
+                    ss << "unknown file input operator with integer value of " << std::to_string((int) _fmt);
+                    logger.error(ss.str());
+                    return ss.str();
             }
         }
 

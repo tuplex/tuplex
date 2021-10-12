@@ -19,6 +19,8 @@ namespace tuplex { namespace orc {
 class BoolBatch : public OrcBatch {
 public:
 
+    BoolBatch() = delete;
+
     BoolBatch(::orc::ColumnVectorBatch *orcBatch, uint64_t numRows, bool isOption) : _orcBatch(
             static_cast<::orc::LongVectorBatch *>(orcBatch)) {
         _orcBatch->numElements = numRows;
@@ -28,7 +30,7 @@ public:
 
     void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
         if (row == _orcBatch->capacity) {
-            _orcBatch->resize(_orcBatch->capacity * 2);
+            _orcBatch->resize(_orcBatch->capacity * scaleFactor());
         }
         auto notNull = !ds.isNull(col);
         _orcBatch->notNull[row] = notNull;
@@ -39,7 +41,7 @@ public:
 
     void setData(tuplex::Field field, uint64_t row) override {
         if (row == _orcBatch->capacity) {
-            _orcBatch->resize(_orcBatch->capacity * 2);
+            _orcBatch->resize(_orcBatch->capacity * scaleFactor());
         }
         auto notNull = !field.isNull();
         _orcBatch->notNull[row] = notNull;

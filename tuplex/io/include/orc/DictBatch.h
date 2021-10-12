@@ -18,6 +18,9 @@ namespace tuplex { namespace orc {
  */
 class DictBatch : public OrcBatch {
 public:
+
+    DictBatch() = delete;
+
     DictBatch(::orc::ColumnVectorBatch *orcBatch,
               OrcBatch *keyBatch, OrcBatch *valueBatch,
               python::Type keyType,
@@ -49,7 +52,7 @@ public:
 
     void setData(tuplex::Field field, uint64_t row) override {
         if (row == _orcBatch->capacity) {
-            _orcBatch->resize(_orcBatch->capacity * 2);
+            _orcBatch->resize(_orcBatch->capacity * scaleFactor());
         }
         auto notNull = !field.isNull();
         _orcBatch->notNull[row] = notNull;
@@ -62,7 +65,7 @@ public:
 
     void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
         if (row == _orcBatch->capacity) {
-            _orcBatch->resize(_orcBatch->capacity * 2);
+            _orcBatch->resize(_orcBatch->capacity * scaleFactor());
         }
         auto notNull = !ds.isNull(col);
         _orcBatch->notNull[row] = notNull;

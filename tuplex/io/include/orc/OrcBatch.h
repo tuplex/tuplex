@@ -24,13 +24,18 @@ public:
     virtual ~OrcBatch() = default;
 
     /*!
-     * sets the the data in a row of an Orc batch from a tuplecx field.
+     * sets the the data in a row of an Orc batch from a deserializer.
      * @param ds
      * @parm col
      * @param rowIndex
      */
     virtual void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t rowIndex) = 0;
 
+    /*!
+     * sets the the data in a row of an Orc batch from a tuplex field.
+     * @param field
+     * @param row
+     */
     virtual void setData(tuplex::Field field, uint64_t row) = 0;
 
     /*!
@@ -40,6 +45,11 @@ public:
      */
     virtual tuplex::Field getField(uint64_t row) = 0;
 
+    /*!
+     * gets a tuplex field from an orc batch given a serializer.
+     * @param serializer
+     * @param row
+     */
     virtual void getField(Serializer &serializer, uint64_t row) = 0;
 
     /*!
@@ -47,6 +57,12 @@ public:
      * @param newBatch
      */
     virtual void setBatch(::orc::ColumnVectorBatch *newBatch) = 0;
+
+    /*!
+     * scale factor for resizing buffers
+     * @return
+     */
+    static unsigned scaleFactor() const { return 2; }
 
 };
 

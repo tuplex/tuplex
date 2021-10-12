@@ -15,6 +15,9 @@ namespace tuplex { namespace orc {
 
 class TupleBatch : public OrcBatch {
 public:
+
+    TupleBatch() = delete;
+
     TupleBatch(::orc::ColumnVectorBatch *orcBatch, std::vector<OrcBatch *> children, size_t numRows, bool isOption): _orcBatch(static_cast<::orc::StructVectorBatch *>(orcBatch)), _children(children) {
         _orcBatch->numElements = numRows;
         _orcBatch->hasNulls = isOption;
@@ -30,7 +33,7 @@ public:
     void setData(tuplex::Field field, uint64_t row) override {
         using namespace tuplex;
         if (row == _orcBatch->capacity) {
-            _orcBatch->resize(_orcBatch->capacity * 2);
+            _orcBatch->resize(_orcBatch->capacity * scaleFactor());
         }
         auto notNull = !field.isNull();
         _orcBatch->notNull[row] = notNull;
@@ -45,7 +48,7 @@ public:
     void setData(tuplex::Deserializer &ds, uint64_t col, uint64_t row) override {
         using namespace tuplex;
         if (row == _orcBatch->capacity) {
-            _orcBatch->resize(_orcBatch->capacity * 2);
+            _orcBatch->resize(_orcBatch->capacity * scaleFactor());
         }
         auto notNull = !ds.isNull(col);
         _orcBatch->notNull[row] = notNull;

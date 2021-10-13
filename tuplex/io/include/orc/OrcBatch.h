@@ -62,7 +62,7 @@ public:
      * scale factor for resizing buffers
      * @return
      */
-    static unsigned scaleFactor() const { return 2; }
+    static unsigned scaleFactor() { return 2; }
 
 };
 

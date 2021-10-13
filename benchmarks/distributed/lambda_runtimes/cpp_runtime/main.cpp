@@ -133,33 +133,6 @@ const char* handler_worker(const char *payload, int &r) {
         return res.c_str();
     }
 
-    /*auto py_func_str = PyUnicode_FromString(func_str.c_str());
-
-    // pass to lambda_handler
-    auto sys_path = PySys_GetObject("path");
-    PyList_Append(sys_path, PyUnicode_FromString(task_root));
-    auto lambda_module = PyImport_ImportModule("lambda_function");
-    if (!lambda_module) {
-        PyErr_Print();
-        return invocation_response::success("Couldn't open module lambda_function", "text/plain");
-    }
-    auto lambda_handler = PyObject_GetAttrString(lambda_module, "lambda_handler");
-    if (!lambda_handler) {
-        PyErr_Print();
-        return invocation_response::success("Couldn't get function lambda_handler", "text/plain");
-    }
-
-    // call the handler
-    auto py_func_res = PyObject_CallFunctionObjArgs(lambda_handler, py_func_str);
-
-    // save function results
-    auto func_res = PyLong_AsLong(py_func_res);
-    timings.FUNCTION_TS = timestamp();
-
-    // shut down the interpreter
-    //Py_Finalize();
-     */
-
     // use tuplex instead of native Python functions
     auto py_module = python::getMainModule();
     auto py_func = python::deserializePickledFunction(py_module, pickled_func_str.c_str(),

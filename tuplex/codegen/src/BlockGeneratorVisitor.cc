@@ -590,7 +590,7 @@ namespace tuplex {
             using namespace python;
 
             NBoolean b(false);
-            NIfElse ifelse(op->_left, op->_right, &b, true);
+            NIfElse ifelse(op->_left.get(), op->_right.get(), &b, true);
             ifelse.setInferredType(python::Type::BOOLEAN);
             generateIfElseExpression(&ifelse, true);
             assert(!_blockStack.empty());
@@ -603,7 +603,7 @@ namespace tuplex {
             using namespace python;
 
             NBoolean b(true);
-            NIfElse ifelse(op->_left, &b, op->_right, true);
+            NIfElse ifelse(op->_left.get(), &b, op->_right.get(), true);
             ifelse.setInferredType(python::Type::BOOLEAN);
             generateIfElseExpression(&ifelse, true);
             assert(!_blockStack.empty());
@@ -1788,7 +1788,7 @@ namespace tuplex {
 
 #ifndef NDEBUG
             // validate tuple is of identifiers
-            for(auto el : lhs->_elements)
+            for(const auto &el : lhs->_elements)
                 if(el->type() != ASTNodeType::Identifier)
                     error("invalid AST tree, left hand side of assign expected to be tuple of identifiers!");
 #endif

@@ -40,13 +40,13 @@ namespace tuplex {
             // simple compare (constant folding??)
             case ASTNodeType::Compare: {
                 NCompare* cmp = (NCompare*)node;
-                auto cmpA = compileTimeTruthEval(cmp->_left);
+                auto cmpA = compileTimeTruthEval(cmp->_left.get());
 
                 if(!cmpA.has_value())
                     return option<bool>::none;
 
                 for(int i = 0; i < cmp->_ops.size(); ++i) {
-                    auto cmpB = compileTimeTruthEval(cmp->_comps[i]);
+                    auto cmpB = compileTimeTruthEval(cmp->_comps[i].get());
 
                     if(!cmpB.has_value())
                         return option<bool>::none;
@@ -92,7 +92,7 @@ namespace tuplex {
                 // can expression be determined at compile time?
                 NIfElse* ifelse = (NIfElse*)node;
 
-                auto compileTimeVal = tuplex::compileTimeTruthEval(ifelse->_expression);
+                auto compileTimeVal = tuplex::compileTimeTruthEval(ifelse->_expression.get());
                 if(compileTimeVal.has_value()) {
                     // remove dead branch!
 
@@ -104,7 +104,7 @@ namespace tuplex {
                     if(compileTimeVal.value()) {
                         if(!_useAnnotations)
                             // always true, so replace with then branch
-                            return ifelse->_then;
+                            return ifelse->_then.release();
                         else {
                             // do not replace, but always annotate ifelse->_then
                             ifelse->_then->annotation().numTimesVisited = 1;
@@ -118,7 +118,7 @@ namespace tuplex {
                         if(!_useAnnotations) {
                             // always false, either remove completely or return else branch
                             if(ifelse->_else) {
-                                return ifelse->_else;
+                                return ifelse->_else.release();
                             } else {
                                 // nullptr is removal?
                                 return nullptr;

@@ -25,6 +25,7 @@
 #include "cereal/types/vector.hpp"
 #include "cereal/types/utility.hpp"
 #include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
 #include "cereal/archives/binary.hpp"
 
 enum class SymbolType {
@@ -237,6 +238,8 @@ public:
     symbolType(_symbolType),
     functionTyper([](const python::Type&) { return python::Type::UNKNOWN; }) {}
 
+    template <class Archive>
+    void serialize(Archive &ar) { ar(name, qualifiedName, types, symbolType, parent, constantData); }
 private:
     ///! i.e. to store something like re.search. re is then of module type. search will have a concrete function type.
     std::vector<std::shared_ptr<Symbol>> _attributes;
@@ -358,9 +361,6 @@ private:
 
         return python::Type::propagateToTupleType(type);
     }
-
-    template <class Archive>
-    void serialize(Archive &ar) { ar(name, qualifiedName, types, symbolType, parent, constantData); }
 };
 
 /*!

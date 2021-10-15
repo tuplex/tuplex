@@ -45,7 +45,7 @@ namespace tuplex {
                 int returnIndex = -1;
                 NSuite *suite = static_cast<NSuite*>(next);
                 int pos = 0;
-                for(auto stmt : suite->_statements) {
+                for(const auto &stmt : suite->_statements) {
                     if(stmt->type() == ASTNodeType::Return )
                         returnIndex = pos;
                     pos++;
@@ -55,8 +55,7 @@ namespace tuplex {
                 if(returnIndex != -1) {
                     // statements after return?
                     if(returnIndex != suite->_statements.size() - 1) {
-                        auto shrunken_stmts = std::vector<ASTNode*>(suite->_statements.begin(), suite->_statements.begin() + returnIndex + 1);
-                        suite->_statements = shrunken_stmts;
+                        suite->_statements.resize(returnIndex+1);
                         return suite;
                     }
                 }

@@ -1719,11 +1719,11 @@ namespace tuplex {
          */
         python::Type getParametersInferredType() const {
             std::vector<python::Type> v;
-            std::for_each(_positionalArguments.begin(), _positionalArguments.end(), [this, &v](const std::unique_ptr<ASTNode> &arg) {
+            for(const auto &arg : _positionalArguments) {
                 v.emplace_back(arg->getInferredType());
                 if(arg->getInferredType() == python::Type::UNKNOWN)
                     return python::Type::UNKNOWN;
-            });
+            }
             return python::Type::makeTupleType(v);
         }
 

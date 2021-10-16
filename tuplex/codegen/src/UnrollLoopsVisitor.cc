@@ -13,7 +13,7 @@
 #include <cassert>
 
 namespace tuplex {
-    ASTNode* UnrollLoopsVisitor::replace(ASTNode *parent, ASTNode *next) {
+    std::unique_ptr<ASTNode> UnrollLoopsVisitor::replace(ASTNode *parent, std::unique_ptr<ASTNode> next) {
         assert(parent);
         if(!next) {
             return nullptr;
@@ -23,29 +23,29 @@ namespace tuplex {
             // for each assign statement 'id = val', add id to nameTable with val as mapped value
             // for each 'id2 = id1', add id2 to nameTable with id1's nameTable value as mapped value
             case ASTNodeType::Assign: {
-                auto assign = static_cast<NAssign*>(next);
+                auto assign = static_cast<NAssign*>(next.get());
                 if(assign->_target->type() == ASTNodeType::Identifier) {
-                    auto id = static_cast<NIdentifier*>(assign->_target);
+                    auto id = static_cast<NIdentifier*>(assign->_target.get());
                     if(assign->_value->type() == ASTNodeType::Identifier) {
-                        auto valId = static_cast<NIdentifier*>(assign->_value);
+                        auto valId = static_cast<NIdentifier*>(assign->_value.get());
                         if(nameTable.find(valId->_name) == nameTable.end()) {
                             return next;
                         }
                         nameTable[id->_name] = nameTable[valId->_name];
                     } else {
-                        nameTable[id->_name] = assign->_value;
+                        nameTable[id->_name] = assign->_value.get();
                     }
                 }
                 return next;
             }
 
             case ASTNodeType::For: {
-                auto forStmt = static_cast<NFor*>(next);
+                auto forStmt = static_cast<NFor*>(next.get());
                 NTuple* expr;
                 if(forStmt->expression->type() == ASTNodeType::Tuple) {
-                    expr = static_cast<NTuple*>(forStmt->expression);
+                    expr = static_cast<NTuple*>(forStmt->expression.get());
                 } else if(forStmt->expression->type() == ASTNodeType::Identifier) {
-                    auto id = static_cast<NIdentifier*>(forStmt->expression);
+                    auto id = static_cast<NIdentifier*>(forStmt->expression.get());
                     if(nameTable.find(id->_name) != nameTable.end() && nameTable[id->_name]->type() == ASTNodeType::Tuple) {
                         expr = static_cast<NTuple*>(nameTable.at(id->_name));
                     } else {
@@ -63,7 +63,7 @@ namespace tuplex {
                 if(targetASTType == ASTNodeType::Identifier) {
                     // target is single identifier
                     for (const auto & element : expr->_elements) {
-                        loopSuite->addStatement(new NAssign(forStmt->target, element));
+                        loopSuite->addStatement(new NAssign(forStmt->target.get(), element.get()));
                         auto forSuite = forStmt->suite_body->clone();
                         loopSuite->addStatement(forSuite);
                     }
@@ -71,23 +71,23 @@ namespace tuplex {
                     // target has multiple identifiers. Expression should be a tuple of tuples/lists where each tuple/list has the same number of elements as the target
                     // 'for a, b in ((v1, v2), (v3, v4)): suite_body, suite_else'
                     // will be replaced with '{{a = v1, b = v2}, suite_body, {a = v3, b = v4}, suite_body, suite_else}' where {} denotes a new suite
-                    auto idTuple = getForLoopMultiTarget(forStmt->target); // a vector of identifiers each corresponds to a value in idValueTuple
+                    auto idTuple = getForLoopMultiTarget(forStmt->target.get()); // a vector of identifiers each corresponds to a value in idValueTuple
                     for (const auto & element : expr->_elements) {
                         if(element->type() == ASTNodeType::Tuple) {
-                            auto idValueTuple = static_cast<NTuple*>(element)->_elements; // a vector of all values to be assigned to identifiers
+                            const auto &idValueTuple = static_cast<NTuple*>(element.get())->_elements; // a vector of all values to be assigned to identifiers
                             assert(idTuple.size() == idValueTuple.size());
                             // add all assign statements needed for a single iteration into this assignSuite
                             auto assignSuite = new NSuite();
                             for (int i = 0; i < idTuple.size(); ++i) {
-                                assignSuite->addStatement(new NAssign(idTuple[i], idValueTuple[i]));
+                                assignSuite->addStatement(new NAssign(idTuple[i], idValueTuple[i].get()));
                             }
                             loopSuite->addStatement(assignSuite);
                         } else if(element->type() == ASTNodeType::List) {
-                            auto idValueList = static_cast<NList*>(element)->_elements; // a vector of all values to be assigned to identifiers
+                            const auto &idValueList = static_cast<NList*>(element.get())->_elements; // a vector of all values to be assigned to identifiers
                             assert(idTuple.size() == idValueList.size());
                             auto assignSuite = new NSuite();
                             for (int i = 0; i < idTuple.size(); ++i) {
-                                assignSuite->addStatement(new NAssign(idTuple[i], idValueList[i]));
+                                assignSuite->addStatement(new NAssign(idTuple[i], idValueList[i].get()));
                             }
                             loopSuite->addStatement(assignSuite);
                         } else {
@@ -99,9 +99,9 @@ namespace tuplex {
                 }
 
                 if(forStmt->suite_else) {
-                    loopSuite->addStatement(forStmt->suite_else);
+                    loopSuite->addStatement(forStmt->suite_else.get());
                 }
-                return loopSuite;
+                return std::unique_ptr<ASTNode>(loopSuite);
             }
 
             default:

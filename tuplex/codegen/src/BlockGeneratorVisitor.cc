@@ -1871,7 +1871,7 @@ namespace tuplex {
 
 
                 // find variable to assign to
-                auto target = (NIdentifier *) lhs->_elements[i];
+                auto target = (NIdentifier *) lhs->_elements[i].get();
 
                 auto name = target->_name;
                 auto slot = getSlot(name); assert(slot);
@@ -1921,7 +1921,7 @@ namespace tuplex {
 
             // case I: assigning to a single identifier, i.e. x = ...
             if (assign->_target->type() == ASTNodeType::Identifier) {
-                auto id = (NIdentifier *) assign->_target;
+                auto id = (NIdentifier *) assign->_target.get();
                 // simple:
                 // --> visit target to push onto stack
                 // (do not visit _target!)
@@ -1939,8 +1939,8 @@ namespace tuplex {
                 assignToSingleVariable(id, assign->_value->getInferredType());
             } else if(assign->_target->type() == ASTNodeType::Tuple) {
                 // case II: assigning to a tuple of identifiers
-                auto lhs = (NTuple*)assign->_target;
-                auto rhs = assign->_value;
+                auto lhs = (NTuple*)assign->_target.get();
+                auto rhs = assign->_value.get();
                 // visit the RHS to push everything on the stack
                 assign->_value->accept(*this);
 
@@ -3143,7 +3143,7 @@ namespace tuplex {
             auto num_stack_before = _blockStack.size();
 
             // add variables
-            auto id = comprehension->target;
+            auto id = comprehension->target.get();
 
             // Note: no support for multiple targets yet??
             // => TODO listed here: https://github.com/LeonhardFS/Tuplex/issues/212
@@ -3184,7 +3184,7 @@ namespace tuplex {
             auto num_stack_before = _blockStack.size();
 
             // avoid visiting expression
-            for(auto gen : listComprehension->generators) {
+            for(auto &gen : listComprehension->generators) {
                 assert(gen);
                 gen->accept(*this);
 
@@ -3749,11 +3749,11 @@ namespace tuplex {
                 // case 3: expression is a variable (runtime) and tuple has elements with different types => not compilable, needs
                 // to be run via interpreter.
 
-                auto expression = sub->_expression;
+                auto expression = sub->_expression.get();
 
                 // case 1: to be implemented
                 if (isStaticValue(expression, true)) {
-                    auto ret = indexTupleWithStaticExpression(expression, sub->_value, index, value);
+                    auto ret = indexTupleWithStaticExpression(expression, sub->_value.get(), index, value);
                     addInstruction(ret.val, ret.size, ret.is_null);
                 }
                     // case 2: load to array & then select via gep
@@ -4178,7 +4178,7 @@ namespace tuplex {
             assert(argsType.isTupleType() || argsType == python::Type::GENERICTUPLE);
             if (python::Type::GENERICTUPLE == argsType) {
                 std::vector<python::Type> atv;
-                for (auto arg : call->_positionalArguments)
+                for (const auto &arg : call->_positionalArguments)
                     atv.emplace_back(arg->getInferredType());
                 argsType = python::Type::makeTupleType(atv);
             }
@@ -4230,8 +4230,9 @@ namespace tuplex {
                 // i.e. could be call on func or attribute func
                 if (call->_func->type() == ASTNodeType::Identifier) {
                     // direct call
-                    std::string funcName = ((NIdentifier *) call->_func)->_name;
-                    auto& ann = ((NIdentifier *) call->_func)->annotation();
+                    auto func_id = (NIdentifier*)(call->_func.get());
+                    std::string funcName = func_id->_name;
+                    auto& ann = func_id->annotation();
                     if(ann.symbol)
                         funcName = ann.symbol->fullyQualifiedName(); // need this to lookup module entries!
 
@@ -4248,7 +4249,7 @@ namespace tuplex {
 
                 } else if (call->_func->type() == ASTNodeType::Attribute) {
 
-                    NAttribute *attr = (NAttribute *) call->_func;
+                    auto attr = (NAttribute *) call->_func.get();
                     std::string attrName = attr->_attribute->_name;
 
                     auto callerType = attr->_value->getInferredType();
@@ -4297,9 +4298,9 @@ namespace tuplex {
             if (ret.val == nullptr && retType != python::Type::EMPTYLIST) {
                 std::string funcName = "<anon-fun>";
                 if (call->_func->type() == ASTNodeType::Function)
-                    funcName = ((NFunction *) call->_func)->_name->_name;
+                    funcName = ((NFunction *) call->_func.get())->_name->_name;
                 if (call->_func->type() == ASTNodeType::Identifier)
-                    funcName = ((NIdentifier *) call->_func)->_name;
+                    funcName = ((NIdentifier *) call->_func.get())->_name;
                 error("code generation for call to " + funcName + " failed");
             }
 
@@ -4329,7 +4330,7 @@ namespace tuplex {
             auto builder = _lfb->getLLVMBuilder();
 
             assert(slice->_slices.front()->type() == ASTNodeType::SliceItem);
-            auto sliceItem = (NSliceItem *) slice->_slices.front();
+            auto sliceItem = (NSliceItem *) slice->_slices.front().get();
 
             SerializableValue value, start, end, stride, res;
 
@@ -4382,10 +4383,10 @@ namespace tuplex {
                 res = stringSliceInst(value, start.val, end.val, stride.val);
             } else if (slice->_value->getInferredType().isTupleType()) {
                 // only support static slices
-                if ((!sliceItem->_start || isStaticValue(sliceItem->_start, true))
-                    && (!sliceItem->_end || isStaticValue(sliceItem->_end, true))
-                    && (!sliceItem->_stride || isStaticValue(sliceItem->_stride, true))) {
-                    res = tupleStaticSliceInst(slice->_value, sliceItem->_start, sliceItem->_end, sliceItem->_stride,
+                if ((!sliceItem->_start || isStaticValue(sliceItem->_start.get(), true))
+                    && (!sliceItem->_end || isStaticValue(sliceItem->_end.get(), true))
+                    && (!sliceItem->_stride || isStaticValue(sliceItem->_stride.get(), true))) {
+                    res = tupleStaticSliceInst(slice->_value.get(), sliceItem->_start.get(), sliceItem->_end.get(), sliceItem->_stride.get(),
                                                value, start.val, end.val, stride.val);
                 } else {
                     error("We do not currently support slicing tuples with non-static expressions");
@@ -5095,10 +5096,10 @@ namespace tuplex {
                 while(true) {
                     fullyQualifiedName = fullyQualifiedName + "." + cur_attr->_attribute->_name;
                     if(cur_attr->_value->type() == ASTNodeType::Identifier)  {
-                        fullyQualifiedName = ((NIdentifier*)(cur_attr->_value))->_name + fullyQualifiedName;
+                        fullyQualifiedName = ((NIdentifier*)(cur_attr->_value.get()))->_name + fullyQualifiedName;
                         break;
                     } else if(cur_attr->_value->type() == ASTNodeType::Attribute) {
-                        cur_attr = (NAttribute*)cur_attr->_value;
+                        cur_attr = (NAttribute*)cur_attr->_value.get();
                     } else {
                             ApatheticVisitor::visit(attr);
                             return;
@@ -5138,10 +5139,10 @@ namespace tuplex {
             auto targetASTType = forStmt->target->type();
             std::vector<NIdentifier*> loopVal;
             if(targetASTType == ASTNodeType::Identifier) {
-                auto id = static_cast<NIdentifier*>(forStmt->target);
+                auto id = static_cast<NIdentifier*>(forStmt->target.get());
                 loopVal.push_back(id);
             } else if(targetASTType == ASTNodeType::Tuple || targetASTType == ASTNodeType::List) {
-                auto idTuple = getForLoopMultiTarget(forStmt->target);
+                auto idTuple = getForLoopMultiTarget(forStmt->target.get());
                 loopVal.resize(idTuple.size());
                 std::transform(idTuple.begin(), idTuple.end(), loopVal.begin(), [](ASTNode* x){return static_cast<NIdentifier*>(x);});
             } else {

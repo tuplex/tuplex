@@ -19,27 +19,49 @@ namespace tuplex {
  */
     class IReplaceVisitor : public IVisitor {
     protected:
+
+        inline std::unique_ptr<ASTNode> dedup(std::unique_ptr<ASTNode> orig, ASTNode* new_) {
+            if(orig.get() == new_) {
+                return orig;
+            }
+            return std::unique_ptr<ASTNode>(new_);
+        }
+
         /*!
          * overwrite this function to replace node with the return value.
          * @param parent parent of the node
          * @param node node to be replaced by the return value of this function
          * @return result of calling the replace function will replace node. Can be also a nullptr.
          */
-        virtual ASTNode* replace(ASTNode* parent, ASTNode* node) = 0;
-
+        virtual std::unique_ptr<ASTNode> replace(ASTNode* parent, std::unique_ptr<ASTNode> node) = 0;
 
         // helper function, that makes sure result of replace is called recursively!
-        inline ASTNode* replaceh(ASTNode* parent, ASTNode* node) {
+        inline std::unique_ptr<ASTNode> replaceh_internal(ASTNode* parent, std::unique_ptr<ASTNode> node) {
             if(node)
                 node->accept(*this);
 
-            ASTNode *res = replace(parent, node);
+            auto orig_raw_ptr = node.get();
+            auto res = replace(parent, std::move(node));
 
             // visit children of the possible newly attached node
             // if it differs from the original node.
-            if(res && res != node)
+            if(res && res.get() != orig_raw_ptr)
                 res->accept(*this);
             return res;
+        }
+
+        // default: just directly call the internal version
+        std::unique_ptr<ASTNode> replaceh(ASTNode* parent, std::unique_ptr<ASTNode> node) {
+            return replaceh_internal(parent, std::move(node));
+        }
+
+        template<class Node>
+        inline std::unique_ptr<Node> replaceh(ASTNode* parent, std::unique_ptr<Node> node) {
+            auto raw_node_ptr = (ASTNode*)node.release(); // convert to ASTNode*
+            auto ret_unique_ptr = replaceh_internal(parent, std::unique_ptr<ASTNode>(raw_node_ptr)); // replace
+            auto raw_ret_ptr = ret_unique_ptr.release(); // get the ASTNode pointer
+            assert(raw_ret_ptr->type() == Node::type_);
+            return std::unique_ptr<Node>((Node*)raw_ret_ptr); // return the properly wrapped node type
         }
 
     public:

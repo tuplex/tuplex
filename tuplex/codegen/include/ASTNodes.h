@@ -185,7 +185,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NNumber(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Number; };
+        static const ASTNodeType type_ = ASTNodeType::Number;
+        virtual ASTNodeType type() const { return type_; };
 
         python::Type getInferredType() {
             // lazy update
@@ -240,7 +241,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NIdentifier(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Identifier; };
+        static const ASTNodeType type_ = ASTNodeType::Identifier;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _name); }
@@ -282,7 +284,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NBoolean(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Boolean; };
+        static const ASTNodeType type_ = ASTNodeType::Boolean;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _value); }
@@ -309,7 +312,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NEllipsis(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Ellipsis; };
+        static const ASTNodeType type_ = ASTNodeType::Ellipsis;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), __MAKE_CEREAL_WORK); }
@@ -334,7 +338,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NNone(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::None; };
+        static const ASTNodeType type_ = ASTNodeType::None;
+        virtual ASTNodeType type() const { return type_; };
 
         // always give NULLVALUE back!
         python::Type getInferredType() { return python::Type::NULLVALUE; }
@@ -371,7 +376,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NString(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::String; };
+        static const ASTNodeType type_ = ASTNodeType::String;
+        virtual ASTNodeType type() const { return type_; };
 
         // one string statement might be comprised of a string expression of the form STRING+
         // we simply amend all the values => implement a smarter normalization aware strategy for this later
@@ -439,7 +445,8 @@ namespace tuplex {
 
         ASTNode* clone() const {return new NBinaryOp(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::BinaryOp; };
+        static const ASTNodeType type_ = ASTNodeType::BinaryOp;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _op, _left, _right); }
@@ -480,7 +487,8 @@ namespace tuplex {
 
         ASTNode* clone() const {return new NUnaryOp(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::UnaryOp; };
+        static const ASTNodeType type_ = ASTNodeType::UnaryOp;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _op, _operand); }
@@ -528,7 +536,8 @@ namespace tuplex {
 
         ASTNode* clone() const {return new NSubscription(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Subscription; };
+        static const ASTNodeType type_ = ASTNodeType::Subscription;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _value, _expression); }
@@ -587,7 +596,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NSuite(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Suite; };
+        static const ASTNodeType type_ = ASTNodeType::Suite;
+        virtual ASTNodeType type() const { return type_; };
 
         void addStatement(ASTNode *node) {
             assert(node);
@@ -644,7 +654,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NModule(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Module; };
+        static const ASTNodeType type_ = ASTNodeType::Module;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _suite); }
@@ -709,7 +720,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NParameter(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Parameter; };
+        static const ASTNodeType type_ = ASTNodeType::Parameter;
+        virtual ASTNodeType type() const { return type_; };
 
 
         NParameter* setAnnotation(ASTNode *node) {
@@ -775,7 +787,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NCollection(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::UNKNOWN; };
+        static const ASTNodeType type_ = ASTNodeType::UNKNOWN;
+        virtual ASTNodeType type() const { return type_; };
 
         void add(ASTNode *node) {
             _elements.push_back(std::unique_ptr<ASTNode>(node->clone()));
@@ -862,7 +875,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NParameterList(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::ParameterList; };
+        static const ASTNodeType type_ = ASTNodeType::ParameterList;
+        virtual ASTNodeType type() const { return type_; };
 
         virtual python::Type getInferredType() const {
             std::vector<python::Type> types;
@@ -935,7 +949,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NLambda(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Lambda; };
+        static const ASTNodeType type_ = ASTNodeType::Lambda;
+        virtual ASTNodeType type() const { return type_; };
 
         void setFirstArgTreatment(bool treatAsTuple) { _treatFirstArgAsTuple = treatAsTuple; }
         bool isFirstArgTuple() { return _treatFirstArgAsTuple; }
@@ -993,7 +1008,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NAwait(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Await; };
+        static const ASTNodeType type_ = ASTNodeType::Await;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _target); }
@@ -1036,7 +1052,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NStarExpression(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::StarExpression; };
+        static const ASTNodeType type_ = ASTNodeType::StarExpression;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _target); }
@@ -1103,7 +1120,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NCompare(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Compare; };
+        static const ASTNodeType type_ = ASTNodeType::Compare;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _left, _ops, _comps); }
@@ -1166,7 +1184,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NIfElse(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::IfElse; };
+        static const ASTNodeType type_ = ASTNodeType::IfElse;
+        virtual ASTNodeType type() const { return type_; };
 
         void setElse(ASTNode* elseChild) {
             _else = nullptr;
@@ -1254,7 +1273,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NFunction(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Function; };
+        static const ASTNodeType type_ = ASTNodeType::Function;
+        virtual ASTNodeType type() const { return type_; };
 
         NFunction* setParams(NParameterList *params) {
             _parameters=nullptr;
@@ -1360,7 +1380,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NTuple(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Tuple; };
+        static const ASTNodeType type_ = ASTNodeType::Tuple;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _elements); }
@@ -1407,7 +1428,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NDictionary(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Dictionary; };
+        static const ASTNodeType type_ = ASTNodeType::Dictionary;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _pairs); }
@@ -1454,7 +1476,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const {return new NList(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::List; };
+        static const ASTNodeType type_ = ASTNodeType::List;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _elements); }
@@ -1487,7 +1510,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const { return new NReturn(*this); }
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Return; };
+        static const ASTNodeType type_ = ASTNodeType::Return;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _expression); }
@@ -1527,7 +1551,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const { return new NAssert(*this); }
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Assert; };
+        static const ASTNodeType type_ = ASTNodeType::Assert;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _expression, _errorExpression); }
@@ -1567,7 +1592,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const { return new NRaise(*this); }
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Raise; };
+        static const ASTNodeType type_ = ASTNodeType::Raise;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _expression, _fromExpression); }
@@ -1611,7 +1637,9 @@ namespace tuplex {
 
         virtual ASTNode* clone() const { return new NAssign(*this); }
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Assign; }
+
+        static const ASTNodeType type_ = ASTNodeType::Assign;
+        virtual ASTNodeType type() const { return type_; }
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _target, _value); }
@@ -1701,7 +1729,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const { return new NCall(*this); }
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Call; }
+        static const ASTNodeType type_ = ASTNodeType::Call;
+        virtual ASTNodeType type() const { return type_; }
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _func, _positionalArguments); }
@@ -1760,7 +1789,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const { return new NAttribute(*this); }
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Attribute; }
+        static const ASTNodeType type_ = ASTNodeType::Attribute;
+        virtual ASTNodeType type() const { return type_; }
 
         void setObjectType(const python::Type& object_type) { _objectType = object_type; }
         python::Type objectType() const { return _objectType; }
@@ -1840,7 +1870,8 @@ namespace tuplex {
 
         ASTNode* clone() const {return new NSlice(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Slice; };
+        static const ASTNodeType type_ = ASTNodeType::Slice;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _value, _slices); }
@@ -1892,7 +1923,8 @@ namespace tuplex {
 
         ASTNode* clone() const {return new NSliceItem(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::SliceItem; };
+        static const ASTNodeType type_ = ASTNodeType::SliceItem;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _start, _end, _stride); }
@@ -1973,7 +2005,8 @@ namespace tuplex {
 
         virtual ASTNode* clone() const { return new NRange(*this); }
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Range; }
+        static const ASTNodeType type_ = ASTNodeType::Range;
+        virtual ASTNodeType type() const { return type_; }
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _positionalArguments); }
@@ -2035,7 +2068,8 @@ namespace tuplex {
 
         ASTNode* clone() const {return new NComprehension(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Comprehension; };
+        static const ASTNodeType type_ = ASTNodeType::Comprehension;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), target, iter, if_conditions); }
@@ -2089,7 +2123,8 @@ namespace tuplex {
 
         ASTNode* clone() const {return new NListComprehension(*this);}
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::ListComprehension; };
+        static const ASTNodeType type_ = ASTNodeType::ListComprehension;
+        virtual ASTNodeType type() const { return type_; };
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), expression, generators); }
@@ -2146,7 +2181,8 @@ namespace tuplex {
 
         ASTNode* clone() const { return new NWhile(*this); }
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::While; }
+        static const ASTNodeType type_ = ASTNodeType::While;
+        virtual ASTNodeType type() const { return type_; }
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), expression, suite_body, suite_else); }
@@ -2213,7 +2249,8 @@ namespace tuplex {
 
         ASTNode* clone() const { return new NFor(*this); }
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::For; }
+        static const ASTNodeType type_ = ASTNodeType::For;
+        virtual ASTNodeType type() const { return type_; }
 
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), target, expression, suite_body, suite_else); }
@@ -2227,7 +2264,8 @@ namespace tuplex {
         NBreak(const NBreak& other) = default;
         ASTNode* clone() const { return new NBreak(*this); }
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Break; }
+        static const ASTNodeType type_ = ASTNodeType::Break;
+        virtual ASTNodeType type() const { return type_; }
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), __MAKE_CEREAL_WORK); }
     };
@@ -2240,7 +2278,8 @@ namespace tuplex {
         NContinue(const NContinue& other) = default;
         ASTNode* clone() const { return new NContinue(*this); }
         virtual void accept(class IVisitor& visitor);
-        virtual ASTNodeType type() const { return ASTNodeType::Continue; }
+        static const ASTNodeType type_ = ASTNodeType::Continue;
+        virtual ASTNodeType type() const { return type_; }
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), __MAKE_CEREAL_WORK); }
     };

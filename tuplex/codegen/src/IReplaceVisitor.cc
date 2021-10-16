@@ -13,8 +13,7 @@
 
 namespace tuplex {
     // avoid double free
-    // other option - release node when passed to replace() and just do a simple assignment.
-    //   -> this requires all replace() implementations to properly free replaced nodes.
+    // TODO: transfer ownership to replace, then return it back (i.e. pass and return unique_ptr from replace)
     template<class T>
     void swap(std::unique_ptr<T> &unique_p, T* p) {
         if(unique_p.get() != p) {
@@ -26,7 +25,7 @@ namespace tuplex {
 
         // special case fpr module, because it can be also an empty file
         if(module->_suite) {
-            swap(module->_suite, replaceh(module, module->_suite.get()));
+            module->_suite = replaceh(module, std::move(module->_suite));
         }
     }
 
@@ -42,30 +41,30 @@ namespace tuplex {
 
                 // check whether statement can be optimized. Can be optimized iff result of optimizeNext is a different
                 // memory address
-                swap(*it, replaceh(suite, it->get()));
+                *it = replaceh(suite, std::move(*it));
             }
         }
     }
 
     void IReplaceVisitor::visit(NCompare *cmp) {
         // visit children
-        swap(cmp->_left, replaceh(cmp, cmp->_left.get()));
+        cmp->_left = replaceh(cmp, std::move(cmp->_left));
 
         // other side
         if(!cmp->_comps.empty())
             for(auto it = cmp->_comps.begin(); it != cmp->_comps.end(); ++it) {
-                swap(*it, replaceh(cmp, it->get()));
+                *it = replaceh(cmp, std::move(*it));
             }
     }
 
     void IReplaceVisitor::visit(NFunction *function) {
         // @TODO: change such that types in AST can be only ASTNode! => optimizing the AST needs this flexibility!
-        swap(function->_name, (NIdentifier*)replaceh(function, function->_name.get()));
-        swap(function->_parameters, (NParameterList*)replaceh(function, function->_parameters.get()));
+        function->_name = replaceh<NIdentifier>(function, std::move(function->_name));
+        function->_parameters = replaceh<NParameterList>(function, std::move(function->_parameters));
         if(function->_annotation)
-            swap(function->_annotation, replaceh(function, function->_annotation.get()));
+            function->_annotation = replaceh(function, std::move(function->_annotation));
         assert(function->_suite);
-        swap(function->_suite, replaceh(function, function->_suite.get()));
+        function->_suite = replaceh(function, std::move(function->_suite));
 
     }
 
@@ -73,45 +72,45 @@ namespace tuplex {
     void IReplaceVisitor::visit(NParameterList *paramList) {
         if(!paramList->_args.empty())
             for(auto it = paramList->_args.begin(); it != paramList->_args.end(); ++it) {
-                swap(*it, replaceh(paramList, it->get()));
+                *it = replaceh(paramList, std::move(*it));
             }
     }
 
     void IReplaceVisitor::visit(NStarExpression *se) {
-        swap(se->_target, replaceh(se, se->_target.get()));
+        se->_target = replaceh(se, std::move(se->_target));
     }
 
     void IReplaceVisitor::visit(NLambda *lambda) {
-        swap(lambda->_arguments, (NParameterList*)replaceh(lambda, lambda->_arguments.get()));
-        swap(lambda->_expression, replaceh(lambda, lambda->_expression.get()));
+        lambda->_arguments = replaceh<NParameterList>(lambda, std::move(lambda->_arguments));
+        lambda->_expression = replaceh(lambda, std::move(lambda->_expression));
     }
 
     void IReplaceVisitor::visit(NUnaryOp *op) {
-        swap(op->_operand, replaceh(op, op->_operand.get()));
+        op->_operand = replaceh(op, std::move(op->_operand));
     }
 
     void IReplaceVisitor::visit(NBinaryOp *op) {
-        swap(op->_left, replaceh(op, op->_left.get()));
-        swap(op->_right, replaceh(op, op->_right.get()));
+        op->_left = replaceh(op, std::move(op->_left));
+        op->_right = replaceh(op, std::move(op->_right));
     }
 
     void IReplaceVisitor::visit(NParameter *param) {
-        swap(param->_identifier, (NIdentifier*)replaceh(param, param->_identifier.get()));
+        param->_identifier = replaceh<NIdentifier>(param, std::move(param->_identifier));
         if(param->_annotation)
-            swap(param->_annotation, replaceh(param, param->_annotation.get()));
+            param->_annotation = replaceh(param, std::move(param->_annotation));
         if(param->_default)
-            swap(param->_default, replaceh(param, param->_default.get()));
+            param->_default = replaceh(param, std::move(param->_default));
     }
 
     void IReplaceVisitor::visit(NAwait *await) {
         assert(await->_target);
-        swap(await->_target, replaceh(await, await->_target.get()));
+        await->_target = replaceh(await, std::move(await->_target));
     }
 
     void IReplaceVisitor::visit(NTuple *tuple) {
         if(!tuple->_elements.empty()) {
             for(auto it = tuple->_elements.begin(); it != tuple->_elements.end(); ++it) {
-                swap(*it, replaceh(tuple, it->get()));
+                *it = replaceh(tuple, std::move(*it));
             }
         }
     }
@@ -119,8 +118,8 @@ namespace tuplex {
     void IReplaceVisitor::visit(NDictionary *dict) {
         if(!dict->_pairs.empty()) {
             for(auto it = dict->_pairs.begin(); it != dict->_pairs.end(); ++it) {
-                swap(it->first, replaceh(dict, it->first.get()));
-                swap(it->second, replaceh(dict, it->second.get()));
+                it->first = replaceh(dict, std::move(it->first));
+                it->second = replaceh(dict, std::move(it->second));
             }
         }
     }
@@ -128,37 +127,37 @@ namespace tuplex {
     void IReplaceVisitor::visit(NList *list) {
         if(!list->_elements.empty()) {
             for(auto it = list->_elements.begin(); it != list->_elements.end(); ++it) {
-                swap(*it, replaceh(list, it->get()));
+                *it = replaceh(list, std::move(*it));
             }
         }
     }
 
     void IReplaceVisitor::visit(NSubscription *sub) {
         assert(sub->_expression);
-        swap(sub->_value, replaceh(sub, sub->_value.get()));
-        swap(sub->_expression, replaceh(sub, sub->_expression.get()));
+        sub->_value = replaceh(sub, std::move(sub->_value));
+        sub->_expression = replaceh(sub, std::move(sub->_expression));
     }
 
     void IReplaceVisitor::visit(NReturn* ret) {
         if(ret->_expression)
-            swap(ret->_expression, replaceh(ret, ret->_expression.get()));
+            ret->_expression = replaceh(ret, std::move(ret->_expression));
     }
 
     void IReplaceVisitor::visit(NAssign* as) {
         assert(as->_target);
         assert(as->_value);
 
-        swap(as->_value, replaceh(as, as->_value.get()));
-        swap(as->_target, replaceh(as, as->_target.get()));
+        as->_value = replaceh(as, std::move(as->_value));
+        as->_target = replaceh(as, std::move(as->_target));
     }
 
     void IReplaceVisitor::visit(NCall* call) {
         // visit children
         for(auto& parg : call->_positionalArguments) {
-            swap(parg, replaceh(call, parg.get()));
+            parg = replaceh(call, std::move(parg));
         }
 
-        swap(call->_func, replaceh(call, call->_func.get()));
+        call->_func = replaceh(call, std::move(call->_func));
     }
 
     void IReplaceVisitor::visit(NAttribute *attr) {
@@ -166,84 +165,82 @@ namespace tuplex {
         assert(attr->_value);
         assert(attr->_attribute);
 
-        swap(attr->_value, replaceh(attr, attr->_value.get()));
-        auto id = replaceh(attr, attr->_attribute.get());
-        assert(id->type() == ASTNodeType::Identifier);
-        swap(attr->_attribute, (NIdentifier *) id);
+        attr->_value = replaceh(attr, std::move(attr->_value));
+        attr->_attribute = replaceh<NIdentifier>(attr, std::move(attr->_attribute));
     }
 
     void IReplaceVisitor::visit(NSlice *slicing) {
         assert(!slicing->_slices.empty());
-        swap(slicing->_value, replaceh(slicing, slicing->_value.get()));
+        slicing->_value = replaceh(slicing, std::move(slicing->_value));
         if(!slicing->_slices.empty()) {
             for(auto it = slicing->_slices.begin(); it != slicing->_slices.end(); ++it) {
-                swap(*it, replaceh(slicing, it->get()));
+                *it = replaceh(slicing, std::move(*it));
             }
         }
     }
 
     void IReplaceVisitor::visit(NSliceItem *slicingItem) {
         if(slicingItem->_start)
-            swap(slicingItem->_start, replaceh(slicingItem, slicingItem->_start.get()));
+            slicingItem->_start = replaceh(slicingItem, std::move(slicingItem->_start));
         if(slicingItem->_end)
-            swap(slicingItem->_end, replaceh(slicingItem, slicingItem->_end.get()));
+            slicingItem->_end = replaceh(slicingItem, std::move(slicingItem->_end));
         if(slicingItem->_stride)
-            swap(slicingItem->_stride, replaceh(slicingItem, slicingItem->_stride.get()));
+            slicingItem->_stride = replaceh(slicingItem, std::move(slicingItem->_stride));
     }
 
     void IReplaceVisitor::visit(NIfElse *ife) {
-        swap(ife->_expression, replaceh(ife, ife->_expression.get()));
-        swap(ife->_then, replaceh(ife, ife->_then.get()));
+        ife->_expression = replaceh(ife, std::move(ife->_expression));
+        ife->_then = replaceh(ife, std::move(ife->_then));
         if(ife->_else)
-            swap(ife->_else, replaceh(ife, ife->_else.get()));
+            ife->_else = replaceh(ife, std::move(ife->_else));
     }
 
     void IReplaceVisitor::visit(NRange* range) {
         // visit children
         for(auto& parg : range->_positionalArguments) {
-            swap(parg, replaceh(range, parg.get()));
+            parg = replaceh(range, std::move(parg));
         }
     }
 
     void IReplaceVisitor::visit(NComprehension* comprehension) {
-        swap(comprehension->target, dynamic_cast<NIdentifier *>(replaceh(comprehension, comprehension->target.get())));
-        swap(comprehension->iter, replaceh(comprehension, comprehension->iter.get()));
+        comprehension->target = replaceh<NIdentifier>(comprehension, std::move(comprehension->target));
+        comprehension->iter = replaceh(comprehension, std::move(comprehension->iter));
 
         // visit children
         for(auto& icond : comprehension->if_conditions) {
-            swap(icond, replaceh(comprehension, icond.get()));
+            icond = replaceh(comprehension, std::move(icond));
         }
     }
 
     void IReplaceVisitor::visit(NListComprehension *listComprehension) {
         // visit children
         for(auto& gen : listComprehension->generators) {
-            swap(gen, dynamic_cast<NComprehension *>(replaceh(listComprehension, gen.get())));
+            gen = replaceh<NComprehension>(listComprehension, std::move(gen));
         }
 
-        swap(listComprehension->expression, replaceh(listComprehension, listComprehension->expression.get()));
+        listComprehension->expression = replaceh(listComprehension, std::move(listComprehension->expression));
     }
 
     void IReplaceVisitor::visit(NAssert* assert_) {
-        swap(assert_->_expression, replaceh(assert_, assert_->_expression.get()));
-        swap(assert_->_errorExpression, replaceh(assert_, assert_->_errorExpression.get()));
+        assert_->_expression = replaceh(assert_, std::move(assert_->_expression));
+        assert_->_errorExpression = replaceh(assert_, std::move(assert_->_errorExpression));
     }
 
     void IReplaceVisitor::visit(NRaise *raise) {
-        swap(raise->_expression, replaceh(raise, raise->_expression.get()));
-        swap(raise->_fromExpression, replaceh(raise, raise->_fromExpression.get()));
+        raise->_expression = replaceh(raise, std::move(raise->_expression));
+        raise->_fromExpression = replaceh(raise, std::move(raise->_fromExpression));
     }
 
     void IReplaceVisitor::visit(NWhile *node) {
-        swap(node->expression, replaceh(node, node->expression.get()));
-        swap(node->suite_body, replaceh(node, node->suite_body.get()));
-        swap(node->suite_else, replaceh(node, node->suite_else.get()));
+        node->expression = replaceh(node, std::move(node->expression));
+        node->suite_body = replaceh(node, std::move(node->suite_body));
+        node->suite_else = replaceh(node, std::move(node->suite_else));
     }
 
     void IReplaceVisitor::visit(NFor* node) {
-        swap(node->target, replaceh(node, node->target.get()));
-        swap(node->expression, replaceh(node, node->expression.get()));
-        swap(node->suite_body, replaceh(node, node->suite_body.get()));
-        swap(node->suite_else, replaceh(node, node->suite_else.get()));
+        node->target = replaceh(node, std::move(node->target));
+        node->expression = replaceh(node, std::move(node->expression));
+        node->suite_body = replaceh(node, std::move(node->suite_body));
+        node->suite_else = replaceh(node, std::move(node->suite_else));
     }
 }

@@ -29,9 +29,9 @@ namespace tuplex {
         assert(node->type() == ASTNodeType::Number || node->type() == ASTNodeType::Boolean);
 
         if(node->type() == ASTNodeType::Number)
-            return dynamic_cast<NNumber*>(node)->getF64();
+            return static_cast<NNumber*>(node)->getF64();
         if(node->type() == ASTNodeType::Boolean)
-            return booleanToI64(dynamic_cast<NBoolean*>(node));
+            return booleanToI64(static_cast<NBoolean*>(node));
 
         Logger::instance().defaultLogger().error("unknown ast type encountered, "
                                                  "could not cast to double. Emitting 0.0");
@@ -54,11 +54,11 @@ namespace tuplex {
     bool toBool(ASTNode* node) {
         assert(node->type() == ASTNodeType::Number || node->type() == ASTNodeType::Boolean || node->type() == ASTNodeType::String);
         if(node->type() == ASTNodeType::Number)
-            return dynamic_cast<NNumber*>(node)->getI64() != 0;
+            return static_cast<NNumber*>(node)->getI64() != 0;
         if(node->type() == ASTNodeType::Boolean)
-            return dynamic_cast<NBoolean*>(node)->_value;
+            return static_cast<NBoolean*>(node)->_value;
         if(node->type() == ASTNodeType::String)
-            return !dynamic_cast<NString*>(node)->value().empty();
+            return !static_cast<NString*>(node)->value().empty();
         Logger::instance().defaultLogger().error("invalid AST type, could not cast to boolean. Emitting false");
         return false;
     }
@@ -108,7 +108,6 @@ namespace tuplex {
         Logger::instance().logger("compiler").error(message);
         _numErrors++;
     }
-
 
     ASTNode* ReduceExpressionsVisitor::cmp_replace(NCompare *op) {
         // check that all operands are literals, if not no reduction is possible
@@ -223,10 +222,10 @@ namespace tuplex {
                    && (op->_right->getInferredType() == python::Type::I64
                        || op->_right->getInferredType() == python::Type::BOOLEAN)) {
                     int64_t times = op->_right->getInferredType() == python::Type::BOOLEAN
-                                    ? booleanToI64(dynamic_cast<NBoolean*>(op->_right.get()))
-                                    : dynamic_cast<NNumber*>(op->_right.get())->getI64();
+                                    ? booleanToI64(static_cast<NBoolean*>(op->_right.get()))
+                                    : static_cast<NNumber*>(op->_right.get())->getI64();
 
-                    auto *s = new NString(escape_to_python_str(replicateString(dynamic_cast<NString*>(op->_left.get())->value(), times)));
+                    auto *s = new NString(escape_to_python_str(replicateString(static_cast<NString*>(op->_left.get())->value(), times)));
                     _numReductions++;
                     return s;
                 }
@@ -237,10 +236,10 @@ namespace tuplex {
                    && (op->_left->getInferredType() == python::Type::I64
                        || op->_left->getInferredType() == python::Type::BOOLEAN)) {
                     int64_t times = op->_left->getInferredType() == python::Type::BOOLEAN
-                                    ? booleanToI64(dynamic_cast<NBoolean*>(op->_left.get()))
-                                    : dynamic_cast<NNumber*>(op->_left.get())->getI64();
+                                    ? booleanToI64(static_cast<NBoolean*>(op->_left.get()))
+                                    : static_cast<NNumber*>(op->_left.get())->getI64();
 
-                    auto *s = new NString(escape_to_python_str(replicateString(dynamic_cast<NString*>(op->_right.get())->value(), times)));
+                    auto *s = new NString(escape_to_python_str(replicateString(static_cast<NString*>(op->_right.get())->value(), times)));
                     _numReductions++;
                     return s;
                 }
@@ -275,8 +274,8 @@ namespace tuplex {
                 // aka string concatenation...
                 if(op->_left->getInferredType() == python::Type::STRING &&
                    op->_right->getInferredType() == python::Type::STRING) {
-                    auto lstr = dynamic_cast<NString*>(op->_left.get())->value();
-                    auto rstr = dynamic_cast<NString*>(op->_right.get())->value();
+                    auto lstr = static_cast<NString*>(op->_left.get())->value();
+                    auto rstr = static_cast<NString*>(op->_right.get())->value();
                     std::string string_res = lstr + rstr;
                     auto *s = new NString(escape_to_python_str(string_res));
                     assert(s->value() == string_res);
@@ -514,7 +513,7 @@ namespace tuplex {
         }
     }
 
-    ASTNode* ReduceExpressionsVisitor::replace(ASTNode *parent, ASTNode *node) {
+    std::unique_ptr<ASTNode> ReduceExpressionsVisitor::replace(ASTNode *parent, std::unique_ptr<ASTNode> node) {
         // parent must always be set
         assert(parent);
 
@@ -526,16 +525,16 @@ namespace tuplex {
         switch(node->type()) {
             // when function is encountered, collect var names!
             case ASTNodeType::Function: {
-                auto* func = dynamic_cast<NFunction*>(node);
+                auto func = static_cast<NFunction*>(node.get());
                 _currentFunctionLocals = getFunctionVariables(func);
                 _currentFunctionParams = getFunctionParameters(func);
                 break;
             }
 
-                // identifier? check if we can replace a simple global with a node!
+            // identifier? check if we can replace a simple global with a node!
             case ASTNodeType::Identifier: {
                 // only if not in local function vars or params!
-                auto name = ((NIdentifier*)node)->_name;
+                auto name = ((NIdentifier*)node.get())->_name;
                 if(_currentFunctionLocals.find(name) == _currentFunctionLocals.end() &&
                    std::find(_currentFunctionParams.begin(),
                              _currentFunctionParams.end(), name) == _currentFunctionParams.end()) {
@@ -553,7 +552,7 @@ namespace tuplex {
                         if(!new_node) {
                             Logger::instance().defaultLogger().debug("no support for converting field type " + value.getType().desc() + " to ast");
                         } else {
-                            return new_node;
+                            return std::unique_ptr<ASTNode>(new_node);
                         }
                     }
                 }
@@ -562,12 +561,12 @@ namespace tuplex {
 
             case ASTNodeType::Compare: {
 
-                auto *cmp = dynamic_cast<NCompare *>(node);
+                auto cmp = static_cast<NCompare *>(node.get());
                 if (cmp->_left && cmp->_ops.empty() && cmp->_comps.empty()) {
                     // remove the "next" node
                     ASTNode *res = cmp->_left->clone();
                     _numReductions++;
-                    return res;
+                    return std::unique_ptr<ASTNode>(res);
                 } else {
                     // check if all of the expressions are literals, if so reduction is possible
                     bool areAllLiterals = python::isLiteralType(cmp->_left->getInferredType());
@@ -577,24 +576,24 @@ namespace tuplex {
                     }
 
                     if(areAllLiterals)
-                        return cmp_replace(cmp);
+                        return dedup(std::move(node), cmp_replace(cmp));
                     else
                         // nothing can be optimized
-                        return cmp;
+                        return node;
                 }
 
                 break;
             }
 
             case ASTNodeType::BinaryOp: {
-                auto *op = dynamic_cast<NBinaryOp*>(node);
+                auto op = static_cast<NBinaryOp*>(node.get());
                 // make sure both operand are already reduced,
                 // so they are literals by first visiting their subbranches!
-                return binop_replace(op);
+                return dedup(std::move(node), binop_replace(op));
             }
 
             case ASTNodeType::UnaryOp: {
-                auto *op = dynamic_cast<NUnaryOp*>(node);
+                auto op = static_cast<NUnaryOp*>(node.get());
 
                 if(python::isLiteralType(op->_operand->getInferredType())) {
                     // reduction possible here
@@ -616,13 +615,13 @@ namespace tuplex {
                             // if the operand is boolean, we convert it to int (true for 1 and false for 0)
                             // otherwise it should be a number
                             if (optype == python::Type::BOOLEAN) {
-                                auto *boolean = dynamic_cast<NBoolean*>(op->_operand.get());
+                                auto *boolean = static_cast<NBoolean*>(op->_operand.get());
                                 int64_t x = booleanToI64(boolean);
                                 std::stringstream ss;
                                 ss<<(-x);
                                 val = ss.str();
                             } else {
-                                val = dynamic_cast<NNumber *>(op->_operand.get())->_value;
+                                val = static_cast<NNumber *>(op->_operand.get())->_value;
                                 if (val[0] == '-')
                                     val = val.substr(1);
                                 else
@@ -630,12 +629,12 @@ namespace tuplex {
                             }
                             auto *num = new NNumber(val);
                             _numReductions++;
-                            return num;
+                            return std::unique_ptr<ASTNode>(num);
                         }
                         case TokenType::PLUS: {
                             ASTNode *num = op->_operand->clone();
                             _numReductions++;
-                            return num;
+                            return std::unique_ptr<ASTNode>(num);
                         }
                         case TokenType::TILDE: {
                             // this is two's complement
@@ -653,12 +652,12 @@ namespace tuplex {
 
                             // implicitly cast bool if necessary to int
                             if(op->_operand->type() == ASTNodeType::Boolean) {
-                                auto *boolean = dynamic_cast<NBoolean*>(op->_operand.get());
+                                auto *boolean = static_cast<NBoolean*>(op->_operand.get());
                                 x = booleanToI64(boolean);
                             } else {
                                 // operand's type must be int
                                 assert(op->_operand->getInferredType() ==  python::Type::I64);
-                                x = dynamic_cast<NNumber*>(op->_operand.get())->getI64();
+                                x = static_cast<NNumber*>(op->_operand.get())->getI64();
                             }
 
                             std::stringstream ss;
@@ -666,7 +665,7 @@ namespace tuplex {
 
                             auto *num = new NNumber(ss.str());
                             _numReductions++;
-                            return num;
+                            return std::unique_ptr<ASTNode>(num);
                         }
                         default: {
                             std::stringstream ss;

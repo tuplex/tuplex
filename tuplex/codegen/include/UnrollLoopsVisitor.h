@@ -22,7 +22,7 @@ namespace tuplex {
     private:
         std::unordered_map<std::string, ASTNode*> nameTable;
 
-        ASTNode* replace(ASTNode* parent, ASTNode *next);
+        std::unique_ptr<ASTNode> replace(ASTNode* parent, std::unique_ptr<ASTNode> next);
 
     public:
         UnrollLoopsVisitor() {}

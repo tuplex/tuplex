@@ -18,7 +18,7 @@ namespace tuplex {
 // occur when null-value optimization is enabled...
     class RemoveDeadBranchesVisitor : public IReplaceVisitor {
     protected:
-        ASTNode* replace(ASTNode* parent, ASTNode* node) override;
+        std::unique_ptr<ASTNode> replace(ASTNode* parent, std::unique_ptr<ASTNode> node) override;
 
         bool _useAnnotations; ///! whether to actually remove nodes or simply insert/update annotations.
     public:

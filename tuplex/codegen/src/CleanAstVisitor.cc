@@ -12,7 +12,7 @@
 #include <cassert>
 
 namespace tuplex {
-    ASTNode* CleanAstVisitor::replace(ASTNode *parent, ASTNode *next) {
+    std::unique_ptr<ASTNode> CleanAstVisitor::replace(ASTNode *parent, std::unique_ptr<ASTNode> next) {
         // parent must always be set
         assert(parent);
 
@@ -24,26 +24,24 @@ namespace tuplex {
         switch(next->type()) {
             case ASTNodeType::Compare: {
 
-                NCompare *cmp = static_cast<NCompare *>(next);
+                auto cmp = static_cast<NCompare *>(next.get());
 
                 // compare node can be eliminated when only left hand side is set
                 // is an inefficiency of the python parser...
-                if (cmp->_left && cmp->_ops.size() == 0 && cmp->_comps.size() == 0) {
+                if (cmp->_left && cmp->_ops.empty() && cmp->_comps.empty()) {
                     // remove the "next" node
-                    ASTNode *res = cmp->_left->clone();
-                    delete cmp;
-                    return res;
+                    return std::unique_ptr<ASTNode>(cmp->_left->clone());
                 }
 
                 // else just return the node itself
-                return cmp;
+                return next;
             }
 
             case ASTNodeType::Suite: {
                 // NOTE: when using try/except this does not work anymore!!!
                 // in suite remove statements after return if there are any
                 int returnIndex = -1;
-                NSuite *suite = static_cast<NSuite*>(next);
+                auto suite = static_cast<NSuite*>(next.get());
                 int pos = 0;
                 for(const auto &stmt : suite->_statements) {
                     if(stmt->type() == ASTNodeType::Return )
@@ -56,11 +54,11 @@ namespace tuplex {
                     // statements after return?
                     if(returnIndex != suite->_statements.size() - 1) {
                         suite->_statements.resize(returnIndex+1);
-                        return suite;
+                        return next;
                     }
                 }
 
-                return suite;
+                return next;
             }
 
             default:

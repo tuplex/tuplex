@@ -80,7 +80,7 @@ namespace tuplex {
         return option<bool>::none;
     }
 
-    ASTNode *RemoveDeadBranchesVisitor::replace(ASTNode *parent, ASTNode *node) {
+    std::unique_ptr<ASTNode> RemoveDeadBranchesVisitor::replace(ASTNode *parent, std::unique_ptr<ASTNode> node) {
 
         // if else is interesting
         if(!node)
@@ -90,7 +90,7 @@ namespace tuplex {
             case ASTNodeType::IfElse: {
 
                 // can expression be determined at compile time?
-                NIfElse* ifelse = (NIfElse*)node;
+                auto ifelse = (NIfElse*)node.get();
 
                 auto compileTimeVal = tuplex::compileTimeTruthEval(ifelse->_expression.get());
                 if(compileTimeVal.has_value()) {
@@ -104,21 +104,21 @@ namespace tuplex {
                     if(compileTimeVal.value()) {
                         if(!_useAnnotations)
                             // always true, so replace with then branch
-                            return ifelse->_then.release();
+                            return std::move(ifelse->_then);
                         else {
                             // do not replace, but always annotate ifelse->_then
                             ifelse->_then->annotation().numTimesVisited = 1;
                             if(ifelse->_else)
                                 ifelse->_else->annotation().numTimesVisited = 0;
-                            return ifelse;
+                            return std::move(node);
                         }
                     }
-                        // false?
+                    // false?
                     else {
                         if(!_useAnnotations) {
                             // always false, either remove completely or return else branch
                             if(ifelse->_else) {
-                                return ifelse->_else.release();
+                                return std::move(ifelse->_else);
                             } else {
                                 // nullptr is removal?
                                 return nullptr;

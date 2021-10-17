@@ -12,8 +12,6 @@
 #include <logical/LogicalOperator.h>
 #include <cassert>
 #include <logical/LogicalPlan.h>
-#include "cereal/types/memory.hpp"
-#include "cereal/types/vector.hpp"
 
 namespace tuplex {
 
@@ -78,13 +76,14 @@ namespace tuplex {
 
     void LogicalOperator::freeParents() {
         // recurse
-        for(const auto &parent : parents()) {
+        for(auto parent : parents()) {
             parent->freeParents();
+            delete parent;
         }
         _parents.clear();
     }
 
-    void LogicalOperator::setParents(const std::vector<std::shared_ptr<LogicalOperator>> &parents) {
+    void LogicalOperator::setParents(const std::vector<LogicalOperator *> &parents) {
         _parents.clear();
         _parents = parents;
     }
@@ -104,15 +103,4 @@ namespace tuplex {
         python::unlockGIL();
         return v;
     }
-
-    // cereal serialization functions
-    template<class Archive>
-    void LogicalOperator::serialize(Archive &archive) {
-        archive(_id, _parents, _schema, _dataSet);
-        // addThisToParents() should be called by default constructor
-    }
-//    template<class Archive>
-//    void LogicalOperator::save(Archive &archive) const {
-//        archive(_id, _parents, _schema, _dataSet);
-//    }
 }

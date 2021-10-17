@@ -13,14 +13,12 @@
 
 #include <logical/LogicalOperatorType.h>
 #include <vector>
-#include <memory>
 #include <physical/ResultSet.h>
 #include <DataSet.h>
 #include "graphviz/GraphVizBuilder.h"
 #include "Schema.h"
 // to avoid conflicts with Python3.7
 #include "../Context.h"
-#include "cereal/access.hpp"
 
 static const size_t MAX_TYPE_SAMPLING_ROWS=100; // make this configurable? i.e. defines how much to trace...
 
@@ -30,12 +28,12 @@ namespace tuplex {
     class DataSet;
     class Context;
 
-    class LogicalOperator : std::enable_shared_from_this<LogicalOperator> {
+    class LogicalOperator {
     private:
         int buildGraph(GraphVizBuilder& builder);
         int64_t _id;
         std::vector<LogicalOperator*> _children;
-        std::vector<std::shared_ptr<LogicalOperator>> _parents;
+        std::vector<LogicalOperator*> _parents;
         Schema _schema;
         DataSet *_dataSet;
         void addThisToParents() {
@@ -43,7 +41,7 @@ namespace tuplex {
                 if(!parent)
                     continue;
 
-                if(parent == shared_from_this())
+                if(parent == this)
                     throw std::runtime_error("cycle encountered! invalid for operator graph.");
 
                 parent->_children.push_back(this);
@@ -56,8 +54,8 @@ namespace tuplex {
         void setSchema(const Schema& schema) { _schema = schema; }
         virtual void copyMembers(const LogicalOperator* other);
     public:
-        explicit LogicalOperator(const std::vector<std::shared_ptr<LogicalOperator>>& parents) : _id(logicalOperatorIDGenerator++), _parents(parents), _dataSet(nullptr) { addThisToParents(); }
-        explicit LogicalOperator(std::shared_ptr<LogicalOperator> parent) : _id(logicalOperatorIDGenerator++), _parents({parent}), _dataSet(nullptr) { if(!parent) throw std::runtime_error("can't have nullptr as parent"); addThisToParents(); }
+        explicit LogicalOperator(const std::vector<LogicalOperator*>& parents) : _id(logicalOperatorIDGenerator++), _parents(parents), _dataSet(nullptr) { addThisToParents(); }
+        explicit LogicalOperator(LogicalOperator* parent) : _id(logicalOperatorIDGenerator++), _parents({parent}), _dataSet(nullptr) { if(!parent) throw std::runtime_error("can't have nullptr as parent"); addThisToParents(); }
         LogicalOperator() : _id(logicalOperatorIDGenerator++), _dataSet(nullptr) { addThisToParents(); }
 
         virtual ~LogicalOperator();
@@ -77,18 +75,18 @@ namespace tuplex {
         virtual bool good() const = 0;
 
         std::vector<LogicalOperator*> getChildren() const { return _children; }
-        std::shared_ptr<LogicalOperator> parent() const { if(_parents.empty())return nullptr; assert(_parents.size() == 1); return _parents.front(); }
-        std::vector<std::shared_ptr<LogicalOperator>> parents() const { return _parents; }
+        LogicalOperator* parent() const { if(_parents.empty())return nullptr; assert(_parents.size() == 1); return _parents.front(); }
+        std::vector<LogicalOperator*> parents() const { return _parents; }
         size_t numParents() const { return _parents.size(); }
         size_t numChildren() const { return _children.size(); }
 
 
         // manipulating functions for the tree (i.e. used in logical optimizer)
         // Note: this functions DO NOT free memory.
-        void setParents(const std::vector<std::shared_ptr<LogicalOperator>>& parents);
+        void setParents(const std::vector<LogicalOperator*>& parents);
         void setChildren(const std::vector<LogicalOperator*>& children);
 
-        void setParent(std::shared_ptr<LogicalOperator> parent) { setParents({parent}); }
+        void setParent(LogicalOperator* parent) { setParents({parent}); }
         void setChild(LogicalOperator* child) { setChildren({child}); }
 
         /*!
@@ -97,7 +95,7 @@ namespace tuplex {
          * @param newParent
          * @return true if oldParent found, false else
          */
-        bool replaceParent(std::shared_ptr<LogicalOperator> oldParent, std::shared_ptr<LogicalOperator> newParent) {
+        bool replaceParent(LogicalOperator* oldParent, LogicalOperator* newParent) {
             auto it = std::find(_parents.begin(), _parents.end(), oldParent);
             if(it == _parents.end())
                 return false;
@@ -216,13 +214,6 @@ namespace tuplex {
         * @return python objects, acquires GIL and releases GIL
         */
         virtual std::vector<PyObject*> getPythonicSample(size_t num);
-
-        // cereal serialization functions
-        template<class Archive>
-        void serialize(Archive &archive);
-
-//        template<class Archive>
-//        void save(Archive &archive) const;
     };
 }
 #endif //TUPLEX_LOGICALOPERATOR_H

@@ -26,7 +26,7 @@ namespace tuplex {
     class LogicalPlan {
     private:
         // the action which is called
-        std::unique_ptr<LogicalOperator> _action;
+        LogicalOperator* _action;
 
 
         void optimizeFilters();
@@ -74,20 +74,13 @@ namespace tuplex {
          */
         PhysicalPlan* createPhysicalPlan(const Context& context);
 
-        LogicalOperator* getAction() const { return _action.get(); }
+        LogicalOperator* getAction() const { return _action; }
 
         /*!
          * output logical plan as PDF (graphviz)
          * @param path
          */
         void toPDF(const std::string& path) const;
-
-        // cereal serialization functions
-        template<class Archive>
-        void serialize(Archive &archive);
-
-        template<class Archive>
-        static void load_and_construct(Archive &archive, cereal::construct<LogicalPlan> &construct);
     };
 }
 

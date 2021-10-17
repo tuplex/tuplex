@@ -23,14 +23,14 @@ namespace tuplex {
     }
 
 
-    ASTNode * ColumnRewriteVisitor::replace(ASTNode *parent, ASTNode *node) {
+    std::unique_ptr<ASTNode> ColumnRewriteVisitor::replace(ASTNode *parent, std::unique_ptr<ASTNode> node) {
         if(!node)
             return nullptr;
 
         switch(node->type()) {
             case ASTNodeType::Subscription: {
 
-                NSubscription* sub = (NSubscription*)node;
+                auto sub = (NSubscription*)node.get();
 
                 // @TODO: there might be issues when variable is redefined!
                 // i.e.
@@ -52,8 +52,8 @@ namespace tuplex {
 
                 if(sub->_value->type() == ASTNodeType::Identifier &&
                    sub->_expression->type() == ASTNodeType::String) {
-                    auto id = (NIdentifier*)sub->_value;
-                    auto str = (NString*)sub->_expression;
+                    auto id = (NIdentifier*)sub->_value.get();
+                    auto str = (NString*)sub->_expression.get();
 
                     // rewrite if matches param
                     if(id->_name == _parameter) {
@@ -73,9 +73,9 @@ namespace tuplex {
                             // special case: If there is a single column, do not use param[idx],
                             //               but just return param due to unpacking
                             if(_columnNames.size() == 1)
-                                return id->clone();
+                                return std::unique_ptr<ASTNode>(id->clone());
                             else
-                                return new NSubscription(id, new NNumber(static_cast<int64_t>(idx)));
+                                return std::unique_ptr<ASTNode>(new NSubscription(id, new NNumber(static_cast<int64_t>(idx))));
                         }
                     }
                 }

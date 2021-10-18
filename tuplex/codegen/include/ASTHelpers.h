@@ -55,13 +55,13 @@ namespace tuplex {
  */
     extern ASTNode* fieldToAST(const tuplex::Field& f);
 
-/*!
- * check whether the nodes below that node all result in an exit path, i.e. return.
- * needed for escape analysis of assignment operations.
- * @param root
- * @return
- */
-    extern bool isExitPath(ASTNode* root);
+    /*!
+     * check whether the nodes below that node all result in an exit path, i.e. return.
+     * needed for escape analysis of assignment operations.
+     * @param root
+     * @return
+     */
+    extern bool isExitPath(const ASTNode* root);
 
     /*!
      * check whether the [root] represents a logical operation
@@ -70,11 +70,11 @@ namespace tuplex {
      */
     extern bool isLogicalOp(ASTNode* root);
 
-/*!
- * get the vector of identifiers when target in for loop is a tuple or a list
- * @param target (NTuple or NList)
- * @return vector of identifiers
- */
+    /*!
+     * get the vector of identifiers when target in for loop is a tuple or a list
+     * @param target (NTuple or NList)
+     * @return vector of identifiers
+     */
     extern std::vector<ASTNode *> getForLoopMultiTarget(ASTNode* target);
 }
 

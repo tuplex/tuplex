@@ -16,6 +16,8 @@
 #include <TSet.h>
 #include <Utils.h>
 
+#include "cereal/archives/binary.hpp"
+
 // types should be like form mypy https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html
 
 
@@ -1055,4 +1057,8 @@ namespace python {
     void Type::save(Archive &archive) const {
         archive(_hash, TypeFactory::instance()._typeMap[_hash]);
     }
+
+    // explicit instantiation
+    template void Type::load(cereal::BinaryInputArchive &archive);
+    template void Type::save(cereal::BinaryOutputArchive &archive) const;
 }

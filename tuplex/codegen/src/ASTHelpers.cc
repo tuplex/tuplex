@@ -64,7 +64,7 @@ namespace tuplex {
         return svv.yieldsLiteralExpression();
     }
 
-// helper visitor class for isStaticValue
+    // helper visitor class for isStaticValue
     class FunctionVariablesVisitor : public IPrePostVisitor {
     protected:
 
@@ -182,7 +182,7 @@ namespace tuplex {
     }
 
 
-// Note: need to check this better for try/except in the future
+    // Note: need to check this better for try/except in the future
     bool isExitPath(const ASTNode* node) {
         if(!node)
             return false;

@@ -274,13 +274,6 @@ namespace python {
         template<class Archive>
         void load(Archive &archive);
 
-//        template<class Archive>
-//        static void load_and_construct(Archive &archive, cereal::construct<Type> &construct) {
-//            int hash;
-//            archive(hash);
-//            construct(fromHash(hash));
-//        }
-
         template<class Archive>
         void save(Archive &archive) const;
     };
@@ -294,7 +287,7 @@ namespace python {
     class TypeFactory {
         // hide internal interfaces and make them only available to Type
         friend class Type;
-        friend class cereal::access;
+//        friend class cereal::access;
     private:
 
         enum class AbstractType {

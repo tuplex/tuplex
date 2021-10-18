@@ -25,8 +25,8 @@ TEST_F(LoopTest, TargetTypeAnnotation) {
     UDF udf(code);
     udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(python::Type::I64)));
     auto funcNode = static_cast<NFunction*>(udf.getAnnotatedAST().getFunctionAST());
-    auto funcSuite = static_cast<NSuite*>(funcNode->_suite);
-    auto forNode = static_cast<NFor*>(funcSuite->_statements[0]);
+    auto funcSuite = static_cast<NSuite*>(funcNode->_suite.get());
+    auto forNode = static_cast<NFor*>(funcSuite->_statements[0].get());
     EXPECT_EQ(forNode->target->getInferredType(), python::Type::I64);
 }
 

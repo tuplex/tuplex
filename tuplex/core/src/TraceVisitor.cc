@@ -164,7 +164,12 @@ namespace tuplex {
     }
 
     void TraceVisitor::visit(NFunction *node) {
-        unpackFunctionParameters(node->_parameters->_args);
+        std::vector<ASTNode*> raw_args;
+        for(const auto &arg : node->_parameters->_args) {
+            raw_args.push_back(arg.get());
+        }
+
+        unpackFunctionParameters(raw_args);
 
         // run suite
         node->_suite->accept(*this);
@@ -295,7 +300,7 @@ namespace tuplex {
             }
 
             if(astArgs.size() == 1) {
-                auto id = dynamic_cast<NIdentifier*>(dynamic_cast<NParameter*>(astArgs.front())->_identifier);
+                auto id = dynamic_cast<NIdentifier*>(dynamic_cast<NParameter*>(astArgs.front())->_identifier.get());
                 _symbols.emplace_back(_args, id->_name);
                 extractedArgs.push_back(_args);
             } else {
@@ -303,7 +308,7 @@ namespace tuplex {
 
                 size_t numProvidedArgs = PyTuple_Size(_args);
                 for(int i = 0; i < std::min(numProvidedArgs, astArgs.size()); ++i) {
-                    auto id = dynamic_cast<NIdentifier*>(dynamic_cast<NParameter*>(astArgs[i])->_identifier);
+                    auto id = dynamic_cast<NIdentifier*>(dynamic_cast<NParameter*>(astArgs[i])->_identifier.get());
                     auto arg = PyTuple_GetItem(_args, i);
                     _symbols.emplace_back(arg, id->_name);
                     extractedArgs.push_back(arg);
@@ -331,7 +336,12 @@ namespace tuplex {
 
     void TraceVisitor::visit(NLambda *node) {
 
-        unpackFunctionParameters(node->_arguments->_args);
+        std::vector<ASTNode*> raw_args;
+        for(const auto &arg : node->_arguments->_args) {
+            raw_args.push_back(arg.get());
+        }
+
+        unpackFunctionParameters(raw_args);
 
         // visit children
         node->_expression->accept(*this);
@@ -536,7 +546,7 @@ namespace tuplex {
         if(node->_target->type() != ASTNodeType::Identifier)
             error("only identifier as target for assign statement yet supported");
 
-        NIdentifier* id = dynamic_cast<NIdentifier*>(node->_target); assert(id);
+        NIdentifier* id = dynamic_cast<NIdentifier*>(node->_target.get()); assert(id);
 
         // do not visit target, only visit value!
         node->_value->accept(*this);
@@ -658,7 +668,7 @@ namespace tuplex {
         // getitem with slice
         auto res = PyObject_GetItem(ti_value.value, ti_slice.value);
 
-        // @TODO: erorr??
+        // @TODO: error??
         assert(res);
 
         addTraceResult(node, TraceItem(res));

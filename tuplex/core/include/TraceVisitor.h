@@ -13,6 +13,7 @@
 
 #include <ApatheticVisitor.h>
 #include <Python.h>
+#include <utility>
 #include <vector>
 #include <PythonHelpers.h>
 #include <IFailable.h>
@@ -30,8 +31,8 @@ namespace tuplex {
             PyObject* value;
             std::string name;
 
-            TraceItem(PyObject* obj) : value(obj)   {}
-            TraceItem(PyObject* obj, const std::string n) : value(obj), name(n) {}
+            explicit TraceItem(PyObject* obj) : value(obj)   {}
+            TraceItem(PyObject* obj, std::string n) : value(obj), name(std::move(n)) {}
         };
 
         // evaluation stack
@@ -42,7 +43,7 @@ namespace tuplex {
         // symbols
         std::vector<TraceItem> _symbols;
 
-        MessageHandler& logger() { return Logger::instance().logger("tracer"); }
+        static MessageHandler& logger() { return Logger::instance().logger("tracer"); }
 
         void unpackFunctionParameters(const std::vector<ASTNode*> &astArgs);
 
@@ -76,7 +77,7 @@ namespace tuplex {
         class TraceException : public std::exception {
         };
     public:
-        TraceVisitor(const python::Type& inputRowType=python::Type::UNKNOWN) : _args(nullptr),
+        explicit TraceVisitor(const python::Type& inputRowType=python::Type::UNKNOWN) : _args(nullptr),
                     _functionSeen(false),
                     _retValue(nullptr), _inputRowType(inputRowType), _numSamplesProcessed(0) {
         }

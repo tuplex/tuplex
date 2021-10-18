@@ -46,7 +46,7 @@ To install Tuplex, simply install the dependencies first and then build the pack
 #### MacOS build from source
 To build Tuplex, you need several other packages first which can be easily installed via [brew](https://brew.sh/).
 ```
-brew install llvm@9 boost boost-python3 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero
+brew install llvm@9 boost boost-python3 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero protobuf libmagic
 python3 -m pip cloudpickle numpy
 python3 setup.py install
 ```

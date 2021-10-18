@@ -242,13 +242,13 @@ A convenient option to install packages under Mac OS X is `Homebrew <http://brew
 
   brew install git cmake python@3.9 llvm@9 boost \
                boost-python3 aws-sdk-cpp pcre2 antlr4-cpp-runtime \
-               yaml-cpp celero gflags libmagic
+               googletest gflags yaml-cpp celero protobuf libmagic
 
-Further, you need to install the ``cloudpickle`` python module in order to compile Tuplex.
+Further, you need to install the ``cloudpickle`` python module and ``numpy`` in order to compile Tuplex.
 
 .. code:: console
 
-  pip3 install cloudpickle # or use python3 -m pip install cloudpickle
+  pip3 install numpy cloudpickle # or use python3 -m pip install cloudpickle
 
 
 Note: Per default Tuplex uses static libs. However, recently brew changed the AWS SDK to be with shared libs, i.e. running ``cmake`` might complain about missing ```*.cmake`` files. To deal with this, you've multiple options:

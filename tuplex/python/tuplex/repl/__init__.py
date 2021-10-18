@@ -12,7 +12,7 @@
 import os
 import sys
 
-from tuplex.utils.common import is_in_interactive_mode, in_jupyter_notebook
+from tuplex.utils.common import is_in_interactive_mode, in_jupyter_notebook, in_google_colab
 from tuplex.utils.interactive_shell import TuplexShell
 
 from tuplex.utils.version import __version__
@@ -33,7 +33,7 @@ def TuplexBanner():
 # if the module is imported in interactive mode, overwrite shell with own shell
 # else, provide code-closure functionality through readline module
 
-if is_in_interactive_mode() and not in_jupyter_notebook():
+if is_in_interactive_mode() and not in_jupyter_notebook() and not in_google_colab():
     os.system('clear')
 
     from tuplex.context import Context

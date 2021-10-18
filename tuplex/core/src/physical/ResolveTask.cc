@@ -958,12 +958,7 @@ default:
 
         // read row size depending on format
         switch(_outputFormat) {
-            case FileFormat::OUTFMT_TUPLEX: {
-                // tuplex in memory format
-                assert(_deserializerNormalOutputCase);
-                return std::min(_deserializerNormalOutputCase->inferLength(buf), bufSize);
-                break;
-            }
+
             case FileFormat::OUTFMT_CSV: {
                 // parse CSV row to get size (greedily parse all delimiters!!!)
                 // => need to store output specification here for delimiter & co...
@@ -971,11 +966,12 @@ default:
                 char quotechar = _csvQuotechar;
 
                 return csvOffsetToNextLine(reinterpret_cast<const char*>(_normalPtr), _normalPtrBytesRemaining, delimiter, quotechar);
-                break;
             }
-            case FileFormat::OUTFMT_TEXT: {
-                throw std::runtime_error("unsupported file output format!");
-                break;
+            case FileFormat::OUTFMT_TUPLEX:
+            case FileFormat::OUTFMT_ORC: {
+                // tuplex in memory format
+                assert(_deserializerNormalOutputCase);
+                return std::min(_deserializerNormalOutputCase->inferLength(buf), bufSize);
             }
             default: {
                 throw std::runtime_error("unsupported output format in resolve task!");

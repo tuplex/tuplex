@@ -58,11 +58,15 @@ namespace tuplex {
 
         virtual Schema getOutputSchema() const override {
             // depending on format:
-            if(_fmt == FileFormat::OUTFMT_CSV || _fmt == FileFormat::OUTFMT_TEXT) {
-                // single string (per row)
-                return Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(python::Type::STRING));
-            } else {
-                throw std::runtime_error("file output operator get output schema not supported yet!");
+            switch (_fmt) {
+                case FileFormat::OUTFMT_CSV:
+                    // single string (per row)
+                    return Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(python::Type::STRING));
+                case FileFormat::OUTFMT_ORC:
+                    // No translation performed on rows
+                    return getInputSchema();
+                default:
+                    throw std::runtime_error("file output operator get output schema not supported yet!");
             }
         }
 

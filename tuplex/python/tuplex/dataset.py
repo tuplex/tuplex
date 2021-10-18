@@ -455,6 +455,34 @@ class DataSet:
 
         self._dataSet.tocsv(path, code, code_pickled, num_parts, part_size, num_rows, null_value, header)
 
+    def toorc(self, path, part_size=0, num_rows=max_rows, num_parts=0, part_name_generator=None):
+        """ save dataset to one or more orc files. Triggers execution of pipeline.
+        Args:
+        path: path where to save files to
+        split_size: optional size in bytes for each part to not exceed.
+        num_rows: limit number of output rows
+        num_parts: number of parts to split output into. The last part will be the smallest
+        part_name_generator: optional name generator function to the output parts, receives an integer \
+                             as parameter for the output number. This is intended as a convenience helper function. \
+                             Should not raise any exceptions.
+        """
+        assert self._dataSet is not None
+
+        code, code_pickled = '', ''
+        if part_name_generator is not None:
+            code_pickled = cloudpickle.dumps(part_name_generator)
+            # try to get code from vault (only lambdas supported yet!)
+            try:
+                # convert code object to str representation
+                code = get_udf_source(part_name_generator)
+            except UDFCodeExtractionError as e:
+                logging.warn('Could not extract code for {}. Details:\n{}'.format(ftor, e))
+
+        if num_rows > max_rows:
+            raise Exception('Tuplex supports at most {} rows'.format(max_rows))
+
+        self._dataSet.toorc(path, code, code_pickled, num_parts, part_size, num_rows)
+
     def aggregate(self, combine, aggregate, initial_value):
         """
         Args:

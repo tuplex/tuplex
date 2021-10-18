@@ -54,6 +54,7 @@ PYMODULE {
             .def("columns", &tuplex::PythonDataSet::columns)
             .def("cache", &tuplex::PythonDataSet::cache)
             .def("tocsv", &tuplex::PythonDataSet::tocsv)
+            .def("toorc", &tuplex::PythonDataSet::toorc)
             .def("unique", &tuplex::PythonDataSet::unique)
             .def("aggregate", &tuplex::PythonDataSet::aggregate)
             .def("aggregateByKey", &tuplex::PythonDataSet::aggregateByKey)
@@ -64,6 +65,7 @@ PYMODULE {
             .def(init<std::string>()) // default C++ ctor
             .def("csv", &tuplex::PythonContext::csv)
             .def("text", &tuplex::PythonContext::text)
+            .def("orc", &tuplex::PythonContext::orc)
             .def("parallelize", &tuplex::PythonContext::parallelize)
             .def("options", &tuplex::PythonContext::options)
             .def("getMetrics", &tuplex::PythonContext::getMetrics)

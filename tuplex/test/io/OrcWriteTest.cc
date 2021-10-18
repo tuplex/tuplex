@@ -1,3 +1,13 @@
+//--------------------------------------------------------------------------------------------------------------------//
+//                                                                                                                    //
+//                                      Tuplex: Blazing Fast Python Data Science                                      //
+//                                                                                                                    //
+//                                                                                                                    //
+//  (c) 2017 - 2021, Tuplex team                                                                                      //
+//  Created by Ben Givertz first on 10/18/2021                                                                        //
+//  License: Apache 2.0                                                                                               //
+//--------------------------------------------------------------------------------------------------------------------//
+
 #include <gtest/gtest.h>
 #include <Context.h>
 #include <DataSet.h>
@@ -5,10 +15,12 @@
 #include <orc/ColumnPrinter.hh>
 #include "../core/TestUtils.h"
 
+class OrcWriteTest : public PyTest {};
+
 void writeRowInput(const std::vector<tuplex::Row> &rows, const std::vector<std::string>& columnNames = {});
 void writeCSVInput(const std::string &path);
 
-TEST(ORC, WriteZillow) {
+TEST_F(OrcWriteTest, WriteZillow) {
     using namespace tuplex;
     auto files = VirtualFileSystem::globAll("../resources/pipelines/zillow/*.csv");
     for (const auto& file : files) {
@@ -16,7 +28,7 @@ TEST(ORC, WriteZillow) {
     }
 }
 
-TEST(ORC, WriteGtrace) {
+TEST_F(OrcWriteTest, WriteGtrace) {
     using namespace tuplex;
     auto files = VirtualFileSystem::globAll("../resources/pipelines/gtrace/*.csv");
     for (const auto& file : files) {
@@ -24,7 +36,7 @@ TEST(ORC, WriteGtrace) {
     }
 }
 
-TEST(ORC, WriteWeblogs) {
+TEST_F(OrcWriteTest, WriteWeblogs) {
     using namespace tuplex;
     auto files = VirtualFileSystem::globAll("../resources/pipelines/weblogs/*.csv");
     for (const auto& file : files) {
@@ -32,7 +44,7 @@ TEST(ORC, WriteWeblogs) {
     }
 }
 
-TEST(ORC, WriteComplex) {
+TEST_F(OrcWriteTest, WriteComplex) {
     using namespace tuplex;
     auto rows = {
             Row(Tuple(List(1, 2, 3))),
@@ -41,7 +53,7 @@ TEST(ORC, WriteComplex) {
     writeRowInput(rows);
 }
 
-TEST(ORC, WriteTuples) {
+TEST_F(OrcWriteTest, WriteTuples) {
     using namespace tuplex;
     auto rows = {
             Row(Tuple(1, Tuple(2, 3)), Tuple(Tuple(4, 5), 6, 7, Tuple(8,9))),
@@ -51,7 +63,7 @@ TEST(ORC, WriteTuples) {
     writeRowInput(rows);
 }
 
-TEST(ORC, WriteDict) {
+TEST_F(OrcWriteTest, WriteDict) {
     using namespace tuplex;
     std::string i64_to_f64 = std::string(R"({"1":1.1,"2":2.2,"3":3.3})");
     std::string f64_to_i64 = std::string(R"({"1.1":1,"2.2":2,"3.3":3})");
@@ -70,7 +82,7 @@ TEST(ORC, WriteDict) {
     writeRowInput(rows);
 }
 
-TEST(ORC, WriteColumns) {
+TEST_F(OrcWriteTest, WriteColumns) {
     using namespace tuplex;
     auto rows = {
             Row(1, true),
@@ -80,7 +92,7 @@ TEST(ORC, WriteColumns) {
     writeRowInput(rows, {"int", "bool"});
 }
 
-TEST(ORC, WriteList) {
+TEST_F(OrcWriteTest, WriteList) {
     using namespace tuplex;
     auto rows = {
             Row(List(1,2,3), List(1.1), List("a", "b"), List(true, true)),
@@ -91,7 +103,7 @@ TEST(ORC, WriteList) {
     writeRowInput(rows);
 }
 
-TEST(ORC, WriteOptions) {
+TEST_F(OrcWriteTest, WriteOptions) {
     using namespace tuplex;
     auto rows = {
             Row(option<int>(1), option<double>(1.1), option<std::string>("a"), option<bool>(false)),
@@ -102,7 +114,7 @@ TEST(ORC, WriteOptions) {
     writeRowInput(rows);
 }
 
-TEST(ORC, WriteI64) {
+TEST_F(OrcWriteTest, WriteI64) {
     using namespace tuplex;
     auto rows = {
             Row(-1, -2, -3),
@@ -112,7 +124,7 @@ TEST(ORC, WriteI64) {
     writeRowInput(rows);
 }
 
-TEST(ORC, WriteF64) {
+TEST_F(OrcWriteTest, WriteF64) {
     using namespace tuplex;
     auto rows = {
             Row(-1.1, -2.2, -3.3),
@@ -122,7 +134,7 @@ TEST(ORC, WriteF64) {
     writeRowInput(rows);
 }
 
-TEST(ORC, WriteBoolean) {
+TEST_F(OrcWriteTest, WriteBoolean) {
     using namespace tuplex;
     auto rows ={
             Row(true, true, true),
@@ -132,7 +144,7 @@ TEST(ORC, WriteBoolean) {
     writeRowInput(rows);
 }
 
-TEST(ORC, WriteString) {
+TEST_F(OrcWriteTest, WriteString) {
     using namespace tuplex;
     auto rows ={
             Row("a", "bb", "ccc"),

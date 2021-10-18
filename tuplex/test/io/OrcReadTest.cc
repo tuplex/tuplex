@@ -1,9 +1,22 @@
+//--------------------------------------------------------------------------------------------------------------------//
+//                                                                                                                    //
+//                                      Tuplex: Blazing Fast Python Data Science                                      //
+//                                                                                                                    //
+//                                                                                                                    //
+//  (c) 2017 - 2021, Tuplex team                                                                                      //
+//  Created by Ben Givertz first on 10/18/2021                                                                        //
+//  License: Apache 2.0                                                                                               //
+//--------------------------------------------------------------------------------------------------------------------//
+
 #include <gtest/gtest.h>
 #include <Context.h>
+#include "../core/TestUtils.h"
+
+class OrcReadTest : public PyTest {};
 
 void testReadInput(const std::vector<tuplex::Row> &rows);
 
-TEST(ORC, ReadOption) {
+TEST_F(OrcReadTest, ReadOption) {
     using namespace tuplex;
     auto rows = {
             Row(option<int>(1), option<double>(1.1), option<bool>(false)),
@@ -14,7 +27,7 @@ TEST(ORC, ReadOption) {
     testReadInput(rows);
 }
 
-TEST(ORC, ReadDict) {
+TEST_F(OrcReadTest, ReadDict) {
     using namespace tuplex;
     std::string i64_to_f64 = std::string(R"({"1":1.1,"2":2.2,"3":3.3})");
     std::string f64_to_i64 = std::string(R"({"1.1":1,"2.2":2,"3.3":3})");
@@ -33,7 +46,7 @@ TEST(ORC, ReadDict) {
     testReadInput(rows);
 }
 
-TEST(ORC, ReadList) {
+TEST_F(OrcReadTest, ReadList) {
     using namespace tuplex;
     auto rows = {
             Row(List(1, 2, 3), List(1.1, 2.2, 3.3), List("a", "b", "c"), List(true, true, false)),
@@ -43,7 +56,7 @@ TEST(ORC, ReadList) {
     };
 }
 
-TEST(ORC, ReadNestedTuples) {
+TEST_F(OrcReadTest, ReadNestedTuples) {
     using namespace tuplex;
     auto rows = {
             Row(Tuple("a", Tuple(1, 2)), Tuple("b", Tuple(3, 4)), Tuple("c", Tuple(1, Tuple(2)))),
@@ -54,7 +67,7 @@ TEST(ORC, ReadNestedTuples) {
     };
 }
 
-TEST(ORC, ReadTuples) {
+TEST_F(OrcReadTest, ReadTuples) {
     using namespace tuplex;
     auto rows = {
             Row(Tuple(1, 2, 3), Tuple(1.1, 2.2, 3.3), Tuple("a", "b", "c"), Tuple(true, true, false)),
@@ -66,7 +79,7 @@ TEST(ORC, ReadTuples) {
     testReadInput(rows);
 }
 
-TEST(ORC, ReadI64) {
+TEST_F(OrcReadTest, ReadI64) {
     using namespace tuplex;
     auto rows = {
             Row(-1, -2, -3),
@@ -76,7 +89,7 @@ TEST(ORC, ReadI64) {
     testReadInput(rows);
 }
 
-TEST(ORC, ReadF64) {
+TEST_F(OrcReadTest, ReadF64) {
     using namespace tuplex;
     auto rows = {
             Row(-1.1, -2.2, -3.3),
@@ -86,7 +99,7 @@ TEST(ORC, ReadF64) {
     testReadInput(rows);
 }
 
-TEST(ORC, ReadBoolean) {
+TEST_F(OrcReadTest, ReadBoolean) {
     using namespace tuplex;
     auto rows ={
             Row(true, true, true),
@@ -96,7 +109,7 @@ TEST(ORC, ReadBoolean) {
     testReadInput(rows);
 }
 
-TEST(ORC, ReadString) {
+TEST_F(OrcReadTest, ReadString) {
     using namespace tuplex;
     auto rows ={
             Row("a", "bb", "ccc"),
@@ -107,7 +120,7 @@ TEST(ORC, ReadString) {
     testReadInput(rows);
 }
 
-TEST(ORC, ReadZillow) {
+TEST_F(OrcReadTest, ReadZillow) {
     using namespace tuplex;
     ContextOptions co = ContextOptions::defaults();
     Context context(co);
@@ -117,7 +130,7 @@ TEST(ORC, ReadZillow) {
     }
 }
 
-TEST(ORC, ReadGtrace) {
+TEST_F(OrcReadTest, ReadGtrace) {
     using namespace tuplex;
     ContextOptions co = ContextOptions::defaults();
     Context context(co);
@@ -127,7 +140,7 @@ TEST(ORC, ReadGtrace) {
     }
 }
 
-TEST(ORC, ReadWeblogs) {
+TEST_F(OrcReadTest, ReadWeblogs) {
     using namespace tuplex;
     ContextOptions co = ContextOptions::defaults();
     Context context(co);

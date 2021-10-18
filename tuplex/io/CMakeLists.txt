@@ -54,12 +54,7 @@ if(BREW_FOUND)
         endif()
     endif()
 endif()
-#
-#message(STATUS "OpenSSL Root dir is: $ENV{OPENSSL_ROOT_DIR}")
-#set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
-#set(ENV{OPENSSL_ROOT_DIR} /usr/local/opt/openssl)
-#
-#message(STATUS "OpenSSL: ${OPENSSL_ROOT_DIR} Snappy: ${SNAPPY_HOME}")
+
 ExternalProject_Add(orc
         GIT_REPOSITORY https://github.com/apache/orc.git
         GIT_TAG rel/release-1.7.0

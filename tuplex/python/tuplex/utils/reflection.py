@@ -25,7 +25,7 @@ import sys
 
 from tuplex.utils.globs import get_globals
 from tuplex.utils.source_vault import SourceVault, supports_lambda_closure
-from tuplex.utils.common import in_jupyter_notebook, is_in_interactive_mode
+from tuplex.utils.common import in_jupyter_notebook, in_google_colab, is_in_interactive_mode
 from tuplex.utils.interactive_shell import TuplexShell
 
 # only export get_source function, rest shall be private.
@@ -150,7 +150,7 @@ def get_function_code(f):
     function_name = f.__code__.co_name
     assert isinstance(function_name, str)
 
-    if in_jupyter_notebook():
+    if in_jupyter_notebook() or in_google_colab():
         return extract_function_code(function_name, get_jupyter_raw_code(function_name))
     else:
         return extract_function_code(function_name, dill.source.getsource(f))

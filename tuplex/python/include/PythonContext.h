@@ -182,6 +182,15 @@ namespace tuplex {
         PythonDataSet text(const std::string &pattern, boost::python::object null_values = boost::python::object());
 
         /*!
+         * reads one (or multiple) orc files into memory
+         * @param pattern file pattern (glob pattern) of orc files to read
+         * @param cols None or list of strings to describe column names
+         * @return PythonDataSet wrapper around internal DataSet class corresponding to a orc read call
+         */
+        PythonDataSet orc(const std::string &pattern,
+                          boost::python::object cols = boost::python::object());
+
+        /*!
          * retrieves options as flattened dictionary.
          * @return dictionary with all options.
          */

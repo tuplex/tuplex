@@ -14,6 +14,7 @@
 #include <physical/ResolveTask.h>
 #include <physical/TransformTask.h>
 #include <physical/SimpleFileWriteTask.h>
+#include <physical/SimpleOrcWriteTask.h>
 
 #include <memory>
 
@@ -510,7 +511,7 @@ namespace tuplex {
                         task->setFunctor(functor);
                         task->setInputFileSource(uri, normalCaseEnabled, tstage->fileInputOperatorID(), inputRowType, header,
                                                  !options.OPT_GENERATE_PARSER(),
-                                                 numColumns, 0, 0, delimiter, quotechar, colsToKeep, tstage->inputFormat());
+                                                 numColumns, 0, 0, delimiter, quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
                         // hash table or memory output?
                         if(tstage->outputMode() == EndPointMode::HASHTABLE) {
                             if (tstage->hashtableKeyByteWidth() == 8)
@@ -544,7 +545,7 @@ namespace tuplex {
                             task->setInputFileSource(uri, normalCaseEnabled, tstage->fileInputOperatorID(), inputRowType, header,
                                                      !options.OPT_GENERATE_PARSER(),
                                                      numColumns, 0, 0, delimiter,
-                                                     quotechar, colsToKeep, tstage->inputFormat());
+                                                     quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
                             // hash table or memory output?
                             if(tstage->outputMode() == EndPointMode::HASHTABLE) {
                                 if (tstage->hashtableKeyByteWidth() == 8)
@@ -580,7 +581,7 @@ namespace tuplex {
                                 task->setInputFileSource(uri, normalCaseEnabled, tstage->fileInputOperatorID(), inputRowType, header,
                                                          !options.OPT_GENERATE_PARSER(),
                                                          numColumns, rangeStart, rangeEnd - rangeStart, delimiter,
-                                                         quotechar, colsToKeep, tstage->inputFormat());
+                                                         quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
                                 // hash table or memory output?
                                 if(tstage->outputMode() == EndPointMode::HASHTABLE) {
                                     if (tstage->hashtableKeyByteWidth() == 8)
@@ -997,26 +998,27 @@ namespace tuplex {
             case EndPointMode::MEMORY: {
                 // memory output, fetch partitions & ecounts
                 vector<Partition *> output;
-                vector<Partition*> general_output; // partitions which violate the normal case
-                vector<Partition*> unresolved;
-                vector<tuple<size_t, PyObject*>> nonconforming_rows; // rows where the output type does not fit,
+                vector<Partition*> generalOutput; // partitions which violate the normal case
+                vector<Partition*> remainingExceptions;
+                vector<tuple<size_t, PyObject*>> nonConformingRows; // rows where the output type does not fit,
                                                                      // need to manually merged.
                 unordered_map<tuple<int64_t, ExceptionCode>, size_t> ecounts;
                 size_t rowDelta = 0;
                 for (const auto& task : completedTasks) {
-                    // update exception counts
-                    ecounts = merge_ecounts(ecounts, getExceptionCounts(task));
-
                     auto taskOutput = getOutputPartitions(task);
-                    auto exceptions = getRemainingExceptions(task);
-                    auto typeViolations = generalCasePartitions(task);
-                    auto nonConforming = getNonConformingRows(task);
+                    auto taskRemainingExceptions = getRemainingExceptions(task);
+                    auto taskGeneralOutput = generalCasePartitions(task);
+                    auto taskNonConformingRows = getNonConformingRows(task);
+                    auto taskExceptionCounts = getExceptionCounts(task);
+
+                    // update exception counts
+                    ecounts = merge_ecounts(ecounts, taskExceptionCounts);
 
                     // update nonConforming with delta
-                    for(int i = 0; i < nonConforming.size(); ++i) {
-                        auto t = nonConforming[i];
+                    for(int i = 0; i < taskNonConformingRows.size(); ++i) {
+                        auto t = taskNonConformingRows[i];
                         t = std::make_tuple(std::get<0>(t) + rowDelta, std::get<1>(t));
-                        nonConforming[i] = t;
+                        taskNonConformingRows[i] = t;
                     }
 
                     // debug trace issues
@@ -1026,37 +1028,21 @@ namespace tuplex {
                         task_name = "udf trafo task";
                     if(task->type() == TaskType::RESOLVE)
                         task_name = "resolve";
-                    // cout<<"*** found task: "<<task_name<<" ***"<<endl;
-                    // cout<<"*** num output partitions: "<<taskOutput.size()<<" ***"<<endl;
-                    // cout<<"*** num general case partitions: "<<typeViolations.size()<<" ***"<<endl;
-                    // cout<<"*** num exception partitions: "<<exceptions.size()<<" ***"<<endl;
-                    // cout<<"*** non conforming rows: "<<nonConforming.size()<<" ***"<<endl;
 
-                    // std::copy (b.begin(), b.end(), std::back_inserter(a));
                     std::copy(taskOutput.begin(), taskOutput.end(), std::back_inserter(output));
-                    std::copy(typeViolations.begin(), typeViolations.end(), std::back_inserter(general_output));
-                    std::copy(nonConforming.begin(), nonConforming.end(), std::back_inserter(nonconforming_rows));
+                    std::copy(taskRemainingExceptions.begin(), taskRemainingExceptions.end(), std::back_inserter(remainingExceptions));
+                    std::copy(taskGeneralOutput.begin(), taskGeneralOutput.end(), std::back_inserter(generalOutput));
+                    std::copy(taskNonConformingRows.begin(), taskNonConformingRows.end(), std::back_inserter(nonConformingRows));
 
                     // compute the delta used to offset records!
                     for(auto p : taskOutput)
                         rowDelta += p->getNumRows();
-                    for(auto p : typeViolations)
+                    for(auto p : taskGeneralOutput)
                         rowDelta += p->getNumRows();
-                    rowDelta += nonConforming.size();
+                    rowDelta += taskNonConformingRows.size();
                 }
 
-
-                // debug output
-                // using namespace std;
-                // cout<<"*** num output partitions: "<<output.size()<<" ***"<<endl;
-                // cout<<"*** num unresolved partitions: "<<unresolved.size()<<" ***"<<endl;
-
-                // @TODO: set in Context sample up for unresolved exceptions!
-                // => limit by max per op per type
-                // => general case partitions set as artificial exceptions to keep around...
-
-                // set to stage output
-                tstage->setMemoryResult(output, general_output, nonconforming_rows, ecounts);
+                tstage->setMemoryResult(output, generalOutput, nonConformingRows, remainingExceptions, ecounts);
                 break;
             }
             case EndPointMode::HASHTABLE: {
@@ -1504,6 +1490,22 @@ namespace tuplex {
     }
 
     /*!
+     * get default file extension for supported file formats
+     * @param fmt
+     * @return string
+     */
+    std::string fileFormatDefaultExtension(FileFormat fmt) {
+        switch (fmt) {
+            case FileFormat::OUTFMT_CSV:
+                return ".csv";
+            case FileFormat::OUTFMT_ORC:
+                return ".orc";
+            default:
+                throw std::runtime_error("file format: " + std::to_string((int) fmt) + " not yet supported!");
+        }
+    }
+
+    /*!
      * construct output path based either on a base URI or via a udf
      * @param udf
      * @param baseURI
@@ -1535,8 +1537,7 @@ namespace tuplex {
                 // --> call ensureOutputFolderExists before using this function here!
 
                 // change to correct file format extension
-                assert(fmt == FileFormat::OUTFMT_CSV);
-                return URI(path + "/part" + std::to_string(partNo) + ".csv");
+                return URI(path + "/part" + std::to_string(partNo) + fileFormatDefaultExtension(fmt));
             } else {
                 base = path.substr(0, ext_pos);
                 ext = path.substr(ext_pos + 1);
@@ -1871,9 +1872,8 @@ namespace tuplex {
         using namespace std;
 
         Timer timer;
-        // check output format to be CSV
+        // check output format to be supported
         assert(tstage->outputMode() == EndPointMode::FILE);
-        assert(tstage->outputFormat() == FileFormat::OUTFMT_CSV);
 
         // now simply go over the partitions and write the full buffers out
         // check all the params from TrafoStage
@@ -1947,16 +1947,39 @@ namespace tuplex {
 
             if(bytesInList >= bytesPerExecutor) {
                 // spawn task
-                //const URI& uri, uint8_t *header, size_t header_length, const std::vector<Partition *> &partitions
-                wtasks.emplace_back(new SimpleFileWriteTask(outputURI(udf, uri, partNo++, fmt), header, header_length, partitions));
+                // const URI& uri, uint8_t *header, size_t header_length, const std::vector<Partition *> &partitions
+                IExecutorTask* wtask;
+                switch(tstage->outputFormat()) {
+                    case FileFormat::OUTFMT_CSV:
+                        wtask = new SimpleFileWriteTask(outputURI(udf, uri, partNo++, fmt), header, header_length, partitions);
+                        break;
+                    case FileFormat::OUTFMT_ORC:
+                        wtask = new SimpleOrcWriteTask(outputURI(udf, uri, partNo++, fmt), partitions, tstage->outputSchema(), outOptions["columnNames"]);
+                        break;
+                    default:
+                        throw std::runtime_error("file output format not supported.");
+                }
+                wtasks.emplace_back(wtask);
                 partitions.clear();
                 bytesInList = 0;
             }
         }
         // add last task (remaining partitions)
         if(!partitions.empty()) {
-            auto wtask = new SimpleFileWriteTask(outputURI(udf, uri, partNo++, fmt), header, header_length, partitions);
-            wtasks.emplace_back(std::move(wtask));
+            IExecutorTask* wtask;
+            switch (tstage->outputFormat()) {
+                case FileFormat::OUTFMT_CSV: {
+                    wtask = new SimpleFileWriteTask(outputURI(udf, uri, partNo++, fmt), header, header_length, partitions);
+                    break;
+                }
+                case FileFormat::OUTFMT_ORC: {
+                    wtask = new SimpleOrcWriteTask(outputURI(udf, uri, partNo++, fmt), partitions, tstage->outputSchema(), outOptions["columnNames"]);
+                    break;
+                }
+                default:
+                    throw std::runtime_error("file output format not supported.");
+            }
+            wtasks.emplace_back(wtask);
             partitions.clear();
         }
 

@@ -55,6 +55,11 @@ if(BREW_FOUND)
     endif()
 endif()
 
+# set to third-party build
+if(NOT SNAPPY_LIBRARIES)
+    set(SNAPPY_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a)
+endif()
+
 ExternalProject_Add(orc
         GIT_REPOSITORY https://github.com/apache/orc.git
         GIT_TAG rel/release-1.7.0

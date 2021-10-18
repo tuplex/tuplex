@@ -17,7 +17,7 @@ import os
 import glob
 import sys
 import cloudpickle
-from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, is_in_interactive_mode, current_user, host_name
+from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, host_name
 import uuid
 import json
 from .metrics import Metrics
@@ -109,6 +109,8 @@ class Context:
             mode = 'shell'
         if in_jupyter_notebook():
             mode = 'jupyter'
+        if in_google_colab():
+            mode = 'colab'
         host = host_name()
 
         # pass above options as env.user, ...

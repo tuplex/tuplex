@@ -107,6 +107,30 @@ def in_jupyter_notebook():
     except NameError:
         return False  # Probably standard Python interpreter
 
+def in_google_colab():
+    """
+        check whether framework runs in Google Colab environment
+    Returns:
+        True if Tuplex is running in Google Colab
+    """
+    found_colab_package = False
+    try:
+        import google.colab
+        found_colab_package = True
+    except:
+        pass
+
+    shell_name_matching = False
+    try:
+        shell_name_matching =  'google.colab' in str(get_ipython())
+    except:
+        pass
+
+    if found_colab_package or shell_name_matching:
+        return True
+    else:
+        return False
+
 def is_in_interactive_mode():
     """checks whether the module is loaded in an interactive shell session or not
 

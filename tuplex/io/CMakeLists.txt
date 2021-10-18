@@ -24,17 +24,56 @@ get_filename_component(Protobuf_HOME "${Protobuf_INCLUDE_DIRS}" DIRECTORY)
 
 include(ExternalProject)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
+
+# For MacOS, check whether certain 3rd party libs are already installed via brew
+# check if snappy is already installed under MacOS
+if(BREW_FOUND)
+    if(APPLE)
+        EXECUTE_PROCESS(COMMAND brew --prefix snappy OUTPUT_VARIABLE BREW_SNAPPY_DIR ERROR_VARIABLE BREW_SNAPPY_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(BREW_SNAPPY_NOTFOUND)
+            set(SNAPPY_LIBRARIES "${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a")
+        else()
+            set(ENV{SNAPPY_HOME} ${BREW_SNAPPY_DIR})
+            set(SNAPPY_HOME ${BREW_SNAPPY_DIR})
+            message(STATUS "Found locally installed snappy under $ENV{SNAPPY_HOME}")
+            # set variables
+            file (TO_CMAKE_PATH "${SNAPPY_HOME}" _snappy_path)
+            find_library (SNAPPY_LIBRARY NAMES snappy HINTS
+                    ${_snappy_path}
+                    PATH_SUFFIXES "lib" "lib64")
+            if(SNAPPY_LIBRARY)
+                message(STATUS "snappy lib: ${SNAPPY_LIBRARY}")
+            endif()
+            find_library (SNAPPY_STATIC_LIB NAMES ${CMAKE_STATIC_LIBRARY_PREFIX}${SNAPPY_LIB_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX} HINTS
+                    ${_snappy_path}
+                    PATH_SUFFIXES "lib" "lib64")
+            if(SNAPPY_LIBRARY)
+                set(SNAPPY_LIBRARIES "${SNAPPY_LIBRARY}")
+            elseif(SNAPPY_STATIC_LIB)
+                set(SNAPPY_LIBRARIES "${SNAPPY_STATIC_LIB}")
+            endif()
+            message(STATUS "Snappy libraries: ${SNAPPY_LIBRARIES}")
+        endif()
+    endif()
+endif()
+
+# set to third-party build
+if(NOT SNAPPY_LIBRARIES)
+    set(SNAPPY_HOME "")
+    set(SNAPPY_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a)
+endif()
+
 ExternalProject_Add(orc
         GIT_REPOSITORY https://github.com/apache/orc.git
-        GIT_TAG main
+        GIT_TAG rel/release-1.7.0
         TIMEOUT 5
-        CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories" -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DBUILD_JAVA=OFF -DBUILD_TOOLS=OFF -DBUILD_CPP_TESTS=OFF -DBUILD_POSITION_INDEPENDENT_LIB=ON -DPROTOBUF_HOME=${Protobuf_HOME}
+        CMAKE_ARGS -DBUILD_LIBHDFSPP=OFF -DSNAPPY_HOME=${SNAPPY_HOME} -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories" -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DBUILD_JAVA=OFF -DBUILD_TOOLS=OFF -DBUILD_CPP_TESTS=OFF -DBUILD_POSITION_INDEPENDENT_LIB=ON -DPROTOBUF_HOME=${Protobuf_HOME}
         PREFIX "${EXTERNAL_INSTALL_LOCATION}"
         UPDATE_COMMAND "" # Disable update step: clones the project only once
         BUILD_BYPRODUCTS
             ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a
             ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a
-            ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a
+            ${SNAPPY_LIBRARIES}
             ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a
             ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a
         )
@@ -62,7 +101,7 @@ target_include_directories(libio PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 target_link_libraries(libio libutils
         ${AWSSDK_LINK_LIBRARIES} ${LibMagic_LIBRARIES}
         ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a
-        ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a
+        ${SNAPPY_LIBRARIES}
         ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a
         ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a
         liborc)

@@ -25,7 +25,7 @@ namespace tuplex {
 
         // visits next node
         // tries to remove the next node if possible
-        std::unique_ptr<ASTNode> replace(ASTNode* parent, std::unique_ptr<ASTNode> next);
+        ASTNode* replace(ASTNode* parent, ASTNode* next);
 
     public:
         CleanAstVisitor() {}

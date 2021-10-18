@@ -24,7 +24,7 @@ namespace tuplex {
         bool isLiteralKeyDict(ASTNode* node);
         python::Type _newOutputType;
     protected:
-        std::unique_ptr<ASTNode> replace(ASTNode* parent, std::unique_ptr<ASTNode> node);
+        ASTNode* replace(ASTNode* parent, ASTNode* node);
     public:
         std::vector<std::string> columnNames;
         ColumnReturnRewriteVisitor() = default;

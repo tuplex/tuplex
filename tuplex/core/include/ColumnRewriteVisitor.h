@@ -26,7 +26,7 @@ namespace tuplex {
         bool _rewrite;
         bool _dictAccessFound;
     protected:
-        std::unique_ptr<ASTNode> replace(ASTNode* parent, std::unique_ptr<ASTNode> node) override;
+        ASTNode* replace(ASTNode* parent, ASTNode* node) override;
     public:
         ColumnRewriteVisitor() = delete;
         ColumnRewriteVisitor(const std::vector<std::string>& columnNames,

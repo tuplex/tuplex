@@ -12,7 +12,7 @@
 #include <cassert>
 
 namespace tuplex {
-    std::unique_ptr<ASTNode> CleanAstVisitor::replace(ASTNode *parent, std::unique_ptr<ASTNode> next) {
+    ASTNode* CleanAstVisitor::replace(ASTNode *parent, ASTNode* next) {
         // parent must always be set
         assert(parent);
 
@@ -24,13 +24,13 @@ namespace tuplex {
         switch(next->type()) {
             case ASTNodeType::Compare: {
 
-                auto cmp = static_cast<NCompare *>(next.get());
+                auto cmp = static_cast<NCompare *>(next);
 
                 // compare node can be eliminated when only left hand side is set
                 // is an inefficiency of the python parser...
                 if (cmp->_left && cmp->_ops.empty() && cmp->_comps.empty()) {
                     // remove the "next" node
-                    return std::unique_ptr<ASTNode>(cmp->_left->clone());
+                    return cmp->_left->clone();
                 }
 
                 // else just return the node itself
@@ -41,7 +41,7 @@ namespace tuplex {
                 // NOTE: when using try/except this does not work anymore!!!
                 // in suite remove statements after return if there are any
                 int returnIndex = -1;
-                auto suite = static_cast<NSuite*>(next.get());
+                auto suite = static_cast<NSuite*>(next);
                 int pos = 0;
                 for(const auto &stmt : suite->_statements) {
                     if(stmt->type() == ASTNodeType::Return )

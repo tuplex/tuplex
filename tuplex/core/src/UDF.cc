@@ -896,7 +896,7 @@ namespace tuplex {
 
     class RewriteVisitor : public virtual IReplaceVisitor {
     protected:
-        std::unique_ptr<ASTNode> replace(ASTNode* parent, std::unique_ptr<ASTNode> node) override;
+        ASTNode* replace(ASTNode* parent, ASTNode* node) override;
 
         bool _tupleArgument;
         size_t _numColumns;
@@ -930,7 +930,7 @@ namespace tuplex {
         }
     };
 
-    std::unique_ptr<ASTNode> RewriteVisitor::replace(ASTNode *parent, std::unique_ptr<ASTNode> node) {
+    ASTNode* RewriteVisitor::replace(ASTNode *parent, ASTNode* node) {
 
         if(!node)
             return nullptr;
@@ -996,7 +996,7 @@ namespace tuplex {
         switch(node->type()) {
 
             case ASTNodeType::ParameterList: {
-                NParameterList* paramList = (NParameterList*)node.get();
+                NParameterList* paramList = (NParameterList*)node;
 
                 // change type
                 if(parent->type() == ASTNodeType::Lambda ||
@@ -1076,7 +1076,7 @@ namespace tuplex {
                 // change if tupleArgument
                 if(_tupleArgument) {
                     // perform mapping
-                    NSubscription* sub = (NSubscription*)node.get();
+                    NSubscription* sub = (NSubscription*)node;
                     assert(sub->_value);
                     assert(sub->_expression);
 

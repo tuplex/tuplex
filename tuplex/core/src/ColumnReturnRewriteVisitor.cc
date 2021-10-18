@@ -81,13 +81,13 @@ namespace tuplex {
         }
     }
 
-    std::unique_ptr<ASTNode> ColumnReturnRewriteVisitor::replace(ASTNode* parent, std::unique_ptr<ASTNode> node) {
+    ASTNode* ColumnReturnRewriteVisitor::replace(ASTNode* parent, ASTNode* node) {
         if(!node)
             return nullptr;
 
         switch(node->type()) {
             case ASTNodeType::Lambda: {
-                auto lambda = ((NLambda*)node.get());
+                auto lambda = ((NLambda*)node);
                 auto retVal = lambda->_expression.get();
                 if(isLiteralKeyDict(retVal)) {
                     auto newRetVal = rewriteLiteralKeyDict(((NDictionary*)retVal));
@@ -97,10 +97,10 @@ namespace tuplex {
                 return node;
             }
             case ASTNodeType::Dictionary: {
-                if(parent->type() == ASTNodeType::Lambda && node.get() == ((NLambda*)parent)->_expression.get()) {
-                    if(isLiteralKeyDict(node.get())) {
-                        auto newRetVal = rewriteLiteralKeyDict(((NDictionary*)node.get()));
-                        return std::unique_ptr<ASTNode>(newRetVal);
+                if(parent->type() == ASTNodeType::Lambda && node == ((NLambda*)parent)->_expression.get()) {
+                    if(isLiteralKeyDict(node)) {
+                        auto newRetVal = rewriteLiteralKeyDict(((NDictionary*)node));
+                        return newRetVal;
                     }
                 }
                 return node;
@@ -109,7 +109,7 @@ namespace tuplex {
 #warning "This rewrite will not work for nested functions."
             case ASTNodeType::Suite: {
                 if(parent->type() == ASTNodeType::Function) {
-                    auto suite = ((NSuite*)node.get());
+                    auto suite = ((NSuite*)node);
                     for (auto &_statement : suite->_statements) { // iterate over statements
                         if (_statement->type() == ASTNodeType::Return) { // ...and find the return statements
                             const auto &retVal = ((NReturn *) _statement.get())->_expression;
@@ -125,10 +125,10 @@ namespace tuplex {
             }
 
             case ASTNodeType::Return: {
-                auto &retVal = ((NReturn *) node.get())->_expression;
+                auto &retVal = ((NReturn *) node)->_expression;
                 if (isLiteralKeyDict(retVal.get())) { // check if we need to rewrite the return value
                     auto newRetVal = rewriteLiteralKeyDict((NDictionary *) retVal.get());
-                    ((NReturn*)node.get())->_expression = std::unique_ptr<ASTNode>(newRetVal);
+                    ((NReturn*)node)->_expression = std::unique_ptr<ASTNode>(newRetVal);
                 }
 
                 return node;

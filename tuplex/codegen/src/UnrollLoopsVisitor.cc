@@ -13,7 +13,7 @@
 #include <cassert>
 
 namespace tuplex {
-    std::unique_ptr<ASTNode> UnrollLoopsVisitor::replace(ASTNode *parent, std::unique_ptr<ASTNode> next) {
+    ASTNode* UnrollLoopsVisitor::replace(ASTNode *parent, ASTNode* next) {
         assert(parent);
         if(!next) {
             return nullptr;
@@ -23,7 +23,7 @@ namespace tuplex {
             // for each assign statement 'id = val', add id to nameTable with val as mapped value
             // for each 'id2 = id1', add id2 to nameTable with id1's nameTable value as mapped value
             case ASTNodeType::Assign: {
-                auto assign = static_cast<NAssign*>(next.get());
+                auto assign = static_cast<NAssign*>(next);
                 if(assign->_target->type() == ASTNodeType::Identifier) {
                     auto id = static_cast<NIdentifier*>(assign->_target.get());
                     if(assign->_value->type() == ASTNodeType::Identifier) {
@@ -40,7 +40,7 @@ namespace tuplex {
             }
 
             case ASTNodeType::For: {
-                auto forStmt = static_cast<NFor*>(next.get());
+                auto forStmt = static_cast<NFor*>(next);
                 NTuple* expr;
                 if(forStmt->expression->type() == ASTNodeType::Tuple) {
                     expr = static_cast<NTuple*>(forStmt->expression.get());
@@ -101,7 +101,7 @@ namespace tuplex {
                 if(forStmt->suite_else) {
                     loopSuite->addStatement(forStmt->suite_else.get());
                 }
-                return std::unique_ptr<ASTNode>(loopSuite);
+                return loopSuite;
             }
 
             default:

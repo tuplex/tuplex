@@ -513,7 +513,7 @@ namespace tuplex {
         }
     }
 
-    std::unique_ptr<ASTNode> ReduceExpressionsVisitor::replace(ASTNode *parent, std::unique_ptr<ASTNode> node) {
+    ASTNode* ReduceExpressionsVisitor::replace(ASTNode *parent, ASTNode* node) {
         // parent must always be set
         assert(parent);
 
@@ -525,7 +525,7 @@ namespace tuplex {
         switch(node->type()) {
             // when function is encountered, collect var names!
             case ASTNodeType::Function: {
-                auto func = static_cast<NFunction*>(node.get());
+                auto func = static_cast<NFunction*>(node);
                 _currentFunctionLocals = getFunctionVariables(func);
                 _currentFunctionParams = getFunctionParameters(func);
                 break;
@@ -534,7 +534,7 @@ namespace tuplex {
             // identifier? check if we can replace a simple global with a node!
             case ASTNodeType::Identifier: {
                 // only if not in local function vars or params!
-                auto name = ((NIdentifier*)node.get())->_name;
+                auto name = ((NIdentifier*)node)->_name;
                 if(_currentFunctionLocals.find(name) == _currentFunctionLocals.end() &&
                    std::find(_currentFunctionParams.begin(),
                              _currentFunctionParams.end(), name) == _currentFunctionParams.end()) {
@@ -552,7 +552,7 @@ namespace tuplex {
                         if(!new_node) {
                             Logger::instance().defaultLogger().debug("no support for converting field type " + value.getType().desc() + " to ast");
                         } else {
-                            return std::unique_ptr<ASTNode>(new_node);
+                            return new_node;
                         }
                     }
                 }
@@ -561,12 +561,12 @@ namespace tuplex {
 
             case ASTNodeType::Compare: {
 
-                auto cmp = static_cast<NCompare *>(node.get());
+                auto cmp = static_cast<NCompare *>(node);
                 if (cmp->_left && cmp->_ops.empty() && cmp->_comps.empty()) {
                     // remove the "next" node
                     ASTNode *res = cmp->_left->clone();
                     _numReductions++;
-                    return std::unique_ptr<ASTNode>(res);
+                    return res;
                 } else {
                     // check if all of the expressions are literals, if so reduction is possible
                     bool areAllLiterals = python::isLiteralType(cmp->_left->getInferredType());
@@ -576,7 +576,7 @@ namespace tuplex {
                     }
 
                     if(areAllLiterals)
-                        return dedup(std::move(node), cmp_replace(cmp));
+                        return cmp_replace(cmp);
                     else
                         // nothing can be optimized
                         return node;
@@ -586,14 +586,14 @@ namespace tuplex {
             }
 
             case ASTNodeType::BinaryOp: {
-                auto op = static_cast<NBinaryOp*>(node.get());
+                auto op = static_cast<NBinaryOp*>(node);
                 // make sure both operand are already reduced,
                 // so they are literals by first visiting their subbranches!
-                return dedup(std::move(node), binop_replace(op));
+                return binop_replace(op);
             }
 
             case ASTNodeType::UnaryOp: {
-                auto op = static_cast<NUnaryOp*>(node.get());
+                auto op = static_cast<NUnaryOp*>(node);
 
                 if(python::isLiteralType(op->_operand->getInferredType())) {
                     // reduction possible here
@@ -629,12 +629,12 @@ namespace tuplex {
                             }
                             auto *num = new NNumber(val);
                             _numReductions++;
-                            return std::unique_ptr<ASTNode>(num);
+                            return num;
                         }
                         case TokenType::PLUS: {
                             ASTNode *num = op->_operand->clone();
                             _numReductions++;
-                            return std::unique_ptr<ASTNode>(num);
+                            return num;
                         }
                         case TokenType::TILDE: {
                             // this is two's complement
@@ -665,7 +665,7 @@ namespace tuplex {
 
                             auto *num = new NNumber(ss.str());
                             _numReductions++;
-                            return std::unique_ptr<ASTNode>(num);
+                            return num;
                         }
                         default: {
                             std::stringstream ss;

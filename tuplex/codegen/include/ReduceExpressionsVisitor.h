@@ -28,7 +28,7 @@ namespace tuplex {
         // contains return values
         int _numReductions;
 
-        std::unique_ptr<ASTNode> replace(ASTNode *parent, std::unique_ptr<ASTNode> node);
+        ASTNode* replace(ASTNode *parent, ASTNode* node);
 
         int _numErrors;
         int _numWarnings;

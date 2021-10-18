@@ -44,6 +44,15 @@ namespace tuplex {
         return m;
     }
 
+    /*!
+     * default output options for Orc file format
+     * @return Key-value string map of options
+     */
+    inline std::unordered_map<std::string, std::string> defaultORCOutputOptions() {
+        std::unordered_map<std::string, std::string> m;
+        return m;
+    }
+
     // maybe CRTP (Curiously recurring template pattern may be used here)
     // but likely it is going to be difficult
     // since the structure is already quite complicated
@@ -271,11 +280,32 @@ namespace tuplex {
                             size_t limit = std::numeric_limits<size_t>::max(),
                             std::ostream &os = std::cout);
 
+        /*!
+         * saves dataset as a csv file.
+         * @param uri URI of the file (if tuplex should save to multiple files, then this will create a folder, where tuplex places part files.
+         * @param outputOptions Options for writing the csv file.
+         * @param os
+         */
         void tocsv(const URI &uri,
                    const std::unordered_map<std::string, std::string> &outputOptions = defaultCSVOutputOptions(),
                    std::ostream &os = std::cout) {
             // empty udf...
             tofile(FileFormat::OUTFMT_CSV, uri, UDF(""), 0, 0, outputOptions, std::numeric_limits<size_t>::max(),
+                   os);
+        }
+
+        /*!
+         * saves dataset as an orc file.
+         * supported options:
+         * - "columnNames" -> column names as csv string.
+         * @param uri URI of the file (if tuplex should save to multiple files, then this will create a folder, where tuplex places part files.
+         * @param outputOptions Options for writing the orc file.
+         * @param os
+         */
+        void toorc(const URI &uri,
+                   const std::unordered_map<std::string, std::string> &outputOptions = defaultORCOutputOptions(),
+                   std::ostream &os = std::cout) {
+            tofile(FileFormat::OUTFMT_ORC, uri, UDF(""), 0, 0, outputOptions, std::numeric_limits<size_t>::max(),
                    os);
         }
 

@@ -105,13 +105,25 @@ namespace tuplex {
         if (isError())
             throw std::runtime_error("is error dataset!");
 
-        if (fmt != FileFormat::OUTFMT_CSV)
-            throw std::runtime_error("only csv output format yet supported!");
-
         assert(_context);
         assert(_operator);
+
+        std::string name;
+        switch (fmt) {
+            case FileFormat::OUTFMT_CSV: {
+                name = "csv";
+                break;
+            }
+            case FileFormat::OUTFMT_ORC: {
+                name = "orc";
+                break;
+            }
+            default:
+                throw std::runtime_error("tofile file format not yet supported!");
+        }
+
         LogicalOperator *op = _context->addOperator(
-                new FileOutputOperator(_operator, uri, udf, "csv", FileFormat::OUTFMT_CSV, outputOptions,
+                new FileOutputOperator(_operator, uri, udf, name, fmt, outputOptions,
                                        fileCount, shardSize, limit));
         ((FileOutputOperator*)op)->udf().getAnnotatedAST().allowNumericTypeUnification(_context->getOptions().AUTO_UPCAST_NUMBERS());
 

@@ -54,11 +54,11 @@ namespace tuplex {
     bool toBool(ASTNode* node) {
         assert(node->type() == ASTNodeType::Number || node->type() == ASTNodeType::Boolean || node->type() == ASTNodeType::String);
         if(node->type() == ASTNodeType::Number)
-            return dynamic_cast<NNumber*>(node)->getI64() != 0;
+            return static_cast<NNumber*>(node)->getI64() != 0;
         if(node->type() == ASTNodeType::Boolean)
-            return dynamic_cast<NBoolean*>(node)->_value;
+            return static_cast<NBoolean*>(node)->_value;
         if(node->type() == ASTNodeType::String)
-            return !dynamic_cast<NString*>(node)->value().empty();
+            return !static_cast<NString*>(node)->value().empty();
         Logger::instance().defaultLogger().error("invalid AST type, could not cast to boolean. Emitting false");
         return false;
     }
@@ -109,20 +109,19 @@ namespace tuplex {
         _numErrors++;
     }
 
-
     ASTNode* ReduceExpressionsVisitor::cmp_replace(NCompare *op) {
         // check that all operands are literals, if not no reduction is possible
         if(!python::isLiteralType(op->_left->getInferredType()))
             return op;
 
-        for(auto operand: op->_comps)
+        for(const auto &operand: op->_comps)
             if(!python::isLiteralType(operand->getInferredType()))
                 return op;
 
         // all operands are literals, can reduce!
 
         // special case: single member
-        if(op->_ops.size() == 0)
+        if(op->_ops.empty())
             return op;
 
         // there are at least two! => result will be a always a boolean!
@@ -131,12 +130,12 @@ namespace tuplex {
         assert(!op->_comps.empty());
         assert(!op->_ops.empty());
 
-        ASTNode* left = op->_left;
-        ASTNode* right = op->_left;
+        ASTNode* left = op->_left.get();
+        ASTNode* right = op->_left.get();
         TokenType cmp = op->_ops.front();
         for(int i = 0; i < op->_ops.size(); ++i) {
             left = right;
-            right = op->_comps[i];
+            right = op->_comps[i].get();
             cmp = op->_ops[i];
 
             // check whether comparison should be done for floating point vals or integer vals
@@ -190,8 +189,6 @@ namespace tuplex {
                 res &= term;
         }
 
-        delete op;
-        op = nullptr;
         _numReductions++;
         return new NBoolean(res);
     }
@@ -225,11 +222,10 @@ namespace tuplex {
                    && (op->_right->getInferredType() == python::Type::I64
                        || op->_right->getInferredType() == python::Type::BOOLEAN)) {
                     int64_t times = op->_right->getInferredType() == python::Type::BOOLEAN
-                                    ? booleanToI64(static_cast<NBoolean*>(op->_right))
-                                    : static_cast<NNumber*>(op->_right)->getI64();
+                                    ? booleanToI64(static_cast<NBoolean*>(op->_right.get()))
+                                    : static_cast<NNumber*>(op->_right.get())->getI64();
 
-                    NString *s = new NString(escape_to_python_str(replicateString(static_cast<NString*>(op->_left)->value(), times)));
-                    delete op;
+                    auto *s = new NString(escape_to_python_str(replicateString(static_cast<NString*>(op->_left.get())->value(), times)));
                     _numReductions++;
                     return s;
                 }
@@ -240,11 +236,10 @@ namespace tuplex {
                    && (op->_left->getInferredType() == python::Type::I64
                        || op->_left->getInferredType() == python::Type::BOOLEAN)) {
                     int64_t times = op->_left->getInferredType() == python::Type::BOOLEAN
-                                    ? booleanToI64(static_cast<NBoolean*>(op->_left))
-                                    : static_cast<NNumber*>(op->_left)->getI64();
+                                    ? booleanToI64(static_cast<NBoolean*>(op->_left.get()))
+                                    : static_cast<NNumber*>(op->_left.get())->getI64();
 
-                    NString *s = new NString(escape_to_python_str(replicateString(static_cast<NString*>(op->_right)->value(), times)));
-                    delete op;
+                    auto *s = new NString(escape_to_python_str(replicateString(static_cast<NString*>(op->_right.get())->value(), times)));
                     _numReductions++;
                     return s;
                 }
@@ -255,19 +250,17 @@ namespace tuplex {
 
                 // check what return type is
                 if(python::Type::F64 == resType) {
-                    double x = toDouble(op->_left) * toDouble(op->_right);
+                    double x = toDouble(op->_left.get()) * toDouble(op->_right.get());
                     std::stringstream ss;
                     ss<<x;
-                    NNumber *num = new NNumber(ss.str());
-                    delete op;
+                    auto *num = new NNumber(ss.str());
                     _numReductions++;
                     return num;
                 } else if(python::Type::I64 == resType) {
-                    int64_t x = toInt(op->_left) * toInt(op->_right);
+                    int64_t x = toInt(op->_left.get()) * toInt(op->_right.get());
                     std::stringstream ss;
                     ss<<x;
-                    NNumber *num = new NNumber(ss.str());
-                    delete op;
+                    auto *num = new NNumber(ss.str());
                     _numReductions++;
                     return num;
                 } else {
@@ -281,12 +274,11 @@ namespace tuplex {
                 // aka string concatenation...
                 if(op->_left->getInferredType() == python::Type::STRING &&
                    op->_right->getInferredType() == python::Type::STRING) {
-                    auto lstr = static_cast<NString*>(op->_left)->value();
-                    auto rstr = static_cast<NString*>(op->_right)->value();
+                    auto lstr = static_cast<NString*>(op->_left.get())->value();
+                    auto rstr = static_cast<NString*>(op->_right.get())->value();
                     std::string string_res = lstr + rstr;
-                    NString *s = new NString(escape_to_python_str(string_res));
+                    auto *s = new NString(escape_to_python_str(string_res));
                     assert(s->value() == string_res);
-                    delete op;
                     _numReductions++;
                     return s;
                 }
@@ -298,19 +290,17 @@ namespace tuplex {
 
                 // check what return type is
                 if(python::Type::F64 == resType) {
-                    double x = toDouble(op->_left) + toDouble(op->_right);
+                    double x = toDouble(op->_left.get()) + toDouble(op->_right.get());
                     std::stringstream ss;
                     ss<<x;
-                    NNumber *num = new NNumber(ss.str());
-                    delete op;
+                    auto *num = new NNumber(ss.str());
                     _numReductions++;
                     return num;
                 } else if(python::Type::I64 == resType) {
-                    int64_t x = toInt(op->_left) + toInt(op->_right);
+                    int64_t x = toInt(op->_left.get()) + toInt(op->_right.get());
                     std::stringstream ss;
                     ss<<x;
-                    NNumber *num = new NNumber(ss.str());
-                    delete op;
+                    auto *num = new NNumber(ss.str());
                     _numReductions++;
                     return num;
                 } else {
@@ -326,19 +316,17 @@ namespace tuplex {
 
                 // check what return type is
                 if(python::Type::F64 == resType) {
-                    double x = toDouble(op->_left) - toDouble(op->_right);
+                    double x = toDouble(op->_left.get()) - toDouble(op->_right.get());
                     std::stringstream ss;
                     ss<<x;
-                    NNumber *num = new NNumber(ss.str());
-                    delete op;
+                    auto *num = new NNumber(ss.str());
                     _numReductions++;
                     return num;
                 } else if(python::Type::I64 == resType) {
-                    int64_t x = toInt(op->_left) - toInt(op->_right);
+                    int64_t x = toInt(op->_left.get()) - toInt(op->_right.get());
                     std::stringstream ss;
                     ss<<x;
-                    NNumber *num = new NNumber(ss.str());
-                    delete op;
+                    auto *num = new NNumber(ss.str());
                     _numReductions++;
                     return num;
                 } else {
@@ -355,8 +343,8 @@ namespace tuplex {
 
                 // check what return type is
                 if(python::Type::F64 == superType) {
-                    double a = toDouble(op->_left);
-                    double b = toDouble(op->_right);
+                    double a = toDouble(op->_left.get());
+                    double b = toDouble(op->_right.get());
                     // python issues a zero division error on this...
                     if(b == 0.0) {
                         error("zero division found");
@@ -366,14 +354,13 @@ namespace tuplex {
                     double x = a / b;
                     std::stringstream ss;
                     ss<<x;
-                    NNumber *num = new NNumber(ss.str());
+                    auto *num = new NNumber(ss.str());
                     num->setInferredType(python::Type::F64);
-                    delete op;
                     _numReductions++;
                     return num;
                 } else if(python::Type::I64 == superType) {
-                    int64_t a = toInt(op->_left);
-                    int64_t b = toInt(op->_right);
+                    int64_t a = toInt(op->_left.get());
+                    int64_t b = toInt(op->_right.get());
                     // python issues a zero division error on this...
                     if(b == 0) {
                         error("zero division found");
@@ -383,9 +370,8 @@ namespace tuplex {
                     double x = (double)a / (double)b;
                     std::stringstream ss;
                     ss<<x;
-                    NNumber *num = new NNumber(ss.str());
+                    auto *num = new NNumber(ss.str());
                     num->setInferredType(python::Type::F64);
-                    delete op;
                     _numReductions++;
                     return num;
                 } else {
@@ -409,8 +395,8 @@ namespace tuplex {
 
                 // check what return type is
                 if(python::Type::F64 == resType) {
-                    double a = toDouble(op->_left);
-                    double b = toDouble(op->_right);
+                    double a = toDouble(op->_left.get());
+                    double b = toDouble(op->_right.get());
                     // python issues a zero division error on this...
                     if(b == 0.0) {
                         error("zero division found");
@@ -420,14 +406,13 @@ namespace tuplex {
                     double x = fmod(a, b);
                     std::stringstream ss;
                     ss<<x;
-                    NNumber *num = new NNumber(ss.str());
-                    delete op;
+                    auto *num = new NNumber(ss.str());
                     _numReductions++;
                     return num;
                 } else if(python::Type::I64 == resType) {
 
-                    int64_t a = toInt(op->_left);
-                    int64_t b = toInt(op->_right);
+                    int64_t a = toInt(op->_left.get());
+                    int64_t b = toInt(op->_right.get());
                     // python issues a zero division error on this...
                     if(b == 0) {
                         error("zero division found");
@@ -437,8 +422,7 @@ namespace tuplex {
                     int64_t x = a % b;
                     std::stringstream ss;
                     ss<<x;
-                    NNumber *num = new NNumber(ss.str());
-                    delete op;
+                    auto *num = new NNumber(ss.str());
                     _numReductions++;
                     return num;
                 } else {
@@ -465,8 +449,8 @@ namespace tuplex {
                 // check what return type is
                 if (python::Type::F64 == resType) {
 
-                    double a = toDouble(op->_left);
-                    double b = toDouble(op->_right);
+                    double a = toDouble(op->_left.get());
+                    double b = toDouble(op->_right.get());
                     // python issues a zero division error on this...
                     if (b == 0.0) {
                         error("zero division found");
@@ -477,14 +461,13 @@ namespace tuplex {
 
                     std::stringstream ss;
                     ss << x;
-                    NNumber *num = new NNumber(ss.str());
-                    delete op;
+                    auto *num = new NNumber(ss.str());
                     _numReductions++;
                     return num;
                 } else if (python::Type::I64 == resType) {
 
-                    int64_t a = toInt(op->_left);
-                    int64_t b = toInt(op->_right);
+                    int64_t a = toInt(op->_left.get());
+                    int64_t b = toInt(op->_right.get());
 
                     // python issues a zero division error on this...
                     if (b == 0) {
@@ -495,8 +478,7 @@ namespace tuplex {
                     int64_t x = core::floori(a, b);
                     std::stringstream ss;
                     ss << x;
-                    NNumber *num = new NNumber(ss.str());
-                    delete op;
+                    auto *num = new NNumber(ss.str());
                     _numReductions++;
                     return num;
                 } else {
@@ -506,10 +488,9 @@ namespace tuplex {
             }
             case TokenType::AND: {
                 // replace with boolean
-                auto op1 = toBool(op->_left);
-                auto op2 = toBool(op->_right);
+                auto op1 = toBool(op->_left.get());
+                auto op2 = toBool(op->_right.get());
 
-                delete op;
                 op = nullptr;
                 _numReductions++;
                 return new NBoolean(op1 && op2);
@@ -517,10 +498,9 @@ namespace tuplex {
             }
 
             case TokenType::OR: {
-                auto op1 = toBool(op->_left);
-                auto op2 = toBool(op->_right);
+                auto op1 = toBool(op->_left.get());
+                auto op2 = toBool(op->_right.get());
 
-                delete op;
                 op = nullptr;
                 _numReductions++;
                 return new NBoolean(op1 || op2);
@@ -533,7 +513,7 @@ namespace tuplex {
         }
     }
 
-    ASTNode* ReduceExpressionsVisitor::replace(ASTNode *parent, ASTNode *node) {
+    ASTNode* ReduceExpressionsVisitor::replace(ASTNode *parent, ASTNode* node) {
         // parent must always be set
         assert(parent);
 
@@ -545,13 +525,13 @@ namespace tuplex {
         switch(node->type()) {
             // when function is encountered, collect var names!
             case ASTNodeType::Function: {
-                NFunction* func = dynamic_cast<NFunction*>(node);
+                auto func = static_cast<NFunction*>(node);
                 _currentFunctionLocals = getFunctionVariables(func);
                 _currentFunctionParams = getFunctionParameters(func);
                 break;
             }
 
-                // identifier? check if we can replace a simple global with a node!
+            // identifier? check if we can replace a simple global with a node!
             case ASTNodeType::Identifier: {
                 // only if not in local function vars or params!
                 auto name = ((NIdentifier*)node)->_name;
@@ -581,11 +561,10 @@ namespace tuplex {
 
             case ASTNodeType::Compare: {
 
-                NCompare *cmp = static_cast<NCompare *>(node);
-                if (cmp->_left && cmp->_ops.size() == 0 && cmp->_comps.size() == 0) {
+                auto cmp = static_cast<NCompare *>(node);
+                if (cmp->_left && cmp->_ops.empty() && cmp->_comps.empty()) {
                     // remove the "next" node
                     ASTNode *res = cmp->_left->clone();
-                    delete cmp;
                     _numReductions++;
                     return res;
                 } else {
@@ -600,21 +579,21 @@ namespace tuplex {
                         return cmp_replace(cmp);
                     else
                         // nothing can be optimized
-                        return cmp;
+                        return node;
                 }
 
                 break;
             }
 
             case ASTNodeType::BinaryOp: {
-                NBinaryOp *op = static_cast<NBinaryOp*>(node);
+                auto op = static_cast<NBinaryOp*>(node);
                 // make sure both operand are already reduced,
                 // so they are literals by first visiting their subbranches!
                 return binop_replace(op);
             }
 
             case ASTNodeType::UnaryOp: {
-                NUnaryOp *op = static_cast<NUnaryOp*>(node);
+                auto op = static_cast<NUnaryOp*>(node);
 
                 if(python::isLiteralType(op->_operand->getInferredType())) {
                     // reduction possible here
@@ -636,26 +615,24 @@ namespace tuplex {
                             // if the operand is boolean, we convert it to int (true for 1 and false for 0)
                             // otherwise it should be a number
                             if (optype == python::Type::BOOLEAN) {
-                                NBoolean *boolean = static_cast<NBoolean*>(op->_operand);
+                                auto *boolean = static_cast<NBoolean*>(op->_operand.get());
                                 int64_t x = booleanToI64(boolean);
                                 std::stringstream ss;
                                 ss<<(-x);
                                 val = ss.str();
                             } else {
-                                val = static_cast<NNumber *>(op->_operand)->_value;
+                                val = static_cast<NNumber *>(op->_operand.get())->_value;
                                 if (val[0] == '-')
                                     val = val.substr(1);
                                 else
                                     val = "-" + val;
                             }
-                            NNumber *num = new NNumber(val);
-                            delete node;
+                            auto *num = new NNumber(val);
                             _numReductions++;
                             return num;
                         }
                         case TokenType::PLUS: {
                             ASTNode *num = op->_operand->clone();
-                            delete node;
                             _numReductions++;
                             return num;
                         }
@@ -675,19 +652,18 @@ namespace tuplex {
 
                             // implicitly cast bool if necessary to int
                             if(op->_operand->type() == ASTNodeType::Boolean) {
-                                NBoolean *boolean = static_cast<NBoolean*>(op->_operand);
+                                auto *boolean = static_cast<NBoolean*>(op->_operand.get());
                                 x = booleanToI64(boolean);
                             } else {
                                 // operand's type must be int
                                 assert(op->_operand->getInferredType() ==  python::Type::I64);
-                                x = static_cast<NNumber*>(op->_operand)->getI64();
+                                x = static_cast<NNumber*>(op->_operand.get())->getI64();
                             }
 
                             std::stringstream ss;
                             ss<<(-x - 1);
 
-                            NNumber *num = new NNumber(ss.str());
-                            delete node;
+                            auto *num = new NNumber(ss.str());
                             _numReductions++;
                             return num;
                         }

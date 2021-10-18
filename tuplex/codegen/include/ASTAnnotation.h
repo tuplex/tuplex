@@ -18,6 +18,16 @@
 #include <TypeSystem.h>
 #include <Field.h>
 
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+#include "cereal/archives/binary.hpp"
+
 enum class SymbolType {
     TYPE,
     VARIABLE,
@@ -86,7 +96,6 @@ public:
      * @return true if a specialized function type could be generated, false else.
      */
     inline bool findFunctionTypeBasedOnParameterType(const python::Type& parameterType, python::Type& specializedFunctionType) {
-
         // check if typer function is there?
         auto generic_result = functionTyper(parameterType);
         if(generic_result != python::Type::UNKNOWN) {
@@ -229,6 +238,8 @@ public:
     symbolType(_symbolType),
     functionTyper([](const python::Type&) { return python::Type::UNKNOWN; }) {}
 
+    template <class Archive>
+    void serialize(Archive &ar) { ar(name, qualifiedName, types, symbolType, parent, constantData); }
 private:
     ///! i.e. to store something like re.search. re is then of module type. search will have a concrete function type.
     std::vector<std::shared_ptr<Symbol>> _attributes;
@@ -352,13 +363,29 @@ private:
     }
 };
 
+/*!
+ * iterator-specific annotation for NIdentifier (identifiers with iteratorType) and NCall (iterator related function calls including iter(), zip(), enumerate(), next())
+ * For an iterator generating NCall (iter(), zip() or enumerate()), its IteratorInfo saves info about the current call.
+ * For an NIdentifier with _name=x, its IteratorInfo reveals how x was generated.
+ * For NCall next() with _positionalArguments=x, its IteratorInfo is the same as x's.
+ * Example:
+ * x = iter("abcd") // both NIdentifier x and NCall iter() are annotated with *info1 = {"iter", str, {nullptr})}
+ * y = zip(x, [1, 2]) // both NIdentifier y and NCall zip() are annotated with *info3 = {"zip", (Iterator[str], [I64]), {info1, info2}} where *info2 = {"iter", [I64], {nullptr}} since zip() implicitly converts any non-iteratorType member to an iterator
+ * z = next(y) // NCall next() is annotated with info4 = info3
+ */
+struct IteratorInfo {
+    std::string iteratorName; // from which built-in function the iterator was generated, currently can be "iter", "zip", "enumerate".
+    python::Type argsType; // concrete type of arguments of the iterator generating function.
+    std::vector<std::shared_ptr<IteratorInfo>> argsIteratorInfo; // pointers to IteratorInfo of each argument.
+};
+
 // simple class used to annotate ast nodes
 class ASTAnnotation {
 public:
 
-    ASTAnnotation() : numTimesVisited(0), symbol(nullptr), iMin(0), iMax(0), negativeValueCount(0), positiveValueCount(0)    {}
+    ASTAnnotation() : numTimesVisited(0), symbol(nullptr), iMin(0), iMax(0), negativeValueCount(0), positiveValueCount(0), iteratorInfo(nullptr) {}
     ASTAnnotation(const ASTAnnotation& other) : numTimesVisited(other.numTimesVisited), iMin(other.iMin), iMax(other.iMax),
-    negativeValueCount(other.negativeValueCount), positiveValueCount(other.positiveValueCount), symbol(other.symbol), types(other.types) {}
+    negativeValueCount(other.negativeValueCount), positiveValueCount(other.positiveValueCount), symbol(other.symbol), types(other.types), iteratorInfo(other.iteratorInfo) {}
 
     ///! how often was node visited? Helpful annotation for if-branches
     size_t numTimesVisited;
@@ -382,19 +409,22 @@ public:
     ///! traced types
     std::vector<python::Type> types;
 
+    ///! iterator-specific info
+    std::shared_ptr<IteratorInfo> iteratorInfo;
+
     inline python::Type majorityType() const {
         if(types.empty())
             return python::Type::UNKNOWN;
 
         std::unordered_map<python::Type, int> counts;
-        for(auto t : types) {
+        for(const auto &t : types) {
             if(counts.find(t) == counts.end())
                 counts[t] = 0;
             counts[t]++;
         }
         int count = 0;
         python::Type t = types.front();
-        for(auto kv : counts) {
+        for(const auto &kv : counts) {
             if(kv.second >= count) {
                 count = kv.second;
                 t = kv.first;
@@ -402,6 +432,9 @@ public:
         }
         return t;
     }
+
+    template <class Archive>
+    void serialize(Archive &ar) { ar(numTimesVisited, iMin, iMax, negativeValueCount, positiveValueCount, symbol, types); }
 };
 
 #endif //TUPLEX_ASTANNOTATION_H

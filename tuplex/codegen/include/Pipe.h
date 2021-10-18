@@ -33,7 +33,7 @@ public:
      * @param file_input
      * @return return value of the process
      */
-    int pipe(const std::string& file_input = "");
+    int pipe(const std::string& file_input = "", const std::string& tmpdir = "/tmp");
 
     /*!
      * return value of the command executed

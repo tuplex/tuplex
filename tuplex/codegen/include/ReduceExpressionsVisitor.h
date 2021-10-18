@@ -28,7 +28,7 @@ namespace tuplex {
         // contains return values
         int _numReductions;
 
-        ASTNode *replace(ASTNode *parent, ASTNode *node);
+        ASTNode* replace(ASTNode *parent, ASTNode* node);
 
         int _numErrors;
         int _numWarnings;

@@ -40,6 +40,7 @@
 #include <LambdaFunction.h>
 #include <FunctionRegistry.h>
 #include <stack>
+#include <IteratorContextProxy.h>
 
 namespace tuplex {
 
@@ -107,6 +108,7 @@ namespace codegen {
                 //         assert(llvm::isa<llvm::Constant>(nullPtr));
                 // }
 
+                // iterator slot may not have ptr yet
                 return codegen::SerializableValue(builder.CreateLoad(ptr), builder.CreateLoad(sizePtr),
                         nullPtr ? builder.CreateLoad(nullPtr) : nullptr);
             }
@@ -115,7 +117,6 @@ namespace codegen {
                 assert(ptr && sizePtr);
 
                 if(val.val) {
-
                     // if tuples etc. are used, then there could be a pointer. When this happens, load & then assign
                     if(val.val->getType() == ptr->getType()) {
                         // load val
@@ -344,6 +345,8 @@ namespace codegen {
         // store current iteration ending block and loop ending block for for and while loops
         std::deque<llvm::BasicBlock*> _loopBlockStack;
 
+        std::shared_ptr<IteratorContextProxy> _iteratorContextProxy;
+
         void init() {
 
             if (!_blockStack.empty()) {
@@ -360,6 +363,7 @@ namespace codegen {
             //_block = nullptr;
             _funcNames = std::stack<std::string>();
             _numLambdaFunctionsEncountered = 0;
+            _iteratorContextProxy = std::make_shared<IteratorContextProxy>(_env);
         }
 
         /*!
@@ -634,6 +638,22 @@ namespace codegen {
                                         const std::unordered_map<std::string, VariableRealization> &else_var_realizations);
 
         llvm::Value *generateConstantIntegerPower(llvm::IRBuilder<>& builder, llvm::Value *base, int64_t exponent);
+
+        /*!
+         * should get called when targetType is iteratorType
+         * use targetType and iteratorInfo annotation to get concrete LLVM type for iterator variable
+         * allocate iterator struct and update slot ptr if the current slot ptr type is different from the concrete LLVM type
+         * @param builder
+         * @param slot
+         * @param val
+         * @param targetType
+         * @param iteratorInfo
+         */
+        void updateIteratorVariableSlot(llvm::IRBuilder<> &builder,
+                                        VariableSlot *slot,
+                                        const SerializableValue &val,
+                                        const python::Type &targetType,
+                                        const std::shared_ptr<IteratorInfo> &iteratorInfo);
     };
 }
 }

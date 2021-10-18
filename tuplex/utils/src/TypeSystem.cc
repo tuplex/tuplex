@@ -16,6 +16,8 @@
 #include <TSet.h>
 #include <Utils.h>
 
+#include "cereal/archives/binary.hpp"
+
 // types should be like form mypy https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html
 
 
@@ -42,6 +44,8 @@ namespace python {
     const Type Type::MATCHOBJECT = python::TypeFactory::instance().createOrGetPrimitiveType("matchobject");
     const Type Type::RANGE = python::TypeFactory::instance().createOrGetPrimitiveType("range");
     const Type Type::MODULE = python::TypeFactory::instance().createOrGetPrimitiveType("module");
+    const Type Type::ITERATOR = python::TypeFactory::instance().createOrGetPrimitiveType("iterator");
+    const Type Type::EMPTYITERATOR = python::TypeFactory::instance().createOrGetPrimitiveType("emptyiterator");
 
     // builtin exception types
     // --> class system
@@ -207,6 +211,15 @@ namespace python {
         return registerOrGetType(name, AbstractType::TUPLE, _args);
     }
 
+    Type TypeFactory::createOrGetIteratorType(const Type& yieldType) {
+        std::string name;
+        name += "Iterator[";
+        name += TypeFactory::instance().getDesc(yieldType._hash);
+        name += "]";
+
+        return registerOrGetType(name, AbstractType::ITERATOR, {yieldType});
+    }
+
     std::string TypeFactory::getDesc(const int _hash) const {
         assert(_hash >= 0);
         assert(_typeMap.find(_hash) != _typeMap.end());
@@ -260,6 +273,10 @@ namespace python {
         return TypeFactory::instance().isListType(*this);
     }
 
+    bool Type::isIteratorType() const {
+        return TypeFactory::instance().isIteratorType(*this);
+    }
+
     Type Type::getReturnType() const {
         // first make sure this a function type!
         if( ! (TypeFactory::instance().isFunctionType(*this) ||
@@ -311,6 +328,14 @@ namespace python {
             return false;
 
         return it->second._type == AbstractType::TUPLE;
+    }
+
+    bool TypeFactory::isIteratorType(const Type &t) const {
+        auto it = _typeMap.find(t._hash);
+        if(it == _typeMap.end())
+            return false;
+
+        return it->second._type == AbstractType::ITERATOR || t == Type::EMPTYITERATOR;
     }
 
     Type TypeFactory::returnType(const python::Type &t) const {
@@ -373,11 +398,24 @@ namespace python {
         }
     }
 
+    Type Type::yieldType() const {
+        assert(isIteratorType() && _hash != EMPTYITERATOR._hash);
+        auto& factory = TypeFactory::instance();
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        assert(it->second._params.size() == 1);
+        return it->second._params[0];
+    }
+
     bool Type::isPrimitiveType() const {
         // is this type a primitive type?
         // => only bool, i64, f64 are fixed primitive types (user types not supported)
         return *this == python::Type::BOOLEAN || *this == python::Type::I64 || *this == python::Type::F64
                 || *this == python::Type::STRING || *this == python::Type::NULLVALUE;
+    }
+
+    bool Type::isIterableType() const {
+        return (*this).isIteratorType() || (*this).isListType() || (*this).isTupleType() || *this == python::Type::STRING || *this == python::Type::RANGE || (*this).isDictionaryType();
     }
 
     bool Type::isFixedSizeType() const {
@@ -496,6 +534,10 @@ namespace python {
 
     Type Type::makeOptionType(const python::Type &type) {
         return python::TypeFactory::instance().createOrGetOptionType(type);
+    }
+
+    Type Type::makeIteratorType(const python::Type &yieldType) {
+        return python::TypeFactory::instance().createOrGetIteratorType(yieldType);
     }
 
     std::string TypeFactory::TypeEntry::desc() {
@@ -1001,4 +1043,22 @@ namespace python {
         }
         return python::Type::UNKNOWN;
     }
+
+    template<class Archive>
+    void Type::load(Archive &archive) {
+        TypeFactory::TypeEntry type_entry;
+        archive(_hash, type_entry);
+        // register the type again
+        TypeFactory::instance().registerOrGetType(type_entry._desc, type_entry._type, type_entry._params,
+                                                  type_entry._ret, type_entry._baseClasses, type_entry._isVarLen);
+    }
+
+    template<class Archive>
+    void Type::save(Archive &archive) const {
+        archive(_hash, TypeFactory::instance()._typeMap[_hash]);
+    }
+
+    // explicit instantiation
+    template void Type::load(cereal::BinaryInputArchive &archive);
+    template void Type::save(cereal::BinaryOutputArchive &archive) const;
 }

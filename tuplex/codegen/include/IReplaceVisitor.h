@@ -19,27 +19,35 @@ namespace tuplex {
  */
     class IReplaceVisitor : public IVisitor {
     protected:
+
         /*!
          * overwrite this function to replace node with the return value.
+         * make sure the returned variable is not owned by another node!
          * @param parent parent of the node
          * @param node node to be replaced by the return value of this function
          * @return result of calling the replace function will replace node. Can be also a nullptr.
          */
         virtual ASTNode* replace(ASTNode* parent, ASTNode* node) = 0;
 
-
         // helper function, that makes sure result of replace is called recursively!
         inline ASTNode* replaceh(ASTNode* parent, ASTNode* node) {
             if(node)
                 node->accept(*this);
 
-            ASTNode *res = replace(parent, node);
+            auto res = replace(parent, node);
 
             // visit children of the possible newly attached node
             // if it differs from the original node.
             if(res && res != node)
                 res->accept(*this);
             return res;
+        }
+
+        template<class Node>
+        inline Node* replaceh(ASTNode* parent, Node* node) {
+            auto ret_ptr = replaceh(parent, (ASTNode*)node); // replace
+            assert(ret_ptr->type() == Node::type_);
+            return (Node*)ret_ptr;
         }
 
     public:

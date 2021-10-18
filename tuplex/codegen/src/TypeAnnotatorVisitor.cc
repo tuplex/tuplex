@@ -47,7 +47,7 @@ namespace tuplex {
                 //Traceback (most recent call last):
                 //  File "<stdin>", line 1, in <module>
                 //TypeError: exceptions must derive from BaseException
-                auto raise = (NRaise*)stmt;
+                auto raise = (NRaise*)stmt.get();
                 if(!raise->_expression->getInferredType().isExceptionType()) {
                     suite->setInferredType(_symbolTable.lookupType("TypeError"));
                 } else {
@@ -68,7 +68,7 @@ namespace tuplex {
 
         // add parameters to current name table
         for(auto& arg : func->_parameters->_args) { // these were hinted upfront!
-            auto param = dynamic_cast<NParameter*>(arg);
+            auto param = static_cast<NParameter*>(arg.get());
             _nameTable[param->_identifier->_name] = param->_identifier->getInferredType();
         }
 
@@ -100,7 +100,7 @@ namespace tuplex {
                     vector<tuple<python::Type, size_t>> v;
                     assert(_funcReturnTypes.size() == _returnTypeCounts.size());
                     for(int i = 0; i < _funcReturnTypes.size(); ++i) {
-                        v.push_back(make_tuple(_funcReturnTypes[i], _returnTypeCounts[i]));
+                        v.emplace_back(_funcReturnTypes[i], _returnTypeCounts[i]);
                     }
 
                     // sort desc after counts.
@@ -205,7 +205,7 @@ namespace tuplex {
 
         // create tuple type out of this
         std::vector<python::Type> vTypes;
-        for(auto p : params->_args)
+        for(auto &p : params->_args)
             vTypes.push_back(p->getInferredType());
 
         params->setInferredType(python::TypeFactory::instance().createOrGetTupleType(vTypes));
@@ -248,6 +248,10 @@ namespace tuplex {
         // => this shadows everything, so should come first.
         if(_nameTable.find(id->_name) != _nameTable.end()) {
             id->setInferredType(_nameTable[id->_name]);
+            if(_nameTable[id->_name].isIteratorType()) {
+                // copy iterator-specific annotation for iterators
+                id->annotation().iteratorInfo = _iteratorInfoTable[id->_name];
+            }
             return;
         }
 
@@ -290,7 +294,7 @@ namespace tuplex {
                 NAssign* assign = (NAssign*)parent();
 
                 // check if id equals target, if so update with value's type
-                if(assign->_target == id) {
+                if(assign->_target.get() == id) {
                     // add hint to table if not yet there
                     auto targetType = lookupType(id->_name);
                     auto valueType = assign->_value->getInferredType();
@@ -305,7 +309,7 @@ namespace tuplex {
             if(parent()->type() == ASTNodeType::Call) {
                 NCall *call = (NCall*)parent();
 
-                if(call->_func == id) {
+                if(call->_func.get() == id) {
                     // lookup function with parameters
 
                     // when performing null-value optimization, could happen that symbol is there but no type match
@@ -325,7 +329,7 @@ namespace tuplex {
                             error("could not find type information for symbol '" + id->_name + "'", "type annotator");
                         }
                     }
-
+                    annotateIteratorRelatedCalls(id->_name, call);
                     id->setInferredType(funcType);
                     return;
                 }
@@ -341,6 +345,89 @@ namespace tuplex {
                   // TODO this check is necessary for tuple assignment
                   && parent()->type() != ASTNodeType::Tuple)
                 _missingIdentifiers.add(id->_name);
+        }
+    }
+
+    void TypeAnnotatorVisitor::annotateIteratorRelatedCalls(const std::string &funcName, NCall* call) {
+        auto iteratorInfo = std::make_shared<IteratorInfo>();
+        if(funcName == "iter") {
+            if (call->_positionalArguments.size() != 1) {
+                error("iter() currently takes exactly 1 argument");
+            }
+            auto iterableType = _lastCallParameterType.top().parameters().front();
+            iteratorInfo->iteratorName = "iter";
+            iteratorInfo->argsType = iterableType;
+            if(iterableType.isIteratorType()) {
+                // argsIteratorInfo is iteratorInfo of the argument
+                iteratorInfo->argsIteratorInfo = {call->_positionalArguments[0]->annotation().iteratorInfo};
+            } else {
+                // argument type is list/tuple/string/range, no child iteratorInfo to add
+                iteratorInfo->argsIteratorInfo = {nullptr};
+            }
+            call->annotation().iteratorInfo = iteratorInfo;
+        } else if(funcName == "reversed") {
+            if (call->_positionalArguments.size() != 1) {
+                error("reversed() takes exactly 1 argument");
+            }
+            auto seqType = _lastCallParameterType.top().parameters().front();
+            if(seqType == python::Type::RANGE) {
+                // treat any reversed range iterator as a normal range_iterator, since a reversed range object will be placed in the iterator struct later
+                iteratorInfo->iteratorName = "iter";
+            } else {
+                // same argument object will be placed in the iterator struct later. Use "reversed" to hint the correct direction for updating index
+                iteratorInfo->iteratorName = "reversed";
+            }
+            iteratorInfo->argsType = seqType;
+            iteratorInfo->argsIteratorInfo = {nullptr};
+            call->annotation().iteratorInfo = iteratorInfo;
+        } else if(funcName == "zip") {
+            auto iterablesType = _lastCallParameterType.top().parameters();
+            auto num_arguments = call->_positionalArguments.size();
+            assert(num_arguments == iterablesType.size());
+            iteratorInfo->iteratorName = "zip";
+            iteratorInfo->argsType = _lastCallParameterType.top();
+            std::vector<std::shared_ptr<IteratorInfo>> argsIteratorInfo = {};
+            for (int i = 0; i < num_arguments; ++i) {
+                if(iterablesType[i].isIteratorType()) {
+                    // add iteratorInfo of the current argument
+                    argsIteratorInfo.push_back(call->_positionalArguments[i]->annotation().iteratorInfo);
+                } else {
+                    // current argument type is list/tuple/string/range, create new IteratorInfo
+                    auto currIteratorInfo = std::make_shared<IteratorInfo>();
+                    currIteratorInfo->iteratorName = "iter";
+                    currIteratorInfo->argsType = iterablesType[i];
+                    currIteratorInfo->argsIteratorInfo = {nullptr};
+                    argsIteratorInfo.push_back(currIteratorInfo);
+                }
+            }
+            iteratorInfo->argsIteratorInfo = argsIteratorInfo;
+            call->annotation().iteratorInfo = iteratorInfo;
+        } else if(funcName == "enumerate") {
+            if (call->_positionalArguments.size() != 1 && call->_positionalArguments.size() != 2) {
+                error("enumerate() takes 1 or 2 arguments");
+            }
+            auto iterableType = _lastCallParameterType.top().parameters().front();
+            iteratorInfo->iteratorName = "enumerate";
+            iteratorInfo->argsType = iterableType;
+            if(iterableType.isIteratorType()) {
+                // argsIteratorInfo is iteratorInfo of the argument
+                iteratorInfo->argsIteratorInfo = {call->_positionalArguments[0]->annotation().iteratorInfo};
+            } else {
+                // current argument type is list/tuple/string/range, create new IteratorInfo
+                auto currIteratorInfo = std::make_shared<IteratorInfo>();
+                currIteratorInfo->iteratorName = "iter";
+                currIteratorInfo->argsType = iterableType;
+                currIteratorInfo->argsIteratorInfo = {nullptr};
+                iteratorInfo->argsIteratorInfo = {currIteratorInfo};
+            }
+            call->annotation().iteratorInfo = iteratorInfo;
+        } else if(funcName == "next") {
+            if (call->_positionalArguments.empty()) {
+                error("next() takes 1 or 2 arguments");
+            }
+            auto argIteratorInfo = call->_positionalArguments.front()->annotation().iteratorInfo;
+            // copy iteratorInfo of the iterator argument to the outer next() call so that BlockGeneratorVisitor can use it
+            call->annotation().iteratorInfo = call->_positionalArguments.front()->annotation().iteratorInfo;
         }
     }
 
@@ -385,7 +472,7 @@ namespace tuplex {
     void TypeAnnotatorVisitor::visit(NLambda *lambda) {
         // add parameters to current scope
         for(auto& arg : lambda->_arguments->_args) { // these were hinted upfront!
-            auto param = dynamic_cast<NParameter*>(arg);
+            auto param = dynamic_cast<NParameter*>(arg.get());
 
             // add to name table
             _nameTable[param->_identifier->_name] = param->_identifier->getInferredType();
@@ -436,7 +523,7 @@ namespace tuplex {
         // a lot of manual checking is needed here now...
         // so far no custom object with operator overloading are yet defined
         // which makes it a bit easier
-        op->setInferredType(binaryOpInference(op->_left, left_type, tt, op->_right, right_type));
+        op->setInferredType(binaryOpInference(op->_left.get(), left_type, tt, op->_right.get(), right_type));
     }
 
     void TypeAnnotatorVisitor::visit(NCompare *cmp) {
@@ -601,7 +688,7 @@ namespace tuplex {
         // custom visit first posargs & then the rest
         setLastParent(call);
         // visit children if they exist first
-        for(auto parg : call->_positionalArguments) {
+        for(auto &parg : call->_positionalArguments) {
             parg->accept(*this);
             setLastParent(call);
         }
@@ -641,7 +728,7 @@ namespace tuplex {
         call->_func->getInferredType() == python::Type::PYOBJECT) {
             std::string name;
             if(call->_func->type() == ASTNodeType::Identifier)
-                name = ((NIdentifier*)call->_func)->_name;
+                name = ((NIdentifier*)call->_func.get())->_name;
 
             // annotation available?
             // -> then create type from arguments + return type!
@@ -650,7 +737,7 @@ namespace tuplex {
 
                 std::vector<python::Type> param_types;
                 // params type from positional arguments
-                for(auto arg : call->_positionalArguments) {
+                for(auto &arg : call->_positionalArguments) {
                     auto arg_type = arg->getInferredType();
                     if(arg_type == python::Type::UNKNOWN)
                         fatal_error("Could not infer typing for callable " + name + ", positional arg has unknown type.");
@@ -665,7 +752,7 @@ namespace tuplex {
         }
 
         assert(call->_func->getInferredType() != python::Type::UNKNOWN);
-        for(auto arg : call->_positionalArguments)
+        for(auto &arg : call->_positionalArguments)
             assert(arg->getInferredType() != python::Type::UNKNOWN);
 
         // type call with func result type.
@@ -734,14 +821,14 @@ namespace tuplex {
             auto valType = list->_elements[0]->getInferredType();
             for(auto& el : list->_elements) {
                 if(el->getInferredType().isListType() && el->getInferredType() != python::Type::EMPTYLIST) {
-                    list->setInferredType(python::Type::UNKNOWN);
-                    _typeError = CompileError::TYPE_ERROR_LIST_OF_LISTS;
-                    error(compileErrorToStr(_typeError));
+                    list->setInferredType(python::Type::makeListType(python::Type::PYOBJECT));
+                    addCompileError(CompileError::TYPE_ERROR_LIST_OF_LISTS);
+                    return;
                 }
                 if (el->getInferredType() != valType) {
-                    list->setInferredType(python::Type::UNKNOWN);
-                    _typeError = CompileError::TYPE_ERROR_LIST_OF_MULTITYPES;
-                    error(compileErrorToStr(_typeError));
+                    list->setInferredType(python::Type::makeListType(python::Type::PYOBJECT));
+                    addCompileError(CompileError::TYPE_ERROR_LIST_OF_MULTITYPES);
+                    return;
                 }
             }
             python::Type t = python::Type::makeListType(valType);
@@ -763,7 +850,7 @@ namespace tuplex {
 
         // special case, value is identifier? use that!
         if(attr->_value->type() == ASTNodeType::Identifier) {
-            object_name = static_cast<NIdentifier*>(attr->_value)->_name;
+            object_name = static_cast<NIdentifier*>(attr->_value.get())->_name;
         }
 
         // in symbol table lookup what attribute of a value of type XYZ means
@@ -892,9 +979,9 @@ namespace tuplex {
                     int i = INT32_MIN;
                     static_assert(sizeof(int) == 4, "int must be 32 bit");
                     if(sub->_expression->type() == ASTNodeType::Number)
-                        i = std::stoi(static_cast<NNumber*>(sub->_expression)->_value);
+                        i = std::stoi(static_cast<NNumber*>(sub->_expression.get())->_value);
                     else if(sub->_expression->type() == ASTNodeType::Boolean)
-                        i = static_cast<NBoolean*>(sub->_expression)->_value;
+                        i = static_cast<NBoolean*>(sub->_expression.get())->_value;
 
                     // correct i for negative indices (only once!)
                     if(i < 0)
@@ -983,7 +1070,7 @@ namespace tuplex {
             slicing->setInferredType(type);
         } else if(type.isTupleType()) {
             assert(slicing->_slices.front()->type() == ASTNodeType::SliceItem);
-            auto sliceItem = (NSliceItem*)slicing->_slices.front();
+            auto sliceItem = (NSliceItem*)slicing->_slices.front().get();
             if((sliceItem->_start && sliceItem->_start->getInferredType() != python::Type::I64 && sliceItem->_start->getInferredType() != python::Type::BOOLEAN)
                || (sliceItem->_end && sliceItem->_end->getInferredType() != python::Type::I64 && sliceItem->_end->getInferredType() != python::Type::BOOLEAN)
                || (sliceItem->_stride && sliceItem->_stride->getInferredType() != python::Type::I64 && sliceItem->_stride->getInferredType() != python::Type::BOOLEAN)) {
@@ -1002,8 +1089,8 @@ namespace tuplex {
 
                     // stride value
                     if(!sliceItem->_stride) stride = 1;
-                    else if(sliceItem->_stride->type() == ASTNodeType::Number) stride = (int)static_cast<NNumber *>(sliceItem->_stride)->getI64();
-                    else stride = static_cast<NBoolean *>(sliceItem->_stride)->_value;
+                    else if(sliceItem->_stride->type() == ASTNodeType::Number) stride = (int)static_cast<NNumber *>(sliceItem->_stride.get())->getI64();
+                    else stride = static_cast<NBoolean *>(sliceItem->_stride.get())->_value;
 
                     // correct start/end values
                     // case 1: (-inf, -len) => 0 // for negative stride, goes to -1
@@ -1015,8 +1102,8 @@ namespace tuplex {
                     if(sliceItem->_start) {
                         // get value
                         if (sliceItem->_start->type() == ASTNodeType::Number)
-                            start = (int) static_cast<NNumber *>(sliceItem->_start)->getI64();
-                        else start = static_cast<NBoolean *>(sliceItem->_start)->_value;
+                            start = (int) static_cast<NNumber *>(sliceItem->_start.get())->getI64();
+                        else start = static_cast<NBoolean *>(sliceItem->_start.get())->_value;
 
                         // correct value
                         if(start < -size) {
@@ -1038,8 +1125,8 @@ namespace tuplex {
                     if(sliceItem->_end) {
                         // get value
                         if (sliceItem->_end->type() == ASTNodeType::Number)
-                            end = (int) static_cast<NNumber *>(sliceItem->_end)->getI64();
-                        else end = static_cast<NBoolean *>(sliceItem->_end)->_value;
+                            end = (int) static_cast<NNumber *>(sliceItem->_end.get())->getI64();
+                        else end = static_cast<NBoolean *>(sliceItem->_end.get())->_value;
 
                         // correct value
                         if(end < -size) {
@@ -1076,7 +1163,7 @@ namespace tuplex {
         }
     }
 
-    void TypeAnnotatorVisitor::assignHelper(NIdentifier *id, python::Type type) {
+    void TypeAnnotatorVisitor::assignHelper(NIdentifier *id, const python::Type &type) {
         // it is assign, so set type to value!
         id->setInferredType(type);
 
@@ -1101,14 +1188,17 @@ namespace tuplex {
             //@Todo: check that symbol table contains target!
 
             // then check if identifier is already within symbol table. If not, add!
-            NIdentifier* id = (NIdentifier*)assign->_target;
+            NIdentifier* id = (NIdentifier*)assign->_target.get();
             assignHelper(id, assign->_value->getInferredType());
-
+            if(assign->_value->getInferredType().isIteratorType()) {
+                id->annotation().iteratorInfo = assign->_value->annotation().iteratorInfo;
+                _iteratorInfoTable[id->_name] = assign->_value->annotation().iteratorInfo;
+            }
         } else if(assign->_target->type() == ASTNodeType::Tuple) {
             // now we have a tuple assignment!
             // the right hand side MUST be some unpackable thing. Currently this is a tuple but later we will
             // have lists as well
-            NTuple *ids = (NTuple *) assign->_target;
+            NTuple *ids = (NTuple *) assign->_target.get();
             auto rhsInferredType = assign->_value->getInferredType();
             // TODO add support for dictionaries, etc.
             if (rhsInferredType.isTupleType()) {
@@ -1118,21 +1208,22 @@ namespace tuplex {
                     error("Incorrect number of arguments to unpack in assignment");
                 }
 
-                for(unsigned long i = 0; i < ids->_elements.size(); i ++) {
-                    auto elt = ids->_elements[i];
+                int id_elt_idx = 0;
+                for(auto &elt : ids->_elements) {
                     if(elt->type() != ASTNodeType::Identifier) {
                         error("Trying to assign to a non identifier in a tuple");
                     }
-                    NIdentifier *id = (NIdentifier *) elt;
+                    NIdentifier *id = (NIdentifier *) elt.get();
                     // assign each identifier to the type in the tuple at the corresponding index
-                    assignHelper(id, tupleTypes[i]);
+                    assignHelper(id, tupleTypes[id_elt_idx]);
+                    id_elt_idx++;
                 }
             } else if(rhsInferredType == python::Type::STRING) {
                 for(const auto& elt : ids->_elements) {
                     if(elt->type() != ASTNodeType::Identifier) {
                         error("Trying to assign to a non identifier in a tuple");
                     }
-                    NIdentifier *id = (NIdentifier *) elt;
+                    NIdentifier *id = (NIdentifier *) elt.get();
                     assignHelper(id, python::Type::STRING);
                 }
             } else {
@@ -1147,7 +1238,7 @@ namespace tuplex {
     }
 
     void TypeAnnotatorVisitor::resolveNameConflicts(const std::unordered_map<std::string, python::Type> &table) {
-        for(auto kv : table) {
+        for(const auto &kv : table) {
             auto name = kv.first;
             auto type = kv.second;
             // conflicts with before table?
@@ -1178,9 +1269,9 @@ namespace tuplex {
 
         // resolve conflicts between if and else table!
         set<std::string> ifelse_names;
-        for(auto kv : if_table)ifelse_names.insert(kv.first);
-        for(auto kv : else_table)ifelse_names.insert(kv.first);
-        for(auto name : ifelse_names) {
+        for(const auto &kv : if_table)ifelse_names.insert(kv.first);
+        for(const auto &kv : else_table)ifelse_names.insert(kv.first);
+        for(const auto &name : ifelse_names) {
             // exists in both tables?
             auto it = if_table.find(name);
             auto jt = else_table.find(name);
@@ -1256,9 +1347,9 @@ namespace tuplex {
             // we do have a if statement. Hence, now time to resolve type conflicts
 
             // first check whether a block is an exit block. Then, it doesn't matter what symbols get defined there
-            if(isExitPath(ifelse->_then))
+            if(isExitPath(ifelse->_then.get()))
                 if_table.clear();
-            if(ifelse->_else && isExitPath(ifelse->_else))
+            if(ifelse->_else && isExitPath(ifelse->_else.get()))
                 else_table.clear();
 
             // now, check which symbols have a potential type conflict with the previous table
@@ -1330,8 +1421,8 @@ namespace tuplex {
                     // if it's not an expression, types do not matter.
 #ifndef NDEBUG
                     // for better debugging convenience.
-                    bool isIfExit = isExitPath(ifelse->_then);
-                    bool isElseExit = ifelse->_else ? isExitPath((ifelse->_else)) : false;
+                    bool isIfExit = isExitPath(ifelse->_then.get());
+                    bool isElseExit = ifelse->_else ? isExitPath((ifelse->_else.get())) : false;
 #endif
                     ifelse->setInferredType(python::Type::NULLVALUE);
                 }
@@ -1373,12 +1464,12 @@ namespace tuplex {
         setLastParent(comprehension);
 
         // update name table based on iter
-        auto target_list = comprehension->target;
+        const auto &target_list = comprehension->target;
         auto generator_type = comprehension->iter->getInferredType();
         switch(target_list->type()) {
             case ASTNodeType::Identifier: {
                 // simplest case
-                auto id = (NIdentifier*)target_list; assert(id);
+                auto id = (NIdentifier*)target_list.get(); assert(id);
 
                 // iter type?
                 // @TODO: https://github.com/LeonhardFS/Tuplex/issues/211
@@ -1429,7 +1520,7 @@ namespace tuplex {
         comprehension->target->accept(*this);
 
         // visit if statements if they exist
-        for(auto icond : comprehension->if_conditions) {
+        for(auto &icond : comprehension->if_conditions) {
             assert(icond);
             setLastParent(comprehension);
             icond->accept(*this);
@@ -1470,9 +1561,8 @@ namespace tuplex {
 
         if(targetASTType == ASTNodeType::Identifier) {
             // target is identifier
-            // expression can be a list, tuple or string
-            assert(exprType.isListType() || exprType.isTupleType() || exprType == python::Type::STRING || exprType == python::Type::RANGE);
-            auto id = static_cast<NIdentifier*>(forelse->target);
+            // expression can be list, string, range, or iterator
+            auto id = static_cast<NIdentifier*>(forelse->target.get());
             if(exprType.isListType()) {
                 if(exprType == python::Type::EMPTYLIST) {
                     _nameTable[id->_name] = python::Type::UNKNOWN;
@@ -1489,21 +1579,55 @@ namespace tuplex {
             } else if(exprType == python::Type::RANGE) {
                 _nameTable[id->_name] = python::Type::I64;
                 id->setInferredType(python::Type::I64);
+            } else if(exprType.isIteratorType()) {
+                _nameTable[id->_name] = exprType.yieldType();
+                id->setInferredType(exprType.yieldType());
+            } else {
+                error("unsupported for loop expression type");
             }
         } else if(targetASTType == ASTNodeType::Tuple || targetASTType == ASTNodeType::List){
             // target is tuple of identifier (x, y)
-            // expression should have the form [(type1, type2), (type1, type2), ...]
-            auto idTuple = getForLoopMultiTarget(forelse->target);
-            assert(exprType.isListType());
-            assert(exprType.elementType().isTupleType());
-            auto idTypeTuple = exprType.elementType().parameters();
-            assert(idTuple.size() == idTypeTuple.size());
-            forelse->target->setInferredType(exprType.elementType());
-            for (int i = 0; i < idTuple.size(); i++) {
-                auto element = static_cast<NIdentifier*>(idTuple[i]);
-                _nameTable[element->_name] = idTypeTuple[i];
-                element->setInferredType(idTypeTuple[i]);
+            // expression should have (or can yield) the form [(type1, type2), (type1, type2), ...]
+            auto idTuple = getForLoopMultiTarget(forelse->target.get());
+            if(!(exprType.isListType() && exprType.elementType().isTupleType() ||
+            exprType.isIteratorType() && (exprType.yieldType().isTupleType() || exprType.yieldType().isListType()))) {
+                error("unsupported for loop expression type");
             }
+            python::Type expectedTargetType;
+            if(exprType.isListType()) {
+                expectedTargetType = exprType.elementType();
+            } else if(exprType.isIteratorType()) {
+                expectedTargetType = exprType.yieldType();
+            }
+
+            forelse->target->setInferredType(expectedTargetType);
+            if(expectedTargetType.isTupleType()) {
+                auto idTypeTuple = expectedTargetType.parameters();
+                if(idTuple.size() != idTypeTuple.size()) {
+                    error("cannot unpack for loop expression");
+                }
+                for (int i = 0; i < idTuple.size(); i++) {
+                    if(idTuple[i]->type() != ASTNodeType::Identifier) {
+                        addCompileError(CompileError::TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST);
+                    }
+                    auto element = static_cast<NIdentifier*>(idTuple[i]);
+                    _nameTable[element->_name] = idTypeTuple[i];
+                    element->setInferredType(idTypeTuple[i]);
+                }
+            } else if(expectedTargetType.isListType()) {
+                auto idType = expectedTargetType.elementType();
+                for (const auto& id : idTuple) {
+                    if(id->type() != ASTNodeType::Identifier) {
+                        addCompileError(CompileError::TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST);
+                    }
+                    auto element = static_cast<NIdentifier*>(id);
+                    _nameTable[element->_name] = idType;
+                    element->setInferredType(idType);
+                }
+            } else {
+                error("unexpected target type");
+            }
+
         } else {
             fatal_error("unsupported AST node encountered in NFor");
         }
@@ -1515,19 +1639,32 @@ namespace tuplex {
     }
 
     void TypeAnnotatorVisitor::checkRetType(python::Type t) {
-        // return if type error already presents
-        if(_typeError != CompileError::TYPE_ERROR_NONE) {
+
+        if(t.isIteratorType()) {
+            addCompileError(CompileError::TYPE_ERROR_RETURN_ITERATOR);
             return;
         }
+
         if(t.isListType() && !(t == python::Type::EMPTYLIST)) {
+            if(t.elementType() == python::Type::PYOBJECT) {
+                addCompileError(CompileError::TYPE_ERROR_RETURN_LIST_OF_MULTITYPES);
+                error(compileErrorToStr(CompileError::TYPE_ERROR_RETURN_LIST_OF_MULTITYPES));
+                return;
+            }
+
             if(t.elementType().isTupleType() && t.elementType() != python::Type::EMPTYTUPLE) {
-                _typeError = CompileError::TYPE_ERROR_LIST_OF_TUPLES;
-                error(compileErrorToStr(_typeError));
+                addCompileError(CompileError::TYPE_ERROR_RETURN_LIST_OF_TUPLES);
+                error(compileErrorToStr(CompileError::TYPE_ERROR_RETURN_LIST_OF_TUPLES));
                 return;
             }
             if(t.elementType().isDictionaryType() && t.elementType() != python::Type::EMPTYDICT) {
-                _typeError = CompileError::TYPE_ERROR_LIST_OF_DICTS;
-                error(compileErrorToStr(_typeError));
+                addCompileError(CompileError::TYPE_ERROR_RETURN_LIST_OF_DICTS);
+                error(compileErrorToStr(CompileError::TYPE_ERROR_RETURN_LIST_OF_DICTS));
+                return;
+            }
+            if(t.elementType().isListType() && t.elementType() != python::Type::EMPTYLIST) {
+                addCompileError(CompileError::TYPE_ERROR_RETURN_LIST_OF_LISTS);
+                error(compileErrorToStr(CompileError::TYPE_ERROR_RETURN_LIST_OF_LISTS));
                 return;
             }
         }

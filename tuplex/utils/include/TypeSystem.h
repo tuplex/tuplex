@@ -18,6 +18,16 @@
 #include <algorithm>
 #include <TTuple.h>
 
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+#include "cereal/archives/binary.hpp"
+
 namespace python {
 
     class Type {
@@ -47,6 +57,8 @@ namespace python {
         static const Type MATCHOBJECT; //! python [re.match] regex match object
         static const Type RANGE; //! python [range] range object
         static const Type MODULE; //! generic module object, used in symbol table
+        static const Type ITERATOR; //! iterator/generator type
+        static const Type EMPTYITERATOR; //! special type for empty iterator
 
         // define two special types, used in the inference to describe bounds
         // any is a subtype of everything
@@ -97,6 +109,7 @@ namespace python {
         bool isSingleValued() const;
         bool hasVariablePositionalArgs() const;
         bool isExceptionType() const;
+        bool isIteratorType() const;
 
         inline bool isGeneric() const {
             if(_hash == python::Type::PYOBJECT._hash ||
@@ -124,6 +137,13 @@ namespace python {
                     return true;
                 return false;
             }
+
+            if(isIteratorType()) {
+                if(yieldType().isGeneric())
+                    return true;
+                return false;
+            }
+
             return false;
         }
         /*!
@@ -140,6 +160,12 @@ namespace python {
         Type valueType() const;
         // returns the element type in a list or within an option
         Type elementType() const;
+
+        /*!
+         * return yield type of an iterator
+         * @return
+         */
+        Type yieldType() const;
 
         /*!
          * checks whether type contains one or more of Unknown, Inf, Any.
@@ -164,6 +190,12 @@ namespace python {
          * @return
          */
         bool isPrimitiveType() const;
+
+        /*!
+         * check whether a given type is iterable. Currently true for iterator, list, tuple, string, range and dictionary.
+         * @return
+         */
+        bool isIterableType() const;
 
         /*!
          * check whether this is a base class of derived. E.g. int.subclass(float) is true,
@@ -193,6 +225,13 @@ namespace python {
         static Type makeDictionaryType(const python::Type& keyType, const python::Type& valType);
 
         static Type makeListType(const python::Type &elementType);
+
+        /*!
+         * create iterator type from yieldType.
+         * @param yieldType
+         * @return
+         */
+        static Type makeIteratorType(const python::Type &yieldType);
 
         /*!
          * create nullable type/option type from type.
@@ -231,6 +270,12 @@ namespace python {
 
         static Type byName(const std::string& name);
 
+        // cereal serialization functions
+        template<class Archive>
+        void load(Archive &archive);
+
+        template<class Archive>
+        void save(Archive &archive) const;
     };
 
     extern bool isLiteralType(const Type& type);
@@ -242,6 +287,7 @@ namespace python {
     class TypeFactory {
         // hide internal interfaces and make them only available to Type
         friend class Type;
+//        friend class cereal::access;
     private:
 
         enum class AbstractType {
@@ -251,7 +297,8 @@ namespace python {
             DICTIONARY,
             LIST,
             CLASS,
-            OPTION // for nullable
+            OPTION, // for nullable
+            ITERATOR
         };
 
         struct TypeEntry {
@@ -270,6 +317,11 @@ namespace python {
                         const std::vector<Type>& baseClasses=std::vector<Type>{},
                         bool isVarLen=false) : _desc(desc), _type(at), _params(params), _ret(ret), _baseClasses(baseClasses), _isVarLen(isVarLen) {}
             TypeEntry(const TypeEntry& other) : _desc(other._desc), _type(other._type), _params(other._params), _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen) {}
+
+            template <class Archive>
+            void serialize(Archive &ar) {
+                ar(_desc, _type, _params, _isVarLen, _ret, _baseClasses);
+            }
 
             std::string desc();
         };
@@ -294,6 +346,7 @@ namespace python {
         bool isTupleType(const Type& t) const;
         bool isOptionType(const Type& t) const;
         bool isListType(const Type& t) const;
+        bool isIteratorType(const Type& t) const;
 
         std::vector<Type> parameters(const Type& t) const;
         Type returnType(const Type& t) const;
@@ -319,6 +372,7 @@ namespace python {
         Type createOrGetTupleType(const TTuple<Type>& args);
         Type createOrGetTupleType(const std::vector<Type>& args);
         Type createOrGetOptionType(const Type& type);
+        Type createOrGetIteratorType(const Type& yieldType);
 
 
         Type getByName(const std::string& name);

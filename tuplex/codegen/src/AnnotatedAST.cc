@@ -43,9 +43,9 @@ namespace tuplex {
 
             // called to retrieve the last function of a statement object
             if(root->type() == ASTNodeType::Module)
-                return findFunction(static_cast<NModule*>(root)->_suite);
+                return findFunction(static_cast<NModule*>(root)->_suite.get());
             else if(root->type() == ASTNodeType::Suite) {
-                return findFunction(static_cast<NSuite*>(root)->_statements.back());
+                return findFunction(static_cast<NSuite*>(root)->_statements.back().get());
             }
             else if(root->type() == ASTNodeType::Function)
                 return root;
@@ -352,7 +352,7 @@ namespace tuplex {
 
                 for(const auto& arg: lambda->_arguments->_args) {
                     assert(arg->type() == ASTNodeType::Parameter);
-                    NParameter *param = static_cast<NParameter*>(arg);
+                    NParameter *param = static_cast<NParameter*>(arg.get());
                     assert(param->_identifier);
                     names.push_back(param->_identifier->_name);
                 }
@@ -361,7 +361,7 @@ namespace tuplex {
 
                 for(const auto& arg: function->_parameters->_args) {
                     assert(arg->type() == ASTNodeType::Parameter);
-                    NParameter *param = static_cast<NParameter*>(arg);
+                    NParameter *param = static_cast<NParameter*>(arg.get());
                     assert(param->_identifier);
                     names.push_back(param->_identifier->_name);
                 }
@@ -409,13 +409,13 @@ namespace tuplex {
 
                 auto lam = dynamic_cast<NLambda*>(node);
                 for(auto& arg : lam->_arguments->_args)
-                    assignParameterType(arg);
+                    assignParameterType(arg.get());
             }
 
             if(node->type() == ASTNodeType::Function) {
                 auto fun = dynamic_cast<NFunction*>(node);
                 for(auto& arg : fun->_parameters->_args)
-                    assignParameterType(arg);
+                    assignParameterType(arg.get());
             }
         }
 
@@ -423,6 +423,7 @@ namespace tuplex {
 
             // reset err messages
             _typingErrMessages.clear();
+            clearCompileErrors();
 
             if(!_root)
                 return false;
@@ -458,19 +459,20 @@ namespace tuplex {
             // TypeAnnotatorVisitor may throw an exception when fatal error is reached, hence surround with try/catch
             try {
                 _root->accept(tav);
-                _typeError = tav.getTypeError();
+                addCompileErrors(table->getCompileErrors());
+                addCompileErrors(tav.getCompileErrors());
                 // table->exitScope(); // leave module/function level scope
                 // table->exitScope();  // leave global scope
                 // table->exitScope(); // leave builtin scope
 
                 // did tav fail? if so remove branches & try again
                 if(removeBranches) {
-                    _typeError = CompileError::TYPE_ERROR_NONE;
+                    clearCompileErrors();
                     RemoveDeadBranchesVisitor rdb;
                     _root->accept(rdb);
-                    _typeError = tav.getTypeError();
 
                     // run again
+                    table->clearCompileErrors();
                     table->resetScope();
                     tav.reset();
                     tav.setFailingMode(silentMode);
@@ -478,6 +480,8 @@ namespace tuplex {
                     table->enterScope(); // enter global scope
                     table->enterScope(); // enter module/function level scope
                     _root->accept(tav);
+                    addCompileErrors(table->getCompileErrors());
+                    addCompileErrors(tav.getCompileErrors());
                     table->resetScope();
                 }
             } catch(const std::runtime_error& e) {
@@ -533,9 +537,10 @@ namespace tuplex {
             return success;
         }
 
-        void AnnotatedAST::checkTypeError() {
-            if(_typeError != CompileError::TYPE_ERROR_NONE) {
-                throw std::runtime_error(compileErrorToStr(_typeError));
+        void AnnotatedAST::checkReturnError() {
+            auto err = getReturnError();
+            if(err != CompileError::COMPILE_ERROR_NONE) {
+                throw std::runtime_error(compileErrorToStr(err));
             }
         }
 

@@ -24,15 +24,15 @@ namespace tuplex {
                 NAssign* assign = (NAssign*)node;
                 switch (assign->_target->type()) {
                     case ASTNodeType::Identifier: {
-                        NIdentifier* id = (NIdentifier*)assign->_target;
+                        NIdentifier* id = (NIdentifier*)assign->_target.get();
 
                         declaredVariables.insert(std::make_tuple(id->_name, id->getInferredType()));
                         break;
                     }
                     case ASTNodeType::Tuple: {
-                        auto tuple = (NTuple *) assign->_target;
+                        auto tuple = (NTuple *) assign->_target.get();
                         for(const auto& elt : tuple->_elements) {
-                            NIdentifier* id = (NIdentifier*) elt;
+                            NIdentifier* id = (NIdentifier*) elt.get();
                             declaredVariables.insert(std::make_tuple(id->_name, id->getInferredType()));
                         }
                         break;
@@ -50,12 +50,12 @@ namespace tuplex {
                 // check what target it is:
                 if(targetASTType == ASTNodeType::Identifier) {
                     // single identifier
-                    NIdentifier* id = (NIdentifier*) f->target;
+                    NIdentifier* id = (NIdentifier*) f->target.get();
                     declaredVariables.insert(std::make_tuple(id->_name, id->getInferredType()));
                 } else {
                     // multiple identifiers, i.e. something like a, b, c in ...
                     assert(targetASTType == ASTNodeType::Tuple || targetASTType == ASTNodeType::List);
-                    auto idTuple = getForLoopMultiTarget(f->target);
+                    auto idTuple = getForLoopMultiTarget(f->target.get());
                     for(const auto& el : idTuple) {
                         assert(el->type() == ASTNodeType::Identifier);
                         NIdentifier* id = (NIdentifier*) el;
@@ -66,7 +66,7 @@ namespace tuplex {
 
             // comprehensions. (only list so far)
             if(node->type() == ASTNodeType::Comprehension) {
-                NIdentifier* id = dynamic_cast<NComprehension*>(node)->target;
+                const auto &id = dynamic_cast<NComprehension*>(node)->target;
                 foundVariables.insert(std::make_tuple(id->_name, id->getInferredType()));
             }
         }

@@ -21,6 +21,7 @@
 #include <Logger.h>
 #include <ASTAnnotation.h>
 #include <ClosureEnvironment.h>
+#include <IFailable.h>
 
 namespace tuplex {
 
@@ -28,7 +29,7 @@ namespace tuplex {
     class ClosureEnvironment;
 
     // symbol table holding python builtins, global variables obtained from function closure etc.
-    class SymbolTable {
+    class SymbolTable : public IFailable {
     public:
         enum class ScopeType {
             UNKNOWN,
@@ -261,7 +262,6 @@ namespace tuplex {
          * add all the exception types to both the table and the TypeSystem.cc
          */
         void addBuiltinExceptionHierarchy();
-
     };
 }
 

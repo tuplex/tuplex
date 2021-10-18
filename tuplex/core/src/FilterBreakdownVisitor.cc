@@ -21,8 +21,8 @@ namespace tuplex {
                 names = lam->parameterNames();
                 for(const auto &param : lam->_arguments->_args) {
                     if(param->type() == ASTNodeType::Parameter) {
-                        auto p = (NParameter*)param;
-                        _variablesToIgnore.insert(p->_identifier);
+                        auto p = (NParameter*)param.get();
+                        _variablesToIgnore.insert(p->_identifier.get());
                     }
                 }
                 break;
@@ -32,8 +32,8 @@ namespace tuplex {
                 names = func->parameterNames();
                 for(const auto &param : func->_parameters->_args) {
                     if(param->type() == ASTNodeType::Parameter) {
-                        auto p = (NParameter*)param;
-                        _variablesToIgnore.insert(p->_identifier);
+                        auto p = (NParameter*)param.get();
+                        _variablesToIgnore.insert(p->_identifier.get());
                     }
                 }
                 break;
@@ -51,9 +51,9 @@ namespace tuplex {
       if(node->type() == ASTNodeType::Subscription) {
           auto subscript = (NSubscription*)node;
           if (subscript->_value->type() == ASTNodeType::Identifier)
-              _variablesToIgnore.insert(subscript->_value);
+              _variablesToIgnore.insert(subscript->_value.get());
           if(subscript->_expression->type() == ASTNodeType::Identifier)
-              _variablesToIgnore.insert(subscript->_expression);
+              _variablesToIgnore.insert(subscript->_expression.get());
       }
     }
 
@@ -69,21 +69,21 @@ namespace tuplex {
             case ASTNodeType::BinaryOp: {
                 auto binop = (NBinaryOp *) node;
                 if (binop->_op == TokenType::AND || binop->_op == TokenType::OR)
-                    if (!isLogicalOp(binop->_left) && !isLogicalOp(binop->_right))
+                    if (!isLogicalOp(binop->_left.get()) && !isLogicalOp(binop->_right.get()))
                         error("Not a pure logical expression - can't break up");
                 break;
             }
             case ASTNodeType::UnaryOp: {
                 auto unop = (NUnaryOp *) node;
                 if (unop->_op == TokenType::NOT)
-                    if (!isLogicalOp(unop->_operand))
+                    if (!isLogicalOp(unop->_operand.get()))
                         error("Not a pure logical expression - can't break up");
                 break;
             }
             case ASTNodeType::Compare: {
                 auto cmp = dynamic_cast<NCompare*>(node);
-                ignoreVariable(cmp->_left);
-                for(const auto& c : cmp->_comps) ignoreVariable(c);
+                ignoreVariable(cmp->_left.get());
+                for(const auto& c : cmp->_comps) ignoreVariable(c.get());
                 break;
             }
         }
@@ -106,7 +106,7 @@ namespace tuplex {
             if(right->type() == ASTNodeType::Number) num = (NNumber *) right;
             else {
                 auto unop = (NUnaryOp*)right;
-                num = (NNumber*)unop->_operand;
+                num = (NNumber*)unop->_operand.get();
                 if (unop->_op == TokenType::MINUS) sign = -1;
             }
 
@@ -195,12 +195,12 @@ namespace tuplex {
             // check if all elements are of same type
             vector<ASTNode *> elements;
             if (right->type() == ASTNodeType::List) {
-                for (auto node : ((NList *) right)->_elements)
-                    elements.push_back(node);
+                for (const auto &node : ((NList *) right)->_elements)
+                    elements.push_back(node.get());
             }
             if (right->type() == ASTNodeType::Tuple) {
-                for (auto node : ((NTuple *) right)->_elements)
-                    elements.push_back(node);
+                for (const auto &node : ((NTuple *) right)->_elements)
+                    elements.push_back(node.get());
             }
 
             // TODO: what about dict?
@@ -298,7 +298,7 @@ namespace tuplex {
             (subscript->_expression->type() == ASTNodeType::Number ||
              subscript->_expression->type() == ASTNodeType::String)) {
             // static, so can extract info
-            auto id_name = ((NIdentifier *) subscript->_value)->_name;
+            auto id_name = ((NIdentifier *) subscript->_value.get())->_name;
             // var?
             if (_varNames.find(id_name) != _varNames.end()) {
                 // Note: when supporting assignments, change this!
@@ -306,10 +306,10 @@ namespace tuplex {
                 if (subscript->_expression->type() == ASTNodeType::Number) {
                     // only integer access works...
                     if (subscript->_expression->getInferredType() == python::Type::I64)
-                        columnIndex = ((NNumber *) subscript->_expression)->getI64();
+                        columnIndex = ((NNumber *) subscript->_expression.get())->getI64();
                 } else {
                     // extract string & lookup index, if not successful leave..
-                    auto it = _columnToIndexMap.find(((NString *) subscript->_expression)->value());
+                    auto it = _columnToIndexMap.find(((NString *) subscript->_expression.get())->value());
                     if (it != _columnToIndexMap.end())
                         columnIndex = it->second;
                 }
@@ -372,9 +372,9 @@ namespace tuplex {
                 unordered_map<int64_t, IntervalCollection> variableRanges;
 
                 // go through each entry and check whether it's an identifier or subscript of it!
-                vector<ASTNode *> cmp_nodes{cmp->_left};
-                for (auto n : cmp->_comps)
-                    cmp_nodes.push_back(n);
+                vector<ASTNode *> cmp_nodes{cmp->_left.get()};
+                for (const auto &n : cmp->_comps)
+                    cmp_nodes.push_back(n.get());
 
                 for (int i = 0; i < cmp_nodes.size(); ++i) {
                     // for each side of operator check whether it's a literal to detect a possible range

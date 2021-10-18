@@ -81,10 +81,24 @@ ExternalProject_Get_Property(json source_dir)
 set(json_INCLUDE_DIR ${source_dir}/include)
 include_directories(${json_INCLUDE_DIR})
 
+ExternalProject_Add(cereal
+        GIT_REPOSITORY https://github.com/USCiLab/cereal.git
+        GIT_TAG v1.3.0
+        TIMEOUT 5
+        CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+        PREFIX "${EXTERNAL_INSTALL_LOCATION}"
+        CONFIGURE_COMMAND "" # Disable configure step
+        BUILD_COMMAND "" # Disable build step
+        INSTALL_COMMAND "" # Disable install step
+        UPDATE_COMMAND "" # Disable update step: clones the project only once
+        )
+ExternalProject_Get_Property(cereal source_dir)
+set(cereal_INCLUDE_DIR ${source_dir}/include)
+
 # ------
 # dependencies
 
-add_dependencies(libutils fmt spdlog json)
+add_dependencies(libutils fmt spdlog json cereal)
 
 # AWS SDK defines cjson since v1.5
 if(NOT BUILD_WITH_AWS)
@@ -98,6 +112,7 @@ target_include_directories(libutils PUBLIC
         ${spdlog_INCLUDE_DIR}
         ${cjson_SOURCE_DIR}
         ${json_INCLUDE_DIR}
+        ${cereal_INCLUDE_DIR}
         ${Boost_INCLUDE_DIR}
         ${AWSSDK_INCLUDE_DIR})
 

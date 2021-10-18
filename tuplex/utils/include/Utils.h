@@ -360,13 +360,6 @@ namespace tuplex {
             return "";
     }
 
-    /*!
-     * temporary filename
-     * @return
-     */
-    extern std::string temporaryPathName();
-
-
     // hashing functions
     // based on https://stackoverflow.com/questions/34597260/stdhash-value-on-char-value-and-not-on-memory-address
     // and http://www.isthe.com/chongo/tech/comp/fnv/index.html

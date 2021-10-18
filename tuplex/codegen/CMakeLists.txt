@@ -81,7 +81,6 @@ ENDIF()
 IF(LLVM_ROOT_DIR)
     message(STATUS "Given LLVM_ROOT_DIR=${LLVM_ROOT_DIR}")
     message(STATUS "CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
-    message(STATUS "LLVM_ROOT=${LLVM_ROOT}")
     EXECUTE_PROCESS(COMMAND "ls" "/opt" COMMAND_ECHO STDOUT)
     EXECUTE_PROCESS(COMMAND "ls" "${LLVM_ROOT_DIR}" COMMAND_ECHO STDOUT)
     # make cmake find in config mode the right LLVMConfig.cmake file which is located here

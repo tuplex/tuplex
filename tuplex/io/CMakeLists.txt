@@ -31,7 +31,7 @@ if(BREW_FOUND)
     if(APPLE)
         EXECUTE_PROCESS(COMMAND brew --prefix snappy OUTPUT_VARIABLE BREW_SNAPPY_DIR ERROR_VARIABLE BREW_SNAPPY_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
         if(BREW_SNAPPY_NOTFOUND)
-            set(SNAPPY_LIBRARIES " ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a")
+            set(SNAPPY_LIBRARIES "${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a")
         else()
             set(ENV{SNAPPY_HOME} ${BREW_SNAPPY_DIR})
             set(SNAPPY_HOME ${BREW_SNAPPY_DIR})
@@ -41,13 +41,15 @@ if(BREW_FOUND)
             find_library (SNAPPY_LIBRARY NAMES snappy HINTS
                     ${_snappy_path}
                     PATH_SUFFIXES "lib" "lib64")
-            message(STATUS "snappy lib: ${SNAPPY_LIBRARY}")
+            if(SNAPPY_LIBRARY)
+                message(STATUS "snappy lib: ${SNAPPY_LIBRARY}")
+            endif()
             find_library (SNAPPY_STATIC_LIB NAMES ${CMAKE_STATIC_LIBRARY_PREFIX}${SNAPPY_LIB_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX} HINTS
                     ${_snappy_path}
                     PATH_SUFFIXES "lib" "lib64")
             if(SNAPPY_LIBRARY)
                 set(SNAPPY_LIBRARIES "${SNAPPY_LIBRARY}")
-            else()
+            elseif(SNAPPY_STATIC_LIB)
                 set(SNAPPY_LIBRARIES "${SNAPPY_STATIC_LIB}")
             endif()
             message(STATUS "Snappy libraries: ${SNAPPY_LIBRARIES}")
@@ -57,6 +59,7 @@ endif()
 
 # set to third-party build
 if(NOT SNAPPY_LIBRARIES)
+    set(SNAPPY_HOME "")
     set(SNAPPY_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a)
 endif()
 

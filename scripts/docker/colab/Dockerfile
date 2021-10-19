@@ -1,4 +1,5 @@
 # Docker image mimicking Google Colab setup for testing purposes
+# Certain large dependencies like torch (~2G) are not installed
 FROM ubuntu:18.04
 
 # Fix timezone to US
@@ -18,3 +19,5 @@ RUN tar xf Python-3.7.12.tgz && cd Python-3.7.12 && ./configure --prefix=/usr --
 
 WORKDIR /work
 ADD requirements.txt /work/requirements.txt
+
+RUN pip3 install -r /work/requirements.txt

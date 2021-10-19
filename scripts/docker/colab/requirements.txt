@@ -1,3 +1,9 @@
+cmake==3.12.0
+#dlib @ file:///dlib-19.18.0-cp37-cp37m-linux_x86_64.whl
+dlib
+google-colab
+#google-colab @ file:///colabtools/dist/google-colab-1.0.0.tar.gz
+#tensorflow @ file:///tensorflow-2.6.0-cp37-cp37m-linux_x86_64.whl
 absl-py==0.12.0
 alabaster==0.7.12
 albumentations==0.1.12
@@ -47,7 +53,8 @@ coveralls==0.5
 crcmod==1.7
 cufflinks==0.17.3
 cvxopt==1.2.7
-cvxpy==1.0.31
+#cvxpy==1.0.31
+cvxpy
 cycler==0.10.0
 cymem==2.0.5
 Cython==0.29.24
@@ -60,7 +67,6 @@ defusedxml==0.7.1
 descartes==1.1.0
 dill==0.3.4
 distributed==1.25.3
-dlib @ file:///dlib-19.18.0-cp37-cp37m-linux_x86_64.whl
 dm-tree==0.1.6
 docopt==0.6.2
 docutils==0.17.1
@@ -109,7 +115,6 @@ google-cloud-firestore==1.7.0
 google-cloud-language==1.2.0
 google-cloud-storage==1.18.1
 google-cloud-translate==1.5.0
-google-colab @ file:///colabtools/dist/google-colab-1.0.0.tar.gz
 google-pasta==0.2.0
 google-resumable-media==0.4.1
 googleapis-common-protos==1.53.0
@@ -335,7 +340,6 @@ tblib==1.7.0
 tensorboard==2.6.0
 tensorboard-data-server==0.6.1
 tensorboard-plugin-wit==1.8.0
-tensorflow @ file:///tensorflow-2.6.0-cp37-cp37m-linux_x86_64.whl
 tensorflow-datasets==4.0.1
 tensorflow-estimator==2.6.0
 tensorflow-gcs-config==2.6.0
@@ -353,10 +357,10 @@ tifffile==2021.8.30
 toml==0.10.2
 tomli==1.2.1
 toolz==0.11.1
-torch @ https://download.pytorch.org/whl/cu111/torch-1.9.0%2Bcu111-cp37-cp37m-linux_x86_64.whl
+#torch @ https://download.pytorch.org/whl/cu111/torch-1.9.0%2Bcu111-cp37-cp37m-linux_x86_64.whl
 torchsummary==1.5.1
 torchtext==0.10.0
-torchvision @ https://download.pytorch.org/whl/cu111/torchvision-0.10.0%2Bcu111-cp37-cp37m-linux_x86_64.whl
+#torchvision @ https://download.pytorch.org/whl/cu111/torchvision-0.10.0%2Bcu111-cp37-cp37m-linux_x86_64.whl
 tornado==5.1.1
 tqdm==4.62.3
 traitlets==5.1.0

@@ -8,7 +8,7 @@
 
 [Website](https://tuplex.cs.brown.edu/) [Documentation](https://tuplex.cs.brown.edu/python-api.html)
 
-Tuplex is a parallel big data processing framework that runs data science pipelines written in Python at the speed of compiled code. 
+Tuplex is a parallel big data processing framework that runs data science pipelines written in Python at the speed of compiled code.
 Tuplex has similar Python APIs to [Apache Spark](https://spark.apache.org/) or [Dask](https://dask.org/), but rather than invoking the Python interpreter, Tuplex generates optimized LLVM bytecode for the given pipeline and input data set. Under the hood, Tuplex is based on data-driven compilation and dual-mode processing, two key techniques that make it possible for Tuplex to provide speed comparable to a pipeline written in hand-optimized C++.
 
 You can join the discussion on Tuplex on our [Gitter community](https://gitter.im/tuplex/community) or read up more on the background of Tuplex in our [SIGMOD'21 paper](https://dl.acm.org/doi/abs/10.1145/3448016.3457244).
@@ -46,8 +46,13 @@ To install Tuplex, simply install the dependencies first and then build the pack
 #### MacOS build from source
 To build Tuplex, you need several other packages first which can be easily installed via [brew](https://brew.sh/).
 ```
+<<<<<<< HEAD
+brew install llvm@9 boost boost-python3 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero
+python3 -m pip install cloudpickle numpy
+=======
 brew install llvm@9 boost boost-python3 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero protobuf libmagic
 python3 -m pip cloudpickle numpy
+>>>>>>> master
 python3 setup.py install
 ```
 
@@ -55,7 +60,7 @@ python3 setup.py install
 To faciliate installing the dependencies for Ubuntu, we do provide two scripts (`scripts/ubuntu1804/install_reqs.sh` for Ubuntu 18.04, or `scripts/ubuntu2004/install_reqs.sh` for Ubuntu 20.04). To create an up to date version of Tuplex, simply run
 ```
 ./scripts/ubuntu1804/install_reqs.sh
-python3 -m pip cloudpickle numpy
+python3 -m pip install cloudpickle numpy
 python3 setup.py install
 ```
 

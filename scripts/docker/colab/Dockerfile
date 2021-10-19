@@ -20,4 +20,5 @@ RUN tar xf Python-3.7.12.tgz && cd Python-3.7.12 && ./configure --prefix=/usr --
 WORKDIR /work
 ADD requirements.txt /work/requirements.txt
 
+RUN apt-get install -y libgdal-dev libcairo2-dev libjpeg-dev libgif-dev
 RUN pip3 install -r /work/requirements.txt

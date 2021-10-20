@@ -11,6 +11,8 @@
 #ifndef TUPLEX_LISTBATCH_H
 #define TUPLEX_LISTBATCH_H
 
+#ifdef BUILD_WITH_ORC
+
 namespace tuplex { namespace orc {
 
 class ListBatch : public OrcBatch {
@@ -102,5 +104,7 @@ private:
 };
 
 }}
+
+#endif
 
 #endif //TUPLEX_LISTBATCH_H

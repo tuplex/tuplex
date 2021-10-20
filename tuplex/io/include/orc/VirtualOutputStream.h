@@ -11,6 +11,8 @@
 #ifndef TUPLEX_VIRTUALOUTPUTSTREAM_H
 #define TUPLEX_VIRTUALOUTPUTSTREAM_H
 
+#ifdef BUILD_WITH_ORC
+
 #include <orc/OrcFile.hh>
 
 namespace tuplex { namespace orc {
@@ -54,5 +56,7 @@ private:
 };
 
 }}
+
+#endif
 
 #endif //TUPLEX_VIRTUALOUTPUTSTREAM_H

@@ -1954,7 +1954,11 @@ namespace tuplex {
                         wtask = new SimpleFileWriteTask(outputURI(udf, uri, partNo++, fmt), header, header_length, partitions);
                         break;
                     case FileFormat::OUTFMT_ORC:
+#ifdef BUILD_WITH_ORC
                         wtask = new SimpleOrcWriteTask(outputURI(udf, uri, partNo++, fmt), partitions, tstage->outputSchema(), outOptions["columnNames"]);
+#else
+                        throw std::runtime_error(MISSING_ORC_MESSAGE);
+#endif
                         break;
                     default:
                         throw std::runtime_error("file output format not supported.");
@@ -1973,7 +1977,11 @@ namespace tuplex {
                     break;
                 }
                 case FileFormat::OUTFMT_ORC: {
+#ifdef BUILD_WITH_ORC
                     wtask = new SimpleOrcWriteTask(outputURI(udf, uri, partNo++, fmt), partitions, tstage->outputSchema(), outOptions["columnNames"]);
+#else
+                    throw std::runtime_error(MISSING_ORC_MESSAGE);
+#endif
                     break;
                 }
                 default:

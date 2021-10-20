@@ -9,7 +9,6 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #ifdef BUILD_WITH_AWS
-#ifndef BUILD_FOR_CI
 
 #include "TestUtils.h"
 #include <ee/aws/AWSLambdaBackend.h>
@@ -24,12 +23,21 @@ protected:
         PyTest::SetUp();
 
         using namespace tuplex;
+
+        // to speedup testing, if we anyways skip the tests, can skip init here too.
+        // !!! Dangerous !!!
+#ifndef SKIP_AWS_TESTS
         initAWS(AWSCredentials::get());
         VirtualFileSystem::addS3FileSystem();
+#endif
     }
 };
 
 TEST_F(AWSTest, BucketOperations) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
     using namespace tuplex;
     using namespace std;
 
@@ -49,6 +57,10 @@ TEST_F(AWSTest, BucketOperations) {
 }
 
 TEST_F(AWSTest, FolderCopy) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
     using namespace tuplex;
     using namespace std;
 
@@ -124,6 +136,10 @@ TEST_F(AWSTest, FolderCopy) {
 }
 
 TEST_F(AWSTest, FileUploadAndDownload) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
     using namespace tuplex;
     using namespace std;
 
@@ -165,6 +181,10 @@ TEST_F(AWSTest, FileUploadAndDownload) {
 }
 
 TEST_F(AWSTest, SimpleLambdaInvoke) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
     using namespace std;
     using namespace tuplex;
 
@@ -184,5 +204,4 @@ TEST_F(AWSTest, SimpleLambdaInvoke) {
     for(int i = 0; i < N; ++i)
         EXPECT_EQ(v[i].toPythonString(), ref[i].toPythonString());
 }
-#endif // BUILD_FOR_CI
 #endif // BUILD_WITH_AWS

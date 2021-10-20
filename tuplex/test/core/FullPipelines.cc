@@ -603,9 +603,11 @@ namespace tuplex {
 class PipelinesTest : public PyTest {};
 
 #ifdef BUILD_WITH_AWS
-#ifndef BUILD_FOR_CI
 
 TEST_F(PipelinesTest, ZillowAWS) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
     using namespace std;
     using namespace tuplex;
     auto co = ContextOptions::defaults();
@@ -637,7 +639,6 @@ TEST_F(PipelinesTest, ZillowAWS) {
 //    }
 }
 
-#endif // BUILD_FOR_CI
 #endif // BUILD_WITH_AWS
 
 TEST_F(PipelinesTest, ZillowConfigHarness) {

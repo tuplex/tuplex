@@ -11,6 +11,8 @@
 #ifndef TUPLEX_DICTBATCH_H
 #define TUPLEX_DICTBATCH_H
 
+#ifdef BUILD_WITH_ORC
+
 namespace tuplex { namespace orc {
 
 /*!
@@ -179,5 +181,7 @@ private:
 };
 
 }}
+
+#endif
 
 #endif //TUPLEX_DICTBATCH_H

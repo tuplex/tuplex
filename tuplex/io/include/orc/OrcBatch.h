@@ -11,6 +11,8 @@
 #ifndef TUPLEX_ORCBATCH_H
 #define TUPLEX_ORCBATCH_H
 
+#ifdef BUILD_WITH_ORC
+
 namespace tuplex { namespace orc {
 
 /*!
@@ -67,5 +69,7 @@ public:
 };
 
 }}
+
+#endif
 
 #endif //TUPLEX_ORCBATCH_H

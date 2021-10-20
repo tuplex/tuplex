@@ -11,6 +11,10 @@
 #ifndef TUPLEX_UTILS_H
 #define TUPLEX_UTILS_H
 
+// standard message strings
+#define MISSING_ORC_MESSAGE ("Tuplex was not built with ORC support. To build Tuplex with ORC, set BUILD_WITH_ORC=ON.")
+
+
 #include "Base.h"
 #include "StringUtils.h"
 #include "StatUtils.h"

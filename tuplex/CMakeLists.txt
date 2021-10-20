@@ -29,6 +29,8 @@ if (CCACHE_FOUND AND CCACHE_SUPPORT)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
 endif()
 
+# Tuplex build options:
+# =====================
 
 # Option on whether to use shared libraries or perform a static link.
 # Must be identical to how AWS SDK was installed. E.g., when installing brew aws-sdk-cpp the default is
@@ -36,6 +38,19 @@ endif()
 # --> We use static build per default.
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 set(CMAKE_MACOSX_RPATH 1) # fix for gtest warning
+
+option(SKIP_AWS_TESTS "Skip AWS tests" ON)
+option(BUILD_WITH_ORC "Build with Orc file support" OFF)
+
+
+# translate to C++ flags
+if(SKIP_AWS_TESTS)
+    add_definitions(-DSKIP_AWS_TESTS)
+endif()
+
+if(BUILD_WITH_ORC)
+    add_definitions(-DBUILD_WITH_ORC)
+endif()
 
 # add -Werror=return-type  to turn missing returns into errors!!!
 macro(append_if list condition var)
@@ -79,14 +94,15 @@ enable_testing()
 
 # mainly from https://github.com/AdaCore/z3/blob/master/CMakeLists.txt
 message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
-set(available_build_types Debug Release RelWithDebInfo MinSizeRel)
+set(available_build_types Debug Release RelWithDebInfo MinSizeRel tsan asan)
 if(DEFINED CMAKE_CONFIGURATION_TYPES)
     # multi-configuration build, i.e. MSVC or Xcode
     message(STATUS "Available configurations: ${CMAKE_CONFIGURATION_TYPES}")
 else()
     # single-configuration build, i.e. Unix Makefiles, Ninja...
     if(NOT CMAKE_BUILD_TYPE)
-        message(STATUS "CMAKE_BUILD_TYPE is not set. Using default")
+        set(CMAKE_BUILD_TYPE Debug) # use Debug per default?
+        message(STATUS "CMAKE_BUILD_TYPE is not set. Using ${CMAKE_BUILD_TYPE}")
         message(STATUS "Available build types are: ${available_build_types}")
 
         # Provide drop down menu options in cmake-gui

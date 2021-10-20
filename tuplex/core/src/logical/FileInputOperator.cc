@@ -329,6 +329,8 @@ namespace tuplex {
     }
 
     FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co): _sampling_time_s(0.0) {
+
+#ifdef BUILD_WITH_ORC
         auto &logger = Logger::instance().logger("fileinputoperator");
         _fmt = FileFormat::OUTFMT_ORC;
         Timer timer;
@@ -376,6 +378,9 @@ namespace tuplex {
             setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
         }
         _sampling_time_s += timer.time();
+#else
+        throw std::runtime_error(MISSING_ORC_MESSAGE);
+#endif
     }
 
     void FileInputOperator::setProjectionDefaults() {// set optimized schema to current one

@@ -305,6 +305,10 @@ namespace tuplex {
         void toorc(const URI &uri,
                    const std::unordered_map<std::string, std::string> &outputOptions = defaultORCOutputOptions(),
                    std::ostream &os = std::cout) {
+#ifndef BUILD_WITH_ORC
+            throw std::runtime_error(MISSING_ORC_MESSAGE);
+#endif
+
             tofile(FileFormat::OUTFMT_ORC, uri, UDF(""), 0, 0, outputOptions, std::numeric_limits<size_t>::max(),
                    os);
         }

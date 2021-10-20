@@ -12,6 +12,8 @@
 #define TUPLEX_ORCTYPES_H
 
 #include <TypeSystem.h>
+#ifdef BUILD_WITH_ORC
+
 #include <orc/Type.hh>
 #include <orc/OrcFile.hh>
 
@@ -79,5 +81,7 @@ python::Type orcTypeToTuplex(const ::orc::Type &type, bool hasNull);
 ORC_UNIQUE_PTR<::orc::Type> tuplexRowTypeToOrcType(const python::Type &rowType, const std::vector<std::string> &columns = {});
 
 }}
+
+#endif
 
 #endif //TUPLEX_ORCTYPES_H

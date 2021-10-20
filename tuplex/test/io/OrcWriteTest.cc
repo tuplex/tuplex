@@ -1,6 +1,10 @@
 #include <gtest/gtest.h>
 #include <Context.h>
 #include <DataSet.h>
+
+
+#ifdef BUILD_WITH_ORC
+
 #include <orc/OrcFile.hh>
 #include <orc/ColumnPrinter.hh>
 #include "../core/TestUtils.h"
@@ -371,3 +375,4 @@ TEST(ORC, RowToStr) {
     auto row8 = Row(1, option<int>::none, 2);
     EXPECT_EQ(R"({"": 1, "": null, "": 2})", rowToORCString(row8));
 }
+#endif

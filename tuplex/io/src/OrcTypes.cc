@@ -7,6 +7,7 @@
 //  Created by Ben Givertz first on 8/31/2021                                                                         //
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
+#ifdef BUILD_WITH_ORC
 
 #include <orc/OrcTypes.h>
 
@@ -139,3 +140,4 @@ python::Type orcTypeToTuplex(const ::orc::Type &type, bool hasNull) {
 }
 
 }}
+#endif

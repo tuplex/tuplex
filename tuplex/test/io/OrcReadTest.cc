@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <Context.h>
 
+#ifdef BUILD_WITH_ORC
+
 void testReadInput(const std::vector<tuplex::Row> &rows);
 
 TEST(ORC, ReadOption) {
@@ -167,3 +169,5 @@ void testReadInput(const std::vector<tuplex::Row> &rows) {
         EXPECT_EQ(rows.at(i).toPythonString(), results.at(i).toPythonString());
     }
 }
+
+#endif

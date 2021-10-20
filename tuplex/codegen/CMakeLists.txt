@@ -44,7 +44,7 @@ IF(BREW_FOUND)
         # could use brew prefix here, but let's leave it like this
         EXECUTE_PROCESS(COMMAND bash "-c" "brew info llvm | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_LLVM_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
         IF(NOT BREW_LLVM_NOTFOUND EQUAL "0")
-            MESSAGE("did not find llvm, you might install it via `brew install llvm@9`")
+            MESSAGE(WARNING "did not find llvm, you might install it via `brew install llvm@9`")
         ELSE()
             # check version, needs to be within 5 and 9 incl.
             # i.e. execute something like /usr/local/opt/llvm/bin/llvm-config --version
@@ -79,8 +79,6 @@ ENDIF()
 
 # for brewed llvm, add to cmakemodulepath
 IF(LLVM_ROOT_DIR)
-    message(STATUS "Given LLVM_ROOT_DIR=${LLVM_ROOT_DIR}")
-    message(STATUS "CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
     EXECUTE_PROCESS(COMMAND "ls" "/opt" COMMAND_ECHO STDOUT)
     EXECUTE_PROCESS(COMMAND "ls" "${LLVM_ROOT_DIR}" COMMAND_ECHO STDOUT)
     # make cmake find in config mode the right LLVMConfig.cmake file which is located here

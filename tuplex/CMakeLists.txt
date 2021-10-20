@@ -552,14 +552,15 @@ if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     endif()
 endif()
 
-
-# use march=native if available
+# DO NOT USE MARCH=NATIVE for wheels...
+# @TODO: to pick this up correctly from env option?
+# use march=native if available and NOT building wheels
 include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
-if(COMPILER_SUPPORTS_MARCH_NATIVE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
-endif()
-
-message(STATUS "Using following CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
-message(STATUS "Using following CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
+#CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
+#if(COMPILER_SUPPORTS_MARCH_NATIVE)
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
+#endif()
+#
+#message(STATUS "Using following CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
+#message(STATUS "Using following CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")

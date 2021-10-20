@@ -23,7 +23,7 @@ namespace tuplex {
     public:
         virtual ~CacheOperator() override = default;
 
-        CacheOperator(LogicalOperator* parent, bool storeSpecialized,
+        CacheOperator(const std::shared_ptr<LogicalOperator> &parent, bool storeSpecialized,
                       const Schema::MemoryLayout& memoryLayout=Schema::MemoryLayout::ROW) : LogicalOperator(parent), _storeSpecialized(storeSpecialized), _memoryLayout(memoryLayout), _cached(false),
         _columns(parent->columns()) {
             setSchema(this->parent()->getOutputSchema()); // inherit schema from parent
@@ -71,7 +71,7 @@ namespace tuplex {
         std::vector<std::string> columns() const override { return _columns; }
 
         void setResult(const std::shared_ptr<ResultSet>& rs);
-        LogicalOperator* clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
         CacheOperator* cloneWithoutParents() const;
 
         /*!

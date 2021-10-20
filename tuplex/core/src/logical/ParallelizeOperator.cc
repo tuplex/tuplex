@@ -108,12 +108,12 @@ namespace tuplex {
         // return v;
     }
 
-    LogicalOperator *ParallelizeOperator::clone() {
+    std::shared_ptr<LogicalOperator> ParallelizeOperator::clone() {
         auto copy = new ParallelizeOperator(getOutputSchema(), _partitions, columns());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     int64_t ParallelizeOperator::cost() const {

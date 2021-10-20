@@ -17,7 +17,7 @@
 namespace tuplex {
     class FilterOperator : public UDFOperator {
     public:
-        FilterOperator(LogicalOperator *parent, const UDF& udf, const std::vector<std::string>& columnNames, bool allowNumericTypeUnification);
+        FilterOperator(const std::shared_ptr<LogicalOperator> &parent, const UDF& udf, const std::vector<std::string>& columnNames, bool allowNumericTypeUnification);
 
         std::string name() override { return "filter"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::FILTER; }
@@ -30,7 +30,7 @@ namespace tuplex {
 
         std::vector<Row> getSample(const size_t num) const override;
 
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
         /*!
          * projection pushdown, update UDF and schema...

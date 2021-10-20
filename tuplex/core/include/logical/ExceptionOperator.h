@@ -23,11 +23,11 @@ namespace tuplex {
          * return first ancestor node which is not an exception operator
          * @return null if not found
          */
-        LogicalOperator* getNormalParent() const {
+        std::shared_ptr<LogicalOperator> getNormalParent() const {
             const T& underlying = static_cast<const T&>(*this);
 
             // go up till non-resolver is found
-            LogicalOperator *parent = underlying.parent();
+            std::shared_ptr<LogicalOperator> parent = underlying.parent();
             if(!parent)
                 return nullptr;
 

@@ -20,9 +20,9 @@ namespace tuplex {
         std::vector<std::string> _outputColumns;
         std::string _name;
     public:
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
-        MapOperator(LogicalOperator *parent,
+        MapOperator(const std::shared_ptr<LogicalOperator>& parent,
                     const UDF& udf,
                     const std::vector<std::string>& columnNames,
                     bool allowNumericTypeUnification=false);

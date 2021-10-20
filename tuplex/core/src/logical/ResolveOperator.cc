@@ -15,7 +15,7 @@ static const size_t typeDetectionSampleSize = 5; // use 5 as default for now
 
 namespace tuplex {
 
-    ResolveOperator::ResolveOperator(LogicalOperator *parent,
+    ResolveOperator::ResolveOperator(const std::shared_ptr<LogicalOperator>& parent,
             const ExceptionCode &ecToResolve,
             const UDF &udf,
             const std::vector<std::string>& columnNames,
@@ -147,13 +147,13 @@ namespace tuplex {
         }
     }
 
-    LogicalOperator *ResolveOperator::clone() {
+    std::shared_ptr<LogicalOperator> ResolveOperator::clone() {
         auto copy = new ResolveOperator(parent()->clone(), ecCode(), _udf,
                                         UDFOperator::columns(), _udf.allowNumericTypeUnification());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     void ResolveOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {

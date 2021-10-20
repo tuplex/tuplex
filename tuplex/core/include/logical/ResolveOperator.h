@@ -23,7 +23,7 @@ namespace tuplex {
         bool schemasMatch() const;
 
     public:
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
     private:
 
@@ -31,7 +31,7 @@ namespace tuplex {
         // instead of taking the output of the parent, it takes its input!
         Schema inferSchema(Schema parentSchema) override;
     public:
-        ResolveOperator(LogicalOperator *parent,
+        ResolveOperator(const std::shared_ptr<LogicalOperator>& parent,
                 const ExceptionCode& ecToResolve,
                 const UDF& udf,
                 const std::vector<std::string>& columnNames,

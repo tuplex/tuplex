@@ -21,13 +21,13 @@ namespace tuplex {
         std::string _columnToMap;
         int         _columnToMapIndex;
     public:
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
     protected:
         Schema inferSchema(Schema parentSchema) override;
     public:
 
-        MapColumnOperator(LogicalOperator *parent,
+        MapColumnOperator(const std::shared_ptr<LogicalOperator>& parent,
                           const std::string& columnName,
                           const std::vector<std::string>& columns,
                           const UDF& udf,

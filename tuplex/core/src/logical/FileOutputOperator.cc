@@ -11,7 +11,7 @@
 #include <logical/FileOutputOperator.h>
 
 namespace tuplex {
-    FileOutputOperator::FileOutputOperator(tuplex::LogicalOperator *parent, const tuplex::URI &uri,
+    FileOutputOperator::FileOutputOperator(const std::shared_ptr<LogicalOperator> &parent, const tuplex::URI &uri,
                                            const tuplex::UDF &udf, const std::string &name,
                                            const tuplex::FileFormat &fmt,
                                            const std::unordered_map<std::string, std::string> &options, size_t numParts,
@@ -28,12 +28,12 @@ namespace tuplex {
         setSchema(this->parent()->getOutputSchema());
     }
 
-    LogicalOperator *FileOutputOperator::clone() {
+    std::shared_ptr<LogicalOperator> FileOutputOperator::clone() {
         auto copy = new FileOutputOperator(parent()->clone(), _uri, _outputPathUDF,
                 _name, _fmt, _options, _numParts, _splitSize, _limit);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 }

@@ -42,7 +42,7 @@ namespace tuplex {
         std::vector<std::string> _columnNames;
     public:
         UDFOperator() = delete;
-        UDFOperator(LogicalOperator* parent, const UDF& udf,
+        UDFOperator(const std::shared_ptr<LogicalOperator> &parent, const UDF& udf,
                 const std::vector<std::string>& columnNames=std::vector<std::string>());
 
         UDF& getUDF() { return _udf; }

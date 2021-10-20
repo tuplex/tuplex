@@ -103,4 +103,13 @@ namespace tuplex {
         python::unlockGIL();
         return v;
     }
+
+    template<class Archive> void LogicalOperator::save(Archive &ar) const {
+        ar(_id, _parents, _schema);
+    }
+
+    template<class Archive> void LogicalOperator::load(Archive &ar) {
+        ar(_id, _parents, _schema);
+        addThisToParents(); // build children of parents
+    }
 }

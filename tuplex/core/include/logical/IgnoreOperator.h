@@ -21,7 +21,7 @@ namespace tuplex {
         //IgnoreOperator() = delete;
         virtual ~IgnoreOperator() override = default;
 
-        IgnoreOperator(LogicalOperator* parent, const ExceptionCode& ec) : LogicalOperator(parent) {
+        IgnoreOperator(const std::shared_ptr<LogicalOperator>& parent, const ExceptionCode& ec) : LogicalOperator(parent) {
             setSchema(this->parent()->getOutputSchema());
             setCode(ec);
         }
@@ -34,10 +34,10 @@ namespace tuplex {
             return parent->getID();
         }
 
-        LogicalOperator *clone() override {
+        std::shared_ptr<LogicalOperator> clone() override {
             auto copy =  new IgnoreOperator(parent()->clone(), ecCode());
             copy->copyMembers(this);
-            return copy;
+            return std::shared_ptr<LogicalOperator>(copy);
         }
 
         std::string name() override { return "ignore"; }

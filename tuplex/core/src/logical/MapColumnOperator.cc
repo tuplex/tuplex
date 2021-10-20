@@ -11,7 +11,7 @@
 #include <logical/MapColumnOperator.h>
 
 namespace tuplex {
-    MapColumnOperator::MapColumnOperator(tuplex::LogicalOperator *parent, const std::string &columnName, const std::vector<std::string>& columns,
+    MapColumnOperator::MapColumnOperator(const std::shared_ptr<LogicalOperator>& parent, const std::string &columnName, const std::vector<std::string>& columns,
                                          const tuplex::UDF &udf,
                                          bool allowNumericTypeUnification) : UDFOperator::UDFOperator(parent, udf, columns), _columnToMap(columnName) {
 
@@ -154,14 +154,14 @@ namespace tuplex {
         setSchema(inferSchema(parent()->getOutputSchema()));
     }
 
-    LogicalOperator *MapColumnOperator::clone() {
+    std::shared_ptr<LogicalOperator> MapColumnOperator::clone() {
         auto copy = new MapColumnOperator(parent()->clone(), _columnToMap,
                                           UDFOperator::columns(), _udf,
                                           _udf.allowNumericTypeUnification());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     bool MapColumnOperator::retype(const std::vector<python::Type> &rowTypes) {

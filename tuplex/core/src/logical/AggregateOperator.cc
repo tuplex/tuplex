@@ -25,7 +25,7 @@ namespace tuplex {
 
     }
 
-    LogicalOperator *AggregateOperator::clone() {
+    std::shared_ptr<LogicalOperator> AggregateOperator::clone() {
         // important to use here input column names, i.e. stored in base class UDFOperator!
         auto copy = new AggregateOperator(parent()->clone(), aggType(), _combiner.allowNumericTypeUnification(),
                                           _combiner, _aggregator, _initialValue, _keys);
@@ -33,7 +33,7 @@ namespace tuplex {
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     void hintTwoParamUDF(UDF& udf, const python::Type& a, const python::Type& b) {

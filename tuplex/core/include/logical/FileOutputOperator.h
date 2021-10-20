@@ -32,7 +32,7 @@ namespace tuplex {
 
         std::unordered_map<std::string, std::string> _options; // output format specific options
     public:
-        FileOutputOperator(LogicalOperator* parent,
+        FileOutputOperator(const std::shared_ptr<LogicalOperator> &parent,
                 const URI& uri,
                 const UDF& udf,
                 const std::string& name,
@@ -70,7 +70,7 @@ namespace tuplex {
 
         URI uri() const { return _uri; }
 
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
         std::vector<std::string> columns() const override {
             // check if parent has columns, if not fail

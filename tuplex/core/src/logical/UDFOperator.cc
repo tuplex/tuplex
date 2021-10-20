@@ -15,7 +15,7 @@ namespace tuplex {
     static const size_t typeDetectionSampleSize = 5; // use 5 as default for now
 
 
-    UDFOperator::UDFOperator(LogicalOperator* parent, const UDF& udf,
+    UDFOperator::UDFOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF& udf,
     const std::vector<std::string>& columnNames) : LogicalOperator::LogicalOperator(parent), _udf(udf), _columnNames(columnNames) {
         assert(parent);
     }

@@ -14,7 +14,7 @@ namespace tuplex {
 
     // within constructor
     // check that return type of UDF is bool!
-    FilterOperator::FilterOperator(LogicalOperator *parent,
+    FilterOperator::FilterOperator(const std::shared_ptr<LogicalOperator>& parent,
             const UDF &udf,
             const std::vector<std::string>& columnNames,
             bool allowNumericTypeUnification) : UDFOperator::UDFOperator(parent, udf, columnNames), _good(true) {
@@ -75,14 +75,14 @@ namespace tuplex {
         return parent()->getSample(num);
     }
 
-    LogicalOperator *FilterOperator::clone() {
+    std::shared_ptr<LogicalOperator> FilterOperator::clone() {
         auto copy = new FilterOperator(parent()->clone(), _udf,
                                        UDFOperator::columns(), _udf.allowNumericTypeUnification());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
         copy->_good = _good;
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     void FilterOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {

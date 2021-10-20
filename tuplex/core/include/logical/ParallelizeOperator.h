@@ -25,7 +25,7 @@ namespace tuplex {
 
         void initSample(); // helper to fill sample with a certain amount of rows.
     public:
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
         // this a root node
         ParallelizeOperator(const Schema& schema, std::vector<Partition*> partitions, const std::vector<std::string>& columns);

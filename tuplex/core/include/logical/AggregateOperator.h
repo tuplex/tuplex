@@ -30,7 +30,7 @@ namespace tuplex {
     public:
         virtual ~AggregateOperator() override = default;
 
-        AggregateOperator(LogicalOperator* parent,
+        AggregateOperator(const std::shared_ptr<LogicalOperator>& parent,
                           const AggregateType& at,
                           bool allowNumericTypeUnification,
                           const UDF& combiner=UDF("",""),
@@ -117,7 +117,7 @@ namespace tuplex {
             return std::vector<std::string>();
         }
 
-        LogicalOperator* clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
         const UDF& aggregatorUDF() const { return _aggregator; }
         const UDF& combinerUDF() const { return _combiner; }

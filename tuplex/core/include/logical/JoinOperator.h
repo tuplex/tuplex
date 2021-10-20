@@ -26,8 +26,8 @@ namespace tuplex {
 
     class JoinOperator : public LogicalOperator {
     public:
-        JoinOperator(LogicalOperator* left,
-                           LogicalOperator* right,
+        JoinOperator(const std::shared_ptr<LogicalOperator> &left,
+                           const std::shared_ptr<LogicalOperator> &right,
                            option<std::string> leftColumn,
                            option<std::string> rightColumn, const JoinType& jt,
                            const std::string& leftPrefix, const std::string& leftSuffix,
@@ -52,7 +52,7 @@ namespace tuplex {
 
         bool isDataSource() override;
 
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
         Schema getInputSchema() const override;
 

@@ -13,9 +13,10 @@ import os
 import sys
 
 from tuplex.utils.common import is_in_interactive_mode, in_jupyter_notebook, in_google_colab
-from tuplex.utils.interactive_shell import TuplexShell
-
-from tuplex.utils.version import __version__
+try:
+    from tuplex.utils.version import __version__
+except:
+    __version__ = 'dev'
 
 def TuplexBanner():
     banner = '''Welcome to\n
@@ -34,6 +35,7 @@ def TuplexBanner():
 # else, provide code-closure functionality through readline module
 
 if is_in_interactive_mode() and not in_jupyter_notebook() and not in_google_colab():
+    from tuplex.utils.interactive_shell import TuplexShell
     os.system('clear')
 
     from tuplex.context import Context

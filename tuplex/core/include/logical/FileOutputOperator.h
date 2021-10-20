@@ -44,6 +44,11 @@ namespace tuplex {
 
         virtual ~FileOutputOperator() {}
 
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _splitSize, _numParts, _limit, _uri, _fmt, _name, _outputPathUDF, _options);
+        }
+
         virtual std::string name() override { return _name; }
         virtual LogicalOperatorType type() const override { return LogicalOperatorType::FILEOUTPUT; }
 
@@ -90,5 +95,7 @@ namespace tuplex {
         const UDF& udf() const { return _outputPathUDF; }
     };
 }
+
+CEREAL_REGISTER_TYPE(tuplex::FileOutputOperator);
 
 #endif //TUPLEX_OUTPUTFILEOPERATOR_H

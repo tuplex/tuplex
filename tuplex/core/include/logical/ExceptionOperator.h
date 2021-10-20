@@ -52,6 +52,11 @@ namespace tuplex {
          * @return
          */
         ExceptionCode ecCode() const { return _ec; }
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_ec);
+        }
     private:
         ExceptionCode _ec;
 

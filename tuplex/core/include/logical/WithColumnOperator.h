@@ -27,6 +27,10 @@ namespace tuplex {
     public:
         std::shared_ptr<LogicalOperator> clone() override;
 
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _newColumn, _columnToMapIndex);
+        }
     protected:
         Schema inferSchema(Schema parentSchema) override;
     public:
@@ -66,4 +70,5 @@ namespace tuplex {
     };
 }
 
+CEREAL_REGISTER_TYPE(tuplex::WithColumnOperator);
 #endif //TUPLEX_WITHCOLUMNOPERATOR_H

@@ -40,9 +40,14 @@ namespace tuplex {
 
         bool retype(const std::vector<python::Type>& rowTypes) override;
 
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _good);
+        }
     private:
         bool _good;
     };
 }
 
+CEREAL_REGISTER_TYPE(tuplex::CacheOperator);
 #endif //TUPLEX_FILTEROPERATOR_H

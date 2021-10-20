@@ -45,7 +45,13 @@ namespace tuplex {
         Schema getInputSchema() const override { return getOutputSchema(); }
 
         std::vector<std::string> columns() const override;
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _limit);
+        }
     };
 }
 
+CEREAL_REGISTER_TYPE(tuplex::TakeOperator);
 #endif //TUPLEX_TAKEOPERATOR_H

@@ -65,7 +65,7 @@ namespace tuplex {
                 return false;
 
             // note: this may screw up things!
-            ASTNode *func = findFunction(_root);
+            ASTNode *func = findFunction(_root.get());
             assert(func->type() == ASTNodeType::Lambda || func->type() == ASTNodeType::Function);
 
             // actual code generation
@@ -107,7 +107,7 @@ namespace tuplex {
         }
 
         python::Type AnnotatedAST::getReturnType() const {
-            ASTNode *node = findFunction(_root);
+            ASTNode *node = findFunction(_root.get());
 
             if(!_typesDefined) {
                 Logger::instance().logger("codegen").error("types were not defined for UDF. Can't return returntype.");
@@ -128,7 +128,7 @@ namespace tuplex {
         }
 
         FunctionArguments AnnotatedAST::getParameterTypes() const {
-            ASTNode *node = findFunction(_root);
+            ASTNode *node = findFunction(_root.get());
 
             FunctionArguments fa;
 
@@ -155,7 +155,7 @@ namespace tuplex {
         }
 
         AnnotatedAST& AnnotatedAST::removeParameterTypes() {
-            ASTNode *node = findFunction(_root);
+            ASTNode *node = findFunction(_root.get());
 
             if(!node)
                 return *this;
@@ -185,13 +185,11 @@ namespace tuplex {
 
         bool AnnotatedAST::parseString(const std::string &s, bool allowNumericTypeUnification) {
             // for a clean restart, later cache in memory!
-            release();
-
             _allowNumericTypeUnification = allowNumericTypeUnification;
 
             // using ANTLR4 parser
             assert(!_root);
-            _root = tuplex::parseToAST(s);
+            _root = std::unique_ptr<ASTNode>(tuplex::parseToAST(s));
 
             // successful parse if _root is not nullptr
             if(_root != nullptr) {
@@ -200,8 +198,6 @@ namespace tuplex {
                 }
                 catch(Exception& e) {
                     Logger::instance().logger("Python parser").error("exception encountered while processing AST: "+e.getMessage());
-                    if(_root)
-                        delete _root;
                     _root = nullptr;
                 }
             }
@@ -215,9 +211,8 @@ namespace tuplex {
 
         void AnnotatedAST::cloneFrom(const AnnotatedAST &other) {
             // as of now, deep copy only the relevant parts.
-            release();
             assert(!_root);
-            _root = other._root ? other._root->clone() : nullptr;
+            _root = other._root ? std::unique_ptr<ASTNode>(other._root->clone()) : nullptr;
             _irFuncName = other._irFuncName;
             _typeHints = other._typeHints;
             _typesDefined = other._typesDefined;
@@ -226,18 +221,18 @@ namespace tuplex {
         }
 
         bool AnnotatedAST::writeGraphVizFile(const std::string &path) {
-            if(!_root)return false;
+            if(!_root) return false;
 
             GraphVizGraph graph;
-            graph.createFromAST(_root);
+            graph.createFromAST(_root.get());
             return graph.saveAsDot(path);
         }
 
         bool AnnotatedAST::writeGraphToPDF(const std::string &path) {
-            if(!_root)return false;
+            if(!_root) return false;
 
             GraphVizGraph graph;
-            graph.createFromAST(_root);
+            graph.createFromAST(_root.get());
             return graph.saveAsPDF(path);
         }
 
@@ -311,7 +306,7 @@ namespace tuplex {
 #endif
 #endif
             // in debug mode, make sure that the tree is fully reduced!
-            assert(!containsReducableExpressions(_root));
+            assert(!containsReducableExpressions(_root.get()));
         }
 
         void AnnotatedAST::addTypeHint(const std::string &identifier, const python::Type &type) {
@@ -334,7 +329,7 @@ namespace tuplex {
 
             assert(_root);
 
-            ASTNode *node = findFunction(_root);
+            ASTNode *node = findFunction(_root.get());
 
             std::vector<std::string> names;
 
@@ -439,7 +434,7 @@ namespace tuplex {
             }
 
             // set types explicitly for outer function, if there are type hints perform compatibility check
-            hintFunctionParameters(findFunction(_root));
+            hintFunctionParameters(findFunction(_root.get()));
 
             // 2.2 run type annotator using the symbol table
             TypeAnnotatorVisitor tav(*table, _allowNumericTypeUnification);
@@ -523,7 +518,7 @@ namespace tuplex {
                 _typesDefined = true;
 
                 // update params in function nodes to final type result!
-                setFunctionType(_root, _root->getInferredType());
+                setFunctionType(_root.get(), _root->getInferredType());
             }
 
             // check whether top level has type != unknown
@@ -586,7 +581,7 @@ namespace tuplex {
                 return;
 
             // check whether function is Lambda or not
-            ASTNode* funcRoot = findFunction(_root);
+            ASTNode* funcRoot = findFunction(_root.get());
             assert(funcRoot);
 
             if(funcRoot->type() == ASTNodeType::Lambda) {

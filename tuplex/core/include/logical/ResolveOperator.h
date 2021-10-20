@@ -47,7 +47,13 @@ namespace tuplex {
         std::vector<Row> getSample(const size_t num) const override;
 
         void rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) override;
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), ::cereal::base_class<ExceptionOperator<ResolveOperator>>(this));
+        }
     };
 }
 
+CEREAL_REGISTER_TYPE(tuplex::ResolveOperator);
 #endif //TUPLEX_RESOLVEOPERATOR_H

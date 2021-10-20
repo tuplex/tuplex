@@ -62,6 +62,13 @@ namespace tuplex {
         void rewriteParametersInAST(const std::unordered_map<size_t, size_t>& rewriteMap) override;
 
         bool retype(const std::vector<python::Type>& rowTypes) override;
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _outputColumns, _name);
+        }
     };
 }
+
+CEREAL_REGISTER_TYPE(tuplex::MapOperator);
 #endif //TUPLEX_MAPOPERATOR_H

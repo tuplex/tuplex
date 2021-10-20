@@ -26,7 +26,7 @@ namespace tuplex {
      */
     class FileInputOperator : public LogicalOperator {
     private:
-        std::vector<Partition*> _partitions;
+        std::vector<Partition*> _partitions; // TODO: how to cereal this?
 
         std::vector<URI>      _fileURIs;
         std::vector<size_t>   _sizes;
@@ -41,7 +41,6 @@ namespace tuplex {
         std::vector<std::string> _null_values;
 
         Schema _optimizedSchema; // schema after selection pushdown is performed.
-
         std::vector<std::string> _columnNames;
         std::vector<std::string> _optimizedColumnNames;
         std::vector<bool> _columnsToSerialize; // which columns to serialize
@@ -87,6 +86,14 @@ namespace tuplex {
 
         // for text files can use a simplified version, it also should store automatically a correct hint!
         FileInputOperator(const std::string& pattern, const ContextOptions& co, const std::vector<std::string>& null_values);
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _fileURIs, _sizes, _estimatedRowCount, _fmt, _quotechar,
+               _delimiter, _header, _null_values,
+               _optimizedSchema, _columnNames, _optimizedColumnNames, _columnsToSerialize, _indexBasedHints,
+               _normalCaseRowType, _optimizedNormalCaseRowType, _sample, _sampling_time_s);
+        }
 
         std::string name() override {
             if(_fmt == FileFormat::OUTFMT_CSV)
@@ -200,5 +207,7 @@ namespace tuplex {
         int64_t cost() const override;
     };
 }
+
+CEREAL_REGISTER_TYPE(tuplex::FileInputOperator);
 
 #endif //TUPLEX_CSVOPERATOR_H

@@ -17,6 +17,7 @@
 namespace tuplex {
     class ParallelizeOperator : public LogicalOperator {
 
+        // TODO: how to do partitions?
         std::vector<Partition*> _partitions; // data, conforming to majority type
         //@TODO: missing: python objects & general case data
         std::vector<std::string> _columnNames;
@@ -54,6 +55,13 @@ namespace tuplex {
         std::vector<std::string> inputColumns() const override { return _columnNames; }
 
         int64_t cost() const override;
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _columnNames, _sample);
+        }
     };
 }
+
+CEREAL_REGISTER_TYPE(tuplex::ParallelizeOperator);
 #endif //TUPLEX_PARALLELIZEOPERATOR_H

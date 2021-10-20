@@ -202,7 +202,7 @@ namespace tuplex {
              */
             void setUnpacking(bool unpack=false);
 
-            ASTNode* getFunctionAST() const { return findFunction(_root); }
+            ASTNode* getFunctionAST() const { return findFunction(_root.get()); }
 
             /*!
              * returns all stored typing err messages

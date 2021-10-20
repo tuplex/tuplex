@@ -228,8 +228,13 @@ namespace tuplex {
         virtual std::vector<PyObject*> getPythonicSample(size_t num);
 
         // cereal serialization functions
-        template<class Archive> void save(Archive &ar) const;
-        template<class Archive> void load(Archive &ar);
+        template<class Archive> void save(Archive &ar) const {
+            ar(_id, _parents, _schema);
+        }
+        template<class Archive> void load(Archive &ar) {
+            ar(_id, _parents, _schema);
+            addThisToParents(); // build children of parents
+        }
     };
 }
 #endif //TUPLEX_LOGICALOPERATOR_H

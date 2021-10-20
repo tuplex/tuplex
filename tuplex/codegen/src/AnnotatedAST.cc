@@ -30,13 +30,6 @@ static int g_func_counter = 0;
 
 namespace tuplex {
     namespace codegen {
-        void AnnotatedAST::release() {
-            if(_root) {
-                delete _root;
-                _root = nullptr;
-            }
-        }
-
         ASTNode* AnnotatedAST::findFunction(ASTNode *root) const {
             if(!root)
                 return nullptr;

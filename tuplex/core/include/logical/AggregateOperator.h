@@ -138,6 +138,11 @@ namespace tuplex {
          */
         std::vector<size_t> keyColsInParent() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyColsInParent; }
         python::Type keyType() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyType; }
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _aggType, _aggregateOutputType, _combiner, _aggregator, _initialValue);
+        }
     private:
         AggregateType _aggType;
 
@@ -155,4 +160,5 @@ namespace tuplex {
     };
 }
 
+CEREAL_REGISTER_TYPE(tuplex::AggregateOperator);
 #endif //TUPLEX_AGGREGATEOPERATOR_H

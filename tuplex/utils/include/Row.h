@@ -15,6 +15,17 @@
 #include <Field.h>
 #include <ExceptionCodes.h>
 
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+
+#include "cereal/archives/binary.hpp"
+
 namespace tuplex {
     /*!
      * expensive wrapper for a single column. For the actual computation, serialized versions are used.
@@ -138,6 +149,11 @@ namespace tuplex {
         }
 
         Row upcastedRow(const python::Type& targetType) const;
+
+        // cereal serialization function
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_schema, _values, _serializedLength);
+        }
     };
 
     // used for tests

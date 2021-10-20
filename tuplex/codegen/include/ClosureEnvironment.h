@@ -15,6 +15,18 @@
 #include <Field.h>
 #include "SymbolTable.h"
 
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/map.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+
+#include "cereal/archives/binary.hpp"
+
 namespace tuplex {
 
     class SymbolTable;
@@ -35,6 +47,10 @@ namespace tuplex {
             std::string original_identifier; // original name of module
             std::string package; // to which package it belongs to
             std::string location; // file location
+
+            template<class Archive> void serialize(Archive &ar) {
+                ar(identifier, original_identifier, package, location);
+            }
         };
 
         struct Constant {
@@ -42,6 +58,10 @@ namespace tuplex {
             std::string identifier;             // which name
             //std::string json_value;          // value (pickled)
             Field value;
+
+            template<class Archive> void serialize(Archive &ar) {
+                ar(type, identifier, value);
+            }
         };
 
         struct Function {
@@ -49,7 +69,16 @@ namespace tuplex {
             std::string package; // which module does this function belong to?
             std::string location; // file location
             std::string qualified_name; // full path, i.e. re.search
+
+            template<class Archive> void serialize(Archive &ar) {
+                ar(identifier, package, location, qualified_name);
+            }
         };
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_imported_modules, _globals, _functions);
+        }
 
         void addConstant(const Constant& c) { _globals.push_back(c); }
         void addModule(const Module& m) { _imported_modules.push_back(m); }

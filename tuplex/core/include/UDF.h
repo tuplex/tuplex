@@ -20,6 +20,17 @@
 #include <ClosureEnvironment.h>
 #include <IFailable.h>
 
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+
+#include "cereal/archives/binary.hpp"
+
 namespace tuplex {
     class UDF : public IFailable {
     private:
@@ -68,6 +79,11 @@ namespace tuplex {
                                 _inputSchema(other._inputSchema),
                                 _dictAccessFound(other._dictAccessFound),
                                 _rewriteDictExecuted(other._rewriteDictExecuted) {}
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_ast, _isCompiled, _failed, _code, _pickledCode, _outputSchema, _inputSchema, _dictAccessFound, _rewriteDictExecuted);
+        }
 
         /*!
          * get closure environment back, i.e. all used modules and globals within this UDF.

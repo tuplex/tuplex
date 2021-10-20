@@ -91,6 +91,11 @@ namespace tuplex {
          * @return
          */
         bool storeSpecialized() const { return _storeSpecialized; }
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalCaseRowCount, _generalCaseRowCount);
+        }
     protected:
         void copyMembers(const LogicalOperator* other) override;
     private:
@@ -105,6 +110,8 @@ namespace tuplex {
         // or merge them.
         bool _cached;
         bool _storeSpecialized;
+
+        // TODO: how to do Partition*, PyObject*??
         std::vector<Partition*> _normalCasePartitions;    //! holds all data conforming to the normal case schema
         std::vector<Partition*> _generalCasePartitions;   //! holds all data which is considered to be a normal-case violation,
                                                           //! i.e. which does not adhere to the normal case schema, but did not produce
@@ -129,4 +136,5 @@ namespace tuplex {
     };
 }
 
+CEREAL_REGISTER_TYPE(tuplex::CacheOperator);
 #endif //TUPLEX_CACHEOPERATOR_H

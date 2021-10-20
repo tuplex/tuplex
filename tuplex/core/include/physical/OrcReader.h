@@ -46,6 +46,9 @@ namespace tuplex {
          * @param inputFilePath
          */
         void read(const URI& inputFilePath) override {
+            auto& logger = Logger::instance().defaultLogger();
+            Timer timer;
+
             using namespace ::orc;
             auto inStream = std::make_unique<orc::VirtualInputStream>(inputFilePath);
             ReaderOptions options;
@@ -106,8 +109,11 @@ namespace tuplex {
             reader.reset();
             inStream.reset();
 
-            auto& logger = Logger::instance().defaultLogger();
-            logger.info("Read " + std::to_string(numNormalRows) + " from file");
+            std::stringstream ss;
+            ss<<"[Task Finished] read from orc file in "
+              <<std::to_string(timer.time())<<"s (";
+            ss<<pluralize(numNormalRows, "row")<<")";
+            logger.info(ss.str());
         }
 
     private:
@@ -123,9 +129,8 @@ namespace tuplex {
         size_t _rangeLen;
 
         void writeBatchToPartition(PartitionWriter &pw, ::orc::ColumnVectorBatch *batch, std::vector<tuplex::orc::OrcBatch *> &columns) {
+            Serializer serializer;
             for (uint64_t r = 0; r < batch->numElements; ++r) {
-                Serializer serializer(false);
-                serializer.setSchema(_schema);
                 for (auto col : columns) {
                     col->getField(serializer, r);
                 }
@@ -133,6 +138,8 @@ namespace tuplex {
                 const uint8_t *ptr = new uint8_t[len];
                 serializer.serialize((void *) ptr, len);
                 pw.writeData(ptr, len);
+                delete[] ptr;
+                serializer.reset();
             }
             _numRowsRead += batch->numElements;
         }

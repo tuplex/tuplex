@@ -11,10 +11,37 @@
 #include <gtest/gtest.h>
 #include <Context.h>
 #include "../core/TestUtils.h"
+#include <stdlib.h>
+#include <sstream>
 
 class OrcReadTest : public PyTest {};
 
-void testReadInput(const std::vector<tuplex::Row> &rows);
+void testReadInput(tuplex::Context& context, const std::vector<tuplex::Row> &rows);
+
+std::string uniqueFileName() {
+    using namespace tuplex;
+    auto lookup = "abcdefghijklmnopqrstuvqxyz";
+    auto len = strlen(lookup);
+    std::stringstream ss;
+    ss << lookup[rand() & len];
+    while (fileExists(ss.str()) && ss.str().length() < 255) {
+        ss << lookup[rand() % len];
+    }
+    auto fileName = ss.str();
+    if (fileExists(fileName)) {
+        throw std::runtime_error("could not create unique file name");
+    }
+    return fileName;
+}
+
+TEST_F(OrcReadTest, FileDoesNotExist) {
+    using namespace tuplex;
+    auto opts = microTestOptions();
+    Context c(opts);
+
+    auto rows = c.orc(uniqueFileName()).collectAsVector();
+    EXPECT_EQ(rows.size(), 0);
+}
 
 TEST_F(OrcReadTest, ReadOption) {
     using namespace tuplex;
@@ -24,7 +51,9 @@ TEST_F(OrcReadTest, ReadOption) {
             Row(option<int>(2), option<double>(2.2), option<bool>(true)),
             Row(option<int>::none, option<double>::none, option<bool>::none)
     };
-    testReadInput(rows);
+    auto opts = microTestOptions();
+    Context c(opts);
+    testReadInput(c, rows);
 }
 
 TEST_F(OrcReadTest, ReadDict) {
@@ -43,7 +72,9 @@ TEST_F(OrcReadTest, ReadDict) {
                 Field::from_str_data(bool_to_str,
                                      python::Type::makeDictionaryType(python::Type::BOOLEAN, python::Type::STRING)))
     };
-    testReadInput(rows);
+    auto opts = microTestOptions();
+    Context c(opts);
+    testReadInput(c, rows);
 }
 
 TEST_F(OrcReadTest, ReadList) {
@@ -54,6 +85,9 @@ TEST_F(OrcReadTest, ReadList) {
             Row(List(1, 2, 3), List(1.1, 2.2, 3.3), List("a", "b", "c"), List(true, true, false)),
             Row(List(1, 2, 3), List(1.1, 2.2, 3.3), List("a", "b", "c"), List(true, true, false))
     };
+    auto opts = microTestOptions();
+    Context c(opts);
+    testReadInput(c, rows);
 }
 
 TEST_F(OrcReadTest, ReadNestedTuples) {
@@ -65,6 +99,9 @@ TEST_F(OrcReadTest, ReadNestedTuples) {
             Row(Tuple("a", Tuple(1, 2)), Tuple("b", Tuple(3, 4)), Tuple("c", Tuple(1, Tuple(2)))),
             Row(Tuple("a", Tuple(1, 2)), Tuple("b", Tuple(3, 4)), Tuple("c", Tuple(1, Tuple(2))))
     };
+    auto opts = microTestOptions();
+    Context c(opts);
+    testReadInput(c, rows);
 }
 
 TEST_F(OrcReadTest, ReadTuples) {
@@ -76,7 +113,9 @@ TEST_F(OrcReadTest, ReadTuples) {
             Row(Tuple(1, 2, 3), Tuple(1.1, 2.2, 3.3), Tuple("a", "b", "c"), Tuple(true, true, false)),
             Row(Tuple(1, 2, 3), Tuple(1.1, 2.2, 3.3), Tuple("a", "b", "c"), Tuple(true, true, false))
     };
-    testReadInput(rows);
+    auto opts = microTestOptions();
+    Context c(opts);
+    testReadInput(c, rows);
 }
 
 TEST_F(OrcReadTest, ReadI64) {
@@ -86,7 +125,9 @@ TEST_F(OrcReadTest, ReadI64) {
             Row(4, 5, 6),
             Row(7, 8, 9)
     };
-    testReadInput(rows);
+    auto opts = microTestOptions();
+    Context c(opts);
+    testReadInput(c, rows);
 }
 
 TEST_F(OrcReadTest, ReadF64) {
@@ -96,7 +137,9 @@ TEST_F(OrcReadTest, ReadF64) {
             Row(4.4, 5.5, 6.6),
             Row(7.7777, 8.8888, 9.9999)
     };
-    testReadInput(rows);
+    auto opts = microTestOptions();
+    Context c(opts);
+    testReadInput(c, rows);
 }
 
 TEST_F(OrcReadTest, ReadBoolean) {
@@ -106,7 +149,9 @@ TEST_F(OrcReadTest, ReadBoolean) {
             Row(false, false, false),
             Row(true, false, true)
     };
-    testReadInput(rows);
+    auto opts = microTestOptions();
+    Context c(opts);
+    testReadInput(c, rows);
 }
 
 TEST_F(OrcReadTest, ReadString) {
@@ -117,7 +162,9 @@ TEST_F(OrcReadTest, ReadString) {
             Row("aaa", "b", "cc"),
             Row("", "", "")
     };
-    testReadInput(rows);
+    auto opts = microTestOptions();
+    Context c(opts);
+    testReadInput(c, rows);
 }
 
 TEST_F(OrcReadTest, ReadZillow) {
@@ -126,7 +173,7 @@ TEST_F(OrcReadTest, ReadZillow) {
     Context context(co);
     auto files = VirtualFileSystem::globAll("../resources/pipelines/zillow/*.csv");
     for (const auto& file : files) {
-        testReadInput(context.csv(file.toPath()).collectAsVector());
+        testReadInput(context, context.csv(file.toPath()).collectAsVector());
     }
 }
 
@@ -136,7 +183,7 @@ TEST_F(OrcReadTest, ReadGtrace) {
     Context context(co);
     auto files = VirtualFileSystem::globAll("../resources/pipelines/gtrace/*.csv");
     for (const auto& file : files) {
-        testReadInput(context.csv(file.toPath()).collectAsVector());
+        testReadInput(context, context.csv(file.toPath()).collectAsVector());
     }
 }
 
@@ -146,37 +193,44 @@ TEST_F(OrcReadTest, ReadWeblogs) {
     Context context(co);
     auto files = VirtualFileSystem::globAll("../resources/pipelines/weblogs/*.csv");
     for (const auto& file : files) {
-        testReadInput(context.csv(file.toPath()).collectAsVector());
+        testReadInput(context, context.csv(file.toPath()).collectAsVector());
     }
 }
 
-void testReadInput(const std::vector<tuplex::Row> &rows) {
+void testReadInput(tuplex::Context &context, const std::vector<tuplex::Row> &rows) {
     using namespace tuplex;
 
-    const std::string& origFileName = "orc_read_test.orc";
-    const std::string& outFileName = "orc_read_test.*.orc";
+    std::string folderName(::testing::UnitTest::GetInstance()->current_test_info()->name());
 
     auto vfs = VirtualFileSystem::fromURI(".");
-    auto files = VirtualFileSystem::globAll(outFileName);
-    for (const auto& uri : files) {
+    auto err = vfs.create_dir(folderName);
+    ASSERT_TRUE(err == VirtualFileSystemStatus::VFS_OK || err == VirtualFileSystemStatus::VFS_FILEEXISTS);
+
+    // Remove existing files
+    auto files = VirtualFileSystem::globAll(folderName + "/*");
+    for (const auto &uri : files) {
         vfs.remove(uri);
     }
 
-    ContextOptions co = ContextOptions::defaults();
-    Context context(co);
-    context.parallelize(rows).toorc(origFileName);
+    auto fileInPattern = folderName + "/" + "orc_read_test.orc";
+    auto fileOutPattern = folderName + "/" + "orc_read_test.*.orc";
 
-    auto outFiles = VirtualFileSystem::globAll(outFileName);
-    std::vector<Row> results;
+    context.parallelize(rows).toorc(fileInPattern);
+
+    auto outFiles = VirtualFileSystem::globAll(fileOutPattern);
+    std::vector<Row> testOutput;
+    testOutput.reserve(rows.size());
     for (const auto &fileName : outFiles) {
         auto filePtr = VirtualFileSystem::open_file(fileName, VirtualFileMode::VFS_READ);
-        EXPECT_TRUE(filePtr != nullptr);
+        ASSERT_TRUE(filePtr != nullptr);
+        filePtr->close();
+
         auto orcRows = context.orc(fileName.toPath()).collectAsVector();
-        results.insert(results.end(), orcRows.begin(), orcRows.end());
+        testOutput.insert(testOutput.end(), orcRows.begin(), orcRows.end());
     }
 
-    EXPECT_EQ(results.size(), rows.size());
+    ASSERT_EQ(testOutput.size(), rows.size());
     for (int i = 0; i < rows.size(); ++i) {
-        EXPECT_EQ(rows.at(i).toPythonString(), results.at(i).toPythonString());
+        EXPECT_EQ(rows.at(i).toPythonString(), testOutput.at(i).toPythonString());
     }
 }

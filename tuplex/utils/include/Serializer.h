@@ -155,8 +155,6 @@ namespace tuplex {
 
         Schema getSchema()  { fixSchema(); return _schema; }
 
-        void setSchema(Schema schema) { _schema = schema; }
-
         /*!
          * serializes data to the buffer if there is enough capacity left
          * @param ptr memory location to where to serialize data to

@@ -31,7 +31,25 @@ if(BREW_FOUND)
         # Snappy
         EXECUTE_PROCESS(COMMAND brew list snappy OUTPUT_VARIABLE BREW_SNAPPY_LIST ERROR_VARIABLE BREW_SNAPPY_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
         if(BREW_SNAPPY_NOTFOUND)
-            set(SNAPPY_LIBRARIES "${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a")
+            set(SNAPPY_VERSION "1.1.7")
+            set(SNAPPY_HOME "${EXTERNAL_INSTALL_LOCATION}")
+            set(SNAPPY_INCLUDE_DIR "${SNAPPY_HOME}/include")
+            set(SNAPPY_STATIC_LIB "${SNAPPY_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}snappy${CMAKE_STATIC_LIBRARY_SUFFIX}")
+            set(SNAPPY_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${SNAPPY_HOME}
+                    -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DSNAPPY_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+            ExternalProject_Add (snappy_ep
+                    URL "https://github.com/google/snappy/archive/${SNAPPY_VERSION}.tar.gz"
+                    CMAKE_ARGS ${SNAPPY_CMAKE_ARGS}
+                    BUILD_BYPRODUCTS "${SNAPPY_STATIC_LIB}")
+
+            set(SNAPPY_LIBRARIES ${SNAPPY_STATIC_LIB})
+
+            add_library(snappy INTERFACE)
+            target_link_libraries(snappy INTERFACE ${SNAPPY_STATIC_LIB})
+            target_include_directories(snappy SYSTEM INTERFACE ${SNAPPY_INCLUDE_DIR})
+
+            add_dependencies(snappy snappy_ep)
+            install(FILES "${SNAPPY_STATIC_LIB}" DESTINATION "lib")
         else()
             EXECUTE_PROCESS(COMMAND brew --prefix snappy OUTPUT_VARIABLE BREW_SNAPPY_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
             set(ENV{SNAPPY_HOME} ${BREW_SNAPPY_DIR})
@@ -143,10 +161,6 @@ if(BREW_FOUND)
 endif()
 
 # set to third-party build
-if(NOT SNAPPY_LIBRARIES)
-    set(SNAPPY_HOME "")
-    set(SNAPPY_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a)
-endif()
 
 if(NOT LZ4_LIBRARIES)
     set(LZ4_HOME "")
@@ -174,7 +188,6 @@ ExternalProject_Add(orc
         BUILD_BYPRODUCTS
         ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a
         ${LZ4_LIBRARIES}
-        ${SNAPPY_LIBRARIES}
         ${ZLIB_LIBRARIES}
         ${ZSTD_LIBRARIES}
         )

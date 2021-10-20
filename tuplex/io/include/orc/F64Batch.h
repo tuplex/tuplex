@@ -11,6 +11,8 @@
 #ifndef TUPLEX_F64BATCH_H
 #define TUPLEX_F64BATCH_H
 
+#ifdef BUILD_WITH_ORC
+
 namespace tuplex { namespace orc {
 
 /*!
@@ -85,5 +87,7 @@ private:
 };
 
 }}
+
+#endif
 
 #endif //TUPLEX_F64BATCH_H

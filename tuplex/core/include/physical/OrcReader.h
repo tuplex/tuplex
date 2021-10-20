@@ -11,6 +11,8 @@
 #ifndef TUPLEX_ORCREADER_H
 #define TUPLEX_ORCREADER_H
 
+#ifdef BUILD_WITH_ORC
+
 #include <orc/OrcFile.hh>
 #include <PartitionWriter.h>
 #include <orc/OrcBatch.h>
@@ -195,4 +197,5 @@ namespace tuplex {
     };
 }
 
+#endif
 #endif //TUPLEX_ORCREADER_H

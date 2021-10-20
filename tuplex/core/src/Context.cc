@@ -452,6 +452,11 @@ namespace tuplex {
     DataSet& Context::orc(const std::string &pattern,
                           const std::vector<std::string>& columns) {
         using namespace std;
+
+#ifndef BUILD_WITH_ORC
+        return makeError(MISSING_ORC_MESSAGE);
+#endif
+
         Schema schema;
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);

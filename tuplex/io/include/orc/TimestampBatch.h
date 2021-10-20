@@ -11,6 +11,8 @@
 #ifndef TUPLEX_TIMESTAMP_H
 #define TUPLEX_TIMESTAMP_H
 
+#ifdef BUILD_WITH_ORC
+
 namespace tuplex { namespace orc {
 
 /*!
@@ -95,5 +97,7 @@ private:
 };
 
 }}
+
+#endif
 
 #endif //TUPLEX_TIMESTAMP_H

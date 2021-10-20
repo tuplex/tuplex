@@ -1,4 +1,8 @@
+
 #include <gtest/gtest.h>
+
+#ifdef BUILD_WITH_ORC
+
 #include <orc/OrcTypes.h>
 
 // Tests for ORCToTuplex
@@ -177,3 +181,5 @@ TEST(ORC, TuplexToORCPrimitive) {
     auto stringType = tuplexRowTypeToOrcType(python::Type::STRING);
     EXPECT_EQ(orc::STRING, stringType->getKind());
 }
+
+#endif

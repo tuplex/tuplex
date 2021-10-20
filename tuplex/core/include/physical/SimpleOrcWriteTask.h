@@ -11,6 +11,8 @@
 #ifndef TUPLEX_SIMPLEORCWRITETASK_H
 #define TUPLEX_SIMPLEORCWRITETASK_H
 
+#ifdef BUILD_WITH_ORC
+
 #include <orc/OrcFile.hh>
 #include "IExecutorTask.h"
 #include <orc/OrcTypes.h>
@@ -205,4 +207,7 @@ private:
 };
 
 }
+
+#endif
+
 #endif //TUPLEX_SIMPLEORCWRITETASK_H

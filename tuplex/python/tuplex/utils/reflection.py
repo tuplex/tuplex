@@ -25,8 +25,6 @@ import sys
 
 from tuplex.utils.globs import get_globals
 from tuplex.utils.source_vault import SourceVault, supports_lambda_closure
-from tuplex.utils.common import in_jupyter_notebook, in_google_colab, is_in_interactive_mode
-from tuplex.utils.interactive_shell import TuplexShell
 
 # only export get_source function, rest shall be private.
 __all__ = ['get_source', 'get_globals', 'supports_lambda_closure']
@@ -167,10 +165,13 @@ def get_source(f):
         # use inspect module
         # need to clean out lambda...
         if f.__name__ == '<lambda>':
-
             # interpreter in interactive mode or not?
             # beware jupyter notebook also returns true for interactive mode!
             if is_in_interactive_mode() and not in_jupyter_notebook() and not in_google_colab():
+
+                # import here, avoids also trouble with jupyter notebooks
+                from tuplex.utils.interactive_shell import TuplexShell
+
                 # for this to work, a dummy shell has to be instantiated
                 # through which all typing occurs. Thus, the history can
                 # be properly captured for source code lookup.

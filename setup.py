@@ -16,6 +16,28 @@ from distutils import sysconfig
 import fnmatch
 import re
 
+# TODO: add option to install these
+test_dependencies = [
+'jupyter',
+'nbformat',
+'prompt_toolkit>=2.0.7',
+'pytest>=5.3.2',
+]
+
+install_dependencies = [
+    'attrs>=19.2.0',
+    'dill>=0.2.7.1',
+    'pluggy',
+    'py>=1.5.2',
+    'pygments>=2.4.1',
+    'six>=1.11.0',
+    'wcwidth>=0.1.7',
+    'astor>=0.7.1',
+    'jedi>=0.13.2',
+    'cloudpickle>=0.6.1',
+    'PyYAML>=3.13'
+]
+
 def find_files(pattern, path):
     result = []
     for root, dirs, files in os.walk(path):
@@ -120,6 +142,7 @@ class CMakeBuild(build_ext):
 
         # Set Python_EXECUTABLE instead if you use PYBIND11_FINDPYTHON
         cmake_args = [
+            "-DBUILD_NATIVE=OFF", # disable march=native to avoid issues.
             # "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}".format(extdir),
             "-DPYTHON_EXECUTABLE={}".format(sys.executable),
             "-DCMAKE_BUILD_TYPE={}".format(cfg),  # not used on MSVC, but no harm
@@ -324,23 +347,7 @@ setup(name="tuplex",
     cmdclass={"build_ext": CMakeBuild},
     # deactivate for now, first fix python sources to work properly!
     zip_safe=False,
-    install_requires=[
-        'jupyter',
-        'nbformat',
-        'attrs>=19.2.0',
-        'dill>=0.2.7.1',
-        'pluggy>=0.6.0, <1.0.0',
-        'py>=1.5.2',
-        'pygments>=2.4.1',
-        'pytest>=5.3.2',
-        'six>=1.11.0',
-        'wcwidth>=0.1.7',
-        'astor>=0.7.1',
-        'prompt_toolkit>=2.0.7',
-        'jedi>=0.13.2',
-        'cloudpickle>=0.6.1',
-        'PyYAML>=3.13'
-    ],
+    install_requires=install_dependencies,
     # metadata for upload to PyPI
     url="https://tuplex.cs.brown.edu",
     license="Apache 2.0",

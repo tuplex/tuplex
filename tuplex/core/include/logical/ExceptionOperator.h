@@ -33,7 +33,7 @@ namespace tuplex {
 
             while(isExceptionOperator(parent->type())) {
                 // debug, runtime assert
-                assert(dynamic_cast<ExceptionOperator*>(parent));
+                assert(dynamic_cast<ExceptionOperator*>(parent.get()));
 
                 parent = parent->parent();
                 if(!parent)

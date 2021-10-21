@@ -49,5 +49,5 @@ namespace tuplex {
     };
 }
 
-CEREAL_REGISTER_TYPE(tuplex::CacheOperator);
+CEREAL_REGISTER_TYPE(tuplex::FilterOperator);
 #endif //TUPLEX_FILTEROPERATOR_H

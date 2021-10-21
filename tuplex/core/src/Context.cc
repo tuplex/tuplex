@@ -91,10 +91,7 @@ namespace tuplex {
             }
 
         // free logical operators associated with context
-        for(auto& op : _operators) {
-            delete op;
-            op = nullptr;
-        }
+        _operators.clear();
     }
 
     Partition* Context::requestNewPartition(const Schema &schema, const int dataSetID, size_t minBytesRequired) {
@@ -166,16 +163,16 @@ namespace tuplex {
         std::map<LogicalOperator*, bool> visited;
         std::map<LogicalOperator*, int> graphIDs;
         for(const auto& el : _operators)
-            visited[el] = false;
+            visited[el.get()] = false;
 
         for(const auto& node : _operators) {
-            if(!visited[node]) {
+            if(!visited[node.get()]) {
                 int id = -1;
-                if(graphIDs.find(node) == graphIDs.end()) {
-                    id = builder.addHTMLNode(node_descriptor(node));
-                    graphIDs[node] = id;
+                if(graphIDs.find(node.get()) == graphIDs.end()) {
+                    id = builder.addHTMLNode(node_descriptor(node.get()));
+                    graphIDs[node.get()] = id;
                 } else {
-                    id = graphIDs[node];
+                    id = graphIDs[node.get()];
                 }
 
                 // go through children
@@ -185,7 +182,7 @@ namespace tuplex {
                         cid = builder.addHTMLNode(node_descriptor(c));
                         graphIDs[c] = cid;
                     } else {
-                        cid = graphIDs[node];
+                        cid = graphIDs[node.get()];
                     }
 
                     builder.addEdge(id, cid);

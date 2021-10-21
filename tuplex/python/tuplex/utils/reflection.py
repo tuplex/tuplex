@@ -170,7 +170,7 @@ def get_source(f):
 
             # interpreter in interactive mode or not?
             # beware jupyter notebook also returns true for interactive mode!
-            if is_in_interactive_mode() and not in_jupyter_notebook():
+            if is_in_interactive_mode() and not in_jupyter_notebook() and not in_google_colab():
                 # for this to work, a dummy shell has to be instantiated
                 # through which all typing occurs. Thus, the history can
                 # be properly captured for source code lookup.

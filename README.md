@@ -77,6 +77,7 @@ To customize the cmake build, the following options are available to be passed v
 | `CMAKE_BUILD_TYPE` | `Release` (default), `Debug`, `RelWithDebInfo`, `tsan`, `asan`, `ubsan` | select compile mode. Tsan/Asan/Ubsan correspond to Google Sanitizers. |
 | `BUILD_WITH_AWS` | `ON` (default), `OFF` | build with AWS SDK or not. On Ubuntu this will build the Lambda executor. |
 | `BUILD_WITH_ORC` | `ON`, `OFF` (default) | build with ORC file format support. |
+| `BUILD_NATIVE` | `ON`, `OFF` (default) | build with `-march=native` to target platform architecture. |
 | `SKIP_AWS_TESTS` | `ON` (default), `OFF` | skip aws tests, helpful when no AWS credentials/AWS Tuplex chain is setup. |
 | `GENERATE_PDFS` | `ON`, `OFF` (default) | output in Debug mode PDF files if graphviz is installed (e.g., `brew install graphviz`) for ASTs of UDFs, query plans, ...|
 | `PYTHON3_VERSION` | `3.6`, ... | when trying to select a python3 version to build against, use this by specifying `major.minor`. To specify the python executable, use the options provided by [cmake](https://cmake.org/cmake/help/git-stage/module/FindPython3.html). |

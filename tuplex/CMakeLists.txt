@@ -41,7 +41,7 @@ set(CMAKE_MACOSX_RPATH 1) # fix for gtest warning
 
 option(SKIP_AWS_TESTS "Skip AWS tests" ON)
 option(BUILD_WITH_ORC "Build with Orc file support" OFF)
-
+option(BUILD_NATIVE "Build with -march=native" OFF)
 
 # translate to C++ flags
 if(SKIP_AWS_TESTS)
@@ -568,15 +568,16 @@ if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     endif()
 endif()
 
-# DO NOT USE MARCH=NATIVE for wheels...
-# @TODO: to pick this up correctly from env option?
+# DO NOT USE MARCH=NATIVE for wheels... => option should be disabled per default
 # use march=native if available and NOT building wheels
 include(CheckCXXCompilerFlag)
-#CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
-#if(COMPILER_SUPPORTS_MARCH_NATIVE)
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
-#endif()
-#
-#message(STATUS "Using following CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
-#message(STATUS "Using following CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
+if(BUILD_NATIVE)
+CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
+if(COMPILER_SUPPORTS_MARCH_NATIVE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
+endif()
+message(STATUS "Building Tuplex for native platform")
+message(STATUS "Using following CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
+message(STATUS "Using following CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
+endif()

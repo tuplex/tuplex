@@ -38,7 +38,6 @@ namespace tuplex {
     LogicalPlan::~LogicalPlan() {
         // simply call free on operator
         _action->freeParents();
-        delete _action;
         _action = nullptr;
     }
 
@@ -94,6 +93,7 @@ namespace tuplex {
         }
     }
 
+    // can also convert to use shared_ptr, but seems like unnecessary overhead
     std::vector<size_t> projectionPushdown(LogicalOperator* op, LogicalOperator* child = nullptr, std::vector<size_t> requiredCols=std::vector<size_t>(), bool dropOperators=false) {
         using namespace std;
 
@@ -249,8 +249,8 @@ namespace tuplex {
             auto numLeftColumnsBeforePushdown = jop->left()->columns().size();
 
             if(requiredCols.empty()) {
-                leftRet = projectionPushdown(jop->left(), jop, requiredCols);
-                rightRet = projectionPushdown(jop->right(), jop, requiredCols);
+                leftRet = projectionPushdown(jop->left().get(), jop, requiredCols);
+                rightRet = projectionPushdown(jop->right().get(), jop, requiredCols);
             } else {
                 // need to split traversal up
                 set<size_t> reqLeft;
@@ -298,8 +298,8 @@ namespace tuplex {
                 auto requiredLeftCols = vector<size_t>(reqLeft.begin(), reqLeft.end());
                 auto requiredRightCols = vector<size_t>(reqRight.begin(), reqRight.end());
 
-                leftRet = projectionPushdown(jop->left(), jop, requiredLeftCols);
-                rightRet = projectionPushdown(jop->right(), jop, requiredRightCols);
+                leftRet = projectionPushdown(jop->left().get(), jop, requiredLeftCols);
+                rightRet = projectionPushdown(jop->right().get(), jop, requiredRightCols);
             }
 
 
@@ -357,7 +357,7 @@ namespace tuplex {
             // special case CacheOperator, exec with parent nullptr if child is not null
             auto ret = op->type() == LogicalOperatorType::CACHE && child ?
                     projectionPushdown(nullptr, op, requiredCols) :
-                       projectionPushdown(op->parent(), op, requiredCols);
+                       projectionPushdown(op->parent().get(), op, requiredCols);
 
 #ifdef TRACE_LOGICAL_OPTIMIZATION
             cout<<"traverse done on "<<op->name();
@@ -578,7 +578,7 @@ namespace tuplex {
             }
 
             // check that node is child of all parents
-            for(auto p : parents) {
+            for(const auto &p : parents) {
                 auto pc = p->getChildren();
                 auto it = std::find(pc.begin(), pc.end(), node);
                 if(it == pc.end()) {
@@ -588,8 +588,8 @@ namespace tuplex {
             }
 
             // add all parents to queue
-            for(auto p : node->parents())
-                q.push(p);
+            for(const auto &p : node->parents())
+                q.push(p.get());
         }
 
         if(!success)
@@ -625,7 +625,7 @@ namespace tuplex {
 
         switch(ptype) {
             case LogicalOperatorType::AGGREGATE: {
-                auto aop = dynamic_cast<AggregateOperator*>(parent); assert(aop);
+                auto aop = dynamic_cast<AggregateOperator*>(parent.get()); assert(aop);
                 if(aop->aggType() == AggregateType::AGG_UNIQUE) {
                     return false;
                 } else {
@@ -634,7 +634,7 @@ namespace tuplex {
             }
             case LogicalOperatorType::MAP: {
                 // empty? i.e. rename? switch ok
-                auto mop = dynamic_cast<MapOperator*>(parent); assert(mop);
+                auto mop = dynamic_cast<MapOperator*>(parent.get()); assert(mop);
 
                 // special case:
                 // select is ok, because it's a direct map, the same goes for some query which just reorders columns...
@@ -649,13 +649,13 @@ namespace tuplex {
             }
             case LogicalOperatorType::MAPCOLUMN: {
                 // is index of mapCol contained in accessedColumns ==> depends, else no
-                auto idx = dynamic_cast<MapColumnOperator*>(parent)->getColumnIndex();
+                auto idx = dynamic_cast<MapColumnOperator*>(parent.get())->getColumnIndex();
                 auto it = std::find(accessedColumns.begin(), accessedColumns.end(), idx);
                 return it != accessedColumns.end(); // true if contained, else no
             }
             case LogicalOperatorType::WITHCOLUMN: {
                 // this is similar to MapColumn but a bit more complicated, i.e. need to check which columns withcolumn accesses!
-                auto wop = dynamic_cast<WithColumnOperator*>(parent); assert(wop);
+                auto wop = dynamic_cast<WithColumnOperator*>(parent.get()); assert(wop);
                 auto parentColsAccessed = wop->getUDF().getAccessedColumns();
                 auto idx = wop->getColumnIndex();
 
@@ -682,7 +682,7 @@ namespace tuplex {
 
             case LogicalOperatorType::JOIN: {
                 // a filter does not depend on Join if it does not access columns of both sides
-                auto jop = dynamic_cast<JoinOperator*>(parent); assert(jop);
+                auto jop = dynamic_cast<JoinOperator*>(parent.get()); assert(jop);
                 auto idx = jop->outputKeyIndex(); // special case, if filter only accesses key col, no dependence
 
                 // 3 checks:
@@ -733,9 +733,9 @@ namespace tuplex {
         return true;
     }
 
-    void filterPushdown(LogicalOperator* op);
+    void filterPushdown(const std::shared_ptr<LogicalOperator> &op);
 
-    void pushdownFilterInJoin(FilterOperator* fop, JoinOperator* jop) {
+    void pushdownFilterInJoin(std::shared_ptr<FilterOperator> fop, const std::shared_ptr<JoinOperator> &jop) {
         using namespace std;
 
         assert(fop && jop);
@@ -787,22 +787,22 @@ namespace tuplex {
             if(!udf_right.rewriteDictAccessInAST(rightColumns))
                 throw std::runtime_error("failed to rewrite UDF of right subtree in filter pushdown for join");
 
-            auto new_fop_left = new FilterOperator(left, udf_left,
-                                                   left->columns(), udf_left.allowNumericTypeUnification());
-            auto new_fop_right = new FilterOperator(right, udf_right,
-                                                    right->columns(), udf_right.allowNumericTypeUnification());
+            auto new_fop_left = std::shared_ptr<LogicalOperator>(new FilterOperator(left, udf_left,
+                                                   left->columns(), udf_left.allowNumericTypeUnification()));
+            auto new_fop_right = std::shared_ptr<LogicalOperator>(new FilterOperator(right, udf_right,
+                                                    right->columns(), udf_right.allowNumericTypeUnification()));
 
             new_fop_left->setID(fop->getID());
             new_fop_right->setID(fop->getID());
 
             // set up parent/child relationship
             assert(left->numChildren() == 2); // only new fop, jop
-            left->setChild(new_fop_left);
+            left->setChild(new_fop_left.get());
             assert(right->numChildren() == 2); // only new fop, jop
-            right->setChild(new_fop_right);
+            right->setChild(new_fop_right.get());
             jop->setParents({new_fop_left, new_fop_right});
-            new_fop_left->setChild(jop);
-            new_fop_right->setChild(jop);
+            new_fop_left->setChild(jop.get());
+            new_fop_right->setChild(jop.get());
 
             // link children, i.e. remove filter
             for(auto& c : children) {
@@ -819,7 +819,7 @@ namespace tuplex {
             if(allIndicesGreaterEqualKeyIndex == allIndicesLessEqualKeyIndex)
                 throw std::runtime_error("fatal error, filter can't be pushed down!");
 
-            LogicalOperator* child = nullptr;
+            std::shared_ptr<LogicalOperator> child = nullptr;
             // left pushdown
             if(allIndicesLessEqualKeyIndex) {
                 // children -> filter -> join +--> left
@@ -855,13 +855,15 @@ namespace tuplex {
             // this is important because of the Join combining col
             udf.rewriteDictAccessInAST(cols);
 
-            auto new_fop = new FilterOperator(child, udf, child->columns(), udf.allowNumericTypeUnification());
+            auto new_fop = std::shared_ptr<LogicalOperator>(new FilterOperator(child, udf, child->columns(), udf.allowNumericTypeUnification()));
             new_fop->setID(fop->getID());
 
             auto children = fop->getChildren(); // children of filter
             auto left = jop->left();
             auto right = jop->right();
-            vector<LogicalOperator*> jop_parents = child == jop->left() ? vector<LogicalOperator*>{new_fop, right} : vector<LogicalOperator*>{left, new_fop};
+            auto jop_parents =
+                    child == jop->left() ? std::vector<std::shared_ptr<LogicalOperator>>{new_fop, right}
+                                         : std::vector<std::shared_ptr<LogicalOperator>>{left, new_fop};
 
             // link everything together
             // link children -> join (and vice versa)
@@ -871,18 +873,18 @@ namespace tuplex {
             jop->setChildren(children);
 
             // join -> filter
-            jop->setParents(jop_parents); new_fop->setChild(jop); // (right should have jop as child)
+            jop->setParents(jop_parents); new_fop->setChild(jop.get()); // (right should have jop as child)
 
             // link of jop_parents to jop
             assert(jop_parents.size() == 2);
             // TODO: do these do anything?
-            jop_parents[0]->replaceChild(fop, jop);
-            jop_parents[1]->replaceChild(fop, jop);
+            jop_parents[0]->replaceChild(fop.get(), jop.get());
+            jop_parents[1]->replaceChild(fop.get(), jop.get());
 
             // filter -> child
             new_fop->setParent(child);
             assert(child->numChildren() == 2); // new fop, jop
-            child->setChild(new_fop);
+            child->setChild(new_fop.get());
 
             assert(verifyLogicalPlan(jop));
 
@@ -891,7 +893,7 @@ namespace tuplex {
 
         // remove old filter
         fop->setChildren({}); fop->setParents({}); // no dependencies
-        delete fop; fop = nullptr;
+        fop = nullptr;
     }
 
     template<typename T> std::string toStrWithInf(const T & t) {
@@ -948,9 +950,10 @@ namespace tuplex {
                         // children -> fop -> new_filter -> parent
                         assert(fop->parents().size() == 1);
                         auto parent = fop->parent();
-                        auto new_filter = new FilterOperator(parent, UDF(condition), parent->columns(),
-                                                             fop->getUDF().allowNumericTypeUnification());
-                        parent->setChild(new_filter);
+                        auto new_filter = std::shared_ptr<LogicalOperator>(
+                                new FilterOperator(parent, UDF(condition), parent->columns(),
+                                                   fop->getUDF().allowNumericTypeUnification()));
+                        parent->setChild(new_filter.get());
                         new_filter->setParent(parent);
                         fop->setParent(new_filter);
                         new_filter->setChild(fop);
@@ -960,7 +963,7 @@ namespace tuplex {
         }
     }
 
-    void filterPushdown(LogicalOperator* op) {
+    void filterPushdown(const std::shared_ptr<LogicalOperator> &op) {
         if(!op)
             return;
 
@@ -968,7 +971,7 @@ namespace tuplex {
 #ifdef TRACE_LOGICAL_OPTIMIZATION
             std::cout<<"filter found!"<<std::endl;
 #endif
-            if(!filterDependsOnParent(dynamic_cast<FilterOperator*>(op))) {
+            if(!filterDependsOnParent(dynamic_cast<FilterOperator*>(op.get()))) {
                 assert(op->parents().size() == 1); // filter has exactly one parent!
 #ifdef TRACE_LOGICAL_OPTIMIZATION
                 std::cout<<"push down filter in front of "<<op->parent()->name()<<std::endl;
@@ -993,10 +996,10 @@ namespace tuplex {
                     // @TODO: this here is rather slow because the whole compilation pipeline gets kicked off
                     // could optimize by remapping indices... => s
                     // create copy of filter ==> need to reparse UDF & Co because of column access!
-                    auto code = dynamic_cast<FilterOperator*>(op)->getUDF().getCode();
-                    auto pickled_code = dynamic_cast<FilterOperator*>(op)->getUDF().getPickledCode();
-                    auto allowNumericTypeUnification = dynamic_cast<FilterOperator*>(op)->getUDF().allowNumericTypeUnification();
-                    auto fop = new FilterOperator(grandparent, UDF(code, pickled_code), grandparent->columns(), allowNumericTypeUnification);
+                    auto code = dynamic_cast<FilterOperator*>(op.get())->getUDF().getCode();
+                    auto pickled_code = dynamic_cast<FilterOperator*>(op.get())->getUDF().getPickledCode();
+                    auto allowNumericTypeUnification = dynamic_cast<FilterOperator*>(op.get())->getUDF().allowNumericTypeUnification();
+                    auto fop = std::shared_ptr<LogicalOperator>(new FilterOperator(grandparent, UDF(code, pickled_code), grandparent->columns(), allowNumericTypeUnification));
                     fop->setID(op->getID()); // clone with ID, important for exception tracking!
 #ifdef TRACE_LOGICAL_OPTIMIZATION
                     // debug:
@@ -1013,21 +1016,20 @@ namespace tuplex {
                         //child->setParent(parent);
                         bool found = child->replaceParent(op, parent);
                         assert(found);
-                        found = parent->replaceChild(op, child);
+                        found = parent->replaceChild(op.get(), child);
                         assert(found);
                     }
 
                     // parent -> filter (and vice versa)
-                    parent->setParent(fop); fop->setChild(parent);
+                    parent->setParent(fop); fop->setChild(parent.get());
 
                     // filter->grandparent (and vice versa)
-                    fop->setParent(grandparent); grandparent->setChild(fop);
+                    fop->setParent(grandparent); grandparent->setChild(fop.get());
 
                     // call filter pushdown on filter again
 
                     // remove old filter
                     op->setChildren({}); op->setParents({}); // no dependencies
-                    delete op; op = nullptr;
 
                      // // DEBUG
                      // for(auto child : children)
@@ -1039,8 +1041,9 @@ namespace tuplex {
                 } else {
                     // parent has more than one parent? ==> i.e. add filter to whichever grandparent where if it makes sense!
                     if(op->parent()->type() == LogicalOperatorType::JOIN) {
-                        auto jop = dynamic_cast<JoinOperator*>(op->parent()); assert(jop);
-                        pushdownFilterInJoin(dynamic_cast<FilterOperator*>(op), jop);
+                        auto jop = std::dynamic_pointer_cast<JoinOperator>(op->parent()); assert(jop);
+                        auto fop = std::dynamic_pointer_cast<FilterOperator>(op); assert(fop);
+                        pushdownFilterInJoin(fop, jop);
                     } else throw std::runtime_error("only operator for multiple grandparent supported yet is join!");
 
                     // go on with pushdown...
@@ -1056,7 +1059,7 @@ namespace tuplex {
         } else {
 
             // traverse tree until filter is found...
-            for(auto p : op->parents())
+            for(const auto &p : op->parents())
                 filterPushdown(p);
         }
     }
@@ -1068,14 +1071,14 @@ namespace tuplex {
         std::vector<LogicalOperator*> v_filters;
         // @TODO: maybe define a logical tree visitor class because they're so convenient
         std::queue<LogicalOperator*> q; // BFS
-        q.push(_action);
+        q.push(_action.get());
         while(!q.empty()) {
             auto node = q.front(); q.pop();
             if(node->type() == LogicalOperatorType::FILTER)
                 v_filters.push_back(node);
             // add all parents to queue
-            for(auto p : node->parents())
-                q.push(p);
+            for(const auto &p : node->parents())
+                q.push(p.get());
         }
         if(!v_filters.empty()) {
 #ifdef TRACE_LOGICAL_OPTIMIZATION
@@ -1103,16 +1106,16 @@ namespace tuplex {
         // Next step: Fuse filters together, i.e. combine conditions!
 
         // first step: find all filter operators. Easy with ApplyVisitor!
-        std::vector<LogicalOperator*> v_filters;
+        std::vector<std::shared_ptr<LogicalOperator>> v_filters;
         // @TODO: maybe define a logical tree visitor class because they're so convenient
-        std::queue<LogicalOperator*> q; // BFS
+        std::queue<std::shared_ptr<LogicalOperator>> q; // BFS
         q.push(_action);
         while(!q.empty()) {
             auto node = q.front(); q.pop();
             if(node->type() == LogicalOperatorType::FILTER)
                 v_filters.push_back(node);
             // add all parents to queue
-            for(auto p : node->parents())
+            for(const auto &p : node->parents())
                 q.push(p);
         }
         if(!v_filters.empty()) {
@@ -1120,7 +1123,7 @@ namespace tuplex {
             std::cout<<"found "<<v_filters.size()<<" filters to push down"<<std::endl;
 #endif
             // ==> could even lower some filters to parsers at some point!
-            for(auto node : v_filters)
+            for(const auto &node : v_filters)
                 filterPushdown(node);
         }
 
@@ -1134,7 +1137,7 @@ namespace tuplex {
     }
 
     // return true if the push succeeded (e.g. they should try again)
-    bool pushParentThroughJoin(JoinOperator *jop, bool left) {
+    bool pushParentThroughJoin(std::shared_ptr<JoinOperator> jop, bool left) {
         if(!jop) return false; // jop needs to exist
         if((left && !jop->left()) || (!left && !jop->right())) return false; // jop parent needs to exist
 
@@ -1151,7 +1154,7 @@ namespace tuplex {
         switch(parent->type()) {
             case LogicalOperatorType::MAPCOLUMN: {
                 // is index of mapCol is the join key, no; else yes
-                auto mop = dynamic_cast<MapColumnOperator *>(parent);
+                auto mop = std::dynamic_pointer_cast<MapColumnOperator>(parent);
                 auto mapIndex = mop->getColumnIndex();
                 auto mapColumn = mop->columns()[mapIndex];
                 auto mapColumnAfterJoin = left ? jop->leftPrefix() + mapColumn + jop->leftSuffix() : jop->rightPrefix() + mapColumn + jop->rightSuffix();
@@ -1180,8 +1183,9 @@ namespace tuplex {
                         throw std::runtime_error("failed to rewrite UDF of mapColumn parent of join in join pushdown");
 
                     // create a new mapcolumn operator
-                    auto new_mop = new MapColumnOperator(jop, mapColumnAfterJoin, joinOutputColumns,
-                                                         udf, udf.allowNumericTypeUnification());
+                    auto new_mop = std::shared_ptr<LogicalOperator>(
+                            new MapColumnOperator(jop, mapColumnAfterJoin, joinOutputColumns,
+                                                  udf, udf.allowNumericTypeUnification()));
                     new_mop->setID(mop->getID());
 
                     // set up parent/child relationships
@@ -1191,16 +1195,16 @@ namespace tuplex {
                         c->setParent(new_mop);
                     }
                     new_mop->setChildren(children);
-                    jop->setChild(new_mop);
+                    jop->setChild(new_mop.get());
                     new_mop->setParent(jop);
 
                     auto newParent = mop->parent();
                     jop->replaceParent(mop, newParent);
-                    newParent->replaceChild(mop, jop);
+                    newParent->replaceChild(mop.get(), jop.get());
 
                     // remove old map column operator
                     mop->setChildren({}); mop->setParents({}); // no dependencies
-                    delete mop; mop = nullptr;
+                    mop = nullptr;
                     return true;
                 }
                 return false;
@@ -1223,7 +1227,7 @@ namespace tuplex {
         }
     }
 
-    void operatorPushup(LogicalOperator* op) {
+    void operatorPushup(const std::shared_ptr<LogicalOperator> &op) {
         if(!op)
             return;
 
@@ -1233,7 +1237,7 @@ namespace tuplex {
 #ifdef TRACE_LOGICAL_OPTIMIZATION
                 std::cout<<"join found!"<<std::endl;
 #endif
-                auto jop = dynamic_cast<JoinOperator*>(op);
+                auto jop = std::dynamic_pointer_cast<JoinOperator>(op);
                 while(pushParentThroughJoin(jop, true));
                 while(pushParentThroughJoin(jop, false));
             }
@@ -1253,15 +1257,15 @@ namespace tuplex {
         // @TODO: we can actually make a stronger statement I think: even if a given left parent doesn't move down, if it is in turn independent from its parent, then that parent can move down (e.g. skip over two operators)
 
         // first step: find all join operators
-        std::vector<LogicalOperator*> v_joins;
-        std::queue<LogicalOperator*> q; // BFS
+        std::vector<std::shared_ptr<LogicalOperator>> v_joins;
+        std::queue<std::shared_ptr<LogicalOperator>> q; // BFS
         q.push(_action);
         while(!q.empty()) {
             auto node = q.front(); q.pop();
             if(node->type() == LogicalOperatorType::JOIN)
                 v_joins.push_back(node);
             // add all parents to queue
-            for(auto p : node->parents())
+            for(const auto &p : node->parents())
                 q.push(p);
         }
         if(!v_joins.empty()) {
@@ -1271,7 +1275,7 @@ namespace tuplex {
             // reverse so that we start from the bottom and move up, rather than other way around
             //  -> this way, a single operator can push up past multiple joins
             std::reverse(v_joins.begin(), v_joins.end());
-            for(auto node : v_joins)
+            for(const auto &node : v_joins)
                 operatorPushup(node);
         }
 
@@ -1332,7 +1336,7 @@ namespace tuplex {
              auto num_cols = _action->getInputSchema().getRowType().parameters().size();
              for(unsigned i = 0; i < num_cols; ++i)
                  cols.emplace_back(i);
-             projectionPushdown(_action, nullptr, cols);
+             projectionPushdown(_action.get(), nullptr, cols);
 
             // note: could remove identity functions...
             // i.e. lambda x: x or lambda x: (x[0], x[1], ..., x[len(x) - 1]) same for def...
@@ -1378,13 +1382,13 @@ namespace tuplex {
         if (idx != -1) {
             b.addEdge(new_idx, idx);
         }
-        for (auto p : root->parents())
-            recursiveLPBuilder(b, p, new_idx);
+        for (const auto &p : root->parents())
+            recursiveLPBuilder(b, p.get(), new_idx);
     }
 
     void LogicalPlan::toPDF(const std::string &path) const {
         GraphVizBuilder b;
-        recursiveLPBuilder(b, _action);
+        recursiveLPBuilder(b, _action.get());
         b.saveToPDF(path);
     }
 
@@ -1393,6 +1397,6 @@ namespace tuplex {
             return new LogicalPlan(nullptr);
 
         // perform a deep copy of the plan...
-        return new LogicalPlan(_action->clone());
+        return new LogicalPlan(_action.get());
     }
 }

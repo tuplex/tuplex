@@ -336,7 +336,7 @@ namespace tuplex {
         }
     }
 
-    LogicalOperator* Context::addOperator(LogicalOperator *op) {
+    std::shared_ptr<LogicalOperator> Context::addOperator(const std::shared_ptr<LogicalOperator> &op) {
         _operators.push_back(op);
         return op;
     }
@@ -351,7 +351,7 @@ namespace tuplex {
         assert(ds->_schema.getRowType() != python::Type::UNKNOWN);
 
         // add new (root) node
-        ds->_operator = addOperator(new ParallelizeOperator(ds->_schema, ds->getPartitions(), ds->columns()));
+        ds->_operator = addOperator(std::shared_ptr<LogicalOperator>(new ParallelizeOperator(ds->_schema, ds->getPartitions(), ds->columns())));
 
         // set dataset
         ds->_operator->setDataSet(ds);
@@ -372,9 +372,9 @@ namespace tuplex {
         DataSet *dsptr = createDataSet(schema);
 
         dsptr->_operator = addOperator(
-                new FileInputOperator(pattern, this->_options, hasHeader, delimiter, quotechar, null_values, columns,
-                                      index_based_type_hints, column_based_type_hints));
-        auto op = ((FileInputOperator*)dsptr->_operator);
+                std::shared_ptr<LogicalOperator>(new FileInputOperator(pattern, this->_options, hasHeader, delimiter, quotechar, null_values, columns,
+                                      index_based_type_hints, column_based_type_hints)));
+        auto op = ((FileInputOperator*)dsptr->_operator.get());
 
         // check whether files were found, else return empty dataset!
         if(op->getURIs().empty()) {
@@ -384,7 +384,7 @@ namespace tuplex {
             return ds;
         }
 
-        auto detectedColumns = ((FileInputOperator*)dsptr->_operator)->columns();
+        auto detectedColumns = ((FileInputOperator*)dsptr->_operator.get())->columns();
         dsptr->setColumns(detectedColumns);
 
         // check if columns are given
@@ -406,7 +406,7 @@ namespace tuplex {
             }
 
             dsptr->setColumns(columns);
-            ((FileInputOperator*)dsptr->_operator)->setColumns(columns);
+            ((FileInputOperator*)dsptr->_operator.get())->setColumns(columns);
         }
 
         // set dataset to operator
@@ -430,9 +430,9 @@ namespace tuplex {
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
 
-        dsptr->_operator = addOperator(new FileInputOperator(pattern, this->_options, null_values));
+        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(new FileInputOperator(pattern, this->_options, null_values)));
 
-        auto detectedColumns = ((FileInputOperator*)dsptr->_operator)->columns();
+        auto detectedColumns = ((FileInputOperator*)dsptr->_operator.get())->columns();
         dsptr->setColumns(detectedColumns);
 
         // set dataset to operator

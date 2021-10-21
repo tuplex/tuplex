@@ -76,9 +76,8 @@ namespace tuplex {
 
     void LogicalOperator::freeParents() {
         // recurse
-        for(auto parent : parents()) {
+        for(const auto &parent : parents()) {
             parent->freeParents();
-            delete parent;
         }
         _parents.clear();
     }

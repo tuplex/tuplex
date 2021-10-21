@@ -50,7 +50,7 @@ namespace tuplex {
 
         // create a take node
         assert(_context);
-        LogicalOperator *op = _context->addOperator(new TakeOperator(this->_operator, numElements));
+        auto op = _context->addOperator(std::shared_ptr<LogicalOperator>(new TakeOperator(this->_operator, numElements)));
         DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
         dsptr->_operator = op;
         op->setDataSet(dsptr);
@@ -110,10 +110,10 @@ namespace tuplex {
 
         assert(_context);
         assert(_operator);
-        LogicalOperator *op = _context->addOperator(
-                new FileOutputOperator(_operator, uri, udf, "csv", FileFormat::OUTFMT_CSV, outputOptions,
-                                       fileCount, shardSize, limit));
-        ((FileOutputOperator*)op)->udf().getAnnotatedAST().allowNumericTypeUnification(_context->getOptions().AUTO_UPCAST_NUMBERS());
+        auto op = _context->addOperator(
+                std::shared_ptr<LogicalOperator>(new FileOutputOperator(_operator, uri, udf, "csv", FileFormat::OUTFMT_CSV, outputOptions,
+                                       fileCount, shardSize, limit)));
+        ((FileOutputOperator*)op.get())->udf().getAnnotatedAST().allowNumericTypeUnification(_context->getOptions().AUTO_UPCAST_NUMBERS());
 
         if (!op->good()) {
             Logger::instance().defaultLogger().error("failed to create file output operator");
@@ -137,7 +137,7 @@ namespace tuplex {
 
         assert(_context);
         assert(this->_operator);
-        LogicalOperator *op = _context->addOperator(new MapOperator(this->_operator, udf, _columnNames, allowTypeUnification()));
+        auto op = _context->addOperator(std::shared_ptr<LogicalOperator>(new MapOperator(this->_operator, udf, _columnNames, allowTypeUnification())));
 
         if (!op->good()) {
             Logger::instance().defaultLogger().error("failed to create map operator");
@@ -146,7 +146,7 @@ namespace tuplex {
 
         DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
         dsptr->_operator = op;
-        auto outputCols = ((MapOperator *) op)->columns();
+        auto outputCols = ((MapOperator *) op.get())->columns();
         if (!outputCols.empty())
             dsptr->setColumns(outputCols);
         op->setDataSet(dsptr);
@@ -171,7 +171,7 @@ namespace tuplex {
         assert(_context);
         assert(this->_operator);
 
-        LogicalOperator *op = _context->addOperator(new CacheOperator(this->_operator, storeSpecialized, memoryLayout));
+        auto op = _context->addOperator(std::shared_ptr<LogicalOperator>(new CacheOperator(this->_operator, storeSpecialized, memoryLayout)));
 
         if (!op->good()) {
             Logger::instance().defaultLogger().error("failed to create cache operator");
@@ -193,7 +193,7 @@ namespace tuplex {
         auto rs = op->compute(*this->_context); // note: this should also hold the exceptions...
 
         // result set is computed, now make both partitions&exceptions ephemeral (@TODO: uncache mechanism)
-        auto cop = (CacheOperator*)op;
+        auto cop = (CacheOperator*)op.get();
         cop->setResult(rs);
 
         // signal check
@@ -224,11 +224,11 @@ namespace tuplex {
             return _context->makeError("there is no column " + columnName + " to map");
 
 
-        LogicalOperator *op = _context->addOperator(new MapColumnOperator(this->_operator,
-                                                                          columnName,
-                                                                          columns(),
-                                                                          udf,
-                                                                          _context->getOptions().AUTO_UPCAST_NUMBERS()));
+        auto op = _context->addOperator(std::shared_ptr<LogicalOperator>(new MapColumnOperator(this->_operator,
+                                                                                               columnName,
+                                                                                               columns(),
+                                                                                               udf,
+                                                                                               _context->getOptions().AUTO_UPCAST_NUMBERS())));
         if (!op->good()) {
             Logger::instance().defaultLogger().error("failed to create mapColumn operator");
             return _context->makeError("failed to add mapColumn operator to logical plan");
@@ -263,12 +263,12 @@ namespace tuplex {
         assert(_context);
         assert(this->_operator);
 
-        LogicalOperator *op = _context->addOperator(
-                new WithColumnOperator(this->_operator,
+        auto op = _context->addOperator(
+                std::shared_ptr<LogicalOperator>(new WithColumnOperator(this->_operator,
                                        _columnNames,
                                        columnName,
                                        udf,
-                                       _context->getOptions().AUTO_UPCAST_NUMBERS()));
+                                       _context->getOptions().AUTO_UPCAST_NUMBERS())));
 
         if (!op->good()) {
             Logger::instance().defaultLogger().error("failed to create withColumn operator");
@@ -280,7 +280,7 @@ namespace tuplex {
         op->setDataSet(dsptr);
 
         // set column names
-        auto wop = dynamic_cast<WithColumnOperator *>(op);
+        auto wop = dynamic_cast<WithColumnOperator *>(op.get());
         dsptr->setColumns(wop->columns());
 
         // signal check
@@ -340,11 +340,11 @@ namespace tuplex {
             }
 
             ds.setColumns(sel_columns);
-            ((MapOperator*)ds._operator)->setOutputColumns(sel_columns);
+            ((MapOperator*)ds._operator.get())->setOutputColumns(sel_columns);
         }
 
         // rename operator
-        ((MapOperator*)ds._operator)->setName("select");
+        ((MapOperator*)ds._operator.get())->setName("select");
 
         // signal check
         if(check_and_forward_signals()) {
@@ -386,8 +386,8 @@ namespace tuplex {
         ds.setColumns(columnNames);
 
         // rename operator
-        ((MapOperator*)ds._operator)->setName("rename");
-        ((MapOperator*)ds._operator)->setOutputColumns(columnNames);
+        ((MapOperator*)ds._operator.get())->setName("rename");
+        ((MapOperator*)ds._operator.get())->setOutputColumns(columnNames);
 
         // signal check
         if(check_and_forward_signals()) {
@@ -413,7 +413,7 @@ namespace tuplex {
 
         // check first that each column name is returned, else return error message
         std::vector<std::string> missingColumns;
-        for (auto cn : columnNames) {
+        for (const auto &cn : columnNames) {
             if (std::find(_columnNames.begin(), _columnNames.end(), cn) == _columnNames.end()) {
                 missingColumns.emplace_back(cn);
             }
@@ -464,9 +464,9 @@ namespace tuplex {
         // set columns to restricted cols
         ds.setColumns(columnNames);
 
-        ((MapOperator*)ds._operator)->setOutputColumns(columnNames);
+        ((MapOperator*)ds._operator.get())->setOutputColumns(columnNames);
         // rename operator
-        ((MapOperator*)ds._operator)->setName("select");
+        ((MapOperator*)ds._operator.get())->setName("select");
 
         // signal check
         if(check_and_forward_signals()) {
@@ -486,10 +486,10 @@ namespace tuplex {
 
         assert(_context);
         assert(this->_operator);
-        LogicalOperator *op = _context->addOperator(new FilterOperator(this->_operator,
+        auto op = _context->addOperator(std::shared_ptr<LogicalOperator>(new FilterOperator(this->_operator,
                                                                        udf,
                                                                        _columnNames,
-                                                                       _context->getOptions().AUTO_UPCAST_NUMBERS()));
+                                                                       _context->getOptions().AUTO_UPCAST_NUMBERS())));
 
         if (!op->good()) {
 
@@ -528,9 +528,9 @@ namespace tuplex {
 
         assert(_context);
         assert(this->_operator);
-        LogicalOperator *op = _context->addOperator(new ResolveOperator(this->_operator, ec,
+        auto op = _context->addOperator(std::shared_ptr<LogicalOperator>(new ResolveOperator(this->_operator, ec,
                                                                         udf, _columnNames,
-                                                                        _context->getOptions().AUTO_UPCAST_NUMBERS()));
+                                                                        _context->getOptions().AUTO_UPCAST_NUMBERS())));
         if (!op->good()) {
             Logger::instance().defaultLogger().error("failed to create resolve operator");
             return _context->makeError("failed to add resolve operator to logical plan");
@@ -560,7 +560,7 @@ namespace tuplex {
             return *this;
 
         assert(_context && this->_operator);
-        LogicalOperator *op = _context->addOperator(new IgnoreOperator(this->_operator, ec));
+        auto op = _context->addOperator(std::shared_ptr<LogicalOperator>(new IgnoreOperator(this->_operator, ec)));
 
         DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
         dsptr->_operator = op;
@@ -586,7 +586,7 @@ namespace tuplex {
 
         assert(_context && this->_operator);
 
-        LogicalOperator *op = _context->addOperator(new AggregateOperator(this->_operator, AggregateType::AGG_UNIQUE, false));
+        auto op = _context->addOperator(std::shared_ptr<LogicalOperator>(new AggregateOperator(this->_operator, AggregateType::AGG_UNIQUE, false)));
 
         DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
         dsptr->_operator = op;
@@ -613,12 +613,12 @@ namespace tuplex {
 
         assert(_context && this->_operator);
 
-        LogicalOperator* op = _context->addOperator(new AggregateOperator(this->_operator, AggregateType::AGG_GENERAL,
+        auto op = _context->addOperator(std::shared_ptr<LogicalOperator>(new AggregateOperator(this->_operator, AggregateType::AGG_GENERAL,
                                                                           _context->getOptions().AUTO_UPCAST_NUMBERS(),
-                                                                          aggCombine, aggUDF, aggInitial));
+                                                                          aggCombine, aggUDF, aggInitial)));
 
-        ((AggregateOperator*)op)->aggregatorUDF().getAnnotatedAST().allowNumericTypeUnification(_context->getOptions().AUTO_UPCAST_NUMBERS());
-        ((AggregateOperator*)op)->combinerUDF().getAnnotatedAST().allowNumericTypeUnification(_context->getOptions().AUTO_UPCAST_NUMBERS());
+        ((AggregateOperator*)op.get())->aggregatorUDF().getAnnotatedAST().allowNumericTypeUnification(_context->getOptions().AUTO_UPCAST_NUMBERS());
+        ((AggregateOperator*)op.get())->combinerUDF().getAnnotatedAST().allowNumericTypeUnification(_context->getOptions().AUTO_UPCAST_NUMBERS());
 
         DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
         dsptr->_operator = op;
@@ -647,12 +647,12 @@ namespace tuplex {
 
         assert(_context && this->_operator);
 
-        LogicalOperator* op = _context->addOperator(new AggregateOperator(this->_operator, AggregateType::AGG_BYKEY,
+        auto op = _context->addOperator(std::shared_ptr<LogicalOperator>(new AggregateOperator(this->_operator, AggregateType::AGG_BYKEY,
                                                                           _context->getOptions().AUTO_UPCAST_NUMBERS(),
-                                                                          aggCombine, aggUDF, aggInitial, keyColumns));
+                                                                          aggCombine, aggUDF, aggInitial, keyColumns)));
 
-        ((AggregateOperator*)op)->aggregatorUDF().getAnnotatedAST().allowNumericTypeUnification(_context->getOptions().AUTO_UPCAST_NUMBERS());
-        ((AggregateOperator*)op)->combinerUDF().getAnnotatedAST().allowNumericTypeUnification(_context->getOptions().AUTO_UPCAST_NUMBERS());
+        ((AggregateOperator*)op.get())->aggregatorUDF().getAnnotatedAST().allowNumericTypeUnification(_context->getOptions().AUTO_UPCAST_NUMBERS());
+        ((AggregateOperator*)op.get())->combinerUDF().getAnnotatedAST().allowNumericTypeUnification(_context->getOptions().AUTO_UPCAST_NUMBERS());
 
         DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
         dsptr->_operator = op;
@@ -724,10 +724,10 @@ namespace tuplex {
         assert(_context);
         assert(this->_operator);
         assert(other._operator); // if this fails, probably dataset not declared via auto& ds = ...
-        LogicalOperator *op = _context->addOperator(
-                new JoinOperator(this->_operator, other._operator, leftColumn, rightColumn, JoinType::INNER,
+        auto op = _context->addOperator(
+                std::shared_ptr<LogicalOperator>(new JoinOperator(this->_operator, other._operator, leftColumn, rightColumn, JoinType::INNER,
                                  leftPrefix.value_or(""), leftSuffix.value_or(""), rightPrefix.value_or(""),
-                                 rightSuffix.value_or("")));
+                                 rightSuffix.value_or(""))));
 
         if (!op->good()) {
 
@@ -769,10 +769,10 @@ namespace tuplex {
         assert(_context);
         assert(this->_operator);
         assert(other._operator); // if this fails, probably dataset not declared via auto& ds = ...
-        LogicalOperator *op = _context->addOperator(
-                new JoinOperator(this->_operator, other._operator, leftColumn, rightColumn, JoinType::LEFT,
+        auto op = _context->addOperator(
+                std::shared_ptr<LogicalOperator>(new JoinOperator(this->_operator, other._operator, leftColumn, rightColumn, JoinType::LEFT,
                                  leftPrefix.value_or(""), leftSuffix.value_or(""), rightPrefix.value_or(""),
-                                 rightSuffix.value_or("")));
+                                 rightSuffix.value_or(""))));
 
         if (!op->good()) {
 

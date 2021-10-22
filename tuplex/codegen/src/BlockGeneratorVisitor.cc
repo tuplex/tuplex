@@ -957,6 +957,35 @@ namespace tuplex {
             assert(!leftType.isOptional());
             assert(!rightType.isOptional());
 
+            if(tt == TokenType::IS || tt == TokenType::ISNOT) {
+                bool invertResult = (tt == TokenType::ISNOT);
+
+                std::unordered_set<python::Type> validTypes = {python::Type::BOOLEAN, python::Type::NULLVALUE};
+                if (!(validTypes.count(leftType) && validTypes.count(rightType))) {
+                    std::stringstream ss;
+                    ss << "Could not generate is comparison for types "
+                       << leftType.desc()
+                       << " " << opToString(tt) << " "
+                       << rightType.desc();
+                    error(ss.str());
+                    // return TRUE as dummy constant to continue tracking process
+                    return _env->boolConst(true);
+                }
+                
+                if(leftType == python::Type::NULLVALUE && rightType == python::Type::NULLVALUE) {
+                    return _env->boolConst(!invertResult);
+                }
+
+                // comparison of None with boolean is always False.
+                if(leftType != rightType) {
+                    return _env->boolConst(invertResult);
+                }
+
+                // at this point we are doing an is comparison between booleans.
+                return invertResult ? _env->upcastToBoolean(builder, builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_NE, L, R)) 
+                                        : _env->upcastToBoolean(builder, builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, L, R));                
+            }   
+
             assert(L);
             assert(R);
             // comparison of values without null
@@ -1125,15 +1154,18 @@ namespace tuplex {
                 return listInclusionCheck(builder, L, leftType, R, rightType.withoutOptions());
             } else {
                 // exception check left
-                if (L_isnull) {
-                    _lfb->addException(builder, ExceptionCode::TYPEERROR, L_isnull);
-                }
 
-                // exception check right
-                if (R_isnull) {
-                    _lfb->addException(builder, ExceptionCode::TYPEERROR, R_isnull);
-                }
+                if(tt != TokenType::IS && tt != TokenType::ISNOT) {
+                    if (L_isnull) {
+                        _lfb->addException(builder, ExceptionCode::TYPEERROR, L_isnull);
+                    }
 
+                    // exception check right
+                    if (R_isnull) {
+                        _lfb->addException(builder, ExceptionCode::TYPEERROR, R_isnull);
+                    }
+                }
+                
                 auto resVal = compareInst(builder, L, leftType.withoutOptions(), tt, R, rightType.withoutOptions());
                 _lfb->setLastBlock(builder.GetInsertBlock());
                 return resVal;

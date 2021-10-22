@@ -89,6 +89,9 @@ TEST_F(TracerTest, ZillowExtractBd) {
 //    cout<<endl;
 
     // quick dict
+
+
+    // PASS IN OBJECT TO DO TRACING. WRITE TEST.
     TraceVisitor tv;
     tv.recordTrace(ast, in);
     python::unlockGIL();
@@ -136,6 +139,32 @@ void traceAndValidateResult(const std::string& code, PyObject* arg) {
 #endif
 
     EXPECT_TRUE(PyObject_RichCompare(ref, res, Py_EQ));
+}
+
+TEST_F(TracerTest, IsKeyword) {
+    python::lockGIL();
+
+    auto udf1 = "lambda x: x is None";
+    PyObject* arg1 = Py_None;
+
+    traceAndValidateResult(udf1, arg1);
+
+    auto udf2 = "lambda x: x is not None";
+    PyObject* arg2 = PyBool_FromLong(0);
+
+    traceAndValidateResult(udf2, arg2);
+
+    auto udf3 = "lambda x: x is not False";
+    PyObject* arg3 = PyBool_FromLong(1);
+
+    traceAndValidateResult(udf3, arg3);
+
+    auto udf4 = "lambda x: x is True";
+    PyObject* arg4 = PyBool_FromLong(1);
+
+    traceAndValidateResult(udf4, arg4);
+
+    python::unlockGIL();
 }
 
 TEST_F(TracerTest, UseCaseFunctions) {

@@ -388,7 +388,11 @@ namespace tuplex {
         // now truth value testing, single element?
         auto res = ti_vals.front();
 
+        // IS and IS NOT were added here with these op ids because as far as optimizations go, 
+        // their functionality should be similar to EQ/NE. 
         std::unordered_map<TokenType, int> cmpLookup{{TokenType::EQEQUAL, Py_EQ},
+                                                     {TokenType::IS, Py_EQ},
+                                                     {TokenType::ISNOT, Py_NE},
                                                      {TokenType::NOTEQUAL, Py_NE},
                                                      {TokenType::LESS, Py_LT},
                                                      {TokenType::LESSEQUAL, Py_LE},
@@ -407,6 +411,7 @@ namespace tuplex {
             auto info = python::PyString_AsString(res.value) + " " + opToString(op) + " " +
                     python::PyString_AsString(ti_vals[i+1].value);
 
+            // cpython api.
             res.value = PyObject_RichCompare(res.value, ti_vals[i + 1].value, opid);
 
             auto res_info = "is: " + python::PyString_AsString(res.value);

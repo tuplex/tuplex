@@ -378,17 +378,65 @@ namespace tuplex {
         assert(_context);
         assert(_operator);
 
+        if("" == oldColumnName) {
+            return _context->makeError("Can't rename \"\" to name");
+        }
+
+        if(_columnNames.empty()) {
+            return _context->makeError("Dataset has no column names specified, try to use position based renameColumn function");
+        }
+
         // find old column in current columns
         auto it = std::find(_columnNames.begin(), _columnNames.end(), oldColumnName);
-        if(it == _columnNames.end())
-            return _context->makeError("renameColumn: could not find column '" + oldColumnName + "' in dataset's columns");
+        if(it == _columnNames.end()) {
+            // fuzzy match against existing columns
+            assert(_columnNames.size() >= 1);
+            auto closest_index = fuzzyMatch(oldColumnName, _columnNames);
+            assert(closest_index >= 0 && closest_index < _columnNames.size());
+            auto closest_name = _columnNames[closest_index];
+            return _context->makeError("renameColumn: could not find column '" + oldColumnName + "' in dataset's columns. Did you mean \"" + closest_name + "\"");
+        }
 
         // position?
         auto idx = it - _columnNames.begin();
+        return renameColumn(idx, newColumnName);
+    }
+
+    size_t DataSet::numColumns() const {
+        assert(schema().getRowType().isTupleType());
+        return this->schema().getRowType().parameters().size();
+    }
+
+    DataSet & DataSet::renameColumn(int index, const std::string &newColumnName) {
+        using namespace std;
+
+        if(isError())
+            return *this;
+
+        assert(_context);
+        assert(_operator);
+
+        // renaming to empty string is not allowed
+        if("" == newColumnName) {
+            return _context->makeError("Can't rename column to \"\", as it is a reserved value");
+        }
+
+        auto num_columns = numColumns();
+        if(index < 0)
+            throw std::runtime_error("index must be non-negative number");
+        if(index >= num_columns)
+            throw std::runtime_error("Dataset contains only " + std::to_string(num_columns) + ", can't rename the " +
+                                             ordinal(index + 1) + " column");
 
         // make copy
         vector<string> columnNames(_columnNames.begin(), _columnNames.end());
-        columnNames[idx] = newColumnName;
+
+        // are column names empty? If so, fill in with blanks!
+        if(columnNames.empty()) {
+            columnNames = vector<string>(num_columns, "");
+        }
+
+        columnNames[index] = newColumnName;
 
         // create dummy map operator
         // now it is a simple map operator
@@ -407,6 +455,15 @@ namespace tuplex {
             Logger::instance().defaultLogger().info("received signal handler sig, returning error dataset");
 #endif
             return _context->makeError("job aborted (signal received)");
+        }
+
+        // emit warning if non-unique names anymore
+        // ==> only for non-empty strings
+        std::vector<std::string> non_empty_names;
+        std::copy_if(columnNames.begin(), columnNames.end(), std::back_inserter(non_empty_names), [](const std::string& name) { return name != ""; });
+        std::set<std::string> unique_names(non_empty_names.begin(), non_empty_names.end());
+        if(unique_names.size() != non_empty_names.size()) {
+            Logger::instance().defaultLogger().info("Found duplicate column names. Note that this can negatively impact UDFs and subsequent operators.");
         }
 
         return ds;

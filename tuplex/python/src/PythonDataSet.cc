@@ -559,6 +559,43 @@ namespace tuplex {
         return pds;
     }
 
+    PythonDataSet PythonDataSet::renameColumn(int index, const std::string &newName) {
+        assert(_dataset);
+        if (_dataset->isError()) {
+            PythonDataSet pds;
+            pds.wrap(this->_dataset);
+            return pds;
+        }
+
+        PythonDataSet pds;
+        // GIL release & reacquire
+        assert(PyGILState_Check()); // make sure this thread holds the GIL!
+        python::unlockGIL();
+        DataSet *ds = nullptr;
+        std::string err_message = "";
+        try {
+            ds = &_dataset->renameColumn(index, newName);
+        } catch(const std::exception& e) {
+            err_message = e.what();
+            Logger::instance().defaultLogger().error(err_message);
+        } catch(...) {
+            err_message = "unknown C++ exception occurred, please change type.";
+            Logger::instance().defaultLogger().error(err_message);
+        }
+
+        python::lockGIL();
+
+        // nullptr? then error dataset!
+        if(!ds || !err_message.empty()) {
+            Logger::instance().flushAll();
+            assert(_dataset->getContext());
+            ds = &_dataset->getContext()->makeError(err_message);
+        }
+        pds.wrap(ds);
+        Logger::instance().flushAll();
+        return pds;
+    }
+
     PythonDataSet PythonDataSet::selectColumns(boost::python::list L) {
         // check dataset is valid & perform error check.
         assert(this->_dataset);

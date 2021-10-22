@@ -43,6 +43,7 @@ namespace tuplex {
         virtual DataSet& selectColumns(const std::vector<std::string>& columnNames) override { return *this; }
         virtual DataSet& selectColumns(const std::vector<size_t>& columnIndices) override { return *this; }
         virtual DataSet& renameColumn(const std::string& oldColumnName, const std::string& newColumnName) override { return *this; }
+        virtual DataSet& renameColumn(int index, const std::string& newColumnName) override { return *this; }
         virtual DataSet& withColumn(const std::string& columnName, const UDF& udf) override { return *this; }
         virtual void tofile(FileFormat fmt,
                             const URI& uri,

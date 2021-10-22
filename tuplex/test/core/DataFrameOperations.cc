@@ -383,3 +383,14 @@ TEST_F(DataFrameTest, FolderOutput) {
     auto content = fileToString(URI("output/part0.csv"));
     EXPECT_EQ(content, "A,B\n11,20\n11,40\n");
 }
+
+TEST_F(DataFrameTest, RenameColumns) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    // rename test, position based:
+    auto& ds = c.parallelize({Row(1, 2), Row(3, 4)});
+    auto cols_before_rename = ds.columns();
+
+    printf("test");
+}

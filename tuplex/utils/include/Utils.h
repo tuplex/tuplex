@@ -43,6 +43,7 @@ namespace std {
 }
 #endif
 
+#include "third_party/levenshtein-sse.h"
 
 // helper code to allow tuples in maps.
 #include <boost/functional/hash.hpp>
@@ -298,6 +299,37 @@ namespace tuplex {
         }
         return std::to_string(i) + "th";
     }
+
+    /*!
+     * match needle against dictionary and find closest match based on Levenshtein distance
+     * @param needle string
+     * @param dictionary strings
+     * @return position in dictionary, or -1 in error case
+     */
+    inline int fuzzyMatch(const std::string& needle, const std::vector<std::string>& dictionary) {
+        using namespace std;
+        using namespace levenshteinSSE;
+
+        if(dictionary.empty())
+            return -1;
+
+        if(dictionary.size() == 1)
+            return 0;
+
+        int best_index = 0;
+        int lowest_score = numeric_limits<int>::max();
+        for(int i = 1; i < dictionary.size(); ++i) {
+            const auto& word = dictionary[i];
+            auto score = levenshtein(needle, word);
+
+            if(score < lowest_score) {
+                best_index = i;
+                lowest_score = score;
+            }
+        }
+        return best_index;
+    }
+
 
     template<typename T> std::ostream &operator <<(std::ostream &os, const std::vector<T> &v) {
         using namespace std;

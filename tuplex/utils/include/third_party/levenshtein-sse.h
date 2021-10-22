@@ -234,14 +234,14 @@ inline __m128i _mm_min_epi32 (__m128i a, __m128i b) {
 // (i.e. move a one epi32 to the left and write the highest
 // bytes of b to the lowest of a)
 /*#ifndef __AVX512F__*/
-__m256i _mm256_alignr_epi32_7(__m256i a, __m256i b) {
+inline __m256i _mm256_alignr_epi32_7(__m256i a, __m256i b) {
   const __m256i rotl1_256_epi32 = _mm256_setr_epi32(7, 0, 1, 2, 3, 4, 5, 6);
   __m256i combined = _mm256_blend_epi32(a, b, 0x80);
   return _mm256_permutevar8x32_epi32(combined, rotl1_256_epi32);
 }
 /*
 #else
-__m256i _mm256_alignr_epi32_7(__m256i a, __m256i b) {
+inline __m256i _mm256_alignr_epi32_7(__m256i a, __m256i b) {
   return _mm256_alignr_epi32(a, b, 7);
 }
 #endif*/

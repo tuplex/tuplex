@@ -261,10 +261,10 @@ class DataSet:
         ds._dataSet = self._dataSet.selectColumns(columns)
         return ds
 
-    def renameColumn(self, oldColumnName, newColumnName):
+    def renameColumn(self, oldColumnNameOrPosition, newColumnName):
         """ rename a column in dataset
         Args:
-            oldColumnName: str, old column name. Must exist.
+            oldColumnName: str|int, old column name or (0-indexed) position.
             newColumnName: str, new column name
 
         Returns:
@@ -273,11 +273,11 @@ class DataSet:
 
         assert self._dataSet is not None, 'internal API error, datasets must be created via context object'
 
-        assert isinstance(oldColumnName, str), 'oldColumnName must be a string'
+        assert isinstance(oldColumnNameOrPosition, (str, int)), 'oldColumnNameOrPosition must be a string or integer'
         assert isinstance(newColumnName, str), 'newColumnName must be a string'
 
         ds = DataSet()
-        ds._dataSet = self._dataSet.renameColumn(oldColumnName, newColumnName)
+        ds._dataSet = self._dataSet.renameColumn(oldColumnNameOrPosition, newColumnName)
         return ds
 
     def ignore(self, eclass):

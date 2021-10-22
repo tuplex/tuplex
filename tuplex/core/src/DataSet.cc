@@ -394,7 +394,7 @@ namespace tuplex {
             auto closest_index = fuzzyMatch(oldColumnName, _columnNames);
             assert(closest_index >= 0 && closest_index < _columnNames.size());
             auto closest_name = _columnNames[closest_index];
-            return _context->makeError("renameColumn: could not find column '" + oldColumnName + "' in dataset's columns. Did you mean \"" + closest_name + "\"");
+            return _context->makeError("renameColumn: could not find column '" + oldColumnName + "' in dataset's columns. Did you mean \"" + closest_name + "\"?");
         }
 
         // position?

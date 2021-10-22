@@ -48,6 +48,16 @@ TEST_F(DiskSwapping, MicroSwap) {
     // validate result
     for(int64_t i = 0; i < numIntegers; i++)
         EXPECT_EQ(i, res[i].getInt(0));
+
+    // print metrics
+    std::cout<<"METRICS:\n======="<<std::endl;
+    std::cout<<c.metrics().to_json()<<std::endl;
+    using namespace std;
+    cout<<"swaps in: "<<Partition::statisticSwapInCount()<<endl;
+    cout<<"swaps out: "<<Partition::statisticSwapOutCount()<<endl;
+    cout<<"swap bytes read: "<<sizeToMemString(Partition::statisticSwapInBytesRead())<<endl;
+    cout<<"swap bytes written: "<<sizeToMemString(Partition::statisticSwapOutBytesWritten())<<endl;
+    std::cout<<std::endl;
 }
 
 TEST_F(DiskSwapping, MiniSwap) {
@@ -57,14 +67,16 @@ TEST_F(DiskSwapping, MiniSwap) {
     co.set("tuplex.partitionSize", "200KB");
     //co.set("tuplex.executorMemory", "1MB");
     co.set("tuplex.executorMemory", "400KB");
+    co.set("tuplex.driverMemory", "400KB");
     co.set("tuplex.useLLVMOptimizer", "false");
+    co.set("tuplex.executorCount", "4"); // fix to 4 threads.
 
     Context c(co);
 
 
     // one integer needs 8 bytes, given here are 200KB partitions
     // i.e. in order to go over the limit (1MB) following number of integers are needed
-    int64_t numIntegers = static_cast<int64_t>(1.1 * (400 * 1024 / 8)); //1.1 * (1024 * 1024 / 8); // give 10% more
+    int64_t numIntegers = static_cast<int64_t>(5.7 * 1.1 * (400 * 1024 / 8)); //1.1 * (1024 * 1024 / 8); // give 10% more
 
     std::vector<int64_t> data;
     data.reserve(numIntegers);
@@ -84,6 +96,16 @@ TEST_F(DiskSwapping, MiniSwap) {
     // validate result
     for(int64_t i = 0; i < numIntegers; i++)
         EXPECT_EQ(i, res[i].getInt(0));
+
+    // print metrics
+    std::cout<<"METRICS:\n======="<<std::endl;
+    std::cout<<c.metrics().to_json()<<std::endl;
+    using namespace std;
+    cout<<"swaps in: "<<Partition::statisticSwapInCount()<<endl;
+    cout<<"swaps out: "<<Partition::statisticSwapOutCount()<<endl;
+    cout<<"swap bytes read: "<<sizeToMemString(Partition::statisticSwapInBytesRead())<<endl;
+    cout<<"swap bytes written: "<<sizeToMemString(Partition::statisticSwapOutBytesWritten())<<endl;
+    std::cout<<std::endl;
 }
 
 TEST_F(DiskSwapping, SwapWithLambda) {

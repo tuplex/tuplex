@@ -12,6 +12,13 @@
 #include <Utils.h>
 
 namespace tuplex {
+
+    // init all atomic metric counters
+    std::atomic_int64_t Partition::_swapInCount(0);
+    std::atomic_int64_t Partition::_swapOutCount(0);
+    std::atomic_int64_t Partition::_swapInBytesRead(0);
+    std::atomic_int64_t Partition::_swapOutBytesWritten(0);
+
     const uint8_t* Partition::lockRaw() {
 
         assert(_owner);
@@ -116,6 +123,9 @@ namespace tuplex {
 
         fclose(pFile);
 
+        _swapOutCount++;
+        _swapOutBytesWritten += _size + sizeof(uint64_t);
+
         return true;
     }
 
@@ -133,7 +143,6 @@ namespace tuplex {
             return;
         }
 
-
         // read from file
         fread(&_bytesWritten, sizeof(uint64_t), 1, pFile);
         fread(_arena, _size, 1, pFile);
@@ -144,6 +153,10 @@ namespace tuplex {
         if(0 != remove(path.c_str())) {
             throw std::runtime_error("failed removing file from path " + path);
         }
+
+        // update metric counters
+        _swapInCount++;
+        _swapInBytesRead += _size + sizeof(uint64_t);
 
 //        auto vfs = VirtualFileSystem::fromURI(uri);
 //        uint64_t file_size = 0;

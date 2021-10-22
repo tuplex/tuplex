@@ -720,6 +720,9 @@ namespace tuplex {
         Timer stageTimer;
         Timer timer; // for detailed measurements.
 
+        // reset Partition stats
+        Partition::resetStatistics();
+
         // special case: no input, return & set empty result
         // Note: file names & sizes are also saved in input partition!
         if (tstage->inputMode() != EndPointMode::HASHTABLE
@@ -1110,6 +1113,13 @@ namespace tuplex {
             ss<<"[Transform Stage] Stage "<<tstage->number()<<" completed "<<completedTasks.size()<<" sink tasks in "<<timer.time()<<"s";
             Logger::instance().defaultLogger().info(ss.str());
         }
+
+        // update metrics
+        metrics.setDiskSpillStatistics(tstage->number(),
+                                       Partition::statisticSwapInCount(),
+                                       Partition::statisticSwapInBytesRead(),
+                                       Partition::statisticSwapOutCount(),
+                                       Partition::statisticSwapOutBytesWritten());
 
         // info how long the trafo stage took
         std::stringstream ss;

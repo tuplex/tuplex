@@ -89,9 +89,6 @@ TEST_F(TracerTest, ZillowExtractBd) {
 //    cout<<endl;
 
     // quick dict
-
-
-    // PASS IN OBJECT TO DO TRACING. WRITE TEST.
     TraceVisitor tv;
     tv.recordTrace(ast, in);
     python::unlockGIL();

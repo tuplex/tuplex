@@ -90,7 +90,7 @@ namespace tuplex {
 
         PythonDataSet renameColumn(const std::string& oldName, const std::string& newName);
 
-        PythonDataSet renameColumn(int index, const std::string& newName);
+        PythonDataSet renameColumnByPosition(int index, const std::string& newName);
 
         PythonDataSet ignore(const int64_t exceptionCode);
 

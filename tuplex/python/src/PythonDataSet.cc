@@ -559,7 +559,7 @@ namespace tuplex {
         return pds;
     }
 
-    PythonDataSet PythonDataSet::renameColumn(int index, const std::string &newName) {
+    PythonDataSet PythonDataSet::renameColumnByPosition(int index, const std::string &newName) {
         assert(_dataset);
         if (_dataset->isError()) {
             PythonDataSet pds;

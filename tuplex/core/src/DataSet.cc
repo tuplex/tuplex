@@ -378,10 +378,6 @@ namespace tuplex {
         assert(_context);
         assert(_operator);
 
-        if("" == oldColumnName) {
-            return _context->makeError("Can't rename \"\" to name");
-        }
-
         if(_columnNames.empty()) {
             return _context->makeError("Dataset has no column names specified, try to use position based renameColumn function");
         }
@@ -407,7 +403,7 @@ namespace tuplex {
         return this->schema().getRowType().parameters().size();
     }
 
-    DataSet & DataSet::renameColumn(int index, const std::string &newColumnName) {
+    DataSet& DataSet::renameColumn(int index, const std::string &newColumnName) {
         using namespace std;
 
         if(isError())
@@ -416,16 +412,11 @@ namespace tuplex {
         assert(_context);
         assert(_operator);
 
-        // renaming to empty string is not allowed
-        if("" == newColumnName) {
-            return _context->makeError("Can't rename column to \"\", as it is a reserved value");
-        }
-
         auto num_columns = numColumns();
         if(index < 0)
-            throw std::runtime_error("index must be non-negative number");
+            return _context->makeError("index must be non-negative number");
         if(index >= num_columns)
-            throw std::runtime_error("Dataset contains only " + std::to_string(num_columns) + ", can't rename the " +
+            return _context->makeError("Dataset contains only " + std::to_string(num_columns) + ", can't rename the " +
                                              ordinal(index + 1) + " column");
 
         // make copy

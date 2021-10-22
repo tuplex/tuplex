@@ -957,37 +957,16 @@ namespace tuplex {
             assert(!leftType.isOptional());
             assert(!rightType.isOptional());
 
-            if(tt == TokenType::IS || tt == TokenType::ISNOT) {
-                bool invertResult = (tt == TokenType::ISNOT);
-
-                std::unordered_set<python::Type> validTypes = {python::Type::BOOLEAN, python::Type::NULLVALUE};
-                if (!(validTypes.count(leftType) && validTypes.count(rightType))) {
-                    std::stringstream ss;
-                    ss << "Could not generate is comparison for types "
-                       << leftType.desc()
-                       << " " << opToString(tt) << " "
-                       << rightType.desc();
-                    error(ss.str());
-                    // return TRUE as dummy constant to continue tracking process
-                    return _env->boolConst(true);
-                }
-                
-                if(leftType == python::Type::NULLVALUE && rightType == python::Type::NULLVALUE) {
-                    return _env->boolConst(!invertResult);
-                }
-
-                // comparison of None with boolean is always False.
-                if(leftType != rightType) {
-                    return _env->boolConst(invertResult);
-                }
-
-                // at this point we are doing an is comparison between booleans.
-                return invertResult ? _env->upcastToBoolean(builder, builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_NE, L, R)) 
-                                        : _env->upcastToBoolean(builder, builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, L, R));                
-            }   
-
             assert(L);
             assert(R);
+
+            if(tt == TokenType::IS || tt == TokenType::ISNOT) {
+                // type must be boolean, otherwise compareInst with _isnull would've taken care.
+                bool invertResult = (tt == TokenType::ISNOT);
+                return invertResult ? _env->upcastToBoolean(builder, builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_NE, L, R)) 
+                        : _env->upcastToBoolean(builder, builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, L, R));                
+            }
+
             // comparison of values without null
             auto superType = python::Type::superType(leftType.withoutOptions(), rightType.withoutOptions());
             if (superType == python::Type::UNKNOWN) {
@@ -1010,10 +989,10 @@ namespace tuplex {
 
 
         llvm::Value* BlockGeneratorVisitor::oneSidedNullComparison(llvm::IRBuilder<>& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull) {
-            assert(tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL); // only for == or !=!
+            assert(tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL || tt == TokenType::IS || tt == TokenType::ISNOT); // only for == or !=!
 
             if(type == python::Type::NULLVALUE)
-                return _env->boolConst(tt == TokenType::EQEQUAL); // if == then true, if != then false
+                return _env->boolConst(tt == TokenType::EQEQUAL || tt == TokenType::IS); // if == then true, if != then false
 
             // option type? check isnull
             // else, super simple. Decide on tokentype
@@ -1025,7 +1004,7 @@ namespace tuplex {
                 // the other side is null
                 // if isnull is true && equal => true
                 // if isnull is false && notequal => false (case 12 != None)
-                if(tt == TokenType::NOTEQUAL)
+                if(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT)
                     return _env->upcastToBoolean(builder, _env->i1neg(builder, isnull));
                 else
                     return _env->upcastToBoolean(builder, isnull);
@@ -1033,7 +1012,7 @@ namespace tuplex {
                 // the other side is null
                 // => 12 != null => true
                 // => 12 == null => false
-                return _env->boolConst(tt == TokenType::NOTEQUAL);
+                return _env->boolConst(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT);
             }
         }
 
@@ -1043,8 +1022,23 @@ namespace tuplex {
                                            const python::Type &rightType) {
 
             // None comparisons only work for == or !=, i.e. for all other ops throw exception
-            if (tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL) {
+            if (tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL || tt == TokenType::IS || tt == TokenType::ISNOT) {
                 // special case: one side is None
+
+                if(tt == TokenType::IS || tt == TokenType::ISNOT) {
+                    std::unordered_set<python::Type> validTypes = {python::Type::BOOLEAN, python::Type::NULLVALUE};
+                    if (!(validTypes.count(leftType.withoutOptions()) && validTypes.count(rightType.withoutOptions()))) {
+                        std::stringstream ss;
+                        ss << "Cannot generate is comparison for types "
+                        << leftType.desc()
+                        << " " << opToString(tt) << " "
+                        << rightType.desc();
+                        error(ss.str());
+                        // return TRUE as dummy constant to continue tracking process
+                        return _env->boolConst(true);
+                    }
+                }
+
                 if(leftType == python::Type::NULLVALUE || rightType == python::Type::NULLVALUE) {
 
                     // left side NULL VALUE?
@@ -1072,7 +1066,7 @@ namespace tuplex {
                         assert(L);
                         assert(R);
 
-                        auto resVal = _env->CreateTernaryLogic(builder, L_isnull, [&] (llvm::IRBuilder<>& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL); },
+                        auto resVal = _env->CreateTernaryLogic(builder, L_isnull, [&] (llvm::IRBuilder<>& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT); },
                                                                [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType.withoutOptions(), tt, R, rightType); });
                         _lfb->setLastBlock(builder.GetInsertBlock());
                         return resVal;
@@ -1088,7 +1082,7 @@ namespace tuplex {
                         assert(L);
                         assert(R);
 
-                        auto resVal = _env->CreateTernaryLogic(builder, R_isnull, [&] (llvm::IRBuilder<>& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL); },
+                        auto resVal = _env->CreateTernaryLogic(builder, R_isnull, [&] (llvm::IRBuilder<>& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT); },
                                                                [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType, tt, R, rightType.withoutOptions()); });
                         _lfb->setLastBlock(builder.GetInsertBlock());
                         return resVal;
@@ -1154,18 +1148,15 @@ namespace tuplex {
                 return listInclusionCheck(builder, L, leftType, R, rightType.withoutOptions());
             } else {
                 // exception check left
-
-                if(tt != TokenType::IS && tt != TokenType::ISNOT) {
-                    if (L_isnull) {
-                        _lfb->addException(builder, ExceptionCode::TYPEERROR, L_isnull);
-                    }
-
-                    // exception check right
-                    if (R_isnull) {
-                        _lfb->addException(builder, ExceptionCode::TYPEERROR, R_isnull);
-                    }
+                if (L_isnull) {
+                    _lfb->addException(builder, ExceptionCode::TYPEERROR, L_isnull);
                 }
-                
+
+                // exception check right
+                if (R_isnull) {
+                    _lfb->addException(builder, ExceptionCode::TYPEERROR, R_isnull);
+                }
+
                 auto resVal = compareInst(builder, L, leftType.withoutOptions(), tt, R, rightType.withoutOptions());
                 _lfb->setLastBlock(builder.GetInsertBlock());
                 return resVal;

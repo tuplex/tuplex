@@ -27,7 +27,3 @@ class TestIs(TestCase):
     def test_mixedIsNotNone2(self):
         res = self.c.parallelize([None, True, False]).map(lambda x: x is not None).collect()
         self.assertEqual(res, [False, True, True])
-
-    # def test_throwError(self):
-    #     res = self.c.parallelize(["hi", 0.5, {'a': 0}]).map(lambda x: x is not True).collect()
-    #     self.assertRaises(TypeError)

@@ -287,7 +287,7 @@ namespace tuplex {
                         auto parent = ((ResolveOperator*)op)->getNormalParent();
                         if(parent->type() == LogicalOperatorType::MAPCOLUMN) {
                             singleArg = true;
-                            singleColumnIndex = ((MapColumnOperator*)parent)->getColumnIndex();
+                            singleColumnIndex = ((MapColumnOperator*)parent.get())->getColumnIndex();
                         }
                     }
 
@@ -378,11 +378,11 @@ namespace tuplex {
                 // i.e., directly return column names from operator
                 switch(parent->type()) {
                     case LogicalOperatorType::PARALLELIZE: {
-                        auto pllop = (ParallelizeOperator*)parent;
+                        auto pllop = (ParallelizeOperator*)parent.get();
                         return pllop->columns();
                     }
                     case LogicalOperatorType::FILEINPUT: {
-                        auto csvop = (FileInputOperator*)parent;
+                        auto csvop = (FileInputOperator*)parent.get();
                         return csvop->columns();
                     }
 

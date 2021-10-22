@@ -31,8 +31,8 @@ namespace tuplex {
          * @return
          */
         PhysicalStage* splitIntoAndPlanStages();
-        PhysicalStage* createStage(LogicalOperator* root,
-                                   LogicalOperator* endNode,
+        PhysicalStage* createStage(const std::shared_ptr<LogicalOperator> &root,
+                                   std::shared_ptr<LogicalOperator> endNode,
                                    bool isRootStage,
                                    EndPointMode outMode);
 

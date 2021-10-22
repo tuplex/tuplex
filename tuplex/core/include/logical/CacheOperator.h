@@ -72,7 +72,7 @@ namespace tuplex {
 
         void setResult(const std::shared_ptr<ResultSet>& rs);
         std::shared_ptr<LogicalOperator> clone() override;
-        CacheOperator* cloneWithoutParents() const;
+        std::shared_ptr<CacheOperator> cloneWithoutParents() const;
 
         /*!
          * whether this operator holds an in-memory result or not. If not, then

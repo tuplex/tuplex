@@ -28,7 +28,7 @@ namespace tuplex {
                          bool nullValueOptimization);
 
             // builder functions
-            void addMemoryInput(const Schema& schema, LogicalOperator* node);
+            void addMemoryInput(const Schema& schema, std::shared_ptr<LogicalOperator> node);
             /*!
              * add memory output writer
              * @param schema
@@ -51,13 +51,13 @@ namespace tuplex {
                                     const python::Type& keyType,
                                     const python::Type& bucketType);
 
-            void addOperator(LogicalOperator* op) {
+            void addOperator(const std::shared_ptr<LogicalOperator>& op) {
                 _operators.push_back(op);
             }
 
             void addOperators(std::vector<LogicalOperator*>& operators);
 
-            void addFileInput(FileInputOperator* csvop);
+            void addFileInput(const std::shared_ptr<FileInputOperator> &csvop);
             void addFileOutput(FileOutputOperator* fop);
 
             TransformStage* build(PhysicalPlan* plan, IBackend* backend);
@@ -69,7 +69,7 @@ namespace tuplex {
             bool _generateParser;
             bool _sharedObjectPropagation;
             bool _nullValueOptimization;
-            std::vector<LogicalOperator*> _operators;
+            std::vector<std::shared_ptr<LogicalOperator>> _operators;
 
             // codegen strings
             std::string _funcFileWriteCallbackName;
@@ -113,7 +113,7 @@ namespace tuplex {
             int64_t _outputNodeID;
             int64_t _inputNodeID;
 
-            LogicalOperator* _inputNode;
+            std::shared_ptr<LogicalOperator> _inputNode;
             std::vector<bool> _columnsToRead;
 
             std::string _funcHashWriteCallbackName; // callback for writing to hash table
@@ -161,7 +161,7 @@ namespace tuplex {
             bool generateFastCodePath(); // file2mem always
 
             size_t resolveOperatorCount() {
-                return std::count_if(_operators.begin(), _operators.end(), [](const LogicalOperator* op) {
+                return std::count_if(_operators.begin(), _operators.end(), [](const std::shared_ptr<LogicalOperator> &op) {
                     return op && op->type() == LogicalOperatorType::RESOLVE;
                 });
             }
@@ -178,7 +178,7 @@ namespace tuplex {
 
             python::Type intermediateType() const;
 
-            std::vector<int64_t> getOperatorIDsAffectedByResolvers(const std::vector<LogicalOperator *> &operators);
+            std::vector<int64_t> getOperatorIDsAffectedByResolvers(const std::vector<std::shared_ptr<LogicalOperator>> &operators);
         };
     }
 }

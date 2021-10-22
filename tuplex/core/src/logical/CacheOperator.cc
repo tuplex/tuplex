@@ -47,12 +47,12 @@ namespace tuplex {
         return std::shared_ptr<LogicalOperator>(copy);
     }
 
-    CacheOperator * CacheOperator::cloneWithoutParents() const {
+    std::shared_ptr<CacheOperator> CacheOperator::cloneWithoutParents() const {
         auto copy = new CacheOperator(); // => no parents!
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<CacheOperator>(copy);
     }
 
     int64_t CacheOperator::cost() const {

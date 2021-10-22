@@ -129,7 +129,7 @@ namespace tuplex {
         return schema;
     }
 
-    bool hasUDF(const std::shared_ptr<LogicalOperator> &op) {
+    bool hasUDF(const LogicalOperator *op) {
         if(!op)
             return false;
 
@@ -140,11 +140,11 @@ namespace tuplex {
             case LogicalOperatorType::FILTER:
             case LogicalOperatorType::RESOLVE:
                 // check type integrity
-                assert(dynamic_cast<const UDFOperator*>(op.get()));
+                assert(dynamic_cast<const UDFOperator*>(op));
                 return true;
             default:
                 // check type integrity
-                assert(!dynamic_cast<const UDFOperator*>(op.get()));
+                assert(!dynamic_cast<const UDFOperator*>(op));
                 return false;
         }
     }

@@ -570,7 +570,7 @@ namespace tuplex {
             // check that node is parent of children
             for(auto child : children) {
                 auto cp = child->parents();
-                auto it = std::find(cp.begin(), cp.end(), node);
+                auto it = std::find_if(cp.begin(), cp.end(), [&](const std::shared_ptr<LogicalOperator> &c) { return c.get() == node; });
                 if(it == cp.end()) {
                     success = false;
                     ss<<node_name<<": not in "<<child->name()<<"(" + std::to_string(child->getID()) + ")'s parents\n";
@@ -886,7 +886,7 @@ namespace tuplex {
             assert(child->numChildren() == 2); // new fop, jop
             child->setChild(new_fop.get());
 
-            assert(verifyLogicalPlan(jop));
+            assert(verifyLogicalPlan(jop.get()));
 
             filterPushdown(new_fop);
         }
@@ -1190,7 +1190,7 @@ namespace tuplex {
 
                     // set up parent/child relationships
                     auto children = jop->getChildren(); // children of join
-                    children.erase(std::remove(children.begin(), children.end(), new_mop), children.end()); // need to remove new_mop because it was constructed with jop as parent
+                    children.erase(std::remove(children.begin(), children.end(), new_mop.get()), children.end()); // need to remove new_mop because it was constructed with jop as parent
                     for(auto& c : children) {
                         c->setParent(new_mop);
                     }
@@ -1305,7 +1305,7 @@ namespace tuplex {
 #endif
 
 #ifndef NDEBUG
-        assert(verifyLogicalPlan(_action));
+        assert(verifyLogicalPlan(_action.get()));
 #endif
 
         if(context.getOptions().OPT_FILTER_PUSHDOWN()) {
@@ -1314,14 +1314,14 @@ namespace tuplex {
         }
 
 #ifndef NDEBUG
-        assert(verifyLogicalPlan(_action));
+        assert(verifyLogicalPlan(_action.get()));
 #endif
 
         if(context.getOptions().OPT_OPERATOR_REORDERING())
             reorderDataProcessingOperators();
 
 #ifndef NDEBUG
-        assert(verifyLogicalPlan(_action));
+        assert(verifyLogicalPlan(_action.get()));
 #endif
 
         // projectionPushdown (to csv parser etc. if possible)
@@ -1347,7 +1347,7 @@ namespace tuplex {
 #endif
 
 #ifndef NDEBUG
-            assert(verifyLogicalPlan(_action));
+            assert(verifyLogicalPlan(_action.get()));
 #endif
         }
 

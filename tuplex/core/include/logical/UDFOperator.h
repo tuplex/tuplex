@@ -71,7 +71,7 @@ namespace tuplex {
      * @param op
      * @return whether op has a UDF or not.
      */
-    extern bool hasUDF(const LogicalOperator* op);
+    extern bool hasUDF(const LogicalOperator *op);
 }
 
 CEREAL_REGISTER_TYPE(tuplex::UDFOperator);

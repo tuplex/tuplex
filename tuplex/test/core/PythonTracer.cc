@@ -171,6 +171,22 @@ TEST_F(TracerTest, IsKeyword) {
 
     traceAndValidateResult(udf6, arg6);
 
+    auto udf7 = "lambda x: x is 1";
+    PyObject* arg7 = Py_None;
+
+    traceAndValidateResult(udf7, arg7);
+
+    auto udf8 = "lambda x: x is not 400";
+    PyObject* arg8 = PyBool_FromLong(0);
+
+    traceAndValidateResult(udf8, arg8);
+
+    auto udf9 = "lambda x: x is 0";
+    PyObject* arg9 = PyBool_FromLong(0);
+
+    traceAndValidateResult(udf9, arg9);
+
+
     python::unlockGIL();
 }
 

@@ -961,8 +961,14 @@ namespace tuplex {
             assert(R);
 
             if(tt == TokenType::IS || tt == TokenType::ISNOT) {
-                assert(leftType == python::Type::BOOLEAN && rightType == python::Type::BOOLEAN);
-                // type must be boolean, otherwise compareInst with _isnull would've taken care.
+                assert(leftType == python::Type::BOOLEAN || rightType == python::Type::BOOLEAN);
+                // one of the types must be boolean, otherwise compareInst with _isnull would've taken care.
+                if((leftType == python::Type::BOOLEAN) ^ (rightType == python::Type::BOOLEAN)) {
+                    // one of the types is boolean, other isn't. comparison results in false.
+                    return _env->boolConst(tt == TokenType::ISNOT);
+                } 
+                
+                // both must be boolean.
                 auto cmpInst = (tt == TokenType::ISNOT) ? llvm::CmpInst::Predicate::ICMP_NE : llvm::CmpInst::Predicate::ICMP_EQ;
                 return _env->upcastToBoolean(builder, builder.CreateICmp(cmpInst, L, R));              
             }
@@ -1031,13 +1037,12 @@ namespace tuplex {
 
             // None comparisons only work for == or !=, i.e. for all other ops throw exception
             if (tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL || tt == TokenType::IS || tt == TokenType::ISNOT) {
-                // special case: one side is None
 
                 if(tt == TokenType::IS || tt == TokenType::ISNOT) {
                     std::unordered_set<python::Type> validTypes = {python::Type::BOOLEAN, python::Type::NULLVALUE};
-                    if (!(validTypes.count(leftType.withoutOptions()) && validTypes.count(rightType.withoutOptions()))) {
+                    if (!(validTypes.count(leftType.withoutOptions()) || validTypes.count(rightType.withoutOptions()))) {
                         std::stringstream ss;
-                        ss << "Cannot generate is comparison for types "
+                        ss << "Could not generate comparison for types "
                         << leftType.desc()
                         << " " << opToString(tt) << " "
                         << rightType.desc();
@@ -1047,6 +1052,7 @@ namespace tuplex {
                     }
                 }
 
+                // special case: one side is None
                 if(leftType == python::Type::NULLVALUE || rightType == python::Type::NULLVALUE) {
 
                     // left side NULL VALUE?
@@ -1107,7 +1113,7 @@ namespace tuplex {
                         // compareInst if both are NOT none
                         auto bothValid = builder.CreateAnd(L_isnull, R_isnull);
                         auto xorResult = builder.CreateXor(L_isnull, R_isnull);
-                        if (TokenType::EQEQUAL == tt)
+                        if (tt == TokenType::EQEQUAL || tt == TokenType::IS)
                             xorResult = builder.CreateNot(xorResult);
 
                         auto resVal = _env->CreateTernaryLogic(builder, bothValid, [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType.withoutOptions(), tt, R,

@@ -410,15 +410,19 @@ namespace tuplex {
             auto info = python::PyString_AsString(res.value) + " " + opToString(op) + " " +
                     python::PyString_AsString(ti_vals[i+1].value);
 
+            // based on op, decide value of result.
+
             if(op == TokenType::IS || op == TokenType::ISNOT) {
-                // compare pointers in case of `is` keyword. 
-                res.value = (res.value == ti_vals[i + 1].value) ? Py_True : Py_False;
+                bool finalResult = (ti_vals[i + 1].value == res.value);
+                // invert result if op is ISNOT.
+                finalResult = (op == TokenType::IS) ? finalResult : !finalResult;
+                res.value = finalResult ? Py_True : Py_False;
             } else {
                 res.value = PyObject_RichCompare(res.value, ti_vals[i + 1].value, opid);
             }
 
+            // res.value = PyObject_RichCompare(res.value, ti_vals[i + 1].value, opid);
             auto res_info = "is: " + python::PyString_AsString(res.value);
-
             // NULL? ==> failure!
             assert(res.value);
         }

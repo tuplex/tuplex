@@ -1,9 +1,12 @@
-from unittest import TestCase
 import tuplex
+from unittest import TestCase
+"""
+Tests 
+"""
 class TestIs(TestCase):
 
     def setUp(self):
-        self.conf = {"webui.enable": False, "driverMemory": "64MB", "executorMemory": "2MB", "partitionSize": "128KB"}
+        self.conf = {"webui.enable": False, "executorCount": "0"}
         self.c = tuplex.Context(webui=False)
 
     def test_boolIsBool(self):

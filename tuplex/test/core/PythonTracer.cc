@@ -161,6 +161,16 @@ TEST_F(TracerTest, IsKeyword) {
 
     traceAndValidateResult(udf4, arg4);
 
+    auto udf5 = "lambda x: x is 25";
+    PyObject* arg5 = PyLong_FromLong(25);
+
+    traceAndValidateResult(udf5, arg5);
+
+    auto udf6 = "lambda x: x is 400";
+    PyObject* arg6 = PyLong_FromLong(400);
+
+    traceAndValidateResult(udf6, arg6);
+
     python::unlockGIL();
 }
 

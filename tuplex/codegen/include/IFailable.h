@@ -30,6 +30,7 @@ enum class CompileError {
     TYPE_ERROR_RETURN_ITERATOR,
     TYPE_ERROR_NEXT_CALL_DIFFERENT_DEFAULT_TYPE,
     TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST, // exprlist contains a mix of tuple/list of identifiers and single identifier
+    TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON,
 };
 
 /*!

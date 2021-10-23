@@ -388,8 +388,7 @@ namespace tuplex {
         // now truth value testing, single element?
         auto res = ti_vals.front();
 
-        // IS and IS NOT were added here with these op ids because as far as optimizations go, 
-        // their functionality should be similar to EQ/NE. 
+        // IS and IS NOT are equivalent to id(L) == id(R) and id(L) != id(R).
         std::unordered_map<TokenType, int> cmpLookup{{TokenType::EQEQUAL, Py_EQ},
                                                      {TokenType::IS, Py_EQ},
                                                      {TokenType::ISNOT, Py_NE},
@@ -411,8 +410,12 @@ namespace tuplex {
             auto info = python::PyString_AsString(res.value) + " " + opToString(op) + " " +
                     python::PyString_AsString(ti_vals[i+1].value);
 
-            // cpython api.
-            res.value = PyObject_RichCompare(res.value, ti_vals[i + 1].value, opid);
+            if(op == TokenType::IS || op == TokenType::ISNOT) {
+                // compare pointers in case of `is` keyword. 
+                res.value = (res.value == ti_vals[i + 1].value) ? Py_True : Py_False;
+            } else {
+                res.value = PyObject_RichCompare(res.value, ti_vals[i + 1].value, opid);
+            }
 
             auto res_info = "is: " + python::PyString_AsString(res.value);
 

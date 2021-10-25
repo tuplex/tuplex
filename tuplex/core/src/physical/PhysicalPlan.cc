@@ -263,6 +263,7 @@ namespace tuplex {
 
         // add operators
         for(auto op : ops) {
+            ops.push_back(op);
             switch(op->type()) {
                 case LogicalOperatorType::FILEINPUT:
                 case LogicalOperatorType::PARALLELIZE: {
@@ -367,6 +368,12 @@ namespace tuplex {
 
         // generate code for stage and init vars
         auto stage = builder.build(this, backend());
+        // converting deque of ops to vector of ops
+        std::vector<LogicalOperator*> operators;
+        for (auto op : ops) {
+            operators.push_back(op);
+        }
+        stage->setOperators(operators);
         stage->setDataAggregationMode(hashGroupedDataType);
         // fill in physical plan data
         // b.c. the stages were constructed top-down, need to reverse the stages

@@ -59,7 +59,7 @@ class Context:
             logDir (str): Tuplex produces a log file `log.txt` per default. Specify with `logDir` where to store it.
             historyDir (str): Tuplex stores the database and logs within this dir when the webui is enabled.
             normalcaseThreshold (float): used to detect the normal case
-            webui (bool): whether to use the WebUI interface. By default true.
+            webui.enable (bool): whether to use the WebUI interface. By default true.
             webui.url (str): URL where to connect to for history server. Default: localhost
             webui.port (str): port to use when connecting to history server. Default: 6543
             webui.mongodb.url (str): URL where to connect to MongoDB storage. If empty string, Tuplex will start and exit a local mongodb instance.

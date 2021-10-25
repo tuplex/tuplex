@@ -106,7 +106,7 @@ namespace tuplex {
         assert(stage);
 
         // reset history server
-        _historyServer.reset();
+//        _historyServer.reset();
 
         if(!stage)
             return;
@@ -114,20 +114,21 @@ namespace tuplex {
         // history server connection should be established
         bool useWebUI = _options.USE_WEBUI();
         // register new job
-        if(useWebUI) {
+        // checks if we should use the WebUI and if we are starting a new
+        // job (hence there are no stages that come before the current stage
+        // we are executing).
+        if(useWebUI && stage->predecessors().empty()) {
+            _historyServer.reset();
             _historyServer = HistoryServerConnector::registerNewJob(_historyConn,
                     "local backend", stage->plan(), _options);
             if(_historyServer) {
                 logger().info("track job under " + _historyServer->trackURL());
-                _historyServer->sendStatus(JobStatus::SCHEDULED);
+                _historyServer->sendStatus(JobStatus::STARTED);
             }
-
+            stage->setHistoryServer(_historyServer);
             // attach to driver as well
             _driver->setHistoryServer(_historyServer.get());
         }
-
-        if(_historyServer)
-            _historyServer->sendStatus(JobStatus::STARTED);
 
         // check what type of stage it is
         auto tstage = dynamic_cast<TransformStage*>(stage);
@@ -140,12 +141,13 @@ namespace tuplex {
         } else
             throw std::runtime_error("unknown stage encountered in local backend!");
 
-        // detach from driver
-        _driver->setHistoryServer(nullptr);
-
         // send final message to history server to signal job ended
-        if(_historyServer) {
+        // checks whether the historyserver has been set as well as
+        // if all stages have been iterated through (we are currently on the
+        // last stage) because this means the job is finished.
+        if(_historyServer && stage->predecessors().size() == stage->plan()->getNumStages() - 1) {
             _historyServer->sendStatus(JobStatus::FINISHED);
+            _driver->setHistoryServer(nullptr);
         }
     }
 
@@ -1098,10 +1100,17 @@ namespace tuplex {
 
         // send final result count (exceptions + co)
         if(_historyServer) {
-            auto rs = tstage->resultSet();
-            assert(rs);
+            size_t numOutputRows = 0;
+            if (tstage->outputMode() == EndPointMode::HASHTABLE) {
+                for (const auto& task : completedTasks) {
+                    numOutputRows += task->getNumOutputRows();
+                }
+            } else {
+                auto rs = tstage->resultSet();
+                assert(rs);
+                numOutputRows = rs->rowCount();
+            }
             auto ecounts = tstage->exceptionCounts();
-            auto numOutputRows = rs->rowCount();
             _historyServer->sendStageResult(tstage->number(), numInputRows, numOutputRows, ecounts);
         }
 
@@ -1861,8 +1870,8 @@ namespace tuplex {
                 else hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
 
                 // delete task
-                delete tasks[i];
-                tasks[i] = nullptr;
+//                delete tasks[i];
+//                tasks[i] = nullptr;
             }
             return sink;
         }

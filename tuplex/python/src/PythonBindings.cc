@@ -49,6 +49,7 @@ PYMODULE {
             .def("withColumn", &tuplex::PythonDataSet::withColumn)
             .def("selectColumns", &tuplex::PythonDataSet::selectColumns)
             .def("renameColumn", &tuplex::PythonDataSet::renameColumn)
+            .def("renameColumnByPosition", &tuplex::PythonDataSet::renameColumnByPosition)
             .def("join", &tuplex::PythonDataSet::join)
             .def("leftJoin", &tuplex::PythonDataSet::leftJoin)
             .def("columns", &tuplex::PythonDataSet::columns)

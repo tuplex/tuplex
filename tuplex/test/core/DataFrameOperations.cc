@@ -383,3 +383,28 @@ TEST_F(DataFrameTest, FolderOutput) {
     auto content = fileToString(URI("output/part0.csv"));
     EXPECT_EQ(content, "A,B\n11,20\n11,40\n");
 }
+
+TEST_F(DataFrameTest, RenameColumns) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    // rename test, position based:
+    auto& ds = c.parallelize({Row(1, 2), Row(3, 4)});
+    auto cols_before_rename = ds.columns();
+
+    EXPECT_EQ(cols_before_rename.size(), 0); // no columns defined
+
+    // now rename columns
+    auto& ds2 = ds.renameColumn(0, "first");
+    ASSERT_EQ(ds2.columns().size(), 2);
+    EXPECT_EQ(ds2.columns()[0], "first");
+    EXPECT_EQ(ds2.columns()[1], "");
+    auto& ds3 = ds2.renameColumn(1, "second");
+    ASSERT_EQ(ds3.columns().size(), 2);
+    EXPECT_EQ(ds3.columns()[0], "first");
+    EXPECT_EQ(ds3.columns()[1], "second");
+
+    // check now fuzzy matching
+    auto& err_ds = ds3.renameColumn("secund", "+1");
+    EXPECT_TRUE(err_ds.isError());
+}

@@ -166,6 +166,14 @@ namespace tuplex {
         virtual DataSet &renameColumn(const std::string &oldColumnName, const std::string &newColumnName);
 
         /*!
+         * rename column based on position in dataframe. throws error if invalid index is supplied.
+         * @param index position, 0 <= index < #columns
+         * @param newColumnName new column name
+         * @return Dataset or Errordataset
+         */
+        virtual DataSet &renameColumn(int index, const std::string& newColumnName);
+
+        /*!
          * add a new column to dataset, whose result is defined through the given udf
          * @param columnName
          * @param udf
@@ -208,6 +216,12 @@ namespace tuplex {
          * get the normal case outputschema of the underlying operator
          */
         Schema schema() const;
+
+        /*!
+         * How many columns dataset has (at least 1)
+         * @return number of columns
+         */
+        size_t numColumns() const;
 
         /*!
          * join dataset with other dataset, either based on (K, V), (K, W) layout or via column names(equijoin)

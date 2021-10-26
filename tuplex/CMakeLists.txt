@@ -97,7 +97,7 @@ endif()
 ###########################################################################
 # add cmake modules from cmake folder
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
-message("module path" ${CMAKE_MODULE_PATH})
+message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
 
 # global config, brew there?
 FIND_PROGRAM(BREW_FOUND "brew")

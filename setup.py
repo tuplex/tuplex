@@ -7,6 +7,8 @@ import sysconfig as pyconfig
 import subprocess
 import logging
 import shutil
+import distutils
+import distutils.dir_util
 import platform
 
 from setuptools import setup, Extension, find_packages
@@ -15,6 +17,7 @@ from distutils import sysconfig
 
 import fnmatch
 import re
+import atexit
 
 # TODO: add option to install these
 test_dependencies = [
@@ -22,6 +25,11 @@ test_dependencies = [
 'nbformat',
 'prompt_toolkit>=2.0.7',
 'pytest>=5.3.2',
+]
+
+# Also requires to install MongoDB
+webui_dependencies = [
+    'gunicorn'
 ]
 
 install_dependencies = [
@@ -68,6 +76,7 @@ class CMakeExtension(Extension):
 class CMakeBuild(build_ext):
 
     def build_extension(self, ext):
+
         ext_filename = str(ext.name)
         ext_filename = ext_filename[ext_filename.rfind('.') + 1:]  # i.e. this is "tuplex"
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
@@ -325,6 +334,27 @@ def read_readme():
         long_description = f.read()
         return long_description
 
+def reorg_historyserver():
+    """
+    reorganize historyserver to become part of pip package.
+    """
+    # get absolute path of this file's location
+    import pathlib
+    current_path = pathlib.Path(__file__).parent.resolve()
+    assert os.path.exists(os.path.join(current_path, 'tuplex', 'historyserver')), 'Could not find historyserver root dir'
+
+    # copy all the files from history server to directory historyserver under tuplex/python
+    src_path = os.path.join(current_path, 'tuplex', 'historyserver')
+    dst_path = os.path.join(current_path, 'tuplex', 'python', 'tuplex', 'historyserver')
+    distutils.dir_util.copy_tree(src_path, dst_path)
+
+    # at-exit, delete
+    def remove_history():
+        shutil.rmtree(dst_path)
+    atexit.register(remove_history)
+
+    return []
+
 
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
@@ -337,11 +367,14 @@ setup(name="tuplex",
                 "together with a query compiler featuring whole-stage code generation and optimization.",
     long_description=read_readme(),
     long_description_content_type='text/markdown',
-    packages=discover_packages(where="tuplex/python"),
+    packages=reorg_historyserver() + discover_packages(where="tuplex/python"),
     package_dir={"": "tuplex/python"},
     package_data={
       # include libs in libexec
-    'tuplex.libexec' : ['*.so', '*.dylib']
+    'tuplex.libexec' : ['*.so', '*.dylib'],
+        'tuplex.historyserver': ['thserver/templates/*.html', 'thserver/static/css/*.css', 'thserver/static/css/styles/*.css',
+                                 'thserver/static/img/*.*', 'thserver/static/js/*.js', 'thserver/static/js/modules/*.js',
+                                 'thserver/static/js/styles/*.css']
     },
     ext_modules=[CMakeExtension("tuplex.libexec.tuplex", "tuplex"), CMakeExtension("tuplex.libexec.tuplex_runtime", "tuplex")],
     cmdclass={"build_ext": CMakeBuild},
@@ -376,6 +409,7 @@ setup(name="tuplex",
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
     ],
+    scripts=['tuplex/historyserver/bin/tuplex-webui'],
     project_urls={
         "Bug Tracker": "https://github.com/tuplex",
         "Documentation": "https://tuplex.cs.brown.edu/python-api.html",

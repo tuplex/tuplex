@@ -14,6 +14,7 @@ FILE(GLOB PYSRCS ../../python/src/*.cc)
 #list(REMOVE_ITEM PYSRCS "../../python/src/PythonBindings.cc")
 list(FILTER PYSRCS EXCLUDE REGEX ".*PythonBindings.cc$")
 
+add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)
 
 include(GoogleTest)
 

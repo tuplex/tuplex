@@ -1,5 +1,25 @@
 # (c) 2017 Leonhard Spiegelberg
 cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+
+# Tuplex build options:
+# =====================
+
+# Option on whether to use shared libraries or perform a static link.
+# Must be identical to how AWS SDK was installed. E.g., when installing brew aws-sdk-cpp the default is
+# shared for the AWS C++ SDK build.
+# --> We use static build per default.
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(SKIP_AWS_TESTS "Skip AWS tests" ON)
+option(BUILD_WITH_ORC "Build with Orc file support" OFF)
+option(BUILD_NATIVE "Build with -march=native" OFF)
+option(BUILD_FOR_LAMBDA "use to specify whether this is a Lambda build")
+option(BUILD_FOR_CI "Build for the CI - disable tests that require AWS credentials." OFF)
+option(BUILD_WITH_AWS "Build Tuplex with AWS support. This will include access to S3 and the AWS Lambda execution engine backend. Requires AWS C++ SDK" ON)
+option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for faster testing speeds." OFF)
+option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
+option(USE_LD_GOLD "Use GNU gold linker" ON)
+
+
 # via -DVERSION_INFO a string may be passed down. --> include it somehow
 if(VERSION_INFO)
     message(STATUS "Version info supplied to cmake: ${VERSION_INFO}")
@@ -11,6 +31,16 @@ endif()
 
 # before writing additional cmake modules to put in cmake/, check the list of supported cmake standard modules
 # available here: https://cmake.org/cmake/help/latest/manual/cmake-modules.7.html#find-modules
+
+# top-level language specification
+# enable c++14
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# enable c11
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+message(STATUS "Using language versions C++${CMAKE_CXX_STANDARD} and C${CMAKE_C_STANDARD}")
+
 
 # for debug mode export all symbols
 set(CMAKE_ENABLE_EXPORTS true)
@@ -29,19 +59,7 @@ if (CCACHE_FOUND AND CCACHE_SUPPORT)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
 endif()
 
-# Tuplex build options:
-# =====================
-
-# Option on whether to use shared libraries or perform a static link.
-# Must be identical to how AWS SDK was installed. E.g., when installing brew aws-sdk-cpp the default is
-# shared for the AWS C++ SDK build.
-# --> We use static build per default.
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 set(CMAKE_MACOSX_RPATH 1) # fix for gtest warning
-
-option(SKIP_AWS_TESTS "Skip AWS tests" ON)
-option(BUILD_WITH_ORC "Build with Orc file support" OFF)
-option(BUILD_NATIVE "Build with -march=native" OFF)
 
 # translate to C++ flags
 if(SKIP_AWS_TESTS)
@@ -58,6 +76,7 @@ macro(append_if list condition var)
         list(APPEND ${list} ${var})
     endif()
 endmacro()
+
 if (NOT MSVC)
     append_if(LIBCXX_COMPILE_FLAGS LIBCXX_HAS_WALL_FLAG -Wall)
     list(APPEND LIBCXX_COMPILE_FLAGS -Werror=return-type)
@@ -78,7 +97,6 @@ endif()
 ###########################################################################
 # add cmake modules from cmake folder
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
-
 message("module path" ${CMAKE_MODULE_PATH})
 
 # global config, brew there?
@@ -138,13 +156,11 @@ ENDIF()
 
 # Options:
 # build for CI (disable some tests)
-option(BUILD_FOR_CI "Build for the CI - disable tests that require AWS credentials." OFF)
 if(BUILD_FOR_CI)
     add_definitions(-DBUILD_FOR_CI)
 endif()
 
 # build with AWS support
-option(BUILD_WITH_AWS "Build Tuplex with AWS support. This will include access to S3 and the AWS Lambda execution engine backend. Requires AWS C++ SDK" ON)
 if(BUILD_WITH_AWS)
     # special case: if using mac os and a brew installed aws-sdk-cpp, can't use static libs => need to force to shared_libs
     if(APPLE AND BREW_FOUND)
@@ -168,7 +184,6 @@ if(BUILD_WITH_AWS)
     endif ()
 endif()
 
-option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for faster testing speeds." OFF)
 if(GENERATE_PDFS)
     message(STATUS "Tuplex configured to emit PDF files for various AST stages")
     add_definitions(-DGENERATE_PDFS)
@@ -177,7 +192,6 @@ else()
 endif()
 
 # suppress "#warning" directive otuput
-option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
 if(SHOW_EXPLICIT_WARNINGS)
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-cpp")
@@ -219,43 +233,47 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     add_link_options("-Wl,--start-group")
 endif()
 
+
+
+
 ###########################################################################
 # (2) global flags
 ###########################################################################
-find_package(Threads REQUIRED)
+# i.e., manipulate here
+# CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I/usr/local/include -L/usr/local/lib")
+# CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/local/include")
+# CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib")
 
-# enable c++14
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# enable c11
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
-message(STATUS "Using language versions C++${CMAKE_CXX_STANDARD} and C${CMAKE_C_STANDARD}")
-
-# enable PIC
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-
-# release flags
-# don't use Ofast unless you're ok to break NAN/INF compatibility.
-option(BUILD_FOR_LAMBDA "use to specify whether this is a Lambda build")
-if(BUILD_FOR_LAMBDA)
-    set(TARGET_BUILD_ARCH "haswell")
-else()
-    set(TARGET_BUILD_ARCH "native")
-endif()
-message("TARGET_BUILD_ARCH=${TARGET_BUILD_ARCH}")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -m64 -O3 -flto -march=${TARGET_BUILD_ARCH} -funroll-loops")
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -lstdc++")
-endif()
-
+# set here initial compiler flags
+# DO NOT USE MARCH=NATIVE for wheels... => option should be disabled per default
+# use march=native if available and NOT building wheels
+set(CMAKE_CXX_FLAGS_RELEASE_INIT "-m64 -O3 -flto -funroll-loops")
 # for GCC add stack protector
 # -fstack-protector-strong
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fstack-protector-strong")
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fstack-protector-strong")
+    set(CMAKE_CXX_FLAGS_DEBUG_INIT "${CMAKE_CXX_FLAGS_DEBUG_INIT} -fstack-protector-strong")
+    set(CMAKE_CXX_FLAGS_RELEASE_INIT "${CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT} -fstack-protector-strong")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT "${CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT} -fstack-protector-strong")
+endif()
+
+include(CheckCXXCompilerFlag)
+if(BUILD_NATIVE AND NOT BUILD_FOR_LAMBDA) # for lambda build, specific architecture has been targeted.
+    CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
+    if(COMPILER_SUPPORTS_MARCH_NATIVE)
+        set(CMAKE_CXX_FLAGS_RELEASE_INIT  "${CMAKE_CXX_FLAGS_INIT} -march=native")
+        set(CMAKE_C_FLAGS_RELEASE_INIT "${CMAKE_C_FLAGS_INIT} -march=native")
+    endif()
+    message(STATUS "Building Tuplex with native optimizations")
+endif()
+
+find_package(Threads REQUIRED)
+# enable PIC
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# for release mode, don't use Ofast unless you're ok to break NAN/INF compatibility.
+if(BUILD_FOR_LAMBDA)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=haswell")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=haswell")
 endif()
 
 # add compiler flags for specific SIMD instructions
@@ -560,7 +578,6 @@ endif()
 
 
 # use gold linker for gcc
-option(USE_LD_GOLD "Use GNU gold linker" ON)
 if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version OUTPUT_VARIABLE stdout ERROR_QUIET)
     if("${stdout}" MATCHES "GNU gold")
@@ -571,17 +588,13 @@ if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     endif()
 endif()
 
-# DO NOT USE MARCH=NATIVE for wheels... => option should be disabled per default
-# use march=native if available and NOT building wheels
-include(CheckCXXCompilerFlag)
-if(BUILD_NATIVE)
-CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
-if(COMPILER_SUPPORTS_MARCH_NATIVE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
-endif()
-message(STATUS "Building Tuplex for native platform")
-endif()
+# print flags:
+message("CMAKE_C_FLAGS_DEBUG is ${CMAKE_C_FLAGS_DEBUG}")
+message("CMAKE_C_FLAGS_RELEASE is ${CMAKE_C_FLAGS_RELEASE}")
+message("CMAKE_C_FLAGS_RELWITHDEBINFO is ${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+message("CMAKE_C_FLAGS_MINSIZEREL is ${CMAKE_C_FLAGS_MINSIZEREL}")
 
-message(STATUS "Using following CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
-message(STATUS "Using following CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
+message("CMAKE_CXX_FLAGS_DEBUG is ${CMAKE_CXX_FLAGS_DEBUG}")
+message("CMAKE_CXX_FLAGS_RELEASE is ${CMAKE_CXX_FLAGS_RELEASE}")
+message("CMAKE_CXX_FLAGS_RELWITHDEBINFO is ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+message("CMAKE_CXX_FLAGS_MINSIZEREL is ${CMAKE_CXX_FLAGS_MINSIZEREL}")

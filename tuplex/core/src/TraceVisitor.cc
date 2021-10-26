@@ -413,7 +413,8 @@ namespace tuplex {
             // based on op, decide value of result.
 
             if(op == TokenType::IS || op == TokenType::ISNOT) {
-                bool finalResult = (ti_vals[i + 1].value == res.value);
+                assert(i+1 < ti_vals.size());
+                bool finalResult = (ti_vals[i+1].value == res.value);
                 // invert result if op is ISNOT.
                 finalResult = (op == TokenType::IS) ? finalResult : !finalResult;
                 res.value = finalResult ? Py_True : Py_False;

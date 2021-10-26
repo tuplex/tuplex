@@ -170,6 +170,9 @@ TEST_F(IsKeywordTest, FailingTest) {
 
     Context c(microTestOptions());
 
+    // reset log
+    logStream.str("");
+
     Row row1(45);
     Row row2(false);
     Row row3("hi");
@@ -181,4 +184,6 @@ TEST_F(IsKeywordTest, FailingTest) {
     auto m = c.parallelize({row1, row2, row3})
             .map(node).collectAsVector();
 
+    auto log = logStream.str();
+    EXPECT_NE(log.find("use of is comparison only supported with types"), std::string::npos);
 }

@@ -19,7 +19,6 @@ option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for
 option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
 option(USE_LD_GOLD "Use GNU gold linker" ON)
 
-
 # via -DVERSION_INFO a string may be passed down. --> include it somehow
 if(VERSION_INFO)
     message(STATUS "Version info supplied to cmake: ${VERSION_INFO}")
@@ -40,8 +39,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 message(STATUS "Using language versions C++${CMAKE_CXX_STANDARD} and C${CMAKE_C_STANDARD}")
-
-
+# add cmake modules from cmake folder
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
+message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
+include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate compiler flags
 # for debug mode export all symbols
 set(CMAKE_ENABLE_EXPORTS true)
 
@@ -53,7 +54,8 @@ if (CCACHE_FOUND AND CCACHE_SUPPORT)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" # GNU is GNU GCC
             OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
         # without this compiler messages in `make` backend would be uncolored
-        set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fdiagnostics-color=auto")
+        #set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fdiagnostics-color=auto")
+        ucm_add_flags("-fdiagnostics-color=auto")
     endif()
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "ccache")
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
@@ -77,27 +79,25 @@ macro(append_if list condition var)
     endif()
 endmacro()
 
+# manipulate warnings
 if (NOT MSVC)
-    append_if(LIBCXX_COMPILE_FLAGS LIBCXX_HAS_WALL_FLAG -Wall)
-    list(APPEND LIBCXX_COMPILE_FLAGS -Werror=return-type)
+    # supress "#warning" if desired, else enable all
+    if(SHOW_EXPLICIT_WARNINGS)
+        ucm_add_flags("-Wall")
+    else()
+        ucm_add_flags("-Wno-cpp")
+    endif()
 
     # make no return warning into an error because it easily leads to bugs
     # https://foonathan.net/2018/10/cmake-warnings/
-    # alternative is to use target dependent options, i.e.
-    # target_compile_options(my_library PRIVATE
-    #     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-    #          -Wall>
-    #     $<$<CXX_COMPILER_ID:MSVC>:
-    #          /W4>)
-    list(APPEND CMAKE_CXX_FLAGS "-Werror=return-type")
+    ucm_add_flags("-Werror=return-type")
+else()
+    message(FATAL_ERROR "msvc not supported yet")
 endif()
 
 ###########################################################################
 # (0) add additional cmake modules
 ###########################################################################
-# add cmake modules from cmake folder
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
-message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
 
 # global config, brew there?
 FIND_PROGRAM(BREW_FOUND "brew")
@@ -131,8 +131,6 @@ endif()
 
 # add to debug/gcc stack protector
 # -fstack-protector-strong
-
-message(STATUS "build type is " "${CMAKE_BUILD_TYPE}")
 
 
 # fix for Mac OS X/ brew, find openSSL (required by some dependencies)
@@ -191,12 +189,6 @@ else()
     message(STATUS "PDF generation for ASTs and logical plans disabled. Enable by setting -DGENERATE_PDFS=ON.")
 endif()
 
-# suppress "#warning" directive otuput
-if(SHOW_EXPLICIT_WARNINGS)
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-cpp")
-endif()
-
 ###########################################################################
 # (1) supported compilers and fixes
 ###########################################################################
@@ -206,6 +198,9 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
         message(FATAL_ERROR "GCC version must be at least 6.0!")
     endif()
+
+    # add here GCC specific fixes...
+
 elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     # require at least clang 5
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
@@ -239,29 +234,23 @@ endif()
 ###########################################################################
 # (2) global flags
 ###########################################################################
-# i.e., manipulate here
-# CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I/usr/local/include -L/usr/local/lib")
-# CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/local/include")
-# CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib")
+# i.e., manipulate here using ucm
 
 # set here initial compiler flags
 # DO NOT USE MARCH=NATIVE for wheels... => option should be disabled per default
 # use march=native if available and NOT building wheels
-set(CMAKE_CXX_FLAGS_RELEASE_INIT "-m64 -O3 -flto -funroll-loops")
+ucm_add_flags(-m64 -O3 -flto -funroll-loops CONFIG Release)
 # for GCC add stack protector
 # -fstack-protector-strong
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS_DEBUG_INIT "${CMAKE_CXX_FLAGS_DEBUG_INIT} -fstack-protector-strong")
-    set(CMAKE_CXX_FLAGS_RELEASE_INIT "${CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT} -fstack-protector-strong")
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT "${CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT} -fstack-protector-strong")
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+    ucm_add_flags(-fstack-protector-strong)
 endif()
 
 include(CheckCXXCompilerFlag)
 if(BUILD_NATIVE AND NOT BUILD_FOR_LAMBDA) # for lambda build, specific architecture has been targeted.
     CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
     if(COMPILER_SUPPORTS_MARCH_NATIVE)
-        set(CMAKE_CXX_FLAGS_RELEASE_INIT  "${CMAKE_CXX_FLAGS_INIT} -march=native")
-        set(CMAKE_C_FLAGS_RELEASE_INIT "${CMAKE_C_FLAGS_INIT} -march=native")
+        ucm_add_flags(-march=native)
     endif()
     message(STATUS "Building Tuplex with native optimizations")
 endif()
@@ -272,8 +261,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # for release mode, don't use Ofast unless you're ok to break NAN/INF compatibility.
 if(BUILD_FOR_LAMBDA)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=haswell")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=haswell")
+    ucm_add_flags(-march=haswell)
 endif()
 
 # add compiler flags for specific SIMD instructions
@@ -581,20 +569,12 @@ endif()
 if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version OUTPUT_VARIABLE stdout ERROR_QUIET)
     if("${stdout}" MATCHES "GNU gold")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=gold")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=gold")
+        ucm_add_flags(-fuse-ld=gold)
+        ucm_add_linker_flags(-fuse-ld=gold)
     else()
         message(WARNING "GNU gold linker isn't available, using the default system linker.")
     endif()
 endif()
 
-# print flags:
-message("CMAKE_C_FLAGS_DEBUG is ${CMAKE_C_FLAGS_DEBUG}")
-message("CMAKE_C_FLAGS_RELEASE is ${CMAKE_C_FLAGS_RELEASE}")
-message("CMAKE_C_FLAGS_RELWITHDEBINFO is ${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-message("CMAKE_C_FLAGS_MINSIZEREL is ${CMAKE_C_FLAGS_MINSIZEREL}")
-
-message("CMAKE_CXX_FLAGS_DEBUG is ${CMAKE_CXX_FLAGS_DEBUG}")
-message("CMAKE_CXX_FLAGS_RELEASE is ${CMAKE_CXX_FLAGS_RELEASE}")
-message("CMAKE_CXX_FLAGS_RELWITHDEBINFO is ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
-message("CMAKE_CXX_FLAGS_MINSIZEREL is ${CMAKE_CXX_FLAGS_MINSIZEREL}")
+# print flags
+ucm_print_flags()

@@ -23,7 +23,7 @@ apt-get install -y build-essential software-properties-common wget libedit-dev l
   uuid-dev git libffi-dev libmagic-dev \
   doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \
   libgflags-dev libncurses-dev \
-  awscli openjdk-8-jdk libyaml-dev
+  awscli openjdk-8-jdk libyaml-dev ninja-build gcc-10 g++-10 autoconf libtool m4
 
 # use GCC 10, as Tuplex doesn't work with GCC 9
 update-alternatives --remove-all gcc
@@ -150,6 +150,16 @@ popd
 
 # install python packages for tuplex (needs cloudpickle to compile, numpy to run certain tests)
 pip3 install cloudpickle numpy
+
+# protobuf 3.12
+cd /tmp &&
+curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.12.0/protobuf-cpp-3.12.0.tar.gz &&
+tar xf protobuf-cpp-3.12.0.tar.gz &&
+pushd protobuf-3.12.0 &&
+./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" &&
+make -j4 && make install && ldconfig &&
+pushd
+
 
 # setup bash aliases
 echo "alias antlr='java -jar /opt/lib/antlr-4.8-complete.jar'" >>"$HOME/.bashrc"

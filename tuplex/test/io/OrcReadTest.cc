@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <sstream>
 
+#ifdef BUILD_WITH_ORC
+
 class OrcRead : public PyTest {
 protected:
 
@@ -234,3 +236,4 @@ void testReadInput(std::string folderName, tuplex::Context &context, tuplex::Dat
         EXPECT_EQ(expectedOutput->getNextRow().toPythonString(), testOutput.at(i).toPythonString());
     }
 }
+#endif

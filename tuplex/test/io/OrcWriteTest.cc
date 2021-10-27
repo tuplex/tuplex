@@ -11,6 +11,9 @@
 #include <gtest/gtest.h>
 #include <Context.h>
 #include <DataSet.h>
+
+#ifdef BUILD_WITH_ORC
+
 #include <orc/OrcFile.hh>
 #include <orc/ColumnPrinter.hh>
 #include "../core/TestUtils.h"
@@ -410,3 +413,4 @@ std::string rowToORCString(const tuplex::Row &row, const std::vector<std::string
     s += "}";
     return s;
 }
+#endif

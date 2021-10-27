@@ -306,7 +306,7 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_path):
             test_mongodb_connection(mongodb_url, mongodb_port, mongodb_path)
         else:
             # startup process and add to list of processes. Check for any errors!
-            raise Exception('need to startup process first!')
+            raise Exception('need to startup MongoDB process first!')
     else:
         # remote MongoDB
         test_mongodb_connection()

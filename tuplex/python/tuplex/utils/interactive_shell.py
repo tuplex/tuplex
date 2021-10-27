@@ -33,6 +33,17 @@ from types import LambdaType
 from tuplex.utils.globs import get_globals
 
 
+# this is a helper to allow for tuplex.Context syntax
+# the idea is basically, we can't simply call 'import tuplex' because this would
+# lead to a circular import. Yet, for user convenience, simply exposing tuplex.Context should be sufficient!
+class TuplexModuleHelper:
+    def __init__(self, context_cls):
+        self._context_cls = context_cls
+
+    @property
+    def Context(self):
+        return self._context_cls
+
 # Interactive shell
 # check https://github.com/python/cpython/blob/master/Lib/code.py for overwriting this class
 class TuplexShell(InteractiveConsole):
@@ -44,6 +55,11 @@ class TuplexShell(InteractiveConsole):
         self.__dict__ = self.__shared_state
 
     def init(self, locals=None, filename="<console>", histfile=os.path.expanduser("~/.console_history")):
+
+        # add dummy helper for context
+        if locals is not None and 'Context' in locals.keys():
+            locals['tuplex'] = TuplexModuleHelper(locals['Context'])
+
         self.initialized = True
         self.filename = "console-0"
         self.lineno = 0

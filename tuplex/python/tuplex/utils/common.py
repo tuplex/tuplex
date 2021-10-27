@@ -51,7 +51,7 @@ def is_shared_lib(path):
     assert cmd_exists('file')
 
     res = subprocess.check_output(['file', '--mime-type', path])
-    mime_type = res.split()[-1]
+    mime_type = res.split()[-1].decode()
     return mime_type == 'application/x-sharedlib' or mime_type == 'application/x-application'
 
 def current_timestamp():

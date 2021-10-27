@@ -19,6 +19,7 @@ import urllib.request
 import os
 import socket
 import shutil
+import psutil
 
 try:
   import pwd
@@ -255,3 +256,58 @@ def stringify_dict(d):
     """
     assert isinstance(d, dict), 'd must be a dictionary'
     return {str(key) : str(val) for key, val in d.items()}
+
+
+
+## WebUI helper functions
+
+def is_process_running(name):
+    # Iterate over the all the running process
+    for proc in psutil.process_iter():
+        try:
+            # Check if process name contains the given name string.
+            if name.lower() in proc.name().lower():
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return False
+
+def mongodb_uri(mongodb_url, mongodb_port, mongodb_path):
+    return 'mongodb://{}:{}/{}'.format(mongodb_url, mongodb_port, mongodb_path)
+
+def test_mongodb_connection(mongodb_url, mongodb_port, mongodb_path):
+    uri = mongodb_uri(mongodb_url, mongodb_port, mongodb_path)
+
+    # check whether one can connect to MongoDB
+    from pymongo import MongoClient
+    from pymongo.errors import ServerSelectionTimeoutError
+
+    # set client connection to super low timeouts so the wait is not too long.
+    client = MongoClient(uri, serverSelectionTimeoutMS=100, connectTimeoutMS=1000)
+
+    try:
+        info = client.server_info()  # force a call to mongodb, alternative is client.admin.command('ismaster')
+    except ServerSelectionTimeoutError:
+        # no connection to MongoDB
+        raise Exception('Could not connect to MongoDB, check network connection. (ping must be < 100ms)')
+
+def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_path):
+    # first check whether mongod is on path
+    if not cmd_exists('mongod'):
+        raise Exception('MongoDB (mongod) not found on PATH. In order to use Tuplex\'s WebUI, you need MongoDB'
+                        ' installed or point the framework to a running MongoDB instance')
+
+    # is it localhost?
+    if 'localhost' in mongodb_url:
+
+        # is mongod running on local machine?
+        if is_process_running('mongod'):
+            # process is running, try to connect
+            test_mongodb_connection(mongodb_url, mongodb_port, mongodb_path)
+        else:
+            # startup process and add to list of processes. Check for any errors!
+            raise Exception('need to startup process first!')
+    else:
+        # remote MongoDB
+        test_mongodb_connection()
+

@@ -12,7 +12,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(SKIP_AWS_TESTS "Skip AWS tests" ON)
 option(BUILD_WITH_ORC "Build with Orc file support" OFF)
 option(BUILD_NATIVE "Build with -march=native" OFF)
-option(BUILD_FOR_LAMBDA "use to specify whether this is a Lambda build")
+option(BUILD_FOR_LAMBDA "use to specify whether this is a Lambda build" OFF)
 option(BUILD_FOR_CI "Build for the CI - disable tests that require AWS credentials." OFF)
 option(BUILD_WITH_AWS "Build Tuplex with AWS support. This will include access to S3 and the AWS Lambda execution engine backend. Requires AWS C++ SDK" ON)
 option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for faster testing speeds." OFF)
@@ -66,7 +66,6 @@ if (CCACHE_FOUND AND CCACHE_SUPPORT)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" # GNU is GNU GCC
             OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
         # without this compiler messages in `make` backend would be uncolored
-        #set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fdiagnostics-color=auto")
         ucm_add_flags("-fdiagnostics-color=auto")
     endif()
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "ccache")
@@ -210,9 +209,6 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
         message(FATAL_ERROR "GCC version must be at least 6.0!")
     endif()
-
-    # add here GCC specific fixes...
-
 elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     # require at least clang 5
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)

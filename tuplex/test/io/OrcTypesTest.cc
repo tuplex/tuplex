@@ -6,7 +6,7 @@
 #include <orc/OrcTypes.h>
 
 // Tests for ORCToTuplex
-TEST(ORC, ORCToTuplexPrimitives) {
+TEST(OrcTypes, ORCToTuplexPrimitives) {
     using namespace tuplex::orc;
     auto booleanType = orcTypeToTuplex(*orc::createPrimitiveType(orc::BOOLEAN), false);
     EXPECT_EQ(python::Type::BOOLEAN, booleanType);
@@ -48,12 +48,12 @@ TEST(ORC, ORCToTuplexPrimitives) {
     EXPECT_EQ(python::Type::I64, dateType);
 }
 
-TEST(ORC, ORCToTuplexUndefined) {
+TEST(OrcTypes, ORCToTuplexUndefined) {
     using namespace tuplex::orc;
     EXPECT_THROW(orcTypeToTuplex(*orc::createUnionType(), false), std::runtime_error);
 }
 
-TEST(ORC, ORCToTuplexLists) {
+TEST(OrcTypes, ORCToTuplexLists) {
     using namespace tuplex::orc;
     auto intListType = orcTypeToTuplex(*orc::createListType(orc::createPrimitiveType(orc::INT)), false);
     EXPECT_EQ(python::Type::makeListType(python::Type::I64), intListType);
@@ -62,7 +62,7 @@ TEST(ORC, ORCToTuplexLists) {
     EXPECT_EQ(python::Type::makeListType(python::Type::makeListType(python::Type::STRING)), nestedListType);
 }
 
-TEST(ORC, ORCToTuplexMap) {
+TEST(OrcTypes, ORCToTuplexMap) {
     using namespace tuplex::orc;
     auto mapType = orcTypeToTuplex(*orc::createMapType(orc::createPrimitiveType(orc::STRING), orc::createPrimitiveType(orc::FLOAT)),
                                    false);
@@ -73,7 +73,7 @@ TEST(ORC, ORCToTuplexMap) {
     EXPECT_EQ(python::Type::makeDictionaryType(mapType, python::Type::F64), nestedMapType);
 }
 
-TEST(ORC, ORCToTuplexStruct) {
+TEST(OrcTypes, ORCToTuplexStruct) {
     using namespace tuplex::orc;
     auto structType = orc::createStructType();
     structType->addStructField("", orc::createPrimitiveType(orc::INT));
@@ -94,7 +94,7 @@ TEST(ORC, ORCToTuplexStruct) {
 }
 
 // Tests for TuplexToORC
-TEST(ORC, TuplexToORCTuple) {
+TEST(OrcTypes, TuplexToORCTuple) {
     auto tupleType = tuplex::orc::tuplexRowTypeToOrcType(python::Type::makeTupleType({
                                                             python::Type::BOOLEAN,
                                                             python::Type::I64,
@@ -131,7 +131,7 @@ TEST(ORC, TuplexToORCTuple) {
     EXPECT_EQ(0, child->getSubtypeCount());
 }
 
-TEST(ORC, TuplexToORCDictionary) {
+TEST(OrcTypes, TuplexToORCDictionary) {
 auto dictionaryType = tuplex::orc::tuplexRowTypeToOrcType(python::Type::makeDictionaryType(
         python::Type::I64, python::Type::STRING));
     EXPECT_EQ(0, dictionaryType->getColumnId());
@@ -152,7 +152,7 @@ auto dictionaryType = tuplex::orc::tuplexRowTypeToOrcType(python::Type::makeDict
     EXPECT_EQ(0, valueType->getSubtypeCount());
 }
 
-TEST(ORC, TuplexToORCList) {
+TEST(OrcTypes, TuplexToORCList) {
     auto intListType = tuplex::orc::tuplexRowTypeToOrcType(python::Type::makeListType(
             python::Type::I64));
     EXPECT_EQ(0, intListType->getColumnId());
@@ -167,7 +167,7 @@ TEST(ORC, TuplexToORCList) {
     EXPECT_EQ(0, elementType->getSubtypeCount());
 }
 
-TEST(ORC, TuplexToORCPrimitive) {
+TEST(OrcTypes, TuplexToORCPrimitive) {
     using namespace tuplex::orc;
     auto booleanType = tuplexRowTypeToOrcType(python::Type::BOOLEAN);
     EXPECT_EQ(orc::BOOLEAN, booleanType->getKind());

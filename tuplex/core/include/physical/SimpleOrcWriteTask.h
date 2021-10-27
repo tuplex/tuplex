@@ -55,11 +55,12 @@ public:
         }
 
         using namespace ::orc;
-        auto outStream = new orc::VirtualOutputStream(_uri);
         ORC_UNIQUE_PTR<Type> schema(orc::tuplexRowTypeToOrcType(_schema.getRowType(), _columns));
         if (!schema) {
             abort("error creating Orc schema.");
         }
+
+        auto outStream = new orc::VirtualOutputStream(_uri);
 
         WriterOptions options;
         ORC_UNIQUE_PTR<Writer> writer = createWriter(*schema, outStream, options);
@@ -102,8 +103,6 @@ public:
 
             writer->add(*batch);
 
-            batch.reset();
-
             for (auto el : orcColumns) {
                 delete el;
             }
@@ -113,12 +112,9 @@ public:
         }
 
         writer->close();
-        delete outStream;
-        schema.reset();
-        writer.reset();
 
         std::stringstream ss;
-        ss<<"[Task Finished] write to file in "
+        ss<<"[Task Finished] write to Orc file in "
           <<std::to_string(timer.time())<<"s (";
         ss<<pluralize(totalRows, "row")<<", "<<sizeToMemString(totalBytes)<<")";
         owner()->info(ss.str());

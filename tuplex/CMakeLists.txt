@@ -46,6 +46,9 @@ include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate comp
 # for debug mode export all symbols
 set(CMAKE_ENABLE_EXPORTS true)
 
+# this here will enable LTO (link-time optimization) globally
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
 # Check if ccache exists to speed up compilation when switching branches
 # taken from https://invent.kde.org/utilities/konsole/-/merge_requests/26?tab=diffs
 find_program(CCACHE_FOUND "ccache")
@@ -240,10 +243,9 @@ endif()
 # DO NOT USE MARCH=NATIVE for wheels... => option should be disabled per default
 # use march=native if available and NOT building wheels
 
-# Likely LTO is broken on GCC-10. Disable it.
+# specific Release flags, i.e. targeting loop unrolling.
+ucm_add_flags(-m64 -O3 -funroll-loops CONFIG Release)
 
-#ucm_add_flags(-m64 -O3 -flto -funroll-loops CONFIG Release)
-ucm_add_flags(-O3 -funroll-loops CONFIG Release)
 # for GCC add stack protector
 # -fstack-protector-strong
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")

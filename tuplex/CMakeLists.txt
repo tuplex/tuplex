@@ -17,7 +17,7 @@ option(BUILD_FOR_CI "Build for the CI - disable tests that require AWS credentia
 option(BUILD_WITH_AWS "Build Tuplex with AWS support. This will include access to S3 and the AWS Lambda execution engine backend. Requires AWS C++ SDK" ON)
 option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for faster testing speeds." OFF)
 option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
-option(USE_LD_GOLD "Use GNU gold linker" OFF)
+option(USE_LD_GOLD "Use GNU gold linker" ON)
 
 # via -DVERSION_INFO a string may be passed down. --> include it somehow
 if(VERSION_INFO)
@@ -47,8 +47,17 @@ include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate comp
 set(CMAKE_ENABLE_EXPORTS true)
 
 # this here will enable LTO (link-time optimization) globally
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-
+include(CheckIPOSupported)
+check_ipo_supported(RESULT IPO_SUPPORTED)
+if(IPO_SUPPORTED)
+    # on Ubuntu gcc is buggy, so deactivate LTO for Linux...
+    if(NOT CMAKE_SYSTEM_NAME MATCHES "Linux" AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+        message(STATUS "Enabling interprocedural optimization for built")
+    endif()
+else()
+    message(WARNING "target does not support interprocedural optimization/link time optimization.")
+endif()
 # Check if ccache exists to speed up compilation when switching branches
 # taken from https://invent.kde.org/utilities/konsole/-/merge_requests/26?tab=diffs
 find_program(CCACHE_FOUND "ccache")
@@ -435,7 +444,7 @@ if(PYTHON3_VERSION STREQUAL "")
     # try first to find full Python3, if it fails find only Interpreter & Module
     find_package(Python3 COMPONENTS Interpreter Development QUIET)
     if(Python3_FOUND)
-        message(STATUS "found full python3-dev installation")
+        message(STATUS "Found full python3-dev installation")
         set(Python3_Embed_FOUND TRUE)
     else()
         find_package(Python3 COMPONENTS Interpreter REQUIRED)
@@ -456,7 +465,7 @@ else()
         # try first to find full Python3, if it fails find only Interpreter & Module
         find_package(Python3 ${VERSION_STRING} EXACT COMPONENTS Interpreter Development QUIET)
         if(Python3_FOUND)
-            message(STATUS "found full python3-dev installation")
+            message(STATUS "Found full python3-dev installation")
             set(Python3_Embed_FOUND TRUE)
         else()
             find_package(Python3 ${VERSION_STRING} EXACT COMPONENTS Interpreter REQUIRED)

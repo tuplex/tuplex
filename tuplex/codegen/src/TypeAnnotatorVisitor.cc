@@ -541,19 +541,25 @@ namespace tuplex {
         std::unordered_set<python::Type> validTypes = {python::Type::NULLVALUE, python::Type::BOOLEAN};
         // one of every two types must be in validTypes.
 
-        if(cmp->_comps.size() == 1) {
-            if(!validTypes.count(cmp->_left->getInferredType()) && !validTypes.count(cmp->_comps[0]->getInferredType())) {
-                // invalid types for lhs and rhs
+        if(cmp->_comps.size() >= 1) {
+            if(cmp->_ops[0] == TokenType::IS && !validTypes.count(cmp->_left->getInferredType()) && !validTypes.count(cmp->_comps[0]->getInferredType())) {
+                // invalid types for lhs and rhs to do an `is` comparison.
                 addCompileError(CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON);
+                return;
             }
         }
 
+        bool lastValid = false;
+        // if more that one operand, check if all types would be valid.
         for(int i = 0; i < cmp->_comps.size() - 1; i++) {
             auto currType = cmp->_comps[i]->getInferredType();
             auto nextType = cmp->_comps[i+1]->getInferredType();
-            if(!validTypes.count(currType) && !validTypes.count(nextType)) {
+            if(!validTypes.count(currType) && !validTypes.count(nextType) && cmp->_ops[i] == TokenType::IS && !lastValid) {
                 // neither type is valid for an is comparison. 
                 addCompileError(CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON);
+                return;
+            } else {
+                lastValid = true;
             }
         }
     }

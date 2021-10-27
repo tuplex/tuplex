@@ -1043,8 +1043,8 @@ namespace tuplex {
     public:
 
         ASTNode *_left;
-        std::vector<TokenType> _ops; // operands
-        std::vector<ASTNode*> _comps; // comparators
+        std::vector<TokenType> _ops; // operators (TokenType::IS, TokenType::NOTEQUAL, etc.)
+        std::vector<ASTNode*> _comps; // operands (54, "hello", False, etc.)
 
         NCompare() : _left(nullptr) {}
 

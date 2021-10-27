@@ -187,3 +187,26 @@ TEST_F(IsKeywordTest, FailingTest) {
     auto log = logStream.str();
     EXPECT_NE(log.find("use of is comparison only supported with types"), std::string::npos);
 }
+
+TEST_F(IsKeywordTest, MultipleIs) {
+    using namespace tuplex;
+
+    Context c(microTestOptions());
+
+    // reset log
+    logStream.str("");
+
+    Row row1(45);
+    Row row2(false);
+    Row row3("hi");
+
+    auto code = "lambda x: x is \"hi\" != False";
+
+    auto node = UDF(code);
+
+    auto m = c.parallelize({row1, row2, row3})
+            .map(node).collectAsVector();
+
+    auto log = logStream.str();
+    EXPECT_NE(log.find("use of is comparison only supported with types"), std::string::npos);
+}

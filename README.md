@@ -48,7 +48,7 @@ To build Tuplex, you need several other packages first which can be easily insta
 ```
 brew install llvm@9 boost boost-python3 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero protobuf libmagic
 python3 -m pip install cloudpickle numpy
-python3 setup.py install
+python3 setup.py install --user
 ```
 
 #### Ubuntu build from source
@@ -56,19 +56,19 @@ To faciliate installing the dependencies for Ubuntu, we do provide two scripts (
 ```
 ./scripts/ubuntu1804/install_reqs.sh
 python3 -m pip install cloudpickle numpy
-python3 setup.py install
+python3 setup.py install --user
 ```
 
 #### Customizing the build
 
-Besides building a pip package, cmake can be also directly invoked. To compile the package via cmake
+Besides building a pip package, especially for development it may be more useful to invoke cmake directly. To create a development version of Tuplex and work with it like a regular cmake project, go to the folder `tuplex` and then use the standard workflow to compile the package via cmake (and not the top-level setup.py file):
 ```
 mkdir build
 cd build
 cmake ..
 make -j$(nproc)
 ```
-The python package corresponding to Tuplex can be then found in `build/dist/python` with C++ test executables based on googletest in `build/dist/bin`.
+The python package corresponding to Tuplex can be then found in `build/dist/python` with C++ test executables based on googletest in `build/dist/bin`. If you'd like to use a cmake-compatible IDE like CLion or VSCode you can simply open the `tuplex/` folder and import the `CMakeLists.txt` contained there.
 
 To customize the cmake build, the following options are available to be passed via `-D<option>=<value>`:
 

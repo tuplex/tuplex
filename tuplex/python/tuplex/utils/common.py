@@ -20,6 +20,7 @@ import os
 import socket
 import shutil
 import psutil
+import subprocess
 
 try:
   import pwd
@@ -39,6 +40,20 @@ def cmd_exists(cmd):
     """
     return shutil.which(cmd) is not None
 
+def is_shared_lib(path):
+    """
+    Args:
+        path: str path to a file
+    detects whether given path is a shared object or not
+    Returns: true if shared object, false else
+    """
+
+    # use file command
+    assert cmd_exists('file')
+
+    res = subprocess.check_output(['file', '--mime-type', path])
+    mime_type = res.split()[-1].decode()
+    return mime_type == 'application/x-sharedlib' or mime_type == 'application/x-application'
 
 def current_timestamp():
     """

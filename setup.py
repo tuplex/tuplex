@@ -41,10 +41,16 @@ install_dependencies = [
     'six>=1.11.0',
     'wcwidth>=0.1.7',
     'astor>=0.7.1',
-    'jedi>=0.13.2',
+    'prompt_toolkit',
+    'jedi',
     'cloudpickle>=0.6.1',
     'PyYAML>=3.13'
 ]
+
+def ninja_installed():
+    # check whether ninja is on the path
+    from distutils.spawn import find_executable
+    return find_executable('ninja') is not None
 
 def find_files(pattern, path):
     result = []
@@ -63,7 +69,6 @@ PLAT_TO_CMAKE = {
     "win-arm64": "ARM64",
 }
 
-
 # A CMakeExtension needs a sourcedir instead of a file list.
 # The name must be the _single_ output extension from the CMake build.
 # If you need multiple extensions, see scikit-build.
@@ -71,7 +76,6 @@ class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=""):
         Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
-
 
 class CMakeBuild(build_ext):
 
@@ -189,8 +193,10 @@ class CMakeBuild(build_ext):
             # Users can override the generator with CMAKE_GENERATOR in CMake
             # 3.15+.
             if not cmake_generator:
-                cmake_args += ["-GNinja"]
 
+                # yet, check if Ninja exists...
+                if ninja_installed():
+                    cmake_args += ["-GNinja"]
         else:
 
             # Single config generators are handled "normally"
@@ -224,10 +230,13 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
-        if os.environ.get('CIBUILDWHEEL', '0') == '1':
-            # on cibuildwheel b.c. manylinux2014 does not have python shared objects, build
-            # only tuplex target (the python shared object)
-            build_args += ['--target', 'tuplex']
+        ## on cibuildwheel b.c. manylinux2014 does not have python shared objects, build
+        ## only tuplex target (the python shared object)
+        #if os.environ.get('CIBUILDWHEEL', '0') == '1':
+
+        # because the goal of setup.py is to only build the package, build only target tuplex.
+        # changed from before.
+        build_args += ['--target', 'tuplex']
 
         # hack: only run for first invocation!
         if ext_filename == 'tuplex_runtime':

@@ -79,8 +79,6 @@ ENDIF()
 
 # for brewed llvm, add to cmakemodulepath
 IF(LLVM_ROOT_DIR)
-    EXECUTE_PROCESS(COMMAND "ls" "/opt" COMMAND_ECHO STDOUT)
-    EXECUTE_PROCESS(COMMAND "ls" "${LLVM_ROOT_DIR}" COMMAND_ECHO STDOUT)
     # make cmake find in config mode the right LLVMConfig.cmake file which is located here
     set(LLVM_DIR "${LLVM_ROOT_DIR}/lib/cmake/llvm")
 ENDIF()

@@ -17,7 +17,7 @@ import os
 import glob
 import sys
 import cloudpickle
-from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, host_name
+from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name
 import uuid
 import json
 from .metrics import Metrics
@@ -78,8 +78,12 @@ class Context:
         """
         runtime_path = os.path.join(os.path.dirname(__file__), 'libexec', 'tuplex_runtime')
         paths = glob.glob(runtime_path + '*')
-        if len(paths) != 1:
 
+        if len(paths) != 1:
+            # filter based on type (runtime must be shared object!)
+            paths = list(filter(is_shared_lib, paths))
+
+        if len(paths) != 1:
             if len(paths) == 0:
                 logging.error("found no tuplex runtime (tuplex_runtime.so). Faulty installation?")
             else:

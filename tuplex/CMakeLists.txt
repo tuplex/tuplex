@@ -17,7 +17,7 @@ option(BUILD_FOR_CI "Build for the CI - disable tests that require AWS credentia
 option(BUILD_WITH_AWS "Build Tuplex with AWS support. This will include access to S3 and the AWS Lambda execution engine backend. Requires AWS C++ SDK" ON)
 option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for faster testing speeds." OFF)
 option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
-option(USE_LD_GOLD "Use GNU gold linker" ON)
+option(USE_LD_GOLD "Use GNU gold linker" OFF)
 
 # via -DVERSION_INFO a string may be passed down. --> include it somehow
 if(VERSION_INFO)
@@ -239,7 +239,11 @@ endif()
 # set here initial compiler flags
 # DO NOT USE MARCH=NATIVE for wheels... => option should be disabled per default
 # use march=native if available and NOT building wheels
-ucm_add_flags(-m64 -O3 -flto -funroll-loops CONFIG Release)
+
+# Likely LTO is broken on GCC-10. Disable it.
+
+#ucm_add_flags(-m64 -O3 -flto -funroll-loops CONFIG Release)
+ucm_add_flags(-O3 -funroll-loops CONFIG Release)
 # for GCC add stack protector
 # -fstack-protector-strong
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")

@@ -291,11 +291,15 @@ if(HAVE_SSE42)
     add_compile_options("-msse4.2")
 endif()
 if(HAVE_AVX)
-    message(STATUS "Found AVX support, adding -mavx")
-    # no msvc support, so use clang/gcc flag approach!
-    #add_compile_options("-mavx")
-    else()
-    message(STATUS "no avx support")
+    # only add avx (because not any architecture supports it) if native build is enabled or build for lambda
+    # because Haswell supports both AVX and AVX2!
+    if(BUILD_NATIVE OR BUILD_FOR_LAMBDA)
+        message(STATUS "Found AVX support, adding -mavx")
+        # no msvc support, so use clang/gcc flag approach!
+        add_compile_options("-mavx")
+    endif()
+else()
+    message(STATUS "no avx support, build with -DBUILD_NATIVE=ON to enable")
 endif()
 
 ###########################################################################

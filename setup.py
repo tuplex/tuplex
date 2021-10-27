@@ -33,7 +33,8 @@ install_dependencies = [
     'six>=1.11.0',
     'wcwidth>=0.1.7',
     'astor>=0.7.1',
-    'jedi>=0.13.2',
+    'prompt_toolkit',
+    'jedi',
     'cloudpickle>=0.6.1',
     'PyYAML>=3.13'
 ]

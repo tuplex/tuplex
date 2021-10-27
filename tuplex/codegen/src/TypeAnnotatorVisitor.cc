@@ -554,10 +554,18 @@ namespace tuplex {
         for(int i = 0; i < cmp->_comps.size() - 1; i++) {
             auto currType = cmp->_comps[i]->getInferredType();
             auto nextType = cmp->_comps[i+1]->getInferredType();
-            if(!validTypes.count(currType) && !validTypes.count(nextType) && cmp->_ops[i] == TokenType::IS && !lastValid) {
+            
+            // type error only if previous comparison is invalid
+            if(!validTypes.count(currType) && !validTypes.count(nextType) && cmp->_ops[i] == TokenType::IS) {
                 // neither type is valid for an is comparison. 
-                addCompileError(CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON);
-                return;
+                if(!lastValid) {
+                    // previous was invalid, current is also invalid, therefore incompatible types.
+                    addCompileError(CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON);
+                    return;
+                } else {
+                    // the one before this was a valid comparison, resulting in a bool, so can't error yet.
+                    lastValid = false;
+                }
             } else {
                 lastValid = true;
             }

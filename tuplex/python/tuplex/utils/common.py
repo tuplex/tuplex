@@ -8,8 +8,10 @@
 #  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
 #  License: Apache 2.0                                                                                                 #
 #----------------------------------------------------------------------------------------------------------------------#
-
+import atexit
 import collections
+import signal
+
 import yaml
 import sys
 from datetime import datetime
@@ -17,10 +19,14 @@ from datetime import datetime
 import json
 import urllib.request
 import os
+import signal
+import atexit
 import socket
 import shutil
 import psutil
 import subprocess
+import logging
+import re
 
 try:
   import pwd
@@ -276,6 +282,10 @@ def stringify_dict(d):
 
 ## WebUI helper functions
 
+# shutdown mongod process via KILL
+# https://docs.mongodb.com/manual/tutorial/manage-mongodb-processes/
+
+
 def is_process_running(name):
     # Iterate over the all the running process
     for proc in psutil.process_iter():
@@ -287,11 +297,11 @@ def is_process_running(name):
             pass
     return False
 
-def mongodb_uri(mongodb_url, mongodb_port, mongodb_path):
-    return 'mongodb://{}:{}/{}'.format(mongodb_url, mongodb_port, mongodb_path)
+def mongodb_uri(mongodb_url, mongodb_port, db_name='tuplex-history'):
+    return 'mongodb://{}:{}/{}'.format(mongodb_url, mongodb_port, db_name)
 
-def test_mongodb_connection(mongodb_url, mongodb_port, mongodb_path):
-    uri = mongodb_uri(mongodb_url, mongodb_port, mongodb_path)
+def test_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history'):
+    uri = mongodb_uri(mongodb_url, mongodb_port, db_name)
 
     # check whether one can connect to MongoDB
     from pymongo import MongoClient
@@ -306,7 +316,17 @@ def test_mongodb_connection(mongodb_url, mongodb_port, mongodb_path):
         # no connection to MongoDB
         raise Exception('Could not connect to MongoDB, check network connection. (ping must be < 100ms)')
 
-def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_path):
+# def ensure_writable            try:
+#                 with open('newfile.txt', 'w') as file
+#                     file.write('hello!')
+#                     file.close()
+#             except IOError as error:
+
+def shutdown_process_via_kill(pid):
+    logging.debug('Shutting down process PID={}'.format(pid))
+    os.kill(pid, signal.SIGKILL)
+
+def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_logpath, db_name='tuplex-history'):
     # first check whether mongod is on path
     if not cmd_exists('mongod'):
         raise Exception('MongoDB (mongod) not found on PATH. In order to use Tuplex\'s WebUI, you need MongoDB'
@@ -314,15 +334,50 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_path):
 
     # is it localhost?
     if 'localhost' in mongodb_url:
+        logging.debug('Using local MongoDB instance')
 
         # is mongod running on local machine?
         if is_process_running('mongod'):
             # process is running, try to connect
-            test_mongodb_connection(mongodb_url, mongodb_port, mongodb_path)
+            test_mongodb_connection(mongodb_url, mongodb_port, db_name)
         else:
             # startup process and add to list of processes. Check for any errors!
-            raise Exception('need to startup MongoDB process first!')
+
+            # important: data directory needs to exist first!
+            os.makedirs(mongodb_datapath, exist_ok=True)
+
+            # startup via mongod --fork --logpath /var/log/mongodb/mongod.log --port 1234 --dbpath <path>
+            try:
+                cmd = ['mongod', '--fork', '--logpath', str(mongodb_logpath), '--port', str(mongodb_port), '--dbpath', str(mongodb_datapath)]
+
+                logging.debug('starting MongoDB daemon process')
+                process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                # set a timeout of 2 seconds to keep everything interactive
+                p_stdout, p_stderr = process.communicate(timeout=2)
+
+                # decode
+                p_stdout = p_stdout.decode()
+                p_stderr = p_stderr.decode()
+
+                if len(p_stderr.strip()) > 0:
+                    raise Exception('mongod produced following errors: {}'.format(p_stderr))
+
+                # find mongod pid
+                m = re.search(r'forked process: (\d+)', p_stdout)
+                assert m is not None, 'Could not find Child process ID when starting MongoDB'
+                mongo_pid = int(m[1])
+                logging.debug('MongoDB Daemon PID={}'.format(mongo_pid))
+
+                # add a new shutdown func for mongod
+                atexit.register(shutdown_process_via_kill, mongo_pid)
+            except Exception as e:
+                logging.error('Failed to start MongoDB daemon. Details: {}'.format(str(e)))
+                raise e
+
+        test_mongodb_connection(mongodb_url, mongodb_port, db_name)
     else:
         # remote MongoDB
-        test_mongodb_connection()
+        logging.debug('Connecting to remote MongoDB instance')
+
+        test_mongodb_connection(mongodb_url, mongodb_port, db_name)
 

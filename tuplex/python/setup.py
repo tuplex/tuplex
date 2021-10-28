@@ -46,7 +46,7 @@ setup(
         'pytest>=5.3.2',
         'six>=1.11.0',
         'wcwidth>=0.1.7',
-        'astor>=0.7.1',
+        'astor',
         'prompt_toolkit>=2.0.7',
         'jedi>=0.13.2',
         'cloudpickle>=0.6.1',

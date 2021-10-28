@@ -40,7 +40,7 @@ install_dependencies = [
     'pygments>=2.4.1',
     'six>=1.11.0',
     'wcwidth>=0.1.7',
-    'astor>=0.7.1',
+    'astor',
     'prompt_toolkit',
     'jedi',
     'cloudpickle>=0.6.1',

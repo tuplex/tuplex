@@ -11,13 +11,13 @@
 
 import logging
 
-from .libexec.tuplex import _Context, _DataSet
+from .libexec.tuplex import _Context, _DataSet, getDefaultOptionsAsJSON
 from .dataset import DataSet
 import os
 import glob
 import sys
 import cloudpickle
-from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui
+from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui, parse_to_obj
 import uuid
 import json
 from .metrics import Metrics
@@ -128,8 +128,23 @@ class Context:
             runtime_path = options['tuplex.runTimeLibrary']
 
         # autostart mongodb & history server if they are not running yet...
+        # deactivate webui for google colab per default
+        if 'tuplex.webui.enable' not in options:
+            # for google colab env, disable webui per default.
+            if in_google_colab():
+                options['tuplex.webui.enable'] = False
+        # fetch default options for webui ...
+        webui_options = {k: v for k, v in json.loads(getDefaultOptionsAsJSON()).items() if 'webui' in k or 'scratch' in k}
+
+        # update only non-existing options!
+        for k, v in webui_options.items():
+            if k not in options.keys():
+                options[k] = parse_to_obj(v)
+
         if options['tuplex.webui.enable']:
             ensure_webui(options)
+
+
 
         # last arg are the options as json string serialized b.c. of boost python problems
         self._context = _Context(name, runtime_path, json.dumps(options))

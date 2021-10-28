@@ -707,4 +707,17 @@ namespace tuplex {
             return Backend::LOCAL;
         }
     }
+
+    std::string ContextOptions::asJSON() const {
+        auto json = cJSON_CreateObject();
+        for(auto keyval : _store) {
+            cJSON_AddStringToObject(json, keyval.first.c_str(), keyval.second.c_str());
+        }
+        char* str = cJSON_Print(json);
+        assert(str);
+        std::string res((const char*)str);
+        free(str);
+        cJSON_free(json);
+        return res;
+    }
 }

@@ -322,20 +322,30 @@ def is_process_running(name):
 def mongodb_uri(mongodb_url, mongodb_port, db_name='tuplex-history'):
     return 'mongodb://{}:{}/{}'.format(mongodb_url, mongodb_port, db_name)
 
-def test_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history'):
+def test_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history', timeout=10):
     uri = mongodb_uri(mongodb_url, mongodb_port, db_name)
 
     # check whether one can connect to MongoDB
     from pymongo import MongoClient
     from pymongo.errors import ServerSelectionTimeoutError
 
-    # set client connection to super low timeouts so the wait is not too long.
-    client = MongoClient(uri, serverSelectionTimeoutMS=100, connectTimeoutMS=1000)
+    start_time = time.time()
+    connect_successful = False
+    while time.time() - start_time < timeout:
+        try:
+            # set client connection to super low timeouts so the wait is not too long.
+            client = MongoClient(uri, serverSelectionTimeoutMS=100, connectTimeoutMS=1000)
+            info = client.server_info()  # force a call to mongodb, alternative is client.admin.command('ismaster')
+            connect_successful = True
+        except Exception as e:
+            pass
 
-    try:
-        info = client.server_info()  # force a call to mongodb, alternative is client.admin.command('ismaster')
-    except ServerSelectionTimeoutError:
-        # no connection to MongoDB
+        if connect_successful:
+            break
+        time.sleep(0.05)  # sleep for 50ms
+        logging.debug('Contacting MongoDB under {}... -- {:.2f}s of poll time left'.format(uri, timeout - (time.time() - start_time)))
+
+    if connect_successful is False:
         raise Exception('Could not connect to MongoDB, check network connection. (ping must be < 100ms)')
 
 def shutdown_process_via_kill(pid):
@@ -361,12 +371,13 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
 
             # important: data directory needs to exist first!
             os.makedirs(mongodb_datapath, exist_ok=True)
+            os.makedirs(pathlib.Path(mongodb_logpath).parent, exist_ok=True)
 
             # startup via mongod --fork --logpath /var/log/mongodb/mongod.log --port 1234 --dbpath <path>
             try:
                 cmd = ['mongod', '--fork', '--logpath', str(mongodb_logpath), '--port', str(mongodb_port), '--dbpath', str(mongodb_datapath)]
 
-                logging.debug('starting MongoDB daemon process')
+                logging.debug('starting MongoDB daemon process via {}'.format(' '.join(cmd)))
                 process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 # set a timeout of 2 seconds to keep everything interactive
                 p_stdout, p_stderr = process.communicate(timeout=2)
@@ -559,7 +570,7 @@ def ensure_webui(options):
     mongo_uri = mongodb_uri(mongodb_url, mongodb_port)
 
     # now it's time to do the same thing for the WebUI (and also check it's version v.s. the current one!)
-    version_info = find_or_start_webui(mongo_uri, webui_port, webui_port, gunicorn_logpath)
+    version_info = find_or_start_webui(mongo_uri, webui_url, webui_port, gunicorn_logpath)
 
     # check that version of WebUI and Tuplex version match
     assert __version__ == 'dev' or version_info['version'] == __version__, 'Version of Tuplex WebUI and Tuplex do not match'
@@ -569,3 +580,16 @@ def ensure_webui(options):
     if not webui_uri.startswith('http'):
         webui_uri = 'http://' + webui_uri
     print('Tuplex WebUI can be accessed under {}'.format(webui_uri))
+
+def parse_to_obj(s):
+    if s.lower() == 'true' or s.lower() == 'false':
+        return bool(s)
+    try:
+        return int(s)
+    except:
+        pass
+    try:
+        return float(s)
+    except:
+        pass
+    return s

@@ -388,6 +388,7 @@ namespace tuplex {
         // now truth value testing, single element?
         auto res = ti_vals.front();
 
+        // IS and IS NOT are equivalent to id(L) == id(R) and id(L) != id(R).
         std::unordered_map<TokenType, int> cmpLookup{{TokenType::EQEQUAL, Py_EQ},
                                                      {TokenType::NOTEQUAL, Py_NE},
                                                      {TokenType::LESS, Py_LT},
@@ -398,18 +399,25 @@ namespace tuplex {
         // eval
         for(int i = 0; i < node->_ops.size(); ++i) {
             auto op = node->_ops[i];
-            auto it = cmpLookup.find(op);
-            if(it == cmpLookup.end())
-                   throw std::runtime_error("Operator " + opToString(op) + " not yet supported in TraceVisitor/NCompare");
-            int opid = it->second;
 
-            // debug:
-            auto info = python::PyString_AsString(res.value) + " " + opToString(op) + " " +
-                    python::PyString_AsString(ti_vals[i+1].value);
+            // based on op, decide value of result.
+            if(op == TokenType::IS || op == TokenType::ISNOT) {
+                // `x is y` in Python is equivalent to `id(x) == id(y)`
+                // so we just compare pointers for equality and return the corresponding PyBool.
+                
+                assert(i+1 < ti_vals.size());
+                bool finalResult = (ti_vals[i+1].value == res.value);
+                // invert result if op is ISNOT.
+                finalResult = (op == TokenType::IS) ? finalResult : !finalResult;
+                res.value = finalResult ? Py_True : Py_False;
+            } else {
+                auto it = cmpLookup.find(op);
+                if(it == cmpLookup.end())
+                        throw std::runtime_error("Operator " + opToString(op) + " not yet supported in TraceVisitor/NCompare");
+                int opid = it->second;
 
-            res.value = PyObject_RichCompare(res.value, ti_vals[i + 1].value, opid);
-
-            auto res_info = "is: " + python::PyString_AsString(res.value);
+                res.value = PyObject_RichCompare(res.value, ti_vals[i + 1].value, opid);
+            }
 
             // NULL? ==> failure!
             assert(res.value);

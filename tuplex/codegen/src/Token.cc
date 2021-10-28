@@ -45,6 +45,7 @@ std::ostream& operator<< (std::ostream& os, const TokenType tt)
         case TokenType::IMPORT: return os<<"IMPORT";
         case TokenType::IN: return os<<"IN";
         case TokenType::IS: return os<<"IS";
+        case TokenType::ISNOT: return os<<"ISNOT";
         case TokenType::LAMBDA: return os<<"LAMBDA";
         case TokenType::NONLOCAL: return os<<"NONLOCAL";
         case TokenType::NOT: return os<<"NOT";
@@ -112,7 +113,10 @@ TokenType stringToToken(const std::string& s) {
         return TokenType::IN;
     if(s == "notin")
         return TokenType::NOTIN;
-
+    if(s == "is")
+        return TokenType::IS;
+    if(s == "isnot")
+        return TokenType::ISNOT;
     if(s == "&&" || s == "and")
         return TokenType::AND;
     if(s == "!")
@@ -267,6 +271,9 @@ std::string opToString(const TokenType& tt) {
         case TokenType::DOUBLESLASHEQUAL: return "//=";
         case TokenType::ELLIPSIS: return "...";
         case TokenType::IN: return "in";
+        case TokenType::IS: return "is";
+        case TokenType::ISNOT: return "is not";
+
         default: return std::to_string(static_cast<std::uint16_t>(tt));
     }
 }

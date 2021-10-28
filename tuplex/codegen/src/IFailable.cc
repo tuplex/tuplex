@@ -71,6 +71,9 @@ std::string IFailable::compileErrorToStr(const CompileError &err) {
         case CompileError::TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST:
             errMsg = "mixed use of tuple/list of identifiers and single identifier in exprlist not yet supported";
             break;
+        case CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON:
+            errMsg = "use of is comparison only supported with types boolean and null";
+            break;
         default:
             break;
     }

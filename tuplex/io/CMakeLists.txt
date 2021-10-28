@@ -243,11 +243,12 @@ if(BUILD_WITH_ORC)
     endif()
 
     if (NOT APPLE)
+        message(STATUS "Adding byproducts to external project")
         set(ORC_BYPRODUCTS
-                ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a
-                ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a
-                ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a
-                ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a)
+            "${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a
+            ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a
+            ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a
+            ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a")
     endif()
 
     ExternalProject_Add(orc

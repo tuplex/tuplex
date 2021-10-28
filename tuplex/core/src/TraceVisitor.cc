@@ -390,8 +390,6 @@ namespace tuplex {
 
         // IS and IS NOT are equivalent to id(L) == id(R) and id(L) != id(R).
         std::unordered_map<TokenType, int> cmpLookup{{TokenType::EQEQUAL, Py_EQ},
-                                                     {TokenType::IS, Py_EQ},
-                                                     {TokenType::ISNOT, Py_NE},
                                                      {TokenType::NOTEQUAL, Py_NE},
                                                      {TokenType::LESS, Py_LT},
                                                      {TokenType::LESSEQUAL, Py_LE},
@@ -411,8 +409,10 @@ namespace tuplex {
                     python::PyString_AsString(ti_vals[i+1].value);
 
             // based on op, decide value of result.
-
             if(op == TokenType::IS || op == TokenType::ISNOT) {
+                // `x is y` in Python is equivalent to `id(x) == id(y)`
+                // so we just compare pointers for equality and return the corresponding PyBool.
+                
                 assert(i+1 < ti_vals.size());
                 bool finalResult = (ti_vals[i+1].value == res.value);
                 // invert result if op is ISNOT.

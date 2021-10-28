@@ -1,3 +1,12 @@
+//--------------------------------------------------------------------------------------------------------------------//
+//                                                                                                                    //
+//                                      Tuplex: Blazing Fast Python Data Science                                      //
+//                                                                                                                    //
+//                                                                                                                    //
+//  (c) 2017 - 2021, Tuplex team                                                                                      //
+//  Created by Shreeyash Gotmare first on 10/1/2021                                                                 //
+//  License: Apache 2.0                                                                                               //
+//--------------------------------------------------------------------------------------------------------------------//
 
 #include "gtest/gtest.h"
 #include <Context.h>
@@ -200,7 +209,7 @@ TEST_F(IsKeywordTest, MultipleIs) {
     Row row2(false);
     Row row3("hi");
 
-    auto code = "lambda x: x is \"hi\" != False";
+    auto code = "lambda x: x is \"hi\" is False";
 
     auto node = UDF(code);
 
@@ -209,4 +218,74 @@ TEST_F(IsKeywordTest, MultipleIs) {
 
     auto log = logStream.str();
     EXPECT_NE(log.find("use of is comparison only supported with types"), std::string::npos);
+}
+
+TEST_F(IsKeywordTest, MultipleIs2) {
+    using namespace tuplex;
+
+    Context c(microTestOptions());
+
+    Row row1(true);
+    Row row2(false);
+    Row row3(false);
+
+    // equivalent to (x is "hi") and ("hi" is not True) => (x is "hi") and True => (x is "hi")
+    auto code = "lambda x: x is \"hi\" is not True";
+
+    auto node = UDF(code);
+
+    auto m = c.parallelize({row1, row2, row3})
+            .map(node).collectAsVector();
+
+    EXPECT_EQ(m.size(), 3);
+    assert(m[0].toPythonString() == "(False,)");
+    assert(m[1].toPythonString() == "(False,)");
+    assert(m[2].toPythonString() == "(False,)");
+}
+
+TEST_F(IsKeywordTest, MultipleIs3) {
+    using namespace tuplex;
+
+    Context c(microTestOptions());
+
+    Row row1(Field(option<bool>(true)));
+    Row row2(Field(option<bool>(false)));
+    Row row3(Field(option<bool>::none));
+
+    // equivalent to (x is None) and (None is None) and (None is None) => (x is None).
+    auto code = "lambda x: x is None is None is None";
+
+    auto node = UDF(code);
+
+    auto m = c.parallelize({row1, row2, row3})
+            .map(node).collectAsVector();
+
+    EXPECT_EQ(m.size(), 3);
+    assert(m[0].toPythonString() == "(False,)");
+    assert(m[1].toPythonString() == "(False,)");
+    assert(m[2].toPythonString() == "(True,)");
+}
+
+
+TEST_F(IsKeywordTest, MultipleIs4) {
+    using namespace tuplex;
+
+    Context c(microTestOptions());
+
+    Row row1(Field(option<bool>(true)));
+    Row row2(Field(option<bool>(false)));
+    Row row3(Field(option<bool>::none));
+
+    // equivalent to (x is None) and (None is True) => (x is None) and False => False.
+    auto code = "lambda x: x is None is True";
+
+    auto node = UDF(code);
+
+    auto m = c.parallelize({row1, row2, row3})
+            .map(node).collectAsVector();
+
+    EXPECT_EQ(m.size(), 3);
+    assert(m[0].toPythonString() == "(False,)");
+    assert(m[1].toPythonString() == "(False,)");
+    assert(m[2].toPythonString() == "(False,)");
 }

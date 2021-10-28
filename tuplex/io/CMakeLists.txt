@@ -244,11 +244,15 @@ if(BUILD_WITH_ORC)
 
     if (NOT APPLE)
         message(STATUS "Adding byproducts to external project")
-        set(ORC_BYPRODUCTS
-            "${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a
-            ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a
-            ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a
-            ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a")
+        set(SNAPPY_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a)
+        set(ZSTD_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a)
+        set(ZLIB_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a)
+        set(LZ4_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a)
+        set(ORC_THIRD_PARTY_LIBS
+            ${SNAPPY_LIBRARIES}
+            ${ZSTD_LIBRARIES}
+            ${ZLIB_LIBRARIES}
+            ${LZ4_LIBRARIES})
     endif()
 
     ExternalProject_Add(orc
@@ -258,7 +262,7 @@ if(BUILD_WITH_ORC)
             CMAKE_ARGS -DBUILD_LIBHDFSPP=OFF -DSNAPPY_HOME=${SNAPPY_HOME} -DLZ4_HOME=${LZ4_HOME} -DZSTD_HOME=${ZSTD_HOME} -DZLIB_HOME=${ZLIB_HOME} -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories" -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DBUILD_JAVA=OFF -DBUILD_TOOLS=OFF -DBUILD_CPP_TESTS=OFF -DBUILD_POSITION_INDEPENDENT_LIB=ON -DPROTOBUF_HOME=${Protobuf_HOME}
             PREFIX "${EXTERNAL_INSTALL_LOCATION}"
             UPDATE_COMMAND "" # Disable update step: clones the project only once
-            BUILD_BYPRODUCTS ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a ${ORC_BYPRODUCTS}
+            BUILD_BYPRODUCTS ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a ${ORC_THIRD_PARTY_LIBS}
             )
     ExternalProject_Add_StepDependencies(orc build ${SNAPPY_DEPENDS} ${LZ4_DEPENDS} ${ZSTD_DEPENDS} ${ZLIB_DEPENDS})
     set(orc_INCLUDE_DIR ${EXTERNAL_INSTALL_LOCATION}/include)

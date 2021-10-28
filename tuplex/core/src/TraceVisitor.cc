@@ -419,11 +419,6 @@ namespace tuplex {
                 res.value = PyObject_RichCompare(res.value, ti_vals[i + 1].value, opid);
             }
 
-            // debug:
-            auto info = python::PyString_AsString(res.value) + " " + opToString(op) + " " +
-                    python::PyString_AsString(ti_vals[i+1].value);
-
-            auto res_info = "is: " + python::PyString_AsString(res.value);
             // NULL? ==> failure!
             assert(res.value);
         }

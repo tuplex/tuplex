@@ -10,6 +10,7 @@
 #----------------------------------------------------------------------------------------------------------------------#
 import atexit
 import collections
+import pathlib
 import signal
 
 import yaml
@@ -27,6 +28,8 @@ import psutil
 import subprocess
 import logging
 import re
+import tempfile
+import time
 
 try:
   import pwd
@@ -105,6 +108,20 @@ def post_json(url, data):
     params = json.dumps(data).encode('utf8')
     req = urllib.request.Request(url, data=params,
                                  headers={'content-type': 'application/json'})
+    response = urllib.request.urlopen(req)
+    return json.loads(response.read())
+
+def get_json(url):
+    """
+    perform a GET request to given URL
+    Args:
+        url: hostname & port
+
+    Returns:
+        python dictionary of decoded json
+    """
+
+    req = urllib.request.Request(url, headers={'content-type': 'application/json'})
     response = urllib.request.urlopen(req)
     return json.loads(response.read())
 
@@ -381,3 +398,99 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
 
         test_mongodb_connection(mongodb_url, mongodb_port, db_name)
 
+def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
+    version_endpoint = '/api/version' # use this to connect and trigger WebUI connection
+
+    if not hostname.startswith('http://') and not hostname.startswith('https://'):
+        hostname = 'http://' + str(hostname)
+
+    base_uri = '{}:{}'.format(hostname, port)
+
+    version_info = None
+    try:
+        version_info = get_json(base_uri + version_endpoint)
+    except Exception as err:
+        logging.debug("Couldn't connect to {}, starting WebUI...".format(base_uri + version_endpoint))
+
+    if version_info is not None:
+        # check version compatibility
+        return version_info
+    else:
+        # start WebUI up!
+        if not cmd_exists('gunicorn'):
+            raise Exception('Tuplex uses per default gunicorn with eventlet to run the WebUI. Please install via `pip3 install "gunicorn[eventlet]"` or add to PATH')
+
+        # command for this is:
+        # env MONGO_URI=$MONGO_URI gunicorn --daemon --worker-class eventlet --log-file $GUNICORN_LOGFILE -b $HOST:$PORT thserver:app
+
+
+        # directory needs to be the one where the history server is located in!
+        # ==> from structure of file we can infer that
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        assert dir_path.endswith(os.path.join('tuplex', 'utils')), 'folder structure changed. Need to fix.'
+        # get tuplex base dir
+        tuplex_basedir = pathlib.Path(dir_path).parent
+
+        # two options: Could be dev install or site-packages install, therefore check two folders
+        if not os.path.isdir(os.path.join(tuplex_basedir, 'historyserver', 'thserver')):
+            # dev install?
+            logging.debug('Dev version of tuplex')
+            tuplex_basedir = tuplex_basedir.parent.parent
+
+
+        # check dir historyserver/thserver exists!
+        assert os.path.isdir(os.path.join(tuplex_basedir, 'historyserver', 'thserver')), 'could not find Tuplex WebUI WebApp'
+        assert os.path.isfile(os.path.join(tuplex_basedir, 'historyserver', 'thserver', '__init__.py')), 'could not find Tuplex WebUI __init__.py file in thserver folder'
+
+        # history server dir to use to start gunicorn
+        ui_basedir = os.path.join(tuplex_basedir, 'historyserver')
+        logging.debug('Launching gunicorn from {}'.format(ui_basedir))
+
+        # create temp PID file to get process ID to shutdown auto-started WebUI
+        PID_FILE = tempfile.NamedTemporaryFile(delete=False).name
+
+        ui_env = os.environ
+        ui_env['MONGO_URI'] = mongo_uri
+        cmd = ['gunicorn', '--daemon', '--worker-class', 'eventlet', '--chdir', ui_basedir, '--pid', PID_FILE, '--log-file', web_logfile, '-b', '{}:{}'.format(hostname.replace('http://', '').replace('https://',''), port), 'thserver:app']
+
+        logging.debug('Starting gunicorn with command: {}'.format(' '.join(cmd)))
+
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=ui_env)
+        # set a timeout of 2 seconds to keep everything interactive
+        p_stdout, p_stderr = process.communicate(timeout=2)
+
+        # decode
+        p_stdout = p_stdout.decode()
+        p_stderr = p_stderr.decode()
+
+        if len(p_stderr.strip()) > 0:
+            raise Exception('mongod produced following errors: {}'.format(p_stderr))
+
+        # find out process id of gunicorn
+        ui_pid = None
+
+        # Writing the PID might require some time for gunicorn, therefore poll the temp file for up to 2s
+        TIME_LIMIT = 2
+        start_time = time.time()
+        while time.time() - start_time < TIME_LIMIT:
+            if not os.path.isfile(PID_FILE) or os.stat(PID_FILE).st_size == 0:
+                time.sleep(50) # sleep for 50ms
+            else:
+                break
+
+        # Read PID file
+        with open(PID_FILE, 'r') as fp:
+            ui_pid = int(fp.read())
+
+        assert ui_pid is not None, 'Invalid PID for WebUI'
+
+        # register daemon shutdown
+        logging.debug('Adding auto-shutdown of process with PID={} (WebUI)'.format(ui_pid))
+        atexit.register(shutdown_process_via_kill, ui_pid)
+
+        version_info = get_json(base_uri + version_endpoint)
+        if version_info is None:
+            raise Exception('Could not retrieve version info from WebUI')
+
+        # perform checks (same MongoDB URI? Same Version?)
+        return version_info

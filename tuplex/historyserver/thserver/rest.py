@@ -10,7 +10,7 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 
-from thserver import app, socketio, mongo
+from thserver import app, socketio, mongo, MONGO_URI
 from thserver.database import *
 from thserver.config import *
 from thserver.common import *
@@ -37,7 +37,6 @@ def normalize_from_mongo(q):
 @app.errorhandler(404)
 def not_found(error):
     return make_response(jsonify({'error': 'Not found'}), 404)
-
 
 # test via curl -i http://localhost:5000/api/jobs
 @app.route('/api/jobs', methods=['GET'])
@@ -408,9 +407,13 @@ def update_exception():
 
 @app.route('/api/version', methods=['GET'])
 def get_info():
+
+    mongo_info = dict(zip(('host', 'port'), mongo.cx.address))
+    mongo_info['uri'] = MONGO_URI
+
     return jsonify({'version': __version__,
                     'name': 'Tuplex WebUI',
-                    'mongodb': dict(zip(('host', 'port'), mongo.cx.address))})
+                    'mongodb': mongo_info})
 
 @socketio.on('message')
 def handle_message(message):

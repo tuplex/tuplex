@@ -242,6 +242,14 @@ if(BUILD_WITH_ORC)
         endif()
     endif()
 
+    if (NOT APPLE)
+        set(ORC_BYPRODUCTS
+                ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a
+                ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a
+                ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a
+                ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a)
+    endif()
+
     ExternalProject_Add(orc
             GIT_REPOSITORY https://github.com/apache/orc.git
             GIT_TAG rel/release-1.7.0
@@ -249,7 +257,7 @@ if(BUILD_WITH_ORC)
             CMAKE_ARGS -DBUILD_LIBHDFSPP=OFF -DSNAPPY_HOME=${SNAPPY_HOME} -DLZ4_HOME=${LZ4_HOME} -DZSTD_HOME=${ZSTD_HOME} -DZLIB_HOME=${ZLIB_HOME} -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories" -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DBUILD_JAVA=OFF -DBUILD_TOOLS=OFF -DBUILD_CPP_TESTS=OFF -DBUILD_POSITION_INDEPENDENT_LIB=ON -DPROTOBUF_HOME=${Protobuf_HOME}
             PREFIX "${EXTERNAL_INSTALL_LOCATION}"
             UPDATE_COMMAND "" # Disable update step: clones the project only once
-            BUILD_BYPRODUCTS ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a
+            BUILD_BYPRODUCTS ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a ${ORC_BYPRODUCTS}
             )
     ExternalProject_Add_StepDependencies(orc build ${SNAPPY_DEPENDS} ${LZ4_DEPENDS} ${ZSTD_DEPENDS} ${ZLIB_DEPENDS})
     set(orc_INCLUDE_DIR ${EXTERNAL_INSTALL_LOCATION}/include)

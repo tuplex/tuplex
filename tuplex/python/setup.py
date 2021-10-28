@@ -50,7 +50,8 @@ setup(
         'prompt_toolkit>=2.0.7',
         'jedi>=0.13.2',
         'cloudpickle>=0.6.1',
-        'PyYAML>=3.13'
+        'PyYAML>=3.13',
+        'psutil'
     ],
     url="https://tuplex.cs.brown.edu"
     #,

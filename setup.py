@@ -44,7 +44,8 @@ install_dependencies = [
     'prompt_toolkit',
     'jedi',
     'cloudpickle>=0.6.1',
-    'PyYAML>=3.13'
+    'PyYAML>=3.13',
+    'psutil'
 ]
 
 def ninja_installed():

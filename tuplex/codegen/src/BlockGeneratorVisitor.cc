@@ -959,6 +959,20 @@ namespace tuplex {
 
             assert(L);
             assert(R);
+
+            if(tt == TokenType::IS || tt == TokenType::ISNOT) {
+                assert(leftType == python::Type::BOOLEAN || rightType == python::Type::BOOLEAN);
+                // one of the types must be boolean, otherwise compareInst with _isnull would've taken care.
+                if((leftType == python::Type::BOOLEAN) != (rightType == python::Type::BOOLEAN)) {
+                    // one of the types is boolean, other isn't. comparison results in false.
+                    return _env->boolConst(tt == TokenType::ISNOT);
+                } 
+                
+                // both must be boolean.
+                auto cmpPredicate = (tt == TokenType::ISNOT) ? llvm::CmpInst::Predicate::ICMP_NE : llvm::CmpInst::Predicate::ICMP_EQ;
+                return _env->upcastToBoolean(builder, builder.CreateICmp(cmpPredicate, L, R));              
+            }
+
             // comparison of values without null
             auto superType = python::Type::superType(leftType.withoutOptions(), rightType.withoutOptions());
             if (superType == python::Type::UNKNOWN) {
@@ -981,10 +995,11 @@ namespace tuplex {
 
 
         llvm::Value* BlockGeneratorVisitor::oneSidedNullComparison(llvm::IRBuilder<>& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull) {
-            assert(tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL); // only for == or !=!
+            assert(tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL || tt == TokenType::IS || tt == TokenType::ISNOT); // only for == or != or IS or ISNOT!
 
+            // we're comparing null to null, should only return true if operators are EQEQUAL or IS. 
             if(type == python::Type::NULLVALUE)
-                return _env->boolConst(tt == TokenType::EQEQUAL); // if == then true, if != then false
+                return _env->boolConst(tt == TokenType::EQEQUAL || tt == TokenType::IS); // if == then true, if != then false
 
             // option type? check isnull
             // else, super simple. Decide on tokentype
@@ -996,7 +1011,11 @@ namespace tuplex {
                 // the other side is null
                 // if isnull is true && equal => true
                 // if isnull is false && notequal => false (case 12 != None)
-                if(tt == TokenType::NOTEQUAL)
+                
+                // for IS NOT, if isnull is true, we want to return false.
+                // if isnull is false, we want to return true.
+                // therefore we negate. (similar to logic for NOTEQUAL).  
+                if(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT)
                     return _env->upcastToBoolean(builder, _env->i1neg(builder, isnull));
                 else
                     return _env->upcastToBoolean(builder, isnull);
@@ -1004,7 +1023,10 @@ namespace tuplex {
                 // the other side is null
                 // => 12 != null => true
                 // => 12 == null => false
-                return _env->boolConst(tt == TokenType::NOTEQUAL);
+                
+                // we are now comparing a non-null type to null.
+                // so we return true only if token is IS NOT or NOTEQUAL.
+                return _env->boolConst(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT);
             }
         }
 
@@ -1014,7 +1036,8 @@ namespace tuplex {
                                            const python::Type &rightType) {
 
             // None comparisons only work for == or !=, i.e. for all other ops throw exception
-            if (tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL) {
+            if (tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL || tt == TokenType::IS || tt == TokenType::ISNOT) {
+
                 // special case: one side is None
                 if(leftType == python::Type::NULLVALUE || rightType == python::Type::NULLVALUE) {
 
@@ -1043,7 +1066,7 @@ namespace tuplex {
                         assert(L);
                         assert(R);
 
-                        auto resVal = _env->CreateTernaryLogic(builder, L_isnull, [&] (llvm::IRBuilder<>& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL); },
+                        auto resVal = _env->CreateTernaryLogic(builder, L_isnull, [&] (llvm::IRBuilder<>& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT); },
                                                                [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType.withoutOptions(), tt, R, rightType); });
                         _lfb->setLastBlock(builder.GetInsertBlock());
                         return resVal;
@@ -1059,7 +1082,7 @@ namespace tuplex {
                         assert(L);
                         assert(R);
 
-                        auto resVal = _env->CreateTernaryLogic(builder, R_isnull, [&] (llvm::IRBuilder<>& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL); },
+                        auto resVal = _env->CreateTernaryLogic(builder, R_isnull, [&] (llvm::IRBuilder<>& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT); },
                                                                [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType, tt, R, rightType.withoutOptions()); });
                         _lfb->setLastBlock(builder.GetInsertBlock());
                         return resVal;
@@ -1076,7 +1099,7 @@ namespace tuplex {
                         // compareInst if both are NOT none
                         auto bothValid = builder.CreateAnd(L_isnull, R_isnull);
                         auto xorResult = builder.CreateXor(L_isnull, R_isnull);
-                        if (TokenType::EQEQUAL == tt)
+                        if (tt == TokenType::EQEQUAL || tt == TokenType::IS)
                             xorResult = builder.CreateNot(xorResult);
 
                         auto resVal = _env->CreateTernaryLogic(builder, bothValid, [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType.withoutOptions(), tt, R,

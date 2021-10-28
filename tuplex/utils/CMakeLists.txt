@@ -11,6 +11,7 @@ set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
 ExternalProject_Add(fmt
         GIT_REPOSITORY https://github.com/fmtlib/fmt.git
         GIT_TAG 6.2.0
+        GIT_CONFIG advice.detachedHead=false
         TIMEOUT 5
         CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
         PREFIX "${EXTERNAL_INSTALL_LOCATION}"
@@ -27,6 +28,7 @@ set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
 ExternalProject_Add(spdlog
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
         GIT_TAG v1.3.1
+        GIT_CONFIG advice.detachedHead=false
         TIMEOUT 5
         CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} #-DSPDLOG_BUILD_BENCH=OFF
         PREFIX "${EXTERNAL_INSTALL_LOCATION}"
@@ -48,6 +50,7 @@ if(NOT BUILD_WITH_AWS)
     FetchContent_Declare(cJSON
         GIT_REPOSITORY https://github.com/DaveGamble/cJSON.git
         GIT_TAG        v1.7.14
+        GIT_CONFIG advice.detachedHead=false
     )
     FetchContent_GetProperties(cJSON)
     if(NOT cjson_Populated)
@@ -69,6 +72,7 @@ set_target_properties(libutils PROPERTIES PREFIX "")
 ExternalProject_Add(json
         GIT_REPOSITORY https://github.com/nlohmann/json.git
         GIT_TAG v3.5.0
+        GIT_CONFIG advice.detachedHead=false
         TIMEOUT 5
         CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
         PREFIX "${EXTERNAL_INSTALL_LOCATION}"
@@ -103,5 +107,3 @@ target_include_directories(libutils PUBLIC
 
 # Specify here the libraries this program depends on
 target_link_libraries(libutils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${AWSSDK_LINK_LIBRARIES})
-
-#install(TARGETS libutils DESTINATION lib)

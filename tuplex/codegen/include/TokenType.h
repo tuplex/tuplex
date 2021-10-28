@@ -51,6 +51,7 @@ enum class TokenType {
     IN,
     NOTIN,
     IS,
+    ISNOT,
     LAMBDA,
     NONLOCAL,
     NOT,

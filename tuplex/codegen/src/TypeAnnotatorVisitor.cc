@@ -535,6 +535,32 @@ namespace tuplex {
         else
             // else it is a bool (b.c. it is a compare statement)
             cmp->setInferredType(python::Type::BOOLEAN);
+
+
+        // check if `is` comparison is valid
+        std::unordered_set<python::Type> validTypes = {python::Type::NULLVALUE, python::Type::BOOLEAN};
+        // one of every two types must be in validTypes.
+
+        if(cmp->_comps.size() >= 1) {
+            if(cmp->_ops[0] == TokenType::IS && !validTypes.count(cmp->_left->getInferredType()) && !validTypes.count(cmp->_comps[0]->getInferredType())) {
+                // invalid types for lhs and rhs to do an `is` comparison.
+                addCompileError(CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON);
+                return;
+            }
+        }
+
+        bool lastValid = false;
+        // if more that one operand, check if all types would be valid.
+        for(int i = 0; i < cmp->_comps.size() - 1; i++) {
+            auto currType = cmp->_comps[i]->getInferredType();
+            auto nextType = cmp->_comps[i+1]->getInferredType();
+            
+            // type error only if previous comparison is invalid
+            if(!validTypes.count(currType) && !validTypes.count(nextType) && cmp->_ops[i] == TokenType::IS) {
+                // neither type is valid for an is comparison. 
+                addCompileError(CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON);
+            }
+        }
     }
 
     python::Type TypeAnnotatorVisitor::binaryOpInference(ASTNode* left, const python::Type& a,

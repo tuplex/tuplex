@@ -563,3 +563,9 @@ def ensure_webui(options):
 
     # check that version of WebUI and Tuplex version match
     assert __version__ == 'dev' or version_info['version'] == __version__, 'Version of Tuplex WebUI and Tuplex do not match'
+
+    # all good, print out link so user can access WebUI easily
+    webui_uri = webui_url + ':' + str(webui_port)
+    if not webui_uri.startswith('http'):
+        webui_uri = 'http://' + webui_uri
+    print('Tuplex WebUI can be accessed under {}'.format(webui_uri))

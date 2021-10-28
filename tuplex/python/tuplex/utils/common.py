@@ -38,6 +38,10 @@ except ImportError:
   import getpass
   pwd = None
 
+try:
+    from tuplex.utils.version import __version__
+except:
+    __version__ = 'dev'
 
 def cmd_exists(cmd):
     """
@@ -334,12 +338,6 @@ def test_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history')
         # no connection to MongoDB
         raise Exception('Could not connect to MongoDB, check network connection. (ping must be < 100ms)')
 
-# def ensure_writable            try:
-#                 with open('newfile.txt', 'w') as file
-#                     file.write('hello!')
-#                     file.close()
-#             except IOError as error:
-
 def shutdown_process_via_kill(pid):
     logging.debug('Shutting down process PID={}'.format(pid))
     os.kill(pid, signal.SIGKILL)
@@ -526,3 +524,42 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
 
         # perform checks (same MongoDB URI? Same Version?)
         return version_info
+
+
+def ensure_webui(options):
+    """
+    Helper function to ensure WebUI/MongoDB is auto-started when webui is specified
+    Args:
+        options:
+
+    Returns:
+        None
+    """
+
+    # Relevant options are:
+    #    {"tuplex.webui.enable", "true"},
+    #    {"tuplex.webui.port", "5000"},
+    #    {"tuplex.webui.url", "localhost"},
+    #    {"tuplex.webui.mongodb.url", "localhost"},
+    #    {"tuplex.webui.mongodb.port", "27017"},
+    #    {"tuplex.webui.mongodb.path", temp_mongodb_path}
+
+    assert options['tuplex.webui.enable'] is True, 'only call ensure webui when webui option is true'
+
+    mongodb_url = options['tuplex.webui.mongodb.url']
+    mongodb_port = options['tuplex.webui.mongodb.port']
+    mongodb_datapath = os.path.join(options['tuplex.scratchDir'], 'webui', 'data')
+    mongodb_logpath = os.path.join(options['tuplex.scratchDir'], 'webui', 'logs', 'mongod.log')
+    gunicorn_logpath = os.path.join(options['tuplex.scratchDir'], 'webui', 'logs', 'gunicorn.log')
+    webui_url = options['tuplex.webui.url']
+    webui_port =  options['tuplex.webui.port']
+
+    find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_logpath)
+
+    mongo_uri = mongodb_uri(mongodb_url, mongodb_port)
+
+    # now it's time to do the same thing for the WebUI (and also check it's version v.s. the current one!)
+    version_info = find_or_start_webui(mongo_uri, webui_port, webui_port, gunicorn_logpath)
+
+    # check that version of WebUI and Tuplex version match
+    assert __version__ == 'dev' or version_info['version'] == __version__, 'Version of Tuplex WebUI and Tuplex do not match'

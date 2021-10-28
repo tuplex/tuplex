@@ -17,7 +17,7 @@ import os
 import glob
 import sys
 import cloudpickle
-from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name
+from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui
 import uuid
 import json
 from .metrics import Metrics
@@ -127,7 +127,9 @@ class Context:
         if 'tuplex.runTimeLibrary' in options:
             runtime_path = options['tuplex.runTimeLibrary']
 
-        # @Todo: autostart mongodb & history server if they are not running yet...
+        # autostart mongodb & history server if they are not running yet...
+        if options['tuplex.webui.enable']:
+            ensure_webui(options)
 
         # last arg are the options as json string serialized b.c. of boost python problems
         self._context = _Context(name, runtime_path, json.dumps(options))

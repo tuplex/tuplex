@@ -30,6 +30,7 @@ import logging
 import re
 import tempfile
 import time
+import shlex
 
 try:
   import pwd
@@ -451,7 +452,8 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
 
         ui_env = os.environ
         ui_env['MONGO_URI'] = mongo_uri
-        cmd = ['gunicorn', '--daemon', '--worker-class', 'eventlet', '--chdir', ui_basedir, '--pid', PID_FILE, '--log-file', web_logfile, '-b', '{}:{}'.format(hostname.replace('http://', '').replace('https://',''), port), 'thserver:app']
+        gunicorn_host = '{}:{}'.format(hostname.replace('http://', '').replace('https://',''), port)
+        cmd = ['gunicorn', '--daemon', '--worker-class', 'eventlet', '--chdir', ui_basedir, '--pid', PID_FILE, '--log-file', web_logfile, '-b', gunicorn_host, 'thserver:app']
 
         logging.debug('Starting gunicorn with command: {}'.format(' '.join(cmd)))
 
@@ -466,6 +468,8 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
         if len(p_stderr.strip()) > 0:
             raise Exception('mongod produced following errors: {}'.format(p_stderr))
 
+        logging.info('Gunicorn locally started...')
+
         # find out process id of gunicorn
         ui_pid = None
 
@@ -474,20 +478,48 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
         start_time = time.time()
         while time.time() - start_time < TIME_LIMIT:
             if not os.path.isfile(PID_FILE) or os.stat(PID_FILE).st_size == 0:
-                time.sleep(50) # sleep for 50ms
+                time.sleep(0.05) # sleep for 50ms
             else:
                 break
+            logging.debug('Polling for Gunicorn PID... -- {:.2f}s of poll time left'.format(TIME_LIMIT - (time.time() - start_time)))
 
         # Read PID file
         with open(PID_FILE, 'r') as fp:
             ui_pid = int(fp.read())
-
         assert ui_pid is not None, 'Invalid PID for WebUI'
+        logging.info('Gunicorn PID={}'.format(ui_pid))
 
         # register daemon shutdown
         logging.debug('Adding auto-shutdown of process with PID={} (WebUI)'.format(ui_pid))
-        atexit.register(shutdown_process_via_kill, ui_pid)
+        def shutdown_gunicorn(pid):
 
+            pids_to_kill = []
+
+            # iterate over all gunicorn processes and kill them all
+            for proc in psutil.process_iter():
+                try:
+                    # Get process name & pid from process object.
+                    process_name = proc.name()
+                    process_id = proc.pid
+
+                    sep_line = '|'.join(proc.cmdline()).lower()
+                    if 'gunicorn' in sep_line:
+
+                        # check whether that gunicorn instance matches what has been started
+                        if 'thserver:app' in proc.cmdline() and gunicorn_host in proc.cmdline() and PID_FILE in proc.cmdline():
+                            pids_to_kill.append(proc.pid)
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+
+            # kill all gunicorn processes
+            for pid in pids_to_kill:
+                os.kill(pid, signal.SIGQUIT)
+                os.kill(pid, signal.SIGKILL)
+                os.kill(pid, signal.SIGTERM)
+                logging.debug('Shutdown gunicorn worker with PID={}'.format(pid))
+            logging.debug('Shutdown gunicorn with PID={}'.format(pid))
+
+        atexit.register(shutdown_gunicorn, ui_pid)
         version_info = get_json(base_uri + version_endpoint)
         if version_info is None:
             raise Exception('Could not retrieve version info from WebUI')

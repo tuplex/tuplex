@@ -399,14 +399,6 @@ namespace tuplex {
         // eval
         for(int i = 0; i < node->_ops.size(); ++i) {
             auto op = node->_ops[i];
-            auto it = cmpLookup.find(op);
-            if(it == cmpLookup.end())
-                   throw std::runtime_error("Operator " + opToString(op) + " not yet supported in TraceVisitor/NCompare");
-            int opid = it->second;
-
-            // debug:
-            auto info = python::PyString_AsString(res.value) + " " + opToString(op) + " " +
-                    python::PyString_AsString(ti_vals[i+1].value);
 
             // based on op, decide value of result.
             if(op == TokenType::IS || op == TokenType::ISNOT) {
@@ -419,8 +411,17 @@ namespace tuplex {
                 finalResult = (op == TokenType::IS) ? finalResult : !finalResult;
                 res.value = finalResult ? Py_True : Py_False;
             } else {
+                auto it = cmpLookup.find(op);
+                if(it == cmpLookup.end())
+                        throw std::runtime_error("Operator " + opToString(op) + " not yet supported in TraceVisitor/NCompare");
+                int opid = it->second;
+
                 res.value = PyObject_RichCompare(res.value, ti_vals[i + 1].value, opid);
             }
+
+            // debug:
+            auto info = python::PyString_AsString(res.value) + " " + opToString(op) + " " +
+                    python::PyString_AsString(ti_vals[i+1].value);
 
             auto res_info = "is: " + python::PyString_AsString(res.value);
             // NULL? ==> failure!

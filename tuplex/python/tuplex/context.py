@@ -17,7 +17,7 @@ import os
 import glob
 import sys
 import cloudpickle
-from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui, parse_to_obj
+from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui
 import uuid
 import json
 from .metrics import Metrics
@@ -139,7 +139,7 @@ class Context:
         # update only non-existing options!
         for k, v in webui_options.items():
             if k not in options.keys():
-                options[k] = parse_to_obj(v)
+                options[k] = v
 
         if options['tuplex.webui.enable']:
             ensure_webui(options)

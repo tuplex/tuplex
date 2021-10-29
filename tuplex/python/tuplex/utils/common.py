@@ -565,31 +565,21 @@ def ensure_webui(options):
     webui_url = options['tuplex.webui.url']
     webui_port =  options['tuplex.webui.port']
 
-    find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_logpath)
-
-    mongo_uri = mongodb_uri(mongodb_url, mongodb_port)
-
-    # now it's time to do the same thing for the WebUI (and also check it's version v.s. the current one!)
-    version_info = find_or_start_webui(mongo_uri, webui_url, webui_port, gunicorn_logpath)
-
-    # check that version of WebUI and Tuplex version match
-    assert __version__ == 'dev' or version_info['version'] == __version__, 'Version of Tuplex WebUI and Tuplex do not match'
-
-    # all good, print out link so user can access WebUI easily
-    webui_uri = webui_url + ':' + str(webui_port)
-    if not webui_uri.startswith('http'):
-        webui_uri = 'http://' + webui_uri
-    print('Tuplex WebUI can be accessed under {}'.format(webui_uri))
-
-def parse_to_obj(s):
-    if s.lower() == 'true' or s.lower() == 'false':
-        return bool(s)
     try:
-        return int(s)
-    except:
-        pass
-    try:
-        return float(s)
-    except:
-        pass
-    return s
+        find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_logpath)
+
+        mongo_uri = mongodb_uri(mongodb_url, mongodb_port)
+
+        # now it's time to do the same thing for the WebUI (and also check it's version v.s. the current one!)
+        version_info = find_or_start_webui(mongo_uri, webui_url, webui_port, gunicorn_logpath)
+
+        # check that version of WebUI and Tuplex version match
+        assert __version__ == 'dev' or version_info['version'] == __version__, 'Version of Tuplex WebUI and Tuplex do not match'
+
+        # all good, print out link so user can access WebUI easily
+        webui_uri = webui_url + ':' + str(webui_port)
+        if not webui_uri.startswith('http'):
+            webui_uri = 'http://' + webui_uri
+        print('Tuplex WebUI can be accessed under {}'.format(webui_uri))
+    except Exception as e:
+        logging.error('Failed to start or connect to Tuplex WebUI. Details: {}'.format(e))

@@ -61,7 +61,7 @@ namespace tuplex {
 
         virtual ~PhysicalStage();
 
-        std::vector<LogicalOperator*> operators() const {return _operators;}
+        std::vector<LogicalOperator*> operators() const { return _operators; }
 
         void setOperators(std::vector<LogicalOperator*> operators) {_operators  = operators;}
 

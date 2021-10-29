@@ -27,6 +27,9 @@
 #include <Environment.h>
 
 #include <PythonHelpers.h>
+#include <Utils.h>
+#include <StringUtils.h>
+#include <nlohmann/json.hpp>
 
 namespace tuplex {
 
@@ -709,15 +712,19 @@ namespace tuplex {
     }
 
     std::string ContextOptions::asJSON() const {
-        auto json = cJSON_CreateObject();
-        for(auto keyval : _store) {
-            cJSON_AddStringToObject(json, keyval.first.c_str(), keyval.second.c_str());
+        nlohmann::json json;
+
+        for(const auto& keyval : _store) {
+            // convert to correct type (match basically)
+            if(isBoolString(keyval.second))
+                json[keyval.first] = parseBoolString(keyval.second);
+            else if(isIntegerString(keyval.second.c_str()))
+                json[keyval.first] = std::stoi(keyval.second);
+            else if(isFloatString(keyval.second.c_str()))
+                json[keyval.first] = std::stod(keyval.second);
+            else
+                json[keyval.first] = keyval.second;
         }
-        char* str = cJSON_Print(json);
-        assert(str);
-        std::string res((const char*)str);
-        free(str);
-        cJSON_free(json);
-        return res;
+        return json.dump();
     }
 }

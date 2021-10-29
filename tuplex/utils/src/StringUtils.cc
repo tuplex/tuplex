@@ -374,6 +374,10 @@ namespace tuplex {
         if(eSeen && (*(p - 1) == 'e' || *(p - 1) == 'E'))
             return false;
 
+        // special ase: only a dot is not a floating point number
+        if(dotSeen && s[0] == '.' && s[1] == '\0')
+            return false;
+
         return true;
     }
 

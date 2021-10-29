@@ -21,6 +21,12 @@
 namespace tuplex {
 
     /*!
+     * return the current default Context Options as JSON object
+     * @return string (JSON)
+     */
+    extern std::string getDefaultOptionsAsJSON();
+
+    /*!
     * context abstraction of C++ class which provides python bindings
     */
     class PythonContext {

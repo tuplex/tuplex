@@ -81,4 +81,8 @@ PYMODULE {
             .def("getTotalCompilationTime", &tuplex::PythonMetrics::getTotalCompilationTime)
             .def("getTotalExceptionCount", &tuplex::PythonMetrics::getTotalExceptionCount)
             .def("getJSONString", &tuplex::PythonMetrics::getJSONString);
+
+
+    // global method to access default options as json
+    def("getDefaultOptionsAsJSON", &tuplex::getDefaultOptionsAsJSON);
 }

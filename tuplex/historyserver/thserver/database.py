@@ -69,7 +69,7 @@ class Job:
         :return:
         """
 
-        assert(isinstance(conf, dict), 'conf should be a dictionary')
+        assert isinstance(conf, dict), 'conf should be a dictionary'
 
         # mongodb doesn't like . in keys. hence, update all the config keys
         escaped_conf = {}

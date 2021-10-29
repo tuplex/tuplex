@@ -27,6 +27,9 @@
 #include <Environment.h>
 
 #include <PythonHelpers.h>
+#include <Utils.h>
+#include <StringUtils.h>
+#include <nlohmann/json.hpp>
 
 namespace tuplex {
 
@@ -706,5 +709,22 @@ namespace tuplex {
             Logger::instance().defaultLogger().error("found unknown backend '" + b + "', defaulting to local execution.");
             return Backend::LOCAL;
         }
+    }
+
+    std::string ContextOptions::asJSON() const {
+        nlohmann::json json;
+
+        for(const auto& keyval : _store) {
+            // convert to correct type (match basically)
+            if(isBoolString(keyval.second))
+                json[keyval.first] = parseBoolString(keyval.second);
+            else if(isIntegerString(keyval.second.c_str()))
+                json[keyval.first] = std::stoi(keyval.second);
+            else if(isFloatString(keyval.second.c_str()))
+                json[keyval.first] = std::stod(keyval.second);
+            else
+                json[keyval.first] = keyval.second;
+        }
+        return json.dump();
     }
 }

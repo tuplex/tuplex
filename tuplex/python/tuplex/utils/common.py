@@ -254,6 +254,50 @@ def save_conf_yaml(conf, file_path):
         f.write(out)
 
 
+def pythonize_options(options):
+    """
+    convert string based options into python objects/types
+    Args:
+        options: flat dict
+
+    Returns:
+        dict with python types
+    """
+
+    def parse_string(item):
+        """
+        check what kind of variable string represents and convert accordingly
+        Args:
+            item: string
+
+        Returns:
+            parsed obj in correct type
+        """
+
+        # assert flat
+        assert not isinstance(item, dict)
+
+        # hack: is that correct?
+        if isinstance(item, (list, tuple)):
+            return item
+
+        if not isinstance(item, str):
+            return item
+
+        if item.lower() == 'true' or item.lower() == 'false':
+            return bool(item)
+        try:
+            return int(item)
+        except:
+            pass
+        try:
+            return float(item)
+        except:
+            pass
+        return item
+
+    return {k : parse_string(v) for k, v in options.items()}
+
 def load_conf_yaml(file_path):
     """loads yaml file and converts contents to nested dictionary
 
@@ -261,6 +305,7 @@ def load_conf_yaml(file_path):
         file_path: where to save the file
 
     """
+
     # helper function to get correct nesting from yaml file!
     def to_nested_dict(obj):
         resultDict = dict()

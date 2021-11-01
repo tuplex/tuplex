@@ -22,7 +22,7 @@ jobs:
         displayName: 'Install required packages'
       - script: sudo apt-get install python3-setuptools && sudo apt-get remove python-pexpect python3-pexpect && sudo python3.7 -m pip install --upgrade pip && sudo python3.7 -m pip uninstall -y pygments && sudo python3.7 -m pip install pygments>=2.4.1 pexpect setuptools astor PyYAML jupyter nbformat && jupyter --version
         displayName: 'Install python dependencies'
-      - script: cd tuplex && mkdir build && cd build && cmake -DLLVM_ROOT_DIR=/usr/lib/llvm-9 -DCMAKE_BUILD_TYPE=Release -DBUILD_FOR_CI=ON .. && make -j$(nproc)
+      - script: cd tuplex && mkdir build && cd build && cmake -DBUILD_WITH_ORC=ON -DLLVM_ROOT_DIR=/usr/lib/llvm-9 -DCMAKE_BUILD_TYPE=Release -DBUILD_FOR_CI=ON .. && make -j$(nproc)
         displayName: 'Build Tuplex'
       - script: cd tuplex && cd build && ctest --timeout 180 --output-on-failure
         displayName: 'C++ tests'

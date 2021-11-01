@@ -23,14 +23,22 @@ namespace tuplex { namespace orc {
 class VirtualOutputStream : public ::orc::OutputStream {
 public:
     VirtualOutputStream(const tuplex::URI& uri):
-            _file(tuplex::VirtualFileSystem::open_file(uri, tuplex::VirtualFileMode::VFS_WRITE)), _fileName(uri.toString()) {}
+        _fileName(uri.toString()) {
+        auto file = VirtualFileSystem::open_file(uri, VirtualFileMode::VFS_WRITE);
+        if (!file) {
+            throw std::runtime_error("Could not open " + uri.toPath() + " in write mode");
+        }
+        _file = std::move(file);
+    }
 
     ~VirtualOutputStream() override {
-        _file.reset();
+        if (_file->is_open()) {
+            _file->close();
+        }
     }
 
     uint64_t getLength() const override {
-        return _file.get()->size();
+        return _file->size();
     }
 
     uint64_t getNaturalWriteSize() const override {
@@ -47,7 +55,7 @@ public:
     }
 
     void close() override {
-        _file.get()->close();
+        _file->close();
     }
 
 private:

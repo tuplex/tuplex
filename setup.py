@@ -10,6 +10,7 @@ import shutil
 import distutils
 import distutils.dir_util
 import platform
+import shlex
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
@@ -244,6 +245,27 @@ class CMakeBuild(build_ext):
         # hack: only run for first invocation!
         if ext_filename == 'tuplex_runtime':
             return
+
+        # check environment variable CMAKE_ARGS and overwrite whichever args are passed there
+        if len(os.environ.get('CMAKE_ARGS', '')) > 0:
+            extra_args = shlex.split(os.environ['CMAKE_ARGS'])
+
+            print(cmake_args)
+            for arg in extra_args:
+                # cmake option in the style of -D/-G=?
+                m = re.search("-[DG][a-zA-z_]+=", arg)
+                if m:
+                    # search for substring in existing args, if found replace!
+                    idxs = list(filter(lambda t: t[0].lower().strip().startswith(m[0].lower()), zip(cmake_args, range(len(cmake_args)))))
+                    if len(idxs) > 0:
+                        idx = idxs[0][1]
+                        cmake_args[idx] = arg
+                    else:
+                        # append!
+                        cmake_args.append(arg)
+                else:
+                    # append
+                    cmake_args.append(arg)
 
         print('configuring cmake with: {}'.format(' '.join(["cmake", ext.sourcedir] + cmake_args)))
         subprocess.check_call(

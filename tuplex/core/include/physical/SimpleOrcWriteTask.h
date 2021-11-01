@@ -60,10 +60,10 @@ public:
             abort("error creating Orc schema.");
         }
 
-        auto outStream = new orc::VirtualOutputStream(_uri);
+        orc::VirtualOutputStream outStream(_uri);
 
         WriterOptions options;
-        ORC_UNIQUE_PTR<Writer> writer = createWriter(*schema, outStream, options);
+        ORC_UNIQUE_PTR<Writer> writer = createWriter(*schema, &outStream, options);
         if (!writer) {
             abort("error creating Orc writer.");
         }

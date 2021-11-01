@@ -367,12 +367,8 @@ namespace tuplex {
 
         // generate code for stage and init vars
         auto stage = builder.build(this, backend());
-        // converting deque of ops to vector of ops
-        std::vector<LogicalOperator*> operators;
-        for (auto op : ops) {
-            operators.push_back(op);
-        }
-        stage->setOperators(operators);
+        // converting deque of ops to vector of ops and set to stage. Note these are the optimized operators. (correct?)
+        stage->setOperators(std::vector<LogicalOperator*>(ops.begin(), ops.end()));
         stage->setDataAggregationMode(hashGroupedDataType);
         // fill in physical plan data
         // b.c. the stages were constructed top-down, need to reverse the stages

@@ -29,7 +29,8 @@ test_dependencies = [
 
 # Also requires to install MongoDB
 webui_dependencies = [
-    'gunicorn'
+    'gunicorn',
+    'eventlet==0.30.0' # newer versions of eventlet have a bug under MacOS
 ]
 
 install_dependencies = [
@@ -47,7 +48,7 @@ install_dependencies = [
     'PyYAML>=3.13',
     'psutil',
     'pymongo'
-]
+] + webui_dependencies
 
 def ninja_installed():
     # check whether ninja is on the path

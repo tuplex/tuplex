@@ -386,6 +386,14 @@ atexit.register(auto_shutdown_all)
 
 
 def is_process_running(name):
+    """
+    helper function to check if a process is running on the local machine
+    Args:
+        name: name of the process to search for
+
+    Returns:
+        True if a process with name was found
+    """
     # Iterate over the all the running process
     for proc in psutil.process_iter():
         try:
@@ -397,9 +405,30 @@ def is_process_running(name):
     return False
 
 def mongodb_uri(mongodb_url, mongodb_port, db_name='tuplex-history'):
+    """
+    constructs a fully qualified MongoDB URI
+    Args:
+        mongodb_url: hostname
+        mongodb_port: port
+        db_name: database name
+
+    Returns:
+        string representing MongoDB URI
+    """
     return 'mongodb://{}:{}/{}'.format(mongodb_url, mongodb_port, db_name)
 
 def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history', timeout=10):
+    """
+    connects to a MongoDB database instance, raises exception if connection fails
+    Args:
+        mongodb_url: hostname
+        mongodb_port: port
+        db_name: database name
+        timeout: timeout parameter after which to error
+
+    Returns:
+        None, throws exception in case of connection failure
+    """
     uri = mongodb_uri(mongodb_url, mongodb_port, db_name)
 
     # check whether one can connect to MongoDB
@@ -426,18 +455,40 @@ def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history'
         raise Exception('Could not connect to MongoDB, check network connection. (ping must be < 100ms)')
 
 def shutdown_process_via_kill(pid):
+    """
+    issues a KILL signals to a process with pid
+    Args:
+        pid: process id to kill
+
+    Returns:
+        None
+    """
     logging.debug('Shutting down process PID={}'.format(pid))
     os.kill(pid, signal.SIGKILL)
 
 def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_logpath, db_name='tuplex-history'):
-    # first check whether mongod is on path
-    if not cmd_exists('mongod'):
-        raise Exception('MongoDB (mongod) not found on PATH. In order to use Tuplex\'s WebUI, you need MongoDB'
-                        ' installed or point the framework to a running MongoDB instance')
+    """
+    attempts to connect to a MongoDB database. If no running local MongoDB is found, will auto-start a mongodb database. R
+    aises exception when fails.
+    Args:
+        mongodb_url: hostname
+        mongodb_port: port
+        mongodb_datapath: for local auto-start path where to store data
+        mongodb_logpath: for local auto-start path where to store the MongoDB log
+        db_name: database name
+
+    Returns:
+        None, raises exceptions on failure
+    """
 
     # is it localhost?
     if 'localhost' in mongodb_url:
         logging.debug('Using local MongoDB instance')
+
+        # first check whether mongod is on path
+        if not cmd_exists('mongod'):
+            raise Exception('MongoDB (mongod) not found on PATH. In order to use Tuplex\'s WebUI, you need MongoDB'
+                            ' installed or point the framework to a running MongoDB instance')
 
         # is mongod running on local machine?
         if is_process_running('mongod'):
@@ -487,6 +538,17 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
         check_mongodb_connection(mongodb_url, mongodb_port, db_name)
 
 def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
+    """
+    tries to connect to Tuplex WebUI. If local uri is specified, autostarts WebUI.
+    Args:
+        mongo_uri: MongoDB database uri on which WebUI should be running
+        hostname: hostname of WebUI
+        port: port of WebUI
+        web_logfile: for local auto-start path where to store the WebUI log
+
+    Returns:
+        None, raises exceptions on failure
+    """
     version_endpoint = '/api/version' # use this to connect and trigger WebUI connection
 
     if not hostname.startswith('http://') and not hostname.startswith('https://'):
@@ -619,7 +681,7 @@ def ensure_webui(options):
     """
     Helper function to ensure WebUI/MongoDB is auto-started when webui is specified
     Args:
-        options:
+        options: Context options object used to connect to WebUI/MongoDB
 
     Returns:
         None

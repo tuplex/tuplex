@@ -105,9 +105,6 @@ namespace tuplex {
     void LocalBackend::execute(tuplex::PhysicalStage *stage) {
         assert(stage);
 
-        // reset history server
-//        _historyServer.reset();
-
         if(!stage)
             return;
 

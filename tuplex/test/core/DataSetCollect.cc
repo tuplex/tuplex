@@ -636,20 +636,3 @@ TEST_F(DataSetTest, LenEmptyListDictTuple) {
     EXPECT_EQ(res[0].getInt(0), 0);
     EXPECT_EQ(res[1].getInt(0), 0);
 }
-
-
-TEST_F(DataSetTest, WebUI) {
-    using namespace std;
-    using namespace tuplex;
-
-    auto options = microTestOptions();
-    options.set("tuplex.webui.enable", "true");
-    Context c(options);
-
-    auto& ds = c.parallelize({Row(0.0), Row(-9.0), Row(-8.0), Row(-6.0), Row(3.0), Row(5.0), Row(8.0)});
-
-    // float data, but integer exponent.
-    auto res = ds.map(UDF("lambda x: x ** 0"))
-//            .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: 42"))
-            .collectAsVector();
-}

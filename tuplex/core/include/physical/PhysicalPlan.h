@@ -65,16 +65,14 @@ namespace tuplex {
             std::vector<std::string> outColumns;
         };
 
-        File2FilePipeline planFile2FilePipeline(const std::vector<LogicalOperator*>& nodes, bool allowUndefinedBehavior);
-        void executeFile2FilePipelineViaLambda(const File2FilePipeline& pip);
-        void executeWithParts(const tuplex::PhysicalPlan::File2FilePipeline &pip);
         double aggregateSamplingTime() const;
     public:
         /*!
          * gets the number of stages in a physical plan
          * @returns number of stages in the physical plan
          */
-        size_t getNumStages() const {return _num_stages;}
+        size_t getNumStages() const { return _num_stages; }
+
         PhysicalPlan(LogicalPlan* optimizedPlan, LogicalPlan* originalPlan, const Context& context);
 
         ~PhysicalPlan();

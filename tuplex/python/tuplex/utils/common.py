@@ -399,7 +399,7 @@ def is_process_running(name):
 def mongodb_uri(mongodb_url, mongodb_port, db_name='tuplex-history'):
     return 'mongodb://{}:{}/{}'.format(mongodb_url, mongodb_port, db_name)
 
-def test_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history', timeout=10):
+def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history', timeout=10):
     uri = mongodb_uri(mongodb_url, mongodb_port, db_name)
 
     # check whether one can connect to MongoDB
@@ -442,7 +442,7 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
         # is mongod running on local machine?
         if is_process_running('mongod'):
             # process is running, try to connect
-            test_mongodb_connection(mongodb_url, mongodb_port, db_name)
+            check_mongodb_connection(mongodb_url, mongodb_port, db_name)
         else:
             # startup process and add to list of processes. Check for any errors!
 
@@ -479,12 +479,12 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
                 logging.error('Failed to start MongoDB daemon. Details: {}'.format(str(e)))
                 raise e
 
-        test_mongodb_connection(mongodb_url, mongodb_port, db_name)
+        check_mongodb_connection(mongodb_url, mongodb_port, db_name)
     else:
         # remote MongoDB
         logging.debug('Connecting to remote MongoDB instance')
 
-        test_mongodb_connection(mongodb_url, mongodb_port, db_name)
+        check_mongodb_connection(mongodb_url, mongodb_port, db_name)
 
 def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
     version_endpoint = '/api/version' # use this to connect and trigger WebUI connection

@@ -144,8 +144,6 @@ class Context:
         if options['tuplex.webui.enable']:
             ensure_webui(options)
 
-
-
         # last arg are the options as json string serialized b.c. of boost python problems
         self._context = _Context(name, runtime_path, json.dumps(options))
         pyth_metrics = self._context.getMetrics()
@@ -349,3 +347,21 @@ class Context:
         # TODO: change to list of files actually having been removed.
         assert self._context
         return self._context.rm(pattern)
+
+    @property
+    def uiWebURL(self):
+        """
+        retrieve URL of webUI if running
+        Returns:
+            None if webUI was disabled, else URL as string
+        """
+        options = self.options()
+        if not options['tuplex.webui.enable']:
+            return None
+
+        hostname = options['tuplex.webui.url']
+        port = options['tuplex.webui.port']
+        url = '{}:{}'.format(hostname, port)
+        if not url.startswith('http://') or url.startswith('https://'):
+            url = 'http://' + url
+        return url

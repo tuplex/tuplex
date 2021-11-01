@@ -308,6 +308,38 @@ def stringify_dict(d):
 # https://docs.mongodb.com/manual/tutorial/manage-mongodb-processes/
 
 
+# this is a global var which is a list to hold registered exit handlers
+# tuple of (key, func).
+__exit_handlers__ = []
+
+# register at exit function to take care of exit handlers
+def auto_shutdown_all():
+    """
+    helper function to automatially shutdown whatever is in the global exit handler array. Resets global variable.
+    Returns:
+        None
+    """
+    global __exit_handlers__
+
+    for entry in __exit_handlers__:
+        try:
+            name, func, args, msg = entry
+            logging.debug('Attempting to shutdown {}...'.format(name))
+            if msg:
+                logging.info(msg)
+            func(args)
+            logging.info('Shutdown {} successfully'.format(name))
+        except Exception as e:
+            logging.error('Failed to shutdown {}'.format(name))
+    __exit_handlers__ = []
+
+def register_auto_shutdown(name, func, args, msg=None):
+    global __exit_handlers__
+    __exit_handlers__.append((name, func, args, msg))
+
+atexit.register(auto_shutdown_all)
+
+
 def is_process_running(name):
     # Iterate over the all the running process
     for proc in psutil.process_iter():
@@ -396,7 +428,8 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
                 logging.debug('MongoDB Daemon PID={}'.format(mongo_pid))
 
                 # add a new shutdown func for mongod
-                atexit.register(shutdown_process_via_kill, mongo_pid)
+                register_auto_shutdown('mongod', shutdown_process_via_kill, mongo_pid)
+
             except Exception as e:
                 logging.error('Failed to start MongoDB daemon. Details: {}'.format(str(e)))
                 raise e
@@ -446,7 +479,6 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
             # dev install?
             logging.debug('Dev version of tuplex')
             tuplex_basedir = tuplex_basedir.parent.parent
-
 
         # check dir historyserver/thserver exists!
         assert os.path.isdir(os.path.join(tuplex_basedir, 'historyserver', 'thserver')), 'could not find Tuplex WebUI WebApp'
@@ -528,7 +560,8 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
                 logging.debug('Shutdown gunicorn worker with PID={}'.format(pid))
             logging.debug('Shutdown gunicorn with PID={}'.format(pid))
 
-        atexit.register(shutdown_gunicorn, ui_pid)
+        register_auto_shutdown('gunicorn', shutdown_gunicorn, ui_pid)
+
         version_info = get_json(base_uri + version_endpoint)
         if version_info is None:
             raise Exception('Could not retrieve version info from WebUI')

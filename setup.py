@@ -45,7 +45,8 @@ install_dependencies = [
     'jedi',
     'cloudpickle>=0.6.1',
     'PyYAML>=3.13',
-    'psutil'
+    'psutil',
+    'pymongo'
 ]
 
 def ninja_installed():

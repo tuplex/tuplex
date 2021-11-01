@@ -51,7 +51,8 @@ setup(
         'jedi>=0.13.2',
         'cloudpickle>=0.6.1',
         'PyYAML>=3.13',
-        'psutil'
+        'psutil',
+        'pymongo'
     ],
     url="https://tuplex.cs.brown.edu"
     #,

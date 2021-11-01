@@ -716,7 +716,9 @@ namespace tuplex {
 
         for(const auto& keyval : _store) {
             // convert to correct type (match basically)
-            if(isBoolString(keyval.second))
+            if(keyval.second.empty())
+                json[keyval.first] = keyval.second;
+            else if(isBoolString(keyval.second))
                 json[keyval.first] = parseBoolString(keyval.second);
             else if(isIntegerString(keyval.second.c_str()))
                 json[keyval.first] = std::stoi(keyval.second);

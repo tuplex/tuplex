@@ -14,7 +14,7 @@ import sys
 from thserver.common import mongodb_available
 from thserver import app, socketio
 
-def run_history_server(default_host="127.0.0.1", default_port="5001", default_mongo_uri="mongodb://localhost:27017"):
+def run_history_server(default_host="127.0.0.1", default_port="5000", default_mongo_uri="mongodb://localhost:27017"):
     """
     Runs history server in debug mode
     Args:

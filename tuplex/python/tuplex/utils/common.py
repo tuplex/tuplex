@@ -254,6 +254,50 @@ def save_conf_yaml(conf, file_path):
         f.write(out)
 
 
+def pythonize_options(options):
+    """
+    convert string based options into python objects/types
+    Args:
+        options: flat dict
+
+    Returns:
+        dict with python types
+    """
+
+    def parse_string(item):
+        """
+        check what kind of variable string represents and convert accordingly
+        Args:
+            item: string
+
+        Returns:
+            parsed obj in correct type
+        """
+
+        # assert flat
+        assert not isinstance(item, dict)
+
+        # hack: is that correct?
+        if isinstance(item, (list, tuple)):
+            return item
+
+        if not isinstance(item, str):
+            return item
+
+        if item.lower() == 'true' or item.lower() == 'false':
+            return bool(item)
+        try:
+            return int(item)
+        except:
+            pass
+        try:
+            return float(item)
+        except:
+            pass
+        return item
+
+    return {k : parse_string(v) for k, v in options.items()}
+
 def load_conf_yaml(file_path):
     """loads yaml file and converts contents to nested dictionary
 
@@ -261,6 +305,7 @@ def load_conf_yaml(file_path):
         file_path: where to save the file
 
     """
+
     # helper function to get correct nesting from yaml file!
     def to_nested_dict(obj):
         resultDict = dict()
@@ -306,6 +351,38 @@ def stringify_dict(d):
 
 # shutdown mongod process via KILL
 # https://docs.mongodb.com/manual/tutorial/manage-mongodb-processes/
+
+
+# this is a global var which is a list to hold registered exit handlers
+# tuple of (key, func).
+__exit_handlers__ = []
+
+# register at exit function to take care of exit handlers
+def auto_shutdown_all():
+    """
+    helper function to automatially shutdown whatever is in the global exit handler array. Resets global variable.
+    Returns:
+        None
+    """
+    global __exit_handlers__
+
+    for entry in __exit_handlers__:
+        try:
+            name, func, args, msg = entry
+            logging.debug('Attempting to shutdown {}...'.format(name))
+            if msg:
+                logging.info(msg)
+            func(args)
+            logging.info('Shutdown {} successfully'.format(name))
+        except Exception as e:
+            logging.error('Failed to shutdown {}'.format(name))
+    __exit_handlers__ = []
+
+def register_auto_shutdown(name, func, args, msg=None):
+    global __exit_handlers__
+    __exit_handlers__.append((name, func, args, msg))
+
+atexit.register(auto_shutdown_all)
 
 
 def is_process_running(name):
@@ -396,7 +473,8 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
                 logging.debug('MongoDB Daemon PID={}'.format(mongo_pid))
 
                 # add a new shutdown func for mongod
-                atexit.register(shutdown_process_via_kill, mongo_pid)
+                register_auto_shutdown('mongod', shutdown_process_via_kill, mongo_pid)
+
             except Exception as e:
                 logging.error('Failed to start MongoDB daemon. Details: {}'.format(str(e)))
                 raise e
@@ -446,7 +524,6 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
             # dev install?
             logging.debug('Dev version of tuplex')
             tuplex_basedir = tuplex_basedir.parent.parent
-
 
         # check dir historyserver/thserver exists!
         assert os.path.isdir(os.path.join(tuplex_basedir, 'historyserver', 'thserver')), 'could not find Tuplex WebUI WebApp'
@@ -528,7 +605,8 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
                 logging.debug('Shutdown gunicorn worker with PID={}'.format(pid))
             logging.debug('Shutdown gunicorn with PID={}'.format(pid))
 
-        atexit.register(shutdown_gunicorn, ui_pid)
+        register_auto_shutdown('gunicorn', shutdown_gunicorn, ui_pid)
+
         version_info = get_json(base_uri + version_endpoint)
         if version_info is None:
             raise Exception('Could not retrieve version info from WebUI')
@@ -565,31 +643,21 @@ def ensure_webui(options):
     webui_url = options['tuplex.webui.url']
     webui_port =  options['tuplex.webui.port']
 
-    find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_logpath)
-
-    mongo_uri = mongodb_uri(mongodb_url, mongodb_port)
-
-    # now it's time to do the same thing for the WebUI (and also check it's version v.s. the current one!)
-    version_info = find_or_start_webui(mongo_uri, webui_url, webui_port, gunicorn_logpath)
-
-    # check that version of WebUI and Tuplex version match
-    assert __version__ == 'dev' or version_info['version'] == __version__, 'Version of Tuplex WebUI and Tuplex do not match'
-
-    # all good, print out link so user can access WebUI easily
-    webui_uri = webui_url + ':' + str(webui_port)
-    if not webui_uri.startswith('http'):
-        webui_uri = 'http://' + webui_uri
-    print('Tuplex WebUI can be accessed under {}'.format(webui_uri))
-
-def parse_to_obj(s):
-    if s.lower() == 'true' or s.lower() == 'false':
-        return bool(s)
     try:
-        return int(s)
-    except:
-        pass
-    try:
-        return float(s)
-    except:
-        pass
-    return s
+        find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_logpath)
+
+        mongo_uri = mongodb_uri(mongodb_url, mongodb_port)
+
+        # now it's time to do the same thing for the WebUI (and also check it's version v.s. the current one!)
+        version_info = find_or_start_webui(mongo_uri, webui_url, webui_port, gunicorn_logpath)
+
+        # check that version of WebUI and Tuplex version match
+        assert __version__ == 'dev' or version_info['version'] == __version__, 'Version of Tuplex WebUI and Tuplex do not match'
+
+        # all good, print out link so user can access WebUI easily
+        webui_uri = webui_url + ':' + str(webui_port)
+        if not webui_uri.startswith('http'):
+            webui_uri = 'http://' + webui_uri
+        print('Tuplex WebUI can be accessed under {}'.format(webui_uri))
+    except Exception as e:
+        logging.error('Failed to start or connect to Tuplex WebUI. Details: {}'.format(e))

@@ -263,7 +263,6 @@ namespace tuplex {
 
         // add operators
         for(auto op : ops) {
-            ops.push_back(op);
             switch(op->type()) {
                 case LogicalOperatorType::FILEINPUT:
                 case LogicalOperatorType::PARALLELIZE: {

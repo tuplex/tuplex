@@ -17,7 +17,7 @@ import os
 import glob
 import sys
 import cloudpickle
-from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui, parse_to_obj
+from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui, pythonize_options
 import uuid
 import json
 from .metrics import Metrics
@@ -139,12 +139,13 @@ class Context:
         # update only non-existing options!
         for k, v in webui_options.items():
             if k not in options.keys():
-                options[k] = parse_to_obj(v)
+                options[k] = v
+
+        # pythonize
+        options = pythonize_options(options)
 
         if options['tuplex.webui.enable']:
             ensure_webui(options)
-
-
 
         # last arg are the options as json string serialized b.c. of boost python problems
         self._context = _Context(name, runtime_path, json.dumps(options))
@@ -349,3 +350,21 @@ class Context:
         # TODO: change to list of files actually having been removed.
         assert self._context
         return self._context.rm(pattern)
+
+    @property
+    def uiWebURL(self):
+        """
+        retrieve URL of webUI if running
+        Returns:
+            None if webUI was disabled, else URL as string
+        """
+        options = self.options()
+        if not options['tuplex.webui.enable']:
+            return None
+
+        hostname = options['tuplex.webui.url']
+        port = options['tuplex.webui.port']
+        url = '{}:{}'.format(hostname, port)
+        if not url.startswith('http://') or url.startswith('https://'):
+            url = 'http://' + url
+        return url

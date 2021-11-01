@@ -1,6 +1,6 @@
 import argparse
 import time
-import generate_data
+import pickle
 
 
 def simple_func(simple_list):
@@ -24,10 +24,16 @@ def run_simple_func(list_of_lists):
     print(duration)
     return result
 
+def readlist(filename):
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
+
 def main():
-    randlist = generate_data.randlist(10, ['int', 'string', 'float'], True)
+    parser = argparse.ArgumentParser(description='Run baseline implementation of count unique.')
+    parser.add_argument('--filename', type=str)
+    args = parser.parse_args()
+
+    randlist = readlist(args.filename)
     print(simple_func(randlist))
-    # read file and then call run run_simple_func
-    # pass
 
 main()

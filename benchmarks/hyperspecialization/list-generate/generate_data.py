@@ -4,6 +4,7 @@ import pickle
 import random
 import pdb
 import string
+import os
 
 def randint():
     return random.randint(0, 1e9)
@@ -47,6 +48,12 @@ def main():
             print(f'invalid type: {x}, expected one of: string float int')
             exit(0)
     
-    print(randlist(args.length, args.types, args.unique))
-    
-# main()
+    result = randlist(args.length, args.types, args.unique)
+    filename = f'{args.length}_{"".join(args.types)}_{args.unique}'
+
+    with open(filename, 'wb') as f:
+        pickle.dump(result, f)
+
+    print(filename)
+
+main()

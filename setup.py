@@ -11,6 +11,7 @@ import distutils
 import distutils.dir_util
 import platform
 import shlex
+import shutil
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
@@ -19,6 +20,10 @@ from distutils import sysconfig
 import fnmatch
 import re
 import atexit
+
+# configure logging here
+logging.basicConfig(level=logging.INFO)
+
 
 # TODO: add option to install these
 test_dependencies = [
@@ -64,6 +69,17 @@ def find_files(pattern, path):
                 result.append(os.path.join(root, name))
     return result
 
+def remove_temp_files(build_dir):
+    """
+    remove temp cmake files but LEAVE files necessary to run ctest.
+    """
+    paths = set(os.listdir(build_dir)) - {'dist', 'test', 'CTestTestfile.cmake'}
+    paths = map(lambda name: os.path.join(build_dir, name), paths)
+    for path in paths:
+        if os.path.isfile(path):
+            os.remove(path)
+        else:
+            shutil.rmtree(path)
 
 # Convert distutils Windows platform specifiers to CMake -A arguments
 PLAT_TO_CMAKE = {
@@ -240,7 +256,14 @@ class CMakeBuild(build_ext):
 
         # because the goal of setup.py is to only build the package, build only target tuplex.
         # changed from before.
-        build_args += ['--target', 'tuplex']
+        BUILD_ALL = bool(os.environ.get('TUPLEX_BUILD_ALL', '1'))
+        if BUILD_ALL is True:
+            # build everything incl. all google tests...
+            logging.info('Building all Tuplex targets (incl. tests)...')
+        else:
+            # restrict to shared object only...
+            logging.info('Building only shared objects...')
+            build_args += ['--target', 'tuplex']
 
         # hack: only run for first invocation!
         if ext_filename == 'tuplex_runtime':
@@ -267,11 +290,12 @@ class CMakeBuild(build_ext):
                     # append
                     cmake_args.append(arg)
 
-        print('configuring cmake with: {}'.format(' '.join(["cmake", ext.sourcedir] + cmake_args)))
+        logging.info('configuring cmake with: {}'.format(' '.join(["cmake", ext.sourcedir] + cmake_args)))
+        logging.info('compiling with: {}'.format(' '.join(["cmake", "--build", "."] + build_args)))
         subprocess.check_call(
             ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp
         )
-        print('compiling with: {}'.format(' '.join(["cmake", "--build", "."] + build_args)))
+        logging.info('configuration done, workdir={}'.format(self.build_temp))
         subprocess.check_call(
             ["cmake", "--build", "."] + build_args, cwd=self.build_temp
         )
@@ -320,10 +344,19 @@ class CMakeBuild(build_ext):
 
         # run clean, to reclaim space
         # also remove third_party folder, because it is big!
-        print('running cmake clean target to reclaim space')
-        subprocess.check_call(
-            ['cmake', '--build', '.', '--target', 'clean'], cwd=self.build_temp
-        )
+
+        # this will remove test executables as well...
+        if not BUILD_ALL:
+            logging.info('Running cmake clean target to reclaim space')
+            subprocess.check_call(
+                ['cmake', '--build', '.', '--target', 'clean'], cwd=self.build_temp
+            )
+        else:
+            # when build all is hit, preserve test files
+            # i.e. need folders test, dist and CTestTestfile.cmake
+            logging.info('Removing temporary build files, preserving test files...')
+            remove_temp_files(self.build_temp)
+
         subprocess.check_call(
             ['rm', '-rf', 'third_party'], cwd=self.build_temp
         )
@@ -388,7 +421,6 @@ def reorg_historyserver():
     atexit.register(remove_history)
 
     return []
-
 
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.

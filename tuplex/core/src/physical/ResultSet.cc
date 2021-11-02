@@ -106,6 +106,135 @@ namespace tuplex {
         return first;
     }
 
+    std::vector<Row> ResultSet::getRows(size_t limit) {
+        using namespace std;
+
+        if(0 == limit)
+            return vector<Row>{};
+
+        vector<Row> v;
+        v.reserve(limit);
+
+        // do a quick check whether there are ANY pyobjects, if not deserialize quickly!
+        if(_pyobjects.empty()) {
+
+            if(_partitions.empty())
+                return vector<Row>{};
+
+            Deserializer ds(_schema);
+            for(int i = 0; i < limit;) {
+
+                // all exhausted
+                if(_partitions.empty())
+                    break;
+
+                // get number of rows in first partition
+                Partition *first = _partitions.front();
+                auto num_rows = first->getNumRows();
+                // how many left to retrieve?
+                auto num_to_retrieve_from_partition = std::min(limit - i, num_rows - _curRowCounter);
+                if(num_to_retrieve_from_partition <= 0)
+                    break;
+
+                // make sure partition schema matches stored schema
+                assert(_schema == first->schema());
+
+                // thread safe version (slow)
+                // get next element of partition
+                const uint8_t* ptr = first->lock();
+                for(int j = 0; j < num_to_retrieve_from_partition; ++j) {
+                    auto row = Row::fromMemory(ds, ptr + _byteCounter, first->capacity() - _byteCounter);
+                    _byteCounter += row.serializedLength();
+                    _curRowCounter++;
+                    _rowsRetrieved++;
+                    _totalRowCounter++;
+                    v.push_back(row);
+                }
+
+                // thread safe version (slow)
+                // deserialize
+                first->unlock();
+
+                i += num_to_retrieve_from_partition;
+
+                // get next Partition ready when current one is exhausted
+                if(_curRowCounter == first->getNumRows())
+                    removeFirstPartition();
+            }
+
+            v.shrink_to_fit();
+            return v;
+        }
+
+
+        for(size_t i = 0; i < limit; ++i) {
+
+            // merge rows from objects
+            if(!_pyobjects.empty()) {
+                auto row_number = std::get<0>(_pyobjects.front());
+                auto obj = std::get<1>(_pyobjects.front());
+
+                // partitions empty?
+                // => simply return next row. no fancy merging possible
+                // else merge based on row number.
+                if(_partitions.empty() || row_number <= _totalRowCounter) {
+                    // merge
+                    python::lockGIL();
+                    auto row = python::pythonToRow(obj);
+                    python::unlockGIL();
+                    _pyobjects.pop_front();
+                    _rowsRetrieved++;
+
+                    // update row counter (not for double indices which could occur from flatMap!)
+                    if(_pyobjects.empty())
+                        _totalRowCounter++;
+                    else {
+                        auto next_row_number = std::get<0>(_pyobjects.front());
+                        if(next_row_number != row_number)
+                            _totalRowCounter++;
+                    }
+
+                    v.push_back(row);
+                    continue;
+                }
+            }
+
+            // check whether entry is available, else continue (there may be still pyobjects!)
+            if(_partitions.empty())
+                continue;
+
+            assert(_partitions.size() > 0);
+            Partition *first = _partitions.front();
+
+            // make sure partition schema matches stored schema
+            assert(_schema == first->schema());
+
+            Deserializer ds(_schema);
+
+            // thread safe version (slow)
+            // get next element of partition
+            const uint8_t* ptr = first->lock();
+            auto row = Row::fromMemory(ds, ptr + _byteCounter, first->capacity() - _byteCounter);
+            v.push_back(row);
+
+            // thread safe version (slow)
+            // deserialize
+            first->unlock();
+
+            _byteCounter += row.serializedLength();
+            _curRowCounter++;
+            _rowsRetrieved++;
+            _totalRowCounter++;
+
+            // get next Partition ready when current one is exhausted
+            if(_curRowCounter == first->getNumRows())
+                removeFirstPartition();
+        }
+
+        v.shrink_to_fit();
+        return v;
+    }
+
     Row ResultSet::getNextRow() {
         // merge rows from objects
         if(!_pyobjects.empty()) {

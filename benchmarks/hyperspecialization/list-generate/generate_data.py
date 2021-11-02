@@ -5,6 +5,7 @@ import random
 import pdb
 import string
 import os
+import csv
 import numpy as np
 import scipy.stats as ss
 
@@ -79,15 +80,18 @@ def main():
     
     result = randlist(args.length, args.types, distribution_dict)
     dist_str = ''.join([name[0] for name in args.distributions])
-    filename = f'{args.length}_{"".join(args.types)}_{dist_str}'
-
-    print(result)
-    print('\n\n\n\n')
-
-    with open(filename, 'wb') as f:
-        pickle.dump(result, f)
+    filename = f'{args.length}_{"".join(args.types)}_{dist_str}.csv'
 
     print(filename)
+    print('\n\n\n\n')
+
+    print(result)
+
+    with open(filename, 'w') as f:
+        wr = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
+        wr.writerow(result)
+
+    print('successfully written!')
 
 if __name__ == "__main__":
     main()

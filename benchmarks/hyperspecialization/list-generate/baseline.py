@@ -2,7 +2,6 @@ import argparse
 import time
 import pickle
 
-
 def simple_func(simple_list):
     my_dict = {}
     for element in simple_list:

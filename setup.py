@@ -36,7 +36,11 @@ test_dependencies = [
 # Also requires to install MongoDB
 webui_dependencies = [
     'gunicorn',
-    'eventlet==0.30.0' # newer versions of eventlet have a bug under MacOS
+    'eventlet==0.30.0', # newer versions of eventlet have a bug under MacOS
+    'flask',
+    'flask-socketio',
+    'flask-pymongo',
+    'iso8601'
 ]
 
 install_dependencies = [

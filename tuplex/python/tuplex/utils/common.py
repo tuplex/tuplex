@@ -537,6 +537,24 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
 
         check_mongodb_connection(mongodb_url, mongodb_port, db_name)
 
+def log_gunicorn_errors(logpath):
+    """
+    uses logging module to print out gunicorn errors if something went wrong
+    Args:
+        logpath: where gunicorn log is stored
+
+    Returns:
+        None
+    """
+
+    # parse log, check whether there's any line where [ERROR] is contined
+    with open(logpath, 'r') as fp:
+        lines = fp.readlines()
+        indices = map(lambda t: t[1], filter(lambda t: '[ERROR]' in t[0], zip(lines, range(len(lines)))))
+        if indices:
+            first_idx = min(indices)
+            logging.error('Gunicorn error log:\n {}'.format(''.join(lines[first_idx:])))
+
 def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
     """
     tries to connect to Tuplex WebUI. If local uri is specified, autostarts WebUI.
@@ -723,3 +741,7 @@ def ensure_webui(options):
         print('Tuplex WebUI can be accessed under {}'.format(webui_uri))
     except Exception as e:
         logging.error('Failed to start or connect to Tuplex WebUI. Details: {}'.format(e))
+
+        # log gunicorn errors for local startup
+        if os.path.isfile(gunicorn_logpath) and 'localhost' == webui_url:
+            log_gunicorn_errors(gunicorn_logpath)

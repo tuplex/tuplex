@@ -6,6 +6,9 @@ set(LAMBDA_NAME tplxlam)
 # enable c++14
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# enable c11
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # only compiles on Linux, check here
 if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")

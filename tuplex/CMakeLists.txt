@@ -1,5 +1,24 @@
 # (c) 2017 Leonhard Spiegelberg
 cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+
+# Tuplex build options:
+# =====================
+
+# Option on whether to use shared libraries or perform a static link.
+# Must be identical to how AWS SDK was installed. E.g., when installing brew aws-sdk-cpp the default is
+# shared for the AWS C++ SDK build.
+# --> We use static build per default.
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(SKIP_AWS_TESTS "Skip AWS tests" ON)
+option(BUILD_WITH_ORC "Build with Orc file support" OFF)
+option(BUILD_NATIVE "Build with -march=native" OFF)
+option(BUILD_FOR_LAMBDA "use to specify whether this is a Lambda build" OFF)
+option(BUILD_FOR_CI "Build for the CI - disable tests that require AWS credentials." OFF)
+option(BUILD_WITH_AWS "Build Tuplex with AWS support. This will include access to S3 and the AWS Lambda execution engine backend. Requires AWS C++ SDK" ON)
+option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for faster testing speeds." OFF)
+option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
+option(USE_LD_GOLD "Use GNU gold linker" ON)
+
 # via -DVERSION_INFO a string may be passed down. --> include it somehow
 if(VERSION_INFO)
     message(STATUS "Version info supplied to cmake: ${VERSION_INFO}")
@@ -12,9 +31,33 @@ endif()
 # before writing additional cmake modules to put in cmake/, check the list of supported cmake standard modules
 # available here: https://cmake.org/cmake/help/latest/manual/cmake-modules.7.html#find-modules
 
+# top-level language specification
+# enable c++14
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# enable c11
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+message(STATUS "Using language versions C++${CMAKE_CXX_STANDARD} and C${CMAKE_C_STANDARD}")
+# add cmake modules from cmake folder
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
+message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
+include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate compiler flags
 # for debug mode export all symbols
 set(CMAKE_ENABLE_EXPORTS true)
 
+# this here will enable LTO (link-time optimization) globally
+include(CheckIPOSupported)
+check_ipo_supported(RESULT IPO_SUPPORTED)
+if(IPO_SUPPORTED)
+    # on Ubuntu gcc is buggy, so deactivate LTO for Linux...
+    if(NOT CMAKE_SYSTEM_NAME MATCHES "Linux" AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+        message(STATUS "Enabling interprocedural optimization for built")
+    endif()
+else()
+    message(WARNING "target does not support interprocedural optimization/link time optimization.")
+endif()
 # Check if ccache exists to speed up compilation when switching branches
 # taken from https://invent.kde.org/utilities/konsole/-/merge_requests/26?tab=diffs
 find_program(CCACHE_FOUND "ccache")
@@ -23,25 +66,13 @@ if (CCACHE_FOUND AND CCACHE_SUPPORT)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" # GNU is GNU GCC
             OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
         # without this compiler messages in `make` backend would be uncolored
-        set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fdiagnostics-color=auto")
+        ucm_add_flags("-fdiagnostics-color=auto")
     endif()
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "ccache")
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
 endif()
 
-# Tuplex build options:
-# =====================
-
-# Option on whether to use shared libraries or perform a static link.
-# Must be identical to how AWS SDK was installed. E.g., when installing brew aws-sdk-cpp the default is
-# shared for the AWS C++ SDK build.
-# --> We use static build per default.
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 set(CMAKE_MACOSX_RPATH 1) # fix for gtest warning
-
-option(SKIP_AWS_TESTS "Skip AWS tests" ON)
-option(BUILD_WITH_ORC "Build with Orc file support" OFF)
-option(BUILD_NATIVE "Build with -march=native" OFF)
 
 # translate to C++ flags
 if(SKIP_AWS_TESTS)
@@ -58,28 +89,26 @@ macro(append_if list condition var)
         list(APPEND ${list} ${var})
     endif()
 endmacro()
+
+# manipulate warnings
 if (NOT MSVC)
-    append_if(LIBCXX_COMPILE_FLAGS LIBCXX_HAS_WALL_FLAG -Wall)
-    list(APPEND LIBCXX_COMPILE_FLAGS -Werror=return-type)
+    # supress "#warning" if desired, else enable all
+    if(SHOW_EXPLICIT_WARNINGS)
+        ucm_add_flags("-Wall")
+    else()
+        ucm_add_flags("-Wno-cpp")
+    endif()
 
     # make no return warning into an error because it easily leads to bugs
     # https://foonathan.net/2018/10/cmake-warnings/
-    # alternative is to use target dependent options, i.e.
-    # target_compile_options(my_library PRIVATE
-    #     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-    #          -Wall>
-    #     $<$<CXX_COMPILER_ID:MSVC>:
-    #          /W4>)
-    list(APPEND CMAKE_CXX_FLAGS "-Werror=return-type")
+    ucm_add_flags("-Werror=return-type")
+else()
+    message(FATAL_ERROR "msvc not supported yet")
 endif()
 
 ###########################################################################
 # (0) add additional cmake modules
 ###########################################################################
-# add cmake modules from cmake folder
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
-
-message("module path" ${CMAKE_MODULE_PATH})
 
 # global config, brew there?
 FIND_PROGRAM(BREW_FOUND "brew")
@@ -114,8 +143,6 @@ endif()
 # add to debug/gcc stack protector
 # -fstack-protector-strong
 
-message(STATUS "build type is " "${CMAKE_BUILD_TYPE}")
-
 
 # fix for Mac OS X/ brew, find openSSL (required by some dependencies)
 ## check for ICU
@@ -138,13 +165,11 @@ ENDIF()
 
 # Options:
 # build for CI (disable some tests)
-option(BUILD_FOR_CI "Build for the CI - disable tests that require AWS credentials." OFF)
 if(BUILD_FOR_CI)
     add_definitions(-DBUILD_FOR_CI)
 endif()
 
 # build with AWS support
-option(BUILD_WITH_AWS "Build Tuplex with AWS support. This will include access to S3 and the AWS Lambda execution engine backend. Requires AWS C++ SDK" ON)
 if(BUILD_WITH_AWS)
     # special case: if using mac os and a brew installed aws-sdk-cpp, can't use static libs => need to force to shared_libs
     if(APPLE AND BREW_FOUND)
@@ -168,19 +193,11 @@ if(BUILD_WITH_AWS)
     endif ()
 endif()
 
-option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for faster testing speeds." OFF)
 if(GENERATE_PDFS)
     message(STATUS "Tuplex configured to emit PDF files for various AST stages")
     add_definitions(-DGENERATE_PDFS)
 else()
     message(STATUS "PDF generation for ASTs and logical plans disabled. Enable by setting -DGENERATE_PDFS=ON.")
-endif()
-
-# suppress "#warning" directive otuput
-option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
-if(SHOW_EXPLICIT_WARNINGS)
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-cpp")
 endif()
 
 ###########################################################################
@@ -219,40 +236,43 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     add_link_options("-Wl,--start-group")
 endif()
 
+
+
+
 ###########################################################################
 # (2) global flags
 ###########################################################################
-find_package(Threads REQUIRED)
+# i.e., manipulate here using ucm
 
-# enable c++14
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# enable c11
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+# set here initial compiler flags
+# DO NOT USE MARCH=NATIVE for wheels... => option should be disabled per default
+# use march=native if available and NOT building wheels
 
-message(STATUS "Using language versions C++${CMAKE_CXX_STANDARD} and C${CMAKE_C_STANDARD}")
-
-# enable PIC
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-
-# release flags
-# don't use Ofast unless you're ok to break NAN/INF compatibility.
-option(BUILD_FOR_LAMBDA "use to specify whether this is a Lambda build")
-if(BUILD_FOR_LAMBDA)
-    set(TARGET_BUILD_ARCH "haswell")
-else()
-    set(TARGET_BUILD_ARCH "native")
-endif()
-message("TARGET_BUILD_ARCH=${TARGET_BUILD_ARCH}")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -m64 -O3 -flto -march=${TARGET_BUILD_ARCH} -funroll-loops")
+# specific Release flags, i.e. targeting loop unrolling.
+ucm_add_flags(-m64 -O3 -funroll-loops CONFIG Release)
 
 # for GCC add stack protector
 # -fstack-protector-strong
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fstack-protector-strong")
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fstack-protector-strong")
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+    ucm_add_flags(-fstack-protector-strong)
+endif()
+
+include(CheckCXXCompilerFlag)
+if(BUILD_NATIVE AND NOT BUILD_FOR_LAMBDA) # for lambda build, specific architecture has been targeted.
+    CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
+    if(COMPILER_SUPPORTS_MARCH_NATIVE)
+        ucm_add_flags(-march=native)
+    endif()
+    message(STATUS "Building Tuplex with native optimizations")
+endif()
+
+find_package(Threads REQUIRED)
+# enable PIC
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# for release mode, don't use Ofast unless you're ok to break NAN/INF compatibility.
+if(BUILD_FOR_LAMBDA)
+    ucm_add_flags(-march=haswell)
 endif()
 
 # add compiler flags for specific SIMD instructions
@@ -267,11 +287,15 @@ if(HAVE_SSE42)
     add_compile_options("-msse4.2")
 endif()
 if(HAVE_AVX)
-    message(STATUS "Found AVX support, adding -mavx")
-    # no msvc support, so use clang/gcc flag approach!
-    #add_compile_options("-mavx")
-    else()
-    message(STATUS "no avx support")
+    # only add avx (because not any architecture supports it) if native build is enabled or build for lambda
+    # because Haswell supports both AVX and AVX2!
+    if(BUILD_NATIVE OR BUILD_FOR_LAMBDA)
+        message(STATUS "Found AVX support, adding -mavx")
+        # no msvc support, so use clang/gcc flag approach!
+        add_compile_options("-mavx")
+    endif()
+else()
+    message(STATUS "no avx support, build with -DBUILD_NATIVE=ON to enable")
 endif()
 
 ###########################################################################
@@ -420,7 +444,7 @@ if(PYTHON3_VERSION STREQUAL "")
     # try first to find full Python3, if it fails find only Interpreter & Module
     find_package(Python3 COMPONENTS Interpreter Development QUIET)
     if(Python3_FOUND)
-        message(STATUS "found full python3-dev installation")
+        message(STATUS "Found full python3-dev installation")
         set(Python3_Embed_FOUND TRUE)
     else()
         find_package(Python3 COMPONENTS Interpreter REQUIRED)
@@ -441,7 +465,7 @@ else()
         # try first to find full Python3, if it fails find only Interpreter & Module
         find_package(Python3 ${VERSION_STRING} EXACT COMPONENTS Interpreter Development QUIET)
         if(Python3_FOUND)
-            message(STATUS "found full python3-dev installation")
+            message(STATUS "Found full python3-dev installation")
             set(Python3_Embed_FOUND TRUE)
         else()
             find_package(Python3 ${VERSION_STRING} EXACT COMPONENTS Interpreter REQUIRED)
@@ -557,27 +581,15 @@ endif()
 
 
 # use gold linker for gcc
-option(USE_LD_GOLD "Use GNU gold linker" ON)
 if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version OUTPUT_VARIABLE stdout ERROR_QUIET)
     if("${stdout}" MATCHES "GNU gold")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=gold")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=gold")
+        ucm_add_flags(-fuse-ld=gold)
+        ucm_add_linker_flags(-fuse-ld=gold)
     else()
         message(WARNING "GNU gold linker isn't available, using the default system linker.")
     endif()
 endif()
 
-# DO NOT USE MARCH=NATIVE for wheels... => option should be disabled per default
-# use march=native if available and NOT building wheels
-include(CheckCXXCompilerFlag)
-if(BUILD_NATIVE)
-CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
-if(COMPILER_SUPPORTS_MARCH_NATIVE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
-endif()
-message(STATUS "Building Tuplex for native platform")
-message(STATUS "Using following CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
-message(STATUS "Using following CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
-endif()
+# print flags
+ucm_print_flags()

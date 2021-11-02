@@ -14,6 +14,8 @@
 #ifdef BUILD_WITH_ORC
 
 #include <orc/OrcFile.hh>
+#include <iostream>
+#include <fstream>
 
 namespace tuplex { namespace orc {
 
@@ -22,7 +24,20 @@ namespace tuplex { namespace orc {
 */
 class VirtualInputStream : public ::orc::InputStream {
 public:
-    VirtualInputStream(const URI &uri): _file(VirtualFileSystem::open_file(uri, VirtualFileMode::VFS_READ)), _filename(uri.toString()), _currentPosition(0) {}
+    explicit VirtualInputStream(const URI &uri):
+        _filename(uri.toString()), _currentPosition(0) {
+        auto file = VirtualFileSystem::open_file(uri, VirtualFileMode::VFS_READ);
+        if (!file) {
+            throw std::runtime_error("Could not open " + uri.toPath() + " in read mode");
+        }
+        _file = std::move(file);
+    }
+
+    ~VirtualInputStream() override {
+        if (_file->is_open()) {
+            _file->close();
+        }
+    }
 
     uint64_t getLength() const override {
         return _file->size();

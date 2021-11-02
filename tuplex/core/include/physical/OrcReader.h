@@ -48,6 +48,8 @@ namespace tuplex {
          * @param inputFilePath
          */
         void read(const URI& inputFilePath) override {
+            Timer timer;
+
             using namespace ::orc;
             auto inStream = std::make_unique<orc::VirtualInputStream>(inputFilePath);
             ReaderOptions options;
@@ -87,8 +89,8 @@ namespace tuplex {
 
             try {
                 for (auto partition : pw.getOutputPartitions()) {
-                    int64_t size = partition->size();
                     const uint8_t *ptr = partition->lockRaw();
+                    int64_t size = partition->size();
                     _functor(_task, ptr, size, &numNormalRows, &numBadRows, false);
                     partition->unlock();
                     partition->invalidate();
@@ -103,13 +105,12 @@ namespace tuplex {
             for (auto el : columns) {
                 delete el;
             }
-            batch.reset();
-            rowReader.reset();
-            reader.reset();
-            inStream.reset();
 
-            auto& logger = Logger::instance().defaultLogger();
-            logger.info("Read " + std::to_string(numNormalRows) + " from file");
+            std::stringstream ss;
+            ss<<"[Task Finished] read from Orc file in "
+              <<std::to_string(timer.time())<<"s (";
+            ss<<pluralize(numNormalRows, "row")<<")";
+            Logger::instance().defaultLogger().info(ss.str());
         }
 
     private:
@@ -125,9 +126,9 @@ namespace tuplex {
         size_t _rangeLen;
 
         void writeBatchToPartition(PartitionWriter &pw, ::orc::ColumnVectorBatch *batch, std::vector<tuplex::orc::OrcBatch *> &columns) {
+            Serializer serializer(false);
+            serializer.setSchema(_schema);
             for (uint64_t r = 0; r < batch->numElements; ++r) {
-                Serializer serializer(false);
-                serializer.setSchema(_schema);
                 for (auto col : columns) {
                     col->getField(serializer, r);
                 }
@@ -135,6 +136,8 @@ namespace tuplex {
                 const uint8_t *ptr = new uint8_t[len];
                 serializer.serialize((void *) ptr, len);
                 pw.writeData(ptr, len);
+
+                serializer.reset();
             }
             _numRowsRead += batch->numElements;
         }

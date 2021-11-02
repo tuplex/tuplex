@@ -28,11 +28,7 @@ jobs:
         displayName: 'Build Tuplex (new)'
       - script: ls build && ls
         displayName: 'Overview'
-      # - script: cd tuplex && mkdir build && cd build && cmake -DBUILD_WITH_ORC=ON -DLLVM_ROOT_DIR=/usr/lib/llvm-9 -DCMAKE_BUILD_TYPE=Release -DBUILD_FOR_CI=ON .. && make -j$(nproc)
-      #   displayName: 'Build Tuplex'
-      - script: cd tuplex && cd build && ctest --timeout 180 --output-on-failure
+      - script: cd build/temp.linux-x86_64-3.7 && ctest --timeout 180 --output-on-failure
         displayName: 'C++ tests'
-      - script: cd tuplex/build/dist/python && python3.7 setup.py install --user && rm -rf build/third_party && sudo rm -rf tmp/*
-        displayName: 'Install tuplex package and clear tmp files'
-      - script: cd tuplex/build/dist/python && python3.7 -m pytest -x --full-trace -l
+      - script: build/temp.linux-x86_64-3.7/dist/python && python3.7 -m pytest -x --full-trace -l
         displayName: 'Python tests'

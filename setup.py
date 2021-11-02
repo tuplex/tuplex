@@ -256,7 +256,19 @@ class CMakeBuild(build_ext):
 
         # because the goal of setup.py is to only build the package, build only target tuplex.
         # changed from before.
-        BUILD_ALL = bool(os.environ.get('TUPLEX_BUILD_ALL', '0'))
+
+        def parse_bool_option(key):
+            val = os.environ.get(key, None)
+            if not val:
+                return False
+            if val.lower() == 'on' or val.lower() == 'yes' or val.lower() == 'true' or val.lower() == '1':
+                return True
+            if val.lower() == 'off' or val.lower() == 'no' or val.lower() == 'false' or val.lower() == '0':
+                return True
+            return False
+
+
+        BUILD_ALL = parse_bool_option('TUPLEX_BUILD_ALL')
         if BUILD_ALL is True:
             # build everything incl. all google tests...
             logging.info('Building all Tuplex targets (incl. tests)...')

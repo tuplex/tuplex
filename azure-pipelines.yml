@@ -18,6 +18,8 @@ jobs:
   - job: 'tuplex'
     timeoutInMinutes: 180
     steps:
+      - script: sudo bash scripts/ubuntu1804/install_mongodb.sh
+        displayName: 'Install MongoDB'
       - script: sudo bash scripts/ubuntu1804/install_reqs.sh
         displayName: 'Install required packages'
       - script: sudo apt-get install python3-setuptools ninja-build && sudo apt-get remove python-pexpect python3-pexpect && sudo python3.7 -m pip install --upgrade pip && sudo python3.7 -m pip uninstall -y pygments && sudo python3.7 -m pip install pygments>=2.4.1 pexpect setuptools astor PyYAML jupyter nbformat pymongo eventlet==0.30.0 gunicorn pymongo && jupyter --version

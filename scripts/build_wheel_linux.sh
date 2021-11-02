@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # this script invokes the cibuildwheel process with necessary env variables to build the wheel for linux/docker
 
+# check from where script is invoked
+CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+
+echo "Executing buildwheel script located in $CWD"
+pushd $CWD > /dev/null
 cd ..
+
 # delete dir if exists
 rm -rf wheelhouse
 # delete in tree build files
@@ -29,4 +35,6 @@ export CIBW_BUILD_VERBOSITY=3
 export CIBW_PROJECT_REQUIRES_PYTHON=">=3.7"
 cibuildwheel --platform linux .
 
-cd scripts
+popd > /dev/null
+
+echo "Done!"

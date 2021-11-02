@@ -8,18 +8,15 @@ import os
 import numpy as np
 import scipy.stats as ss
 
-MIN_INT = -50
-MAX_INT = +50
+MIN_INT = 0
+MAX_INT = 9999 # inclusive
 
 def randint(dist):
     if dist == 'uniform':
         return random.randint(MIN_INT, MAX_INT)
-    if dist == 'normal':
-        STDDEV = 3
-        nums = np.arange(MIN_INT, MAX_INT)
-        prob = ss.norm.cdf(nums + 0.5, scale=STDDEV) - ss.norm.cdf(nums - 0.5, scale=STDDEV)
-        prob = prob / prob.sum()
-        return np.random.choice(nums, p=prob)        
+    if dist == 'binomial':
+        PVAL = 0.5
+        return int(np.random.binomial(MAX_INT - MIN_INT + 1, PVAL) - (MAX_INT - MIN_INT + 1) * PVAL)        
 
 def randfloat(dist):
     if dist == 'uniform':
@@ -27,21 +24,18 @@ def randfloat(dist):
 
 def randstring(dist, seed=0):
     # use dollar to prevent string interning
-    
     if dist == 'uniform':
         MIN_LENGTH = 10
         MAX_LENGTH = 10
         return ''.join(random.choices(string.ascii_uppercase + string.digits, k=random.randint(MIN_LENGTH, MAX_LENGTH))) + '$'
-    if dist == 'normalchar':
+    if dist == 'binomialchar':
         LENGTH = 10
-        STDDEV = 1
-        nums = np.arange(-18, 18) # since 36 possibilities
-        prob = ss.norm.cdf(nums, scale=STDDEV)
-        prob = prob / prob.sum()
-        return ''.join([np.random.choice(list(string.ascii_uppercase + string.digits), p=prob) for _ in range(LENGTH)]) + '$'
-    if dist == 'normalbag':
-        return np.random.choice(bag, p=bagprob)
-
+        PVAL = 0.5
+        allchars = list(string.ascii_uppercase + string.digits)
+        return ''.join([allchars[np.random.binomial(len(allchars) - 1, PVAL)] for _ in range(LENGTH)]) + '$'
+    if dist == 'binomialbag':
+        PVAL = 0.1
+        return bag[np.random.binomial(BAGLEN - 1, PVAL)]
 
 def randlist(length, types, distribution_dict):
     result = []
@@ -57,9 +51,6 @@ valid_types = ['string', 'float', 'int']
 BAGLEN = 1000 # decrease to add duplicates        
 BAGSTDDEV = 5
 bag = [randstring('uniform') for _ in range(BAGLEN)]
-bagnums = np.arange(-BAGLEN/2, +BAGLEN/2)
-bagprob = ss.norm.cdf(bagnums + 0.5, scale=BAGSTDDEV) - ss.norm.cdf(bagnums - 0.5, scale=BAGSTDDEV)
-bagprob = bagprob / bagprob.sum() 
 
 def main():
     parser = argparse.ArgumentParser(description='Generate lists for count unique.')

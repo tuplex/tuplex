@@ -602,11 +602,11 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
         # two options: Could be dev install or site-packages install, therefore check two folders
         if not os.path.isdir(os.path.join(tuplex_basedir, 'historyserver', 'thserver')):
             # dev install?
-            logging.debug('Dev version of tuplex')
             tuplex_basedir = tuplex_basedir.parent.parent
+            logging.debug('Dev version of tuplex, setting basedir to {}'.format(tuplex_basedir))
 
         # check dir historyserver/thserver exists!
-        assert os.path.isdir(os.path.join(tuplex_basedir, 'historyserver', 'thserver')), 'could not find Tuplex WebUI WebApp'
+        assert os.path.isdir(os.path.join(tuplex_basedir, 'historyserver', 'thserver')), 'could not find Tuplex WebUI WebApp in {}'.format(tuplex_basedir)
         assert os.path.isfile(os.path.join(tuplex_basedir, 'historyserver', 'thserver', '__init__.py')), 'could not find Tuplex WebUI __init__.py file in thserver folder'
 
         # history server dir to use to start gunicorn

@@ -113,7 +113,10 @@ namespace tuplex {
             return vector<Row>{};
 
         vector<Row> v;
-        v.reserve(limit);
+
+        // reserve up to 32k (do NOT always execute because special case upper limit is used)
+        if(limit < 32000)
+            v.reserve(limit);
 
         // do a quick check whether there are ANY pyobjects, if not deserialize quickly!
         if(_pyobjects.empty()) {

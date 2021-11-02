@@ -601,9 +601,17 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
 
         # two options: Could be dev install or site-packages install, therefore check two folders
         if not os.path.isdir(os.path.join(tuplex_basedir, 'historyserver', 'thserver')):
-            # dev install?
-            tuplex_basedir = tuplex_basedir.parent.parent
-            logging.debug('Dev version of tuplex, setting basedir to {}'.format(tuplex_basedir))
+            # dev install or somehow different folder structure?
+
+            # --> try to find root tuplex folder containing historyserver folder!
+            path = pathlib.Path(tuplex_basedir)
+            while path.parent != path:
+                # check in path
+                if 'tuplex' in os.listdir(path) and 'historyserver' in os.listdir(os.path.join(path, 'tuplex')):
+                    tuplex_basedir = os.path.join(str(path), 'tuplex')
+                    logging.debug('Detected Tuplex rootfolder (dev) to be {}'.format(tuplex_basedir))
+                    break
+                path = path.parent
 
         # check dir historyserver/thserver exists!
         assert os.path.isdir(os.path.join(tuplex_basedir, 'historyserver', 'thserver')), 'could not find Tuplex WebUI WebApp in {}'.format(tuplex_basedir)

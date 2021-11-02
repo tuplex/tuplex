@@ -5,39 +5,77 @@ import random
 import pdb
 import string
 import os
+import numpy as np
+import scipy.stats as ss
 
-def randint():
-    return random.randint(0, 1e9)
+MIN_INT = -50
+MAX_INT = +50
 
-def randfloat():
-    return random.random()
+def randint(dist):
+    if dist == 'uniform':
+        return random.randint(MIN_INT, MAX_INT)
+    if dist == 'normal':
+        STDDEV = 3
+        nums = np.arange(MIN_INT, MAX_INT)
+        prob = ss.norm.cdf(nums + 0.5, scale=STDDEV) - ss.norm.cdf(nums - 0.5, scale=STDDEV)
+        prob = prob / prob.sum()
+        return np.random.choice(nums, p=prob)        
 
-def randstring():
+def randfloat(dist):
+    if dist == 'uniform':
+        return random.random()
+
+def randstring(dist, seed=0):
     # use dollar to prevent string interning
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=random.randint(10, 50))) + '$'
+    
+    if dist == 'uniform':
+        MIN_LENGTH = 10
+        MAX_LENGTH = 10
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=random.randint(MIN_LENGTH, MAX_LENGTH))) + '$'
+    if dist == 'normalchar':
+        LENGTH = 10
+        STDDEV = 1
+        nums = np.arange(-18, 18) # since 36 possibilities
+        prob = ss.norm.cdf(nums, scale=STDDEV)
+        prob = prob / prob.sum()
+        return ''.join([np.random.choice(list(string.ascii_uppercase + string.digits), p=prob) for _ in range(LENGTH)]) + '$'
+    if dist == 'normalbag':
+        return np.random.choice(bag, p=bagprob)
 
-def randlist(length, types, unique):
+
+def randlist(length, types, distribution_dict):
     result = []
-    mydict = {}
-
-    for i in range(length):
+    for _ in range(length):
         currtype = random.randint(0, len(types) - 1)
-        newval = globals()[f"rand{types[currtype]}"]()
-        if unique:
-            while newval in mydict:
-                newval = globals()[f"rand{types[currtype]}"]()
-            mydict[newval] = True
+        newval = globals()[f"rand{types[currtype]}"](distribution_dict[types[currtype]])
         result.append(newval)
     return result
 
 valid_types = ['string', 'float', 'int']
 
+# normal 'bag' based string generation preprocessing.
+BAGLEN = 1000 # decrease to add duplicates        
+BAGSTDDEV = 5
+bag = [randstring('uniform') for _ in range(BAGLEN)]
+bagnums = np.arange(-BAGLEN/2, +BAGLEN/2)
+bagprob = ss.norm.cdf(bagnums + 0.5, scale=BAGSTDDEV) - ss.norm.cdf(bagnums - 0.5, scale=BAGSTDDEV)
+bagprob = bagprob / bagprob.sum() 
+
 def main():
     parser = argparse.ArgumentParser(description='Generate lists for count unique.')
     parser.add_argument('--length', type=int)
     parser.add_argument('--types', type=str, nargs='+')
-    parser.add_argument('--unique', dest='unique', action='store_true')
+    parser.add_argument('--distributions', nargs='+')
+    
     args = parser.parse_args()
+
+    if len(args.distributions) != len(args.types):
+        print('please specify a distribution for each type')
+        exit(0)
+
+    distribution_dict = {}
+    for idx, arg in enumerate(args.distributions):
+        distribution_dict[args.types[idx]] = arg
 
     if args.length <= 0:
         print('expected length >= 0')
@@ -48,12 +86,17 @@ def main():
             print(f'invalid type: {x}, expected one of: string float int')
             exit(0)
     
-    result = randlist(args.length, args.types, args.unique)
-    filename = f'{args.length}_{"".join(args.types)}_{args.unique}'
+    result = randlist(args.length, args.types, distribution_dict)
+    dist_str = ''.join([name[0] for name in args.distributions])
+    filename = f'{args.length}_{"".join(args.types)}_{dist_str}'
+
+    print(result)
+    print('\n\n\n\n')
 
     with open(filename, 'wb') as f:
         pickle.dump(result, f)
 
     print(filename)
 
-main()
+if __name__ == "__main__":
+    main()

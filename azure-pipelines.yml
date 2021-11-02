@@ -25,10 +25,10 @@ jobs:
       - script: sudo apt-get install python3-setuptools ninja-build && sudo apt-get remove python-pexpect python3-pexpect && sudo python3.7 -m pip install --upgrade pip && sudo python3.7 -m pip uninstall -y pygments && sudo python3.7 -m pip install pygments>=2.4.1 pexpect setuptools astor PyYAML jupyter nbformat pymongo eventlet==0.30.0 gunicorn pymongo && jupyter --version
         displayName: 'Install python dependencies'
       - script: TUPLEX_BUILD_ALL=1 CMAKE_ARGS="-DBUILD_WITH_ORC=ON -DLLVM_ROOT_DIR=/usr/lib/llvm-9 -DCMAKE_BUILD_TYPE=Release -DBUILD_FOR_CI=ON" python3 setup.py install --user
-        displayName: 'Build Tuplex (new)'
+        displayName: 'Build Tuplex'
       - script: ls build && ls
         displayName: 'Overview'
       - script: cd build/temp.linux-x86_64-3.7 && ctest --timeout 180 --output-on-failure
         displayName: 'C++ tests'
-      - script: build/temp.linux-x86_64-3.7/dist/python && python3.7 -m pytest -x --full-trace -l
+      - script: cd build/temp.linux-x86_64-3.7/dist/python && python3.7 -m pytest -x --full-trace -l
         displayName: 'Python tests'

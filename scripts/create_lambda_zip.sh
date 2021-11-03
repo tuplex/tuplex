@@ -12,6 +12,9 @@ cd .. # go to root of repo
 
 # start code here...
 
+mkdir build-lambda
+cd build-lambda
+
 
 # end code here...
 popd > /dev/null

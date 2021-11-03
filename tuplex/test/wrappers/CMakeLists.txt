@@ -1,7 +1,11 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.12 FATAL_ERROR)
 
 # enable c++14
-SET(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# enable c11
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 FILE(GLOB SRCS *.cc)
 FILE(GLOB PYSRCS ../../python/src/*.cc)
@@ -9,7 +13,6 @@ FILE(GLOB PYSRCS ../../python/src/*.cc)
 # exclude Boost module bindings
 #list(REMOVE_ITEM PYSRCS "../../python/src/PythonBindings.cc")
 list(FILTER PYSRCS EXCLUDE REGEX ".*PythonBindings.cc$")
-
 
 include(GoogleTest)
 

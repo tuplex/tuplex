@@ -138,6 +138,58 @@ void traceAndValidateResult(const std::string& code, PyObject* arg) {
     EXPECT_TRUE(PyObject_RichCompare(ref, res, Py_EQ));
 }
 
+TEST_F(TracerTest, IsKeyword) {
+    python::lockGIL();
+
+    auto udf1 = "lambda x: x is None";
+    PyObject* arg1 = Py_None;
+
+    traceAndValidateResult(udf1, arg1);
+
+    auto udf2 = "lambda x: x is not None";
+    PyObject* arg2 = PyBool_FromLong(0);
+
+    traceAndValidateResult(udf2, arg2);
+
+    auto udf3 = "lambda x: x is not False";
+    PyObject* arg3 = PyBool_FromLong(1);
+
+    traceAndValidateResult(udf3, arg3);
+
+    auto udf4 = "lambda x: x is True";
+    PyObject* arg4 = PyBool_FromLong(1);
+
+    traceAndValidateResult(udf4, arg4);
+
+    auto udf5 = "lambda x: x is 25";
+    PyObject* arg5 = PyLong_FromLong(25);
+
+    traceAndValidateResult(udf5, arg5);
+
+    auto udf6 = "lambda x: x is 400";
+    PyObject* arg6 = PyLong_FromLong(400);
+
+    traceAndValidateResult(udf6, arg6);
+
+    auto udf7 = "lambda x: x is 1";
+    PyObject* arg7 = Py_None;
+
+    traceAndValidateResult(udf7, arg7);
+
+    auto udf8 = "lambda x: x is not 400";
+    PyObject* arg8 = PyBool_FromLong(0);
+
+    traceAndValidateResult(udf8, arg8);
+
+    auto udf9 = "lambda x: x is 0";
+    PyObject* arg9 = PyBool_FromLong(0);
+
+    traceAndValidateResult(udf9, arg9);
+
+
+    python::unlockGIL();
+}
+
 TEST_F(TracerTest, UseCaseFunctions) {
     python::lockGIL();
 

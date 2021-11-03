@@ -11,13 +11,13 @@
 
 import logging
 
-from .libexec.tuplex import _Context, _DataSet
+from .libexec.tuplex import _Context, _DataSet, getDefaultOptionsAsJSON
 from .dataset import DataSet
 import os
 import glob
 import sys
 import cloudpickle
-from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, host_name
+from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui, pythonize_options
 import uuid
 import json
 from .metrics import Metrics
@@ -59,7 +59,7 @@ class Context:
             logDir (str): Tuplex produces a log file `log.txt` per default. Specify with `logDir` where to store it.
             historyDir (str): Tuplex stores the database and logs within this dir when the webui is enabled.
             normalcaseThreshold (float): used to detect the normal case
-            webui (bool): whether to use the WebUI interface. By default true.
+            webui.enable (bool): whether to use the WebUI interface. By default true.
             webui.url (str): URL where to connect to for history server. Default: localhost
             webui.port (str): port to use when connecting to history server. Default: 6543
             webui.mongodb.url (str): URL where to connect to MongoDB storage. If empty string, Tuplex will start and exit a local mongodb instance.
@@ -78,8 +78,12 @@ class Context:
         """
         runtime_path = os.path.join(os.path.dirname(__file__), 'libexec', 'tuplex_runtime')
         paths = glob.glob(runtime_path + '*')
-        if len(paths) != 1:
 
+        if len(paths) != 1:
+            # filter based on type (runtime must be shared object!)
+            paths = list(filter(is_shared_lib, paths))
+
+        if len(paths) != 1:
             if len(paths) == 0:
                 logging.error("found no tuplex runtime (tuplex_runtime.so). Faulty installation?")
             else:
@@ -123,7 +127,25 @@ class Context:
         if 'tuplex.runTimeLibrary' in options:
             runtime_path = options['tuplex.runTimeLibrary']
 
-        # @Todo: autostart mongodb & history server if they are not running yet...
+        # autostart mongodb & history server if they are not running yet...
+        # deactivate webui for google colab per default
+        if 'tuplex.webui.enable' not in options:
+            # for google colab env, disable webui per default.
+            if in_google_colab():
+                options['tuplex.webui.enable'] = False
+        # fetch default options for webui ...
+        webui_options = {k: v for k, v in json.loads(getDefaultOptionsAsJSON()).items() if 'webui' in k or 'scratch' in k}
+
+        # update only non-existing options!
+        for k, v in webui_options.items():
+            if k not in options.keys():
+                options[k] = v
+
+        # pythonize
+        options = pythonize_options(options)
+
+        if options['tuplex.webui.enable']:
+            ensure_webui(options)
 
         # last arg are the options as json string serialized b.c. of boost python problems
         self._context = _Context(name, runtime_path, json.dumps(options))
@@ -328,3 +350,21 @@ class Context:
         # TODO: change to list of files actually having been removed.
         assert self._context
         return self._context.rm(pattern)
+
+    @property
+    def uiWebURL(self):
+        """
+        retrieve URL of webUI if running
+        Returns:
+            None if webUI was disabled, else URL as string
+        """
+        options = self.options()
+        if not options['tuplex.webui.enable']:
+            return None
+
+        hostname = options['tuplex.webui.url']
+        port = options['tuplex.webui.port']
+        url = '{}:{}'.format(hostname, port)
+        if not url.startswith('http://') or url.startswith('https://'):
+            url = 'http://' + url
+        return url

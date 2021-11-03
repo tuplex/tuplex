@@ -7,7 +7,11 @@ import sysconfig as pyconfig
 import subprocess
 import logging
 import shutil
+import distutils
+import distutils.dir_util
 import platform
+import shlex
+import shutil
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
@@ -15,6 +19,11 @@ from distutils import sysconfig
 
 import fnmatch
 import re
+import atexit
+
+# configure logging here
+logging.basicConfig(level=logging.INFO)
+
 
 # TODO: add option to install these
 test_dependencies = [
@@ -22,6 +31,16 @@ test_dependencies = [
 'nbformat',
 'prompt_toolkit>=2.0.7',
 'pytest>=5.3.2',
+]
+
+# Also requires to install MongoDB
+webui_dependencies = [
+    'Flask>=2.0.2',
+    'gunicorn',
+    'eventlet==0.30.0', # newer versions of eventlet have a bug under MacOS
+    'flask-socketio',
+    'flask-pymongo',
+    'iso8601'
 ]
 
 install_dependencies = [
@@ -32,11 +51,19 @@ install_dependencies = [
     'pygments>=2.4.1',
     'six>=1.11.0',
     'wcwidth>=0.1.7',
-    'astor>=0.7.1',
-    'jedi>=0.13.2',
+    'astor',
+    'prompt_toolkit',
+    'jedi',
     'cloudpickle>=0.6.1',
-    'PyYAML>=3.13'
-]
+    'PyYAML>=3.13',
+    'psutil',
+    'pymongo'
+] + webui_dependencies
+
+def ninja_installed():
+    # check whether ninja is on the path
+    from distutils.spawn import find_executable
+    return find_executable('ninja') is not None
 
 def find_files(pattern, path):
     result = []
@@ -46,6 +73,17 @@ def find_files(pattern, path):
                 result.append(os.path.join(root, name))
     return result
 
+def remove_temp_files(build_dir):
+    """
+    remove temp cmake files but LEAVE files necessary to run ctest.
+    """
+    paths = set(os.listdir(build_dir)) - {'dist', 'test', 'CTestTestfile.cmake'}
+    paths = map(lambda name: os.path.join(build_dir, name), paths)
+    for path in paths:
+        if os.path.isfile(path):
+            os.remove(path)
+        else:
+            shutil.rmtree(path)
 
 # Convert distutils Windows platform specifiers to CMake -A arguments
 PLAT_TO_CMAKE = {
@@ -55,7 +93,6 @@ PLAT_TO_CMAKE = {
     "win-arm64": "ARM64",
 }
 
-
 # A CMakeExtension needs a sourcedir instead of a file list.
 # The name must be the _single_ output extension from the CMake build.
 # If you need multiple extensions, see scikit-build.
@@ -64,10 +101,10 @@ class CMakeExtension(Extension):
         Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
 
-
 class CMakeBuild(build_ext):
 
     def build_extension(self, ext):
+
         ext_filename = str(ext.name)
         ext_filename = ext_filename[ext_filename.rfind('.') + 1:]  # i.e. this is "tuplex"
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
@@ -180,8 +217,10 @@ class CMakeBuild(build_ext):
             # Users can override the generator with CMAKE_GENERATOR in CMake
             # 3.15+.
             if not cmake_generator:
-                cmake_args += ["-GNinja"]
 
+                # yet, check if Ninja exists...
+                if ninja_installed():
+                    cmake_args += ["-GNinja"]
         else:
 
             # Single config generators are handled "normally"
@@ -215,20 +254,64 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
-        if os.environ.get('CIBUILDWHEEL', '0') == '1':
-            # on cibuildwheel b.c. manylinux2014 does not have python shared objects, build
-            # only tuplex target (the python shared object)
+        ## on cibuildwheel b.c. manylinux2014 does not have python shared objects, build
+        ## only tuplex target (the python shared object)
+        #if os.environ.get('CIBUILDWHEEL', '0') == '1':
+
+        # because the goal of setup.py is to only build the package, build only target tuplex.
+        # changed from before.
+
+        def parse_bool_option(key):
+            val = os.environ.get(key, None)
+            if not val:
+                return False
+            if val.lower() == 'on' or val.lower() == 'yes' or val.lower() == 'true' or val.lower() == '1':
+                return True
+            if val.lower() == 'off' or val.lower() == 'no' or val.lower() == 'false' or val.lower() == '0':
+                return True
+            return False
+
+
+        BUILD_ALL = parse_bool_option('TUPLEX_BUILD_ALL')
+        if BUILD_ALL is True:
+            # build everything incl. all google tests...
+            logging.info('Building all Tuplex targets (incl. tests)...')
+        else:
+            # restrict to shared object only...
+            logging.info('Building only shared objects...')
             build_args += ['--target', 'tuplex']
 
         # hack: only run for first invocation!
         if ext_filename == 'tuplex_runtime':
             return
 
-        print('configuring cmake with: {}'.format(' '.join(["cmake", ext.sourcedir] + cmake_args)))
+        # check environment variable CMAKE_ARGS and overwrite whichever args are passed there
+        if len(os.environ.get('CMAKE_ARGS', '')) > 0:
+            extra_args = shlex.split(os.environ['CMAKE_ARGS'])
+
+            print(cmake_args)
+            for arg in extra_args:
+                # cmake option in the style of -D/-G=?
+                m = re.search("-[DG][a-zA-z_]+=", arg)
+                if m:
+                    # search for substring in existing args, if found replace!
+                    idxs = list(filter(lambda t: t[0].lower().strip().startswith(m[0].lower()), zip(cmake_args, range(len(cmake_args)))))
+                    if len(idxs) > 0:
+                        idx = idxs[0][1]
+                        cmake_args[idx] = arg
+                    else:
+                        # append!
+                        cmake_args.append(arg)
+                else:
+                    # append
+                    cmake_args.append(arg)
+
+        logging.info('configuring cmake with: {}'.format(' '.join(["cmake", ext.sourcedir] + cmake_args)))
+        logging.info('compiling with: {}'.format(' '.join(["cmake", "--build", "."] + build_args)))
         subprocess.check_call(
             ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp
         )
-        print('compiling with: {}'.format(' '.join(["cmake", "--build", "."] + build_args)))
+        logging.info('configuration done, workdir={}'.format(self.build_temp))
         subprocess.check_call(
             ["cmake", "--build", "."] + build_args, cwd=self.build_temp
         )
@@ -277,10 +360,19 @@ class CMakeBuild(build_ext):
 
         # run clean, to reclaim space
         # also remove third_party folder, because it is big!
-        print('running cmake clean target to reclaim space')
-        subprocess.check_call(
-            ['cmake', '--build', '.', '--target', 'clean'], cwd=self.build_temp
-        )
+
+        # this will remove test executables as well...
+        if not BUILD_ALL:
+            logging.info('Running cmake clean target to reclaim space')
+            subprocess.check_call(
+                ['cmake', '--build', '.', '--target', 'clean'], cwd=self.build_temp
+            )
+        else:
+            # when build all is hit, preserve test files
+            # i.e. need folders test, dist and CTestTestfile.cmake
+            logging.info('Removing temporary build files, preserving test files...')
+            remove_temp_files(self.build_temp)
+
         subprocess.check_call(
             ['rm', '-rf', 'third_party'], cwd=self.build_temp
         )
@@ -325,6 +417,26 @@ def read_readme():
         long_description = f.read()
         return long_description
 
+def reorg_historyserver():
+    """
+    reorganize historyserver to become part of pip package.
+    """
+    # get absolute path of this file's location
+    import pathlib
+    current_path = pathlib.Path(__file__).parent.resolve()
+    assert os.path.exists(os.path.join(current_path, 'tuplex', 'historyserver')), 'Could not find historyserver root dir'
+
+    # copy all the files from history server to directory historyserver under tuplex/python
+    src_path = os.path.join(current_path, 'tuplex', 'historyserver')
+    dst_path = os.path.join(current_path, 'tuplex', 'python', 'tuplex', 'historyserver')
+    distutils.dir_util.copy_tree(src_path, dst_path)
+
+    # at-exit, delete
+    def remove_history():
+        shutil.rmtree(dst_path)
+    atexit.register(remove_history)
+
+    return []
 
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
@@ -337,11 +449,14 @@ setup(name="tuplex",
                 "together with a query compiler featuring whole-stage code generation and optimization.",
     long_description=read_readme(),
     long_description_content_type='text/markdown',
-    packages=discover_packages(where="tuplex/python"),
+    packages=reorg_historyserver() + discover_packages(where="tuplex/python"),
     package_dir={"": "tuplex/python"},
     package_data={
       # include libs in libexec
-    'tuplex.libexec' : ['*.so', '*.dylib']
+    'tuplex.libexec' : ['*.so', '*.dylib'],
+        'tuplex.historyserver': ['thserver/templates/*.html', 'thserver/static/css/*.css', 'thserver/static/css/styles/*.css',
+                                 'thserver/static/img/*.*', 'thserver/static/js/*.js', 'thserver/static/js/modules/*.js',
+                                 'thserver/static/js/styles/*.css']
     },
     ext_modules=[CMakeExtension("tuplex.libexec.tuplex", "tuplex"), CMakeExtension("tuplex.libexec.tuplex_runtime", "tuplex")],
     cmdclass={"build_ext": CMakeBuild},
@@ -376,6 +491,7 @@ setup(name="tuplex",
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
     ],
+    scripts=['tuplex/historyserver/bin/tuplex-webui'],
     project_urls={
         "Bug Tracker": "https://github.com/tuplex",
         "Documentation": "https://tuplex.cs.brown.edu/python-api.html",

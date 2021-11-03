@@ -553,7 +553,7 @@ namespace codegen {
          */
         void assignForLoopVariablesAndGenerateLoopBody(NFor *forStmt, const python::Type &targetType,
                                                        const python::Type &exprType,
-                                                       const std::vector<NIdentifier *> &loopVal,
+                                                       const std::vector<std::pair<NIdentifier *, python::Type>> &loopVal,
                                                        const SerializableValue &exprAlloc,
                                                        llvm::Value *curr);
 

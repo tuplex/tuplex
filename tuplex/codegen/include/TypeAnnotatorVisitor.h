@@ -116,7 +116,7 @@ namespace tuplex {
         // indices of samples that will raise normal case violation
         std::set<size_t> _normalCaseViolationSampleIndices;
         // each vector contains symbols that need to be tracked for type stability for the current loop
-        std::vector<std::vector<std::string>> _symbolsTypeChangeStack;
+        size_t _ongoingLoopCount;
 
 
     public:
@@ -126,17 +126,18 @@ namespace tuplex {
             _annotationLookup.clear();
             _funcReturnTypes.clear();
             IFailable::reset();
-            _symbolsTypeChangeStack.clear();
             _normalCaseViolationSampleIndices.clear();
             _loopTypeChange = false;
             _totalSampleCount = 0;
+            _ongoingLoopCount = 0;
         }
 
         explicit TypeAnnotatorVisitor(SymbolTable& symbolTable,
                                       bool allowNumericTypeUnification): _symbolTable(symbolTable),
                                                                          _allowNumericTypeUnification(allowNumericTypeUnification),
                                                                          _loopTypeChange(false),
-                                                                         _totalSampleCount(0) {
+                                                                         _totalSampleCount(0),
+                                                                         _ongoingLoopCount(0) {
             init();
         }
 

@@ -1168,16 +1168,11 @@ namespace tuplex {
     }
 
     void TypeAnnotatorVisitor::assignHelper(NIdentifier *id, python::Type type) {
-        if(!_symbolsTypeChangeStack.empty() && !_loopTypeChange) {
+        if(_ongoingLoopCount != 0 && !_loopTypeChange) {
             // check potential type change during loops
-            for (const auto &symbols : _symbolsTypeChangeStack) {
-                if(std::find(symbols.begin(), symbols.end(), id->_name) != symbols.end()) {
-                    // id is created before the current loop, id must be in name table as well
-                    if(type != _nameTable.at(id->_name)) {
-                        error("variable " + id->_name + " created before loop changed type from " + _nameTable.at(id->_name).desc() + " to " + type.desc() + ", traced typing needed to determine if the type change is stable");
-                        _loopTypeChange = true;
-                    }
-                }
+            if(_nameTable.find(id->_name) != _nameTable.end() && type != _nameTable.at(id->_name)) {
+                error("variable " + id->_name + " changed type during loop from " + _nameTable.at(id->_name).desc() + " to " + type.desc() + ", traced typing needed to determine if the type change is stable");
+                _loopTypeChange = true;
             }
         }
 
@@ -1596,24 +1591,6 @@ namespace tuplex {
         auto targetASTType = forelse->target->type();
 
         assert(targetASTType == ASTNodeType::Identifier || targetASTType == ASTNodeType::Tuple || targetASTType == ASTNodeType::List);
-
-        bool speculation = forelse->hasAnnotation() && forelse->annotation().numTimesVisited > 0;
-        bool typeUnstable = speculation && double(forelse->annotation().typeChangedAndUnstableCount) / double(forelse->annotation().numTimesVisited) > 0.5;
-        bool skipLoopBody = speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > 0.5;
-        bool unrollFirstIteration = !typeUnstable && !skipLoopBody && forelse->annotation().typeChangedAndStableCount > forelse->annotation().typeStableCount;
-        if(!speculation) {
-            // check for type change
-            // get names of all variables created before loop (since variables created inside loop won't matter)
-            std::vector<std::string> varBeforeLoop;
-            for (const auto &symbol : _nameTable) {
-                varBeforeLoop.push_back(symbol.first);
-            }
-            _symbolsTypeChangeStack.push_back(varBeforeLoop);
-        } else if(typeUnstable) {
-            // type unstable for majority: use fallback
-            addCompileError(CompileError::TYPE_ERROR_TYPE_UNSTABLE_IN_LOOP);
-        }
-
         if(targetASTType == ASTNodeType::Identifier) {
             // target is identifier
             // expression can be list, string, range, or iterator
@@ -1687,6 +1664,18 @@ namespace tuplex {
             fatal_error("unsupported AST node encountered in NFor");
         }
 
+        bool speculation = forelse->hasAnnotation() && forelse->annotation().numTimesVisited > 0;
+        bool typeUnstable = speculation && double(forelse->annotation().typeChangedAndUnstableCount) / double(forelse->annotation().numTimesVisited) > 0.5;
+        bool skipLoopBody = speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > 0.5;
+        bool unrollFirstIteration = !typeUnstable && !skipLoopBody && forelse->annotation().typeChangedAndStableCount > forelse->annotation().typeStableCount;
+        if(!speculation) {
+            // check for type change
+            _ongoingLoopCount++;
+        } else if(typeUnstable) {
+            // type unstable for majority: use fallback
+            addCompileError(CompileError::TYPE_ERROR_TYPE_UNSTABLE_IN_LOOP);
+        }
+
         if(!(speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > 0.5)) {
             // if loop never runs for majority through tracing, do not annotate loop body
             forelse->suite_body->accept(*this);
@@ -1698,7 +1687,7 @@ namespace tuplex {
         }
 
         if(!speculation) {
-            _symbolsTypeChangeStack.pop_back();
+            _ongoingLoopCount--;
         }
 
         if(forelse->suite_else) {
@@ -1717,12 +1706,7 @@ namespace tuplex {
         bool unrollFirstIteration = !typeUnstable && !skipLoopBody && whileStmt->annotation().typeChangedAndStableCount > whileStmt->annotation().typeStableCount;
         if(!speculation) {
             // check for type change
-            // get names of all variables created before loop (since variables created inside loop won't matter)
-            std::vector<std::string> varBeforeLoop;
-            for (const auto &symbol : _nameTable) {
-                varBeforeLoop.push_back(symbol.first);
-            }
-            _symbolsTypeChangeStack.push_back(varBeforeLoop);
+            _ongoingLoopCount++;
         } else if(typeUnstable) {
             // type unstable for majority: use fallback
             addCompileError(CompileError::TYPE_ERROR_TYPE_UNSTABLE_IN_LOOP);
@@ -1739,7 +1723,7 @@ namespace tuplex {
         }
 
         if(!speculation) {
-            _symbolsTypeChangeStack.pop_back();
+            _ongoingLoopCount--;
         }
 
         if(whileStmt->suite_else) {

@@ -5146,14 +5146,14 @@ namespace tuplex {
             auto exprType = forStmt->expression->getInferredType();
             auto targetType = forStmt->target->getInferredType();
             auto targetASTType = forStmt->target->type();
-            std::vector<NIdentifier*> loopVal;
+            std::vector<std::pair<NIdentifier*, python::Type>> loopVal;
             if(targetASTType == ASTNodeType::Identifier) {
                 auto id = static_cast<NIdentifier*>(forStmt->target);
-                loopVal.push_back(id);
+                loopVal.emplace_back(id, id->getInferredType());
             } else if(targetASTType == ASTNodeType::Tuple || targetASTType == ASTNodeType::List) {
                 auto idTuple = getForLoopMultiTarget(forStmt->target);
                 loopVal.resize(idTuple.size());
-                std::transform(idTuple.begin(), idTuple.end(), loopVal.begin(), [](ASTNode* x){return static_cast<NIdentifier*>(x);});
+                std::transform(idTuple.begin(), idTuple.end(), loopVal.begin(), [](ASTNode* x){return std::make_pair(static_cast<NIdentifier*>(x), x->getInferredType());});
             } else {
                 fatal_error("Unsupported target type");
             }
@@ -5365,7 +5365,7 @@ namespace tuplex {
         void
         BlockGeneratorVisitor::assignForLoopVariablesAndGenerateLoopBody(NFor *forStmt, const python::Type &targetType,
                                                                          const python::Type &exprType,
-                                                                         const std::vector<NIdentifier *> &loopVal,
+                                                                         const std::vector<std::pair<NIdentifier *, python::Type>> &loopVal,
                                                                          const SerializableValue &exprAlloc,
                                                                          llvm::Value *curr) {
             auto builder = _lfb->getLLVMBuilder();
@@ -5424,7 +5424,7 @@ namespace tuplex {
                             // multiple identifiers, add each value in list to stack in reverse order
                             for (int i = loopVal.size() - 1; i >= 0 ; --i) {
                                 auto idVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(currVal.val, {2}), _env->i32Const(i)));
-                                auto idType = loopVal[i]->getInferredType();
+                                auto idType = loopVal[i].second;
                                 if(idType == python::Type::I64 || targetType == python::Type::F64) {
                                     addInstruction(idVal, _env->i64Const(8));
                                 } else if(idType == python::Type::BOOLEAN) {
@@ -5463,7 +5463,7 @@ namespace tuplex {
             if(exprType != python::Type::EMPTYLIST && exprType != python::Type::EMPTYITERATOR) {
                 // assign value for each identifier in target
                 for (const auto & id : loopVal) {
-                    assignToSingleVariable(id, id->getInferredType());
+                    assignToSingleVariable(id.first, id.second);
                 }
                 // codegen for body
                 forStmt->suite_body->accept(*this);
@@ -5497,7 +5497,7 @@ namespace tuplex {
             bool skipLoopBody = typeChange && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > 0.5;
             bool unrollFirstIteration = !skipLoopBody && whileStmt->annotation().typeChangedAndStableCount > whileStmt->annotation().typeStableCount;
 
-            // isFirstIteration: true before first iteration complete
+            // isFirstIteration: true before first iteration completes
             auto isFirstIterationPtr = _env->CreateFirstBlockAlloca(builder, _env->i1Type(), "firstIterationCompleted");
             builder.CreateStore(_env->i1Const(true), isFirstIterationPtr);
 
@@ -5505,6 +5505,7 @@ namespace tuplex {
             if(unrollFirstIteration) {
                 // run first iteration separately
                 _logger.debug("first iteration of while loop unrolled to allow type-stability during loop");
+                _loopBodyIdentifiersStack.emplace_back(std::set<NIdentifier *>());
                 // emit condition expression
                 whileStmt->expression->accept(*this);
                 if(earlyExit()) {
@@ -5523,7 +5524,6 @@ namespace tuplex {
                 builder.CreateStore(_env->i1Const(false), isFirstIterationPtr);
                 _lfb->setLastBlock(builder.GetInsertBlock());
                 // loop body
-                _loopBodyIdentifiersStack.emplace_back(std::set<NIdentifier *>());
                 whileStmt->suite_body->accept(*this);
                 // update variables in loop body to stabilized types
                 // so that in the rest of iterations types are stable

@@ -508,7 +508,7 @@ if(Python3_FOUND)
     # check if headers/libs are set.
     # at least set headers!
     # distutils.sysconfig.get_python_inc
-    if(NOT Python3_INCLUDE_DIRS OR ${Python3_INCLUDE_DIRS} STREQUAL "")
+    if("${Python3_INCLUDE_DIRS}" STREQUAL "")
         execute_process (COMMAND "${Python3_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_path('include'))"
                 RESULT_VARIABLE _result
                 OUTPUT_VARIABLE Python3_INCLUDE_DIRS

@@ -167,75 +167,17 @@ namespace tuplex {
 
             v.shrink_to_fit();
             return v;
+        } else {
+            // fallback solution:
+            // @TODO: write faster version with proper merging!
+
+             std::vector<Row> v;
+             while (hasNextRow() && v.size() < limit) {
+                 v.push_back(getNextRow());
+             }
+             v.shrink_to_fit();
+             return v;
         }
-
-
-        for(size_t i = 0; i < limit; ++i) {
-
-            // merge rows from objects
-            if(!_pyobjects.empty()) {
-                auto row_number = std::get<0>(_pyobjects.front());
-                auto obj = std::get<1>(_pyobjects.front());
-
-                // partitions empty?
-                // => simply return next row. no fancy merging possible
-                // else merge based on row number.
-                if(_partitions.empty() || row_number <= _totalRowCounter) {
-                    // merge
-                    python::lockGIL();
-                    auto row = python::pythonToRow(obj);
-                    python::unlockGIL();
-                    _pyobjects.pop_front();
-                    _rowsRetrieved++;
-
-                    // update row counter (not for double indices which could occur from flatMap!)
-                    if(_pyobjects.empty())
-                        _totalRowCounter++;
-                    else {
-                        auto next_row_number = std::get<0>(_pyobjects.front());
-                        if(next_row_number != row_number)
-                            _totalRowCounter++;
-                    }
-
-                    v.push_back(row);
-                    continue;
-                }
-            }
-
-            // check whether entry is available, else continue (there may be still pyobjects!)
-            if(_partitions.empty())
-                continue;
-
-            assert(_partitions.size() > 0);
-            Partition *first = _partitions.front();
-
-            // make sure partition schema matches stored schema
-            assert(_schema == first->schema());
-
-            Deserializer ds(_schema);
-
-            // thread safe version (slow)
-            // get next element of partition
-            const uint8_t* ptr = first->lock();
-            auto row = Row::fromMemory(ds, ptr + _byteCounter, first->capacity() - _byteCounter);
-            v.push_back(row);
-
-            // thread safe version (slow)
-            // deserialize
-            first->unlock();
-
-            _byteCounter += row.serializedLength();
-            _curRowCounter++;
-            _rowsRetrieved++;
-            _totalRowCounter++;
-
-            // get next Partition ready when current one is exhausted
-            if(_curRowCounter == first->getNumRows())
-                removeFirstPartition();
-        }
-
-        v.shrink_to_fit();
-        return v;
     }
 
     Row ResultSet::getNextRow() {

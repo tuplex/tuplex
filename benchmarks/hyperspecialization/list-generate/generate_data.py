@@ -92,7 +92,7 @@ def main():
             print(f'invalid type: {x}, expected one of: string float int')
             exit(0)
     
-    dist_str = ''.join([name[0] for name in args.distributions])
+    dist_str = ''.join([name for name in args.distributions])
     filename = f'{args.num_lists}_{args.length}_{"".join(args.types)}_{dist_str}.csv'
 
     with open(filename, 'w') as f:

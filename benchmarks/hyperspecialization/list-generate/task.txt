@@ -1,2 +1,1 @@
-- generate lists of lists, varying based on size, type, and unique elements
-
+- plot length of each row vs runtime for both baseline and cpp

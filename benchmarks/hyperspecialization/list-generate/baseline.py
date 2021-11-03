@@ -57,6 +57,10 @@ def main():
     # print(randlist)
 
     simple_func_for_loop(randlist)
+    # simple_func_for_loop(randlist)
+
+    # simple_func_list_comprehension(randlist)
+
 
 if __name__ == "__main__":
     main()

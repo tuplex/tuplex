@@ -31,6 +31,17 @@
 
 namespace tuplex {
 
+
+    void freeTasks(std::vector<IExecutorTask*>& tasks) {
+        // delete tasks
+        for(auto& task : tasks) {
+            // delete task
+            delete task;
+            task = nullptr;
+        }
+        tasks.clear();
+    }
+
     LocalBackend::LocalBackend(const tuplex::ContextOptions &options) : _compiler(nullptr), _options(options) {
 
         // initialize driver
@@ -1051,7 +1062,7 @@ namespace tuplex {
                 if(completedTasks.empty()) {
                     tstage->setHashResult(nullptr, nullptr);
                 } else {
-                    auto hsink = createFinalHashmap(completedTasks, tstage->hashtableKeyByteWidth(), combineOutputHashmaps);
+                    auto hsink = createFinalHashmap({completedTasks.cbegin(), completedTasks.cend()}, tstage->hashtableKeyByteWidth(), combineOutputHashmaps);
                     tstage->setHashResult(hsink.hm, hsink.null_bucket);
                 }
                 break;
@@ -1117,6 +1128,8 @@ namespace tuplex {
             Logger::instance().defaultLogger().info(ss.str());
         }
 
+        freeTasks(completedTasks);
+
         // info how long the trafo stage took
         std::stringstream ss;
         ss<<"[Transform Stage] Stage "<<tstage->number()<<" took "<<stageTimer.time()<<"s";
@@ -1141,7 +1154,7 @@ namespace tuplex {
 
             // special case: create a global hash output result and put it into the FIRST resolve task.
             Timer timer;
-            hsink = createFinalHashmap(tasks, tstage->hashtableKeyByteWidth(), combineHashmaps);
+            hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()}, tstage->hashtableKeyByteWidth(), combineHashmaps);
             logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
             hasNormalHashSink = true;
         }
@@ -1800,17 +1813,17 @@ namespace tuplex {
     }
 
 
-    HashTableSink getHashSink(IExecutorTask* exec_task) {
+    HashTableSink getHashSink(const IExecutorTask* exec_task) {
         if(!exec_task)
             return HashTableSink();
 
         switch(exec_task->type()) {
             case TaskType::UDFTRAFOTASK: {
-                auto task = dynamic_cast<TransformTask*>(exec_task); assert(task);
+                auto task = dynamic_cast<const TransformTask*>(exec_task); assert(task);
                 return task->hashTableSink();
             }
             case TaskType::RESOLVE: {
-                auto task = dynamic_cast<ResolveTask*>(exec_task); assert(task);
+                auto task = dynamic_cast<const ResolveTask*>(exec_task); assert(task);
                 return task->hashTableSink();
             }
             default:
@@ -1818,7 +1831,7 @@ namespace tuplex {
         }
     }
 
-    HashTableSink LocalBackend::createFinalHashmap(std::vector<IExecutorTask*>& tasks, int hashtableKeyByteWidth, bool combine) {
+    HashTableSink LocalBackend::createFinalHashmap(const std::vector<const IExecutorTask*>& tasks, int hashtableKeyByteWidth, bool combine) {
         if(tasks.empty()) {
             HashTableSink sink;
             if(hashtableKeyByteWidth == 8) sink.hm = int64_hashmap_new();
@@ -1863,12 +1876,10 @@ namespace tuplex {
                     }
                 }
 
-                if(hashtableKeyByteWidth == 8) int64_hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
-                else hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
-
-                // delete task
-//                delete tasks[i];
-//                tasks[i] = nullptr;
+                if(hashtableKeyByteWidth == 8)
+                    int64_hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
+                else
+                    hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
             }
             return sink;
         }

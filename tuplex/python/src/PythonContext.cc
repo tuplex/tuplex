@@ -1422,4 +1422,9 @@ namespace tuplex {
         Logger::instance().logger("filesystem").info("removed files in " + std::to_string(timer.time()) +"s");
         Logger::instance().flushAll();
     }
+
+    std::string getDefaultOptionsAsJSON() {
+        ContextOptions co = ContextOptions::defaults();
+        return co.asJSON();
+    }
 }

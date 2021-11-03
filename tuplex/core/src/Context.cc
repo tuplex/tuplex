@@ -262,7 +262,7 @@ namespace tuplex {
             numPartitions++;
             int numWrittenRowsInPartition = 0;
             if(!partition)
-                return makeError("no memory left to hold data");
+                return makeError("no memory left to hold data in driver memory");
 
             uint8_t* base_ptr = (uint8_t*)partition->lock();
 

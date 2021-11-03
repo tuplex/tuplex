@@ -119,6 +119,12 @@ namespace tuplex {
         }
 
         /*!
+         * return options as JSON string (string,string keys)
+         * @return JSON
+         */
+        std::string asJSON() const;
+
+        /*!
          * saves current configuration object to yaml file
          * @param uri path where to store the data
          * @param overwrite whether to overwrite the file

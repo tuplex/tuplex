@@ -1,19 +1,8 @@
-#!/usr/bin/env python3
-#----------------------------------------------------------------------------------------------------------------------#
-#                                                                                                                      #
-#                                       Tuplex: Blazing Fast Python Data Science                                       #
-#                                                                                                                      #
-#                                                                                                                      #
-#  (c) 2017 - 2021, Tuplex team                                                                                        #
-#  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
-#  License: Apache 2.0                                                                                                 #
-#----------------------------------------------------------------------------------------------------------------------#
-
 from thserver import app
 from thserver.database import *
 from thserver.config import *
 from thserver.common import current_utc_string, string_to_utc
-from thserver.rest import get_jobs
+from thserver.rest import get_jobs, get_job
 from thserver.version import __version__
 from flask import render_template, request, abort, jsonify, make_response
 
@@ -77,9 +66,7 @@ def _jinja2_filter_humanizetime(dt, fmt=None):
     Args:
         dt:
         fmt:
-
     Returns:
-
     """
 
     days = int(dt / 86400)
@@ -185,13 +172,20 @@ def showplan():
 
     return render_template('job_plan.html', **kwargs)
 
+def fix(a):
+    ret = ""
+    for b in a:
+        ret += "Stage " + str(b) + ","
+    return ret[:-1]
+
 @app.route('/ui/job', methods=['GET'])
 def showjob():
 
     job_id = request.args.get('id')
 
     # fetch job from mongo db
-    job = Job(job_id).get()
+    # job = Job(job_id).get()
+    job = get_job(job_id)
 
     if not job:
         # show job not found page
@@ -207,7 +201,11 @@ def showjob():
                   'mapColumn': 'map',
                   'selectColumns': 'map',
                   'resolve': 'resolve',
-                  'filter': 'filter'}
+                  'filter': 'filter',
+                  'aggregate_by_key': 'aggregate',
+                  'aggregate': 'aggregate',
+                  'join': 'join',
+                  'left_join': 'join'}
 
     operators = job['operators']
 
@@ -249,10 +247,16 @@ def showjob():
         # find stage in job['stages']
         if i in stage_info.keys():
             ncount = stage_info[i]['ncount']
-            ecount = stage_info[i]['ecount']
+            # ecount = stage_info[i]['ecount']
+            ecount = 0
+            a = stages[i]
+            for idx, _ in enumerate(stages[i]):
+                ecount += stages[i][idx]['ecount']
             sorted_stages.append({'number': i,
                                   'operators': list(sorted(stages[i], key=lambda op: op['idx'])),
                                   'ncount': ncount, 'ecount': ecount})
+            if i != 0:
+                sorted_stages[i]['dependencies'] = fix(stage_info[i]["predecessors"])
         else:
             sorted_stages.append({'number' : i,
                                   'operators' : list(sorted(stages[i], key=lambda op: op['idx']))})

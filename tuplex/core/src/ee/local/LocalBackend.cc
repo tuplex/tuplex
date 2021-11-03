@@ -31,6 +31,17 @@
 
 namespace tuplex {
 
+
+    void freeTasks(std::vector<IExecutorTask*>& tasks) {
+        // delete tasks
+        for(auto& task : tasks) {
+            // delete task
+            delete task;
+            task = nullptr;
+        }
+        tasks.clear();
+    }
+
     LocalBackend::LocalBackend(const tuplex::ContextOptions &options) : _compiler(nullptr), _options(options) {
 
         // initialize driver
@@ -105,29 +116,27 @@ namespace tuplex {
     void LocalBackend::execute(tuplex::PhysicalStage *stage) {
         assert(stage);
 
-        // reset history server
-        _historyServer.reset();
-
         if(!stage)
             return;
 
         // history server connection should be established
         bool useWebUI = _options.USE_WEBUI();
         // register new job
-        if(useWebUI) {
+        // checks if we should use the WebUI and if we are starting a new
+        // job (hence there are no stages that come before the current stage
+        // we are executing).
+        if(useWebUI && stage->predecessors().empty()) {
+            _historyServer.reset();
             _historyServer = HistoryServerConnector::registerNewJob(_historyConn,
                     "local backend", stage->plan(), _options);
             if(_historyServer) {
                 logger().info("track job under " + _historyServer->trackURL());
-                _historyServer->sendStatus(JobStatus::SCHEDULED);
+                _historyServer->sendStatus(JobStatus::STARTED);
             }
-
+            stage->setHistoryServer(_historyServer);
             // attach to driver as well
             _driver->setHistoryServer(_historyServer.get());
         }
-
-        if(_historyServer)
-            _historyServer->sendStatus(JobStatus::STARTED);
 
         // check what type of stage it is
         auto tstage = dynamic_cast<TransformStage*>(stage);
@@ -140,12 +149,13 @@ namespace tuplex {
         } else
             throw std::runtime_error("unknown stage encountered in local backend!");
 
-        // detach from driver
-        _driver->setHistoryServer(nullptr);
-
         // send final message to history server to signal job ended
-        if(_historyServer) {
+        // checks whether the historyserver has been set as well as
+        // if all stages have been iterated through (we are currently on the
+        // last stage) because this means the job is finished.
+        if(_historyServer && stage->predecessors().size() == stage->plan()->getNumStages() - 1) {
             _historyServer->sendStatus(JobStatus::FINISHED);
+            _driver->setHistoryServer(nullptr);
         }
     }
 
@@ -1052,7 +1062,7 @@ namespace tuplex {
                 if(completedTasks.empty()) {
                     tstage->setHashResult(nullptr, nullptr);
                 } else {
-                    auto hsink = createFinalHashmap(completedTasks, tstage->hashtableKeyByteWidth(), combineOutputHashmaps);
+                    auto hsink = createFinalHashmap({completedTasks.cbegin(), completedTasks.cend()}, tstage->hashtableKeyByteWidth(), combineOutputHashmaps);
                     tstage->setHashResult(hsink.hm, hsink.null_bucket);
                 }
                 break;
@@ -1098,10 +1108,17 @@ namespace tuplex {
 
         // send final result count (exceptions + co)
         if(_historyServer) {
-            auto rs = tstage->resultSet();
-            assert(rs);
+            size_t numOutputRows = 0;
+            if (tstage->outputMode() == EndPointMode::HASHTABLE) {
+                for (const auto& task : completedTasks) {
+                    numOutputRows += task->getNumOutputRows();
+                }
+            } else {
+                auto rs = tstage->resultSet();
+                assert(rs);
+                numOutputRows = rs->rowCount();
+            }
             auto ecounts = tstage->exceptionCounts();
-            auto numOutputRows = rs->rowCount();
             _historyServer->sendStageResult(tstage->number(), numInputRows, numOutputRows, ecounts);
         }
 
@@ -1110,6 +1127,8 @@ namespace tuplex {
             ss<<"[Transform Stage] Stage "<<tstage->number()<<" completed "<<completedTasks.size()<<" sink tasks in "<<timer.time()<<"s";
             Logger::instance().defaultLogger().info(ss.str());
         }
+
+        freeTasks(completedTasks);
 
         // info how long the trafo stage took
         std::stringstream ss;
@@ -1135,7 +1154,7 @@ namespace tuplex {
 
             // special case: create a global hash output result and put it into the FIRST resolve task.
             Timer timer;
-            hsink = createFinalHashmap(tasks, tstage->hashtableKeyByteWidth(), combineHashmaps);
+            hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()}, tstage->hashtableKeyByteWidth(), combineHashmaps);
             logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
             hasNormalHashSink = true;
         }
@@ -1794,17 +1813,17 @@ namespace tuplex {
     }
 
 
-    HashTableSink getHashSink(IExecutorTask* exec_task) {
+    HashTableSink getHashSink(const IExecutorTask* exec_task) {
         if(!exec_task)
             return HashTableSink();
 
         switch(exec_task->type()) {
             case TaskType::UDFTRAFOTASK: {
-                auto task = dynamic_cast<TransformTask*>(exec_task); assert(task);
+                auto task = dynamic_cast<const TransformTask*>(exec_task); assert(task);
                 return task->hashTableSink();
             }
             case TaskType::RESOLVE: {
-                auto task = dynamic_cast<ResolveTask*>(exec_task); assert(task);
+                auto task = dynamic_cast<const ResolveTask*>(exec_task); assert(task);
                 return task->hashTableSink();
             }
             default:
@@ -1812,7 +1831,7 @@ namespace tuplex {
         }
     }
 
-    HashTableSink LocalBackend::createFinalHashmap(std::vector<IExecutorTask*>& tasks, int hashtableKeyByteWidth, bool combine) {
+    HashTableSink LocalBackend::createFinalHashmap(const std::vector<const IExecutorTask*>& tasks, int hashtableKeyByteWidth, bool combine) {
         if(tasks.empty()) {
             HashTableSink sink;
             if(hashtableKeyByteWidth == 8) sink.hm = int64_hashmap_new();
@@ -1857,12 +1876,10 @@ namespace tuplex {
                     }
                 }
 
-                if(hashtableKeyByteWidth == 8) int64_hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
-                else hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
-
-                // delete task
-                delete tasks[i];
-                tasks[i] = nullptr;
+                if(hashtableKeyByteWidth == 8)
+                    int64_hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
+                else
+                    hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
             }
             return sink;
         }

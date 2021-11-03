@@ -52,6 +52,12 @@ RUN python3.10 -m pip install cloudpickle # numpy # pandas
 # tuplex requirements
 RUN bash /opt/sbin/install_tuplex_reqs.sh
 
+
+## MongoDB community edition for WebUI testing
+ADD mongodb-org-5.0.repo /etc/yum.repos.d/mongodb-org-5.0.repo
+RUN yum update -y && yum install -y mongodb-org
+
+
 # remove all the tmp stuff
 RUN rm -rf /tmp/*
 

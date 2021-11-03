@@ -13,7 +13,7 @@ import ast
 import astor
 import os
 from types import LambdaType, CodeType
-
+import logging
 
 def supports_lambda_closure():
     """
@@ -58,7 +58,8 @@ def gen_code_for_lambda(lam):
             s = s.replace('lambda :', 'lambda:')
 
         return s.strip()[1:-1]
-    except:
+    except Exception as e:
+        logging.debug('gen_code_for_lambda failed with {}'.format(e))
         return ''
 
 

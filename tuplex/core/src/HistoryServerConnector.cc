@@ -99,7 +99,6 @@ namespace tuplex {
         return hsc;
     }
 
-
     std::shared_ptr<HistoryServerConnector> HistoryServerConnector::registerNewJob(const tuplex::HistoryServerConnection &conn,
                                                                   const std::string &contextName,
                                                                   const PhysicalPlan* plan,
@@ -147,6 +146,32 @@ namespace tuplex {
         json obj;
         obj["job"] = job;
 
+        // add operators...
+        std::vector<json> ops;
+        assert(plan);
+        plan->foreachStage([&](const PhysicalStage* stage) {
+            for(auto op: stage->operators()) {
+                json val;
+                val["name"] = op->name();
+                val["id"] = "op" + std::to_string(op->getID());
+                val["columns"] = std::vector<std::string>();
+                val["stageid"] = stage->getID();
+                if(hasUDF(op)) {
+                    UDFOperator *udfop = (UDFOperator*)op;
+                    assert(udfop);
+
+                    val["udf"] = udfop->getUDF().getCode();
+                } else if (op->type() == LogicalOperatorType::AGGREGATE) {
+                    AggregateOperator *udfop = (AggregateOperator*)op;
+                    val["combiner_udf"] = udfop->combinerUDF().getCode();
+                    val["aggregator_udf"] = udfop->aggregatorUDF().getCode();
+                }
+                ops.push_back(val);
+            }
+        });
+
+        obj["operators"] = ops;
+
         // post
         RESTInterface ri;
         auto response = ri.postJSON(base_uri(conn.host, conn.port) + "/api/job", obj.dump());
@@ -182,7 +207,6 @@ namespace tuplex {
         return std::shared_ptr<HistoryServerConnector>(new HistoryServerConnector(conn, jobID, contextName,
                 track_url, options.WEBUI_EXCEPTION_DISPLAY_LIMIT(), plan, maxExceptions));
     }
-
 
     HistoryServerConnector::HistoryServerConnector(const tuplex::HistoryServerConnection &conn,
                                                    const std::string &jobID,
@@ -222,6 +246,25 @@ namespace tuplex {
 //                _reservoirs.emplace_back(reservoir);
 //            }
 //        });
+        assert(plan);
+
+        // go through each stage
+        plan->foreachStage([this](const PhysicalStage* stage) {
+            assert(stage);
+
+            // is trafo stage?
+            const TransformStage* tstage = nullptr;
+            if(tstage = dynamic_cast<const TransformStage*>(stage)) {
+                auto operators = tstage->operators();
+                if(operators.empty())
+                    return;
+                auto reservoir = std::make_shared<TransformStageExceptionReservoir>(tstage, operators, _exceptionDisplayLimit);
+
+                for(const auto& op : operators)
+                    _reservoirLookup[op->getID()] = reservoir;
+                _reservoirs.emplace_back(reservoir);
+            }
+        });
     }
 
     void HistoryServerConnector::sendStatus(tuplex::JobStatus status, unsigned num_open_tasks, unsigned num_finished_tasks) {
@@ -611,6 +654,5 @@ namespace tuplex {
         // get stage processor
         return _reservoirLookup[opID]->getOperatorIndex(opID);
     }
-
 
 }

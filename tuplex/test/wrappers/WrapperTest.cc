@@ -2253,6 +2253,52 @@ TEST_F(WrapperTest, NYC311) {
     }
 }
 
+TEST_F(WrapperTest, MixedTypesIsWithNone) {
+    using namespace tuplex;
+    using namespace std;
+
+    PythonContext c("python", "",  "{\"tuplex.webui.enable\":\"False\", \"tuplex.optimizer.mergeExceptionsInOrder\":\"True\"}");
+
+    PyObject *listObj = PyList_New(8);
+
+    PyList_SetItem(listObj, 0, Py_None);
+    PyList_SetItem(listObj, 1, PyLong_FromLong(255));
+    PyList_SetItem(listObj, 2, PyLong_FromLong(400));
+    PyList_SetItem(listObj, 3, Py_True);
+    PyList_SetItem(listObj, 4, PyFloat_FromDouble(2.7));
+    PyList_SetItem(listObj, 5, PyTuple_New(0)); // empty tuple
+    PyList_SetItem(listObj, 6, PyList_New(0)); // empty list
+    PyList_SetItem(listObj, 7, PyDict_New()); // empty dict
+
+    auto ref = vector<bool>{true, false, false, false, false, false, false, false, false};
+
+    {
+        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto res = c.parallelize(list).map("lambda x: (x, x is None)", "").collect();
+        auto resObj = res.ptr();
+        PyObject_Print(resObj, stdout, 0);
+
+        // convert to list and check
+        ASSERT_TRUE(PyList_Check(resObj));
+        ASSERT_EQ(PyList_Size(resObj), ref.size());
+
+        for(int i = 0; i < ref.size(); ++i) {
+            auto item = PyList_GetItem(resObj, i);
+            ASSERT_TRUE(PyTuple_Check(item));
+
+            auto el0 = PyTuple_GetItem(item, 0);
+            auto el1 = PyTuple_GetItem(item, 1);
+            ASSERT_TRUE(el1 == Py_False || el2 == Py_True);
+            auto el1_true = el1 == Py_True;
+            EXPECT_EQ(el1_true, ref[i]);
+
+            auto cmp_res = PyObject_RichCompare(PyList_GetItem(listObj, i), el0, Py_EQ);
+            ASSERT_TRUE(cmp_res);
+            EXPECT_EQ(cmp_res, Py_True);
+        }
+    }
+}
+
 
 //// debug any python module...
 ///** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.

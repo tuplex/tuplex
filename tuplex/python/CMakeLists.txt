@@ -81,7 +81,6 @@ target_compile_definitions(${MODULE_NAME} PRIVATE PYMODULE=${PYMODULE})
 # Declare the library
 target_link_libraries(${MODULE_NAME}
         ${Boost_LIBRARIES}
-        ${PYTHON_LIBRARIES}
         ${Python3_LIBRARIES}
         libcodegen
         libcore

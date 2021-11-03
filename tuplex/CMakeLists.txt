@@ -498,11 +498,24 @@ if(Python3_FOUND)
         set(Boost_USE_STATIC_LIBS ON)
     endif()
     message(STATUS "Found python${Python3_VERSION} - if you'd like to change a to different python version, use -DPython3_ROOT_DIR=<prefix> or -DPYTHON3_VERSION=<major.minor.micro> or set an environment variable PYTHON3_VERSION")
+
     set(Boost_NO_BOOST_CMAKE ON) # findboost from cmake is buggy and does not work, explicitly disable here
     if(APPLE AND BREW_FOUND) # i.e. boost-python via brew? --> check maybe better in the future...
         set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE) # gets rid off annoying boost warning.
     endif()
     find_package(Boost 1.70 COMPONENTS python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR} ${BOOST_COMPONENTS} REQUIRED)
+
+    # check if headers/libs are set.
+    # at least set headers!
+    # distutils.sysconfig.get_python_inc
+    if(NOT Python3_INCLUDE_DIRS OR ${Python3_INCLUDE_DIRS} STREQUAL "")
+        execute_process (COMMAND "${Python3_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_path('include'))"
+                RESULT_VARIABLE _result
+                OUTPUT_VARIABLE Python3_INCLUDE_DIRS
+                ERROR_QUIET
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+        message(STATUS "Detected Python3 include dir to be ${Python3_INCLUDE_DIRS}")
+    endif()
 
     # use these switches here to specialize Boost behavior
     SET(Boost_USE_STATIC_LIBS OFF)

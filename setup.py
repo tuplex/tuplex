@@ -43,6 +43,9 @@ webui_dependencies = [
     'iso8601'
 ]
 
+# dependencies for AWS Lambda backend...
+aws_lambda_dependencies = ['boto3']
+
 install_dependencies = [
     'attrs>=19.2.0',
     'dill>=0.2.7.1',
@@ -58,7 +61,7 @@ install_dependencies = [
     'PyYAML>=3.13',
     'psutil',
     'pymongo'
-] + webui_dependencies
+] + webui_dependencies + aws_lambda_dependencies
 
 def ninja_installed():
     # check whether ninja is on the path

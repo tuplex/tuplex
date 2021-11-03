@@ -109,6 +109,16 @@ namespace tuplex {
          */
         void annotateIteratorRelatedCalls(const std::string &funcName, NCall* call);
 
+        // total number of samples processed in TraceVisitor
+        size_t _totalSampleCount;
+        // set to true once type change during loop occurs
+        bool _loopTypeChange;
+        // indices of samples that will raise normal case violation
+        std::set<size_t> _normalCaseViolationSampleIndices;
+        // each vector contains symbols that need to be tracked for type stability for the current loop
+        std::vector<std::vector<std::string>> _symbolsTypeChangeStack;
+
+
     public:
 
         void reset() {
@@ -116,11 +126,17 @@ namespace tuplex {
             _annotationLookup.clear();
             _funcReturnTypes.clear();
             IFailable::reset();
+            _symbolsTypeChangeStack.clear();
+            _normalCaseViolationSampleIndices.clear();
+            _loopTypeChange = false;
+            _totalSampleCount = 0;
         }
 
         explicit TypeAnnotatorVisitor(SymbolTable& symbolTable,
                                       bool allowNumericTypeUnification): _symbolTable(symbolTable),
-                                                                         _allowNumericTypeUnification(allowNumericTypeUnification) {
+                                                                         _allowNumericTypeUnification(allowNumericTypeUnification),
+                                                                         _loopTypeChange(false),
+                                                                         _totalSampleCount(0) {
             init();
         }
 
@@ -157,6 +173,7 @@ namespace tuplex {
         void visit(NListComprehension*) override;
 
         void visit(NFor*) override;
+        void visit(NWhile*) override;
 
         TSet<std::string> getMissingIdentifiers() { return _missingIdentifiers; }
     };

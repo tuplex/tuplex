@@ -66,6 +66,10 @@ namespace tuplex {
         // reset possible return types
         _funcReturnTypes.clear();
 
+        if(func->hasAnnotation()) {
+            _totalSampleCount = func->annotation().numTimesVisited;
+        }
+
         // add parameters to current name table
         for(auto& arg : func->_parameters->_args) { // these were hinted upfront!
             auto param = dynamic_cast<NParameter*>(arg);
@@ -1164,6 +1168,19 @@ namespace tuplex {
     }
 
     void TypeAnnotatorVisitor::assignHelper(NIdentifier *id, python::Type type) {
+        if(!_symbolsTypeChangeStack.empty() && !_loopTypeChange) {
+            // check potential type change during loops
+            for (const auto &symbols : _symbolsTypeChangeStack) {
+                if(std::find(symbols.begin(), symbols.end(), id->_name) != symbols.end()) {
+                    // id is created before the current loop, id must be in name table as well
+                    if(type != _nameTable.at(id->_name)) {
+                        error("variable " + id->_name + " created before loop changed type from " + _nameTable.at(id->_name).desc() + " to " + type.desc() + ", traced typing needed to determine if the type change is stable");
+                        _loopTypeChange = true;
+                    }
+                }
+            }
+        }
+
         // it is assign, so set type to value!
         id->setInferredType(type);
 
@@ -1369,9 +1386,29 @@ namespace tuplex {
                 if(numTimesIfVisited >= numTimesElseVisited) {
                     visit_if = true;
                     visit_else = false;
+                    // every sample that takes else branch is now a normal case violation
+                    if(_normalCaseViolationSampleIndices.size() < _totalSampleCount && ifelse->_else) {
+                        auto currNormalCaseViolationSampleIndices = ifelse->_else->annotation().branchTakenSampleIndices;
+                        std::copy(currNormalCaseViolationSampleIndices.begin(), currNormalCaseViolationSampleIndices.end(),
+                                  std::inserter(_normalCaseViolationSampleIndices, _normalCaseViolationSampleIndices.end()));
+                        if(_normalCaseViolationSampleIndices.size() == _totalSampleCount) {
+                            // every sample will end up raising normal case violation, no point to compile the udf
+                            addCompileError(CompileError::COMPILE_ERROR_ALL_SAMPLES_PRODUCE_NORMALCASEVIOLATION);
+                        }
+                    }
                 } else {
                     visit_if = false;
                     visit_else = ifelse->_else != nullptr; // can be also it's a single if statement!
+                    // every sample that takes then branch is now a normal case violation
+                    if(_normalCaseViolationSampleIndices.size() < _totalSampleCount) {
+                        auto currNormalCaseViolationSampleIndices = ifelse->_then->annotation().branchTakenSampleIndices;
+                        std::copy(currNormalCaseViolationSampleIndices.begin(), currNormalCaseViolationSampleIndices.end(),
+                                  std::inserter(_normalCaseViolationSampleIndices, _normalCaseViolationSampleIndices.end()));
+                        if(_normalCaseViolationSampleIndices.size() == _totalSampleCount) {
+                            // every sample will end up raising normal case violation, no point to compile the udf
+                            addCompileError(CompileError::COMPILE_ERROR_ALL_SAMPLES_PRODUCE_NORMALCASEVIOLATION);
+                        }
+                    }
                 }
 
                 // Note: also both can be false in the case of a single if!
@@ -1552,11 +1589,30 @@ namespace tuplex {
         assert(forelse->target);
         assert(forelse->expression);
         assert(forelse->suite_body);
+        setLastParent(forelse);
+
         forelse->expression->accept(*this);
         auto exprType = forelse->expression->getInferredType();
         auto targetASTType = forelse->target->type();
 
         assert(targetASTType == ASTNodeType::Identifier || targetASTType == ASTNodeType::Tuple || targetASTType == ASTNodeType::List);
+
+        bool speculation = forelse->hasAnnotation() && forelse->annotation().numTimesVisited > 0;
+        bool typeUnstable = speculation && double(forelse->annotation().typeChangedAndUnstableCount) / double(forelse->annotation().numTimesVisited) > 0.5;
+        bool skipLoopBody = speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > 0.5;
+        bool unrollFirstIteration = !typeUnstable && !skipLoopBody && forelse->annotation().typeChangedAndStableCount > forelse->annotation().typeStableCount;
+        if(!speculation) {
+            // check for type change
+            // get names of all variables created before loop (since variables created inside loop won't matter)
+            std::vector<std::string> varBeforeLoop;
+            for (const auto &symbol : _nameTable) {
+                varBeforeLoop.push_back(symbol.first);
+            }
+            _symbolsTypeChangeStack.push_back(varBeforeLoop);
+        } else if(typeUnstable) {
+            // type unstable for majority: use fallback
+            addCompileError(CompileError::TYPE_ERROR_TYPE_UNSTABLE_IN_LOOP);
+        }
 
         if(targetASTType == ASTNodeType::Identifier) {
             // target is identifier
@@ -1631,9 +1687,63 @@ namespace tuplex {
             fatal_error("unsupported AST node encountered in NFor");
         }
 
-        forelse->suite_body->accept(*this);
-        if (forelse->suite_else) {
+        if(!(speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > 0.5)) {
+            // if loop never runs for majority through tracing, do not annotate loop body
+            forelse->suite_body->accept(*this);
+
+            if(unrollFirstIteration) {
+                // save a copy of stabilized types
+                forelse->annotation().stabilizedTypes = _nameTable;
+            }
+        }
+
+        if(!speculation) {
+            _symbolsTypeChangeStack.pop_back();
+        }
+
+        if(forelse->suite_else) {
             forelse->suite_else->accept(*this);
+        }
+    }
+
+    void TypeAnnotatorVisitor::visit(NWhile* whileStmt) {
+        assert(whileStmt && whileStmt->expression && whileStmt->suite_body);
+        setLastParent(whileStmt);
+        whileStmt->expression->accept(*this);
+
+        bool speculation = whileStmt->hasAnnotation() && whileStmt->annotation().numTimesVisited > 0;
+        bool typeUnstable = speculation && double(whileStmt->annotation().typeChangedAndUnstableCount) / double(whileStmt->annotation().numTimesVisited) > 0.5;
+        bool skipLoopBody = speculation && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > 0.5;
+        bool unrollFirstIteration = !typeUnstable && !skipLoopBody && whileStmt->annotation().typeChangedAndStableCount > whileStmt->annotation().typeStableCount;
+        if(!speculation) {
+            // check for type change
+            // get names of all variables created before loop (since variables created inside loop won't matter)
+            std::vector<std::string> varBeforeLoop;
+            for (const auto &symbol : _nameTable) {
+                varBeforeLoop.push_back(symbol.first);
+            }
+            _symbolsTypeChangeStack.push_back(varBeforeLoop);
+        } else if(typeUnstable) {
+            // type unstable for majority: use fallback
+            addCompileError(CompileError::TYPE_ERROR_TYPE_UNSTABLE_IN_LOOP);
+        }
+
+        if(!(speculation && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > 0.5)) {
+            // if loop never runs for majority through tracing, do not annotate loop body
+            whileStmt->suite_body->accept(*this);
+
+            if(unrollFirstIteration) {
+                // save a copy of stabilized types
+                whileStmt->annotation().stabilizedTypes = _nameTable;
+            }
+        }
+
+        if(!speculation) {
+            _symbolsTypeChangeStack.pop_back();
+        }
+
+        if(whileStmt->suite_else) {
+            whileStmt->suite_else->accept(*this);
         }
     }
 

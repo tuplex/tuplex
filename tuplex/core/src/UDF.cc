@@ -533,7 +533,7 @@ namespace tuplex {
         // --> notify code generator of that.
         // a.) could either do this by inserting dummy ast nodes, or simply b.) coding it directly up
         if(cg.getRowType() != getOutputSchema().getRowType()) {
-
+            std::cout << "row type is " << cg.getRowType().desc() << " outputshcema is " << getOutputSchema().getRowType().desc() << "!!" << std::endl;
             // is it a primitive or a tuple?
             auto rt = cg.getReturnType();
             python::Type targetType = getOutputSchema().getRowType();
@@ -1333,6 +1333,8 @@ namespace tuplex {
 
         for(auto args : sample)
             tv.recordTrace(funcNode, args);
+        // record the total number of samples (used to check in TypeAnnotatorVisitor if every sample corresponds to a normal case violation)
+        funcNode->annotation().numTimesVisited = sample.size();
         if(acquireGIL)
             python::unlockGIL();
 

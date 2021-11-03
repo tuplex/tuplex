@@ -371,12 +371,15 @@ struct IteratorInfo {
 class ASTAnnotation {
 public:
 
-    ASTAnnotation() : numTimesVisited(0), symbol(nullptr), iMin(0), iMax(0), negativeValueCount(0), positiveValueCount(0), iteratorInfo(nullptr) {}
+    ASTAnnotation() : numTimesVisited(0), symbol(nullptr), iMin(0), iMax(0), negativeValueCount(0), positiveValueCount(0), iteratorInfo(nullptr), typeStableCount(0), typeChangedAndStableCount(0), typeChangedAndUnstableCount(0), zeroIterationCount(0) {}
     ASTAnnotation(const ASTAnnotation& other) : numTimesVisited(other.numTimesVisited), iMin(other.iMin), iMax(other.iMax),
-    negativeValueCount(other.negativeValueCount), positiveValueCount(other.positiveValueCount), symbol(other.symbol), types(other.types), iteratorInfo(other.iteratorInfo) {}
+                                                negativeValueCount(other.negativeValueCount), positiveValueCount(other.positiveValueCount), symbol(other.symbol), types(other.types), iteratorInfo(other.iteratorInfo), branchTakenSampleIndices(other.branchTakenSampleIndices),
+                                                typeStableCount(other.typeStableCount), typeChangedAndStableCount(other.typeChangedAndStableCount), typeChangedAndUnstableCount(other.typeChangedAndUnstableCount), zeroIterationCount(other.zeroIterationCount) {}
 
     ///! how often was node visited? Helpful annotation for if-branches
     size_t numTimesVisited;
+    ///! indices of samples that have taken this then/else branch
+    std::set<size_t> branchTakenSampleIndices;
 
     ///! for integer/double nodes what is min/max range? => can be used for compression
     union {
@@ -399,6 +402,15 @@ public:
 
     ///! iterator-specific info
     std::shared_ptr<IteratorInfo> iteratorInfo;
+
+    ///! annotation for analyzing type-stability
+    size_t typeStableCount; // types are stable from the first to second last iteration (since type change in the last iteration is not a problem)
+    size_t typeChangedAndStableCount; // types changed in the first iteration but remain stable from the second to second last iteration
+    size_t typeChangedAndUnstableCount; // types changed in the first iteration and changed again during the second to second last iteration
+    size_t zeroIterationCount; // how many times the loop body was skipped (e.g. loop body is skipped in "for i in range(0)")
+
+    //! stores stabilized types when first iteration of loop gets unrolled to maintain type stability
+    std::unordered_map<std::string, python::Type> stabilizedTypes;
 
     inline python::Type majorityType() const {
         if(types.empty())

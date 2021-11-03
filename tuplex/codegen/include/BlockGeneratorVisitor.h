@@ -345,6 +345,10 @@ namespace codegen {
         // store current iteration ending block and loop ending block for for and while loops
         std::deque<llvm::BasicBlock*> _loopBlockStack;
 
+        // store variable nodes in first iteration unrolled loop body.
+        // update their types to stabilized types after first iteration
+        std::deque<std::set<NIdentifier *>> _loopBodyIdentifiersStack;
+
         std::shared_ptr<IteratorContextProxy> _iteratorContextProxy;
 
         void init() {
@@ -356,6 +360,10 @@ namespace codegen {
 
             if (!_loopBlockStack.empty()) {
                 _loopBlockStack = std::deque<llvm::BasicBlock*>();
+            }
+
+            if (!_loopBodyIdentifiersStack.empty()) {
+                _loopBodyIdentifiersStack = std::deque<std::set<NIdentifier *>>();
             }
 
 //            assert(_namedValues.size() == 0); // if this assert fails, additional cleaning is necessart
@@ -532,6 +540,22 @@ namespace codegen {
 
         // deal with the case when for loop expression is a tuple
         void visitUnrolledLoopSuite(NSuite*);
+
+        /*!
+         * extracted from visit(NFor *forStmt)
+         * assign value at curr of exprAlloc to all loop variables in loopVal, then emit loop body
+         * @param forStmt
+         * @param targetType
+         * @param exprType expression type
+         * @param loopVal a vector of loop variables
+         * @param exprAlloc SerializableValue of expression
+         * @param curr current index of expression, except in range this represents the actual value
+         */
+        void assignForLoopVariablesAndGenerateLoopBody(NFor *forStmt, const python::Type &targetType,
+                                                       const python::Type &exprType,
+                                                       const std::vector<NIdentifier *> &loopVal,
+                                                       const SerializableValue &exprAlloc,
+                                                       llvm::Value *curr);
 
         inline bool earlyExit() const {
             // expression early exit check

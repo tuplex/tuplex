@@ -517,6 +517,11 @@ if(Python3_FOUND)
         message(STATUS "Detected Python3 include dir to be ${Python3_INCLUDE_DIRS}")
     endif()
 
+    # set to empty string to build without .so
+    if(NOT Python3_Embed_FOUND)
+        set(Python3_LIBRARIES "")
+    endif()
+
     # use these switches here to specialize Boost behavior
     SET(Boost_USE_STATIC_LIBS OFF)
     SET(Boost_USE_MULTITHREADED ON)

@@ -533,7 +533,6 @@ namespace tuplex {
         // --> notify code generator of that.
         // a.) could either do this by inserting dummy ast nodes, or simply b.) coding it directly up
         if(cg.getRowType() != getOutputSchema().getRowType()) {
-            std::cout << "row type is " << cg.getRowType().desc() << " outputshcema is " << getOutputSchema().getRowType().desc() << "!!" << std::endl;
             // is it a primitive or a tuple?
             auto rt = cg.getReturnType();
             python::Type targetType = getOutputSchema().getRowType();

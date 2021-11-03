@@ -14,6 +14,7 @@
 #include <physical/JITCompiledCSVReader.h>
 #include <physical/CSVReader.h>
 #include <physical/TextReader.h>
+#include <physical/OrcReader.h>
 #include <bucket.h>
 
 extern "C" {
@@ -738,6 +739,7 @@ namespace tuplex {
                                            size_t rangeStart, size_t rangeSize,
                                            char delimiter, char quotechar,
                                            const std::vector<bool>& colsToKeep,
+                                           size_t partitionSize,
                                            FileFormat fmt) {
         resetSources();
 
@@ -751,31 +753,48 @@ namespace tuplex {
 
         // completely compiled parser or the smaller version?
         if(cellBasedFunctor) {
-            if(fmt == FileFormat::OUTFMT_CSV) {
-                auto csv = new CSVReader(this, reinterpret_cast<codegen::cells_row_f>(_functor), makeParseExceptionsInternal, operatorID, exceptionCallback(), numColumns, delimiter,
-                                         quotechar, colsToKeep);
-                csv->setRange(rangeStart, rangeStart + rangeSize);
-                csv->setHeader(header);
-                _reader.reset(csv);
-            } else if(fmt == FileFormat::OUTFMT_TEXT) {
-                auto text = new TextReader(this, reinterpret_cast<codegen::cells_row_f>(_functor));
-                text->setRange(rangeStart, rangeStart+rangeSize);
-                _reader.reset(text);
-            } else {
-                throw std::runtime_error("unsupported input filetype");
+            switch (fmt) {
+                case FileFormat::OUTFMT_CSV: {
+                    auto csv = new CSVReader(this, reinterpret_cast<codegen::cells_row_f>(_functor), makeParseExceptionsInternal, operatorID, exceptionCallback(), numColumns, delimiter,
+                                             quotechar, colsToKeep);
+                    csv->setRange(rangeStart, rangeStart + rangeSize);
+                    csv->setHeader(header);
+                    _reader.reset(csv);
+                    break;
+                }
+                case FileFormat::OUTFMT_TEXT: {
+                    auto text = new TextReader(this, reinterpret_cast<codegen::cells_row_f>(_functor));
+                    text->setRange(rangeStart, rangeStart+rangeSize);
+                    _reader.reset(text);
+                    break;
+                }
+                case FileFormat::OUTFMT_ORC: {
+
+#ifdef BUILD_WITH_ORC
+                    auto orc = new OrcReader(this, reinterpret_cast<codegen::read_block_f>(_functor), operatorID, partitionSize, _inputSchema);
+                    orc->setRange(rangeStart, rangeSize);
+                    _reader.reset(orc);
+#else
+                    throw std::runtime_error(MISSING_ORC_MESSAGE);
+#endif
+                    break;
+                }
+                default:
+                    throw std::runtime_error("unsupported input filetype");
             }
         } else {
-            if(fmt == FileFormat::OUTFMT_CSV) {
-                auto csv = new JITCompiledCSVReader(this, reinterpret_cast<codegen::read_block_f>(_functor), numColumns,
-                                                    delimiter,
-                                                    quotechar); // pass this as user data for all the other callbacks.
-                csv->setRange(rangeStart, rangeStart + rangeSize);
-                csv->setHeader(header);
-                _reader.reset(csv);
-            } else if(fmt == FileFormat::OUTFMT_TEXT) {
-                throw std::runtime_error("Text code-generated parser not implemented yet!");
-            } else {
-                throw std::runtime_error("unsupported code-generated input filetype");
+            switch (fmt) {
+                case FileFormat::OUTFMT_CSV: {
+                    auto csv = new JITCompiledCSVReader(this, reinterpret_cast<codegen::read_block_f>(_functor), numColumns,
+                                                        delimiter,
+                                                        quotechar); // pass this as user data for all the other callbacks.
+                    csv->setRange(rangeStart, rangeStart + rangeSize);
+                    csv->setHeader(header);
+                    _reader.reset(csv);
+                    break;
+                }
+                default:
+                    throw std::runtime_error("Unsupported code-generated input filetype");
             }
         }
     }

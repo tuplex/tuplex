@@ -155,6 +155,8 @@ namespace tuplex {
 
         Schema getSchema()  { fixSchema(); return _schema; }
 
+        void setSchema(Schema schema) { _schema = schema; }
+
         /*!
          * serializes data to the buffer if there is enough capacity left
          * @param ptr memory location to where to serialize data to
@@ -199,6 +201,7 @@ namespace tuplex {
             return std::any_of(_requiresBitmap.begin(), _requiresBitmap.end(), [](const bool b) { return b; });
         }
 
+    public:
         inline bool isNull(int col) const {
             assert(0 <= col && col < _isVarLenField.size());
             assert(_buffer);
@@ -216,7 +219,6 @@ namespace tuplex {
             return is_null;
         }
 
-    public:
         Deserializer(const Schema& schema);
 
         ~Deserializer() {

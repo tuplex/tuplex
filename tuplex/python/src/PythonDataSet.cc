@@ -559,6 +559,43 @@ namespace tuplex {
         return pds;
     }
 
+    PythonDataSet PythonDataSet::renameColumnByPosition(int index, const std::string &newName) {
+        assert(_dataset);
+        if (_dataset->isError()) {
+            PythonDataSet pds;
+            pds.wrap(this->_dataset);
+            return pds;
+        }
+
+        PythonDataSet pds;
+        // GIL release & reacquire
+        assert(PyGILState_Check()); // make sure this thread holds the GIL!
+        python::unlockGIL();
+        DataSet *ds = nullptr;
+        std::string err_message = "";
+        try {
+            ds = &_dataset->renameColumn(index, newName);
+        } catch(const std::exception& e) {
+            err_message = e.what();
+            Logger::instance().defaultLogger().error(err_message);
+        } catch(...) {
+            err_message = "unknown C++ exception occurred, please change type.";
+            Logger::instance().defaultLogger().error(err_message);
+        }
+
+        python::lockGIL();
+
+        // nullptr? then error dataset!
+        if(!ds || !err_message.empty()) {
+            Logger::instance().flushAll();
+            assert(_dataset->getContext());
+            ds = &_dataset->getContext()->makeError(err_message);
+        }
+        pds.wrap(ds);
+        Logger::instance().flushAll();
+        return pds;
+    }
+
     PythonDataSet PythonDataSet::selectColumns(boost::python::list L) {
         // check dataset is valid & perform error check.
         assert(this->_dataset);
@@ -720,6 +757,44 @@ namespace tuplex {
                 Logger::instance().flushAll();
                 // TODO: roll back file system changes?
             }
+        }
+    }
+
+    void PythonDataSet::toorc(const std::string &file_path, const std::string &lambda_code, const std::string &pickled_code,
+                              size_t fileCount, size_t shardSize, size_t limit) {
+        assert(this->_dataset);
+
+        std::unordered_map<std::string, std::string> outputOptions = defaultORCOutputOptions();
+
+        if (this->_dataset->isError()) {
+            ErrorDataSet *eds = static_cast<ErrorDataSet *>(this->_dataset);
+            boost::python::list L;
+            L.append(eds->getError());
+            Logger::instance().flushAll();
+        } else {
+            assert(PyGILState_Check());
+
+            outputOptions["columnNames"] = csvToHeader(_dataset->columns());
+
+            python::unlockGIL();
+            std::string err_message = "";
+            try {
+                _dataset->tofile(FileFormat::OUTFMT_ORC,
+                                 URI(file_path),
+                                 UDF(lambda_code, pickled_code),
+                                 fileCount,
+                                 shardSize,
+                                 outputOptions,
+                                 limit);
+            } catch(const std::exception& e) {
+                err_message = e.what();
+                Logger::instance().defaultLogger().error(err_message);
+            } catch(...) {
+                err_message = "unknown C++ exception occurred, please change type.";
+                Logger::instance().defaultLogger().error(err_message);
+            }
+            Logger::instance().flushAll();
+            python::lockGIL();
         }
     }
 

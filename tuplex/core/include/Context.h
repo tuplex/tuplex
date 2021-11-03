@@ -178,6 +178,15 @@ namespace tuplex {
         DataSet& text(const std::string &pattern, const std::vector<std::string>& null_values=std::vector<std::string>{});
 
         /*!
+         * reads orc files with into memory.
+         * @param pattern file pattern to search for
+         * @param columns optional columns/header preset. Also makes sense for headerless files
+         * @return Dataset
+         */
+        DataSet& orc(const std::string &pattern,
+                     const std::vector<std::string>& columns=std::vector<std::string>());
+
+        /*!
          * creates an error dataset
          * @param error
          * @return

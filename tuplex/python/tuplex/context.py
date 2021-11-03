@@ -17,7 +17,7 @@ import os
 import glob
 import sys
 import cloudpickle
-from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, is_in_interactive_mode, current_user, host_name
+from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name
 import uuid
 import json
 from .metrics import Metrics
@@ -78,8 +78,12 @@ class Context:
         """
         runtime_path = os.path.join(os.path.dirname(__file__), 'libexec', 'tuplex_runtime')
         paths = glob.glob(runtime_path + '*')
-        if len(paths) != 1:
 
+        if len(paths) != 1:
+            # filter based on type (runtime must be shared object!)
+            paths = list(filter(is_shared_lib, paths))
+
+        if len(paths) != 1:
             if len(paths) == 0:
                 logging.error("found no tuplex runtime (tuplex_runtime.so). Faulty installation?")
             else:
@@ -109,6 +113,8 @@ class Context:
             mode = 'shell'
         if in_jupyter_notebook():
             mode = 'jupyter'
+        if in_google_colab():
+            mode = 'colab'
         host = host_name()
 
         # pass above options as env.user, ...
@@ -237,6 +243,22 @@ class Context:
 
         ds = DataSet()
         ds._dataSet = self._context.text(pattern, null_values)
+        return ds
+
+    def orc(self, pattern, columns=None):
+        """ reads orc files.
+        Args:
+            pattern (str): a file glob pattern, e.g. /data/file.csv or /data/\*.csv or /\*/\*csv
+            columns (list): optional list of columns, will be used as header for the CSV file.
+        Returns:
+            tuplex.dataset.DataSet: A Tuplex Dataset object that allows further ETL operations
+        """
+
+        assert isinstance(pattern, str), 'file pattern must be given as str'
+        assert isinstance(columns, list) or columns is None, 'columns must be a list or None'
+
+        ds = DataSet()
+        ds._dataSet = self._context.orc(pattern, columns)
         return ds
     
     def options(self, nested=False):

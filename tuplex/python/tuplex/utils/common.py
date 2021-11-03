@@ -19,6 +19,7 @@ import urllib.request
 import os
 import socket
 import shutil
+import subprocess
 
 try:
   import pwd
@@ -38,6 +39,20 @@ def cmd_exists(cmd):
     """
     return shutil.which(cmd) is not None
 
+def is_shared_lib(path):
+    """
+    Args:
+        path: str path to a file
+    detects whether given path is a shared object or not
+    Returns: true if shared object, false else
+    """
+
+    # use file command
+    assert cmd_exists('file')
+
+    res = subprocess.check_output(['file', '--mime-type', path])
+    mime_type = res.split()[-1].decode()
+    return mime_type == 'application/x-sharedlib' or mime_type == 'application/x-application'
 
 def current_timestamp():
     """
@@ -106,6 +121,30 @@ def in_jupyter_notebook():
             return False  # Other type (?)
     except NameError:
         return False  # Probably standard Python interpreter
+
+def in_google_colab():
+    """
+        check whether framework runs in Google Colab environment
+    Returns:
+        True if Tuplex is running in Google Colab
+    """
+    found_colab_package = False
+    try:
+        import google.colab
+        found_colab_package = True
+    except:
+        pass
+
+    shell_name_matching = False
+    try:
+        shell_name_matching =  'google.colab' in str(get_ipython())
+    except:
+        pass
+
+    if found_colab_package or shell_name_matching:
+        return True
+    else:
+        return False
 
 def is_in_interactive_mode():
     """checks whether the module is loaded in an interactive shell session or not

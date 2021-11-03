@@ -8,24 +8,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(YAMLCPP REQUIRED)
 
-# fix for Mac OS X/ brew, find openSSL
-## check for ICU
-IF(BREW_FOUND)
-    IF(APPLE)
-        # MESSAGE("brew on Mac found")
-        EXECUTE_PROCESS(COMMAND brew --prefix openssl OUTPUT_VARIABLE OSSL_ROOT_DIR ERROR_VARIABLE BREW_OPENSSL_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
-        IF(BREW_OPENSSL_NOTFOUND)
-            MESSAGE("did not find brewed openssl, you might install it via brew install openssl")
-        ELSE()
-            set(ENV{OPENSSL_ROOT_DIR} /usr/local/opt/openssl)
-            MESSAGE(STATUS "found brewed openssl under: ${OSSL_ROOT_DIR}")
-        ENDIF()
-
-    ELSEIF(UNIX)
-        #MESSAGE("brew on Unix found")
-    ENDIF()
-ENDIF()
-
 set(CURL_LIBRARY "-lcurl")
 find_package(CURL REQUIRED)
 

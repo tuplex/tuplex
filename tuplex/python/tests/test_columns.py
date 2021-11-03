@@ -83,3 +83,16 @@ class TestColumns(TestCase):
                   .collect()
 
         self.assertEqual(res, [(1, 2, 3/10), (3, 2, 5/10)])
+
+    def test_renameColumn(self):
+        ds = self.c.parallelize([(1, 2), (3, 2)])
+
+        ds2 = ds.renameColumn(0, 'first')
+        self.assertEqual(ds2.columns[0], 'first')
+        ds3 = ds2.renameColumn(1, 'second')
+        self.assertEqual(ds3.columns[1], 'second')
+
+        ds4 = ds3.renameColumn("first", '1')
+        self.assertEqual(ds4.columns, ['1', 'second'])
+        ds5 = ds4.renameColumn('second', '2')
+        self.assertEqual(ds5.columns, ['1', '2'])

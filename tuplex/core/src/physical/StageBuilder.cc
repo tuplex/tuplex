@@ -56,15 +56,20 @@ namespace tuplex {
 
             // check what input type of Stage is
             if(_inputMode == EndPointMode::FILE) {
-                // only csv yet supported!
-                if(_inputFileFormat != FileFormat::OUTFMT_CSV && _inputFileFormat != FileFormat::OUTFMT_TEXT)
-                    throw std::runtime_error("only csv and text yet supported!");
                 auto fop = dynamic_cast<FileInputOperator*>(_inputNode); assert(fop);
-                if(_inputFileFormat == FileFormat::OUTFMT_CSV) {
-                    ppb.cellInput(_inputNode->getID(), fop->inputColumns(), fop->null_values(), fop->typeHints(),
-                                  fop->inputColumnCount(), fop->projectionMap());
-                } else {
-                    ppb.objInput(fop->getID(), fop->inputColumns());
+                switch (_inputFileFormat) {
+                    case FileFormat::OUTFMT_CSV: {
+                        ppb.cellInput(_inputNode->getID(), fop->inputColumns(), fop->null_values(), fop->typeHints(),
+                                      fop->inputColumnCount(), fop->projectionMap());
+                        break;
+                    }
+                    case FileFormat::OUTFMT_TEXT:
+                    case FileFormat::OUTFMT_ORC: {
+                        ppb.objInput(fop->getID(), fop->inputColumns());
+                        break;
+                    }
+                    default:
+                        throw std::runtime_error("file input format not yet supported!");
                 }
             } else {
                 ppb.objInput(_inputNode->getID(), _inputNode->inputColumns());
@@ -889,6 +894,10 @@ namespace tuplex {
                                                        true, csvOutputDelimiter(), csvOutputQuotechar());
                             break;
                         }
+                        case FileFormat::OUTFMT_ORC: {
+                            pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID);
+                            break;
+                        }
                         default:
                             throw std::runtime_error("unsupported output fmt encountered, can't codegen!");
                     }
@@ -974,24 +983,32 @@ namespace tuplex {
                 // note: null_values may be empty!
                 auto null_values = jsonToStringArray(_fileInputParameters.at("null_values"));
 
-                // @TODO: null values as parameter!
-                // check whether parser should be generated or not
-                if (_generateParser) {
-                    tb = make_shared<codegen::JITCSVSourceTaskBuilder>(env,
-                                                                       readSchema,
-                                                                       _columnsToRead,
-                                                                       funcStageName,
-                                                                       _inputNodeID,
-                                                                       null_values,
-                                                                       delimiter,
-                                                                       quotechar);
-                } else {
-                    tb = make_shared<codegen::CellSourceTaskBuilder>(env, readSchema, _columnsToRead,
-                                                                     funcStageName,
-                                                                     _inputNodeID, null_values);
+                switch (_inputFileFormat) {
+                    case FileFormat::OUTFMT_CSV:
+                    case FileFormat::OUTFMT_TEXT: {
+                        if (_generateParser) {
+                            tb = make_shared<codegen::JITCSVSourceTaskBuilder>(env,
+                                                                               readSchema,
+                                                                               _columnsToRead,
+                                                                               funcStageName,
+                                                                               _inputNodeID,
+                                                                               null_values,
+                                                                               delimiter,
+                                                                               quotechar);
+                        } else {
+                            tb = make_shared<codegen::CellSourceTaskBuilder>(env, readSchema, _columnsToRead,
+                                                                             funcStageName,
+                                                                             _inputNodeID, null_values);
+                        }
+                        break;
+                    }
+                    case FileFormat::OUTFMT_ORC: {
+                        tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, inSchema, funcStageName);
+                        break;
+                    }
+                    default:
+                        throw std::runtime_error("file input format not yet supported!");
                 }
-
-
             } else {
                 // tuplex (in-memory) reader
                 tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, inSchema, funcStageName);
@@ -1257,31 +1274,40 @@ namespace tuplex {
             if (_fileOutputParameters.find("null_value") == _fileOutputParameters.end())
                 _fileOutputParameters["null_value"] = ""; // empty string for now // @TODO: make this an option in the python API
 
-            if (fop->fileFormat() == FileFormat::OUTFMT_CSV) {
-                // sanitize options: If write Header is true and neither csvHeader nor columns are given, set to false
-                if (fop->columns().empty() && _fileOutputParameters.find("csvHeader") == _fileOutputParameters.end()) {
-                    _fileOutputParameters["header"] = "false";
-                }
+            switch (fop->fileFormat()) {
+                case FileFormat::OUTFMT_CSV: {
+                    // sanitize options: If write Header is true and neither csvHeader nor columns are given, set to false
+                    if (fop->columns().empty() && _fileOutputParameters.find("csvHeader") == _fileOutputParameters.end()) {
+                        _fileOutputParameters["header"] = "false";
+                    }
 
-                bool writeHeader = stringToBool(get_or(_fileOutputParameters, "header", "false"));
+                    bool writeHeader = stringToBool(get_or(_fileOutputParameters, "header", "false"));
 
-                if (writeHeader) {
-                    assert(!fop->columns().empty());
+                    if (writeHeader) {
+                        assert(!fop->columns().empty());
 
-                    if (_fileOutputParameters.find("csvHeader") == _fileOutputParameters.end()) {
-                        auto headerLine = csvToHeader(fop->columns()) + "\n";
-                        _fileOutputParameters["csvHeader"] = headerLine;
-                    } else {
-                        // check correct number of arguments
-                        auto v = jsonToStringArray(_fileOutputParameters["csvHeader"]);
-                        if (v.size() != fop->columns().size()) {
-                            std::stringstream ss;
-                            ss << "number of ouput column names given to tocsv operator (" << v.size()
-                               << ") does not equal number of elements from pipeline (" << fop->columns().size() << ")";
-                            throw std::runtime_error(ss.str());
+                        if (_fileOutputParameters.find("csvHeader") == _fileOutputParameters.end()) {
+                            auto headerLine = csvToHeader(fop->columns()) + "\n";
+                            _fileOutputParameters["csvHeader"] = headerLine;
+                        } else {
+                            // check correct number of arguments
+                            auto v = jsonToStringArray(_fileOutputParameters["csvHeader"]);
+                            if (v.size() != fop->columns().size()) {
+                                std::stringstream ss;
+                                ss << "number of ouput column names given to tocsv operator (" << v.size()
+                                   << ") does not equal number of elements from pipeline (" << fop->columns().size() << ")";
+                                throw std::runtime_error(ss.str());
+                            }
                         }
                     }
+                    break;
                 }
+                case FileFormat::OUTFMT_ORC: {
+                    _fileOutputParameters["columnNames"] = csvToHeader(fop->columns());
+                    break;
+                }
+                default:
+                    throw std::runtime_error("unsupported file output format!");
             }
 
             _outputFileFormat = fop->fileFormat();

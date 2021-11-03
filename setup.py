@@ -16,6 +16,34 @@ from distutils import sysconfig
 import fnmatch
 import re
 
+# TODO: add option to install these
+test_dependencies = [
+'jupyter',
+'nbformat',
+'prompt_toolkit>=2.0.7',
+'pytest>=5.3.2',
+]
+
+install_dependencies = [
+    'attrs>=19.2.0',
+    'dill>=0.2.7.1',
+    'pluggy',
+    'py>=1.5.2',
+    'pygments>=2.4.1',
+    'six>=1.11.0',
+    'wcwidth>=0.1.7',
+    'astor>=0.7.1',
+    'prompt_toolkit',
+    'jedi',
+    'cloudpickle>=0.6.1',
+    'PyYAML>=3.13'
+]
+
+def ninja_installed():
+    # check whether ninja is on the path
+    from distutils.spawn import find_executable
+    return find_executable('ninja') is not None
+
 def find_files(pattern, path):
     result = []
     for root, dirs, files in os.walk(path):
@@ -33,7 +61,6 @@ PLAT_TO_CMAKE = {
     "win-arm64": "ARM64",
 }
 
-
 # A CMakeExtension needs a sourcedir instead of a file list.
 # The name must be the _single_ output extension from the CMake build.
 # If you need multiple extensions, see scikit-build.
@@ -41,7 +68,6 @@ class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=""):
         Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
-
 
 class CMakeBuild(build_ext):
 
@@ -120,6 +146,7 @@ class CMakeBuild(build_ext):
 
         # Set Python_EXECUTABLE instead if you use PYBIND11_FINDPYTHON
         cmake_args = [
+            "-DBUILD_NATIVE=OFF", # disable march=native to avoid issues.
             # "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}".format(extdir),
             "-DPYTHON_EXECUTABLE={}".format(sys.executable),
             "-DCMAKE_BUILD_TYPE={}".format(cfg),  # not used on MSVC, but no harm
@@ -157,8 +184,10 @@ class CMakeBuild(build_ext):
             # Users can override the generator with CMAKE_GENERATOR in CMake
             # 3.15+.
             if not cmake_generator:
-                cmake_args += ["-GNinja"]
 
+                # yet, check if Ninja exists...
+                if ninja_installed():
+                    cmake_args += ["-GNinja"]
         else:
 
             # Single config generators are handled "normally"
@@ -192,10 +221,13 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
-        if os.environ.get('CIBUILDWHEEL', '0') == '1':
-            # on cibuildwheel b.c. manylinux2014 does not have python shared objects, build
-            # only tuplex target (the python shared object)
-            build_args += ['--target', 'tuplex']
+        ## on cibuildwheel b.c. manylinux2014 does not have python shared objects, build
+        ## only tuplex target (the python shared object)
+        #if os.environ.get('CIBUILDWHEEL', '0') == '1':
+
+        # because the goal of setup.py is to only build the package, build only target tuplex.
+        # changed from before.
+        build_args += ['--target', 'tuplex']
 
         # hack: only run for first invocation!
         if ext_filename == 'tuplex_runtime':
@@ -324,23 +356,7 @@ setup(name="tuplex",
     cmdclass={"build_ext": CMakeBuild},
     # deactivate for now, first fix python sources to work properly!
     zip_safe=False,
-    install_requires=[
-        'jupyter',
-        'nbformat',
-        'attrs>=19.2.0',
-        'dill>=0.2.7.1',
-        'pluggy>=0.6.0, <1.0.0',
-        'py>=1.5.2',
-        'pygments>=2.4.1',
-        'pytest>=5.3.2',
-        'six>=1.11.0',
-        'wcwidth>=0.1.7',
-        'astor>=0.7.1',
-        'prompt_toolkit>=2.0.7',
-        'jedi>=0.13.2',
-        'cloudpickle>=0.6.1',
-        'PyYAML>=3.13'
-    ],
+    install_requires=install_dependencies,
     # metadata for upload to PyPI
     url="https://tuplex.cs.brown.edu",
     license="Apache 2.0",

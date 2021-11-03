@@ -8,7 +8,7 @@
 
 [Website](https://tuplex.cs.brown.edu/) [Documentation](https://tuplex.cs.brown.edu/python-api.html)
 
-Tuplex is a parallel big data processing framework that runs data science pipelines written in Python at the speed of compiled code. 
+Tuplex is a parallel big data processing framework that runs data science pipelines written in Python at the speed of compiled code.
 Tuplex has similar Python APIs to [Apache Spark](https://spark.apache.org/) or [Dask](https://dask.org/), but rather than invoking the Python interpreter, Tuplex generates optimized LLVM bytecode for the given pipeline and input data set. Under the hood, Tuplex is based on data-driven compilation and dual-mode processing, two key techniques that make it possible for Tuplex to provide speed comparable to a pipeline written in hand-optimized C++.
 
 You can join the discussion on Tuplex on our [Gitter community](https://gitter.im/tuplex/community) or read up more on the background of Tuplex in our [SIGMOD'21 paper](https://dl.acm.org/doi/abs/10.1145/3448016.3457244).
@@ -46,29 +46,29 @@ To install Tuplex, simply install the dependencies first and then build the pack
 #### MacOS build from source
 To build Tuplex, you need several other packages first which can be easily installed via [brew](https://brew.sh/).
 ```
-brew install llvm@9 boost boost-python3 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero
-python3 -m pip cloudpickle numpy
-python3 setup.py install
+brew install llvm@9 boost boost-python3 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero protobuf libmagic
+python3 -m pip install cloudpickle numpy
+python3 setup.py install --user
 ```
 
 #### Ubuntu build from source
 To faciliate installing the dependencies for Ubuntu, we do provide two scripts (`scripts/ubuntu1804/install_reqs.sh` for Ubuntu 18.04, or `scripts/ubuntu2004/install_reqs.sh` for Ubuntu 20.04). To create an up to date version of Tuplex, simply run
 ```
 ./scripts/ubuntu1804/install_reqs.sh
-python3 -m pip cloudpickle numpy
-python3 setup.py install
+python3 -m pip install cloudpickle numpy
+python3 setup.py install --user
 ```
 
 #### Customizing the build
 
-Besides building a pip package, cmake can be also directly invoked. To compile the package via cmake
+Besides building a pip package, especially for development it may be more useful to invoke cmake directly. To create a development version of Tuplex and work with it like a regular cmake project, go to the folder `tuplex` and then use the standard workflow to compile the package via cmake (and not the top-level setup.py file):
 ```
 mkdir build
 cd build
 cmake ..
 make -j$(nproc)
 ```
-The python package corresponding to Tuplex can be then found in `build/dist/python` with C++ test executables based on googletest in `build/dist/bin`.
+The python package corresponding to Tuplex can be then found in `build/dist/python` with C++ test executables based on googletest in `build/dist/bin`. If you'd like to use a cmake-compatible IDE like CLion or VSCode you can simply open the `tuplex/` folder and import the `CMakeLists.txt` contained there.
 
 To customize the cmake build, the following options are available to be passed via `-D<option>=<value>`:
 
@@ -76,6 +76,9 @@ To customize the cmake build, the following options are available to be passed v
 | ------ | ------ | ----------- |
 | `CMAKE_BUILD_TYPE` | `Release` (default), `Debug`, `RelWithDebInfo`, `tsan`, `asan`, `ubsan` | select compile mode. Tsan/Asan/Ubsan correspond to Google Sanitizers. |
 | `BUILD_WITH_AWS` | `ON` (default), `OFF` | build with AWS SDK or not. On Ubuntu this will build the Lambda executor. |
+| `BUILD_WITH_ORC` | `ON`, `OFF` (default) | build with ORC file format support. |
+| `BUILD_NATIVE` | `ON`, `OFF` (default) | build with `-march=native` to target platform architecture. |
+| `SKIP_AWS_TESTS` | `ON` (default), `OFF` | skip aws tests, helpful when no AWS credentials/AWS Tuplex chain is setup. |
 | `GENERATE_PDFS` | `ON`, `OFF` (default) | output in Debug mode PDF files if graphviz is installed (e.g., `brew install graphviz`) for ASTs of UDFs, query plans, ...|
 | `PYTHON3_VERSION` | `3.6`, ... | when trying to select a python3 version to build against, use this by specifying `major.minor`. To specify the python executable, use the options provided by [cmake](https://cmake.org/cmake/help/git-stage/module/FindPython3.html). |
 | `LLVM_ROOT_DIR` | e.g. `/usr/lib/llvm-9` | specify which LLVM version to use |

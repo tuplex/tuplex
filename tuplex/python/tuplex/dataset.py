@@ -261,10 +261,10 @@ class DataSet:
         ds._dataSet = self._dataSet.selectColumns(columns)
         return ds
 
-    def renameColumn(self, oldColumnName, newColumnName):
+    def renameColumn(self, key, newColumnName):
         """ rename a column in dataset
         Args:
-            oldColumnName: str, old column name. Must exist.
+            key: str|int, old column name or (0-indexed) position.
             newColumnName: str, new column name
 
         Returns:
@@ -273,11 +273,16 @@ class DataSet:
 
         assert self._dataSet is not None, 'internal API error, datasets must be created via context object'
 
-        assert isinstance(oldColumnName, str), 'oldColumnName must be a string'
+        assert isinstance(key, (str, int)), 'key must be a string or integer'
         assert isinstance(newColumnName, str), 'newColumnName must be a string'
 
         ds = DataSet()
-        ds._dataSet = self._dataSet.renameColumn(oldColumnName, newColumnName)
+        if isinstance(key, str):
+            ds._dataSet = self._dataSet.renameColumn(key, newColumnName)
+        elif isinstance(key, int):
+            ds._dataSet = self._dataSet.renameColumnByPosition(key, newColumnName)
+        else:
+            raise TypeError('key must be int or str')
         return ds
 
     def ignore(self, eclass):
@@ -454,6 +459,34 @@ class DataSet:
             null_value = ''
 
         self._dataSet.tocsv(path, code, code_pickled, num_parts, part_size, num_rows, null_value, header)
+
+    def toorc(self, path, part_size=0, num_rows=max_rows, num_parts=0, part_name_generator=None):
+        """ save dataset to one or more orc files. Triggers execution of pipeline.
+        Args:
+        path: path where to save files to
+        split_size: optional size in bytes for each part to not exceed.
+        num_rows: limit number of output rows
+        num_parts: number of parts to split output into. The last part will be the smallest
+        part_name_generator: optional name generator function to the output parts, receives an integer \
+                             as parameter for the output number. This is intended as a convenience helper function. \
+                             Should not raise any exceptions.
+        """
+        assert self._dataSet is not None
+
+        code, code_pickled = '', ''
+        if part_name_generator is not None:
+            code_pickled = cloudpickle.dumps(part_name_generator)
+            # try to get code from vault (only lambdas supported yet!)
+            try:
+                # convert code object to str representation
+                code = get_udf_source(part_name_generator)
+            except UDFCodeExtractionError as e:
+                logging.warn('Could not extract code for {}. Details:\n{}'.format(ftor, e))
+
+        if num_rows > max_rows:
+            raise Exception('Tuplex supports at most {} rows'.format(max_rows))
+
+        self._dataSet.toorc(path, code, code_pickled, num_parts, part_size, num_rows)
 
     def aggregate(self, combine, aggregate, initial_value):
         """

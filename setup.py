@@ -37,7 +37,7 @@ test_dependencies = [
 webui_dependencies = [
     'gunicorn',
     'eventlet==0.30.0', # newer versions of eventlet have a bug under MacOS
-    'flask',
+    'Flask',
     'flask-socketio',
     'flask-pymongo',
     'iso8601'

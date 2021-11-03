@@ -5,6 +5,32 @@
 .rounded {
   border-radius: 7px; }
 
+.aggregate-operator {
+  padding: 8px;
+  background-color: #51e893;
+  width: 100%;
+  border: 1px solid #53c586;
+  color: #1c422d; }
+
+.join-operator {
+  padding: 8px;
+  background-color: #51e893;
+  width: 100%;
+  border: 1px solid #53c586;
+  color: #1c422d; }
+
+.aggregate-details {
+  background-color: #fafafa;
+  border: 1px solid #53c586;
+  padding: 15px;
+  width: 100%; }
+
+.join-details {
+  background-color: #fafafa;
+  border: 1px solid #53c586;
+  padding: 15px;
+  width: 100%; }
+
 .input-operator {
   background-color: #379683;
   color: #fafafa;

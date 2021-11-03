@@ -19,9 +19,18 @@ def randint(dist):
         PVAL = 0.5
         return int(np.random.binomial(MAX_INT - MIN_INT + 1, PVAL) - (MAX_INT - MIN_INT + 1) * PVAL)        
 
+    print("invalid distribution supplied for randint")
+    print("valid distributions: uniform")
+    exit(0)
+
+
 def randfloat(dist):
     if dist == 'uniform':
         return random.random()
+
+    print("invalid distribution supplied for randfloat")
+    print("valid distributions: uniform")
+    exit(0)
 
 def randstring(dist, seed=0):
     # use dollar to prevent string interning
@@ -37,6 +46,10 @@ def randstring(dist, seed=0):
     if dist == 'binomialbag':
         PVAL = 0.1
         return bag[np.random.binomial(BAGLEN - 1, PVAL)]
+    
+    print("invalid distribution supplied for randstring")
+    print("valid distributions: uniform, binomialchar, binomialbag")
+    exit(0)
 
 def randlist(length, types, distribution_dict):
     result = []
@@ -55,6 +68,7 @@ bag = [randstring('uniform') for _ in range(BAGLEN)]
 
 def main():
     parser = argparse.ArgumentParser(description='Generate lists for count unique.')
+    parser.add_argument('--num_lists', type=int)
     parser.add_argument('--length', type=int)
     parser.add_argument('--types', type=str, nargs='+')
     parser.add_argument('--distributions', nargs='+')
@@ -78,18 +92,20 @@ def main():
             print(f'invalid type: {x}, expected one of: string float int')
             exit(0)
     
-    result = randlist(args.length, args.types, distribution_dict)
     dist_str = ''.join([name[0] for name in args.distributions])
-    filename = f'{args.length}_{"".join(args.types)}_{dist_str}.csv'
-
-    print(filename)
-    print('\n\n\n\n')
-
-    print(result)
+    filename = f'{args.num_lists}_{args.length}_{"".join(args.types)}_{dist_str}.csv'
 
     with open(filename, 'w') as f:
         wr = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
-        wr.writerow(result)
+        for i in range(args.num_lists):
+            csv_row = randlist(args.length, args.types, distribution_dict)
+            wr.writerow(csv_row)
+    
+    print(filename)
+    # print('\n\n\n\n')
+
+    # print(result)
+
 
     print('successfully written!')
 

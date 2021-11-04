@@ -84,8 +84,8 @@ add_custom_command(TARGET aws-lambda-package-${LAMBDA_NAME} POST_BUILD COMMAND c
 #add_custom_command(TARGET aws-lambda-package-${LAMBDA_NAME}
 #        POST_BUILD COMMAND mkdir -p lib && cp ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/*runtime* lib/ && zip -ur ${LAMBDA_NAME}.zip lib/)
 
-# if this fails, use  aws --cli-connect-timeout 6000  lambda update-function-code --function-name tplxlam --zip-file fileb://tplxlam.zip
-# update function code...
-add_custom_command(TARGET aws-lambda-package-${LAMBDA_NAME}
-        POST_BUILD COMMAND aws --cli-connect-timeout 6000 lambda update-function-code --function-name ${LAMBDA_NAME}
-        --zip-file fileb://${LAMBDA_NAME}.zip)
+## if this fails, use  aws --cli-connect-timeout 6000  lambda update-function-code --function-name tplxlam --zip-file fileb://tplxlam.zip
+## update function code...
+#add_custom_command(TARGET aws-lambda-package-${LAMBDA_NAME}
+#        POST_BUILD COMMAND aws --cli-connect-timeout 6000 lambda update-function-code --function-name ${LAMBDA_NAME}
+#        --zip-file fileb://${LAMBDA_NAME}.zip)

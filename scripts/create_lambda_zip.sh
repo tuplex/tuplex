@@ -12,15 +12,37 @@ cd .. # go to root of repo
 
 # start code here...
 
-mkdir build-lambda
-cd build-lambda
+LOCAL_BUILD_FOLDER=build-lambda
+SRC_FOLDER=tuplex
+DOCKER_IMAGE=tuplex/ci
 
-# within docker...
+# convert to absolute paths
+get_abs_filename() {
+  # $1 : relative filename
+  echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+}
 
-# this is the command that's sufficient::::
+LOCAL_BUILD_FOLDER=$(get_abs_filename $LOCAL_BUILD_FOLDER)
+SRC_FOLDER=$(get_abs_filename $SRC_FOLDER)
+echo "Tuplex source: $LOCAL_BUILD_FOLDER"
+echo "Building lambda in: $LOCAL_BUILD_FOLDER"
 
+mkdir -p $LOCAL_BUILD_FOLDER
 
-cmake -DPYTHON3_VERSION=3.8 -DBOOST_ROOT=/opt/boost/python3.8/ ..
+echo "starting docker"
+# start docker & volume & create awslambda target with correct settings
+docker run --name lambda --rm -v $SRC_FOLDER:/code/tuplex:ro -v $LOCAL_BUILD_FOLDER:/build tuplex/ci bash -c "cd /build && cmake -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DPYTHON3_VERSION=3.8 -DBOOST_ROOT=/opt/boost/python3.8/ -GNinja /code/tuplex && cmake --build . --target aws-lambda-package-tplxlam"
+
+echo "docker run"
+#
+#cd build-lambda
+#
+## within docker...
+#
+## this is the command that's sufficient::::
+#
+#
+#cmake -DPYTHON3_VERSION=3.8 -DBOOST_ROOT=/opt/boost/python3.8/ ..
 
 
 # end code here...

@@ -366,9 +366,6 @@ namespace codegen {
                 _loopBodyIdentifiersStack = std::deque<std::set<NIdentifier *>>();
             }
 
-//            assert(_namedValues.size() == 0); // if this assert fails, additional cleaning is necessart
-//            _namedValues = std::map<std::string, SerializableValue>();
-            //_block = nullptr;
             _funcNames = std::stack<std::string>();
             _numLambdaFunctionsEncountered = 0;
             _iteratorContextProxy = std::make_shared<IteratorContextProxy>(_env);
@@ -542,7 +539,7 @@ namespace codegen {
         void visitUnrolledLoopSuite(NSuite*);
 
         /*!
-         * extracted from visit(NFor *forStmt)
+         * helper function for visit(NFor *forStmt)
          * assign value at curr of exprAlloc to all loop variables in loopVal, then emit loop body
          * @param forStmt
          * @param targetType

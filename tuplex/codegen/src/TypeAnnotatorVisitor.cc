@@ -55,6 +55,12 @@ namespace tuplex {
                 }
                 return;
             }
+
+            if(stmt->type() == ASTNodeType::Break || stmt->type() == ASTNodeType::Continue) {
+                // skip statements after break or continue
+                suite->setInferredType(stmt->getInferredType());
+                return;
+            }
         }
 
         // type of the suite is the type of the last statement!
@@ -1195,6 +1201,7 @@ namespace tuplex {
 
     void TypeAnnotatorVisitor::assignHelper(NIdentifier *id, python::Type type) {
         if(_ongoingLoopCount != 0 && !_loopTypeChange) {
+            // we are now inside a loop; no type change detected yet
             // check potential type change during loops
             if(_nameTable.find(id->_name) != _nameTable.end() && type != _nameTable.at(id->_name)) {
                 error("variable " + id->_name + " changed type during loop from " + _nameTable.at(id->_name).desc() + " to " + type.desc() + ", traced typing needed to determine if the type change is stable");

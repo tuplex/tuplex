@@ -1343,6 +1343,49 @@ TEST_F(LoopTest, CodegenTestLoopOverInputDataII) {
     EXPECT_EQ(v[0], Row("abcdefghijk"));
 }
 
+TEST_F(LoopTest, CodegenTestLoopTracingWithContinue) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    count = 4\n"
+                "    while count > 0:\n"
+                "        count -= 1\n"
+                "        x += 1.0\n"
+                "        continue\n"
+                "        x += 2.0\n"
+                "    return x";
+
+    auto v = c.parallelize({
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(4.0));
+}
+
+TEST_F(LoopTest, CodegenTestLoopTracingWithBreak) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    t = 0\n"
+                "    for i in range(10):\n"
+                "        t += 1.0\n"
+                "        if x > 5:\n"
+                "            break\n"
+                "    return t";
+
+    auto v = c.parallelize({
+        Row(0),
+        Row(10)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 2);
+    EXPECT_EQ(v[0], Row(10.0));
+    EXPECT_EQ(v[1], Row(1.0));
+}
+
 TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralI) {
     using namespace tuplex;
     Context c(microTestOptions());

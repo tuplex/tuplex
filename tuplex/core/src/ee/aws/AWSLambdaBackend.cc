@@ -242,6 +242,8 @@ namespace tuplex {
     void AwsLambdaBackend::execute(PhysicalStage *stage) {
         using namespace std;
 
+        reset();
+
         auto tstage = dynamic_cast<TransformStage *>(stage);
         if (!tstage)
             throw std::runtime_error("only trafo stage from AWSLambdda backend yet supported");
@@ -871,5 +873,11 @@ namespace tuplex {
         return hints;
     }
 
+    void AwsLambdaBackend::reset() {
+        _tasks.clear();
+        _infos.clear();
+
+        // other reset? @TODO.
+    }
 }
 #endif

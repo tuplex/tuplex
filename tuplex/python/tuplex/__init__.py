@@ -13,3 +13,15 @@ from tuplex.repl import *
 from .context import Context
 from .dataset import DataSet
 
+
+# expose aws setup for better convenience
+import tuplex.distributed
+from tuplex.distributed import setup_aws
+
+# for convenience create a dummy function to return a default-configured Lambda context
+def LambdaContext(s3_scratch_dir=tuplex.distributed.default_scratch_dir(), **kwargs):
+    # There's currently a bug in the Lambda backend when transferring local data to S3: The full partition gets transferred,
+    # not just what is needed.
+    return Context(conf={'backend': 'lambda',
+                         'partitionSize': '1MB',
+                         'aws.scratchDir': s3_scratch_dir}, **kwargs)

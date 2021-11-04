@@ -204,4 +204,36 @@ TEST_F(AWSTest, SimpleLambdaInvoke) {
     for(int i = 0; i < N; ++i)
         EXPECT_EQ(v[i].toPythonString(), ref[i].toPythonString());
 }
+
+TEST_F(AWSTest, MultipleLambdaInvoke) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+
+    Context c(microLambdaOptions());
+
+    // computes some simple function in the cloud
+    vector<Row> data;
+    vector<Row> ref;
+    int N = 5;
+    for(int i = 0; i < N; ++i) {
+        data.push_back(Row(i));
+        ref.push_back(Row(i, i*i));
+    }
+
+    auto v = c.parallelize(data).map(UDF("lambda x: (x, x*x)")).collectAsVector();
+    ASSERT_EQ(v.size(), N);
+    for(int i = 0; i < N; ++i)
+        EXPECT_EQ(v[i].toPythonString(), ref[i].toPythonString());
+
+    // 2nd invocation
+    v = c.parallelize(data).map(UDF("lambda x: (x, x*x)")).collectAsVector();
+    ASSERT_EQ(v.size(), N);
+    for(int i = 0; i < N; ++i)
+        EXPECT_EQ(v[i].toPythonString(), ref[i].toPythonString());
+}
+
 #endif // BUILD_WITH_AWS

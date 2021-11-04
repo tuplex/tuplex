@@ -48,6 +48,8 @@ def default_lambda_role():
 def default_bucket_name():
     return 'tuplex-' + current_iam_user()
 
+def default_scratch_dir():
+    return default_bucket_name() + '/scratch'
 
 def current_region():
     session = boto3.session.Session()
@@ -106,7 +108,6 @@ def create_lambda_role(iam_client, lambda_role):
     # check it exists
     try:
         response = iam_client.get_role(RoleName=lambda_role)
-        print(response)
     except:
         raise Exception('Failed to create AWS Lambda Role')
 
@@ -187,7 +188,7 @@ def s3_split_uri(uri):
 
 
 def upload_lambda(iam_client, lambda_client, lambda_function_name, lambda_role,
-                  lambda_zip_file, overwrite=False, s3_client=None, s3_scratch_space=None):
+                  lambda_zip_file, overwrite=False, s3_client=None, s3_scratch_space=None, quiet=False):
     # AWS only allows 50MB to be uploaded directly via request. Else, requires S3 upload.
 
     ZIP_UPLOAD_LIMIT_SIZE = 50000000
@@ -281,7 +282,8 @@ def upload_lambda(iam_client, lambda_client, lambda_function_name, lambda_role,
         TEMP_NAME = 'lambda-deploy.zip'
         s3_key_obj = s3_key + '/' + TEMP_NAME
         s3_target_uri = 's3://' + s3_bucket + '/' + s3_key + '/' + TEMP_NAME
-        s3_client.upload_file(lambda_zip_file, s3_bucket, s3_key_obj, Callback=ProgressPercentage(lambda_zip_file))
+        callback = ProgressPercentage(lambda_zip_file) if not quiet else None
+        s3_client.upload_file(lambda_zip_file, s3_bucket, s3_key_obj, Callback=callback)
         logging.info('Deploying Lambda from S3 ({})'.format(s3_target_uri))
 
         try:
@@ -317,6 +319,14 @@ def upload_lambda(iam_client, lambda_client, lambda_function_name, lambda_role,
     # return lambda response
     return response
 
+
+def find_lambda_package():
+    """
+
+    Returns:
+
+    """
+
 def setup_aws(aws_access_key=None, aws_secret_key= None,
               overwrite=True,
               iam_user=current_iam_user(),
@@ -324,11 +334,13 @@ def setup_aws(aws_access_key=None, aws_secret_key= None,
               lambda_role=default_lambda_role(),
               lambda_file=find_lambda_package(),
               region=current_region(),
-              s3_scratch_uri=default_bucket_name() + '/scratch',
+              s3_scratch_uri=default_scratch_dir(),
               quiet=False
               ):
 
     start_time = time.time()
+
+    assert lambda_file is not None, 'must specify file to upload'
 
     # check credentials are existing on machine --> raises exception in case
     logging.info('Validating AWS credentials')
@@ -359,8 +371,8 @@ def setup_aws(aws_access_key=None, aws_secret_key= None,
     setup_lambda_role(iam_client, lambda_role, region, overwrite)
 
     # Step 3: upload/create Lambda
-    upload_lambda(iam_client, lambda_client, lambda_name, lambda_role, lambda_file, overwrite, s3_client, s3_scratch_uri)
+    upload_lambda(iam_client, lambda_client, lambda_name, lambda_role, lambda_file, overwrite, s3_client, s3_scratch_uri, quiet)
 
     # done, print if quiet was not set to False
     if not quiet:
-        print('Completed lambda setup in {:.2f}s'.format(time.time() - start_time))
+        print('\nCompleted lambda setup in {:.2f}s'.format(time.time() - start_time))

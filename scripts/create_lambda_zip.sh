@@ -31,7 +31,10 @@ mkdir -p $LOCAL_BUILD_FOLDER
 
 echo "starting docker"
 # start docker & volume & create awslambda target with correct settings
-docker run --name lambda --rm -v $SRC_FOLDER:/code/tuplex:ro -v $LOCAL_BUILD_FOLDER:/build tuplex/ci bash -c "cd /build && cmake -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DPYTHON3_VERSION=3.8 -DBOOST_ROOT=/opt/boost/python3.8/ -GNinja /code/tuplex && cmake --build . --target aws-lambda-package-tplxlam"
+docker run --name lambda --rm -v $SRC_FOLDER:/code/tuplex -v $LOCAL_BUILD_FOLDER:/build tuplex/ci bash -c "cd /build && cmake -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DPYTHON3_VERSION=3.8 -DBOOST_ROOT=/opt/boost/python3.8/ -GNinja /code/tuplex && cmake --build . --target aws-lambda-package-tplxlam"
+
+# read-only version, fails because of managed folder in codegen/
+#docker run --name lambda --rm -v $SRC_FOLDER:/code/tuplex:ro -v $LOCAL_BUILD_FOLDER:/build tuplex/ci bash -c "cd /build && cmake -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DPYTHON3_VERSION=3.8 -DBOOST_ROOT=/opt/boost/python3.8/ -GNinja /code/tuplex && cmake --build . --target aws-lambda-package-tplxlam"
 
 echo "docker run"
 #

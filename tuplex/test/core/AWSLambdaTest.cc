@@ -263,7 +263,30 @@ TEST_F(AWSTest, BucketList) {
 
     // make sure this is public??
 
-    auto uris = VirtualFileSystem::globAll("s3://tuplex-public");
+    // check single file -> single file.
+    // check folder
+
+
+    // create glob pattern from ls pattern.
+    // -> split into parts from ,
+
+    // this is completely incorrect...
+    // ls retrieves folders AND files...
+    // -> need to make this work properly using s3walk...
+
+    std::string pattern = "s3://tuplex-public/test.csv,s3://tuplex-public";
+    // "s3://tuplex-public,s3://tuplex-public/*")
+    std::string glob_pattern;
+    splitString(pattern, ',', [&glob_pattern](std::string subpattern) {
+        if(!glob_pattern.empty())
+            glob_pattern += ",";
+       glob_pattern += subpattern + "," + subpattern + "/*";
+    });
+    std::cout<<"matching using: "<<glob_pattern<<endl;
+    auto uris = VirtualFileSystem::globAll(glob_pattern);
+
+    // unique paths? sort? ==> yes.
+
 
     for(auto uri : uris) {
         cout<<uri.toString()<<endl;

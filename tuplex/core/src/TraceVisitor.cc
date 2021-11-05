@@ -977,7 +977,8 @@ namespace tuplex {
         auto exprType = node->expression->getInferredType();
         if (!(exprType.isListType() || exprType.isTupleType() || exprType == python::Type::STRING ||
               exprType == python::Type::RANGE || exprType.isIteratorType())) {
-            throw std::runtime_error("unsupported for loop expression type encountered in TraceVisitor.cc");
+            addCompileError(CompileError::TYPE_ERROR_UNSUPPORTED_LOOP_TESTLIST_TYPE);
+            return;
         }
 
         // find all loop variables in target

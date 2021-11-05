@@ -1334,6 +1334,7 @@ namespace tuplex {
             tv.recordTrace(funcNode, args);
         // record the total number of samples (used to check in TypeAnnotatorVisitor if every sample corresponds to a normal case violation)
         funcNode->annotation().numTimesVisited = sample.size();
+        addCompileErrors(tv.getCompileErrors());
         if(acquireGIL)
             python::unlockGIL();
 

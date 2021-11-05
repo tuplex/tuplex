@@ -378,7 +378,7 @@ public:
 
     ///! how often was node visited? Helpful annotation for if-branches
     size_t numTimesVisited;
-    ///! annotation for an if->then or if->else node: indices of samples that have taken this then/else branch
+    ///! annotation for an if->_then or if->_else node: indices of samples that have taken this then/else branch
     std::set<size_t> branchTakenSampleIndices;
 
     ///! for integer/double nodes what is min/max range? => can be used for compression

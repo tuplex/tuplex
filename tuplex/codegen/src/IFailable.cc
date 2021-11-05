@@ -77,6 +77,9 @@ std::string IFailable::compileErrorToStr(const CompileError &err) {
         case CompileError::COMPILE_ERROR_ALL_SAMPLES_PRODUCE_NORMALCASEVIOLATION:
             errMsg = "every sample will end up raising NormalCaseViolation at some if statement";
             break;
+        case CompileError::TYPE_ERROR_UNSUPPORTED_LOOP_TESTLIST_TYPE:
+            errMsg = "type of loop expression is not supported";
+            break;
         case CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON:
             errMsg = "use of is comparison only supported with types boolean and null";
             break;

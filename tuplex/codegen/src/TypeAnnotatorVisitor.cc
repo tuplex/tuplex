@@ -1648,7 +1648,7 @@ namespace tuplex {
                 _nameTable[id->_name] = exprType.yieldType();
                 id->setInferredType(exprType.yieldType());
             } else {
-                error("unsupported for loop expression type");
+                addCompileError(CompileError::TYPE_ERROR_UNSUPPORTED_LOOP_TESTLIST_TYPE);
             }
         } else if(targetASTType == ASTNodeType::Tuple || targetASTType == ASTNodeType::List){
             // target is tuple of identifier (x, y)

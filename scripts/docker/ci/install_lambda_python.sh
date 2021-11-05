@@ -5,6 +5,7 @@ export CFLAGS=-I/usr/include/openssl
 
 # select python version, Lambda uses 3.8.11
 PYTHON3_VERSION=3.8.11
+PYTHON3_MAJMIN=${PYTHON3_VERSION%.*}
 
 # from https://bugs.python.org/issue36044
 # change tasks, because hangs at test_faulthandler...
@@ -35,3 +36,7 @@ set -ex && cd /tmp && wget https://www.python.org/ftp/python/${PYTHON3_VERSION}/
     && cd Python-${PYTHON3_VERSION} && ./configure --with-lto --prefix=/opt/lambda-python --enable-optimizations --enable-shared \
     && make -j $(( 1 * $( egrep '^processor[[:space:]]+:' /proc/cpuinfo | wc -l ) )) \
     && make altinstall
+
+# install cloudpickle numpy for Lambda python
+export LD_LIBRARY_PATH=/opt/lambda-python/lib:$LD_LIBRARY_PATH
+/opt/lambda-python/bin/${PYTHON3_MAJMIN} -m pip install cloudpickle numpy

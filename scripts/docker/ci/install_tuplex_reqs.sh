@@ -10,7 +10,7 @@ yum install -y libedit-devel libzip-devel \
   pkgconfig openssl-devel libxml2-devel libcurl-devel zlib-devel  \
   uuid libuuid-devel libffi-devel graphviz-devel \
   gflags-devel ncurses-devel \
-  awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build
+  awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip
 
 # LLVM9 is broken on Ubuntu 20.04, hence manually install...
 

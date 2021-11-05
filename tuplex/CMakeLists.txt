@@ -437,6 +437,27 @@ if(DEFINED ENV{PYTHON3_VERSION})
     set(PYTHON3_VERSION "$ENV{PYTHON3_VERSION}") # can use env variable as well!
 endif()
 
+
+# check if a specific Python executable was set
+if(PYTHON_EXECUTABLE AND NOT PYTHON3_EXECUTABLE)
+    set(PYTHON3_EXECUTABLE ${PYTHON_EXECUTABLE})
+endif()
+if(PYTHON3_EXECUTABLE)
+    set(Python3_EXECUTABLE ${Python3_EXECUTABLE})
+    message(STATUS "Using specific python executable ${PYTHON3_EXECUTABLE}")
+    unset(PYTHON3_VERSION)
+
+    # get version from executable
+    execute_process (COMMAND "${PYTHON3_EXECUTABLE}" -c "import sys;print('{}.{}.{}'.format(sys.version_info.major,sys.version_info.minor,sys.version_info.micro))"
+            RESULT_VARIABLE _result
+            OUTPUT_VARIABLE PYTHON3_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "Detected version of python executable to be ${PYTHON3_VERSION}")
+
+    get_filename_component(Python3_ROOT_DIR ${PYTHON3_EXECUTABLE}/../.. ABSOLUTE)
+    message(STATUS "Detected Python3 Root dir to be: ${Python3_ROOT_DIR}")
+endif()
+
 # this is a macro to find python3 depending on version etc.
 
 # is a python3 version set?

@@ -251,6 +251,23 @@ TEST_F(AWSTest, RequesterPays) {
     ASSERT_GT(v.size(), 0);
 }
 
+
+TEST_F(AWSTest, WriteSingleCSVFile) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+
+    Context c(microLambdaOptions());
+
+    // make sure this is public??
+    auto v = c.csv("s3://tuplex-public/test.csv").collectAsVector();
+    ASSERT_GT(v.size(), 0);
+}
+
+
 TEST_F(AWSTest, BucketList) {
 #ifdef SKIP_AWS_TESTS
     GTEST_SKIP();

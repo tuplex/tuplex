@@ -10,9 +10,11 @@ import tempfile
 import logging
 import shutil
 import re
+import glob
+from tqdm import tqdm
 
 # set logging level here
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 OUTPUT_FILE_NAME='lam.zip'
 TPLXLAM_BINARY=os.path.join('dist/bin', 'tplxlam')
@@ -138,9 +140,10 @@ def query_libc_shared_objects():
 logging.info('Python3 executable: {}'.format(PYTHON3_EXECUTABLE))
 py_stdlib_path = get_list_result_from_cmd([PYTHON3_EXECUTABLE, '-c', 'import sysconfig; print(sysconfig.get_path(\'stdlib\'))'])[0]
 py_site_packages_path = get_list_result_from_cmd([PYTHON3_EXECUTABLE, '-c', 'import sysconfig; print(sysconfig.get_path(\'purelib\'))'])[0]
+py_version = get_list_result_from_cmd([PYTHON3_EXECUTABLE, '-c', 'import sys; print(\'{}.{}\'.format(sys.version_info.major,sys.version_info.minor))'])[0]
 logging.info('Found Python standard lib in {}'.format(py_stdlib_path))
 logging.info('Found Python packages in {}'.format(py_site_packages_path))
-
+logging.info('Version of Python to package is {}'.format(py_version))
 
 # find all libc dependencies
 libc_libs = []
@@ -195,48 +198,69 @@ logging.info('Found {} dependencies'.format(len(ldd_dependencies)))
 #         pkg_loader = filename
 
 with zipfile.ZipFile(OUTPUT_FILE_NAME, 'w', compression=zipfile.ZIP_LZMA) as zip:
-    logging.info('Writing bootstrap script {}'.format('NO_LIBC=True' if NO_LIBC else ''))
-    if NO_LIBC:
-        zip.writestr('bootstrap', bootstrap_script_nolibc.format(pkg_loader))
-    else:
-        zip.writestr('bootstrap', bootstrap_script)
-
-    # adding actual execution scripts
-    logging.info('Writing C++ binary')
-    zip.write(TPLXLAM_BINARY, 'bin/' + os.path.basename(TPLXLAM_BINARY))
-
-    # copy libc
-    if not NO_LIBC:
-        logging.info('Writing libc files')
-        for path in libc_libs:
-            # TODO: what about links? --> prob. get dereferenced which increaseses size...
-
-            if os.path.islink(path):
-                # cf. https://stackoverflow.com/questions/35782941/archiving-symlinks-with-python-zipfile on optimization
-                logging.warning('{} is a link, could be optimized'.format(path))
-            try:
-                zip.write(path, os.path.join('lib/', os.path.basename(path)))
-            except FileNotFoundError as e:
-                logging.warning('Could not find libc file {}, details: {}'.format(os.path.basename(path), e))
-
-    logging.info('writing dependencies...')
-    # write dependencies, skip whatever is in libc
-
-    libc_libnames = set(map(lambda path: os.path.basename(path), libc_libs))
-
-    for name, path in set(ldd_dependencies):
-        if name in libc_libnames:
-            continue
-
-        if os.path.islink(path):
-            # cf. https://stackoverflow.com/questions/35782941/archiving-symlinks-with-python-zipfile on optimization
-            logging.warning('{} is a link, could be optimized'.format(path))
-
-        zip.write(path, os.path.join('lib', name))
+    # logging.info('Writing bootstrap script {}'.format('NO_LIBC=True' if NO_LIBC else ''))
+    # if NO_LIBC:
+    #     zip.writestr('bootstrap', bootstrap_script_nolibc.format(pkg_loader))
+    # else:
+    #     zip.writestr('bootstrap', bootstrap_script)
+    #
+    # # adding actual execution scripts
+    # logging.info('Writing C++ binary')
+    # zip.write(TPLXLAM_BINARY, 'bin/' + os.path.basename(TPLXLAM_BINARY))
+    #
+    # # copy libc
+    # if not NO_LIBC:
+    #     logging.info('Writing libc files')
+    #     for path in libc_libs:
+    #         # TODO: what about links? --> prob. get dereferenced which increaseses size...
+    #
+    #         if os.path.islink(path):
+    #             # cf. https://stackoverflow.com/questions/35782941/archiving-symlinks-with-python-zipfile on optimization
+    #             logging.warning('{} is a link, could be optimized'.format(path))
+    #         try:
+    #             zip.write(path, os.path.join('lib/', os.path.basename(path)))
+    #         except FileNotFoundError as e:
+    #             logging.warning('Could not find libc file {}, details: {}'.format(os.path.basename(path), e))
+    #
+    # logging.info('writing dependencies...')
+    # # write dependencies, skip whatever is in libc
+    #
+    # libc_libnames = set(map(lambda path: os.path.basename(path), libc_libs))
+    #
+    # for name, path in set(ldd_dependencies):
+    #     if name in libc_libnames:
+    #         continue
+    #
+    #     if os.path.islink(path):
+    #         # cf. https://stackoverflow.com/questions/35782941/archiving-symlinks-with-python-zipfile on optimization
+    #         logging.warning('{} is a link, could be optimized'.format(path))
+    #
+    #     zip.write(path, os.path.join('lib', name))
 
 
     # now copy in Python lib from specified python executable!
     # TODO: compile them to pyc files, this should lead to smaller size...
-    
+
+    logging.info('Writing Python stdlib from {}'.format(py_stdlib_path))
+    root_dir = py_stdlib_path
+
+    paths = list(filter(os.path.isfile, glob.iglob(root_dir + '**/**', recursive=True)))
+
+    # exclude numpy files...
+    paths = list(filter(lambda path: 'numpy' not in path, paths))
+
+    # TODO: exclude more files here to make this smaller and still keep it executable!!!
+
+    logging.info('Found {} files in python stdlib to ship'.format(len(paths)))
+    # for path in glob.iglob(root_dir + '**/**', recursive=True):
+    #     if not os.path.isfile(path):
+    #         continue
+    for path in tqdm(paths):
+        # perform link optimization??
+        # copy to lib/python<maj>.<min>
+        target = os.path.join('lib', 'python{}'.format(py_version), path.replace(root_dir, ''))
+        logging.debug('{} -> {}'.format(path, target))
+        zip.write(path, target)
+
 
 logging.info('Done!')

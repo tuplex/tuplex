@@ -52,6 +52,9 @@ RUN python3.10 -m pip install cloudpickle # numpy # pandas
 # tuplex requirements
 RUN bash /opt/sbin/install_tuplex_reqs.sh
 
+# add lambda-specific Python 3.8 (full python install)
+ADD install_lambda_python.sh /opt/sbin/install_lambda_python.sh
+RUN bash /opt/sbin/install_lambda_python.sh
 
 ## MongoDB community edition for WebUI testing
 ADD mongodb-org-5.0.repo /etc/yum.repos.d/mongodb-org-5.0.repo

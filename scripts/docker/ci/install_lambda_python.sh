@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # to build the lambda executor need to embed python, therefore create full version below
+
 export CFLAGS=-I/usr/include/openssl
+
+# select python version, Lambda uses 3.8.11
+PYTHON3_VERSION=3.8.11
 
 # from https://bugs.python.org/issue36044
 # change tasks, because hangs at test_faulthandler...
@@ -27,7 +31,7 @@ export PROFILE_TASK=-m test.regrtest --pgo \
         test_tabnanny \
         test_xml_etree
 
-set -ex && cd /tmp && wget https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz && tar xf Python-3.6.9.tgz \
-    && cd Python-3.6.9 && ./configure --with-lto --prefix=/opt --enable-optimizations --enable-shared \
+set -ex && cd /tmp && wget https://www.python.org/ftp/python/${PYTHON3_VERSION}/Python-${PYTHON3_VERSION}.tgz && tar xf Python-${PYTHON3_VERSION}.tgz \
+    && cd Python-${PYTHON3_VERSION} && ./configure --with-lto --prefix=/opt/lambda-python --enable-optimizations --enable-shared \
     && make -j $(( 1 * $( egrep '^processor[[:space:]]+:' /proc/cpuinfo | wc -l ) )) \
     && make altinstall

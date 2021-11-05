@@ -347,6 +347,7 @@ namespace codegen {
 
         // store variable nodes in first iteration unrolled loop body.
         // update their types to stabilized types after first iteration
+        // only references to existing NIdentifiers are stored here
         std::deque<std::set<NIdentifier *>> _loopBodyIdentifiersStack;
 
         std::shared_ptr<IteratorContextProxy> _iteratorContextProxy;
@@ -356,14 +357,6 @@ namespace codegen {
             if (!_blockStack.empty()) {
                 // make sure to release all memory of the stack that has been allocated previously
                 _blockStack = std::deque<SerializableValue>();
-            }
-
-            if (!_loopBlockStack.empty()) {
-                _loopBlockStack = std::deque<llvm::BasicBlock*>();
-            }
-
-            if (!_loopBodyIdentifiersStack.empty()) {
-                _loopBodyIdentifiersStack = std::deque<std::set<NIdentifier *>>();
             }
 
             _funcNames = std::stack<std::string>();

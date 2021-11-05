@@ -1698,6 +1698,7 @@ namespace tuplex {
         }
 
         bool speculation = forelse->hasAnnotation() && forelse->annotation().numTimesVisited > 0;
+        // perhaps to use NORMALCASE_THRESHOLD
         bool typeUnstable = speculation && double(forelse->annotation().typeChangedAndUnstableCount) / double(forelse->annotation().numTimesVisited) > 0.5;
         bool skipLoopBody = speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > 0.5;
         bool unrollFirstIteration = !typeUnstable && !skipLoopBody && forelse->annotation().typeChangedAndStableCount > forelse->annotation().typeStableCount;
@@ -1734,6 +1735,7 @@ namespace tuplex {
         whileStmt->expression->accept(*this);
 
         bool speculation = whileStmt->hasAnnotation() && whileStmt->annotation().numTimesVisited > 0;
+        // perhaps to use NORMALCASE_THRESHOLD
         bool typeUnstable = speculation && double(whileStmt->annotation().typeChangedAndUnstableCount) / double(whileStmt->annotation().numTimesVisited) > 0.5;
         bool skipLoopBody = speculation && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > 0.5;
         bool unrollFirstIteration = !typeUnstable && !skipLoopBody && whileStmt->annotation().typeChangedAndStableCount > whileStmt->annotation().typeStableCount;

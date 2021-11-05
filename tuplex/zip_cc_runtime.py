@@ -100,8 +100,9 @@ def cmd_exists(cmd):
     return shutil.which(cmd) is not None
 
 def get_list_result_from_cmd(cmd, timeout=2):
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd, stdin=None, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate(timeout=timeout)
+
     if stderr is not None and len(stderr) > 0:
         logging.error("FAILURE")
         logging.error(stderr)
@@ -134,8 +135,11 @@ def query_libc_shared_objects():
 
 
 # find python files
-py_stdlib_path = get_list_result_from_cmd([PYTHON3_EXECUTABLE, '-c' '"import sysconfig; print(sysconfig.get_path(\'stdlib\'))"'])#[0]
+logging.info('Python3 executable: {}'.format(PYTHON3_EXECUTABLE))
+py_stdlib_path = get_list_result_from_cmd([PYTHON3_EXECUTABLE, '-c', 'import sysconfig; print(sysconfig.get_path(\'stdlib\'))'])[0]
+py_site_packages_path = get_list_result_from_cmd([PYTHON3_EXECUTABLE, '-c', 'import sysconfig; print(sysconfig.get_path(\'purelib\'))'])[0]
 logging.info('Found Python standard lib in {}'.format(py_stdlib_path))
+logging.info('Found Python packages in {}'.format(py_site_packages_path))
 
 
 # find all libc dependencies
@@ -233,6 +237,6 @@ with zipfile.ZipFile(OUTPUT_FILE_NAME, 'w', compression=zipfile.ZIP_LZMA) as zip
 
     # now copy in Python lib from specified python executable!
     # TODO: compile them to pyc files, this should lead to smaller size...
-
+    
 
 logging.info('Done!')

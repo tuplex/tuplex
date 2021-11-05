@@ -24,4 +24,5 @@ def LambdaContext(s3_scratch_dir=tuplex.distributed.default_scratch_dir(), **kwa
     # not just what is needed.
     return Context(conf={'backend': 'lambda',
                          'partitionSize': '1MB',
-                         'aws.scratchDir': s3_scratch_dir}, **kwargs)
+                         'aws.scratchDir': s3_scratch_dir,
+                         'aws.requesterPay' : True}, **kwargs)

@@ -27,7 +27,7 @@ protected:
         // to speedup testing, if we anyways skip the tests, can skip init here too.
         // !!! Dangerous !!!
 #ifndef SKIP_AWS_TESTS
-        initAWS(AWSCredentials::get());
+        initAWS(AWSCredentials::get(), true);
         VirtualFileSystem::addS3FileSystem();
 #endif
     }
@@ -235,5 +235,46 @@ TEST_F(AWSTest, MultipleLambdaInvoke) {
     for(int i = 0; i < N; ++i)
         EXPECT_EQ(v[i].toPythonString(), ref[i].toPythonString());
 }
+
+TEST_F(AWSTest, RequesterPays) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+
+    Context c(microLambdaOptions());
+
+    // make sure this is public??
+    auto v = c.csv("s3://tuplex-public/test.csv").collectAsVector();
+    ASSERT_GT(v.size(), 0);
+}
+
+TEST_F(AWSTest, BucketList) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+
+    Context c(microLambdaOptions());
+
+    // make sure this is public??
+
+    auto uris = VirtualFileSystem::globAll("s3://tuplex-public");
+
+    for(auto uri : uris) {
+        cout<<uri.toString()<<endl;
+    }
+//    auto v = c.ls("s3://tuplex-public");
+//
+//    for(auto el : v) {
+//        cout<<el<<endl;
+//    }
+    //ASSERT_GT(v.size(), 0);
+}
+
 
 #endif // BUILD_WITH_AWS

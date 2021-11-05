@@ -36,6 +36,20 @@
  */
 template <typename R, typename E>
 std::string outcome_error_message(const Aws::Utils::Outcome<R, E>& outcome) {
+
+    // special case: For public buckets just 403 is emitted, which is hard to decode
+    if(outcome.GetError().GetResponseCode() == Aws::Http::HttpResponseCode::FORBIDDEN) {
+        // access issue
+        std::stringstream ss;
+        ss<<outcome.GetError().GetMessage()<<" - this may be the result of accessing a public bucket with"
+                                             " requester pay mode. Set tuplex.aws.requesterPay to true when initializing"
+                                             " the context. Also make sure the object in the public repo has a proper"
+                                             " ACL set. I.e., to make it publicly available use "
+                                             "`aws s3api put-object-acl --bucket <bucket> --key <path> --acl public-read"
+                                             " --request-payer requester`";
+        return ss.str();
+    }
+
     return std::string("\nException:  ") +
            outcome.GetError().GetExceptionName().c_str() +
            std::string("\nError message:  ") +

@@ -1409,7 +1409,7 @@ namespace tuplex {
     }
 
     void PythonContext::cp(const std::string &pattern, const std::string &target) const {
-        throw std::runtime_error("not yet supported");
+        throw std::runtime_error("cp command is not yet supported");
     }
 
     void PythonContext::rm(const std::string &pattern) const {

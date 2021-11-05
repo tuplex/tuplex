@@ -377,6 +377,7 @@ namespace tuplex {
             auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
             credentials = credentialsProvider->GetAWSCredentials();
         }
+
         _client = std::make_shared<S3::S3Client>(credentials, config);
 
         if(requesterPay) _requestPayer = Aws::S3::Model::RequestPayer::requester;

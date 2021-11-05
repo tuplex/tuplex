@@ -75,7 +75,7 @@ std::string IFailable::compileErrorToStr(const CompileError &err) {
             errMsg = "type of at least one variable declared before loop changed and is not stable during loop";
             break;
         case CompileError::COMPILE_ERROR_ALL_SAMPLES_PRODUCE_NORMALCASEVIOLATION:
-            errMsg = "every sample will end up raising NormalCaseViolation at some if statement";
+            errMsg = "every sample ended up raising NormalCaseViolation at some if statement";
             break;
         case CompileError::TYPE_ERROR_UNSUPPORTED_LOOP_TESTLIST_TYPE:
             errMsg = "type of loop expression is not supported";

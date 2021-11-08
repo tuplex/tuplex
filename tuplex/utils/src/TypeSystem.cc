@@ -724,6 +724,13 @@ namespace python {
                 else
                     expressionStack.top().push_back(t);
                 pos += 4;
+            } else if(s.substr(pos, 8).compare("pyobject") == 0) {
+                Type t = Type::PYOBJECT;
+                if(expressionStack.empty())
+                    expressionStack.push(std::vector<python::Type>({t}));
+                else
+                    expressionStack.top().push_back(t);
+                pos += 8;
             } else if (s.substr(pos, 7).compare("Option[") == 0) {
                 expressionStack.push(std::vector<python::Type>());
                 sqBracketIsListStack.push(false);

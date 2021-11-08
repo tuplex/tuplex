@@ -101,6 +101,17 @@ TEST(TypeSys, OptionalTypes) {
     EXPECT_EQ(t1.getReturnType(), python::Type::I64);
 }
 
+TEST(TypeSys, Pyobject) {
+    using namespace python;
+
+    EXPECT_EQ(decodeType("pyobject"), Type::PYOBJECT);
+
+    // nested
+    auto t = Type::makeTupleType({Type::I64, Type::PYOBJECT,
+                                  Type::makeDictionaryType(Type::makeOptionType(Type::PYOBJECT), Type::PYOBJECT)});
+    EXPECT_EQ(decodeType(t.desc()), t);
+}
+
 TEST(TypeSys, ZeroSize) {
     using namespace std;
     EXPECT_TRUE(python::Type::NULLVALUE.isZeroSerializationSize());

@@ -322,10 +322,20 @@ def upload_lambda(iam_client, lambda_client, lambda_function_name, lambda_role,
 
 def find_lambda_package():
     """
-
-    Returns:
+    Check whether a compatible zip file in tuplex/other could be found for auto-upload
+    Returns: None or path to lambda zip to upload
 
     """
+
+    this_directory = os.path.abspath(os.path.dirname(__file__))
+
+    # check if folder other exists & file tplxlam.zip in it!
+    candidate_path = os.path.join(this_directory, 'other', 'tplxlam.zip')
+    if os.path.isfile(candidate_path):
+        logging.info('Found Lambda runner package in {}'.format(candidate_path))
+        return candidate_path
+
+    return None
 
 def setup_aws(aws_access_key=None, aws_secret_key= None,
               overwrite=True,

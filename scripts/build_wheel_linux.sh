@@ -20,6 +20,8 @@ export TUPLEX_BUILD_ALL=0
 export CIBW_ARCHS_LINUX=native
 export CIBW_MANYLINUX_X86_64_IMAGE='registry-1.docker.io/tuplex/ci:latest'
 
+export CIBW_ENVIRONMENT="TUPLEX_LAMBDA_ZIP="./tuplex/python/tuplex/other/tplxlam.zip""
+
 # Use the following line to build only python3.9 wheel
 export CIBW_BUILD="cp39-*"
 

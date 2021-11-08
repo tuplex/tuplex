@@ -68,7 +68,7 @@ jobs:
           CIBW_BEFORE_BUILD_MACOS: ./scripts/ci/setup-macos.sh
 
           # set this environment variable to include the Lambda zip from the previous build step
-          TUPLEX_LAMBDA_ZIP: "./tuplex/python/tuplex/other/tplxlam.zip"
+          CIBW_ENVIRONMENT: TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip'
 
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./scripts/test_pypi.sh ./wheelhouse

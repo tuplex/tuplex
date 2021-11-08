@@ -116,6 +116,24 @@ class CMakeBuild(build_ext):
         if not extdir.endswith(os.path.sep):
             extdir += os.path.sep
 
+        print('Extension dir is: {}'.format(extdir))
+        print('Build temp is: {}'.format(self.build_temp))
+
+        lambda_zip = os.environ.get('TUPLEX_LAMBDA_ZIP', None)
+        if lambda_zip:
+            print('Packaging Tuplex Lambda runner')
+
+            # need to copy / link zip file into temp dir
+            # -> this is the root setup.py file, hence find root
+            tplx_src_root = os.path.abspath(os.path.dirname(__file__))
+            tplx_package_root = os.path.join(tplx_src_root, 'tuplex', 'python')
+            print('Root path is: {}'.format(tplx_package_root))
+            zip_target = os.path.join(self.build_temp, 'tuplex', 'other')
+            os.makedirs(zip_target, exist_ok=True)
+            zip_dest = os.path.join(zip_target, 'tplxlam.zip')
+            shutil.copyfile(lambda_zip, zip_dest)
+            print('Copied {} to {}'.format(lambda_zip, zip_dest))
+
         cfg = "Debug" if self.debug else "Release"
 
         # because still alpha, use RelWithDebInfo
@@ -441,6 +459,22 @@ def reorg_historyserver():
 
     return []
 
+def tplx_package_data():
+
+    package_data = {
+      # include libs in libexec
+    'tuplex.libexec' : ['*.so', '*.dylib'],
+    'tuplex.historyserver': ['thserver/templates/*.html', 'thserver/static/css/*.css', 'thserver/static/css/styles/*.css',
+                                 'thserver/static/img/*.*', 'thserver/static/js/*.js', 'thserver/static/js/modules/*.js',
+                                 'thserver/static/js/styles/*.css']
+    }
+
+    # package lambda as well?
+    lambda_zip = os.environ.get('TUPLEX_LAMBDA_ZIP', None)
+    if lambda_zip:
+        package_data['tuplex.other'] = ['*.zip']
+    return package_data
+
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
 setup(name="tuplex",
@@ -454,13 +488,7 @@ setup(name="tuplex",
     long_description_content_type='text/markdown',
     packages=reorg_historyserver() + discover_packages(where="tuplex/python"),
     package_dir={"": "tuplex/python"},
-    package_data={
-      # include libs in libexec
-    'tuplex.libexec' : ['*.so', '*.dylib'],
-        'tuplex.historyserver': ['thserver/templates/*.html', 'thserver/static/css/*.css', 'thserver/static/css/styles/*.css',
-                                 'thserver/static/img/*.*', 'thserver/static/js/*.js', 'thserver/static/js/modules/*.js',
-                                 'thserver/static/js/styles/*.css']
-    },
+    package_data=tplx_package_data(),
     ext_modules=[CMakeExtension("tuplex.libexec.tuplex", "tuplex"), CMakeExtension("tuplex.libexec.tuplex_runtime", "tuplex")],
     cmdclass={"build_ext": CMakeBuild},
     # deactivate for now, first fix python sources to work properly!

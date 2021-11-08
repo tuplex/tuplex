@@ -173,8 +173,8 @@ def main():
     #         logging.info('Found package loader {}'.format(filename))
     #         pkg_loader = filename
 
-    #compression=zipfile.ZIP_BZIP2
-    #compression=zipfile.ZIP_DEFLATED # this is the only one that works for MacOS
+    compression=zipfile.ZIP_DEFLATED # this is the only one that works for MacOS
+
     compression=zipfile.ZIP_LZMA # use this for final file, because smaller!
 
     def create_zip_link(zip, link_source, link_target):
@@ -278,7 +278,7 @@ def main():
                 return False
 
             # exclude test/ folder
-            if 'test/' in path:
+            if 'test/' in path or 'tests/' in path:
                 return False
 
             # exclude turtledemo

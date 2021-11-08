@@ -42,6 +42,10 @@ jobs:
         run: bash ./scripts/ci/setup-macos.sh
         shell: bash
 
+      - name: Build Lambda runner
+        run: docker pull registry-1.docker.io/tuplex/ci:latest && bash ./scripts/create_lambda_zip.sh
+        shell: bash
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v1.11.1.post1
         env:

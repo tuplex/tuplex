@@ -39,7 +39,7 @@ cmake -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DBOOST_ROOT=/opt/boost/python3.
 
 # just use tplxlam as target, then run custom python script...
 
-docker run --name lambda --rm -v $SRC_FOLDER:/code/tuplex -v $LOCAL_BUILD_FOLDER:/build tuplex/ci bash -c "cd /build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DPYTHON_EXECUTABLE=/opt/lambda-python/bin/python3.8 -DBOOST_ROOT=/opt/boost/python3.8/ -GNinja /code/tuplex && cmake --build . --target aws-lambda-package-tplxlam"
+docker run --name lambda --rm -v $SRC_FOLDER:/code/tuplex -v $LOCAL_BUILD_FOLDER:/build tuplex/ci bash -c "cd /build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DPYTHON_EXECUTABLE=/opt/lambda-python/bin/python3.8 -DBOOST_ROOT=/opt/boost/python3.8/ -GNinja /code/tuplex && cmake --build . --target aws-lambda-package-tplxlam && python3.8 /code/tuplex/python/zip_cc_runtime.py --input /build/dist/bin/tplxlam --runtime /build/dist/bin/tuplex_runtime.so --python /opt/lambda-python/bin/python3.8 --output /build/tplxlam.zip"
 
 #docker run --name lambda --rm -v $SRC_FOLDER:/code/tuplex -v $LOCAL_BUILD_FOLDER:/build tuplex/ci bash -c "cd /build && cmake -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DPYTHON3_VERSION=3.8 -DBOOST_ROOT=/opt/boost/python3.8/ -GNinja /code/tuplex && cmake --build . --target aws-lambda-package-tplxlam"
 

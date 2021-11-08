@@ -13,7 +13,13 @@ import re
 import glob
 import stat
 import argparse
-from tqdm import tqdm
+
+try:
+    from tqdm import tqdm
+except:
+    def tqdm(gen):
+        return gen
+
 
 def cmd_exists(cmd):
     """
@@ -194,6 +200,8 @@ def main():
         # adding actual execution scripts
         logging.info('Writing C++ binary')
         zip.write(TPLXLAM_BINARY, 'bin/' + os.path.basename(TPLXLAM_BINARY))
+        logging.info('Writing Tuplex runtime')
+        zip.write(TPLX_RUNTIME_LIBRARY, 'bin/tuplex_runtime.so')
 
         # copy libc
         if INCLUDE_LIBC:

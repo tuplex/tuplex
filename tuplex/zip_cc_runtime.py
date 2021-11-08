@@ -77,7 +77,7 @@ def main():
     parser.add_argument('-p', '--python', dest='PYTHON3_EXECUTABLE', type=str,
                         default='/opt/lambda-python/bin/python3.8',
                         help='path to python executable from which to package stdlib.')
-    parser.add_argument('--nolibc', dest='NO_LIBC', action="store_false",
+    parser.add_argument('--nolibc', dest='NO_LIBC', action="store_true",
                         help="whether to skip packaging libc files or not")
     args = parser.parse_args()
 
@@ -88,8 +88,10 @@ def main():
     ## why is python3 needed?
     PYTHON3_EXECUTABLE=args.PYTHON3_EXECUTABLE
     NO_LIBC=args.NO_LIBC
+    INCLUDE_LIBC=NO_LIBC is False
 
-    INCLUDE_LIBC= not NO_LIBC
+    if INCLUDE_LIBC:
+        logging.info('Including libc files in zip')
 
     # bootstrap scripts
 

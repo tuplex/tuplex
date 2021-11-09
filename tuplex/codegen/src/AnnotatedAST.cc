@@ -449,7 +449,7 @@ namespace tuplex {
             hintFunctionParameters(findFunction(_root));
 
             // 2.2 run type annotator using the symbol table
-            TypeAnnotatorVisitor tav(*table, _allowNumericTypeUnification);
+            TypeAnnotatorVisitor tav(*table, _allowNumericTypeUnification, _normalCaseThreshold); // TODO: global variable or function parameter?
             tav.setFailingMode(silentMode);
             table->resetScope();
             table->enterScope(); // enter builtin scope

@@ -247,6 +247,7 @@ namespace tuplex {
                              {"float", python::Type::F64},
                              {"str", python::Type::STRING},
                              {"bool", python::Type::BOOLEAN}};
+        assert(0.0 <= _normalCaseThreshold && _normalCaseThreshold <= 1.0);
     }
 
     void TypeAnnotatorVisitor::visit(NIdentifier* id) {
@@ -1698,9 +1699,8 @@ namespace tuplex {
         }
 
         bool speculation = forelse->hasAnnotation() && forelse->annotation().numTimesVisited > 0;
-        // perhaps to use NORMALCASE_THRESHOLD
-        bool typeUnstable = speculation && double(forelse->annotation().typeChangedAndUnstableCount) / double(forelse->annotation().numTimesVisited) > 0.5;
-        bool skipLoopBody = speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > 0.5;
+        bool typeUnstable = speculation && double(forelse->annotation().typeChangedAndUnstableCount) / double(forelse->annotation().numTimesVisited) > _normalCaseThreshold;
+        bool skipLoopBody = speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > _normalCaseThreshold;
         bool unrollFirstIteration = !typeUnstable && !skipLoopBody && forelse->annotation().typeChangedAndStableCount > forelse->annotation().typeStableCount;
         if(!speculation) {
             // check for type change
@@ -1710,7 +1710,7 @@ namespace tuplex {
             addCompileError(CompileError::TYPE_ERROR_TYPE_UNSTABLE_IN_LOOP);
         }
 
-        if(!(speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > 0.5)) {
+        if(!(speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > _normalCaseThreshold)) {
             // if loop never runs for majority through tracing, do not annotate loop body
             forelse->suite_body->accept(*this);
 
@@ -1735,9 +1735,8 @@ namespace tuplex {
         whileStmt->expression->accept(*this);
 
         bool speculation = whileStmt->hasAnnotation() && whileStmt->annotation().numTimesVisited > 0;
-        // perhaps to use NORMALCASE_THRESHOLD
-        bool typeUnstable = speculation && double(whileStmt->annotation().typeChangedAndUnstableCount) / double(whileStmt->annotation().numTimesVisited) > 0.5;
-        bool skipLoopBody = speculation && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > 0.5;
+        bool typeUnstable = speculation && double(whileStmt->annotation().typeChangedAndUnstableCount) / double(whileStmt->annotation().numTimesVisited) > _normalCaseThreshold;
+        bool skipLoopBody = speculation && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > _normalCaseThreshold;
         bool unrollFirstIteration = !typeUnstable && !skipLoopBody && whileStmt->annotation().typeChangedAndStableCount > whileStmt->annotation().typeStableCount;
         if(!speculation) {
             // check for type change
@@ -1747,7 +1746,7 @@ namespace tuplex {
             addCompileError(CompileError::TYPE_ERROR_TYPE_UNSTABLE_IN_LOOP);
         }
 
-        if(!(speculation && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > 0.5)) {
+        if(!(speculation && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > _normalCaseThreshold)) {
             // if loop never runs for majority through tracing, do not annotate loop body
             whileStmt->suite_body->accept(*this);
 

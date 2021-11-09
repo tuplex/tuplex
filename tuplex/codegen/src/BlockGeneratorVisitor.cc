@@ -5517,7 +5517,7 @@ namespace tuplex {
             bool typeChange = whileStmt->hasAnnotation() && whileStmt->annotation().numTimesVisited > 0;
             // type change in loop but loop ends before first iteration? -> normal case violation
             // will check this in firstIterationCondBB and condBB to avoid visiting while condition before loop starts
-            bool skipLoopBody = typeChange && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > 0.5;
+            bool skipLoopBody = typeChange && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > _normalCaseThreshold;
             bool unrollFirstIteration = !skipLoopBody && whileStmt->annotation().typeChangedAndStableCount > whileStmt->annotation().typeStableCount;
 
             // isFirstIteration: true before first iteration completes

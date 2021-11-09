@@ -17,7 +17,7 @@ rm -rf tuplex/python/tuplex/libexec/tuplex*.so
 # CIBUILDWHEEL CONFIGURATION
 export CIBUILDWHEEL=1
 export TUPLEX_BUILD_ALL=0
-export CIBW_ARCHS_LINUX=native
+export CIBW_ARCHS_LINUX=x86_64
 export CIBW_MANYLINUX_X86_64_IMAGE='registry-1.docker.io/tuplex/ci:latest'
 
 export CIBW_ENVIRONMENT="TUPLEX_LAMBDA_ZIP="./tuplex/other/tplxlam.zip""

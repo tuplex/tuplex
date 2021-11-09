@@ -2,6 +2,7 @@
 # top-level setuo file to create package uploadable to pypi.
 # -*- coding: utf-8 -*-
 import os
+import pathlib
 import sys
 import sysconfig as pyconfig
 import subprocess
@@ -112,6 +113,10 @@ class CMakeBuild(build_ext):
         ext_filename = ext_filename[ext_filename.rfind('.') + 1:]  # i.e. this is "tuplex"
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
 
+        # for whatever reason below lambda copying doesn't work, hence manually copy to extension dir
+        # extdir = /project/build/lib.linux-x86_64-3.7/tuplex/libexec/ e.g.
+        tplx_lib_root = pathlib.Path(extdir).parent
+
         # required for auto-detection of auxiliary "native" libs
         if not extdir.endswith(os.path.sep):
             extdir += os.path.sep
@@ -145,6 +150,11 @@ class CMakeBuild(build_ext):
             zip_dest = os.path.join(zip_target, 'tplxlam.zip')
             shutil.copyfile(lambda_zip, zip_dest)
             print('Copied {} to {}'.format(lambda_zip, zip_dest))
+
+            alt_dest = os.path.join(tplx_lib_root, 'other')
+            os.makedirs(alt_dest, exist_ok=True)
+            shutil.copyfile(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip'))
+            print('Copied {} to {} as well'.format(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip')))
 
         cfg = "Debug" if self.debug else "Release"
 

@@ -167,12 +167,14 @@ namespace tuplex {
         }
 
         /*!
-         *
+         * same as in AnnotatesAST.h
          * @param env
+         * @param nornmalCaseThreshold
          * @param allowUndefinedBehavior
          * @param sharedObjectPropagation
          */
         codegen::CompiledFunction compile(codegen::LLVMEnvironment& env,
+                                          double normalCaseThreshold,
                                           bool allowUndefinedBehavior,
                                           bool sharedObjectPropagation);
 

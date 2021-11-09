@@ -43,6 +43,7 @@ namespace tuplex {
          * @param udf the aggregation udf to be used in the returned functor
          * @param aggType the type of the aggregate value
          * @param allocator the memory allocation function to use
+         * @param normalCaseThreshold number in [0.5, 1.0] to control normalcase behavior
          * @param allowUndefinedBehavior boolean flag whether or not to allow undefined behavior (passed from user options, used to compile the udf)
          * @param sharedObjectPropagation boolean flag whether or not to propagate shared objects (passed from user options, used to compile the functor)
          * @return the corresponding llvm function.
@@ -52,6 +53,7 @@ namespace tuplex {
                                                               const UDF &udf,
                                                               const python::Type aggType,
                                                               decltype(malloc) allocator=malloc,
+                                                              double normalCaseThreshold=0.5,
                                                               bool allowUndefinedBehavior=true,
                                                               bool sharedObjectPropagation=true);
 
@@ -64,6 +66,7 @@ namespace tuplex {
          * @param aggType the type of the aggregate value
          * @param rowType the type of the incoming row
          * @param allocator the memory allocation function to use
+         * @param normalCaseThreshold number in [0.5, 1.0] to control normalcase behavior
          * @param allowUndefinedBehavior boolean flag whether or not to allow undefined behavior (passed from user options, used to compile the udf)
          * @param sharedObjectPropagation boolean flag whether or not to propagate shared objects (passed from user options, used to compile the functor)
          * @return the corresponding llvm function.
@@ -74,6 +77,7 @@ namespace tuplex {
                                                        const python::Type &aggType,
                                                        const python::Type &rowType,
                                                        decltype(malloc) allocator = malloc,
+                                                       double normalCaseThreshold=0.5,
                                                        bool allowUndefinedBehavior = true,
                                                        bool sharedObjectPropagation = true);
     }

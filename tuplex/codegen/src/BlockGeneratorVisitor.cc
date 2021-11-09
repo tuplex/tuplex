@@ -5234,7 +5234,7 @@ namespace tuplex {
             }
 
             bool typeChange = forStmt->hasAnnotation() && forStmt->annotation().numTimesVisited > 0;
-            bool skipLoopBody = typeChange && double(forStmt->annotation().zeroIterationCount) / double(forStmt->annotation().numTimesVisited) > 0.5;
+            bool skipLoopBody = typeChange && double(forStmt->annotation().zeroIterationCount) / double(forStmt->annotation().numTimesVisited) > _normalCaseThreshold;
             bool unrollFirstIteration = !skipLoopBody && forStmt->annotation().typeChangedAndStableCount > forStmt->annotation().typeStableCount;
             if(typeChange && !skipLoopBody) {
                 // loop body should have at least 1 iteration, otherwise normal case violation

@@ -507,7 +507,7 @@ namespace tuplex {
         } else return _pickledCode;
     }
 
-    codegen::CompiledFunction UDF::compile(codegen::LLVMEnvironment &env, bool allowUndefinedBehaviour, bool sharedObjectPropagation) {
+    codegen::CompiledFunction UDF::compile(codegen::LLVMEnvironment &env, double normalCaseThreshold, bool allowUndefinedBehaviour, bool sharedObjectPropagation) {
 
         codegen::CompiledFunction cf;
         MessageHandler& logger = Logger::instance().logger("codegen");
@@ -559,7 +559,7 @@ namespace tuplex {
         }
 
         // compile UDF to LLVM IR Code
-        if(!cg.generateCode(&env, allowUndefinedBehaviour, sharedObjectPropagation)) {
+        if(!cg.generateCode(&env, normalCaseThreshold, allowUndefinedBehaviour, sharedObjectPropagation)) {
             // log error and abort processing.
             logger.error("code generation for user supplied function " + cg.getFunctionName() + " failed.");
             cf.function = nullptr; // invalidate func

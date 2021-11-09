@@ -118,11 +118,12 @@ namespace tuplex {
 
             /*!
              * generates code for a python UDF function
+             * @param normalCaseThreshold number in [0.5, 1] determining what the threshold for the normal case should be
              * @param allowUndefinedBehavior whether generated code allows for undefined behavior, i.e. division by zero, ...
              * @param sharedObjectPropagation whether to share read-only objects across rows
              * @return bool if code can be generated, false if not
              */
-            bool generateCode(LLVMEnvironment *env, bool allowUndefinedBehavior, bool sharedObjectPropagation);
+            bool generateCode(LLVMEnvironment *env, double normalCaseThreshold, bool allowUndefinedBehavior, bool sharedObjectPropagation);
 
             /*!
              * function name to call this udf in LLVM IR

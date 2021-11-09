@@ -57,7 +57,7 @@ namespace tuplex {
             }
         }
 
-        bool AnnotatedAST::generateCode(LLVMEnvironment *env, bool allowUndefinedBehavior, bool sharedObjectPropagation) {
+        bool AnnotatedAST::generateCode(LLVMEnvironment *env, double normalCaseThreshold, bool allowUndefinedBehavior, bool sharedObjectPropagation) {
             assert(env);
 
             auto& logger = Logger::instance().logger("codegen");
@@ -76,7 +76,7 @@ namespace tuplex {
             assert(func->type() == ASTNodeType::Lambda || func->type() == ASTNodeType::Function);
 
             // actual code generation
-            tuplex::codegen::BlockGeneratorVisitor bgv(env, _typeHints, allowUndefinedBehavior, sharedObjectPropagation);
+            tuplex::codegen::BlockGeneratorVisitor bgv(env, _typeHints, normalCaseThreshold, allowUndefinedBehavior, sharedObjectPropagation);
             bgv.addGlobals(func, _globals);
 
             try {

@@ -61,6 +61,7 @@ namespace tuplex {
         llvm::Function *createAggregateCombineFunction(LLVMEnvironment *env, const std::string &name, const UDF &udf,
                                                        const python::Type aggType,
                                                        decltype(malloc) allocator,
+                                                       double normalCaseThreshold,
                                                        bool allowUndefinedBehavior,
                                                        bool sharedObjectPropagation) {
             using namespace llvm;
@@ -105,7 +106,7 @@ namespace tuplex {
 
             // compile dependent on udf
             assert(udf.isCompiled());
-            auto cf = const_cast<UDF&>(udf).compile(*env, allowUndefinedBehavior, sharedObjectPropagation);
+            auto cf = const_cast<UDF&>(udf).compile(*env, normalCaseThreshold, allowUndefinedBehavior, sharedObjectPropagation);
             // stop if compilation didn't succeed
             if(!cf.good())
                 return nullptr;
@@ -153,6 +154,7 @@ namespace tuplex {
                                                        const python::Type &aggType,
                                                        const python::Type &rowType,
                                                        decltype(malloc) allocator,
+                                                       double normalCaseThreshold,
                                                        bool allowUndefinedBehavior,
                                                        bool sharedObjectPropagation) {
             using namespace llvm;
@@ -202,7 +204,7 @@ namespace tuplex {
 
             // compile dependent on udf
             assert(udf.isCompiled());
-            auto cf = const_cast<UDF&>(udf).compile(*env, allowUndefinedBehavior, sharedObjectPropagation);
+            auto cf = const_cast<UDF&>(udf).compile(*env, normalCaseThreshold, allowUndefinedBehavior, sharedObjectPropagation);
             // stop if compilation didn't succeed
             if(!cf.good())
                 return nullptr;

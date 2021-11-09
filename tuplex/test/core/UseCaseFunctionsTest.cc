@@ -1327,15 +1327,15 @@ TEST_F(UseCaseFunctionsTest, PaperExampleCode) {
     // slightly altered example
     UDF udfAlt("lambda m: m * 1.609 if m else 0.0");
     udfAlt.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(python::Type::I64)), true);
-    udfAlt.compile(*env, true, true);
+    udfAlt.compile(*env, 0.5, true, true);
 
     udfAlt.removeTypes();
     udfAlt.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(python::Type::makeOptionType(python::Type::I64))), true);
-    udfAlt.compile(*env, true, true);
+    udfAlt.compile(*env, 0.5, true, true);
 
     udfAlt.removeTypes();
     udfAlt.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(python::Type::NULLVALUE)), true);
-    udfAlt.compile(*env, true, true);
+    udfAlt.compile(*env, 0.5, true, true);
 
     auto& mod = *env->getModule();
     // run cfg-simplification pass to get rid of unnecessary basic blocks

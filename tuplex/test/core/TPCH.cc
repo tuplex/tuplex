@@ -212,7 +212,7 @@ TEST_F(TpchTest, Pip) {
 
 
     // compile func
-    auto cf = aggUDF.compile(*env, true, true);
+    auto cf = aggUDF.compile(*env, 0.5, true, true);
 
     ASSERT_TRUE(cf.good());
 //    auto pip = new codegen::PipelineBuilder(env, python::Type::propagateToTupleType(python::Type::F64));

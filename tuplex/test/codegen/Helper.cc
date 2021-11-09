@@ -25,7 +25,7 @@ void testDefCode(const std::string& code,
         cg.addTypeHint(keyval.first, keyval.second);
 
     auto env = std::make_unique<tuplex::codegen::LLVMEnvironment>();
-    EXPECT_TRUE(cg.generateCode(env.get(), true, true));
+    EXPECT_TRUE(cg.generateCode(env.get(), 0.5, true, true));
 
     std::cout<<"return type: "<<cg.getReturnType().desc()<<" expected: "<<expectedReturnType.desc()<<std::endl;
     EXPECT_EQ(cg.getReturnType(), expectedReturnType);

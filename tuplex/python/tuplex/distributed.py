@@ -339,16 +339,31 @@ def find_lambda_package():
 
 def setup_aws(aws_access_key=None, aws_secret_key= None,
               overwrite=True,
-              iam_user=current_iam_user(),
-              lambda_name=default_lambda_name(),
-              lambda_role=default_lambda_role(),
-              lambda_file=find_lambda_package(),
-              region=current_region(),
-              s3_scratch_uri=default_scratch_dir(),
+              iam_user=None,
+              lambda_name=None,
+              lambda_role=None,
+              lambda_file=None,
+              region=None,
+              s3_scratch_uri=None,
               quiet=False
               ):
 
     start_time = time.time()
+
+    # detect defaults. Important to do this here, because don't want to always invoke boto3/botocore
+    if iam_user is None:
+        iam_user = current_iam_user()
+    if lambda_name is None:
+        lambda_name = default_lambda_name()
+    if lambda_role is None:
+        lambda_role = default_lambda_role()
+    if lambda_file is None:
+        lambda_file = find_lambda_package()
+    if region is None:
+        region = current_region()
+    if s3_scratch_uri is None:
+        s3_scratch_uri = default_scratch_dir()
+
 
     assert lambda_file is not None, 'must specify file to upload'
 

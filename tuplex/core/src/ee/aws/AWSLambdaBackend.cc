@@ -101,6 +101,12 @@ namespace tuplex {
         clientConfig.region = _options.AWS_REGION().c_str(); // hard-coded here
         clientConfig.scheme = Aws::Http::Scheme::HTTPS;
 
+        if(!_options.NETWORK_CA_FILE().empty())
+            clientConfig.caFile = _options.NETWORK_CA_FILE().c_str();
+        if(!_options.NETWORK_CA_PATH()).empty())
+            clientConfig.caPath = _options.NETWORK_CA_PATH().c_str();
+        clientConfig.verifySSL = _options.NETWORK_VERIFY_SSL();
+
         // change aws settings here
         Aws::Auth::AWSCredentials cred(_credentials.access_key.c_str(), _credentials.secret_key.c_str());
         auto client = Aws::MakeShared<Aws::Lambda::LambdaClient>(_tag.c_str(), cred, clientConfig);

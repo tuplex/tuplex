@@ -54,6 +54,11 @@ def default_scratch_dir():
 def current_region():
     session = boto3.session.Session()
     region = session.region_name
+
+    if region is None:
+        # could do fancier auto-detect here...
+        return 'us-east-1'
+
     return region
 
 def check_credentials(aws_access_key_id=None, aws_secret_access_key=None):

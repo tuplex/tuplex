@@ -57,6 +57,7 @@ namespace tuplex {
         return credentials;
     }
 
+    // @TODO: add ca configuration options etc. => maybe network settings?
     bool initAWS(const AWSCredentials& credentials, bool requesterPay) {
         initAWSSDK();
 

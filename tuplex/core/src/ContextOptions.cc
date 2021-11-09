@@ -233,14 +233,17 @@ namespace tuplex {
                      {"tuplex.interleaveIO", "true"},
                      {"tuplex.aws.scratchDir", ""},
                      {"tuplex.aws.requestTimeout", "600"},
-                     {"tuplex.aws.connectTimeout", "30"},
+                     {"tuplex.aws.connectTimeout", "1"},
                      {"tuplex.aws.maxConcurrency", "100"},
                      {"tuplex.aws.httpThreadCount", std::to_string(std::max(8u, std::thread::hardware_concurrency()))},
                      {"tuplex.aws.region", "us-east-1"},
                      {"tuplex.aws.lambdaMemory", "1536"},
                      {"tuplex.aws.lambdaTimeout", "600"},
                      {"tuplex.aws.requesterPay", "false"},
-                     {"tuplex.resolveWithInterpreterOnly", "false"}};
+                     {"tuplex.resolveWithInterpreterOnly", "false"},
+                     {"tuplex.network.caFile", ""},
+                     {"tuplex.network.caPath", ""},
+                     {"tuplex.network.verifySSL", "true"}};
 #else
         // DEBUG options
         co._store = {{"tuplex.useLLVMOptimizer", "false"},
@@ -283,14 +286,17 @@ namespace tuplex {
                      {"tuplex.interleaveIO", "true"},
                      {"tuplex.aws.scratchDir", ""},
                      {"tuplex.aws.requestTimeout", "600"},
-                     {"tuplex.aws.connectTimeout", "30"},
+                     {"tuplex.aws.connectTimeout", "1"},
                      {"tuplex.aws.maxConcurrency", "100"},
                      {"tuplex.aws.httpThreadCount", std::to_string(std::min(8u, std::thread::hardware_concurrency()))},
                      {"tuplex.aws.region", "us-east-1"},
                      {"tuplex.aws.lambdaMemory", "1536"},
                      {"tuplex.aws.lambdaTimeout", "600"},
                      {"tuplex.aws.requesterPay", "false"},
-                     {"tuplex.resolveWithInterpreterOnly", "true"}};
+                     {"tuplex.resolveWithInterpreterOnly", "true"},
+                     {"tuplex.network.caFile", ""},
+                     {"tuplex.network.caPath", ""},
+                     {"tuplex.network.verifySSL", "true"}};
 #endif
 
         // update with tuplex env
@@ -300,6 +306,9 @@ namespace tuplex {
         return co;
     }
 
+    std::string ContextOptions::NETWORK_CA_FILE() const { return _store.at("tuplex.network.caFile"); }
+    std::string ContextOptions::NETWORK_CA_PATH() const { return _store.at("tuplex.network.caPath"); }
+    bool ContextOptions::NETWORK_VERIFY_SSL() const { return stringToBool(_store.at("tuplex.network.verifySSL")); }
     bool ContextOptions::USE_WEBUI() const { return stringToBool(_store.at("tuplex.webui.enable")); }
     std::string ContextOptions::WEBUI_DATABASE_HOST() const { return _store.at("tuplex.webui.mongodb.url"); }
     uint16_t ContextOptions::WEBUI_DATABASE_PORT() const { return std::stoi(_store.at("tuplex.webui.mongodb.port")); }

@@ -103,6 +103,11 @@ namespace tuplex {
 
         Backend BACKEND() const; //! which backend to use for pipeline execution
 
+        // general network settings
+        std::string NETWORK_CA_FILE() const;
+        std::string NETWORK_CA_PATH() const;
+        bool NETWORK_VERIFY_SSL() const;
+
 
         bool USE_WEBUI() const;
         std::string WEBUI_HOST() const;

@@ -1303,6 +1303,10 @@ namespace tuplex {
                        python::PyString_FromString("tuplex.resolveWithInterpreterOnly"),
                        python::boolToPython(co.RESOLVE_WITH_INTERPRETER_ONLY()));
 
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.network.verifySSL"),
+                       python::boolToPython(co.NETWORK_VERIFY_SSL()));
+
         // @TODO: move to optimizer
         PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.csv.selectionPushdown"),
@@ -1331,8 +1335,37 @@ namespace tuplex {
                        PyLong_FromLongLong(co.WEBUI_EXCEPTION_DISPLAY_LIMIT()));
 
         // aws options
-        //@TODO:
-
+#ifdef BUILD_WITH_AWS
+        //                      {"tuplex.aws.requestTimeout", "600"},
+        //                     {"tuplex.aws.connectTimeout", "1"},
+        //                     {"tuplex.aws.maxConcurrency", "100"},
+        //                     {"tuplex.aws.httpThreadCount", std::to_string(std::min(8u, std::thread::hardware_concurrency()))},
+        //                     {"tuplex.aws.region", "us-east-1"},
+        //                     {"tuplex.aws.lambdaMemory", "1536"},
+        //                     {"tuplex.aws.lambdaTimeout", "600"},
+        //                     {"tuplex.aws.requesterPay", "false"},
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.requestTimeout"),
+                       PyLong_FromLongLong(co.AWS_REQUEST_TIMEOUT()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.connectTimeout"),
+                       PyLong_FromLongLong(co.AWS_CONNECT_TIMEOUT()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.maxConcurrency"),
+                       PyLong_FromLongLong(co.AWS_MAX_CONCURRENCY()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.httpThreadCount"),
+                       PyLong_FromLongLong(co.AWS_NUM_HTTP_THREADS()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.lambdaMemory"),
+                       PyLong_FromLongLong(co.AWS_LAMBDA_MEMORY()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.lambdaTimeout"),
+                       PyLong_FromLongLong(co.AWS_LAMBDA_TIMEOUT()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.requesterPay"),
+                       python::boolToPython(co.AWS_REQUESTER_PAY()));
+#endif
 
         // float options
         PyDict_SetItem(dictObject,
@@ -1364,7 +1397,7 @@ namespace tuplex {
         // strings
         // i.e. for the rest
         auto store = co.store();
-        for(auto keyval : store) {
+        for(const auto& keyval : store) {
             // check if contained in dict, if not add
             auto key = keyval.first;
             auto val = keyval.second;

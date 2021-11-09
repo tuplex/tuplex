@@ -121,12 +121,24 @@ class CMakeBuild(build_ext):
 
         lambda_zip = os.environ.get('TUPLEX_LAMBDA_ZIP', None)
         if lambda_zip:
+
+            tplx_src_root = os.path.abspath(os.path.dirname(__file__))
+            tplx_package_root = os.path.join(tplx_src_root, 'tuplex', 'python')
+
+            # check whether file exists under the given directory
+            if not os.path.isfile(lambda_zip):
+                logging.warning('file {} not found'.format(lambda_zip))
+
+                # check if perhaps tplxlam.zip exists relative to source root?
+                alt_path = os.path.join(tplx_package_root, 'tuplex', 'other', 'tplxlam.zip')
+                if os.path.isfile(alt_path):
+                    logging.info('Found tplxlam.zip under {}, using...'.format(alt_path))
+                    lambda_zip = alt_path
+
             print('Packaging Tuplex Lambda runner')
 
             # need to copy / link zip file into temp dir
             # -> this is the root setup.py file, hence find root
-            tplx_src_root = os.path.abspath(os.path.dirname(__file__))
-            tplx_package_root = os.path.join(tplx_src_root, 'tuplex', 'python')
             print('Root path is: {}'.format(tplx_package_root))
             zip_target = os.path.join(self.build_temp, 'tuplex', 'other')
             os.makedirs(zip_target, exist_ok=True)

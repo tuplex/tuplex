@@ -30,6 +30,9 @@ export CIBW_BUILD="cp39-*"
 export CIBW_BUILD="cp37-*"
 export CIBW_ARCHS_LINUX="x86_64"
 
+# do not build musllinux yet
+export CIBW_SKIP="*-musllinux_*"
+
 # to test the others from 3.7-3.9, use these two lines:
 #export CIBW_BUILD="cp3{7,8,9}-*"
 #export CIBW_SKIP="cp3{5,6,7,8}-macosx* pp*"

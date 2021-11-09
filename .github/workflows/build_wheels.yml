@@ -57,8 +57,9 @@ jobs:
           # only build python 3.9 on macos
 
           # production version:
+          # no musllinux yet, no 3.10 support yet.
           CIBW_BUILD: "cp3{7,8,9}-*"
-          CIBW_SKIP: "cp3{5,6,7,8}-macosx* pp*"
+          CIBW_SKIP: "cp3{5,6,7,8}-macosx* pp* *-musllinux_*"
 
           ## for debugging purposes (only linux build)
           #CIBW_BUILD: "cp38-*"

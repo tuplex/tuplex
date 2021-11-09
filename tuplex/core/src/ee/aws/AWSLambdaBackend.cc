@@ -103,7 +103,7 @@ namespace tuplex {
 
         if(!_options.NETWORK_CA_FILE().empty())
             clientConfig.caFile = _options.NETWORK_CA_FILE().c_str();
-        if(!_options.NETWORK_CA_PATH()).empty())
+        if(!_options.NETWORK_CA_PATH().empty())
             clientConfig.caPath = _options.NETWORK_CA_PATH().c_str();
         clientConfig.verifySSL = _options.NETWORK_VERIFY_SSL();
 

@@ -19,13 +19,13 @@ void testDefCode(const std::string& code,
                  const std::map<std::string, python::Type>& typeHints,
                  const python::Type& expectedReturnType) {
     tuplex::codegen::AnnotatedAST cg;
-    ASSERT_TRUE(cg.parseString(code, false));
+    ASSERT_TRUE(cg.parseString(code));
 
     for(auto keyval : typeHints)
         cg.addTypeHint(keyval.first, keyval.second);
 
     auto env = std::make_unique<tuplex::codegen::LLVMEnvironment>();
-    EXPECT_TRUE(cg.generateCode(env.get(), 0.5, true, true));
+    EXPECT_TRUE(cg.generateCode(env.get(), tuplex::codegen::DEFAULT_COMPILE_POLICY));
 
     std::cout<<"return type: "<<cg.getReturnType().desc()<<" expected: "<<expectedReturnType.desc()<<std::endl;
     EXPECT_EQ(cg.getReturnType(), expectedReturnType);

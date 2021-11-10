@@ -43,17 +43,13 @@ namespace tuplex {
          * @param udf the aggregation udf to be used in the returned functor
          * @param aggType the type of the aggregate value
          * @param allocator the memory allocation function to use
-         * @param normalCaseThreshold number in [0.5, 1.0] to control normalcase behavior
-         * @param allowUndefinedBehavior boolean flag whether or not to allow undefined behavior (passed from user options, used to compile the udf)
-         * @param sharedObjectPropagation boolean flag whether or not to propagate shared objects (passed from user options, used to compile the functor)
          * @return the corresponding llvm function.
          */
         extern llvm::Function *createAggregateCombineFunction(LLVMEnvironment *env,
                                                               const std::string &name,
                                                               const UDF &udf,
                                                               const python::Type aggType,
-                                                              decltype(malloc) allocator=malloc,
-                                                              const codegen::CompilePolicy& policy=codegen::DEFAULT_COMPILE_POLICY);
+                                                              decltype(malloc) allocator=malloc);
 
         /*!
          * creates a function int64_t aggregate(void** aggOut, void* row, int64_t* row_size) which aggregates in the row to the aggOut buffer (freeing and reallocating it if necessary)
@@ -64,9 +60,6 @@ namespace tuplex {
          * @param aggType the type of the aggregate value
          * @param rowType the type of the incoming row
          * @param allocator the memory allocation function to use
-         * @param normalCaseThreshold number in [0.5, 1.0] to control normalcase behavior
-         * @param allowUndefinedBehavior boolean flag whether or not to allow undefined behavior (passed from user options, used to compile the udf)
-         * @param sharedObjectPropagation boolean flag whether or not to propagate shared objects (passed from user options, used to compile the functor)
          * @return the corresponding llvm function.
          */
         extern llvm::Function *createAggregateFunction(LLVMEnvironment *env,
@@ -74,8 +67,7 @@ namespace tuplex {
                                                        const UDF &udf,
                                                        const python::Type &aggType,
                                                        const python::Type &rowType,
-                                                       decltype(malloc) allocator = malloc,
-                                                       const codegen::CompilePolicy& policy=DEFAULT_COMPILE_POLICY);
+                                                       decltype(malloc) allocator = malloc);
     }
 }
 

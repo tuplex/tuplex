@@ -22,8 +22,37 @@ import fnmatch
 import re
 import atexit
 
+def in_google_colab():
+    """
+        check whether framework runs in Google Colab environment
+    Returns:
+        True if Tuplex is running in Google Colab
+    """
+    found_colab_package = False
+    try:
+        import google.colab
+        found_colab_package = True
+    except:
+        pass
+
+    shell_name_matching = False
+    try:
+        shell_name_matching =  'google.colab' in str(get_ipython())
+    except:
+        pass
+
+    if found_colab_package or shell_name_matching:
+        return True
+    else:
+        return False
+
 # configure logging here
 logging.basicConfig(level=logging.INFO)
+
+
+# fixes for google colab
+colab_requirements = ['urllib3==1.26.7']
+# urllib3 1.26.7
 
 
 # TODO: add option to install these
@@ -47,22 +76,46 @@ webui_dependencies = [
 # dependencies for AWS Lambda backend...
 aws_lambda_dependencies = ['boto3']
 
-install_dependencies = [
-    'attrs>=19.2.0',
-    'dill>=0.2.7.1',
-    'pluggy',
-    'py>=1.5.2',
-    'pygments>=2.4.1',
-    'six>=1.11.0',
-    'wcwidth>=0.1.7',
-    'astor',
-    'prompt_toolkit',
-    'jedi',
-    'cloudpickle>=0.6.1',
-    'PyYAML>=3.13',
-    'psutil',
-    'pymongo'
-] + webui_dependencies + aws_lambda_dependencies
+
+# manual fix for google colab
+if in_google_colab():
+    install_dependencies = [
+        'urllib3!=1.25.0,!=1.25.1,<1.26,>=1.21.1',
+        'folium==0.2.1'
+        'requests',
+        'attrs>=19.2.0',
+        'dill>=0.2.7.1',
+        'pluggy',
+        'py>=1.5.2',
+        'pygments>=2.4.1',
+        'six>=1.11.0',
+        'wcwidth>=0.1.7',
+        'astor',
+        'prompt_toolkit',
+        'jedi',
+        'cloudpickle>=0.6.1',
+        'PyYAML>=3.13',
+        'psutil',
+        'pymongo',
+        'boto3'
+    ]
+else:
+    install_dependencies = [
+        'attrs>=19.2.0',
+        'dill>=0.2.7.1',
+        'pluggy',
+        'py>=1.5.2',
+        'pygments>=2.4.1',
+        'six>=1.11.0',
+        'wcwidth>=0.1.7',
+        'astor',
+        'prompt_toolkit',
+        'jedi',
+        'cloudpickle>=0.6.1',
+        'PyYAML>=3.13',
+        'psutil',
+        'pymongo'
+    ] + webui_dependencies + aws_lambda_dependencies
 
 def ninja_installed():
     # check whether ninja is on the path

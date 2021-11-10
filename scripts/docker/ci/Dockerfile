@@ -15,6 +15,19 @@ ADD install_llvm9.sh /opt/sbin/install_llvm9.sh
 # it uses gcc 9.3.1
 
 
+# TODO: CentOS/RHEL does not support AWS SDK. It's triggering a bug in NSS which is the SSL lib used in CentOS/RHEL. Therefore, use a m
+# cf. https://github.com/aws/aws-sdk-cpp/issues/1491
+
+Steps to solve:
+1.) install recent OpenSSL
+2.) build Curl against it
+3.) Compile AWS SDK with this curl version.
+
+cf. https://geekflare.com/curl-installation/
+
+wget --no-check-certificate https://curl.se/download/curl-7.80.0.tar.gz
+lcconfig
+
 # image is centos based, so use yum as package manager
 # --> install_llvm9 uses most recent 9 release.
 # yet, can also use yum?

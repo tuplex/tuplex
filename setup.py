@@ -79,6 +79,7 @@ aws_lambda_dependencies = ['boto3']
 
 # manual fix for google colab
 if in_google_colab():
+    print('installing within google colab')
     install_dependencies = [
         'urllib3!=1.25.0,!=1.25.1,<1.26,>=1.21.1',
         'folium==0.2.1'
@@ -100,6 +101,8 @@ if in_google_colab():
         'boto3'
     ]
 else:
+    print('non google colab env detected')
+
     install_dependencies = [
         'attrs>=19.2.0',
         'dill>=0.2.7.1',

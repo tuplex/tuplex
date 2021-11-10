@@ -141,6 +141,13 @@ class Context:
         if 'tuplex.runTimeLibrary' in options:
             runtime_path = options['tuplex.runTimeLibrary']
 
+        # normalize keys to be of format tuplex.<key>
+        supported_keys = json.loads(getDefaultOptionsAsJSON()).keys()
+        key_set = set(options.keys())
+        for k in key_set:
+            if k not in supported_keys and 'tuplex.' + k in supported_keys:
+                options['tuplex.' + k] = options[k]
+
         # autostart mongodb & history server if they are not running yet...
         # deactivate webui for google colab per default
         if 'tuplex.webui.enable' not in options:
@@ -150,10 +157,10 @@ class Context:
         # fetch default options for webui ...
         webui_options = {k: v for k, v in json.loads(getDefaultOptionsAsJSON()).items() if 'webui' in k or 'scratch' in k}
 
-        # update only non-existing options!
-        for k, v in webui_options.items():
-            if k not in options.keys():
-                options[k] = v
+        # # update only non-existing options!
+        # for k, v in webui_options.items():
+        #     if k not in options.keys():
+        #         options[k] = v
 
         # pythonize
         options = pythonize_options(options)

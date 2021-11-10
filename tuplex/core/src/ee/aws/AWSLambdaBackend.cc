@@ -112,7 +112,7 @@ namespace tuplex {
         if(!_options.NETWORK_CA_PATH().empty())
             clientConfig.caPath = _options.NETWORK_CA_PATH().c_str();
         clientConfig.verifySSL = _options.NETWORK_VERIFY_SSL();
-        
+
         // if(!_options.)
         // disable https?
 

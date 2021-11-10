@@ -284,8 +284,11 @@ def pythonize_options(options):
         if not isinstance(item, str):
             return item
 
-        if item.lower() == 'true' or item.lower() == 'false':
-            return bool(item)
+        # do not use bool(...) to convert!
+        if item.lower() == 'true':
+            return True
+        if item.lower() == 'false':
+            return False
         try:
             return int(item)
         except:

@@ -1198,16 +1198,17 @@ namespace tuplex {
         if(runtimeLibraryPath.length() > 0)
             co.set("tuplex.runTimeLibrary", runtimeLibraryPath);
 
-         co = updateOptionsWithDict(co, options);
 
-        //#ifndef NDEBUG
+        co = updateOptionsWithDict(co, options);
+
+        // #ifndef NDEBUG
         //        // print settings
         //        Logger::instance().defaultLogger().info("Tuplex configuration:");
         //        auto store = co.store();
         //        for(auto keyval : store) {
         //            Logger::instance().defaultLogger().info(keyval.first + "=" + keyval.second);
         //        }
-        //#endif
+        // #endif
 
         // testwise retrieve runtime path. This may be a critical error, hence throw PyException!
         python::unlockGIL();

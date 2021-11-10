@@ -189,7 +189,11 @@ namespace tuplex {
         ContextOptions co;
 
         // set scratch dir to /tmp/tuplex-scratch-space-<user>
-        auto temp_cache_path = "/tmp/tuplex-cache-" + getUserName();
+        auto user_name = getUserName();
+        if("" == user_name) {
+            user_name = "tuplex"; // use as default if user name detection fails.
+        }
+        auto temp_cache_path = "/tmp/tuplex-cache-" + user_name;
         auto temp_mongodb_path = temp_cache_path + "/mongodb";
 #ifdef NDEBUG
         // release options

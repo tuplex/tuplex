@@ -93,10 +93,24 @@ class Context:
         # pass configuration options
         # (1) check if conf is a dictionary or a string
         options = dict()
+
+        # put meaningful defaults for special environments...
+        if in_google_colab():
+            logging.debug('Detected Google Colab environment, adjusting options...')
+
+            # do not use a lot of memory, restrict...
+            options['tuplex.driverMemory'] = '64MB'
+            options['tuplex.executorMemory'] = '64MB'
+            options['tuplex.inputSplitSize'] = '16MB'
+            options['tuplex.partitionSize'] = '4MB'
+            options['tuplex.runTimeMemory'] = '16MB'
+            options['tuplex.webui.enable'] = 'False'
+
         if conf:
             if isinstance(conf, str):
                 # need to load yaml file
-                options = flatten_dict(load_conf_yaml(conf))
+                loaded_options = flatten_dict(load_conf_yaml(conf))
+                options.update(loaded_options)
             elif isinstance(conf, dict):
                 # update dict with conf
                 options.update(flatten_dict(conf))

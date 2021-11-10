@@ -101,6 +101,11 @@ namespace tuplex {
         clientConfig.region = _options.AWS_REGION().c_str(); // hard-coded here
         clientConfig.scheme = Aws::Http::Scheme::HTTPS;
 
+
+        // debug print
+        printf("caFile is: %s", _options.NETWORK_CA_FILE().c_str());
+        printf("caPath is: %s", _options.NETWORK_CA_PATH().c_str());
+
         if(!_options.NETWORK_CA_FILE().empty())
             clientConfig.caFile = _options.NETWORK_CA_FILE().c_str();
         if(!_options.NETWORK_CA_PATH().empty())

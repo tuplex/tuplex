@@ -32,7 +32,6 @@ namespace tuplex {
 
         AggregateOperator(LogicalOperator* parent,
                           const AggregateType& at,
-                          bool allowNumericTypeUnification,
                           const UDF& combiner=UDF("",""),
                           const UDF& aggregator=UDF("",""),
                           Row initialValue=Row(),
@@ -48,10 +47,6 @@ namespace tuplex {
             }
             _keyType = python::Type::makeTupleType(keyTypes);
             if(_keyType.parameters().size() == 1) _keyType = _keyType.parameters().front();
-
-            // require this for typing info.
-            _combiner.getAnnotatedAST().allowNumericTypeUnification(allowNumericTypeUnification);
-            _aggregator.getAnnotatedAST().allowNumericTypeUnification(allowNumericTypeUnification);
 
             if(!inferAndCheckTypes()) {
 //#ifndef NDEBUG

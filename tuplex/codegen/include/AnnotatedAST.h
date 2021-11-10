@@ -45,8 +45,6 @@ namespace tuplex {
             std::string _irFuncName;
             std::map<std::string, python::Type> _typeHints;
 
-            bool _allowNumericTypeUnification;
-
             std::vector<std::string> _typingErrMessages; // error messages produced by type annotator.
 
             // holds the AST tree after successful parsing
@@ -73,9 +71,9 @@ namespace tuplex {
             // updates function ast with type & also updates the param nodes...
             void setFunctionType(ASTNode* node, const python::Type& type);
         public:
-            AnnotatedAST(): _root(nullptr), _typesDefined(false), _allowNumericTypeUnification(false) {}
+            AnnotatedAST(): _root(nullptr), _typesDefined(false) {}
 
-            AnnotatedAST(const AnnotatedAST& other) : _root(nullptr), _typesDefined(other._typesDefined), _globals(other._globals), _allowNumericTypeUnification(other._allowNumericTypeUnification) {
+            AnnotatedAST(const AnnotatedAST& other) : _root(nullptr), _typesDefined(other._typesDefined), _globals(other._globals) {
                 cloneFrom(other);
             }
 
@@ -94,13 +92,10 @@ namespace tuplex {
 
             /*!
              * constructs annotated ast from string.
-             * @param s
+             * @param s python source code to parse
              * @return false if string could not be parsed.
              */
-            bool parseString(const std::string& s, bool allowNumericTypeUnification);
-
-            void allowNumericTypeUnification(bool allow) { _allowNumericTypeUnification = allow; }
-            inline bool allowNumericTypeUnification() const { return _allowNumericTypeUnification; }
+            bool parseString(const std::string& s);
             void setGlobals(const ClosureEnvironment& globals) { _globals = globals; }
             const ClosureEnvironment& globals() const { return _globals; }
 

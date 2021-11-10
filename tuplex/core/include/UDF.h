@@ -187,9 +187,9 @@ namespace tuplex {
          */
         void rewriteParametersInAST(const std::unordered_map<size_t, size_t>& rewriteMap);
 
-        inline bool allowNumericTypeUnification() const {
-            return empty() ? false : getAnnotatedAST().allowNumericTypeUnification();
-        }
+//        inline bool allowNumericTypeUnification() const {
+//            return empty() ? false : getAnnotatedAST().allowNumericTypeUnification();
+//        }
 
         /*!
          * same as in AnnotatesAST.h

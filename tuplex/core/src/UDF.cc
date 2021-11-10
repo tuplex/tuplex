@@ -47,7 +47,7 @@ namespace tuplex {
         if(_code.length() > 0 && _compilationEnabled)
             // attempt to parse code
             // if it fails, make sure a backup solution in the form of pickled code is existing
-            _isCompiled = _ast.parseString(_code, _policy.allowNumericTypeUnification);
+            _isCompiled = _ast.parseString(_code);
 
         // backup solution
         if(!_isCompiled && _pickledCode.length() == 0) {

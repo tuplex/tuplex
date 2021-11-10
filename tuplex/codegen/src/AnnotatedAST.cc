@@ -190,11 +190,9 @@ namespace tuplex {
         }
 
 
-        bool AnnotatedAST::parseString(const std::string &s, bool allowNumericTypeUnification) {
+        bool AnnotatedAST::parseString(const std::string &s) {
             // for a clean restart, later cache in memory!
             release();
-
-            _allowNumericTypeUnification = allowNumericTypeUnification;
 
             // using ANTLR4 parser
             assert(!_root);
@@ -229,7 +227,6 @@ namespace tuplex {
             _typeHints = other._typeHints;
             _typesDefined = other._typesDefined;
             _globals = other._globals;
-            _allowNumericTypeUnification = other._allowNumericTypeUnification;
         }
 
         bool AnnotatedAST::writeGraphVizFile(const std::string &path) {

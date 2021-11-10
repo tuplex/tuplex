@@ -238,8 +238,7 @@ namespace tuplex {
         LogicalOperator *op = _context->addOperator(new MapColumnOperator(this->_operator,
                                                                           columnName,
                                                                           columns(),
-                                                                          udf.withCompilePolicy(_context->compilePolicy()),
-                                                                          _context->getOptions().AUTO_UPCAST_NUMBERS()));
+                                                                          udf.withCompilePolicy(_context->compilePolicy())));
         if (!op->good()) {
             Logger::instance().defaultLogger().error("failed to create mapColumn operator");
             return _context->makeError("failed to add mapColumn operator to logical plan");
@@ -278,8 +277,7 @@ namespace tuplex {
                 new WithColumnOperator(this->_operator,
                                        _columnNames,
                                        columnName,
-                                       udf.withCompilePolicy(_context->compilePolicy()),
-                                       _context->getOptions().AUTO_UPCAST_NUMBERS()));
+                                       udf.withCompilePolicy(_context->compilePolicy())));
 
         if (!op->good()) {
             Logger::instance().defaultLogger().error("failed to create withColumn operator");
@@ -547,8 +545,7 @@ namespace tuplex {
         assert(this->_operator);
         LogicalOperator *op = _context->addOperator(new FilterOperator(this->_operator,
                                                                        udf.withCompilePolicy(_context->compilePolicy()),
-                                                                       _columnNames,
-                                                                       _context->getOptions().AUTO_UPCAST_NUMBERS()));
+                                                                       _columnNames));
 
         if (!op->good()) {
 
@@ -588,8 +585,8 @@ namespace tuplex {
         assert(_context);
         assert(this->_operator);
         LogicalOperator *op = _context->addOperator(new ResolveOperator(this->_operator, ec,
-                                                                        udf.withCompilePolicy(_context->compilePolicy()) _columnNames,
-                                                                        _context->getOptions().AUTO_UPCAST_NUMBERS()));
+                                                                        udf.withCompilePolicy(_context->compilePolicy()),
+                                                                        _columnNames));
         if (!op->good()) {
             Logger::instance().defaultLogger().error("failed to create resolve operator");
             return _context->makeError("failed to add resolve operator to logical plan");
@@ -645,7 +642,7 @@ namespace tuplex {
 
         assert(_context && this->_operator);
 
-        LogicalOperator *op = _context->addOperator(new AggregateOperator(this->_operator, AggregateType::AGG_UNIQUE, false));
+        LogicalOperator *op = _context->addOperator(new AggregateOperator(this->_operator, AggregateType::AGG_UNIQUE));
 
         DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
         dsptr->_operator = op;
@@ -673,7 +670,6 @@ namespace tuplex {
         assert(_context && this->_operator);
 
         LogicalOperator* op = _context->addOperator(new AggregateOperator(this->_operator, AggregateType::AGG_GENERAL,
-                                                                          _context->getOptions().AUTO_UPCAST_NUMBERS(),
                                                                           aggCombine.withCompilePolicy(_context->compilePolicy()), aggUDF.withCompilePolicy(_context->compilePolicy()), aggInitial));
 
         DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
@@ -704,7 +700,6 @@ namespace tuplex {
         assert(_context && this->_operator);
 
         LogicalOperator* op = _context->addOperator(new AggregateOperator(this->_operator, AggregateType::AGG_BYKEY,
-                                                                          _context->getOptions().AUTO_UPCAST_NUMBERS(),
                                                                           aggCombine.withCompilePolicy(_context->compilePolicy()), aggUDF.withCompilePolicy(_context->compilePolicy()), aggInitial, keyColumns));
 
         DataSet *dsptr = _context->createDataSet(op->getOutputSchema());

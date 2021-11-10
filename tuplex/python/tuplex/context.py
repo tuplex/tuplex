@@ -104,7 +104,7 @@ class Context:
             options['tuplex.inputSplitSize'] = '16MB'
             options['tuplex.partitionSize'] = '4MB'
             options['tuplex.runTimeMemory'] = '16MB'
-            options['tuplex.webui.enable'] = 'False'
+            options['tuplex.webui.enable'] = False
 
         if conf:
             if isinstance(conf, str):

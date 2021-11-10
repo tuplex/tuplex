@@ -334,7 +334,15 @@ namespace tuplex {
         // if input row type is given, check!
         if(_inputRowType != python::Type::UNKNOWN) {
             if(python::Type::makeTupleType(_colTypes.back()) != _inputRowType) {
-                PyErr_SetString(PyExc_TypeError, "sample object given doesn't match input row type");
+
+                // special case: coltypes could be single element & tuple!
+                if(_colTypes.back().size() == 1 && _colTypes.back().front() == _inputRowType) {
+                    // update colTypes accordingly!
+                    for(auto& colType : _colTypes)
+                        colType = _inputRowType.parameters();
+                } else {
+                    PyErr_SetString(PyExc_TypeError, "sample object given doesn't match input row type");
+                }
             }
         }
 

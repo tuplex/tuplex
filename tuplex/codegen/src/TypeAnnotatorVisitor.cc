@@ -93,7 +93,7 @@ namespace tuplex {
             // go through all func types, and check whether they can be unified.
             auto combined_ret_type = _funcReturnTypes.front();
             for(int i = 1; i < _funcReturnTypes.size(); ++i)
-                combined_ret_type = unifyTypes(combined_ret_type, _funcReturnTypes[i], _allowNumericTypeUnification);
+                combined_ret_type = unifyTypes(combined_ret_type, _funcReturnTypes[i], _policy.allowNumericTypeUnification);
 
             if(combined_ret_type == python::Type::UNKNOWN) {
 
@@ -122,7 +122,7 @@ namespace tuplex {
                     auto best_so_far = std::get<0>(v.front());
 
                     for(int i = 1; i < v.size(); ++i) {
-                        auto u_type = unifyTypes(best_so_far, std::get<0>(v[i]), _allowNumericTypeUnification);
+                        auto u_type = unifyTypes(best_so_far, std::get<0>(v[i]), _policy.allowNumericTypeUnification);
                         if(u_type != python::Type::UNKNOWN)
                             best_so_far = u_type;
                     }
@@ -147,7 +147,7 @@ namespace tuplex {
             // update suite with combined type!
             func->_suite->setInferredType(combined_ret_type);
 
-            bool autoUpcast = _allowNumericTypeUnification;
+            bool autoUpcast = _policy.allowNumericTypeUnification;
 
             // set return type of all return statements to combined type!
             // ==> they will need to expand the respective value, usually given via their expression.
@@ -247,7 +247,7 @@ namespace tuplex {
                              {"float", python::Type::F64},
                              {"str", python::Type::STRING},
                              {"bool", python::Type::BOOLEAN}};
-        assert(0.0 <= _normalCaseThreshold && _normalCaseThreshold <= 1.0);
+        assert(0.0 <= _policy.normalCaseThreshold && _policy.normalCaseThreshold <= 1.0);
     }
 
     void TypeAnnotatorVisitor::visit(NIdentifier* id) {
@@ -633,7 +633,7 @@ namespace tuplex {
 
             if(isPythonIntegerType(a) && isPythonIntegerType(b)) {
                 // is auto-upcasting allowed?
-                if(_allowNumericTypeUnification)
+                if(_policy.allowNumericTypeUnification)
                     return python::Type::F64; // do general pow operator as float!
 
                 // for foldable expressions, ReduceExpressionsVisitor should have done already everything.
@@ -1290,7 +1290,7 @@ namespace tuplex {
             if(_nameTable.find(name) != _nameTable.end()) {
                 if(_nameTable[name] != type) {
                     // can we unify types?
-                    auto uni_type = unifyTypes(type, _nameTable[name], _allowNumericTypeUnification);
+                    auto uni_type = unifyTypes(type, _nameTable[name], _policy.allowNumericTypeUnification);
                     if(uni_type != python::Type::UNKNOWN)
                         _nameTable[name] = uni_type;
                     else {
@@ -1327,7 +1327,7 @@ namespace tuplex {
 
                 if(if_type != else_type) {
                     // check if they can be unified
-                    auto uni_type = unifyTypes(if_type, else_type, _allowNumericTypeUnification);
+                    auto uni_type = unifyTypes(if_type, else_type, _policy.allowNumericTypeUnification);
                     if(uni_type != python::Type::UNKNOWN) {
                         if_table[name] = uni_type;
                         else_table[name] = else_type;
@@ -1474,7 +1474,7 @@ namespace tuplex {
                 if(ifelse->isExpression()) {
                     // check:
                     if (iftype != elsetype) {
-                        auto combined_type = unifyTypes(iftype, elsetype, _allowNumericTypeUnification);
+                        auto combined_type = unifyTypes(iftype, elsetype, _policy.allowNumericTypeUnification);
                         if(combined_type == python::Type::UNKNOWN)
                             error("could not combine type " + iftype.desc() +
                                   " of if-branch with type " + elsetype.desc() + " of else-branch in if-else expression");
@@ -1699,8 +1699,8 @@ namespace tuplex {
         }
 
         bool speculation = forelse->hasAnnotation() && forelse->annotation().numTimesVisited > 0;
-        bool typeUnstable = speculation && double(forelse->annotation().typeChangedAndUnstableCount) / double(forelse->annotation().numTimesVisited) > _normalCaseThreshold;
-        bool skipLoopBody = speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > _normalCaseThreshold;
+        bool typeUnstable = speculation && double(forelse->annotation().typeChangedAndUnstableCount) / double(forelse->annotation().numTimesVisited) > _policy.normalCaseThreshold;
+        bool skipLoopBody = speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > _policy.normalCaseThreshold;
         bool unrollFirstIteration = !typeUnstable && !skipLoopBody && forelse->annotation().typeChangedAndStableCount > forelse->annotation().typeStableCount;
         if(!speculation) {
             // check for type change
@@ -1710,7 +1710,7 @@ namespace tuplex {
             addCompileError(CompileError::TYPE_ERROR_TYPE_UNSTABLE_IN_LOOP);
         }
 
-        if(!(speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > _normalCaseThreshold)) {
+        if(!(speculation && double(forelse->annotation().zeroIterationCount) / double(forelse->annotation().numTimesVisited) > _policy.normalCaseThreshold)) {
             // if loop never runs for majority through tracing, do not annotate loop body
             forelse->suite_body->accept(*this);
 
@@ -1735,8 +1735,8 @@ namespace tuplex {
         whileStmt->expression->accept(*this);
 
         bool speculation = whileStmt->hasAnnotation() && whileStmt->annotation().numTimesVisited > 0;
-        bool typeUnstable = speculation && double(whileStmt->annotation().typeChangedAndUnstableCount) / double(whileStmt->annotation().numTimesVisited) > _normalCaseThreshold;
-        bool skipLoopBody = speculation && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > _normalCaseThreshold;
+        bool typeUnstable = speculation && double(whileStmt->annotation().typeChangedAndUnstableCount) / double(whileStmt->annotation().numTimesVisited) > _policy.normalCaseThreshold;
+        bool skipLoopBody = speculation && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > _policy.normalCaseThreshold;
         bool unrollFirstIteration = !typeUnstable && !skipLoopBody && whileStmt->annotation().typeChangedAndStableCount > whileStmt->annotation().typeStableCount;
         if(!speculation) {
             // check for type change
@@ -1746,7 +1746,7 @@ namespace tuplex {
             addCompileError(CompileError::TYPE_ERROR_TYPE_UNSTABLE_IN_LOOP);
         }
 
-        if(!(speculation && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > _normalCaseThreshold)) {
+        if(!(speculation && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > _policy.normalCaseThreshold)) {
             // if loop never runs for majority through tracing, do not annotate loop body
             whileStmt->suite_body->accept(*this);
 

@@ -78,9 +78,6 @@ namespace tuplex {
         std::vector<std::string> _columnNames;
 
         void setSchema(const Schema& schema) { _schema = schema; }
-
-        bool allowTypeUnification() const;
-
     public:
 
         DataSet() : _id(-1),

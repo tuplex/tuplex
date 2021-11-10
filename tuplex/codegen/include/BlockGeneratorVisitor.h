@@ -42,6 +42,8 @@
 #include <stack>
 #include <IteratorContextProxy.h>
 
+#include <CodegenHelper.h>
+
 namespace tuplex {
 
 namespace codegen {
@@ -302,9 +304,7 @@ namespace codegen {
         LLVMEnvironment *_env;
 
         LambdaFunctionBuilder* _lfb;
-        bool _allowUndefinedBehaviour;
-        bool _sharedObjectPropagation;
-        double _normalCaseThreshold;
+        const codegen::CompilePolicy& _policy;
 
         // currently the codegen is restricted to single lambda functions (no nested lambdas!)
         // this variable is used to store that.
@@ -567,18 +567,13 @@ namespace codegen {
 
         BlockGeneratorVisitor(LLVMEnvironment *env,
                               const std::map<std::string, python::Type> &nameTypes,
-                              double normalCaseThreshold,
-                              bool allowUndefinedBehaviour, bool sharedObjectPropagation) : IFailable(true), _nameTypes(nameTypes),
-                                                              _normalCaseThreshold(normalCaseThreshold),
-                                                              _allowUndefinedBehaviour(allowUndefinedBehaviour),
-                                                              _sharedObjectPropagation(sharedObjectPropagation),
-                                                              _functionRegistry(new FunctionRegistry(*env, sharedObjectPropagation)),
+                              const codegen::CompilePolicy& policy) : IFailable(true), _nameTypes(nameTypes),
+                                                              _policy(policy),
+                                                              _functionRegistry(new FunctionRegistry(*env, _policy.sharedObjectPropagation)),
                                                               _logger(Logger::instance().logger("codegen")) {
             assert(env);
             _env = env;
             _lfb = nullptr;
-
-            assert(0.0 <= _normalCaseThreshold && _normalCaseThreshold <= 1.0);
 
             init();
         }

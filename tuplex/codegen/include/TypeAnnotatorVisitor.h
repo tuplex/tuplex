@@ -13,6 +13,7 @@
 
 #include "ApatheticVisitor.h"
 #include "SymbolTable.h"
+#include "CodegenHelper.h"
 #include <IFailable.h>
 #include <tuple>
 #include <ASTHelpers.h>
@@ -71,8 +72,7 @@ namespace tuplex {
     class TypeAnnotatorVisitor : public ApatheticVisitor, public IFailable {
     private:
         SymbolTable& _symbolTable; // global symbol table for everything.
-        bool _allowNumericTypeUnification; // whether bool/i64 get autoupcasted and merged when type conflicts exist within if-branches.
-        double _normalCaseThreshold;
+        const codegen::CompilePolicy& _policy;
         std::unordered_map<std::string, python::Type> _nameTable; // i.e. mini symbol table for assignments.
         std::unordered_map<std::string, std::shared_ptr<IteratorInfo>> _iteratorInfoTable; // i.e. name table for storing iteratorInfo of variables.
 
@@ -134,10 +134,8 @@ namespace tuplex {
         }
 
         explicit TypeAnnotatorVisitor(SymbolTable& symbolTable,
-                                      bool allowNumericTypeUnification,
-                                      double normalCaseThreshold): _symbolTable(symbolTable),
-                                                                         _allowNumericTypeUnification(allowNumericTypeUnification),
-                                                                         _normalCaseThreshold(normalCaseThreshold),
+                                      const codegen::CompilePolicy& policy): _symbolTable(symbolTable),
+                                                                         _policy(policy),
                                                                          _loopTypeChange(false),
                                                                          _totalSampleCount(0),
                                                                          _ongoingLoopCount(0) {

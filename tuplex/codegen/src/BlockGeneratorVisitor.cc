@@ -351,7 +351,7 @@ namespace tuplex {
             auto uR = upCast(builder, R, type);
 
             // exception handling if switched on
-            if (!_allowUndefinedBehaviour) {
+            if (!_policy.allowUndefinedBehavior) {
                 // check if right side is zero
                 auto iszero = type->isDoubleTy() ? builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR,
                                                                       _env->f64Const(0.0)) :
@@ -523,7 +523,7 @@ namespace tuplex {
             auto uR = upCast(builder, R, type);
 
             // exception handling if switched on
-            if (!_allowUndefinedBehaviour) {
+            if (!_policy.allowUndefinedBehavior) {
                 // check if right side is zero
                 auto iszero = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR, _env->f64Const(0.0));
                 _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, iszero);
@@ -568,7 +568,7 @@ namespace tuplex {
             auto uR = upCast(builder, R, type);
 
             // exception code (also throw div by zero exception here)
-            if (!_allowUndefinedBehaviour) {
+            if (!_policy.allowUndefinedBehavior) {
                 // check if right side is zero
                 auto iszero = type->isDoubleTy() ? builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR,
                                                                       _env->f64Const(0.0)) :
@@ -634,7 +634,7 @@ namespace tuplex {
             auto uL = upCast(builder, L, _env->i64Type());
             auto uR = upCast(builder, R, _env->i64Type());
 
-            if (!_allowUndefinedBehaviour) {
+            if (!_policy.allowUndefinedBehavior) {
                 // check if shift count is negative; return ValueError
                 auto negcount = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, uR, _env->i64Const(0));
                 _lfb->addException(builder, ExceptionCode::VALUEERROR, negcount);
@@ -665,7 +665,7 @@ namespace tuplex {
             auto uL = upCast(builder, L, _env->i64Type());
             auto uR = upCast(builder, R, _env->i64Type());
 
-            if (!_allowUndefinedBehaviour) {
+            if (!_policy.allowUndefinedBehavior) {
                 // check if shift count is negative; return ValueError
                 auto negcount = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, uR, _env->i64Const(0));
                 _lfb->addException(builder, ExceptionCode::VALUEERROR, negcount);
@@ -4461,7 +4461,7 @@ namespace tuplex {
             auto looppos = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
             auto newstrpos = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
 
-            if (!_allowUndefinedBehaviour) { // zero stride isn't allowed
+            if (!_policy.allowUndefinedBehavior) { // zero stride isn't allowed
                 auto strideIsZero = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, stride, _env->i64Const(0));
                 _lfb->addException(builder, ExceptionCode::VALUEERROR, strideIsZero);
             }
@@ -4655,7 +4655,7 @@ namespace tuplex {
                     stride_node->type() == ASTNodeType::Boolean)) {
                 int startpos = 0, endpos = 0, strideval = 0, size = 0;
 
-                if (!_allowUndefinedBehaviour) {
+                if (!_policy.allowUndefinedBehavior) {
                     auto strideIsZero = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, stride,
                                                            _env->i64Const(0));
                     _lfb->addException(builder, ExceptionCode::VALUEERROR, strideIsZero);
@@ -5234,7 +5234,7 @@ namespace tuplex {
             }
 
             bool typeChange = forStmt->hasAnnotation() && forStmt->annotation().numTimesVisited > 0;
-            bool skipLoopBody = typeChange && double(forStmt->annotation().zeroIterationCount) / double(forStmt->annotation().numTimesVisited) > _normalCaseThreshold;
+            bool skipLoopBody = typeChange && double(forStmt->annotation().zeroIterationCount) / double(forStmt->annotation().numTimesVisited) > _policy.normalCaseThreshold;
             bool unrollFirstIteration = !skipLoopBody && forStmt->annotation().typeChangedAndStableCount > forStmt->annotation().typeStableCount;
             if(typeChange && !skipLoopBody) {
                 // loop body should have at least 1 iteration, otherwise normal case violation
@@ -5517,7 +5517,7 @@ namespace tuplex {
             bool typeChange = whileStmt->hasAnnotation() && whileStmt->annotation().numTimesVisited > 0;
             // type change in loop but loop ends before first iteration? -> normal case violation
             // will check this in firstIterationCondBB and condBB to avoid visiting while condition before loop starts
-            bool skipLoopBody = typeChange && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > _normalCaseThreshold;
+            bool skipLoopBody = typeChange && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > _policy.normalCaseThreshold;
             bool unrollFirstIteration = !skipLoopBody && whileStmt->annotation().typeChangedAndStableCount > whileStmt->annotation().typeStableCount;
 
             // isFirstIteration: true before first iteration completes

@@ -118,12 +118,11 @@ namespace tuplex {
 
             /*!
              * generates code for a python UDF function
-             * @param normalCaseThreshold number in [0.5, 1] determining what the threshold for the normal case should be
-             * @param allowUndefinedBehavior whether generated code allows for undefined behavior, i.e. division by zero, ...
-             * @param sharedObjectPropagation whether to share read-only objects across rows
+             * @param env LLVM module where to generate code into
+             * @param policy UDF compiler policy to use
              * @return bool if code can be generated, false if not
              */
-            bool generateCode(LLVMEnvironment *env, double normalCaseThreshold, bool allowUndefinedBehavior, bool sharedObjectPropagation);
+            bool generateCode(LLVMEnvironment *env, const codegen::CompilePolicy& policy);
 
             /*!
              * function name to call this udf in LLVM IR
@@ -183,11 +182,12 @@ namespace tuplex {
 
             /*!
              * annotates the tree with final types. If this is not possible, returns false
+             * @param pokicy compiler policy
              * @param silentMode determines whether the type inference should log out problems or not
              * @param removeBranches whether to use RemoveDeadBranchesVisitor to prune AST
              * @return whether types could be successfully annotated/defined for all AST nodes
              */
-            bool defineTypes(bool silentMode=false, bool removeBranches=false);
+            bool defineTypes(const codegen::CompilePolicy& policy, bool silentMode=false, bool removeBranches=false);
 
 
             /*!

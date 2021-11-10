@@ -263,7 +263,7 @@ namespace tuplex {
 
 
             // compile dependent on udf
-            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env(), normalCaseThreshold, allowUndefinedBehavior, sharedObjectPropagation) :
+            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env()) :
                       const_cast<UDF&>(udf).compileFallback(env(), _constructorBlock, _destructorBlock);
 
             // stop if compilation didn't succeed
@@ -470,7 +470,7 @@ namespace tuplex {
                 return true;
 
             // compile dependent on udf
-            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env(), normalCaseThreshold, allowUndefinedBehavior, sharedObjectPropagation) :
+            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env()) :
                       const_cast<UDF&>(udf).compileFallback(env(), _constructorBlock, _destructorBlock);
 
             // stop if compilation didn't succeed
@@ -516,7 +516,7 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("PipelineBuilder");
 
             // compile dependent on udf
-            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env(), normalCaseThreshold, allowUndefinedBehavior, sharedObjectPropagation) :
+            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env()) :
                       const_cast<UDF&>(udf).compileFallback(env(), _constructorBlock, _destructorBlock);
 
             // stop if compilation didn't succeed
@@ -606,7 +606,7 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("PipelineBuilder");
 
             // compile dependent on udf
-            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env(), normalCaseThreshold, allowUndefinedBehavior, sharedObjectPropagation) :
+            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env()) :
                       const_cast<UDF&>(udf).compileFallback(env(), _constructorBlock, _destructorBlock);
 
             // stop if compilation didn't succeed
@@ -708,7 +708,7 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("PipelineBuilder");
 
             // compile dependent on udf
-            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env(), normalCaseThreshold, allowUndefinedBehavior, sharedObjectPropagation) :
+            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env()) :
                       const_cast<UDF&>(udf).compileFallback(env(), _constructorBlock, _destructorBlock);
 
             // stop if compilation didn't succeed
@@ -2504,7 +2504,7 @@ namespace tuplex {
                throw std::runtime_error("UDF is empty in aggregate, this should not happen");
 
            // compile dependent on udf
-           auto cf = aggUDF.isCompiled() ? const_cast<UDF&>(aggUDF).compile(env(), normalCaseThreshold, allowUndefinedBehavior, sharedObjectPropagation) :
+           auto cf = aggUDF.isCompiled() ? const_cast<UDF&>(aggUDF).compile(env()) :
                      const_cast<UDF&>(aggUDF).compileFallback(env(), _constructorBlock, _destructorBlock);
 
            // stop if compilation didn't succeed

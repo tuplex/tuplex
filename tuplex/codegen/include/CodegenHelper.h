@@ -18,7 +18,6 @@
 #include <TypeSystem.h>
 #include <Field.h>
 
-
 #if LLVM_VERSION_MAJOR == 9
 // LLVM9 fix
 #include <llvm/Target/TargetMachine.h>
@@ -37,6 +36,33 @@
 
 namespace tuplex {
     namespace codegen {
+
+        // various switches to influence compiler behavior
+        struct CompilePolicy {
+            bool allowUndefinedBehavior;
+            bool allowNumericTypeUnification; // whether bool/i64 get autoupcasted and merged when type conflicts exist within if-branches.
+            bool sharedObjectPropagation;
+            double normalCaseThreshold;
+
+            CompilePolicy() : allowUndefinedBehavior(false),
+            allowNumericTypeUnification(false),
+            sharedObjectPropagation(false),
+            normalCaseThreshold(0.9) {}
+
+            bool operator == (const CompilePolicy& other) const {
+                if(allowUndefinedBehavior != other.allowUndefinedBehavior)
+                    return false;
+                if(allowNumericTypeUnification != other.allowNumericTypeUnification)
+                    return false;
+                if(sharedObjectPropagation != other.sharedObjectPropagation)
+                    return false;
+                if(std::abs(normalCaseThreshold - other.normalCaseThreshold) > 0.001)
+                    return false;
+                return true;
+            }
+        };
+
+        static CompilePolicy DEFAULT_COMPILE_POLICY;
 
         // helper function to determine number of predecessors
         inline size_t successorCount(llvm::BasicBlock* block) {

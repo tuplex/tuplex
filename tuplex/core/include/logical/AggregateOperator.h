@@ -57,14 +57,14 @@ namespace tuplex {
 //#ifndef NDEBUG
                 // use defensive programming here...
                 // swap combiner & aggregator => easily to be mixed up.
-                std::swap(_combiner, _aggregator);
+                core::swap(_combiner, _aggregator);
 
                 // reset type info in both
                 _combiner.removeTypes();
                 _aggregator.removeTypes();
 
                 if(!inferAndCheckTypes()) {
-                    std::swap(_combiner, _aggregator);
+                    core::swap(_combiner, _aggregator);
                     throw std::runtime_error("failed to type aggregate operator. Wrong order of parameters within UDFs?");
                 }
                 Logger::instance().defaultLogger().warn("wrong order of functions in aggregate, please fix in source code.");

@@ -816,10 +816,7 @@ namespace tuplex {
                                                                                     _aggregateCombineFuncName,
                                                                                     aop->combinerUDF(),
                                                                                     aggType,
-                                                                                    malloc,
-                                                                                    _normalCaseThreshold,
-                                                                                    _allowUndefinedBehavior,
-                                                                                    _sharedObjectPropagation);
+                                                                                    malloc);
                             if(!aggregateInitFunc)
                                 throw std::runtime_error("error compiling aggregate initialize function");
                             if(!combFunc)
@@ -833,10 +830,7 @@ namespace tuplex {
                                                                                       _aggregateAggregateFuncName,
                                                                                       aop->aggregatorUDF(), aggType,
                                                                                       aop->parent()->getOutputSchema().getRowType(),
-                                                                                      malloc,
-                                                                                      _normalCaseThreshold,
-                                                                                      _allowUndefinedBehavior,
-                                                                                      _sharedObjectPropagation);
+                                                                                      malloc);
                                 if(!aggregateFunc)
                                     throw std::runtime_error("error compiling aggregate function");
                                 _aggregateAggregateFuncName = aggregateFunc->getName().str();

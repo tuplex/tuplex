@@ -53,9 +53,7 @@ namespace tuplex {
                                                               const UDF &udf,
                                                               const python::Type aggType,
                                                               decltype(malloc) allocator=malloc,
-                                                              double normalCaseThreshold=0.5,
-                                                              bool allowUndefinedBehavior=true,
-                                                              bool sharedObjectPropagation=true);
+                                                              const codegen::CompilePolicy& policy=codegen::DEFAULT_COMPILE_POLICY);
 
         /*!
          * creates a function int64_t aggregate(void** aggOut, void* row, int64_t* row_size) which aggregates in the row to the aggOut buffer (freeing and reallocating it if necessary)
@@ -77,9 +75,7 @@ namespace tuplex {
                                                        const python::Type &aggType,
                                                        const python::Type &rowType,
                                                        decltype(malloc) allocator = malloc,
-                                                       double normalCaseThreshold=0.5,
-                                                       bool allowUndefinedBehavior = true,
-                                                       bool sharedObjectPropagation = true);
+                                                       const codegen::CompilePolicy& policy=DEFAULT_COMPILE_POLICY);
     }
 }
 

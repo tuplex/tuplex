@@ -38,6 +38,9 @@
 namespace tuplex {
     namespace codegen {
 
+        // global var because often only references are passed around.
+        // CompilePolicy DEFAULT_COMPILE_POLICY = CompilePolicy();
+
         static bool llvmInitialized = false;
         void initLLVM() {
             if(!llvmInitialized) {

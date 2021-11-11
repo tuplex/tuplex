@@ -8,6 +8,8 @@ import os
 import csv
 import numpy as np
 import scipy.stats as ss
+from tqdm import tqdm
+
 
 MIN_INT = 0
 MAX_INT = 9999 # inclusive
@@ -97,7 +99,7 @@ def main():
 
     with open(filename, 'w') as f:
         wr = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
-        for i in range(args.num_lists):
+        for i in tqdm(range(args.num_lists)):
             csv_row = randlist(args.length, args.types, distribution_dict)
             wr.writerow(csv_row)
     

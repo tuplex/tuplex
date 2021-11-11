@@ -1,0 +1,18 @@
+Immediate TODOs:
+- write string parser to identify type.
+- write specialized c++ code for int only (use boolean array, specialized hash function, etc.)
+
+Workloads
+- count unique (update dictionary per iteration, inserts decrease over time, only numkeys lookup)
+- replace (lookup dictionary per iteration, once everything inserted, only lookups)
+- reorganize data (JSON -> list?) (need only traverse tree structure once)
+
+Code todo
+- write python version of replace
+- write cython version of unique, replace
+- write cpp version of optimized float/int/string/bool only map/unordered_map 
+
+Plots todo
+- create multiple maps vs one map std variant/wrapper type
+  (one per type, fixing key per map, --> plot runtime vs length per list (3x unordered map, 3x ordered_map)
+   val always fixed to int)

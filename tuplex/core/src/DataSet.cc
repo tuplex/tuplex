@@ -75,10 +75,12 @@ namespace tuplex {
 #warning "limiting should make this hack irrelevant..."
         if (numElements < 0)
             numElements = std::numeric_limits<int64_t>::max();
-        std::vector<Row> v;
-        while (rs->hasNextRow() && v.size() < numElements) {
-            v.push_back(rs->getNextRow());
-        }
+
+        // std::vector<Row> v;
+        // while (rs->hasNextRow() && v.size() < numElements) {
+        //     v.push_back(rs->getNextRow());
+        // }
+        auto v = rs->getRows(numElements); // faster version instead of the loop above.
 
         Logger::instance().defaultLogger().debug("Result set converted to " + pluralize(v.size(), "row"));
         Logger::instance().defaultLogger().info(

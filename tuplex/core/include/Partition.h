@@ -75,6 +75,13 @@ namespace tuplex {
         // variables when being swapped out.
         std::string _localFilePath;
         bool        _swappedToFile;
+
+        // metrics
+        // static variables holding information on how many swapIns/swapOuts happened
+        static std::atomic_int64_t _swapInCount;
+        static std::atomic_int64_t _swapOutCount;
+        static std::atomic_int64_t _swapInBytesRead;
+        static std::atomic_int64_t _swapOutBytesWritten;
     public:
 
         Partition(Executor* const owner,
@@ -253,6 +260,41 @@ namespace tuplex {
             _schema = schema; }
 
         const Executor* owner() const { return _owner; }
+
+        /*
+         * reset Partition statistics. SHOULD NOT BE CALLED when computation is active, because though internally
+         * backed by atomics this function is not threadsafe (no mutex used here)
+         */
+        static void resetStatistics() {
+            _swapInCount = 0;
+            _swapOutCount = 0;
+            _swapInBytesRead = 0;
+            _swapOutBytesWritten =0;
+        }
+
+        /*!
+         * how often partitions were swapped in from disk spill
+         * @return number of times disk spill (in) occurred
+         */
+        static size_t statisticSwapInCount()  { return _swapInCount; }
+
+        /*!
+         * how often partitions were swapped to disk
+         * @return number of times disk spill (out) occurred
+         */
+        static size_t statisticSwapOutCount()  { return _swapOutCount; }
+
+        /*!
+         * how many bytes were read back during disk spill
+         * @return amount of bytes
+         */
+        static size_t statisticSwapInBytesRead() { return _swapInBytesRead; }
+
+        /*!
+        * how many bytes were written in total during disk spill
+        * @return amount of bytes
+        */
+        static size_t statisticSwapOutBytesWritten() { return _swapOutBytesWritten; }
 
 
         // for debug asserts.

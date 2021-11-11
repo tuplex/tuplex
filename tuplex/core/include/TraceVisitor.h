@@ -18,6 +18,7 @@
 #include <IFailable.h>
 #include <csetjmp>
 #include <ClosureEnvironment.h>
+#include <ASTHelpers.h>
 
 // a tracing visitor to determine optimizations within functions!
 namespace tuplex {
@@ -60,7 +61,12 @@ namespace tuplex {
          // store tracebacks for clean display
          // TODO: could avoid storing duplicates so index by type & line number & column number, yet this not supported yet.
 
+        // was a break statement executed in the ongoing loop?
+        std::vector<bool> _loopBreakStack;
 
+        // each element vector corresponds to {{symbols created before loop}, symbolTypeChange} for an ongoing loop
+        // whenever the type of a symbol that is in {symbols created before loop} changes, set symbolTypeChange to true
+        std::vector<std::pair<std::vector<std::string>, bool>> _symbolsTypeChangeStack;
 
         TraceItem _retValue;
 
@@ -159,6 +165,14 @@ namespace tuplex {
         void visit(NSlice *) override;
 
         void visit(NSliceItem *) override;
+
+        void visit(NFor *) override;
+
+        void visit(NWhile *) override;
+
+        void visit(NRange *) override;
+
+        void visit(NList *) override;
     };
 }
 

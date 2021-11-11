@@ -12,21 +12,13 @@
 
 namespace tuplex {
     WithColumnOperator::WithColumnOperator(LogicalOperator *parent, const std::vector <std::string>& columnNames,
-                                           const std::string &columnName, const UDF &udf,
-                                           bool allowNumericTypeUnification): UDFOperator::UDFOperator(parent, udf, columnNames), _newColumn(columnName) {
-
-        // require this for typing info.
-        UDFOperator::getUDF().getAnnotatedAST().allowNumericTypeUnification(allowNumericTypeUnification);
+                                           const std::string &columnName, const UDF &udf): UDFOperator::UDFOperator(parent, udf, columnNames), _newColumn(columnName) {
 
         // define index
         _columnToMapIndex = calcColumnToMapIndex(columnNames, columnName);
 
         // infer schema, this is slightly more involved...
         setSchema(inferSchema(parent->getOutputSchema()));
-
-#ifndef NDEBUG
-        // Logger::instance().defaultLogger().info("detected output type for " + name() + " operator is " + schema().getRowType().desc());
-#endif
     }
 
     int WithColumnOperator::calcColumnToMapIndex(const std::vector<std::string> &columnNames,
@@ -195,8 +187,7 @@ namespace tuplex {
 
     LogicalOperator *WithColumnOperator::clone() {
         auto copy = new WithColumnOperator(parent()->clone(), UDFOperator::columns(),
-                                           _newColumn, _udf,
-                                           _udf.allowNumericTypeUnification());
+                                           _newColumn, _udf);
         copy->setDataSet(getDataSet());
         // clone id
         copy->copyMembers(this);

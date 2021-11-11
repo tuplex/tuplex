@@ -71,6 +71,8 @@ namespace tuplex {
 
         std::shared_ptr<JobMetrics> _lastJobMetrics;
 
+        codegen::CompilePolicy _compilePolicy;
+        codegen::CompilePolicy compilePolicyFromOptions(const ContextOptions& options);
     protected:
         inline int getNextDataSetID() { return _datasetIDGenerator++; };
 
@@ -209,6 +211,12 @@ namespace tuplex {
 
         std::string name() const { return _name; }
         void setName(const std::string& name) { _name = name; }
+
+        /*!
+         * get the compile policy associated with this context
+         * @return
+         */
+        const codegen::CompilePolicy& compilePolicy() const { return _compilePolicy; }
 
         /*!
          * gets a JobMetrics object

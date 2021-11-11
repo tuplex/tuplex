@@ -533,6 +533,18 @@ namespace tuplex {
         }
         return -1;
     }
+
+    /*!
+     * converts a timepoint to an ISO8601 date.
+     * @param tp
+     * @return string with ISO8601 formatting
+     */
+    inline std::string chronoToISO8601(const std::chrono::time_point<std::chrono::system_clock>& tp) {
+        auto itt = std::chrono::system_clock::to_time_t(tp);
+        std::ostringstream ss;
+        ss << std::put_time(gmtime(&itt), "%FT%TZ");
+        return ss.str();
+    }
 }
 
 #endif //TUPLEX_UTILS_H

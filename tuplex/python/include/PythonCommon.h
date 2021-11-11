@@ -28,6 +28,26 @@ namespace tuplex {
     enum logtypes {info, warning, error, debug};
     extern void log_msg_to_python_logging(int type, const char *msg);
 
+    inline int spdlog_level_to_number(const spdlog::level::level_enum& lvl) {
+        switch(lvl) {
+            case spdlog::level::level_enum::trace:
+                return 1;
+            case spdlog::level::level_enum::debug:
+                return 2;
+            case spdlog::level::level_enum::info:
+                return 3;
+            case spdlog::level::level_enum::warn:
+                return 4;
+            case spdlog::level::level_enum::err:
+                return 5;
+            case spdlog::level::level_enum::critical:
+                return 6;
+            default:
+                return 0;
+        }
+    }
+
+
     template<typename Mutex> class nogil_python3_sink : public python_sink<Mutex> {
     public:
         //nogil_python3_sink() : _pyFunctor(nullptr) {}
@@ -57,31 +77,46 @@ namespace tuplex {
                 std::lock_guard<std::mutex> lock(_bufMutex);
 
 
-//                // sort messages after time
-//                std::sort(_messageBuffer.begin(), _messageBuffer.end(), [](const spdlog::details::log_msg& a, const spdlog::details::log_msg& b) {
-//                    return a.time < b.time;
-//                });
+                // sort messages after time
+                std::sort(_messageBuffer.begin(), _messageBuffer.end(), [](const LogMessage& a, const LogMessage& b) {
+                    return a.timestamp < b.timestamp;
+                });
 
                 printf("bufmutex acquired, found % msg...", _messageBuffer.size());
 
                 // now call for each message the python function!
                 // => basically give as arg the message... (later pass the other information as well...)
                 for (const auto &msg: _messageBuffer) {
-//                    auto args = PyTuple_New(1);
-//                    auto py_msg = python::PyString_FromString(std::string(msg.payload.data()).c_str());
-//                    PyTuple_SET_ITEM(args, 0, py_msg);
-//
-//                    PyObject_Call(_pyFunctor, args, nullptr);
-//                    if(PyErr_Occurred()) {
-//                        PyErr_Print();
-//                        std::cout<<std::endl;
-//                        PyErr_Clear();
-//                    }
+
+                    // callback gets 4 params:
+                    // 1. severity level (integer)
+                    // 2. time (iso8601 string)
+                    // 3. logger (string)
+                    // 4. message (string)
+
+                    // perform callback in python...
+                    auto args = PyTuple_New(4);
+                    auto py_lvl = PyLong_FromLong(spdlog_level_to_number(msg.leve));
+                    auto py_time = python::PyString_FromString(chronoToISO8601(msg.timestamp).c_str());
+                    auto py_logger = python::PyString_FromString(msg.logger.c_str());
+                    auto py_msg = python::PyString_FromString(msg.message.c_str());
+                    PyTuple_SET_ITEM(args, 0, py_lvl);
+                    PyTuple_SET_ITEM(args, 1, py_time);
+                    PyTuple_SET_ITEM(args, 2, py_logger);
+                    PyTuple_SET_ITEM(args, 3, py_msg);
+
+                    PyObject_Call(_pyFunctor, args, nullptr);
+                    if(PyErr_Occurred()) {
+                        PyErr_Print();
+                        std::cout<<std::endl;
+                        PyErr_Clear();
+                    }
+
                     std::cout<<"first message acquired..."<<std::endl;
                     printf("get first message...\n");
 
                     //std::string message(msg.payload.data());
-                    std::string message = "test message";
+//                    std::string message = "test message";
 
 //                    // get null-terminated C-string from string_view
 //                    char *temp_str = new char[msg.payload.size() + 1];
@@ -90,9 +125,9 @@ namespace tuplex {
 //                    printf("message is: %s", temp_str);
 //                    delete [] temp_str;
                     // use python logging helper...
-                    log_msg_to_python_logging(logtypes::info, msg.message.c_str());
+                    // log_msg_to_python_logging(logtypes::info, msg.message.c_str());
 
-                    std::cout << "logged message: " << message << std::endl;
+//                    std::cout << "logged message: " << message << std::endl;
 
                 }
 
@@ -131,6 +166,9 @@ namespace tuplex {
 
             LogMessage msg;
             msg.message = std::string(spdlog_msg.payload.data());
+            msg.timestamp = spdlog_msg.time;
+            msg.logger = *spdlog_msg.logger_name;
+            msg.level = spdlog_msg.level;
             std::cout<<"message is: "<<msg.message<<std::endl;
             _messageBuffer.push_back(msg);
             printf("message stored!\n");
@@ -143,6 +181,9 @@ namespace tuplex {
 
         struct LogMessage {
             std::string message;
+            std::chrono::time_point<std::chrono::system_clock> timestamp;
+            std::string logger;
+            spdlog::level::level_enum level;
         };
 
         std::vector<LogMessage> _messageBuffer;

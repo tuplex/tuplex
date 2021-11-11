@@ -69,20 +69,23 @@ namespace tuplex {
         if(!PyCallable_Check(functor_obj))
             throw std::runtime_error(python::PyString_AsString(functor_obj) + " is not callable. Can't register as logger.");
 
-        std::cout<<"testing call to functor..."<<std::endl;
-
-        // test passed logger object
-        auto args = PyTuple_New(1);
-        auto py_msg = python::PyString_FromString("test message");
-        PyTuple_SET_ITEM(args, 0, py_msg);
-
-        PyObject_Call(functor_obj, args, nullptr);
-        if(PyErr_Occurred()) {
-            std::cout<<"error occurred while calling functor obj..."<<std::endl;
-            PyErr_Print();
-            std::cout<<std::endl;
-            PyErr_Clear();
-        }
+        // check that func takes exactly 4 args
+//
+//
+//        std::cout<<"testing call to functor..."<<std::endl;
+//
+//        // test passed logger object
+//        auto args = PyTuple_New(1);
+//        auto py_msg = python::PyString_FromString("test message");
+//        PyTuple_SET_ITEM(args, 0, py_msg);
+//
+//        PyObject_Call(functor_obj, args, nullptr);
+//        if(PyErr_Occurred()) {
+//            std::cout<<"error occurred while calling functor obj..."<<std::endl;
+//            PyErr_Print();
+//            std::cout<<std::endl;
+//            PyErr_Clear();
+//        }
 
         std::cout<<"test call to functor completed..."<<std::endl;
         // test call to logging module after

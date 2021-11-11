@@ -612,18 +612,20 @@ namespace tuplex {
             }
 #endif
 
-
-            if(!operators.empty()) {
-                cout<<"output type of specialized pipeline is: "<<outSchema.desc()<<endl;
-                cout<<"is this the most outer stage?: "<<_isRootStage<<endl;
-                if(!_isRootStage)
-                    cout<<"need to upgrade output type to "<<_operators.back()->getOutputSchema().getRowType().desc()<<endl;
-            }
-
 #ifndef NDEBUG
+            if(!operators.empty()) {
+                stringstream ss;
+                ss<<"output type of specialized pipeline is: "<<outSchema.desc()<<endl;
+                ss<<"is this the most outer stage?: "<<_isRootStage<<endl;
+                if(!_isRootStage)
+                    ss<<"need to upgrade output type to "<<_operators.back()->getOutputSchema().getRowType().desc()<<endl;
+
+                logger.debug(ss.str());
+            }
+#endif
+
             assert(inSchema != python::Type::UNKNOWN);
             assert(outSchema != python::Type::UNKNOWN);
-#endif
 
             // special case: empty pipeline
             if (outSchema.parameters().empty() && inSchema.parameters().empty()) {

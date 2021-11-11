@@ -27,7 +27,7 @@ namespace tuplex {
 
     LogicalOperator *AggregateOperator::clone() {
         // important to use here input column names, i.e. stored in base class UDFOperator!
-        auto copy = new AggregateOperator(parent()->clone(), aggType(), _combiner.allowNumericTypeUnification(),
+        auto copy = new AggregateOperator(parent()->clone(), aggType(),
                                           _combiner, _aggregator, _initialValue, _keys);
 
         copy->setDataSet(getDataSet());

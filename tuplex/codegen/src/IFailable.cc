@@ -71,6 +71,15 @@ std::string IFailable::compileErrorToStr(const CompileError &err) {
         case CompileError::TYPE_ERROR_MIXED_ASTNODETYPE_IN_FOR_LOOP_EXPRLIST:
             errMsg = "mixed use of tuple/list of identifiers and single identifier in exprlist not yet supported";
             break;
+        case CompileError::TYPE_ERROR_TYPE_UNSTABLE_IN_LOOP:
+            errMsg = "type of at least one variable declared before loop changed and is not stable during loop";
+            break;
+        case CompileError::COMPILE_ERROR_ALL_SAMPLES_PRODUCE_NORMALCASEVIOLATION:
+            errMsg = "every sample ended up raising NormalCaseViolation at some if statement";
+            break;
+        case CompileError::TYPE_ERROR_UNSUPPORTED_LOOP_TESTLIST_TYPE:
+            errMsg = "type of loop expression is not supported";
+            break;
         case CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON:
             errMsg = "use of is comparison only supported with types boolean and null";
             break;

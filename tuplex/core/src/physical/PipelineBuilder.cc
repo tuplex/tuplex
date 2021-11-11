@@ -214,7 +214,7 @@ namespace tuplex {
         }
 
         bool PipelineBuilder::addResolver(const tuplex::ExceptionCode &ec, const int64_t operatorID,
-                                          const tuplex::UDF &udf, bool allowUndefinedBehavior, bool sharedObjectPropagation) {
+                                          const tuplex::UDF &udf, double normalCaseThreshold, bool allowUndefinedBehavior, bool sharedObjectPropagation) {
             using namespace std;
             using namespace llvm;
             auto& logger = Logger::instance().logger("PipelineBuilder");
@@ -263,7 +263,7 @@ namespace tuplex {
 
 
             // compile dependent on udf
-            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env(), allowUndefinedBehavior, sharedObjectPropagation) :
+            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env()) :
                       const_cast<UDF&>(udf).compileFallback(env(), _constructorBlock, _destructorBlock);
 
             // stop if compilation didn't succeed
@@ -459,6 +459,7 @@ namespace tuplex {
 
         // simple building, i.e. mapOperation
         bool PipelineBuilder::mapOperation(const int64_t operatorID, const tuplex::UDF &udf,
+                                                    double normalCaseThreshold,
                                                     bool allowUndefinedBehavior, bool sharedObjectPropagation) {
             using namespace std;
             using namespace llvm;
@@ -469,7 +470,7 @@ namespace tuplex {
                 return true;
 
             // compile dependent on udf
-            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env(), allowUndefinedBehavior, sharedObjectPropagation) :
+            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env()) :
                       const_cast<UDF&>(udf).compileFallback(env(), _constructorBlock, _destructorBlock);
 
             // stop if compilation didn't succeed
@@ -508,13 +509,14 @@ namespace tuplex {
 
         // filter is super simple too, just call branching to go to destructor block if nothing is to do
         bool PipelineBuilder::filterOperation(const int64_t operatorID, const tuplex::UDF &udf,
+                                              double normalCaseThreshold,
                                                        bool allowUndefinedBehavior, bool sharedObjectPropagation) {
             using namespace std;
             using namespace llvm;
             auto& logger = Logger::instance().logger("PipelineBuilder");
 
             // compile dependent on udf
-            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env(), allowUndefinedBehavior, sharedObjectPropagation) :
+            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env()) :
                       const_cast<UDF&>(udf).compileFallback(env(), _constructorBlock, _destructorBlock);
 
             // stop if compilation didn't succeed
@@ -598,13 +600,13 @@ namespace tuplex {
         }
 
         bool PipelineBuilder::mapColumnOperation(const int64_t operatorID, int columnToMapIndex,
-                                                          const tuplex::UDF &udf, bool allowUndefinedBehavior, bool sharedObjectPropagation) {
+                                                          const tuplex::UDF &udf, double normalCaseThreshold, bool allowUndefinedBehavior, bool sharedObjectPropagation) {
             using namespace std;
             using namespace llvm;
             auto& logger = Logger::instance().logger("PipelineBuilder");
 
             // compile dependent on udf
-            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env(), allowUndefinedBehavior, sharedObjectPropagation) :
+            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env()) :
                       const_cast<UDF&>(udf).compileFallback(env(), _constructorBlock, _destructorBlock);
 
             // stop if compilation didn't succeed
@@ -700,13 +702,13 @@ namespace tuplex {
         }
 
         bool PipelineBuilder::withColumnOperation(const int64_t operatorID, int columnToMapIndex,
-                                                           const tuplex::UDF &udf, bool allowUndefinedBehavior, bool sharedObjectPropagation) {
+                                                           const tuplex::UDF &udf, double normalCaseThreshold, bool allowUndefinedBehavior, bool sharedObjectPropagation) {
             using namespace std;
             using namespace llvm;
             auto& logger = Logger::instance().logger("PipelineBuilder");
 
             // compile dependent on udf
-            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env(), allowUndefinedBehavior, sharedObjectPropagation) :
+            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env()) :
                       const_cast<UDF&>(udf).compileFallback(env(), _constructorBlock, _destructorBlock);
 
             // stop if compilation didn't succeed
@@ -2463,6 +2465,7 @@ namespace tuplex {
 
 
        bool PipelineBuilder::addAggregate(const int64_t operatorID, const UDF &aggUDF, const python::Type& aggType,
+                                          double normalCaseThreshold,
                                           bool allowUndefinedBehavior, bool sharedObjectPropagation) {
 
             // use intermediate to save to.
@@ -2501,7 +2504,7 @@ namespace tuplex {
                throw std::runtime_error("UDF is empty in aggregate, this should not happen");
 
            // compile dependent on udf
-           auto cf = aggUDF.isCompiled() ? const_cast<UDF&>(aggUDF).compile(env(), allowUndefinedBehavior, sharedObjectPropagation) :
+           auto cf = aggUDF.isCompiled() ? const_cast<UDF&>(aggUDF).compile(env()) :
                      const_cast<UDF&>(aggUDF).compileFallback(env(), _constructorBlock, _destructorBlock);
 
            // stop if compilation didn't succeed

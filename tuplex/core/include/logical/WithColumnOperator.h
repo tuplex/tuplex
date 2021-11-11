@@ -33,8 +33,7 @@ namespace tuplex {
         WithColumnOperator(LogicalOperator *parent,
         const std::vector<std::string>& columnNames,
         const std::string& columnName,
-        const UDF& udf,
-        bool allowNumericTypeUnification);
+        const UDF& udf);
 
         std::string name() override { return "withColumn"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::WITHCOLUMN; }

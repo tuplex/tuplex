@@ -57,7 +57,7 @@ namespace tuplex {
             }
         }
 
-        bool AnnotatedAST::generateCode(LLVMEnvironment *env, bool allowUndefinedBehavior, bool sharedObjectPropagation) {
+        bool AnnotatedAST::generateCode(LLVMEnvironment *env, const codegen::CompilePolicy& policy) {
             assert(env);
 
             auto& logger = Logger::instance().logger("codegen");
@@ -68,7 +68,7 @@ namespace tuplex {
             // fix types in the graph. I.e. no more sets,
             // each node gets a type assigned.
             // needed by the block generator
-            if(!defineTypes(false))
+            if(!defineTypes(policy, false))
                 return false;
 
             // note: this may screw up things!
@@ -76,7 +76,7 @@ namespace tuplex {
             assert(func->type() == ASTNodeType::Lambda || func->type() == ASTNodeType::Function);
 
             // actual code generation
-            tuplex::codegen::BlockGeneratorVisitor bgv(env, _typeHints, allowUndefinedBehavior, sharedObjectPropagation);
+            tuplex::codegen::BlockGeneratorVisitor bgv(env, _typeHints, policy);
             bgv.addGlobals(func, _globals);
 
             try {
@@ -190,11 +190,9 @@ namespace tuplex {
         }
 
 
-        bool AnnotatedAST::parseString(const std::string &s, bool allowNumericTypeUnification) {
+        bool AnnotatedAST::parseString(const std::string &s) {
             // for a clean restart, later cache in memory!
             release();
-
-            _allowNumericTypeUnification = allowNumericTypeUnification;
 
             // using ANTLR4 parser
             assert(!_root);
@@ -229,7 +227,6 @@ namespace tuplex {
             _typeHints = other._typeHints;
             _typesDefined = other._typesDefined;
             _globals = other._globals;
-            _allowNumericTypeUnification = other._allowNumericTypeUnification;
         }
 
         bool AnnotatedAST::writeGraphVizFile(const std::string &path) {
@@ -419,7 +416,7 @@ namespace tuplex {
             }
         }
 
-        bool AnnotatedAST::defineTypes(bool silentMode, bool removeBranches) {
+        bool AnnotatedAST::defineTypes(const codegen::CompilePolicy& policy, bool silentMode, bool removeBranches) {
 
             // reset err messages
             _typingErrMessages.clear();
@@ -449,7 +446,7 @@ namespace tuplex {
             hintFunctionParameters(findFunction(_root));
 
             // 2.2 run type annotator using the symbol table
-            TypeAnnotatorVisitor tav(*table, _allowNumericTypeUnification);
+            TypeAnnotatorVisitor tav(*table, policy); // TODO: global variable or function parameter?
             tav.setFailingMode(silentMode);
             table->resetScope();
             table->enterScope(); // enter builtin scope

@@ -351,7 +351,7 @@ namespace tuplex {
             auto uR = upCast(builder, R, type);
 
             // exception handling if switched on
-            if (!_allowUndefinedBehaviour) {
+            if (!_policy.allowUndefinedBehavior) {
                 // check if right side is zero
                 auto iszero = type->isDoubleTy() ? builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR,
                                                                       _env->f64Const(0.0)) :
@@ -523,7 +523,7 @@ namespace tuplex {
             auto uR = upCast(builder, R, type);
 
             // exception handling if switched on
-            if (!_allowUndefinedBehaviour) {
+            if (!_policy.allowUndefinedBehavior) {
                 // check if right side is zero
                 auto iszero = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR, _env->f64Const(0.0));
                 _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, iszero);
@@ -568,7 +568,7 @@ namespace tuplex {
             auto uR = upCast(builder, R, type);
 
             // exception code (also throw div by zero exception here)
-            if (!_allowUndefinedBehaviour) {
+            if (!_policy.allowUndefinedBehavior) {
                 // check if right side is zero
                 auto iszero = type->isDoubleTy() ? builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR,
                                                                       _env->f64Const(0.0)) :
@@ -634,7 +634,7 @@ namespace tuplex {
             auto uL = upCast(builder, L, _env->i64Type());
             auto uR = upCast(builder, R, _env->i64Type());
 
-            if (!_allowUndefinedBehaviour) {
+            if (!_policy.allowUndefinedBehavior) {
                 // check if shift count is negative; return ValueError
                 auto negcount = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, uR, _env->i64Const(0));
                 _lfb->addException(builder, ExceptionCode::VALUEERROR, negcount);
@@ -665,7 +665,7 @@ namespace tuplex {
             auto uL = upCast(builder, L, _env->i64Type());
             auto uR = upCast(builder, R, _env->i64Type());
 
-            if (!_allowUndefinedBehaviour) {
+            if (!_policy.allowUndefinedBehavior) {
                 // check if shift count is negative; return ValueError
                 auto negcount = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, uR, _env->i64Const(0));
                 _lfb->addException(builder, ExceptionCode::VALUEERROR, negcount);
@@ -1753,6 +1753,11 @@ namespace tuplex {
             auto val = _blockStack.back();
             _blockStack.pop_back();
 
+            if(!_loopBodyIdentifiersStack.empty()) {
+                // assign statement in the first iteration unrolled loop body; record the identifier and update it's type later if needed
+                _loopBodyIdentifiersStack.back().insert(target);
+            }
+
             // check var stack on whether there's a slot
             auto slot = getSlot(target->_name);
             // exists? => reassign!
@@ -2726,6 +2731,11 @@ namespace tuplex {
             assert(_lfb);
 
             auto builder = _lfb->getLLVMBuilder();
+
+            if(!_loopBodyIdentifiersStack.empty()) {
+                // identifier used in the first iteration unrolled loop body; record the identifier and update it's type later if needed
+                _loopBodyIdentifiersStack.back().insert(id);
+            }
 
             // first check if a variable with this type exists
             // and is defined!
@@ -4451,7 +4461,7 @@ namespace tuplex {
             auto looppos = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
             auto newstrpos = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
 
-            if (!_allowUndefinedBehaviour) { // zero stride isn't allowed
+            if (!_policy.allowUndefinedBehavior) { // zero stride isn't allowed
                 auto strideIsZero = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, stride, _env->i64Const(0));
                 _lfb->addException(builder, ExceptionCode::VALUEERROR, strideIsZero);
             }
@@ -4645,7 +4655,7 @@ namespace tuplex {
                     stride_node->type() == ASTNodeType::Boolean)) {
                 int startpos = 0, endpos = 0, strideval = 0, size = 0;
 
-                if (!_allowUndefinedBehaviour) {
+                if (!_policy.allowUndefinedBehavior) {
                     auto strideIsZero = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, stride,
                                                            _env->i64Const(0));
                     _lfb->addException(builder, ExceptionCode::VALUEERROR, strideIsZero);
@@ -5159,14 +5169,14 @@ namespace tuplex {
             auto exprType = forStmt->expression->getInferredType();
             auto targetType = forStmt->target->getInferredType();
             auto targetASTType = forStmt->target->type();
-            std::vector<NIdentifier*> loopVal;
+            std::vector<std::pair<NIdentifier*, python::Type>> loopVal;
             if(targetASTType == ASTNodeType::Identifier) {
                 auto id = static_cast<NIdentifier*>(forStmt->target);
-                loopVal.push_back(id);
+                loopVal.emplace_back(id, id->getInferredType());
             } else if(targetASTType == ASTNodeType::Tuple || targetASTType == ASTNodeType::List) {
                 auto idTuple = getForLoopMultiTarget(forStmt->target);
                 loopVal.resize(idTuple.size());
-                std::transform(idTuple.begin(), idTuple.end(), loopVal.begin(), [](ASTNode* x){return static_cast<NIdentifier*>(x);});
+                std::transform(idTuple.begin(), idTuple.end(), loopVal.begin(), [](ASTNode* x){return std::make_pair(static_cast<NIdentifier*>(x), x->getInferredType());});
             } else {
                 fatal_error("Unsupported target type");
             }
@@ -5182,26 +5192,23 @@ namespace tuplex {
             // get parent function
             llvm::Function *parentFunc = _lfb->getLastBlock()->getParent();
 
-            // get entry block
-            auto *entryBB = _lfb->getLastBlock();
-            builder.SetInsertPoint(entryBB);
+            // entry block
+            builder.SetInsertPoint(_lfb->getLastBlock());
 
             // create loop blocks
             auto *condBB = llvm::BasicBlock::Create(_env->getContext(), "condBB", parentFunc);
-            auto *loopBB = llvm::BasicBlock::Create(_env->getContext(), "loopBB", parentFunc);
-            auto *iterEndBB = llvm::BasicBlock::Create(_env->getContext(), "iterEndBB", parentFunc);
-            auto *elseBB = llvm::BasicBlock::Create(_env->getContext(), "elseBB", parentFunc);
+            llvm::BasicBlock *loopBB=nullptr, *elseBB = nullptr;
             auto *afterLoop = llvm::BasicBlock::Create(_env->getContext(), "afterLoop", parentFunc);
-            // 'continue' will create an unconditional branch to 'iterEndBB'
+            // 'continue' will create an unconditional branch to 'condBB'
             // 'break' will create an unconditional branch to 'afterLoop'
             _loopBlockStack.push_back(afterLoop);
-            _loopBlockStack.push_back(iterEndBB);
+            _loopBlockStack.push_back(condBB);
 
             // retrieve expression (list, string, range, or iterator)
             auto exprAlloc = _blockStack.back();
             _blockStack.pop_back();
 
-            llvm::Value *start=nullptr, *step=nullptr, *end=nullptr;
+            llvm::Value *start=nullptr, *step=nullptr, *end=nullptr, *currPtr=nullptr, *curr=nullptr;
             std::shared_ptr<IteratorInfo> iteratorInfo = nullptr;
             if(exprType.isListType()) {
                 start = _env->i64Const(0);
@@ -5225,26 +5232,100 @@ namespace tuplex {
             } else {
                 fatal_error("unsupported expression type '" + exprType.desc() + "' in for loop encountered");
             }
-            builder.CreateBr(condBB);
 
-            // loop ending condition test. If loop ends, jump to elseBB, otherwise jump to loopBB (the main loop body).
+            bool typeChange = forStmt->hasAnnotation() && forStmt->annotation().numTimesVisited > 0;
+            bool skipLoopBody = typeChange && double(forStmt->annotation().zeroIterationCount) / double(forStmt->annotation().numTimesVisited) > _policy.normalCaseThreshold;
+            bool unrollFirstIteration = !skipLoopBody && forStmt->annotation().typeChangedAndStableCount > forStmt->annotation().typeStableCount;
+            if(typeChange && !skipLoopBody) {
+                // loop body should have at least 1 iteration, otherwise normal case violation
+                llvm::Value *loopCond = nullptr;
+                if(exprType.isIteratorType()) {
+                    // if expression (testlist) is an iterator. Check if iterator exhausted
+                    if(exprType == python::Type::EMPTYITERATOR) {
+                        // empty iterator is always exhausted
+                        loopCond = _env->i1Const(false);
+                    } else {
+                        // increment iterator index by 1 and check if it is exhausted
+                        auto iteratorExhausted = _iteratorContextProxy->updateIteratorIndex(builder, exprAlloc.val, iteratorInfo);
+                        // decrement iterator index by 1
+                        _iteratorContextProxy->incrementIteratorIndex(builder, exprAlloc.val, iteratorInfo, -1);
+                        // loopCond = !iteratorExhausted i.e. if iterator exhausted, ends the loop
+                        loopCond = builder.CreateICmpEQ(iteratorExhausted, _env->i1Const(false));
+                    }
+                } else {
+                    // expression is list, string or range. Check if start exceeds end.
+                    if(exprType == python::Type::RANGE) {
+                        // step can be negative in range. Check if curr * stepSign < end * stepSign
+                        // positive step -> stepSign = 1, negative step -> stepSign = -1
+                        // stepSign = (step >> 63) | 1 , use arithmetic shift
+                        auto stepSign = builder.CreateOr(builder.CreateAShr(step, _env->i64Const(63)), _env->i64Const(1));
+                        loopCond = builder.CreateICmpSLT(builder.CreateMul(start, stepSign), builder.CreateMul(end, stepSign));
+                    } else {
+                        loopCond = builder.CreateICmpSLT(start, end);
+                    }
+                }
+                auto loopEnd = builder.CreateICmpEQ(loopCond, _env->i1Const(false));
+                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopEnd);
+            }
+
+            if(!exprType.isIteratorType()) {
+                currPtr = _env->CreateFirstBlockAlloca(builder, _env->i64Type(), "curr");
+            }
+
+            if(unrollFirstIteration) {
+                // run first iteration separately
+                // first iteration is guaranteed to exist, or an exception would have been raised earlier
+                _logger.debug("first iteration of for loop unrolled to allow type-stability during loop");
+                if(exprType.isIteratorType()) {
+                    // increment iterator index by 1
+                    _iteratorContextProxy->incrementIteratorIndex(builder, exprAlloc.val, iteratorInfo, 1);
+                } else {
+                    builder.CreateStore(builder.CreateAdd(start, step), currPtr);
+                }
+                _lfb->setLastBlock(builder.GetInsertBlock());
+                // emit loop body
+                _loopBodyIdentifiersStack.emplace_back(std::set<NIdentifier *>());
+                assignForLoopVariablesAndGenerateLoopBody(forStmt, targetType, exprType, loopVal, exprAlloc, start);
+                // update variables in loop body to stabilized types
+                // so that in the rest of iterations types are stable
+                auto currIdentifiers = _loopBodyIdentifiersStack.back();
+                auto currNameTable = forStmt->annotation().stabilizedTypes;
+                for (const auto &id : currIdentifiers) {
+                    auto it = currNameTable.find(id->_name);
+                    if(it != currNameTable.end() && id->getInferredType() != it->second) {
+                        id->setInferredType(it->second);
+                    }
+                }
+                _loopBodyIdentifiersStack.pop_back();
+                if(blockOpen(_lfb->getLastBlock())) {
+                    builder.SetInsertPoint(_lfb->getLastBlock());
+                    builder.CreateBr(condBB);
+                }
+            } else {
+                if(!exprType.isIteratorType()) {
+                    builder.CreateStore(start, currPtr);
+                }
+                builder.CreateBr(condBB);
+            }
+
+            // loop ending condition test. If loop ends, jump to elseBB (if exists) or afterLoop, otherwise jump to loopBB (the main loop body).
             // loopCond indicates whether loop should continue. i.e. loopCond == false will end the loop.
-            llvm::PHINode *curr = nullptr;
             llvm::Value *loopCond = nullptr;
             builder.SetInsertPoint(condBB);
             if(exprType.isIteratorType()) {
                 // if expression (testlist) is an iterator. Check if iterator exhausted
                 if(exprType == python::Type::EMPTYITERATOR) {
-                    loopCond = _env->i1Const(true);
+                    // empty iterator is always exhausted
+                    loopCond = _env->i1Const(false);
+                } else {
+                    // increment iterator index by 1 and check if it is exhausted
+                    auto iteratorExhausted = _iteratorContextProxy->updateIteratorIndex(builder, exprAlloc.val, iteratorInfo);
+                    // loopCond = !iteratorExhausted i.e. if iterator exhausted, ends the loop
+                    loopCond = builder.CreateICmpEQ(iteratorExhausted, _env->i1Const(false));
                 }
-                auto iteratorExhausted = _iteratorContextProxy->updateIteratorIndex(builder, exprAlloc.val, iteratorInfo);
-                // loopCond = !iteratorExhausted i.e. if iterator exhausted, ends the loop
-                loopCond = builder.CreateICmpEQ(iteratorExhausted, _env->i1Const(false));
             } else {
                 // expression is list, string or range. Check if curr exceeds end.
-                curr = builder.CreatePHI(_env->i64Type(), 2);
-                curr->addIncoming(start, entryBB);
-                curr->addIncoming(builder.CreateAdd(curr, step), iterEndBB);
+                curr = builder.CreateLoad(currPtr);
                 if(exprType == python::Type::RANGE) {
                     // step can be negative in range. Check if curr * stepSign < end * stepSign
                     // positive step -> stepSign = 1, negative step -> stepSign = -1
@@ -5254,13 +5335,63 @@ namespace tuplex {
                 } else {
                     loopCond = builder.CreateICmpSLT(curr, end);
                 }
+                builder.CreateStore(builder.CreateAdd(curr, step), currPtr);
             }
-            builder.CreateCondBr(loopCond, loopBB, elseBB);
 
-            // handle loop body
-            builder.SetInsertPoint(loopBB);
-            _lfb->setLastBlock(loopBB);
+            if(!skipLoopBody) {
+                loopBB = llvm::BasicBlock::Create(_env->getContext(), "loopBB", parentFunc);
+                if(forStmt->suite_else) {
+                    elseBB = llvm::BasicBlock::Create(_env->getContext(), "elseBB", parentFunc);
+                    builder.CreateCondBr(loopCond, loopBB, elseBB);
+                } else {
+                    builder.CreateCondBr(loopCond, loopBB, afterLoop);
+                }
 
+                // handle loop body
+                builder.SetInsertPoint(loopBB);
+                _lfb->setLastBlock(loopBB);
+                assignForLoopVariablesAndGenerateLoopBody(forStmt, targetType, exprType, loopVal, exprAlloc, curr);
+                if(blockOpen(_lfb->getLastBlock())) {
+                    builder.SetInsertPoint(_lfb->getLastBlock());
+                    builder.CreateBr(condBB);
+                }
+            } else {
+                // should skip loop body, thus add exception for entering loop body
+                _logger.debug("loop body optimized away, as attained in tracing for loop expression evaluates to an empty iterable in majority cases");
+                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopCond);
+                if(forStmt->suite_else) {
+                    elseBB = llvm::BasicBlock::Create(_env->getContext(), "elseBB", parentFunc);
+                    builder.CreateBr(elseBB);
+                } else{
+                    builder.CreateBr(afterLoop);
+                }
+            }
+            _loopBlockStack.pop_back();
+            _loopBlockStack.pop_back();
+
+            // handle else
+            if(forStmt->suite_else) {
+                builder.SetInsertPoint(elseBB);
+                _lfb->setLastBlock(elseBB);
+                forStmt->suite_else->accept(*this);
+            }
+
+            if(blockOpen(_lfb->getLastBlock())) {
+                builder.SetInsertPoint(_lfb->getLastBlock());
+                builder.CreateBr(afterLoop);
+            }
+
+            builder.SetInsertPoint(afterLoop);
+            _lfb->setLastBlock(afterLoop);
+        }
+
+        void
+        BlockGeneratorVisitor::assignForLoopVariablesAndGenerateLoopBody(NFor *forStmt, const python::Type &targetType,
+                                                                         const python::Type &exprType,
+                                                                         const std::vector<std::pair<NIdentifier *, python::Type>> &loopVal,
+                                                                         const SerializableValue &exprAlloc,
+                                                                         llvm::Value *curr) {
+            auto builder = _lfb->getLLVMBuilder();
             if(exprType.isListType()) {
                 if(exprType != python::Type::EMPTYLIST) {
                     auto currVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {2}), curr));
@@ -5308,7 +5439,7 @@ namespace tuplex {
                 addInstruction(curr, _env->i64Const(8));
             } else if(exprType.isIteratorType()) {
                 if(exprType != python::Type::EMPTYITERATOR) {
-                    auto currVal = _iteratorContextProxy->getIteratorNextElement(builder, exprType.yieldType(), exprAlloc.val, iteratorInfo);
+                    auto currVal = _iteratorContextProxy->getIteratorNextElement(builder, exprType.yieldType(), exprAlloc.val, forStmt->expression->annotation().iteratorInfo);
                     if(exprType.yieldType().isListType()) {
                         if(loopVal.size() == 1) {
                             addInstruction(currVal.val, currVal.size);
@@ -5316,7 +5447,7 @@ namespace tuplex {
                             // multiple identifiers, add each value in list to stack in reverse order
                             for (int i = loopVal.size() - 1; i >= 0 ; --i) {
                                 auto idVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(currVal.val, {2}), _env->i32Const(i)));
-                                auto idType = loopVal[i]->getInferredType();
+                                auto idType = loopVal[i].second;
                                 if(idType == python::Type::I64 || targetType == python::Type::F64) {
                                     addInstruction(idVal, _env->i64Const(8));
                                 } else if(idType == python::Type::BOOLEAN) {
@@ -5355,38 +5486,11 @@ namespace tuplex {
             if(exprType != python::Type::EMPTYLIST && exprType != python::Type::EMPTYITERATOR) {
                 // assign value for each identifier in target
                 for (const auto & id : loopVal) {
-                    assignToSingleVariable(id, id->getInferredType());
+                    assignToSingleVariable(id.first, id.second);
                 }
                 // codegen for body
                 forStmt->suite_body->accept(*this);
             }
-
-            if(blockOpen(_lfb->getLastBlock())) {
-                builder.SetInsertPoint(_lfb->getLastBlock());
-                builder.CreateBr(iterEndBB);
-            }
-
-            builder.SetInsertPoint(iterEndBB);
-            builder.CreateBr(condBB);
-
-            _loopBlockStack.pop_back();
-            _loopBlockStack.pop_back();
-
-            // handle else
-            builder.SetInsertPoint(elseBB);
-            _lfb->setLastBlock(elseBB);
-
-            if(forStmt->suite_else) {
-                forStmt->suite_else->accept(*this);
-            }
-
-            if(blockOpen(_lfb->getLastBlock())) {
-                builder.SetInsertPoint(_lfb->getLastBlock());
-                builder.CreateBr(afterLoop);
-            }
-
-            builder.SetInsertPoint(afterLoop);
-            _lfb->setLastBlock(afterLoop);
         }
 
         void BlockGeneratorVisitor::visit(NWhile *whileStmt) {
@@ -5400,15 +5504,68 @@ namespace tuplex {
             // get parent function
             llvm::Function *parentFunc = _lfb->getLastBlock()->getParent();
 
+            // entry block
+            builder.SetInsertPoint(_lfb->getLastBlock());
+
             // create loop blocks
             auto *condBB = llvm::BasicBlock::Create(_env->getContext(), "condBB", parentFunc);
-            auto *loopBB = llvm::BasicBlock::Create(_env->getContext(), "loopBB", parentFunc);
-            auto *elseBB = llvm::BasicBlock::Create(_env->getContext(), "elseBB", parentFunc);
+            llvm::BasicBlock *loopBB=nullptr, *elseBB = nullptr;
             auto *afterLoop = llvm::BasicBlock::Create(_env->getContext(), "afterLoop", parentFunc);
             _loopBlockStack.push_back(afterLoop);
             _loopBlockStack.push_back(condBB);
-            builder.SetInsertPoint(_lfb->getLastBlock());
-            builder.CreateBr(condBB);
+
+            bool typeChange = whileStmt->hasAnnotation() && whileStmt->annotation().numTimesVisited > 0;
+            // type change in loop but loop ends before first iteration? -> normal case violation
+            // will check this in firstIterationCondBB and condBB to avoid visiting while condition before loop starts
+            bool skipLoopBody = typeChange && double(whileStmt->annotation().zeroIterationCount) / double(whileStmt->annotation().numTimesVisited) > _policy.normalCaseThreshold;
+            bool unrollFirstIteration = !skipLoopBody && whileStmt->annotation().typeChangedAndStableCount > whileStmt->annotation().typeStableCount;
+
+            // isFirstIteration: true before first iteration completes
+            auto isFirstIterationPtr = _env->CreateFirstBlockAlloca(builder, _env->i1Type(), "firstIterationCompleted");
+            builder.CreateStore(_env->i1Const(true), isFirstIterationPtr);
+
+            // check if we need to separate the first iteration
+            if(unrollFirstIteration) {
+                // run first iteration separately
+                _logger.debug("first iteration of while loop unrolled to allow type-stability during loop");
+                _loopBodyIdentifiersStack.emplace_back(std::set<NIdentifier *>());
+                // emit condition expression
+                whileStmt->expression->accept(*this);
+                if(earlyExit()) {
+                    while(_blockStack.size() > num_stack_before)
+                        _blockStack.pop_back();
+                    return;
+                }
+                builder.SetInsertPoint(_lfb->getLastBlock());
+                // retrieve condition value
+                auto cond = _blockStack.back();
+                _blockStack.pop_back();
+                // convert condition value to i1
+                auto whileCond = _env->truthValueTest(builder, cond, whileStmt->expression->getInferredType());
+                auto loopEnds = _env->i1neg(builder, whileCond);
+                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopEnds);
+                builder.CreateStore(_env->i1Const(false), isFirstIterationPtr);
+                _lfb->setLastBlock(builder.GetInsertBlock());
+                // loop body
+                whileStmt->suite_body->accept(*this);
+                // update variables in loop body to stabilized types
+                // so that in the rest of iterations types are stable
+                auto currIdentifiers = _loopBodyIdentifiersStack.back();
+                auto currNameTable = whileStmt->annotation().stabilizedTypes;
+                for (const auto &id : currIdentifiers) {
+                    auto it = currNameTable.find(id->_name);
+                    if(it != currNameTable.end() && id->getInferredType() != it->second) {
+                        id->setInferredType(it->second);
+                    }
+                }
+                _loopBodyIdentifiersStack.pop_back();
+                if(blockOpen(_lfb->getLastBlock())) {
+                    builder.SetInsertPoint(_lfb->getLastBlock());
+                    builder.CreateBr(condBB);
+                }
+            } else {
+                builder.CreateBr(condBB);
+            }
 
             builder.SetInsertPoint(condBB);
             _lfb->setLastBlock(condBB);
@@ -5428,26 +5585,49 @@ namespace tuplex {
 
             // convert condition value to i1
             auto whileCond = _env->truthValueTest(builder, cond, whileStmt->expression->getInferredType());
-            builder.CreateCondBr(whileCond, loopBB, elseBB);
+            if(!skipLoopBody) {
+                loopBB = llvm::BasicBlock::Create(_env->getContext(), "loopBB", parentFunc);
+                // type change in loop but loop ends before first iteration? -> normal case violation
+                if(typeChange) {
+                    auto loopEnd = _env->i1neg(builder, whileCond);
+                    auto isFirstIteration = builder.CreateLoad(isFirstIterationPtr);
+                    _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, builder.CreateAnd(isFirstIteration, loopEnd));
+                    builder.CreateStore(builder.CreateAnd(isFirstIteration, _env->i1Const(false)), isFirstIterationPtr);
+                }
 
-            // handle loop body
-            builder.SetInsertPoint(loopBB);
-            _lfb->setLastBlock(loopBB);
-            whileStmt->suite_body->accept(*this);
+                if(whileStmt->suite_else) {
+                    elseBB = llvm::BasicBlock::Create(_env->getContext(), "elseBB", parentFunc);;
+                    builder.CreateCondBr(whileCond, loopBB, elseBB);
+                } else {
+                    builder.CreateCondBr(whileCond, loopBB, afterLoop);
+                }
 
-            if(blockOpen(_lfb->getLastBlock())) {
-                builder.SetInsertPoint(_lfb->getLastBlock());
-                builder.CreateBr(condBB);
+                // handle loop body
+                builder.SetInsertPoint(loopBB);
+                _lfb->setLastBlock(loopBB);
+                whileStmt->suite_body->accept(*this);
+                if(blockOpen(_lfb->getLastBlock())) {
+                    builder.SetInsertPoint(_lfb->getLastBlock());
+                    builder.CreateBr(condBB);
+                }
+            } else {
+                // should skip loop body, thus add exception for entering loop body
+                _logger.debug("loop body optimized away, as attained in tracing while condition for first iteration not holds in majority cases");
+                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, whileCond);
+                if(whileStmt->suite_else) {
+                    elseBB = llvm::BasicBlock::Create(_env->getContext(), "elseBB", parentFunc);
+                    builder.CreateBr(elseBB);
+                } else{
+                    builder.CreateBr(afterLoop);
+                }
             }
-
             _loopBlockStack.pop_back();
             _loopBlockStack.pop_back();
 
             // handle else
-            builder.SetInsertPoint(elseBB);
-            _lfb->setLastBlock(elseBB);
-
             if(whileStmt->suite_else) {
+                builder.SetInsertPoint(elseBB);
+                _lfb->setLastBlock(elseBB);
                 whileStmt->suite_else->accept(*this);
             }
 

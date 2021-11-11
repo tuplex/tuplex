@@ -27,11 +27,15 @@ static int g_func_counter = 0;
 namespace tuplex {
 
     bool UDF::_compilationEnabled = true;
-    bool UDF::_allowNumericTypeUnification = true;
 
     UDF::UDF(const std::string &pythonLambdaStr,
              const std::string& pickledCode,
-             const ClosureEnvironment& globals) : _isCompiled(false), _failed(false), _code(pythonLambdaStr), _pickledCode(pickledCode), _outputSchema(Schema::UNKNOWN), _inputSchema(Schema::UNKNOWN), _dictAccessFound(false), _rewriteDictExecuted(false) {
+             const ClosureEnvironment& globals,
+             const codegen::CompilePolicy& policy) : _isCompiled(false), _failed(false),
+             _code(pythonLambdaStr), _pickledCode(pickledCode),
+             _outputSchema(Schema::UNKNOWN), _inputSchema(Schema::UNKNOWN),
+             _dictAccessFound(false), _rewriteDictExecuted(false),
+             _policy(policy) {
 
         // empty UDF.
         if(pythonLambdaStr.empty())
@@ -43,7 +47,7 @@ namespace tuplex {
         if(_code.length() > 0 && _compilationEnabled)
             // attempt to parse code
             // if it fails, make sure a backup solution in the form of pickled code is existing
-            _isCompiled = _ast.parseString(_code, _allowNumericTypeUnification);
+            _isCompiled = _ast.parseString(_code);
 
         // backup solution
         if(!_isCompiled && _pickledCode.length() == 0) {
@@ -152,7 +156,7 @@ namespace tuplex {
 
 
         // after all the type hints, try to define final types
-        auto res = _ast.defineTypes(silent, removeBranches);
+        auto res = _ast.defineTypes(_policy, silent, removeBranches);
         if(!_ast.getCompileErrors().empty()) {
             addCompileErrors(_ast.getCompileErrors());
         }
@@ -507,7 +511,7 @@ namespace tuplex {
         } else return _pickledCode;
     }
 
-    codegen::CompiledFunction UDF::compile(codegen::LLVMEnvironment &env, bool allowUndefinedBehaviour, bool sharedObjectPropagation) {
+    codegen::CompiledFunction UDF::compile(codegen::LLVMEnvironment &env) {
 
         codegen::CompiledFunction cf;
         MessageHandler& logger = Logger::instance().logger("codegen");
@@ -533,7 +537,6 @@ namespace tuplex {
         // --> notify code generator of that.
         // a.) could either do this by inserting dummy ast nodes, or simply b.) coding it directly up
         if(cg.getRowType() != getOutputSchema().getRowType()) {
-
             // is it a primitive or a tuple?
             auto rt = cg.getReturnType();
             python::Type targetType = getOutputSchema().getRowType();
@@ -560,7 +563,7 @@ namespace tuplex {
         }
 
         // compile UDF to LLVM IR Code
-        if(!cg.generateCode(&env, allowUndefinedBehaviour, sharedObjectPropagation)) {
+        if(!cg.generateCode(&env, _policy)) {
             // log error and abort processing.
             logger.error("code generation for user supplied function " + cg.getFunctionName() + " failed.");
             cf.function = nullptr; // invalidate func
@@ -1193,7 +1196,7 @@ namespace tuplex {
             getAnnotatedAST().addTypeHint(el.first, el.second);
 
         // call define types then again
-        getAnnotatedAST().defineTypes(true);
+        getAnnotatedAST().defineTypes(_policy, true);
 
 #ifndef NDEBUG
 #ifdef GENERATE_PDFS
@@ -1333,6 +1336,9 @@ namespace tuplex {
 
         for(auto args : sample)
             tv.recordTrace(funcNode, args);
+        // record the total number of samples (used to check in TypeAnnotatorVisitor if every sample corresponds to a normal case violation)
+        funcNode->annotation().numTimesVisited = sample.size();
+        addCompileErrors(tv.getCompileErrors());
         if(acquireGIL)
             python::unlockGIL();
 
@@ -1396,5 +1402,13 @@ namespace tuplex {
             python::unlockGIL();
 
         return out_rows;
+    }
+
+    UDF UDF::withCompilePolicy(const codegen::CompilePolicy& policy) const {
+        if(_policy == policy)
+            return *this;
+
+        // else, create new UDF based on whatever is already here
+        return UDF(_code, _pickledCode, _ast.globals(), policy);
     }
 }

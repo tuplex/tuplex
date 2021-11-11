@@ -13,6 +13,7 @@ import unittest
 from tuplex import *
 import numpy as np
 
+
 # test fallback functionality, i.e. executing cloudpickled code
 class TestFallback(unittest.TestCase):
 
@@ -43,3 +44,27 @@ class TestFallback(unittest.TestCase):
         for i in range(4):
             self.assertAlmostEqual(res[i][0], ref[i][0])
             self.assertAlmostEqual(res[i][1], ref[i][1])
+
+    def testAllSamplesAreNormalCaseViolationUDF(self):
+
+        def allSamplesAreNormalCaseViolationUDF(x):
+            t = 0
+            if x == 1:
+                t = 1.0
+            else:
+                t = 'a'
+            if x == 2:
+                t = 2.0
+            else:
+                t = 'b'
+            if x == 3:
+                t = 3.0
+            else:
+                t = 4.0
+            return t
+        
+        res = self.c.parallelize([1, 2, 3]).map(allSamplesAreNormalCaseViolationUDF).collect()
+        self.assertEqual(len(res), 3)
+        self.assertEqual(res[0], allSamplesAreNormalCaseViolationUDF(1))
+        self.assertEqual(res[1], allSamplesAreNormalCaseViolationUDF(2))
+        self.assertEqual(res[2], allSamplesAreNormalCaseViolationUDF(3))

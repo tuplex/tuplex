@@ -63,6 +63,7 @@ popd &&
   cd - || echo "ANTLR4 runtime failed"
 
 # AWS SDK
+# tag 1.9.142?
 cd /tmp &&
   git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git &&
   cd aws-sdk-cpp && git checkout tags/1.9.39 && mkdir build && pushd build &&

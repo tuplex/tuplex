@@ -25,26 +25,36 @@
 namespace tuplex {
 
     // cf. e.g. https://gist.github.com/hensing/0db3f8e3a99590006368 ?
+    enum logtypes {info, warning, error, debug};
+    extern void log_msg_to_python_logging(int type, const char *msg);
 
     template<typename Mutex> class nogil_python3_sink : public python_sink<Mutex> {
     public:
-        nogil_python3_sink() : _pyFunctor(nullptr) {}
-        nogil_python3_sink(PyObject* pyFunctor) : _pyFunctor(nullptr) {}
+        //nogil_python3_sink() : _pyFunctor(nullptr) {}
+        nogil_python3_sink() = delete;
+        explicit nogil_python3_sink(PyObject* pyFunctor) : _pyFunctor(pyFunctor) {}
 
         void flushToPython(bool acquireGIL=false) override {
 
             printf("calling flush to python in nogil_python3_sink\n");
+            std::cout<<std::endl;
+            printf("acquireGIL: %d\n", acquireGIL);
+            std::cout<<std::endl;
+            printf("pyFunctor is: %llX\n", reinterpret_cast<uint64_t>(_pyFunctor));
 
-            if(!_pyFunctor)
+            if(!_pyFunctor) {
+                std::cout<<"no functor found, early abort"<<std::endl;
                 return;
+            }
 
-            assert(_pyFunctor->ob_refcnt > 0);
+//            assert(_pyFunctor->ob_refcnt > 0);
 
             if(acquireGIL)
                 python::lockGIL();
-            try {
-                printf("acquiring bufmutex...");
-                std::lock_guard<Mutex> lock(_bufMutex);
+//            try {
+                printf("acquiring bufmutex...\n");
+            {
+                std::lock_guard<std::mutex> lock(_bufMutex);
 
 
 //                // sort messages after time
@@ -52,27 +62,45 @@ namespace tuplex {
 //                    return a.time < b.time;
 //                });
 
-                printf("bufmutex acuqired, found % msg...".format(_messageBuffer.size()));
+                printf("bufmutex acquired, found % msg...", _messageBuffer.size());
 
                 // now call for each message the python function!
                 // => basically give as arg the message... (later pass the other information as well...)
-                for(auto msg : _messageBuffer) {
-                    auto args = PyTuple_New(1);
-                    auto py_msg = python::PyString_FromString(std::string(msg.payload.data()).c_str());
-                    PyTuple_SET_ITEM(args, 0, py_msg);
+                for (const auto &msg: _messageBuffer) {
+//                    auto args = PyTuple_New(1);
+//                    auto py_msg = python::PyString_FromString(std::string(msg.payload.data()).c_str());
+//                    PyTuple_SET_ITEM(args, 0, py_msg);
+//
+//                    PyObject_Call(_pyFunctor, args, nullptr);
+//                    if(PyErr_Occurred()) {
+//                        PyErr_Print();
+//                        std::cout<<std::endl;
+//                        PyErr_Clear();
+//                    }
+                    std::cout<<"first message acquired..."<<std::endl;
+                    printf("get first message...\n");
 
-                    PyObject_Call(_pyFunctor, args, nullptr);
-                    if(PyErr_Occurred()) {
-                        PyErr_Print();
-                        std::cout<<std::endl;
-                        PyErr_Clear();
-                    }
+                    //std::string message(msg.payload.data());
+                    std::string message = "test message";
+
+                    // get null-terminated C-string from string_view
+                    char *temp_str = new char[msg.payload.size() + 1];
+                    memset(temp_str, 0, msg.payload.size() + 1);
+                    memcpy(temp_str, msg.payload.data(), msg.payload.size());
+                    printf("message is: %s", temp_str);
+
+                    // use python logging helper...
+                    log_msg_to_python_logging(logtypes::info, temp_str);
+                    delete [] temp_str;
+                    std::cout << "logged message: " << message << std::endl;
+
                 }
 
                 _messageBuffer.clear();
-            } catch(...) {
-                fprintf(stderr, "failed to communicate message buffer from python sink");
             }
+//            } catch(...) {
+//                fprintf(stderr, "failed to communicate message buffer from python sink");
+//            }
             if(acquireGIL)
                 python::unlockGIL();
 
@@ -96,7 +124,7 @@ namespace tuplex {
 
             printf("calling sink_it_ in pysink\n");
             // invoke mutex
-            std::lock_guard<Mutex> lock(_bufMutex);
+            std::lock_guard<std::mutex> lock(_bufMutex);
             printf("mutex acquired, sinking msg\n");
             _messageBuffer.push_back(msg);
         }
@@ -113,36 +141,6 @@ namespace tuplex {
     using no_gil_python3_sink_mt = nogil_python3_sink<std::mutex>;
     using no_gil_python3_sink_st = nogil_python3_sink<spdlog::details::null_mutex>;
 
-    inline boost::python::object registerPythonLogger(boost::python::object log_functor) {
-
-        printf("calling registerPythonLogger\n");
-
-        // get object
-        auto functor_obj = log_functor.ptr();
-        Py_XINCREF(functor_obj);
-        // make sure it's callable etc.
-        if(!PyCallable_Check(functor_obj))
-            throw std::runtime_error(python::PyString_AsString(functor_obj) + " is not callable. Can't register as logger.");
-
-
-        // add new sink to loggers with this function
-        python::unlockGIL();
-        try {
-            Logger::instance().init({std::make_shared<no_gil_python3_sink_mt>(functor_obj)});
-
-//            Logger::instance().init(); ??
-        } catch(std::exception& e) {
-            // use C printing for the exception here
-            std::cerr<<"while registering python logger, following error occurred: "<<e.what()<<std::endl;
-        }
-        python::lockGIL();
-
-        printf("pylogger added, all good\n");
-        // TODO: make sure Logger is never called while thread holds GIL!
-
-
-        // return None
-        return boost::python::object();
-    }
+    extern boost::python::object registerPythonLogger(boost::python::object log_functor);
 }
 #endif //TUPLEX_PYTHONCOMMON_H

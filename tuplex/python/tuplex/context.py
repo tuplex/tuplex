@@ -154,13 +154,14 @@ class Context:
             # for google colab env, disable webui per default.
             if in_google_colab():
                 options['tuplex.webui.enable'] = False
+
         # fetch default options for webui ...
         webui_options = {k: v for k, v in json.loads(getDefaultOptionsAsJSON()).items() if 'webui' in k or 'scratch' in k}
 
-        # # update only non-existing options!
-        # for k, v in webui_options.items():
-        #     if k not in options.keys():
-        #         options[k] = v
+        # update only non-existing options!
+        for k, v in webui_options.items():
+            if k not in options.keys():
+                options[k] = v
 
         # pythonize
         options = pythonize_options(options)

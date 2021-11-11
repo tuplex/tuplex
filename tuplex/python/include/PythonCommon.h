@@ -24,12 +24,16 @@
 
 namespace tuplex {
 
+    // cf. e.g. https://gist.github.com/hensing/0db3f8e3a99590006368 ?
+
     template<typename Mutex> class nogil_python3_sink : public python_sink<Mutex> {
     public:
         nogil_python3_sink() : _pyFunctor(nullptr) {}
         nogil_python3_sink(PyObject* pyFunctor) : _pyFunctor(nullptr) {}
 
         void flushToPython(bool acquireGIL=false) override {
+
+            printf("calling flush to python in nogil_python3_sink\n");
 
             if(!_pyFunctor)
                 return;
@@ -39,13 +43,16 @@ namespace tuplex {
             if(acquireGIL)
                 python::lockGIL();
             try {
-                std::lock_guard<Mutex> lock(this->mutex_);
+                printf("acquiring bufmutex...");
+                std::lock_guard<Mutex> lock(_bufMutex);
 
 
 //                // sort messages after time
 //                std::sort(_messageBuffer.begin(), _messageBuffer.end(), [](const spdlog::details::log_msg& a, const spdlog::details::log_msg& b) {
 //                    return a.time < b.time;
 //                });
+
+                printf("bufmutex acuqired, found % msg...".format(_messageBuffer.size()));
 
                 // now call for each message the python function!
                 // => basically give as arg the message... (later pass the other information as well...)
@@ -68,6 +75,8 @@ namespace tuplex {
             }
             if(acquireGIL)
                 python::unlockGIL();
+
+            printf("flush to python done.");
         }
     protected:
         virtual void sink_it_(const spdlog::details::log_msg& msg) override {
@@ -84,8 +93,11 @@ namespace tuplex {
 //            python::lockGIL();
 //            PySys_FormatStdout("%s", formatted_msg.c_str());
 //            python::unlockGIL();
+
+            printf("calling sink_it_ in pysink\n");
             // invoke mutex
-            std::lock_guard<Mutex> lock(this->mutex_);
+            std::lock_guard<Mutex> lock(_bufMutex);
+            printf("mutex acquired, sinking msg\n");
             _messageBuffer.push_back(msg);
         }
 
@@ -95,12 +107,16 @@ namespace tuplex {
     private:
         std::vector<spdlog::details::log_msg> _messageBuffer;
         PyObject* _pyFunctor;
+        std::mutex _bufMutex;
     };
 
     using no_gil_python3_sink_mt = nogil_python3_sink<std::mutex>;
     using no_gil_python3_sink_st = nogil_python3_sink<spdlog::details::null_mutex>;
 
     inline boost::python::object registerPythonLogger(boost::python::object log_functor) {
+
+        printf("calling registerPythonLogger\n");
+
         // get object
         auto functor_obj = log_functor.ptr();
         Py_XINCREF(functor_obj);
@@ -121,6 +137,7 @@ namespace tuplex {
         }
         python::lockGIL();
 
+        printf("pylogger added, all good\n");
         // TODO: make sure Logger is never called while thread holds GIL!
 
 

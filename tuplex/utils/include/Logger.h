@@ -16,9 +16,17 @@
 #include <iostream>
 #include <memory>
 #include <spdlog/spdlog.h>
+#include <spdlog/sinks/base_sink.h>
+#include <spdlog/formatter.h>
+#include <spdlog/details/null_mutex.h>
 
 class Logger;
 class MessageHandler;
+
+template<typename Mutex> class python_sink : public spdlog::sinks::base_sink <Mutex> {
+public:
+    virtual void flushToPython(bool acquireGIL = false) = 0;
+};
 
 /*!
  * singleton class that handles logging (one per node...)
@@ -62,6 +70,12 @@ public:
      * flushes all loggers.
      */
     void flushAll();
+
+    /*!
+     * flush specific python logger...
+     * @param acquireGIL
+     */
+    void flushToPython(bool acquireGIL=false);
 
     // add here later functions to filter out certain messages etc.
     static void init(const std::vector<spdlog::sink_ptr >& sinks={std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>()});

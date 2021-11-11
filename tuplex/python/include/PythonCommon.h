@@ -96,7 +96,7 @@ namespace tuplex {
 
                     // perform callback in python...
                     auto args = PyTuple_New(4);
-                    auto py_lvl = PyLong_FromLong(spdlog_level_to_number(msg.leve));
+                    auto py_lvl = PyLong_FromLong(spdlog_level_to_number(msg.level));
                     auto py_time = python::PyString_FromString(chronoToISO8601(msg.timestamp).c_str());
                     auto py_logger = python::PyString_FromString(msg.logger.c_str());
                     auto py_msg = python::PyString_FromString(msg.message.c_str());

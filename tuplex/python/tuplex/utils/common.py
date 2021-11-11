@@ -378,7 +378,7 @@ def logging_callback(level, time_info, logger_name, msg):
     lineno=None
     ct = iso8601.parse_date(time_info).timestamp()
 
-    log_record = logging.LogRecord(name, level, pathname, lineno, msg, None, None)
+    log_record = logging.LogRecord(logger_name, level, pathname, lineno, msg, None, None)
     log_record.created = ct
     log_record.msecs = (ct - int(ct)) * 1000
     log_record.relativeCreated = log_record.created - logging._startTime

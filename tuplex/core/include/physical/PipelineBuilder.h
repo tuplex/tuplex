@@ -304,7 +304,7 @@ namespace tuplex {
              * @param sharedObjectPropagation
              * @return true when code generation a map call to the function succeeded
              */
-            bool mapOperation(const int64_t operatorID, const UDF &udf, bool allowUndefinedBehavior, bool sharedObjectPropagation);
+            bool mapOperation(const int64_t operatorID, const UDF &udf, double normalCaseThreshold, bool allowUndefinedBehavior, bool sharedObjectPropagation);
 
             /*!
              * adds a filter operation to the task
@@ -314,7 +314,7 @@ namespace tuplex {
              * @param sharedObjectPropagation
              * @return bool when generation of code succeeded for this function
              */
-            bool filterOperation(const int64_t operatorID, const UDF &udf, bool allowUndefinedBehavior, bool sharedObjectPropagation);
+            bool filterOperation(const int64_t operatorID, const UDF &udf, double normalCaseThreshold, bool allowUndefinedBehavior, bool sharedObjectPropagation);
 
             /*!
              * maps a single column, taking as input the column at columnToMapIndex and overwrite it with the UDF's output
@@ -328,6 +328,7 @@ namespace tuplex {
             bool mapColumnOperation(const int64_t operatorID,
                                     int columnToMapIndex,
                                     const UDF &udf,
+                                    double normalCaseThreshold,
                                     bool allowUndefinedBehavior,
                                     bool sharedObjectPropagation);
 
@@ -343,6 +344,7 @@ namespace tuplex {
             bool withColumnOperation(const int64_t operatorID,
                                      int columnToMapIndex,
                                      const UDF &udf,
+                                     double normalCaseThreshold,
                                      bool allowUndefinedBehavior,
                                      bool sharedObjectPropagation);
 
@@ -357,7 +359,7 @@ namespace tuplex {
              * @return
              */
             bool
-            addResolver(const ExceptionCode &ec, const int64_t operatorID, const UDF &udf, bool allowUndefinedBehavior, bool sharedObjectPropagation);
+            addResolver(const ExceptionCode &ec, const int64_t operatorID, const UDF &udf, double normalCaseThreshold, bool allowUndefinedBehavior, bool sharedObjectPropagation);
 
             /*!
              * this is a function to add generated code for an ignore operator to be used on the slow path.
@@ -393,6 +395,7 @@ namespace tuplex {
              */
             bool addAggregate(const int64_t operatorID, const UDF& aggUDF,
                               const python::Type& aggType,
+                              double normalCaseThreshold,
                               bool allowUndefinedBehavior,
                               bool sharedObjectPropagation);
 

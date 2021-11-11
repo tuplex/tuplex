@@ -32,7 +32,6 @@ namespace tuplex {
 
         AggregateOperator(LogicalOperator* parent,
                           const AggregateType& at,
-                          bool allowNumericTypeUnification,
                           const UDF& combiner=UDF("",""),
                           const UDF& aggregator=UDF("",""),
                           Row initialValue=Row(),
@@ -49,22 +48,18 @@ namespace tuplex {
             _keyType = python::Type::makeTupleType(keyTypes);
             if(_keyType.parameters().size() == 1) _keyType = _keyType.parameters().front();
 
-            // require this for typing info.
-            _combiner.getAnnotatedAST().allowNumericTypeUnification(allowNumericTypeUnification);
-            _aggregator.getAnnotatedAST().allowNumericTypeUnification(allowNumericTypeUnification);
-
             if(!inferAndCheckTypes()) {
 //#ifndef NDEBUG
                 // use defensive programming here...
                 // swap combiner & aggregator => easily to be mixed up.
-                std::swap(_combiner, _aggregator);
+                core::swap(_combiner, _aggregator);
 
                 // reset type info in both
                 _combiner.removeTypes();
                 _aggregator.removeTypes();
 
                 if(!inferAndCheckTypes()) {
-                    std::swap(_combiner, _aggregator);
+                    core::swap(_combiner, _aggregator);
                     throw std::runtime_error("failed to type aggregate operator. Wrong order of parameters within UDFs?");
                 }
                 Logger::instance().defaultLogger().warn("wrong order of functions in aggregate, please fix in source code.");

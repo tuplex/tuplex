@@ -83,15 +83,15 @@ namespace tuplex {
                     //std::string message(msg.payload.data());
                     std::string message = "test message";
 
-                    // get null-terminated C-string from string_view
-                    char *temp_str = new char[msg.payload.size() + 1];
-                    memset(temp_str, 0, msg.payload.size() + 1);
-                    memcpy(temp_str, msg.payload.data(), msg.payload.size());
-                    printf("message is: %s", temp_str);
-
+//                    // get null-terminated C-string from string_view
+//                    char *temp_str = new char[msg.payload.size() + 1];
+//                    memset(temp_str, 0, msg.payload.size() + 1);
+//                    memcpy(temp_str, msg.payload.data(), msg.payload.size());
+//                    printf("message is: %s", temp_str);
+//                    delete [] temp_str;
                     // use python logging helper...
-                    log_msg_to_python_logging(logtypes::info, temp_str);
-                    delete [] temp_str;
+                    log_msg_to_python_logging(logtypes::info, msg.message.c_str());
+
                     std::cout << "logged message: " << message << std::endl;
 
                 }
@@ -107,7 +107,7 @@ namespace tuplex {
             printf("flush to python done.");
         }
     protected:
-        virtual void sink_it_(const spdlog::details::log_msg& msg) override {
+        virtual void sink_it_(const spdlog::details::log_msg& spdlog_msg) override {
 //            fmt::memory_buffer formatted;
 //            this->formatter_->format(msg, formatted);
 //            std::string formatted_msg = fmt::to_string(formatted);
@@ -126,14 +126,26 @@ namespace tuplex {
             // invoke mutex
             std::lock_guard<std::mutex> lock(_bufMutex);
             printf("mutex acquired, sinking msg\n");
+
+            // need to read from msg because at some point memory gets invalidated
+
+            LogMessage msg;
+            msg.message = std::string(spdlog_msg.payload.data());
+            std::cout<<"message is: "<<msg.message<<std::endl;
             _messageBuffer.push_back(msg);
+            printf("message stored!\n");
         }
 
         virtual void flush_() override {
            // don't do anything here...
         }
     private:
-        std::vector<spdlog::details::log_msg> _messageBuffer;
+
+        struct LogMessage {
+            std::string message;
+        };
+
+        std::vector<LogMessage> _messageBuffer;
         PyObject* _pyFunctor;
         std::mutex _bufMutex;
     };

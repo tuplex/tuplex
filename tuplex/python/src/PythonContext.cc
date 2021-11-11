@@ -758,7 +758,8 @@ namespace tuplex {
 
         Logger::instance().logger("python").debug("wrapped dataset, returning it");
 
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
 
         return pds;
     }
@@ -1000,6 +1001,8 @@ namespace tuplex {
             }
         }
 
+        Logger::instance().flushToPython();
+
         // return map
         return m;
     }
@@ -1064,7 +1067,8 @@ namespace tuplex {
             ds = &_context->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -1101,7 +1105,8 @@ namespace tuplex {
             ds = &_context->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -1137,7 +1142,8 @@ namespace tuplex {
         // assign dataset to wrapper
         pds.wrap(ds);
 
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
 
         return pds;
     }
@@ -1241,7 +1247,8 @@ namespace tuplex {
 
         // restore GIL
         python::lockGIL();
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
 
         // manually set python error -> do not trust boost::python exception translation, it's faulty!
         if(!err_message.empty()) {
@@ -1261,6 +1268,8 @@ namespace tuplex {
         // need to hold GIL,
         // i.e. restore GIL
         python::lockGIL();
+
+        Logger::instance().flushToPython();
         _context = nullptr;
     }
 
@@ -1432,6 +1441,8 @@ namespace tuplex {
             }
         }
 
+        Logger::instance().flushToPython();
+
         // first manual fetch
        return boost::python::dict(boost::python::handle<>(dictObject));
     }
@@ -1448,7 +1459,8 @@ namespace tuplex {
             PyList_SET_ITEM(listObj, i, python::PyString_FromString(uris[i].toPath().c_str()));
         }
         Logger::instance().logger("filesystem").info("listed " + std::to_string(uris.size()) + " files in " + std::to_string(timer.time()) +"s");
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return boost::python::list(boost::python::handle<>(listObj));
     }
 
@@ -1464,7 +1476,8 @@ namespace tuplex {
         if(rc != VirtualFileSystemStatus::VFS_OK)
             Logger::instance().logger("filesystem").error("failed to remove files from " + pattern);
         Logger::instance().logger("filesystem").info("removed files in " + std::to_string(timer.time()) +"s");
-        Logger::instance().flushAll();
+        //Logger::instance().flushAll();
+        Logger::instance().flushToPython();
     }
 
     std::string getDefaultOptionsAsJSON() {

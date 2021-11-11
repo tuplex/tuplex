@@ -1324,6 +1324,10 @@ namespace tuplex {
                        python::PyString_FromString("tuplex.network.verifySSL"),
                        python::boolToPython(co.NETWORK_VERIFY_SSL()));
 
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.redirectToPythonLogging"),
+                       python::boolToPython(co.REDIRECT_TO_PYTHON_LOGGING()));
+
         // @TODO: move to optimizer
         PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.csv.selectionPushdown"),

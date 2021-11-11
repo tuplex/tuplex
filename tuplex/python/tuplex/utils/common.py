@@ -27,6 +27,7 @@ import shutil
 import psutil
 import subprocess
 import logging
+import iso8601
 import re
 import tempfile
 import time
@@ -348,6 +349,40 @@ def stringify_dict(d):
     assert isinstance(d, dict), 'd must be a dictionary'
     return {str(key) : str(val) for key, val in d.items()}
 
+def logging_callback(level, time_info, logger_name, msg):
+    """
+    this is a callback function which can be used to redirect C++ logging to python logging.
+    :param level: logging level as integer, for values cf. PythonCommon.h
+    :param time_info: time info as ISO8601 string
+    :param logger_name: name of the logger as invoked in C++
+    :param msg: message to display
+    :return: None
+    """
+    # convert level to logging levels
+    if 0 == level: # unsupported level in C++
+        level = logging.INFO
+    if 1 == level: # trace in C++
+        level = logging.DEBUG
+    if 2 == level:
+        level = logging.DEBUG
+    if 3 == level:
+        level = logging.INFO
+    if 4 == level:
+        level = logging.WARNING
+    if 5 == level:
+        level = logging.ERROR
+    if 6 == level:
+        level = logging.CRITICAL
+
+    pathname=None
+    lineno=None
+    ct = iso8601.parse_date(time_info).timestamp()
+
+    log_record = logging.LogRecord(name, level, pathname, lineno, msg, None, None)
+    log_record.created = ct
+    log_record.msecs = (ct - int(ct)) * 1000
+    log_record.relativeCreated = log_record.created - logging._startTime
+    logging.getLogger(logger_name).handle(log_record)
 
 
 ## WebUI helper functions

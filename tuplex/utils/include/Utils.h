@@ -540,9 +540,19 @@ namespace tuplex {
      * @return string with ISO8601 formatting
      */
     inline std::string chronoToISO8601(const std::chrono::time_point<std::chrono::system_clock>& tp) {
-        auto itt = std::chrono::system_clock::to_time_t(tp);
+
+        // cf. https://stackoverflow.com/questions/24686846/get-current-time-in-milliseconds-or-hhmmssmmm-format/35157784#35157784
+
+        std::time_t time = std::chrono::system_clock::to_time_t(tp);
+        std::tm* now_tm = std::localtime(&time);
+        long long timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count();
         std::ostringstream ss;
-        ss << std::put_time(gmtime(&itt), "%FT%TZ");
+        ss << std::setfill('0')
+                  << std::put_time(now_tm, "%FT%H:%M:")
+                  << std::setw(2) << (timestamp / 1000) % 60 << '.'
+                  << std::setw(3) << timestamp % 1000
+                  << std::put_time(now_tm, "%z");
+
         return ss.str();
     }
 }

@@ -194,6 +194,6 @@ namespace tuplex {
     using no_gil_python3_sink_mt = nogil_python3_sink<std::mutex>;
     using no_gil_python3_sink_st = nogil_python3_sink<spdlog::details::null_mutex>;
 
-    extern boost::python::object registerPythonLogger(boost::python::object log_functor);
+    extern boost::python::object registerPythonLoggingCallback(boost::python::object callback_functor);
 }
 #endif //TUPLEX_PYTHONCOMMON_H

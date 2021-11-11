@@ -247,7 +247,8 @@ namespace tuplex {
                      {"tuplex.resolveWithInterpreterOnly", "false"},
                      {"tuplex.network.caFile", ""},
                      {"tuplex.network.caPath", ""},
-                     {"tuplex.network.verifySSL", "true"}};
+                     {"tuplex.network.verifySSL", "true"},
+                     {"tuplex.redirectToPythonLogging", "true"}};
 #else
         // DEBUG options
         co._store = {{"tuplex.useLLVMOptimizer", "false"},
@@ -300,7 +301,8 @@ namespace tuplex {
                      {"tuplex.resolveWithInterpreterOnly", "true"},
                      {"tuplex.network.caFile", ""},
                      {"tuplex.network.caPath", ""},
-                     {"tuplex.network.verifySSL", "true"}};
+                     {"tuplex.network.verifySSL", "true"},
+                     {"tuplex.redirectToPythonLogging", "true"}};
 #endif
 
         // update with tuplex env

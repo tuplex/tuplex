@@ -57,6 +57,7 @@ namespace tuplex {
         bool INTERLEAVE_IO() const { return stringToBool(_store.at("tuplex.interleaveIO")); } //! whether to first load, compute, then write or use IO thread to interleave IO work with compute work for faster speeds.
         bool RESOLVE_WITH_INTERPRETER_ONLY() const { return stringToBool(_store.at("tuplex.resolveWithInterpreterOnly")); }
 
+        bool REDIRECT_TO_PYTHON_LOGGING() const { return stringToBool(_store.at("tuplex.redirectToPythonLogging")); } //! whether to use always the python logging module or not.
 
         // AWS backend parameters
         size_t AWS_REQUEST_TIMEOUT() const { return std::stoi(_store.at("tuplex.aws.requestTimeout")); } // 600s?

@@ -11,13 +11,13 @@
 
 import logging
 
-from .libexec.tuplex import _Context, _DataSet, getDefaultOptionsAsJSON
+from .libexec.tuplex import _Context, _DataSet, getDefaultOptionsAsJSON, registerLoggingCallback
 from .dataset import DataSet
 import os
 import glob
 import sys
 import cloudpickle
-from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui, pythonize_options
+from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui, pythonize_options, logging_callback
 import uuid
 import json
 from .metrics import Metrics
@@ -147,6 +147,19 @@ class Context:
         for k in key_set:
             if k not in supported_keys and 'tuplex.' + k in supported_keys:
                 options['tuplex.' + k] = options[k]
+
+        # check if redirect to python logging module should happen or not
+        if 'tuplex.redirectToPythonLogging' in options.keys():
+            py_opts = pythonize_options(options)
+            if py_opts['tuplex.redirectToPythonLogging']:
+                logging.info('Redirecting C++ logging to Python')
+                registerLoggingCallback(logging_callback)
+        else:
+            # check what default options say
+            defaults = pythonize_options(json.loads(getDefaultOptionsAsJSON()))
+            if defaults['tuplex.redirectToPythonLogging']:
+                logging.info('Redirecting C++ logging to Python')
+                registerLoggingCallback(logging_callback)
 
         # autostart mongodb & history server if they are not running yet...
         # deactivate webui for google colab per default

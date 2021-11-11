@@ -52,12 +52,12 @@ namespace tuplex {
 
 }
 namespace tuplex {
-    boost::python::object registerPythonLogger(boost::python::object log_functor) {
+    boost::python::object registerPythonLoggingCallback(boost::python::object callback_functor) {
 
         printf("calling registerPythonLogger\n");
 
         // get object
-        auto functor_obj = boost::python::incref(get_managed_object(log_functor, boost::python::tag));
+        auto functor_obj = boost::python::incref(get_managed_object(callback_functor, boost::python::tag));
 
         std::cout<<"got object from boost python"<<std::endl;
 

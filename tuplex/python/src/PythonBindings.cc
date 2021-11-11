@@ -88,5 +88,5 @@ PYMODULE {
     def("getDefaultOptionsAsJSON", &tuplex::getDefaultOptionsAsJSON);
 
     // global method to register a new logging function
-    def("registerLogger", &tuplex::registerPythonLogger);
+    def("registerLoggingCallback", &tuplex::registerPythonLoggingCallback);
 }

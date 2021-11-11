@@ -1272,6 +1272,7 @@ namespace tuplex {
         assert(PyGILState_Check()); // make sure this thread holds the GIL!
         PyObject* dictObject = PyDict_New();
 
+
         // bool options
         PyDict_SetItem(dictObject,
                 python::PyString_FromString("tuplex.useLLVMOptimizer"),
@@ -1297,6 +1298,12 @@ namespace tuplex {
         PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.optimizer.sharedObjectPropagation"),
                        python::boolToPython(co.OPT_SHARED_OBJECT_PROPAGATION()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.optimizer.mergeExceptionsInOrder"),
+                       python::boolToPython(co.OPT_MERGE_EXCEPTIONS_INORDER()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.optimizer.operatorReordering"),
+                       python::boolToPython(co.OPT_OPERATOR_REORDERING()));
         PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.interleaveIO"),
                        python::boolToPython(co.INTERLEAVE_IO()));
@@ -1372,6 +1379,9 @@ namespace tuplex {
         PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.normalcaseThreshold"),
                        PyFloat_FromDouble(co.NORMALCASE_THRESHOLD()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.optionalThreshold"),
+                       PyFloat_FromDouble(co.OPTIONAL_THRESHOLD()));
 
         // boost python has problems with the code below. I.e. somehow the nested structure does not
         // get correctly copied. Hence, there is a hack for these two in options() in Context.py

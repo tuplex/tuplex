@@ -45,20 +45,20 @@ namespace tuplex {
 
             // 3-stage typing
             // 1. try to type statically by simply annotating the AST
-            logger.info("performing static typing for UDF in operator " + name());
+            logger.debug("performing static typing for UDF in operator " + name());
             bool success = _udf.hintInputSchema(parentSchema, false, false);
             if(!success) {
 
                 _udf.clearCompileErrors();
                 // 2. try by annotating with if-blocks getting ignored statically...
-                logger.info("performing static typing with partially ignoring branches for UDF in operator " + name());
+                logger.debug("performing static typing with partially ignoring branches for UDF in operator " + name());
                 success = _udf.hintInputSchema(parentSchema, true, false);
                 if(!success) {
                     _udf.clearCompileErrors();
                     // 3. type by tracing a small sample from the parent!
                     // => only use rows which match parent type.
                     // => general case rows thus get transferred to interpreter...
-                    logger.info("performing traced typing for UDF in operator " + name());
+                    logger.debug("performing traced typing for UDF in operator " + name());
                     success = _udf.hintSchemaWithSample(parent()->getPythonicSample(MAX_TYPE_SAMPLING_ROWS),
                                                         parentSchema.getRowType(), true);
 
@@ -104,7 +104,7 @@ namespace tuplex {
             for (const auto& err : _udf.getCompileErrors()) {
                 Logger::instance().defaultLogger().error(_udf.compileErrorToStr(err));
             }
-            Logger::instance().defaultLogger().error("will use fallback mode");
+            Logger::instance().defaultLogger().warn("will use fallback mode");
         }
 
         // @Todo: support here dict syntax...

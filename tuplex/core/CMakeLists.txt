@@ -22,10 +22,16 @@ if(BUILD_WITH_AWS)
     protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS proto/Lambda.proto)
     message(STATUS "protobuf sources: ${PROTO_SRCS}")
     message(STATUS "protobuf headers: ${PROTO_HDRS}")
-else()
-    # curl is part of AWS SDK, but if AWS option is disabled require curl itself...
-    #set(CURL_LIBRARY "-lcurl")
-    find_package(CURL REQUIRED)
+endif()
+
+
+# CURL:
+# Note: AWS SDK is only compatible with curl build against OpenSSL. Check this here!
+# on linux, use ldd -v $(which curl) | grep OPENSSL which should yield a result.
+find_package(CURL REQUIRED)
+if(LINUX)
+    message(STATUS "@TODO: check that curl was build against openssl")
+
 endif()
 
 include_directories("include")

@@ -101,7 +101,10 @@ namespace tuplex {
         clientConfig.region = _options.AWS_REGION().c_str(); // hard-coded here
         clientConfig.scheme = Aws::Http::Scheme::HTTPS;
         clientConfig.userAgent = "tuplex"; // should set this as well?
-        
+
+        // test settings: just use HTTP
+        clientConfig.scheme = Aws::Http::Scheme::HTTP;
+
         // debug print
         printf("caFile is: %s\n", _options.NETWORK_CA_FILE().c_str());
         printf("caPath is: %s\n", _options.NETWORK_CA_PATH().c_str());

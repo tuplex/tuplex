@@ -98,7 +98,8 @@ if in_google_colab():
         'PyYAML>=3.13',
         'psutil',
         'pymongo',
-        'boto3'
+        'boto3',
+        'iso8601'
     ]
 else:
     print('non google colab env detected')
@@ -117,7 +118,8 @@ else:
         'cloudpickle>=0.6.1',
         'PyYAML>=3.13',
         'psutil',
-        'pymongo'
+        'pymongo',
+        'iso8601'
     ] + webui_dependencies + aws_lambda_dependencies
 
 def ninja_installed():

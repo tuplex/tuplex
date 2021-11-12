@@ -52,7 +52,8 @@ setup(
         'cloudpickle>=0.6.1',
         'PyYAML>=3.13',
         'psutil',
-        'pymongo'
+        'pymongo',
+        'iso8601'
     ],
     url="https://tuplex.cs.brown.edu"
     #,

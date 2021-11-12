@@ -128,3 +128,10 @@ TEST(ErrorDataset, basic) {
     python::lockGIL();
     python::closeInterpreter();
 }
+
+TEST(ContextOptions, JSON) {
+    using namespace tuplex;
+
+    auto str = ContextOptions::defaults().asJSON();
+    EXPECT_GT(str.length(), 2);
+}

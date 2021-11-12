@@ -42,6 +42,12 @@ namespace tuplex {
             // size_t fast_path_output_row_count;
             // size_t slow_path_input_row_count;
             // size_t slow_path_output_row_count;
+
+            // disk spilling metrics
+            int partitions_swapin_count = 0;
+            int partitions_swapout_count = 0;
+            size_t partitions_bytes_swapped_out = 0;
+            size_t partitions_bytes_swapped_in = 0;
         };
         std::vector<StageMetrics> _stage_metrics;
 
@@ -173,6 +179,26 @@ namespace tuplex {
         }
 
         /*!
+         * add statistics for disk spilling (per stage)
+         * @param stageNo stage
+         * @param partitions_swapin_count how often partitions were swapped in
+         * @param partitions_bytes_swapped_in how many bytes were swapped in
+         * @param partitions_swapout_count how often partitions were swapped out
+         * @param partitions_bytes_swapped_out how many bytes were swapped out
+         */
+        void setDiskSpillStatistics(int stageNo,
+                                    int partitions_swapin_count,
+                                    size_t partitions_bytes_swapped_in,
+                                    int partitions_swapout_count,
+                                    size_t partitions_bytes_swapped_out) {
+            auto it = get_or_create_stage_metrics(stageNo);
+            it->partitions_swapin_count = partitions_swapin_count;
+            it->partitions_swapout_count = partitions_swapout_count;
+            it->partitions_bytes_swapped_in = partitions_bytes_swapped_in;
+            it->partitions_bytes_swapped_out = partitions_bytes_swapped_out;
+        }
+
+        /*!
          * set sampling time in s for specific operator
          * @param time
          */
@@ -204,7 +230,11 @@ namespace tuplex {
                 ss<<"\"fast_path_per_row_time_ns\":"<<s.fast_path_per_row_time_ns<<",";
                 ss<<"\"slow_path_wall_time_s\":"<<s.slow_path_wall_time_s<<",";
                 ss<<"\"slow_path_time_s\":"<<s.slow_path_time_s<<",";
-                ss<<"\"slow_path_per_row_time_ns\":"<<s.slow_path_per_row_time_ns;
+                ss<<"\"slow_path_per_row_time_ns\":"<<s.slow_path_per_row_time_ns<<",";
+                ss<<"\"partitions_swapin_count\":"<<s.partitions_swapin_count<<",";
+                ss<<"\"partitions_swapout_count\":"<<s.partitions_swapout_count<<",";
+                ss<<"\"partitions_bytes_swapped_in\":"<<s.partitions_bytes_swapped_in<<",";
+                ss<<"\"partitions_bytes_swapped_out\":"<<s.partitions_bytes_swapped_out;
                 ss<<"}";
                 if(s.stageNo != _stage_metrics.back().stageNo)
                     ss<<",";

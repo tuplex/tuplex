@@ -18,10 +18,7 @@ namespace tuplex {
     ResolveOperator::ResolveOperator(LogicalOperator *parent,
             const ExceptionCode &ecToResolve,
             const UDF &udf,
-            const std::vector<std::string>& columnNames,
-            bool allowNumericTypeUnification) : UDFOperator::UDFOperator(parent, udf, columnNames) {
-        // require this for typing info.
-        UDFOperator::getUDF().getAnnotatedAST().allowNumericTypeUnification(allowNumericTypeUnification);
+            const std::vector<std::string>& columnNames) : UDFOperator::UDFOperator(parent, udf, columnNames) {
 
         // infer schema. Make sure it fits parents schema!
         setSchema(inferSchema(parent->getOutputSchema()));
@@ -149,7 +146,7 @@ namespace tuplex {
 
     LogicalOperator *ResolveOperator::clone() {
         auto copy = new ResolveOperator(parent()->clone(), ecCode(), _udf,
-                                        UDFOperator::columns(), _udf.allowNumericTypeUnification());
+                                        UDFOperator::columns());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());

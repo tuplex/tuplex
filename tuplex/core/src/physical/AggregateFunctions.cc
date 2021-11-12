@@ -60,9 +60,7 @@ namespace tuplex {
         // int64_t combineAggregates(void** aggOut, int64_t* aggOut_size, void* agg, int64_t agg_size)
         llvm::Function *createAggregateCombineFunction(LLVMEnvironment *env, const std::string &name, const UDF &udf,
                                                        const python::Type aggType,
-                                                       decltype(malloc) allocator,
-                                                       bool allowUndefinedBehavior,
-                                                       bool sharedObjectPropagation) {
+                                                       decltype(malloc) allocator) {
             using namespace llvm;
 
             assert(env);
@@ -105,7 +103,7 @@ namespace tuplex {
 
             // compile dependent on udf
             assert(udf.isCompiled());
-            auto cf = const_cast<UDF&>(udf).compile(*env, allowUndefinedBehavior, sharedObjectPropagation);
+            auto cf = const_cast<UDF&>(udf).compile(*env);
             // stop if compilation didn't succeed
             if(!cf.good())
                 return nullptr;
@@ -152,9 +150,7 @@ namespace tuplex {
         llvm::Function *createAggregateFunction(LLVMEnvironment *env, const std::string &name, const UDF &udf,
                                                        const python::Type &aggType,
                                                        const python::Type &rowType,
-                                                       decltype(malloc) allocator,
-                                                       bool allowUndefinedBehavior,
-                                                       bool sharedObjectPropagation) {
+                                                       decltype(malloc) allocator) {
             using namespace llvm;
 
             assert(env);
@@ -202,7 +198,7 @@ namespace tuplex {
 
             // compile dependent on udf
             assert(udf.isCompiled());
-            auto cf = const_cast<UDF&>(udf).compile(*env, allowUndefinedBehavior, sharedObjectPropagation);
+            auto cf = const_cast<UDF&>(udf).compile(*env);
             // stop if compilation didn't succeed
             if(!cf.good())
                 return nullptr;

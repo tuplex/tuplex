@@ -273,8 +273,20 @@ namespace tuplex {
     }
 
     void TraceVisitor::visit(NSuite *node) {
-        ApatheticVisitor::visit(node);
-        // not more todo...
+        for (auto & stmt : node->_statements) {
+            // check whether statement can be optimized. Can be optimized iff result of optimizeNext is a different
+            // memory address
+            setLastParent(node);
+            stmt->accept(*this);
+
+            if(stmt->type() == ASTNodeType::Break) {
+                _loopBreakStack.back() = true;
+                break;
+            }
+            if(stmt->type() == ASTNodeType::Continue) {
+                break;
+            }
+        }
     }
 
     void TraceVisitor::visit(NModule *node) {
@@ -322,7 +334,15 @@ namespace tuplex {
         // if input row type is given, check!
         if(_inputRowType != python::Type::UNKNOWN) {
             if(python::Type::makeTupleType(_colTypes.back()) != _inputRowType) {
-                PyErr_SetString(PyExc_TypeError, "sample object given doesn't match input row type");
+
+                // special case: coltypes could be single element & tuple!
+                if(_colTypes.back().size() == 1 && _colTypes.back().front() == _inputRowType) {
+                    // update colTypes accordingly!
+                    for(auto& colType : _colTypes)
+                        colType = _inputRowType.parameters();
+                } else {
+                    PyErr_SetString(PyExc_TypeError, "sample object given doesn't match input row type");
+                }
             }
         }
 
@@ -457,11 +477,13 @@ namespace tuplex {
             // visit if block!
             node->_then->accept(*this);
             node->_then->annotation().numTimesVisited++; // inc after, important b.c. of errors!
+            node->_then->annotation().branchTakenSampleIndices.insert(_numSamplesProcessed+1);
         } else {
             // check if else block is there. If so
             if(node->_else) {
                 node->_else->accept(*this);
                 node->_else->annotation().numTimesVisited++; // post-inc, important b.c. of errors!
+                node->_else->annotation().branchTakenSampleIndices.insert(_numSamplesProcessed+1);
             }
         }
     }
@@ -561,6 +583,17 @@ namespace tuplex {
         if(it == _symbols.end()) {
             _symbols.push_back(TraceItem(ti.value, id->_name));
         } else {
+            // check if there is type change in loop
+            for (auto & el : _symbolsTypeChangeStack) {
+                if(std::find(el.first.begin(), el.first.end(), it->name) != el.first.end()) {
+                    // symbol is created before loop
+                    if(!el.second && it->value->ob_type->tp_name != ti.value->ob_type->tp_name) {
+                        // type changed for it
+                        el.second = true;
+                    }
+                }
+            }
+
             it->value = ti.value; // update value of symbol!
         }
     }
@@ -944,4 +977,278 @@ namespace tuplex {
 
     }
 
+    void TraceVisitor::visit(NFor* node) {
+        assert(node && node->target && node->expression && node->suite_body);
+        setLastParent(node);
+
+        // expression type check
+        auto exprType = node->expression->getInferredType();
+        if (!(exprType.isListType() || exprType.isTupleType() || exprType == python::Type::STRING ||
+              exprType == python::Type::RANGE || exprType.isIteratorType())) {
+            addCompileError(CompileError::TYPE_ERROR_UNSUPPORTED_LOOP_TESTLIST_TYPE);
+            return;
+        }
+
+        // find all loop variables in target
+        auto targetASTType = node->target->type();
+        std::vector<NIdentifier *> loopVariables;
+        if (targetASTType == ASTNodeType::Identifier) {
+            auto id = static_cast<NIdentifier *>(node->target);
+            loopVariables.push_back(id);
+        } else if (targetASTType == ASTNodeType::Tuple || targetASTType == ASTNodeType::List) {
+            auto idTuple = getForLoopMultiTarget(node->target);
+            loopVariables.resize(idTuple.size());
+            std::transform(idTuple.begin(), idTuple.end(), loopVariables.begin(),
+                           [](ASTNode *x) {return static_cast<NIdentifier *>(x); });
+        } else {
+            throw std::runtime_error("unsupported target type, cannot extract loop variables in TraceVisitor.cc");
+        }
+
+        // visit expression, should push a value to _evalStack
+        node->expression->accept(*this);
+        assert(!_evalStack.empty());
+
+        // get expression value
+        auto exprVal = _evalStack.back().value;
+        _evalStack.pop_back();
+
+        // create iterator from expression
+        PyObject *exprIter = PyObject_GetIter(exprVal);
+        if (!exprIter) {
+            throw std::runtime_error("cannot create iterator from expression in TraceVisitor.cc");
+        }
+
+        // get names of all variables created before loop since variables created inside loop won't matter
+        std::vector<std::string> varBeforeLoop;
+        for (const auto &symbol : _symbols) {
+            varBeforeLoop.push_back(symbol.name);
+        }
+
+        // typeChange: did types change during the first iteration?
+        bool typeChange = false;
+        // typeStable: are types stable starting from the second iteration?
+        bool typeStable = true;
+
+        // loop that iterates over an iterator https://docs.python.org/3/c-api/iter.html
+        int iterationNum = 0;
+        _symbolsTypeChangeStack.emplace_back(varBeforeLoop, false);
+        _loopBreakStack.push_back(false);
+        PyObject *item = nullptr;
+        while ((item = PyIter_Next(exprIter))) {
+            iterationNum++;
+
+            if (PyList_Check(item)) {
+                if (loopVariables.size() != PyList_Size(item)) {
+                    throw std::runtime_error("target size does not match expression element size, cannot unpack expression in TraceVisitor.cc");
+                }
+                for (Py_ssize_t i = 0; i < loopVariables.size(); i++) {
+                    auto id = loopVariables[i];
+                    auto it = std::find_if(_symbols.begin(), _symbols.end(), [&id](const TraceItem &ti) {
+                        return ti.name == id->_name;
+                    });
+                    if (it == _symbols.end()) {
+                        _symbols.emplace_back(PyList_GET_ITEM(item, i), id->_name);
+                    } else {
+                        it->value = PyList_GET_ITEM(item, i);
+                    }
+                }
+            } else if (PyTuple_Check(item)) {
+                if (loopVariables.size() != PyTuple_Size(item)) {
+                    throw std::runtime_error(
+                            "target size does not match expression element size, cannot unpack expression in TraceVisitor.cc");
+                }
+                for (Py_ssize_t i = 0; i < loopVariables.size(); i++) {
+                    auto id = loopVariables[i];
+                    auto it = std::find_if(_symbols.begin(), _symbols.end(), [&id](const TraceItem &ti) {
+                        return ti.name == id->_name;
+                    });
+                    if (it == _symbols.end()) {
+                        _symbols.emplace_back(PyTuple_GET_ITEM(item, i), id->_name);
+                    } else {
+                        it->value = PyList_GET_ITEM(item, i);
+                    }
+                }
+            } else {
+                auto id = loopVariables.front();
+                auto it = std::find_if(_symbols.begin(), _symbols.end(), [&id](const TraceItem &ti) {
+                    return ti.name == id->_name;
+                });
+                if (it == _symbols.end()) {
+                    _symbols.emplace_back(item, id->_name);
+                } else {
+                    it->value = item;
+                }
+            }
+
+            node->suite_body->accept(*this);
+
+            // check if there is type change in the previous iteration
+            if(iterationNum == 1) {
+                typeChange = _symbolsTypeChangeStack.back().second;
+                _symbolsTypeChangeStack.back().second = false;
+            } else if(typeStable && _symbolsTypeChangeStack.back().second) {
+                typeStable = false;
+            }
+
+            Py_DECREF(item);
+
+            if(_loopBreakStack.back()) {
+                // a break statement was executed in the current loop
+                break;
+            }
+        }
+        _symbolsTypeChangeStack.pop_back();
+
+        if(iterationNum == 0) {
+            // loop body was not run
+            node->annotation().zeroIterationCount++;
+        }
+
+        if(typeStable) {
+            if(typeChange) {
+                // types changed in the first iteration but are stable from the second iteration
+                node->annotation().typeChangedAndStableCount++;
+            } else {
+                // type is stable for the entire loop
+                node->annotation().typeStableCount++;
+            }
+        } else {
+            // type unstable
+            node->annotation().typeChangedAndUnstableCount++;
+        }
+        node->annotation().numTimesVisited++;
+
+        if(!_loopBreakStack.back()) {
+            if(node->suite_else) {
+                node->suite_else->accept(*this);
+            }
+        }
+        _loopBreakStack.pop_back();
+    }
+
+    void TraceVisitor::visit(NWhile* node) {
+        assert(node && node->expression && node->suite_body);
+        setLastParent(node);
+
+        // get names of all variables created before loop since variables created inside loop won't matter
+        std::vector<std::string> varBeforeLoop;
+        for (const auto &symbol : _symbols) {
+            varBeforeLoop.push_back(symbol.name);
+        }
+
+        // visit expression, should push a value to _evalStack
+        node->expression->accept(*this);
+        assert(!_evalStack.empty());
+
+        // get expression value
+        auto exprVal = _evalStack.back().value;
+        _evalStack.pop_back();
+
+        // typeChange: did types change during the first iteration?
+        bool typeChange = false;
+        // typeStable: are types stable starting from the second iteration?
+        bool typeStable = true;
+
+        int iterationNum = 0;
+        _symbolsTypeChangeStack.emplace_back(varBeforeLoop, false);
+        _loopBreakStack.push_back(false);
+        while (PyObject_IsTrue(exprVal)) {
+            iterationNum++;
+
+            // visit loop body
+            node->suite_body->accept(*this);
+
+            if (iterationNum == 1) {
+                typeChange = _symbolsTypeChangeStack.back().second;
+                _symbolsTypeChangeStack.back().second = false;
+            } else if(typeStable && _symbolsTypeChangeStack.back().second) {
+                typeStable = false;
+            }
+
+            if(_loopBreakStack.back()) {
+                // a break statement was executed in the current loop
+                break;
+            }
+
+            // visit expression, should push a value to _evalStack
+            node->expression->accept(*this);
+            assert(!_evalStack.empty());
+
+            // get expression value
+            exprVal = _evalStack.back().value;
+            _evalStack.pop_back();
+        }
+        _symbolsTypeChangeStack.pop_back();
+
+        if(iterationNum == 0) {
+            // loop body was not run
+            node->annotation().zeroIterationCount++;
+        }
+
+        if(typeStable) {
+            if(typeChange) {
+                // types changed in the first iteration but are stable from the second to second last iteration
+                node->annotation().typeChangedAndStableCount++;
+            } else {
+                // type is stable for the entire loop
+                node->annotation().typeStableCount++;
+            }
+        } else {
+            // type unstable
+            node->annotation().typeChangedAndUnstableCount++;
+        }
+        node->annotation().numTimesVisited++;
+
+        if(!_loopBreakStack.back()) {
+            if(node->suite_else) {
+                node->suite_else->accept(*this);
+            }
+        }
+        _loopBreakStack.pop_back();
+    }
+
+    void TraceVisitor::visit(NRange *node) {
+        assert(!node->_positionalArguments.empty());
+        auto numArgs = node->_positionalArguments.size();
+
+        // visit each number in range function arguments
+        ApatheticVisitor::visit(node);
+        assert(_evalStack.size() >= numArgs);
+
+        // prepare args tuple for the range() call
+        auto argsTuple = PyTuple_New(numArgs);
+        for (size_t i = 0; i < numArgs; ++i) {
+            // fill in args tuple from back to front
+            PyTuple_SET_ITEM(argsTuple, numArgs-1-i, _evalStack.back().value);
+            _evalStack.pop_back();
+        }
+
+        // import module builtins https://docs.python.org/3.9/library/builtins.html
+        auto opMod = PyImport_ImportModule("builtins");
+        assert(opMod);
+        auto opModDict = PyModule_GetDict(opMod);
+        assert(opModDict);
+
+        // call range() with args tuple
+        auto rangeFunction = PyDict_GetItemString(opModDict, "range");
+        auto rangeObject = PyObject_Call(rangeFunction, argsTuple, nullptr);
+
+        addTraceResult(node, TraceItem(rangeObject));
+    }
+
+    void TraceVisitor::visit(NList *node) {
+        ApatheticVisitor::visit(node);
+        auto numArgs = node->_elements.size();
+        assert(_evalStack.size() >= numArgs);
+
+        // create new list
+        auto list = PyList_New(numArgs);
+        for (size_t i = 0; i < node->_elements.size(); ++i) {
+            // fill in list from back to front
+            PyList_SET_ITEM(list, numArgs-1-i, _evalStack.back().value);
+            _evalStack.pop_back();
+        }
+
+        addTraceResult(node, TraceItem(list));
+    }
 }

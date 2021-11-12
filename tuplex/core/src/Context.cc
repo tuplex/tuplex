@@ -20,10 +20,12 @@
 #include <Signals.h>
 #ifdef BUILD_WITH_AWS
 #include <ee/aws/AWSLambdaBackend.h>
+#include <Context.h>
+
 #endif
 
 namespace tuplex {
-    Context::Context(const ContextOptions& options) : _datasetIDGenerator(0) {
+    Context::Context(const ContextOptions& options) : _datasetIDGenerator(0), _compilePolicy(compilePolicyFromOptions(options)) {
         // init metrics
         _lastJobMetrics = std::make_unique<JobMetrics>();
         // make sure this is called without holding the GIL
@@ -262,7 +264,7 @@ namespace tuplex {
             numPartitions++;
             int numWrittenRowsInPartition = 0;
             if(!partition)
-                return makeError("no memory left to hold data");
+                return makeError("no memory left to hold data in driver memory");
 
             uint8_t* base_ptr = (uint8_t*)partition->lock();
 
@@ -529,5 +531,14 @@ namespace tuplex {
 
     Executor* Context::getDriver() const {
         assert(_ee); return _ee->driver();
+    }
+
+    codegen::CompilePolicy Context::compilePolicyFromOptions(const ContextOptions &options) {
+        auto p = codegen::CompilePolicy();
+        p.allowUndefinedBehavior = options.UNDEFINED_BEHAVIOR_FOR_OPERATORS();
+        p.allowNumericTypeUnification = options.AUTO_UPCAST_NUMBERS();
+        p.sharedObjectPropagation = options.OPT_SHARED_OBJECT_PROPAGATION();
+        p.normalCaseThreshold = options.NORMALCASE_THRESHOLD();
+        return p;
     }
 }

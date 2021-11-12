@@ -16,11 +16,7 @@ namespace tuplex {
     // check that return type of UDF is bool!
     FilterOperator::FilterOperator(LogicalOperator *parent,
             const UDF &udf,
-            const std::vector<std::string>& columnNames,
-            bool allowNumericTypeUnification) : UDFOperator::UDFOperator(parent, udf, columnNames), _good(true) {
-
-        // require this for typing info.
-        UDFOperator::getUDF().getAnnotatedAST().allowNumericTypeUnification(allowNumericTypeUnification);
+            const std::vector<std::string>& columnNames) : UDFOperator::UDFOperator(parent, udf, columnNames), _good(true) {
 
         //// infer schema (may throw exception!) after applying UDF
         //setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::UNKNOWN));
@@ -77,7 +73,7 @@ namespace tuplex {
 
     LogicalOperator *FilterOperator::clone() {
         auto copy = new FilterOperator(parent()->clone(), _udf,
-                                       UDFOperator::columns(), _udf.allowNumericTypeUnification());
+                                       UDFOperator::columns());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());

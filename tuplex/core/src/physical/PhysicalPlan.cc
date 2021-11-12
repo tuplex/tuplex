@@ -231,6 +231,7 @@ namespace tuplex {
                                                isRootStage,
                                                _context.getOptions().UNDEFINED_BEHAVIOR_FOR_OPERATORS(),
                                                _context.getOptions().OPT_GENERATE_PARSER(),
+                                               _context.getOptions().NORMALCASE_THRESHOLD(),
                                                _context.getOptions().OPT_SHARED_OBJECT_PROPAGATION(),
                                                _context.getOptions().OPT_NULLVALUE_OPTIMIZATION());
         // start code generation
@@ -367,6 +368,8 @@ namespace tuplex {
 
         // generate code for stage and init vars
         auto stage = builder.build(this, backend());
+        // converting deque of ops to vector of ops and set to stage. Note these are the optimized operators. (correct?)
+        stage->setOperators(std::vector<LogicalOperator*>(ops.begin(), ops.end()));
         stage->setDataAggregationMode(hashGroupedDataType);
         // fill in physical plan data
         // b.c. the stages were constructed top-down, need to reverse the stages

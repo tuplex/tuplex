@@ -97,6 +97,10 @@ void global_cleanup() {
 
     python::closeInterpreter();
     runtime::freeRunTimeMemory();
+
+    // shutdown logging...
+    // Aws::Utils::Logging::ShutdownAWSLogging();
+
     Aws::ShutdownAPI(g_aws_options);
 }
 

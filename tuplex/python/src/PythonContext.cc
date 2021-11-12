@@ -1187,7 +1187,7 @@ namespace tuplex {
 
     PythonContext::PythonContext(const std::string& name,
                                  const std::string &runtimeLibraryPath,
-                                 const std::string& options) {
+                                 const std::string& options) : _context(nullptr) {
 
         using namespace std;
 
@@ -1265,14 +1265,12 @@ namespace tuplex {
 
         if(_context)
             delete _context;
+        _context = nullptr;
+
         // need to hold GIL,
         // i.e. restore GIL
         python::lockGIL();
-
-        Logger::instance().flushToPython();
-        _context = nullptr;
     }
-
 
     boost::python::dict PythonContext::options() const {
         assert(_context);

@@ -222,6 +222,9 @@ class CMakeBuild(build_ext):
         # force release version
         cfg = "Release"
 
+        # as long as this crashes, use debug build
+        cfg = "Debug"
+
         # CMake lets you override the generator - we need to check this.
         # Can be set with Conda-Build, for example.
         cmake_generator = os.environ.get("CMAKE_GENERATOR", "")

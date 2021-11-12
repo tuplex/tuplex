@@ -82,18 +82,31 @@ namespace tuplex {
 
     // destructor needs to free memory of datasets!
     Context::~Context() {
+        using namespace std;
+#ifndef NDEBUG
+        cout<<"calling ~Context"<<endl;
+#endif
 
         if(!_datasets.empty())
             for(DataSet* ptr : _datasets) {
                 if(ptr)
                     delete ptr;
                 ptr = nullptr;
+
+#ifndef NDEBUG
+                cout<<"freed dataset"<<endl;
+#endof
             }
 
         // free logical operators associated with context
         for(auto& op : _operators) {
             delete op;
             op = nullptr;
+
+#ifndef NDEBUG
+            cout<<"freed operator"<<endl;
+#endof
+
         }
     }
 

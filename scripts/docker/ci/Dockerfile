@@ -28,11 +28,11 @@ ADD install_curl.sh /opt/sbin/install_curl.sh
 RUN yum update -y
 RUN yum install -y wget
 
-# install curl first
-RUN bash /opt/sbin/install_curl.sh
-
 # llvm-9 on yum repo might be broken, use manually built llvm
 RUN bash /opt/sbin/install_llvm9.sh
+
+# install curl now
+RUN bash /opt/sbin/install_curl.sh
 
 # install boost-python for 3.7, 3.8, 3.9, 3.10
 RUN bash /opt/sbin/install_boost.sh /opt/python/cp37-cp37m/bin/python3.7 /opt/boost/python3.7

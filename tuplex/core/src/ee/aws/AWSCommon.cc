@@ -29,6 +29,10 @@ static bool initAWSSDK() {
     if(!isAWSInitialized) {
         Aws::SDKOptions options;
 
+        // hookup to Tuplex logger...
+        // --> https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/logging.html
+        options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
+
         // @TODO: add tuplex loggers
         // => https://sdk.amazonaws.com/cpp/api/LATEST/class_aws_1_1_utils_1_1_logging_1_1_log_system_interface.html
 

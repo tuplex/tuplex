@@ -45,6 +45,7 @@ def readlist_csv(filename):
     with open(filename, newline='') as f:
         list_of_lists = list(csv.reader(f))
     # print(len([len(li) for li in list_of_lists]), [len(li) for li in list_of_lists])
+    # pdb.set_trace()
     return list_of_lists
 
 def main():

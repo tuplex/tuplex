@@ -3,6 +3,7 @@ import time
 import pickle
 import csv
 import pdb
+import gc
 
 def count_unique(simple_list):
     my_dict = {}
@@ -56,3 +57,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    gc.collect()
+    

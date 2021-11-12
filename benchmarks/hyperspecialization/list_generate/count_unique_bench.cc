@@ -18,7 +18,7 @@ using namespace csvmonkey;
 #define CURR_DS UMAP_DS
 #define CURR_MP FREQ
 
-using KEY_TYPE = int;
+using KEY_TYPE = std::string;
 
 #if CURR_MP == FREQ
 auto count_m_int = "./cpp_shared/count_m_freq_int.so";

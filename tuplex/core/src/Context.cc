@@ -95,7 +95,7 @@ namespace tuplex {
 
 #ifndef NDEBUG
                 cout<<"freed dataset"<<endl;
-#endof
+#endif
             }
 
         // free logical operators associated with context
@@ -105,7 +105,7 @@ namespace tuplex {
 
 #ifndef NDEBUG
             cout<<"freed operator"<<endl;
-#endof
+#endif
 
         }
     }

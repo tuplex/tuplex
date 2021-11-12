@@ -1326,19 +1326,284 @@ TEST_F(LoopTest, CodegenTestLoopOverInputDataI) {
 }
 
 TEST_F(LoopTest, CodegenTestLoopOverInputDataII) {
-using namespace tuplex;
-Context c(microTestOptions());
+    using namespace tuplex;
+    Context c(microTestOptions());
 
-auto func = "def f(x):\n"
-            "    s = ''\n"
-            "    for i in x:\n"
-            "        s += i\n"
-            "    return s";
+    auto func = "def f(x):\n"
+                "    s = ''\n"
+                "    for i in x:\n"
+                "        s += i\n"
+                "    return s";
 
-auto v = c.parallelize({
-    Row(List("a", "bc", "def", "ghij", "k"))
-}).map(UDF(func)).collectAsVector();
+    auto v = c.parallelize({
+        Row(List("a", "bc", "def", "ghij", "k"))
+    }).map(UDF(func)).collectAsVector();
 
-EXPECT_EQ(v.size(), 1);
-EXPECT_EQ(v[0], Row("abcdefghijk"));
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row("abcdefghijk"));
+}
+
+TEST_F(LoopTest, CodegenTestLoopTracingWithContinue) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    count = 4\n"
+                "    while count > 0:\n"
+                "        count -= 1\n"
+                "        x += 1.0\n"
+                "        continue\n"
+                "        x += 2.0\n"
+                "    return x";
+
+    auto v = c.parallelize({
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(4.0));
+}
+
+TEST_F(LoopTest, CodegenTestLoopTracingWithBreak) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    t = 0\n"
+                "    for i in range(10):\n"
+                "        t += 1.0\n"
+                "        if x > 5:\n"
+                "            break\n"
+                "    return t";
+
+    auto v = c.parallelize({
+        Row(0),
+        Row(10)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 2);
+    EXPECT_EQ(v[0], Row(10.0));
+    EXPECT_EQ(v[1], Row(1.0));
+}
+
+TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralI) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    y = 0\n"
+                "    count = 0\n"
+                "    while count < x:\n"
+                "        y += 1\n"
+                "        y += 1.0\n"
+                "        count += 1\n"
+                "    return y";
+
+    auto v = c.parallelize({
+        Row(4)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(8.0));
+}
+
+TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralII) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    t = 0\n"
+                "    for y in range(x):\n"
+                "        t += 1.0\n"
+                "        t += 1\n"
+                "    return t";
+
+    auto v = c.parallelize({
+        Row(10)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(20.0));
+}
+
+TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralIII) {
+    using namespace tuplex;
+    auto co = microTestOptions();
+    co.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
+    Context c(co);
+
+    auto func = "def f(x):\n"
+                "    t = 0\n"
+                "    for y in range(x):\n"
+                "        t += 1.0\n"
+                "    else:\n"
+                "        t += 10\n"
+                "    return t";
+
+    auto v = c.parallelize({
+        Row(0),
+        Row(0),
+        Row(1)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 3);
+    EXPECT_EQ(v[0], Row(10));
+    EXPECT_EQ(v[1], Row(10));
+    EXPECT_EQ(v[2], Row(11.0));
+}
+
+TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralIV) {
+    using namespace tuplex;
+    auto co = microTestOptions();
+    co.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
+    Context c(co);
+
+    auto func = "def f(x):\n"
+                "    t = 0\n"
+                "    for y in range(-x, -2, -1):\n"
+                "        t += 1.0\n"
+                "    else:\n"
+                "        t += 10\n"
+                "    return t";
+
+    auto v = c.parallelize({
+        Row(2),
+        Row(0),
+        Row(0)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 3);
+    EXPECT_EQ(v[0], Row(10));
+    EXPECT_EQ(v[1], Row(12.0));
+    EXPECT_EQ(v[2], Row(12.0));
+}
+
+TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralV) {
+    using namespace tuplex;
+    auto co = microTestOptions();
+    co.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
+    Context c(co);
+
+    auto func = "def f(x):\n"
+                "    t = 1\n"
+                "    for i in range(2*x):\n"
+                "        if x > 5:\n"
+                "            t = t * 2.0\n"
+                "        else:\n"
+                "            t = t + 10\n"
+                "    return t";
+
+    auto v = c.parallelize({
+        Row(5),
+        Row(6),
+        Row(7)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 3);
+    EXPECT_EQ(v[0], Row(101));
+    EXPECT_EQ(v[1], Row(4096.0));
+    EXPECT_EQ(v[2], Row(16384.0));
+}
+
+TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralVI) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    t = 0\n"
+                "    for i in [x+0.0, x+10.0, x+20.0, x+30.0]:\n"
+                "        t = t + i\n"
+                "        t = t - 10\n"
+                "        t = t * i\n"
+                "    return t";
+
+    auto v = c.parallelize({
+        Row(0),
+        Row(1),
+        Row(2),
+        Row(3)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 4);
+    EXPECT_EQ(v[0], Row(6600.0));
+    EXPECT_EQ(v[1], Row(-49476.0));
+    EXPECT_EQ(v[2], Row(-109120.0));
+    EXPECT_EQ(v[3], Row(-166980.0));
+}
+
+TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralVII) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    for i in range(1000, 2000, 4):\n"
+                "        if i % 17 == 0:\n"
+                "            x += 2.0\n"
+                "        else:\n"
+                "            x += 1\n"
+                "    return x";
+
+    // should use fallback
+    auto v = c.parallelize({
+        Row(100)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(365.0));
+}
+
+TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralVIII) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    t = 0\n"
+                "    for i in range(x):\n"
+                "        t += i\n"
+                "        for j in range(20):\n"
+                "            i *= 2\n"
+                "            i += 1.5\n"
+                "            t += i*j\n"
+                "    return t";
+
+    // should use fallback
+    auto v = c.parallelize({
+        Row(10),
+        Row(20),
+        Row(30)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 3);
+    EXPECT_EQ(v[0], Row(2264921595.0));
+    EXPECT_EQ(v[1], Row(8304717290.0));
+    EXPECT_EQ(v[2], Row(18119387085.0));
+}
+
+TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralIX) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    t = 1000\n"
+                "    y = 0\n"
+                "    while t > y:\n"
+                "        y += 1.0\n"
+                "        for i in range(x):\n"
+                "            y += i\n"
+                "            y += 0.5 * i\n"
+                "            for j in range(2*x):\n"
+                "                y += j\n"
+                "                y += 0.5\n"
+                "    return y";
+
+    auto v = c.parallelize({
+        Row(10),
+        Row(20),
+        Row(30)
+    }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 3);
+    EXPECT_EQ(v[0], Row(2068.5));
+    EXPECT_EQ(v[1], Row(16286.0));
+    EXPECT_EQ(v[2], Row(54653.5));
 }

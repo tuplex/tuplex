@@ -15,12 +15,8 @@
 #include <ColumnReturnRewriteVisitor.h>
 
 namespace tuplex {
-    MapOperator::MapOperator(LogicalOperator *parent, const UDF &udf, const std::vector<std::string> &columnNames,
-                             bool allowNumericTypeUnification)
+    MapOperator::MapOperator(LogicalOperator *parent, const UDF &udf, const std::vector<std::string> &columnNames)
             : UDFOperator::UDFOperator(parent, udf, columnNames), _name("map") {
-
-        // require this for typing info.
-        UDFOperator::getUDF().getAnnotatedAST().allowNumericTypeUnification(allowNumericTypeUnification);
 
         assert(parent);
 
@@ -144,8 +140,7 @@ namespace tuplex {
         // @TODO: avoid here the costly retyping but making a faster, better clone.
         auto copy = new MapOperator(parent()->clone(),
                                     _udf,
-                                    UDFOperator::columns(),
-                                    _udf.getAnnotatedAST().allowNumericTypeUnification());
+                                    UDFOperator::columns());
         copy->setOutputColumns(_outputColumns); // account for the rewrite visitor
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);

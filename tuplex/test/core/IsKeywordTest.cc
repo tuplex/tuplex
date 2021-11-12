@@ -29,7 +29,7 @@ TEST_F(IsKeywordTest, OptionIsBool) {
 
     Context c(microTestOptions());
     Row row1(Field(option<bool>(true)));
-    Row row2(Field(option<bool>::none));
+    Row row2((Field(option<bool>::none)));
     Row row3(Field(option<bool>(false)));
 
     auto code = "lambda x: x is True";
@@ -49,7 +49,7 @@ TEST_F(IsKeywordTest, OptionIsNotBool) {
     Context c(microTestOptions());
     Row row1(Field(option<bool>(true)));
     Row row2(Field(option<bool>(false)));
-    Row row3(Field(option<bool>::none));
+    Row row3((Field(option<bool>::none)));
 
     auto code = "lambda x: x is not True";
     auto m = c.parallelize({row1, row2, row3})
@@ -109,7 +109,7 @@ TEST_F(IsKeywordTest, NoneIsNone) {
 
     Context c(microTestOptions());
     Row row1(Field(option<int64_t>(10)));
-    Row row2(Field(option<int64_t>::none));
+    Row row2((Field(option<int64_t>::none)));
 
     auto code = "lambda x: x is None";
     auto m = c.parallelize({row1, row2})
@@ -126,7 +126,7 @@ TEST_F(IsKeywordTest, NoneIsNotNone) {
     Context c(microTestOptions());
     Row row1(Field(option<int32_t>(-1)));
     Row row2(Field(option<int32_t>(45)));
-    Row row3(Field(option<int32_t>::none));
+    Row row3((Field(option<int32_t>::none)));
     Row row4(Field::null());
 
     auto code = "lambda x: x is not None";
@@ -145,7 +145,7 @@ TEST_F(IsKeywordTest, StringIsNotNone) {
 
     Context c(microTestOptions());
     Row row1(Field(option<std::string>("hello")));
-    Row row2(Field(option<std::string>::none));
+    Row row2((Field(option<std::string>::none)));
 
     auto code = "lambda x: x is not None";
     auto m = c.parallelize({row1, row2})
@@ -162,7 +162,7 @@ TEST_F(IsKeywordTest, StringIsBool) {
 
     Context c(microTestOptions());
     Row row1(Field(option<std::string>("hello")));
-    Row row2(Field(option<std::string>::none));
+    Row row2((Field(option<std::string>::none)));
 
     auto code = "lambda x: x is True";
     auto m = c.parallelize({row1, row2})
@@ -250,7 +250,7 @@ TEST_F(IsKeywordTest, MultipleIs3) {
 
     Row row1(Field(option<bool>(true)));
     Row row2(Field(option<bool>(false)));
-    Row row3(Field(option<bool>::none));
+    Row row3((Field(option<bool>::none)));
 
     // equivalent to (x is None) and (None is None) and (None is None) => (x is None).
     auto code = "lambda x: x is None is None is None";
@@ -274,7 +274,7 @@ TEST_F(IsKeywordTest, MultipleIs4) {
 
     Row row1(Field(option<bool>(true)));
     Row row2(Field(option<bool>(false)));
-    Row row3(Field(option<bool>::none));
+    Row row3((Field(option<bool>::none)));
 
     // equivalent to (x is None) and (None is True) => (x is None) and False => False.
     auto code = "lambda x: x is None is True";

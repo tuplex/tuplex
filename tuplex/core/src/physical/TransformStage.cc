@@ -747,12 +747,20 @@ namespace tuplex {
         JobMetrics dummy_metrics;
         JobMetrics& metrics = PhysicalStage::plan() ? PhysicalStage::plan()->getContext().metrics() : dummy_metrics;
 
+        std::string unoptimizedIR;
+        std::string optimizedIR = "Not currently optimized.";
+        if (_historyServer) {
+            unoptimizedIR = code();
+        }
+
         logger.info("retrieved metrics object");
 
         // step 1: run optimizer if desired
         if(optimizer) {
             optimizer->optimizeModule(*mod.get());
-
+            if (_historyServer) {
+                optimizedIR = code();
+            }
             double llvm_optimization_time = timer.time();
             metrics.setLLVMOptimizationTime(llvm_optimization_time);
             logger.info("Optimization via LLVM passes took " + std::to_string(llvm_optimization_time) + " ms");
@@ -855,12 +863,10 @@ namespace tuplex {
         ss<<"Compiled code paths for stage "<<number()<<" in "<<std::fixed<<std::setprecision(2)<<compilation_time_via_llvm_this_number<<" ms";
 
         logger.info(ss.str());
-        // @TODO: missing, send code to history server if desired...
-        // if(_historyServer) {
-        //            auto unoptimizedCode = code + (resolveCode ? tstage->resolveCode() : "");
-        //            std::string optimizedCode = "no optimization here yet";
-        //            _historyServer->sendStagePlan("Stage" + std::to_string(tstage->number()), unoptimizedCode, optimizedCode, "");
-        //        }
+
+        if(_historyServer) {
+            _historyServer->sendStagePlan("Stage" + std::to_string(number()), unoptimizedIR, optimizedIR, "");
+        }
         return _syms;
     }
 

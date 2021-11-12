@@ -4,6 +4,44 @@
 
 SCRIPT_NAME=${0##*/}
 
+# helper func to echo to stderr
+echoerr() { echo "$@" 1>&2; }
+
+# detect platform
+case $(uname | tr '[:upper:]' '[:lower:]') in
+  linux*)
+    export OS_NAME=linux
+    ;;
+  darwin*)
+    export OS_NAME=osx
+    ;;
+  *)
+    export TRAVIS_OS_NAME=notset
+    ;;
+esac
+
+# is MongoDB installed?
+if ! type "mongod" > /dev/null 2> /dev/null; then
+  echoerr "-- Could not find MongoDB which is required for the Tuplex WebUI, make sure mongod command is on PATH"
+  echoerr "-- To install MongoDB, please follow the instructions from https://docs.mongodb.com/manual/installation/"
+
+  # OSX specific hint on how to install mongodb
+  if [[ 'osx' == $OS_NAME ]]; then
+    if type "brew" > /dev/null 2> /dev/null; then
+      echo "-- Because you're using Homebrew on MacOS, you can simply run the following command to install MongoDB:"
+      echo "-- brew tap mongodb/brew && brew install mongodb-community@5.0"
+    fi
+  fi
+  echoerr "Failed to start Tuplex WebUI."
+  exit 1
+fi
+
+
+
+# Linux-gnu specific detection of MongoDB
+
+exit 0
+
 PORT=6543
 HOST=localhost
 MONGO_URI="mongodb://localhost:27017/tuplex-history"
@@ -107,7 +145,6 @@ then
     fi
 
     # important to start with worker class eventlet! Else, this is insanely slow...
-
     env MONGO_URI=$MONGO_URI gunicorn --daemon --worker-class eventlet --log-file $GUNICORN_LOGFILE -b $HOST:$PORT thserver:app
 #    env MONGO_URI=$MONGO_URI gunicorn --worker-class eventlet --log-file $GUNICORN_LOGFILE -b $HOST:$PORT thserver:app
 

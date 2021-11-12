@@ -106,6 +106,80 @@ namespace tuplex {
         return first;
     }
 
+    std::vector<Row> ResultSet::getRows(size_t limit) {
+        using namespace std;
+
+        if(0 == limit)
+            return vector<Row>{};
+
+        vector<Row> v;
+
+        // reserve up to 32k (do NOT always execute because special case upper limit is used)
+        if(limit < 32000)
+            v.reserve(limit);
+
+        // do a quick check whether there are ANY pyobjects, if not deserialize quickly!
+        if(_pyobjects.empty()) {
+
+            if(_partitions.empty())
+                return vector<Row>{};
+
+            Deserializer ds(_schema);
+            for(int i = 0; i < limit;) {
+
+                // all exhausted
+                if(_partitions.empty())
+                    break;
+
+                // get number of rows in first partition
+                Partition *first = _partitions.front();
+                auto num_rows = first->getNumRows();
+                // how many left to retrieve?
+                auto num_to_retrieve_from_partition = std::min(limit - i, num_rows - _curRowCounter);
+                if(num_to_retrieve_from_partition <= 0)
+                    break;
+
+                // make sure partition schema matches stored schema
+                assert(_schema == first->schema());
+
+                // thread safe version (slow)
+                // get next element of partition
+                const uint8_t* ptr = first->lock();
+                for(int j = 0; j < num_to_retrieve_from_partition; ++j) {
+                    auto row = Row::fromMemory(ds, ptr + _byteCounter, first->capacity() - _byteCounter);
+                    _byteCounter += row.serializedLength();
+                    _curRowCounter++;
+                    _rowsRetrieved++;
+                    _totalRowCounter++;
+                    v.push_back(row);
+                }
+
+                // thread safe version (slow)
+                // deserialize
+                first->unlock();
+
+                i += num_to_retrieve_from_partition;
+
+                // get next Partition ready when current one is exhausted
+                if(_curRowCounter == first->getNumRows())
+                    removeFirstPartition();
+            }
+
+            v.shrink_to_fit();
+            return v;
+        } else {
+            // fallback solution:
+            // @TODO: write faster version with proper merging!
+
+             std::vector<Row> v;
+             while (hasNextRow() && v.size() < limit) {
+                 v.push_back(getNextRow());
+             }
+             v.shrink_to_fit();
+             return v;
+        }
+    }
+
     Row ResultSet::getNextRow() {
         // merge rows from objects
         if(!_pyobjects.empty()) {

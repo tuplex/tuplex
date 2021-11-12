@@ -18,5 +18,5 @@ CURL_VERSION=7.80.0
 
 cd /tmp && yum update -y && yum install wget gcc openssl-devel -y && \
 wget --no-check-certificate https://curl.se/download/curl-${CURL_VERSION}.tar.gz && tar xf curl-${CURL_VERSION}.tar.gz && \
-cd curl-${CURL_VERSION} && ./configure --with-ssl && make -j 16 && make install && ldconfig
+cd curl-${CURL_VERSION} && ./configure --with-openssl --without-nss && make -j 16 && make install && ldconfig
 

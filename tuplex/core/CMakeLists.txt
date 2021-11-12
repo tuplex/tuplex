@@ -39,7 +39,7 @@ if(LINUX)
     # this here should NOT yield any lines...!
     # ldd -v /usr/lib64/libcurl.so.4 | grep '(NSS'
 
-    
+
 
 endif()
 

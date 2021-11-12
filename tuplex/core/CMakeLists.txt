@@ -31,6 +31,15 @@ endif()
 find_package(CURL REQUIRED)
 if(LINUX)
     message(STATUS "@TODO: check that curl was build against openssl")
+    # ldd -v /usr/lib64/libcurl.so.4 | grep '(NSS'
+
+    message(STATUS "CURL libraries: ${CURL_LIBRARIES}")
+    message(STATUS "CURL include dirs: ${CURL_INCLUDE_DIR}")
+
+    # this here should NOT yield any lines...!
+    # ldd -v /usr/lib64/libcurl.so.4 | grep '(NSS'
+
+    
 
 endif()
 

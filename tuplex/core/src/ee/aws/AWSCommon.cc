@@ -35,8 +35,17 @@ static bool isAWSInitialized = false;
 // https://sdk.amazonaws.com/cpp/api/LATEST/class_aws_1_1_utils_1_1_logging_1_1_formatted_log_system.html
 class SPDLogConnector : public Aws::Utils::Logging::FormattedLogSystem {
 public:
+    SPDLogConnector(Aws::Utils::Logging::LogLevel logLevel) : Aws::Utils::Logging::FormattedLogSystem(logLevel) {}
 
+protected:
+
+    // probably need to overwrite: https://github.com/aws/aws-sdk-cpp/blob/main/aws-cpp-sdk-core/source/utils/logging/FormattedLogSystem.cpp
+
+    void ProcessFormattedStatement(Aws::String&& statement) override {
+        //
+    }
 private:
+
 };
 
 static bool initAWSSDK() {
@@ -63,7 +72,7 @@ static bool initAWSSDK() {
                 Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
                     "tuplex",
                     Aws::Utils::Logging::LogLevel::Trace));
-                
+
         isAWSInitialized = true;
     }
     return isAWSInitialized;

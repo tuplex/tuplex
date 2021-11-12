@@ -9,6 +9,11 @@
 # 3.) Compile AWS SDK with this curl version.
 #cf. https://geekflare.com/curl-installation/ for install guide
 
+
+# other mentions of the NSS problem:
+# https://curl.se/mail/lib-2016-08/0119.html
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1297397
+
 CURL_VERSION=7.80.0
 
 cd /tmp && yum update -y && yum install wget gcc openssl-devel -y && \

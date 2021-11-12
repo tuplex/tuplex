@@ -8,10 +8,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(YAMLCPP REQUIRED)
 
-set(CURL_LIBRARY "-lcurl")
-find_package(CURL REQUIRED)
-
-
 # building with AWS backend support?
 if(BUILD_WITH_AWS)
     # locate aws sdk & include lambda component
@@ -26,6 +22,10 @@ if(BUILD_WITH_AWS)
     protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS proto/Lambda.proto)
     message(STATUS "protobuf sources: ${PROTO_SRCS}")
     message(STATUS "protobuf headers: ${PROTO_HDRS}")
+else()
+    # curl is part of AWS SDK, but if AWS option is disabled require curl itself...
+    #set(CURL_LIBRARY "-lcurl")
+    find_package(CURL REQUIRED)
 endif()
 
 include_directories("include")

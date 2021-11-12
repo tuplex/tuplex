@@ -34,8 +34,7 @@ namespace tuplex {
         ResolveOperator(LogicalOperator *parent,
                 const ExceptionCode& ecToResolve,
                 const UDF& udf,
-                const std::vector<std::string>& columnNames,
-                bool allowNumericTypeUnification);
+                const std::vector<std::string>& columnNames);
 
         std::string name() override { return "resolve"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::RESOLVE; }

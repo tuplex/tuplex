@@ -53,8 +53,7 @@ namespace tuplex {
                 // 2. try by annotating with if-blocks getting ignored statically...
                 logger.info("performing static typing with partially ignoring branches for UDF in operator " + name());
                 success = _udf.hintInputSchema(parentSchema, true, false);
-                if(!success) {
-                    _udf.clearCompileErrors();
+                if(!success && _udf.getCompileErrors().empty()) {
                     // 3. type by tracing a small sample from the parent!
                     // => only use rows which match parent type.
                     // => general case rows thus get transferred to interpreter...

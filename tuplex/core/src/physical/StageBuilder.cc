@@ -40,10 +40,11 @@ namespace tuplex {
                                    bool rootStage,
                                    bool allowUndefinedBehavior,
                                    bool generateParser,
+                                   double normalCaseThreshold,
                                    bool sharedObjectPropagation,
                                    bool nullValueOptimization)
                 : _stageNumber(stage_number), _isRootStage(rootStage), _allowUndefinedBehavior(allowUndefinedBehavior),
-                  _generateParser(generateParser), _sharedObjectPropagation(sharedObjectPropagation),
+                  _generateParser(generateParser), _normalCaseThreshold(normalCaseThreshold), _sharedObjectPropagation(sharedObjectPropagation),
                   _nullValueOptimization(nullValueOptimization),
                   _inputNode(nullptr) {
         }
@@ -611,18 +612,20 @@ namespace tuplex {
             }
 #endif
 
-
-            if(!operators.empty()) {
-                cout<<"output type of specialized pipeline is: "<<outSchema.desc()<<endl;
-                cout<<"is this the most outer stage?: "<<_isRootStage<<endl;
-                if(!_isRootStage)
-                    cout<<"need to upgrade output type to "<<_operators.back()->getOutputSchema().getRowType().desc()<<endl;
-            }
-
 #ifndef NDEBUG
+            if(!operators.empty()) {
+                stringstream ss;
+                ss<<"output type of specialized pipeline is: "<<outSchema.desc()<<endl;
+                ss<<"is this the most outer stage?: "<<_isRootStage<<endl;
+                if(!_isRootStage)
+                    ss<<"need to upgrade output type to "<<_operators.back()->getOutputSchema().getRowType().desc()<<endl;
+
+                logger.debug(ss.str());
+            }
+#endif
+
             assert(inSchema != python::Type::UNKNOWN);
             assert(outSchema != python::Type::UNKNOWN);
-#endif
 
             // special case: empty pipeline
             if (outSchema.parameters().empty() && inSchema.parameters().empty()) {
@@ -682,7 +685,7 @@ namespace tuplex {
                 UDFOperator *udfop = dynamic_cast<UDFOperator *>(node);
                 switch (node->type()) {
                     case LogicalOperatorType::MAP: {
-                        if (!pip->mapOperation(node->getID(), udfop->getUDF(), _allowUndefinedBehavior,
+                        if (!pip->mapOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, _allowUndefinedBehavior,
                                                _sharedObjectPropagation)) {
                             logger.error(formatBadUDFNode(udfop));
                             return false;
@@ -690,7 +693,7 @@ namespace tuplex {
                         break;
                     }
                     case LogicalOperatorType::FILTER: {
-                        if (!pip->filterOperation(node->getID(), udfop->getUDF(), _allowUndefinedBehavior,
+                        if (!pip->filterOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, _allowUndefinedBehavior,
                                                   _sharedObjectPropagation)) {
                             logger.error(formatBadUDFNode(udfop));
                             return false;
@@ -700,7 +703,7 @@ namespace tuplex {
                     case LogicalOperatorType::MAPCOLUMN: {
                         auto mop = dynamic_cast<MapColumnOperator *>(node);
                         if (!pip->mapColumnOperation(node->getID(), mop->getColumnIndex(), udfop->getUDF(),
-                                                     _allowUndefinedBehavior, _sharedObjectPropagation)) {
+                                                     _normalCaseThreshold, _allowUndefinedBehavior, _sharedObjectPropagation)) {
                             logger.error(formatBadUDFNode(udfop));
                             return false;
                         }
@@ -709,7 +712,7 @@ namespace tuplex {
                     case LogicalOperatorType::WITHCOLUMN: {
                         auto wop = dynamic_cast<WithColumnOperator *>(node);
                         if (!pip->withColumnOperation(node->getID(), wop->getColumnIndex(), udfop->getUDF(),
-                                                      _allowUndefinedBehavior, _sharedObjectPropagation)) {
+                                                      _normalCaseThreshold, _allowUndefinedBehavior, _sharedObjectPropagation)) {
                             logger.error(formatBadUDFNode(udfop));
                             return false;
                         }
@@ -815,9 +818,7 @@ namespace tuplex {
                                                                                     _aggregateCombineFuncName,
                                                                                     aop->combinerUDF(),
                                                                                     aggType,
-                                                                                    malloc,
-                                                                                    _allowUndefinedBehavior,
-                                                                                    _sharedObjectPropagation);
+                                                                                    malloc);
                             if(!aggregateInitFunc)
                                 throw std::runtime_error("error compiling aggregate initialize function");
                             if(!combFunc)
@@ -831,8 +832,7 @@ namespace tuplex {
                                                                                       _aggregateAggregateFuncName,
                                                                                       aop->aggregatorUDF(), aggType,
                                                                                       aop->parent()->getOutputSchema().getRowType(),
-                                                                                      malloc, _allowUndefinedBehavior,
-                                                                                      _sharedObjectPropagation);
+                                                                                      malloc);
                                 if(!aggregateFunc)
                                     throw std::runtime_error("error compiling aggregate function");
                                 _aggregateAggregateFuncName = aggregateFunc->getName().str();
@@ -841,7 +841,9 @@ namespace tuplex {
                                 intermediateInitialValue = aop->initialValue();
                                 if (!pip->addAggregate(aop->getID(), aop->aggregatorUDF(),
                                                        aop->getOutputSchema().getRowType(),
-                                                       _allowUndefinedBehavior, _sharedObjectPropagation)) {
+                                                       _normalCaseThreshold,
+                                                       _allowUndefinedBehavior,
+                                                       _sharedObjectPropagation)) {
                                     logger.error(formatBadAggNode(aop));
                                     return false;
                                 }
@@ -1106,25 +1108,25 @@ namespace tuplex {
                 UDFOperator *udfop = dynamic_cast<UDFOperator *>(node);
                 switch (node->type()) {
                     case LogicalOperatorType::MAP: {
-                        slowPip->mapOperation(node->getID(), udfop->getUDF(), _allowUndefinedBehavior,
+                        slowPip->mapOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, _allowUndefinedBehavior,
                                               _sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::FILTER: {
-                        slowPip->filterOperation(node->getID(), udfop->getUDF(), _allowUndefinedBehavior,
+                        slowPip->filterOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, _allowUndefinedBehavior,
                                                  _sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::MAPCOLUMN: {
                         auto mop = dynamic_cast<MapColumnOperator *>(node);
                         slowPip->mapColumnOperation(node->getID(), mop->getColumnIndex(), udfop->getUDF(),
-                                                    _allowUndefinedBehavior, _sharedObjectPropagation);
+                                                    _normalCaseThreshold, _allowUndefinedBehavior, _sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::WITHCOLUMN: {
                         auto wop = dynamic_cast<WithColumnOperator *>(node);
                         slowPip->withColumnOperation(node->getID(), wop->getColumnIndex(), udfop->getUDF(),
-                                                     _allowUndefinedBehavior, _sharedObjectPropagation);
+                                                     _normalCaseThreshold, _allowUndefinedBehavior, _sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::CACHE:
@@ -1136,7 +1138,7 @@ namespace tuplex {
                     case LogicalOperatorType::RESOLVE: {
                         // ==> this means slow code path needs to be generated as well!
                         auto rop = dynamic_cast<ResolveOperator *>(node);
-                        slowPip->addResolver(rop->ecCode(), rop->getID(), rop->getUDF(), _allowUndefinedBehavior,
+                        slowPip->addResolver(rop->ecCode(), rop->getID(), rop->getUDF(), _normalCaseThreshold, _allowUndefinedBehavior,
                                              _sharedObjectPropagation);
                         break;
                     }

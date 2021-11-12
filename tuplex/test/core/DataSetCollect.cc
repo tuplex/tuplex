@@ -572,6 +572,7 @@ TEST_F(DataSetTest, BuiltinPowerWithComplexResult) {
                  .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: 42"))
                  .collectAsVector();
 
+
     ASSERT_EQ(res.size(), 7);
     // to python string!
 }

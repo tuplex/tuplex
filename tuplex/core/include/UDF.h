@@ -45,8 +45,8 @@ namespace tuplex {
 
         void logTypingErrors(bool print=true) const;
 
-        static bool _compilationEnabled; // globally
-        static bool _allowNumericTypeUnification; // globally
+        static bool _compilationEnabled; // globally ??
+        const codegen::CompilePolicy& _policy; // how to compile UDF
 
         /*!
          * checks whether any active branch has a PyObject typing => this would imply
@@ -57,7 +57,8 @@ namespace tuplex {
     public:
         UDF(const std::string& pythonLambdaStr,
             const std::string& pickledCode="",
-            const ClosureEnvironment& globals=ClosureEnvironment());
+            const ClosureEnvironment& globals=ClosureEnvironment(),
+            const codegen::CompilePolicy& policy=codegen::DEFAULT_COMPILE_POLICY);
 
         UDF(const UDF &other) : _ast(other._ast),
                                 _isCompiled(other._isCompiled),
@@ -67,7 +68,29 @@ namespace tuplex {
                                 _outputSchema(other._outputSchema),
                                 _inputSchema(other._inputSchema),
                                 _dictAccessFound(other._dictAccessFound),
-                                _rewriteDictExecuted(other._rewriteDictExecuted) {}
+                                _rewriteDictExecuted(other._rewriteDictExecuted),
+                                _policy(other._policy) {}
+
+        UDF& operator = (const UDF& other) {
+            _ast = other._ast;
+            _isCompiled = other._isCompiled;
+            _failed = other._failed;
+            _code = other._code;
+            _pickledCode = other._pickledCode;
+            _outputSchema = other._outputSchema;
+            _inputSchema = other._inputSchema;
+            _dictAccessFound = other._dictAccessFound;
+            _rewriteDictExecuted = other._rewriteDictExecuted;
+            const_cast<codegen::CompilePolicy&>(this->_policy) = other._policy;
+            return *this;
+        }
+
+        /*!
+         * creates an equivalent UDF but with potentially different compile policy
+         * @param policy
+         * @return UDF object.
+         */
+        UDF withCompilePolicy(const codegen::CompilePolicy& policy) const;
 
         /*!
          * get closure environment back, i.e. all used modules and globals within this UDF.
@@ -135,6 +158,8 @@ namespace tuplex {
             _inputSchema = schema;
         }
 
+        const codegen::CompilePolicy& compilePolicy() const { return _policy; }
+
         /*!
          * remove all internal schemas, type hints etc.
          * @param removeAnnotations whether to remove all annotations from AST nodes as well
@@ -162,20 +187,15 @@ namespace tuplex {
          */
         void rewriteParametersInAST(const std::unordered_map<size_t, size_t>& rewriteMap);
 
-        inline bool allowNumericTypeUnification() const {
-            return empty() ? false : getAnnotatedAST().allowNumericTypeUnification();
-        }
+//        inline bool allowNumericTypeUnification() const {
+//            return empty() ? false : getAnnotatedAST().allowNumericTypeUnification();
+//        }
 
         /*!
-         *
+         * same as in AnnotatesAST.h
          * @param env
-         * @param allowUndefinedBehavior
-         * @param sharedObjectPropagation
          */
-        codegen::CompiledFunction compile(codegen::LLVMEnvironment& env,
-                                          bool allowUndefinedBehavior,
-                                          bool sharedObjectPropagation);
-
+        codegen::CompiledFunction compile(codegen::LLVMEnvironment& env);
 
         codegen::CompiledFunction compileFallback(codegen::LLVMEnvironment& env,
                                                   llvm::BasicBlock* constructorBlock,
@@ -219,17 +239,6 @@ namespace tuplex {
          * disable UDF compilation, i.e. they are forced to fallback mode (pure python via cloudpickle)
          */
         static void disableCompilation() { _compilationEnabled = false; }
-
-        /*!
-         * enable numeric type unification, i.e. for variables across if branches.
-         */
-        static void enableNumericTypeUnification() { _allowNumericTypeUnification = true; }
-
-        /*!
-         * disable numeric type unification, i.e. for variables across if branches. Leads to correct types,
-         * but increases speculation burden.
-         */
-        static void disableNumericTypeUnification() { _allowNumericTypeUnification = false; }
 
         // make sure it is ONE kind...
         // --> else rewrite is required...

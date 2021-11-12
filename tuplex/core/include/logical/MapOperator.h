@@ -24,8 +24,7 @@ namespace tuplex {
 
         MapOperator(LogicalOperator *parent,
                     const UDF& udf,
-                    const std::vector<std::string>& columnNames,
-                    bool allowNumericTypeUnification=false);
+                    const std::vector<std::string>& columnNames);
         // needs a parent
 
         /*!

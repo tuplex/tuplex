@@ -11,8 +11,8 @@ import scipy.stats as ss
 from tqdm import tqdm
 
 
-MIN_INT = 0
-MAX_INT = 9999 # inclusive
+MIN_INT = -2,147,483,648
+MAX_INT = 2,147,483,647
 
 def randint(dist):
     if dist == 'uniform':
@@ -53,8 +53,9 @@ def randstring(dist, seed=0):
     print("valid distributions: uniform, binomialchar, binomialbag")
     exit(0)
 
-def randlist(length, types, distribution_dict):
+def randlist(types, distribution_dict):
     result = []
+    length = random.randint(10, 1000)
     for _ in range(length):
         currtype = random.randint(0, len(types) - 1)
         newval = globals()[f"rand{types[currtype]}"](distribution_dict[types[currtype]])
@@ -71,7 +72,6 @@ bag = [randstring('uniform') for _ in range(BAGLEN)]
 def main():
     parser = argparse.ArgumentParser(description='Generate lists for count unique.')
     parser.add_argument('--num_lists', type=int)
-    parser.add_argument('--length', type=int)
     parser.add_argument('--types', type=str, nargs='+')
     parser.add_argument('--distributions', nargs='+')
     
@@ -85,22 +85,18 @@ def main():
     for idx, arg in enumerate(args.distributions):
         distribution_dict[args.types[idx]] = arg
 
-    if args.length <= 0:
-        print('expected length >= 0')
-        exit(0)
-    
     for x in args.types:
         if x not in valid_types:
             print(f'invalid type: {x}, expected one of: string float int')
             exit(0)
     
     dist_str = ''.join([name for name in args.distributions])
-    filename = f'{args.num_lists}_{args.length}_{"".join(args.types)}_{dist_str}.csv'
+    filename = f'{args.num_lists}_{"".join(args.types)}_{dist_str}.csv'
 
     with open(filename, 'w') as f:
         wr = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
         for i in tqdm(range(args.num_lists)):
-            csv_row = randlist(args.length, args.types, distribution_dict)
+            csv_row = randlist(args.types, distribution_dict)
             wr.writerow(csv_row)
     
     print(filename)

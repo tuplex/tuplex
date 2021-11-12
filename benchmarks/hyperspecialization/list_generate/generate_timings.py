@@ -5,11 +5,12 @@ import matplotlib.pyplot as plt
 NUM_TRIALS = 10
 
 # generator parameters
-NUM_LISTS = "100"
+NUM_LISTS = "1000000"
 TYPE_STR = "int"
-DISTR_STR = "binomial" # space separated
+DISTR_STR = "uniform" # space separated
 
-LIST_LENGTHS = [10000, 20000, 50000, 100000]
+# should only try one list
+LIST_LENGTHS = [100]
 
 def gen_data():
     for curr_len in LIST_LENGTHS:
@@ -72,7 +73,7 @@ def main():
     to_run_timings = []
 
     for ident in to_run_cc:
-        run_cc(ident)
+        # run_cc(ident)
         to_run_timings.append(cc_timings(ident))
 
     run_baseline_py()

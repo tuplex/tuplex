@@ -3,6 +3,7 @@
 #include <map>
 #include <type_traits>
 #include <chrono>
+#include <iostream>
 
 #include "csvmonkey.hpp"
 
@@ -11,11 +12,10 @@ using namespace csvmonkey;
 #define UMAP_DS 0
 #define MAP_DS 1
 
-
 #define FREQ 10 // only count number of keys in map
 #define FULL 11 // return entire map (NRVO)
 
-#define CURR_DS MAP_DS
+#define CURR_DS UMAP_DS
 #define CURR_MP FREQ
 
 using KEY_TYPE = int;
@@ -39,11 +39,11 @@ void run(const char* path) {
 
     std::string count_unique_path = "";
 
-    if constexpr(std::is_same<T, std::string>::value && MAP_DS) {
+    if constexpr(std::is_same<T, std::string>::value && CURR_DS == MAP_DS) {
         count_unique_path = count_m_string;
-    } else if constexpr(std::is_same<T, std::string>::value && UMAP_DS) {
+    } else if constexpr(std::is_same<T, std::string>::value && CURR_DS == UMAP_DS) {
         count_unique_path = count_um_string;
-    } else if constexpr(std::is_same<T, int>::value && UMAP_DS) {
+    } else if constexpr(std::is_same<T, int>::value && CURR_DS == UMAP_DS) {
         count_unique_path = count_um_int;
     } else {
         count_unique_path = count_m_int;

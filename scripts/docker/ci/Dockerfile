@@ -65,6 +65,8 @@ RUN bash /opt/sbin/install_lambda_python.sh
 ADD mongodb-org-5.0.repo /etc/yum.repos.d/mongodb-org-5.0.repo
 RUN yum update -y && yum install -y mongodb-org
 
+# replace curl again with recent version to be 100% everything worked properly.
+RUN bash /opt/sbin/install_curl.sh
 
 # remove all the tmp stuff
 RUN rm -rf /tmp/*

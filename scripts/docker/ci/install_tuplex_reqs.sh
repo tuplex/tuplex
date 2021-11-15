@@ -4,10 +4,10 @@
 # everything will be installed to /opt
 
 # Tuplex dependencies
-# compile dependencies yum stylke
+# compile dependencies yum style
 
 yum install -y libedit-devel libzip-devel \
-  pkgconfig openssl-devel libxml2-devel libcurl-devel zlib-devel  \
+  pkgconfig openssl-devel libxml2-devel zlib-devel  \
   uuid libuuid-devel libffi-devel graphviz-devel \
   gflags-devel ncurses-devel \
   awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip

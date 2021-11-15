@@ -86,9 +86,24 @@ namespace tuplex {
         initAWSSDK();
 
         AWSCredentials credentials;
-        // use amazon's default chain
-        auto provider = Aws::MakeShared<Aws::Auth::DefaultAWSCredentialsProviderChain>("tuplex");
-        auto aws_cred = provider->GetAWSCredentials();
+
+        // AWS default chain issues a bunch of HTTP request, avoid to make Tuplex more responsive.
+        auto env_provider =  Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>("tuplex");
+        auto aws_cred = env_provider->GetAWSCredentials();
+
+        // empty?
+        if(aws_cred.IsEmpty()) {
+            // try ~/.aws/credentials next
+            auto conf_provider = Aws::MakeShared<Aws::Auth::ProfileConfigFileAWSCredentialsProvider>("tuplex");
+            aws_cred = conf_provider->GetAWSCredentials();
+
+            // default to most general chain...
+            if(aws_cred.IsEmpty()) {
+                // use amazon's default chain
+                auto provider = Aws::MakeShared<Aws::Auth::DefaultAWSCredentialsProviderChain>("tuplex");
+                aws_cred = provider->GetAWSCredentials();
+            }
+        }
 
         credentials.access_key = aws_cred.GetAWSAccessKeyId().c_str();
         credentials.secret_key = aws_cred.GetAWSSecretKey().c_str();

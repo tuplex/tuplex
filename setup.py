@@ -412,12 +412,16 @@ class CMakeBuild(build_ext):
 
         logging.info('configuring cmake with: {}'.format(' '.join(["cmake", ext.sourcedir] + cmake_args)))
         logging.info('compiling with: {}'.format(' '.join(["cmake", "--build", "."] + build_args)))
+
+        build_env = dict(os.environ)
+        logging.info('LD_LIBRARY_PATH is: {}'.format(build_env.get('LD_LIBRARY_PATH', '')))
+
         subprocess.check_call(
-            ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp
+            ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp, env=build_env
         )
         logging.info('configuration done, workdir={}'.format(self.build_temp))
         subprocess.check_call(
-            ["cmake", "--build", "."] + build_args, cwd=self.build_temp
+            ["cmake", "--build", "."] + build_args, cwd=self.build_temp, env=build_env
         )
 
         # this helps to search paths in doubt

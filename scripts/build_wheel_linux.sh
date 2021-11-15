@@ -20,7 +20,7 @@ export TUPLEX_BUILD_ALL=0
 export CIBW_ARCHS_LINUX=x86_64
 export CIBW_MANYLINUX_X86_64_IMAGE='registry-1.docker.io/tuplex/ci:latest'
 
-export CIBW_ENVIRONMENT="TUPLEX_LAMBDA_ZIP='./tuplex/other/tplxlam.zip' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib:\$LD_LIBRARY_PATH"
+export CIBW_ENVIRONMENT="TUPLEX_LAMBDA_ZIP='./tuplex/other/tplxlam.zip' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
 
 # Use the following line to build only python3.9 wheel
 export CIBW_BUILD="cp39-*"
@@ -39,6 +39,9 @@ export CIBW_SKIP="*-musllinux_*"
 
 export CIBW_BUILD_VERBOSITY=3
 export CIBW_PROJECT_REQUIRES_PYTHON=">=3.7"
+
+export CIBW_REPAIR_WHEEL_COMMAND_LINUX="LD_LIBRARY_PATH=/opt/lib:/usr/local/lib:usr/lib auditwheel repair --lib-sdir . -w {dest_dir} {wheel}"
+
 cibuildwheel --platform linux .
 
 popd > /dev/null

@@ -14,6 +14,7 @@ import platform
 import shlex
 import shutil
 
+import setuptools
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 from distutils import sysconfig
@@ -79,7 +80,8 @@ aws_lambda_dependencies = ['boto3']
 
 # manual fix for google colab
 if in_google_colab():
-    print('installing within google colab')
+    logging.debug('Building dependencies for Google Colab environment')
+
     install_dependencies = [
         'urllib3!=1.25.0,!=1.25.1,<1.26,>=1.21.1',
         'folium==0.2.1'
@@ -102,7 +104,7 @@ if in_google_colab():
         'iso8601'
     ]
 else:
-    print('non google colab env detected')
+    logging.debug('Building dependencies for non Colab environment')
 
     install_dependencies = [
         'attrs>=19.2.0',
@@ -154,6 +156,40 @@ PLAT_TO_CMAKE = {
     "win-arm32": "ARM",
     "win-arm64": "ARM64",
 }
+
+
+# subclassing both install/develop in order to process custom options
+from setuptools import Command
+import setuptools.command.install
+import setuptools.command.develop
+
+build_config = {'BUILD_TYPE' : 'Release'}
+
+class DevelopCommand(setuptools.command.develop.develop):
+
+    user_options = setuptools.command.develop.develop.user_options + [
+        ('debug', None, 'Create debug version of Tuplex, Release per default'),
+        ('relwithdebinfo', None, 'Create Release With Debug Info version of Tuplex, Release per default')
+    ]
+
+    def initialize_options(self):
+        setuptools.command.develop.develop.initialize_options(self)
+        self.debug = None
+        self.relwithdebinfo = None
+
+    def finalize_options(self):
+        setuptools.command.develop.develop.finalize_options(self)
+
+    def run(self):
+        global build_config
+
+        # update global variables!
+        if self.debug:
+            build_config['BUILD_TYPE'] = 'Debug'
+        if self.relwithdebinfo:
+            build_config['BUILD_TYPE'] = 'RelWithDebInfo'
+
+        setuptools.command.develop.develop.run(self)
 
 # A CMakeExtension needs a sourcedir instead of a file list.
 # The name must be the _single_ output extension from the CMake build.
@@ -214,13 +250,9 @@ class CMakeBuild(build_ext):
             shutil.copyfile(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip'))
             print('Copied {} to {} as well'.format(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip')))
 
-        cfg = "Debug" if self.debug else "Release"
-
-        # because still alpha, use RelWithDebInfo
-        cfg = "Debug" if self.debug else "RelWithDebInfo"
-
-        # force release version
-        cfg = "Release"
+        # get from BuildType info
+        cfg = build_config['BUILD_TYPE']
+        logging.info('Building Tuplex in {} mode'.format(cfg))
 
         # CMake lets you override the generator - we need to check this.
         # Can be set with Conda-Build, for example.
@@ -574,7 +606,7 @@ setup(name="tuplex",
     package_dir={"": "tuplex/python"},
     package_data=tplx_package_data(),
     ext_modules=[CMakeExtension("tuplex.libexec.tuplex", "tuplex"), CMakeExtension("tuplex.libexec.tuplex_runtime", "tuplex")],
-    cmdclass={"build_ext": CMakeBuild},
+    cmdclass={"build_ext": CMakeBuild, 'develop': DevelopCommand},
     # deactivate for now, first fix python sources to work properly!
     zip_safe=False,
     install_requires=install_dependencies,

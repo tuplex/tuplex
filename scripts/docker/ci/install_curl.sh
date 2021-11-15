@@ -23,7 +23,12 @@ CURL_VERSION=7.80.0
 
 #could also just install via cmake... https://github.com/curl/curl
 
-cd /tmp && yum update -y && yum install wget gcc openssl-devel -y && \
+# on CentOS, an old curl compiled with NSS is preinstalled.
+# ==> remove!
+# rm -rf /usr/lib64/libcurl*
+
+
+cd /tmp && yum update -y && yum install wget gcc openssl-devel -y && rm -rf /usr/lib64/libcurl* && \
 wget --no-check-certificate https://curl.se/download/curl-${CURL_VERSION}.tar.gz && tar xf curl-${CURL_VERSION}.tar.gz && \
 cd curl-${CURL_VERSION} && ./configure --with-openssl --without-nss --prefix=/usr/ --libdir=/usr/lib64 && make -j 16 && make install && ldconfig
 

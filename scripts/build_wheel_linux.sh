@@ -25,7 +25,6 @@ export CIBW_ENVIRONMENT="TUPLEX_LAMBDA_ZIP='./tuplex/other/tplxlam.zip' LD_LIBRA
 # Use the following line to build only python3.9 wheel
 export CIBW_BUILD="cp39-*"
 
-
 # For Google Colab compatible wheel, use the following:
 export CIBW_BUILD="cp37-*"
 export CIBW_ARCHS_LINUX="x86_64"

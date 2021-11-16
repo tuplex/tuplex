@@ -1456,7 +1456,8 @@ namespace tuplex {
         driverCallback();
 
         // Let all the threads do their work & also work on the driver!
-        wq.workUntilAllTasksFinished(*driver());
+        bool flushToPython = _options.REDIRECT_TO_PYTHON_LOGGING();
+        wq.workUntilAllTasksFinished(*driver(), flushToPython);
 
         // release here runtime memory...
         runtime::rtfree_all();

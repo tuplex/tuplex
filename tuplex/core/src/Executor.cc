@@ -133,7 +133,7 @@ namespace tuplex {
         return false;
     }
 
-    void WorkQueue::workUntilAllTasksFinished(tuplex::Executor &executor, bool flushPeriodicallyToPython=false) {
+    void WorkQueue::workUntilAllTasksFinished(tuplex::Executor &executor, bool flushPeriodicallyToPython) {
         int pendingTasks = 0;
         while((pendingTasks = _numPendingTasks.load(std::memory_order_acquire)) != 0) {
 

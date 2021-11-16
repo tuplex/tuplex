@@ -57,7 +57,7 @@ namespace tuplex {
          * @param requesterPay
          * @return status of adding filesystem
          */
-        static VirtualFileSystemStatus addS3FileSystem(const std::string& access_key="", const std::string& secret_key="", const std::string& caFile="", bool lambdaMode=false, bool requesterPay=false);
+        static VirtualFileSystemStatus addS3FileSystem(const std::string& access_key="", const std::string& secret_key="", const std::string& region="", const std::string& caFile="", bool lambdaMode=false, bool requesterPay=false);
 
         /*!
          * returns key/value store with transfer statistics for S3 system. Empty if no S3 system was added.

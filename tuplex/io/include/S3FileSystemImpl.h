@@ -24,7 +24,8 @@ namespace tuplex {
         friend class S3File;
     public:
         S3FileSystemImpl() = delete;
-        S3FileSystemImpl(const std::string& access_key, const std::string& secret_key, const std::string& caFile, bool lambdaMode, bool requesterPay);
+        S3FileSystemImpl(const std::string& access_key, const std::string& secret_key,
+                         const std::string& region, const std::string& caFile, bool lambdaMode, bool requesterPay);
 
         Aws::S3::S3Client const& client() const { return *_client.get(); }
 

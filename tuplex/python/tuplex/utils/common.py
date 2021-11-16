@@ -117,7 +117,7 @@ def post_json(url, data):
     response = urllib.request.urlopen(req)
     return json.loads(response.read())
 
-def get_json(url):
+def get_json(url, timeout=10):
     """
     perform a GET request to given URL
     Args:
@@ -128,7 +128,7 @@ def get_json(url):
     """
 
     req = urllib.request.Request(url, headers={'content-type': 'application/json'})
-    response = urllib.request.urlopen(req)
+    response = urllib.request.urlopen(req, timeout=timeout)
     return json.loads(response.read())
 
 def in_jupyter_notebook():

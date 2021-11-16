@@ -19,9 +19,10 @@
 
 namespace tuplex {
 
-    struct AWSCredentials {
+        struct AWSCredentials {
         std::string access_key;
         std::string secret_key;
+        std::string default_region;
 
         static AWSCredentials get();
     };
@@ -32,6 +33,13 @@ namespace tuplex {
      */
     extern bool initAWS(const AWSCredentials& credentials, bool requesterPay=false);
 
+
+    /*!
+     * validates zone string.
+     * @param zone
+     * @return true/false.
+     */
+    extern bool isValidAWSZone(const std::string& zone);
 }
 
 // Amazon frequently changes the parameters of lambda functions,

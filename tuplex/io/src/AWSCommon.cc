@@ -10,7 +10,7 @@
 
 #ifdef BUILD_WITH_AWS
 
-#include <ee/aws/AWSCommon.h>
+#include <AWSCommon.h>
 #include <aws/core/Aws.h>
 #include <VirtualFileSystem.h>
 #include <aws/core/auth/AWSCredentialsProviderChain.h>
@@ -19,6 +19,7 @@
 #include <aws/core/utils/logging/FormattedLogSystem.h>
 #include <aws/core/utils/logging/DefaultLogSystem.h>
 #include <aws/core/utils/logging/AWSLogging.h>
+#include <aws/core/platform/Environment.h>
 
 static std::string throw_if_missing_envvar(const std::string &name) {
     auto value = getenv(name.c_str());
@@ -80,6 +81,41 @@ static bool initAWSSDK() {
 
 namespace tuplex {
 
+    static Aws::String get_default_region() {
+
+        // check AWS_DEFAULT_REGION, then AWS_REGION
+        // i.e., similar to https://aws.amazon.com/blogs/developer/aws-sdk-for-cpp-version-1-8/
+        {
+            auto region = Aws::Environment::GetEnv("AWS_DEFAULT_REGION");
+            if(!region.empty())
+                return region;
+        }
+
+        {
+            auto region = Aws::Environment::GetEnv("AWS_REGION");
+            if(!region.empty())
+                return region;
+        }
+
+        // inspired by https://github.com/aws/aws-sdk-cpp/issues/1310
+        auto profile_name = Aws::Auth::GetConfigProfileName();
+        if(Aws::Config::HasCachedConfigProfile(profile_name)) {
+            auto profile = Aws::Config::GetCachedConfigProfile(profile_name);
+            auto region = profile.GetRegion();
+            if(!region.empty())
+                return region;
+        }
+
+        // check credentials profile
+        if(Aws::Config::HasCachedCredentialsProfile(profile_name)) {
+            auto profile = Aws::Config::GetCachedCredentialsProfile(profile_name);
+            auto region = profile.GetRegion();
+            if(!region.empty())
+                return region;
+        }
+        return Aws::Region::US_EAST_1;
+    }
+
     AWSCredentials AWSCredentials::get() {
 
         // lazy init AWS SDK
@@ -108,8 +144,9 @@ namespace tuplex {
         credentials.access_key = aws_cred.GetAWSAccessKeyId().c_str();
         credentials.secret_key = aws_cred.GetAWSSecretKey().c_str();
 
-        // @TODO: add default region, because else this will result in slow http requests as well...
-        // cf. https://github.com/aws/aws-sdk-cpp/issues/1310
+        // query default region (avoid also here the HTTP requests...)
+        // => use us-east-1 per default else!
+        credentials.default_region = get_default_region().c_str();
 
         return credentials;
     }
@@ -122,8 +159,36 @@ namespace tuplex {
            return false;
 
         // add S3 file system
-        VirtualFileSystem::addS3FileSystem(credentials.access_key, credentials.secret_key, "", false, requesterPay);
+        VirtualFileSystem::addS3FileSystem(credentials.access_key, credentials.secret_key, credentials.default_region, "", false, requesterPay);
         return true;
+    }
+
+    bool isValidAWSZone(const std::string& zone) {
+        // names from https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html
+        static std::set<std::string> valid_names{"us-east-2",
+                                                 "us-east-1",
+                                                 "us-west-1",
+                                                 "us-west-2,",
+                                                 "af-south-1",
+                                                 "ap-east-1",
+                                                 "ap-south-1",
+                                                 "ap-northeast-3",
+                                                 "ap-northeast-2",
+                                                 "ap-southeast-1",
+                                                 "ap-southeast-2",
+                                                 "ap-northeast-1",
+                                                 "ca-central-1",
+                                                 "eu-central-1",
+                                                 "eu-west-1",
+                                                 "eu-west-2",
+                                                 "eu-south-1",
+                                                 "eu-west-3",
+                                                 "eu-north-1",
+                                                 "me-south-1",
+                                                 "sa-east-1",
+                                                 "us-gov-east-1",
+                                                 "us-gov-west-1"};
+        return std::find(valid_names.cbegin(), valid_names.cend(), zone) != valid_names.end();
     }
 }
 

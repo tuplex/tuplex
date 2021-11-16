@@ -98,28 +98,24 @@ namespace tuplex {
 
         // to avoid thread exhaust of system, use pool thread executor with 8 threads
         clientConfig.executor = Aws::MakeShared<Aws::Utils::Threading::PooledThreadExecutor>(_tag.c_str(), _options.AWS_NUM_HTTP_THREADS());
-        clientConfig.region = _options.AWS_REGION().c_str(); // hard-coded here
+        if(_options.AWS_REGION().empty())
+            clientConfig.region = _credentials.default_region.c_str();
+        else
+            clientConfig.region = _options.AWS_REGION().c_str(); // hard-coded here
 
-        // clientConfig.scheme = Aws::Http::Scheme::HTTPS;
-        //clientConfig.userAgent = "tuplex"; // should set this as well?
+        // verify zone
+        if(!isValidAWSZone(clientConfig.region.c_str())) {
+            logger().warn("Specified AWS zone '" + std::string(clientConfig.region.c_str()) + "' is not a valid AWS zone. Defaulting to " + _credentials.default_region + " zone.");
+            clientConfig.region = _credentials.default_region.c_str();
+        }
 
-        // // test settings: just use HTTP
-        //clientConfig.scheme = Aws::Http::Scheme::HTTP;
-
-        // debug print
-        printf("caFile is: %s\n", _options.NETWORK_CA_FILE().c_str());
-        printf("caPath is: %s\n", _options.NETWORK_CA_PATH().c_str());
-        printf("verify SSL: %d\n", _options.NETWORK_VERIFY_SSL());
+        //clientConfig.userAgent = "tuplex"; // should be perhaps set as well.
 
         if(!_options.NETWORK_CA_FILE().empty())
             clientConfig.caFile = _options.NETWORK_CA_FILE().c_str();
         if(!_options.NETWORK_CA_PATH().empty())
             clientConfig.caPath = _options.NETWORK_CA_PATH().c_str();
         clientConfig.verifySSL = _options.NETWORK_VERIFY_SSL();
-
-        // if(!_options.)
-        // disable https?
-
 
         // change aws settings here
         Aws::Auth::AWSCredentials cred(_credentials.access_key.c_str(), _credentials.secret_key.c_str());

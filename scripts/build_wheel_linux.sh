@@ -39,8 +39,6 @@ export CIBW_SKIP="*-musllinux_*"
 export CIBW_BUILD_VERBOSITY=3
 export CIBW_PROJECT_REQUIRES_PYTHON=">=3.7"
 
-export CIBW_REPAIR_WHEEL_COMMAND_LINUX="LD_LIBRARY_PATH=/opt/lib:/usr/local/lib:usr/lib auditwheel repair --lib-sdir . -w {dest_dir} {wheel}"
-
 cibuildwheel --platform linux .
 
 popd > /dev/null

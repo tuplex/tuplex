@@ -24,7 +24,7 @@ class TestWebUI(unittest.TestCase):
         logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
         # bug in logging redirect?
         conf ={'webui.enable': True, "driverMemory": "8MB", "executorMemory" : "1MB",
-               "partitionSize": "256KB", "tuplex.redirectToPythonLogging":False}
+               "partitionSize": "256KB", "tuplex.redirectToPythonLogging": True}
         cls.context = Context(conf)
 
     @classmethod
@@ -43,7 +43,7 @@ class TestWebUI(unittest.TestCase):
 
         # connect to HTTP URL (index.html) and simply search for Tuplex string.
         req = urllib.request.Request(ui_url)
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, timeout=10) as response:
             page_content = response.read().decode()
 
         self.assertTrue('Tuplex' in page_content)

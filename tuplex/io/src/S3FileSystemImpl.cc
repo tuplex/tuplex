@@ -26,6 +26,8 @@
 #include <Timer.h>
 #include <Utils.h>
 
+#include <AWSCommon.h>
+
 // Notes: a list request costs $0.005 per 1,000 requests
 // i.e. S3 charges $0.005 per 1,000 put/copy/post/list requests
 // also it charges in us east $0.023 per GB for the first 50TB/month of storage used
@@ -351,7 +353,7 @@ namespace tuplex {
         return files;
     }
 
-    S3FileSystemImpl::S3FileSystemImpl(const std::string& access_key, const std::string& secret_key, const std::string &caFile, bool lambdaMode, bool requesterPay) {
+    S3FileSystemImpl::S3FileSystemImpl(const std::string& access_key, const std::string& secret_key, const std::string& region, const std::string &caFile, bool lambdaMode, bool requesterPay) {
         // Note: If current region is different than other region, use S3 transfer acceleration
         // cf. Aws::S3::Model::GetBucketAccelerateConfigurationRequest
         // and https://s3-accelerate-speedtest.s3-accelerate.amazonaws.com/en/accelerate-speed-comparsion.html
@@ -361,27 +363,39 @@ namespace tuplex {
 
         Client::ClientConfiguration config;
 
-        Auth::AWSCredentials credentials(access_key.c_str(), secret_key.c_str());
+        AWSCredentials credentials;
+        if(access_key.empty() || secret_key.empty() || region.empty())
+            credentials = AWSCredentials::get();
 
-        // access key or secret key empty?
-        if(access_key.empty() || secret_key.empty()) {
-            auto provider = Aws::MakeShared<Aws::Auth::DefaultAWSCredentialsProviderChain>("tuplex");
-            credentials = provider->GetAWSCredentials();
-        }
+        // overwrite with manually specified ones
+        if(!access_key.empty())
+            credentials.access_key = access_key;
+        if(!secret_key.empty())
+            credentials.secret_key = secret_key;
+        if(!region.empty())
+            credentials.default_region = region;
 
         if(!caFile.empty())
             config.caFile = caFile.c_str();
+
+        // fill in config
+        config.region = credentials.default_region;
+
         if(lambdaMode) {
-            config.region = Aws::Environment::GetEnv("AWS_REGION");
+            if(config.region.empty())
+                config.region = Aws::Environment::GetEnv("AWS_REGION");
             char const TAG[] = "LAMBDA_ALLOC";
             auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
-            credentials = credentialsProvider->GetAWSCredentials();
         }
 
-        _client = std::make_shared<S3::S3Client>(credentials, config);
+        if(requesterPay)
+            _requestPayer = Aws::S3::Model::RequestPayer::requester;
+        else
+            _requestPayer = Aws::S3::Model::RequestPayer::NOT_SET;
 
-        if(requesterPay) _requestPayer = Aws::S3::Model::RequestPayer::requester;
-        else _requestPayer = Aws::S3::Model::RequestPayer::NOT_SET;
+
+
+        _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(), credentials.secret_key.c_str()), config);
 
         // set counters to zero
         _putRequests = 0;

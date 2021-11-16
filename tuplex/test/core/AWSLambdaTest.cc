@@ -12,7 +12,7 @@
 
 #include "TestUtils.h"
 #include <ee/aws/AWSLambdaBackend.h>
-#include <ee/aws/AWSCommon.h>
+#include <AWSCommon.h>
 #include <VirtualFileSystem.h>
 #include <PosixFileSystemImpl.h>
 

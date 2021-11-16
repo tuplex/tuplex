@@ -108,6 +108,9 @@ namespace tuplex {
         credentials.access_key = aws_cred.GetAWSAccessKeyId().c_str();
         credentials.secret_key = aws_cred.GetAWSSecretKey().c_str();
 
+        // @TODO: add default region, because else this will result in slow http requests as well...
+        // cf. https://github.com/aws/aws-sdk-cpp/issues/1310
+
         return credentials;
     }
 

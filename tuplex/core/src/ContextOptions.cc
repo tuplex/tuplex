@@ -247,7 +247,7 @@ namespace tuplex {
                      {"tuplex.resolveWithInterpreterOnly", "false"},
                      {"tuplex.network.caFile", ""},
                      {"tuplex.network.caPath", ""},
-                     {"tuplex.network.verifySSL", "true"},
+                     {"tuplex.network.verifySSL", "false"},  // if default is going to be changed to true, ship cacert.pem from Amazon to avoid issues.
                      {"tuplex.redirectToPythonLogging", "true"}};
 #else
         // DEBUG options
@@ -301,7 +301,7 @@ namespace tuplex {
                      {"tuplex.resolveWithInterpreterOnly", "true"},
                      {"tuplex.network.caFile", ""},
                      {"tuplex.network.caPath", ""},
-                     {"tuplex.network.verifySSL", "true"},
+                     {"tuplex.network.verifySSL", "false"},
                      {"tuplex.redirectToPythonLogging", "true"}};
 #endif
 

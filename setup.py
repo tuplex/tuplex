@@ -215,8 +215,8 @@ class CMakeBuild(build_ext):
         if not extdir.endswith(os.path.sep):
             extdir += os.path.sep
 
-        print('Extension dir is: {}'.format(extdir))
-        print('Build temp is: {}'.format(self.build_temp))
+        logging.info('Extension dir is: {}'.format(extdir))
+        logging.info('Build temp is: {}'.format(self.build_temp))
 
         lambda_zip = os.environ.get('TUPLEX_LAMBDA_ZIP', None)
         if lambda_zip:
@@ -234,21 +234,21 @@ class CMakeBuild(build_ext):
                     logging.info('Found tplxlam.zip under {}, using...'.format(alt_path))
                     lambda_zip = alt_path
 
-            print('Packaging Tuplex Lambda runner')
+            logging.info('Packaging Tuplex Lambda runner')
 
             # need to copy / link zip file into temp dir
             # -> this is the root setup.py file, hence find root
-            print('Root path is: {}'.format(tplx_package_root))
+            logging.info('Root path is: {}'.format(tplx_package_root))
             zip_target = os.path.join(self.build_temp, 'tuplex', 'other')
             os.makedirs(zip_target, exist_ok=True)
             zip_dest = os.path.join(zip_target, 'tplxlam.zip')
             shutil.copyfile(lambda_zip, zip_dest)
-            print('Copied {} to {}'.format(lambda_zip, zip_dest))
+            logging.info('Copied {} to {}'.format(lambda_zip, zip_dest))
 
             alt_dest = os.path.join(tplx_lib_root, 'other')
             os.makedirs(alt_dest, exist_ok=True)
             shutil.copyfile(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip'))
-            print('Copied {} to {} as well'.format(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip')))
+            logging.info('Copied {} to {} as well'.format(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip')))
 
         # get from BuildType info
         cfg = build_config['BUILD_TYPE']

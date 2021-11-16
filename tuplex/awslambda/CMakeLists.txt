@@ -66,26 +66,4 @@ set(PYTHON_RESOURCES_ZIP ${PYTHON_RESOURCES_LOC}.zip)
 message("PYTHON_RESOURCES_ZIP = ${PYTHON_RESOURCES_ZIP}")
 message("PYTHON_RESOURCES_LOC = ${PYTHON_RESOURCES_LOC}")
 
-#add_custom_command(TARGET aws-lambda-package-${LAMBDA_NAME} POST_BUILD COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lambda_function.py . && zip -ur ${LAMBDA_NAME}.zip lambda_function.py)
-#add_custom_command(TARGET aws-lambda-package-${LAMBDA_NAME} POST_BUILD COMMAND unzip -u ${PYTHON_RESOURCES_ZIP} -d ${CMAKE_CURRENT_SOURCE_DIR})
-#add_custom_command(TARGET aws-lambda-package-${LAMBDA_NAME} POST_BUILD COMMAND cp -r ${PYTHON_RESOURCES_LOC}/bin . && zip -ur ${LAMBDA_NAME}.zip bin/)
-#add_custom_command(TARGET aws-lambda-package-${LAMBDA_NAME}
-#        POST_BUILD COMMAND cp -r ${PYTHON_RESOURCES_LOC}/lib .
-#        && cp -r ${PYTHON_RESOURCES_LOC}/usr_lib/* lib/python3.8/site-packages/
-#        && cp ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/*runtime* lib/
-#        && zip -ur ${LAMBDA_NAME}.zip lib/)
-#add_custom_command(TARGET aws-lambda-package-${LAMBDA_NAME} POST_BUILD COMMAND cp -r ${PYTHON_RESOURCES_LOC}/lib64 . && zip -ur ${LAMBDA_NAME}.zip lib64/)
-
-# add runtime .so file to zip
-#add_custom_command(TARGET aws-lambda-package-${LAMBDA_NAME}
-        #POST_BUILD COMMAND mkdir -p lib && cp ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/*runtime* lib/ && zip -ur ${LAMBDA_NAME}.zip lib/)
-
-# copy libgcc
-#add_custom_command(TARGET aws-lambda-package-${LAMBDA_NAME}
-#        POST_BUILD COMMAND mkdir -p lib && cp ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/*runtime* lib/ && zip -ur ${LAMBDA_NAME}.zip lib/)
-
-## if this fails, use  aws --cli-connect-timeout 6000  lambda update-function-code --function-name tplxlam --zip-file fileb://tplxlam.zip
-## update function code...
-#add_custom_command(TARGET aws-lambda-package-${LAMBDA_NAME}
-#        POST_BUILD COMMAND aws --cli-connect-timeout 6000 lambda update-function-code --function-name ${LAMBDA_NAME}
-#        --zip-file fileb://${LAMBDA_NAME}.zip)
+# To build Lambda runner deployment package, use ./scripts/create_lambda.zip.sh

@@ -30,8 +30,7 @@ namespace tuplex {
         MapColumnOperator(LogicalOperator *parent,
                           const std::string& columnName,
                           const std::vector<std::string>& columns,
-                          const UDF& udf,
-                          bool allowNumericTypeUnification);
+                          const UDF& udf);
         // needs a parent
 
         std::string name() override { return "mapColumn"; }

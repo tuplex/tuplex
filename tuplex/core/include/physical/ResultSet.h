@@ -55,8 +55,22 @@ namespace tuplex {
                   const std::vector<std::tuple<size_t, PyObject*>> pyobjects=std::vector<std::tuple<size_t, PyObject*>>{},
                   int64_t maxRows=std::numeric_limits<int64_t>::max());
 
+        /*!
+         * check whether result contains one more row
+         */
         bool hasNextRow();
+
+        /*!
+         * get next row. If exhausted, return dummy empty row.
+         */
         Row getNextRow();
+
+        /*!
+         * get up to limit rows
+         * @param limit how many rows to retrieve at most
+         * @return vector of rows with up to limit rows
+         */
+        std::vector<Row> getRows(size_t limit);
 
         bool hasNextPartition() const;
 

@@ -54,7 +54,7 @@ tuplex::Row execRow(const tuplex::Row& input, tuplex::UDF udf) {
     auto pip = make_shared<codegen::PipelineBuilder>(env, input.getRowType());
 
     // add simple map
-    pip->mapOperation(0, udf, false, false);
+    pip->mapOperation(0, udf, 0.5, false, false);
     pip->buildWithTuplexWriter("execRow_writeback", 1);
 
 

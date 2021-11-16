@@ -23,7 +23,10 @@ namespace tuplex {
          */
         class StageBuilder {
         public:
+            StageBuilder() = delete;
+
             StageBuilder(int64_t stage_number, bool rootStage, bool allowUndefinedBehavior, bool generateParser,
+                         double normalCaseThreshold,
                          bool sharedObjectPropagation,
                          bool nullValueOptimization);
 
@@ -55,8 +58,6 @@ namespace tuplex {
                 _operators.push_back(op);
             }
 
-            void addOperators(std::vector<LogicalOperator*>& operators);
-
             void addFileInput(FileInputOperator* csvop);
             void addFileOutput(FileOutputOperator* fop);
 
@@ -67,6 +68,7 @@ namespace tuplex {
             bool _isRootStage;
             bool _allowUndefinedBehavior;
             bool _generateParser;
+            double _normalCaseThreshold;
             bool _sharedObjectPropagation;
             bool _nullValueOptimization;
             std::vector<LogicalOperator*> _operators;

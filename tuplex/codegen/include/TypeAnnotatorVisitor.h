@@ -13,6 +13,7 @@
 
 #include "ApatheticVisitor.h"
 #include "SymbolTable.h"
+#include "CodegenHelper.h"
 #include <IFailable.h>
 #include <tuple>
 #include <ASTHelpers.h>
@@ -71,7 +72,7 @@ namespace tuplex {
     class TypeAnnotatorVisitor : public ApatheticVisitor, public IFailable {
     private:
         SymbolTable& _symbolTable; // global symbol table for everything.
-        bool _allowNumericTypeUnification; // whether bool/i64 get autoupcasted and merged when type conflicts exist within if-branches.
+        const codegen::CompilePolicy& _policy;
         std::unordered_map<std::string, python::Type> _nameTable; // i.e. mini symbol table for assignments.
         std::unordered_map<std::string, std::shared_ptr<IteratorInfo>> _iteratorInfoTable; // i.e. name table for storing iteratorInfo of variables.
 
@@ -109,6 +110,16 @@ namespace tuplex {
          */
         void annotateIteratorRelatedCalls(const std::string &funcName, NCall* call);
 
+        // total number of samples processed in TraceVisitor
+        size_t _totalSampleCount;
+        // set to true once type change during loop occurs
+        bool _loopTypeChange;
+        // indices of samples that will raise normal case violation
+        std::set<size_t> _normalCaseViolationSampleIndices;
+        // each vector contains symbols that need to be tracked for type stability for the current loop
+        size_t _ongoingLoopCount;
+
+
     public:
 
         void reset() {
@@ -116,11 +127,18 @@ namespace tuplex {
             _annotationLookup.clear();
             _funcReturnTypes.clear();
             IFailable::reset();
+            _normalCaseViolationSampleIndices.clear();
+            _loopTypeChange = false;
+            _totalSampleCount = 0;
+            _ongoingLoopCount = 0;
         }
 
         explicit TypeAnnotatorVisitor(SymbolTable& symbolTable,
-                                      bool allowNumericTypeUnification): _symbolTable(symbolTable),
-                                                                         _allowNumericTypeUnification(allowNumericTypeUnification) {
+                                      const codegen::CompilePolicy& policy): _symbolTable(symbolTable),
+                                                                         _policy(policy),
+                                                                         _loopTypeChange(false),
+                                                                         _totalSampleCount(0),
+                                                                         _ongoingLoopCount(0) {
             init();
         }
 
@@ -157,6 +175,7 @@ namespace tuplex {
         void visit(NListComprehension*) override;
 
         void visit(NFor*) override;
+        void visit(NWhile*) override;
 
         TSet<std::string> getMissingIdentifiers() { return _missingIdentifiers; }
     };

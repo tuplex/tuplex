@@ -191,3 +191,39 @@ TEST_F(ResultSetTest, WithPyObjects) {
         EXPECT_EQ(rsD->getNextRow().toPythonString(), refD[pos++].toPythonString());
     }
 }
+
+TEST_F(ResultSetTest, takeMultipleRows) {
+    using namespace tuplex;
+    using namespace std;
+
+    vector<Row> rows;
+    int N = 50000;
+
+    for(int i = 0; i < N; ++i) {
+        rows.push_back(Row(i, i * i));
+    }
+
+    auto partitions = rowsToPartitions(rows);
+    for(auto p : partitions)
+        p->makeImmortal();
+
+    // create result set and retrieve different amount of rows
+
+    auto rs = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, rows.front().getRowType()),
+                                     partitions,
+                                     std::vector<Partition*>{});
+    ASSERT_EQ(rs->rowCount(), N);
+
+    vector<int> test_vals{0, 10, (int)partitions.front()->getNumRows() - 10, int(1.5 * partitions.front()->getNumRows()), 42, 7800};
+
+    int glob_offset = 0;
+    for(auto tv : test_vals) {
+        auto v = rs->getRows(tv);
+        ASSERT_EQ(v.size(), tv);
+        if(v.size() > 0) {
+            for(int i = 0; i < v.size(); ++i)
+                EXPECT_EQ(v[i], rows[i + glob_offset]);
+        }
+        glob_offset += tv;
+    }
+}

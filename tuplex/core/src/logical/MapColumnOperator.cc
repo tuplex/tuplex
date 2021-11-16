@@ -12,11 +12,7 @@
 
 namespace tuplex {
     MapColumnOperator::MapColumnOperator(tuplex::LogicalOperator *parent, const std::string &columnName, const std::vector<std::string>& columns,
-                                         const tuplex::UDF &udf,
-                                         bool allowNumericTypeUnification) : UDFOperator::UDFOperator(parent, udf, columns), _columnToMap(columnName) {
-
-        // require this for typing info.
-        UDFOperator::getUDF().getAnnotatedAST().allowNumericTypeUnification(allowNumericTypeUnification);
+                                         const tuplex::UDF &udf) : UDFOperator::UDFOperator(parent, udf, columns), _columnToMap(columnName) {
 
         _columnToMapIndex = indexInVector(columnName, columns);
         assert(_columnToMapIndex >= 0);
@@ -156,8 +152,7 @@ namespace tuplex {
 
     LogicalOperator *MapColumnOperator::clone() {
         auto copy = new MapColumnOperator(parent()->clone(), _columnToMap,
-                                          UDFOperator::columns(), _udf,
-                                          _udf.allowNumericTypeUnification());
+                                          UDFOperator::columns(), _udf);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());

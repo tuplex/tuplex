@@ -70,11 +70,15 @@ static bool initAWSSDK() {
 //                    "tuplex",
 //                    Aws::Utils::Logging::LogLevel::Trace,
 //                    "aws sdk"));
-                Aws::Utils::Logging::InitializeAWSLogging(
-                Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
-                    "tuplex",
-                    Aws::Utils::Logging::LogLevel::Trace));
-
+#ifndef NDEBUG
+        Aws::Utils::Logging::InitializeAWSLogging(Aws::Utils::Logging::InitializeAWSLogging(
+        Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
+            "tuplex",
+            Aws::Utils::Logging::LogLevel::Trace));
+        Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
+            "tuplex",
+            Aws::Utils::Logging::LogLevel::Trace));
+#endif
         isAWSInitialized = true;
     }
     return isAWSInitialized;

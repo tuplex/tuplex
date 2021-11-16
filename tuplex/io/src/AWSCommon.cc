@@ -71,10 +71,8 @@ static bool initAWSSDK() {
 //                    Aws::Utils::Logging::LogLevel::Trace,
 //                    "aws sdk"));
 #ifndef NDEBUG
-        Aws::Utils::Logging::InitializeAWSLogging(Aws::Utils::Logging::InitializeAWSLogging(
-        Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
-            "tuplex",
-            Aws::Utils::Logging::LogLevel::Trace));
+        auto log_system = Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>("tuplex", Aws::Utils::Logging::LogLevel::Trace);
+        Aws::Utils::Logging::InitializeAWSLogging(log_system);
 #endif
         isAWSInitialized = true;
     }

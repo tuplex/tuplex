@@ -44,7 +44,7 @@ namespace tuplex {
         // init AWS SDK to get access to S3 filesystem
         auto aws_credentials = AWSCredentials::get();
         Timer timer;
-        bool aws_init_rc = initAWS(aws_credentials, options.AWS_REQUESTER_PAY());
+        bool aws_init_rc = initAWS(aws_credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
         logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
 #endif
 

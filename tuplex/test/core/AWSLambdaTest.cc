@@ -27,7 +27,7 @@ protected:
         // to speedup testing, if we anyways skip the tests, can skip init here too.
         // !!! Dangerous !!!
 #ifndef SKIP_AWS_TESTS
-        initAWS(AWSCredentials::get(), true);
+        initAWS(AWSCredentials::get(), NetworkSettings(), true);
         VirtualFileSystem::addS3FileSystem();
 #endif
     }

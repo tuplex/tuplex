@@ -50,6 +50,8 @@ namespace std {
 #include <tuple>
 #include <cstdint>
 
+#include "Network.h"
+
 static_assert(__cplusplus >= 201402L, "need at least C++ 14 to compile this file");
 // check https://blog.galowicz.de/2016/02/20/short_file_macro/
 // for another cool macro

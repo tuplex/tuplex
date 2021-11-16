@@ -77,9 +77,13 @@ void global_init() {
     Aws::InitAPI(g_aws_options);
     std::string caFile = "/etc/pki/tls/certs/ca-bundle.crt";
 
+    NetworkSettings ns;
+    ns.verifySSL = true;
+    ns.caFile = caFile;
+
     // get region from AWS_REGION env
     auto region = Aws::Environment::GetEnv("AWS_REGION");
-    VirtualFileSystem::addS3FileSystem("", "", region.c_str(), caFile, true, true);
+    VirtualFileSystem::addS3FileSystem("", "", region.c_str(), ns, true, true);
     g_aws_init_time = timer.time();
 
     // Note that runtime must be initialized BEFORE compiler due to linking

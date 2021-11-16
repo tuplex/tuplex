@@ -744,4 +744,12 @@ namespace tuplex {
         }
         return json.dump();
     }
+
+    NetworkSettings ContextOptions::AWS_NETWORK_SETTINGS() const {
+        NetworkSettings ns;
+        ns.verifySSL = this->NETWORK_VERIFY_SSL();
+        ns.caFile = this->NETWORK_CA_FILE();
+        ns.caPath = this->NETWORK_CA_PATH();
+        return ns;
+    }
 }

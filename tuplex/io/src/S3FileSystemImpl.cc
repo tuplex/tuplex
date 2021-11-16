@@ -353,7 +353,7 @@ namespace tuplex {
         return files;
     }
 
-    S3FileSystemImpl::S3FileSystemImpl(const std::string& access_key, const std::string& secret_key, const std::string& region, const std::string &caFile, bool lambdaMode, bool requesterPay) {
+    S3FileSystemImpl::S3FileSystemImpl(const std::string& access_key, const std::string& secret_key, const std::string& region, const NetworkSettings& ns, bool lambdaMode, bool requesterPay) {
         // Note: If current region is different than other region, use S3 transfer acceleration
         // cf. Aws::S3::Model::GetBucketAccelerateConfigurationRequest
         // and https://s3-accelerate-speedtest.s3-accelerate.amazonaws.com/en/accelerate-speed-comparsion.html
@@ -375,8 +375,8 @@ namespace tuplex {
         if(!region.empty())
             credentials.default_region = region;
 
-        if(!caFile.empty())
-            config.caFile = caFile.c_str();
+        // apply network settings
+        applyNetworkSettings(ns, config);
 
         // fill in config
         config.region = credentials.default_region;

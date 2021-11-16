@@ -104,6 +104,8 @@ namespace tuplex {
 
         Backend BACKEND() const; //! which backend to use for pipeline execution
 
+        NetworkSettings AWS_NETWORK_SETTINGS() const; //! retrieve Network settings for AWS
+
         // general network settings
         std::string NETWORK_CA_FILE() const;
         std::string NETWORK_CA_PATH() const;

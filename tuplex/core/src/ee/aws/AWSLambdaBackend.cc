@@ -110,12 +110,8 @@ namespace tuplex {
         }
 
         //clientConfig.userAgent = "tuplex"; // should be perhaps set as well.
-
-        if(!_options.NETWORK_CA_FILE().empty())
-            clientConfig.caFile = _options.NETWORK_CA_FILE().c_str();
-        if(!_options.NETWORK_CA_PATH().empty())
-            clientConfig.caPath = _options.NETWORK_CA_PATH().c_str();
-        clientConfig.verifySSL = _options.NETWORK_VERIFY_SSL();
+        auto ns = _options.AWS_NETWORK_SETTINGS();
+        applyNetworkSettings(ns, clientConfig);
 
         // change aws settings here
         Aws::Auth::AWSCredentials cred(_credentials.access_key.c_str(), _credentials.secret_key.c_str());
@@ -591,7 +587,7 @@ namespace tuplex {
         // if(options.SCRATCH_DIR().prefix() != "s3://") // @TODO: check further it's a dir...
         //     throw std::runtime_error("need to provide as scratch dir an s3 path to Lambda backend");
 
-        initAWS(credentials, options.AWS_REQUESTER_PAY());
+        initAWS(credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
 
         // several options are NOT supported currently in AWS Lambda Backend, hence
         // force them to what works

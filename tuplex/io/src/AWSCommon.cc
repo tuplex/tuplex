@@ -20,6 +20,7 @@
 #include <aws/core/utils/logging/DefaultLogSystem.h>
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/core/platform/Environment.h>
+#include <Network.h>
 
 static std::string throw_if_missing_envvar(const std::string &name) {
     auto value = getenv(name.c_str());
@@ -152,14 +153,14 @@ namespace tuplex {
     }
 
     // @TODO: add ca configuration options etc. => maybe network settings?
-    bool initAWS(const AWSCredentials& credentials, bool requesterPay) {
+    bool initAWS(const AWSCredentials& credentials, const NetworkSettings& ns, bool requesterPay) {
         initAWSSDK();
 
         if(credentials.secret_key.empty() || credentials.access_key.empty())
            return false;
 
         // add S3 file system
-        VirtualFileSystem::addS3FileSystem(credentials.access_key, credentials.secret_key, credentials.default_region, "", false, requesterPay);
+        VirtualFileSystem::addS3FileSystem(credentials.access_key, credentials.secret_key, credentials.default_region, ns, false, requesterPay);
         return true;
     }
 
@@ -189,6 +190,14 @@ namespace tuplex {
                                                  "us-gov-east-1",
                                                  "us-gov-west-1"};
         return std::find(valid_names.cbegin(), valid_names.cend(), zone) != valid_names.end();
+    }
+
+    void applyNetworkSettings(const NetworkSettings& ns, Aws::Client::ClientConfiguration& config) {
+        // @TODO: could also do request timeout etc.
+
+        config.caFile = ns.caFile.c_str();
+        config.caPath = ns.caPath.c_str();
+        config.verifySSL = ns.verifySSL;
     }
 }
 

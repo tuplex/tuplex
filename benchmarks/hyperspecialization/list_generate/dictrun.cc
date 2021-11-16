@@ -1,3 +1,7 @@
+/*
+    This file is experimental and unused.
+*/
+
 #include <bits/stdc++.h>
 #include <Python.h>
 #include "csvmonkey.hpp"
@@ -6,7 +10,7 @@ using namespace std;
 
 using KEY_TYPE = int;
 
-long int dictrun(PyObject* mylist) {
+long int count_unique(PyObject* mylist) {
     PyObject* mydict = PyDict_New();
     ssize_t listlen = PyList_Size(mylist);
     for(ssize_t i = 0; i < listlen; i++) {
@@ -23,6 +27,23 @@ long int dictrun(PyObject* mylist) {
     return PyDict_Size(mydict);
 }
 
+PyObject* count_unique_for_loop(PyObject* list_of_lists) {
+    PyObject* mylist = PyList_New(0);
+    // this will definitely be slower than just invoking python interpreter from command line.
+    // because you cannot do list comprehension here.
+    // nor can you do map(lambda, list)
+
+    ssize_t listlen = PyList_Size(list_of_lists);
+    for(ssize_t i = 0; i < listlen; i++) {
+        PyObject* curr_element = PyList_GetItem(list_of_lists, i);
+        long int result = count_unique(curr_element);
+        // std::cerr << result << " ";
+        PyList_Append(mylist, PyLong_FromLongLong(result));
+    }
+
+    return mylist;
+}
+
 map<uint64_t, uint64_t> mpu;
 map<double, uint64_t> mpd;
 map<string, uint64_t> mps;
@@ -35,11 +56,11 @@ void runWithCPython(PyObject* mylist) {
 
     auto t1 = high_resolution_clock::now();
 
-    long int result = dictrun(mylist);
+    PyObject* result = count_unique_for_loop(mylist);
+    std::cerr << "result size: " << PyList_Size(result) << "\n";
 
     auto t2 = high_resolution_clock::now();
 
-    std::cerr << result << "\n";
     /* Getting number of milliseconds as an integer. */
     auto ms_int = duration_cast<milliseconds>(t2 - t1);
 
@@ -49,9 +70,11 @@ void runWithCPython(PyObject* mylist) {
     std::cout << ms_double.count() << " ";// << "ms\n";
 }
 
-
+// adds to combined list.
 template<typename T>
 void run(const char* path) {
+
+
     Py_Initialize();
 
     // PyEval_AcquireLock();
@@ -73,13 +96,16 @@ void run(const char* path) {
             CsvCell &cell = row.cells[i];
             std::string s = cell.as_str();
             if constexpr (std::is_same<T, int>::value) {
-                assert(!PyList_Append(mylist, PyLong_FromLong(stoi(s))));
+                auto res = PyList_Append(mylist, PyLong_FromLong(stoi(s)));
+                assert(!res);
             } else {
-                assert(!PyList_Append(mylist, PyUnicode_FromString(s.c_str())));
+                auto res = PyList_Append(mylist, PyUnicode_FromString(s.c_str()));
+                assert(!res);
             }
         }
 
-        assert(!PyList_Append(mylist, sublist));
+        auto res = PyList_Append(mylist, sublist);
+        assert(!res);
     }
 
     std::cout << "length of PyList: " << PyList_Size(mylist) << "\n";

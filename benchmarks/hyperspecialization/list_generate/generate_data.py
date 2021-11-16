@@ -10,8 +10,8 @@ import numpy as np
 import scipy.stats as ss
 from tqdm import tqdm
 
-MIN_INT = -2147483648
-MAX_INT = 2147483647
+MIN_INT = 0
+MAX_INT = 0
 
 def randint(dist):
     if dist == 'uniform':

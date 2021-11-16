@@ -1312,17 +1312,17 @@ namespace tuplex {
     }
 
     PyObject *PythonDataSet::resultSetToCPython(tuplex::ResultSet *rs, size_t maxRowCount) {
-        auto type = rs->schema().getRowType();
-        // if single type, reset by one
-        assert(type.isTupleType());
-        if (type.parameters().size() == 1)
-            type = type.parameters().front();
-
         // b.c. merging of arbitrary python objects is not implemented yet, whenever they're present, use general
         // version
         // @TODO: this could be optimized!
         if(rs->pyobject_count() != 0)
             return anyToCPythonWithPyObjects(rs, maxRowCount);
+
+        auto type = rs->schema().getRowType();
+        // if single type, reset by one
+        assert(type.isTupleType());
+        if (type.parameters().size() == 1)
+            type = type.parameters().front();
 
         if (python::Type::BOOLEAN == type) {
             return boolToCPython(rs, maxRowCount);

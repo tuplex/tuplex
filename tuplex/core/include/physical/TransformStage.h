@@ -104,6 +104,14 @@ namespace tuplex {
         std::vector<Partition*> inputExceptions() const { return _unresolved_exceptions; }
 
         /*!
+         * set python objects, i.e. rows that could come from a parallelize operator.
+         * @param pythonObjects
+         */
+        void setPythonObjects(const std::vector<Partition *> pythonObjects) { _pythonObjects = pythonObjects; }
+
+        std::vector<Partition *> pythonObjects() { return _pythonObjects; }
+
+        /*!
          * sets maximum number of rows this pipeline will produce
          * @param outputLimit
          */
@@ -457,6 +465,7 @@ namespace tuplex {
 
         // unresolved exceptions. Important i.e. when no IO interleave is used...
         std::vector<Partition*> _unresolved_exceptions;
+        std::vector<Partition*> _pythonObjects;
 
 
         // for hash output, the key and bucket type

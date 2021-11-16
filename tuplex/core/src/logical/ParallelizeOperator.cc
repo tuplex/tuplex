@@ -112,6 +112,8 @@ namespace tuplex {
         auto copy = new ParallelizeOperator(getOutputSchema(), _partitions, columns());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
+        copy->setPythonObjects(getPythonObjects());
+        copy->setGeneralCasePartitions(getGeneralCasePartitions());
         assert(getID() == copy->getID());
         return copy;
     }

@@ -740,16 +740,11 @@ namespace tuplex {
             + std::to_string(timer.time()) + " seconds (materialized: " + sizeToMemString(sizeInMemory) + ")");
         }
 
-        // warning about bad objects
         if(!_badParallelizeObjects.empty()) {
-            // warn!
-            logger.warn("Found " + pluralize(_badParallelizeObjects.size(), "row") + " not complying with inferred type " + majType.desc()
-            + ", ignoring for now.");
+            logger.warn("Found " + pluralize(_badParallelizeObjects.size(), "row") + " not complying with inferred type " + majType.desc());
 
-            // @TODO: later save these rows as cloudpickled objects to a partition together with the row number.
-            // they then need to be passed through the pure python pipeline & merged back if possible.
-
-            // remove all..
+            auto serializedExceptions = serializeExceptions(_badParallelizeObjects, ds->getOperator()->getID());
+            _context->setParallelizePythonObjects(ds, serializedExceptions);
             _badParallelizeObjects.clear();
         }
 
@@ -863,6 +858,58 @@ namespace tuplex {
         }
 
         return majType;
+    }
+
+    std::vector<Partition *> PythonContext::serializeExceptions(std::vector<std::tuple<size_t, PyObject *>> exceptions, int64_t opID) {
+        std::vector<Partition *> partitions;
+
+        Schema schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::STRING}));
+        auto driver = _context->getDriver();
+
+        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1);
+        int64_t* rawPtr = (int64_t*)partition->lockWriteRaw();
+        *rawPtr = 0;
+        uint8_t* ptr = (uint8_t*)(rawPtr + 1);
+        size_t numBytesSerialized = 0;
+
+        // Serialize each exception to a partition using the following schema:
+        // (1) is the field containing rowNum
+        // (2) is the field containing ecCode
+        // (3) is the field containing opID
+        // (4) is the field containing pickledObjectSize
+        // (5) is the field containing pickledObject
+        for(auto &exception : exceptions) {
+            auto rowNum = std::get<0>(exception);
+            auto pyObj = std::get<1>(exception);
+            auto ecCode = ecToI64(ExceptionCode::PYTHON_PARALLELIZE);
+            auto pickledObject = python::pickleObject(python::getMainModule(), pyObj);
+            auto pickledObjectSize = pickledObject.size();
+            size_t requiredBytes = sizeof(int64_t) * 4 + pickledObjectSize;
+
+            if (partition->capacity() < numBytesSerialized + requiredBytes) {
+                partition->unlockWrite();
+                partitions.push_back(partition);
+                partition = driver->allocWritablePartition(std::max(allocMinSize, requiredBytes), schema, -1);
+                rawPtr = (int64_t *) partition->lockWriteRaw();
+                *rawPtr = 0;
+                ptr = (uint8_t * )(rawPtr + 1);
+                numBytesSerialized = 0;
+            }
+
+            *((int64_t*)(ptr)) = rowNum; ptr += sizeof(int64_t);
+            *((int64_t*)(ptr)) = ecCode; ptr += sizeof(int64_t);
+            *((int64_t*)(ptr)) = opID; ptr += sizeof(int64_t);
+            *((int64_t*)(ptr)) = pickledObjectSize; ptr += sizeof(int64_t);
+            memcpy(ptr, pickledObject.c_str(), pickledObjectSize); ptr += pickledObjectSize;
+
+            *rawPtr = *rawPtr + 1;
+            numBytesSerialized += requiredBytes;
+        }
+
+        partition->unlockWrite();
+        partitions.push_back(partition);
+
+        return partitions;
     }
 
     python::Type PythonContext::inferType(const boost::python::list &L) const {

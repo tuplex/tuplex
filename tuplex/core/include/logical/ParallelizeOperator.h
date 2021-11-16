@@ -18,7 +18,8 @@ namespace tuplex {
     class ParallelizeOperator : public LogicalOperator {
 
         std::vector<Partition*> _partitions; // data, conforming to majority type
-        //@TODO: missing: python objects & general case data
+        std::vector<Partition*> _generalCasePartitions;
+        std::vector<Partition*> _pythonObjects;
         std::vector<std::string> _columnNames;
 
         std::vector<Row> _sample; // sample, not necessary conforming to one type
@@ -28,7 +29,9 @@ namespace tuplex {
         LogicalOperator *clone() override;
 
         // this a root node
-        ParallelizeOperator(const Schema& schema, std::vector<Partition*> partitions, const std::vector<std::string>& columns);
+        ParallelizeOperator(const Schema& schema,
+                            std::vector<Partition*> partitions,
+                            const std::vector<std::string>& columns);
 
         std::string name() override { return "parallelize"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::PARALLELIZE; }
@@ -44,6 +47,12 @@ namespace tuplex {
          * @return vector of partitions.
          */
         std::vector<tuplex::Partition*> getPartitions();
+
+        void setGeneralCasePartitions(std::vector<tuplex::Partition*> generalCasePartitions) { _generalCasePartitions = generalCasePartitions; }
+        std::vector<tuplex::Partition*> getGeneralCasePartitions() { return _generalCasePartitions; }
+
+        void setPythonObjects(std::vector<Partition *> pythonObjects) { _pythonObjects = pythonObjects; }
+        std::vector<Partition *> getPythonObjects() { return _pythonObjects; }
 
         Schema getInputSchema() const override { return getOutputSchema(); }
 

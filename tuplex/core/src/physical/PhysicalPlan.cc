@@ -382,6 +382,8 @@ namespace tuplex {
         if (inputNode->type() == LogicalOperatorType::PARALLELIZE) {
             auto pop = dynamic_cast<ParallelizeOperator *>(inputNode); assert(inputNode);
             stage->setInputPartitions(pop->getPartitions());
+            stage->setInputExceptions(pop->getGeneralCasePartitions());
+            stage->setPythonObjects(pop->getPythonObjects());
         } else if(inputNode->type() == LogicalOperatorType::CACHE) {
             auto cop = dynamic_cast<CacheOperator*>(inputNode);  assert(inputNode);
             stage->setInputPartitions(cop->cachedPartitions());

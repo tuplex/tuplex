@@ -725,6 +725,34 @@ namespace tuplex {
         return pip_object;
     }
 
+    std::vector<std::tuple<size_t, PyObject*>> deserializePythonObjects(std::vector<Partition *> partitions) {
+        using namespace tuplex;
+
+        std::vector<std::tuple<size_t, PyObject*>> pyObjects;
+        for (auto &partition : partitions) {
+            auto numRows = partition->getNumRows();
+            const uint8_t* ptr = partition->lock();
+
+            for (int i = 0; i < numRows; ++i) {
+                int64_t rowNum = *((int64_t*)ptr);
+                ptr += 3 * sizeof(int64_t);
+                int64_t objSize = *((int64_t*)ptr);
+                ptr += sizeof(int64_t);
+                python::lockGIL();
+                auto pyObject = python::deserializePickledObject(python::getMainModule(), (char *) ptr, objSize);
+                python::unlockGIL();
+                ptr += objSize;
+
+                pyObjects.emplace_back(rowNum, pyObject);
+            }
+
+            partition->unlock();
+            partition->invalidate();
+        }
+
+        return pyObjects;
+    }
+
     void LocalBackend::executeTransformStage(tuplex::TransformStage *tstage) {
 
         Timer stageTimer;
@@ -744,7 +772,10 @@ namespace tuplex {
 
         // special case: skip stage, i.e. empty code and mem2mem
         if(tstage->code().empty() && !tstage->fileInputMode() && !tstage->fileOutputMode()) {
-            tstage->setMemoryResult(tstage->inputPartitions());
+            auto pyObjects = deserializePythonObjects(tstage->pythonObjects());
+
+            tstage->setMemoryResult(tstage->inputPartitions(), tstage->inputExceptions(), pyObjects);
+            pyObjects.clear();
             // skip stage
             Logger::instance().defaultLogger().info("[Transform Stage] skipped stage " + std::to_string(tstage->number()) + " because there is nothing todo here.");
             return;
@@ -862,10 +893,9 @@ namespace tuplex {
         // => there are fallback mechanisms...
 
         bool executeSlowPath = true;
-
         //TODO: implement pure python resolution here...
         // exceptions found or slowpath data given?
-        if(totalECountsBeforeResolution > 0 || !tstage->inputExceptions().empty()) {
+        if(totalECountsBeforeResolution > 0 || !tstage->inputExceptions().empty() || !tstage->pythonObjects().empty()) {
             stringstream ss;
             // log out what exists in a table
             ss<<"Exception details: "<<endl;
@@ -895,6 +925,14 @@ namespace tuplex {
                     numSlowPath += p->getNumRows();
                 lines.push_back(Row("(cached)", exceptionCodeToPythonClass(ExceptionCode::NORMALCASEVIOLATION), (int64_t)numSlowPath));
                 totalECountsBeforeResolution += numSlowPath;
+            }
+
+            if(!tstage->pythonObjects().empty()) {
+                size_t numPyObjs = 0;
+                for (auto &p : tstage->pythonObjects())
+                    numPyObjs += p->getNumRows();
+                lines.push_back(Row("(parallelize)", exceptionCodeToPythonClass(ExceptionCode::NORMALCASEVIOLATION), (int64_t)numPyObjs));
+                totalECountsBeforeResolution += numPyObjs;
             }
 
             printTable(ss, headers, lines, false);
@@ -931,7 +969,7 @@ namespace tuplex {
                 executeSlowPath = true;
 
             // input exceptions or py objects?
-            if(!tstage->inputExceptions().empty())
+            if(!tstage->inputExceptions().empty() || !tstage->pythonObjects().empty())
                 executeSlowPath = true;
 
             if(executeSlowPath) {
@@ -1395,6 +1433,48 @@ namespace tuplex {
                                                      csvQuotechar,
                                                      functor,
                                                      pip_object);
+
+                // to implement, store i.e. tables within tasks...
+                rtask->setHybridIntermediateHashTables(tstage->predecessors().size(), input_intermediates.hybrids);
+
+                rtask->setOrder(maxOrder); // this is arbitrary, just put the slow path rows at the end
+                // hash output?
+                if(hashOutput) {
+                    if (tstage->hashtableKeyByteWidth() == 8) {
+                        auto h = tstage->dataAggregationMode();
+                        rtask->sinkOutputToHashTable(HashTableFormat::UINT64, tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType());
+                    } else {
+                        rtask->sinkOutputToHashTable(HashTableFormat::BYTES, tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType());
+                    }
+                }
+                resolveTasks.push_back(rtask);
+            }
+        }
+
+        if(!tstage->pythonObjects().empty()) {
+            // add into ops to check the dummy 0 which is used in Caching tasks...
+            opsToCheck.push_back(0);
+
+            // @TODO: no support for this yet... -> it might be complicated because of filters & Co to figure out the right row numbers...
+            assert(!merge_rows_in_order);
+            for(auto& p : tstage->pythonObjects()) {
+                maxOrder.back()++;
+
+                auto rtask = new ResolveTask(stageID,
+                                             std::vector<Partition*>(),
+                                             vector<Partition*>{p},
+                                             opsToCheck,
+                                             tstage->inputSchema(),
+                                             compiledSlowPathOutputSchema,
+                                             targetNormalCaseOutputSchema,
+                                             targetGeneralCaseOutputSchema,
+                                             true,
+                                             allowNumericTypeUnification,
+                                             outFormat,
+                                             csvDelimiter,
+                                             csvQuotechar,
+                                             functor,
+                                             pip_object);
 
                 // to implement, store i.e. tables within tasks...
                 rtask->setHybridIntermediateHashTables(tstage->predecessors().size(), input_intermediates.hybrids);

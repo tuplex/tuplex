@@ -363,6 +363,7 @@ default:
         switch(ec) {
             case ExceptionCode::BADPARSE_STRING_INPUT:
             case ExceptionCode::NORMALCASEVIOLATION:
+            case ExceptionCode::PYTHON_PARALLELIZE:
                 return true;
             default:
                 return false;
@@ -459,6 +460,10 @@ default:
                 tuple = python::rowToPython(row, true);
                 parse_cells = false;
                 // called below...
+            } else if (ecCode == ecToI64(ExceptionCode::PYTHON_PARALLELIZE)) {
+                auto pyObj = python::deserializePickledObject(python::getMainModule(), (char *) ebuf, eSize);
+                tuple = pyObj;
+                parse_cells = false;
             } else {
                 // normal case, i.e. an exception occurred somewhere.
                 // --> this means if pipeline is using string as input, we should convert

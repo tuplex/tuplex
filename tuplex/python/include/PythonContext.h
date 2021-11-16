@@ -89,6 +89,14 @@ namespace tuplex {
         DataSet &parallelizeAnyType(boost::python::list &L, const python::Type &majType,
                                     const std::vector<std::string> &columns);
 
+        /*!
+         * serialize exceptions into partitions with pickled PyObjects
+         * @param exceptions map of row index to exception
+         * @param opID parallelize operator ID
+         * @return vector of exception partitions
+         */
+        std::vector<Partition *> serializeExceptions(std::vector<std::tuple<size_t, PyObject *>> exceptions, int64_t opID);
+
         python::Type inferType(const boost::python::list &L) const;
 
         /*!

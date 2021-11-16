@@ -47,6 +47,15 @@ CURL* RESTInterface::getCurlHandle() {
     // curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT_MS, timeout);
     // curl_easy_setopt(handle, CURLOPT_ACCEPTTIMEOUT_MS, timeout);
 
+    // important to set timeouts, else this will hang forever...
+    auto timeout = 2000L; // 2s
+    curl_easy_setopt(handle, CURLOPT_TIMEOUT_MS, timeout); // request timeout
+    curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT_MS, 500L); // connect timeout
+
+    // turn signals off because of multi-threaded context
+    // check CurlHandleContainer.cpp in AWS SDK C++ for inspiration
+    curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1L);
+
 #ifndef NDEBUG
     // curl_easy_setopt(_handle, CURLOPT_VERBOSE, 1L);
 #endif

@@ -183,10 +183,12 @@ class Context:
             ensure_webui(options)
 
         # last arg are the options as json string serialized b.c. of boost python problems
+        logging.debug('Creating C++ context object')
         self._context = _Context(name, runtime_path, json.dumps(options))
-        pyth_metrics = self._context.getMetrics()
-        assert pyth_metrics
-        self.metrics = Metrics(pyth_metrics)
+        logging.debug('C++ object created.')
+        python_metrics = self._context.getMetrics()
+        assert python_metrics, 'internal error: metrics object should be valid'
+        self.metrics = Metrics(python_metrics)
         assert self.metrics
 
     def parallelize(self, value_list, columns=None, schema=None):

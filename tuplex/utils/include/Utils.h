@@ -557,6 +557,23 @@ namespace tuplex {
 
         return ss.str();
     }
+
+
+    template <typename ...Args> void tuplex_trace_func(int line, const char* fileName, Args&& ...args) {
+#ifndef NDEBUG
+        std::ostringstream stream;
+        stream<<fileName<<":"<<line<<": ";
+        (stream << ... << std::forward<Args>(args))<<"\n";
+
+        // which file?
+        // fprintf(stderr)?
+        std::cerr<<stream.str()<<std::endl;
+        std::cerr.flush();
+#endif
+    }
 }
+
+// define trace macro
+#define TUPLEX_TRACE(...) tuplex_trace_func(__LINE__, __FILE__, __VA_ARGS__)
 
 #endif //TUPLEX_UTILS_H

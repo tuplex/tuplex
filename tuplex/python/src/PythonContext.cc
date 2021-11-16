@@ -1191,6 +1191,8 @@ namespace tuplex {
 
         using namespace std;
 
+        TUPLEX_TRACE("entering PythonContext");
+
         // checkPythonVersion();
 
         ContextOptions co = ContextOptions::defaults();
@@ -1203,7 +1205,6 @@ namespace tuplex {
 
         if(runtimeLibraryPath.length() > 0)
             co.set("tuplex.runTimeLibrary", runtimeLibraryPath);
-
 
         co = updateOptionsWithDict(co, options);
 
@@ -1224,6 +1225,8 @@ namespace tuplex {
             throw PythonException("Could not find runtime library under " + co.get("tuplex.runTimeLibrary"));
         }
 
+        TUPLEX_TRACE("Found Runtime in ", uri.toString());
+
         // store explicitly uri in context options so no searching happens anymore
         Logger::instance().defaultLogger().debug("Using runtime library from  " + uri.toPath());
         co.set("tuplex.runTimeLibrary", uri.toPath());
@@ -1233,7 +1236,9 @@ namespace tuplex {
         python::unlockGIL();
         std::string err_message = ""; // leave this as empty string!
         try {
+            TUPLEX_TRACE("Initializing C++ object");
             _context = new Context(co);
+            TUPLEX_TRACE("C++ context created");
             if(!name.empty())
                 _context->setName(name);
         } catch(const std::exception& e) {

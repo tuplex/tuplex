@@ -65,13 +65,15 @@ namespace tuplex {
         // connect to history server if given
         if(options.USE_WEBUI()) {
 
+            TUPLEX_TRACE("initializing REST/Curl interface");
             // init rest interface if required (check if already done by AWS!)
             RESTInterface::init();
-
+            TUPLEX_TRACE("creating history server connector");
             _historyConn = HistoryServerConnector::connect(options.WEBUI_HOST(),
                                                            options.WEBUI_PORT(),
                                                            options.WEBUI_DATABASE_HOST(),
                                                            options.WEBUI_DATABASE_PORT());
+            TUPLEX_TRACE("connection established");
         }
 
         // init local threads

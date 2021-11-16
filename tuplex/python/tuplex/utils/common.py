@@ -358,31 +358,40 @@ def logging_callback(level, time_info, logger_name, msg):
     :param msg: message to display
     :return: None
     """
-    # convert level to logging levels
-    if 0 == level: # unsupported level in C++
-        level = logging.INFO
-    if 1 == level: # trace in C++
-        level = logging.DEBUG
-    if 2 == level:
-        level = logging.DEBUG
-    if 3 == level:
-        level = logging.INFO
-    if 4 == level:
-        level = logging.WARNING
-    if 5 == level:
-        level = logging.ERROR
-    if 6 == level:
-        level = logging.CRITICAL
 
-    pathname=None
-    lineno=None
-    ct = iso8601.parse_date(time_info).timestamp()
+    print(level, time_info, logger_name, msg)
 
-    log_record = logging.LogRecord(logger_name, level, pathname, lineno, msg, None, None)
-    log_record.created = ct
-    log_record.msecs = (ct - int(ct)) * 1000
-    log_record.relativeCreated = log_record.created - logging._startTime
-    logging.getLogger(logger_name).handle(log_record)
+    # # convert level to logging levels
+    # if 0 == level: # unsupported level in C++
+    #     level = logging.INFO
+    # if 1 == level: # trace in C++
+    #     level = logging.DEBUG
+    # if 2 == level:
+    #     level = logging.DEBUG
+    # if 3 == level:
+    #     level = logging.INFO
+    # if 4 == level:
+    #     level = logging.WARNING
+    # if 5 == level:
+    #     level = logging.ERROR
+    # if 6 == level:
+    #     level = logging.CRITICAL
+    #
+    # pathname=None
+    # lineno=None
+    # ct = iso8601.parse_date(time_info).timestamp()
+    #
+    # # fix pathname/lineno
+    # if pathname is None:
+    #     pathname = ''
+    # if lineno is None:
+    #     linecache = 0
+    #
+    # log_record = logging.LogRecord(logger_name, level, pathname, lineno, msg, None, None)
+    # log_record.created = ct
+    # log_record.msecs = (ct - int(ct)) * 1000
+    # log_record.relativeCreated = log_record.created - logging._startTime
+    # logging.getLogger(logger_name).handle(log_record)
 
 
 ## WebUI helper functions
@@ -477,23 +486,29 @@ def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history'
     connect_successful = False
     logging.debug('Attempting to contact MongoDB under {}'.format(uri))
 
+    connect_try = 1
     while abs(time.time() - start_time) < timeout:
+        logging.debug('MongoDB connection try {}...'.format(connect_try))
         try:
             # set client connection to super low timeouts so the wait is not too long.
             client = MongoClient(uri, serverSelectionTimeoutMS=100, connectTimeoutMS=1000)
             info = client.server_info()  # force a call to mongodb, alternative is client.admin.command('ismaster')
             connect_successful = True
         except Exception as e:
-            pass
+            logging.debug('Connection try {} produced {} exception {}'.format(connect_try, type(e), str(e)))
 
         if connect_successful:
             timeout = 0
             break
+
         time.sleep(0.05)  # sleep for 50ms
         logging.debug('Contacting MongoDB under {}... -- {:.2f}s of poll time left'.format(uri, timeout - (time.time() - start_time)))
+        connect_try += 1
 
     if connect_successful is False:
         raise Exception('Could not connect to MongoDB, check network connection. (ping must be < 100ms)')
+
+    logging.debug('Connection test to MongoDB succeeded')
 
 def shutdown_process_via_kill(pid):
     """
@@ -533,6 +548,8 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
 
         # is mongod running on local machine?
         if is_process_running('mongod'):
+            logging.debug('Found locally running MongoDB daemon process')
+
             # process is running, try to connect
             check_mongodb_connection(mongodb_url, mongodb_port, db_name)
         else:
@@ -586,8 +603,8 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
                     logging.error('Could not find MongoDB log under {}. Permission error?'.format(mongodb_logpath))
 
                 raise e
-
-        check_mongodb_connection(mongodb_url, mongodb_port, db_name)
+            logging.debug("Attempting to connect to freshly started MongoDB daemon...")
+            check_mongodb_connection(mongodb_url, mongodb_port, db_name)
     else:
         # remote MongoDB
         logging.debug('Connecting to remote MongoDB instance')
@@ -788,12 +805,16 @@ def ensure_webui(options):
     webui_port =  options['tuplex.webui.port']
 
     try:
+        logging.debug('finding MongoDB...')
         find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_logpath)
 
         mongo_uri = mongodb_uri(mongodb_url, mongodb_port)
 
+        logging.debug('finding WebUI..')
         # now it's time to do the same thing for the WebUI (and also check it's version v.s. the current one!)
         version_info = find_or_start_webui(mongo_uri, webui_url, webui_port, gunicorn_logpath)
+
+        logging.debug('WebUI services found or started!')
 
         # check that version of WebUI and Tuplex version match
         assert __version__ == 'dev' or version_info['version'] == __version__, 'Version of Tuplex WebUI and Tuplex do not match'

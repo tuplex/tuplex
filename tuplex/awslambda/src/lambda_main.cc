@@ -14,6 +14,7 @@
 #include <VirtualFileSystem.h>
 #include <Timer.h>
 #include <aws/core/Aws.h>
+#include <aws/core/platform/Environment.h>
 #include <JITCompiler.h>
 #include <StringUtils.h>
 #include <RuntimeInterface.h>

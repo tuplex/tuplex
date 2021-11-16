@@ -349,6 +349,28 @@ def stringify_dict(d):
     assert isinstance(d, dict), 'd must be a dictionary'
     return {str(key) : str(val) for key, val in d.items()}
 
+def registerLoggingCallback(callback):
+    """
+    register a custom logging callback function with tuplex
+    Args:
+        callback: callback to register
+
+    Returns:
+        None
+    """
+    from ..libexec.tuplex import registerLoggingCallback as ccRegister
+
+    # create a wrapper to capture exceptions properly and avoid crashing
+    def wrapper(level, time_info, logger_name, msg):
+        args = (level, time_info, logger_name, msg)
+
+        try:
+            callback(*args)
+        except Exception as e:
+            logging.error("logging callback produced following error: {}".format(e))
+
+    ccRegister(wrapper)
+
 def logging_callback(level, time_info, logger_name, msg):
     """
     this is a callback function which can be used to redirect C++ logging to python logging.
@@ -359,39 +381,37 @@ def logging_callback(level, time_info, logger_name, msg):
     :return: None
     """
 
-    print(level, time_info, logger_name, msg)
+    # convert level to logging levels
+    if 0 == level: # unsupported level in C++
+        level = logging.INFO
+    if 1 == level: # trace in C++
+        level = logging.DEBUG
+    if 2 == level:
+        level = logging.DEBUG
+    if 3 == level:
+        level = logging.INFO
+    if 4 == level:
+        level = logging.WARNING
+    if 5 == level:
+        level = logging.ERROR
+    if 6 == level:
+        level = logging.CRITICAL
 
-    # # convert level to logging levels
-    # if 0 == level: # unsupported level in C++
-    #     level = logging.INFO
-    # if 1 == level: # trace in C++
-    #     level = logging.DEBUG
-    # if 2 == level:
-    #     level = logging.DEBUG
-    # if 3 == level:
-    #     level = logging.INFO
-    # if 4 == level:
-    #     level = logging.WARNING
-    # if 5 == level:
-    #     level = logging.ERROR
-    # if 6 == level:
-    #     level = logging.CRITICAL
-    #
-    # pathname=None
-    # lineno=None
-    # ct = iso8601.parse_date(time_info).timestamp()
-    #
-    # # fix pathname/lineno
-    # if pathname is None:
-    #     pathname = ''
-    # if lineno is None:
-    #     linecache = 0
-    #
-    # log_record = logging.LogRecord(logger_name, level, pathname, lineno, msg, None, None)
-    # log_record.created = ct
-    # log_record.msecs = (ct - int(ct)) * 1000
-    # log_record.relativeCreated = log_record.created - logging._startTime
-    # logging.getLogger(logger_name).handle(log_record)
+    pathname = None
+    lineno = None
+    ct = iso8601.parse_date(time_info).timestamp()
+
+    # fix pathname/lineno
+    if pathname is None:
+        pathname = ''
+    if lineno is None:
+        lineno = 0
+
+    log_record = logging.LogRecord(logger_name, level, pathname, lineno, msg, None, None)
+    log_record.created = ct
+    log_record.msecs = (ct - int(ct)) * 1000
+    log_record.relativeCreated = log_record.created - logging._startTime
+    logging.getLogger(logger_name).handle(log_record)
 
 
 ## WebUI helper functions

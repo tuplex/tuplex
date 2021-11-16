@@ -11,13 +11,13 @@
 
 import logging
 
-from .libexec.tuplex import _Context, _DataSet, getDefaultOptionsAsJSON, registerLoggingCallback
+from .libexec.tuplex import _Context, _DataSet, getDefaultOptionsAsJSON
 from .dataset import DataSet
 import os
 import glob
 import sys
 import cloudpickle
-from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui, pythonize_options, logging_callback
+from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui, pythonize_options, logging_callback, registerLoggingCallback
 import uuid
 import json
 from .metrics import Metrics

@@ -75,9 +75,6 @@ static bool initAWSSDK() {
         Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
             "tuplex",
             Aws::Utils::Logging::LogLevel::Trace));
-        Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
-            "tuplex",
-            Aws::Utils::Logging::LogLevel::Trace));
 #endif
         isAWSInitialized = true;
     }

@@ -455,7 +455,7 @@ def mongodb_uri(mongodb_url, mongodb_port, db_name='tuplex-history'):
     """
     return 'mongodb://{}:{}/{}'.format(mongodb_url, mongodb_port, db_name)
 
-def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history', timeout=10):
+def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history', timeout=10.0):
     """
     connects to a MongoDB database instance, raises exception if connection fails
     Args:
@@ -475,7 +475,9 @@ def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history'
 
     start_time = time.time()
     connect_successful = False
-    while time.time() - start_time < timeout:
+    logging.debug('Attempting to contact MongoDB under {}'.format(uri))
+
+    while abs(time.time() - start_time) < timeout:
         try:
             # set client connection to super low timeouts so the wait is not too long.
             client = MongoClient(uri, serverSelectionTimeoutMS=100, connectTimeoutMS=1000)
@@ -485,6 +487,7 @@ def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history'
             pass
 
         if connect_successful:
+            timeout = 0
             break
         time.sleep(0.05)  # sleep for 50ms
         logging.debug('Contacting MongoDB under {}... -- {:.2f}s of poll time left'.format(uri, timeout - (time.time() - start_time)))
@@ -566,13 +569,28 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
 
             except Exception as e:
                 logging.error('Failed to start MongoDB daemon. Details: {}'.format(str(e)))
+
+                # print out first 10 and last 10 lines of mongodb log if exists
+                n_to_print = 15
+                mongodb_logpath = str(mongodb_logpath)
+                if os.path.isfile(mongodb_logpath):
+                    with open(mongodb_logpath, 'r') as fp_mongo:
+                        lines = list(map(lambda line: line.strip(), fp_mongo.readlines()))
+                        shortened_log = ''
+                        if len(lines) > 2 * n_to_print:
+                            shortened_log = '\n'.join(lines[:n_to_print]) + '...\n' + '\n'.join(lines[-n_to_print:])
+                        else:
+                            shortened_log = '\n'.join(lines)
+                        logging.error('MongoDB daemon log:\n{}'.format(shortened_log))
+                else:
+                    logging.error('Could not find MongoDB log under {}. Permission error?'.format(mongodb_logpath))
+
                 raise e
 
         check_mongodb_connection(mongodb_url, mongodb_port, db_name)
     else:
         # remote MongoDB
         logging.debug('Connecting to remote MongoDB instance')
-
         check_mongodb_connection(mongodb_url, mongodb_port, db_name)
 
 def log_gunicorn_errors(logpath):

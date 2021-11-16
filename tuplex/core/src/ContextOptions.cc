@@ -248,7 +248,7 @@ namespace tuplex {
                      {"tuplex.network.caFile", ""},
                      {"tuplex.network.caPath", ""},
                      {"tuplex.network.verifySSL", "false"},  // if default is going to be changed to true, ship cacert.pem from Amazon to avoid issues.
-                     {"tuplex.redirectToPythonLogging", "true"}};
+                     {"tuplex.redirectToPythonLogging", "false"}};
 #else
         // DEBUG options
         co._store = {{"tuplex.useLLVMOptimizer", "false"},
@@ -302,7 +302,7 @@ namespace tuplex {
                      {"tuplex.network.caFile", ""},
                      {"tuplex.network.caPath", ""},
                      {"tuplex.network.verifySSL", "false"},
-                     {"tuplex.redirectToPythonLogging", "true"}};
+                     {"tuplex.redirectToPythonLogging", "false"}}; // experimental feature, deactivate for now.
 #endif
 
         // update with tuplex env

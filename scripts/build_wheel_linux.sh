@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# (c) 2021 Tuplex team
 # this script invokes the cibuildwheel process with necessary env variables to build the wheel for linux/docker
 
 # check from where script is invoked

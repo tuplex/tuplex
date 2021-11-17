@@ -87,6 +87,12 @@ namespace tuplex {
                     PyTuple_SET_ITEM(args, 2, py_logger);
                     PyTuple_SET_ITEM(args, 3, py_msg);
 
+                    Py_XINCREF(_pyFunctor);
+                    Py_XINCREF(args);
+                    Py_XINCREF(py_lvl);
+                    Py_XINCREF(py_logger);
+                    Py_XINCREF(py_msg);
+
                     PyObject_Call(_pyFunctor, args, nullptr);
                     if(PyErr_Occurred()) {
                         PyErr_Print();

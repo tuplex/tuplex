@@ -27,6 +27,7 @@ namespace tuplex {
         // add new sink to loggers with this function
         python::unlockGIL();
         try {
+            Py_XINCREF(functor_obj);
             // this replaces current logging scheme with python only redirect...
             Logger::instance().init({std::make_shared<no_gil_python3_sink_mt>(functor_obj)});
         } catch(const std::exception& e) {

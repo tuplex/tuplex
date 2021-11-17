@@ -2,7 +2,7 @@ find_package(Java QUIET COMPONENTS Runtime)
 
 if(NOT ANTLR_EXECUTABLE)
   find_program(ANTLR_EXECUTABLE
-               NAMES antlr.jar antlr4.jar antlr-4.jar antlr-4.7.2-complete.jar)
+               NAMES antlr.jar antlr4.jar antlr-4.jar antlr-4.8-complete.jar)
 endif()
 
 if(ANTLR_EXECUTABLE AND Java_JAVA_EXECUTABLE)
@@ -102,18 +102,20 @@ if(ANTLR_EXECUTABLE AND Java_JAVA_EXECUTABLE)
     endif()
 
     # remove antlr output dir first (else failure on certain systems)
+    # note that ; needs to be escaped via $<SEMICOLON> in Cmake
     add_custom_command(
-        OUTPUT ${ANTLR_${Name}_OUTPUTS}
-        COMMAND if [ -d ${ANTLR_${Name}_OUTPUT_DIR} ]; then rm -rf ${ANTLR_${Name}_OUTPUT_DIR} ; fi && ${Java_JAVA_EXECUTABLE} -jar ${ANTLR_EXECUTABLE}
-                ${InputFile}
-                -o ${ANTLR_${Name}_OUTPUT_DIR}
-                -no-listener
-                -Dlanguage=Cpp
-                ${ANTLR_TARGET_COMPILE_FLAGS}
-        DEPENDS ${InputFile}
-                ${ANTLR_TARGET_DEPENDS}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Building ${Name} with ANTLR ${ANTLR_VERSION}")
+            OUTPUT ${ANTLR_${Name}_OUTPUTS}
+            COMMAND if [ -d ${ANTLR_${Name}_OUTPUT_DIR} ] $<SEMICOLON> then rm -rf "${ANTLR_${Name}_OUTPUT_DIR}" $<SEMICOLON> fi && ${Java_JAVA_EXECUTABLE} -jar ${ANTLR_EXECUTABLE}
+            ${InputFile}
+            -o ${ANTLR_${Name}_OUTPUT_DIR}
+            -no-listener
+            -Dlanguage=Cpp
+            ${ANTLR_TARGET_COMPILE_FLAGS}
+            DEPENDS ${InputFile}
+            ${ANTLR_TARGET_DEPENDS}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMENT "Building ${Name} with ANTLR ${ANTLR_VERSION}")
+  endmacro(ANTLR_TARGET)
   endmacro(ANTLR_TARGET)
 
 endif(ANTLR_EXECUTABLE AND Java_JAVA_EXECUTABLE)

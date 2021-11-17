@@ -104,7 +104,7 @@ if(ANTLR_EXECUTABLE AND Java_JAVA_EXECUTABLE)
     # remove antlr output dir first (else failure on certain systems)
     add_custom_command(
         OUTPUT ${ANTLR_${Name}_OUTPUTS}
-        COMMAND if [ -d ${ANTLR_${Name}_OUTPUT_DIR} ]; then rm -rf ${ANTLR_${Name}_OUTPUT_DIR}; fi && ${Java_JAVA_EXECUTABLE} -jar ${ANTLR_EXECUTABLE}
+        COMMAND if [ -d ${ANTLR_${Name}_OUTPUT_DIR} ]; then rm -rf ${ANTLR_${Name}_OUTPUT_DIR} ; fi && ${Java_JAVA_EXECUTABLE} -jar ${ANTLR_EXECUTABLE}
                 ${InputFile}
                 -o ${ANTLR_${Name}_OUTPUT_DIR}
                 -no-listener

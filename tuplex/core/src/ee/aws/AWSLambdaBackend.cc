@@ -98,8 +98,20 @@ namespace tuplex {
 
         // to avoid thread exhaust of system, use pool thread executor with 8 threads
         clientConfig.executor = Aws::MakeShared<Aws::Utils::Threading::PooledThreadExecutor>(_tag.c_str(), _options.AWS_NUM_HTTP_THREADS());
-        clientConfig.region = _options.AWS_REGION().c_str(); // hard-coded here
-        clientConfig.scheme = Aws::Http::Scheme::HTTPS;
+        if(_options.AWS_REGION().empty())
+            clientConfig.region = _credentials.default_region.c_str();
+        else
+            clientConfig.region = _options.AWS_REGION().c_str(); // hard-coded here
+
+        // verify zone
+        if(!isValidAWSZone(clientConfig.region.c_str())) {
+            logger().warn("Specified AWS zone '" + std::string(clientConfig.region.c_str()) + "' is not a valid AWS zone. Defaulting to " + _credentials.default_region + " zone.");
+            clientConfig.region = _credentials.default_region.c_str();
+        }
+
+        //clientConfig.userAgent = "tuplex"; // should be perhaps set as well.
+        auto ns = _options.AWS_NETWORK_SETTINGS();
+        applyNetworkSettings(ns, clientConfig);
 
         // change aws settings here
         Aws::Auth::AWSCredentials cred(_credentials.access_key.c_str(), _credentials.secret_key.c_str());
@@ -241,6 +253,8 @@ namespace tuplex {
 
     void AwsLambdaBackend::execute(PhysicalStage *stage) {
         using namespace std;
+
+        reset();
 
         auto tstage = dynamic_cast<TransformStage *>(stage);
         if (!tstage)
@@ -573,7 +587,7 @@ namespace tuplex {
         // if(options.SCRATCH_DIR().prefix() != "s3://") // @TODO: check further it's a dir...
         //     throw std::runtime_error("need to provide as scratch dir an s3 path to Lambda backend");
 
-        initAWS(credentials, options.AWS_REQUESTER_PAY());
+        initAWS(credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
 
         // several options are NOT supported currently in AWS Lambda Backend, hence
         // force them to what works
@@ -871,5 +885,11 @@ namespace tuplex {
         return hints;
     }
 
+    void AwsLambdaBackend::reset() {
+        _tasks.clear();
+        _infos.clear();
+
+        // other reset? @TODO.
+    }
 }
 #endif

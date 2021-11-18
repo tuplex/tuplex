@@ -24,15 +24,16 @@
 namespace tuplex {
     void SampleProcessor::releasePythonObjects() {
 
-        assert(python::isInterpreterRunning());
-        python::lockGIL();
+        if(python::isInterpreterRunning()) {
+            python::lockGIL();
 
-        // release UDFs
-        for(auto keyval : _TUPLEXs) {
-            Py_XDECREF(keyval.second);
+            // release UDFs
+            for(auto keyval : _TUPLEXs) {
+                Py_XDECREF(keyval.second);
+            }
+
+            python::unlockGIL();
         }
-
-        python::unlockGIL();
 
         _TUPLEXs.clear();
     }

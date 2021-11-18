@@ -50,6 +50,8 @@ namespace std {
 #include <tuple>
 #include <cstdint>
 
+#include "Network.h"
+
 static_assert(__cplusplus >= 201402L, "need at least C++ 14 to compile this file");
 // check https://blog.galowicz.de/2016/02/20/short_file_macro/
 // for another cool macro
@@ -533,6 +535,45 @@ namespace tuplex {
         }
         return -1;
     }
+
+    /*!
+     * converts a timepoint to an ISO8601 date.
+     * @param tp
+     * @return string with ISO8601 formatting
+     */
+    inline std::string chronoToISO8601(const std::chrono::time_point<std::chrono::system_clock>& tp) {
+
+        // cf. https://stackoverflow.com/questions/24686846/get-current-time-in-milliseconds-or-hhmmssmmm-format/35157784#35157784
+
+        std::time_t time = std::chrono::system_clock::to_time_t(tp);
+        std::tm* now_tm = std::localtime(&time);
+        long long timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count();
+        std::ostringstream ss;
+        ss << std::setfill('0')
+                  << std::put_time(now_tm, "%FT%H:%M:")
+                  << std::setw(2) << (timestamp / 1000) % 60 << '.'
+                  << std::setw(3) << timestamp % 1000
+                  << std::put_time(now_tm, "%z");
+
+        return ss.str();
+    }
+
+
+    template <typename ...Args> void tuplex_trace_func(int line, const char* fileName, Args&& ...args) {
+#ifndef NDEBUG
+//        std::ostringstream stream;
+//        stream<<fileName<<":"<<line<<": ";
+//        (stream << ... << std::forward<Args>(args))<<"\n";
+//
+//        // which file?
+//        // fprintf(stderr)?
+//        std::cerr<<stream.str()<<std::endl;
+//        std::cerr.flush();
+#endif
+    }
 }
+
+// define trace macro
+#define TUPLEX_TRACE(...) tuplex_trace_func(__LINE__, __FILE__, __VA_ARGS__)
 
 #endif //TUPLEX_UTILS_H

@@ -14,6 +14,7 @@
 #include <VirtualFileSystem.h>
 #include <Timer.h>
 #include <aws/core/Aws.h>
+#include <aws/core/platform/Environment.h>
 #include <JITCompiler.h>
 #include <StringUtils.h>
 #include <RuntimeInterface.h>
@@ -75,7 +76,14 @@ void global_init() {
     Timer timer;
     Aws::InitAPI(g_aws_options);
     std::string caFile = "/etc/pki/tls/certs/ca-bundle.crt";
-    VirtualFileSystem::addS3FileSystem("", "", caFile, true, true);
+
+    NetworkSettings ns;
+    ns.verifySSL = true;
+    ns.caFile = caFile;
+
+    // get region from AWS_REGION env
+    auto region = Aws::Environment::GetEnv("AWS_REGION");
+    VirtualFileSystem::addS3FileSystem("", "", region.c_str(), ns, true, true);
     g_aws_init_time = timer.time();
 
     // Note that runtime must be initialized BEFORE compiler due to linking
@@ -97,6 +105,10 @@ void global_cleanup() {
 
     python::closeInterpreter();
     runtime::freeRunTimeMemory();
+
+    // shutdown logging...
+    // Aws::Utils::Logging::ShutdownAWSLogging();
+
     Aws::ShutdownAPI(g_aws_options);
 }
 

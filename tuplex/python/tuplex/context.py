@@ -17,7 +17,7 @@ import os
 import glob
 import sys
 import cloudpickle
-from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui, pythonize_options
+from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui, pythonize_options, logging_callback, registerLoggingCallback
 import uuid
 import json
 from .metrics import Metrics
@@ -93,10 +93,24 @@ class Context:
         # pass configuration options
         # (1) check if conf is a dictionary or a string
         options = dict()
+
+        # put meaningful defaults for special environments...
+        if in_google_colab():
+            logging.debug('Detected Google Colab environment, adjusting options...')
+
+            # do not use a lot of memory, restrict...
+            options['tuplex.driverMemory'] = '64MB'
+            options['tuplex.executorMemory'] = '64MB'
+            options['tuplex.inputSplitSize'] = '16MB'
+            options['tuplex.partitionSize'] = '4MB'
+            options['tuplex.runTimeMemory'] = '16MB'
+            options['tuplex.webui.enable'] = False
+
         if conf:
             if isinstance(conf, str):
                 # need to load yaml file
-                options = flatten_dict(load_conf_yaml(conf))
+                loaded_options = flatten_dict(load_conf_yaml(conf))
+                options.update(loaded_options)
             elif isinstance(conf, dict):
                 # update dict with conf
                 options.update(flatten_dict(conf))
@@ -127,12 +141,33 @@ class Context:
         if 'tuplex.runTimeLibrary' in options:
             runtime_path = options['tuplex.runTimeLibrary']
 
+        # normalize keys to be of format tuplex.<key>
+        supported_keys = json.loads(getDefaultOptionsAsJSON()).keys()
+        key_set = set(options.keys())
+        for k in key_set:
+            if k not in supported_keys and 'tuplex.' + k in supported_keys:
+                options['tuplex.' + k] = options[k]
+
+        # check if redirect to python logging module should happen or not
+        if 'tuplex.redirectToPythonLogging' in options.keys():
+            py_opts = pythonize_options(options)
+            if py_opts['tuplex.redirectToPythonLogging']:
+                logging.info('Redirecting C++ logging to Python')
+                registerLoggingCallback(logging_callback)
+        else:
+            # check what default options say
+            defaults = pythonize_options(json.loads(getDefaultOptionsAsJSON()))
+            if defaults['tuplex.redirectToPythonLogging']:
+                logging.info('Redirecting C++ logging to Python')
+                registerLoggingCallback(logging_callback)
+
         # autostart mongodb & history server if they are not running yet...
         # deactivate webui for google colab per default
         if 'tuplex.webui.enable' not in options:
             # for google colab env, disable webui per default.
             if in_google_colab():
                 options['tuplex.webui.enable'] = False
+
         # fetch default options for webui ...
         webui_options = {k: v for k, v in json.loads(getDefaultOptionsAsJSON()).items() if 'webui' in k or 'scratch' in k}
 
@@ -148,10 +183,12 @@ class Context:
             ensure_webui(options)
 
         # last arg are the options as json string serialized b.c. of boost python problems
+        logging.debug('Creating C++ context object')
         self._context = _Context(name, runtime_path, json.dumps(options))
-        pyth_metrics = self._context.getMetrics()
-        assert pyth_metrics
-        self.metrics = Metrics(pyth_metrics)
+        logging.debug('C++ object created.')
+        python_metrics = self._context.getMetrics()
+        assert python_metrics, 'internal error: metrics object should be valid'
+        self.metrics = Metrics(python_metrics)
         assert self.metrics
 
     def parallelize(self, value_list, columns=None, schema=None):

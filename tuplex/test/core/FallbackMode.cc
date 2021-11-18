@@ -130,6 +130,8 @@ TEST_F(FallbackTest, NonAccessedPyObjectInPipeline) {
     EXPECT_EQ(v[0].getInt(0), 30);
     EXPECT_EQ(v[1].getInt(0), 33);
 
+    std::cout<<"starting tuple flattening test..."<<std::endl; std::cout.flush();
+
     // because of the tuple flattening, nesting should work as well!
     auto v2 = c.parallelize({Row(10, 20, f), Row(30, 3, f)})
             .map(UDF("lambda a, b, c: (a + b, (c, b))"))

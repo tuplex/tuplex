@@ -2,6 +2,7 @@
 # top-level setuo file to create package uploadable to pypi.
 # -*- coding: utf-8 -*-
 import os
+import pathlib
 import sys
 import sysconfig as pyconfig
 import subprocess
@@ -13,6 +14,7 @@ import platform
 import shlex
 import shutil
 
+import setuptools
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 from distutils import sysconfig
@@ -21,8 +23,37 @@ import fnmatch
 import re
 import atexit
 
+def in_google_colab():
+    """
+        check whether framework runs in Google Colab environment
+    Returns:
+        True if Tuplex is running in Google Colab
+    """
+    found_colab_package = False
+    try:
+        import google.colab
+        found_colab_package = True
+    except:
+        pass
+
+    shell_name_matching = False
+    try:
+        shell_name_matching =  'google.colab' in str(get_ipython())
+    except:
+        pass
+
+    if found_colab_package or shell_name_matching:
+        return True
+    else:
+        return False
+
 # configure logging here
 logging.basicConfig(level=logging.INFO)
+
+
+# fixes for google colab
+colab_requirements = ['urllib3==1.26.7']
+# urllib3 1.26.7
 
 
 # TODO: add option to install these
@@ -43,22 +74,55 @@ webui_dependencies = [
     'iso8601'
 ]
 
-install_dependencies = [
-    'attrs>=19.2.0',
-    'dill>=0.2.7.1',
-    'pluggy',
-    'py>=1.5.2',
-    'pygments>=2.4.1',
-    'six>=1.11.0',
-    'wcwidth>=0.1.7',
-    'astor',
-    'prompt_toolkit',
-    'jedi',
-    'cloudpickle>=0.6.1',
-    'PyYAML>=3.13',
-    'psutil',
-    'pymongo'
-] + webui_dependencies
+# dependencies for AWS Lambda backend...
+aws_lambda_dependencies = ['boto3']
+
+
+# manual fix for google colab
+if in_google_colab():
+    logging.debug('Building dependencies for Google Colab environment')
+
+    install_dependencies = [
+        'urllib3!=1.25.0,!=1.25.1,<1.26,>=1.21.1',
+        'folium==0.2.1'
+        'requests',
+        'attrs>=19.2.0',
+        'dill>=0.2.7.1',
+        'pluggy',
+        'py>=1.5.2',
+        'pygments>=2.4.1',
+        'six>=1.11.0',
+        'wcwidth>=0.1.7',
+        'astor',
+        'prompt_toolkit',
+        'jedi',
+        'cloudpickle>=0.6.1',
+        'PyYAML>=3.13',
+        'psutil',
+        'pymongo',
+        'boto3',
+        'iso8601'
+    ]
+else:
+    logging.debug('Building dependencies for non Colab environment')
+
+    install_dependencies = [
+        'attrs>=19.2.0',
+        'dill>=0.2.7.1',
+        'pluggy',
+        'py>=1.5.2',
+        'pygments>=2.4.1',
+        'six>=1.11.0',
+        'wcwidth>=0.1.7',
+        'astor',
+        'prompt_toolkit',
+        'jedi',
+        'cloudpickle>=0.6.1',
+        'PyYAML>=3.13',
+        'psutil',
+        'pymongo',
+        'iso8601'
+    ] + webui_dependencies + aws_lambda_dependencies
 
 def ninja_installed():
     # check whether ninja is on the path
@@ -93,6 +157,40 @@ PLAT_TO_CMAKE = {
     "win-arm64": "ARM64",
 }
 
+
+# subclassing both install/develop in order to process custom options
+from setuptools import Command
+import setuptools.command.install
+import setuptools.command.develop
+
+build_config = {'BUILD_TYPE' : 'Release'}
+
+class DevelopCommand(setuptools.command.develop.develop):
+
+    user_options = setuptools.command.develop.develop.user_options + [
+        ('debug', None, 'Create debug version of Tuplex, Release per default'),
+        ('relwithdebinfo', None, 'Create Release With Debug Info version of Tuplex, Release per default')
+    ]
+
+    def initialize_options(self):
+        setuptools.command.develop.develop.initialize_options(self)
+        self.debug = None
+        self.relwithdebinfo = None
+
+    def finalize_options(self):
+        setuptools.command.develop.develop.finalize_options(self)
+
+    def run(self):
+        global build_config
+
+        # update global variables!
+        if self.debug:
+            build_config['BUILD_TYPE'] = 'Debug'
+        if self.relwithdebinfo:
+            build_config['BUILD_TYPE'] = 'RelWithDebInfo'
+
+        setuptools.command.develop.develop.run(self)
+
 # A CMakeExtension needs a sourcedir instead of a file list.
 # The name must be the _single_ output extension from the CMake build.
 # If you need multiple extensions, see scikit-build.
@@ -109,17 +207,52 @@ class CMakeBuild(build_ext):
         ext_filename = ext_filename[ext_filename.rfind('.') + 1:]  # i.e. this is "tuplex"
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
 
+        # for whatever reason below lambda copying doesn't work, hence manually copy to extension dir
+        # extdir = /project/build/lib.linux-x86_64-3.7/tuplex/libexec/ e.g.
+        tplx_lib_root = pathlib.Path(extdir).parent
+
         # required for auto-detection of auxiliary "native" libs
         if not extdir.endswith(os.path.sep):
             extdir += os.path.sep
 
-        cfg = "Debug" if self.debug else "Release"
+        logging.info('Extension dir is: {}'.format(extdir))
+        logging.info('Build temp is: {}'.format(self.build_temp))
 
-        # because still alpha, use RelWithDebInfo
-        cfg = "Debug" if self.debug else "RelWithDebInfo"
+        lambda_zip = os.environ.get('TUPLEX_LAMBDA_ZIP', None)
+        if lambda_zip:
 
-        # force release version
-        cfg = "Release"
+            tplx_src_root = os.path.abspath(os.path.dirname(__file__))
+            tplx_package_root = os.path.join(tplx_src_root, 'tuplex', 'python')
+
+            # check whether file exists under the given directory
+            if not os.path.isfile(lambda_zip):
+                logging.warning('file {} not found'.format(lambda_zip))
+
+                # check if perhaps tplxlam.zip exists relative to source root?
+                alt_path = os.path.join(tplx_package_root, 'tuplex', 'other', 'tplxlam.zip')
+                if os.path.isfile(alt_path):
+                    logging.info('Found tplxlam.zip under {}, using...'.format(alt_path))
+                    lambda_zip = alt_path
+
+            logging.info('Packaging Tuplex Lambda runner')
+
+            # need to copy / link zip file into temp dir
+            # -> this is the root setup.py file, hence find root
+            logging.info('Root path is: {}'.format(tplx_package_root))
+            zip_target = os.path.join(self.build_temp, 'tuplex', 'other')
+            os.makedirs(zip_target, exist_ok=True)
+            zip_dest = os.path.join(zip_target, 'tplxlam.zip')
+            shutil.copyfile(lambda_zip, zip_dest)
+            logging.info('Copied {} to {}'.format(lambda_zip, zip_dest))
+
+            alt_dest = os.path.join(tplx_lib_root, 'other')
+            os.makedirs(alt_dest, exist_ok=True)
+            shutil.copyfile(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip'))
+            logging.info('Copied {} to {} as well'.format(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip')))
+
+        # get from BuildType info
+        cfg = build_config['BUILD_TYPE']
+        logging.info('Building Tuplex in {} mode'.format(cfg))
 
         # CMake lets you override the generator - we need to check this.
         # Can be set with Conda-Build, for example.
@@ -308,12 +441,16 @@ class CMakeBuild(build_ext):
 
         logging.info('configuring cmake with: {}'.format(' '.join(["cmake", ext.sourcedir] + cmake_args)))
         logging.info('compiling with: {}'.format(' '.join(["cmake", "--build", "."] + build_args)))
+
+        build_env = dict(os.environ)
+        logging.info('LD_LIBRARY_PATH is: {}'.format(build_env.get('LD_LIBRARY_PATH', '')))
+
         subprocess.check_call(
-            ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp
+            ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp, env=build_env
         )
         logging.info('configuration done, workdir={}'.format(self.build_temp))
         subprocess.check_call(
-            ["cmake", "--build", "."] + build_args, cwd=self.build_temp
+            ["cmake", "--build", "."] + build_args, cwd=self.build_temp, env=build_env
         )
 
         # this helps to search paths in doubt
@@ -438,6 +575,22 @@ def reorg_historyserver():
 
     return []
 
+def tplx_package_data():
+
+    package_data = {
+      # include libs in libexec
+    'tuplex.libexec' : ['*.so', '*.dylib'],
+    'tuplex.historyserver': ['thserver/templates/*.html', 'thserver/static/css/*.css', 'thserver/static/css/styles/*.css',
+                                 'thserver/static/img/*.*', 'thserver/static/js/*.js', 'thserver/static/js/modules/*.js',
+                                 'thserver/static/js/styles/*.css']
+    }
+
+    # package lambda as well?
+    lambda_zip = os.environ.get('TUPLEX_LAMBDA_ZIP', None)
+    if lambda_zip:
+        package_data['tuplex.other'] = ['*.zip']
+    return package_data
+
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
 setup(name="tuplex",
@@ -451,15 +604,9 @@ setup(name="tuplex",
     long_description_content_type='text/markdown',
     packages=reorg_historyserver() + discover_packages(where="tuplex/python"),
     package_dir={"": "tuplex/python"},
-    package_data={
-      # include libs in libexec
-    'tuplex.libexec' : ['*.so', '*.dylib'],
-        'tuplex.historyserver': ['thserver/templates/*.html', 'thserver/static/css/*.css', 'thserver/static/css/styles/*.css',
-                                 'thserver/static/img/*.*', 'thserver/static/js/*.js', 'thserver/static/js/modules/*.js',
-                                 'thserver/static/js/styles/*.css']
-    },
+    package_data=tplx_package_data(),
     ext_modules=[CMakeExtension("tuplex.libexec.tuplex", "tuplex"), CMakeExtension("tuplex.libexec.tuplex_runtime", "tuplex")],
-    cmdclass={"build_ext": CMakeBuild},
+    cmdclass={"build_ext": CMakeBuild, 'develop': DevelopCommand},
     # deactivate for now, first fix python sources to work properly!
     zip_safe=False,
     install_requires=install_dependencies,

@@ -83,6 +83,7 @@ namespace tuplex {
 
         InvokeInfo parseFromLog(const std::string& log);
 
+        void reset();
 
         URI _scratchDir;
         bool _deleteScratchDirOnShutdown;

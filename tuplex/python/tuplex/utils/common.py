@@ -27,6 +27,7 @@ import shutil
 import psutil
 import subprocess
 import logging
+import iso8601
 import re
 import tempfile
 import time
@@ -116,7 +117,7 @@ def post_json(url, data):
     response = urllib.request.urlopen(req)
     return json.loads(response.read())
 
-def get_json(url):
+def get_json(url, timeout=10):
     """
     perform a GET request to given URL
     Args:
@@ -127,7 +128,7 @@ def get_json(url):
     """
 
     req = urllib.request.Request(url, headers={'content-type': 'application/json'})
-    response = urllib.request.urlopen(req)
+    response = urllib.request.urlopen(req, timeout=timeout)
     return json.loads(response.read())
 
 def in_jupyter_notebook():
@@ -284,8 +285,11 @@ def pythonize_options(options):
         if not isinstance(item, str):
             return item
 
-        if item.lower() == 'true' or item.lower() == 'false':
-            return bool(item)
+        # do not use bool(...) to convert!
+        if item.lower() == 'true':
+            return True
+        if item.lower() == 'false':
+            return False
         try:
             return int(item)
         except:
@@ -345,6 +349,69 @@ def stringify_dict(d):
     assert isinstance(d, dict), 'd must be a dictionary'
     return {str(key) : str(val) for key, val in d.items()}
 
+def registerLoggingCallback(callback):
+    """
+    register a custom logging callback function with tuplex
+    Args:
+        callback: callback to register
+
+    Returns:
+        None
+    """
+    from ..libexec.tuplex import registerLoggingCallback as ccRegister
+
+    # create a wrapper to capture exceptions properly and avoid crashing
+    def wrapper(level, time_info, logger_name, msg):
+        args = (level, time_info, logger_name, msg)
+
+        try:
+            callback(*args)
+        except Exception as e:
+            logging.error("logging callback produced following error: {}".format(e))
+
+    ccRegister(wrapper)
+
+def logging_callback(level, time_info, logger_name, msg):
+    """
+    this is a callback function which can be used to redirect C++ logging to python logging.
+    :param level: logging level as integer, for values cf. PythonCommon.h
+    :param time_info: time info as ISO8601 string
+    :param logger_name: name of the logger as invoked in C++
+    :param msg: message to display
+    :return: None
+    """
+
+    # convert level to logging levels
+    if 0 == level: # unsupported level in C++
+        level = logging.INFO
+    if 1 == level: # trace in C++
+        level = logging.DEBUG
+    if 2 == level:
+        level = logging.DEBUG
+    if 3 == level:
+        level = logging.INFO
+    if 4 == level:
+        level = logging.WARNING
+    if 5 == level:
+        level = logging.ERROR
+    if 6 == level:
+        level = logging.CRITICAL
+
+    pathname = None
+    lineno = None
+    ct = iso8601.parse_date(time_info).timestamp()
+
+    # fix pathname/lineno
+    if pathname is None:
+        pathname = ''
+    if lineno is None:
+        lineno = 0
+
+    log_record = logging.LogRecord(logger_name, level, pathname, lineno, msg, None, None)
+    log_record.created = ct
+    log_record.msecs = (ct - int(ct)) * 1000
+    log_record.relativeCreated = log_record.created - logging._startTime
+    logging.getLogger(logger_name).handle(log_record)
 
 
 ## WebUI helper functions
@@ -417,7 +484,7 @@ def mongodb_uri(mongodb_url, mongodb_port, db_name='tuplex-history'):
     """
     return 'mongodb://{}:{}/{}'.format(mongodb_url, mongodb_port, db_name)
 
-def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history', timeout=10):
+def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history', timeout=10.0):
     """
     connects to a MongoDB database instance, raises exception if connection fails
     Args:
@@ -437,22 +504,31 @@ def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history'
 
     start_time = time.time()
     connect_successful = False
-    while time.time() - start_time < timeout:
+    logging.debug('Attempting to contact MongoDB under {}'.format(uri))
+
+    connect_try = 1
+    while abs(time.time() - start_time) < timeout:
+        logging.debug('MongoDB connection try {}...'.format(connect_try))
         try:
             # set client connection to super low timeouts so the wait is not too long.
             client = MongoClient(uri, serverSelectionTimeoutMS=100, connectTimeoutMS=1000)
             info = client.server_info()  # force a call to mongodb, alternative is client.admin.command('ismaster')
             connect_successful = True
         except Exception as e:
-            pass
+            logging.debug('Connection try {} produced {} exception {}'.format(connect_try, type(e), str(e)))
 
         if connect_successful:
+            timeout = 0
             break
+
         time.sleep(0.05)  # sleep for 50ms
         logging.debug('Contacting MongoDB under {}... -- {:.2f}s of poll time left'.format(uri, timeout - (time.time() - start_time)))
+        connect_try += 1
 
     if connect_successful is False:
         raise Exception('Could not connect to MongoDB, check network connection. (ping must be < 100ms)')
+
+    logging.debug('Connection test to MongoDB succeeded')
 
 def shutdown_process_via_kill(pid):
     """
@@ -492,6 +568,8 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
 
         # is mongod running on local machine?
         if is_process_running('mongod'):
+            logging.debug('Found locally running MongoDB daemon process')
+
             # process is running, try to connect
             check_mongodb_connection(mongodb_url, mongodb_port, db_name)
         else:
@@ -528,13 +606,28 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
 
             except Exception as e:
                 logging.error('Failed to start MongoDB daemon. Details: {}'.format(str(e)))
-                raise e
 
-        check_mongodb_connection(mongodb_url, mongodb_port, db_name)
+                # print out first 10 and last 10 lines of mongodb log if exists
+                n_to_print = 15
+                mongodb_logpath = str(mongodb_logpath)
+                if os.path.isfile(mongodb_logpath):
+                    with open(mongodb_logpath, 'r') as fp_mongo:
+                        lines = list(map(lambda line: line.strip(), fp_mongo.readlines()))
+                        shortened_log = ''
+                        if len(lines) > 2 * n_to_print:
+                            shortened_log = '\n'.join(lines[:n_to_print]) + '...\n' + '\n'.join(lines[-n_to_print:])
+                        else:
+                            shortened_log = '\n'.join(lines)
+                        logging.error('MongoDB daemon log:\n{}'.format(shortened_log))
+                else:
+                    logging.error('Could not find MongoDB log under {}. Permission error?'.format(mongodb_logpath))
+
+                raise e
+            logging.debug("Attempting to connect to freshly started MongoDB daemon...")
+            check_mongodb_connection(mongodb_url, mongodb_port, db_name)
     else:
         # remote MongoDB
         logging.debug('Connecting to remote MongoDB instance')
-
         check_mongodb_connection(mongodb_url, mongodb_port, db_name)
 
 def log_gunicorn_errors(logpath):
@@ -732,12 +825,16 @@ def ensure_webui(options):
     webui_port =  options['tuplex.webui.port']
 
     try:
+        logging.debug('finding MongoDB...')
         find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_logpath)
 
         mongo_uri = mongodb_uri(mongodb_url, mongodb_port)
 
+        logging.debug('finding WebUI..')
         # now it's time to do the same thing for the WebUI (and also check it's version v.s. the current one!)
         version_info = find_or_start_webui(mongo_uri, webui_url, webui_port, gunicorn_logpath)
+
+        logging.debug('WebUI services found or started!')
 
         # check that version of WebUI and Tuplex version match
         assert __version__ == 'dev' or version_info['version'] == __version__, 'Version of Tuplex WebUI and Tuplex do not match'

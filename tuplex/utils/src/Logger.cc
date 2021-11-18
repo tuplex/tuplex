@@ -47,7 +47,7 @@ void Logger::init(const std::vector<spdlog::sink_ptr> &sinks) {
         log._initialized = true;
     }
     catch(const spdlog::spdlog_ex& ex) {
-        std::cout<<"[FATAL] Initialization of logging system failed: "<<ex.what()<<std::endl;
+        std::cerr<<"[FATAL] Initialization of logging system failed: "<<ex.what()<<std::endl;
         exit(1);
     }
 }
@@ -112,5 +112,19 @@ void Logger::flushAll() {
         // log may be nullptr. Hence, only flush if valid.
         if(log)
             log.get()->flush();
+    }
+}
+
+void Logger::flushToPython(bool acquireGIL) {
+
+    // flush other sinks
+    flushAll();
+
+    // check for each sink whether it's a python sink, then call method
+    for(auto& sink : _sinks) {
+        auto py_sink = std::dynamic_pointer_cast<python_sink<std::mutex>>(sink);
+        if(py_sink) {
+            py_sink->flushToPython(acquireGIL);
+        }
     }
 }

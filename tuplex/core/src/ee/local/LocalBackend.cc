@@ -1510,14 +1510,10 @@ namespace tuplex {
             if(!baseURI.isLocal())
                 throw std::runtime_error("VFS not supporting mkdir yet!");
 
-            // check if folder exists, if so delete its contents (overwrite mode!)
-            // then, put part files in it!
+            // check if folder exists, if it does not, create it
             auto vfs = VirtualFileSystem::fromURI(baseURI);
-            if(baseURI.exists())
-                vfs.remove(baseURI);
-
-            // create dir
-            vfs.create_dir(baseURI);
+            if(!baseURI.exists())
+                vfs.create_dir(baseURI);       
         }
     }
 

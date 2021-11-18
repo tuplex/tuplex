@@ -12,7 +12,7 @@
 
 #include "TestUtils.h"
 #include <ee/aws/AWSLambdaBackend.h>
-#include <ee/aws/AWSCommon.h>
+#include <AWSCommon.h>
 #include <VirtualFileSystem.h>
 #include <PosixFileSystemImpl.h>
 
@@ -27,7 +27,7 @@ protected:
         // to speedup testing, if we anyways skip the tests, can skip init here too.
         // !!! Dangerous !!!
 #ifndef SKIP_AWS_TESTS
-        initAWS(AWSCredentials::get());
+        initAWS(AWSCredentials::get(), NetworkSettings(), true);
         VirtualFileSystem::addS3FileSystem();
 #endif
     }
@@ -204,4 +204,117 @@ TEST_F(AWSTest, SimpleLambdaInvoke) {
     for(int i = 0; i < N; ++i)
         EXPECT_EQ(v[i].toPythonString(), ref[i].toPythonString());
 }
+
+TEST_F(AWSTest, MultipleLambdaInvoke) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+
+    Context c(microLambdaOptions());
+
+    // computes some simple function in the cloud
+    vector<Row> data;
+    vector<Row> ref;
+    int N = 5;
+    for(int i = 0; i < N; ++i) {
+        data.push_back(Row(i));
+        ref.push_back(Row(i, i*i));
+    }
+
+    auto v = c.parallelize(data).map(UDF("lambda x: (x, x*x)")).collectAsVector();
+    ASSERT_EQ(v.size(), N);
+    for(int i = 0; i < N; ++i)
+        EXPECT_EQ(v[i].toPythonString(), ref[i].toPythonString());
+
+    // 2nd invocation
+    v = c.parallelize(data).map(UDF("lambda x: (x, x*x)")).collectAsVector();
+    ASSERT_EQ(v.size(), N);
+    for(int i = 0; i < N; ++i)
+        EXPECT_EQ(v[i].toPythonString(), ref[i].toPythonString());
+}
+
+TEST_F(AWSTest, RequesterPays) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+
+    Context c(microLambdaOptions());
+
+    // make sure this is public??
+    auto v = c.csv("s3://tuplex-public/test.csv").collectAsVector();
+    ASSERT_GT(v.size(), 0);
+}
+
+
+TEST_F(AWSTest, WriteSingleCSVFile) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+
+    Context c(microLambdaOptions());
+
+    // make sure this is public??
+    auto v = c.csv("s3://tuplex-public/test.csv").collectAsVector();
+    ASSERT_GT(v.size(), 0);
+}
+
+
+TEST_F(AWSTest, BucketList) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+
+    Context c(microLambdaOptions());
+
+    // make sure this is public??
+
+    // check single file -> single file.
+    // check folder
+
+
+    // create glob pattern from ls pattern.
+    // -> split into parts from ,
+
+    // this is completely incorrect...
+    // ls retrieves folders AND files...
+    // -> need to make this work properly using s3walk...
+
+    std::string pattern = "s3://tuplex-public/test.csv,s3://tuplex-public";
+    // "s3://tuplex-public,s3://tuplex-public/*")
+    std::string glob_pattern;
+    splitString(pattern, ',', [&glob_pattern](std::string subpattern) {
+        if(!glob_pattern.empty())
+            glob_pattern += ",";
+       glob_pattern += subpattern + "," + subpattern + "/*";
+    });
+    std::cout<<"matching using: "<<glob_pattern<<endl;
+    auto uris = VirtualFileSystem::globAll(glob_pattern);
+
+    // unique paths? sort? ==> yes.
+
+
+    for(auto uri : uris) {
+        cout<<uri.toString()<<endl;
+    }
+//    auto v = c.ls("s3://tuplex-public");
+//
+//    for(auto el : v) {
+//        cout<<el<<endl;
+//    }
+    //ASSERT_GT(v.size(), 0);
+}
+
+
 #endif // BUILD_WITH_AWS

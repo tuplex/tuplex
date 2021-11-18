@@ -726,7 +726,7 @@ namespace tuplex {
 
         // lazy compile
         if(!_syms) {
-            logger.info("lazy init symbols");
+            logger.debug("lazy init symbols");
             _syms = std::make_shared<JITSymbols>();
         }
 
@@ -741,7 +741,7 @@ namespace tuplex {
         if(!mod)
             throw std::runtime_error("invalid bitcode");
 
-        logger.info("parse module in " + std::to_string(timer.time()));
+        logger.debug("parse module in " + std::to_string(timer.time()));
 
         // because in Lambda there's no context yet, use some dummy object...
         JobMetrics dummy_metrics;
@@ -768,7 +768,7 @@ namespace tuplex {
             timer.reset();
         }
 
-        logger.info("registering symbols...");
+        logger.debug("registering symbols...");
         // step 2: register callback functions with compiler
         if(registerSymbols && !writeMemoryCallbackName().empty())
             jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(false));

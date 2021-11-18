@@ -17,21 +17,39 @@
 #include <cstdlib>
 #include <vector>
 
+#include <Utils.h>
+#include <aws/core/client/ClientConfiguration.h>
+
 namespace tuplex {
 
     struct AWSCredentials {
         std::string access_key;
         std::string secret_key;
+        std::string default_region;
 
         static AWSCredentials get();
     };
 
     /*!
-     * initializes AWS SDK globally (lazy)
+     * update clientConfig with given Network settings.
+     * @param ns network settings
+     * @param config AWS clientConfig
+     */
+    extern void applyNetworkSettings(const NetworkSettings& ns, Aws::Client::ClientConfiguration& config);
+
+    /*!
+     * initializes AWS SDK globally (lazy) and add S3 FileSystem.
      * @return true if initializing, else false
      */
-    extern bool initAWS(const AWSCredentials& credentials, bool requesterPay=false);
+    extern bool initAWS(const AWSCredentials& credentials, const NetworkSettings& ns=NetworkSettings(), bool requesterPay=false);
 
+
+    /*!
+     * validates zone string.
+     * @param zone
+     * @return true/false.
+     */
+    extern bool isValidAWSZone(const std::string& zone);
 }
 
 // Amazon frequently changes the parameters of lambda functions,

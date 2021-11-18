@@ -92,7 +92,12 @@ namespace tuplex {
         void waitUntilAllTasksFinished();
 
 
-        void workUntilAllTasksFinished(Executor& executor);
+        /*!
+         * use executor in current thread to also work on tasks.
+         * @param executor i.e., the driver
+         * @param flushPeriodicallyToPython whether to invoke the GIL and call Logger::flushToPython after each task the driver finished.
+         */
+        void workUntilAllTasksFinished(Executor& executor, bool flushPeriodicallyToPython=false);
 
 
         std::vector<IExecutorTask*> popCompletedTasks();

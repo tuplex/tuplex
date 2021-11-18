@@ -21,6 +21,7 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include <Utils.h>
 
 #ifdef BUILD_WITH_AWS
 #include <aws/transfer/TransferHandle.h>
@@ -52,12 +53,15 @@ namespace tuplex {
 #ifdef BUILD_WITH_AWS
         /*!
          * add S3 file system, must be called after AWSSDK was initialized
-         * @param caFile
-         * @param lambdaMode
-         * @param requesterPay
+         * @param access_key  AWS_ACCESS_KEY
+         * @param secret_key  AWS_SECRET_ACCESS_KET
+         * @param region AWS_REGION, e.g. us-east-1
+         * @param ns helper struct holding various network settings
+         * @param lambdaMode whether called on Lambda runner or not
+         * @param requesterPay whether to enable request Pay (i.e., this is a per query field - enable here globally)
          * @return status of adding filesystem
          */
-        static VirtualFileSystemStatus addS3FileSystem(const std::string& access_key="", const std::string& secret_key="", const std::string& caFile="", bool lambdaMode=false, bool requesterPay=false);
+        static VirtualFileSystemStatus addS3FileSystem(const std::string& access_key="", const std::string& secret_key="", const std::string& region="", const NetworkSettings& ns=NetworkSettings(), bool lambdaMode=false, bool requesterPay=false);
 
         /*!
          * returns key/value store with transfer statistics for S3 system. Empty if no S3 system was added.

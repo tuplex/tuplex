@@ -758,7 +758,8 @@ namespace tuplex {
 
         Logger::instance().logger("python").debug("wrapped dataset, returning it");
 
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
 
         return pds;
     }
@@ -1000,6 +1001,8 @@ namespace tuplex {
             }
         }
 
+        Logger::instance().flushToPython();
+
         // return map
         return m;
     }
@@ -1064,7 +1067,8 @@ namespace tuplex {
             ds = &_context->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -1101,7 +1105,8 @@ namespace tuplex {
             ds = &_context->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -1137,7 +1142,8 @@ namespace tuplex {
         // assign dataset to wrapper
         pds.wrap(ds);
 
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
 
         return pds;
     }
@@ -1181,9 +1187,11 @@ namespace tuplex {
 
     PythonContext::PythonContext(const std::string& name,
                                  const std::string &runtimeLibraryPath,
-                                 const std::string& options) {
+                                 const std::string& options) : _context(nullptr) {
 
         using namespace std;
+
+        TUPLEX_TRACE("entering PythonContext");
 
         // checkPythonVersion();
 
@@ -1198,16 +1206,16 @@ namespace tuplex {
         if(runtimeLibraryPath.length() > 0)
             co.set("tuplex.runTimeLibrary", runtimeLibraryPath);
 
-         co = updateOptionsWithDict(co, options);
+        co = updateOptionsWithDict(co, options);
 
-        //#ifndef NDEBUG
+        // #ifndef NDEBUG
         //        // print settings
         //        Logger::instance().defaultLogger().info("Tuplex configuration:");
         //        auto store = co.store();
         //        for(auto keyval : store) {
         //            Logger::instance().defaultLogger().info(keyval.first + "=" + keyval.second);
         //        }
-        //#endif
+        // #endif
 
         // testwise retrieve runtime path. This may be a critical error, hence throw PyException!
         python::unlockGIL();
@@ -1216,6 +1224,8 @@ namespace tuplex {
         if(uri == URI::INVALID) {
             throw PythonException("Could not find runtime library under " + co.get("tuplex.runTimeLibrary"));
         }
+
+        TUPLEX_TRACE("Found Runtime in ", uri.toString());
 
         // store explicitly uri in context options so no searching happens anymore
         Logger::instance().defaultLogger().debug("Using runtime library from  " + uri.toPath());
@@ -1226,7 +1236,9 @@ namespace tuplex {
         python::unlockGIL();
         std::string err_message = ""; // leave this as empty string!
         try {
+            TUPLEX_TRACE("Initializing C++ object");
             _context = new Context(co);
+            TUPLEX_TRACE("C++ context created");
             if(!name.empty())
                 _context->setName(name);
         } catch(const std::exception& e) {
@@ -1240,7 +1252,8 @@ namespace tuplex {
 
         // restore GIL
         python::lockGIL();
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
 
         // manually set python error -> do not trust boost::python exception translation, it's faulty!
         if(!err_message.empty()) {
@@ -1257,12 +1270,12 @@ namespace tuplex {
 
         if(_context)
             delete _context;
+        _context = nullptr;
+
         // need to hold GIL,
         // i.e. restore GIL
         python::lockGIL();
-        _context = nullptr;
     }
-
 
     boost::python::dict PythonContext::options() const {
         assert(_context);
@@ -1270,6 +1283,7 @@ namespace tuplex {
 
         assert(PyGILState_Check()); // make sure this thread holds the GIL!
         PyObject* dictObject = PyDict_New();
+
 
         // bool options
         PyDict_SetItem(dictObject,
@@ -1297,11 +1311,25 @@ namespace tuplex {
                        python::PyString_FromString("tuplex.optimizer.sharedObjectPropagation"),
                        python::boolToPython(co.OPT_SHARED_OBJECT_PROPAGATION()));
         PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.optimizer.mergeExceptionsInOrder"),
+                       python::boolToPython(co.OPT_MERGE_EXCEPTIONS_INORDER()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.optimizer.operatorReordering"),
+                       python::boolToPython(co.OPT_OPERATOR_REORDERING()));
+        PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.interleaveIO"),
                        python::boolToPython(co.INTERLEAVE_IO()));
         PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.resolveWithInterpreterOnly"),
                        python::boolToPython(co.RESOLVE_WITH_INTERPRETER_ONLY()));
+
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.network.verifySSL"),
+                       python::boolToPython(co.NETWORK_VERIFY_SSL()));
+
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.redirectToPythonLogging"),
+                       python::boolToPython(co.REDIRECT_TO_PYTHON_LOGGING()));
 
         // @TODO: move to optimizer
         PyDict_SetItem(dictObject,
@@ -1331,13 +1359,45 @@ namespace tuplex {
                        PyLong_FromLongLong(co.WEBUI_EXCEPTION_DISPLAY_LIMIT()));
 
         // aws options
-        //@TODO:
-
+#ifdef BUILD_WITH_AWS
+        //                      {"tuplex.aws.requestTimeout", "600"},
+        //                     {"tuplex.aws.connectTimeout", "1"},
+        //                     {"tuplex.aws.maxConcurrency", "100"},
+        //                     {"tuplex.aws.httpThreadCount", std::to_string(std::min(8u, std::thread::hardware_concurrency()))},
+        //                     {"tuplex.aws.region", "us-east-1"},
+        //                     {"tuplex.aws.lambdaMemory", "1536"},
+        //                     {"tuplex.aws.lambdaTimeout", "600"},
+        //                     {"tuplex.aws.requesterPay", "false"},
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.requestTimeout"),
+                       PyLong_FromLongLong(co.AWS_REQUEST_TIMEOUT()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.connectTimeout"),
+                       PyLong_FromLongLong(co.AWS_CONNECT_TIMEOUT()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.maxConcurrency"),
+                       PyLong_FromLongLong(co.AWS_MAX_CONCURRENCY()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.httpThreadCount"),
+                       PyLong_FromLongLong(co.AWS_NUM_HTTP_THREADS()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.lambdaMemory"),
+                       PyLong_FromLongLong(co.AWS_LAMBDA_MEMORY()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.lambdaTimeout"),
+                       PyLong_FromLongLong(co.AWS_LAMBDA_TIMEOUT()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.aws.requesterPay"),
+                       python::boolToPython(co.AWS_REQUESTER_PAY()));
+#endif
 
         // float options
         PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.normalcaseThreshold"),
                        PyFloat_FromDouble(co.NORMALCASE_THRESHOLD()));
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.optionalThreshold"),
+                       PyFloat_FromDouble(co.OPTIONAL_THRESHOLD()));
 
         // boost python has problems with the code below. I.e. somehow the nested structure does not
         // get correctly copied. Hence, there is a hack for these two in options() in Context.py
@@ -1364,7 +1424,7 @@ namespace tuplex {
         // strings
         // i.e. for the rest
         auto store = co.store();
-        for(auto keyval : store) {
+        for(const auto& keyval : store) {
             // check if contained in dict, if not add
             auto key = keyval.first;
             auto val = keyval.second;
@@ -1388,6 +1448,8 @@ namespace tuplex {
             }
         }
 
+        Logger::instance().flushToPython();
+
         // first manual fetch
        return boost::python::dict(boost::python::handle<>(dictObject));
     }
@@ -1404,12 +1466,13 @@ namespace tuplex {
             PyList_SET_ITEM(listObj, i, python::PyString_FromString(uris[i].toPath().c_str()));
         }
         Logger::instance().logger("filesystem").info("listed " + std::to_string(uris.size()) + " files in " + std::to_string(timer.time()) +"s");
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return boost::python::list(boost::python::handle<>(listObj));
     }
 
     void PythonContext::cp(const std::string &pattern, const std::string &target) const {
-        throw std::runtime_error("not yet supported");
+        throw std::runtime_error("cp command is not yet supported");
     }
 
     void PythonContext::rm(const std::string &pattern) const {
@@ -1420,7 +1483,8 @@ namespace tuplex {
         if(rc != VirtualFileSystemStatus::VFS_OK)
             Logger::instance().logger("filesystem").error("failed to remove files from " + pattern);
         Logger::instance().logger("filesystem").info("removed files in " + std::to_string(timer.time()) +"s");
-        Logger::instance().flushAll();
+        //Logger::instance().flushAll();
+        Logger::instance().flushToPython();
     }
 
     std::string getDefaultOptionsAsJSON() {

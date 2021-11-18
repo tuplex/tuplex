@@ -91,3 +91,4 @@ python/tuplex.egg-info/
 tuplex.egg-info/
 
 wheelhouse/
+*.zip

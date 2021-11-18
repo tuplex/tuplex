@@ -4,13 +4,13 @@
 # everything will be installed to /opt
 
 # Tuplex dependencies
-# compile dependencies yum stylke
+# compile dependencies yum style
 
 yum install -y libedit-devel libzip-devel \
-  pkgconfig openssl-devel libxml2-devel libcurl-devel zlib-devel  \
+  pkgconfig openssl-devel libxml2-devel zlib-devel  \
   uuid libuuid-devel libffi-devel graphviz-devel \
   gflags-devel ncurses-devel \
-  awscli java-1.8.0-openjdk-devel libyaml-devel file-devel
+  awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip
 
 # LLVM9 is broken on Ubuntu 20.04, hence manually install...
 
@@ -63,10 +63,13 @@ popd &&
   cd - || echo "ANTLR4 runtime failed"
 
 # AWS SDK
+# tag 1.9.142?
+# => note in 1.9.134/135 there has been a renaming of cJSON symbols -> this requires linking/renaming. cf. https://github.com/aws/aws-sdk-cpp/commit/2848c4571c94b03bc558378440f091f2017ef7d3
+# note for centos7 there's an issue with SSL. Either use aws sdk with -DBUILD_DEPS=ON/-DUSE_OPENSSL=OFF. or force -DUSE_OPENSSL=ON.
 cd /tmp &&
   git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git &&
-  cd aws-sdk-cpp && git checkout tags/1.9.39 && mkdir build && pushd build &&
-  cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=14 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=/opt .. &&
+  cd aws-sdk-cpp && git checkout tags/1.9.133 && mkdir build && pushd build &&
+  cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=14 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=/opt .. &&
   make -j32 &&
   make install &&
   popd &&
@@ -84,10 +87,10 @@ git clone https://github.com/awslabs/aws-lambda-cpp.git && \
 
 # pcre2
 cd /tmp &&
-  curl -O https://ftp.pcre.org/pub/pcre/pcre2-10.34.zip &&
-  unzip pcre2-10.34.zip &&
-  rm pcre2-10.34.zip &&
-  pushd pcre2-10.34 &&
+  curl -LO https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.39/pcre2-10.39.zip &&
+  unzip pcre2-10.39.zip &&
+  rm pcre2-10.39.zip &&
+  pushd pcre2-10.39 &&
   ./configure --prefix=/opt --enable-jit=auto --disable-shared CFLAGS="-O2 -fPIC" && make -j 32 && make install
 popd
 

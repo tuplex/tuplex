@@ -88,6 +88,9 @@ inline tuplex::ContextOptions microLambdaOptions() {
     auto co = microTestOptions();
     co.set("tuplex.backend", "lambda");
 
+    // enable requester pays
+    co.set("tuplex.aws.requesterPay", "true");
+
     // scratch dir
     co.set("tuplex.aws.scratchDir", std::string("s3://") + S3_TEST_BUCKET + "/.tuplex-cache");
 

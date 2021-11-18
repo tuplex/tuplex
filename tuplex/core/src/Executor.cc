@@ -133,7 +133,7 @@ namespace tuplex {
         return false;
     }
 
-    void WorkQueue::workUntilAllTasksFinished(tuplex::Executor &executor) {
+    void WorkQueue::workUntilAllTasksFinished(tuplex::Executor &executor, bool flushPeriodicallyToPython) {
         int pendingTasks = 0;
         while((pendingTasks = _numPendingTasks.load(std::memory_order_acquire)) != 0) {
 
@@ -148,8 +148,18 @@ namespace tuplex {
                 return;
             }
 
+            // flush logging
+            if(flushPeriodicallyToPython) {
+                Logger::instance().flushToPython(true);
+            }
+
             // work on task
             workTask(executor, true);
+
+            // flush logging
+            if(flushPeriodicallyToPython) {
+                Logger::instance().flushToPython(true);
+            }
         }
     }
 

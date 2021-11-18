@@ -177,7 +177,7 @@ namespace tuplex {
         auto response = ri.postJSON(base_uri(conn.host, conn.port) + "/api/job", obj.dump());
 
         if(response.empty()) {
-            logger.error("Could not register job, is history server running? To remove this error,"
+            logger.warn("Could not register job, is history server running? To disable this warning,"
                          " set webui=False in the context configuration.");
             return nullptr;
         } else {

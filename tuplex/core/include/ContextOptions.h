@@ -57,6 +57,7 @@ namespace tuplex {
         bool INTERLEAVE_IO() const { return stringToBool(_store.at("tuplex.interleaveIO")); } //! whether to first load, compute, then write or use IO thread to interleave IO work with compute work for faster speeds.
         bool RESOLVE_WITH_INTERPRETER_ONLY() const { return stringToBool(_store.at("tuplex.resolveWithInterpreterOnly")); }
 
+        bool REDIRECT_TO_PYTHON_LOGGING() const { return stringToBool(_store.at("tuplex.redirectToPythonLogging")); } //! whether to use always the python logging module or not.
 
         // AWS backend parameters
         size_t AWS_REQUEST_TIMEOUT() const { return std::stoi(_store.at("tuplex.aws.requestTimeout")); } // 600s?
@@ -102,6 +103,13 @@ namespace tuplex {
         double OPTIONAL_THRESHOLD() const; //! threshold for detecting an optional field, between 0.0 and 1.0
 
         Backend BACKEND() const; //! which backend to use for pipeline execution
+
+        NetworkSettings AWS_NETWORK_SETTINGS() const; //! retrieve Network settings for AWS
+
+        // general network settings
+        std::string NETWORK_CA_FILE() const;
+        std::string NETWORK_CA_PATH() const;
+        bool NETWORK_VERIFY_SSL() const;
 
 
         bool USE_WEBUI() const;

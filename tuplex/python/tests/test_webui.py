@@ -22,11 +22,17 @@ class TestWebUI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
-        conf ={'webui.enable': True, "driverMemory": "8MB", "executorMemory" : "1MB", "partitionSize": "256KB"}
+        # bug in logging redirect?
+        conf ={'webui.enable': True, "driverMemory": "8MB", "executorMemory" : "1MB",
+               "partitionSize": "256KB", "tuplex.redirectToPythonLogging": True}
+
+        logging.debug('WebUI Test setUpClass called')
         cls.context = Context(conf)
+        logging.debug('Context created...')
 
     @classmethod
     def tearDownClass(cls) -> None:
+        logging.debug('WebUI Test tearDownClass called')
         del cls.context
 
         # shutdown processes manually!
@@ -36,12 +42,16 @@ class TestWebUI(unittest.TestCase):
     # check connection to WebUI works
     def test_webuiconnect(self):
 
+        logging.debug('Entering webuiconnect test...')
+
         # get webui uri
         ui_url = self.context.uiWebURL
 
+        logging.debug('Retrieved webui url as {}'.format(ui_url))
+
         # connect to HTTP URL (index.html) and simply search for Tuplex string.
         req = urllib.request.Request(ui_url)
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, timeout=10) as response:
             page_content = response.read().decode()
 
         self.assertTrue('Tuplex' in page_content)

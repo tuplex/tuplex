@@ -32,7 +32,8 @@ namespace tuplex {
             ErrorDataSet *eds = static_cast<ErrorDataSet *>(this->_dataset);
             boost::python::list L;
             L.append(eds->getError());
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             return L;
         } else {
 
@@ -66,7 +67,8 @@ namespace tuplex {
 
             // error? then return list of error string
             if(!rs || !err_message.empty()) {
-                Logger::instance().flushAll();
+                // Logger::instance().flushAll();
+                Logger::instance().flushToPython();
                 auto listObj = PyList_New(1);
                 PyList_SetItem(listObj, 0, python::PyString_FromString(err_message.c_str()));
                 auto list = boost::python::object(boost::python::borrowed<>(listObj));
@@ -95,7 +97,8 @@ namespace tuplex {
                                                      + std::to_string(timer.time()) + " seconds");
 
             auto list = boost::python::object(boost::python::borrowed<>(listObj));
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
 
             // print errors
             if (ss.str().length() > 0)
@@ -114,7 +117,8 @@ namespace tuplex {
             ErrorDataSet *eds = static_cast<ErrorDataSet *>(this->_dataset);
             boost::python::list L;
             L.append(eds->getError());
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             return L;
         } else {
 
@@ -148,7 +152,8 @@ namespace tuplex {
 
             // error? then return list of error string
             if(!rs || !err_message.empty()) {
-                Logger::instance().flushAll();
+                // Logger::instance().flushAll();
+                Logger::instance().flushToPython();
                 auto listObj = PyList_New(1);
                 PyList_SetItem(listObj, 0, python::PyString_FromString(err_message.c_str()));
                 auto list = boost::python::object(boost::python::borrowed<>(listObj));
@@ -162,7 +167,8 @@ namespace tuplex {
             auto listObj = resultSetToCPython(rs.get(), numRows);
             Logger::instance().logger("python").info("Data transfer back to python took "
                                                      + std::to_string(timer.time()) + " seconds");
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
 
             // print errors
             if (ss.str().length() > 0)
@@ -210,12 +216,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -252,12 +260,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -292,12 +302,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -332,12 +344,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -391,12 +405,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -472,12 +488,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        //Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -513,12 +531,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -550,12 +570,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -587,12 +609,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -683,12 +707,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -706,7 +732,8 @@ namespace tuplex {
             ErrorDataSet *eds = static_cast<ErrorDataSet *>(this->_dataset);
             boost::python::list L;
             L.append(eds->getError());
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
         } else {
             // decode options
             outputOptions["null_value"] = null_value;
@@ -752,11 +779,13 @@ namespace tuplex {
 
             python::lockGIL();
 
-            // nullptr? then error dataset!
-            if(!err_message.empty()) {
-                Logger::instance().flushAll();
-                // TODO: roll back file system changes?
-            }
+//            // nullptr? then error dataset!
+//            if(!err_message.empty()) {
+//                // Logger::instance().flushAll();
+//                Logger::instance().flushToPython();
+//                // TODO: roll back file system changes?
+//            }
+            Logger::instance().flushToPython();
         }
     }
 
@@ -770,7 +799,8 @@ namespace tuplex {
             ErrorDataSet *eds = static_cast<ErrorDataSet *>(this->_dataset);
             boost::python::list L;
             L.append(eds->getError());
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
         } else {
             assert(PyGILState_Check());
 
@@ -793,8 +823,9 @@ namespace tuplex {
                 err_message = "unknown C++ exception occurred, please change type.";
                 Logger::instance().defaultLogger().error(err_message);
             }
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
             python::lockGIL();
+            Logger::instance().flushToPython();
         }
     }
 
@@ -824,9 +855,10 @@ namespace tuplex {
                 Logger::instance().defaultLogger().error(err_message);
             }
         }
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
         // reqacquire GIL
         python::lockGIL();
+        Logger::instance().flushToPython();
 
         // python stdout
         if(!ss.str().empty() && err_message.empty())
@@ -1385,12 +1417,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -1424,12 +1458,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -1498,12 +1534,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -1551,12 +1589,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 
@@ -1590,12 +1630,14 @@ namespace tuplex {
 
         // nullptr? then error dataset!
         if(!ds || !err_message.empty()) {
-            Logger::instance().flushAll();
+            // Logger::instance().flushAll();
+            Logger::instance().flushToPython();
             assert(_dataset->getContext());
             ds = &_dataset->getContext()->makeError(err_message);
         }
         pds.wrap(ds);
-        Logger::instance().flushAll();
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
         return pds;
     }
 

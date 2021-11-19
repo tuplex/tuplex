@@ -151,7 +151,7 @@ namespace tuplex {
          * @param uris
          * @return status code
          */
-        VirtualFileSystemStatus ls(const URI& parent, std::vector<URI>* uris) const;
+        VirtualFileSystemStatus ls(const URI& parent, std::vector<URI>& uris) const;
 
 
         /*!

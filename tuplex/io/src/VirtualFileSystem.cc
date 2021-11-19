@@ -532,4 +532,12 @@ COPY_FAILURE:
         s.resize(numBytes);
         return s;
     }
+
+    VirtualFileSystemStatus VirtualFileSystem::ls(const URI &parent, std::vector<URI> &uris) const {
+        // check if impl exists
+        if(!_impl)
+            return VirtualFileSystemStatus::VFS_NOFILESYSTEM;
+
+        return _impl->ls(parent, uris);
+    }
 }

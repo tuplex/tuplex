@@ -261,7 +261,7 @@ namespace tuplex {
             _bufferPosition += bufferSize;
         } else {
             // two cases: there is enough space left in buffer or buffer might run full
-            if(_bufferSize - _bufferLength >= bufferSize) {
+            if(_bufferSize >= bufferSize + _bufferLength) {
                 memcpy(_buffer + _bufferPosition, buffer, bufferSize);
                 _bufferPosition += bufferSize;
                 _bufferLength += bufferSize;

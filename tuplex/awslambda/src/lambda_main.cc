@@ -145,6 +145,8 @@ int64_t writeRowCallback(LambdaExecutor* exec, const uint8_t* buf, int64_t bufSi
         memcpy(exec->buffer + exec->bytesWritten, buf, bufSize);
         exec->bytesWritten += bufSize;
         exec->numOutputRows++;
+    } else {
+        std::cerr<<"ran out of capacity!"<<std::endl; //@TODO: error handling!
     }
     return 0;
 }
@@ -545,6 +547,8 @@ tuplex::messages::InvocationResponse lambda_main(aws::lambda_runtime::invocation
         assert(sizeof(int64_t) == sizeof(size_t));
         file->write(&g_executor->bytesWritten, sizeof(int64_t));
         file->write(&g_executor->numOutputRows, sizeof(int64_t));
+        logger.info("writing buffer contents of " + std::to_string(g_executor->bytesWritten) + " to output.");
+
         file->write(g_executor->buffer, g_executor->bytesWritten);
         file->close(); // important, because S3 files work lazily
     } else throw std::runtime_error("unsupported output format!");

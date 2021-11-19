@@ -252,7 +252,7 @@ TEST_F(AWSTest, RequesterPays) {
 }
 
 
-TEST_F(AWSTest, WriteSingleCSVFile) {
+TEST_F(AWSTest, ReadSingleCSVFile) {
 #ifdef SKIP_AWS_TESTS
     GTEST_SKIP();
 #endif
@@ -267,6 +267,21 @@ TEST_F(AWSTest, WriteSingleCSVFile) {
     ASSERT_GT(v.size(), 0);
 }
 
+// c.csv('s3://tuplex-public/data/100GB/zillow_00001.csv').show(5)
+
+TEST_F(AWSTest, ShowFromSingleFile) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+
+    Context c(microLambdaOptions());
+
+    // make sure this is public??
+    c.csv("s3://tuplex-public/data/100GB/zillow_00001.csv").show(5);
+}
 
 TEST_F(AWSTest, BucketList) {
 #ifdef SKIP_AWS_TESTS

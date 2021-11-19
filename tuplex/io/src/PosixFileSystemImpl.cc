@@ -128,7 +128,7 @@ namespace tuplex {
         struct dirent *file_entry = nullptr;
         while((file_entry = readdir(dir_it))) {
             // remove duplicate / runs?
-            auto path = eliminateSeparatorRuns(local_path + "/" + file_entry->d_name);
+            auto path = eliminateSeparatorRuns(local_path + "/" + file_entry->d_name + (file_entry->d_type == DT_DIR ? "/" : ""));
             URI uri("file://" + path); // no selection of type etc. (Link/dir/...)
             uris.push_back(uri);
         }

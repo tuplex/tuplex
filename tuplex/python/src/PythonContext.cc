@@ -1457,7 +1457,8 @@ namespace tuplex {
     boost::python::object PythonContext::ls(const std::string &pattern) const {
         Timer timer;
         python::unlockGIL();
-        auto uris = VirtualFileSystem::globAll(pattern);
+        std::vector<URI> uris;
+        VirtualFileSystem::ls(pattern, uris);
         python::lockGIL();
 
         // create list object from result

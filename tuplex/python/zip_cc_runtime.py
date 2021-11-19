@@ -13,6 +13,7 @@ import re
 import glob
 import stat
 import argparse
+import time
 
 try:
     from tqdm import tqdm
@@ -103,18 +104,18 @@ def main():
 
     # use this script here when libc is included => requires package loader
     bootstrap_script="""#!/bin/bash
-    set -euo pipefail
-    export AWS_EXECUTION_ENV=lambda-cpp
-    exec $LAMBDA_TASK_ROOT/lib/{} --library-path $LAMBDA_TASK_ROOT/lib $LAMBDA_TASK_ROOT/bin/tplxlam ${_HANDLER}
-    """
+set -euo pipefail
+export AWS_EXECUTION_ENV=lambda-cpp
+exec $LAMBDA_TASK_ROOT/lib/{} --library-path $LAMBDA_TASK_ROOT/lib $LAMBDA_TASK_ROOT/bin/tplxlam ${{_HANDLER}}
+"""
 
     # use this script when libc is not included
     bootstrap_script_nolibc="""#!/bin/bash
-    set -euo pipefail
-    export AWS_EXECUTION_ENV=lambda-cpp
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LAMBDA_TASK_ROOT/lib
-    exec $LAMBDA_TASK_ROOT/bin/$PKG_BIN_FILENAME ${_HANDLER}
-    """
+set -euo pipefail
+export AWS_EXECUTION_ENV=lambda-cpp
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LAMBDA_TASK_ROOT/lib
+exec $LAMBDA_TASK_ROOT/bin/$PKG_BIN_FILENAME ${_HANDLER}
+"""
 
     pkg_loader = 'ld-linux-x86-64.so.2' # change to whatever is in dependencies...
 
@@ -179,9 +180,8 @@ def main():
     #         logging.info('Found package loader {}'.format(filename))
     #         pkg_loader = filename
 
-    compression=zipfile.ZIP_DEFLATED # this is the only one that works for MacOS
-
-    compression=zipfile.ZIP_LZMA # use this for final file, because smaller!
+    #compression=zipfile.ZIP_LZMA # use this for final file, because smaller!
+    compression = zipfile.ZIP_DEFLATED # this is the only one that works for MacOS and on Lambda :/
 
     def create_zip_link(zip, link_source, link_target):
         zipInfo = zipfile.ZipInfo(link_source)
@@ -190,12 +190,21 @@ def main():
         zipInfo.external_attr = unix_st_mode << 16  # The Python zipfile module accepts the 16-bit "Mode" field (that stores st_mode field from struct stat, containing user/group/other permissions, setuid/setgid and symlink info, etc) of the ASi extra block for Unix as bits 16-31 of the external_attr
         zip.writestr(zipInfo, link_target)
 
-    with zipfile.ZipFile(OUTPUT_FILE_NAME, 'w', compression=compression) as zip:
+    with zipfile.ZipFile(OUTPUT_FILE_NAME, 'w', compression=compression, compresslevel=9) as zip:
         logging.info('Writing bootstrap script {}'.format('NO_LIBC=True' if NO_LIBC else ''))
+
+        # Mark bootstrap script as executable
+        # https://stackoverflow.com/questions/434641/how-do-i-set-permissions-attributes-on-a-file-in-a-zip-file-using-pythons-zip
+
+        bootstrap_info = zipfile.ZipInfo('bootstrap')
+        bootstrap_info.date_time = time.localtime()
+        # use 755 permissions and set for regular file
+        bootstrap_info.external_attr = 0o100755 << 16
+
         if INCLUDE_LIBC:
-            zip.writestr('bootstrap', bootstrap_script)
+            zip.writestr(bootstrap_info, bootstrap_script.format(pkg_loader))
         else:
-            zip.writestr('bootstrap', bootstrap_script_nolibc.format(pkg_loader))
+            zip.writestr(bootstrap_info, bootstrap_script_nolibc)
 
         # adding actual execution scripts
         logging.info('Writing C++ binary')

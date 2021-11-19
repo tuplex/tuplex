@@ -1458,7 +1458,8 @@ namespace tuplex {
         Timer timer;
         python::unlockGIL();
         std::vector<URI> uris;
-        VirtualFileSystem::ls(pattern, uris);
+        auto vfs = VirtualFileSystem::fromURI(pattern);
+        vfs.ls(pattern, uris);
         python::lockGIL();
 
         // create list object from result

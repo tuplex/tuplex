@@ -348,7 +348,6 @@ namespace tuplex {
 
             std::vector<URI> output_uris;
 
-            assert(!key.empty());
             auto s3_prefix = key;
             // does it end in /? if not amend! => can't know if folder or not...
             if(s3_prefix.back() != '/') {
@@ -369,6 +368,13 @@ namespace tuplex {
                     auto& result = list_objects_outcome.GetResult();
                     for(const auto& o : result.GetContents()) {
                         std::string key = o.GetKey().c_str();
+                        URI uri("s3://" + bucket + "/" + key);
+                        output_uris.push_back(uri);
+                    }
+
+                    // these are folders
+                    for(const auto& cp : result.GetCommonPrefixes()) {
+                        auto key = cp.GetPrefix().c_str();
                         URI uri("s3://" + bucket + "/" + key);
                         output_uris.push_back(uri);
                     }

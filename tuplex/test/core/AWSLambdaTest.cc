@@ -281,7 +281,7 @@ TEST_F(AWSTest, BucketList) {
     vector<URI> uris;
     auto vfs = VirtualFileSystem::fromURI("s3://");
 
-    vfs.ls("s3://tuplex-public/test.csv", uris);
+    vfs.ls("s3://tuplex-public", uris);
 
     for(auto uri : uris) {
         cout<<uri.toString()<<endl;

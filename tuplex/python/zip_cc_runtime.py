@@ -210,7 +210,7 @@ exec $LAMBDA_TASK_ROOT/bin/$PKG_BIN_FILENAME ${_HANDLER}
         logging.info('Writing C++ binary')
         zip.write(TPLXLAM_BINARY, 'bin/' + os.path.basename(TPLXLAM_BINARY))
         logging.info('Writing Tuplex runtime')
-        zip.write(TPLX_RUNTIME_LIBRARY, 'bin/tuplex_runtime.so')
+        zip.write(TPLX_RUNTIME_LIBRARY, 'lib/tuplex_runtime.so')
 
         # copy libc
         if INCLUDE_LIBC:

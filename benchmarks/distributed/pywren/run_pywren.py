@@ -210,8 +210,9 @@ def pipeline(args):
 
         # s3_client.download_file(bucket, key, local_path)
         buf = io.BytesIO()
-        input_file_obj = s3_client.download_fileobj(bucket, key, buf)
-        records = csv2tuples(input_file_obj)
+        s3_client.download_fileobj(bucket, key, buf)
+        utf_wrapper = io.TextIOWrapper(buf, encoding='utf-8')
+        records = csv2tuples(utf_wrapper)
         load_time = time.time() - start_time
 
         start_time = time.time()
@@ -229,6 +230,7 @@ def pipeline(args):
         step_11 = filter(filterPrice, step_10)
         step_12 = map(selectCols, step_11)
 
+        res = list(step_12)
         run_time = time.time() - start_time
         start_time = time.time()
 
@@ -255,17 +257,59 @@ def pipeline(args):
                  'load_time': load_time,
                  'run_time': run_time,
                  'write_time': write_time,
-                 'job_time' : job_time}
+                 'job_time' : job_time,
+                 'num_input_rows' : len(records),
+                 'num_output_rows':len(res)}
 
         return stats
     except Exception as e:
-        return {'exception' : str(type(e)), 'details' : str(e), 'traceback': traceback.format_exc()}
+        return {'exception' : str(type(e)),
+                'details' : str(e),
+                'traceback': traceback.format_exc(),
+                'input_path' : input_path,
+                'output_path' : output_path}
+
+# from https://alexwlchan.net/2017/07/listing-s3-keys/
+def get_all_s3_keys(s3_client, uri):
+    """Get a list of all keys in an S3 bucket."""
+    keys = []
+
+    bucket, key = s3_split_uri(uri)
+    kwargs = {'Bucket': bucket, 'Prefix': key}
+    while True:
+        resp = s3_client.list_objects_v2(**kwargs)
+        for obj in resp['Contents']:
+            keys.append(obj['Key'])
+
+        try:
+            kwargs['ContinuationToken'] = resp['NextContinuationToken']
+        except KeyError:
+            break
+
+    return keys
+
 
 wrenexec = pywren.default_executor()
-args = ('s3://tuplex-public/data/100GB/zillow_00001.csv', 's3://pywren-leonhard/zillow_test_output.csv')
-future = wrenexec.call_async(pipeline, args)
-res = future.result()
 
+# this is an invocation example for a SINGLE file.
+# args = ('s3://tuplex-public/data/100GB/zillow_00001.csv', 's3://pywren-leonhard/zillow_test_output.csv')
+# future = wrenexec.call_async(pipeline, args)
+# res = future.result()
+
+
+# yet, we want to have the result for ALL files...
+# first need to list root path
+root_uri = 's3://tuplex-public/data/100GB/'
+s3_client = boto3.client('s3')
+keys = get_all_s3_keys(s3_client, root_uri)
+logging.info('Found {} keys'.format(len(keys)))
+tuples = list(map(lambda key: ('s3://tuplex-public/' + key, 's3://pywren-leonhard/wren-job/output.part.{}'.format(key[key.rfind('_')+1:])), keys))
+print(tuples[:3])
+logging.info('Starting PyWren map...')
+futures = wrenexec.map(pipeline, tuples)
+results = pywren.get_all_results(futures)
 logging.info('PyWren completed, stats:')
-print(res)
+print(results[:3])
 logging.info('PyWren Query took {}s'.format(time.time() - start_time))
+
+# write results?

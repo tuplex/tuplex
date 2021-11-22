@@ -88,8 +88,8 @@ void global_init() {
 
     // something is wrong with the credentials, try manual listbuckets access...
     auto provider = Aws::MakeShared<Aws::Auth::DefaultAWSCredentialsProviderChain>("tuplex");
-    aws_cred = provider->GetAWSCredentials();
-    Logger::instance().defaultLogger().info(std::string("credentials obtained via default chain: access key: ") + aws_cred.getAWSAccessKeyId().c_str());
+    auto aws_cred = provider->GetAWSCredentials();
+    Logger::instance().defaultLogger().info(std::string("credentials obtained via default chain: access key: ") + aws_cred.GetAWSAccessKeyId().c_str());
 
     // init s3 client manually
     Aws::S3::S3Client client(aws_cred);
@@ -190,6 +190,9 @@ void exceptRowCallback(LambdaExecutor* exec, int64_t exceptionCode, int64_t exce
 }
 
 aws::lambda_runtime::invocation_request const* g_lambda_req = nullptr;
+
+
+// @TODO: output buffer size is an issue -> need to write partial results if required!!!
 
 // how much memory to use for the Lambda??
 // TODO: make this dependent on the Lambda configuration!

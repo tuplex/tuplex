@@ -569,6 +569,7 @@ add_subdirectory(io)
 add_subdirectory(python)
 add_subdirectory(runtime)
 add_subdirectory(adapters)
+add_subdirectory(worker)
 
 # following code is from https://github.com/OPM/opm-common/blob/master/cmake/Modules/UseSystemInfo.cmake
 # read property from the newer /etc/os-release

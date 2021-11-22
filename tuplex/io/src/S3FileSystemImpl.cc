@@ -480,7 +480,9 @@ namespace tuplex {
         return files;
     }
 
-    S3FileSystemImpl::S3FileSystemImpl(const std::string& access_key, const std::string& secret_key, const std::string& region, const NetworkSettings& ns, bool lambdaMode, bool requesterPay) {
+    S3FileSystemImpl::S3FileSystemImpl(const std::string& access_key, const std::string& secret_key,
+                                       const std::string& session_token, const std::string& region,
+                                       const NetworkSettings& ns, bool lambdaMode, bool requesterPay) {
         // Note: If current region is different than other region, use S3 transfer acceleration
         // cf. Aws::S3::Model::GetBucketAccelerateConfigurationRequest
         // and https://s3-accelerate-speedtest.s3-accelerate.amazonaws.com/en/accelerate-speed-comparsion.html
@@ -499,6 +501,8 @@ namespace tuplex {
             credentials.access_key = access_key;
         if(!secret_key.empty())
             credentials.secret_key = secret_key;
+        if(!session_token.empty())
+            credentials.session_token = session_token;
         if(!region.empty())
             credentials.default_region = region;
 
@@ -520,9 +524,9 @@ namespace tuplex {
         else
             _requestPayer = Aws::S3::Model::RequestPayer::NOT_SET;
 
-
-
-        _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(), credentials.secret_key.c_str()), config);
+        _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(),
+                                                                      credentials.secret_key.c_str(),
+                                                                      credentials.session_token.c_str()), config);
 
         // set counters to zero
         _putRequests = 0;

@@ -19,6 +19,10 @@
 #include <StringUtils.h>
 #include <RuntimeInterface.h>
 
+// S3 stuff
+#include <aws/s3/S3Client.h>
+#include <aws/s3/model/Bucket.h>
+
 // protobuf
 #include <Lambda.pb.h>
 #include <physical/TransformStage.h>
@@ -81,9 +85,34 @@ void global_init() {
     ns.verifySSL = true;
     ns.caFile = caFile;
 
+    // something is wrong with the credentials, try manual listbuckets access...
+    auto provider = Aws::MakeShared<Aws::Auth::DefaultAWSCredentialsProviderChain>("tuplex");
+    aws_cred = provider->GetAWSCredentials();
+    Logger::instance().defaultLogger().info(std::string("credentials obtained via default chain: access key: ") + aws_cred.getAWSAccessKeyId().c_str());
+
+    // init s3 client manually
+    Aws::S3::S3Client client(aws_cred);
+    auto outcome = client.ListBuckets();
+    if(outcome.IsSuccess()) {
+        auto buckets = outcome.GetResult().GetBuckets();
+        for (auto entry: buckets) {
+            Logger::instance().defaultLogger().info("found uri: " + URI("s3://" + std::string(entry.GetName().c_str())).toString());
+        }
+    } else {
+        Logger::instance().defaultLogger().error("ListBuckets failed");
+    }
+
+    // get AWS credentials from Lambda environment...
+    // e.g., https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime
+    std::string access_key = Aws::Environment::GetEnv("AWS_ACCESS_KEY_ID").c_str();
+    std::string secret_key = Aws::Environment::GetEnv("AWS_SECRET_ACCESS_KEY").c_str();
+    std::string session_token = Aws::Environment::GetEnv("AWS_SESSION_TOKEN").c_str();
+
+    Logger::instance().defaultLogger().info("AWS credentials: access key: " + access_key + " secret key: " + secret_key + " session token: " + session_token);
+
     // get region from AWS_REGION env
     auto region = Aws::Environment::GetEnv("AWS_REGION");
-    VirtualFileSystem::addS3FileSystem("", "", region.c_str(), ns, true, true);
+    VirtualFileSystem::addS3FileSystem(access_key, secret_key, session_token, region.c_str(), ns, true, true);
     g_aws_init_time = timer.time();
 
     // Note that runtime must be initialized BEFORE compiler due to linking

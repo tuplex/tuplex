@@ -25,6 +25,7 @@ namespace tuplex {
     struct AWSCredentials {
         std::string access_key;
         std::string secret_key;
+        std::string session_token; // required for temp credentials like the ones used in Lambda
         std::string default_region;
 
         static AWSCredentials get();
@@ -50,6 +51,9 @@ namespace tuplex {
      * @return true/false.
      */
     extern bool isValidAWSZone(const std::string& zone);
+
+
+
 }
 
 // Amazon frequently changes the parameters of lambda functions,

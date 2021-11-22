@@ -143,6 +143,7 @@ namespace tuplex {
 
         credentials.access_key = aws_cred.GetAWSAccessKeyId().c_str();
         credentials.secret_key = aws_cred.GetAWSSecretKey().c_str();
+        credentials.session_token = aws_cred.GetSessionToken().c_str();
 
         // query default region (avoid also here the HTTP requests...)
         // => use us-east-1 per default else!

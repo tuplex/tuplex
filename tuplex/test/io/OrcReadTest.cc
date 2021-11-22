@@ -13,6 +13,7 @@
 #include "../core/TestUtils.h"
 #include <stdlib.h>
 #include <sstream>
+#include "FileSystemUtils.h"
 
 #ifdef BUILD_WITH_ORC
 
@@ -42,22 +43,6 @@ protected:
 };
 
 void testReadInput(std::string folderName, tuplex::Context &context, tuplex::DataSet &ds);
-
-std::string uniqueFileName() {
-    using namespace tuplex;
-    auto lookup = "abcdefghijklmnopqrstuvqxyz";
-    auto len = strlen(lookup);
-    std::stringstream ss;
-    ss << lookup[rand() & len];
-    while (fileExists(ss.str()) && ss.str().length() < 255) {
-        ss << lookup[rand() % len];
-    }
-    auto fileName = ss.str();
-    if (fileExists(fileName)) {
-        throw std::runtime_error("could not create unique file name");
-    }
-    return fileName;
-}
 
 TEST_F(OrcRead, FileDoesNotExist) {
 using namespace tuplex;

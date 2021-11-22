@@ -88,6 +88,11 @@ namespace tuplex {
 
         MessageHandler& logger() const { return Logger::instance().logger("local ee"); }
 
+        /*!
+         * validate file output URI
+         * @param baseURI
+         */
+        void validateOutputSpecification(const URI& baseURI);
 
         // write output (may be already in correct format!)
         void writeOutput(TransformStage* tstage, std::vector<IExecutorTask*>& sortedTasks);

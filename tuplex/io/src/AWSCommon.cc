@@ -160,7 +160,9 @@ namespace tuplex {
            return false;
 
         // add S3 file system
-        VirtualFileSystem::addS3FileSystem(credentials.access_key, credentials.secret_key, credentials.default_region, ns, false, requesterPay);
+        VirtualFileSystem::addS3FileSystem(credentials.access_key, credentials.secret_key,
+                                           credentials.session_token, credentials.default_region,
+                                           ns, false, requesterPay);
         return true;
     }
 

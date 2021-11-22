@@ -37,3 +37,42 @@ new default file created in /root/.pywren_config
 lambda role is pywren_lambda_role
 Creating role.
 Deploying lambda.
+
+
+
+## config file:
+```
+root@58c8c5765f67:/work/pywren# cat ~/.pywren_config
+account:
+    aws_account_id: 587583095482
+    aws_lambda_role: pywren_lambda_role
+    aws_region: us-east-1
+
+
+lambda:
+    memory : 1536
+    timeout : 300
+    function_name : pywren_runner
+
+s3:
+    bucket: pywren-leonhard
+    pywren_prefix: pywren.jobs
+
+runtime:
+    s3_bucket: pywren-runtimes-public-us-east-1
+    s3_key: pywren.runtimes/default_3.7.meta.json
+
+scheduler:
+    map_item_limit: 10000
+
+standalone:
+    ec2_instance_type: m4.large
+    sqs_queue_name: pywren-jobs-1
+    visibility: 10
+    ec2_ssh_key : PYWREN_DEFAULT_KEY
+    target_ami : ami-0ff8a91507f77f867
+    instance_name: pywren-standalone
+    instance_profile_name: pywren-standalone
+    max_idle_time: 60
+    idle_terminate_granularity: 3600
+```

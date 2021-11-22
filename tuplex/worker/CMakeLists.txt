@@ -18,9 +18,9 @@ include_directories(${json_INCLUDE_DIR})
 
 include_directories(include)
 
-set(WORKER_SRC src/main.cc)
+set(WORKER_SRCS src/main.cc src/WorkerApp.cc)
 # linking
-add_executable(${WORKER_NAME} WORKER_SRCS)
+add_executable(${WORKER_NAME} ${WORKER_SRCS})
 
 # enable export symbols in debug for backtrace
 set_target_properties(${WORKER_NAME} PROPERTIES ENABLE_EXPORTS 1)

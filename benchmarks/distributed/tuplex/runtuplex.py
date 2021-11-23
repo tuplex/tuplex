@@ -128,7 +128,7 @@ if __name__ == "__main__":
         "--path",
         type=str,
         dest="data_path",
-        default="s3://tuplex-public/data/100GB/*.csv",
+        default="s3://tuplex-public/data/1000GB/*.csv",
         help="path or pattern to zillow data",
     )
     parser.add_argument(

@@ -119,6 +119,7 @@ def filterType(x):
 def filterBd(x):
     return x["bedrooms"] < 10
 
+print('TODO: update to use PERSONAL bucket... -> default user bucket')
 
 if __name__ == "__main__":
     # Parse arguments
@@ -134,14 +135,14 @@ if __name__ == "__main__":
         "--output-path",
         type=str,
         dest="output_path",
-        default="s3://tuplex-test-rahuly/scratch/zillow.csv",
+        default="s3://tuplex-leonhard/scratch/zillow.csv",
         help="specify path where to save output data files",
     )
     parser.add_argument(
         "--scratch-dir",
         type=str,
         dest="scratch_dir",
-        default="s3://tuplex-test-rahuly/scratch",
+        default="s3://tuplex-leonhard/scratch",
         help="specify scratch directory for Tuplex to use",
     )
     args = parser.parse_args()
@@ -164,7 +165,7 @@ if __name__ == "__main__":
         "aws.httpThreadCount": 100,
         "aws.requestTimeout": 600,
         "aws.connectTimeout": 30,
-        "aws.maxConcurrency": 64,
+        "aws.maxConcurrency": 400, # adjust this to allow for more concurrency with the function...
         "aws.requesterPay": True,
         "webui.enable": False,
         "executorCount": 16,

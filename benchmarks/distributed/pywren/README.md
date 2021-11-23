@@ -76,3 +76,9 @@ standalone:
     max_idle_time: 60
     idle_terminate_granularity: 3600
 ```
+
+
+
+Note that in order to run zillow query, large functions are necessary. I.e., the 10GB version works.
+
+Complete waste of money but finished in ~90s.

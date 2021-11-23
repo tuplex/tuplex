@@ -211,8 +211,11 @@ def pipeline(args):
         # s3_client.download_file(bucket, key, local_path)
         buf = io.BytesIO()
         s3_client.download_fileobj(bucket, key, buf)
+        buf.seek(0)
         utf_wrapper = io.TextIOWrapper(buf, encoding='utf-8')
         records = csv2tuples(utf_wrapper)
+        num_input_rows = len(records)
+
         load_time = time.time() - start_time
 
         start_time = time.time()
@@ -258,7 +261,7 @@ def pipeline(args):
                  'run_time': run_time,
                  'write_time': write_time,
                  'job_time' : job_time,
-                 'num_input_rows' : len(records),
+                 'num_input_rows' : num_input_rows,
                  'num_output_rows':len(res)}
 
         return stats

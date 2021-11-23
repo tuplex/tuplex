@@ -302,7 +302,7 @@ wrenexec = pywren.default_executor()
 
 # yet, we want to have the result for ALL files...
 # first need to list root path
-root_uri = 's3://tuplex-public/data/100GB/'
+root_uri = 's3://tuplex-public/data/100GB/' # ca. 39s, for 1TB ca. 108s without tuning max-concurrency yet (needs to be tuned). Wow. That's quite mind-blowing. How fast can Tuplex do?
 s3_client = boto3.client('s3')
 keys = get_all_s3_keys(s3_client, root_uri)
 logging.info('Found {} keys'.format(len(keys)))
@@ -316,3 +316,6 @@ print(results[:3])
 logging.info('PyWren Query took {}s'.format(time.time() - start_time))
 
 # write results?
+import pandas as pd
+df = pd.DataFrame(results)
+logging.info('Total input rows: {}, total output rows: {}'.format(df['num_input_rows'].sum(), df['num_output_rows'].sum()))

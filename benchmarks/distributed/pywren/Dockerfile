@@ -16,4 +16,4 @@ WORKDIR /work
 
 RUN git clone https://github.com/LeonhardFS/pywren.git && cd pywren && python3.7 setup.py install
 
-RUN python3.7 -m pip install awscli
+RUN python3.7 -m pip install awscli pandas

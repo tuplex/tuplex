@@ -6,11 +6,25 @@ os.environ['PYWREN_LOGLEVEL']='INFO'
 import io
 import boto3
 import csv
+import argparse
+import pandas as pd
+import json
+
+import numpy as np
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
 
 start_time = time.time()
 import pywren
-
-logging.info('PyWren init took {}s'.format(time.time() - start_time))
+init_time = time.time() - start_time
+logging.info('PyWren init took {}s'.format(init_time))
 
 # Functions to extract relevant fields from input data
 # taken from zillow/Z1...
@@ -291,31 +305,64 @@ def get_all_s3_keys(s3_client, uri):
 
     return keys
 
+def current_iam_user():
+    iam = boto3.resource('iam')
+    user = iam.CurrentUser()
+    return user.user_name.lower()
 
-wrenexec = pywren.default_executor()
+def main():
+    parser = argparse.ArgumentParser(description='PyWren benchmark')
+    parser.add_argument('--input-uri', type=str, dest='input_uri', default='s3://tuplex-public/data/100GB/',
+                        help='s3 uri from where to read data')
+    parser.add_argument('--output-uri', type=str, dest='output_uri', default=None,
+                        help='s3 uri where to save everything to')
+    parser.add_argument('--output-stats', type=str, dest='stats', default=None,
+                        help='path where to write stats file')
+    args = parser.parse_args()
 
-# this is an invocation example for a SINGLE file.
-# args = ('s3://tuplex-public/data/100GB/zillow_00001.csv', 's3://pywren-leonhard/zillow_test_output.csv')
-# future = wrenexec.call_async(pipeline, args)
-# res = future.result()
+    # yet, we want to have the result for ALL files...
+    # first need to list root path
+    root_uri = args.input_uri  # ca. 39s, for 1TB ca. 108s without tuning max-concurrency yet (needs to be tuned). Wow. That's quite mind-blowing. How fast can Tuplex do?
+    output_uri = args.output_uri
+    if output_uri is None:
+        output_uri = 's3://pywren-{}'.format(current_iam_user())
 
+    start_time = time.time()
+    wrenexec = pywren.default_executor()
+    s3_client = boto3.client('s3')
+    keys = get_all_s3_keys(s3_client, root_uri)
+    logging.info('Found {} keys'.format(len(keys)))
+    tuples = list(map(lambda key: ('s3://tuplex-public/' + key, output_uri + '/wren-job/output.part.{}'.format(key[key.rfind('_')+1:])), keys))
+    list_time = time.time() - start_time
+    logging.info('Starting PyWren map...')
+    futures = wrenexec.map(pipeline, tuples)
+    results = pywren.get_all_results(futures)
+    logging.info('PyWren completed')
+    job_time = time.time() - start_time
+    logging.info('PyWren Query took {}s'.format(job_time))
 
-# yet, we want to have the result for ALL files...
-# first need to list root path
-root_uri = 's3://tuplex-public/data/100GB/' # ca. 39s, for 1TB ca. 108s without tuning max-concurrency yet (needs to be tuned). Wow. That's quite mind-blowing. How fast can Tuplex do?
-s3_client = boto3.client('s3')
-keys = get_all_s3_keys(s3_client, root_uri)
-logging.info('Found {} keys'.format(len(keys)))
-tuples = list(map(lambda key: ('s3://tuplex-public/' + key, 's3://pywren-leonhard/wren-job/output.part.{}'.format(key[key.rfind('_')+1:])), keys))
-print(tuples[:3])
-logging.info('Starting PyWren map...')
-futures = wrenexec.map(pipeline, tuples)
-results = pywren.get_all_results(futures)
-logging.info('PyWren completed, stats:')
-print(results[:3])
-logging.info('PyWren Query took {}s'.format(time.time() - start_time))
+    # write results?
+    df = pd.DataFrame(results)
+    num_input_rows = df['num_input_rows'].sum()
+    num_output_rows = df['num_output_rows'].sum()
+    logging.info('Total input rows: {}, total output rows: {}'.format(num_input_rows, num_output_rows))
 
-# write results?
-import pandas as pd
-df = pd.DataFrame(results)
-logging.info('Total input rows: {}, total output rows: {}'.format(df['num_input_rows'].sum(), df['num_output_rows'].sum()))
+    stats = {'job_time': job_time,
+             'thereof_list_time': list_time,
+             'init_time': init_time,
+             'num_input_rows' : num_input_rows,
+             'num_output_rows': num_output_rows,
+             'input_uri' : root_uri,
+             'output_uri' : output_uri,
+             'num_input_files': len(keys),
+             'results': results
+             }
+    print(json.dumps(stats, indent="  ", cls=NpEncoder))
+    if args.stats:
+        with open(args.stats, 'w') as fp:
+            json.dump(stats, fp, cls=NpEncoder)
+        logging.info('Wrote stats to {}'.format(args.stats))
+    logging.info('Done.')
+
+if __name__ == '__main__':
+    main()

@@ -19,4 +19,8 @@ RUN git clone https://github.com/LeonhardFS/pywren.git && cd pywren && python3.7
 RUN python3.7 -m pip install awscli pandas
 
 # add .pywrenconfig file
-ADD .pywrenconfig /root/.pywren_config
+ADD .pywren_config /root/.pywren_config
+
+# add benchmark files
+ADD benchmark.sh /work/benchmark.sh
+ADD run_pywren.py /work/run_pywren.py

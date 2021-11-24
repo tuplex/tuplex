@@ -40,11 +40,9 @@ for MEMORY_SIZE in "${MEMORY_SIZES[@]}"; do
     # dummy update to cold start function
     if [ "$COLD_START" = true ] ; then
       echo "cold starting function..."
-      # use 128mb as dummy restart
-      aws lambda update-function-configuration --function-name ${LAMBDA_NAME} --memory-size 128
-      aws lambda wait function-updated --function-name ${LAMBDA_NAME}
-      echo "dummy reconfigure done"
-      aws lambda update-function-configuration --function-name ${LAMBDA_NAME} --memory-size ${MEMORY_SIZE}
+      # random update environment variable to force cold-start
+      aws lambda update-function-configuration --function-name ${LAMBDA_NAME} --memory-size ${MEMORY_SIZE} --environment "Variables={RANDOM_VAR=$(date)}"
+
       aws lambda wait function-updated --function-name ${LAMBDA_NAME}
       echo "reconfigured"
     fi

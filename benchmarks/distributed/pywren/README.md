@@ -6,10 +6,10 @@ This directory contains benchmark implementations of (PyWren)[https://github.com
 All these changes can be found in the forked repo https://github.com/LeonhardFS/pywren
 
 Before running your benchmark, make sure you have some S3 bucket acting as both intermediate and output storage. Edit the pywren_config.yaml file in this directory, then build the docker container to include it.
-	
+
 To facilitate benchmarking, it's wrapped up as docker container.
 
-Start container after editing pywren_config to your settings via 
+Start container after editing pywren_config to your settings via
 
 docker run -it -e AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} pywren bash
 
@@ -22,6 +22,10 @@ You can also invoke the benchmark directly via...
 1. update runtime to newer python (3.9 ?)
 2. code base only works with python 3.7 currently
 3. setup script doesn't work yet properly...
+
+
+TODO: force cold start using https://stackoverflow.com/questions/47445815/force-discard-aws-lambda-container/47447475#47447475
+i.e. update some comment in code using date time or so.
 
 
 ##setup config

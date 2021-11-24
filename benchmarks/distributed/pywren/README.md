@@ -1,12 +1,20 @@
 ## PyWren benchmark directory
 
-This directory contains benchmark implementations of (PyWren)[https://github.com/pywren/pywren] to be compared against Tuplex.
+This directory contains benchmark implementations of (PyWren)[https://github.com/pywren/pywren] to be compared against Tuplex. In order to make PyWren run on AWS, several things had to be fixed first:
+	1. update runtime to newer python (3.7), this is the only version PyWren is compatible with. It fails for newer Python, i.e. Python3.9
+	2. Fix setup.py script to install more recent package versions
+All these changes can be found in the forked repo https://github.com/LeonhardFS/pywren
 
+Before running your benchmark, make sure you have some S3 bucket acting as both intermediate and output storage. Edit the pywren_config.yaml file in this directory, then build the docker container to include it.
+	
 To facilitate benchmarking, it's wrapped up as docker container.
 
-Start container via
+Start container after editing pywren_config to your settings via 
 
 docker run -it -e AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} pywren bash
+
+You can also invoke the benchmark directly via...
+
 
 
 ## Steps required to fix PyWren:

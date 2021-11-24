@@ -1,0 +1,32 @@
+account:
+    aws_account_id: {aws_account_id}
+    aws_lambda_role: pywren_lambda_role
+    aws_region: {aws_region}
+
+
+lambda:
+    memory : 1536
+    timeout : 300
+    function_name : pywren_runner
+
+s3:
+    bucket: {pywren_bucket}
+    pywren_prefix: pywren.jobs
+
+runtime:
+    s3_bucket: pywren-runtimes-public-us-east-1
+    s3_key: pywren.runtimes/default_3.7.meta.json
+
+scheduler:
+    map_item_limit: 10000
+
+standalone:
+    ec2_instance_type: m4.large
+    sqs_queue_name: pywren-jobs-1
+    visibility: 10
+    ec2_ssh_key : PYWREN_DEFAULT_KEY
+    target_ami : ami-0ff8a91507f77f867
+    instance_name: pywren-standalone
+    instance_profile_name: pywren-standalone
+    max_idle_time: 60
+    idle_terminate_granularity: 3600

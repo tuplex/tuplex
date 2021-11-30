@@ -58,20 +58,19 @@ for MEMORY_SIZE in "${MEMORY_SIZES[@]}"; do
 
 done
 echo "benchmark done"
+exit 0
+
+
+
+
+
 
 for ((r = 1; r <= NUM_RUNS; r++)); do
 	LOG=${RESULT_DIR}/100G/tuplex-lambda-run-$r.txt
 	${PYTHON} run_tuplex.py --path 's3://tuplex/data/100GB/*.csv' >$LOG 2>$LOG.stderr
 done
 
-
-
-
-
-
-
 exit 0
-
 
 echo "running over 1TB"
 for ((r = 1; r <= NUM_RUNS; r++)); do

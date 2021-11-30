@@ -60,10 +60,21 @@ namespace tuplex {
 // this here are a couple constants to update them
 // current state: https://aws.amazon.com/about-aws/whats-new/2020/12/aws-lambda-supports-10gb-memory-6-vcpu-cores-lambda-functions/#:~:text=Events-,AWS%20Lambda%20now%20supports%20up%20to%2010%20GB%20of%20memory,vCPU%20cores%20for%20Lambda%20Functions&text=AWS%20Lambda%20customers%20can%20now,previous%20limit%20of%203%2C008%20MB.
 // cf. https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html
+// also check https://www.fourtheorem.com/blog/lambda-10gb for quotas on vCPU, i.e. how much is provisioned.
+// https://docs.aws.amazon.com/lambda/latest/dg/configuration-function-common.html
+
+// i.e. at 1,769 MB, a function has the equivalent of one vCPU (one vCPU-second of credits per second).
 #define AWS_MINIMUM_LAMBDA_MEMORY_MB 128ul
 // how much memory a function for Tuplex should have
 #define AWS_MINIMUM_TUPLEX_MEMORY_REQUIREMENT_MB 384ul
+
+// 10240MB, i.e. 10GB
 #define AWS_MAXIMUM_LAMBDA_MEMORY_MB 10240ul
+// 15 min
+#define AWS_MAXIMUM_LAMBDA_TIMEOUT 900ul
+// minumum Tuplex requirement (5s?)
+#define AWS_MINIMUM_TUPLEX_TIMEOUT_REQUIREMENT 5ul
+
 // note(Leonhard): I think the number of available cores/threads is dependent on the memory size
 #define AWS_MAXIMUM_LAMBDA_THREADS 6
 

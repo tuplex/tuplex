@@ -14,9 +14,9 @@ RUN cd /tmp && wget https://bootstrap.pypa.io/get-pip.py && python3.7 get-pip.py
 
 WORKDIR /work
 
-ADD tuplex-0.3.1-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl /work/tuplex.whl
+ADD tuplex-0.3.1-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl /work/tuplex-0.3.1-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 
-RUN python3.7 -m pip install /work/tuplex.whl
+RUN python3.7 -m pip install /work/tuplex-0.3.1-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 
 RUN python3.7 -m pip install awscli pandas
 

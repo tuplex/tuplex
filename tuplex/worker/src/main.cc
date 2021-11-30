@@ -59,7 +59,17 @@ int main(int argc, char* argv[]) {
     // init Worker with default settings
     auto app = make_unique<WorkerApp>(WorkerSettings());
 
-    rc = app->messageLoop();
+    // mode
+    if(isDaemon) {
+        rc = app->messageLoop();
+         app->shutdown();
+    } else {
+        if(!message.empty() && message.front() == '{' && message.back() == '}') {
+            rc = app->processJSONMessage(message);
+        }
+        app->shutdown();
+    }
+
     if(0 == rc)
         Logger::instance().defaultLogger().info("Terminating Tuplex worker process normally with exit code 0.");
     else

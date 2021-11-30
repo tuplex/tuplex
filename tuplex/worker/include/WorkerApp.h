@@ -5,6 +5,22 @@
 #ifndef TUPLEX_WORKERAPP_H
 #define TUPLEX_WORKERAPP_H
 
+
+
+
+#include <string>
+
+// error codes
+#define WORKER_OK 0
+#define WORKER_ERROR_INVALID_JSON_MESSAGE 100
+
+// protobuf
+#include <Lambda.pb.h>
+#include <physical/TransformStage.h>
+#include <physical/CSVReader.h>
+#include <physical/TextReader.h>
+#include <google/protobuf/util/json_util.h>
+
 namespace tuplex {
 
     /// settings to use to initialize a worker application. Helpful to tune depending on
@@ -15,6 +31,12 @@ namespace tuplex {
         // -> local file cache -> how much main memory, which disk dir, how much memory available on disk dir
         // executor in total how much memory available to use
         //
+
+        bool operator == (const WorkerSettings& other) const = default;
+
+        bool operator != (const WorkerSettings& other) const {
+            return !(*this == other);
+        }
     };
 
     /// main class to represent a running worker application
@@ -32,7 +54,18 @@ namespace tuplex {
 
         int messageLoop();
 
+        /*!
+         * processes a single message given as JSON
+         * @param message JSON string
+         * @return 0 if successful or error code depending on circumstances
+         */
+        int processJSONMessage(const std::string& message);
+
         void shutdown();
+
+    protected:
+        WorkerSettings settingsFromMessage(const tuplex::messages::InvocationRequest& req);
+
     private:
         WorkerSettings _settings;
     };

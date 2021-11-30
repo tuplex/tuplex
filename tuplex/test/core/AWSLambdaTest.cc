@@ -276,8 +276,9 @@ TEST_F(AWSTest, ShowFromSingleFile) {
 
     using namespace std;
     using namespace tuplex;
-
-    Context c(microLambdaOptions());
+    auto opt = microLambdaOptions();
+    opt.set("tuplex.aws.lambdaMemory", "6432");
+    Context c(opt);
 
     // make sure this is public??
     c.csv("s3://tuplex-public/data/100GB/zillow_00001.csv").show(5);

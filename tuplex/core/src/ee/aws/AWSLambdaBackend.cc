@@ -609,14 +609,22 @@ namespace tuplex {
         _lambdaSizeInMB = options.AWS_LAMBDA_MEMORY();
         _lambdaTimeOut = options.AWS_LAMBDA_TIMEOUT();
 
-        // adjust params if necessary
-        if(_lambdaSizeInMB < AWS_MINIMUM_TUPLEX_MEMORY_REQUIREMENT_MB || _lambdaSizeInMB % 64 != 0 || _lambdaSizeInMB > AWS_MAXIMUM_LAMBDA_MEMORY_MB) {
-            _lambdaSizeInMB = std::max(std::min(AWS_MINIMUM_LAMBDA_MEMORY_MB, core::ceilToMultiple(_lambdaSizeInMB, 64ul)), AWS_MAXIMUM_LAMBDA_MEMORY_MB);
-            logger().info("adjusted lambda size to " + std::to_string(_lambdaSizeInMB));
-        }
+        logger().info("Execution over lambda with " + std::to_string(_lambdaSizeInMB) + "MB");
+
+        // this is old code, now Lambda supports 1MB increments. Hence, no adjustment to 64MB granularity anymore necessary
+//        // adjust params if necessary
+//        if(_lambdaSizeInMB < AWS_MINIMUM_TUPLEX_MEMORY_REQUIREMENT_MB || _lambdaSizeInMB % 64 != 0 || _lambdaSizeInMB > AWS_MAXIMUM_LAMBDA_MEMORY_MB) {
+//            _lambdaSizeInMB = std::min(std::max(AWS_MINIMUM_LAMBDA_MEMORY_MB, core::ceilToMultiple(_lambdaSizeInMB, 64ul)), AWS_MAXIMUM_LAMBDA_MEMORY_MB);
+//            logger().info("adjusted lambda size to " + std::to_string(_lambdaSizeInMB));
+//        }
+
+        _lambdaSizeInMB = std::min(std::max(AWS_MINIMUM_LAMBDA_MEMORY_MB, _lambdaSizeInMB), AWS_MAXIMUM_LAMBDA_MEMORY_MB);
+        logger().info("Adjusted lambda size to " + std::to_string(_lambdaSizeInMB) + "MB");
+
+        // @TODO: replace with constants here...
         if(_lambdaTimeOut < 10 || _lambdaTimeOut > 15 * 60) {
-            _lambdaTimeOut = std::max(std::min(10ul, _lambdaTimeOut), 15 * 60ul); // min 10s, max 15min
-            logger().info("adjusted lambda timeout to " + std::to_string(_lambdaTimeOut));
+            _lambdaTimeOut = std::min(std::max(10ul, _lambdaTimeOut), 15 * 60ul); // min 10s, max 15min
+            logger().info("Adjusted lambda timeout to " + std::to_string(_lambdaTimeOut));
         }
 
         // init lambda client (Note: must be called AFTER aws init!)

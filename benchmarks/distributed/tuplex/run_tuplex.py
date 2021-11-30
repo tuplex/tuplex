@@ -145,6 +145,10 @@ if __name__ == "__main__":
         default="s3://tuplex-leonhard/scratch",
         help="specify scratch directory for Tuplex to use",
     )
+    parser.add_argument('--lambda-memory',
+    type=int,
+    default=3000,
+    help='how many MB to assign to Lambda runner')
     args = parser.parse_args()
 
     assert args.data_path, "need to set data path!"
@@ -167,6 +171,7 @@ if __name__ == "__main__":
         "aws.connectTimeout": 30,
         "aws.maxConcurrency": 400, # adjust this to allow for more concurrency with the function...
         "aws.requesterPay": True,
+        "aws.lambdaMemory": args.lambda_memory,
         "webui.enable": False,
         "executorCount": 16,
         "executorMemory": "2G",

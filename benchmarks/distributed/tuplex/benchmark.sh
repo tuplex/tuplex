@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # (c) L.Spiegelberg 2020, this file runs the benchmark for Tuplex on AWS Lambda
 
+
+# start container via e.g.
+# docker run -it -v /home/ubuntu/tuplex-public/benchmarks/distributed/tuplex/reuslts:/results -e AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} tuplex/aws bash
+
 NUM_RUNS=1
-RESULT_DIR=results-aws-lambda
+RESULT_DIR=/results/results-aws-lambda
 mkdir -p ${RESULT_DIR}
 mkdir -p ${RESULT_DIR}/100G
 mkdir -p ${RESULT_DIR}/1000G
@@ -26,7 +30,7 @@ for MEMORY_SIZE in "${MEMORY_SIZES[@]}"; do
   echo "Lambda ${LAMBDA_NAME} updated"
 
   # create runs (cold-start!)
-  for r in $(seq $NRUNS); do
+  for r in $(seq $NUM_RUNS); do
     OUTPUT_FILE="$RESULT_DIR/run-$r-tuplex-${MEMORY_SIZE}mb"
 
     if [ "$COLD_START" = true ] ; then
@@ -35,7 +39,7 @@ for MEMORY_SIZE in "${MEMORY_SIZES[@]}"; do
       OUTPUT_FILE="$OUTPUT_FILE-warm"
     fi
 
-    echo "run $r / ${NRUNS} (saving to ${OUTPUT_FILE})"
+    echo "run $r / ${NUM_RUNS} (saving to ${OUTPUT_FILE})"
 
     # dummy update to cold start function
     if [ "$COLD_START" = true ] ; then
@@ -48,8 +52,8 @@ for MEMORY_SIZE in "${MEMORY_SIZES[@]}"; do
     fi
 
     echo "running benchmark:::"
-		${PYTHON} run_tuplex.py --path 's3://tuplex/data/100GB/*.csv' >$OUTPUT_FILE.txt 2>$OUTPUT_FILE.txt.stderr
-    echo "run $r / ${NRUNS} done"
+		${PYTHON} run_tuplex.py --lambda-memory ${MEMORY_SIZE} --path 's3://tuplex/data/100GB/*.csv' >$OUTPUT_FILE.txt 2>$OUTPUT_FILE.txt.stderr
+    echo "run $r / ${NUM_RUNS} done"
   done
 
 done

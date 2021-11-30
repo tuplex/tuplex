@@ -20,9 +20,6 @@ RUN python3.7 -m pip install /work/tuplex-0.3.1-cp37-cp37m-manylinux_2_17_x86_64
 
 RUN python3.7 -m pip install awscli pandas
 
-# add .pywrenconfig file
-ADD .pywren_config /root/.pywren_config
-
 # add benchmark files
 ADD benchmark.sh /work/benchmark.sh
 ADD run_tuplex.py /work/run_tuplex.py

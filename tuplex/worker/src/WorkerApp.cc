@@ -6,12 +6,17 @@
 
 namespace tuplex {
 
-    void WorkerApp::globalInit() {
+    int WorkerApp::globalInit() {
         auto& logger = Logger::instance().defaultLogger();
 
         // runtime library path
         auto runtime_path = "tuplex-runtime.so";
-        std::string python_home_dir = ".";
+        std::string python_home_dir = python::find_stdlib_location();
+
+        if(python_home_dir.empty()) {
+            logger.error("Could not detect python stdlib location");
+            return WORKER_ERROR_NO_PYTHON_HOME;
+        }
 
         NetworkSettings ns;
         ns.verifySSL = false;
@@ -23,15 +28,11 @@ namespace tuplex {
         runtime::init(runtime_path);
         _compiler = std::make_shared<JITCompiler>();
 
-        // init python
+        // init python home dir.
         python::python_home_setup(python_home_dir);
-
-//        // check for python errors
-//        if(PyErr_Occurred()) {
-//            logger.error("Python error occurred");
-//        }
-
         python::initInterpreter();
+
+        return WORKER_OK;
     }
 
     bool WorkerApp::reinitialize(const WorkerSettings &settings) {

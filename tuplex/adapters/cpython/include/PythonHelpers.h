@@ -85,12 +85,28 @@ namespace python {
     void python_home_setup(const std::string& home_dir);
 
     /*!
+     * returns python version build against as major.minor.patch
+     * @param minor whether to include minor
+     * @param patch whether to include patch (minor needs to be true as well)
+     * @return string
+     */
+    inline std::string python_version(bool minor=true, bool patch=false) {
+        auto version = std::to_string(PY_MAJOR_VERSION);
+        if(minor)
+            version += "." + std::to_string(PY_MINOR_VERSION);
+        if(minor && patch)
+            version += "." + std::to_string(PY_MICRO_VERSION);
+        return version;
+    }
+
+    /*!
      * find python standardlib location.
-     * @param version python version string. E.g., "3" or "3.7"
+     * @param version python version string. E.g., "3" or "3.7". Per default search for version build against.
      * @param prefix_list list of paths where to search for <prefix>/lib/python<version> pattern.
      * @return string for first match found, empty string else
      */
-    std::string find_stdlib_location(const std::string& version="", const std::vector<std::string>& prefix_list=std::vector<std::string>{"/usr/local"});
+    std::string find_stdlib_location(const std::string& version=python_version(true, false),
+                                     const std::vector<std::string>& prefix_list=std::vector<std::string>{"/usr/local"});
 
     /*!
      * retrieves main module and loads cloudpickle module. Exits program if cloudpickle is not found.

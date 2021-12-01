@@ -61,13 +61,28 @@ namespace python {
                 // list all entries under dir with python
                 auto paths = tuplex::glob(prefix + "/lib/python*");
                 for(auto path : paths) {
+                    auto original_path = path;
                     // only check for folders (glob appends /!)
                     if(!path.empty() && path.back() == '/') {
                         path = path.substr(0, path.length() - 1);
                         // find / to get python name
-                        auto folder_name = path.substr(path.rfind('/'));
+                        auto idx = path.rfind('/');
+                        if(idx < 0)
+                            continue;
+                        auto folder_name = path.substr(idx + 1);
 
-                        std::cout<<folder_name<<std::endl;
+                        // starts with python? => should because of globbing!
+                        auto py_len = std::string("python").length();
+                        if(folder_name.substr(0, py_len) == "python") {
+                            // extract version
+                            auto this_version = folder_name.substr(py_len);
+                            // check if version starts with version string
+                            if(version.empty())
+                                return original_path;
+                            else if(this_version.substr(0, version.length()) == version) {
+                                return original_path;
+                            }
+                        }
                     }
                 }
             }

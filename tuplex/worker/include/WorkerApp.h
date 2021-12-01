@@ -13,6 +13,7 @@
 // error codes
 #define WORKER_OK 0
 #define WORKER_ERROR_INVALID_JSON_MESSAGE 100
+#define WORKER_ERROR_NO_PYTHON_HOME 101
 
 // protobuf
 #include <Lambda.pb.h>

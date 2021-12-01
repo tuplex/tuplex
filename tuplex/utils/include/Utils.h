@@ -52,6 +52,11 @@ namespace std {
 
 #include "Network.h"
 
+// Posix helpers
+#include <dirent.h>
+#include <errno.h>
+#include <glob.h>
+
 static_assert(__cplusplus >= 201402L, "need at least C++ 14 to compile this file");
 // check https://blog.galowicz.de/2016/02/20/short_file_macro/
 // for another cool macro
@@ -264,6 +269,59 @@ namespace tuplex {
     inline bool fileExists(const std::string &local_path) {
         // from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c
         return access( local_path.c_str(), 0 ) == 0;
+    }
+
+    /*!
+     * check whether local directory exists and can be opened.
+     * @param local_path
+     * @return true/false
+     */
+    inline bool dirExists(const std::string& local_path) {
+        // from stackoverflow.
+        DIR* dir = opendir(local_path.c_str());
+        if (dir) {
+            closedir(dir);
+            return true;
+        } else if (ENOENT == errno) {
+            // directory does not exist.
+            return false;
+        } else {
+            // opendir() failed for some other reason, e.g. access problems
+            return false;
+        }
+    }
+
+    inline std::vector<std::string> glob(const std::string& pattern, std::ostream& err_stream=std::cerr) {
+        using namespace std;
+
+        auto pattern_str = pattern.c_str();
+
+        // from https://stackoverflow.com/questions/8401777/simple-glob-in-c-on-unix-system
+        // glob struct resides on the stack
+        glob_t glob_result;
+        memset(&glob_result, 0, sizeof(glob_result));
+
+        // do the glob operation
+        int return_value = ::glob(pattern_str, GLOB_TILDE | GLOB_MARK, NULL, &glob_result);
+        if(return_value != 0) {
+            globfree(&glob_result);
+
+            // special case, no match
+            if(GLOB_NOMATCH == return_value) {
+                return {};
+            }
+
+            err_stream << "glob() failed with return_value " << return_value << std::endl;
+        }
+
+        // collect all the filenames into a std::list<std::string>
+        vector<string> paths;
+        for(size_t i = 0; i < glob_result.gl_pathc; ++i)
+            paths.emplace_back( glob_result.gl_pathv[i]);
+
+        // cleanup
+        globfree(&glob_result);
+        return paths;
     }
 
     /*!

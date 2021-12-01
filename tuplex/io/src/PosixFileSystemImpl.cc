@@ -502,7 +502,7 @@ namespace tuplex {
         memset(&glob_result, 0, sizeof(glob_result));
 
         // do the glob operation
-        int return_value = ::glob(pattern_str, GLOB_TILDE, NULL, &glob_result);
+        int return_value = ::glob(pattern_str, GLOB_TILDE | GLOB_MARK, NULL, &glob_result);
         if(return_value != 0) {
             globfree(&glob_result);
 

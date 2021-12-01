@@ -317,7 +317,10 @@ exec $LAMBDA_TASK_ROOT/bin/$PKG_BIN_FILENAME ${_HANDLER}
             logging.debug('{} -> {}'.format(path, target))
             zip.write(path, target)
 
-    logging.info('Done!')
+    if not os.path.isfile(OUTPUT_FILE_NAME):
+        logging.error('Something went wrong, could not find file under {} ({})'.format(OUTPUT_FILE_NAME, os.path.realpath(OUTPUT_FILE_NAME)))
+    else:
+        logging.info('Done! Zipped Lambda stored in {}'.format(os.path.realpath(OUTPUT_FILE_NAME)))
 
 if __name__ == '__main__':
     main()

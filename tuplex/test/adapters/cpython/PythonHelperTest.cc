@@ -460,3 +460,8 @@ TEST_F(PythonHelperTest, SchemaEncoding) {
     auto w0 = python::encodePythonSchema(python::Type::makeFunctionType(python::Type::I64, python::Type::STRING));
     EXPECT_EQ(python::PyString_AsString(w0), "typing.Callable[[int], str]");
 }
+
+TEST_F(PythonHelperTest, FindStdlib) {
+    auto loc = python::find_stdlib_location();
+    EXPECT_NE(loc, "");
+}

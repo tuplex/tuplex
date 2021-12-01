@@ -6,14 +6,51 @@
 
 namespace tuplex {
 
+    void WorkerApp::globalInit() {
+        auto& logger = Logger::instance().defaultLogger();
+
+        // runtime library path
+        auto runtime_path = "tuplex-runtime.so";
+        std::string python_home_dir = ".";
+
+        NetworkSettings ns;
+        ns.verifySSL = false;
+
+#ifdef BUILD_WITH_AWS
+        Aws::InitAPI(_aws_options);
+#endif
+
+        runtime::init(runtime_path);
+        _compiler = std::make_shared<JITCompiler>();
+
+        // init python
+        python::python_home_setup(python_home_dir);
+
+//        // check for python errors
+//        if(PyErr_Occurred()) {
+//            logger.error("Python error occurred");
+//        }
+
+        python::initInterpreter();
+    }
+
     bool WorkerApp::reinitialize(const WorkerSettings &settings) {
         _settings = settings;
+
+        // general init here...
+        // compiler already active? Else init
+        globalInit();
 
         return true;
     }
 
     void WorkerApp::shutdown() {
+        python::closeInterpreter();
+        runtime::freeRunTimeMemory();
 
+#ifdef BUILD_WITH_AWS
+        Aws::ShutdownAPI(_aws_options);
+#endif
     }
 
     int WorkerApp::messageLoop() {
@@ -36,6 +73,15 @@ namespace tuplex {
         if(settings != _settings)
             reinitialize(settings);
 
+        // currently message represents merely a transformstage/transformtask
+        auto tstage = TransformStage::from_protobuf(req.stage());
+
+        // check number of input files
+        using namespace std;
+        vector<URI> inputURIs;
+        vector<size_t> inputSizes;
+        auto num_input_files = inputURIs.size();
+        logger.debug("Found " + to_string(num_input_files) + " input URIs to process");
 
 
         return WORKER_OK;

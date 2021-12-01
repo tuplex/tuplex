@@ -58,13 +58,7 @@ std::shared_ptr<tuplex::JITCompiler> g_compiler;
 void python_home_setup() {
     // extract python home directory
     auto task_root = std::getenv("LAMBDA_TASK_ROOT");
-    // convert to wchar
-    std::vector<wchar_t> vec;
-    auto len = strlen(task_root);
-    vec.resize(len + 1);
-    mbstowcs(&vec[0], task_root, len);
-    // set python home
-    Py_SetPythonHome(&vec[0]);
+    python::python_home_setup(task_root.c_str());
 }
 
 void global_init() {
@@ -352,9 +346,7 @@ tuplex::messages::InvocationResponse lambda_main(aws::lambda_runtime::invocation
 
     vector<URI> inputURIs;
     vector<size_t> inputSizes;
-    for(const auto& path : req.inputuris()) {
-        // check paths are S3 paths
-        inputURIs.emplace_back(path);
+
         if(inputURIs.back().prefix() != "s3://")
             return make_exception("InvalidPath: input path must be s3:// path, is " + inputURIs.back().toPath());
     }

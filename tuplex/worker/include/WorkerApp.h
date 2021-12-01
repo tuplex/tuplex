@@ -21,6 +21,10 @@
 #include <physical/TextReader.h>
 #include <google/protobuf/util/json_util.h>
 
+#ifdef BUILD_WITH_AWS
+#include <aws/core/Aws.h>
+#endif
+
 namespace tuplex {
 
     /// settings to use to initialize a worker application. Helpful to tune depending on
@@ -48,7 +52,7 @@ namespace tuplex {
         WorkerApp(const WorkerApp& other) =  delete;
 
         // create WorkerApp from settings
-        WorkerApp(const WorkerSettings& settings) { reinitialize(settings); }
+        WorkerApp(const WorkerSettings& settings)  { reinitialize(settings); }
 
         bool reinitialize(const WorkerSettings& settings);
 
@@ -63,11 +67,21 @@ namespace tuplex {
 
         void shutdown();
 
+        bool isInitialized() const;
+
     protected:
         WorkerSettings settingsFromMessage(const tuplex::messages::InvocationRequest& req);
 
+        tuplex::messages::InvocationResponse executeSingleTransformTask(const TransformStage* tstage);
+
+        void globalInit();
+
     private:
         WorkerSettings _settings;
+        std::shared_ptr<JITCompiler> _compiler;
+#ifdef BUILD_WITH_AWS
+        Aws::SDKOptions _aws_options;
+#endif
     };
 }
 

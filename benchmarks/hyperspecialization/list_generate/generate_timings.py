@@ -1,37 +1,36 @@
 import os
+import argparse
 import statistics
 import matplotlib.pyplot as plt
 
 NUM_TRIALS = 10
 
+
 # generator parameters
-NUM_LISTS = "10_100000"
+NUM_LISTS = "1000000"
 TYPE_STR = "int"
-DISTR_STR = "binomial" # space separated
+DISTR_STR = "uniform" # space separated
 
 def gen_data():
     os.system(f"python3 generate_data.py --num_lists {NUM_LISTS} --types {TYPE_STR} --distributions {DISTR_STR}")
     print(f'generated data')
     return
 
-def run_cc(ident):
+def run_cc(ident, filename_str):
     result_distr_str = DISTR_STR.replace(' ', '')
-    filename_str = NUM_LISTS + '_' + TYPE_STR + '_' + result_distr_str
     os.system(f'rm {filename_str}.{ident}.out')
     for _ in range(NUM_TRIALS):
         os.system(f"./{ident} {filename_str}.csv >> {filename_str}.{ident}.out")
 
-def run_baseline_py():
+def run_baseline_py(filename_str):
     result_distr_str = DISTR_STR.replace(' ', '')
-    filename_str = NUM_LISTS + '_' + TYPE_STR + '_' + result_distr_str
     os.system(f'rm {filename_str}.py.out')
     for _ in range(NUM_TRIALS):
         os.system(f"python3 count_unique_baseline_freq.py --filename {filename_str}.csv >> {filename_str}.py.out")
 
-def cc_timings(ident):
+def cc_timings(ident, filename_str):
     result_distr_str = DISTR_STR.replace(' ', '')
     all_timings = []
-    filename_str = NUM_LISTS + '_' + TYPE_STR + '_' + result_distr_str
     curr_timings = []
     with open(f'{filename_str}.{ident}.out', 'r') as f:
         for line in f:
@@ -39,16 +38,6 @@ def cc_timings(ident):
     all_timings.append(statistics.mean(curr_timings))
     return statistics.mean(curr_timings)
 
-def baseline_py_timings():
-    result_distr_str = DISTR_STR.replace(' ', '')
-    all_timings = []
-    filename_str = NUM_LISTS + '_' + TYPE_STR + '_' + result_distr_str
-    curr_timings = []
-    with open(f'{filename_str}.py.out', 'r') as f:
-        for line in f:
-            curr_timings.append(float(line.strip('\n')))
-    all_timings.append(statistics.mean(curr_timings))
-    return statistics.mean(curr_timings)
 
 def plot_timings(ys, legends):
 
@@ -86,23 +75,48 @@ def plot_timings(ys, legends):
     # plt.show()
 
 
-def main():
+def baseline_py_timings(filename_str):
+    result_distr_str = DISTR_STR.replace(' ', '')
+    all_timings = []
+    curr_timings = []
+    with open(f'{filename_str}.py.out', 'r') as f:
+        for line in f:
+            curr_timings.append(float(line.strip('\n')))
+    all_timings.append(statistics.mean(curr_timings))
+    return statistics.mean(curr_timings)
+
+def get_cc_timings(filename_str):
     to_run_cc = ['count_unique_bench_freq_int_stdmap', 'count_unique_bench_freq_string_stdmap', 'count_unique_bench_freq_int_stdumap',
     'count_unique_bench_freq_string_stdumap']
-    to_run_cc_legend = ['C++ std::map (key: int, val: int)', 'C++ std::map (key: string, val: int)', 'C++ std::unordered_map (key: int, val: int)',
-   'C++ std::unordered_map (key: string, val: int)']
-    # gen_data()
     # run_baseline_py()
     to_run_timings = []
 
     for ident in to_run_cc:
-        # run_cc(ident)
-        to_run_timings.append(cc_timings(ident))
+        run_cc(ident) ################ <-------------------------
+        to_run_timings.append(cc_timings(ident, filename_str))
+    return to_run_timings
 
+def main():
+    to_run_cc_legend = ['C++ std::map (key: int, val: int)', 'C++ std::map (key: string, val: int)', 'C++ std::unordered_map (key: int, val: int)',
+   'C++ std::unordered_map (key: string, val: int)']
+
+    filename_strs = []
+
+    baseline_py = []
+    cc = []
+    for filename in filename_strs:
+        run_baseline_py(filename)
+
+        # run_cc happens in get_cc_timings
+        baseline_py.append(baseline_py_timings(filename))
+        cc.append(get_cc_timings(filename))
+    
+    # gen_data()
     # run_baseline_py()
-    baseline_py = baseline_py_timings()
+    # baseline_py = baseline_py_timings()
+    # to_run_timings = get_cc_timings()
 
-    plot_timings(to_run_timings + [baseline_py], to_run_cc_legend + ['Python3 dict baseline'])
+    plot_timings(cc + [baseline_py], to_run_cc_legend + ['Python3 dict baseline'])
 
 
 if __name__ == "__main__":

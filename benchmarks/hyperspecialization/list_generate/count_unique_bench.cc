@@ -15,10 +15,10 @@ using namespace csvmonkey;
 #define FREQ 10 // only count number of keys in map
 #define FULL 11 // return entire map (NRVO)
 
-#define CURR_DS UMAP_DS
+#define CURR_DS MAP_DS
 #define CURR_MP FREQ
 
-using KEY_TYPE = std::string;
+using KEY_TYPE = int;
 
 #if CURR_MP == FREQ
 auto count_m_int = "./cpp_shared/count_m_freq_int.so";
@@ -114,6 +114,11 @@ void run(const char* path) {
     duration<double, std::milli> ms_double = t2 - t1;
     std::cout << ms_double.count() << "\n";
 
+    // std::cout << result.size() << "\n";
+    // for(auto x : result) {
+    //     std::cout << x << " ";
+    // }
+    // std::cout << "\n";
 }
 
 int main(int argc, char** argv) {

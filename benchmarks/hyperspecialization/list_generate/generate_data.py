@@ -10,8 +10,12 @@ import numpy as np
 import scipy.stats as ss
 from tqdm import tqdm
 
+
+def get_list_length():
+    return int(1e3)
+
 MIN_INT = 0
-MAX_INT = 0
+MAX_INT = 1000
 
 def randint(dist):
     if dist == 'uniform':
@@ -54,7 +58,7 @@ def randstring(dist, seed=0):
 
 def randlist(types, distribution_dict):
     result = []
-    length = random.randint(10, 1000)
+    length = get_list_length() # list length
     for _ in range(length):
         currtype = random.randint(0, len(types) - 1)
         newval = globals()[f"rand{types[currtype]}"](distribution_dict[types[currtype]])
@@ -73,12 +77,17 @@ def main():
     parser.add_argument('--num_lists', type=int)
     parser.add_argument('--types', type=str, nargs='+')
     parser.add_argument('--distributions', nargs='+')
+    parser.add_argument('--max_int', type=int)
     
     args = parser.parse_args()
 
     if len(args.distributions) != len(args.types):
         print('please specify a distribution for each type')
         exit(0)
+
+    if args.max_int:
+        print(f'set max_int to {args.max_int}')
+        MAX_INT = args.max_int
 
     distribution_dict = {}
     for idx, arg in enumerate(args.distributions):
@@ -90,7 +99,8 @@ def main():
             exit(0)
     
     dist_str = ''.join([name for name in args.distributions])
-    filename = f'{args.num_lists}_{"".join(args.types)}_{dist_str}.csv'
+    filename = f'{args.num_lists}_of_{get_list_length()}_{"".join(args.types)}_{dist_str}_({MIN_INT}_to_{MAX_INT}).csv'
+    print(f'args.num_lists = {args.num_lists}')
 
     with open(filename, 'w') as f:
         wr = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
@@ -99,10 +109,6 @@ def main():
             wr.writerow(csv_row)
     
     print(filename)
-    # print('\n\n\n\n')
-
-    # print(result)
-
 
     print('successfully written!')
 

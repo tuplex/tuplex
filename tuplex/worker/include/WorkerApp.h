@@ -1,12 +1,14 @@
-//
-// Created by Leonhard Spiegelberg on 11/22/21.
-//
-
+//--------------------------------------------------------------------------------------------------------------------//
+//                                                                                                                    //
+//                                      Tuplex: Blazing Fast Python Data Science                                      //
+//                                                                                                                    //
+//                                                                                                                    //
+//  (c) 2017 - 2021, Tuplex team                                                                                      //
+//  Created by Leonhard Spiegelberg first on 11/22/2021                                                               //
+//  License: Apache 2.0                                                                                               //
+//--------------------------------------------------------------------------------------------------------------------//
 #ifndef TUPLEX_WORKERAPP_H
 #define TUPLEX_WORKERAPP_H
-
-
-
 
 #include <string>
 
@@ -76,9 +78,9 @@ namespace tuplex {
 
         tuplex::messages::InvocationResponse executeSingleTransformTask(const TransformStage* tstage);
 
-        int globalInit();
+        virtual int globalInit();
 
-    private:
+        // inherited variables
         WorkerSettings _settings;
         std::shared_ptr<JITCompiler> _compiler;
 #ifdef BUILD_WITH_AWS

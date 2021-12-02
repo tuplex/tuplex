@@ -1,0 +1,64 @@
+//--------------------------------------------------------------------------------------------------------------------//
+//                                                                                                                    //
+//                                      Tuplex: Blazing Fast Python Data Science                                      //
+//                                                                                                                    //
+//                                                                                                                    //
+//  (c) 2017 - 2021, Tuplex team                                                                                      //
+//  Created by Leonhard Spiegelberg first on 12/2/2021                                                                //
+//  License: Apache 2.0                                                                                               //
+//--------------------------------------------------------------------------------------------------------------------//
+#ifdef BUILD_WITH_AWS
+
+#include <LambdaWorkerApp.h>
+
+// AWS specific includes
+#include <aws/core/Aws.h>
+#include <aws/core/auth/AWSCredentialsProviderChain.h>
+#include <aws/core/platform/Environment.h>
+
+namespace tuplex {
+
+    // Lambda specific configuration
+    const std::string LambdaWorkerApp::caFile = "/etc/pki/tls/certs/ca-bundle.crt";
+    const std::string LambdaWorkerApp::tuplexRuntimePath = "lib/tuplex_runtime.so";
+    const bool LambdaWorkerApp::verifySSL = true;
+
+
+    int LambdaWorkerApp::globalInit() {
+        // Lambda specific initialization
+        auto& logger = Logger::instance().defaultLogger();
+
+        Timer timer;
+        Aws::InitAPI(_aws_options);
+
+        // get AWS credentials from Lambda environment...
+        // Note that to run on Lambda this requires a session token!
+        // e.g., https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime
+        std::string access_key = Aws::Environment::GetEnv("AWS_ACCESS_KEY_ID").c_str();
+        std::string secret_key = Aws::Environment::GetEnv("AWS_SECRET_ACCESS_KEY").c_str();
+        std::string session_token = Aws::Environment::GetEnv("AWS_SESSION_TOKEN").c_str();
+        // get region from AWS_REGION env
+        auto region = Aws::Environment::GetEnv("AWS_REGION");
+
+        NetworkSettings ns;
+        ns.verifySSL = verifySSL;
+        ns.caFile = caFile;
+
+        VirtualFileSystem::addS3FileSystem(access_key, secret_key, session_token, region.c_str(), ns,
+                                           true, true);
+
+        runtime::init(tuplexRuntimePath);
+        _compiler = std::make_shared<JITCompiler>();
+
+        // init python & set explicitly python home for Lambda
+        std::string task_root = std::getenv("LAMBDA_TASK_ROOT");
+        python::python_home_setup(task_root);
+        logger.debug("Set PYTHONHOME=" + task_root);
+        python::initInterpreter();
+        metrics.global_init_time = timer.time();
+
+        return WORKER_OK;
+    }
+}
+
+#endif

@@ -28,6 +28,9 @@ else()
     project(Tuplex DESCRIPTION "Tuplex processing framework")
 endif()
 
+# name of worker executable
+set(WORKER_NAME tuplex-worker)
+
 # before writing additional cmake modules to put in cmake/, check the list of supported cmake standard modules
 # available here: https://cmake.org/cmake/help/latest/manual/cmake-modules.7.html#find-modules
 

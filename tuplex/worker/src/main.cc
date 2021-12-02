@@ -32,9 +32,11 @@ int main(int argc, char* argv[]) {
     unsigned int port = 9000; // default port
     std::string message; // no message to process
     unsigned int timeout = 10000; // 10s timeout
+    bool show_help = false;
 
     // construct CLI
     auto cli = lyra::cli();
+    cli.add_argument(lyra::help(show_help));
     cli.add_argument(lyra::opt(logPath, "logPath").name("--log-path").help("path where to store log file"));
     cli.add_argument(lyra::opt(isDaemon, "daemon").name("-d").name("--daemon").help("start worker as daemon process listening to connections"));
     cli.add_argument(lyra::opt(port, "port").name("-p").name("--port").help("port on which worker should listen for messages"));
@@ -45,6 +47,11 @@ int main(int argc, char* argv[]) {
     if(!result) {
         cerr<<"Error parsing command line: "<<result.errorMessage()<<std::endl;
         return 1;
+    }
+
+    if(show_help) {
+        cout<<cli<<endl;
+        return 0;
     }
 
     // logPath given? init Logger with filesink!

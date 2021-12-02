@@ -1,7 +1,9 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
 
-# name of the executable
-set(WORKER_NAME tuplex-worker)
+# make sure variable WORKER_NAME exists
+if(NOT WORKER_NAME OR WORKER_NAME STREQUAL "")
+    message(FATAL_ERROR "need to set CMake variable WORKER_NAME to build worker")
+endif()
 
 # enable c++14
 set(CMAKE_CXX_STANDARD 14)
@@ -18,7 +20,7 @@ include_directories(${json_INCLUDE_DIR})
 
 include_directories(include)
 
-set(WORKER_SRCS src/main.cc src/WorkerApp.cc)
+set(WORKER_SRCS src/main.cc src/WorkerApp.cc src/LambdaWorkerApp.cc)
 # linking
 add_executable(${WORKER_NAME} ${WORKER_SRCS})
 

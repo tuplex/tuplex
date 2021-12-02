@@ -1,7 +1,12 @@
-//
-// Created by Leonhard Spiegelberg on 11/22/21.
-//
-
+//--------------------------------------------------------------------------------------------------------------------//
+//                                                                                                                    //
+//                                      Tuplex: Blazing Fast Python Data Science                                      //
+//                                                                                                                    //
+//                                                                                                                    //
+//  (c) 2017 - 2021, Tuplex team                                                                                      //
+//  Created by Leonhard Spiegelberg first on 11/22/2021                                                               //
+//  License: Apache 2.0                                                                                               //
+//--------------------------------------------------------------------------------------------------------------------//
 #include <WorkerApp.h>
 
 namespace tuplex {

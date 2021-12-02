@@ -25,11 +25,17 @@ namespace tuplex {
         Aws::InitAPI(_aws_options);
 #endif
 
-        runtime::init(runtime_path);
+        if(!runtime::init(runtime_path)) {
+            logger.error("runtime specified as " + std::string(runtime_path) + " could not be found.");
+            return WORKER_ERROR_NO_TUPLEX_RUNTIME;
+        }
         _compiler = std::make_shared<JITCompiler>();
 
-        // init python home dir.
-        python::python_home_setup(python_home_dir);
+        // // init python home dir to point to directory where stdlib files are installed, cf.
+        // // https://www.python.org/dev/peps/pep-0405/ for meaning of it. Per default, just use default behavior.
+        // python::python_home_setup(python_home_dir);
+
+        logger.info("Initializing python interpreter version " + python::python_version(true, true));
         python::initInterpreter();
 
         return WORKER_OK;
@@ -46,7 +52,12 @@ namespace tuplex {
     }
 
     void WorkerApp::shutdown() {
-        python::closeInterpreter();
+        if(python::isInterpreterRunning()) {
+            python::lockGIL();
+            python::closeInterpreter();
+            python::unlockGIL();
+        }
+
         runtime::freeRunTimeMemory();
 
 #ifdef BUILD_WITH_AWS

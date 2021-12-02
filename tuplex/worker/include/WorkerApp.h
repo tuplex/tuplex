@@ -14,6 +14,7 @@
 #define WORKER_OK 0
 #define WORKER_ERROR_INVALID_JSON_MESSAGE 100
 #define WORKER_ERROR_NO_PYTHON_HOME 101
+#define WORKER_ERROR_NO_TUPLEX_RUNTIME 102
 
 // protobuf
 #include <Lambda.pb.h>
@@ -75,7 +76,7 @@ namespace tuplex {
 
         tuplex::messages::InvocationResponse executeSingleTransformTask(const TransformStage* tstage);
 
-        void globalInit();
+        int globalInit();
 
     private:
         WorkerSettings _settings;

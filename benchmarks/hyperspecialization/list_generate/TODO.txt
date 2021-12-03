@@ -3,7 +3,6 @@ Immediate TODOs:
 - implement specialized hashmap 
 - convert all results to PyDict
 
-
 Leonhard
 -- have way more elements per list.
 -- list contained should be smaller, random size.

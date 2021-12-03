@@ -30,16 +30,16 @@ def run_baseline_py(filename_str):
 
 def cc_timings(ident, filename_str):
     result_distr_str = DISTR_STR.replace(' ', '')
-    all_timings = []
     curr_timings = []
     with open(f'{filename_str}.{ident}.out', 'r') as f:
         for line in f:
             curr_timings.append(float(line.strip('\n')))
-    all_timings.append(statistics.mean(curr_timings))
-    return statistics.mean(curr_timings)
+    return (statistics.mean(curr_timings), statistics.stdev(curr_timings))
 
 
-def plot_timings(ys, legends):
+def plot_timings(ys, legends, title):
+
+    # need to add standard deviation bars here.
 
     print(ys, legends)
 
@@ -47,12 +47,13 @@ def plot_timings(ys, legends):
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
 
-    color = ('red', '#00b050', '#00b0f0', 'yellow', 'grey')
+    color = ('red', '#00b050', '#00b0f0', 'yellow', 'grey', 'black', 'purple')
     objects = legends
     y_pos = np.arange(len(objects))
-    performance = ys
+    performance = [y[0] for y in ys]
+    stdevs = [y[1] for y in ys]
     width = 0.35  # the width of the bars
-    plt.bar(y_pos, performance, align='center', color=color)
+    plt.bar(y_pos, performance, yerr=stdevs, align='center', color=color)
     # plt.xticks(y_pos, objects)
     # plt.ylim(0, 20)  # this adds a little space at the top of the plot, to compensate for the annotation
     plt.ylabel('Runtime in ms', fontsize=16)
@@ -66,6 +67,7 @@ def plot_timings(ys, legends):
     # add the legend
     plt.legend(labels=objects, handles=patches, bbox_to_anchor=(1.04, 0.5), loc='center left', borderaxespad=0, fontsize=15, frameon=False)
 
+    plt.suptitle(title)
     plt.savefig('test.png', bbox_inches='tight')
 # add the annotations
 
@@ -83,40 +85,36 @@ def baseline_py_timings(filename_str):
         for line in f:
             curr_timings.append(float(line.strip('\n')))
     all_timings.append(statistics.mean(curr_timings))
-    return statistics.mean(curr_timings)
+    return (statistics.mean(curr_timings), statistics.stdev(curr_timings))
 
 def get_cc_timings(filename_str):
-    to_run_cc = ['count_unique_bench_freq_int_stdmap', 'count_unique_bench_freq_string_stdmap', 'count_unique_bench_freq_int_stdumap',
-    'count_unique_bench_freq_string_stdumap']
+    to_run_cc = ['stdmap_string_int', 'stdumap_string_int', 'stdmap_int_int', 'stdumap_int_int', 'tuplex_int_nopydict', 'fixed_range_nopydict']
     # run_baseline_py()
     to_run_timings = []
 
     for ident in to_run_cc:
-        run_cc(ident) ################ <-------------------------
+        run_cc(ident, filename_str) ################ <-------------------------
         to_run_timings.append(cc_timings(ident, filename_str))
     return to_run_timings
 
 def main():
-    to_run_cc_legend = ['C++ std::map (key: int, val: int)', 'C++ std::map (key: string, val: int)', 'C++ std::unordered_map (key: int, val: int)',
-   'C++ std::unordered_map (key: string, val: int)']
+    to_run_cc_legend = ['C++ std::map (key: string, val: int)',
+   'C++ std::unordered_map (key: string, val: int)', 'C++ std::map (key: int, val: int)',  'C++ std::unordered_map (key: int, val: int)', 'C++ Tuplex int_hashmap.cc', 'C++ fixed range specialized']
 
-    filename_strs = []
+    filename_strs = ['1000_of_1000_int_uniform_0_to_1000']
 
-    baseline_py = []
-    cc = []
-    for filename in filename_strs:
-        run_baseline_py(filename)
+    run_baseline_py(filename_strs[0])
+    baseline_py = baseline_py_timings(filename_strs[0])
+    cc = get_cc_timings(filename_strs[0])
+    # for filename in filename_strs:
+    # run_baseline_py(filename)
 
-        # run_cc happens in get_cc_timings
-        baseline_py.append(baseline_py_timings(filename))
-        cc.append(get_cc_timings(filename))
+    # # run_cc happens in get_cc_timings
+    # baseline_py.append(baseline_py_timings(filename))
+    # cc.append(get_cc_timings(filename))
     
-    # gen_data()
-    # run_baseline_py()
-    # baseline_py = baseline_py_timings()
-    # to_run_timings = get_cc_timings()
-
-    plot_timings(cc + [baseline_py], to_run_cc_legend + ['Python3 dict baseline'])
+    plot_timings([baseline_py] + cc, ['Python3 dict baseline'] + to_run_cc_legend, 
+        '1000 lists of 1000 integers in uniform(0, 1000)')
 
 
 if __name__ == "__main__":

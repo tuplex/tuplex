@@ -1,12 +1,29 @@
 #include "hashmap.h"
 #include "int_hashmap.h"
 #include <vector>
+#include <Python.h>
 
 using KEY_TYPE = int;
 
 extern "C" {
 
-map_t countUnique(const std::vector<int>& li) {
+
+PyObject* to_pydict(map_t dict) {
+    PyObject* mydict = PyDict_New();
+    int64_hashmap_iterator_t iterator = 0;
+    uint64_t key = 0;
+    volatile uint64_t value = 0;
+
+    while(int64_hashmap_get_next_key(dict, &iterator, &key)) {
+        int64_hashmap_get(dict, key, (void**) value);
+        PyDict_SetItem(mydict, PyLong_FromLong(key), PyLong_FromLong(value));
+    }
+
+    return mydict;
+}
+
+
+PyObject* countUnique(const std::vector<int>& li) {
     map_t my_map = int64_hashmap_new();
     int res = -999;
     int64_any_t val = 0;
@@ -23,11 +40,11 @@ map_t countUnique(const std::vector<int>& li) {
             // assert(res == -3 || res == 0);
         }
     }
-    return my_map;
+    return to_pydict(my_map);
 }
 
-std::vector<map_t> countUniqueList(const std::vector<std::vector<int> >& li) {
-    std::vector<map_t> my_vec;
+std::vector<PyObject*> countUniqueList(const std::vector<std::vector<int> >& li) {
+    std::vector<PyObject*> my_vec;
     my_vec.reserve(li.size());
     for(const auto& x : li) {
         my_vec.push_back(countUnique(x));

@@ -68,7 +68,7 @@ def plot_timings(ys, legends, title):
     plt.legend(labels=objects, handles=patches, bbox_to_anchor=(1.04, 0.5), loc='center left', borderaxespad=0, fontsize=15, frameon=False)
 
     plt.suptitle(title)
-    plt.savefig('test.png', bbox_inches='tight')
+    plt.savefig('1000_0_to_1000.png', bbox_inches='tight')
 # add the annotations
 
     # for y_list, legend in zip(ys, legends):
@@ -88,7 +88,7 @@ def baseline_py_timings(filename_str):
     return (statistics.mean(curr_timings), statistics.stdev(curr_timings))
 
 def get_cc_timings(filename_str):
-    to_run_cc = ['stdmap_string_int', 'stdumap_string_int', 'stdmap_int_int', 'stdumap_int_int', 'tuplex_int_nopydict', 'fixed_range_nopydict']
+    to_run_cc = ['stdmap_string_int', 'stdumap_string_int', 'stdmap_int_int', 'stdumap_int_int', 'fixed_range_nopydict']
     # run_baseline_py()
     to_run_timings = []
 
@@ -99,9 +99,9 @@ def get_cc_timings(filename_str):
 
 def main():
     to_run_cc_legend = ['C++ std::map (key: string, val: int)',
-   'C++ std::unordered_map (key: string, val: int)', 'C++ std::map (key: int, val: int)',  'C++ std::unordered_map (key: int, val: int)', 'C++ Tuplex int_hashmap.cc', 'C++ fixed range specialized']
+   'C++ std::unordered_map (key: string, val: int)', 'C++ std::map (key: int, val: int)',  'C++ std::unordered_map (key: int, val: int)', 'C++ fixed range specialized']
 
-    filename_strs = ['1000_of_1000_int_uniform_0_to_1000']
+    filename_strs = ['1000_of_10000_int_uniform_0_to_1000']
 
     run_baseline_py(filename_strs[0])
     baseline_py = baseline_py_timings(filename_strs[0])
@@ -114,7 +114,7 @@ def main():
     # cc.append(get_cc_timings(filename))
     
     plot_timings([baseline_py] + cc, ['Python3 dict baseline'] + to_run_cc_legend, 
-        '1000 lists of 1000 integers in uniform(0, 1000)')
+        '1000 lists of 10000 integers in uniform(0, 1000) (converted to PyDict)')
 
 
 if __name__ == "__main__":

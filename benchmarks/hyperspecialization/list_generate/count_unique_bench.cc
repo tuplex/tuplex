@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <chrono>
 #include <iostream>
+#include <Python.h>
 
 #include "csvmonkey.hpp"
 
@@ -62,6 +63,7 @@ template<typename T>
 void run(const char* path) {
     void* handle;
 
+    Py_Initialize();
     // std::string count_unique_path = "";
 
     // if constexpr(std::is_same<T, std::string>::value && CURR_DS == MAP_DS) {
@@ -76,13 +78,13 @@ void run(const char* path) {
 
 // choose function pointer type
 #if defined (COUNT_M_INT) || defined (COUNT_M_STRING)
-    std::vector<std::map<T, int> > (*countUniqueList)(std::vector<std::vector<T> >&);
+    std::vector<PyObject*> (*countUniqueList)(std::vector<std::vector<T> >&);
 #elif defined (COUNT_UM_INT) || defined (COUNT_UM_STRING)
-    std::vector<std::unordered_map<T, int> > (*countUniqueList)(std::vector<std::vector<T> >&);
+    std::vector<PyObject*> (*countUniqueList)(std::vector<std::vector<T> >&);
 #elif defined (FIXED_RANGE)
-    std::vector<std::vector<int> > (*countUniqueList)(std::vector<std::vector<T> >&);
+    std::vector<PyObject*> (*countUniqueList)(std::vector<std::vector<T> >&);
 #elif defined (TUPLEX_INT)
-    std::vector<map_t> (*countUniqueList)(std::vector<std::vector<T> >&);
+    std::vector<PyObject*> (*countUniqueList)(std::vector<std::vector<T> >&);
 #endif
 
     char* error;

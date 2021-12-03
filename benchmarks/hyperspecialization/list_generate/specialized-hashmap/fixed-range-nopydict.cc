@@ -15,14 +15,14 @@ const int MAX_KEY = 1000;
 
 extern "C" {
 
-// PyObject* to_pydict(std::vector<int>& dict) {
-//     PyObject* mydict = PyDict_New();
-//     for (int i = MIN_KEY; i <= MAX_KEY; i++) {
-//         if(!dict[i]) continue;
-//         PyDict_SetItem(mydict, PyLong_FromLong(i), PyLong_FromLong(dict[i]));
-//     }
-//     return mydict;
-// }
+PyObject* to_pydict(std::vector<int>& dict) {
+    PyObject* mydict = PyDict_New();
+    for (int i = MIN_KEY; i <= MAX_KEY; i++) {
+        if(!dict[i]) continue;
+        PyDict_SetItem(mydict, PyLong_FromLong(i), PyLong_FromLong(dict[i]));
+    }
+    return mydict;
+}
 
 PyObject* countUnique(const std::vector<int>& li) {
     std::vector<int> dict(MAX_KEY - MIN_KEY + 1, 0);
@@ -33,10 +33,10 @@ PyObject* countUnique(const std::vector<int>& li) {
         dict[x] += 1;
     }
 
-    return dict;
+    return to_pydict(dict);
 }
 
-std::vector<std::vector<int> > countUniqueList(const std::vector<std::vector<int> >& li) {
+std::vector<PyObject*> countUniqueList(const std::vector<std::vector<int> >& li) {
     std::vector<PyObject*> my_vec;
     my_vec.reserve(li.size());
     for(const auto& x : li) {

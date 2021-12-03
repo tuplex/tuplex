@@ -302,7 +302,7 @@ TEST_F(AWSTest, BucketList) {
     for(auto uri : uris) {
         cout<<uri.toString()<<endl;
     }
-    
+
     // list buckets
     vfs.ls("s3://", uris);
     for(auto uri : uris) {

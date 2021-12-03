@@ -57,8 +57,8 @@ std::shared_ptr<tuplex::JITCompiler> g_compiler;
 
 void python_home_setup() {
     // extract python home directory
-    auto task_root = std::getenv("LAMBDA_TASK_ROOT");
-    python::python_home_setup(task_root.c_str());
+    std::string task_root = std::getenv("LAMBDA_TASK_ROOT");
+    python::python_home_setup(task_root);
 }
 
 void global_init() {

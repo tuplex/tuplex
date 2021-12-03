@@ -30,6 +30,12 @@ namespace tuplex {
         return id;
     }
 
+    int64_t LogicalOperator::getDataSetID(int64_t default_id_value) {
+        if(getDataSet())
+            return getDataSet()->getID();
+        return default_id_value;
+    }
+
 
     LogicalOperator::~LogicalOperator() {
 #warning "memory management of op graph??"

@@ -60,15 +60,23 @@ TEST(BasicInvocation, Worker) {
 
     // local csv test file!
     auto test_path = URI("file://../resources/flights_on_time_performance_2019_01.sample.csv");
-
+    auto test_output_path = URI("file://output.txt");
     ASSERT_TRUE(fileExists(test_path.toPath()));
-
-    ContextOptions co;
+    python::initInterpreter();
+    python::unlockGIL();
+    ContextOptions co = ContextOptions::defaults();
     codegen::StageBuilder builder(0, true, true, false, 0.9, true, true);
     auto csvop = FileInputOperator::fromCsv(test_path.toString(), co,
                                        option<bool>(true),
                                                option<char>(','), option<char>('"'),
             {}, {}, {}, {});
+    auto mapop = new MapOperator(csvop, UDF("lambda x: {'airport': x['ORIGIN_AIRPORT_ID']}"), csvop->columns());
+    auto fop = new FileOutputOperator(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, {});
     builder.addFileInput(csvop);
+    builder.addOperator(mapop);
+    builder.addFileOutput(fop);
+
+    python::lockGIL();
+    python::closeInterpreter();
 
 }

@@ -127,6 +127,13 @@ namespace tuplex {
         virtual void setDataSet(DataSet *ds) { _dataSet = ds;}
 
         /*!
+         * get ID of attached dataset. If no dataset is found, return default value
+         * @param default_id_value default ID value to return
+         * @return dataSetID or defaultID
+         */
+        int64_t getDataSetID(int64_t default_id_value=-1);
+
+        /*!
          * returns whether the given operator is a "final" operator in the way it is
          * an action that needs to be executed
          * @return true if it is an action or false if not

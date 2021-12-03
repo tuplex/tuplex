@@ -16,7 +16,7 @@ using namespace csvmonkey;
 #define FULL 11 // return entire map (NRVO)
 
 #define CURR_DS MAP_DS
-#define CURR_MP FREQ
+#define CURR_MP FULL
 
 using KEY_TYPE = int;
 
@@ -26,10 +26,13 @@ auto count_m_string = "./cpp_shared/count_m_freq_string.so";
 auto count_um_int = "./cpp_shared/count_um_freq_int.so";
 auto count_um_string = "./cpp_shared/count_um_freq_string.so";
 #else
-auto count_m_int = "./cpp_shared/count_m_key_int.so";
-auto count_m_string = "./cpp_shared/count_m_key_string.so";
-auto count_um_int = "./cpp_shared/count_um_key_int.so";
-auto count_um_string = "./cpp_shared/count_um_key_string.so";
+auto count_m_int = "./cpp_shared/count_m_full_int.so";
+auto count_m_string = "./cpp_shared/count_m_full_string.so";
+auto count_um_int = "./cpp_shared/count_um_full_int.so";
+auto count_um_string = "./cpp_shared/count_um_full_string.so";
+auto count_tuplex_int = "./cpp_shared/count_tuplex.so";
+auto count_tuplex_string = "./cpp_shared/count_tuplex.so";
+// auto count_cjson_int = 
 #endif
 
 // enclose in template function so that if constexpr doesn't compile not taken branch

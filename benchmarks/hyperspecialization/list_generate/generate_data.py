@@ -10,12 +10,13 @@ import numpy as np
 import scipy.stats as ss
 from tqdm import tqdm
 
-
-def get_list_length():
-    return int(1e3)
-
 MIN_INT = 0
 MAX_INT = 1000
+LIST_LEN = 0
+
+def get_list_length():
+    global LIST_LEN
+    return LIST_LEN
 
 def randint(dist):
     if dist == 'uniform':
@@ -73,8 +74,12 @@ BAGSTDDEV = 5
 bag = [randstring('uniform') for _ in range(BAGLEN)]
 
 def main():
+    global MAX_INT
+    global LIST_LEN
+
     parser = argparse.ArgumentParser(description='Generate lists for count unique.')
     parser.add_argument('--num_lists', type=int)
+    parser.add_argument('--list_len', type=int)
     parser.add_argument('--types', type=str, nargs='+')
     parser.add_argument('--distributions', nargs='+')
     parser.add_argument('--max_int', type=int)
@@ -85,9 +90,21 @@ def main():
         print('please specify a distribution for each type')
         exit(0)
 
-    if args.max_int:
-        print(f'set max_int to {args.max_int}')
-        MAX_INT = args.max_int
+    if args.num_lists is None:
+        print('please provide num lists argument')
+        exit(0)
+
+    if args.list_len is None:
+        print('please provide list len argument')
+        exit(0)
+
+    if args.max_int is None:
+        print('please provide max int argument')
+        exit(0)
+
+    print(f'set max_int to {args.max_int}')
+    MAX_INT = args.max_int
+    LIST_LEN = args.list_len
 
     distribution_dict = {}
     for idx, arg in enumerate(args.distributions):
@@ -99,7 +116,7 @@ def main():
             exit(0)
     
     dist_str = ''.join([name for name in args.distributions])
-    filename = f'{args.num_lists}_of_{get_list_length()}_{"".join(args.types)}_{dist_str}_({MIN_INT}_to_{MAX_INT}).csv'
+    filename = f'{args.num_lists}_of_{get_list_length()}_{"".join(args.types)}_{dist_str}_{MIN_INT}_to_{MAX_INT}.csv'
     print(f'args.num_lists = {args.num_lists}')
 
     with open(filename, 'w') as f:

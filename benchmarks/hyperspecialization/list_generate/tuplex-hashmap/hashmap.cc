@@ -211,7 +211,7 @@ unsigned long hashmap_crc32(const unsigned char *s, unsigned int len) {
 //}
 
 // new: use city hash or murmurhash + no mixins to make it faster...
-#include <third_party/hash/city.h>
+#include "third_party/hash/city.h"
 /*
  * Hashing function for a string
  */

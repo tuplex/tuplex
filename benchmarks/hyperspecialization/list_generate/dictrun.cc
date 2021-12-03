@@ -10,11 +10,19 @@ using namespace std;
 
 using KEY_TYPE = int;
 
+// TODO: reference decrements for python objects.
+// py_decref
+// py_incref (might lead to segfault!)
+// certain functions change, others don't. Make sure to check. !!!!!!!!!!
+
+// make sure cost of garbage collection is accounted in runtime
+
 long int count_unique(PyObject* mylist) {
-    PyObject* mydict = PyDict_New();
+    PyObject* mydict = PyDict_New(); // decrement reference count, so that objects are freed.
     ssize_t listlen = PyList_Size(mylist);
     for(ssize_t i = 0; i < listlen; i++) {
-        PyObject* key = PyList_GetItem(mylist, i);
+        PyObject* key = PyList_GET_ITEM(mylist, i); // check later
+        // PyList_GetItem(mylist, i); // 
         PyObject* item = PyDict_GetItem(mydict, key);
         if(item != NULL) {
             uint64_t curr = PyLong_AsUnsignedLongLong(item);
@@ -57,7 +65,7 @@ void runWithCPython(PyObject* mylist) {
     auto t1 = high_resolution_clock::now();
 
     PyObject* result = count_unique_for_loop(mylist);
-    std::cerr << "result size: " << PyList_Size(result) << "\n";
+    // std::cerr << "result size: " << PyList_Size(result) << "\n";
 
     auto t2 = high_resolution_clock::now();
 

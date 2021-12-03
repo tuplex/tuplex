@@ -91,6 +91,7 @@ namespace tuplex {
             reinitialize(settings);
 
         // currently message represents merely a transformstage/transformtask
+        // @TODO: in the future this could change!
         auto tstage = TransformStage::from_protobuf(req.stage());
 
         // check number of input files
@@ -100,9 +101,12 @@ namespace tuplex {
         auto num_input_files = inputURIs.size();
         logger.debug("Found " + to_string(num_input_files) + " input URIs to process");
 
+//        auto response = executeTransformTask(tstage);
 
         return WORKER_OK;
     }
+
+//    tuplex::messages::InvocationResponse WorkerApp::executeTransformTask(const TransformStage* tstage);
 
     WorkerSettings WorkerApp::settingsFromMessage(const tuplex::messages::InvocationRequest& req) {
         WorkerSettings ws;

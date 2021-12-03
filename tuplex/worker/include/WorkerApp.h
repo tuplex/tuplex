@@ -76,7 +76,7 @@ namespace tuplex {
     protected:
         WorkerSettings settingsFromMessage(const tuplex::messages::InvocationRequest& req);
 
-        tuplex::messages::InvocationResponse executeSingleTransformTask(const TransformStage* tstage);
+        tuplex::messages::InvocationResponse executeTransformTask(const TransformStage* tstage);
 
         virtual int globalInit();
 

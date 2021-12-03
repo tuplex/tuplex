@@ -11,6 +11,10 @@
 #include <unistd.h>
 #include <Utils.h>
 #include <Timer.h>
+#include <physical/StageBuilder.h>
+#include <logical/FileInputOperator.h>
+#include <logical/FileOutputOperator.h>
+#include <logical/MapOperator.h>
 
 static const std::string worker_path = "tuplex-worker";
 
@@ -49,4 +53,22 @@ TEST(BasicInvocation, Worker) {
     auto worker_invocation_duration = timer.time();
     cout<<res_stdout<<endl;
     cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
+
+
+    // create a simple TransformStage reading in a file & saving it. Then, execute via Worker!
+    using namespace tuplex;
+
+    // local csv test file!
+    auto test_path = URI("file://../resources/flights_on_time_performance_2019_01.sample.csv");
+
+    ASSERT_TRUE(fileExists(test_path.toPath()));
+
+    ContextOptions co;
+    codegen::StageBuilder builder(0, true, true, false, 0.9, true, true);
+    auto csvop = FileInputOperator::fromCsv(test_path.toString(), co,
+                                       option<bool>(true),
+                                               option<char>(','), option<char>('"'),
+            {}, {}, {}, {});
+    builder.addFileInput(csvop);
+
 }

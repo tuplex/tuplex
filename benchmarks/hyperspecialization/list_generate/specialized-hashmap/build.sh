@@ -1,0 +1,1 @@
+g++ -shared -fPIC -O3 -o fixed-range-nopydict.so fixed-range-nopydict.cc

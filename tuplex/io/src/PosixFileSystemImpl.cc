@@ -31,7 +31,6 @@
 #endif
 
 #include <FileUtils.h>
-
 #include <dirent.h>
 
 // Note: could improve performance prob further by

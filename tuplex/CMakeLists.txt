@@ -28,8 +28,6 @@ else()
     project(Tuplex DESCRIPTION "Tuplex processing framework")
 endif()
 
-# name of worker executable
-set(WORKER_NAME tuplex-worker)
 
 # before writing additional cmake modules to put in cmake/, check the list of supported cmake standard modules
 # available here: https://cmake.org/cmake/help/latest/manual/cmake-modules.7.html#find-modules
@@ -572,7 +570,6 @@ add_subdirectory(io)
 add_subdirectory(python)
 add_subdirectory(runtime)
 add_subdirectory(adapters)
-add_subdirectory(worker)
 
 # following code is from https://github.com/OPM/opm-common/blob/master/cmake/Modules/UseSystemInfo.cmake
 # read property from the newer /etc/os-release

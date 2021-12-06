@@ -52,6 +52,11 @@ namespace std {
 
 #include "Network.h"
 
+// Posix helpers
+#include <dirent.h>
+#include <errno.h>
+#include <glob.h>
+
 static_assert(__cplusplus >= 201402L, "need at least C++ 14 to compile this file");
 // check https://blog.galowicz.de/2016/02/20/short_file_macro/
 // for another cool macro
@@ -264,6 +269,26 @@ namespace tuplex {
     inline bool fileExists(const std::string &local_path) {
         // from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c
         return access( local_path.c_str(), 0 ) == 0;
+    }
+
+    /*!
+     * check whether local directory exists and can be opened.
+     * @param local_path
+     * @return true/false
+     */
+    inline bool dirExists(const std::string& local_path) {
+        // from stackoverflow.
+        DIR* dir = opendir(local_path.c_str());
+        if (dir) {
+            closedir(dir);
+            return true;
+        } else if (ENOENT == errno) {
+            // directory does not exist.
+            return false;
+        } else {
+            // opendir() failed for some other reason, e.g. access problems
+            return false;
+        }
     }
 
     /*!

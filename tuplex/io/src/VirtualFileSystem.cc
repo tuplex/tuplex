@@ -532,4 +532,31 @@ COPY_FAILURE:
         s.resize(numBytes);
         return s;
     }
+
+    bool validateOutputSpecification(const URI& baseURI) {
+        // validates output specification, i.e. following is accepted:
+
+        // for local filesystem
+        // it's a file -> okay
+        // it's a dir -> must not exist or be empty
+        if(baseURI.isLocal()) {
+            auto local_path = baseURI.withoutPrefix();
+            if(fileExists(local_path))
+                return true;
+            if(dirExists(local_path)) {
+                // empty or non empty?
+                auto vfs = VirtualFileSystem::fromURI(uri);
+
+            } else {
+                // ok.
+                return true;
+            }
+        } else {
+            // S3: same, using ls function!
+#ifdef BUILD_WITH_AWS
+
+#endif
+            return true;
+        }
+    }
 }

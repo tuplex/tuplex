@@ -262,13 +262,48 @@ namespace tuplex {
     extern bool stringToBool(const std::string& s);
 
     /*!
-     * check whether local file exsists or not.
+     * check whether local file exsists or not. This applies to a file in the wider sense! I.e., directory/link/pipe etc.
      * @param Filename
      * @return
      */
     inline bool fileExists(const std::string &local_path) {
         // from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c
         return access( local_path.c_str(), 0 ) == 0;
+    }
+
+    /*!
+     * check whether local path is a file
+     * @param local_path
+     * @return true if regular file, false in error case or if not true
+     */
+    inline bool isFile(const std::string& local_path) {
+        // https://linux.die.net/man/2/stat
+        struct stat statbuf;
+        if (stat(local_path.c_str(), &statbuf) != 0)
+            return false;
+        return S_ISREG(statbuf.st_mode);
+    }
+
+    /*!
+     * check whether path is writable using access
+     * @param local_path
+     * @return true/false
+     */
+    inline bool isWritable(const std::string& local_path) {
+        return 0 == access(local_path.c_str(), W_OK);
+    }
+
+    /*!
+     * check whether local path is a directory
+     * @param local_path
+     * @return true if directory, false in error case or if not true
+     */
+    inline bool isDirectory(const std::string& local_path) {
+        // https://linux.die.net/man/2/stat
+        struct stat statbuf;
+        if (stat(local_path.c_str(), &statbuf) != 0)
+            return false;
+        return S_ISDIR(statbuf.st_mode);
     }
 
     /*!
@@ -290,6 +325,20 @@ namespace tuplex {
             return false;
         }
     }
+
+    /*!
+     * returns the current working directory
+     * @return as string
+     */
+    extern std::string current_working_directory();
+
+    /*!
+     * creates a new, empty local directory.
+     * @param base_path where to create, per default assumes CWD
+     * @param max_tries how often to try
+     * @return path of newly created empty dir. "" if tries exhausted.
+     */
+    extern std::string create_temporary_directory(const std::string& base_path = current_working_directory(), size_t max_tries=1000);
 
     inline std::vector<std::string> glob(const std::string& pattern, std::ostream& err_stream=std::cerr) {
         using namespace std;

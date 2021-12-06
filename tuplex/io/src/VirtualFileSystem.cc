@@ -550,17 +550,25 @@ COPY_FAILURE:
         // it's a dir -> must not exist or be empty
         if(baseURI.isLocal()) {
             auto local_path = baseURI.withoutPrefix();
-            if(fileExists(local_path))
+            if(fileExists(local_path) && isFile(local_path))
                 return true;
-            if(dirExists(local_path)) {
+            if(dirExists(local_path) && isDirectory(local_path)) {
                 vector<URI> uris;
                 // empty or non empty?
                 auto vfs = VirtualFileSystem::fromURI("file://");
                 vfs.ls(baseURI, uris);
+
+                // Note: for MacOS, .DS_Store might be ok too.
+#ifdef MACOS
+                if(1 == uris.size()) {
+                    if(strEndsWith(uris.front().toPath(), ".DS_Store") && isFile(uris.front().toPath()))
+                        return true;
+                }
+#endif
                 return uris.empty();
             } else {
-                // ok.
-                return true;
+                // ok, check if writable
+               return isWritable(local_path);
             }
         } else {
             // S3: same, using ls function!

@@ -12,6 +12,7 @@
 #include <VirtualFileSystem.h>
 #include <URI.h>
 #include <FileUtils.h>
+#include "FileSystemUtils.h"
 
 TEST(URI, parent) {
     // test parent function for various URIs
@@ -88,6 +89,14 @@ TEST(URI, OutputSpecification) {
     EXPECT_TRUE(validateOutputSpecification(temp_folder + "/test.txt"));
 }
 
+TEST(URI, Writable) {
+    using namespace tuplex;
+    EXPECT_TRUE(isWritable("."));
+
+    auto non_existing_path = uniqueFileName();
+    EXPECT_TRUE(isWritable("test.txt"));
+    EXPECT_TRUE(isWritable(non_existing_path));
+}
 
 #ifdef BUILD_WITH_AWS
 TEST(URI, CorrectS3Behavior) {

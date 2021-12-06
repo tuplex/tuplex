@@ -56,6 +56,7 @@ namespace std {
 #include <dirent.h>
 #include <errno.h>
 #include <glob.h>
+#include <libgen.h>
 
 static_assert(__cplusplus >= 201402L, "need at least C++ 14 to compile this file");
 // check https://blog.galowicz.de/2016/02/20/short_file_macro/
@@ -290,7 +291,22 @@ namespace tuplex {
      * @return true/false
      */
     inline bool isWritable(const std::string& local_path) {
-        return 0 == access(local_path.c_str(), W_OK);
+        const char* path = local_path.c_str();
+
+        // does file exist?
+        if(fileExists(local_path))
+            return 0 == access(path, W_OK);
+        else {
+            // check dirname & whether dir could be accessed
+            // create copy in order to allow modification
+            char* parent = new char[strlen(path) + 1];
+            memcpy(parent, path, strlen(path) + 1);
+
+            auto parent_path = dirname(parent);
+            auto accessible = 0 == access(parent_path, W_OK);
+            delete [] parent;
+            return accessible;
+        }
     }
 
     /*!

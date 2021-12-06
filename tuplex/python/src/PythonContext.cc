@@ -211,9 +211,22 @@ namespace tuplex {
                 // first get how many bytes are required
                 size_t requiredBytes = baseRequiredBytes;
                 if(varLenField) {
-                    for(int j = 0; j < numTupleElements; ++j)
-                        if(typeStr[j] == 's')
-                            requiredBytes += PyUnicode_GET_SIZE(PyTuple_GetItem(obj, j)) + 1; // +1 for '\0'
+                    bool nonConforming = false;
+                    for(int j = 0; j < numTupleElements; ++j) {
+                        if (typeStr[j] == 's') {
+                            auto tupleItem = PyTuple_GetItem(obj, j);
+                            if (PyUnicode_Check(tupleItem)) {
+                                requiredBytes += PyUnicode_GET_SIZE(PyTuple_GetItem(obj, j)) + 1; // +1 for '\0'
+                            } else {
+                                nonConforming = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (nonConforming) {
+                        _badParallelizeObjects.emplace_back(i, obj);
+                        continue;
+                    }
                 }
 
                 // get new partition if capacity exhausted

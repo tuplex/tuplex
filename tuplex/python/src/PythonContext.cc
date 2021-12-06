@@ -216,7 +216,7 @@ namespace tuplex {
                         if (typeStr[j] == 's') {
                             auto tupleItem = PyTuple_GetItem(obj, j);
                             if (PyUnicode_Check(tupleItem)) {
-                                requiredBytes += PyUnicode_GET_SIZE(PyTuple_GetItem(obj, j)) + 1; // +1 for '\0'
+                                requiredBytes += PyUnicode_GET_SIZE(tupleItem) + 1; // +1 for '\0'
                             } else {
                                 nonConforming = true;
                                 break;

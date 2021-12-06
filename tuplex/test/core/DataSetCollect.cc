@@ -637,3 +637,14 @@ TEST_F(DataSetTest, LenEmptyListDictTuple) {
     EXPECT_EQ(res[0].getInt(0), 0);
     EXPECT_EQ(res[1].getInt(0), 0);
 }
+
+TEST_F(DataSetTest, OutputValidation) {
+    using namespace std;
+    using namespace tuplex;
+
+    Context c(microTestOptions());
+
+    // invalid output folder
+    EXPECT_THROW(c.parallelize({Row(Field::empty_list()), Row(Field::empty_list())}).map(UDF("lambda x: len(x)")).tocsv("."),
+                 std::runtime_error);
+}

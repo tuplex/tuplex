@@ -76,6 +76,8 @@ TEST(BasicInvocation, Worker) {
     builder.addOperator(mapop);
     builder.addFileOutput(fop);
 
+    auto tstage = builder.build();
+
     python::lockGIL();
     python::closeInterpreter();
 

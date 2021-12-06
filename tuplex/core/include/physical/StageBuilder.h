@@ -62,6 +62,7 @@ namespace tuplex {
             void addFileOutput(FileOutputOperator* fop);
 
             TransformStage* build(PhysicalPlan* plan, IBackend* backend);
+            inline TransformStage* build() { return build(nullptr, nullptr); }
         private:
 
             // flags to influence code generation

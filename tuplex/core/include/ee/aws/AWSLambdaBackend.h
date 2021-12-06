@@ -49,7 +49,7 @@ namespace tuplex {
     class AwsLambdaBackend : public IBackend {
     public:
         AwsLambdaBackend() = delete;
-        ~AwsLambdaBackend();
+        ~AwsLambdaBackend() override;
 
         AwsLambdaBackend(const AWSCredentials& credentials, const std::string& functionName,
                 const ContextOptions& options);
@@ -60,6 +60,7 @@ namespace tuplex {
     private:
         AWSCredentials _credentials;
         std::string _functionName; // name of the AWS lambda func.
+        std::string _functionArchitecture; // x86_64 | arm64
         ContextOptions _options;
         std::unique_ptr<Executor> _driver;
 
@@ -126,12 +127,30 @@ namespace tuplex {
         void printStatistics();
 
         size_t getMB100Ms();
-        double usedGBSeconds() {return (double)getMB100Ms() / 10000.0;}
+        size_t getMBMs();
+
+        double usedGBSeconds() {
+            return (double)getMBMs() / 10000.0;
+
+            // old: Before Dec 2020, now costs changed.
+            // return (double)getMB100Ms() / 10000.0;
+        }
         size_t numRequests() { return _numRequests; }
 
         double lambdaCost() {
             double cost_per_request = 0.0000002;
-            double cost_per_gb_second = 0.0000166667;
+
+            // depends on ARM or x86 architecture
+            // values from https://aws.amazon.com/lambda/pricing/ (Nov 2021)
+            double cost_per_gb_second_x86 = 0.0000166667;
+            double cost_per_gb_second_arm = 0.0000133334;
+
+            double cost_per_gb_second = cost_per_gb_second_x86;
+
+            // check architecture, else assume x86 cost
+            if(_functionArchitecture == "arm64")
+                cost_per_gb_second = cost_per_gb_second_arm;
+
             return usedGBSeconds() * cost_per_gb_second + numRequests() * cost_per_request;
         }
     };

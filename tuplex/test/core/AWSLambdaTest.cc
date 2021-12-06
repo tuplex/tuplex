@@ -252,7 +252,7 @@ TEST_F(AWSTest, RequesterPays) {
 }
 
 
-TEST_F(AWSTest, WriteSingleCSVFile) {
+TEST_F(AWSTest, ReadSingleCSVFile) {
 #ifdef SKIP_AWS_TESTS
     GTEST_SKIP();
 #endif
@@ -267,6 +267,22 @@ TEST_F(AWSTest, WriteSingleCSVFile) {
     ASSERT_GT(v.size(), 0);
 }
 
+// c.csv('s3://tuplex-public/data/100GB/zillow_00001.csv').show(5)
+
+TEST_F(AWSTest, ShowFromSingleFile) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+    auto opt = microLambdaOptions();
+    opt.set("tuplex.aws.lambdaMemory", "6432");
+    Context c(opt);
+
+    // make sure this is public??
+    c.csv("s3://tuplex-public/data/100GB/zillow_00001.csv").show(5);
+}
 
 TEST_F(AWSTest, BucketList) {
 #ifdef SKIP_AWS_TESTS
@@ -278,42 +294,26 @@ TEST_F(AWSTest, BucketList) {
 
     Context c(microLambdaOptions());
 
-    // make sure this is public??
+    vector<URI> uris;
+    auto vfs = VirtualFileSystem::fromURI("s3://");
 
-    // check single file -> single file.
-    // check folder
-
-
-    // create glob pattern from ls pattern.
-    // -> split into parts from ,
-
-    // this is completely incorrect...
-    // ls retrieves folders AND files...
-    // -> need to make this work properly using s3walk...
-
-    std::string pattern = "s3://tuplex-public/test.csv,s3://tuplex-public";
-    // "s3://tuplex-public,s3://tuplex-public/*")
-    std::string glob_pattern;
-    splitString(pattern, ',', [&glob_pattern](std::string subpattern) {
-        if(!glob_pattern.empty())
-            glob_pattern += ",";
-       glob_pattern += subpattern + "," + subpattern + "/*";
-    });
-    std::cout<<"matching using: "<<glob_pattern<<endl;
-    auto uris = VirtualFileSystem::globAll(glob_pattern);
-
-    // unique paths? sort? ==> yes.
-
+    vfs.ls("s3://tuplex-public", uris);
 
     for(auto uri : uris) {
         cout<<uri.toString()<<endl;
     }
-//    auto v = c.ls("s3://tuplex-public");
-//
-//    for(auto el : v) {
-//        cout<<el<<endl;
-//    }
-    //ASSERT_GT(v.size(), 0);
+
+    // list buckets
+    vfs.ls("s3://", uris);
+    for(auto uri : uris) {
+        cout<<uri.toString()<<endl;
+    }
+    uris.clear();
+    vfs.ls("s3:///", uris); // <-- special case, list here too!
+    for(auto uri : uris) {
+        cout<<uri.toString()<<endl;
+    }
+    uris.clear();
 }
 
 

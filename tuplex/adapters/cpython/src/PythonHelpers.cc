@@ -21,7 +21,6 @@
 #include <unordered_map>
 #include <boost/python.hpp>
 
-
 // module specific vars
 static std::unordered_map<std::string, PyObject*> cached_functions;
 
@@ -43,6 +42,54 @@ static std::string generateLambdaName(int& counter) {
 }
 
 namespace python {
+
+    void python_home_setup(const std::string& home_dir) {
+        // convert to wchar
+        std::vector<wchar_t> vec;
+        auto len = strlen(home_dir.c_str());
+        vec.resize(len + 1);
+        mbstowcs(&vec[0], home_dir.c_str(), len);
+        // set python home
+        Py_SetPythonHome(&vec[0]);
+    }
+
+    std::string find_stdlib_location(const std::string& version,
+                                     const std::vector<std::string>& prefix_list) {
+        // check whether folder <prefix>/lib exists
+        for(const auto& prefix : prefix_list) {
+            if(tuplex::dirExists(prefix + "/lib")) {
+                // list all entries under dir with python
+                auto paths = tuplex::glob(prefix + "/lib/python*");
+                for(auto path : paths) {
+                    auto original_path = path;
+                    // only check for folders (glob appends /!)
+                    if(!path.empty() && path.back() == '/') {
+                        path = path.substr(0, path.length() - 1);
+                        // find / to get python name
+                        auto idx = path.rfind('/');
+                        if(idx < 0)
+                            continue;
+                        auto folder_name = path.substr(idx + 1);
+
+                        // starts with python? => should because of globbing!
+                        auto py_len = std::string("python").length();
+                        if(folder_name.substr(0, py_len) == "python") {
+                            // extract version
+                            auto this_version = folder_name.substr(py_len);
+                            // check if version starts with version string
+                            if(version.empty())
+                                return original_path;
+                            else if(this_version.substr(0, version.length()) == version) {
+                                return original_path;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return "";
+    }
 
     void handle_and_throw_py_error() {
         using namespace boost::python;

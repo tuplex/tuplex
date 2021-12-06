@@ -6,7 +6,7 @@ requires = [
     "cloudpickle",
     "numpy",
     "ninja; sys_platform != 'win32'",
-    "cmake>=3.12",
+    "cmake>=3.12,<3.22",
     "requests"
 ]
 build-backend = "setuptools.build_meta"

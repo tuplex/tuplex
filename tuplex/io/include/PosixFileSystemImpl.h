@@ -103,7 +103,7 @@ namespace tuplex {
         std::unique_ptr<VirtualFile> open_file(const URI& uri, VirtualFileMode vfm) override;
         VirtualFileSystemStatus touch(const URI& uri, bool overwrite) override;
         VirtualFileSystemStatus file_size(const URI& uri, uint64_t& size) override;
-        VirtualFileSystemStatus ls(const URI& parent, std::vector<URI>* uris) override;
+        VirtualFileSystemStatus ls(const URI& parent, std::vector<URI>& uris) override;
         std::unique_ptr<VirtualMappedFile> map_file(const URI &uri) override;
         std::vector<URI> glob(const std::string& pattern) override;
         static VirtualFileSystemStatus copySingleFile(const URI& src, const URI& target, bool overwrite=true);

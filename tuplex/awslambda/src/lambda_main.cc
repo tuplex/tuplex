@@ -14,10 +14,15 @@
 #include <VirtualFileSystem.h>
 #include <Timer.h>
 #include <aws/core/Aws.h>
+#include <aws/core/auth/AWSCredentialsProviderChain.h>
 #include <aws/core/platform/Environment.h>
 #include <JITCompiler.h>
 #include <StringUtils.h>
 #include <RuntimeInterface.h>
+
+// S3 stuff
+#include <aws/s3/S3Client.h>
+#include <aws/s3/model/Bucket.h>
 
 // protobuf
 #include <Lambda.pb.h>
@@ -52,14 +57,8 @@ std::shared_ptr<tuplex::JITCompiler> g_compiler;
 
 void python_home_setup() {
     // extract python home directory
-    auto task_root = std::getenv("LAMBDA_TASK_ROOT");
-    // convert to wchar
-    std::vector<wchar_t> vec;
-    auto len = strlen(task_root);
-    vec.resize(len + 1);
-    mbstowcs(&vec[0], task_root, len);
-    // set python home
-    Py_SetPythonHome(&vec[0]);
+    std::string task_root = std::getenv("LAMBDA_TASK_ROOT");
+    python::python_home_setup(task_root);
 }
 
 void global_init() {
@@ -81,9 +80,34 @@ void global_init() {
     ns.verifySSL = true;
     ns.caFile = caFile;
 
+    // something is wrong with the credentials, try manual listbuckets access...
+    auto provider = Aws::MakeShared<Aws::Auth::DefaultAWSCredentialsProviderChain>("tuplex");
+    auto aws_cred = provider->GetAWSCredentials();
+    Logger::instance().defaultLogger().info(std::string("credentials obtained via default chain: access key: ") + aws_cred.GetAWSAccessKeyId().c_str());
+
+    // init s3 client manually
+    Aws::S3::S3Client client(aws_cred);
+    auto outcome = client.ListBuckets();
+    if(outcome.IsSuccess()) {
+        auto buckets = outcome.GetResult().GetBuckets();
+        for (auto entry: buckets) {
+            Logger::instance().defaultLogger().info("found uri: " + URI("s3://" + std::string(entry.GetName().c_str())).toString());
+        }
+    } else {
+        Logger::instance().defaultLogger().error("ListBuckets failed");
+    }
+
+    // get AWS credentials from Lambda environment...
+    // e.g., https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime
+    std::string access_key = Aws::Environment::GetEnv("AWS_ACCESS_KEY_ID").c_str();
+    std::string secret_key = Aws::Environment::GetEnv("AWS_SECRET_ACCESS_KEY").c_str();
+    std::string session_token = Aws::Environment::GetEnv("AWS_SESSION_TOKEN").c_str();
+
+    Logger::instance().defaultLogger().info("AWS credentials: access key: " + access_key + " secret key: " + secret_key + " session token: " + session_token);
+
     // get region from AWS_REGION env
     auto region = Aws::Environment::GetEnv("AWS_REGION");
-    VirtualFileSystem::addS3FileSystem("", "", region.c_str(), ns, true, true);
+    VirtualFileSystem::addS3FileSystem(access_key, secret_key, session_token, region.c_str(), ns, true, true);
     g_aws_init_time = timer.time();
 
     // Note that runtime must be initialized BEFORE compiler due to linking
@@ -145,6 +169,8 @@ int64_t writeRowCallback(LambdaExecutor* exec, const uint8_t* buf, int64_t bufSi
         memcpy(exec->buffer + exec->bytesWritten, buf, bufSize);
         exec->bytesWritten += bufSize;
         exec->numOutputRows++;
+    } else {
+        std::cerr<<"ran out of capacity!"<<std::endl; //@TODO: error handling!
     }
     return 0;
 }
@@ -158,6 +184,9 @@ void exceptRowCallback(LambdaExecutor* exec, int64_t exceptionCode, int64_t exce
 }
 
 aws::lambda_runtime::invocation_request const* g_lambda_req = nullptr;
+
+
+// @TODO: output buffer size is an issue -> need to write partial results if required!!!
 
 // how much memory to use for the Lambda??
 // TODO: make this dependent on the Lambda configuration!
@@ -545,6 +574,8 @@ tuplex::messages::InvocationResponse lambda_main(aws::lambda_runtime::invocation
         assert(sizeof(int64_t) == sizeof(size_t));
         file->write(&g_executor->bytesWritten, sizeof(int64_t));
         file->write(&g_executor->numOutputRows, sizeof(int64_t));
+        logger.info("writing buffer contents of " + std::to_string(g_executor->bytesWritten) + " to output.");
+
         file->write(g_executor->buffer, g_executor->bytesWritten);
         file->close(); // important, because S3 files work lazily
     } else throw std::runtime_error("unsupported output format!");

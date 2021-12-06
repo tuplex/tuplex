@@ -354,6 +354,7 @@ TEST_F(AWSTest, BucketList) {
 //        cout<<el<<endl;
 //    }
     //ASSERT_GT(v.size(), 0);
+    uris.clear();
 }
 
 

@@ -56,13 +56,13 @@ else()
     set(GTest_LIBRARIES GTest::gtest)
 endif()
 
-
 add_subdirectory(codegen)
 add_subdirectory(io)
 add_subdirectory(runtime)
 add_subdirectory(adapters)
 add_subdirectory(utils)
 add_subdirectory(worker)
+
 # these require python, so only if embed is active!
 if(Python3_Embed_FOUND)
     add_subdirectory(core)

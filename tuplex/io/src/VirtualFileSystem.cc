@@ -542,6 +542,7 @@ COPY_FAILURE:
     }
 
     bool validateOutputSpecification(const URI& baseURI) {
+        using namespace std;
         // validates output specification, i.e. following is accepted:
 
         // for local filesystem
@@ -552,9 +553,11 @@ COPY_FAILURE:
             if(fileExists(local_path))
                 return true;
             if(dirExists(local_path)) {
+                vector<URI> uris;
                 // empty or non empty?
-                auto vfs = VirtualFileSystem::fromURI(uri);
-
+                auto vfs = VirtualFileSystem::fromURI("file://");
+                vfs.ls(baseURI, uris);
+                return uris.empty();
             } else {
                 // ok.
                 return true;
@@ -562,7 +565,19 @@ COPY_FAILURE:
         } else {
             // S3: same, using ls function!
 #ifdef BUILD_WITH_AWS
-
+            vector<URI> uris;
+            // empty or non empty?
+            auto vfs = VirtualFileSystem::fromURI(baseURI);
+            vfs.ls(baseURI, uris);
+            if(uris.empty())
+                return true;
+            else {
+                // single file/dir? => overwrite possible!
+                return uris.size() == 1;
+            }
+#else
+            Logger::instance().defaultLogger("Tuplex not compiled with S3 support, can't write to S3 output URI");
+            return false;
 #endif
             return true;
         }

@@ -1489,39 +1489,6 @@ namespace tuplex {
         return wq.popCompletedTasks();
     }
 
-    void LocalBackend::validateOutputSpecification(const URI& baseURI) {
-        std::string base;
-        std::string ext;
-
-        auto path = baseURI.toPath();
-        auto ext_pos = path.rfind(".");
-        auto slash_pos = path.rfind("/");
-
-        bool isFolder = (ext_pos == std::string::npos) ||
-                        (path.back() == '/') || ((slash_pos != std::string::npos) && (ext_pos < slash_pos));
-
-        if (isFolder) {
-#ifndef NDEBUG
-            Logger::instance().logger("io").info("outputting data as parts into folder " + path);
-#endif
-
-            if (!baseURI.isLocal()) {
-                throw std::runtime_error("VFS not supporting mkdir yet");
-            }
-
-            auto vfs = VirtualFileSystem::fromURI(baseURI);
-            if (!baseURI.exists()) {
-                vfs.create_dir(baseURI);
-            } else {
-                auto dirContents = vfs.glob(baseURI.toString() + "/*");
-                if (!dirContents.empty()) {
-                    throw std::runtime_error("cannot output files to non-empty directory");
-                }
-            }
-        }
-    }
-
-
     /*!
      * get default file extension for supported file formats
      * @param fmt
@@ -1529,6 +1496,10 @@ namespace tuplex {
      */
     std::string fileFormatDefaultExtension(FileFormat fmt) {
         switch (fmt) {
+            case FileFormat::OUTFMT_TEXT:
+                return ".txt";
+            case FileFormat::OUTFMT_TUPLEX:
+                return ".bin";
             case FileFormat::OUTFMT_CSV:
                 return ".csv";
             case FileFormat::OUTFMT_ORC:

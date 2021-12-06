@@ -82,7 +82,7 @@ TEST_F(WrapperTest, MixedSimpleTypleTuple) {
     {
         auto list = boost::python::list(boost::python::handle<>(listObj));
 
-        auto res = c.parallelize(list).collect();
+        auto res = c.parallelize(list).map("lambda x: x", "").collect();
 
         auto resObj = res.ptr();
 

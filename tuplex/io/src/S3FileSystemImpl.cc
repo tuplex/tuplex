@@ -25,6 +25,7 @@
 #include <aws/s3/model/CopyObjectRequest.h>
 #include <Timer.h>
 #include <Utils.h>
+#include <FileUtils.h>
 
 #include <AWSCommon.h>
 
@@ -305,7 +306,134 @@ namespace tuplex {
         }
     }
 
-    VirtualFileSystemStatus S3FileSystemImpl::ls(const tuplex::URI &parent, std::vector<tuplex::URI> *uris) {
+    VirtualFileSystemStatus S3FileSystemImpl::ls(const tuplex::URI &parent, std::vector<tuplex::URI>& uris) {
+
+        MessageHandler& logger = Logger::instance().logger("S3 filesystem");
+
+        // extract local path (i.e. remove file://)
+        auto path = parent.toString().substr(parent.prefix().length());
+
+        // make sure no wildcard is present yet --> not supported!
+        auto prefix = findLongestPrefix(path);
+
+        if(prefix.length() != path.length()) {
+            logger.error("URI " + parent.toString() + " contains Unix wildcard characters, not supported yet");
+            return VirtualFileSystemStatus::VFS_IOERROR;
+        }
+
+        // split into bucket and key
+        auto bucket = parent.s3Bucket();
+        auto key = parent.s3Key();
+
+        if("" == bucket) {
+            // make sure key is empty as well!
+            assert("" == key);
+            // list simply all buckets...
+
+            auto outcome = this->client().ListBuckets();
+            _lsRequests++;
+            if(outcome.IsSuccess()) {
+                auto buckets = outcome.GetResult().GetBuckets();
+                for(auto entry : buckets) {
+                    uris.push_back(URI("s3://" + std::string(entry.GetName().c_str())));
+                }
+                return VirtualFileSystemStatus::VFS_OK;
+            } else {
+                logger.error("Failed listing buckets. Details: " + std::string(outcome.GetError().GetMessage().c_str()));
+                return VirtualFileSystemStatus::VFS_IOERROR;
+            }
+        } else {
+            // this is a listobjects query! => could have continuation token!
+            Aws::S3::Model::ListObjectsV2Request objects_request;
+
+            std::vector<URI> output_uris;
+
+            auto s3_prefix = key;
+            // does it end in /? if not amend! => can't know if folder or not...
+            if(s3_prefix.back() != '/') {
+
+                // perform here single request to check whether it's a single file...
+                objects_request.WithBucket(Aws::String(bucket.c_str()));
+                objects_request.WithPrefix(Aws::String(s3_prefix.c_str()));
+                objects_request.WithDelimiter("/");
+                objects_request.SetRequestPayer(_requestPayer);
+
+                auto list_objects_outcome = _client->ListObjectsV2(objects_request);
+#ifndef NDEBUG
+                Logger::instance().defaultLogger().info("made list request as part of ls function");
+#endif
+                _lsRequests++;
+                if(list_objects_outcome.IsSuccess()) {
+                    // can be only a single file...
+                    auto& result = list_objects_outcome.GetResult();
+                    for(const auto& o : result.GetContents()) {
+                        std::string key = o.GetKey().c_str();
+                        URI uri("s3://" + bucket + "/" + key);
+                        output_uris.push_back(uri);
+                    }
+
+                    // these are folders
+                    for(const auto& cp : result.GetCommonPrefixes()) {
+                        auto key = cp.GetPrefix().c_str();
+                        URI uri("s3://" + bucket + "/" + key);
+                        output_uris.push_back(uri);
+                    }
+                }
+                // reset request
+                objects_request = Aws::S3::Model::ListObjectsV2Request();
+
+                s3_prefix = s3_prefix + "/";
+            }
+
+            objects_request.WithBucket(Aws::String(bucket.c_str()));
+            objects_request.WithPrefix(Aws::String(s3_prefix.c_str()));
+            objects_request.WithDelimiter("/");
+            objects_request.SetRequestPayer(_requestPayer);
+
+            auto list_objects_outcome = _client->ListObjectsV2(objects_request);
+#ifndef NDEBUG
+            Logger::instance().defaultLogger().info("made list request as part of ls function");
+#endif
+            _lsRequests++;
+            while(list_objects_outcome.IsSuccess()) {
+                auto& result = list_objects_outcome.GetResult();
+
+                // 2. files in dir
+                // these are files
+                for(const auto& o : result.GetContents()) {
+                    std::string key = o.GetKey().c_str();
+                    URI uri("s3://" + bucket + "/" + key);
+                    output_uris.push_back(uri);
+                }
+                // these are folders
+                for(const auto& cp : result.GetCommonPrefixes()) {
+                    auto key = cp.GetPrefix().c_str();
+                    URI uri("s3://" + bucket + "/" + key);
+                    output_uris.push_back(uri);
+                }
+                if(result.GetIsTruncated()) {
+                    objects_request.SetContinuationToken(result.GetNextContinuationToken());
+                    list_objects_outcome = _client->ListObjectsV2(objects_request);
+                   _lsRequests++;
+#ifndef NDEBUG
+                    Logger::instance().defaultLogger().info("made list request as part of ls function (continuation)");
+#endif
+                } else {
+                    break;
+                }
+            }
+
+            // clean up -> i.e. single folder case
+            if(output_uris.size() > 1) {
+                auto it = std::find(output_uris.begin(), output_uris.end(), URI("s3://" + bucket + "/" + s3_prefix));
+                if(it != output_uris.end())
+                    output_uris.erase(it);
+            }
+
+            uris = output_uris;
+            return VirtualFileSystemStatus::VFS_OK;
+        }
+
         return VirtualFileSystemStatus::VFS_NOTYETIMPLEMENTED;
     }
 
@@ -322,7 +450,6 @@ namespace tuplex {
                 if(s[i] == c && s[i - 1] != escape_char)
                     return true;
         }
-
         return false;
     }
 
@@ -353,7 +480,9 @@ namespace tuplex {
         return files;
     }
 
-    S3FileSystemImpl::S3FileSystemImpl(const std::string& access_key, const std::string& secret_key, const std::string& region, const NetworkSettings& ns, bool lambdaMode, bool requesterPay) {
+    S3FileSystemImpl::S3FileSystemImpl(const std::string& access_key, const std::string& secret_key,
+                                       const std::string& session_token, const std::string& region,
+                                       const NetworkSettings& ns, bool lambdaMode, bool requesterPay) {
         // Note: If current region is different than other region, use S3 transfer acceleration
         // cf. Aws::S3::Model::GetBucketAccelerateConfigurationRequest
         // and https://s3-accelerate-speedtest.s3-accelerate.amazonaws.com/en/accelerate-speed-comparsion.html
@@ -372,6 +501,8 @@ namespace tuplex {
             credentials.access_key = access_key;
         if(!secret_key.empty())
             credentials.secret_key = secret_key;
+        if(!session_token.empty())
+            credentials.session_token = session_token;
         if(!region.empty())
             credentials.default_region = region;
 
@@ -393,9 +524,9 @@ namespace tuplex {
         else
             _requestPayer = Aws::S3::Model::RequestPayer::NOT_SET;
 
-
-
-        _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(), credentials.secret_key.c_str()), config);
+        _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(),
+                                                                      credentials.secret_key.c_str(),
+                                                                      credentials.session_token.c_str()), config);
 
         // set counters to zero
         _putRequests = 0;
@@ -530,40 +661,6 @@ namespace tuplex {
         }
 
         return true;
-    }
-
-    /*!
-    * when performing unix wildcard matching, this finds the longest prefix where no matching character is used
-    * @param s path
-    * @param escapechar characters escaped with this char will be ignored for the prefix search
-    * @return longest prefix
-    */
-    static std::string findLongestPrefix(const std::string &s, const char escapechar = '\\') {
-        // list from http://tldp.org/LDP/GNU-Linux-Tools-Summary/html/x11655.htm
-        // http://man7.org/linux/man-pages/man7/glob.7.html
-
-        // basically need to search for following chars
-        char reserved_chars[] = "*?[]";
-        auto num_reserved_chars = strlen(reserved_chars);
-        char lastChar = 0;
-
-        const char *ptr = s.c_str();
-        while (*ptr != '\0') {
-            auto curChar = *ptr;
-
-            // check if curChar is any of the reserved ones
-            for (unsigned i = 0; i < num_reserved_chars; ++i)
-                if (curChar == reserved_chars[i]) {
-                    // check if last char is escapechar
-                    if (lastChar != escapechar)
-                        goto done;
-                }
-            lastChar = *ptr;
-            ptr++;
-        }
-        done:
-        auto idx = ptr - s.c_str();
-        return s.substr(0, idx);
     }
 
     // overwrites default implementation to be a bit more efficient

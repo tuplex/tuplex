@@ -43,8 +43,8 @@ namespace tuplex {
     static std::unordered_map<std::string, std::shared_ptr<IFileSystemImpl>> fsRegistry = defaults();
 
 #ifdef BUILD_WITH_AWS
-    VirtualFileSystemStatus VirtualFileSystem::addS3FileSystem(const std::string& access_key, const std::string& secret_key, const std::string& region, const NetworkSettings& ns, bool lambdaMode, bool requesterPay) {
-        return VirtualFileSystem::registerFileSystem(std::make_shared<S3FileSystemImpl>(access_key, secret_key, region, ns, lambdaMode, requesterPay), "s3://");
+    VirtualFileSystemStatus VirtualFileSystem::addS3FileSystem(const std::string& access_key, const std::string& secret_key, const std::string& session_token, const std::string& region, const NetworkSettings& ns, bool lambdaMode, bool requesterPay) {
+        return VirtualFileSystem::registerFileSystem(std::make_shared<S3FileSystemImpl>(access_key, secret_key, session_token, region, ns, lambdaMode, requesterPay), "s3://");
     }
 
     std::map<std::string, size_t> VirtualFileSystem::s3TransferStats() {
@@ -531,5 +531,13 @@ COPY_FAILURE:
         file->close();
         s.resize(numBytes);
         return s;
+    }
+
+    VirtualFileSystemStatus VirtualFileSystem::ls(const URI &parent, std::vector<URI> &uris) const {
+        // check if impl exists
+        if(!_impl)
+            return VirtualFileSystemStatus::VFS_NOFILESYSTEM;
+
+        return _impl->ls(parent, uris);
     }
 }

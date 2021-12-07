@@ -41,6 +41,17 @@ public:
         if(_partitions.empty())
             return;
 
+        // output path could be some non-existing folder or so. Create directories as needed
+        if(_uri.isLocal()) {
+            auto path = _uri.toPath();
+            auto parent_path = parentPath(path);
+            if(!fileExists(parent_path)) {
+                auto vfs = VirtualFileSystem::fromURI("file://");
+                vfs.create_dir(URI(parent_path)); // ensures dir.
+                assert(isDirectory(parent_path));
+            }
+        }
+
         auto outFile = VirtualFileSystem::open_file(_uri, VirtualFileMode::VFS_WRITE);
         if(!outFile) {
             abort("could not open " + _uri.toPath() + " in write mode.");

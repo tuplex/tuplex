@@ -285,6 +285,19 @@ namespace tuplex {
         return S_ISREG(statbuf.st_mode);
     }
 
+    inline std::string parentPath(const std::string& local_path) {
+        // check dirname & whether dir could be accessed
+        // create copy in order to allow modification
+        const char* path = local_path.c_str();
+        char* parent = new char[strlen(path) + 1];
+        memcpy(parent, path, strlen(path) + 1);
+
+        auto parent_path = dirname(parent);
+        std::string s_parent(parent_path);
+        delete [] parent;
+        return s_parent;
+    }
+
     /*!
      * check whether path is writable using access
      * @param local_path

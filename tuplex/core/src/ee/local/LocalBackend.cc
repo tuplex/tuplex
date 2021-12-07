@@ -766,6 +766,13 @@ namespace tuplex {
             merge_except_rows = false;
         }
 
+        if (tstage->outputMode() == EndPointMode::FILE) {
+            // run output validation one more time here before execution (assume no changes then)
+            if(!validateOutputSpecification(tstage->outputURI())) {
+                throw std::runtime_error("Failed to validate output specification,"
+                                         " can not write to " + tstage->outputURI().toString() + " (directory not empty?)");
+            }
+        }
 
         // Processing of a transform stage works as follows:
         // 1.)  compile all functions required for the next steps
@@ -1486,41 +1493,6 @@ namespace tuplex {
         return wq.popCompletedTasks();
     }
 
-    // ensure output folder exists. => separate function here, b.c. it slows down pipeline by a lot!
-    void ensureOutputFolderExists(const URI& baseURI) {
-        std::string base; // base which to use to form string
-        std::string ext; // base
-
-        auto path = baseURI.toPath();
-        auto ext_pos = path.rfind('.'); // searches for extension
-        auto slash_pos = path.rfind('/');
-
-        // two cases: 1) extension found 2.) extension not found
-        bool isFolder = (ext_pos == std::string::npos) ||
-                (path.back() == '/') || ((slash_pos != std::string::npos) && (ext_pos < slash_pos));
-
-        if(isFolder) {
-
-#ifndef NDEBUG
-            Logger::instance().logger("io").info("outputting data as parts into folder " + path);
-#endif
-
-            // no extension
-            // i.e. output in folder!
-            if(!baseURI.isLocal())
-                throw std::runtime_error("VFS not supporting mkdir yet!");
-
-            // check if folder exists, if so delete its contents (overwrite mode!)
-            // then, put part files in it!
-            auto vfs = VirtualFileSystem::fromURI(baseURI);
-            if(baseURI.exists())
-                vfs.remove(baseURI);
-
-            // create dir
-            vfs.create_dir(baseURI);
-        }
-    }
-
     /*!
      * get default file extension for supported file formats
      * @param fmt
@@ -1528,6 +1500,10 @@ namespace tuplex {
      */
     std::string fileFormatDefaultExtension(FileFormat fmt) {
         switch (fmt) {
+            case FileFormat::OUTFMT_TEXT:
+                return ".txt";
+            case FileFormat::OUTFMT_TUPLEX:
+                return ".bin";
             case FileFormat::OUTFMT_CSV:
                 return ".csv";
             case FileFormat::OUTFMT_ORC:
@@ -1914,8 +1890,6 @@ namespace tuplex {
         UDF udf = tstage->outputPathUDF();
         auto fmt = tstage->outputFormat();
 
-        // create folder if not clear
-        ensureOutputFolderExists(uri);
         // count number of output rows in tasks
         size_t numTotalOutputRows = 0;
         vector<Partition *> outputs; // collect all output partitions in this vector

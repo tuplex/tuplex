@@ -223,6 +223,13 @@ namespace tuplex {
      * @return string with file contents
      */
     extern std::string fileToString(const URI& uri);
+
+    /*!
+     * validate file output URI
+     * @param baseURI path where to save data to
+     * @return false if output can't be written to baseURI
+     */
+    extern bool validateOutputSpecification(const URI& baseURI);
 }
 
 #endif //TUPLEX_VIRTUALFILESYSTEM_H

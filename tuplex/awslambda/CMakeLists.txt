@@ -36,7 +36,8 @@ include_directories(${json_INCLUDE_DIR})
 
 
 # linking
-add_executable(${LAMBDA_NAME} "src/main.cc" "src/lambda_main.cc" "src/sighandler.cc")
+add_executable(${LAMBDA_NAME} "src/main.cc" "src/lambda_main.cc"
+        "src/sighandler.cc" "../../worker/src/LambdaWorkerApp.cc" "../../worker/src/WorkerApp.cc")
 
 # enable export symbols in debug for backtrace
 set_target_properties(${LAMBDA_NAME} PROPERTIES ENABLE_EXPORTS 1)

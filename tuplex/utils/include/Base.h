@@ -129,6 +129,110 @@ typedef int32_t* ptr_t;
 #endif
 
 
+// cJSON / AWS SDK fix
+#ifdef BUILD_WITH_AWS
+#include <aws/core/external/cjson/cJSON.h>
+// newer AWS SDK version shadowed symbols, hence need to add defines to fix this
+#if (AWS_SDK_VERSION_MAJOR >= 1 && AWS_SDK_VERSION_MINOR >= 9 && AWS_SDK_VERSION_PATCH >= 137)
+
+#define cJSON_AddArrayToObject cJSON_AS4CPP_AddArrayToObject
+#define cJSON_AddBoolToObject cJSON_AS4CPP_AddBoolToObject
+#define cJSON_AddFalseToObject cJSON_AS4CPP_AddFalseToObject
+#define cJSON_AddItemReferenceToArray cJSON_AS4CPP_AddItemReferenceToArray
+#define cJSON_AddItemReferenceToObject cJSON_AS4CPP_AddItemReferenceToObject
+#define cJSON_AddItemToArray cJSON_AS4CPP_AddItemToArray
+#define cJSON_AddItemToObject cJSON_AS4CPP_AddItemToObject
+#define cJSON_AddItemToObjectCS cJSON_AS4CPP_AddItemToObjectCS
+#define cJSON_AddNullToObject cJSON_AS4CPP_AddNullToObject
+#define cJSON_AddNumberToObject cJSON_AS4CPP_AddNumberToObject
+#define cJSON_AddObjectToObject cJSON_AS4CPP_AddObjectToObject
+#define cJSON_AddRawToObject cJSON_AS4CPP_AddRawToObject
+#define cJSON_AddStringToObject cJSON_AS4CPP_AddStringToObject
+#define cJSON_AddTrueToObject cJSON_AS4CPP_AddTrueToObject
+#define cJSON_Array cJSON_AS4CPP_Array
+#define cJSON_ArrayForEach cJSON_AS4CPP_ArrayForEach
+#define cJSON_Compare cJSON_AS4CPP_Compare
+#define cJSON_CreateArray cJSON_AS4CPP_CreateArray
+#define cJSON_CreateArrayReference cJSON_AS4CPP_CreateArrayReference
+#define cJSON_CreateBool cJSON_AS4CPP_CreateBool
+#define cJSON_CreateDoubleArray cJSON_AS4CPP_CreateDoubleArray
+#define cJSON_CreateFalse cJSON_AS4CPP_CreateFalse
+#define cJSON_CreateFloatArray cJSON_AS4CPP_CreateFloatArray
+#define cJSON_CreateIntArray cJSON_AS4CPP_CreateIntArray
+#define cJSON_CreateNull cJSON_AS4CPP_CreateNull
+#define cJSON_CreateNumber cJSON_AS4CPP_CreateNumber
+#define cJSON_CreateObject cJSON_AS4CPP_CreateObject
+#define cJSON_CreateObjectReference cJSON_AS4CPP_CreateObjectReference
+#define cJSON_CreateRaw cJSON_AS4CPP_CreateRaw
+#define cJSON_CreateString cJSON_AS4CPP_CreateString
+#define cJSON_CreateStringArray cJSON_AS4CPP_CreateStringArray
+#define cJSON_CreateStringReference cJSON_AS4CPP_CreateStringReference
+#define cJSON_CreateTrue cJSON_AS4CPP_CreateTrue
+#define cJSON_Delete cJSON_AS4CPP_Delete
+#define cJSON_DeleteItemFromArray cJSON_AS4CPP_DeleteItemFromArray
+#define cJSON_DeleteItemFromObject cJSON_AS4CPP_DeleteItemFromObject
+#define cJSON_DeleteItemFromObjectCaseSensitive cJSON_AS4CPP_DeleteItemFromObjectCaseSensitive
+#define cJSON_DetachItemFromArray cJSON_AS4CPP_DetachItemFromArray
+#define cJSON_DetachItemFromObject cJSON_AS4CPP_DetachItemFromObject
+#define cJSON_DetachItemFromObjectCaseSensitive cJSON_AS4CPP_DetachItemFromObjectCaseSensitive
+#define cJSON_DetachItemViaPointer cJSON_AS4CPP_DetachItemViaPointer
+#define cJSON_Duplicate cJSON_AS4CPP_Duplicate
+#define cJSON_False cJSON_AS4CPP_False
+#define cJSON_GetArrayItem cJSON_AS4CPP_GetArrayItem
+#define cJSON_GetArraySize cJSON_AS4CPP_GetArraySize
+#define cJSON_GetErrorPtr cJSON_AS4CPP_GetErrorPtr
+#define cJSON_GetNumberValue cJSON_AS4CPP_GetNumberValue
+#define cJSON_GetObjectItem cJSON_AS4CPP_GetObjectItem
+#define cJSON_GetObjectItemCaseSensitive cJSON_AS4CPP_GetObjectItemCaseSensitive
+#define cJSON_GetStringValue cJSON_AS4CPP_GetStringValue
+#define cJSON_HasObjectItem cJSON_AS4CPP_HasObjectItem
+#define cJSON_InitHooks cJSON_AS4CPP_InitHooks
+#define cJSON_InsertItemInArray cJSON_AS4CPP_InsertItemInArray
+#define cJSON_Invalid cJSON_AS4CPP_Invalid
+#define cJSON_IsArray cJSON_AS4CPP_IsArray
+#define cJSON_IsBool cJSON_AS4CPP_IsBool
+#define cJSON_IsFalse cJSON_AS4CPP_IsFalse
+#define cJSON_IsInvalid cJSON_AS4CPP_IsInvalid
+#define cJSON_IsNull cJSON_AS4CPP_IsNull
+#define cJSON_IsNumber cJSON_AS4CPP_IsNumber
+#define cJSON_IsObject cJSON_AS4CPP_IsObject
+#define cJSON_IsRaw cJSON_AS4CPP_IsRaw
+#define cJSON_IsString cJSON_AS4CPP_IsString
+#define cJSON_IsTrue cJSON_AS4CPP_IsTrue
+#define cJSON_Minify cJSON_AS4CPP_Minify
+#define cJSON_NULL cJSON_AS4CPP_NULL
+#define cJSON_Number cJSON_AS4CPP_Number
+#define cJSON_Object cJSON_AS4CPP_Object
+#define cJSON_Parse cJSON_AS4CPP_Parse
+#define cJSON_ParseWithLength cJSON_AS4CPP_ParseWithLength
+#define cJSON_ParseWithLengthOpts cJSON_AS4CPP_ParseWithLengthOpts
+#define cJSON_ParseWithOpts cJSON_AS4CPP_ParseWithOpts
+#define cJSON_Print cJSON_AS4CPP_Print
+#define cJSON_PrintBuffered cJSON_AS4CPP_PrintBuffered
+#define cJSON_PrintPreallocated cJSON_AS4CPP_PrintPreallocated
+#define cJSON_PrintUnformatted cJSON_AS4CPP_PrintUnformatted
+#define cJSON_Raw cJSON_AS4CPP_Raw
+#define cJSON_ReplaceItemInArray cJSON_AS4CPP_ReplaceItemInArray
+#define cJSON_ReplaceItemInObject cJSON_AS4CPP_ReplaceItemInObject
+#define cJSON_ReplaceItemInObjectCaseSensitive cJSON_AS4CPP_ReplaceItemInObjectCaseSensitive
+#define cJSON_ReplaceItemViaPointer cJSON_AS4CPP_ReplaceItemViaPointer
+#define cJSON_SetIntValue cJSON_AS4CPP_SetIntValue
+#define cJSON_SetNumberHelper cJSON_AS4CPP_SetNumberHelper
+#define cJSON_SetNumberValue cJSON_AS4CPP_SetNumberValue
+#define cJSON_SetValuestring cJSON_AS4CPP_SetValuestring
+#define cJSON_String cJSON_AS4CPP_String
+#define cJSON_True cJSON_AS4CPP_True
+#define cJSON_Version cJSON_AS4CPP_Version
+#define cJSON_free cJSON_AS4CPP_free
+#define cJSON_malloc cJSON_AS4CPP_malloc
+
+#endif
+
+#else
+#include <cJSON.h>
+#endif
+
+
 // some basic helper to throw for possible bad code in debug mode an error (should never occur in release mode!)
 void debug_error_message(const char* message, const char* file, const int ine);
 #define DEBUG_ERROR(message) debug_error_message((message), __FILE__, __LINE__);

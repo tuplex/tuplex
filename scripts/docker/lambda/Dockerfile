@@ -1,10 +1,9 @@
 # This is an Ubuntu 20.04 image
+FROM ubuntu:20.04
 
 # doesn't seem to available on dockerhub, hence simply copy&paste from https://raw.githubusercontent.com/JetBrains/clion-remote/master/Dockerfile.remote-cpp-env
 #FROM clion/remote-cpp-env:0.5
 MAINTAINER "Leonhard Spiegelberg"
-
-FROM ubuntu:20.04
 
 # Jetbrains' original comment:
 # CLion remote docker environment (How to build docker container, run and stop it)
@@ -55,7 +54,9 @@ RUN useradd -m user \
 RUN usermod -s /bin/bash user
 
 # add Tuplex dependencies (for Ubuntu 20.04)
-
+RUN mkdir -p /opt/sbin
+ADD install_reqs.sh /opt/sbin/install_reqs.sh
+RUN bash /opt/sbin/install_reqs.sh
 
 # SSH command
 CMD ["/usr/sbin/sshd", "-D", "-e", "-f", "/etc/ssh/sshd_config_test_clion"]

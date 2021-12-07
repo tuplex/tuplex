@@ -21,9 +21,16 @@
 #include <Lambda.pb.h>
 #include <Python.h>
 
+#include "../../worker/LambdaWorkerApp.h"
+
 // lambda main function, i.e. get a json request and return a json object
 extern tuplex::messages::InvocationResponse lambda_main(aws::lambda_runtime::invocation_request const& lambda_req);
 extern tuplex::messages::InvocationResponse make_exception(const std::string& message);
+
+
+// helper function to get App
+extern void init_app();
+extern std::shared_ptr<LambdaWorkerApp> get_app();
 
 extern void global_init();
 extern void global_cleanup();

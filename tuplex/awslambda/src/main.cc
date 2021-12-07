@@ -23,6 +23,7 @@ bool container_reused() { return g_reused; }
 extern tuplex::uniqueid_t container_id() { return g_id; }
 
 
+
 std::string proto_to_json(const tuplex::messages::InvocationResponse& r) {
     std::string json_buf;
     google::protobuf::util::MessageToJsonString(r, &json_buf);
@@ -63,6 +64,16 @@ static invocation_response lambda_handler(invocation_request const& req) {
     }
 }
 
+// expose app as global object throughout code-base
+static std::shared_ptr<LambdaWorkerApp> the_app;
+void init_app() {
+    the_app = std::make_shared<LambdaWorkerApp>();
+}
+
+extern std::shared_ptr<LambdaWorkerApp> get_app() {
+    return the_app;
+}
+
 // main function which setups error handling & invocation of custom lambda function
 int main() {
 
@@ -73,12 +84,19 @@ int main() {
     sigact.sa_sigaction = sigsev_handler;
     sigact.sa_flags = SA_RESTART | SA_SIGINFO;
 
-
     // set sigabort too
     sigaction(SIGABRT, &sigact, nullptr);
 
-    global_init();
-    reset_executor_setup();
+    // initialize LambdaWorkerApp
+    init_app();
+    if(!get_app()) {
+        return invocation_response::success(proto_to_json(make_exception("failed to initiailize worker application")),
+                                            "application/json");
+    }
+
+    //    // old:
+    //    global_init();
+    //    reset_executor_setup();
 
     // signal(SIGSEGV, sigsev_handler);
     if(sigaction(SIGSEGV, &sigact, nullptr) != 0) {
@@ -114,7 +132,9 @@ int main() {
     std::cout.flush();
     std::cerr.flush();
 
-    global_cleanup();
+    // run cleanup from app? => doesn't matter. just let it get killed...
+    get_app()->shutdown();
+    // global_cleanup();
 
     return 0;
 }

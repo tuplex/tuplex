@@ -1023,7 +1023,6 @@ namespace tuplex {
             }
         }
 
-
         llvm::Value* BlockGeneratorVisitor::oneSidedNullComparison(llvm::IRBuilder<>& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull) {
             assert(tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL || tt == TokenType::IS || tt == TokenType::ISNOT); // only for == or != or IS or ISNOT!
 

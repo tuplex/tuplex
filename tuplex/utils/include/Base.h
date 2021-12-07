@@ -133,7 +133,9 @@ typedef int32_t* ptr_t;
 #ifdef BUILD_WITH_AWS
 #include <aws/core/external/cjson/cJSON.h>
 // newer AWS SDK version shadowed symbols, hence need to add defines to fix this
-#if (AWS_SDK_VERSION_MAJOR >= 1 && AWS_SDK_VERSION_MINOR >= 9 && AWS_SDK_VERSION_PATCH >= 137)
+#if (AWS_SDK_VERSION_MAJOR >= 1 && AWS_SDK_VERSION_MINOR >= 9 && AWS_SDK_VERSION_PATCH >= 134)
+
+#define cJSON_Hooks cJSON_AS4CPP_Hooks
 
 #define cJSON_AddArrayToObject cJSON_AS4CPP_AddArrayToObject
 #define cJSON_AddBoolToObject cJSON_AS4CPP_AddBoolToObject

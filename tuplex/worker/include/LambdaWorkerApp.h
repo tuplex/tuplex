@@ -16,10 +16,15 @@
 #ifdef BUILD_WITH_AWS
 
 namespace tuplex {
+
+    struct LambdaWorkerSettings : public WorkerSettings {
+        // add here specific Lambda settings
+    };
+
     /// AWS Lambda specific Worker, inherits from base WorkerApp class
     class LambdaWorkerApp : public WorkerApp {
     public:
-
+        LambdaWorkerApp(const LambdaWorkerSettings& ws) : WorkerApp(ws) {}
     protected:
         /// put here Lambda specific constants to easily update them
         static const std::string caFile;

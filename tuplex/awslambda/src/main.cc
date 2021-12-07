@@ -65,12 +65,14 @@ static invocation_response lambda_handler(invocation_request const& req) {
 }
 
 // expose app as global object throughout code-base
-static std::shared_ptr<LambdaWorkerApp> the_app;
+static std::shared_ptr<tuplex::LambdaWorkerApp> the_app;
 void init_app() {
-    the_app = std::make_shared<LambdaWorkerApp>();
+    using namespace tuplex;
+    LambdaWorkerSettings ws;
+    the_app = std::make_shared<tuplex::LambdaWorkerApp>(ws);
 }
 
-extern std::shared_ptr<LambdaWorkerApp> get_app() {
+extern std::shared_ptr<tuplex::LambdaWorkerApp> get_app() {
     return the_app;
 }
 
@@ -90,8 +92,11 @@ int main() {
     // initialize LambdaWorkerApp
     init_app();
     if(!get_app()) {
-        return invocation_response::success(proto_to_json(make_exception("failed to initiailize worker application")),
-                                            "application/json");
+        run_handler([](invocation_request const& req) {
+            return invocation_response::success(proto_to_json(make_exception("failed to initiailize worker application")),
+                                                "application/json");
+        });
+        return 0;
     }
 
     //    // old:

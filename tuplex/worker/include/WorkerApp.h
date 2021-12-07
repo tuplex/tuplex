@@ -40,7 +40,9 @@ namespace tuplex {
         // executor in total how much memory available to use
         //
 
-        bool operator == (const WorkerSettings& other) const = default;
+        inline bool operator == (const WorkerSettings& other) const {
+            return true;
+        }
 
         bool operator != (const WorkerSettings& other) const {
             return !(*this == other);

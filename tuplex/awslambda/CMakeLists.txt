@@ -34,6 +34,8 @@ ExternalProject_Get_Property(json source_dir)
 set(json_INCLUDE_DIR ${source_dir}/include)
 include_directories(${json_INCLUDE_DIR})
 
+# manually add the worker files to build AWS Lambda version...
+include_directories("../worker/include")
 
 # linking
 add_executable(${LAMBDA_NAME} "src/main.cc" "src/lambda_main.cc"

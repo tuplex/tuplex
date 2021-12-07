@@ -88,7 +88,6 @@ namespace tuplex {
 
         MessageHandler& logger() const { return Logger::instance().logger("local ee"); }
 
-
         // write output (may be already in correct format!)
         void writeOutput(TransformStage* tstage, std::vector<IExecutorTask*>& sortedTasks);
 

@@ -129,6 +129,10 @@ namespace tuplex {
             // remove duplicate / runs?
             auto path = eliminateSeparatorRuns(local_path + "/" + file_entry->d_name + (file_entry->d_type == DT_DIR ? "/" : ""));
             URI uri("file://" + path); // no selection of type etc. (Link/dir/...)
+
+            // exclude . and ..
+            if(strcmp(file_entry->d_name, ".") == 0 || strcmp(file_entry->d_name, "..") == 0)
+                continue;
             uris.push_back(uri);
         }
         closedir(dir_it);
@@ -155,6 +159,15 @@ namespace tuplex {
     // cf. https://herbsutter.com/2013/05/29/gotw-89-solution-smart-pointers/
     std::unique_ptr<VirtualFile> PosixFileSystemImpl::open_file(const URI &uri, VirtualFileMode vfm) {
         MessageHandler& logger = Logger::instance().logger("posix filesystem");
+
+        // check whether parent dir exists, if not create dirs!
+        auto parent_path = parentPath(uri.toPath());
+        if(!fileExists(parent_path)) {
+            logger.debug("parent dir " + parent_path + " does not exist, creating it.");
+            create_dir(parent_path);
+            assert(isDirectory(parent_path));
+        }
+
         std::unique_ptr<VirtualFile> ptr(new PosixFile(uri, vfm));
         auto file = (PosixFile*)ptr.get();
 
@@ -198,6 +211,7 @@ namespace tuplex {
             logger.error("unknown mode or illegal combination encountered");
             return;
         }
+
         _fh = fopen(path.c_str(), mode.c_str());
 
         if(_fh) {

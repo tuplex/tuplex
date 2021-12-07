@@ -540,4 +540,54 @@ COPY_FAILURE:
 
         return _impl->ls(parent, uris);
     }
+
+    bool validateOutputSpecification(const URI& baseURI) {
+        using namespace std;
+        // validates output specification, i.e. following is accepted:
+
+        // for local filesystem
+        // it's a file -> okay
+        // it's a dir -> must not exist or be empty
+        if(baseURI.isLocal()) {
+            auto local_path = baseURI.withoutPrefix();
+            if(fileExists(local_path) && isFile(local_path))
+                return true;
+            if(dirExists(local_path) && isDirectory(local_path)) {
+                vector<URI> uris;
+                // empty or non empty?
+                auto vfs = VirtualFileSystem::fromURI("file://");
+                vfs.ls(baseURI, uris);
+
+                // Note: for MacOS, .DS_Store might be ok too.
+#ifdef MACOS
+                if(1 == uris.size()) {
+                    if(strEndsWith(uris.front().toPath(), ".DS_Store") && isFile(uris.front().toPath()))
+                        return true;
+                }
+#endif
+                return uris.empty();
+            } else {
+                // ok, check if writable
+               return isWritable(local_path);
+            }
+        } else {
+            // S3: same, using ls function!
+#ifdef BUILD_WITH_AWS
+            vector<URI> uris;
+            // empty or non empty?
+            auto vfs = VirtualFileSystem::fromURI(baseURI);
+            vfs.ls(baseURI, uris);
+            if(uris.empty())
+                return true;
+            else {
+                // single file/dir? => overwrite possible!
+                return uris.size() == 1;
+            }
+#else
+            Logger::instance().defaultLogger("Tuplex not compiled with S3 support, can't write to S3 output URI");
+            return false;
+#endif
+            return true;
+        }
+    }
 }

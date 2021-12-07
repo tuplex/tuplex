@@ -961,12 +961,42 @@ namespace tuplex {
             assert(R);
 
             if(tt == TokenType::IS || tt == TokenType::ISNOT) {
+
+                // special case: left/right is not boolean
+                // --> Python allows that, it's bad coding style though.
+                // compile and hint.
+                if(leftType != python::Type::BOOLEAN || rightType != python::Type::BOOLEAN) {
+                    _logger.warn("SyntaxWarning: UDF contains is comparison between " + leftType.desc() + " and "
+                    + rightType.desc() + ". Better avoid, is should be only used to test against booleans or None.");
+
+                    // though upcast may be defined, for is this will be ignored.
+
+                    // only for integers there's actual code. Else, assume always false due to memory
+                    // address issue
+                    if(leftType == rightType && leftType == python::Type::I64) {
+                        _logger.warn("SyntaxWarning: Emitting code for integer is comparison, i.e. for integers in range [-5, 256] is behaves like ==");
+
+                        // result is: L == R && -5 <= L <= 256
+                        assert(L && R);
+                        auto equal = builder.CreateICmpEQ(L, R);
+                        auto upperBound = builder.CreateICmpSLE(L, _env->i64Const(256));
+                        auto lowerBound = builder.CreateICmpSGE(L, _env->i64Const(-5));
+                        // could short-circuit here, but & does fine as well...
+                        auto resValue = builder.CreateAnd(equal, builder.CreateAnd(upperBound, lowerBound));
+                        return _env->upcastToBoolean(builder, resValue);
+                    } else {
+                        return _env->boolConst(false);
+                    }
+                }
+
+                // rest of the code is for the boolean case
                 assert(leftType == python::Type::BOOLEAN || rightType == python::Type::BOOLEAN);
+
                 // one of the types must be boolean, otherwise compareInst with _isnull would've taken care.
                 if((leftType == python::Type::BOOLEAN) != (rightType == python::Type::BOOLEAN)) {
                     // one of the types is boolean, other isn't. comparison results in false.
                     return _env->boolConst(tt == TokenType::ISNOT);
-                } 
+                }
                 
                 // both must be boolean.
                 auto cmpPredicate = (tt == TokenType::ISNOT) ? llvm::CmpInst::Predicate::ICMP_NE : llvm::CmpInst::Predicate::ICMP_EQ;

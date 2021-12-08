@@ -196,16 +196,37 @@ if(BUILD_WITH_ORC)
             EXECUTE_PROCESS(COMMAND brew list zlib OUTPUT_VARIABLE BREW_ZLIB_LIST ERROR_VARIABLE BREW_ZLIB_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
             if(BREW_ZLIB_NOTFOUND)
                 message(STATUS "Could not find locally installed zlib, building third party")
-                set(ZLIB_VERSION "1.2.11")
+                set(ZLIB_VERSION "1.2.11") # cloudflare's
                 set(ZLIB_HOME "${EXTERNAL_INSTALL_LOCATION}")
                 set(ZLIB_INCLUDE_DIR "${ZLIB_HOME}/include")
                 set(ZLIB_STATIC_LIB "${ZLIB_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX}")
                 set(ZLIB_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ZLIB_HOME}
                         -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DZLIB_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+                # link is broken, do not use.
+                #  ExternalProject_Add (zlib_ep
+                #          URL "http://zlib.net/fossils/zlib-${ZLIB_VERSION}.tar.gz"
+                #          CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
+                #          BUILD_BYPRODUCTS "${ZLIB_STATIC_LIB}")
+
+                # use cloudflare's fork or zlib-ng
                 ExternalProject_Add (zlib_ep
-                        URL "http://zlib.net/fossils/zlib-${ZLIB_VERSION}.tar.gz"
+                        GIT_REPOSITORY https://github.com/cloudflare/zlib.git
+                        GIT_TAG origin/gcc.amd64
+                        TIMEOUT 5
+                        PREFIX "${EXTERNAL_INSTALL_LOCATION}"
+                        UPDATE_COMMAND "" # Disable update step: clones the project only once
                         CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
                         BUILD_BYPRODUCTS "${ZLIB_STATIC_LIB}")
+
+                # # Alternative, use zlib-ng
+                # ExternalProject_Add (zlib_ep
+                #         GIT_REPOSITORY https://github.com/zlib-ng/zlib-ng.git
+                #         GIT_TAG 2.0.5
+                #         TIMEOUT 5
+                #         PREFIX "${EXTERNAL_INSTALL_LOCATION}"
+                #         UPDATE_COMMAND "" # Disable update step: clones the project only once
+                #         CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
+                #         BUILD_BYPRODUCTS "${ZLIB_STATIC_LIB}")
 
                 set(ZLIB_LIBRARIES ${ZLIB_STATIC_LIB})
 

@@ -5,13 +5,13 @@
 pip3 install --upgrade pip
 
 # install python packages for tuplex (needs cloudpickle to compile, numpy to run certain tests)
-pip3 install cloudpickle numpy
+pip3 install 'cloudpickle<2.0.0' numpy
 # install python compilers to benchmark against
-pip3 install Nuitka Cython
+pip3 install Nuitka==0.6.13 Cython==0.29.22
 # install Pandas + Dask to benchmark against
-pip3 install pandas "dask[complete]"
+pip3 install pandas==1.1.5 "dask[complete]"==2021.03
 # install Hyper to benchmark against
-pip3 install tableauhyperapi
+pip3 install tableauhyperapi==0.0.12366
 
 # if pypy3 exists, also install packages!
 if ! [ -x "$(command -v pypy3 --version)" ]; then
@@ -19,5 +19,5 @@ if ! [ -x "$(command -v pypy3 --version)" ]; then
 fi
 if [ -x "$(command -v pypy3 --version)" ]; then
   pypy3 -m ensurepip
-  pypy3 -m pip install numpy pandas "dask[complete]"
+  pypy3 -m pip install numpy pandas==1.1.5 "dask[complete]"==2021.03
 fi

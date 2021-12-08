@@ -7,6 +7,7 @@
 * Programming Language: C/C++/Java/Python
 * Additional Programming Language info: C++14, C11, Java1.8, Python 3.6.9
 * Compiler Info: gcc 10
+* Target architecture: x86_64
 * Packages/Libraries Needed: We provide scripts to install requirements for various platforms (MacOS/Ubuntu 18.04/Ubuntu 20.04) as well as various Docker images to run Tuplex.
 
 
@@ -15,7 +16,7 @@
 * Data generators: [url]
 
 ### C) Hardware Info
-We use a single [r5d.8xlarge EC2](https://aws.amazon.com/ec2/instance-types/r5/) instance to carry out experiments.
+We use a single [r5d.8xlarge EC2](https://aws.amazon.com/ec2/instance-types/r5/) instance on which we disable HyperThreading to carry out experiments.
 	
 	- C1) Processor (architecture, type, and number of processors/sockets)
 	- C2) Caches (number of levels, and size of each level)

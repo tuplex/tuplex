@@ -60,7 +60,8 @@ namespace tuplex {
         return WORKER_OK;
     }
 
-     int WorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
+
+    int LambdaWorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
 
         // validate only S3 uris are given (in debug mode)
 #ifdef NDEBUG
@@ -75,8 +76,6 @@ namespace tuplex {
         if(invalid_uri_found)
             return WORKER_ERROR_INVALID_URI;
 #endif
-
-
 
         // @TODO:
         return WORKER_OK;

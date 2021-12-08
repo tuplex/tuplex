@@ -167,7 +167,18 @@ namespace tuplex {
         return syms;
     }
 
+    int64_t WorkerApp::writeRow(const uint8_t *buf, int64_t bufSize) {
+        return 0;
+    }
 
+    void WorkerApp::writeException(int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input,
+                              int64_t dataLength) {
+
+    }
+
+    void WorkerApp::writeHashedRow(const uint8_t *key, int64_t key_size, const uint8_t *bucket, int64_t bucket_size) {
+
+    }
 
     // static helper functions/callbacks
     int64_t WorkerApp::writeRowCallback(WorkerApp *app, const uint8_t *buf, int64_t bufSize) {

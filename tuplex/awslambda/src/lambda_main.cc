@@ -230,6 +230,7 @@ void fillInGlobals(tuplex::messages::InvocationResponse* m) {
     }
     tuplex::VirtualFileSystem::s3ResetCounters();
 }
+
 tuplex::messages::InvocationResponse make_exception(const std::string& message) {
     using namespace std;
     tuplex::messages::InvocationResponse m;
@@ -600,6 +601,7 @@ tuplex::messages::InvocationResponse lambda_main(aws::lambda_runtime::invocation
 
 
     // get last response/message?
+    return app->generateResponse();
 
     // create protobuf result
     tuplex::messages::InvocationResponse result;

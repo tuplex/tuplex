@@ -17,6 +17,7 @@
 #define WORKER_ERROR_INVALID_JSON_MESSAGE 100
 #define WORKER_ERROR_NO_PYTHON_HOME 101
 #define WORKER_ERROR_NO_TUPLEX_RUNTIME 102
+#define WORKER_ERROR_INVALID_URI 103
 
 // protobuf
 #include <Lambda.pb.h>
@@ -71,6 +72,8 @@ namespace tuplex {
          */
         int processJSONMessage(const std::string& message);
 
+
+
         void shutdown();
 
         bool isInitialized() const;
@@ -78,9 +81,13 @@ namespace tuplex {
     protected:
         WorkerSettings settingsFromMessage(const tuplex::messages::InvocationRequest& req);
 
+         virtual int processMessage(const tuplex::messages::InvocationRequest& req);
+
         tuplex::messages::InvocationResponse executeTransformTask(const TransformStage* tstage);
 
         virtual int globalInit();
+
+        std::shared_ptr<TransformStage::JITSymbols> compileTransformStage(TransformStage& stage);
 
         // inherited variables
         WorkerSettings _settings;
@@ -88,6 +95,14 @@ namespace tuplex {
 #ifdef BUILD_WITH_AWS
         Aws::SDKOptions _aws_options;
 #endif
+
+        virtual int64_t writeRow(const uint8_t* buf, int64_t bufSize);
+        virtual void writeHashedRow(const uint8_t* key, int64_t key_size, const uint8_t* bucket, int64_t bucket_size);
+        virtual void writeException(int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
+    private:
+        static int64_t writeRowCallback(WorkerApp* app, const uint8_t* buf, int64_t bufSize);
+        static void writeHashCallback(WorkerApp* app, const uint8_t* key, int64_t key_size, const uint8_t* bucket, int64_t bucket_size);
+        static void exceptRowCallback(WorkerApp* app, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
     };
 }
 

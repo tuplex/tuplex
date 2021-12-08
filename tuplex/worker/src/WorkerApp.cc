@@ -101,8 +101,15 @@ namespace tuplex {
         auto num_input_files = inputURIs.size();
         logger.debug("Found " + to_string(num_input_files) + " input URIs to process");
 
+        return processMessage(req);
+
 //        auto response = executeTransformTask(tstage);
 
+        return WORKER_OK;
+    }
+
+    int WorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
+        // @TODO:
         return WORKER_OK;
     }
 
@@ -112,5 +119,67 @@ namespace tuplex {
         WorkerSettings ws;
 
         return ws;
+    }
+
+    std::shared_ptr<TransformStage::JITSymbols> WorkerApp::compileTransformStage(TransformStage &stage) {
+        // compile transform stage, depending on worker settings use optimizer before or not!
+        // -> per default, don't.
+
+        // register functions
+        // Note: only normal case for now, the other stuff is not interesting yet...
+        if(!stage.writeMemoryCallbackName().empty())
+            _compiler->registerSymbol(stage.writeMemoryCallbackName(), writeRowCallback);
+        if(!stage.exceptionCallbackName().empty())
+            _compiler->registerSymbol(stage.exceptionCallbackName(), exceptRowCallback);
+        if(!stage.writeFileCallbackName().empty())
+            _compiler->registerSymbol(stage.writeFileCallbackName(), writeRowCallback);
+        if(!stage.writeHashCallbackName().empty())
+            _compiler->registerSymbol(stage.writeHashCallbackName(), writeHashCallback);
+
+        // in debug mode, validate module.
+        #ifdef NDEBUG
+        llvm::LLVMContext ctx;
+        auto mod = codegen::bitCodeToModule(ctx, stage.bitCode());
+        if(!mod)
+            logger.error("error parsing module");
+        else {
+            logger.info("parsed llvm module from bitcode, " + mod->getName().str());
+
+            // run verify pass on module and print out any errors, before attempting to compile it
+            std::string moduleErrors;
+            llvm::raw_string_ostream os(moduleErrors);
+            if (verifyModule(*mod, &os)) {
+                os.flush();
+                logger.error("could not verify module from bitcode");
+                logger.error(moduleErrors);
+                logger.error(core::withLineNumbers(codegen::moduleToString(*mod)));
+            } else
+            logger.info("module verified.");
+
+        }
+        #endif
+
+        // perform actual compilation
+        // -> do not compile slow path for now.
+        // -> do not register symbols, because that has been done manually above.
+        auto syms = stage.compile(*_compiler, nullptr, true, false);
+
+        return syms;
+    }
+
+
+
+    // static helper functions/callbacks
+    int64_t WorkerApp::writeRowCallback(WorkerApp *app, const uint8_t *buf, int64_t bufSize) {
+        assert(app);
+        return app->writeRow(buf, bufSize);
+    }
+    void WorkerApp::writeHashCallback(WorkerApp *app, const uint8_t *key, int64_t key_size, const uint8_t *bucket, int64_t bucket_size) {
+        assert(app);
+        app->writeHashedRow(key, key_size, bucket, bucket_size);
+    }
+    void WorkerApp::exceptRowCallback(WorkerApp *app, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input, int64_t dataLength) {
+        assert(app);
+        app->writeException(exceptionCode, exceptionOperatorID, rowNumber, input, dataLength);
     }
 }

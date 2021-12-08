@@ -25,6 +25,9 @@ namespace tuplex {
     class LambdaWorkerApp : public WorkerApp {
     public:
         LambdaWorkerApp(const LambdaWorkerSettings& ws) : WorkerApp(ws) {}
+
+        tuplex::messages::InvocationResponse generateResponse();
+
     protected:
         /// put here Lambda specific constants to easily update them
         static const std::string caFile;
@@ -32,6 +35,12 @@ namespace tuplex {
         static const bool verifySSL;
 
         int globalInit() override;
+
+        int processMessage(const tuplex::messages::InvocationRequest& req) override;
+
+        MessageHandler& logger() const {
+            return Logger::instance().logger("Lambda worker");
+        }
     private:
 
         struct Metrics {

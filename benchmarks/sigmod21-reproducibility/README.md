@@ -16,13 +16,48 @@
 * Data generators: [url]
 
 ### C) Hardware Info
-We use a single [r5d.8xlarge EC2](https://aws.amazon.com/ec2/instance-types/r5/) instance on which we disable HyperThreading to carry out experiments.
-	
-	- C1) Processor (architecture, type, and number of processors/sockets)
-	- C2) Caches (number of levels, and size of each level)
-	- C3) Memory (size and speed)
-	- C4) Secondary Storage (type: SSD/HDD/other, size, performance: random read/sequnetial read/random write/sequnetial write)
-	- C5) Network (if applicable: type and bandwidth)
+We use a single [r5d.8xlarge EC2](https://aws.amazon.com/ec2/instance-types/r5/) instance in the us-east-1 zone on which we disable HyperThreading to carry out experiments.
+
+The following is the output of `lscpu` on a r5d.8xlarge instance:
+```
+Architecture:                    x86_64
+CPU op-mode(s):                  32-bit, 64-bit
+Byte Order:                      Little Endian
+Address sizes:                   46 bits physical, 48 bits virtual
+CPU(s):                          32
+On-line CPU(s) list:             0-31
+Thread(s) per core:              2
+Core(s) per socket:              16
+Socket(s):                       1
+NUMA node(s):                    1
+Vendor ID:                       GenuineIntel
+CPU family:                      6
+Model:                           85
+Model name:                      Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+Stepping:                        7
+CPU MHz:                         2499.998
+BogoMIPS:                        4999.99
+Hypervisor vendor:               KVM
+Virtualization type:             full
+L1d cache:                       512 KiB
+L1i cache:                       512 KiB
+L2 cache:                        16 MiB
+L3 cache:                        35.8 MiB
+NUMA node0 CPU(s):               0-31
+Vulnerability Itlb multihit:     KVM: Mitigation: VMX unsupported
+Vulnerability L1tf:              Mitigation; PTE Inversion
+Vulnerability Mds:               Vulnerable: Clear CPU buffers attempted, no microcode; SMT Host state unknown
+Vulnerability Meltdown:          Mitigation; PTI
+Vulnerability Spec store bypass: Vulnerable
+Vulnerability Spectre v1:        Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:        Mitigation; Full generic retpoline, STIBP disabled, RSB filling
+Vulnerability Srbds:             Not affected
+Vulnerability Tsx async abort:   Not affected
+Flags:                           fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch invpcid_single pti fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx avx512f avx512dq rdseed adx smap clflushopt clwb avx512cd avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves ida arat pku ospke
+```
+
+We provide in `AWS_Setup.md` commands to startup the type of EC2 instance we used for our experiments.
+In `AWS_Configuration.md` we provide the commands we used to configure the machine. They have been also saved in the `config_r5d.sh` script, which can be run via `sudo bash config_r5d.sh`.
 
 ### D) Experimentation Info
 	- D1) Scripts and how-tos to generate all necessary data or locate datasets

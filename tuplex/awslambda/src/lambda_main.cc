@@ -319,289 +319,301 @@ tuplex::messages::InvocationResponse lambda_main(aws::lambda_runtime::invocation
     using namespace tuplex;
     using namespace std;
 
-    // reset s3 stats
-    VirtualFileSystem::s3ResetCounters();
+    // process single message using LambdaApp
+    auto app = get_app();
+    if(!app)
+        return make_exception("invalid worker app");
 
-    Timer task_execution_timer;
-    BreakdownTimings timer;
-    timer.reset();
+    auto rc = app->processJSONMessage(lambda_req.payload.c_str());
+    if(rc != WORKER_OK)
+        return make_exception("failed processing with code " + std::to_string(rc));
 
-    // parse protobuf request
-    tuplex::messages::InvocationRequest req;
-    auto rc = google::protobuf::util::JsonStringToMessage(lambda_req.payload, &req);
-    if(rc != google::protobuf::util::Status::OK)
-        throw std::runtime_error("could not parse json into protobuf message, bad parse for request");
+//    // reset s3 stats
+//    VirtualFileSystem::s3ResetCounters();
+//
+//    Timer task_execution_timer;
+//    BreakdownTimings timer;
+//    timer.reset();
+//
+//    // parse protobuf request
+//    tuplex::messages::InvocationRequest req;
+//    auto rc = google::protobuf::util::JsonStringToMessage(lambda_req.payload, &req);
+//    if(rc != google::protobuf::util::Status::OK)
+//        throw std::runtime_error("could not parse json into protobuf message, bad parse for request");
+//
+//    timer.mark_time("decode_request");
+//
+//    // fetch TransformStage
+//    auto tstage = TransformStage::from_protobuf(req.stage());
+//
+//    timer.mark_time("decode_transform_stage");
+//
+//    // decode inputURIs, sizes + output URI
+//    URI outputURI = req.outputuri();
+//    if(outputURI.prefix() != "s3://")
+//        return make_exception("InvalidPath: output path must be s3:// path, is " + outputURI.toPath());
+//
+//    vector<URI> inputURIs;
+//    vector<size_t> inputSizes;
+//    for(const auto& path : req.inputuris()) {
+//        // check paths are S3 paths
+//        inputURIs.emplace_back(path);
+//        if(inputURIs.back().prefix() != "s3://")
+//            return make_exception("InvalidPath: input path must be s3:// path, is " + inputURIs.back().toPath());
+//    }
+//
+//    for(const auto& s : req.inputsizes())
+//        inputSizes.push_back(s);
+//    if(inputURIs.size() != inputSizes.size())
+//        throw std::runtime_error("encoding error, input uris should be same number of elements as input sizes");
+//
+//    auto num_input_files = inputURIs.size();
+//
+//    // register functions
+//    // Note: only normal case for now, the other stuff is not interesting yet...
+//    if(!tstage->writeMemoryCallbackName().empty())
+//        g_compiler->registerSymbol(tstage->writeMemoryCallbackName(), writeRowCallback);
+//    if(!tstage->exceptionCallbackName().empty())
+//        g_compiler->registerSymbol(tstage->exceptionCallbackName(), exceptRowCallback);
+//    if(!tstage->writeFileCallbackName().empty())
+//        g_compiler->registerSymbol(tstage->writeFileCallbackName(), writeRowCallback);
+//    if(!tstage->writeHashCallbackName().empty())
+//        g_compiler->registerSymbol(tstage->writeHashCallbackName(), writeHashCallback);
+//
+//    timer.mark_time("gather_uris_and_register_symbols");
+//
+//    auto& logger = Logger::instance().defaultLogger();
+//    logger.info("compiling llvm bitcode (" + sizeToMemString(tstage->bitCode().size()) + ")");
+//    // test code
+//    llvm::LLVMContext ctx;
+//    auto mod = codegen::bitCodeToModule(ctx, tstage->bitCode());
+//    if(!mod)
+//        logger.error("error parsing module");
+//    else {
+//        logger.info("parsed llvm module from bitcode, " + mod->getName().str());
+//
+//        // run verify pass on module and print out any errors, before attempting to compile it
+//        std::string moduleErrors;
+//        llvm::raw_string_ostream os(moduleErrors);
+//        if (verifyModule(*mod, &os)) {
+//            os.flush();
+//            logger.error("could not verify module from bitcode");
+//            logger.error(moduleErrors);
+//            logger.error(core::withLineNumbers(codegen::moduleToString(*mod)));
+//        } else
+//        logger.info("module verified.");
+//
+//    }
+//    timer.mark_time("parse_and_verify_module");
+//
+//    // compile function + init stage
+//    auto syms = tstage->compile(*g_compiler, nullptr, true, false);
+//    timer.mark_time("compile_function");
+//
+//    logger.info("compiled symbols");
+//    {
+//        std::stringstream ss;
+//        ss<<"init stage functor"<<std::hex<<syms->initStageFunctor<<endl;
+//        ss<<"release stage functor"<<std::hex<<syms->releaseStageFunctor<<endl;
+//        ss<<"functor"<<std::hex<<syms->functor<<endl;
+//        ss<<"resolve functor"<<std::hex<<syms->resolveFunctor<<endl;
+//        logger.debug("symbols:\n" + ss.str());
+//    }
+//
+//    task_execution_timer.reset();
+//
+//    // init stage
+//    if(syms->initStageFunctor && syms->initStageFunctor(tstage->initData().numArgs,
+//                              reinterpret_cast<void**>(tstage->initData().hash_maps),
+//                              reinterpret_cast<void**>(tstage->initData().null_buckets)) != 0)
+//        throw std::runtime_error("initStage() failed for stage " + std::to_string(tstage->number()));
+//
+//    // process data as given in invocation request
+//    if(tstage->inputMode() != EndPointMode::MEMORY && tstage->inputMode() != EndPointMode::FILE)
+//        throw std::runtime_error("only memory or file input supported for tuplex yet!");
+//    if(tstage->outputMode() != EndPointMode::MEMORY && tstage->outputMode() != EndPointMode::FILE)
+//        throw std::runtime_error("only memory or file output supported for tuplex yet!");
+//
+//    // lazy init buffer
+//    if(!g_executor)
+//        g_executor = new LambdaExecutor(MAX_RESULT_BUFFER_SIZE);
+//    else
+//        g_executor->reset();
+//    lambda_executor_setup = true;
+//
+//    timer.mark_time("initialize_stage_and_executor");
+//
+//    void* userData = g_executor; // where to save state!
+//
+//    // input reader
+//    std::unique_ptr<FileInputReader> reader;
+//    bool normalCaseEnabled = false;
+//    auto inputNodeID = req.stage().inputnodeid();
+//
+//    switch(tstage->inputMode()) {
+//        case EndPointMode::FILE: {
+//
+//            // there should be a couple input uris in this request!
+//            // => decode using optional fileinput params from the
+//            // @TODO: ranges
+//
+//            // only csv + text so far supported!
+//            if(tstage->inputFormat() == FileFormat::OUTFMT_CSV) {
+//
+//                // decode from file input params everything
+//                auto numColumns = tstage->csvNumFileInputColumns();
+//                vector<std::string> header;
+//                if(tstage->csvHasHeader())
+//                    header = tstage->csvHeader();
+//                auto delimiter = tstage->csvInputDelimiter();
+//                auto quotechar = tstage->csvInputQuotechar();
+//                auto colsToKeep = tstage->columnsToKeep();
+//
+//                auto csv = new CSVReader(userData, reinterpret_cast<codegen::cells_row_f>(syms->functor),
+//                                         normalCaseEnabled,
+//                                         inputNodeID,
+//                                         reinterpret_cast<codegen::exception_handler_f>(exceptRowCallback),
+//                                         numColumns, delimiter,
+//                                         quotechar, colsToKeep);
+//                // fetch full file for now, later make this optional!
+//                // csv->setRange(rangeStart, rangeStart + rangeSize);
+//                csv->setHeader(header);
+//                reader.reset(csv);
+//            } else if(tstage->inputFormat() == FileFormat::OUTFMT_TEXT) {
+//                auto text = new TextReader(userData, reinterpret_cast<codegen::cells_row_f>(syms->functor));
+//                // fetch full range for now, later make this optional!
+//                // text->setRange(rangeStart, rangeStart + rangeSize);
+//                reader.reset(text);
+//            } else throw std::runtime_error("unsupported input file format given");
+//
+//
+//            // read files and process one by one
+//            timer.mark_time("initialize_file_reader");
+//            for(const auto &uri : inputURIs) {
+//                // reading files...
+//                reader->read(uri);
+//                runtime::rtfree_all();
+//                timer.mark_file_time(uri); // TODO: this might not be unique...
+//            }
+//
+//            break;
+//        }
+//        case EndPointMode::MEMORY: {
+//            // not supported yet
+//            // => simply read in partition from file (tuplex in memory format)
+//            // load file into partition, then call functor on the partition.
+//
+//            // TODO: Could optimize this by streaming in data & calling compute over blocks of data!
+//            for(const auto &uri : inputURIs) {
+//                auto vf = VirtualFileSystem::open_file(uri, VirtualFileMode::VFS_READ);
+//                if(vf) {
+//                    auto file_size = vf->size();
+//                    size_t bytes_read = 0;
+//                    auto input_buffer = new uint8_t[file_size];
+//                    vf->read(input_buffer, file_size, &bytes_read);
+//                    logger.info("Read " + std::to_string(bytes_read) + " bytes from " + uri.toString());
+//
+//                    assert(syms->functor);
+//                    int64_t normal_row_output_count = 0;
+//                    int64_t bad_row_output_count = 0;
+//                    auto response_code = syms->functor(userData, input_buffer, bytes_read, &normal_row_output_count, &bad_row_output_count, false);
+//                    {
+//                        std::stringstream ss;
+//                        ss << "RC=" << response_code << " ,computed " << normal_row_output_count << " normal rows, "
+//                             << bad_row_output_count << " bad rows" << endl;
+//                        logger.debug(ss.str());
+//                    }
+//
+//                    delete [] input_buffer;
+//                    vf->close();
+//                } else {
+//                    logger.error("Error reading " + uri.toString());
+//                }
+//                timer.mark_mem_time(uri); // TODO: this might not be unique...
+//            }
+//
+//            break;
+//        }
+//        default: {
+//            throw std::runtime_error("unsupported input mode found");
+//            break;
+//        }
+//    }
+//
+//    // when processing is done, simply output everything to URI (should be an S3 one!)
+//    logger.info("writing " + sizeToMemString(g_executor->bytesWritten) + " to " + outputURI.toPath());
+//    // write first the # rows, then the data
+//    auto vfs = VirtualFileSystem::fromURI(outputURI);
+//    auto mode = VirtualFileMode::VFS_OVERWRITE | VirtualFileMode::VFS_WRITE;
+//    if(tstage->outputFormat() == FileFormat::OUTFMT_CSV || tstage->outputFormat() == FileFormat::OUTFMT_TEXT)
+//        mode |= VirtualFileMode::VFS_TEXTMODE;
+//    auto file = tuplex::VirtualFileSystem::open_file(outputURI, mode);
+//    if(!file)
+//        throw std::runtime_error("could not open " + outputURI.toPath() + " to write output");
+//
+//    if(tstage->outputMode() == EndPointMode::FILE) {
+//        // special case: CSV, need to write header!
+//        logger.info("output format is file");
+//
+//        // header?
+//        // create CSV header if desired
+//        uint8_t *header = nullptr;
+//        size_t header_length = 0;
+//
+//        // write header if desired...
+//        auto outOptions = tstage->outputOptions();
+//        bool writeHeader = stringToBool(get_or(outOptions, "header", "false"));
+//        if(writeHeader) {
+//            // fetch special var csvHeader
+//            auto headerLine = outOptions["csvHeader"];
+//            header_length = headerLine.length();
+//            header = new uint8_t[header_length+1];
+//            memset(header, 0, header_length + 1 );
+//            memcpy(header, (uint8_t *)headerLine.c_str(), header_length);
+//        }
+//
+//        file->write(header, header_length);
+//        file->write(g_executor->buffer, g_executor->bytesWritten);
+//        file->close(); // important, because S3 files work lazily
+//
+//    } else if(tstage->outputMode() == EndPointMode::MEMORY) {
+//        // write as tuplex file, i.e. first the number of rows then the binary contents.
+//        logger.info("output format is memory");
+//
+//        assert(sizeof(int64_t) == sizeof(size_t));
+//        file->write(&g_executor->bytesWritten, sizeof(int64_t));
+//        file->write(&g_executor->numOutputRows, sizeof(int64_t));
+//        logger.info("writing buffer contents of " + std::to_string(g_executor->bytesWritten) + " to output.");
+//
+//        file->write(g_executor->buffer, g_executor->bytesWritten);
+//        file->close(); // important, because S3 files work lazily
+//    } else throw std::runtime_error("unsupported output format!");
+//    timer.mark_time("write_output");
+//
+//    logger.info("Task done!");
+//
+//    // call release func for stage globals
+//    if(syms->releaseStageFunctor && syms->releaseStageFunctor() != 0)
+//        throw std::runtime_error("releaseStage() failed for stage " + std::to_string(tstage->number()));
+//    auto taskTime = task_execution_timer.time();
+//    timer.mark_time("release_stage");
 
-    timer.mark_time("decode_request");
 
-    // fetch TransformStage
-    auto tstage = TransformStage::from_protobuf(req.stage());
-
-    timer.mark_time("decode_transform_stage");
-
-    // decode inputURIs, sizes + output URI
-    URI outputURI = req.outputuri();
-    if(outputURI.prefix() != "s3://")
-        return make_exception("InvalidPath: output path must be s3:// path, is " + outputURI.toPath());
-
-    vector<URI> inputURIs;
-    vector<size_t> inputSizes;
-    for(const auto& path : req.inputuris()) {
-        // check paths are S3 paths
-        inputURIs.emplace_back(path);
-        if(inputURIs.back().prefix() != "s3://")
-            return make_exception("InvalidPath: input path must be s3:// path, is " + inputURIs.back().toPath());
-    }
-
-    for(const auto& s : req.inputsizes())
-        inputSizes.push_back(s);
-    if(inputURIs.size() != inputSizes.size())
-        throw std::runtime_error("encoding error, input uris should be same number of elements as input sizes");
-
-    auto num_input_files = inputURIs.size();
-
-    // register functions
-    // Note: only normal case for now, the other stuff is not interesting yet...
-    if(!tstage->writeMemoryCallbackName().empty())
-        g_compiler->registerSymbol(tstage->writeMemoryCallbackName(), writeRowCallback);
-    if(!tstage->exceptionCallbackName().empty())
-        g_compiler->registerSymbol(tstage->exceptionCallbackName(), exceptRowCallback);
-    if(!tstage->writeFileCallbackName().empty())
-        g_compiler->registerSymbol(tstage->writeFileCallbackName(), writeRowCallback);
-    if(!tstage->writeHashCallbackName().empty())
-        g_compiler->registerSymbol(tstage->writeHashCallbackName(), writeHashCallback);
-
-    timer.mark_time("gather_uris_and_register_symbols");
-
-    auto& logger = Logger::instance().defaultLogger();
-    logger.info("compiling llvm bitcode (" + sizeToMemString(tstage->bitCode().size()) + ")");
-    // test code
-    llvm::LLVMContext ctx;
-    auto mod = codegen::bitCodeToModule(ctx, tstage->bitCode());
-    if(!mod)
-        logger.error("error parsing module");
-    else {
-        logger.info("parsed llvm module from bitcode, " + mod->getName().str());
-
-        // run verify pass on module and print out any errors, before attempting to compile it
-        std::string moduleErrors;
-        llvm::raw_string_ostream os(moduleErrors);
-        if (verifyModule(*mod, &os)) {
-            os.flush();
-            logger.error("could not verify module from bitcode");
-            logger.error(moduleErrors);
-            logger.error(core::withLineNumbers(codegen::moduleToString(*mod)));
-        } else
-        logger.info("module verified.");
-
-    }
-    timer.mark_time("parse_and_verify_module");
-
-    // compile function + init stage
-    auto syms = tstage->compile(*g_compiler, nullptr, true, false);
-    timer.mark_time("compile_function");
-
-    logger.info("compiled symbols");
-    {
-        std::stringstream ss;
-        ss<<"init stage functor"<<std::hex<<syms->initStageFunctor<<endl;
-        ss<<"release stage functor"<<std::hex<<syms->releaseStageFunctor<<endl;
-        ss<<"functor"<<std::hex<<syms->functor<<endl;
-        ss<<"resolve functor"<<std::hex<<syms->resolveFunctor<<endl;
-        logger.debug("symbols:\n" + ss.str());
-    }
-
-    task_execution_timer.reset();
-
-    // init stage
-    if(syms->initStageFunctor && syms->initStageFunctor(tstage->initData().numArgs,
-                              reinterpret_cast<void**>(tstage->initData().hash_maps),
-                              reinterpret_cast<void**>(tstage->initData().null_buckets)) != 0)
-        throw std::runtime_error("initStage() failed for stage " + std::to_string(tstage->number()));
-
-    // process data as given in invocation request
-    if(tstage->inputMode() != EndPointMode::MEMORY && tstage->inputMode() != EndPointMode::FILE)
-        throw std::runtime_error("only memory or file input supported for tuplex yet!");
-    if(tstage->outputMode() != EndPointMode::MEMORY && tstage->outputMode() != EndPointMode::FILE)
-        throw std::runtime_error("only memory or file output supported for tuplex yet!");
-
-    // lazy init buffer
-    if(!g_executor)
-        g_executor = new LambdaExecutor(MAX_RESULT_BUFFER_SIZE);
-    else
-        g_executor->reset();
-    lambda_executor_setup = true;
-
-    timer.mark_time("initialize_stage_and_executor");
-
-    void* userData = g_executor; // where to save state!
-
-    // input reader
-    std::unique_ptr<FileInputReader> reader;
-    bool normalCaseEnabled = false;
-    auto inputNodeID = req.stage().inputnodeid();
-
-    switch(tstage->inputMode()) {
-        case EndPointMode::FILE: {
-
-            // there should be a couple input uris in this request!
-            // => decode using optional fileinput params from the
-            // @TODO: ranges
-
-            // only csv + text so far supported!
-            if(tstage->inputFormat() == FileFormat::OUTFMT_CSV) {
-
-                // decode from file input params everything
-                auto numColumns = tstage->csvNumFileInputColumns();
-                vector<std::string> header;
-                if(tstage->csvHasHeader())
-                    header = tstage->csvHeader();
-                auto delimiter = tstage->csvInputDelimiter();
-                auto quotechar = tstage->csvInputQuotechar();
-                auto colsToKeep = tstage->columnsToKeep();
-
-                auto csv = new CSVReader(userData, reinterpret_cast<codegen::cells_row_f>(syms->functor),
-                                         normalCaseEnabled,
-                                         inputNodeID,
-                                         reinterpret_cast<codegen::exception_handler_f>(exceptRowCallback),
-                                         numColumns, delimiter,
-                                         quotechar, colsToKeep);
-                // fetch full file for now, later make this optional!
-                // csv->setRange(rangeStart, rangeStart + rangeSize);
-                csv->setHeader(header);
-                reader.reset(csv);
-            } else if(tstage->inputFormat() == FileFormat::OUTFMT_TEXT) {
-                auto text = new TextReader(userData, reinterpret_cast<codegen::cells_row_f>(syms->functor));
-                // fetch full range for now, later make this optional!
-                // text->setRange(rangeStart, rangeStart + rangeSize);
-                reader.reset(text);
-            } else throw std::runtime_error("unsupported input file format given");
-
-
-            // read files and process one by one
-            timer.mark_time("initialize_file_reader");
-            for(const auto &uri : inputURIs) {
-                // reading files...
-                reader->read(uri);
-                runtime::rtfree_all();
-                timer.mark_file_time(uri); // TODO: this might not be unique...
-            }
-
-            break;
-        }
-        case EndPointMode::MEMORY: {
-            // not supported yet
-            // => simply read in partition from file (tuplex in memory format)
-            // load file into partition, then call functor on the partition.
-
-            // TODO: Could optimize this by streaming in data & calling compute over blocks of data!
-            for(const auto &uri : inputURIs) {
-                auto vf = VirtualFileSystem::open_file(uri, VirtualFileMode::VFS_READ);
-                if(vf) {
-                    auto file_size = vf->size();
-                    size_t bytes_read = 0;
-                    auto input_buffer = new uint8_t[file_size];
-                    vf->read(input_buffer, file_size, &bytes_read);
-                    logger.info("Read " + std::to_string(bytes_read) + " bytes from " + uri.toString());
-
-                    assert(syms->functor);
-                    int64_t normal_row_output_count = 0;
-                    int64_t bad_row_output_count = 0;
-                    auto response_code = syms->functor(userData, input_buffer, bytes_read, &normal_row_output_count, &bad_row_output_count, false);
-                    {
-                        std::stringstream ss;
-                        ss << "RC=" << response_code << " ,computed " << normal_row_output_count << " normal rows, "
-                             << bad_row_output_count << " bad rows" << endl;
-                        logger.debug(ss.str());
-                    }
-
-                    delete [] input_buffer;
-                    vf->close();
-                } else {
-                    logger.error("Error reading " + uri.toString());
-                }
-                timer.mark_mem_time(uri); // TODO: this might not be unique...
-            }
-
-            break;
-        }
-        default: {
-            throw std::runtime_error("unsupported input mode found");
-            break;
-        }
-    }
-
-    // when processing is done, simply output everything to URI (should be an S3 one!)
-    logger.info("writing " + sizeToMemString(g_executor->bytesWritten) + " to " + outputURI.toPath());
-    // write first the # rows, then the data
-    auto vfs = VirtualFileSystem::fromURI(outputURI);
-    auto mode = VirtualFileMode::VFS_OVERWRITE | VirtualFileMode::VFS_WRITE;
-    if(tstage->outputFormat() == FileFormat::OUTFMT_CSV || tstage->outputFormat() == FileFormat::OUTFMT_TEXT)
-        mode |= VirtualFileMode::VFS_TEXTMODE;
-    auto file = tuplex::VirtualFileSystem::open_file(outputURI, mode);
-    if(!file)
-        throw std::runtime_error("could not open " + outputURI.toPath() + " to write output");
-
-    if(tstage->outputMode() == EndPointMode::FILE) {
-        // special case: CSV, need to write header!
-        logger.info("output format is file");
-
-        // header?
-        // create CSV header if desired
-        uint8_t *header = nullptr;
-        size_t header_length = 0;
-
-        // write header if desired...
-        auto outOptions = tstage->outputOptions();
-        bool writeHeader = stringToBool(get_or(outOptions, "header", "false"));
-        if(writeHeader) {
-            // fetch special var csvHeader
-            auto headerLine = outOptions["csvHeader"];
-            header_length = headerLine.length();
-            header = new uint8_t[header_length+1];
-            memset(header, 0, header_length + 1 );
-            memcpy(header, (uint8_t *)headerLine.c_str(), header_length);
-        }
-
-        file->write(header, header_length);
-        file->write(g_executor->buffer, g_executor->bytesWritten);
-        file->close(); // important, because S3 files work lazily
-
-    } else if(tstage->outputMode() == EndPointMode::MEMORY) {
-        // write as tuplex file, i.e. first the number of rows then the binary contents.
-        logger.info("output format is memory");
-
-        assert(sizeof(int64_t) == sizeof(size_t));
-        file->write(&g_executor->bytesWritten, sizeof(int64_t));
-        file->write(&g_executor->numOutputRows, sizeof(int64_t));
-        logger.info("writing buffer contents of " + std::to_string(g_executor->bytesWritten) + " to output.");
-
-        file->write(g_executor->buffer, g_executor->bytesWritten);
-        file->close(); // important, because S3 files work lazily
-    } else throw std::runtime_error("unsupported output format!");
-    timer.mark_time("write_output");
-
-    logger.info("Task done!");
-
-    // call release func for stage globals
-    if(syms->releaseStageFunctor && syms->releaseStageFunctor() != 0)
-        throw std::runtime_error("releaseStage() failed for stage " + std::to_string(tstage->number()));
-    auto taskTime = task_execution_timer.time();
-    timer.mark_time("release_stage");
+    // get last response/message?
 
     // create protobuf result
     tuplex::messages::InvocationResponse result;
     // fill in globals
     fillInGlobals(&result);
-    result.set_status(tuplex::messages::InvocationResponse_Status_SUCCESS);
-    for(const auto& uri : inputURIs) {
-        result.add_inputuris(uri.toPath());
-    }
-    result.add_outputuris(outputURI.toPath());
-    result.set_taskexecutiontime(taskTime);
-    for(const auto& keyval : timer.timings) {
-        (*result.mutable_breakdowntimes())[keyval.first] = keyval.second;
-    }
+//    result.set_status(tuplex::messages::InvocationResponse_Status_SUCCESS);
+//    for(const auto& uri : inputURIs) {
+//        result.add_inputuris(uri.toPath());
+//    }
+//    result.add_outputuris(outputURI.toPath());
+//    result.set_taskexecutiontime(taskTime);
+//    for(const auto& keyval : timer.timings) {
+//        (*result.mutable_breakdowntimes())[keyval.first] = keyval.second;
+//    }
 
     return result;
 }

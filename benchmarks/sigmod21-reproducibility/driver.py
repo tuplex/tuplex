@@ -22,6 +22,15 @@ def plot_figure3(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
     figure3(df_Z1, df_Z2, output_folder)
     logging.info('Plots saved in {}'.format(output_folder))
 
+def plot_figure4(flights_path='r5d.8xlarge/flights', output_folder='plots'):
+    logging.info('Plotting Figure4 (Flights experiment)')
+    logging.info('Benchmark result folder specified as {}'.format(flights_path))
+    from plot_scripts.figure4 import figure4
+
+    logging.info('Loading data...')
+    figure4(flights_path, output_folder)
+    logging.info('Plots saved in {}'.format(output_folder))
+
 def plot_figure7(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
     logging.info('Plotting Figure7 (Tuplex vs. other JITs experiment)')
     logging.info('Benchmark result folder specified as {}'.format(zillow_path))
@@ -40,6 +49,8 @@ if __name__ == '__main__':
                               logging.StreamHandler()])
     stream_handler = [h for h in logging.root.handlers if isinstance(h , logging.StreamHandler)][0]
     stream_handler.setLevel(logging.INFO)
+
+    plot_figure4()
 
     plot_table3()
 

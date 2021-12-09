@@ -63,17 +63,30 @@ In `AWS_Configuration.md` we provide the commands we used to configure the machi
 ### D) Experimentation Info
 
 #### Retrieving data files
-We host the data in both Google Drive and on S3. We ask the validator to NOT SHARE any of the data, as it contains privacy sensitive data (Zillow and logs from Brown University). For this reason, we password protected the 7zip file. The password will be made available via Microsoft CMT or can be retrieved by sending an email to `tuplex@cs.brown.edu` or to one of the authors. The full data requires around `~180GB` of free disk space.
+We host the data in both Google Drive and on S3. We ask the validator to NOT SHARE any of the data, as it contains privacy sensitive data (Zillow and logs from Brown University). For this reason, we password protected the 7zip file. The password will be made available via Microsoft CMT or can be retrieved by sending an email to `tuplex@cs.brown.edu` or to one of the authors. The full data requires around `~180GB` of free disk space unpacked, the data file itself is compressed using 7zip resulting in `~12GB` to download.
 
 | Host option: | Link:  | Description on how to retrieve:  |
 |------------|---|---|
 | Google Drive Link | |Most convenient way to retrieve is to use gdown (install via `pip3 install gdown`). |
-| AWS S3 Link | | Most convenient way is to use the AWS CLI (install via `pip3 install awscli` and configure via `aws configure`). |
+| AWS S3 Link | s3://tuplex-public/data/sigmod21.7z | Most convenient way is to use the AWS CLI (install via `pip3 install awscli` and configure via `aws configure`). In order to download the file use e.g. `aws s3 cp s3://tuplex-public/data/sigmod21.7z . --request-payer requester` |
+
+To unpack the file, go to `/disk` on your benchmark machine and run
+
+```
+7z x sigmod21.7z
+```
+
+This will store all data files in `/disk/data`.
 
 
 #### Docker container w. everything installed
 Due to the amount of different frameworks being evaluated in the original paper, we ran all experiments using a single docker container containing all frameworks. The container can be either recreated, dowloaded from docker.hub or using a Google Drive Link or AWS S3 Link.
 
+| Host option: | Link: | Description on how to retrieve: |
+|--------------|-------|----|
+| DockerHub | https://hub.docker.com/r/tuplex/sigmod21-experiments | docker pull tuplex/sigmod21-experiments |
+| create from source | `./scripts/docker/benchmark` | Run the `./create-image.sh` script from within the `./scripts/docker/benchmark` folder, requires local docker installation |
+| AWS S3 | |
 
 	- D1) Scripts and how-tos to generate all necessary data or locate datasets
 	[Ideally, there is a script called: ./prepareData.sh]

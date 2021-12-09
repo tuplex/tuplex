@@ -129,8 +129,7 @@ TEST_F(WrapperTest, MixedSimpleTupleTuple) {
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
-        // Change to 4 when parallelize changes are merged
-        ASSERT_EQ(PyList_GET_SIZE(resObj), 3);
+        ASSERT_EQ(PyList_GET_SIZE(resObj), 4);
 
         PyObject_Print(resObj, stdout, 0);
     }
@@ -168,14 +167,14 @@ TEST_F(WrapperTest, DictionaryParallelize) {
     PythonContext c("");
 
     PyObject * dictObj1 = PyDict_New();
-    PyDict_SetItem(dictObj1, python::PyString_FromString("Hello"), PyFloat_FromDouble(0.0));
-    PyDict_SetItem(dictObj1, python::PyString_FromString("World"), PyFloat_FromDouble(1.345));
-    PyDict_SetItem(dictObj1, python::PyString_FromString("!"), PyFloat_FromDouble(-2.234));
+    PyDict_SetItem(dictObj1, python::PyString_FromString("a"), PyFloat_FromDouble(0.0));
+    PyDict_SetItem(dictObj1, python::PyString_FromString("b"), PyFloat_FromDouble(1.345));
+    PyDict_SetItem(dictObj1, python::PyString_FromString("c"), PyFloat_FromDouble(-2.234));
 
     PyObject * dictObj2 = PyDict_New();
-    PyDict_SetItem(dictObj2, python::PyString_FromString("a"), PyFloat_FromDouble(1.23));
-    PyDict_SetItem(dictObj2, python::PyString_FromString("b"), PyFloat_FromDouble(2.34));
-    PyDict_SetItem(dictObj2, python::PyString_FromString("c"), PyFloat_FromDouble(-3.45));
+    PyDict_SetItem(dictObj2, python::PyString_FromString("d"), PyFloat_FromDouble(1.23));
+    PyDict_SetItem(dictObj2, python::PyString_FromString("e"), PyFloat_FromDouble(2.34));
+    PyDict_SetItem(dictObj2, python::PyString_FromString("f"), PyFloat_FromDouble(-3.45));
 
     PyObject * listObj = PyList_New(2);
     PyList_SET_ITEM(listObj, 0, dictObj1);
@@ -190,14 +189,14 @@ TEST_F(WrapperTest, DictionaryParallelize) {
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
-        ASSERT_EQ(PyList_Size(resObj), 1);
+        ASSERT_EQ(PyList_Size(resObj), 2);
 
         // check contents
         // ==> there will be only one result though, because of the type inference. Basically the first row will be taken :)
         // --> the other row will be stored as bad input row.
         auto tuple1 = PyList_GetItem(resObj, 0);
         ASSERT_TRUE(PyTuple_Check(tuple1));
-        ASSERT_EQ(PyTuple_Size(tuple1), 3);
+        ASSERT_EQ(PyTuple_Size(tuple1), 6);
     }
 }
 

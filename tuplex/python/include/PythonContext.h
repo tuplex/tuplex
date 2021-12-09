@@ -164,7 +164,7 @@ namespace tuplex {
          * @return PythonDataSet wrapper around internal DataSet class
          */
         PythonDataSet parallelize(boost::python::list L, boost::python::object cols = boost::python::object(),
-                                  boost::python::object schema = boost::python::object());
+                                  boost::python::object schema = boost::python::object(), bool autoUnpack = true);
 
         /*!
          * reads one (or multiple) csv files into memory

@@ -563,75 +563,49 @@ namespace tuplex {
         size_t numBytesSerialized = 0;
         for(unsigned i = 0; i < numElements; ++i) {
             auto obj = PyList_GET_ITEM(listObj, i);
-            Py_XINCREF(obj);
 
             // check that it is a dict!
-            if(PyDict_Check(obj)) {
-                auto numDictElements = PyDict_Size(obj);
+            if (PyDict_Check(obj)) {
+                PyObject * tupleObj = PyTuple_New(rowType.parameters().size());
+                int j = 0;
+                for (const auto &c: columns) {
+                    auto item = PyDict_GetItemString(obj, c.c_str());
+                    Py_XINCREF(item);
 
-                // first check, do sizes match?
-                if(numDictElements != rowType.parameters().size())
-                    _badParallelizeObjects.emplace_back(std::make_tuple(i, obj));
-                else {
-                    // same number of elements.
-                    // ==> need to get columns etc. out
-                    bool good = true;
-                    PyObject *tupleObj = PyTuple_New(rowType.parameters().size());
-                    int j = 0;
-                    for(const auto& c : columns) {
-                        auto item = PyDict_GetItemString(obj, c.c_str());
-
-                        // item is borrowed, reference. So incref!
-                        // https://docs.python.org/3/c-api/dict.html#c.PyDict_GetItemString
-                        Py_XINCREF(item);
-
-                        if(!item) {
-                            _badParallelizeObjects.emplace_back(std::make_tuple(i, obj));
-                            good = false;
-                            // set dummy
-                            Py_XINCREF(Py_None);
-                            PyTuple_SET_ITEM(tupleObj, j, Py_None);
-                        } else
-                            PyTuple_SET_ITEM(tupleObj, j, item);
-                        ++j;
+                    if (item) {
+                        PyTuple_SET_ITEM(tupleObj, j, item);
+                    } else {
+                        Py_XINCREF(Py_None);
+                        PyTuple_SET_ITEM(tupleObj, j, Py_None);
                     }
 
-                    // check if all good still or there was an issue with a column...
-                    if(!good)
-                        continue;
-
-                    // all the item are extracted into a tuple.
-                    // ==> convert to row object & check type
-                    Row row = python::pythonToRow(tupleObj);
-
-                    // Py_XDECREF(tupleObj); // remove temporary tupleObject
-
-                    if(row.getRowType() != rowType)
-                        _badParallelizeObjects.emplace_back(std::make_tuple(i, obj));
-                    else {
-                        // write to partition
-
-                        size_t requiredBytes = row.serializedLength();
-                        // check capacity and realloc if necessary get a new partition
-                        if(partition->capacity() < numBytesSerialized + allocMinSize) {
-                            partition->unlockWrite();
-                            partitions.push_back(partition);
-                            partition = driver->allocWritablePartition(allocMinSize, schema, -1);
-                            rawPtr = (int64_t*)partition->lockWriteRaw();
-                            *rawPtr = 0;
-                            ptr = (uint8_t*)(rawPtr + 1);
-                            numBytesSerialized = 0;
-                        }
-
-                        row.serializeToMemory(ptr, partition->capacity());
-                        ptr += requiredBytes;
-                        *rawPtr = *rawPtr + 1;
-                        numBytesSerialized += requiredBytes;
-                    }
+                    ++j;
                 }
+
+                try {
+                    Row row = python::pythonToRow(tupleObj, rowType);
+                    size_t requiredBytes = row.serializedLength();
+                    // check capacity and realloc if necessary get a new partition
+                    if (partition->capacity() < numBytesSerialized + allocMinSize) {
+                        partition->unlockWrite();
+                        partitions.push_back(partition);
+                        partition = driver->allocWritablePartition(allocMinSize, schema, -1);
+                        rawPtr = (int64_t *) partition->lockWriteRaw();
+                        *rawPtr = 0;
+                        ptr = (uint8_t *) (rawPtr + 1);
+                        numBytesSerialized = 0;
+                    }
+
+                    row.serializeToMemory(ptr, partition->capacity());
+                    ptr += requiredBytes;
+                    *rawPtr = *rawPtr + 1;
+                    numBytesSerialized += requiredBytes;
+                } catch (const std::exception& e) {
+                    _badParallelizeObjects.emplace_back(std::make_tuple(i, tupleObj));
+                }
+
             }
         }
-
         partition->unlockWrite();
         partitions.push_back(partition);
 
@@ -641,7 +615,8 @@ namespace tuplex {
 
     PythonDataSet PythonContext::parallelize(boost::python::list L,
                                              boost::python::object cols,
-                                             boost::python::object schema) {
+                                             boost::python::object schema,
+                                             bool autoUnpack) {
 
         assert(_context);
 
@@ -675,7 +650,7 @@ namespace tuplex {
             majType = inferType(L);
 
         // special case: majType is a dict with strings as key, i.e. perform String Dict unpacking
-        if((majType.isDictionaryType() && majType != python::Type::EMPTYDICT && majType != python::Type::GENERICDICT) && majType.keyType() == python::Type::STRING) {
+        if(autoUnpack && (majType.isDictionaryType() && majType != python::Type::EMPTYDICT && majType != python::Type::GENERICDICT) && majType.keyType() == python::Type::STRING) {
             // automatic unpacking!
             // ==> first check if columns are defined, if not infer columns from sample!
             auto dictTypes = inferColumnsFromDictObjects(L, _context->getOptions().NORMALCASE_THRESHOLD());
@@ -966,65 +941,47 @@ namespace tuplex {
         auto& logger = Logger::instance().logger("python");
 
         auto numSample = sampleSize(L);
-
-#warning "use here and for other sample based inferences a global infer method!"
-        // count occurences of columns, decide on heuristic which are normal and which should become exceptions
-        unordered_map<string, size_t> counts;
-        unordered_map<string, vector<PyObject*>> cols;
-        size_t num_dicts = 0;
         PyObject* listObj = L.ptr(); assert(listObj); assert(PyList_Check(listObj));
-        for(int i = 0; i < numSample; ++i) {
+
+        std::unordered_map<std::string, std::vector<PyObject*>> columns;
+        for (int i = 0; i < numSample; ++i) {
             auto item = PyList_GET_ITEM(listObj, i);
 
-            Py_INCREF(item); // borrowed reference?
+            Py_INCREF(item);
 
-            if(PyDict_Check(item)) {
-                num_dicts++;
-
-                // go through keys...
+            if (PyDict_Check(item)) {
                 PyObject *key = nullptr, *val = nullptr;
-                Py_ssize_t pos = 0; // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
-                while(PyDict_Next(item, &pos, &key, &val)) {
-                    // check if key is string
-                    if(PyUnicode_Check(key)) {
+                Py_ssize_t pos = 0;
+                while (PyDict_Next(item, &pos, &key, &val)) {
+                    if (PyUnicode_Check(key)) {
                         auto skey = python::PyString_AsString(key);
-                        auto it = counts.find(skey);
-                        if(it == counts.end()) {
-                            counts[skey] = 0;
-                            cols[skey] = std::vector<PyObject*>();
+                        auto it = columns.find(skey);
+                        if (it == columns.end()) {
+                            columns[skey] = std::vector<PyObject*>();
                         }
-                        counts[skey]++;
-                        Py_XINCREF(val); // val is borrowed according to https://docs.python.org/3/c-api/dict.html#c.PyDict_Next
-                        cols[skey].push_back(val);
+                        Py_XINCREF(val);
+                        columns[skey].push_back(val);
                     }
                 }
             }
         }
 
-        // normal case decision time!
-        vector<string> columns;
-        for(const auto& keyval : counts) {
-            // met threshold?
-            if(keyval.second >= ceil(normalThreshold * num_dicts))
-                columns.emplace_back(keyval.first);
-        }
-
-        // infer for each of the columns the most likely type!
-        unordered_map<string, python::Type> m;
-        for(const auto& c : columns) {
-            PyObject* listColObj = PyList_New(cols[c].size());
-            for(int i = 0; i < cols[c].size(); ++i) {
-                Py_XINCREF(cols[c][i]);
-                PyList_SET_ITEM(listColObj, i, cols[c][i]);
+        std::unordered_map<std::string, python::Type> m;
+        for (const auto &c : columns) {
+            PyObject *listColObj = PyList_New(numSample);
+            int i = 0;
+            while (i < columns[c.first].size()) {
+                Py_XINCREF(columns[c.first][i]);
+                PyList_SET_ITEM(listColObj, i, columns[c.first][i]);
+                ++i;
             }
-
-            // hand-off to infer type function
-            // ==> note: boost::python::handle transfers ownership!
+            while (i < numSample) {
+                PyList_SET_ITEM(listColObj, i, Py_None);
+                ++i;
+            }
             auto type = inferType(boost::python::list(boost::python::handle<>(listColObj)));
-
-            m[c] = type;
+            m[c.first] = type;
         }
-
 
         // special case: no inference was possible ==> take as backup the first row as schema. warn message.
         if(m.empty()) {

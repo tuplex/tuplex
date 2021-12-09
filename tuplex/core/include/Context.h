@@ -253,14 +253,7 @@ namespace tuplex {
          * @param ds dataset
          * @param pythonObjects serialized exceptions
          */
-        void setParallelizePythonObjects(DataSet *ds, std::vector<Partition *> pythonObjects);
-
-        /*!
-         * set general case exceptions of a parallelize operator.
-         * @param ds dataset
-         * @param generalCasePartitions serialized exceptions
-         */
-        void setParallelizeGeneralCasePartitions(DataSet *ds, std::vector<Partition *> generalCasePartitions);
+        void setParallelizePythonObjects(DataSet *ds, const std::vector<Partition *>& pythonObjects);
     };
     // needed for template mechanism to work
 #include <DataSet.h>

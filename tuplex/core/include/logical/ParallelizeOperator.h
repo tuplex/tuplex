@@ -48,10 +48,7 @@ namespace tuplex {
          */
         std::vector<tuplex::Partition*> getPartitions();
 
-        void setGeneralCasePartitions(std::vector<tuplex::Partition*> generalCasePartitions) { _generalCasePartitions = generalCasePartitions; }
-        std::vector<tuplex::Partition*> getGeneralCasePartitions() { return _generalCasePartitions; }
-
-        void setPythonObjects(std::vector<Partition *> pythonObjects) { _pythonObjects = pythonObjects; }
+        void setPythonObjects(const std::vector<Partition *>& pythonObjects) { _pythonObjects = pythonObjects; }
         std::vector<Partition *> getPythonObjects() { return _pythonObjects; }
 
         Schema getInputSchema() const override { return getOutputSchema(); }

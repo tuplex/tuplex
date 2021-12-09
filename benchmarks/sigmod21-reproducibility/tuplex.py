@@ -5,6 +5,7 @@ import os.path
 
 import click
 import logging
+import subprocess
 
 experiment_targets = ['all', 'figure3', 'figure4', 'figure5',
 'figure6', 'figure7', 'figure8', 'figure9', 'figure10', 'table3']
@@ -167,8 +168,42 @@ def plot(target, output_path, input_path):
         plot_figure10(DEFAULT_FLIGHTS_PATH, output_path)
     logging.info('Plotting done.')
 
+
+@click.command()
+def build():
+    """Downloads tuplex repo to tuplex, switches to correct branch and builds it using the sigmod21 experiment container."""
+
+    GIT_REPO_URI = 'https://github.com/LeonhardFS/tuplex-public'
+    GIT_BRANCH = 'origin/sigmod-repro'
+    if not os.path.isdir('tuplex'):
+        logging.info('Tuplex repo does not exist here yet, cloning')
+
+        cmd = ['git', 'clone', GIT_REPO_URI, 'tuplex']
+
+        logging.info('Running {}'.format(' '.join(cmd)))
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # set a timeout of 2 seconds to keep everything interactive
+        p_stdout, p_stderr = process.communicate(timeout=300)
+
+    # checkout sigmod-repro branch
+    cmd = ['git', 'checkout', '--track', GIT_BRANCH]
+
+    logging.info('Running {}'.format(' '.join(cmd)))
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd='tuplex')
+    # set a timeout of 2 seconds to keep everything interactive
+    p_stdout, p_stderr = process.communicate(timeout=300)
+
+    # build tuplex within docker container & install it there as well!
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)
+    for line in iter(p.stdout.readline, b''):
+        print
+        line,
+    p.stdout.close()
+    p.wait()
+
 commands.add_command(run)
 commands.add_command(plot)
+commands.add_command(build)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,

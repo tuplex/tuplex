@@ -62,6 +62,23 @@ In `AWS_Configuration.md` we provide the commands we used to configure the machi
 
 ### D) Experimentation Info
 
+#### Retrieving the repo
+Run the following commands to retrieve the Tuplex repo from within `/disk`:
+
+```
+cd /disk
+git clone https://github.com/LeonhardFS/tuplex-public.git
+cd tuplex-public
+git checkout --track origin/sigmod-repro
+```
+
+Then, startup the container via
+
+```
+docker run -v /disk/data:/data -v /disk/benchmark_results:/results -v /disk/tuplex-public:/code --name sigmod21 --rm -dit tuplex/sigmod21-experiments:latest
+```
+
+
 #### Retrieving data files
 We host the data in both Google Drive and on S3. We ask the validator to NOT SHARE any of the data, as it contains privacy sensitive data (Zillow and logs from Brown University). For this reason, we password protected the 7zip file. The password will be made available via Microsoft CMT or can be retrieved by sending an email to `tuplex@cs.brown.edu` or to one of the authors. The full data requires around `~180GB` of free disk space unpacked, the data file itself is compressed using 7zip resulting in `~12GB` to download.
 
@@ -87,6 +104,30 @@ Due to the amount of different frameworks being evaluated in the original paper,
 | DockerHub | https://hub.docker.com/r/tuplex/sigmod21-experiments | docker pull tuplex/sigmod21-experiments |
 | create from source | `./scripts/docker/benchmark` | Run the `./create-image.sh` script from within the `./scripts/docker/benchmark` folder, requires local docker installation |
 | AWS S3 | |
+
+
+#### Generating plots
+In the folder we provide a python script `tuplex.py` which acts as command line interface (CLI) to carry out both experiments and generate plots. Given running the experiments might take quite some time, we provide our original experimental results as zipped file (r5d.8xlarge.tar.gz). Users can then regenerate the papers original plots
+using
+
+```
+./tuplex.py plot all # plots all figures and saves them in plots/ folder
+
+./tuplex.py plot figure3 # generate only figure3
+
+./tuplex.py plot --help # list available plots.
+```
+
+#### Running experiments in docker
+In our original setup, we ran each configuration 11 times (1 warmup run that's ignored and 10 runs).
+Yet, users may want to select a different number of runs to save time.
+
+
+
+
+#### Lambda experiment
+The experiment comparing Tuplex's Lambda backend vs. Spark is unfortunately not any longer reproducible due to AWS having changed their infrastructure recently. Yet, upon request we're happy to provide detailed instructions to produce table 4 as well.
+
 
 	- D1) Scripts and how-tos to generate all necessary data or locate datasets
 	[Ideally, there is a script called: ./prepareData.sh]

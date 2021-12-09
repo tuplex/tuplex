@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-cd /usr/local/include/ && ln -s python3.6m python3.6 && cd - || exit
-
-PYTHON_EXECUTABLE=python3.7=6
+PYTHON_EXECUTABLE=python3.6
 DEST_PATH=/opt
 PYTHON_VERSION="$(basename -- $PYTHON_EXECUTABLE)"
 echo "building boost for ${PYTHON_VERSION}"
@@ -10,10 +8,7 @@ echo "building boost for ${PYTHON_VERSION}"
 mkdir -p $DEST_PATH
 
 # fix up for boost python a link
-INCLUDE_DIR=$(echo $PYTHON_EXECUTABLE | sed 's|/bin/.*||')
-INCLUDE_DIR=${INCLUDE_DIR}/include
-cd $INCLUDE_DIR && ln -s ${PYTHON_VERSION}m ${PYTHON_VERSION} && cd - || exit
-
+cd /usr/local/include/ && ln -s python3.6m python3.6 && cd - || exit
 
 # build incl. boost python
 cd /usr/src || exit

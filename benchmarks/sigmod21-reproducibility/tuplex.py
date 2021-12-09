@@ -7,6 +7,12 @@ import logging
 experiment_targets = ['all', 'figure3', 'figure4', 'figure5',
 'figure6', 'figure7', 'figure8', 'figure9', 'figure10', 'table3']
 
+
+# default paths
+DEFAULT_RESULT_PATH='r5d.8xlarge'
+DEFAULT_OUTPUT_PATH='plots'
+
+
 @click.group()
 def commands():
     pass
@@ -17,10 +23,132 @@ def run(target):
     logging.info('Running experiments for target {}'.format(target))
 
 
+# plot helpers
+def plot_table3(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
+    logging.info('Plotting Figure3 (Zillow experiment)')
+    logging.info('Benchmark result folder specified as {}'.format(zillow_path))
+    from plot_scripts.zillow_plots import table3, load_data
+
+    logging.info('Loading data...')
+    df_Z1, df_Z2 = load_data(zillow_path)
+    table3(df_Z1)
+    logging.info('Table shown.')
+
+def plot_figure3(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
+    logging.info('Plotting Figure3 (Zillow experiment)')
+    logging.info('Benchmark result folder specified as {}'.format(zillow_path))
+    from plot_scripts.zillow_plots import figure3, load_data
+
+    logging.info('Loading data...')
+    df_Z1, df_Z2 = load_data(zillow_path)
+    logging.info('Plotting Z1/Z2 (Figure3)')
+    figure3(df_Z1, df_Z2, output_folder)
+    logging.info('Plots saved in {}'.format(output_folder))
+
+def plot_figure4(flights_path='r5d.8xlarge/flights', output_folder='plots'):
+    logging.info('Plotting Figure4 (Flights experiment)')
+    logging.info('Benchmark result folder specified as {}'.format(flights_path))
+    from plot_scripts.figure4 import figure4
+
+    logging.info('Loading data...')
+    figure4(flights_path, output_folder)
+    logging.info('Plots saved in {}'.format(output_folder))
+
+def plot_figure5(logs_path='r5d.8xlarge/logs', output_folder='plots'):
+    logging.info('Plotting Figure5 (logs experiment)')
+    logging.warning('DO NOT SHARE DATA')
+    logging.info('Benchmark result folder specified as {}'.format(logs_path))
+    from plot_scripts.figure5 import figure5
+
+    logging.info('Loading data...')
+    figure5(logs_path, output_folder)
+    logging.info('Plots saved in {}'.format(output_folder))
+
+def plot_figure6(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
+    logging.info('Plotting Figure6 (Tuplex exceptions)')
+    logging.info('Benchmark result folder specified as {}'.format(zillow_path))
+    from plot_scripts.figure6 import figure6
+    figure6(zillow_path, output_folder)
+    logging.info('Plots saved in {}'.format(output_folder))
+
+def plot_figure7(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
+    logging.info('Plotting Figure7 (Tuplex vs. other JITs experiment)')
+    logging.info('Benchmark result folder specified as {}'.format(zillow_path))
+    from plot_scripts.zillow_plots import figure7, load_data
+
+    logging.info('Loading data...')
+    df_Z1, df_Z2 = load_data(zillow_path)
+    logging.info('Plotting Z1 (Figure7)')
+    figure7(df_Z1, output_folder)
+    logging.info('Plots saved in {}'.format(output_folder))
+
+def plot_figure8(service_path='r5d.8xlarge/311', output_folder='plots'):
+    logging.info('Plotting Figure8 (311 experiment/agrgegates)')
+    logging.info('Benchmark result folder specified as {}'.format(service_path))
+    from plot_scripts.figure8 import figure8
+
+    logging.info('Loading data...')
+    figure8(service_path, output_folder)
+    logging.info('Plots saved in {}'.format(output_folder))
+
+def plot_figure9(tpch_path='r5d.8xlarge/tpch', output_folder='plots'):
+    logging.info('Plotting Figure9 (TPCH Q6/Q19)')
+    logging.info('Benchmark result folder specified as {}'.format(tpch_path))
+    from plot_scripts.figure9 import figure9
+
+    logging.info('Loading data...')
+    figure9(tpch_path, output_folder)
+    logging.info('Plots saved in {}'.format(output_folder))
+
+def plot_figure10(flights_path='r5d.8xlarge/flights', output_folder='plots'):
+    logging.info('Plotting Figure10 (Flights breakdown')
+    logging.info('Benchmark result folder specified as {}'.format(flights_path))
+    from plot_scripts.figure10 import figure10
+
+    logging.info('Loading data...')
+    figure10(flights_path, output_folder)
+    logging.info('Plots saved in {}'.format(output_folder))
+# end plot helpers
+
+
 @click.command()
 @click.argument('target', type=click.Choice(experiment_targets, case_sensitive=False))
-def plot(target):
+@click.option('--output-path', type=str, default=DEFAULT_OUTPUT_PATH)
+@click.option('--input-path', type=str, default=DEFAULT_RESULT_PATH)
+def plot(target, output_path, input_path):
+
+    DEFAULT_ZILLOW_PATH = input_path + '/zillow'
+    DEFAULT_FLIGHTS_PATH = input_path + '/flights'
+    DEFAULT_LOGS_PATH = input_path + '/logs'
+    DEFAULT_311_PATH = input_path + '/311'
+    DEFAULT_TPCH_PATH = input_path + '/tpch'
+
+    PLOT_ALL=False
+    if 'all' == target.lower():
+        PLOT_ALL=True
+
     logging.info('Plotting output for target {}'.format(target))
+
+    # go through list and plot whatever was selected
+    if 'table3' == target.lower() or PLOT_ALL:
+        plot_table3(DEFAULT_ZILLOW_PATH, output_path)
+    if 'figure3' == target.lower() or PLOT_ALL:
+        plot_figure3(DEFAULT_ZILLOW_PATH, output_path)
+    if 'figure4' == target.lower() or PLOT_ALL:
+        plot_figure4(DEFAULT_FLIGHTS_PATH, output_path)
+    if 'figure5' == target.lower() or PLOT_ALL:
+        plot_figure5(DEFAULT_LOGS_PATH, output_path)
+    if 'figure6' == target.lower() or PLOT_ALL:
+        plot_figure6(DEFAULT_ZILLOW_PATH, output_path)
+    if 'figure7' == target.lower() or PLOT_ALL:
+        plot_figure7(DEFAULT_ZILLOW_PATH, output_path)
+    if 'figure8' == target.lower() or PLOT_ALL:
+        plot_figure8(DEFAULT_311_PATH, output_path)
+    if 'figure9' == target.lower() or PLOT_ALL:
+        plot_figure9(DEFAULT_TPCH_PATH, output_path)
+    if 'figure10' == target.lower() or PLOT_ALL:
+        plot_figure10(DEFAULT_FLIGHTS_PATH, output_path)
+    logging.info('Plotting done.')
 
 commands.add_command(run)
 commands.add_command(plot)

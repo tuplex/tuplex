@@ -52,6 +52,12 @@ namespace std {
 
 #include "Network.h"
 
+// Posix helpers
+#include <dirent.h>
+#include <errno.h>
+#include <glob.h>
+#include <libgen.h>
+
 static_assert(__cplusplus >= 201402L, "need at least C++ 14 to compile this file");
 // check https://blog.galowicz.de/2016/02/20/short_file_macro/
 // for another cool macro
@@ -257,13 +263,143 @@ namespace tuplex {
     extern bool stringToBool(const std::string& s);
 
     /*!
-     * check whether local file exsists or not.
+     * check whether local file exsists or not. This applies to a file in the wider sense! I.e., directory/link/pipe etc.
      * @param Filename
      * @return
      */
     inline bool fileExists(const std::string &local_path) {
         // from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c
         return access( local_path.c_str(), 0 ) == 0;
+    }
+
+    /*!
+     * check whether local path is a file
+     * @param local_path
+     * @return true if regular file, false in error case or if not true
+     */
+    inline bool isFile(const std::string& local_path) {
+        // https://linux.die.net/man/2/stat
+        struct stat statbuf;
+        if (stat(local_path.c_str(), &statbuf) != 0)
+            return false;
+        return S_ISREG(statbuf.st_mode);
+    }
+
+    inline std::string parentPath(const std::string& local_path) {
+        // check dirname & whether dir could be accessed
+        // create copy in order to allow modification
+        const char* path = local_path.c_str();
+        char* parent = new char[strlen(path) + 1];
+        memcpy(parent, path, strlen(path) + 1);
+
+        auto parent_path = dirname(parent);
+        std::string s_parent(parent_path);
+        delete [] parent;
+        return s_parent;
+    }
+
+    /*!
+     * check whether path is writable using access
+     * @param local_path
+     * @return true/false
+     */
+    inline bool isWritable(const std::string& local_path) {
+        const char* path = local_path.c_str();
+
+        // does file exist?
+        if(fileExists(local_path))
+            return 0 == access(path, W_OK);
+        else {
+            // check dirname & whether dir could be accessed
+            // create copy in order to allow modification
+            char* parent = new char[strlen(path) + 1];
+            memcpy(parent, path, strlen(path) + 1);
+
+            auto parent_path = dirname(parent);
+            auto accessible = 0 == access(parent_path, W_OK);
+            delete [] parent;
+            return accessible;
+        }
+    }
+
+    /*!
+     * check whether local path is a directory
+     * @param local_path
+     * @return true if directory, false in error case or if not true
+     */
+    inline bool isDirectory(const std::string& local_path) {
+        // https://linux.die.net/man/2/stat
+        struct stat statbuf;
+        if (stat(local_path.c_str(), &statbuf) != 0)
+            return false;
+        return S_ISDIR(statbuf.st_mode);
+    }
+
+    /*!
+     * check whether local directory exists and can be opened.
+     * @param local_path
+     * @return true/false
+     */
+    inline bool dirExists(const std::string& local_path) {
+        // from stackoverflow.
+        DIR* dir = opendir(local_path.c_str());
+        if (dir) {
+            closedir(dir);
+            return true;
+        } else if (ENOENT == errno) {
+            // directory does not exist.
+            return false;
+        } else {
+            // opendir() failed for some other reason, e.g. access problems
+            return false;
+        }
+    }
+
+    /*!
+     * returns the current working directory
+     * @return as string
+     */
+    extern std::string current_working_directory();
+
+    /*!
+     * creates a new, empty local directory.
+     * @param base_path where to create, per default assumes CWD
+     * @param max_tries how often to try
+     * @return path of newly created empty dir. "" if tries exhausted.
+     */
+    extern std::string create_temporary_directory(const std::string& base_path = current_working_directory(), size_t max_tries=1000);
+
+    inline std::vector<std::string> glob(const std::string& pattern, std::ostream& err_stream=std::cerr) {
+        using namespace std;
+
+        auto pattern_str = pattern.c_str();
+
+        // from https://stackoverflow.com/questions/8401777/simple-glob-in-c-on-unix-system
+        // glob struct resides on the stack
+        glob_t glob_result;
+        memset(&glob_result, 0, sizeof(glob_result));
+
+        // do the glob operation
+        int return_value = ::glob(pattern_str, GLOB_TILDE | GLOB_MARK, NULL, &glob_result);
+        if(return_value != 0) {
+            globfree(&glob_result);
+
+            // special case, no match
+            if(GLOB_NOMATCH == return_value) {
+                return {};
+            }
+
+            err_stream << "glob() failed with return_value " << return_value << std::endl;
+        }
+
+        // collect all the filenames into a std::list<std::string>
+        vector<string> paths;
+        for(size_t i = 0; i < glob_result.gl_pathc; ++i)
+            paths.emplace_back( glob_result.gl_pathv[i]);
+
+        // cleanup
+        globfree(&glob_result);
+        return paths;
     }
 
     /*!

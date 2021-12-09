@@ -16,6 +16,7 @@
 #include <iomanip>
 #include <regex>
 #include <Row.h>
+#include <random>
 
 namespace tuplex {
 
@@ -169,6 +170,57 @@ namespace tuplex {
             Logger::instance().defaultLogger().error("could not convert " + s + " to boolean value. Returning false.");
             return false;
         }
+    }
+
+    std::string current_working_directory() {
+        // from https://stackoverflow.com/questions/2203159/is-there-a-c-equivalent-to-getcwd
+        char temp[PATH_MAX];
+
+        if (getcwd(temp, PATH_MAX) != 0)
+            return std::string ( temp );
+
+        int error = errno;
+        switch ( error ) {
+            // EINVAL can't happen - size argument > 0
+            // PATH_MAX includes the terminating nul,
+            // so ERANGE should not be returned
+            case EACCES:
+                throw std::runtime_error("Access denied");
+
+            case ENOMEM:
+                // I'm not sure whether this can happen or not
+                throw std::runtime_error("Insufficient storage");
+
+            default: {
+                std::ostringstream str;
+                str << "Unrecognised error" << error;
+                throw std::runtime_error(str.str());
+            }
+        }
+    }
+
+    std::string create_temporary_directory(const std::string& base_path, size_t max_tries) {
+        unsigned long long i = 0;
+        std::random_device dev;
+        std::mt19937 prng(dev());
+        std::uniform_int_distribution<uint64_t> rand(0);
+        std::string path;
+        auto tmp_dir = !base_path.empty() ? base_path + "/" : "";
+        while (true) {
+            std::stringstream ss;
+            ss << std::hex << rand(prng);
+            path = tmp_dir + ss.str();
+
+            // true if the directory was created.
+            if (0 == mkdir(path.c_str(), S_IRWXU)) {
+                break;
+            }
+            if (i == max_tries) {
+               return "";
+            }
+            i++;
+        }
+        return path;
     }
 
     namespace helper {

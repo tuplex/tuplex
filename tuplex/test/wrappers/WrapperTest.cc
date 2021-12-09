@@ -52,6 +52,90 @@ TEST_F(WrapperTest, LambdaBackend) {
 
 // Important detail: RAII of boost python requires call to all boost::python destructors before closing the interpreter.
 
+TEST_F(WrapperTest, StringTuple) {
+    using namespace tuplex;
+
+    PythonContext c("");
+
+    PyObject *listObj = PyList_New(4);
+    PyObject *tupleObj1 = PyTuple_New(2);
+    PyTuple_SET_ITEM(tupleObj1, 0, python::PyString_FromString("a"));
+    PyTuple_SET_ITEM(tupleObj1, 1, python::PyString_FromString("a"));
+
+    PyObject *tupleObj2 = PyTuple_New(2);
+    PyTuple_SET_ITEM(tupleObj2, 0, python::PyString_FromString("b"));
+    PyTuple_SET_ITEM(tupleObj2, 1, python::PyString_FromString("b"));
+
+    PyObject *tupleObj3 = PyTuple_New(2);
+    PyTuple_SET_ITEM(tupleObj3, 0, python::PyString_FromString("c"));
+    PyTuple_SET_ITEM(tupleObj3, 1, python::PyString_FromString("c"));
+
+    PyObject *tupleObj4 = PyTuple_New(2);
+    PyTuple_SET_ITEM(tupleObj4, 0, python::PyString_FromString("d"));
+    PyTuple_SET_ITEM(tupleObj4, 1, python::PyString_FromString("d"));
+
+    PyList_SetItem(listObj, 0, tupleObj1);
+    PyList_SetItem(listObj, 1, tupleObj2);
+    PyList_SetItem(listObj, 2, tupleObj3);
+    PyList_SetItem(listObj, 3, tupleObj4);
+
+    {
+        auto list = boost::python::list(boost::python::handle<>(listObj));
+
+        auto res = c.parallelize(list).map("lambda x: x", "").collect();
+
+        auto resObj = res.ptr();
+
+        ASSERT_TRUE(PyList_Check(resObj));
+        // Change to 4 when parallelize changes are merged
+        ASSERT_EQ(PyList_GET_SIZE(resObj), 4);
+
+        PyObject_Print(resObj, stdout, 0);
+    }
+}
+
+TEST_F(WrapperTest, MixedSimpleTupleTuple) {
+    using namespace tuplex;
+
+    PythonContext c("");
+
+    PyObject *listObj = PyList_New(4);
+    PyObject *tupleObj1 = PyTuple_New(2);
+    PyTuple_SET_ITEM(tupleObj1, 0, python::PyString_FromString("a"));
+    PyTuple_SET_ITEM(tupleObj1, 1, PyLong_FromLong(1));
+
+    PyObject *tupleObj2 = PyTuple_New(2);
+    PyTuple_SET_ITEM(tupleObj2, 0, python::PyString_FromString("b"));
+    PyTuple_SET_ITEM(tupleObj2, 1, PyLong_FromLong(2));
+
+    PyObject *tupleObj3 = PyTuple_New(2);
+    PyTuple_SET_ITEM(tupleObj3, 0, python::PyString_FromString("c"));
+    PyTuple_SET_ITEM(tupleObj3, 1, PyLong_FromLong(3));
+
+    PyObject *tupleObj4 = PyTuple_New(2);
+    PyTuple_SET_ITEM(tupleObj4, 0, Py_None);
+    PyTuple_SET_ITEM(tupleObj4, 1, PyLong_FromLong(4));
+
+    PyList_SetItem(listObj, 0, tupleObj1);
+    PyList_SetItem(listObj, 1, tupleObj2);
+    PyList_SetItem(listObj, 2, tupleObj3);
+    PyList_SetItem(listObj, 3, tupleObj4);
+
+    {
+        auto list = boost::python::list(boost::python::handle<>(listObj));
+
+        auto res = c.parallelize(list).collect();
+
+        auto resObj = res.ptr();
+
+        ASSERT_TRUE(PyList_Check(resObj));
+        // Change to 4 when parallelize changes are merged
+        ASSERT_EQ(PyList_GET_SIZE(resObj), 3);
+
+        PyObject_Print(resObj, stdout, 0);
+    }
+}
+
 TEST_F(WrapperTest, StringParallelize) {
     using namespace tuplex;
 

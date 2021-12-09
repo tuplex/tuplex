@@ -21,6 +21,10 @@
 #include <aws/lambda/model/UpdateFunctionConfigurationResult.h>
 #include <aws/core/utils/threading/Executor.h>
 #include <aws/core/auth/AWSCredentials.h>
+#include <aws/core/utils/json/JsonSerializer.h>
+
+// only exists in newer SDKs...
+// #include <aws/lambda/model/Architecture.h>
 
 // protobuf header
 #include <Lambda.pb.h>
@@ -29,6 +33,8 @@
 
 #include <google/protobuf/util/json_util.h>
 #include <iomanip>
+
+#include <utility>
 
 namespace tuplex {
 
@@ -119,6 +125,7 @@ namespace tuplex {
 
         Aws::Lambda::Model::ListFunctionsRequest list_req;
         const Aws::Lambda::Model::FunctionConfiguration *fc = nullptr; // holds lambda conf
+        Aws::String fc_json_str;
         auto outcome = client->ListFunctions(list_req);
         if(!outcome.IsSuccess()) {
             std::stringstream ss;
@@ -133,7 +140,8 @@ namespace tuplex {
             // search for the function of interest
             for(const auto& f : funcs) {
                 if(f.GetFunctionName().c_str() == _functionName) {
-                    fc = &f;
+                    fc_json_str = f.Jsonize().View().WriteCompact();
+                    fc = new Aws::Lambda::Model::FunctionConfiguration(Aws::Utils::Json::JsonValue(fc_json_str));
                     break;
                 }
             }
@@ -144,6 +152,33 @@ namespace tuplex {
                 logger().info("Found AWS Lambda function " + _functionName + " (" + std::to_string(fc->GetMemorySize()) + "MB)");
             }
         }
+
+        // check architecture of function (only newer AWS SDKs support this...)
+        {
+            using namespace Aws::Utils::Json;
+            using namespace Aws::Utils;
+            auto fc_json = Aws::Utils::Json::JsonValue(fc_json_str);
+            if(fc_json.View().ValueExists("Architectures")) {
+                Array<JsonView> architecturesJsonList = fc_json.View().GetArray("Architectures");
+                std::vector<std::string> architectures;
+                for(unsigned architecturesIndex = 0; architecturesIndex < architecturesJsonList.GetLength(); ++architecturesIndex)
+                   architectures.push_back(std::string(architecturesJsonList[architecturesIndex].AsString().c_str()));
+                // there should be one architecture
+                if(architectures.size() != 1) {
+                    logger().warn(
+                            "AWS Lambda changed specification, update how to deal with mulit-architecture functions");
+                    if(!architectures.empty())
+                        _functionArchitecture = architectures.front();
+                }
+                else {
+                    _functionArchitecture = architectures.front();
+                }
+            } else {
+                _functionArchitecture = "x86_64";
+            }
+        }
+
+        logger().info("Using Lambda running on " + _functionArchitecture);
 
         // limit concurrency + mem of function manually (TODO: uncomment for faster speed!), if it doesn't fit options
         // i.e. aws lambda put-function-concurrency --function-name tplxlam --reserved-concurrent-executions $MAX_CONCURRENCY
@@ -176,6 +211,8 @@ namespace tuplex {
 
         // concurrency?
         // PutFunctionConcurrency
+
+        delete fc;
 
         return client;
     }
@@ -609,14 +646,15 @@ namespace tuplex {
         _lambdaSizeInMB = options.AWS_LAMBDA_MEMORY();
         _lambdaTimeOut = options.AWS_LAMBDA_TIMEOUT();
 
-        // adjust params if necessary
-        if(_lambdaSizeInMB < AWS_MINIMUM_TUPLEX_MEMORY_REQUIREMENT_MB || _lambdaSizeInMB % 64 != 0 || _lambdaSizeInMB > AWS_MAXIMUM_LAMBDA_MEMORY_MB) {
-            _lambdaSizeInMB = std::max(std::min(AWS_MINIMUM_LAMBDA_MEMORY_MB, core::ceilToMultiple(_lambdaSizeInMB, 64ul)), AWS_MAXIMUM_LAMBDA_MEMORY_MB);
-            logger().info("adjusted lambda size to " + std::to_string(_lambdaSizeInMB));
-        }
+        logger().info("Execution over lambda with " + std::to_string(_lambdaSizeInMB) + "MB");
+
+        // Lambda supports 1MB increments. Hence, no adjustment to 64MB granularity anymore necessary as in prior to Dec 2020.
+        _lambdaSizeInMB = std::min(std::max(AWS_MINIMUM_LAMBDA_MEMORY_MB, _lambdaSizeInMB), AWS_MAXIMUM_LAMBDA_MEMORY_MB);
+        logger().info("Adjusted lambda size to " + std::to_string(_lambdaSizeInMB) + "MB");
+
         if(_lambdaTimeOut < 10 || _lambdaTimeOut > 15 * 60) {
-            _lambdaTimeOut = std::max(std::min(10ul, _lambdaTimeOut), 15 * 60ul); // min 10s, max 15min
-            logger().info("adjusted lambda timeout to " + std::to_string(_lambdaTimeOut));
+            _lambdaTimeOut = std::min(std::max(AWS_MINIMUM_TUPLEX_TIMEOUT_REQUIREMENT, _lambdaTimeOut), AWS_MAXIMUM_LAMBDA_TIMEOUT); // min 5s, max 15min
+            logger().info("Adjusted lambda timeout to " + std::to_string(_lambdaTimeOut));
         }
 
         // init lambda client (Note: must be called AFTER aws init!)
@@ -823,6 +861,19 @@ namespace tuplex {
             size_t billedDurationInMs = info.billedDurationInMs;
             size_t memorySizeInMb = info.memorySizeInMb;
             billed += billedDurationInMs / 100 * memorySizeInMb;
+        }
+        return billed;
+    }
+
+    size_t AwsLambdaBackend::getMBMs() {
+        std::lock_guard<std::mutex> lock(_mutex);
+
+        // sum up billed mb ms
+        size_t billed = 0;
+        for(auto info : _infos) {
+            size_t billedDurationInMs = info.billedDurationInMs;
+            size_t memorySizeInMb = info.memorySizeInMb;
+            billed += billedDurationInMs * memorySizeInMb;
         }
         return billed;
     }

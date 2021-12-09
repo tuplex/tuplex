@@ -76,7 +76,6 @@ message InvocationResponse {
     uint64 numExceptions = 6;
     uint64 numBytesWritten = 7;
 
-
     bool containerReused = 8;
     double awsInitTime = 9;
     string containerID = 10;

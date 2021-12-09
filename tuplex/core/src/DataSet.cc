@@ -107,6 +107,12 @@ namespace tuplex {
         if (isError())
             throw std::runtime_error("is error dataset!");
 
+        // when using uri mode
+        if(uri != URI::INVALID && !validateOutputSpecification(uri)) {
+            throw std::runtime_error("Failed to validate output specification,"
+                                     " can not write to " + uri.toString() + " (permissions? directory not empty?)");
+        }
+
         assert(_context);
         assert(_operator);
 

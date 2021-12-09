@@ -33,7 +33,7 @@ namespace tuplex {
         virtual VirtualFileSystemStatus remove(const URI& uri) = 0;
         virtual VirtualFileSystemStatus touch(const URI& uri, bool overwrite=false) = 0;
         virtual VirtualFileSystemStatus file_size(const URI& uri, uint64_t& size) = 0;
-        virtual VirtualFileSystemStatus ls(const URI& parent, std::vector<URI>* uris) = 0;
+        virtual VirtualFileSystemStatus ls(const URI& parent, std::vector<URI>& uris) = 0;
         virtual std::unique_ptr<VirtualFile> open_file(const URI& uri, VirtualFileMode vfm) = 0;
         virtual std::unique_ptr<VirtualMappedFile> map_file(const URI& uri) = 0;
         virtual std::vector<URI> glob(const std::string& pattern) = 0;

@@ -30,6 +30,9 @@
 #include <copyfile.h>
 #endif
 
+#include <FileUtils.h>
+#include <dirent.h>
+
 // Note: could improve performance prob further by
 // just using native POSIX calls. they're faster...
 
@@ -103,9 +106,36 @@ namespace tuplex {
         return VirtualFileSystemStatus::VFS_OK;
     }
 
-    VirtualFileSystemStatus PosixFileSystemImpl::ls(const URI &parent, std::vector <URI> *uris) {
+    VirtualFileSystemStatus PosixFileSystemImpl::ls(const URI &parent, std::vector <URI>& uris) {
+        MessageHandler& logger = Logger::instance().logger("posix filesystem");
 
-        // @TODO: Implement...
+        // extract local path (i.e. remove file://)
+        auto local_path = parent.toString().substr(parent.prefix().length());
+
+        // make sure no wildcard is present yet --> not supported!
+        auto prefix = findLongestPrefix(local_path);
+
+        if(prefix.length() !=local_path.length()) {
+            logger.error("path " + local_path + " contains Unix wildcard characters, not supported yet");
+            return VirtualFileSystemStatus::VFS_IOERROR;
+        }
+
+        // use dirent to read dir...
+        auto dir_it = opendir(local_path.c_str());
+        if(!dir_it)
+            return VirtualFileSystemStatus::VFS_IOERROR;
+        struct dirent *file_entry = nullptr;
+        while((file_entry = readdir(dir_it))) {
+            // remove duplicate / runs?
+            auto path = eliminateSeparatorRuns(local_path + "/" + file_entry->d_name + (file_entry->d_type == DT_DIR ? "/" : ""));
+            URI uri("file://" + path); // no selection of type etc. (Link/dir/...)
+
+            // exclude . and ..
+            if(strcmp(file_entry->d_name, ".") == 0 || strcmp(file_entry->d_name, "..") == 0)
+                continue;
+            uris.push_back(uri);
+        }
+        closedir(dir_it);
 
         return VirtualFileSystemStatus::VFS_OK;
     }
@@ -129,6 +159,15 @@ namespace tuplex {
     // cf. https://herbsutter.com/2013/05/29/gotw-89-solution-smart-pointers/
     std::unique_ptr<VirtualFile> PosixFileSystemImpl::open_file(const URI &uri, VirtualFileMode vfm) {
         MessageHandler& logger = Logger::instance().logger("posix filesystem");
+
+        // check whether parent dir exists, if not create dirs!
+        auto parent_path = parentPath(uri.toPath());
+        if(!fileExists(parent_path)) {
+            logger.debug("parent dir " + parent_path + " does not exist, creating it.");
+            create_dir(parent_path);
+            assert(isDirectory(parent_path));
+        }
+
         std::unique_ptr<VirtualFile> ptr(new PosixFile(uri, vfm));
         auto file = (PosixFile*)ptr.get();
 
@@ -172,6 +211,7 @@ namespace tuplex {
             logger.error("unknown mode or illegal combination encountered");
             return;
         }
+
         _fh = fopen(path.c_str(), mode.c_str());
 
         if(_fh) {
@@ -475,7 +515,7 @@ namespace tuplex {
         memset(&glob_result, 0, sizeof(glob_result));
 
         // do the glob operation
-        int return_value = ::glob(pattern_str, GLOB_TILDE, NULL, &glob_result);
+        int return_value = ::glob(pattern_str, GLOB_TILDE | GLOB_MARK, NULL, &glob_result);
         if(return_value != 0) {
             globfree(&glob_result);
 

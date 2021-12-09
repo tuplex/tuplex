@@ -71,7 +71,8 @@ namespace tuplex {
                         throw std::runtime_error("Requesting Tuplex Lambda backend, but initialization failed.");
                 }
 
-                _ee = std::make_unique<AwsLambdaBackend>(AWSCredentials::get(), "tplxlam", options);
+                // @TODO: function name should come from options!
+                _ee = std::make_unique<AwsLambdaBackend>(AWSCredentials::get(), "tuplex-lambda-runner", options);
 #endif
                 break;
             }

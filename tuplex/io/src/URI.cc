@@ -232,6 +232,8 @@ namespace tuplex {
         if(_uri.substr(0, 5) != "s3://")
             throw std::runtime_error("S3 path " + _uri + " must start with s3:// " + "started with ");
         auto idx = _uri.substr(5).find_first_of('/');
+        if(std::string::npos == idx)
+            return "";
         return _uri.substr(5 + idx + 1);
     }
 

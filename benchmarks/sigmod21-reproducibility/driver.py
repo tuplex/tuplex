@@ -61,6 +61,15 @@ def plot_figure8(service_path='r5d.8xlarge/311', output_folder='plots'):
     figure8(service_path, output_folder)
     logging.info('Plots saved in {}'.format(output_folder))
 
+def plot_figure9(tpch_path='r5d.8xlarge/tpch', output_folder='plots'):
+    logging.info('Plotting Figure9 (TPCH Q6/Q19)')
+    logging.info('Benchmark result folder specified as {}'.format(tpch_path))
+    from plot_scripts.figure9 import figure9
+
+    logging.info('Loading data...')
+    figure9(tpch_path, output_folder)
+    logging.info('Plots saved in {}'.format(output_folder))
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s:%(levelname)s: %(message)s',
@@ -69,7 +78,8 @@ if __name__ == '__main__':
     stream_handler = [h for h in logging.root.handlers if isinstance(h , logging.StreamHandler)][0]
     stream_handler.setLevel(logging.INFO)
 
-    plot_figure8()
+    plot_figure9()
+    #plot_figure8()
 
     #plot_figure5()
     #

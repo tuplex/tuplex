@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # builds Tuplex within experimental container
 
+export CC=gcc-10
+export CXX=g++-10
+
 TUPLEX_DIR=/code
 
 cd $TUPLEX_DIR && cd tuplex && mkdir -p build && \

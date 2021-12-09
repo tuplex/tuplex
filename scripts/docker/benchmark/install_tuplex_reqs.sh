@@ -13,7 +13,7 @@ apt-get install -y build-essential software-properties-common wget libedit-dev l
   pkg-config libssl-dev libcurl4-openssl-dev curl \
   uuid-dev git libffi-dev graphviz \
   libgflags-dev libncurses-dev \
-  awscli openjdk-8-jdk libyaml-dev python2
+  awscli openjdk-8-jdk libyaml-dev libmagic-dev python2
 
 # LLVM9 is broken on Ubuntu 20.04, hence manually install...
 

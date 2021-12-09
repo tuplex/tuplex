@@ -75,7 +75,11 @@ git checkout --track origin/sigmod-repro
 Then, startup the container via
 
 ```
-docker run -v /disk/data:/data -v /disk/benchmark_results:/results -v /disk/tuplex-public:/code --name sigmod21 --rm -dit tuplex/sigmod21-experiments:latest
+docker run -v /disk/data:/data -v /disk/benchmark_results:/results -v /disk/tuplex-public:/code --name sigmod21 --rm -dit tuplex/benchmark
+```
+
+Build and install Tuplex then via
+```
 ```
 
 

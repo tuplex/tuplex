@@ -19,6 +19,7 @@
 We use a single [r5d.8xlarge EC2](https://aws.amazon.com/ec2/instance-types/r5/) instance in the us-east-1 zone on which we disable HyperThreading to carry out experiments.
 
 The following is the output of `lscpu` on a r5d.8xlarge instance:
+
 ```
 Architecture:                    x86_64
 CPU op-mode(s):                  32-bit, 64-bit
@@ -56,10 +57,24 @@ Vulnerability Tsx async abort:   Not affected
 Flags:                           fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch invpcid_single pti fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx avx512f avx512dq rdseed adx smap clflushopt clwb avx512cd avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves ida arat pku ospke
 ```
 
-We provide in `AWS_Setup.md` commands to startup the type of EC2 instance we used for our experiments.
-In `AWS_Configuration.md` we provide the commands we used to configure the machine. They have been also saved in the `config_r5d.sh` script, which can be run via `sudo bash config_r5d.sh`.
+We provide in `AWS_Setup.md` commands to start up the type of EC2 instance we used for our experiments.
+In `AWS_Configuration.md` we provide the commands we used to configure the machine. They have been also saved in the `config_r5d.sh` script, which can be run simply via `sudo bash config_r5d.sh`.
 
 ### D) Experimentation Info
+
+#### Retrieving data files
+We host the data in both Google Drive and on S3. We ask the validator to NOT SHARE any of the data, as it contains privacy sensitive data (Zillow and logs from Brown University). For this reason, we password protected the 7zip file. The password will be made available via Microsoft CMT or can be retrieved by sending an email to `tuplex@cs.brown.edu` or to one of the authors. The full data requires around `~180GB` of free disk space.
+
+| Host option: | Link:  | Description on how to retrieve:  |
+|------------|---|---|
+| Google Drive Link | |Most convenient way to retrieve is to use gdown (install via `pip3 install gdown`). |
+| AWS S3 Link | | Most convenient way is to use the AWS CLI (install via `pip3 install awscli` and configure via `aws configure`). |
+
+
+#### Docker container w. everything installed
+Due to the amount of different frameworks being evaluated in the original paper, we ran all experiments using a single docker container containing all frameworks. The container can be either recreated, dowloaded from docker.hub or using a Google Drive Link or AWS S3 Link.
+
+
 	- D1) Scripts and how-tos to generate all necessary data or locate datasets
 	[Ideally, there is a script called: ./prepareData.sh]
 	- D2) Scripts and how-tos to prepare the software for system

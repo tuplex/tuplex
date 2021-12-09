@@ -13,7 +13,9 @@ try:
     import boto3
     import botocore.exceptions
 except Exception as e:
-    raise Exception('To use distributed version, please install boto3')
+    # ignore here, because boto3 is optional
+    pass
+    #raise Exception('To use distributed version, please install boto3')
 
 import logging
 import tempfile

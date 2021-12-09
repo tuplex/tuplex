@@ -1,0 +1,110 @@
+[2021-03-30 22:31:11.781] [global] [error] could not find backend, defaulting to local
+[2021-03-30 22:31:11.781] [local ee] [info] loaded runtime library from/usr/local/lib/python3.6/site-packages/Tuplex-0.1.7-py3.6.egg/tuplex/libexec/tuplex_runtime.so
+[2021-03-30 22:31:11.781] [local ee] [info] initializing LLVM backend
+[2021-03-30 22:31:11.781] [local ee] [warning] init JIT compiler also only in local mode
+[2021-03-30 22:31:11.781] [LLVM] [info] compiling code for skylake-avx512
+[2021-03-30 22:31:11.782] [memory] [info] allocated bitmap managed memory region (100.00 GB, 32.00 MB block size)
+[2021-03-30 22:31:11.782] [local execution engine] [info] started driver (100.00 GB, 32.00 MB default partition size)
+overflow will be cached at file:///tmp/driver
+[2021-03-30 22:31:11.782] [fileinputoperator] [info] found 1 file (1.57 GB) to process.
+[2021-03-30 22:31:11.782] [global] [info] sampled file:///data/tpch/q19/integer/lineitem.tbl on 256.00 KB
+[2021-03-30 22:31:11.945] [fileinputoperator] [info] found 1 file (30.54 MB) to process.
+[2021-03-30 22:31:11.945] [global] [info] sampled file:///data/tpch/q19/integer/part.tbl on 256.00 KB
+[2021-03-30 22:31:12.161] [global] [info] combiner output-schema is: (f64)
+[2021-03-30 22:31:12.162] [global] [info] aggregator output-schema is: (f64)
+[2021-03-30 22:31:12.162] [global] [info] aggregate operator yields: (f64)
+[2021-03-30 22:31:12.169] [global] [info] combiner output-schema is: (f64)
+[2021-03-30 22:31:12.169] [global] [info] aggregator output-schema is: (f64)
+[2021-03-30 22:31:12.169] [global] [info] aggregate operator yields: (f64)
+[2021-03-30 22:31:12.177] [global] [info] combiner output-schema is: (f64)
+[2021-03-30 22:31:12.177] [global] [info] aggregator output-schema is: (f64)
+[2021-03-30 22:31:12.177] [global] [info] aggregate operator yields: (f64)
+[2021-03-30 22:31:12.186] [global] [info] combiner output-schema is: (f64)
+[2021-03-30 22:31:12.186] [global] [info] aggregator output-schema is: (f64)
+[2021-03-30 22:31:12.186] [global] [info] aggregate operator yields: (f64)
+[2021-03-30 22:31:12.710] [logical planner] [info] logical optimization took 0.541618ms
+output type of specialized pipeline is: (Option[i64],Option[i64],Option[i64],Option[i64])
+is this the most outer stage?: 0
+need to upgrade output type to (Option[i64],Option[i64],Option[i64],Option[i64])
+[2021-03-30 22:31:12.711] [codegen] [info] generating pipeline for (Option[i64],Option[i64],Option[i64],Option[i64]) -> (Option[i64],Option[i64],Option[i64],Option[i64]) (3 operators pipelined)
+[2021-03-30 22:31:12.711] [codegen] [info] generating lambda function for ((Option[i64],Option[i64],Option[i64],Option[i64])) -> boolean
+[2021-03-30 22:31:12.712] [codegen] [info] generating lambda function for ((Option[i64],Option[i64],Option[i64],Option[i64])) -> boolean
+[2021-03-30 22:31:12.712] [codegen] [info] generating lambda function for ((Option[i64],Option[i64],Option[i64],Option[i64])) -> boolean
+output type of specialized pipeline is: (f64)
+is this the most outer stage?: 0
+need to upgrade output type to (f64)
+[2021-03-30 22:31:12.734] [codegen] [info] generating pipeline for (Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[i64]) -> (f64) (6 operators pipelined)
+[2021-03-30 22:31:12.734] [codegen] [info] generating lambda function for ((Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[i64])) -> boolean
+[2021-03-30 22:31:12.735] [codegen] [info] generating lambda function for ((Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[i64])) -> boolean
+[2021-03-30 22:31:12.735] [codegen] [info] generating lambda function for ((Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[i64])) -> boolean
+[2021-03-30 22:31:12.735] [codegen] [info] generating function Q19_filter_weld for ((Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[i64])) -> boolean
+[2021-03-30 22:31:12.737] [codegen] [info] generating lambda function for (f64,f64) -> f64
+[2021-03-30 22:31:12.737] [codegen] [info] generating lambda function for (f64,(Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[i64])) -> f64
+[2021-03-30 22:31:12.759] [global] [info] Stage2 depends on: Stage1 
+[2021-03-30 22:31:12.759] [global] [info] Stage1 depends on: Stage0 
+[2021-03-30 22:31:12.759] [global] [info] Stage0 depends on: 
+[2021-03-30 22:31:12.762] [global] [info] provided option to explicitly merge bad rows in order back, however rows will be hashed. Disabling option. To silence this warning, set
+tuplex.optimizer.mergeExceptionsInOrder=false
+[2021-03-30 22:31:12.822] [global] [info] Optimization via LLVM passes took 0.059941 ms
+[2021-03-30 22:31:12.850] [global] [info] Compiled code paths for stage 0 in 0.03 ms
+[2021-03-30 22:31:12.850] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.0908657s
+[2021-03-30 22:31:12.850] [local ee] [info] split /data/tpch/q19/integer/part.tbl into 1 task
+[2021-03-30 22:31:13.152] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.300751s (21592 normal rows, 0 exceptions, 21592 buckets)
+[2021-03-30 22:31:13.152] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 0.30127s
+[2021-03-30 22:31:13.152] [global] [info] [Transform Stage] Stage 0 total wall clock time: 0.300751s, 2000000 input rows, time to process 1 row via fast path: 0.000150375ms
+[2021-03-30 22:31:13.152] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 4.036e-06s
+[2021-03-30 22:31:13.152] [global] [info] [Transform Stage] Stage 0 took 0.392163s
+[2021-03-30 22:31:13.254] [global] [info] Optimization via LLVM passes took 0.098676 ms
+[2021-03-30 22:31:13.295] [global] [info] Compiled code paths for stage 1 in 0.04 ms
+[2021-03-30 22:31:13.295] [global] [info] [Transform Stage] Stage 1 compiled to x86 in 0.143635s
+[2021-03-30 22:31:13.295] [local ee] [info] split /data/tpch/q19/integer/lineitem.tbl into 25 tasks
+[2021-03-30 22:31:13.885] [driver] [info] [Task Finished] Transform to mem in 0.589627s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:14.463] [driver] [info] [Task Finished] Transform to mem in 0.578350s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:15.040] [driver] [info] [Task Finished] Transform to mem in 0.577072s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:15.623] [driver] [info] [Task Finished] Transform to mem in 0.582498s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:16.201] [driver] [info] [Task Finished] Transform to mem in 0.578516s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:16.780] [driver] [info] [Task Finished] Transform to mem in 0.578846s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:17.363] [driver] [info] [Task Finished] Transform to mem in 0.582580s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:17.943] [driver] [info] [Task Finished] Transform to mem in 0.580180s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:18.521] [driver] [info] [Task Finished] Transform to mem in 0.577427s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:19.098] [driver] [info] [Task Finished] Transform to mem in 0.577093s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:19.677] [driver] [info] [Task Finished] Transform to mem in 0.579024s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:20.253] [driver] [info] [Task Finished] Transform to mem in 0.576690s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:20.830] [driver] [info] [Task Finished] Transform to mem in 0.576534s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:21.406] [driver] [info] [Task Finished] Transform to mem in 0.575933s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:21.982] [driver] [info] [Task Finished] Transform to mem in 0.576414s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:22.562] [driver] [info] [Task Finished] Transform to mem in 0.579636s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:23.138] [driver] [info] [Task Finished] Transform to mem in 0.576454s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:23.714] [driver] [info] [Task Finished] Transform to mem in 0.575196s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:24.289] [driver] [info] [Task Finished] Transform to mem in 0.575649s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:24.868] [driver] [info] [Task Finished] Transform to mem in 0.578594s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:25.443] [driver] [info] [Task Finished] Transform to mem in 0.575223s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:26.018] [driver] [info] [Task Finished] Transform to mem in 0.575182s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:26.598] [driver] [info] [Task Finished] Transform to mem in 0.579542s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:27.174] [driver] [info] [Task Finished] Transform to mem in 0.576126s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:27.836] [driver] [info] [Task Finished] Transform to mem in 0.661421s (0 normal rows, 0 exceptions)
+[2021-03-30 22:31:27.836] [global] [info] [Transform Stage] Stage 1 completed 25 load&transform tasks in 14.5403s
+[2021-03-30 22:31:27.836] [global] [info] [Transform Stage] Stage 1 total wall clock time: 14.5398s, 59986052 input rows, time to process 1 row via fast path: 0.000242386ms
+[2021-03-30 22:31:27.836] [global] [info] [Transform Stage] Stage 1 completed 25 sink tasks in 3.1051e-05s
+[2021-03-30 22:31:27.836] [global] [info] [Transform Stage] Stage 1 took 14.684s
+[2021-03-30 22:31:27.836] [global] [info] [Transform Stage] skipped stage 2 because there is nothing todo here.
+[2021-03-30 22:31:27.836] [global] [info] Query Execution took 15.674s. (planning: 0.597772s, execution: 15.0762s)
+[2021-03-30 22:31:27.841] [python] [info] Data transfer back to Python took 0.000021 seconds
+Welcome to
+
+  _____            _
+ |_   _|   _ _ __ | | _____  __
+   | || | | | '_ \| |/ _ \ \/ /
+   | || |_| | |_) | |  __/>  <
+   |_| \__,_| .__/|_|\___/_/\_\ 0.1.7
+            |_|
+    
+using Python 3.6.9 (default, Mar 29 2021, 06:12:46) 
+[GCC 10.2.0] on linux
+end-to-end took: 16.0636088848114s
+Result::
+[30104438.091100037]
+framework,version,load,query,result
+tuplex,0.1.6,0,16.0636088848114,[30104438.091100037]
+[GLOBAL] Local engine terminated.
+[GLOBAL] releasing 2 active partitions

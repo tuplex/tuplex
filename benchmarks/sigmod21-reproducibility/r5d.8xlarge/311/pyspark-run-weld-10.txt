@@ -1,0 +1,2 @@
+PySpark startup time: 1.681671380996704
+{"startupTime": 1.681671380996704, "readTime": 150.33262157440186, "jobTime": 187.13217520713806}

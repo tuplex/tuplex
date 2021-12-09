@@ -1,0 +1,1142 @@
+21/03/24 14:11:04 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Using Spark's default log4j profile: org/apache/spark/log4j-defaults.properties
+21/03/24 14:11:05 INFO SparkContext: Running Spark version 2.4.7
+21/03/24 14:11:05 INFO SparkContext: Submitted application: read csv
+21/03/24 14:11:05 INFO SecurityManager: Changing view acls to: root
+21/03/24 14:11:05 INFO SecurityManager: Changing modify acls to: root
+21/03/24 14:11:05 INFO SecurityManager: Changing view acls groups to: 
+21/03/24 14:11:05 INFO SecurityManager: Changing modify acls groups to: 
+21/03/24 14:11:05 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users  with view permissions: Set(root); groups with view permissions: Set(); users  with modify permissions: Set(root); groups with modify permissions: Set()
+21/03/24 14:11:05 INFO Utils: Successfully started service 'sparkDriver' on port 44927.
+21/03/24 14:11:05 INFO SparkEnv: Registering MapOutputTracker
+21/03/24 14:11:05 INFO SparkEnv: Registering BlockManagerMaster
+21/03/24 14:11:05 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+21/03/24 14:11:05 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+21/03/24 14:11:05 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-5f8c3668-55a5-45a2-aa08-ec62ddae356c
+21/03/24 14:11:05 INFO MemoryStore: MemoryStore started with capacity 53.2 GB
+21/03/24 14:11:05 INFO SparkEnv: Registering OutputCommitCoordinator
+21/03/24 14:11:05 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+21/03/24 14:11:05 INFO SparkUI: Bound SparkUI to 0.0.0.0, and started at http://4e1bb76d17c5:4040
+21/03/24 14:11:05 INFO Executor: Starting executor ID driver on host localhost
+21/03/24 14:11:05 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 38477.
+21/03/24 14:11:05 INFO NettyBlockTransferService: Server created on 4e1bb76d17c5:38477
+21/03/24 14:11:05 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+21/03/24 14:11:05 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, 4e1bb76d17c5, 38477, None)
+21/03/24 14:11:05 INFO BlockManagerMasterEndpoint: Registering block manager 4e1bb76d17c5:38477 with 53.2 GB RAM, BlockManagerId(driver, 4e1bb76d17c5, 38477, None)
+21/03/24 14:11:05 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, 4e1bb76d17c5, 38477, None)
+21/03/24 14:11:05 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, 4e1bb76d17c5, 38477, None)
+21/03/24 14:11:06 INFO SharedState: Setting hive.metastore.warehouse.dir ('null') to the value of spark.sql.warehouse.dir ('file:/code/benchmark/zillow/Z1/spark-warehouse').
+21/03/24 14:11:06 INFO SharedState: Warehouse path is 'file:/code/benchmark/zillow/Z1/spark-warehouse'.
+21/03/24 14:11:06 INFO StateStoreCoordinatorRef: Registered StateStoreCoordinator endpoint
+21/03/24 14:11:06 INFO InMemoryFileIndex: It took 25 ms to list leaf files for 1 paths.
+21/03/24 14:11:06 INFO InMemoryFileIndex: It took 1 ms to list leaf files for 1 paths.
+21/03/24 14:11:08 INFO FileSourceStrategy: Pruning directories with: 
+21/03/24 14:11:08 INFO FileSourceStrategy: Post-Scan Filters: (length(trim(value#0, None)) > 0)
+21/03/24 14:11:08 INFO FileSourceStrategy: Output Data Schema: struct<value: string>
+21/03/24 14:11:08 INFO FileSourceScanExec: Pushed Filters: 
+21/03/24 14:11:08 INFO CodeGenerator: Code generated in 163.389583 ms
+21/03/24 14:11:08 INFO CodeGenerator: Code generated in 13.263682 ms
+21/03/24 14:11:08 INFO MemoryStore: Block broadcast_0 stored as values in memory (estimated size 360.3 KB, free 53.2 GB)
+21/03/24 14:11:08 INFO MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 23.4 KB, free 53.2 GB)
+21/03/24 14:11:08 INFO BlockManagerInfo: Added broadcast_0_piece0 in memory on 4e1bb76d17c5:38477 (size: 23.4 KB, free: 53.2 GB)
+21/03/24 14:11:08 INFO SparkContext: Created broadcast 0 from csv at NativeMethodAccessorImpl.java:0
+21/03/24 14:11:08 INFO FileSourceScanExec: Planning scan with bin packing, max size: 134217728 bytes, open cost is considered as scanning 4194304 bytes.
+21/03/24 14:11:08 INFO SparkContext: Starting job: csv at NativeMethodAccessorImpl.java:0
+21/03/24 14:11:08 INFO DAGScheduler: Got job 0 (csv at NativeMethodAccessorImpl.java:0) with 1 output partitions
+21/03/24 14:11:08 INFO DAGScheduler: Final stage: ResultStage 0 (csv at NativeMethodAccessorImpl.java:0)
+21/03/24 14:11:08 INFO DAGScheduler: Parents of final stage: List()
+21/03/24 14:11:08 INFO DAGScheduler: Missing parents: List()
+21/03/24 14:11:08 INFO DAGScheduler: Submitting ResultStage 0 (MapPartitionsRDD[3] at csv at NativeMethodAccessorImpl.java:0), which has no missing parents
+21/03/24 14:11:08 INFO MemoryStore: Block broadcast_1 stored as values in memory (estimated size 8.9 KB, free 53.2 GB)
+21/03/24 14:11:08 INFO MemoryStore: Block broadcast_1_piece0 stored as bytes in memory (estimated size 4.6 KB, free 53.2 GB)
+21/03/24 14:11:08 INFO BlockManagerInfo: Added broadcast_1_piece0 in memory on 4e1bb76d17c5:38477 (size: 4.6 KB, free: 53.2 GB)
+21/03/24 14:11:08 INFO SparkContext: Created broadcast 1 from broadcast at DAGScheduler.scala:1184
+21/03/24 14:11:08 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 0 (MapPartitionsRDD[3] at csv at NativeMethodAccessorImpl.java:0) (first 15 tasks are for partitions Vector(0))
+21/03/24 14:11:08 INFO TaskSchedulerImpl: Adding task set 0.0 with 1 tasks
+21/03/24 14:11:08 INFO TaskSetManager: Starting task 0.0 in stage 0.0 (TID 0, localhost, executor driver, partition 0, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:08 INFO Executor: Running task 0.0 in stage 0.0 (TID 0)
+21/03/24 14:11:08 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 0-134217728, partition values: [empty row]
+21/03/24 14:11:08 INFO CodeGenerator: Code generated in 7.621385 ms
+21/03/24 14:11:08 INFO Executor: Finished task 0.0 in stage 0.0 (TID 0). 1362 bytes result sent to driver
+21/03/24 14:11:08 INFO TaskSetManager: Finished task 0.0 in stage 0.0 (TID 0) in 96 ms on localhost (executor driver) (1/1)
+21/03/24 14:11:08 INFO TaskSchedulerImpl: Removed TaskSet 0.0, whose tasks have all completed, from pool 
+21/03/24 14:11:08 INFO DAGScheduler: ResultStage 0 (csv at NativeMethodAccessorImpl.java:0) finished in 0.162 s
+21/03/24 14:11:08 INFO DAGScheduler: Job 0 finished: csv at NativeMethodAccessorImpl.java:0, took 0.193366 s
+21/03/24 14:11:08 INFO FileSourceStrategy: Pruning directories with: 
+21/03/24 14:11:08 INFO FileSourceStrategy: Post-Scan Filters: 
+21/03/24 14:11:08 INFO FileSourceStrategy: Output Data Schema: struct<value: string>
+21/03/24 14:11:08 INFO FileSourceScanExec: Pushed Filters: 
+21/03/24 14:11:08 INFO CodeGenerator: Code generated in 6.013439 ms
+21/03/24 14:11:08 INFO MemoryStore: Block broadcast_2 stored as values in memory (estimated size 360.3 KB, free 53.2 GB)
+21/03/24 14:11:08 INFO MemoryStore: Block broadcast_2_piece0 stored as bytes in memory (estimated size 23.4 KB, free 53.2 GB)
+21/03/24 14:11:08 INFO BlockManagerInfo: Added broadcast_2_piece0 in memory on 4e1bb76d17c5:38477 (size: 23.4 KB, free: 53.2 GB)
+21/03/24 14:11:08 INFO SparkContext: Created broadcast 2 from csv at NativeMethodAccessorImpl.java:0
+21/03/24 14:11:08 INFO FileSourceScanExec: Planning scan with bin packing, max size: 134217728 bytes, open cost is considered as scanning 4194304 bytes.
+21/03/24 14:11:09 INFO FileSourceStrategy: Pruning directories with: 
+21/03/24 14:11:09 INFO FileSourceStrategy: Post-Scan Filters: 
+21/03/24 14:11:09 INFO FileSourceStrategy: Output Data Schema: struct<title: string, address: string, city: string, state: string, postal_code: string ... 8 more fields>
+21/03/24 14:11:09 INFO FileSourceScanExec: Pushed Filters: 
+21/03/24 14:11:09 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:09 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:09 INFO CodeGenerator: Code generated in 17.055307 ms
+21/03/24 14:11:09 INFO CodeGenerator: Code generated in 13.369364 ms
+21/03/24 14:11:09 INFO CodeGenerator: Code generated in 11.939071 ms
+21/03/24 14:11:09 INFO CodeGenerator: Code generated in 13.913499 ms
+21/03/24 14:11:09 INFO MemoryStore: Block broadcast_3 stored as values in memory (estimated size 360.1 KB, free 53.2 GB)
+21/03/24 14:11:09 INFO MemoryStore: Block broadcast_3_piece0 stored as bytes in memory (estimated size 23.5 KB, free 53.2 GB)
+21/03/24 14:11:09 INFO BlockManagerInfo: Added broadcast_3_piece0 in memory on 4e1bb76d17c5:38477 (size: 23.5 KB, free: 53.2 GB)
+21/03/24 14:11:09 INFO SparkContext: Created broadcast 3 from csv at NativeMethodAccessorImpl.java:0
+21/03/24 14:11:09 INFO FileSourceScanExec: Planning scan with bin packing, max size: 134217728 bytes, open cost is considered as scanning 4194304 bytes.
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 10
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 30
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 15
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 22
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 23
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 18
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 31
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 19
+21/03/24 14:11:09 INFO BlockManagerInfo: Removed broadcast_1_piece0 on 4e1bb76d17c5:38477 in memory (size: 4.6 KB, free: 53.2 GB)
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 7
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 14
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 25
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 28
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 24
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 8
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 29
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 26
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 17
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 12
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 13
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 9
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 16
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 27
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 20
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 21
+21/03/24 14:11:09 INFO ContextCleaner: Cleaned accumulator 11
+21/03/24 14:11:09 INFO SparkContext: Starting job: csv at NativeMethodAccessorImpl.java:0
+21/03/24 14:11:09 INFO DAGScheduler: Got job 1 (csv at NativeMethodAccessorImpl.java:0) with 75 output partitions
+21/03/24 14:11:09 INFO DAGScheduler: Final stage: ResultStage 1 (csv at NativeMethodAccessorImpl.java:0)
+21/03/24 14:11:09 INFO DAGScheduler: Parents of final stage: List()
+21/03/24 14:11:09 INFO DAGScheduler: Missing parents: List()
+21/03/24 14:11:09 INFO DAGScheduler: Submitting ResultStage 1 (MapPartitionsRDD[23] at csv at NativeMethodAccessorImpl.java:0), which has no missing parents
+21/03/24 14:11:09 INFO MemoryStore: Block broadcast_4 stored as values in memory (estimated size 187.3 KB, free 53.2 GB)
+21/03/24 14:11:09 INFO MemoryStore: Block broadcast_4_piece0 stored as bytes in memory (estimated size 65.7 KB, free 53.2 GB)
+21/03/24 14:11:09 INFO BlockManagerInfo: Added broadcast_4_piece0 in memory on 4e1bb76d17c5:38477 (size: 65.7 KB, free: 53.2 GB)
+21/03/24 14:11:09 INFO SparkContext: Created broadcast 4 from broadcast at DAGScheduler.scala:1184
+21/03/24 14:11:09 INFO DAGScheduler: Submitting 75 missing tasks from ResultStage 1 (MapPartitionsRDD[23] at csv at NativeMethodAccessorImpl.java:0) (first 15 tasks are for partitions Vector(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+21/03/24 14:11:09 INFO TaskSchedulerImpl: Adding task set 1.0 with 75 tasks
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 0.0 in stage 1.0 (TID 1, localhost, executor driver, partition 0, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 1.0 in stage 1.0 (TID 2, localhost, executor driver, partition 1, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 2.0 in stage 1.0 (TID 3, localhost, executor driver, partition 2, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 3.0 in stage 1.0 (TID 4, localhost, executor driver, partition 3, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 4.0 in stage 1.0 (TID 5, localhost, executor driver, partition 4, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 5.0 in stage 1.0 (TID 6, localhost, executor driver, partition 5, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 6.0 in stage 1.0 (TID 7, localhost, executor driver, partition 6, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 7.0 in stage 1.0 (TID 8, localhost, executor driver, partition 7, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 8.0 in stage 1.0 (TID 9, localhost, executor driver, partition 8, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 9.0 in stage 1.0 (TID 10, localhost, executor driver, partition 9, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 10.0 in stage 1.0 (TID 11, localhost, executor driver, partition 10, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 11.0 in stage 1.0 (TID 12, localhost, executor driver, partition 11, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 12.0 in stage 1.0 (TID 13, localhost, executor driver, partition 12, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 13.0 in stage 1.0 (TID 14, localhost, executor driver, partition 13, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 14.0 in stage 1.0 (TID 15, localhost, executor driver, partition 14, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO TaskSetManager: Starting task 15.0 in stage 1.0 (TID 16, localhost, executor driver, partition 15, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:09 INFO Executor: Running task 0.0 in stage 1.0 (TID 1)
+21/03/24 14:11:09 INFO Executor: Running task 1.0 in stage 1.0 (TID 2)
+21/03/24 14:11:09 INFO Executor: Running task 2.0 in stage 1.0 (TID 3)
+21/03/24 14:11:09 INFO Executor: Running task 3.0 in stage 1.0 (TID 4)
+21/03/24 14:11:09 INFO Executor: Running task 5.0 in stage 1.0 (TID 6)
+21/03/24 14:11:09 INFO Executor: Running task 4.0 in stage 1.0 (TID 5)
+21/03/24 14:11:09 INFO Executor: Running task 6.0 in stage 1.0 (TID 7)
+21/03/24 14:11:09 INFO Executor: Running task 7.0 in stage 1.0 (TID 8)
+21/03/24 14:11:09 INFO Executor: Running task 8.0 in stage 1.0 (TID 9)
+21/03/24 14:11:09 INFO Executor: Running task 9.0 in stage 1.0 (TID 10)
+21/03/24 14:11:09 INFO Executor: Running task 10.0 in stage 1.0 (TID 11)
+21/03/24 14:11:09 INFO Executor: Running task 13.0 in stage 1.0 (TID 14)
+21/03/24 14:11:09 INFO Executor: Running task 12.0 in stage 1.0 (TID 13)
+21/03/24 14:11:09 INFO Executor: Running task 11.0 in stage 1.0 (TID 12)
+21/03/24 14:11:09 INFO Executor: Running task 14.0 in stage 1.0 (TID 15)
+21/03/24 14:11:09 INFO Executor: Running task 15.0 in stage 1.0 (TID 16)
+21/03/24 14:11:09 INFO CodeGenerator: Code generated in 11.236059 ms
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 671088640-805306368, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 1073741824-1207959552, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 1207959552-1342177280, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 1342177280-1476395008, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 805306368-939524096, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 939524096-1073741824, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 134217728-268435456, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 0-134217728, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 536870912-671088640, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 1879048192-2013265920, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 402653184-536870912, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 268435456-402653184, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 1610612736-1744830464, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 1476395008-1610612736, partition values: [empty row]
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 2013265920-2147483648, partition values: [empty row]
+21/03/24 14:11:10 INFO CodeGenerator: Code generated in 17.97832 ms
+21/03/24 14:11:10 INFO CodeGenerator: Code generated in 19.06702 ms
+21/03/24 14:11:10 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 1744830464-1879048192, partition values: [empty row]
+21/03/24 14:11:10 INFO CodeGenerator: Code generated in 7.908044 ms
+21/03/24 14:11:10 INFO ContextCleaner: Cleaned accumulator 3
+21/03/24 14:11:10 INFO ContextCleaner: Cleaned accumulator 4
+21/03/24 14:11:10 INFO ContextCleaner: Cleaned accumulator 34
+21/03/24 14:11:10 INFO ContextCleaner: Cleaned accumulator 6
+21/03/24 14:11:10 INFO ContextCleaner: Cleaned accumulator 32
+21/03/24 14:11:10 INFO CodeGenerator: Code generated in 268.849845 ms
+21/03/24 14:11:10 INFO BlockManagerInfo: Removed broadcast_0_piece0 on 4e1bb76d17c5:38477 in memory (size: 23.4 KB, free: 53.2 GB)
+21/03/24 14:11:10 INFO CodeGenerator: Code generated in 8.022197 ms
+21/03/24 14:11:10 INFO ContextCleaner: Cleaned accumulator 35
+21/03/24 14:11:10 INFO ContextCleaner: Cleaned accumulator 36
+21/03/24 14:11:10 INFO ContextCleaner: Cleaned accumulator 2
+21/03/24 14:11:10 INFO ContextCleaner: Cleaned accumulator 33
+21/03/24 14:11:10 INFO CodeGenerator: Code generated in 45.633625 ms
+21/03/24 14:11:10 INFO BlockManagerInfo: Removed broadcast_2_piece0 on 4e1bb76d17c5:38477 in memory (size: 23.4 KB, free: 53.2 GB)
+21/03/24 14:11:10 INFO CodeGenerator: Code generated in 41.07518 ms
+21/03/24 14:11:10 INFO ContextCleaner: Cleaned accumulator 5
+21/03/24 14:11:10 INFO ContextCleaner: Cleaned accumulator 1
+21/03/24 14:11:11 INFO CodeGenerator: Code generated in 288.045946 ms
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:11 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:11 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:20 INFO PythonUDFRunner: Times: total = 10185, boot = 381, init = 590, finish = 9214
+21/03/24 14:11:20 INFO PythonUDFRunner: Times: total = 9865, boot = 412, init = 1499, finish = 7954
+21/03/24 14:11:20 INFO PythonUDFRunner: Times: total = 9630, boot = 78, init = 4084, finish = 5468
+21/03/24 14:11:20 INFO PythonUDFRunner: Times: total = 10508, boot = 378, init = 608, finish = 9522
+21/03/24 14:11:20 INFO PythonUDFRunner: Times: total = 10268, boot = 426, init = 1499, finish = 8343
+21/03/24 14:11:20 INFO PythonUDFRunner: Times: total = 10751, boot = 385, init = 567, finish = 9799
+21/03/24 14:11:20 INFO PythonUDFRunner: Times: total = 10304, boot = 439, init = 1730, finish = 8135
+21/03/24 14:11:20 INFO PythonUDFRunner: Times: total = 9905, boot = 134, init = 4304, finish = 5467
+21/03/24 14:11:20 INFO PythonUDFRunner: Times: total = 9910, boot = 128, init = 4464, finish = 5318
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11188, boot = 406, init = 556, finish = 10226
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10751, boot = 133, init = 2006, finish = 8612
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 9466, boot = 46, init = 4110, finish = 5310
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11261, boot = 396, init = 565, finish = 10300
+21/03/24 14:11:21 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000006_7' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000006
+21/03/24 14:11:21 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000006_7: Committed
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10811, boot = 441, init = 1509, finish = 8861
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 9595, boot = 494, init = 3600, finish = 5501
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10386, boot = 14, init = 5990, finish = 4382
+21/03/24 14:11:21 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000010_11' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000010
+21/03/24 14:11:21 INFO Executor: Finished task 6.0 in stage 1.0 (TID 7). 3635 bytes result sent to driver
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11335, boot = 387, init = 572, finish = 10376
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11340, boot = 376, init = 586, finish = 10378
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10888, boot = 390, init = 1372, finish = 9126
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10433, boot = 119, init = 4613, finish = 5701
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10885, boot = 417, init = 1315, finish = 9153
+21/03/24 14:11:21 INFO TaskSetManager: Starting task 16.0 in stage 1.0 (TID 17, localhost, executor driver, partition 16, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:21 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000010_11: Committed
+21/03/24 14:11:21 INFO Executor: Running task 16.0 in stage 1.0 (TID 17)
+21/03/24 14:11:21 INFO TaskSetManager: Finished task 6.0 in stage 1.0 (TID 7) in 11533 ms on localhost (executor driver) (1/75)
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10530, boot = 138, init = 5372, finish = 5020
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10525, boot = 120, init = 4220, finish = 6185
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 9881, boot = 178, init = 4324, finish = 5379
+21/03/24 14:11:21 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000009_10' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000009
+21/03/24 14:11:21 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000009_10: Committed
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10277, boot = 759, init = 3928, finish = 5590
+21/03/24 14:11:21 INFO PythonAccumulatorV2: Connected to AccumulatorServer at host: 127.0.0.1 port: 42811
+21/03/24 14:11:21 INFO Executor: Finished task 9.0 in stage 1.0 (TID 10). 3592 bytes result sent to driver
+21/03/24 14:11:21 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000000_1' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000000
+21/03/24 14:11:21 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000000_1: Committed
+21/03/24 14:11:21 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 2147483648-2281701376, partition values: [empty row]
+21/03/24 14:11:21 INFO TaskSetManager: Starting task 17.0 in stage 1.0 (TID 18, localhost, executor driver, partition 17, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:21 INFO Executor: Running task 17.0 in stage 1.0 (TID 18)
+21/03/24 14:11:21 INFO TaskSetManager: Finished task 9.0 in stage 1.0 (TID 10) in 11729 ms on localhost (executor driver) (2/75)
+21/03/24 14:11:21 INFO Executor: Finished task 10.0 in stage 1.0 (TID 11). 3635 bytes result sent to driver
+21/03/24 14:11:21 INFO Executor: Finished task 0.0 in stage 1.0 (TID 1). 3592 bytes result sent to driver
+21/03/24 14:11:21 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 2281701376-2415919104, partition values: [empty row]
+21/03/24 14:11:21 INFO TaskSetManager: Starting task 18.0 in stage 1.0 (TID 19, localhost, executor driver, partition 18, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:21 INFO Executor: Running task 18.0 in stage 1.0 (TID 19)
+21/03/24 14:11:21 INFO TaskSetManager: Finished task 10.0 in stage 1.0 (TID 11) in 11779 ms on localhost (executor driver) (3/75)
+21/03/24 14:11:21 INFO TaskSetManager: Starting task 19.0 in stage 1.0 (TID 20, localhost, executor driver, partition 19, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:21 INFO Executor: Running task 19.0 in stage 1.0 (TID 20)
+21/03/24 14:11:21 INFO TaskSetManager: Finished task 0.0 in stage 1.0 (TID 1) in 11782 ms on localhost (executor driver) (4/75)
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11682, boot = 404, init = 558, finish = 10720
+21/03/24 14:11:21 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 2415919104-2550136832, partition values: [empty row]
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11229, boot = 375, init = 1763, finish = 9091
+21/03/24 14:11:21 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 2550136832-2684354560, partition values: [empty row]
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11738, boot = 412, init = 562, finish = 10764
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10256, boot = 491, init = 5423, finish = 4342
+21/03/24 14:11:21 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000002_3' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000002
+21/03/24 14:11:21 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000002_3: Committed
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11285, boot = 116, init = 2259, finish = 8910
+21/03/24 14:11:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10852, boot = 3, init = 4634, finish = 6215
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10372, boot = 706, init = 3514, finish = 6152
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11785, boot = 390, init = 574, finish = 10821
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10355, boot = 161, init = 5228, finish = 4966
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10929, boot = 48, init = 5162, finish = 5719
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11369, boot = 415, init = 1760, finish = 9194
+21/03/24 14:11:21 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000007_8' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000007
+21/03/24 14:11:21 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000007_8: Committed
+21/03/24 14:11:21 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000005_6' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000005
+21/03/24 14:11:21 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000005_6: Committed
+21/03/24 14:11:21 INFO Executor: Finished task 2.0 in stage 1.0 (TID 3). 3592 bytes result sent to driver
+21/03/24 14:11:21 INFO TaskSetManager: Starting task 20.0 in stage 1.0 (TID 21, localhost, executor driver, partition 20, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:21 INFO Executor: Running task 20.0 in stage 1.0 (TID 21)
+21/03/24 14:11:21 INFO TaskSetManager: Finished task 2.0 in stage 1.0 (TID 3) in 11991 ms on localhost (executor driver) (5/75)
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 10982, boot = 63, init = 6005, finish = 4914
+21/03/24 14:11:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:21 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 2684354560-2818572288, partition values: [empty row]
+21/03/24 14:11:21 INFO Executor: Finished task 5.0 in stage 1.0 (TID 6). 3592 bytes result sent to driver
+21/03/24 14:11:21 INFO Executor: Finished task 7.0 in stage 1.0 (TID 8). 3592 bytes result sent to driver
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11906, boot = 409, init = 554, finish = 10943
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11479, boot = 372, init = 1540, finish = 9567
+21/03/24 14:11:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:21 INFO TaskSetManager: Starting task 21.0 in stage 1.0 (TID 22, localhost, executor driver, partition 21, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:21 INFO Executor: Running task 21.0 in stage 1.0 (TID 22)
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11103, boot = 7, init = 5262, finish = 5834
+21/03/24 14:11:21 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 2818572288-2952790016, partition values: [empty row]
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 12115, boot = 417, init = 538, finish = 11160
+21/03/24 14:11:21 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:21 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 12125, boot = 401, init = 565, finish = 11159
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11672, boot = 378, init = 1748, finish = 9546
+21/03/24 14:11:21 INFO PythonUDFRunner: Times: total = 11663, boot = 424, init = 1848, finish = 9391
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 10764, boot = 226, init = 4865, finish = 5673
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 12192, boot = 399, init = 575, finish = 11218
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11293, boot = 104, init = 5019, finish = 6170
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11280, boot = 12, init = 6067, finish = 5201
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 12148, boot = 414, init = 577, finish = 11157
+21/03/24 14:11:22 INFO TaskSetManager: Starting task 22.0 in stage 1.0 (TID 23, localhost, executor driver, partition 22, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:22 INFO TaskSetManager: Finished task 5.0 in stage 1.0 (TID 6) in 12317 ms on localhost (executor driver) (6/75)
+21/03/24 14:11:22 INFO Executor: Running task 22.0 in stage 1.0 (TID 23)
+21/03/24 14:11:22 INFO TaskSetManager: Finished task 7.0 in stage 1.0 (TID 8) in 12319 ms on localhost (executor driver) (7/75)
+21/03/24 14:11:22 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:22 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11748, boot = 396, init = 1369, finish = 9983
+21/03/24 14:11:22 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000011_12' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000011
+21/03/24 14:11:22 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000011_12: Committed
+21/03/24 14:11:22 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 2952790016-3087007744, partition values: [empty row]
+21/03/24 14:11:22 INFO Executor: Finished task 11.0 in stage 1.0 (TID 12). 3592 bytes result sent to driver
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11742, boot = 381, init = 1506, finish = 9855
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 12247, boot = 383, init = 585, finish = 11279
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11362, boot = 36, init = 5487, finish = 5839
+21/03/24 14:11:22 INFO TaskSetManager: Starting task 23.0 in stage 1.0 (TID 24, localhost, executor driver, partition 23, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:22 INFO Executor: Running task 23.0 in stage 1.0 (TID 24)
+21/03/24 14:11:22 INFO TaskSetManager: Finished task 11.0 in stage 1.0 (TID 12) in 12395 ms on localhost (executor driver) (8/75)
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 10706, boot = 206, init = 4294, finish = 6206
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11362, boot = 85, init = 5316, finish = 5961
+21/03/24 14:11:22 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000003_4' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000003
+21/03/24 14:11:22 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000003_4: Committed
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11818, boot = 104, init = 2136, finish = 9578
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 10940, boot = 447, init = 4707, finish = 5786
+21/03/24 14:11:22 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000012_13' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000012
+21/03/24 14:11:22 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000012_13: Committed
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11092, boot = 687, init = 4294, finish = 6111
+21/03/24 14:11:22 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000013_14' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000013
+21/03/24 14:11:22 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000013_14: Committed
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11443, boot = 21, init = 6035, finish = 5387
+21/03/24 14:11:22 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 3087007744-3221225472, partition values: [empty row]
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 10821, boot = 232, init = 5788, finish = 4801
+21/03/24 14:11:22 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000001_2' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000001
+21/03/24 14:11:22 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000001_2: Committed
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11133, boot = 196, init = 5841, finish = 5096
+21/03/24 14:11:22 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000014_15' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000014
+21/03/24 14:11:22 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000014_15: Committed
+21/03/24 14:11:22 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:22 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:22 INFO Executor: Finished task 3.0 in stage 1.0 (TID 4). 3592 bytes result sent to driver
+21/03/24 14:11:22 INFO TaskSetManager: Starting task 24.0 in stage 1.0 (TID 25, localhost, executor driver, partition 24, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:22 INFO TaskSetManager: Finished task 3.0 in stage 1.0 (TID 4) in 12511 ms on localhost (executor driver) (9/75)
+21/03/24 14:11:22 INFO Executor: Running task 24.0 in stage 1.0 (TID 25)
+21/03/24 14:11:22 INFO Executor: Finished task 12.0 in stage 1.0 (TID 13). 3592 bytes result sent to driver
+21/03/24 14:11:22 INFO TaskSetManager: Starting task 25.0 in stage 1.0 (TID 26, localhost, executor driver, partition 25, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:22 INFO TaskSetManager: Finished task 12.0 in stage 1.0 (TID 13) in 12533 ms on localhost (executor driver) (10/75)
+21/03/24 14:11:22 INFO Executor: Finished task 13.0 in stage 1.0 (TID 14). 3592 bytes result sent to driver
+21/03/24 14:11:22 INFO TaskSetManager: Starting task 26.0 in stage 1.0 (TID 27, localhost, executor driver, partition 26, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:22 INFO TaskSetManager: Finished task 13.0 in stage 1.0 (TID 14) in 12533 ms on localhost (executor driver) (11/75)
+21/03/24 14:11:22 INFO Executor: Running task 26.0 in stage 1.0 (TID 27)
+21/03/24 14:11:22 INFO Executor: Finished task 14.0 in stage 1.0 (TID 15). 3592 bytes result sent to driver
+21/03/24 14:11:22 INFO TaskSetManager: Starting task 27.0 in stage 1.0 (TID 28, localhost, executor driver, partition 27, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:22 INFO Executor: Running task 27.0 in stage 1.0 (TID 28)
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11207, boot = 785, init = 4492, finish = 5930
+21/03/24 14:11:22 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:22 INFO Executor: Running task 25.0 in stage 1.0 (TID 26)
+21/03/24 14:11:22 INFO TaskSetManager: Finished task 14.0 in stage 1.0 (TID 15) in 12534 ms on localhost (executor driver) (12/75)
+21/03/24 14:11:22 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:22 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 3489660928-3623878656, partition values: [empty row]
+21/03/24 14:11:22 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000015_16' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000015
+21/03/24 14:11:22 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000015_16: Committed
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11203, boot = 430, init = 5080, finish = 5693
+21/03/24 14:11:22 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000004_5' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000004
+21/03/24 14:11:22 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000004_5: Committed
+21/03/24 14:11:22 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 3221225472-3355443200, partition values: [empty row]
+21/03/24 14:11:22 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:22 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:22 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 3623878656-3758096384, partition values: [empty row]
+21/03/24 14:11:22 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 3355443200-3489660928, partition values: [empty row]
+21/03/24 14:11:22 INFO Executor: Finished task 1.0 in stage 1.0 (TID 2). 3592 bytes result sent to driver
+21/03/24 14:11:22 INFO TaskSetManager: Starting task 28.0 in stage 1.0 (TID 29, localhost, executor driver, partition 28, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:22 INFO TaskSetManager: Finished task 1.0 in stage 1.0 (TID 2) in 12739 ms on localhost (executor driver) (13/75)
+21/03/24 14:11:22 INFO Executor: Running task 28.0 in stage 1.0 (TID 29)
+21/03/24 14:11:22 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 3758096384-3892314112, partition values: [empty row]
+21/03/24 14:11:22 INFO Executor: Finished task 4.0 in stage 1.0 (TID 5). 3592 bytes result sent to driver
+21/03/24 14:11:22 INFO TaskSetManager: Starting task 29.0 in stage 1.0 (TID 30, localhost, executor driver, partition 29, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:22 INFO Executor: Running task 29.0 in stage 1.0 (TID 30)
+21/03/24 14:11:22 INFO TaskSetManager: Finished task 4.0 in stage 1.0 (TID 5) in 12828 ms on localhost (executor driver) (14/75)
+21/03/24 14:11:22 INFO Executor: Finished task 15.0 in stage 1.0 (TID 16). 3592 bytes result sent to driver
+21/03/24 14:11:22 INFO TaskSetManager: Starting task 30.0 in stage 1.0 (TID 31, localhost, executor driver, partition 30, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:22 INFO Executor: Running task 30.0 in stage 1.0 (TID 31)
+21/03/24 14:11:22 INFO TaskSetManager: Finished task 15.0 in stage 1.0 (TID 16) in 12833 ms on localhost (executor driver) (15/75)
+21/03/24 14:11:22 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 4026531840-4160749568, partition values: [empty row]
+21/03/24 14:11:22 INFO PythonUDFRunner: Times: total = 11278, boot = 468, init = 5534, finish = 5276
+21/03/24 14:11:22 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000008_9' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000008
+21/03/24 14:11:22 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000008_9: Committed
+21/03/24 14:11:22 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:22 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:22 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 3892314112-4026531840, partition values: [empty row]
+21/03/24 14:11:22 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:22 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:22 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:22 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:22 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:22 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:23 INFO Executor: Finished task 8.0 in stage 1.0 (TID 9). 3592 bytes result sent to driver
+21/03/24 14:11:23 INFO TaskSetManager: Starting task 31.0 in stage 1.0 (TID 32, localhost, executor driver, partition 31, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:23 INFO Executor: Running task 31.0 in stage 1.0 (TID 32)
+21/03/24 14:11:23 INFO TaskSetManager: Finished task 8.0 in stage 1.0 (TID 9) in 13393 ms on localhost (executor driver) (16/75)
+21/03/24 14:11:23 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:23 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:23 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 4160749568-4294967296, partition values: [empty row]
+21/03/24 14:11:23 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:23 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:23 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:23 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:29 INFO PythonUDFRunner: Times: total = 8021, boot = -606, init = 734, finish = 7893
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8148, boot = -1071, init = 1141, finish = 8078
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8056, boot = -618, init = 1058, finish = 7616
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8184, boot = -624, init = 4067, finish = 4741
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8452, boot = -918, init = 1311, finish = 8059
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8381, boot = -609, init = 3221, finish = 5769
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8610, boot = -902, init = 1000, finish = 8512
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8083, boot = -836, init = 876, finish = 8043
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8539, boot = -886, init = 1320, finish = 8105
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8435, boot = -616, init = 3542, finish = 5509
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8845, boot = -1357, init = 1426, finish = 8776
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8822, boot = -1277, init = 1867, finish = 8232
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8016, boot = -579, init = 965, finish = 7630
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8156, boot = -574, init = 3485, finish = 5245
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8865, boot = -1097, init = 4446, finish = 5516
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8020, boot = -1217, init = 4514, finish = 4723
+21/03/24 14:11:30 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000020_21' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000020
+21/03/24 14:11:30 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000020_21: Committed
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8543, boot = -634, init = 786, finish = 8391
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8515, boot = -675, init = 1256, finish = 7934
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8360, boot = -1321, init = 3923, finish = 5758
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8548, boot = -608, init = 4258, finish = 4898
+21/03/24 14:11:30 INFO Executor: Finished task 20.0 in stage 1.0 (TID 21). 3592 bytes result sent to driver
+21/03/24 14:11:30 INFO TaskSetManager: Starting task 32.0 in stage 1.0 (TID 33, localhost, executor driver, partition 32, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:30 INFO TaskSetManager: Finished task 20.0 in stage 1.0 (TID 21) in 8792 ms on localhost (executor driver) (17/75)
+21/03/24 14:11:30 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000017_18' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000017
+21/03/24 14:11:30 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000017_18: Committed
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8815, boot = -872, init = 4150, finish = 5537
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 9032, boot = -920, init = 1165, finish = 8787
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8419, boot = -605, init = 654, finish = 8370
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8151, boot = -600, init = 3530, finish = 5221
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8575, boot = -645, init = 4301, finish = 4919
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8888, boot = -640, init = 1220, finish = 8308
+21/03/24 14:11:30 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000016_17' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000016
+21/03/24 14:11:30 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000016_17: Committed
+21/03/24 14:11:30 INFO Executor: Running task 32.0 in stage 1.0 (TID 33)
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8481, boot = -1028, init = 3960, finish = 5549
+21/03/24 14:11:30 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000021_22' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000021
+21/03/24 14:11:30 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000021_22: Committed
+21/03/24 14:11:30 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000018_19' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000018
+21/03/24 14:11:30 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000018_19: Committed
+21/03/24 14:11:30 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000022_23' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000022
+21/03/24 14:11:30 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000022_23: Committed
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8449, boot = -575, init = 1049, finish = 7975
+21/03/24 14:11:30 INFO Executor: Finished task 17.0 in stage 1.0 (TID 18). 3592 bytes result sent to driver
+21/03/24 14:11:30 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 4294967296-4429185024, partition values: [empty row]
+21/03/24 14:11:30 INFO TaskSetManager: Starting task 33.0 in stage 1.0 (TID 34, localhost, executor driver, partition 33, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:30 INFO Executor: Running task 33.0 in stage 1.0 (TID 34)
+21/03/24 14:11:30 INFO TaskSetManager: Finished task 17.0 in stage 1.0 (TID 18) in 9232 ms on localhost (executor driver) (18/75)
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8849, boot = -657, init = 4527, finish = 4979
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8527, boot = -992, init = 4167, finish = 5352
+21/03/24 14:11:30 INFO Executor: Finished task 18.0 in stage 1.0 (TID 19). 3592 bytes result sent to driver
+21/03/24 14:11:30 INFO Executor: Finished task 16.0 in stage 1.0 (TID 17). 3592 bytes result sent to driver
+21/03/24 14:11:30 INFO Executor: Finished task 22.0 in stage 1.0 (TID 23). 3592 bytes result sent to driver
+21/03/24 14:11:30 INFO Executor: Finished task 21.0 in stage 1.0 (TID 22). 3592 bytes result sent to driver
+21/03/24 14:11:30 INFO TaskSetManager: Starting task 34.0 in stage 1.0 (TID 35, localhost, executor driver, partition 34, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:30 INFO Executor: Running task 34.0 in stage 1.0 (TID 35)
+21/03/24 14:11:30 INFO TaskSetManager: Starting task 35.0 in stage 1.0 (TID 36, localhost, executor driver, partition 35, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:30 INFO Executor: Running task 35.0 in stage 1.0 (TID 36)
+21/03/24 14:11:30 INFO TaskSetManager: Starting task 36.0 in stage 1.0 (TID 37, localhost, executor driver, partition 36, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:30 INFO Executor: Running task 36.0 in stage 1.0 (TID 37)
+21/03/24 14:11:30 INFO TaskSetManager: Starting task 37.0 in stage 1.0 (TID 38, localhost, executor driver, partition 37, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:30 INFO Executor: Running task 37.0 in stage 1.0 (TID 38)
+21/03/24 14:11:30 INFO TaskSetManager: Finished task 21.0 in stage 1.0 (TID 22) in 8961 ms on localhost (executor driver) (19/75)
+21/03/24 14:11:30 INFO TaskSetManager: Finished task 18.0 in stage 1.0 (TID 19) in 9293 ms on localhost (executor driver) (20/75)
+21/03/24 14:11:30 INFO TaskSetManager: Finished task 22.0 in stage 1.0 (TID 23) in 8799 ms on localhost (executor driver) (21/75)
+21/03/24 14:11:30 INFO TaskSetManager: Finished task 16.0 in stage 1.0 (TID 17) in 9557 ms on localhost (executor driver) (22/75)
+21/03/24 14:11:30 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 4563402752-4697620480, partition values: [empty row]
+21/03/24 14:11:30 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 4429185024-4563402752, partition values: [empty row]
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8300, boot = -505, init = 564, finish = 8241
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8252, boot = -568, init = 1316, finish = 7504
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8550, boot = -609, init = 1030, finish = 8129
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8275, boot = -537, init = 1218, finish = 7594
+21/03/24 14:11:30 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:30 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8117, boot = -1108, init = 5399, finish = 3826
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8480, boot = -917, init = 4059, finish = 5338
+21/03/24 14:11:30 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:30 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:30 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 4697620480-4831838208, partition values: [empty row]
+21/03/24 14:11:30 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000023_24' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000023
+21/03/24 14:11:30 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000023_24: Committed
+21/03/24 14:11:30 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 4966055936-5100273664, partition values: [empty row]
+21/03/24 14:11:30 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:30 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:30 INFO PythonUDFRunner: Times: total = 8243, boot = -562, init = 3549, finish = 5256
+21/03/24 14:11:30 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 4831838208-4966055936, partition values: [empty row]
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8871, boot = -634, init = 4490, finish = 5015
+21/03/24 14:11:31 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000019_20' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000019
+21/03/24 14:11:31 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000019_20: Committed
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8103, boot = -642, init = 4938, finish = 3807
+21/03/24 14:11:31 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000028_29' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000028
+21/03/24 14:11:31 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000028_29: Committed
+21/03/24 14:11:31 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:31 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8815, boot = -603, init = 903, finish = 8515
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8759, boot = -567, init = 1623, finish = 7703
+21/03/24 14:11:31 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:31 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8615, boot = -571, init = 4312, finish = 4874
+21/03/24 14:11:31 INFO Executor: Finished task 28.0 in stage 1.0 (TID 29). 3635 bytes result sent to driver
+21/03/24 14:11:31 INFO Executor: Finished task 23.0 in stage 1.0 (TID 24). 3592 bytes result sent to driver
+21/03/24 14:11:31 INFO TaskSetManager: Starting task 38.0 in stage 1.0 (TID 39, localhost, executor driver, partition 38, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:31 INFO TaskSetManager: Starting task 39.0 in stage 1.0 (TID 40, localhost, executor driver, partition 39, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:31 INFO Executor: Finished task 19.0 in stage 1.0 (TID 20). 3592 bytes result sent to driver
+21/03/24 14:11:31 INFO TaskSetManager: Starting task 40.0 in stage 1.0 (TID 41, localhost, executor driver, partition 40, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:31 INFO Executor: Running task 38.0 in stage 1.0 (TID 39)
+21/03/24 14:11:31 INFO TaskSetManager: Finished task 23.0 in stage 1.0 (TID 24) in 9107 ms on localhost (executor driver) (23/75)
+21/03/24 14:11:31 INFO TaskSetManager: Finished task 28.0 in stage 1.0 (TID 29) in 8752 ms on localhost (executor driver) (24/75)
+21/03/24 14:11:31 INFO TaskSetManager: Finished task 19.0 in stage 1.0 (TID 20) in 9708 ms on localhost (executor driver) (25/75)
+21/03/24 14:11:31 INFO Executor: Running task 40.0 in stage 1.0 (TID 41)
+21/03/24 14:11:31 INFO Executor: Running task 39.0 in stage 1.0 (TID 40)
+21/03/24 14:11:31 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:31 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8258, boot = -565, init = 3555, finish = 5268
+21/03/24 14:11:31 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000027_28' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000027
+21/03/24 14:11:31 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000027_28: Committed
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8947, boot = -618, init = 883, finish = 8682
+21/03/24 14:11:31 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 5368709120-5502926848, partition values: [empty row]
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8688, boot = -507, init = 651, finish = 8544
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8773, boot = -502, init = 1610, finish = 7665
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8992, boot = -991, init = 1178, finish = 8805
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8959, boot = -556, init = 1657, finish = 7858
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8675, boot = -581, init = 1290, finish = 7966
+21/03/24 14:11:31 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 5100273664-5234491392, partition values: [empty row]
+21/03/24 14:11:31 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 5234491392-5368709120, partition values: [empty row]
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8778, boot = -867, init = 5519, finish = 4126
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8732, boot = -541, init = 4384, finish = 4889
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 9021, boot = -549, init = 4812, finish = 4758
+21/03/24 14:11:31 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:31 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:31 INFO Executor: Finished task 27.0 in stage 1.0 (TID 28). 3592 bytes result sent to driver
+21/03/24 14:11:31 INFO TaskSetManager: Starting task 41.0 in stage 1.0 (TID 42, localhost, executor driver, partition 41, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:31 INFO Executor: Running task 41.0 in stage 1.0 (TID 42)
+21/03/24 14:11:31 INFO TaskSetManager: Finished task 27.0 in stage 1.0 (TID 28) in 9160 ms on localhost (executor driver) (26/75)
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8062, boot = -1375, init = 4571, finish = 4866
+21/03/24 14:11:31 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000024_25' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000024
+21/03/24 14:11:31 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000024_25: Committed
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 9024, boot = -509, init = 813, finish = 8720
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8709, boot = -563, init = 4396, finish = 4876
+21/03/24 14:11:31 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 5502926848-5637144576, partition values: [empty row]
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8736, boot = -990, init = 2070, finish = 7656
+21/03/24 14:11:31 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:31 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:31 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000030_31' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000030
+21/03/24 14:11:31 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000030_31: Committed
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8588, boot = -634, init = 5122, finish = 4100
+21/03/24 14:11:31 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000025_26' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000025
+21/03/24 14:11:31 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000025_26: Committed
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8773, boot = -814, init = 5404, finish = 4183
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 9003, boot = -490, init = 4747, finish = 4746
+21/03/24 14:11:31 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000026_27' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000026
+21/03/24 14:11:31 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000026_27: Committed
+21/03/24 14:11:31 INFO Executor: Finished task 25.0 in stage 1.0 (TID 26). 3592 bytes result sent to driver
+21/03/24 14:11:31 INFO Executor: Finished task 24.0 in stage 1.0 (TID 25). 3592 bytes result sent to driver
+21/03/24 14:11:31 INFO TaskSetManager: Starting task 42.0 in stage 1.0 (TID 43, localhost, executor driver, partition 42, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:31 INFO Executor: Running task 42.0 in stage 1.0 (TID 43)
+21/03/24 14:11:31 INFO TaskSetManager: Starting task 43.0 in stage 1.0 (TID 44, localhost, executor driver, partition 43, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:31 INFO Executor: Running task 43.0 in stage 1.0 (TID 44)
+21/03/24 14:11:31 INFO TaskSetManager: Finished task 24.0 in stage 1.0 (TID 25) in 9484 ms on localhost (executor driver) (27/75)
+21/03/24 14:11:31 INFO TaskSetManager: Finished task 25.0 in stage 1.0 (TID 26) in 9461 ms on localhost (executor driver) (28/75)
+21/03/24 14:11:31 INFO Executor: Finished task 26.0 in stage 1.0 (TID 27). 3592 bytes result sent to driver
+21/03/24 14:11:31 INFO Executor: Finished task 30.0 in stage 1.0 (TID 31). 3592 bytes result sent to driver
+21/03/24 14:11:31 INFO TaskSetManager: Starting task 44.0 in stage 1.0 (TID 45, localhost, executor driver, partition 44, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:31 INFO Executor: Running task 44.0 in stage 1.0 (TID 45)
+21/03/24 14:11:31 INFO TaskSetManager: Starting task 45.0 in stage 1.0 (TID 46, localhost, executor driver, partition 45, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:31 INFO TaskSetManager: Finished task 26.0 in stage 1.0 (TID 27) in 9468 ms on localhost (executor driver) (29/75)
+21/03/24 14:11:31 INFO TaskSetManager: Finished task 30.0 in stage 1.0 (TID 31) in 9168 ms on localhost (executor driver) (30/75)
+21/03/24 14:11:31 INFO Executor: Running task 45.0 in stage 1.0 (TID 46)
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8593, boot = -1086, init = 1162, finish = 8517
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8538, boot = -1059, init = 1799, finish = 7798
+21/03/24 14:11:31 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:31 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:31 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:31 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:31 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 5637144576-5771362304, partition values: [empty row]
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8631, boot = -1092, init = 5368, finish = 4355
+21/03/24 14:11:31 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 5771362304-5905580032, partition values: [empty row]
+21/03/24 14:11:31 INFO PythonUDFRunner: Times: total = 8752, boot = -704, init = 5283, finish = 4173
+21/03/24 14:11:31 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 6039797760-6174015488, partition values: [empty row]
+21/03/24 14:11:31 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 5905580032-6039797760, partition values: [empty row]
+21/03/24 14:11:31 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000029_30' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000029
+21/03/24 14:11:31 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000029_30: Committed
+21/03/24 14:11:31 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:31 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:32 INFO Executor: Finished task 29.0 in stage 1.0 (TID 30). 3592 bytes result sent to driver
+21/03/24 14:11:32 INFO TaskSetManager: Starting task 46.0 in stage 1.0 (TID 47, localhost, executor driver, partition 46, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:32 INFO TaskSetManager: Finished task 29.0 in stage 1.0 (TID 30) in 9433 ms on localhost (executor driver) (31/75)
+21/03/24 14:11:32 INFO Executor: Running task 46.0 in stage 1.0 (TID 47)
+21/03/24 14:11:32 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:32 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:32 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:32 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:32 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 6174015488-6308233216, partition values: [empty row]
+21/03/24 14:11:32 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:32 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:32 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:32 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:32 INFO PythonUDFRunner: Times: total = 8631, boot = -1036, init = 5339, finish = 4328
+21/03/24 14:11:32 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000031_32' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000031
+21/03/24 14:11:32 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000031_32: Committed
+21/03/24 14:11:32 INFO Executor: Finished task 31.0 in stage 1.0 (TID 32). 3592 bytes result sent to driver
+21/03/24 14:11:32 INFO TaskSetManager: Starting task 47.0 in stage 1.0 (TID 48, localhost, executor driver, partition 47, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:32 INFO TaskSetManager: Finished task 31.0 in stage 1.0 (TID 32) in 9121 ms on localhost (executor driver) (32/75)
+21/03/24 14:11:32 INFO Executor: Running task 47.0 in stage 1.0 (TID 48)
+21/03/24 14:11:32 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 6308233216-6442450944, partition values: [empty row]
+21/03/24 14:11:32 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:32 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8830, boot = -873, init = 923, finish = 8780
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8795, boot = -1062, init = 1491, finish = 8366
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8712, boot = -630, init = 750, finish = 8592
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8601, boot = -848, init = 1338, finish = 8111
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8728, boot = -665, init = 677, finish = 8716
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8729, boot = -511, init = 1090, finish = 8150
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8850, boot = -656, init = 3876, finish = 5630
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8557, boot = -455, init = 3777, finish = 5235
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8927, boot = -793, init = 915, finish = 8805
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8825, boot = -713, init = 1203, finish = 8335
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8780, boot = -445, init = 4111, finish = 5114
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8920, boot = -516, init = 3981, finish = 5455
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8801, boot = -761, init = 3959, finish = 5603
+21/03/24 14:11:39 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000032_33' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000032
+21/03/24 14:11:39 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000032_33: Committed
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8401, boot = -610, init = 3796, finish = 5215
+21/03/24 14:11:39 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000035_36' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000035
+21/03/24 14:11:39 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000035_36: Committed
+21/03/24 14:11:39 INFO Executor: Finished task 32.0 in stage 1.0 (TID 33). 3592 bytes result sent to driver
+21/03/24 14:11:39 INFO Executor: Finished task 35.0 in stage 1.0 (TID 36). 3592 bytes result sent to driver
+21/03/24 14:11:39 INFO TaskSetManager: Starting task 48.0 in stage 1.0 (TID 49, localhost, executor driver, partition 48, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:39 INFO Executor: Running task 48.0 in stage 1.0 (TID 49)
+21/03/24 14:11:39 INFO TaskSetManager: Starting task 49.0 in stage 1.0 (TID 50, localhost, executor driver, partition 49, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:39 INFO TaskSetManager: Finished task 32.0 in stage 1.0 (TID 33) in 9281 ms on localhost (executor driver) (33/75)
+21/03/24 14:11:39 INFO Executor: Running task 49.0 in stage 1.0 (TID 50)
+21/03/24 14:11:39 INFO TaskSetManager: Finished task 35.0 in stage 1.0 (TID 36) in 9006 ms on localhost (executor driver) (34/75)
+21/03/24 14:11:39 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 6442450944-6576668672, partition values: [empty row]
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8800, boot = -494, init = 4163, finish = 5131
+21/03/24 14:11:39 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000034_35' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000034
+21/03/24 14:11:39 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000034_35: Committed
+21/03/24 14:11:39 INFO PythonUDFRunner: Times: total = 8924, boot = -636, init = 4119, finish = 5441
+21/03/24 14:11:39 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000033_34' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000033
+21/03/24 14:11:39 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000033_34: Committed
+21/03/24 14:11:39 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 6576668672-6710886400, partition values: [empty row]
+21/03/24 14:11:39 INFO Executor: Finished task 34.0 in stage 1.0 (TID 35). 3592 bytes result sent to driver
+21/03/24 14:11:39 INFO Executor: Finished task 33.0 in stage 1.0 (TID 34). 3592 bytes result sent to driver
+21/03/24 14:11:39 INFO TaskSetManager: Starting task 50.0 in stage 1.0 (TID 51, localhost, executor driver, partition 50, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:39 INFO Executor: Running task 50.0 in stage 1.0 (TID 51)
+21/03/24 14:11:39 INFO TaskSetManager: Starting task 51.0 in stage 1.0 (TID 52, localhost, executor driver, partition 51, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:39 INFO TaskSetManager: Finished task 34.0 in stage 1.0 (TID 35) in 9118 ms on localhost (executor driver) (35/75)
+21/03/24 14:11:39 INFO TaskSetManager: Finished task 33.0 in stage 1.0 (TID 34) in 9224 ms on localhost (executor driver) (36/75)
+21/03/24 14:11:39 INFO Executor: Running task 51.0 in stage 1.0 (TID 52)
+21/03/24 14:11:39 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 6710886400-6845104128, partition values: [empty row]
+21/03/24 14:11:40 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:40 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:40 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:40 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:40 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 6845104128-6979321856, partition values: [empty row]
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9348, boot = -602, init = 767, finish = 9183
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9233, boot = -514, init = 1055, finish = 8692
+21/03/24 14:11:40 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:40 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9347, boot = -508, init = 4648, finish = 5207
+21/03/24 14:11:40 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:40 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9095, boot = -870, init = 973, finish = 8992
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8590, boot = -560, init = 757, finish = 8393
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8851, boot = -666, init = 975, finish = 8542
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8340, boot = -577, init = 1654, finish = 7263
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8403, boot = -393, init = 4224, finish = 4572
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8772, boot = -733, init = 4284, finish = 5221
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9255, boot = -638, init = 4703, finish = 5190
+21/03/24 14:11:40 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000037_38' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000037
+21/03/24 14:11:40 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000037_38: Committed
+21/03/24 14:11:40 INFO Executor: Finished task 37.0 in stage 1.0 (TID 38). 3592 bytes result sent to driver
+21/03/24 14:11:40 INFO TaskSetManager: Starting task 52.0 in stage 1.0 (TID 53, localhost, executor driver, partition 52, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:40 INFO TaskSetManager: Finished task 37.0 in stage 1.0 (TID 38) in 9660 ms on localhost (executor driver) (37/75)
+21/03/24 14:11:40 INFO Executor: Running task 52.0 in stage 1.0 (TID 53)
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9046, boot = -620, init = 801, finish = 8865
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8831, boot = -934, init = 2168, finish = 7597
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9725, boot = -667, init = 861, finish = 9531
+21/03/24 14:11:40 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 6979321856-7113539584, partition values: [empty row]
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9570, boot = -863, init = 1383, finish = 9050
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8319, boot = -741, init = 4503, finish = 4557
+21/03/24 14:11:40 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000045_46' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000045
+21/03/24 14:11:40 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000045_46: Committed
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8883, boot = -961, init = 4990, finish = 4854
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9364, boot = -720, init = 758, finish = 9326
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9329, boot = -634, init = 1183, finish = 8780
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9654, boot = -510, init = 4707, finish = 5457
+21/03/24 14:11:40 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:40 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8675, boot = -806, init = 4273, finish = 5208
+21/03/24 14:11:40 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000039_40' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000039
+21/03/24 14:11:40 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000039_40: Committed
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9305, boot = -707, init = 4791, finish = 5221
+21/03/24 14:11:40 INFO Executor: Finished task 45.0 in stage 1.0 (TID 46). 3592 bytes result sent to driver
+21/03/24 14:11:40 INFO TaskSetManager: Starting task 53.0 in stage 1.0 (TID 54, localhost, executor driver, partition 53, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:40 INFO Executor: Running task 53.0 in stage 1.0 (TID 54)
+21/03/24 14:11:40 INFO TaskSetManager: Finished task 45.0 in stage 1.0 (TID 46) in 8943 ms on localhost (executor driver) (38/75)
+21/03/24 14:11:40 INFO Executor: Finished task 39.0 in stage 1.0 (TID 40). 3592 bytes result sent to driver
+21/03/24 14:11:40 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 7113539584-7247757312, partition values: [empty row]
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8988, boot = -501, init = 617, finish = 8872
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8909, boot = -552, init = 1766, finish = 7695
+21/03/24 14:11:40 INFO TaskSetManager: Starting task 54.0 in stage 1.0 (TID 55, localhost, executor driver, partition 54, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:40 INFO TaskSetManager: Finished task 39.0 in stage 1.0 (TID 40) in 9564 ms on localhost (executor driver) (39/75)
+21/03/24 14:11:40 INFO Executor: Running task 54.0 in stage 1.0 (TID 55)
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9551, boot = -971, init = 1234, finish = 9288
+21/03/24 14:11:40 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 7247757312-7381975040, partition values: [empty row]
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9298, boot = -646, init = 1589, finish = 8355
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9089, boot = -658, init = 810, finish = 8937
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8960, boot = -607, init = 1818, finish = 7749
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8871, boot = -807, init = 4839, finish = 4839
+21/03/24 14:11:40 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000041_42' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000041
+21/03/24 14:11:40 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000041_42: Committed
+21/03/24 14:11:40 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:40 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 8935, boot = -613, init = 4933, finish = 4615
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9003, boot = -593, init = 4577, finish = 5019
+21/03/24 14:11:40 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:40 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:40 INFO PythonUDFRunner: Times: total = 9388, boot = -651, init = 5000, finish = 5039
+21/03/24 14:11:40 INFO Executor: Finished task 41.0 in stage 1.0 (TID 42). 3592 bytes result sent to driver
+21/03/24 14:11:40 INFO TaskSetManager: Starting task 55.0 in stage 1.0 (TID 56, localhost, executor driver, partition 55, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:40 INFO TaskSetManager: Finished task 41.0 in stage 1.0 (TID 42) in 9489 ms on localhost (executor driver) (40/75)
+21/03/24 14:11:40 INFO Executor: Running task 55.0 in stage 1.0 (TID 56)
+21/03/24 14:11:40 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 7381975040-7516192768, partition values: [empty row]
+21/03/24 14:11:41 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:41 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 8952, boot = -666, init = 4632, finish = 4986
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9272, boot = -681, init = 4753, finish = 5200
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9586, boot = -472, init = 4619, finish = 5439
+21/03/24 14:11:41 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000043_44' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000043
+21/03/24 14:11:41 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000043_44: Committed
+21/03/24 14:11:41 INFO Executor: Finished task 43.0 in stage 1.0 (TID 44). 3592 bytes result sent to driver
+21/03/24 14:11:41 INFO TaskSetManager: Starting task 56.0 in stage 1.0 (TID 57, localhost, executor driver, partition 56, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:41 INFO Executor: Running task 56.0 in stage 1.0 (TID 57)
+21/03/24 14:11:41 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000040_41' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000040
+21/03/24 14:11:41 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000040_41: Committed
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9413, boot = -663, init = 864, finish = 9212
+21/03/24 14:11:41 INFO TaskSetManager: Finished task 43.0 in stage 1.0 (TID 44) in 9558 ms on localhost (executor driver) (41/75)
+21/03/24 14:11:41 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000036_37' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000036
+21/03/24 14:11:41 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000036_37: Committed
+21/03/24 14:11:41 INFO Executor: Finished task 40.0 in stage 1.0 (TID 41). 3592 bytes result sent to driver
+21/03/24 14:11:41 INFO TaskSetManager: Starting task 57.0 in stage 1.0 (TID 58, localhost, executor driver, partition 57, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:41 INFO TaskSetManager: Finished task 40.0 in stage 1.0 (TID 41) in 10072 ms on localhost (executor driver) (42/75)
+21/03/24 14:11:41 INFO Executor: Running task 57.0 in stage 1.0 (TID 58)
+21/03/24 14:11:41 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 7650410496-7784628224, partition values: [empty row]
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 8975, boot = -497, init = 545, finish = 8927
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 8917, boot = -581, init = 4873, finish = 4625
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9335, boot = -587, init = 1814, finish = 8108
+21/03/24 14:11:41 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000042_43' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000042
+21/03/24 14:11:41 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000042_43: Committed
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9030, boot = -416, init = 1545, finish = 7901
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9345, boot = -807, init = 5112, finish = 5040
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9355, boot = -663, init = 4994, finish = 5024
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9214, boot = -434, init = 516, finish = 9132
+21/03/24 14:11:41 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000038_39' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000038
+21/03/24 14:11:41 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000038_39: Committed
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9234, boot = -471, init = 1768, finish = 7937
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9076, boot = -629, init = 4844, finish = 4861
+21/03/24 14:11:41 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:41 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:41 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 7516192768-7650410496, partition values: [empty row]
+21/03/24 14:11:41 INFO Executor: Finished task 36.0 in stage 1.0 (TID 37). 3592 bytes result sent to driver
+21/03/24 14:11:41 INFO TaskSetManager: Starting task 58.0 in stage 1.0 (TID 59, localhost, executor driver, partition 58, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:41 INFO TaskSetManager: Finished task 36.0 in stage 1.0 (TID 37) in 10636 ms on localhost (executor driver) (43/75)
+21/03/24 14:11:41 INFO Executor: Running task 58.0 in stage 1.0 (TID 59)
+21/03/24 14:11:41 INFO Executor: Finished task 38.0 in stage 1.0 (TID 39). 3592 bytes result sent to driver
+21/03/24 14:11:41 INFO TaskSetManager: Starting task 59.0 in stage 1.0 (TID 60, localhost, executor driver, partition 59, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:41 INFO TaskSetManager: Finished task 38.0 in stage 1.0 (TID 39) in 10208 ms on localhost (executor driver) (44/75)
+21/03/24 14:11:41 INFO Executor: Running task 59.0 in stage 1.0 (TID 60)
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9280, boot = -767, init = 5608, finish = 4439
+21/03/24 14:11:41 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:41 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:41 INFO Executor: Finished task 42.0 in stage 1.0 (TID 43). 3592 bytes result sent to driver
+21/03/24 14:11:41 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 7784628224-7918845952, partition values: [empty row]
+21/03/24 14:11:41 INFO TaskSetManager: Starting task 60.0 in stage 1.0 (TID 61, localhost, executor driver, partition 60, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:41 INFO Executor: Running task 60.0 in stage 1.0 (TID 61)
+21/03/24 14:11:41 INFO TaskSetManager: Finished task 42.0 in stage 1.0 (TID 43) in 9837 ms on localhost (executor driver) (45/75)
+21/03/24 14:11:41 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 7918845952-8053063680, partition values: [empty row]
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9067, boot = -431, init = 4659, finish = 4839
+21/03/24 14:11:41 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000047_48' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000047
+21/03/24 14:11:41 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000047_48: Committed
+21/03/24 14:11:41 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:41 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:41 INFO Executor: Finished task 47.0 in stage 1.0 (TID 48). 3592 bytes result sent to driver
+21/03/24 14:11:41 INFO TaskSetManager: Starting task 61.0 in stage 1.0 (TID 62, localhost, executor driver, partition 61, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:41 INFO Executor: Running task 61.0 in stage 1.0 (TID 62)
+21/03/24 14:11:41 INFO TaskSetManager: Finished task 47.0 in stage 1.0 (TID 48) in 9505 ms on localhost (executor driver) (46/75)
+21/03/24 14:11:41 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 8053063680-8187281408, partition values: [empty row]
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9333, boot = -674, init = 4997, finish = 5010
+21/03/24 14:11:41 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000044_45' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000044
+21/03/24 14:11:41 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000044_45: Committed
+21/03/24 14:11:41 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:41 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:41 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 8187281408-8321499136, partition values: [empty row]
+21/03/24 14:11:41 INFO PythonUDFRunner: Times: total = 9276, boot = -382, init = 5244, finish = 4414
+21/03/24 14:11:41 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000046_47' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000046
+21/03/24 14:11:41 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000046_47: Committed
+21/03/24 14:11:41 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:41 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:42 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:42 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:42 INFO Executor: Finished task 44.0 in stage 1.0 (TID 45). 3592 bytes result sent to driver
+21/03/24 14:11:42 INFO Executor: Finished task 46.0 in stage 1.0 (TID 47). 3592 bytes result sent to driver
+21/03/24 14:11:42 INFO TaskSetManager: Starting task 62.0 in stage 1.0 (TID 63, localhost, executor driver, partition 62, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:42 INFO Executor: Running task 62.0 in stage 1.0 (TID 63)
+21/03/24 14:11:42 INFO TaskSetManager: Starting task 63.0 in stage 1.0 (TID 64, localhost, executor driver, partition 63, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:42 INFO TaskSetManager: Finished task 44.0 in stage 1.0 (TID 45) in 10310 ms on localhost (executor driver) (47/75)
+21/03/24 14:11:42 INFO TaskSetManager: Finished task 46.0 in stage 1.0 (TID 47) in 10051 ms on localhost (executor driver) (48/75)
+21/03/24 14:11:42 INFO Executor: Running task 63.0 in stage 1.0 (TID 64)
+21/03/24 14:11:42 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 8321499136-8455716864, partition values: [empty row]
+21/03/24 14:11:42 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 8455716864-8589934592, partition values: [empty row]
+21/03/24 14:11:42 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:42 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:42 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:42 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:46 INFO PythonUDFRunner: Times: total = 6546, boot = -381, init = 408, finish = 6519
+21/03/24 14:11:46 INFO PythonUDFRunner: Times: total = 6508, boot = -342, init = 978, finish = 5872
+21/03/24 14:11:46 INFO PythonUDFRunner: Times: total = 6598, boot = -360, init = 3215, finish = 3743
+21/03/24 14:11:46 INFO PythonUDFRunner: Times: total = 6582, boot = -360, init = 3215, finish = 3727
+21/03/24 14:11:46 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000050_51' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000050
+21/03/24 14:11:46 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000050_51: Committed
+21/03/24 14:11:46 INFO Executor: Finished task 50.0 in stage 1.0 (TID 51). 3592 bytes result sent to driver
+21/03/24 14:11:46 INFO TaskSetManager: Starting task 64.0 in stage 1.0 (TID 65, localhost, executor driver, partition 64, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:46 INFO TaskSetManager: Finished task 50.0 in stage 1.0 (TID 51) in 6829 ms on localhost (executor driver) (49/75)
+21/03/24 14:11:47 INFO Executor: Running task 64.0 in stage 1.0 (TID 65)
+21/03/24 14:11:47 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 8589934592-8724152320, partition values: [empty row]
+21/03/24 14:11:47 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:47 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:47 INFO PythonUDFRunner: Times: total = 7493, boot = -318, init = 344, finish = 7467
+21/03/24 14:11:47 INFO PythonUDFRunner: Times: total = 7469, boot = -308, init = 1042, finish = 6735
+21/03/24 14:11:47 INFO PythonUDFRunner: Times: total = 7569, boot = -353, init = 3440, finish = 4482
+21/03/24 14:11:47 INFO PythonUDFRunner: Times: total = 7444, boot = -378, init = 3354, finish = 4468
+21/03/24 14:11:47 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000048_49' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000048
+21/03/24 14:11:47 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000048_49: Committed
+21/03/24 14:11:47 INFO Executor: Finished task 48.0 in stage 1.0 (TID 49). 3635 bytes result sent to driver
+21/03/24 14:11:47 INFO TaskSetManager: Starting task 65.0 in stage 1.0 (TID 66, localhost, executor driver, partition 65, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:47 INFO TaskSetManager: Finished task 48.0 in stage 1.0 (TID 49) in 7813 ms on localhost (executor driver) (50/75)
+21/03/24 14:11:47 INFO Executor: Running task 65.0 in stage 1.0 (TID 66)
+21/03/24 14:11:47 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 8724152320-8858370048, partition values: [empty row]
+21/03/24 14:11:47 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:47 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:47 INFO PythonUDFRunner: Times: total = 8004, boot = -312, init = 411, finish = 7905
+21/03/24 14:11:47 INFO PythonUDFRunner: Times: total = 7737, boot = -458, init = 916, finish = 7279
+21/03/24 14:11:47 INFO PythonUDFRunner: Times: total = 7757, boot = -576, init = 2959, finish = 5374
+21/03/24 14:11:48 INFO PythonUDFRunner: Times: total = 7722, boot = -558, init = 3049, finish = 5231
+21/03/24 14:11:48 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000049_50' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000049
+21/03/24 14:11:48 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000049_50: Committed
+21/03/24 14:11:48 INFO Executor: Finished task 49.0 in stage 1.0 (TID 50). 3592 bytes result sent to driver
+21/03/24 14:11:48 INFO TaskSetManager: Starting task 66.0 in stage 1.0 (TID 67, localhost, executor driver, partition 66, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:48 INFO Executor: Running task 66.0 in stage 1.0 (TID 67)
+21/03/24 14:11:48 INFO TaskSetManager: Finished task 49.0 in stage 1.0 (TID 50) in 8361 ms on localhost (executor driver) (51/75)
+21/03/24 14:11:48 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 8858370048-8992587776, partition values: [empty row]
+21/03/24 14:11:48 INFO PythonUDFRunner: Times: total = 7721, boot = -315, init = 387, finish = 7649
+21/03/24 14:11:48 INFO PythonUDFRunner: Times: total = 7662, boot = -372, init = 826, finish = 7208
+21/03/24 14:11:48 INFO PythonUDFRunner: Times: total = 7708, boot = -255, init = 3558, finish = 4405
+21/03/24 14:11:48 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:48 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:48 INFO PythonUDFRunner: Times: total = 7665, boot = -239, init = 3521, finish = 4383
+21/03/24 14:11:48 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000052_53' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000052
+21/03/24 14:11:48 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000052_53: Committed
+21/03/24 14:11:48 INFO Executor: Finished task 52.0 in stage 1.0 (TID 53). 3592 bytes result sent to driver
+21/03/24 14:11:48 INFO TaskSetManager: Starting task 67.0 in stage 1.0 (TID 68, localhost, executor driver, partition 67, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:48 INFO Executor: Running task 67.0 in stage 1.0 (TID 68)
+21/03/24 14:11:48 INFO TaskSetManager: Finished task 52.0 in stage 1.0 (TID 53) in 8001 ms on localhost (executor driver) (52/75)
+21/03/24 14:11:48 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 8992587776-9126805504, partition values: [empty row]
+21/03/24 14:11:48 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:48 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:48 INFO PythonUDFRunner: Times: total = 8716, boot = -383, init = 600, finish = 8499
+21/03/24 14:11:48 INFO PythonUDFRunner: Times: total = 8488, boot = -406, init = 946, finish = 7948
+21/03/24 14:11:48 INFO PythonUDFRunner: Times: total = 8550, boot = -574, init = 4117, finish = 5007
+21/03/24 14:11:48 INFO PythonUDFRunner: Times: total = 8475, boot = -529, init = 4036, finish = 4968
+21/03/24 14:11:48 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000051_52' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000051
+21/03/24 14:11:48 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000051_52: Committed
+21/03/24 14:11:48 INFO Executor: Finished task 51.0 in stage 1.0 (TID 52). 3592 bytes result sent to driver
+21/03/24 14:11:48 INFO TaskSetManager: Starting task 68.0 in stage 1.0 (TID 69, localhost, executor driver, partition 68, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:48 INFO Executor: Running task 68.0 in stage 1.0 (TID 69)
+21/03/24 14:11:48 INFO TaskSetManager: Finished task 51.0 in stage 1.0 (TID 52) in 8985 ms on localhost (executor driver) (53/75)
+21/03/24 14:11:48 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 9126805504-9261023232, partition values: [empty row]
+21/03/24 14:11:49 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:49 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 8707, boot = -345, init = 371, finish = 8681
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 8694, boot = -523, init = 1153, finish = 8064
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 8752, boot = -328, init = 3908, finish = 5172
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 8740, boot = -345, init = 3924, finish = 5161
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 9020, boot = -340, init = 406, finish = 8954
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 8992, boot = -365, init = 1020, finish = 8337
+21/03/24 14:11:49 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000054_55' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000054
+21/03/24 14:11:49 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000054_55: Committed
+21/03/24 14:11:49 INFO Executor: Finished task 54.0 in stage 1.0 (TID 55). 3592 bytes result sent to driver
+21/03/24 14:11:49 INFO TaskSetManager: Starting task 69.0 in stage 1.0 (TID 70, localhost, executor driver, partition 69, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:49 INFO TaskSetManager: Finished task 54.0 in stage 1.0 (TID 55) in 8937 ms on localhost (executor driver) (54/75)
+21/03/24 14:11:49 INFO Executor: Running task 69.0 in stage 1.0 (TID 70)
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 8290, boot = -670, init = 810, finish = 8150
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 8143, boot = -1011, init = 1709, finish = 7445
+21/03/24 14:11:49 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 9261023232-9395240960, partition values: [empty row]
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 9067, boot = -396, init = 3823, finish = 5640
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 8058, boot = -848, init = 4383, finish = 4523
+21/03/24 14:11:49 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:49 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 7860, boot = -795, init = 853, finish = 7802
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 7809, boot = -717, init = 1508, finish = 7018
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 8646, boot = -690, init = 704, finish = 8632
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 9048, boot = -340, init = 3762, finish = 5626
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 8622, boot = -682, init = 1215, finish = 8089
+21/03/24 14:11:49 INFO PythonUDFRunner: Times: total = 7977, boot = -678, init = 4144, finish = 4511
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 7755, boot = -861, init = 4815, finish = 3801
+21/03/24 14:11:50 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000053_54' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000053
+21/03/24 14:11:50 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000053_54: Committed
+21/03/24 14:11:50 INFO Executor: Finished task 53.0 in stage 1.0 (TID 54). 3592 bytes result sent to driver
+21/03/24 14:11:50 INFO TaskSetManager: Starting task 70.0 in stage 1.0 (TID 71, localhost, executor driver, partition 70, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:50 INFO Executor: Running task 70.0 in stage 1.0 (TID 71)
+21/03/24 14:11:50 INFO TaskSetManager: Finished task 53.0 in stage 1.0 (TID 54) in 9310 ms on localhost (executor driver) (55/75)
+21/03/24 14:11:50 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 9395240960-9529458688, partition values: [empty row]
+21/03/24 14:11:50 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000058_59' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000058
+21/03/24 14:11:50 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000058_59: Committed
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 8296, boot = -1077, init = 1205, finish = 8168
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 8727, boot = -892, init = 5283, finish = 4336
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 8093, boot = -671, init = 1340, finish = 7424
+21/03/24 14:11:50 INFO Executor: Finished task 58.0 in stage 1.0 (TID 59). 3592 bytes result sent to driver
+21/03/24 14:11:50 INFO TaskSetManager: Starting task 71.0 in stage 1.0 (TID 72, localhost, executor driver, partition 71, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:50 INFO TaskSetManager: Finished task 58.0 in stage 1.0 (TID 59) in 8711 ms on localhost (executor driver) (56/75)
+21/03/24 14:11:50 INFO Executor: Running task 71.0 in stage 1.0 (TID 72)
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 9226, boot = -376, init = 501, finish = 9101
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 8159, boot = -668, init = 4309, finish = 4518
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 7729, boot = -821, init = 4775, finish = 3775
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 9191, boot = -428, init = 1435, finish = 8184
+21/03/24 14:11:50 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000063_64' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000063
+21/03/24 14:11:50 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000063_64: Committed
+21/03/24 14:11:50 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 9529458688-9663676416, partition values: [empty row]
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 8714, boot = -667, init = 5061, finish = 4320
+21/03/24 14:11:50 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000057_58' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000057
+21/03/24 14:11:50 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000057_58: Committed
+21/03/24 14:11:50 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:50 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 9272, boot = -561, init = 4884, finish = 4949
+21/03/24 14:11:50 INFO Executor: Finished task 63.0 in stage 1.0 (TID 64). 3592 bytes result sent to driver
+21/03/24 14:11:50 INFO TaskSetManager: Starting task 72.0 in stage 1.0 (TID 73, localhost, executor driver, partition 72, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:50 INFO TaskSetManager: Finished task 63.0 in stage 1.0 (TID 64) in 8298 ms on localhost (executor driver) (57/75)
+21/03/24 14:11:50 INFO Executor: Running task 72.0 in stage 1.0 (TID 73)
+21/03/24 14:11:50 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 9663676416-9797894144, partition values: [empty row]
+21/03/24 14:11:50 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:50 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 8146, boot = -649, init = 4311, finish = 4484
+21/03/24 14:11:50 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000061_62' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000061
+21/03/24 14:11:50 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000061_62: Committed
+21/03/24 14:11:50 INFO Executor: Finished task 61.0 in stage 1.0 (TID 62). 3592 bytes result sent to driver
+21/03/24 14:11:50 INFO TaskSetManager: Starting task 73.0 in stage 1.0 (TID 74, localhost, executor driver, partition 73, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:50 INFO Executor: Running task 73.0 in stage 1.0 (TID 74)
+21/03/24 14:11:50 INFO TaskSetManager: Finished task 61.0 in stage 1.0 (TID 62) in 8626 ms on localhost (executor driver) (58/75)
+21/03/24 14:11:50 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 9797894144-9932111872, partition values: [empty row]
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 8788, boot = -735, init = 938, finish = 8585
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 8659, boot = -1127, init = 1851, finish = 7935
+21/03/24 14:11:50 INFO Executor: Finished task 57.0 in stage 1.0 (TID 58). 3592 bytes result sent to driver
+21/03/24 14:11:50 INFO TaskSetManager: Starting task 74.0 in stage 1.0 (TID 75, localhost, executor driver, partition 74, PROCESS_LOCAL, 8269 bytes)
+21/03/24 14:11:50 INFO Executor: Running task 74.0 in stage 1.0 (TID 75)
+21/03/24 14:11:50 INFO TaskSetManager: Finished task 57.0 in stage 1.0 (TID 58) in 9203 ms on localhost (executor driver) (59/75)
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 8634, boot = -658, init = 4525, finish = 4767
+21/03/24 14:11:50 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:50 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:50 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:50 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:50 INFO FileScanRDD: Reading File path: file:///data/zillow/Z1_preprocessed/zillow_Z1_10G.csv, range: 9932111872-10000097349, partition values: [empty row]
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 9295, boot = -699, init = 801, finish = 9193
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 9174, boot = -664, init = 1534, finish = 8304
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 9255, boot = -424, init = 4756, finish = 4923
+21/03/24 14:11:50 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000055_56' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000055
+21/03/24 14:11:50 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000055_56: Committed
+21/03/24 14:11:50 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+21/03/24 14:11:50 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+21/03/24 14:11:50 INFO Executor: Finished task 55.0 in stage 1.0 (TID 56). 3592 bytes result sent to driver
+21/03/24 14:11:50 INFO TaskSetManager: Finished task 55.0 in stage 1.0 (TID 56) in 9770 ms on localhost (executor driver) (60/75)
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 9240, boot = -647, init = 5405, finish = 4482
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 8602, boot = -1051, init = 4900, finish = 4753
+21/03/24 14:11:50 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000060_61' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000060
+21/03/24 14:11:50 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000060_61: Committed
+21/03/24 14:11:50 INFO Executor: Finished task 60.0 in stage 1.0 (TID 61). 3592 bytes result sent to driver
+21/03/24 14:11:50 INFO TaskSetManager: Finished task 60.0 in stage 1.0 (TID 61) in 9194 ms on localhost (executor driver) (61/75)
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 9222, boot = -645, init = 5401, finish = 4466
+21/03/24 14:11:50 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000056_57' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000056
+21/03/24 14:11:50 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000056_57: Committed
+21/03/24 14:11:50 INFO Executor: Finished task 56.0 in stage 1.0 (TID 57). 3635 bytes result sent to driver
+21/03/24 14:11:50 INFO TaskSetManager: Finished task 56.0 in stage 1.0 (TID 57) in 9671 ms on localhost (executor driver) (62/75)
+21/03/24 14:11:50 INFO PythonUDFRunner: Times: total = 9545, boot = -637, init = 840, finish = 9342
+21/03/24 14:11:51 INFO PythonUDFRunner: Times: total = 9336, boot = -804, init = 1549, finish = 8591
+21/03/24 14:11:51 INFO PythonUDFRunner: Times: total = 9381, boot = -766, init = 5125, finish = 5022
+21/03/24 14:11:51 INFO PythonUDFRunner: Times: total = 9369, boot = -769, init = 5142, finish = 4996
+21/03/24 14:11:51 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000059_60' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000059
+21/03/24 14:11:51 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000059_60: Committed
+21/03/24 14:11:51 INFO PythonUDFRunner: Times: total = 9104, boot = -1144, init = 1174, finish = 9074
+21/03/24 14:11:51 INFO PythonUDFRunner: Times: total = 9061, boot = -732, init = 1523, finish = 8270
+21/03/24 14:11:51 INFO Executor: Finished task 59.0 in stage 1.0 (TID 60). 3592 bytes result sent to driver
+21/03/24 14:11:51 INFO TaskSetManager: Finished task 59.0 in stage 1.0 (TID 60) in 9759 ms on localhost (executor driver) (63/75)
+21/03/24 14:11:51 INFO PythonUDFRunner: Times: total = 9107, boot = -714, init = 5272, finish = 4549
+21/03/24 14:11:51 INFO PythonUDFRunner: Times: total = 9077, boot = -803, init = 5665, finish = 4215
+21/03/24 14:11:51 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000062_63' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000062
+21/03/24 14:11:51 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000062_63: Committed
+21/03/24 14:11:51 INFO Executor: Finished task 62.0 in stage 1.0 (TID 63). 3592 bytes result sent to driver
+21/03/24 14:11:51 INFO TaskSetManager: Finished task 62.0 in stage 1.0 (TID 63) in 9423 ms on localhost (executor driver) (64/75)
+21/03/24 14:11:53 INFO PythonUDFRunner: Times: total = 3198, boot = -339, init = 431, finish = 3106
+21/03/24 14:11:53 INFO PythonUDFRunner: Times: total = 3081, boot = -458, init = 1180, finish = 2359
+21/03/24 14:11:53 INFO PythonUDFRunner: Times: total = 3113, boot = -643, init = 3237, finish = 519
+21/03/24 14:11:53 INFO PythonUDFRunner: Times: total = 3094, boot = -506, init = 3110, finish = 490
+21/03/24 14:11:53 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000074_75' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000074
+21/03/24 14:11:53 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000074_75: Committed
+21/03/24 14:11:53 INFO Executor: Finished task 74.0 in stage 1.0 (TID 75). 3592 bytes result sent to driver
+21/03/24 14:11:53 INFO TaskSetManager: Finished task 74.0 in stage 1.0 (TID 75) in 3295 ms on localhost (executor driver) (65/75)
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 7089, boot = -560, init = 606, finish = 7043
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 7052, boot = -618, init = 1471, finish = 6199
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 7083, boot = -515, init = 3838, finish = 3760
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 7048, boot = -579, init = 3881, finish = 3746
+21/03/24 14:11:54 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000064_65' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000064
+21/03/24 14:11:54 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000064_65: Committed
+21/03/24 14:11:54 INFO Executor: Finished task 64.0 in stage 1.0 (TID 65). 3592 bytes result sent to driver
+21/03/24 14:11:54 INFO TaskSetManager: Finished task 64.0 in stage 1.0 (TID 65) in 7534 ms on localhost (executor driver) (66/75)
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 6463, boot = -348, init = 363, finish = 6448
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 7014, boot = -285, init = 320, finish = 6979
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 6453, boot = -356, init = 1169, finish = 5640
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 6982, boot = -328, init = 1032, finish = 6278
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 6430, boot = -325, init = 3303, finish = 3452
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 7013, boot = -233, init = 3499, finish = 3747
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 6386, boot = -376, init = 3328, finish = 3434
+21/03/24 14:11:54 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000066_67' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000066
+21/03/24 14:11:54 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000066_67: Committed
+21/03/24 14:11:54 INFO Executor: Finished task 66.0 in stage 1.0 (TID 67). 3592 bytes result sent to driver
+21/03/24 14:11:54 INFO TaskSetManager: Finished task 66.0 in stage 1.0 (TID 67) in 6581 ms on localhost (executor driver) (67/75)
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 7016, boot = -258, init = 3526, finish = 3748
+21/03/24 14:11:54 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000065_66' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000065
+21/03/24 14:11:54 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000065_66: Committed
+21/03/24 14:11:54 INFO Executor: Finished task 65.0 in stage 1.0 (TID 66). 3592 bytes result sent to driver
+21/03/24 14:11:54 INFO TaskSetManager: Finished task 65.0 in stage 1.0 (TID 66) in 7157 ms on localhost (executor driver) (68/75)
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 6366, boot = -237, init = 261, finish = 6342
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 6336, boot = -291, init = 944, finish = 5683
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 6341, boot = -221, init = 2906, finish = 3656
+21/03/24 14:11:54 INFO PythonUDFRunner: Times: total = 6316, boot = -278, init = 2950, finish = 3644
+21/03/24 14:11:54 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000067_68' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000067
+21/03/24 14:11:54 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000067_68: Committed
+21/03/24 14:11:54 INFO Executor: Finished task 67.0 in stage 1.0 (TID 68). 3592 bytes result sent to driver
+21/03/24 14:11:54 INFO TaskSetManager: Finished task 67.0 in stage 1.0 (TID 68) in 6463 ms on localhost (executor driver) (69/75)
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 6520, boot = -252, init = 289, finish = 6483
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 6493, boot = -291, init = 1028, finish = 5756
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 6487, boot = -231, init = 3770, finish = 2948
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 6448, boot = -286, init = 3811, finish = 2923
+21/03/24 14:11:55 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000068_69' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000068
+21/03/24 14:11:55 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000068_69: Committed
+21/03/24 14:11:55 INFO Executor: Finished task 68.0 in stage 1.0 (TID 69). 3592 bytes result sent to driver
+21/03/24 14:11:55 INFO TaskSetManager: Finished task 68.0 in stage 1.0 (TID 69) in 6619 ms on localhost (executor driver) (70/75)
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 5792, boot = -214, init = 263, finish = 5743
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 5746, boot = -271, init = 867, finish = 5150
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 5753, boot = -231, init = 3028, finish = 2956
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 5733, boot = -262, init = 3051, finish = 2944
+21/03/24 14:11:55 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000069_70' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000069
+21/03/24 14:11:55 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000069_70: Committed
+21/03/24 14:11:55 INFO Executor: Finished task 69.0 in stage 1.0 (TID 70). 3592 bytes result sent to driver
+21/03/24 14:11:55 INFO TaskSetManager: Finished task 69.0 in stage 1.0 (TID 70) in 5890 ms on localhost (executor driver) (71/75)
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 5506, boot = -566, init = 574, finish = 5498
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 5503, boot = -436, init = 1023, finish = 4916
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 5516, boot = -601, init = 3320, finish = 2797
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 5814, boot = -409, init = 468, finish = 5755
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 5513, boot = -444, init = 989, finish = 4968
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 5622, boot = -535, init = 563, finish = 5594
+21/03/24 14:11:55 INFO PythonUDFRunner: Times: total = 5498, boot = -358, init = 3082, finish = 2774
+21/03/24 14:11:55 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000073_74' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000073
+21/03/24 14:11:55 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000073_74: Committed
+21/03/24 14:11:55 INFO Executor: Finished task 73.0 in stage 1.0 (TID 74). 3592 bytes result sent to driver
+21/03/24 14:11:55 INFO TaskSetManager: Finished task 73.0 in stage 1.0 (TID 74) in 5603 ms on localhost (executor driver) (72/75)
+21/03/24 14:11:56 INFO PythonUDFRunner: Times: total = 5615, boot = -434, init = 1196, finish = 4853
+21/03/24 14:11:56 INFO PythonUDFRunner: Times: total = 5526, boot = -406, init = 3101, finish = 2831
+21/03/24 14:11:56 INFO PythonUDFRunner: Times: total = 5656, boot = -442, init = 3253, finish = 2845
+21/03/24 14:11:56 INFO PythonUDFRunner: Times: total = 5511, boot = -432, init = 3135, finish = 2808
+21/03/24 14:11:56 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000071_72' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000071
+21/03/24 14:11:56 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000071_72: Committed
+21/03/24 14:11:56 INFO Executor: Finished task 71.0 in stage 1.0 (TID 72). 3592 bytes result sent to driver
+21/03/24 14:11:56 INFO TaskSetManager: Finished task 71.0 in stage 1.0 (TID 72) in 5906 ms on localhost (executor driver) (73/75)
+21/03/24 14:11:56 INFO PythonUDFRunner: Times: total = 5662, boot = -406, init = 3233, finish = 2835
+21/03/24 14:11:56 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000072_73' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000072
+21/03/24 14:11:56 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000072_73: Committed
+21/03/24 14:11:56 INFO Executor: Finished task 72.0 in stage 1.0 (TID 73). 3635 bytes result sent to driver
+21/03/24 14:11:56 INFO TaskSetManager: Finished task 72.0 in stage 1.0 (TID 73) in 5722 ms on localhost (executor driver) (74/75)
+21/03/24 14:11:56 INFO PythonUDFRunner: Times: total = 6216, boot = -277, init = 306, finish = 6187
+21/03/24 14:11:56 INFO PythonUDFRunner: Times: total = 6198, boot = -298, init = 997, finish = 5499
+21/03/24 14:11:56 INFO PythonUDFRunner: Times: total = 6184, boot = -337, init = 3665, finish = 2856
+21/03/24 14:11:56 INFO PythonUDFRunner: Times: total = 6104, boot = -351, init = 3609, finish = 2846
+21/03/24 14:11:56 INFO FileOutputCommitter: Saved output of task 'attempt_20210324141109_0001_m_000070_71' to file:/results/output/zillow/Z1/pyspark_python3_df/_temporary/0/task_20210324141109_0001_m_000070
+21/03/24 14:11:56 INFO SparkHadoopMapRedUtil: attempt_20210324141109_0001_m_000070_71: Committed
+21/03/24 14:11:56 INFO Executor: Finished task 70.0 in stage 1.0 (TID 71). 3592 bytes result sent to driver
+21/03/24 14:11:56 INFO TaskSetManager: Finished task 70.0 in stage 1.0 (TID 71) in 6315 ms on localhost (executor driver) (75/75)
+21/03/24 14:11:56 INFO TaskSchedulerImpl: Removed TaskSet 1.0, whose tasks have all completed, from pool 
+21/03/24 14:11:56 INFO DAGScheduler: ResultStage 1 (csv at NativeMethodAccessorImpl.java:0) finished in 46.590 s
+21/03/24 14:11:56 INFO DAGScheduler: Job 1 finished: csv at NativeMethodAccessorImpl.java:0, took 46.599244 s
+21/03/24 14:11:56 INFO FileFormatWriter: Write Job 954c2158-4fb4-40e1-8329-287b2d294acd committed.
+21/03/24 14:11:56 INFO FileFormatWriter: Finished processing stats for write job 954c2158-4fb4-40e1-8329-287b2d294acd.
+21/03/24 14:11:56 INFO SparkContext: Invoking stop() from shutdown hook
+21/03/24 14:11:56 INFO SparkUI: Stopped Spark web UI at http://4e1bb76d17c5:4040
+21/03/24 14:11:56 INFO MapOutputTrackerMasterEndpoint: MapOutputTrackerMasterEndpoint stopped!
+21/03/24 14:11:56 INFO MemoryStore: MemoryStore cleared
+21/03/24 14:11:56 INFO BlockManager: BlockManager stopped
+21/03/24 14:11:56 INFO BlockManagerMaster: BlockManagerMaster stopped
+21/03/24 14:11:56 INFO OutputCommitCoordinator$OutputCommitCoordinatorEndpoint: OutputCommitCoordinator stopped!
+21/03/24 14:11:56 INFO SparkContext: Successfully stopped SparkContext
+21/03/24 14:11:56 INFO ShutdownHookManager: Shutdown hook called
+21/03/24 14:11:56 INFO ShutdownHookManager: Deleting directory /tmp/spark-9d99a95f-30ee-4352-af30-48e91d899077
+21/03/24 14:11:56 INFO ShutdownHookManager: Deleting directory /tmp/spark-a5f08adc-9f91-4f94-b226-7be45b6d71a6
+21/03/24 14:11:56 INFO ShutdownHookManager: Deleting directory /tmp/spark-9d99a95f-30ee-4352-af30-48e91d899077/pyspark-6ed2cde9-2d09-4fae-853e-5b830e498791

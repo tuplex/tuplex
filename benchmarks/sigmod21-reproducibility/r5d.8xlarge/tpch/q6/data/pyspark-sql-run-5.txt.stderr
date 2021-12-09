@@ -1,0 +1,171 @@
+21/03/30 03:13:56 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Using Spark's default log4j profile: org/apache/spark/log4j-defaults.properties
+21/03/30 03:13:57 INFO SparkContext: Running Spark version 2.4.7
+21/03/30 03:13:57 INFO SparkContext: Submitted application: TPC-H Q06
+21/03/30 03:13:57 INFO SecurityManager: Changing view acls to: root
+21/03/30 03:13:57 INFO SecurityManager: Changing modify acls to: root
+21/03/30 03:13:57 INFO SecurityManager: Changing view acls groups to: 
+21/03/30 03:13:57 INFO SecurityManager: Changing modify acls groups to: 
+21/03/30 03:13:57 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users  with view permissions: Set(root); groups with view permissions: Set(); users  with modify permissions: Set(root); groups with modify permissions: Set()
+21/03/30 03:13:57 INFO Utils: Successfully started service 'sparkDriver' on port 33919.
+21/03/30 03:13:57 INFO SparkEnv: Registering MapOutputTracker
+21/03/30 03:13:57 INFO SparkEnv: Registering BlockManagerMaster
+21/03/30 03:13:57 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+21/03/30 03:13:57 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+21/03/30 03:13:57 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-ea74279c-70f3-41cd-b002-b7518f1c564f
+21/03/30 03:13:57 INFO MemoryStore: MemoryStore started with capacity 53.2 GB
+21/03/30 03:13:57 INFO SparkEnv: Registering OutputCommitCoordinator
+21/03/30 03:13:57 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+21/03/30 03:13:57 INFO SparkUI: Bound SparkUI to 0.0.0.0, and started at http://c08396fee951:4040
+21/03/30 03:13:57 INFO Executor: Starting executor ID driver on host localhost
+21/03/30 03:13:57 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 39311.
+21/03/30 03:13:57 INFO NettyBlockTransferService: Server created on c08396fee951:39311
+21/03/30 03:13:57 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+21/03/30 03:13:57 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, c08396fee951, 39311, None)
+21/03/30 03:13:57 INFO BlockManagerMasterEndpoint: Registering block manager c08396fee951:39311 with 53.2 GB RAM, BlockManagerId(driver, c08396fee951, 39311, None)
+21/03/30 03:13:57 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, c08396fee951, 39311, None)
+21/03/30 03:13:57 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, c08396fee951, 39311, None)
+21/03/30 03:13:58 INFO SharedState: Setting hive.metastore.warehouse.dir ('null') to the value of spark.sql.warehouse.dir ('file:/code/benchmark/tpch/Q06/spark-warehouse/').
+21/03/30 03:13:58 INFO SharedState: Warehouse path is 'file:/code/benchmark/tpch/Q06/spark-warehouse/'.
+21/03/30 03:13:58 INFO StateStoreCoordinatorRef: Registered StateStoreCoordinator endpoint
+21/03/30 03:13:58 INFO InMemoryFileIndex: It took 25 ms to list leaf files for 1 paths.
+21/03/30 03:14:00 INFO FileSourceStrategy: Pruning directories with: 
+21/03/30 03:14:00 INFO FileSourceStrategy: Post-Scan Filters: isnotnull(l_quantity#0),isnotnull(l_discount#2),isnotnull(l_shipdate#3),(l_shipdate#3 >= 19940101),(l_shipdate#3 < 19950101),(l_discount#2 >= 0.05),(l_discount#2 <= 0.07),(l_quantity#0 < 24.0)
+21/03/30 03:14:00 INFO FileSourceStrategy: Output Data Schema: struct<l_quantity: double, l_extendedprice: double, l_discount: double, l_shipdate: int ... 2 more fields>
+21/03/30 03:14:00 INFO FileSourceScanExec: Pushed Filters: IsNotNull(l_quantity),IsNotNull(l_discount),IsNotNull(l_shipdate),GreaterThanOrEqual(l_shipdate,19940101),LessThan(l_shipdate,19950101),GreaterThanOrEqual(l_discount,0.05),LessThanOrEqual(l_discount,0.07),LessThan(l_quantity,24.0)
+21/03/30 03:14:00 INFO CodeGenerator: Code generated in 173.960176 ms
+21/03/30 03:14:00 INFO CodeGenerator: Code generated in 19.136368 ms
+21/03/30 03:14:00 INFO MemoryStore: Block broadcast_0 stored as values in memory (estimated size 360.1 KB, free 53.2 GB)
+21/03/30 03:14:00 INFO MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 23.4 KB, free 53.2 GB)
+21/03/30 03:14:00 INFO BlockManagerInfo: Added broadcast_0_piece0 in memory on c08396fee951:39311 (size: 23.4 KB, free: 53.2 GB)
+21/03/30 03:14:00 INFO SparkContext: Created broadcast 0 from collect at /code/benchmark/tpch/Q06/runpyspark.py:126
+21/03/30 03:14:00 INFO FileSourceScanExec: Planning scan with bin packing, max size: 96581001 bytes, open cost is considered as scanning 4194304 bytes.
+21/03/30 03:14:00 INFO SparkContext: Starting job: collect at /code/benchmark/tpch/Q06/runpyspark.py:126
+21/03/30 03:14:00 INFO DAGScheduler: Registering RDD 2 (collect at /code/benchmark/tpch/Q06/runpyspark.py:126) as input to shuffle 0
+21/03/30 03:14:00 INFO DAGScheduler: Got job 0 (collect at /code/benchmark/tpch/Q06/runpyspark.py:126) with 1 output partitions
+21/03/30 03:14:00 INFO DAGScheduler: Final stage: ResultStage 1 (collect at /code/benchmark/tpch/Q06/runpyspark.py:126)
+21/03/30 03:14:00 INFO DAGScheduler: Parents of final stage: List(ShuffleMapStage 0)
+21/03/30 03:14:00 INFO DAGScheduler: Missing parents: List(ShuffleMapStage 0)
+21/03/30 03:14:00 INFO DAGScheduler: Submitting ShuffleMapStage 0 (MapPartitionsRDD[2] at collect at /code/benchmark/tpch/Q06/runpyspark.py:126), which has no missing parents
+21/03/30 03:14:00 INFO MemoryStore: Block broadcast_1 stored as values in memory (estimated size 15.9 KB, free 53.2 GB)
+21/03/30 03:14:00 INFO MemoryStore: Block broadcast_1_piece0 stored as bytes in memory (estimated size 7.8 KB, free 53.2 GB)
+21/03/30 03:14:00 INFO BlockManagerInfo: Added broadcast_1_piece0 in memory on c08396fee951:39311 (size: 7.8 KB, free: 53.2 GB)
+21/03/30 03:14:00 INFO SparkContext: Created broadcast 1 from broadcast at DAGScheduler.scala:1184
+21/03/30 03:14:00 INFO DAGScheduler: Submitting 16 missing tasks from ShuffleMapStage 0 (MapPartitionsRDD[2] at collect at /code/benchmark/tpch/Q06/runpyspark.py:126) (first 15 tasks are for partitions Vector(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+21/03/30 03:14:00 INFO TaskSchedulerImpl: Adding task set 0.0 with 16 tasks
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 0.0 in stage 0.0 (TID 0, localhost, executor driver, partition 0, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 1.0 in stage 0.0 (TID 1, localhost, executor driver, partition 1, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 2.0 in stage 0.0 (TID 2, localhost, executor driver, partition 2, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 3.0 in stage 0.0 (TID 3, localhost, executor driver, partition 3, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 4.0 in stage 0.0 (TID 4, localhost, executor driver, partition 4, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 5.0 in stage 0.0 (TID 5, localhost, executor driver, partition 5, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 6.0 in stage 0.0 (TID 6, localhost, executor driver, partition 6, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 7.0 in stage 0.0 (TID 7, localhost, executor driver, partition 7, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 8.0 in stage 0.0 (TID 8, localhost, executor driver, partition 8, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 9.0 in stage 0.0 (TID 9, localhost, executor driver, partition 9, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 10.0 in stage 0.0 (TID 10, localhost, executor driver, partition 10, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 11.0 in stage 0.0 (TID 11, localhost, executor driver, partition 11, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 12.0 in stage 0.0 (TID 12, localhost, executor driver, partition 12, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 13.0 in stage 0.0 (TID 13, localhost, executor driver, partition 13, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 14.0 in stage 0.0 (TID 14, localhost, executor driver, partition 14, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO TaskSetManager: Starting task 15.0 in stage 0.0 (TID 15, localhost, executor driver, partition 15, PROCESS_LOCAL, 8238 bytes)
+21/03/30 03:14:00 INFO Executor: Running task 5.0 in stage 0.0 (TID 5)
+21/03/30 03:14:00 INFO Executor: Running task 8.0 in stage 0.0 (TID 8)
+21/03/30 03:14:00 INFO Executor: Running task 10.0 in stage 0.0 (TID 10)
+21/03/30 03:14:00 INFO Executor: Running task 0.0 in stage 0.0 (TID 0)
+21/03/30 03:14:00 INFO Executor: Running task 7.0 in stage 0.0 (TID 7)
+21/03/30 03:14:00 INFO Executor: Running task 6.0 in stage 0.0 (TID 6)
+21/03/30 03:14:00 INFO Executor: Running task 11.0 in stage 0.0 (TID 11)
+21/03/30 03:14:00 INFO Executor: Running task 9.0 in stage 0.0 (TID 9)
+21/03/30 03:14:00 INFO Executor: Running task 13.0 in stage 0.0 (TID 13)
+21/03/30 03:14:00 INFO Executor: Running task 1.0 in stage 0.0 (TID 1)
+21/03/30 03:14:00 INFO Executor: Running task 14.0 in stage 0.0 (TID 14)
+21/03/30 03:14:00 INFO Executor: Running task 2.0 in stage 0.0 (TID 2)
+21/03/30 03:14:00 INFO Executor: Running task 4.0 in stage 0.0 (TID 4)
+21/03/30 03:14:00 INFO Executor: Running task 12.0 in stage 0.0 (TID 12)
+21/03/30 03:14:00 INFO Executor: Running task 3.0 in stage 0.0 (TID 3)
+21/03/30 03:14:00 INFO Executor: Running task 15.0 in stage 0.0 (TID 15)
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 96581001-193162002, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 676067007-772648008, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 1448715015-1541101726, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 1062391011-1158972012, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 869229009-965810010, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 193162002-289743003, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 1158972012-1255553013, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 965810010-1062391011, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 772648008-869229009, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 1255553013-1352134014, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 0-96581001, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 289743003-386324004, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 482905005-579486006, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 386324004-482905005, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 1352134014-1448715015, partition values: [empty row]
+21/03/30 03:14:01 INFO FileScanRDD: Reading File path: file:///data/tpch/q6/lineitem.tbl, range: 579486006-676067007, partition values: [empty row]
+21/03/30 03:14:01 INFO CodeGenerator: Code generated in 11.353608 ms
+21/03/30 03:14:01 INFO ContextCleaner: Cleaned accumulator 1
+21/03/30 03:14:05 INFO Executor: Finished task 15.0 in stage 0.0 (TID 15). 1736 bytes result sent to driver
+21/03/30 03:14:05 INFO TaskSetManager: Finished task 15.0 in stage 0.0 (TID 15) in 4986 ms on localhost (executor driver) (1/16)
+21/03/30 03:14:05 INFO Executor: Finished task 7.0 in stage 0.0 (TID 7). 1693 bytes result sent to driver
+21/03/30 03:14:05 INFO Executor: Finished task 0.0 in stage 0.0 (TID 0). 1693 bytes result sent to driver
+21/03/30 03:14:05 INFO TaskSetManager: Finished task 7.0 in stage 0.0 (TID 7) in 5053 ms on localhost (executor driver) (2/16)
+21/03/30 03:14:05 INFO TaskSetManager: Finished task 0.0 in stage 0.0 (TID 0) in 5064 ms on localhost (executor driver) (3/16)
+21/03/30 03:14:05 INFO Executor: Finished task 2.0 in stage 0.0 (TID 2). 1693 bytes result sent to driver
+21/03/30 03:14:05 INFO TaskSetManager: Finished task 2.0 in stage 0.0 (TID 2) in 5067 ms on localhost (executor driver) (4/16)
+21/03/30 03:14:05 INFO Executor: Finished task 10.0 in stage 0.0 (TID 10). 1693 bytes result sent to driver
+21/03/30 03:14:05 INFO TaskSetManager: Finished task 10.0 in stage 0.0 (TID 10) in 5073 ms on localhost (executor driver) (5/16)
+21/03/30 03:14:06 INFO Executor: Finished task 6.0 in stage 0.0 (TID 6). 1693 bytes result sent to driver
+21/03/30 03:14:06 INFO TaskSetManager: Finished task 6.0 in stage 0.0 (TID 6) in 5087 ms on localhost (executor driver) (6/16)
+21/03/30 03:14:06 INFO Executor: Finished task 11.0 in stage 0.0 (TID 11). 1693 bytes result sent to driver
+21/03/30 03:14:06 INFO TaskSetManager: Finished task 11.0 in stage 0.0 (TID 11) in 5104 ms on localhost (executor driver) (7/16)
+21/03/30 03:14:06 INFO Executor: Finished task 14.0 in stage 0.0 (TID 14). 1693 bytes result sent to driver
+21/03/30 03:14:06 INFO TaskSetManager: Finished task 14.0 in stage 0.0 (TID 14) in 5167 ms on localhost (executor driver) (8/16)
+21/03/30 03:14:06 INFO Executor: Finished task 5.0 in stage 0.0 (TID 5). 1693 bytes result sent to driver
+21/03/30 03:14:06 INFO TaskSetManager: Finished task 5.0 in stage 0.0 (TID 5) in 5242 ms on localhost (executor driver) (9/16)
+21/03/30 03:14:06 INFO Executor: Finished task 9.0 in stage 0.0 (TID 9). 1693 bytes result sent to driver
+21/03/30 03:14:06 INFO TaskSetManager: Finished task 9.0 in stage 0.0 (TID 9) in 5300 ms on localhost (executor driver) (10/16)
+21/03/30 03:14:06 INFO Executor: Finished task 8.0 in stage 0.0 (TID 8). 1693 bytes result sent to driver
+21/03/30 03:14:06 INFO TaskSetManager: Finished task 8.0 in stage 0.0 (TID 8) in 5311 ms on localhost (executor driver) (11/16)
+21/03/30 03:14:06 INFO Executor: Finished task 13.0 in stage 0.0 (TID 13). 1693 bytes result sent to driver
+21/03/30 03:14:06 INFO TaskSetManager: Finished task 13.0 in stage 0.0 (TID 13) in 5310 ms on localhost (executor driver) (12/16)
+21/03/30 03:14:06 INFO Executor: Finished task 12.0 in stage 0.0 (TID 12). 1693 bytes result sent to driver
+21/03/30 03:14:06 INFO TaskSetManager: Finished task 12.0 in stage 0.0 (TID 12) in 5314 ms on localhost (executor driver) (13/16)
+21/03/30 03:14:06 INFO Executor: Finished task 1.0 in stage 0.0 (TID 1). 1693 bytes result sent to driver
+21/03/30 03:14:06 INFO TaskSetManager: Finished task 1.0 in stage 0.0 (TID 1) in 5347 ms on localhost (executor driver) (14/16)
+21/03/30 03:14:06 INFO Executor: Finished task 3.0 in stage 0.0 (TID 3). 1693 bytes result sent to driver
+21/03/30 03:14:06 INFO TaskSetManager: Finished task 3.0 in stage 0.0 (TID 3) in 5372 ms on localhost (executor driver) (15/16)
+21/03/30 03:14:06 INFO Executor: Finished task 4.0 in stage 0.0 (TID 4). 1693 bytes result sent to driver
+21/03/30 03:14:06 INFO TaskSetManager: Finished task 4.0 in stage 0.0 (TID 4) in 5384 ms on localhost (executor driver) (16/16)
+21/03/30 03:14:06 INFO TaskSchedulerImpl: Removed TaskSet 0.0, whose tasks have all completed, from pool 
+21/03/30 03:14:06 INFO DAGScheduler: ShuffleMapStage 0 (collect at /code/benchmark/tpch/Q06/runpyspark.py:126) finished in 5.448 s
+21/03/30 03:14:06 INFO DAGScheduler: looking for newly runnable stages
+21/03/30 03:14:06 INFO DAGScheduler: running: Set()
+21/03/30 03:14:06 INFO DAGScheduler: waiting: Set(ResultStage 1)
+21/03/30 03:14:06 INFO DAGScheduler: failed: Set()
+21/03/30 03:14:06 INFO DAGScheduler: Submitting ResultStage 1 (MapPartitionsRDD[5] at collect at /code/benchmark/tpch/Q06/runpyspark.py:126), which has no missing parents
+21/03/30 03:14:06 INFO MemoryStore: Block broadcast_2 stored as values in memory (estimated size 8.3 KB, free 53.2 GB)
+21/03/30 03:14:06 INFO MemoryStore: Block broadcast_2_piece0 stored as bytes in memory (estimated size 4.3 KB, free 53.2 GB)
+21/03/30 03:14:06 INFO BlockManagerInfo: Added broadcast_2_piece0 in memory on c08396fee951:39311 (size: 4.3 KB, free: 53.2 GB)
+21/03/30 03:14:06 INFO SparkContext: Created broadcast 2 from broadcast at DAGScheduler.scala:1184
+21/03/30 03:14:06 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 1 (MapPartitionsRDD[5] at collect at /code/benchmark/tpch/Q06/runpyspark.py:126) (first 15 tasks are for partitions Vector(0))
+21/03/30 03:14:06 INFO TaskSchedulerImpl: Adding task set 1.0 with 1 tasks
+21/03/30 03:14:06 INFO TaskSetManager: Starting task 0.0 in stage 1.0 (TID 16, localhost, executor driver, partition 0, ANY, 7767 bytes)
+21/03/30 03:14:06 INFO Executor: Running task 0.0 in stage 1.0 (TID 16)
+21/03/30 03:14:06 INFO ShuffleBlockFetcherIterator: Getting 16 non-empty blocks including 16 local blocks and 0 remote blocks
+21/03/30 03:14:06 INFO ShuffleBlockFetcherIterator: Started 0 remote fetches in 3 ms
+21/03/30 03:14:06 INFO Executor: Finished task 0.0 in stage 1.0 (TID 16). 1782 bytes result sent to driver
+21/03/30 03:14:06 INFO TaskSetManager: Finished task 0.0 in stage 1.0 (TID 16) in 28 ms on localhost (executor driver) (1/1)
+21/03/30 03:14:06 INFO TaskSchedulerImpl: Removed TaskSet 1.0, whose tasks have all completed, from pool 
+21/03/30 03:14:06 INFO DAGScheduler: ResultStage 1 (collect at /code/benchmark/tpch/Q06/runpyspark.py:126) finished in 0.034 s
+21/03/30 03:14:06 INFO DAGScheduler: Job 0 finished: collect at /code/benchmark/tpch/Q06/runpyspark.py:126, took 5.528184 s
+21/03/30 03:14:06 INFO SparkContext: Invoking stop() from shutdown hook
+21/03/30 03:14:06 INFO SparkUI: Stopped Spark web UI at http://c08396fee951:4040
+21/03/30 03:14:06 INFO MapOutputTrackerMasterEndpoint: MapOutputTrackerMasterEndpoint stopped!
+21/03/30 03:14:06 INFO MemoryStore: MemoryStore cleared
+21/03/30 03:14:06 INFO BlockManager: BlockManager stopped
+21/03/30 03:14:06 INFO BlockManagerMaster: BlockManagerMaster stopped
+21/03/30 03:14:06 INFO OutputCommitCoordinator$OutputCommitCoordinatorEndpoint: OutputCommitCoordinator stopped!
+21/03/30 03:14:06 INFO SparkContext: Successfully stopped SparkContext
+21/03/30 03:14:06 INFO ShutdownHookManager: Shutdown hook called
+21/03/30 03:14:06 INFO ShutdownHookManager: Deleting directory /tmp/spark-dfeeea1f-404b-425c-98fe-3ccaf6b7fb91
+21/03/30 03:14:06 INFO ShutdownHookManager: Deleting directory /tmp/spark-6ce9fce1-e67c-43ac-bdff-61d413a555ed/pyspark-ae499cde-fa4a-48e3-b1ad-ff4feb2c399c
+21/03/30 03:14:06 INFO ShutdownHookManager: Deleting directory /tmp/spark-6ce9fce1-e67c-43ac-bdff-61d413a555ed

@@ -1,0 +1,281 @@
+[2021-03-25 10:37:12.788] [global] [error] could not find backend, defaulting to local
+[2021-03-25 10:37:12.788] [local ee] [info] loaded runtime library from/usr/local/lib/python3.6/site-packages/Tuplex-0.1.7-py3.6.egg/tuplex/libexec/tuplex_runtime.so
+[2021-03-25 10:37:12.788] [local ee] [info] initializing LLVM backend
+[2021-03-25 10:37:12.788] [local ee] [warning] init JIT compiler also only in local mode
+[2021-03-25 10:37:12.789] [LLVM] [info] compiling code for skylake-avx512
+[2021-03-25 10:37:12.789] [memory] [info] allocated bitmap managed memory region (32.00 GB, 32.00 MB block size)
+[2021-03-25 10:37:12.789] [local execution engine] [info] started driver (32.00 GB, 32.00 MB default partition size)
+overflow will be cached at file:///tmp/driver
+[2021-03-25 10:37:12.790] [fileinputoperator] [info] found 1 file (10.01 GB) to process.
+[2021-03-25 10:37:12.790] [global] [info] sampled file:///data/zillow/Zdirty/zillow_dirty@10G.csv on 256.00 KB
+[2021-03-25 10:37:12.926] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-25 10:37:12.941] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-25 10:37:12.949] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-25 10:37:12.976] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-25 10:37:12.995] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-25 10:37:13.008] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-25 10:37:13.039] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-25 10:37:13.055] [global] [info] performing static typing for UDF in operator map
+[2021-03-25 10:37:13.058] [global] [info] performing static typing for UDF in operator map
+[2021-03-25 10:37:13.060] [global] [info] performing static typing for UDF in operator map
+[2021-03-25 10:37:13.063] [global] [info] performing static typing for UDF in operator map
+[2021-03-25 10:37:13.078] [logical planner] [info] logical optimization took 0.019871ms
+output type of specialized pipeline is: (str)
+is this the most outer stage?: 1
+[2021-03-25 10:37:13.078] [codegen] [info] generating pipeline for (Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str]) -> (str) (13 operators pipelined)
+outSchema is different than last operator's schema:
+outSchema: (str)
+last Op: (Option[str],str,Option[str],str,Option[str],i64,f64,i64,str,str,i64)
+[2021-03-25 10:37:13.079] [codegen] [info] generating function extractBd for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str])) -> i64
+[2021-03-25 10:37:13.080] [codegen] [info] generating lambda function for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str],i64)) -> boolean
+[2021-03-25 10:37:13.080] [codegen] [info] generating function extractType for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str],i64)) -> str
+[2021-03-25 10:37:13.081] [codegen] [info] generating lambda function for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str)) -> boolean
+[2021-03-25 10:37:13.081] [codegen] [info] generating lambda function for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str)) -> str
+[2021-03-25 10:37:13.082] [codegen] [info] generating lambda function for (Option[str]) -> str
+[2021-03-25 10:37:13.083] [codegen] [info] generating function extractBa for ((Option[str],Option[str],str,Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str,str)) -> f64
+[2021-03-25 10:37:13.084] [codegen] [info] generating function extractSqft for ((Option[str],Option[str],str,Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str,str,f64)) -> i64
+[2021-03-25 10:37:13.085] [codegen] [info] generating function extractOffer for ((Option[str],Option[str],str,Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str,str,f64,i64)) -> str
+[2021-03-25 10:37:13.085] [codegen] [info] generating function extractPrice for ((Option[str],Option[str],str,Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str,str,f64,i64,str)) -> i64
+[2021-03-25 10:37:13.086] [codegen] [info] generating lambda function for ((Option[str],Option[str],str,Option[str],Option[f64],i64,Option[str],Option[str],i64,str,str,f64,i64,str)) -> boolean
+[2021-03-25 10:37:13.087] [codegen] [info] generating lambda function for ((Option[str],Option[str],str,Option[str],Option[f64],i64,Option[str],Option[str],i64,str,str,f64,i64,str)) -> boolean
+[2021-03-25 10:37:13.088] [codegen] [info] generating lambda function for ((Option[str],Option[str],str,Option[str],Option[f64],i64,Option[str],Option[str],i64,str,str,f64,i64,str)) -> (Option[str],str,Option[str],str,Option[str],i64,f64,i64,str,str,i64)
+[2021-03-25 10:37:13.114] [global] [info] Stage0 depends on: 
+[2021-03-25 10:37:13.258] [global] [info] Optimization via LLVM passes took 0.137017 ms
+[2021-03-25 10:37:13.319] [global] [info] Compiled code paths for stage 0 in 0.06 ms
+[2021-03-25 10:37:13.319] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.205702s
+[2021-03-25 10:37:13.320] [local ee] [info] split /data/zillow/Zdirty/zillow_dirty@10G.csv into 160 tasks
+[2021-03-25 10:37:13.612] [driver] [info] [Task Finished] Transform to mem in 0.292028s (11105 normal rows, 87833 exceptions)
+[2021-03-25 10:37:13.901] [driver] [info] [Task Finished] Transform to mem in 0.289616s (11073 normal rows, 88267 exceptions)
+[2021-03-25 10:37:14.191] [driver] [info] [Task Finished] Transform to mem in 0.289790s (11153 normal rows, 87586 exceptions)
+[2021-03-25 10:37:14.482] [driver] [info] [Task Finished] Transform to mem in 0.291044s (11047 normal rows, 88016 exceptions)
+[2021-03-25 10:37:14.774] [driver] [info] [Task Finished] Transform to mem in 0.291846s (10987 normal rows, 88332 exceptions)
+[2021-03-25 10:37:15.063] [driver] [info] [Task Finished] Transform to mem in 0.289381s (10997 normal rows, 87897 exceptions)
+[2021-03-25 10:37:15.353] [driver] [info] [Task Finished] Transform to mem in 0.289231s (11036 normal rows, 88013 exceptions)
+[2021-03-25 10:37:15.641] [driver] [info] [Task Finished] Transform to mem in 0.288540s (11005 normal rows, 87409 exceptions)
+[2021-03-25 10:37:15.930] [driver] [info] [Task Finished] Transform to mem in 0.288840s (11086 normal rows, 87704 exceptions)
+[2021-03-25 10:37:16.219] [driver] [info] [Task Finished] Transform to mem in 0.289067s (11092 normal rows, 88397 exceptions)
+[2021-03-25 10:37:16.508] [driver] [info] [Task Finished] Transform to mem in 0.288938s (11153 normal rows, 87584 exceptions)
+[2021-03-25 10:37:16.797] [driver] [info] [Task Finished] Transform to mem in 0.288497s (11026 normal rows, 88012 exceptions)
+[2021-03-25 10:37:17.086] [driver] [info] [Task Finished] Transform to mem in 0.288931s (11008 normal rows, 88190 exceptions)
+[2021-03-25 10:37:17.374] [driver] [info] [Task Finished] Transform to mem in 0.288900s (10997 normal rows, 88040 exceptions)
+[2021-03-25 10:37:17.663] [driver] [info] [Task Finished] Transform to mem in 0.288986s (11036 normal rows, 88010 exceptions)
+[2021-03-25 10:37:17.952] [driver] [info] [Task Finished] Transform to mem in 0.288570s (11005 normal rows, 87412 exceptions)
+[2021-03-25 10:37:18.241] [driver] [info] [Task Finished] Transform to mem in 0.289232s (11086 normal rows, 87685 exceptions)
+[2021-03-25 10:37:18.531] [driver] [info] [Task Finished] Transform to mem in 0.289482s (11092 normal rows, 88394 exceptions)
+[2021-03-25 10:37:18.820] [driver] [info] [Task Finished] Transform to mem in 0.288921s (11153 normal rows, 87603 exceptions)
+[2021-03-25 10:37:19.109] [driver] [info] [Task Finished] Transform to mem in 0.288810s (11026 normal rows, 88015 exceptions)
+[2021-03-25 10:37:19.398] [driver] [info] [Task Finished] Transform to mem in 0.288938s (10982 normal rows, 88158 exceptions)
+[2021-03-25 10:37:19.686] [driver] [info] [Task Finished] Transform to mem in 0.288862s (11023 normal rows, 87970 exceptions)
+[2021-03-25 10:37:19.975] [driver] [info] [Task Finished] Transform to mem in 0.288744s (11036 normal rows, 88006 exceptions)
+[2021-03-25 10:37:20.263] [driver] [info] [Task Finished] Transform to mem in 0.288222s (11005 normal rows, 87457 exceptions)
+[2021-03-25 10:37:20.552] [driver] [info] [Task Finished] Transform to mem in 0.288766s (11086 normal rows, 87654 exceptions)
+[2021-03-25 10:37:20.841] [driver] [info] [Task Finished] Transform to mem in 0.289073s (11079 normal rows, 88477 exceptions)
+[2021-03-25 10:37:21.130] [driver] [info] [Task Finished] Transform to mem in 0.288482s (11111 normal rows, 87573 exceptions)
+[2021-03-25 10:37:21.418] [driver] [info] [Task Finished] Transform to mem in 0.288542s (11076 normal rows, 88022 exceptions)
+[2021-03-25 10:37:21.707] [driver] [info] [Task Finished] Transform to mem in 0.289007s (10987 normal rows, 88191 exceptions)
+[2021-03-25 10:37:21.996] [driver] [info] [Task Finished] Transform to mem in 0.288368s (11023 normal rows, 87844 exceptions)
+[2021-03-25 10:37:22.284] [driver] [info] [Task Finished] Transform to mem in 0.288710s (11036 normal rows, 87958 exceptions)
+[2021-03-25 10:37:22.573] [driver] [info] [Task Finished] Transform to mem in 0.288721s (10992 normal rows, 87631 exceptions)
+[2021-03-25 10:37:22.862] [driver] [info] [Task Finished] Transform to mem in 0.288419s (11099 normal rows, 87501 exceptions)
+[2021-03-25 10:37:23.151] [driver] [info] [Task Finished] Transform to mem in 0.289342s (11063 normal rows, 88603 exceptions)
+[2021-03-25 10:37:23.440] [driver] [info] [Task Finished] Transform to mem in 0.289385s (11127 normal rows, 87598 exceptions)
+[2021-03-25 10:37:23.729] [driver] [info] [Task Finished] Transform to mem in 0.288717s (11076 normal rows, 88023 exceptions)
+[2021-03-25 10:37:24.018] [driver] [info] [Task Finished] Transform to mem in 0.288960s (10987 normal rows, 88163 exceptions)
+[2021-03-25 10:37:24.308] [driver] [info] [Task Finished] Transform to mem in 0.289487s (11004 normal rows, 87835 exceptions)
+[2021-03-25 10:37:24.597] [driver] [info] [Task Finished] Transform to mem in 0.288859s (11026 normal rows, 87939 exceptions)
+[2021-03-25 10:37:24.886] [driver] [info] [Task Finished] Transform to mem in 0.289111s (11021 normal rows, 87689 exceptions)
+[2021-03-25 10:37:25.174] [driver] [info] [Task Finished] Transform to mem in 0.288501s (11064 normal rows, 87416 exceptions)
+[2021-03-25 10:37:25.463] [driver] [info] [Task Finished] Transform to mem in 0.289133s (11098 normal rows, 88528 exceptions)
+[2021-03-25 10:37:25.752] [driver] [info] [Task Finished] Transform to mem in 0.288813s (11127 normal rows, 87753 exceptions)
+[2021-03-25 10:37:26.042] [driver] [info] [Task Finished] Transform to mem in 0.289498s (11076 normal rows, 88014 exceptions)
+[2021-03-25 10:37:26.331] [driver] [info] [Task Finished] Transform to mem in 0.289786s (10987 normal rows, 88034 exceptions)
+[2021-03-25 10:37:26.622] [driver] [info] [Task Finished] Transform to mem in 0.290007s (11004 normal rows, 87979 exceptions)
+[2021-03-25 10:37:26.910] [driver] [info] [Task Finished] Transform to mem in 0.288860s (11026 normal rows, 87935 exceptions)
+[2021-03-25 10:37:27.199] [driver] [info] [Task Finished] Transform to mem in 0.288564s (11012 normal rows, 87672 exceptions)
+[2021-03-25 10:37:27.488] [driver] [info] [Task Finished] Transform to mem in 0.289178s (11073 normal rows, 87375 exceptions)
+[2021-03-25 10:37:27.777] [driver] [info] [Task Finished] Transform to mem in 0.289034s (11095 normal rows, 88392 exceptions)
+[2021-03-25 10:37:28.066] [driver] [info] [Task Finished] Transform to mem in 0.289073s (11130 normal rows, 87823 exceptions)
+[2021-03-25 10:37:28.355] [driver] [info] [Task Finished] Transform to mem in 0.288780s (11076 normal rows, 87937 exceptions)
+[2021-03-25 10:37:28.645] [driver] [info] [Task Finished] Transform to mem in 0.289550s (10976 normal rows, 88092 exceptions)
+[2021-03-25 10:37:28.934] [driver] [info] [Task Finished] Transform to mem in 0.288818s (11015 normal rows, 88113 exceptions)
+[2021-03-25 10:37:29.222] [driver] [info] [Task Finished] Transform to mem in 0.288933s (11026 normal rows, 87937 exceptions)
+[2021-03-25 10:37:29.511] [driver] [info] [Task Finished] Transform to mem in 0.288715s (11012 normal rows, 87684 exceptions)
+[2021-03-25 10:37:29.800] [driver] [info] [Task Finished] Transform to mem in 0.288311s (11073 normal rows, 87211 exceptions)
+[2021-03-25 10:37:30.088] [driver] [info] [Task Finished] Transform to mem in 0.288817s (11095 normal rows, 88539 exceptions)
+[2021-03-25 10:37:30.378] [driver] [info] [Task Finished] Transform to mem in 0.289221s (11130 normal rows, 87712 exceptions)
+[2021-03-25 10:37:30.666] [driver] [info] [Task Finished] Transform to mem in 0.288639s (11069 normal rows, 87878 exceptions)
+[2021-03-25 10:37:30.956] [driver] [info] [Task Finished] Transform to mem in 0.289367s (10974 normal rows, 88259 exceptions)
+[2021-03-25 10:37:31.245] [driver] [info] [Task Finished] Transform to mem in 0.288883s (11008 normal rows, 88092 exceptions)
+[2021-03-25 10:37:31.533] [driver] [info] [Task Finished] Transform to mem in 0.288799s (11042 normal rows, 87816 exceptions)
+[2021-03-25 10:37:31.822] [driver] [info] [Task Finished] Transform to mem in 0.288780s (11012 normal rows, 87829 exceptions)
+[2021-03-25 10:37:32.111] [driver] [info] [Task Finished] Transform to mem in 0.288450s (11063 normal rows, 87152 exceptions)
+[2021-03-25 10:37:32.400] [driver] [info] [Task Finished] Transform to mem in 0.289268s (11105 normal rows, 88523 exceptions)
+[2021-03-25 10:37:32.689] [driver] [info] [Task Finished] Transform to mem in 0.289400s (11081 normal rows, 87778 exceptions)
+[2021-03-25 10:37:32.978] [driver] [info] [Task Finished] Transform to mem in 0.288912s (11087 normal rows, 87896 exceptions)
+[2021-03-25 10:37:33.267] [driver] [info] [Task Finished] Transform to mem in 0.288649s (11005 normal rows, 88206 exceptions)
+[2021-03-25 10:37:33.556] [driver] [info] [Task Finished] Transform to mem in 0.289385s (11008 normal rows, 88149 exceptions)
+[2021-03-25 10:37:33.845] [driver] [info] [Task Finished] Transform to mem in 0.288944s (11042 normal rows, 87663 exceptions)
+[2021-03-25 10:37:34.134] [driver] [info] [Task Finished] Transform to mem in 0.288738s (11002 normal rows, 87945 exceptions)
+[2021-03-25 10:37:34.423] [driver] [info] [Task Finished] Transform to mem in 0.288608s (11073 normal rows, 87151 exceptions)
+[2021-03-25 10:37:34.711] [driver] [info] [Task Finished] Transform to mem in 0.288782s (11088 normal rows, 88459 exceptions)
+[2021-03-25 10:37:35.000] [driver] [info] [Task Finished] Transform to mem in 0.288754s (11098 normal rows, 87881 exceptions)
+[2021-03-25 10:37:35.291] [driver] [info] [Task Finished] Transform to mem in 0.290698s (11087 normal rows, 87746 exceptions)
+[2021-03-25 10:37:35.580] [driver] [info] [Task Finished] Transform to mem in 0.289133s (11005 normal rows, 88231 exceptions)
+[2021-03-25 10:37:35.869] [driver] [info] [Task Finished] Transform to mem in 0.288906s (11008 normal rows, 88271 exceptions)
+[2021-03-25 10:37:36.158] [driver] [info] [Task Finished] Transform to mem in 0.288450s (11024 normal rows, 87655 exceptions)
+[2021-03-25 10:37:36.446] [driver] [info] [Task Finished] Transform to mem in 0.288891s (11020 normal rows, 87957 exceptions)
+[2021-03-25 10:37:36.735] [driver] [info] [Task Finished] Transform to mem in 0.288677s (11036 normal rows, 87133 exceptions)
+[2021-03-25 10:37:37.025] [driver] [info] [Task Finished] Transform to mem in 0.289972s (11125 normal rows, 88473 exceptions)
+[2021-03-25 10:37:37.317] [driver] [info] [Task Finished] Transform to mem in 0.291717s (11098 normal rows, 87882 exceptions)
+[2021-03-25 10:37:37.605] [driver] [info] [Task Finished] Transform to mem in 0.288431s (11087 normal rows, 87548 exceptions)
+[2021-03-25 10:37:37.894] [driver] [info] [Task Finished] Transform to mem in 0.289046s (10985 normal rows, 88431 exceptions)
+[2021-03-25 10:37:38.186] [driver] [info] [Task Finished] Transform to mem in 0.292024s (11000 normal rows, 88212 exceptions)
+[2021-03-25 10:37:38.475] [driver] [info] [Task Finished] Transform to mem in 0.288393s (11052 normal rows, 87558 exceptions)
+[2021-03-25 10:37:38.764] [driver] [info] [Task Finished] Transform to mem in 0.288994s (11020 normal rows, 88101 exceptions)
+[2021-03-25 10:37:39.052] [driver] [info] [Task Finished] Transform to mem in 0.288160s (10995 normal rows, 87135 exceptions)
+[2021-03-25 10:37:39.341] [driver] [info] [Task Finished] Transform to mem in 0.289259s (11166 normal rows, 88482 exceptions)
+[2021-03-25 10:37:39.630] [driver] [info] [Task Finished] Transform to mem in 0.289142s (11098 normal rows, 87777 exceptions)
+[2021-03-25 10:37:39.919] [driver] [info] [Task Finished] Transform to mem in 0.288491s (11073 normal rows, 87618 exceptions)
+[2021-03-25 10:37:40.208] [driver] [info] [Task Finished] Transform to mem in 0.289479s (10999 normal rows, 88433 exceptions)
+[2021-03-25 10:37:40.497] [driver] [info] [Task Finished] Transform to mem in 0.289001s (11000 normal rows, 88245 exceptions)
+[2021-03-25 10:37:40.786] [driver] [info] [Task Finished] Transform to mem in 0.288437s (11052 normal rows, 87380 exceptions)
+[2021-03-25 10:37:41.075] [driver] [info] [Task Finished] Transform to mem in 0.289108s (11020 normal rows, 88173 exceptions)
+[2021-03-25 10:37:41.364] [driver] [info] [Task Finished] Transform to mem in 0.288542s (10995 normal rows, 87196 exceptions)
+[2021-03-25 10:37:41.653] [driver] [info] [Task Finished] Transform to mem in 0.289211s (11166 normal rows, 88443 exceptions)
+[2021-03-25 10:37:41.942] [driver] [info] [Task Finished] Transform to mem in 0.288984s (11091 normal rows, 87768 exceptions)
+[2021-03-25 10:37:42.231] [driver] [info] [Task Finished] Transform to mem in 0.289555s (11080 normal rows, 87714 exceptions)
+[2021-03-25 10:37:42.520] [driver] [info] [Task Finished] Transform to mem in 0.289041s (10999 normal rows, 88301 exceptions)
+[2021-03-25 10:37:42.809] [driver] [info] [Task Finished] Transform to mem in 0.288807s (11000 normal rows, 88377 exceptions)
+[2021-03-25 10:37:43.098] [driver] [info] [Task Finished] Transform to mem in 0.288283s (11036 normal rows, 87327 exceptions)
+[2021-03-25 10:37:43.386] [driver] [info] [Task Finished] Transform to mem in 0.288742s (11016 normal rows, 88174 exceptions)
+[2021-03-25 10:37:43.675] [driver] [info] [Task Finished] Transform to mem in 0.288610s (10995 normal rows, 87210 exceptions)
+[2021-03-25 10:37:43.964] [driver] [info] [Task Finished] Transform to mem in 0.288959s (11186 normal rows, 88359 exceptions)
+[2021-03-25 10:37:44.253] [driver] [info] [Task Finished] Transform to mem in 0.288920s (11001 normal rows, 87888 exceptions)
+[2021-03-25 10:37:44.542] [driver] [info] [Task Finished] Transform to mem in 0.288807s (11170 normal rows, 87691 exceptions)
+[2021-03-25 10:37:44.831] [driver] [info] [Task Finished] Transform to mem in 0.288812s (10989 normal rows, 88259 exceptions)
+[2021-03-25 10:37:45.120] [driver] [info] [Task Finished] Transform to mem in 0.289709s (11010 normal rows, 88267 exceptions)
+[2021-03-25 10:37:45.409] [driver] [info] [Task Finished] Transform to mem in 0.288756s (11002 normal rows, 87451 exceptions)
+[2021-03-25 10:37:45.699] [driver] [info] [Task Finished] Transform to mem in 0.289679s (11050 normal rows, 88228 exceptions)
+[2021-03-25 10:37:45.988] [driver] [info] [Task Finished] Transform to mem in 0.289549s (10973 normal rows, 87166 exceptions)
+[2021-03-25 10:37:46.278] [driver] [info] [Task Finished] Transform to mem in 0.289762s (11160 normal rows, 88345 exceptions)
+[2021-03-25 10:37:46.568] [driver] [info] [Task Finished] Transform to mem in 0.289624s (11045 normal rows, 87935 exceptions)
+[2021-03-25 10:37:46.857] [driver] [info] [Task Finished] Transform to mem in 0.289462s (11166 normal rows, 87685 exceptions)
+[2021-03-25 10:37:47.147] [driver] [info] [Task Finished] Transform to mem in 0.289422s (10997 normal rows, 88269 exceptions)
+[2021-03-25 10:37:47.436] [driver] [info] [Task Finished] Transform to mem in 0.289258s (11005 normal rows, 88170 exceptions)
+[2021-03-25 10:37:47.726] [driver] [info] [Task Finished] Transform to mem in 0.290154s (11007 normal rows, 87557 exceptions)
+[2021-03-25 10:37:48.016] [driver] [info] [Task Finished] Transform to mem in 0.290009s (11050 normal rows, 88225 exceptions)
+[2021-03-25 10:37:48.305] [driver] [info] [Task Finished] Transform to mem in 0.289117s (10973 normal rows, 87166 exceptions)
+[2021-03-25 10:37:48.596] [driver] [info] [Task Finished] Transform to mem in 0.290417s (11160 normal rows, 88336 exceptions)
+[2021-03-25 10:37:48.885] [driver] [info] [Task Finished] Transform to mem in 0.289545s (11043 normal rows, 87940 exceptions)
+[2021-03-25 10:37:49.174] [driver] [info] [Task Finished] Transform to mem in 0.289019s (11168 normal rows, 87690 exceptions)
+[2021-03-25 10:37:49.464] [driver] [info] [Task Finished] Transform to mem in 0.289535s (10997 normal rows, 88263 exceptions)
+[2021-03-25 10:37:49.753] [driver] [info] [Task Finished] Transform to mem in 0.289509s (10997 normal rows, 88172 exceptions)
+[2021-03-25 10:37:50.043] [driver] [info] [Task Finished] Transform to mem in 0.289319s (11015 normal rows, 87561 exceptions)
+[2021-03-25 10:37:50.332] [driver] [info] [Task Finished] Transform to mem in 0.289417s (11050 normal rows, 88129 exceptions)
+[2021-03-25 10:37:50.622] [driver] [info] [Task Finished] Transform to mem in 0.289499s (10973 normal rows, 87260 exceptions)
+[2021-03-25 10:37:50.911] [driver] [info] [Task Finished] Transform to mem in 0.289449s (11160 normal rows, 88321 exceptions)
+[2021-03-25 10:37:51.200] [driver] [info] [Task Finished] Transform to mem in 0.289238s (11043 normal rows, 87953 exceptions)
+[2021-03-25 10:37:51.490] [driver] [info] [Task Finished] Transform to mem in 0.289923s (11168 normal rows, 87675 exceptions)
+[2021-03-25 10:37:51.780] [driver] [info] [Task Finished] Transform to mem in 0.289378s (10997 normal rows, 88140 exceptions)
+[2021-03-25 10:37:52.069] [driver] [info] [Task Finished] Transform to mem in 0.289485s (10997 normal rows, 88308 exceptions)
+[2021-03-25 10:37:52.358] [driver] [info] [Task Finished] Transform to mem in 0.288971s (11009 normal rows, 87563 exceptions)
+[2021-03-25 10:37:52.649] [driver] [info] [Task Finished] Transform to mem in 0.291084s (11021 normal rows, 88104 exceptions)
+[2021-03-25 10:37:52.939] [driver] [info] [Task Finished] Transform to mem in 0.289174s (11003 normal rows, 87282 exceptions)
+[2021-03-25 10:37:53.228] [driver] [info] [Task Finished] Transform to mem in 0.289479s (11165 normal rows, 88209 exceptions)
+[2021-03-25 10:37:53.517] [driver] [info] [Task Finished] Transform to mem in 0.288784s (11043 normal rows, 87994 exceptions)
+[2021-03-25 10:37:53.806] [driver] [info] [Task Finished] Transform to mem in 0.289214s (11156 normal rows, 87727 exceptions)
+[2021-03-25 10:37:54.095] [driver] [info] [Task Finished] Transform to mem in 0.289272s (11009 normal rows, 88017 exceptions)
+[2021-03-25 10:37:54.385] [driver] [info] [Task Finished] Transform to mem in 0.289646s (10997 normal rows, 88396 exceptions)
+[2021-03-25 10:37:54.674] [driver] [info] [Task Finished] Transform to mem in 0.288896s (11009 normal rows, 87622 exceptions)
+[2021-03-25 10:37:54.963] [driver] [info] [Task Finished] Transform to mem in 0.289337s (11021 normal rows, 88106 exceptions)
+[2021-03-25 10:37:55.253] [driver] [info] [Task Finished] Transform to mem in 0.289588s (11003 normal rows, 87282 exceptions)
+[2021-03-25 10:37:55.542] [driver] [info] [Task Finished] Transform to mem in 0.288933s (11165 normal rows, 88072 exceptions)
+[2021-03-25 10:37:55.832] [driver] [info] [Task Finished] Transform to mem in 0.290363s (11027 normal rows, 88027 exceptions)
+[2021-03-25 10:37:56.122] [driver] [info] [Task Finished] Transform to mem in 0.289461s (11172 normal rows, 87828 exceptions)
+[2021-03-25 10:37:56.411] [driver] [info] [Task Finished] Transform to mem in 0.289424s (10997 normal rows, 88000 exceptions)
+[2021-03-25 10:37:56.701] [driver] [info] [Task Finished] Transform to mem in 0.290028s (11009 normal rows, 88282 exceptions)
+[2021-03-25 10:37:56.990] [driver] [info] [Task Finished] Transform to mem in 0.288852s (10999 normal rows, 87726 exceptions)
+[2021-03-25 10:37:57.280] [driver] [info] [Task Finished] Transform to mem in 0.289685s (11031 normal rows, 88068 exceptions)
+[2021-03-25 10:37:57.569] [driver] [info] [Task Finished] Transform to mem in 0.288907s (11000 normal rows, 87334 exceptions)
+[2021-03-25 10:37:57.858] [driver] [info] [Task Finished] Transform to mem in 0.289031s (11091 normal rows, 88036 exceptions)
+[2021-03-25 10:37:58.148] [driver] [info] [Task Finished] Transform to mem in 0.289932s (11099 normal rows, 88068 exceptions)
+[2021-03-25 10:37:58.437] [driver] [info] [Task Finished] Transform to mem in 0.289209s (11177 normal rows, 87824 exceptions)
+[2021-03-25 10:37:58.727] [driver] [info] [Task Finished] Transform to mem in 0.289674s (10997 normal rows, 88007 exceptions)
+[2021-03-25 10:37:59.018] [driver] [info] [Task Finished] Transform to mem in 0.291782s (10987 normal rows, 88193 exceptions)
+[2021-03-25 10:37:59.308] [driver] [info] [Task Finished] Transform to mem in 0.289879s (11020 normal rows, 87824 exceptions)
+[2021-03-25 10:37:59.632] [driver] [info] [Task Finished] Transform to mem in 0.323934s (12330 normal rows, 98270 exceptions)
+[2021-03-25 10:37:59.632] [global] [info] [Transform Stage] Stage 0 completed 160 load&transform tasks in 46.313s
+[2021-03-25 10:37:59.632] [global] [info] [Transform Stage] Stage 0 total wall clock time: 46.3098s, 56350770 input rows, time to process 1 row via fast path: 0.000821812ms
+[2021-03-25 10:37:59.633] [global] [info] Exception details: 
++------------+------------+---------+
+| OperatorID | Exception  | Count   |
++------------+------------+---------+
+| 100001     | ValueError | 6884232 |
++------------+------------+---------+
+| 100008     | ValueError | 6754203 |
++------------+------------+---------+
+| 100010     | ValueError | 11688   |
++------------+------------+---------+
+| 100007     | ValueError | 422229  |
++------------+------------+---------+
+| 100005     | TypeError  | 4383    |
++------------+------------+---------+
+
+[2021-03-25 10:37:59.665] [global] [info] Writing 1769271 rows as output to file (269.34 MB)
+[2021-03-25 10:37:59.965] [driver] [info] [Task Finished] write to file in 0.300223s (1769271 rows, 269.34 MB)
+[2021-03-25 10:37:59.965] [global] [info] writing output took 0.332761s
+[2021-03-25 10:37:59.965] [global] [info] [Transform Stage] Stage 0 completed 160 sink tasks in 0.33285s
+[2021-03-25 10:37:59.965] [global] [info] [Transform Stage] Stage 0 took 46.8518s
+[2021-03-25 10:37:59.965] [global] [info] During execution 14076735 exceptions occurred:
++- csv
+|- withColumn
+   +------------+---------+
+   | ValueError | 6884232 |
+   +------------+---------+
+|- filter
+|- withColumn
+|- filter
+|- withColumn
+   +-----------+------+
+   | TypeError | 4383 |
+   +-----------+------+
+|- mapColumn
+|- withColumn
+   +------------+--------+
+   | ValueError | 422229 |
+   +------------+--------+
+|- withColumn
+   +------------+---------+
+   | ValueError | 6754203 |
+   +------------+---------+
+|- withColumn
+|- withColumn
+   +------------+-------+
+   | ValueError | 11688 |
+   +------------+-------+
+|- filter
+|- select
++- csv
+[2021-03-25 10:37:59.965] [global] [info] Query Execution took 46.9097s. (planning: 0.0577573s, execution: 46.8519s)
+Welcome to
+
+  _____            _
+ |_   _|   _ _ __ | | _____  __
+   | || | | | '_ \| |/ _ \ \/ /
+   | || |_| | |_) | |  __/>  <
+   |_| \__,_| .__/|_|\___/_/\_\ 0.1.7
+            |_|
+    
+using Python 3.6.9 (default, Mar 23 2021, 11:08:57) 
+[GCC 10.2.0] on linux
+>>> running tuplex on ['/data/zillow/Zdirty/zillow_dirty@10G.csv']
+>>> bug in generated parser, force to false
+Tuplex startup time: 0.0049762725830078125
+>>> running pipeline without any resolvers enabled...
+Tuplex job time: 47.177226543426514 s
+{'tuplex.useLLVMOptimizer': True, 'tuplex.autoUpcast': False, 'tuplex.allowUndefinedBehavior': False, 'tuplex.optimizer.codeStats': False, 'tuplex.optimizer.generateParser': False, 'tuplex.optimizer.nullValueOptimization': False, 'tuplex.optimizer.filterPushdown': True, 'tuplex.optimizer.sharedObjectPropagation': True, 'tuplex.interleaveIO': True, 'tuplex.resolveWithInterpreterOnly': False, 'tuplex.csv.selectionPushdown': True, 'tuplex.webui.enable': False, 'tuplex.executorCount': 0, 'tuplex.csv.maxDetectionRows': 10000, 'tuplex.webui.port': 5000, 'tuplex.webui.mongodb.port': 27017, 'tuplex.webui.exceptionDisplayLimit': 5, 'tuplex.normalcaseThreshold': 0.9, 'tuplex.csv.comments': ['#', '~'], 'tuplex.csv.maxDetectionMemory': '256KB', 'tuplex.csv.quotechar': '"', 'tuplex.csv.separators': [',', ';', '|', '\t'], 'tuplex.driverMemory': '32G', 'tuplex.env.hostname': '4e1bb76d17c5', 'tuplex.env.mode': 'file', 'tuplex.env.user': 'root', 'tuplex.executorMemory': '6G', 'tuplex.inputSplitSize': '64MB', 'tuplex.logDir': '.', 'tuplex.optimizer.mergeExceptionsInOrder': 'False', 'tuplex.optimizer.operatorReordering': 'false', 'tuplex.optionalThreshold': '0.7', 'tuplex.partitionSize': '32MB', 'tuplex.readBufferSize': '128KB', 'tuplex.runTimeLibrary': '/usr/local/lib/python3.6/site-packages/Tuplex-0.1.7-py3.6.egg/tuplex/libexec/tuplex_runtime', 'tuplex.runTimeMemory': '64MB', 'tuplex.runTimeMemoryBlockSize': '4MB', 'tuplex.scratchDir': '/tmp', 'tuplex.webui.mongodb.path': '/data/tuplex_history', 'tuplex.webui.mongodb.url': 'localhost', 'tuplex.webui.url': 'localhost'}
+{"logical_optimization_time_s":0.0198713,"llvm_optimization_time_s":0.137017,"llvm_compilation_time_s":0.0613552,"total_compilation_time_s":0.205699,"sampling_time_s":0.112212,"stages":[{"stage_no":0,"fast_path_wall_time_s":46.3098,"fast_path_time_s":46.313,"fast_path_per_row_time_ns":821.812,"slow_path_wall_time_s":0,"slow_path_time_s":0,"slow_path_per_row_time_ns":0}]}
+{"webui.enable": false, "executorMemory": "6G", "executorCount": 0, "driverMemory": "32G", "partitionSize": "32MB", "runTimeMemory": "64MB", "inputSplitSize": "64MB", "useLLVMOptimizer": true, "optimizer.nullValueOptimization": false, "csv.selectionPushdown": true, "optimizer.generateParser": false, "optimizer.mergeExceptionsInOrder": false, "optimizer.filterPushdown": true, "resolveWithInterpreterOnly": false}
+{"startupTime": 0.0049762725830078125, "jobTime": 47.177226543426514, "mode": "plain", "mergeExceptionsInOrder": false}
+[GLOBAL] Local engine terminated.
+[GLOBAL] releasing 161 active partitions

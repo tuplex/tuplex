@@ -1,0 +1,13 @@
+In file included from zillow.cpp:2:
+./csvmonkey.h: In member function ‘void csvmonkey::BufferedStreamCursor::reset()’:
+./csvmonkey.h:234:30: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<char>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  234 |             for(int i = 0; i < vec_.size(); ++i)
+      |                            ~~^~~~~~~~~~~~~
+zillow.cpp: In function ‘int main(int, char**)’:
+zillow.cpp:364:8: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  364 |   write(ofile, output_data, output_size);
+      |   ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+real	0m4.937s
+user	0m4.755s
+sys	0m0.182s

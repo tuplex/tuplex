@@ -41,6 +41,13 @@ def plot_figure5(logs_path='r5d.8xlarge/logs', output_folder='plots'):
     figure5(logs_path, output_folder)
     logging.info('Plots saved in {}'.format(output_folder))
 
+def plot_figure6(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
+    logging.info('Plotting Figure6 (Tuplex exceptions)')
+    logging.info('Benchmark result folder specified as {}'.format(zillow_path))
+    from plot_scripts.figure6 import figure6
+    figure6(zillow_path, output_folder)
+    logging.info('Plots saved in {}'.format(output_folder))
+
 def plot_figure7(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
     logging.info('Plotting Figure7 (Tuplex vs. other JITs experiment)')
     logging.info('Benchmark result folder specified as {}'.format(zillow_path))
@@ -70,6 +77,15 @@ def plot_figure9(tpch_path='r5d.8xlarge/tpch', output_folder='plots'):
     figure9(tpch_path, output_folder)
     logging.info('Plots saved in {}'.format(output_folder))
 
+def plot_figure10(flights_path='r5d.8xlarge/flights', output_folder='plots'):
+    logging.info('Plotting Figure10 (Flights breakdown')
+    logging.info('Benchmark result folder specified as {}'.format(flights_path))
+    from plot_scripts.figure10 import figure10
+
+    logging.info('Loading data...')
+    figure10(flights_path, output_folder)
+    logging.info('Plots saved in {}'.format(output_folder))
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s:%(levelname)s: %(message)s',
@@ -78,7 +94,11 @@ if __name__ == '__main__':
     stream_handler = [h for h in logging.root.handlers if isinstance(h , logging.StreamHandler)][0]
     stream_handler.setLevel(logging.INFO)
 
-    plot_figure9()
+    plot_figure6()
+
+    #plot_figure10()
+
+    #plot_figure9()
     #plot_figure8()
 
     #plot_figure5()

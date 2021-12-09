@@ -1,0 +1,13 @@
+[info] welcome to sbt 1.4.9 (Private Build Java 1.8.0_282)
+[info] loading settings for project sparksql-scala-build from plugins.sbt ...
+[info] loading project definition from /code/benchmark/zillow/Z1/sparksql-scala/project
+[info] loading settings for project sparksql-scala from build.sbt ...
+[info] set current project to ZillowScala (in build file:/code/benchmark/zillow/Z1/sparksql-scala/)
+[warn] There may be incompatibilities among your library dependencies; run 'evicted' to see detailed eviction warnings.
+[info] compiling 1 Scala source to /code/benchmark/zillow/Z1/sparksql-scala/target/scala-2.11/classes ...
+[info] done compiling
+[success] Total time: 7 s, completed Mar 24, 2021 11:09:51 PM
+
+real	0m10.822s
+user	0m46.546s
+sys	0m1.908s

@@ -1,0 +1,61 @@
+PySpark startup time: 1.6802561283111572
+Pyspark job time: 226.00212144851685 s
+== Parsed Logical Plan ==
+Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, endpoint#62, randomstr#52, protocol#72, response_code#83, coalesce(content_size#95, cast(0 as int)) AS content_size#120]
++- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, endpoint#62, randomstr#52, protocol#72, response_code#83, cast(regexp_extract(value#0, ^.*" \d{3} (\S+), 1) as int) AS content_size#95]
+   +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, endpoint#62, randomstr#52, protocol#72, cast(regexp_extract(value#0, ^.*" (\d{3}) , 1) as int) AS response_code#83]
+      +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, endpoint#62, randomstr#52, regexp_extract(value#0, ^.*"\S+ \S+\s*(\S*)\s*", 1) AS protocol#72]
+         +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, regexp_replace(endpoint#42, ^/~[^/]+, randomstr#52) AS endpoint#62, randomstr#52]
+            +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, endpoint#42, CreateRandomID() AS randomstr#52]
+               +- Filter NOT (endpoint#42 = )
+                  +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, regexp_extract(value#0, ^.*"\S+ (\S+)\s*\S*\s*", 1) AS endpoint#42]
+                     +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, regexp_extract(value#0, ^.*"(\S+) \S+\s*\S*\s*", 1) AS method#34]
+                        +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, regexp_extract(value#0, ^.*\[([\w:/]+\s[+\-]\d{4})\], 1) AS date#27]
+                           +- Project [value#0, ip#2, BadIPs#5, client_id#16, regexp_extract(value#0, ^\S+ \S+ (\S+) , 1) AS user_id#21]
+                              +- Project [value#0, ip#2, BadIPs#5, regexp_extract(value#0, ^\S+ (\S+) , 1) AS client_id#16]
+                                 +- Join Inner, (ip#2 = BadIPs#5)
+                                    :- Project [value#0, regexp_extract(value#0, (^\S+) , 1) AS ip#2]
+                                    :  +- Relation[value#0] text
+                                    +- Relation[BadIPs#5] csv
+
+== Analyzed Logical Plan ==
+value: string, ip: string, BadIPs: string, client_id: string, user_id: string, date: string, method: string, endpoint: string, randomstr: string, protocol: string, response_code: int, content_size: int
+Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, endpoint#62, randomstr#52, protocol#72, response_code#83, coalesce(content_size#95, cast(0 as int)) AS content_size#120]
++- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, endpoint#62, randomstr#52, protocol#72, response_code#83, cast(regexp_extract(value#0, ^.*" \d{3} (\S+), 1) as int) AS content_size#95]
+   +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, endpoint#62, randomstr#52, protocol#72, cast(regexp_extract(value#0, ^.*" (\d{3}) , 1) as int) AS response_code#83]
+      +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, endpoint#62, randomstr#52, regexp_extract(value#0, ^.*"\S+ \S+\s*(\S*)\s*", 1) AS protocol#72]
+         +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, regexp_replace(endpoint#42, ^/~[^/]+, randomstr#52) AS endpoint#62, randomstr#52]
+            +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, endpoint#42, CreateRandomID() AS randomstr#52]
+               +- Filter NOT (endpoint#42 = )
+                  +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, method#34, regexp_extract(value#0, ^.*"\S+ (\S+)\s*\S*\s*", 1) AS endpoint#42]
+                     +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, date#27, regexp_extract(value#0, ^.*"(\S+) \S+\s*\S*\s*", 1) AS method#34]
+                        +- Project [value#0, ip#2, BadIPs#5, client_id#16, user_id#21, regexp_extract(value#0, ^.*\[([\w:/]+\s[+\-]\d{4})\], 1) AS date#27]
+                           +- Project [value#0, ip#2, BadIPs#5, client_id#16, regexp_extract(value#0, ^\S+ \S+ (\S+) , 1) AS user_id#21]
+                              +- Project [value#0, ip#2, BadIPs#5, regexp_extract(value#0, ^\S+ (\S+) , 1) AS client_id#16]
+                                 +- Join Inner, (ip#2 = BadIPs#5)
+                                    :- Project [value#0, regexp_extract(value#0, (^\S+) , 1) AS ip#2]
+                                    :  +- Relation[value#0] text
+                                    +- Relation[BadIPs#5] csv
+
+== Optimized Logical Plan ==
+Project [value#0, ip#2, BadIPs#5, regexp_extract(value#0, ^\S+ (\S+) , 1) AS client_id#16, regexp_extract(value#0, ^\S+ \S+ (\S+) , 1) AS user_id#21, regexp_extract(value#0, ^.*\[([\w:/]+\s[+\-]\d{4})\], 1) AS date#27, regexp_extract(value#0, ^.*"(\S+) \S+\s*\S*\s*", 1) AS method#34, regexp_replace(regexp_extract(value#0, ^.*"\S+ (\S+)\s*\S*\s*", 1), ^/~[^/]+, pythonUDF1#151) AS endpoint#62, pythonUDF1#151 AS randomstr#52, regexp_extract(value#0, ^.*"\S+ \S+\s*(\S*)\s*", 1) AS protocol#72, cast(regexp_extract(value#0, ^.*" (\d{3}) , 1) as int) AS response_code#83, coalesce(cast(regexp_extract(value#0, ^.*" \d{3} (\S+), 1) as int), 0) AS content_size#120]
++- BatchEvalPython [CreateRandomID(), CreateRandomID()], [value#0, ip#2, BadIPs#5, pythonUDF0#150, pythonUDF1#151]
+   +- Join Inner, (ip#2 = BadIPs#5)
+      :- Project [value#0, regexp_extract(value#0, (^\S+) , 1) AS ip#2]
+      :  +- Filter (NOT (regexp_extract(value#0, ^.*"\S+ (\S+)\s*\S*\s*", 1) = ) && isnotnull(regexp_extract(value#0, (^\S+) , 1)))
+      :     +- Relation[value#0] text
+      +- Filter isnotnull(BadIPs#5)
+         +- Relation[BadIPs#5] csv
+
+== Physical Plan ==
+*(3) Project [value#0, ip#2, BadIPs#5, regexp_extract(value#0, ^\S+ (\S+) , 1) AS client_id#16, regexp_extract(value#0, ^\S+ \S+ (\S+) , 1) AS user_id#21, regexp_extract(value#0, ^.*\[([\w:/]+\s[+\-]\d{4})\], 1) AS date#27, regexp_extract(value#0, ^.*"(\S+) \S+\s*\S*\s*", 1) AS method#34, regexp_replace(regexp_extract(value#0, ^.*"\S+ (\S+)\s*\S*\s*", 1), ^/~[^/]+, pythonUDF1#151) AS endpoint#62, pythonUDF1#151 AS randomstr#52, regexp_extract(value#0, ^.*"\S+ \S+\s*(\S*)\s*", 1) AS protocol#72, cast(regexp_extract(value#0, ^.*" (\d{3}) , 1) as int) AS response_code#83, coalesce(cast(regexp_extract(value#0, ^.*" \d{3} (\S+), 1) as int), 0) AS content_size#120]
++- BatchEvalPython [CreateRandomID(), CreateRandomID()], [value#0, ip#2, BadIPs#5, pythonUDF0#150, pythonUDF1#151]
+   +- *(2) BroadcastHashJoin [ip#2], [BadIPs#5], Inner, BuildRight
+      :- *(2) Project [value#0, regexp_extract(value#0, (^\S+) , 1) AS ip#2]
+      :  +- *(2) Filter (NOT (regexp_extract(value#0, ^.*"\S+ (\S+)\s*\S*\s*", 1) = ) && isnotnull(regexp_extract(value#0, (^\S+) , 1)))
+      :     +- *(2) FileScan text [value#0] Batched: false, Format: Text, Location: InMemoryFileIndex[file:/data/logs/2000.01.01.txt, file:/data/logs/2000.01.02.txt, file:/data/logs..., PartitionFilters: [], PushedFilters: [], ReadSchema: struct<value:string>
+      +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, string, true]))
+         +- *(1) Project [BadIPs#5]
+            +- *(1) Filter isnotnull(BadIPs#5)
+               +- *(1) FileScan csv [BadIPs#5] Batched: false, Format: CSV, Location: InMemoryFileIndex[file:/data/logs/ip_blacklist.csv], PartitionFilters: [], PushedFilters: [IsNotNull(BadIPs)], ReadSchema: struct<BadIPs:string>
+{"startupTime": 1.6802561283111572, "jobTime": 226.00212144851685}

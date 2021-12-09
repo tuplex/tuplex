@@ -1,0 +1,768 @@
+21/03/30 03:16:49 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Using Spark's default log4j profile: org/apache/spark/log4j-defaults.properties
+21/03/30 03:16:49 INFO SparkContext: Running Spark version 2.4.7
+21/03/30 03:16:49 INFO SparkContext: Submitted application: TPC-H Q06
+21/03/30 03:16:49 INFO SecurityManager: Changing view acls to: root
+21/03/30 03:16:49 INFO SecurityManager: Changing modify acls to: root
+21/03/30 03:16:49 INFO SecurityManager: Changing view acls groups to: 
+21/03/30 03:16:49 INFO SecurityManager: Changing modify acls groups to: 
+21/03/30 03:16:49 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users  with view permissions: Set(root); groups with view permissions: Set(); users  with modify permissions: Set(root); groups with modify permissions: Set()
+21/03/30 03:16:49 INFO Utils: Successfully started service 'sparkDriver' on port 36747.
+21/03/30 03:16:49 INFO SparkEnv: Registering MapOutputTracker
+21/03/30 03:16:49 INFO SparkEnv: Registering BlockManagerMaster
+21/03/30 03:16:49 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+21/03/30 03:16:49 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+21/03/30 03:16:49 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-efa17ce8-98a2-4153-88d0-d0f7464843b5
+21/03/30 03:16:49 INFO MemoryStore: MemoryStore started with capacity 53.2 GB
+21/03/30 03:16:49 INFO SparkEnv: Registering OutputCommitCoordinator
+21/03/30 03:16:50 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+21/03/30 03:16:50 INFO SparkUI: Bound SparkUI to 0.0.0.0, and started at http://c08396fee951:4040
+21/03/30 03:16:50 INFO Executor: Starting executor ID driver on host localhost
+21/03/30 03:16:50 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 37827.
+21/03/30 03:16:50 INFO NettyBlockTransferService: Server created on c08396fee951:37827
+21/03/30 03:16:50 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+21/03/30 03:16:50 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, c08396fee951, 37827, None)
+21/03/30 03:16:50 INFO BlockManagerMasterEndpoint: Registering block manager c08396fee951:37827 with 53.2 GB RAM, BlockManagerId(driver, c08396fee951, 37827, None)
+21/03/30 03:16:50 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, c08396fee951, 37827, None)
+21/03/30 03:16:50 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, c08396fee951, 37827, None)
+21/03/30 03:16:50 INFO SharedState: Setting hive.metastore.warehouse.dir ('null') to the value of spark.sql.warehouse.dir ('file:/code/benchmark/tpch/Q06/spark-warehouse/').
+21/03/30 03:16:50 INFO SharedState: Warehouse path is 'file:/code/benchmark/tpch/Q06/spark-warehouse/'.
+21/03/30 03:16:50 INFO StateStoreCoordinatorRef: Registered StateStoreCoordinator endpoint
+21/03/30 03:16:51 INFO MemoryStore: Block broadcast_0 stored as values in memory (estimated size 302.8 KB, free 53.2 GB)
+21/03/30 03:16:51 INFO MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 23.0 KB, free 53.2 GB)
+21/03/30 03:16:51 INFO BlockManagerInfo: Added broadcast_0_piece0 in memory on c08396fee951:37827 (size: 23.0 KB, free: 53.2 GB)
+21/03/30 03:16:51 INFO SparkContext: Created broadcast 0 from textFile at NativeMethodAccessorImpl.java:0
+21/03/30 03:16:51 INFO FileInputFormat: Total input paths to process : 1
+21/03/30 03:16:51 INFO SparkContext: Starting job: count at /code/benchmark/tpch/Q06/runpyspark.py:177
+21/03/30 03:16:51 INFO DAGScheduler: Got job 0 (count at /code/benchmark/tpch/Q06/runpyspark.py:177) with 46 output partitions
+21/03/30 03:16:51 INFO DAGScheduler: Final stage: ResultStage 0 (count at /code/benchmark/tpch/Q06/runpyspark.py:177)
+21/03/30 03:16:51 INFO DAGScheduler: Parents of final stage: List()
+21/03/30 03:16:51 INFO DAGScheduler: Missing parents: List()
+21/03/30 03:16:51 INFO DAGScheduler: Submitting ResultStage 0 (PythonRDD[3] at count at /code/benchmark/tpch/Q06/runpyspark.py:177), which has no missing parents
+21/03/30 03:16:51 INFO MemoryStore: Block broadcast_1 stored as values in memory (estimated size 8.8 KB, free 53.2 GB)
+21/03/30 03:16:51 INFO MemoryStore: Block broadcast_1_piece0 stored as bytes in memory (estimated size 5.3 KB, free 53.2 GB)
+21/03/30 03:16:51 INFO BlockManagerInfo: Added broadcast_1_piece0 in memory on c08396fee951:37827 (size: 5.3 KB, free: 53.2 GB)
+21/03/30 03:16:51 INFO SparkContext: Created broadcast 1 from broadcast at DAGScheduler.scala:1184
+21/03/30 03:16:51 INFO DAGScheduler: Submitting 46 missing tasks from ResultStage 0 (PythonRDD[3] at count at /code/benchmark/tpch/Q06/runpyspark.py:177) (first 15 tasks are for partitions Vector(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+21/03/30 03:16:51 INFO TaskSchedulerImpl: Adding task set 0.0 with 46 tasks
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 0.0 in stage 0.0 (TID 0, localhost, executor driver, partition 0, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 1.0 in stage 0.0 (TID 1, localhost, executor driver, partition 1, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 2.0 in stage 0.0 (TID 2, localhost, executor driver, partition 2, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 3.0 in stage 0.0 (TID 3, localhost, executor driver, partition 3, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 4.0 in stage 0.0 (TID 4, localhost, executor driver, partition 4, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 5.0 in stage 0.0 (TID 5, localhost, executor driver, partition 5, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 6.0 in stage 0.0 (TID 6, localhost, executor driver, partition 6, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 7.0 in stage 0.0 (TID 7, localhost, executor driver, partition 7, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 8.0 in stage 0.0 (TID 8, localhost, executor driver, partition 8, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 9.0 in stage 0.0 (TID 9, localhost, executor driver, partition 9, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 10.0 in stage 0.0 (TID 10, localhost, executor driver, partition 10, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 11.0 in stage 0.0 (TID 11, localhost, executor driver, partition 11, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 12.0 in stage 0.0 (TID 12, localhost, executor driver, partition 12, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 13.0 in stage 0.0 (TID 13, localhost, executor driver, partition 13, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 14.0 in stage 0.0 (TID 14, localhost, executor driver, partition 14, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO TaskSetManager: Starting task 15.0 in stage 0.0 (TID 15, localhost, executor driver, partition 15, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:51 INFO Executor: Running task 13.0 in stage 0.0 (TID 13)
+21/03/30 03:16:51 INFO Executor: Running task 8.0 in stage 0.0 (TID 8)
+21/03/30 03:16:51 INFO Executor: Running task 14.0 in stage 0.0 (TID 14)
+21/03/30 03:16:51 INFO Executor: Running task 15.0 in stage 0.0 (TID 15)
+21/03/30 03:16:51 INFO Executor: Running task 7.0 in stage 0.0 (TID 7)
+21/03/30 03:16:51 INFO Executor: Running task 6.0 in stage 0.0 (TID 6)
+21/03/30 03:16:51 INFO Executor: Running task 5.0 in stage 0.0 (TID 5)
+21/03/30 03:16:51 INFO Executor: Running task 2.0 in stage 0.0 (TID 2)
+21/03/30 03:16:51 INFO Executor: Running task 11.0 in stage 0.0 (TID 11)
+21/03/30 03:16:51 INFO Executor: Running task 10.0 in stage 0.0 (TID 10)
+21/03/30 03:16:51 INFO Executor: Running task 1.0 in stage 0.0 (TID 1)
+21/03/30 03:16:51 INFO Executor: Running task 3.0 in stage 0.0 (TID 3)
+21/03/30 03:16:51 INFO Executor: Running task 12.0 in stage 0.0 (TID 12)
+21/03/30 03:16:51 INFO Executor: Running task 4.0 in stage 0.0 (TID 4)
+21/03/30 03:16:51 INFO Executor: Running task 0.0 in stage 0.0 (TID 0)
+21/03/30 03:16:51 INFO Executor: Running task 9.0 in stage 0.0 (TID 9)
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:67108864+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:234881024+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:469762048+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:100663296+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:33554432+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:335544320+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:0+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:268435456+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:201326592+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:402653184+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:436207616+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:301989888+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:369098752+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:167772160+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:134217728+33554432
+21/03/30 03:16:51 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:503316480+33554432
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 3825, boot = 380, init = 34, finish = 3411
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_4 stored as values in memory (estimated size 52.5 MB, free 53.1 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_4 in memory on c08396fee951:37827 (size: 52.5 MB, free: 53.1 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 3913, boot = 415, init = 39, finish = 3459
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_15 stored as values in memory (estimated size 52.5 MB, free 53.1 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_15 in memory on c08396fee951:37827 (size: 52.5 MB, free: 53.1 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 3983, boot = 387, init = 75, finish = 3521
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_11 stored as values in memory (estimated size 52.5 MB, free 53.0 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_11 in memory on c08396fee951:37827 (size: 52.5 MB, free: 53.0 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4011, boot = 366, init = 38, finish = 3607
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_12 stored as values in memory (estimated size 52.5 MB, free 53.0 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_12 in memory on c08396fee951:37827 (size: 52.5 MB, free: 53.0 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4116, boot = 373, init = 31, finish = 3712
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_1 stored as values in memory (estimated size 52.5 MB, free 52.9 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_1 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.9 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4126, boot = 389, init = 74, finish = 3663
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_13 stored as values in memory (estimated size 52.5 MB, free 52.8 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_13 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.9 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4120, boot = 368, init = 36, finish = 3716
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_7 stored as values in memory (estimated size 52.5 MB, free 52.8 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_7 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.8 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4195, boot = 371, init = 33, finish = 3791
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_9 stored as values in memory (estimated size 52.5 MB, free 52.7 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_9 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.7 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4273, boot = 384, init = 31, finish = 3858
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_5 stored as values in memory (estimated size 52.5 MB, free 52.7 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_5 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.7 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4238, boot = 382, init = 40, finish = 3816
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_6 stored as values in memory (estimated size 52.5 MB, free 52.6 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_6 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.6 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4264, boot = 437, init = 32, finish = 3795
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_0 stored as values in memory (estimated size 52.5 MB, free 52.6 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_0 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.6 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4347, boot = 375, init = 30, finish = 3942
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_14 stored as values in memory (estimated size 52.5 MB, free 52.5 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_14 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.5 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4387, boot = 377, init = 37, finish = 3973
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_2 stored as values in memory (estimated size 52.5 MB, free 52.5 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_2 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.5 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4412, boot = 406, init = 15, finish = 3991
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_10 stored as values in memory (estimated size 52.5 MB, free 52.4 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_10 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.4 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4421, boot = 430, init = 3, finish = 3988
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_8 stored as values in memory (estimated size 52.5 MB, free 52.4 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_8 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.4 GB)
+21/03/30 03:16:55 INFO PythonRunner: Times: total = 4436, boot = 417, init = 25, finish = 3994
+21/03/30 03:16:55 INFO MemoryStore: Block rdd_2_3 stored as values in memory (estimated size 52.5 MB, free 52.3 GB)
+21/03/30 03:16:55 INFO BlockManagerInfo: Added rdd_2_3 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.3 GB)
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 824, boot = -47, init = 73, finish = 798
+21/03/30 03:16:56 INFO Executor: Finished task 4.0 in stage 0.0 (TID 4). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 16.0 in stage 0.0 (TID 16, localhost, executor driver, partition 16, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO Executor: Running task 16.0 in stage 0.0 (TID 16)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 4.0 in stage 0.0 (TID 4) in 4804 ms on localhost (executor driver) (1/46)
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:536870912+33554432
+21/03/30 03:16:56 INFO PythonAccumulatorV2: Connected to AccumulatorServer at host: 127.0.0.1 port: 43237
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 800, boot = -39, init = 62, finish = 777
+21/03/30 03:16:56 INFO Executor: Finished task 15.0 in stage 0.0 (TID 15). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 17.0 in stage 0.0 (TID 17, localhost, executor driver, partition 17, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO Executor: Running task 17.0 in stage 0.0 (TID 17)
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:570425344+33554432
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 15.0 in stage 0.0 (TID 15) in 4862 ms on localhost (executor driver) (2/46)
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 794, boot = -112, init = 132, finish = 774
+21/03/30 03:16:56 INFO Executor: Finished task 12.0 in stage 0.0 (TID 12). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 897, boot = -40, init = 158, finish = 779
+21/03/30 03:16:56 INFO Executor: Finished task 11.0 in stage 0.0 (TID 11). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 18.0 in stage 0.0 (TID 18, localhost, executor driver, partition 18, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO Executor: Running task 18.0 in stage 0.0 (TID 18)
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:603979776+33554432
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 19.0 in stage 0.0 (TID 19, localhost, executor driver, partition 19, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO Executor: Running task 19.0 in stage 0.0 (TID 19)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 12.0 in stage 0.0 (TID 12) in 5018 ms on localhost (executor driver) (3/46)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 11.0 in stage 0.0 (TID 11) in 5018 ms on localhost (executor driver) (4/46)
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:637534208+33554432
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 784, boot = -44, init = 62, finish = 766
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 830, boot = -22, init = 63, finish = 789
+21/03/30 03:16:56 INFO Executor: Finished task 7.0 in stage 0.0 (TID 7). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO Executor: Finished task 1.0 in stage 0.0 (TID 1). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 818, boot = -52, init = 103, finish = 767
+21/03/30 03:16:56 INFO Executor: Finished task 13.0 in stage 0.0 (TID 13). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 20.0 in stage 0.0 (TID 20, localhost, executor driver, partition 20, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 7.0 in stage 0.0 (TID 7) in 5080 ms on localhost (executor driver) (5/46)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 1.0 in stage 0.0 (TID 1) in 5082 ms on localhost (executor driver) (6/46)
+21/03/30 03:16:56 INFO Executor: Running task 20.0 in stage 0.0 (TID 20)
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 21.0 in stage 0.0 (TID 21, localhost, executor driver, partition 21, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 22.0 in stage 0.0 (TID 22, localhost, executor driver, partition 22, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO Executor: Running task 21.0 in stage 0.0 (TID 21)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 13.0 in stage 0.0 (TID 13) in 5079 ms on localhost (executor driver) (7/46)
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:671088640+33554432
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:704643072+33554432
+21/03/30 03:16:56 INFO Executor: Running task 22.0 in stage 0.0 (TID 22)
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:738197504+33554432
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 759, boot = 2, init = 7, finish = 750
+21/03/30 03:16:56 INFO Executor: Finished task 5.0 in stage 0.0 (TID 5). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 23.0 in stage 0.0 (TID 23, localhost, executor driver, partition 23, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO Executor: Running task 23.0 in stage 0.0 (TID 23)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 5.0 in stage 0.0 (TID 5) in 5130 ms on localhost (executor driver) (8/46)
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:771751936+33554432
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 862, boot = -14, init = 26, finish = 850
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 769, boot = -39, init = 52, finish = 756
+21/03/30 03:16:56 INFO Executor: Finished task 9.0 in stage 0.0 (TID 9). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO Executor: Finished task 0.0 in stage 0.0 (TID 0). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 24.0 in stage 0.0 (TID 24, localhost, executor driver, partition 24, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO Executor: Running task 24.0 in stage 0.0 (TID 24)
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 25.0 in stage 0.0 (TID 25, localhost, executor driver, partition 25, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO Executor: Running task 25.0 in stage 0.0 (TID 25)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 9.0 in stage 0.0 (TID 9) in 5151 ms on localhost (executor driver) (9/46)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 0.0 in stage 0.0 (TID 0) in 5163 ms on localhost (executor driver) (10/46)
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:805306368+33554432
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:838860800+33554432
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 867, boot = -39, init = 49, finish = 857
+21/03/30 03:16:56 INFO Executor: Finished task 6.0 in stage 0.0 (TID 6). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 26.0 in stage 0.0 (TID 26, localhost, executor driver, partition 26, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO Executor: Running task 26.0 in stage 0.0 (TID 26)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 6.0 in stage 0.0 (TID 6) in 5225 ms on localhost (executor driver) (11/46)
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:872415232+33554432
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 801, boot = -44, init = 65, finish = 780
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 790, boot = -39, init = 51, finish = 778
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 764, boot = -47, init = 103, finish = 708
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 821, boot = -38, init = 64, finish = 795
+21/03/30 03:16:56 INFO PythonRunner: Times: total = 794, boot = -41, init = 79, finish = 756
+21/03/30 03:16:56 INFO Executor: Finished task 10.0 in stage 0.0 (TID 10). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO Executor: Finished task 8.0 in stage 0.0 (TID 8). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO Executor: Finished task 3.0 in stage 0.0 (TID 3). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO Executor: Finished task 2.0 in stage 0.0 (TID 2). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO Executor: Finished task 14.0 in stage 0.0 (TID 14). 1550 bytes result sent to driver
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 27.0 in stage 0.0 (TID 27, localhost, executor driver, partition 27, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO Executor: Running task 27.0 in stage 0.0 (TID 27)
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 28.0 in stage 0.0 (TID 28, localhost, executor driver, partition 28, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO Executor: Running task 28.0 in stage 0.0 (TID 28)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 8.0 in stage 0.0 (TID 8) in 5393 ms on localhost (executor driver) (12/46)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 10.0 in stage 0.0 (TID 10) in 5392 ms on localhost (executor driver) (13/46)
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 29.0 in stage 0.0 (TID 29, localhost, executor driver, partition 29, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 3.0 in stage 0.0 (TID 3) in 5396 ms on localhost (executor driver) (14/46)
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 30.0 in stage 0.0 (TID 30, localhost, executor driver, partition 30, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO Executor: Running task 30.0 in stage 0.0 (TID 30)
+21/03/30 03:16:56 INFO TaskSetManager: Starting task 31.0 in stage 0.0 (TID 31, localhost, executor driver, partition 31, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 2.0 in stage 0.0 (TID 2) in 5397 ms on localhost (executor driver) (15/46)
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1006632960+33554432
+21/03/30 03:16:56 INFO TaskSetManager: Finished task 14.0 in stage 0.0 (TID 14) in 5394 ms on localhost (executor driver) (16/46)
+21/03/30 03:16:56 INFO Executor: Running task 31.0 in stage 0.0 (TID 31)
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1040187392+33554432
+21/03/30 03:16:56 INFO Executor: Running task 29.0 in stage 0.0 (TID 29)
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:905969664+33554432
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:973078528+33554432
+21/03/30 03:16:56 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:939524096+33554432
+21/03/30 03:16:59 INFO PythonRunner: Times: total = 3312, boot = -27, init = 41, finish = 3298
+21/03/30 03:16:59 INFO MemoryStore: Block rdd_2_17 stored as values in memory (estimated size 52.5 MB, free 52.3 GB)
+21/03/30 03:16:59 INFO BlockManagerInfo: Added rdd_2_17 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.3 GB)
+21/03/30 03:16:59 INFO PythonRunner: Times: total = 3209, boot = -6, init = 28, finish = 3187
+21/03/30 03:16:59 INFO MemoryStore: Block rdd_2_18 stored as values in memory (estimated size 52.5 MB, free 52.2 GB)
+21/03/30 03:16:59 INFO BlockManagerInfo: Added rdd_2_18 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.2 GB)
+21/03/30 03:16:59 INFO PythonRunner: Times: total = 3282, boot = -17, init = 48, finish = 3251
+21/03/30 03:16:59 INFO MemoryStore: Block rdd_2_19 stored as values in memory (estimated size 52.5 MB, free 52.2 GB)
+21/03/30 03:16:59 INFO BlockManagerInfo: Added rdd_2_19 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.2 GB)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 3276, boot = 5, init = 1, finish = 3270
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 3537, boot = -53, init = 74, finish = 3516
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_16 stored as values in memory (estimated size 52.5 MB, free 52.1 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_16 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.1 GB)
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_24 stored as values in memory (estimated size 52.5 MB, free 52.1 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_24 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.1 GB)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 3449, boot = -16, init = 73, finish = 3392
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_23 stored as values in memory (estimated size 52.5 MB, free 52.0 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_23 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.0 GB)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 3296, boot = 6, init = 13, finish = 3277
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 3321, boot = 3, init = 19, finish = 3299
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_25 stored as values in memory (estimated size 52.5 MB, free 52.0 GB)
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_26 stored as values in memory (estimated size 52.5 MB, free 51.9 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_25 in memory on c08396fee951:37827 (size: 52.5 MB, free: 52.0 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_26 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.9 GB)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 4772, boot = -44, init = 66, finish = 4750
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_20 stored as values in memory (estimated size 52.5 MB, free 51.9 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_20 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.9 GB)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 4844, boot = -11, init = 60, finish = 4795
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_22 stored as values in memory (estimated size 52.5 MB, free 51.8 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_22 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.8 GB)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 4385, boot = -217, init = 413, finish = 4189
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_29 stored as values in memory (estimated size 52.5 MB, free 51.8 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_29 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.8 GB)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 4882, boot = -31, init = 113, finish = 4800
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_21 stored as values in memory (estimated size 52.5 MB, free 51.7 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_21 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.7 GB)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 4605, boot = -115, init = 275, finish = 4445
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_31 stored as values in memory (estimated size 52.5 MB, free 51.7 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_31 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.7 GB)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 4694, boot = -70, init = 90, finish = 4674
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_27 stored as values in memory (estimated size 52.5 MB, free 51.6 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_27 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.6 GB)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 2128, boot = -41, init = 62, finish = 2107
+21/03/30 03:17:01 INFO Executor: Finished task 17.0 in stage 0.0 (TID 17). 1550 bytes result sent to driver
+21/03/30 03:17:01 INFO TaskSetManager: Starting task 32.0 in stage 0.0 (TID 32, localhost, executor driver, partition 32, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:01 INFO TaskSetManager: Finished task 17.0 in stage 0.0 (TID 17) in 5516 ms on localhost (executor driver) (17/46)
+21/03/30 03:17:01 INFO Executor: Running task 32.0 in stage 0.0 (TID 32)
+21/03/30 03:17:01 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1073741824+33554432
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 2078, boot = -67, init = 82, finish = 2063
+21/03/30 03:17:01 INFO Executor: Finished task 18.0 in stage 0.0 (TID 18). 1550 bytes result sent to driver
+21/03/30 03:17:01 INFO TaskSetManager: Starting task 33.0 in stage 0.0 (TID 33, localhost, executor driver, partition 33, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:01 INFO TaskSetManager: Finished task 18.0 in stage 0.0 (TID 18) in 5369 ms on localhost (executor driver) (18/46)
+21/03/30 03:17:01 INFO Executor: Running task 33.0 in stage 0.0 (TID 33)
+21/03/30 03:17:01 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1107296256+33554432
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 4993, boot = -120, init = 301, finish = 4812
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_30 stored as values in memory (estimated size 52.5 MB, free 51.6 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_30 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.6 GB)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 4855, boot = -255, init = 349, finish = 4761
+21/03/30 03:17:01 INFO MemoryStore: Block rdd_2_28 stored as values in memory (estimated size 52.5 MB, free 51.5 GB)
+21/03/30 03:17:01 INFO BlockManagerInfo: Added rdd_2_28 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.5 GB)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 808, boot = -1374, init = 1386, finish = 796
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 812, boot = -1309, init = 1323, finish = 798
+21/03/30 03:17:01 INFO Executor: Finished task 16.0 in stage 0.0 (TID 16). 1550 bytes result sent to driver
+21/03/30 03:17:01 INFO TaskSetManager: Starting task 34.0 in stage 0.0 (TID 34, localhost, executor driver, partition 34, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:01 INFO Executor: Running task 34.0 in stage 0.0 (TID 34)
+21/03/30 03:17:01 INFO TaskSetManager: Finished task 16.0 in stage 0.0 (TID 16) in 5717 ms on localhost (executor driver) (19/46)
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 760, boot = -1299, init = 1302, finish = 757
+21/03/30 03:17:01 INFO Executor: Finished task 25.0 in stage 0.0 (TID 25). 1507 bytes result sent to driver
+21/03/30 03:17:01 INFO TaskSetManager: Starting task 35.0 in stage 0.0 (TID 35, localhost, executor driver, partition 35, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:01 INFO Executor: Running task 35.0 in stage 0.0 (TID 35)
+21/03/30 03:17:01 INFO TaskSetManager: Finished task 25.0 in stage 0.0 (TID 25) in 5364 ms on localhost (executor driver) (20/46)
+21/03/30 03:17:01 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1174405120+33554432
+21/03/30 03:17:01 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1140850688+33554432
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 818, boot = -1148, init = 1151, finish = 815
+21/03/30 03:17:01 INFO Executor: Finished task 19.0 in stage 0.0 (TID 19). 1593 bytes result sent to driver
+21/03/30 03:17:01 INFO Executor: Finished task 23.0 in stage 0.0 (TID 23). 1507 bytes result sent to driver
+21/03/30 03:17:01 INFO TaskSetManager: Starting task 36.0 in stage 0.0 (TID 36, localhost, executor driver, partition 36, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:01 INFO Executor: Running task 36.0 in stage 0.0 (TID 36)
+21/03/30 03:17:01 INFO TaskSetManager: Starting task 37.0 in stage 0.0 (TID 37, localhost, executor driver, partition 37, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:01 INFO TaskSetManager: Finished task 23.0 in stage 0.0 (TID 23) in 5446 ms on localhost (executor driver) (21/46)
+21/03/30 03:17:01 INFO TaskSetManager: Finished task 19.0 in stage 0.0 (TID 19) in 5558 ms on localhost (executor driver) (22/46)
+21/03/30 03:17:01 INFO Executor: Running task 37.0 in stage 0.0 (TID 37)
+21/03/30 03:17:01 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1207959552+33554432
+21/03/30 03:17:01 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1241513984+33554432
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 896, boot = -1273, init = 1349, finish = 820
+21/03/30 03:17:01 INFO PythonRunner: Times: total = 789, boot = 5, init = 6, finish = 778
+21/03/30 03:17:02 INFO PythonRunner: Times: total = 919, boot = -1202, init = 1251, finish = 870
+21/03/30 03:17:02 INFO PythonRunner: Times: total = 736, boot = 15, init = 0, finish = 721
+21/03/30 03:17:02 INFO PythonRunner: Times: total = 772, boot = 0, init = 7, finish = 765
+21/03/30 03:17:02 INFO Executor: Finished task 20.0 in stage 0.0 (TID 20). 1550 bytes result sent to driver
+21/03/30 03:17:02 INFO Executor: Finished task 22.0 in stage 0.0 (TID 22). 1550 bytes result sent to driver
+21/03/30 03:17:02 INFO Executor: Finished task 24.0 in stage 0.0 (TID 24). 1593 bytes result sent to driver
+21/03/30 03:17:02 INFO TaskSetManager: Starting task 38.0 in stage 0.0 (TID 38, localhost, executor driver, partition 38, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:02 INFO Executor: Running task 38.0 in stage 0.0 (TID 38)
+21/03/30 03:17:02 INFO Executor: Finished task 26.0 in stage 0.0 (TID 26). 1550 bytes result sent to driver
+21/03/30 03:17:02 INFO Executor: Finished task 29.0 in stage 0.0 (TID 29). 1593 bytes result sent to driver
+21/03/30 03:17:02 INFO TaskSetManager: Starting task 39.0 in stage 0.0 (TID 39, localhost, executor driver, partition 39, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:02 INFO TaskSetManager: Starting task 40.0 in stage 0.0 (TID 40, localhost, executor driver, partition 40, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:02 INFO TaskSetManager: Finished task 22.0 in stage 0.0 (TID 22) in 5667 ms on localhost (executor driver) (23/46)
+21/03/30 03:17:02 INFO TaskSetManager: Finished task 20.0 in stage 0.0 (TID 20) in 5684 ms on localhost (executor driver) (24/46)
+21/03/30 03:17:02 INFO Executor: Running task 39.0 in stage 0.0 (TID 39)
+21/03/30 03:17:02 INFO TaskSetManager: Starting task 41.0 in stage 0.0 (TID 41, localhost, executor driver, partition 41, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:02 INFO Executor: Running task 41.0 in stage 0.0 (TID 41)
+21/03/30 03:17:02 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1275068416+33554432
+21/03/30 03:17:02 INFO Executor: Running task 40.0 in stage 0.0 (TID 40)
+21/03/30 03:17:02 INFO TaskSetManager: Starting task 42.0 in stage 0.0 (TID 42, localhost, executor driver, partition 42, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:02 INFO Executor: Running task 42.0 in stage 0.0 (TID 42)
+21/03/30 03:17:02 INFO TaskSetManager: Finished task 24.0 in stage 0.0 (TID 24) in 5611 ms on localhost (executor driver) (25/46)
+21/03/30 03:17:02 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1375731712+33554432
+21/03/30 03:17:02 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1342177280+33554432
+21/03/30 03:17:02 INFO TaskSetManager: Finished task 29.0 in stage 0.0 (TID 29) in 5368 ms on localhost (executor driver) (26/46)
+21/03/30 03:17:02 INFO TaskSetManager: Finished task 26.0 in stage 0.0 (TID 26) in 5539 ms on localhost (executor driver) (27/46)
+21/03/30 03:17:02 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1308622848+33554432
+21/03/30 03:17:02 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1409286144+33554432
+21/03/30 03:17:02 INFO PythonRunner: Times: total = 816, boot = 4, init = 16, finish = 796
+21/03/30 03:17:02 INFO PythonRunner: Times: total = 790, boot = 7, init = 6, finish = 777
+21/03/30 03:17:02 INFO Executor: Finished task 21.0 in stage 0.0 (TID 21). 1507 bytes result sent to driver
+21/03/30 03:17:02 INFO Executor: Finished task 31.0 in stage 0.0 (TID 31). 1550 bytes result sent to driver
+21/03/30 03:17:02 INFO TaskSetManager: Starting task 43.0 in stage 0.0 (TID 43, localhost, executor driver, partition 43, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:02 INFO Executor: Running task 43.0 in stage 0.0 (TID 43)
+21/03/30 03:17:02 INFO TaskSetManager: Finished task 21.0 in stage 0.0 (TID 21) in 5753 ms on localhost (executor driver) (28/46)
+21/03/30 03:17:02 INFO TaskSetManager: Finished task 31.0 in stage 0.0 (TID 31) in 5439 ms on localhost (executor driver) (29/46)
+21/03/30 03:17:02 INFO TaskSetManager: Starting task 44.0 in stage 0.0 (TID 44, localhost, executor driver, partition 44, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:02 INFO Executor: Running task 44.0 in stage 0.0 (TID 44)
+21/03/30 03:17:02 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1442840576+33554432
+21/03/30 03:17:02 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1476395008+33554432
+21/03/30 03:17:02 INFO PythonRunner: Times: total = 760, boot = 7, init = 6, finish = 747
+21/03/30 03:17:02 INFO Executor: Finished task 27.0 in stage 0.0 (TID 27). 1550 bytes result sent to driver
+21/03/30 03:17:02 INFO TaskSetManager: Starting task 45.0 in stage 0.0 (TID 45, localhost, executor driver, partition 45, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:02 INFO TaskSetManager: Finished task 27.0 in stage 0.0 (TID 27) in 5529 ms on localhost (executor driver) (30/46)
+21/03/30 03:17:02 INFO Executor: Running task 45.0 in stage 0.0 (TID 45)
+21/03/30 03:17:02 INFO HadoopRDD: Input split: file:/data/tpch/q6/lineitem.tbl:1509949440+31152286
+21/03/30 03:17:02 INFO PythonRunner: Times: total = 845, boot = -35, init = 63, finish = 817
+21/03/30 03:17:02 INFO Executor: Finished task 28.0 in stage 0.0 (TID 28). 1550 bytes result sent to driver
+21/03/30 03:17:02 INFO TaskSetManager: Finished task 28.0 in stage 0.0 (TID 28) in 5934 ms on localhost (executor driver) (31/46)
+21/03/30 03:17:02 INFO PythonRunner: Times: total = 1030, boot = -42, init = 64, finish = 1008
+21/03/30 03:17:02 INFO Executor: Finished task 30.0 in stage 0.0 (TID 30). 1507 bytes result sent to driver
+21/03/30 03:17:02 INFO TaskSetManager: Finished task 30.0 in stage 0.0 (TID 30) in 6106 ms on localhost (executor driver) (32/46)
+21/03/30 03:17:04 INFO PythonRunner: Times: total = 2979, boot = -5, init = 18, finish = 2966
+21/03/30 03:17:04 INFO PythonRunner: Times: total = 2962, boot = -5, init = 13, finish = 2954
+21/03/30 03:17:04 INFO MemoryStore: Block rdd_2_33 stored as values in memory (estimated size 52.5 MB, free 51.4 GB)
+21/03/30 03:17:04 INFO BlockManagerInfo: Added rdd_2_33 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.5 GB)
+21/03/30 03:17:04 INFO MemoryStore: Block rdd_2_32 stored as values in memory (estimated size 52.5 MB, free 51.4 GB)
+21/03/30 03:17:04 INFO BlockManagerInfo: Added rdd_2_32 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.4 GB)
+21/03/30 03:17:04 INFO PythonRunner: Times: total = 2901, boot = -17, init = 25, finish = 2893
+21/03/30 03:17:04 INFO MemoryStore: Block rdd_2_35 stored as values in memory (estimated size 52.5 MB, free 51.4 GB)
+21/03/30 03:17:04 INFO BlockManagerInfo: Added rdd_2_35 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.4 GB)
+21/03/30 03:17:04 INFO PythonRunner: Times: total = 2950, boot = -53, init = 65, finish = 2938
+21/03/30 03:17:04 INFO MemoryStore: Block rdd_2_36 stored as values in memory (estimated size 52.5 MB, free 51.3 GB)
+21/03/30 03:17:04 INFO BlockManagerInfo: Added rdd_2_36 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.3 GB)
+21/03/30 03:17:04 INFO PythonRunner: Times: total = 3050, boot = -14, init = 48, finish = 3016
+21/03/30 03:17:04 INFO MemoryStore: Block rdd_2_34 stored as values in memory (estimated size 52.5 MB, free 51.3 GB)
+21/03/30 03:17:04 INFO BlockManagerInfo: Added rdd_2_34 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.3 GB)
+21/03/30 03:17:04 INFO PythonRunner: Times: total = 3038, boot = -24, init = 59, finish = 3003
+21/03/30 03:17:05 INFO MemoryStore: Block rdd_2_37 stored as values in memory (estimated size 52.5 MB, free 51.2 GB)
+21/03/30 03:17:05 INFO BlockManagerInfo: Added rdd_2_37 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.2 GB)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 3013, boot = -61, init = 80, finish = 2994
+21/03/30 03:17:05 INFO MemoryStore: Block rdd_2_39 stored as values in memory (estimated size 52.5 MB, free 51.2 GB)
+21/03/30 03:17:05 INFO BlockManagerInfo: Added rdd_2_39 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.2 GB)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 3083, boot = -81, init = 140, finish = 3024
+21/03/30 03:17:05 INFO MemoryStore: Block rdd_2_41 stored as values in memory (estimated size 52.5 MB, free 51.1 GB)
+21/03/30 03:17:05 INFO BlockManagerInfo: Added rdd_2_41 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.1 GB)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 3099, boot = -105, init = 142, finish = 3062
+21/03/30 03:17:05 INFO MemoryStore: Block rdd_2_40 stored as values in memory (estimated size 52.5 MB, free 51.1 GB)
+21/03/30 03:17:05 INFO BlockManagerInfo: Added rdd_2_40 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.1 GB)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 3100, boot = -56, init = 97, finish = 3059
+21/03/30 03:17:05 INFO MemoryStore: Block rdd_2_42 stored as values in memory (estimated size 52.5 MB, free 51.0 GB)
+21/03/30 03:17:05 INFO BlockManagerInfo: Added rdd_2_42 in memory on c08396fee951:37827 (size: 52.5 MB, free: 51.0 GB)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 2993, boot = -41, init = 127, finish = 2907
+21/03/30 03:17:05 INFO MemoryStore: Block rdd_2_45 stored as values in memory (estimated size 48.7 MB, free 51.0 GB)
+21/03/30 03:17:05 INFO BlockManagerInfo: Added rdd_2_45 in memory on c08396fee951:37827 (size: 48.7 MB, free: 51.0 GB)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 3200, boot = -139, init = 142, finish = 3197
+21/03/30 03:17:05 INFO MemoryStore: Block rdd_2_38 stored as values in memory (estimated size 52.5 MB, free 50.9 GB)
+21/03/30 03:17:05 INFO BlockManagerInfo: Added rdd_2_38 in memory on c08396fee951:37827 (size: 52.5 MB, free: 50.9 GB)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 689, boot = -2030, init = 2036, finish = 683
+21/03/30 03:17:05 INFO Executor: Finished task 33.0 in stage 0.0 (TID 33). 1507 bytes result sent to driver
+21/03/30 03:17:05 INFO TaskSetManager: Finished task 33.0 in stage 0.0 (TID 33) in 3669 ms on localhost (executor driver) (33/46)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 714, boot = -1890, init = 1902, finish = 702
+21/03/30 03:17:05 INFO Executor: Finished task 32.0 in stage 0.0 (TID 32). 1550 bytes result sent to driver
+21/03/30 03:17:05 INFO TaskSetManager: Finished task 32.0 in stage 0.0 (TID 32) in 3720 ms on localhost (executor driver) (34/46)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 3208, boot = -58, init = 85, finish = 3181
+21/03/30 03:17:05 INFO MemoryStore: Block rdd_2_43 stored as values in memory (estimated size 52.5 MB, free 50.9 GB)
+21/03/30 03:17:05 INFO BlockManagerInfo: Added rdd_2_43 in memory on c08396fee951:37827 (size: 52.5 MB, free: 50.9 GB)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 3243, boot = -30, init = 111, finish = 3162
+21/03/30 03:17:05 INFO MemoryStore: Block rdd_2_44 stored as values in memory (estimated size 52.5 MB, free 50.8 GB)
+21/03/30 03:17:05 INFO BlockManagerInfo: Added rdd_2_44 in memory on c08396fee951:37827 (size: 52.5 MB, free: 50.8 GB)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 693, boot = -114, init = 116, finish = 691
+21/03/30 03:17:05 INFO Executor: Finished task 35.0 in stage 0.0 (TID 35). 1550 bytes result sent to driver
+21/03/30 03:17:05 INFO TaskSetManager: Finished task 35.0 in stage 0.0 (TID 35) in 3643 ms on localhost (executor driver) (35/46)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 689, boot = -217, init = 223, finish = 683
+21/03/30 03:17:05 INFO Executor: Finished task 36.0 in stage 0.0 (TID 36). 1550 bytes result sent to driver
+21/03/30 03:17:05 INFO TaskSetManager: Finished task 36.0 in stage 0.0 (TID 36) in 3689 ms on localhost (executor driver) (36/46)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 689, boot = -170, init = 173, finish = 686
+21/03/30 03:17:05 INFO Executor: Finished task 34.0 in stage 0.0 (TID 34). 1550 bytes result sent to driver
+21/03/30 03:17:05 INFO TaskSetManager: Finished task 34.0 in stage 0.0 (TID 34) in 3772 ms on localhost (executor driver) (37/46)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 700, boot = -130, init = 131, finish = 699
+21/03/30 03:17:05 INFO Executor: Finished task 37.0 in stage 0.0 (TID 37). 1550 bytes result sent to driver
+21/03/30 03:17:05 INFO TaskSetManager: Finished task 37.0 in stage 0.0 (TID 37) in 3790 ms on localhost (executor driver) (38/46)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 680, boot = -232, init = 233, finish = 679
+21/03/30 03:17:05 INFO Executor: Finished task 39.0 in stage 0.0 (TID 39). 1550 bytes result sent to driver
+21/03/30 03:17:05 INFO TaskSetManager: Finished task 39.0 in stage 0.0 (TID 39) in 3763 ms on localhost (executor driver) (39/46)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 663, boot = -261, init = 261, finish = 663
+21/03/30 03:17:05 INFO Executor: Finished task 41.0 in stage 0.0 (TID 41). 1507 bytes result sent to driver
+21/03/30 03:17:05 INFO TaskSetManager: Finished task 41.0 in stage 0.0 (TID 41) in 3803 ms on localhost (executor driver) (40/46)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 664, boot = -122, init = 124, finish = 662
+21/03/30 03:17:05 INFO Executor: Finished task 40.0 in stage 0.0 (TID 40). 1550 bytes result sent to driver
+21/03/30 03:17:05 INFO TaskSetManager: Finished task 40.0 in stage 0.0 (TID 40) in 3824 ms on localhost (executor driver) (41/46)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 675, boot = -64, init = 78, finish = 661
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 619, boot = -105, init = 109, finish = 615
+21/03/30 03:17:05 INFO Executor: Finished task 42.0 in stage 0.0 (TID 42). 1507 bytes result sent to driver
+21/03/30 03:17:05 INFO Executor: Finished task 45.0 in stage 0.0 (TID 45). 1550 bytes result sent to driver
+21/03/30 03:17:05 INFO TaskSetManager: Finished task 42.0 in stage 0.0 (TID 42) in 3831 ms on localhost (executor driver) (42/46)
+21/03/30 03:17:05 INFO TaskSetManager: Finished task 45.0 in stage 0.0 (TID 45) in 3672 ms on localhost (executor driver) (43/46)
+21/03/30 03:17:05 INFO PythonRunner: Times: total = 663, boot = -117, init = 118, finish = 662
+21/03/30 03:17:05 INFO Executor: Finished task 38.0 in stage 0.0 (TID 38). 1550 bytes result sent to driver
+21/03/30 03:17:05 INFO TaskSetManager: Finished task 38.0 in stage 0.0 (TID 38) in 3919 ms on localhost (executor driver) (44/46)
+21/03/30 03:17:06 INFO PythonRunner: Times: total = 652, boot = -171, init = 171, finish = 652
+21/03/30 03:17:06 INFO Executor: Finished task 43.0 in stage 0.0 (TID 43). 1550 bytes result sent to driver
+21/03/30 03:17:06 INFO TaskSetManager: Finished task 43.0 in stage 0.0 (TID 43) in 3924 ms on localhost (executor driver) (45/46)
+21/03/30 03:17:06 INFO PythonRunner: Times: total = 656, boot = -181, init = 181, finish = 656
+21/03/30 03:17:06 INFO Executor: Finished task 44.0 in stage 0.0 (TID 44). 1550 bytes result sent to driver
+21/03/30 03:17:06 INFO TaskSetManager: Finished task 44.0 in stage 0.0 (TID 44) in 3948 ms on localhost (executor driver) (46/46)
+21/03/30 03:17:06 INFO TaskSchedulerImpl: Removed TaskSet 0.0, whose tasks have all completed, from pool 
+21/03/30 03:17:06 INFO DAGScheduler: ResultStage 0 (count at /code/benchmark/tpch/Q06/runpyspark.py:177) finished in 14.842 s
+21/03/30 03:17:06 INFO DAGScheduler: Job 0 finished: count at /code/benchmark/tpch/Q06/runpyspark.py:177, took 14.881042 s
+21/03/30 03:17:06 INFO SparkContext: Starting job: sum at /code/benchmark/tpch/Q06/runpyspark.py:182
+21/03/30 03:17:06 INFO DAGScheduler: Got job 1 (sum at /code/benchmark/tpch/Q06/runpyspark.py:182) with 46 output partitions
+21/03/30 03:17:06 INFO DAGScheduler: Final stage: ResultStage 1 (sum at /code/benchmark/tpch/Q06/runpyspark.py:182)
+21/03/30 03:17:06 INFO DAGScheduler: Parents of final stage: List()
+21/03/30 03:17:06 INFO DAGScheduler: Missing parents: List()
+21/03/30 03:17:06 INFO DAGScheduler: Submitting ResultStage 1 (PythonRDD[4] at sum at /code/benchmark/tpch/Q06/runpyspark.py:182), which has no missing parents
+21/03/30 03:17:06 INFO MemoryStore: Block broadcast_2 stored as values in memory (estimated size 9.6 KB, free 50.8 GB)
+21/03/30 03:17:06 INFO MemoryStore: Block broadcast_2_piece0 stored as bytes in memory (estimated size 5.8 KB, free 50.8 GB)
+21/03/30 03:17:06 INFO BlockManagerInfo: Added broadcast_2_piece0 in memory on c08396fee951:37827 (size: 5.8 KB, free: 50.8 GB)
+21/03/30 03:17:06 INFO SparkContext: Created broadcast 2 from broadcast at DAGScheduler.scala:1184
+21/03/30 03:17:06 INFO DAGScheduler: Submitting 46 missing tasks from ResultStage 1 (PythonRDD[4] at sum at /code/benchmark/tpch/Q06/runpyspark.py:182) (first 15 tasks are for partitions Vector(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+21/03/30 03:17:06 INFO TaskSchedulerImpl: Adding task set 1.0 with 46 tasks
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 0.0 in stage 1.0 (TID 46, localhost, executor driver, partition 0, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 1.0 in stage 1.0 (TID 47, localhost, executor driver, partition 1, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 2.0 in stage 1.0 (TID 48, localhost, executor driver, partition 2, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 3.0 in stage 1.0 (TID 49, localhost, executor driver, partition 3, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 4.0 in stage 1.0 (TID 50, localhost, executor driver, partition 4, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 5.0 in stage 1.0 (TID 51, localhost, executor driver, partition 5, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 6.0 in stage 1.0 (TID 52, localhost, executor driver, partition 6, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 7.0 in stage 1.0 (TID 53, localhost, executor driver, partition 7, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 8.0 in stage 1.0 (TID 54, localhost, executor driver, partition 8, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 9.0 in stage 1.0 (TID 55, localhost, executor driver, partition 9, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 10.0 in stage 1.0 (TID 56, localhost, executor driver, partition 10, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 11.0 in stage 1.0 (TID 57, localhost, executor driver, partition 11, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 12.0 in stage 1.0 (TID 58, localhost, executor driver, partition 12, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 13.0 in stage 1.0 (TID 59, localhost, executor driver, partition 13, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 14.0 in stage 1.0 (TID 60, localhost, executor driver, partition 14, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO TaskSetManager: Starting task 15.0 in stage 1.0 (TID 61, localhost, executor driver, partition 15, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:06 INFO Executor: Running task 0.0 in stage 1.0 (TID 46)
+21/03/30 03:17:06 INFO Executor: Running task 3.0 in stage 1.0 (TID 49)
+21/03/30 03:17:06 INFO Executor: Running task 6.0 in stage 1.0 (TID 52)
+21/03/30 03:17:06 INFO Executor: Running task 10.0 in stage 1.0 (TID 56)
+21/03/30 03:17:06 INFO Executor: Running task 12.0 in stage 1.0 (TID 58)
+21/03/30 03:17:06 INFO Executor: Running task 14.0 in stage 1.0 (TID 60)
+21/03/30 03:17:06 INFO Executor: Running task 7.0 in stage 1.0 (TID 53)
+21/03/30 03:17:06 INFO Executor: Running task 4.0 in stage 1.0 (TID 50)
+21/03/30 03:17:06 INFO Executor: Running task 1.0 in stage 1.0 (TID 47)
+21/03/30 03:17:06 INFO Executor: Running task 5.0 in stage 1.0 (TID 51)
+21/03/30 03:17:06 INFO Executor: Running task 2.0 in stage 1.0 (TID 48)
+21/03/30 03:17:06 INFO Executor: Running task 13.0 in stage 1.0 (TID 59)
+21/03/30 03:17:06 INFO Executor: Running task 8.0 in stage 1.0 (TID 54)
+21/03/30 03:17:06 INFO Executor: Running task 15.0 in stage 1.0 (TID 61)
+21/03/30 03:17:06 INFO Executor: Running task 9.0 in stage 1.0 (TID 55)
+21/03/30 03:17:06 INFO Executor: Running task 11.0 in stage 1.0 (TID 57)
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_1 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_13 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_12 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_0 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_3 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_10 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_14 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_6 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_4 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_5 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_9 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_11 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_7 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_8 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_2 locally
+21/03/30 03:17:06 INFO BlockManager: Found block rdd_2_15 locally
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 1916, boot = -738, init = 743, finish = 1911
+21/03/30 03:17:08 INFO Executor: Finished task 0.0 in stage 1.0 (TID 46). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 16.0 in stage 1.0 (TID 62, localhost, executor driver, partition 16, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO Executor: Running task 16.0 in stage 1.0 (TID 62)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 0.0 in stage 1.0 (TID 46) in 1928 ms on localhost (executor driver) (1/46)
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 1913, boot = -267, init = 268, finish = 1912
+21/03/30 03:17:08 INFO Executor: Finished task 9.0 in stage 1.0 (TID 55). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_16 locally
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 17.0 in stage 1.0 (TID 63, localhost, executor driver, partition 17, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 1922, boot = -789, init = 790, finish = 1921
+21/03/30 03:17:08 INFO Executor: Running task 17.0 in stage 1.0 (TID 63)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 9.0 in stage 1.0 (TID 55) in 1929 ms on localhost (executor driver) (2/46)
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_17 locally
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 1924, boot = -283, init = 289, finish = 1918
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 1929, boot = -773, init = 775, finish = 1927
+21/03/30 03:17:08 INFO Executor: Finished task 12.0 in stage 1.0 (TID 58). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 18.0 in stage 1.0 (TID 64, localhost, executor driver, partition 18, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 12.0 in stage 1.0 (TID 58) in 1937 ms on localhost (executor driver) (3/46)
+21/03/30 03:17:08 INFO Executor: Running task 18.0 in stage 1.0 (TID 64)
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_18 locally
+21/03/30 03:17:08 INFO Executor: Finished task 5.0 in stage 1.0 (TID 51). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 19.0 in stage 1.0 (TID 65, localhost, executor driver, partition 19, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO Executor: Running task 19.0 in stage 1.0 (TID 65)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 5.0 in stage 1.0 (TID 51) in 1944 ms on localhost (executor driver) (4/46)
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_19 locally
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 1935, boot = -248, init = 284, finish = 1899
+21/03/30 03:17:08 INFO Executor: Finished task 1.0 in stage 1.0 (TID 47). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO Executor: Finished task 7.0 in stage 1.0 (TID 53). 1554 bytes result sent to driver
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 20.0 in stage 1.0 (TID 66, localhost, executor driver, partition 20, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 21.0 in stage 1.0 (TID 67, localhost, executor driver, partition 21, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 1.0 in stage 1.0 (TID 47) in 1956 ms on localhost (executor driver) (5/46)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 7.0 in stage 1.0 (TID 53) in 1956 ms on localhost (executor driver) (6/46)
+21/03/30 03:17:08 INFO Executor: Running task 21.0 in stage 1.0 (TID 67)
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_21 locally
+21/03/30 03:17:08 INFO Executor: Running task 20.0 in stage 1.0 (TID 66)
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_20 locally
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 1970, boot = -676, init = 719, finish = 1927
+21/03/30 03:17:08 INFO Executor: Finished task 3.0 in stage 1.0 (TID 49). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 22.0 in stage 1.0 (TID 68, localhost, executor driver, partition 22, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO Executor: Running task 22.0 in stage 1.0 (TID 68)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 3.0 in stage 1.0 (TID 49) in 1980 ms on localhost (executor driver) (7/46)
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 1965, boot = -182, init = 223, finish = 1924
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_22 locally
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 1963, boot = -90, init = 122, finish = 1931
+21/03/30 03:17:08 INFO Executor: Finished task 15.0 in stage 1.0 (TID 61). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 23.0 in stage 1.0 (TID 69, localhost, executor driver, partition 23, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 15.0 in stage 1.0 (TID 61) in 1989 ms on localhost (executor driver) (8/46)
+21/03/30 03:17:08 INFO Executor: Running task 23.0 in stage 1.0 (TID 69)
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_23 locally
+21/03/30 03:17:08 INFO Executor: Finished task 8.0 in stage 1.0 (TID 54). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 2003, boot = -572, init = 620, finish = 1955
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 24.0 in stage 1.0 (TID 70, localhost, executor driver, partition 24, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO Executor: Running task 24.0 in stage 1.0 (TID 70)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 8.0 in stage 1.0 (TID 54) in 2011 ms on localhost (executor driver) (9/46)
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 2004, boot = -548, init = 591, finish = 1961
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 1996, boot = -48, init = 70, finish = 1974
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_24 locally
+21/03/30 03:17:08 INFO Executor: Finished task 2.0 in stage 1.0 (TID 48). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO Executor: Finished task 14.0 in stage 1.0 (TID 60). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 25.0 in stage 1.0 (TID 71, localhost, executor driver, partition 25, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO Executor: Running task 25.0 in stage 1.0 (TID 71)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 14.0 in stage 1.0 (TID 60) in 2019 ms on localhost (executor driver) (10/46)
+21/03/30 03:17:08 INFO Executor: Finished task 10.0 in stage 1.0 (TID 56). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 26.0 in stage 1.0 (TID 72, localhost, executor driver, partition 26, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_25 locally
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 10.0 in stage 1.0 (TID 56) in 2021 ms on localhost (executor driver) (11/46)
+21/03/30 03:17:08 INFO Executor: Running task 26.0 in stage 1.0 (TID 72)
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_26 locally
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 2017, boot = -751, init = 809, finish = 1959
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 2020, boot = -469, init = 518, finish = 1971
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 27.0 in stage 1.0 (TID 73, localhost, executor driver, partition 27, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 2.0 in stage 1.0 (TID 48) in 2033 ms on localhost (executor driver) (12/46)
+21/03/30 03:17:08 INFO Executor: Running task 27.0 in stage 1.0 (TID 73)
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_27 locally
+21/03/30 03:17:08 INFO Executor: Finished task 13.0 in stage 1.0 (TID 59). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO Executor: Finished task 6.0 in stage 1.0 (TID 52). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 28.0 in stage 1.0 (TID 74, localhost, executor driver, partition 28, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO Executor: Running task 28.0 in stage 1.0 (TID 74)
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 29.0 in stage 1.0 (TID 75, localhost, executor driver, partition 29, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO Executor: Running task 29.0 in stage 1.0 (TID 75)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 13.0 in stage 1.0 (TID 59) in 2036 ms on localhost (executor driver) (13/46)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 6.0 in stage 1.0 (TID 52) in 2037 ms on localhost (executor driver) (14/46)
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_28 locally
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_29 locally
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 2035, boot = -248, init = 334, finish = 1949
+21/03/30 03:17:08 INFO Executor: Finished task 11.0 in stage 1.0 (TID 57). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 30.0 in stage 1.0 (TID 76, localhost, executor driver, partition 30, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO Executor: Running task 30.0 in stage 1.0 (TID 76)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 11.0 in stage 1.0 (TID 57) in 2055 ms on localhost (executor driver) (15/46)
+21/03/30 03:17:08 INFO PythonRunner: Times: total = 2048, boot = -328, init = 336, finish = 2040
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_30 locally
+21/03/30 03:17:08 INFO Executor: Finished task 4.0 in stage 1.0 (TID 50). 1511 bytes result sent to driver
+21/03/30 03:17:08 INFO TaskSetManager: Starting task 31.0 in stage 1.0 (TID 77, localhost, executor driver, partition 31, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:08 INFO Executor: Running task 31.0 in stage 1.0 (TID 77)
+21/03/30 03:17:08 INFO TaskSetManager: Finished task 4.0 in stage 1.0 (TID 50) in 2079 ms on localhost (executor driver) (16/46)
+21/03/30 03:17:08 INFO BlockManager: Found block rdd_2_31 locally
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 1942, boot = 7, init = 3, finish = 1932
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 1940, boot = 5, init = 8, finish = 1927
+21/03/30 03:17:10 INFO Executor: Finished task 16.0 in stage 1.0 (TID 62). 1468 bytes result sent to driver
+21/03/30 03:17:10 INFO Executor: Finished task 17.0 in stage 1.0 (TID 63). 1511 bytes result sent to driver
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 32.0 in stage 1.0 (TID 78, localhost, executor driver, partition 32, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO Executor: Running task 32.0 in stage 1.0 (TID 78)
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 33.0 in stage 1.0 (TID 79, localhost, executor driver, partition 33, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 16.0 in stage 1.0 (TID 62) in 1946 ms on localhost (executor driver) (17/46)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 17.0 in stage 1.0 (TID 63) in 1943 ms on localhost (executor driver) (18/46)
+21/03/30 03:17:10 INFO Executor: Running task 33.0 in stage 1.0 (TID 79)
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_32 locally
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_33 locally
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 1948, boot = -8, init = 18, finish = 1938
+21/03/30 03:17:10 INFO Executor: Finished task 19.0 in stage 1.0 (TID 65). 1468 bytes result sent to driver
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 34.0 in stage 1.0 (TID 80, localhost, executor driver, partition 34, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO Executor: Running task 34.0 in stage 1.0 (TID 80)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 19.0 in stage 1.0 (TID 65) in 1954 ms on localhost (executor driver) (19/46)
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_34 locally
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 1941, boot = -10, init = 17, finish = 1934
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 1953, boot = -22, init = 48, finish = 1927
+21/03/30 03:17:10 INFO Executor: Finished task 20.0 in stage 1.0 (TID 66). 1468 bytes result sent to driver
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 35.0 in stage 1.0 (TID 81, localhost, executor driver, partition 35, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO Executor: Running task 35.0 in stage 1.0 (TID 81)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 20.0 in stage 1.0 (TID 66) in 1968 ms on localhost (executor driver) (20/46)
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_35 locally
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 1993, boot = -5, init = 28, finish = 1970
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 1953, boot = 6, init = 11, finish = 1936
+21/03/30 03:17:10 INFO Executor: Finished task 21.0 in stage 1.0 (TID 67). 1511 bytes result sent to driver
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 36.0 in stage 1.0 (TID 82, localhost, executor driver, partition 36, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO Executor: Running task 36.0 in stage 1.0 (TID 82)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 21.0 in stage 1.0 (TID 67) in 1980 ms on localhost (executor driver) (21/46)
+21/03/30 03:17:10 INFO Executor: Finished task 18.0 in stage 1.0 (TID 64). 1511 bytes result sent to driver
+21/03/30 03:17:10 INFO Executor: Finished task 22.0 in stage 1.0 (TID 68). 1468 bytes result sent to driver
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 37.0 in stage 1.0 (TID 83, localhost, executor driver, partition 37, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO Executor: Running task 37.0 in stage 1.0 (TID 83)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 18.0 in stage 1.0 (TID 64) in 1999 ms on localhost (executor driver) (22/46)
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 38.0 in stage 1.0 (TID 84, localhost, executor driver, partition 38, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 22.0 in stage 1.0 (TID 68) in 1957 ms on localhost (executor driver) (23/46)
+21/03/30 03:17:10 INFO Executor: Running task 38.0 in stage 1.0 (TID 84)
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_36 locally
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_38 locally
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_37 locally
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 1973, boot = -3, init = 46, finish = 1930
+21/03/30 03:17:10 INFO Executor: Finished task 25.0 in stage 1.0 (TID 71). 1511 bytes result sent to driver
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 39.0 in stage 1.0 (TID 85, localhost, executor driver, partition 39, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO Executor: Running task 39.0 in stage 1.0 (TID 85)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 25.0 in stage 1.0 (TID 71) in 1976 ms on localhost (executor driver) (24/46)
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 1983, boot = -20, init = 28, finish = 1975
+21/03/30 03:17:10 INFO Executor: Finished task 24.0 in stage 1.0 (TID 70). 1468 bytes result sent to driver
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_39 locally
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 40.0 in stage 1.0 (TID 86, localhost, executor driver, partition 40, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO Executor: Running task 40.0 in stage 1.0 (TID 86)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 24.0 in stage 1.0 (TID 70) in 1987 ms on localhost (executor driver) (25/46)
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_40 locally
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 1966, boot = -15, init = 27, finish = 1954
+21/03/30 03:17:10 INFO Executor: Finished task 27.0 in stage 1.0 (TID 73). 1511 bytes result sent to driver
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 41.0 in stage 1.0 (TID 87, localhost, executor driver, partition 41, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 27.0 in stage 1.0 (TID 73) in 1975 ms on localhost (executor driver) (26/46)
+21/03/30 03:17:10 INFO Executor: Running task 41.0 in stage 1.0 (TID 87)
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_41 locally
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 1971, boot = -3, init = 39, finish = 1935
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 1995, boot = -2, init = 42, finish = 1955
+21/03/30 03:17:10 INFO Executor: Finished task 29.0 in stage 1.0 (TID 75). 1468 bytes result sent to driver
+21/03/30 03:17:10 INFO Executor: Finished task 26.0 in stage 1.0 (TID 72). 1511 bytes result sent to driver
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 42.0 in stage 1.0 (TID 88, localhost, executor driver, partition 42, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO Executor: Running task 42.0 in stage 1.0 (TID 88)
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 43.0 in stage 1.0 (TID 89, localhost, executor driver, partition 43, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 29.0 in stage 1.0 (TID 75) in 1986 ms on localhost (executor driver) (27/46)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 26.0 in stage 1.0 (TID 72) in 2001 ms on localhost (executor driver) (28/46)
+21/03/30 03:17:10 INFO Executor: Running task 43.0 in stage 1.0 (TID 89)
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_42 locally
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_43 locally
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 2040, boot = 3, init = 38, finish = 1999
+21/03/30 03:17:10 INFO Executor: Finished task 30.0 in stage 1.0 (TID 76). 1468 bytes result sent to driver
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 44.0 in stage 1.0 (TID 90, localhost, executor driver, partition 44, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 30.0 in stage 1.0 (TID 76) in 2044 ms on localhost (executor driver) (29/46)
+21/03/30 03:17:10 INFO Executor: Running task 44.0 in stage 1.0 (TID 90)
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_44 locally
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 2124, boot = -4, init = 32, finish = 2096
+21/03/30 03:17:10 INFO Executor: Finished task 23.0 in stage 1.0 (TID 69). 1468 bytes result sent to driver
+21/03/30 03:17:10 INFO TaskSetManager: Starting task 45.0 in stage 1.0 (TID 91, localhost, executor driver, partition 45, PROCESS_LOCAL, 7891 bytes)
+21/03/30 03:17:10 INFO Executor: Running task 45.0 in stage 1.0 (TID 91)
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 23.0 in stage 1.0 (TID 69) in 2131 ms on localhost (executor driver) (30/46)
+21/03/30 03:17:10 INFO BlockManager: Found block rdd_2_45 locally
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 2079, boot = -17, init = 111, finish = 1985
+21/03/30 03:17:10 INFO Executor: Finished task 31.0 in stage 1.0 (TID 77). 1468 bytes result sent to driver
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 31.0 in stage 1.0 (TID 77) in 2083 ms on localhost (executor driver) (31/46)
+21/03/30 03:17:10 INFO PythonRunner: Times: total = 2124, boot = -5, init = 102, finish = 2027
+21/03/30 03:17:10 INFO Executor: Finished task 28.0 in stage 1.0 (TID 74). 1511 bytes result sent to driver
+21/03/30 03:17:10 INFO TaskSetManager: Finished task 28.0 in stage 1.0 (TID 74) in 2127 ms on localhost (executor driver) (32/46)
+21/03/30 03:17:11 INFO PythonRunner: Times: total = 1854, boot = 5, init = 5, finish = 1844
+21/03/30 03:17:11 INFO Executor: Finished task 32.0 in stage 1.0 (TID 78). 1511 bytes result sent to driver
+21/03/30 03:17:11 INFO TaskSetManager: Finished task 32.0 in stage 1.0 (TID 78) in 1857 ms on localhost (executor driver) (33/46)
+21/03/30 03:17:11 INFO PythonRunner: Times: total = 1877, boot = -1, init = 28, finish = 1850
+21/03/30 03:17:11 INFO Executor: Finished task 33.0 in stage 1.0 (TID 79). 1511 bytes result sent to driver
+21/03/30 03:17:11 INFO TaskSetManager: Finished task 33.0 in stage 1.0 (TID 79) in 1888 ms on localhost (executor driver) (34/46)
+21/03/30 03:17:11 INFO PythonRunner: Times: total = 1866, boot = 2, init = 12, finish = 1852
+21/03/30 03:17:11 INFO Executor: Finished task 34.0 in stage 1.0 (TID 80). 1468 bytes result sent to driver
+21/03/30 03:17:11 INFO TaskSetManager: Finished task 34.0 in stage 1.0 (TID 80) in 1870 ms on localhost (executor driver) (35/46)
+21/03/30 03:17:11 INFO PythonRunner: Times: total = 1844, boot = -20, init = 25, finish = 1839
+21/03/30 03:17:11 INFO Executor: Finished task 36.0 in stage 1.0 (TID 82). 1511 bytes result sent to driver
+21/03/30 03:17:11 INFO TaskSetManager: Finished task 36.0 in stage 1.0 (TID 82) in 1853 ms on localhost (executor driver) (36/46)
+21/03/30 03:17:11 INFO PythonRunner: Times: total = 1864, boot = -13, init = 23, finish = 1854
+21/03/30 03:17:11 INFO Executor: Finished task 35.0 in stage 1.0 (TID 81). 1468 bytes result sent to driver
+21/03/30 03:17:11 INFO TaskSetManager: Finished task 35.0 in stage 1.0 (TID 81) in 1868 ms on localhost (executor driver) (37/46)
+21/03/30 03:17:11 INFO PythonRunner: Times: total = 1867, boot = -2, init = 9, finish = 1860
+21/03/30 03:17:11 INFO Executor: Finished task 37.0 in stage 1.0 (TID 83). 1511 bytes result sent to driver
+21/03/30 03:17:11 INFO TaskSetManager: Finished task 37.0 in stage 1.0 (TID 83) in 1876 ms on localhost (executor driver) (38/46)
+21/03/30 03:17:12 INFO PythonRunner: Times: total = 1839, boot = 7, init = 6, finish = 1826
+21/03/30 03:17:12 INFO Executor: Finished task 39.0 in stage 1.0 (TID 85). 1511 bytes result sent to driver
+21/03/30 03:17:12 INFO TaskSetManager: Finished task 39.0 in stage 1.0 (TID 85) in 1842 ms on localhost (executor driver) (39/46)
+21/03/30 03:17:12 INFO PythonRunner: Times: total = 1717, boot = 4, init = 7, finish = 1706
+21/03/30 03:17:12 INFO Executor: Finished task 45.0 in stage 1.0 (TID 91). 1511 bytes result sent to driver
+21/03/30 03:17:12 INFO TaskSetManager: Finished task 45.0 in stage 1.0 (TID 91) in 1720 ms on localhost (executor driver) (40/46)
+21/03/30 03:17:12 INFO PythonRunner: Times: total = 1900, boot = -3, init = 34, finish = 1869
+21/03/30 03:17:12 INFO Executor: Finished task 38.0 in stage 1.0 (TID 84). 1468 bytes result sent to driver
+21/03/30 03:17:12 INFO TaskSetManager: Finished task 38.0 in stage 1.0 (TID 84) in 1908 ms on localhost (executor driver) (41/46)
+21/03/30 03:17:12 INFO PythonRunner: Times: total = 1845, boot = 5, init = 14, finish = 1826
+21/03/30 03:17:12 INFO Executor: Finished task 40.0 in stage 1.0 (TID 86). 1511 bytes result sent to driver
+21/03/30 03:17:12 INFO TaskSetManager: Finished task 40.0 in stage 1.0 (TID 86) in 1848 ms on localhost (executor driver) (42/46)
+21/03/30 03:17:12 INFO PythonRunner: Times: total = 1859, boot = 1, init = 11, finish = 1847
+21/03/30 03:17:12 INFO PythonRunner: Times: total = 1875, boot = 3, init = 16, finish = 1856
+21/03/30 03:17:12 INFO Executor: Finished task 43.0 in stage 1.0 (TID 89). 1468 bytes result sent to driver
+21/03/30 03:17:12 INFO Executor: Finished task 41.0 in stage 1.0 (TID 87). 1511 bytes result sent to driver
+21/03/30 03:17:12 INFO TaskSetManager: Finished task 43.0 in stage 1.0 (TID 89) in 1862 ms on localhost (executor driver) (43/46)
+21/03/30 03:17:12 INFO TaskSetManager: Finished task 41.0 in stage 1.0 (TID 87) in 1878 ms on localhost (executor driver) (44/46)
+21/03/30 03:17:12 INFO PythonRunner: Times: total = 1892, boot = -8, init = 51, finish = 1849
+21/03/30 03:17:12 INFO Executor: Finished task 42.0 in stage 1.0 (TID 88). 1468 bytes result sent to driver
+21/03/30 03:17:12 INFO TaskSetManager: Finished task 42.0 in stage 1.0 (TID 88) in 1896 ms on localhost (executor driver) (45/46)
+21/03/30 03:17:12 INFO PythonRunner: Times: total = 1846, boot = 5, init = 8, finish = 1833
+21/03/30 03:17:12 INFO Executor: Finished task 44.0 in stage 1.0 (TID 90). 1468 bytes result sent to driver
+21/03/30 03:17:12 INFO TaskSetManager: Finished task 44.0 in stage 1.0 (TID 90) in 1850 ms on localhost (executor driver) (46/46)
+21/03/30 03:17:12 INFO TaskSchedulerImpl: Removed TaskSet 1.0, whose tasks have all completed, from pool 
+21/03/30 03:17:12 INFO DAGScheduler: ResultStage 1 (sum at /code/benchmark/tpch/Q06/runpyspark.py:182) finished in 5.957 s
+21/03/30 03:17:12 INFO DAGScheduler: Job 1 finished: sum at /code/benchmark/tpch/Q06/runpyspark.py:182, took 5.961245 s
+21/03/30 03:17:12 INFO SparkContext: Invoking stop() from shutdown hook
+21/03/30 03:17:12 INFO SparkUI: Stopped Spark web UI at http://c08396fee951:4040
+21/03/30 03:17:12 INFO MapOutputTrackerMasterEndpoint: MapOutputTrackerMasterEndpoint stopped!
+21/03/30 03:17:12 INFO MemoryStore: MemoryStore cleared
+21/03/30 03:17:12 INFO BlockManager: BlockManager stopped
+21/03/30 03:17:12 INFO BlockManagerMaster: BlockManagerMaster stopped
+21/03/30 03:17:12 INFO OutputCommitCoordinator$OutputCommitCoordinatorEndpoint: OutputCommitCoordinator stopped!
+21/03/30 03:17:12 INFO SparkContext: Successfully stopped SparkContext
+21/03/30 03:17:12 INFO ShutdownHookManager: Shutdown hook called
+21/03/30 03:17:12 INFO ShutdownHookManager: Deleting directory /tmp/spark-113e3244-be97-44e9-8d52-507de8bc984c
+21/03/30 03:17:12 INFO ShutdownHookManager: Deleting directory /tmp/spark-9aaa348e-edd4-43d2-9c34-550f16084a11
+21/03/30 03:17:12 INFO ShutdownHookManager: Deleting directory /tmp/spark-9aaa348e-edd4-43d2-9c34-550f16084a11/pyspark-1ba701f0-7791-44ce-b049-1f53d61d31b5

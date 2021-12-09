@@ -1,0 +1,3 @@
+>>> running pypy3 on ['/data/zillow/Z1_preprocessed/zillow_Z1_10G.csv']
+>>> data mode: tuple
+{'type': 'tuple', 'framework': 'python3', 'py_executable': '/opt/pypy3/bin/pypy3', 'input_files': ['/data/zillow/Z1_preprocessed/zillow_Z1_10G.csv'], 'load_time': 331.5973219871521, 'run_time': 450.9677679538727, 'write_time': 119.3704137802124, 'job_time': 450.9677736759186}

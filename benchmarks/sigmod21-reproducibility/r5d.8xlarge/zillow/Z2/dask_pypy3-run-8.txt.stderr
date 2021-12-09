@@ -1,0 +1,60 @@
+RPython traceback:
+  File "pypy_interpreter.c", line 42998, in BuiltinCode3_fastcall_3
+  File "pypy_interpreter_2.c", line 55754, in GetSetProperty_descr_property_get
+  File "implement_3.c", line 14942, in descr_typecheck_fget_f_back
+  File "rpython_jit_metainterp.c", line 1534, in force_virtual
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+/opt/pypy3/site-packages/dask/dataframe/core.py:3370: UserWarning: 
+You did not provide metadata, so Dask is running your function on a small dataset to guess output types. It is possible that Dask will guess incorrectly.
+To provide an explicit output types or to silence this message, please provide the `meta=` keyword, as described in the map or apply function that you are using.
+  Before: .apply(func)
+  After:  .apply(func, meta=('title', 'object'))
+
+  warnings.warn(meta_warning(meta))
+Exception in thread Profile:
+Traceback (most recent call last):
+  File "/opt/pypy3/lib-python/3/threading.py", line 916, in _bootstrap_inner
+    self.run()
+  File "/opt/pypy3/lib-python/3/threading.py", line 864, in run
+    self._target(*self._args, **self._kwargs)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 268, in _watch
+    process(frame, None, recent, omit=omit)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 103, in process
+    state = process(prev, frame, state, stop=stop)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 103, in process
+    state = process(prev, frame, state, stop=stop)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 103, in process
+    state = process(prev, frame, state, stop=stop)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 99, in process
+    prev = frame.f_back
+SystemError: unexpected internal exception (please report a bug): <InvalidVirtualRef object at 0x7f10acf0b168>; internal traceback was dumped to stderr
+
+distributed.nanny - WARNING - Restarting worker
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+distributed.nanny - WARNING - Restarting worker
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+distributed.nanny - WARNING - Restarting worker

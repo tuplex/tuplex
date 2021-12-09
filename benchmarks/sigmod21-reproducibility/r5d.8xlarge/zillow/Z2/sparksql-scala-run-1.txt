@@ -1,0 +1,2 @@
+Spark startup took: 0.767988351s
+Zillow job took: 19.942306895s

@@ -1,0 +1,12 @@
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 22541, in BlackholeInterpreter__resume_mainloop
+  File "rpython_jit_metainterp.c", line 40172, in BlackholeInterpreter_handle_exception_in_frame
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 22541, in BlackholeInterpreter__resume_mainloop
+  File "rpython_jit_metainterp.c", line 40172, in BlackholeInterpreter_handle_exception_in_frame
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 22541, in BlackholeInterpreter__resume_mainloop
+  File "rpython_jit_metainterp.c", line 40172, in BlackholeInterpreter_handle_exception_in_frame
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 22541, in BlackholeInterpreter__resume_mainloop
+  File "rpython_jit_metainterp.c", line 40172, in BlackholeInterpreter_handle_exception_in_frame

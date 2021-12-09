@@ -1,0 +1,271 @@
+[2021-03-31 13:55:57.667] [global] [error] could not find backend, defaulting to local
+[2021-03-31 13:55:57.667] [local ee] [info] loaded runtime library from/usr/local/lib/python3.6/site-packages/Tuplex-0.1.7-py3.6.egg/tuplex/libexec/tuplex_runtime.so
+[2021-03-31 13:55:57.667] [local ee] [info] initializing LLVM backend
+[2021-03-31 13:55:57.667] [local ee] [warning] init JIT compiler also only in local mode
+[2021-03-31 13:55:57.667] [LLVM] [info] compiling code for skylake-avx512
+[2021-03-31 13:55:57.668] [memory] [info] allocated bitmap managed memory region (60.00 GB, 32.00 MB block size)
+[2021-03-31 13:55:57.668] [memory] [info] allocated bitmap managed memory region (60.00 GB, 32.00 MB block size)
+[2021-03-31 13:55:57.668] [memory] [info] allocated bitmap managed memory region (60.00 GB, 32.00 MB block size)
+[2021-03-31 13:55:57.668] [local execution engine] [info] started local executor E/1 (60.00 GB, 32.00 MB default partition size)
+[2021-03-31 13:55:57.668] [E/1] [info] starting detached process queue
+[2021-03-31 13:55:57.668] [local execution engine] [info] started local executor E/2 (60.00 GB, 32.00 MB default partition size)
+[2021-03-31 13:55:57.668] [E/2] [info] starting detached process queue
+[2021-03-31 13:55:57.668] [E/1] [info] initialized runtime memory (4.00 MB)
+[2021-03-31 13:55:57.668] [E/2] [info] initialized runtime memory (4.00 MB)
+[2021-03-31 13:55:57.668] [local execution engine] [info] started local executor E/3 (60.00 GB, 32.00 MB default partition size)
+[2021-03-31 13:55:57.668] [E/3] [info] starting detached process queue
+[2021-03-31 13:55:57.668] [memory] [info] allocated bitmap managed memory region (60.00 GB, 32.00 MB block size)
+[2021-03-31 13:55:57.668] [local execution engine] [info] started driver (60.00 GB, 32.00 MB default partition size)
+overflow will be cached at file:///results/scratch/driver
+[2021-03-31 13:55:57.668] [E/3] [info] initialized runtime memory (4.00 MB)
+[2021-03-31 13:55:57.668] [fileinputoperator] [info] found 23 files (5.89 GB) to process.
+[2021-03-31 13:55:57.669] [global] [info] sampled file:///data/flights_small/flights_on_time_performance_2019_11.csv on 256.00 KB
+[2021-03-31 13:55:57.802] [fileinputoperator] [info] found 1 file (742.61 KB) to process.
+[2021-03-31 13:55:57.802] [global] [info] sampled file:///code/benchmark/flights/data/GlobalAirportDatabase.txt on 256.00 KB
+[2021-03-31 13:55:57.952] [fileinputoperator] [info] found 1 file (81.54 KB) to process.
+[2021-03-31 13:55:57.952] [global] [info] sampled file:///code/benchmark/flights/data/L_CARRIER_HISTORY.csv on 81.55 KB
+[2021-03-31 13:55:58.000] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-31 13:55:58.007] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-31 13:55:58.012] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-31 13:55:58.018] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-31 13:55:58.045] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-31 13:55:58.063] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-31 13:55:58.075] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-31 13:55:58.080] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-31 13:55:58.089] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-31 13:55:58.100] [global] [info] performing static typing for UDF in operator withColumn
+[2021-03-31 13:55:58.208] [global] [info] performing static typing for UDF in operator map
+[2021-03-31 13:55:58.223] [global] [info] performing static typing for UDF in operator map
+[2021-03-31 13:55:58.223] [logical planner] [info] logical optimization took 0.000039ms
+output type of specialized pipeline is: (Option[str],Option[str],Option[str],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[f64],Option[f64])
+is this the most outer stage?: 0
+need to upgrade output type to (Option[str],Option[str],Option[str],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[f64],Option[f64])
+[2021-03-31 13:55:58.223] [codegen] [info] generating pipeline for (Option[str],Option[str],Option[str],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[f64],Option[f64]) -> (Option[str],Option[str],Option[str],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[f64],Option[f64]) (2 operators pipelined)
+[2021-03-31 13:55:58.224] [codegen] [info] generating lambda function for (Option[str]) -> Option[str]
+[2021-03-31 13:55:58.225] [codegen] [info] generating lambda function for (Option[str]) -> Option[str]
+output type of specialized pipeline is: (Option[str],Option[str],Option[str],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[f64],Option[f64])
+is this the most outer stage?: 0
+need to upgrade output type to (Option[str],Option[str],Option[str],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[f64],Option[f64])
+[2021-03-31 13:55:58.246] [codegen] [info] generating pipeline for (Option[str],Option[str],Option[str],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[f64],Option[f64]) -> (Option[str],Option[str],Option[str],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[f64],Option[f64]) (2 operators pipelined)
+[2021-03-31 13:55:58.246] [codegen] [info] generating lambda function for (Option[str]) -> Option[str]
+[2021-03-31 13:55:58.247] [codegen] [info] generating lambda function for (Option[str]) -> Option[str]
+output type of specialized pipeline is: (Option[str],Option[str],str,i64,Option[i64])
+is this the most outer stage?: 0
+need to upgrade output type to (Option[str],Option[str],str,i64,Option[i64])
+[2021-03-31 13:55:58.267] [codegen] [info] generating pipeline for (Option[str],Option[str]) -> (Option[str],Option[str],str,i64,Option[i64]) (3 operators pipelined)
+[2021-03-31 13:55:58.268] [codegen] [info] generating lambda function for ((Option[str],Option[str])) -> str
+[2021-03-31 13:55:58.268] [codegen] [info] generating lambda function for ((Option[str],Option[str],str)) -> i64
+[2021-03-31 13:55:58.269] [codegen] [info] generating function extractDefunctYear for ((Option[str],Option[str],str,i64)) -> Option[i64]
+output type of specialized pipeline is: (str)
+is this the most outer stage?: 1
+[2021-03-31 13:55:58.290] [codegen] [info] generating pipeline for (Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[str],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str]) -> (str) (151 operators pipelined)
+outSchema is different than last operator's schema:
+outSchema: (str)
+last Op: (str,Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],str,str,Option[str],Option[f64],Option[f64],Option[i64],str,str,Option[str],Option[f64],Option[f64],Option[i64],f64,Option[str],boolean,boolean,Option[str],Option[str],i64,i64,i64,i64,i64,i64,i64,i64,i64,i64,i64,i64,i64,Option[i64])
+[2021-03-31 13:55:58.294] [codegen] [info] generating lambda function for ((Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[str],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str])) -> str
+[2021-03-31 13:55:58.299] [codegen] [info] generating lambda function for ((Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[str],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],str)) -> str
+[2021-03-31 13:55:58.305] [codegen] [info] generating lambda function for ((Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[str],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],str,str)) -> str
+[2021-03-31 13:55:58.310] [codegen] [info] generating lambda function for ((Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[str],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],str,str,str)) -> str
+[2021-03-31 13:55:58.316] [codegen] [info] generating lambda function for (Option[i64]) -> Option[str]
+[2021-03-31 13:55:58.321] [codegen] [info] generating lambda function for (Option[i64]) -> Option[str]
+[2021-03-31 13:55:58.325] [codegen] [info] generating function cleanCode for ((Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[str],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[str],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[str],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],str,str,str,str)) -> Option[str]
+[2021-03-31 13:55:58.328] [codegen] [info] generating lambda function for (Option[f64]) -> boolean
+[2021-03-31 13:55:58.332] [codegen] [info] generating lambda function for (Option[f64]) -> boolean
+[2021-03-31 13:55:58.337] [codegen] [info] generating function divertedUDF for ((Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[str],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[str],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],boolean,Option[str],boolean,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],str,str,str,str)) -> Option[str]
+[2021-03-31 13:55:58.343] [codegen] [info] generating function fillInTimesUDF for ((Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[str],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[str],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],boolean,Option[str],boolean,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],str,str,str,str,Option[str])) -> Option[f64]
+[2021-03-31 13:55:58.347] [codegen] [info] generating lambda function for (Option[f64]) -> f64
+[2021-03-31 13:55:58.355] [codegen] [info] generating lambda function for (str) -> str
+[2021-03-31 13:55:58.356] [codegen] [info] generating function filterDefunctFlights for ((Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[str],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[str],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],boolean,Option[str],boolean,Option[f64],Option[f64],Option[f64],Option[f64],f64,Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],str,str,str,str,Option[str],Option[str],Option[str],str,i64,Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[f64],Option[f64])) -> boolean
+[2021-03-31 13:55:58.358] [codegen] [info] generating lambda function for (Option[f64]) -> i64
+[2021-03-31 13:55:58.365] [codegen] [info] generating lambda function for (Option[f64]) -> i64
+[2021-03-31 13:55:58.372] [codegen] [info] generating lambda function for (Option[f64]) -> i64
+[2021-03-31 13:55:58.380] [codegen] [info] generating lambda function for (Option[f64]) -> i64
+[2021-03-31 13:55:58.387] [codegen] [info] generating lambda function for (Option[f64]) -> i64
+[2021-03-31 13:55:58.394] [codegen] [info] generating lambda function for (Option[f64]) -> i64
+[2021-03-31 13:55:58.402] [codegen] [info] generating lambda function for (Option[f64]) -> i64
+[2021-03-31 13:55:58.409] [codegen] [info] generating lambda function for (Option[f64]) -> i64
+[2021-03-31 13:55:58.416] [codegen] [info] generating lambda function for (Option[f64]) -> i64
+[2021-03-31 13:55:58.423] [codegen] [info] generating lambda function for (Option[f64]) -> i64
+[2021-03-31 13:55:58.430] [codegen] [info] generating lambda function for (Option[f64]) -> i64
+[2021-03-31 13:55:58.437] [codegen] [info] generating lambda function for (Option[f64]) -> i64
+[2021-03-31 13:55:58.445] [codegen] [info] generating lambda function for ((Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[str],Option[i64],i64,Option[f64],Option[f64],Option[i64],Option[str],i64,Option[i64],Option[i64],i64,Option[str],Option[i64],i64,Option[f64],Option[f64],Option[i64],Option[str],boolean,Option[str],boolean,i64,i64,i64,Option[f64],f64,Option[i64],i64,i64,i64,i64,i64,Option[i64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],str,str,str,str,Option[str],Option[str],Option[str],str,i64,Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[f64],Option[f64])) -> (str,Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],str,str,Option[str],Option[f64],Option[f64],Option[i64],str,str,Option[str],Option[f64],Option[f64],Option[i64],f64,Option[str],boolean,boolean,Option[str],Option[str],i64,i64,i64,i64,i64,i64,i64,i64,i64,i64,i64,i64,i64,Option[i64])
+[2021-03-31 13:55:58.516] [global] [info] Stage3 depends on: Stage2 Stage1 Stage0 
+[2021-03-31 13:55:58.516] [global] [info] Stage2 depends on: 
+[2021-03-31 13:55:58.517] [global] [info] provided option to explicitly merge bad rows in order back, however rows will be hashed. Disabling option. To silence this warning, set
+tuplex.optimizer.mergeExceptionsInOrder=false
+[2021-03-31 13:55:58.551] [global] [info] Compiled code paths for stage 2 in 0.03 ms
+[2021-03-31 13:55:58.551] [global] [info] [Transform Stage] Stage 2 compiled to x86 in 0.0355144s
+[2021-03-31 13:55:58.551] [local ee] [info] split /code/benchmark/flights/data/L_CARRIER_HISTORY.csv into 1 task
+[2021-03-31 13:55:58.554] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.002590s (1928 normal rows, 0 exceptions, 1726 buckets)
+[2021-03-31 13:55:58.554] [global] [info] [Transform Stage] Stage 2 completed 1 load&transform tasks in 0.0027232s
+[2021-03-31 13:55:58.554] [global] [info] [Transform Stage] Stage 2 total wall clock time: 0.00258956s, 1928 input rows, time to process 1 row via fast path: 0.00134313ms
+[2021-03-31 13:55:58.554] [global] [info] [Transform Stage] Stage 2 completed 1 sink tasks in 3.733e-06s
+[2021-03-31 13:55:58.554] [global] [info] [Transform Stage] Stage 2 took 0.038263s
+[2021-03-31 13:55:58.554] [global] [info] Stage1 depends on: 
+[2021-03-31 13:55:58.556] [global] [info] provided option to explicitly merge bad rows in order back, however rows will be hashed. Disabling option. To silence this warning, set
+tuplex.optimizer.mergeExceptionsInOrder=false
+[2021-03-31 13:55:58.597] [global] [info] Compiled code paths for stage 1 in 0.04 ms
+[2021-03-31 13:55:58.597] [global] [info] [Transform Stage] Stage 1 compiled to x86 in 0.0428632s
+[2021-03-31 13:55:58.597] [local ee] [info] split /code/benchmark/flights/data/GlobalAirportDatabase.txt into 1 task
+[2021-03-31 13:55:58.610] [E/2] [info] [Task Finished] Transform to in-memory hash table in 0.013165s (3562 normal rows, 0 exceptions, 3512 buckets)
+[2021-03-31 13:55:58.610] [global] [info] [Transform Stage] Stage 1 completed 1 load&transform tasks in 0.01332s
+[2021-03-31 13:55:58.610] [global] [info] [Transform Stage] Stage 1 total wall clock time: 0.0131653s, 9300 input rows, time to process 1 row via fast path: 0.00141563ms
+[2021-03-31 13:55:58.610] [global] [info] [Transform Stage] Stage 1 completed 1 sink tasks in 2.087e-06s
+[2021-03-31 13:55:58.610] [global] [info] [Transform Stage] Stage 1 took 0.0562071s
+[2021-03-31 13:55:58.610] [global] [info] Stage0 depends on: 
+[2021-03-31 13:55:58.612] [global] [info] provided option to explicitly merge bad rows in order back, however rows will be hashed. Disabling option. To silence this warning, set
+tuplex.optimizer.mergeExceptionsInOrder=false
+[2021-03-31 13:55:58.652] [global] [info] Compiled code paths for stage 0 in 0.04 ms
+[2021-03-31 13:55:58.652] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.0415144s
+[2021-03-31 13:55:58.652] [local ee] [info] split /code/benchmark/flights/data/GlobalAirportDatabase.txt into 1 task
+[2021-03-31 13:55:58.665] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.013104s (3562 normal rows, 0 exceptions, 3512 buckets)
+[2021-03-31 13:55:58.665] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 0.0132561s
+[2021-03-31 13:55:58.665] [global] [info] [Transform Stage] Stage 0 total wall clock time: 0.0131043s, 9300 input rows, time to process 1 row via fast path: 0.00140906ms
+[2021-03-31 13:55:58.665] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 2.273e-06s
+[2021-03-31 13:55:58.665] [global] [info] [Transform Stage] Stage 0 took 0.0547943s
+[2021-03-31 13:56:01.224] [global] [info] Compiled code paths for stage 3 in 2.50 ms
+[2021-03-31 13:56:01.224] [global] [info] [Transform Stage] Stage 3 compiled to x86 in 2.55931s
+[2021-03-31 13:56:01.224] [local ee] [info] split /data/flights_small/flights_on_time_performance_2019_11.csv into 4 tasks
+[2021-03-31 13:56:01.224] [local ee] [info] split /data/flights_small/flights_on_time_performance_2019_10.csv into 4 tasks
+[2021-03-31 13:56:01.224] [local ee] [info] split /data/flights_small/flights_on_time_performance_2019_09.csv into 4 tasks
+[2021-03-31 13:56:01.224] [local ee] [info] split /data/flights_small/flights_on_time_performance_2019_08.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2019_07.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2019_06.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2019_05.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2019_04.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2019_03.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2019_02.csv into 3 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2019_01.csv into 3 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2018_12.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2018_11.csv into 3 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2018_10.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2018_09.csv into 3 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2018_08.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2018_07.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2018_06.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2018_05.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2018_04.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2018_03.csv into 4 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2018_02.csv into 3 tasks
+[2021-03-31 13:56:01.225] [local ee] [info] split /data/flights_small/flights_on_time_performance_2018_01.csv into 3 tasks
+[2021-03-31 13:56:03.419] [E/2] [info] [Task Finished] Transform to mem in 2.193627s (150364 normal rows, 0 exceptions)
+[2021-03-31 13:56:03.489] [E/1] [info] [Task Finished] Transform to mem in 2.264001s (149938 normal rows, 0 exceptions)
+[2021-03-31 13:56:03.503] [driver] [info] [Task Finished] Transform to mem in 2.278428s (148707 normal rows, 0 exceptions)
+[2021-03-31 13:56:03.553] [E/3] [info] [Task Finished] Transform to mem in 2.328170s (157470 normal rows, 0 exceptions)
+[2021-03-31 13:56:05.614] [E/2] [info] [Task Finished] Transform to mem in 2.195646s (149472 normal rows, 0 exceptions)
+[2021-03-31 13:56:05.716] [E/1] [info] [Task Finished] Transform to mem in 2.226522s (148599 normal rows, 0 exceptions)
+[2021-03-31 13:56:05.751] [driver] [info] [Task Finished] Transform to mem in 2.247858s (150234 normal rows, 0 exceptions)
+[2021-03-31 13:56:06.460] [E/3] [info] [Task Finished] Transform to mem in 2.907170s (192166 normal rows, 0 exceptions)
+[2021-03-31 13:56:07.859] [E/2] [info] [Task Finished] Transform to mem in 2.244817s (150752 normal rows, 0 exceptions)
+[2021-03-31 13:56:07.944] [E/1] [info] [Task Finished] Transform to mem in 2.228001s (149789 normal rows, 0 exceptions)
+[2021-03-31 13:56:08.004] [driver] [info] [Task Finished] Transform to mem in 2.252948s (150014 normal rows, 0 exceptions)
+[2021-03-31 13:56:08.834] [E/3] [info] [Task Finished] Transform to mem in 2.373114s (159520 normal rows, 0 exceptions)
+[2021-03-31 13:56:10.088] [E/2] [info] [Task Finished] Transform to mem in 2.229113s (149718 normal rows, 0 exceptions)
+[2021-03-31 13:56:10.152] [E/1] [info] [Task Finished] Transform to mem in 2.208345s (149499 normal rows, 0 exceptions)
+[2021-03-31 13:56:10.286] [driver] [info] [Task Finished] Transform to mem in 2.282004s (149809 normal rows, 0 exceptions)
+[2021-03-31 13:56:12.014] [E/3] [info] [Task Finished] Transform to mem in 3.179958s (213804 normal rows, 0 exceptions)
+[2021-03-31 13:56:12.344] [E/2] [info] [Task Finished] Transform to mem in 2.255212s (150460 normal rows, 0 exceptions)
+[2021-03-31 13:56:12.386] [E/1] [info] [Task Finished] Transform to mem in 2.233550s (149055 normal rows, 0 exceptions)
+[2021-03-31 13:56:12.533] [driver] [info] [Task Finished] Transform to mem in 2.247110s (149667 normal rows, 0 exceptions)
+[2021-03-31 13:56:14.566] [E/2] [info] [Task Finished] Transform to mem in 2.222130s (148341 normal rows, 0 exceptions)
+[2021-03-31 13:56:14.625] [E/1] [info] [Task Finished] Transform to mem in 2.239882s (149179 normal rows, 0 exceptions)
+[2021-03-31 13:56:14.773] [driver] [info] [Task Finished] Transform to mem in 2.239165s (149485 normal rows, 0 exceptions)
+[2021-03-31 13:56:15.177] [E/3] [info] [Task Finished] Transform to mem in 3.163825s (214046 normal rows, 0 exceptions)
+[2021-03-31 13:56:16.871] [E/1] [info] [Task Finished] Transform to mem in 2.245614s (148852 normal rows, 0 exceptions)
+[2021-03-31 13:56:16.988] [driver] [info] [Task Finished] Transform to mem in 2.215630s (149082 normal rows, 0 exceptions)
+[2021-03-31 13:56:17.422] [E/2] [info] [Task Finished] Transform to mem in 2.856121s (193813 normal rows, 0 exceptions)
+[2021-03-31 13:56:17.473] [E/3] [info] [Task Finished] Transform to mem in 2.295539s (150335 normal rows, 0 exceptions)
+[2021-03-31 13:56:19.253] [driver] [info] [Task Finished] Transform to mem in 2.264315s (150598 normal rows, 0 exceptions)
+[2021-03-31 13:56:19.623] [E/2] [info] [Task Finished] Transform to mem in 2.201170s (148500 normal rows, 0 exceptions)
+[2021-03-31 13:56:19.684] [E/1] [info] [Task Finished] Transform to mem in 2.813006s (192117 normal rows, 0 exceptions)
+[2021-03-31 13:56:19.726] [E/3] [info] [Task Finished] Transform to mem in 2.252758s (150602 normal rows, 0 exceptions)
+[2021-03-31 13:56:21.748] [driver] [info] [Task Finished] Transform to mem in 2.494862s (166012 normal rows, 0 exceptions)
+[2021-03-31 13:56:21.820] [E/2] [info] [Task Finished] Transform to mem in 2.196938s (150222 normal rows, 0 exceptions)
+[2021-03-31 13:56:21.900] [E/1] [info] [Task Finished] Transform to mem in 2.215623s (149253 normal rows, 0 exceptions)
+[2021-03-31 13:56:21.998] [E/3] [info] [Task Finished] Transform to mem in 2.272141s (149403 normal rows, 0 exceptions)
+[2021-03-31 13:56:24.076] [E/2] [info] [Task Finished] Transform to mem in 2.255929s (149045 normal rows, 0 exceptions)
+[2021-03-31 13:56:24.174] [E/1] [info] [Task Finished] Transform to mem in 2.273802s (150202 normal rows, 0 exceptions)
+[2021-03-31 13:56:24.547] [driver] [info] [Task Finished] Transform to mem in 2.799698s (187016 normal rows, 0 exceptions)
+[2021-03-31 13:56:25.477] [E/3] [info] [Task Finished] Transform to mem in 3.478835s (237051 normal rows, 0 exceptions)
+[2021-03-31 13:56:26.277] [E/2] [info] [Task Finished] Transform to mem in 2.200976s (149583 normal rows, 0 exceptions)
+[2021-03-31 13:56:26.404] [E/1] [info] [Task Finished] Transform to mem in 2.230645s (150451 normal rows, 0 exceptions)
+[2021-03-31 13:56:27.753] [E/3] [info] [Task Finished] Transform to mem in 2.275852s (152368 normal rows, 0 exceptions)
+[2021-03-31 13:56:28.548] [E/2] [info] [Task Finished] Transform to mem in 2.271418s (159972 normal rows, 0 exceptions)
+[2021-03-31 13:56:28.609] [E/1] [info] [Task Finished] Transform to mem in 2.205188s (149298 normal rows, 0 exceptions)
+[2021-03-31 13:56:28.902] [driver] [info] [Task Finished] Transform to mem in 4.354974s (287414 normal rows, 0 exceptions)
+[2021-03-31 13:56:29.987] [E/3] [info] [Task Finished] Transform to mem in 2.234707s (150041 normal rows, 0 exceptions)
+[2021-03-31 13:56:30.793] [E/2] [info] [Task Finished] Transform to mem in 2.244722s (153103 normal rows, 0 exceptions)
+[2021-03-31 13:56:30.797] [E/1] [info] [Task Finished] Transform to mem in 2.187179s (149132 normal rows, 0 exceptions)
+[2021-03-31 13:56:32.220] [E/3] [info] [Task Finished] Transform to mem in 2.233043s (149649 normal rows, 0 exceptions)
+[2021-03-31 13:56:33.051] [E/2] [info] [Task Finished] Transform to mem in 2.258136s (152111 normal rows, 0 exceptions)
+[2021-03-31 13:56:33.062] [E/1] [info] [Task Finished] Transform to mem in 2.265065s (160333 normal rows, 0 exceptions)
+[2021-03-31 13:56:33.365] [driver] [info] [Task Finished] Transform to mem in 4.463152s (302144 normal rows, 0 exceptions)
+[2021-03-31 13:56:34.789] [E/3] [info] [Task Finished] Transform to mem in 2.568242s (173647 normal rows, 0 exceptions)
+[2021-03-31 13:56:35.296] [E/2] [info] [Task Finished] Transform to mem in 2.245026s (150674 normal rows, 0 exceptions)
+[2021-03-31 13:56:35.338] [E/1] [info] [Task Finished] Transform to mem in 2.275884s (159090 normal rows, 0 exceptions)
+[2021-03-31 13:56:37.100] [E/3] [info] [Task Finished] Transform to mem in 2.310987s (166361 normal rows, 0 exceptions)
+[2021-03-31 13:56:37.532] [E/1] [info] [Task Finished] Transform to mem in 2.194155s (148760 normal rows, 0 exceptions)
+[2021-03-31 13:56:37.560] [E/2] [info] [Task Finished] Transform to mem in 2.263393s (150449 normal rows, 0 exceptions)
+[2021-03-31 13:56:37.747] [driver] [info] [Task Finished] Transform to mem in 4.381828s (295598 normal rows, 0 exceptions)
+[2021-03-31 13:56:39.730] [E/2] [info] [Task Finished] Transform to mem in 2.170336s (148915 normal rows, 0 exceptions)
+[2021-03-31 13:56:39.796] [E/1] [info] [Task Finished] Transform to mem in 2.264134s (160502 normal rows, 0 exceptions)
+[2021-03-31 13:56:40.050] [driver] [info] [Task Finished] Transform to mem in 2.302222s (155035 normal rows, 0 exceptions)
+[2021-03-31 13:56:40.087] [E/3] [info] [Task Finished] Transform to mem in 2.987400s (200968 normal rows, 0 exceptions)
+[2021-03-31 13:56:42.152] [E/1] [info] [Task Finished] Transform to mem in 2.355494s (165946 normal rows, 0 exceptions)
+[2021-03-31 13:56:42.273] [driver] [info] [Task Finished] Transform to mem in 2.222938s (151409 normal rows, 0 exceptions)
+[2021-03-31 13:56:42.340] [E/3] [info] [Task Finished] Transform to mem in 2.252470s (148951 normal rows, 0 exceptions)
+[2021-03-31 13:56:42.756] [E/2] [info] [Task Finished] Transform to mem in 3.026026s (201934 normal rows, 0 exceptions)
+[2021-03-31 13:56:44.543] [E/3] [info] [Task Finished] Transform to mem in 2.203510s (150595 normal rows, 0 exceptions)
+[2021-03-31 13:56:44.626] [driver] [info] [Task Finished] Transform to mem in 2.353502s (165562 normal rows, 0 exceptions)
+[2021-03-31 13:56:44.821] [E/1] [info] [Task Finished] Transform to mem in 2.669285s (180829 normal rows, 0 exceptions)
+[2021-03-31 13:56:45.010] [E/2] [info] [Task Finished] Transform to mem in 2.253465s (150101 normal rows, 0 exceptions)
+[2021-03-31 13:56:46.990] [driver] [info] [Task Finished] Transform to mem in 2.363552s (166720 normal rows, 0 exceptions)
+[2021-03-31 13:56:47.027] [E/1] [info] [Task Finished] Transform to mem in 2.206415s (151952 normal rows, 0 exceptions)
+[2021-03-31 13:56:47.070] [E/3] [info] [Task Finished] Transform to mem in 2.527177s (171108 normal rows, 0 exceptions)
+[2021-03-31 13:56:47.247] [E/2] [info] [Task Finished] Transform to mem in 2.237132s (148896 normal rows, 0 exceptions)
+[2021-03-31 13:56:49.228] [driver] [info] [Task Finished] Transform to mem in 2.238731s (150051 normal rows, 0 exceptions)
+[2021-03-31 13:56:49.286] [E/3] [info] [Task Finished] Transform to mem in 2.215157s (151891 normal rows, 0 exceptions)
+[2021-03-31 13:56:49.396] [E/1] [info] [Task Finished] Transform to mem in 2.368635s (170336 normal rows, 0 exceptions)
+[2021-03-31 13:56:49.497] [E/2] [info] [Task Finished] Transform to mem in 2.250277s (149675 normal rows, 0 exceptions)
+[2021-03-31 13:56:51.531] [E/3] [info] [Task Finished] Transform to mem in 2.245808s (150764 normal rows, 0 exceptions)
+[2021-03-31 13:56:51.580] [E/1] [info] [Task Finished] Transform to mem in 2.183994s (149107 normal rows, 0 exceptions)
+[2021-03-31 13:56:51.672] [driver] [info] [Task Finished] Transform to mem in 2.443734s (164890 normal rows, 0 exceptions)
+[2021-03-31 13:56:52.950] [E/2] [info] [Task Finished] Transform to mem in 3.452551s (241985 normal rows, 0 exceptions)
+[2021-03-31 13:56:53.834] [E/1] [info] [Task Finished] Transform to mem in 2.253563s (149447 normal rows, 0 exceptions)
+[2021-03-31 13:56:53.858] [E/3] [info] [Task Finished] Transform to mem in 2.326538s (169851 normal rows, 0 exceptions)
+[2021-03-31 13:56:55.767] [driver] [info] [Task Finished] Transform to mem in 4.094710s (274592 normal rows, 0 exceptions)
+[2021-03-31 13:56:55.767] [global] [info] [Transform Stage] Stage 3 completed 86 load&transform tasks in 54.5427s
+[2021-03-31 13:56:55.767] [global] [info] [Transform Stage] Stage 3 total wall clock time: 211.506s, 14009720 input rows, time to process 1 row via fast path: 0.0150971ms
+
+[2021-03-31 13:56:56.098] [global] [info] Writing 14304381 rows as output to file (2.78 GB)
+[2021-03-31 13:56:56.685] [driver] [info] [Task Finished] write to file in 0.586761s (3357303 rows, 668.88 MB)
+[2021-03-31 13:56:56.730] [E/2] [info] [Task Finished] write to file in 0.631401s (3671189 rows, 730.69 MB)
+[2021-03-31 13:56:56.735] [E/1] [info] [Task Finished] write to file in 0.636288s (3645801 rows, 726.29 MB)
+[2021-03-31 13:56:57.142] [E/3] [info] [Task Finished] write to file in 1.043645s (3630088 rows, 723.06 MB)
+[2021-03-31 13:56:57.142] [global] [info] writing output took 1.375115s
+[2021-03-31 13:56:57.142] [global] [info] [Transform Stage] Stage 3 completed 86 sink tasks in 1.37517s
+[2021-03-31 13:56:57.142] [global] [info] [Transform Stage] Stage 3 took 58.4772s
+[2021-03-31 13:56:57.142] [global] [info] Query Execution took 58.9335s. (planning: 0.306955s, execution: 58.6265s)
+>>> running Tuplex on ['/data/flights_small/flights_on_time_performance_2019_11.csv', '/data/flights_small/flights_on_time_performance_2019_10.csv', '/data/flights_small/flights_on_time_performance_2019_09.csv', '/data/flights_small/flights_on_time_performance_2019_08.csv', '/data/flights_small/flights_on_time_performance_2019_07.csv', '/data/flights_small/flights_on_time_performance_2019_06.csv', '/data/flights_small/flights_on_time_performance_2019_05.csv', '/data/flights_small/flights_on_time_performance_2019_04.csv', '/data/flights_small/flights_on_time_performance_2019_03.csv', '/data/flights_small/flights_on_time_performance_2019_02.csv', '/data/flights_small/flights_on_time_performance_2019_01.csv', '/data/flights_small/flights_on_time_performance_2018_12.csv', '/data/flights_small/flights_on_time_performance_2018_11.csv', '/data/flights_small/flights_on_time_performance_2018_10.csv', '/data/flights_small/flights_on_time_performance_2018_09.csv', '/data/flights_small/flights_on_time_performance_2018_08.csv', '/data/flights_small/flights_on_time_performance_2018_07.csv', '/data/flights_small/flights_on_time_performance_2018_06.csv', '/data/flights_small/flights_on_time_performance_2018_05.csv', '/data/flights_small/flights_on_time_performance_2018_04.csv', '/data/flights_small/flights_on_time_performance_2018_03.csv', '/data/flights_small/flights_on_time_performance_2018_02.csv', '/data/flights_small/flights_on_time_performance_2018_01.csv']
+Welcome to
+
+  _____            _
+ |_   _|   _ _ __ | | _____  __
+   | || | | | '_ \| |/ _ \ \/ /
+   | || |_| | |_) | |  __/>  <
+   |_| \__,_| .__/|_|\___/_/\_\ 0.1.7
+            |_|
+    
+using Python 3.6.9 (default, Mar 31 2021, 05:47:10) 
+[GCC 10.2.0] on linux
+Tuplex startup time: 0.2807936668395996
+Tuplex job time: 59.48250484466553 s
+{'tuplex.useLLVMOptimizer': False, 'tuplex.autoUpcast': False, 'tuplex.allowUndefinedBehavior': False, 'tuplex.optimizer.codeStats': False, 'tuplex.optimizer.generateParser': False, 'tuplex.optimizer.nullValueOptimization': False, 'tuplex.optimizer.filterPushdown': False, 'tuplex.optimizer.sharedObjectPropagation': True, 'tuplex.interleaveIO': True, 'tuplex.resolveWithInterpreterOnly': False, 'tuplex.csv.selectionPushdown': False, 'tuplex.webui.enable': False, 'tuplex.executorCount': 3, 'tuplex.csv.maxDetectionRows': 10000, 'tuplex.webui.port': 5000, 'tuplex.webui.mongodb.port': 27017, 'tuplex.webui.exceptionDisplayLimit': 5, 'tuplex.normalcaseThreshold': 0.9, 'tuplex.csv.comments': ['#', '~'], 'tuplex.csv.maxDetectionMemory': '256KB', 'tuplex.csv.quotechar': '"', 'tuplex.csv.separators': [',', ';', '|', '\t'], 'tuplex.driverMemory': '60G', 'tuplex.env.hostname': '6bcf8f6a24af', 'tuplex.env.mode': 'file', 'tuplex.env.user': 'root', 'tuplex.executorMemory': '60G', 'tuplex.inputSplitSize': '64MB', 'tuplex.logDir': '.', 'tuplex.optimizer.mergeExceptionsInOrder': 'False', 'tuplex.optimizer.operatorReordering': 'false', 'tuplex.optionalThreshold': '0.7', 'tuplex.partitionSize': '32MB', 'tuplex.readBufferSize': '128KB', 'tuplex.runTimeLibrary': '/usr/local/lib/python3.6/site-packages/Tuplex-0.1.7-py3.6.egg/tuplex/libexec/tuplex_runtime', 'tuplex.runTimeMemory': '64MB', 'tuplex.runTimeMemoryBlockSize': '4MB', 'tuplex.scratchDir': '/results/scratch', 'tuplex.webui.mongodb.path': '/data/tuplex_history', 'tuplex.webui.mongodb.url': 'localhost', 'tuplex.webui.url': 'localhost'}
+{"logical_optimization_time_s":3.8848e-05,"llvm_optimization_time_s":0,"llvm_compilation_time_s":2.61139,"total_compilation_time_s":2.67919,"sampling_time_s":0.466613,"stages":[{"stage_no":2,"fast_path_wall_time_s":0.00258956,"fast_path_time_s":0.00273342,"fast_path_per_row_time_ns":1343.13,"slow_path_wall_time_s":0,"slow_path_time_s":0,"slow_path_per_row_time_ns":0},{"stage_no":1,"fast_path_wall_time_s":0.0131653,"fast_path_time_s":0.0133312,"fast_path_per_row_time_ns":1415.63,"slow_path_wall_time_s":0,"slow_path_time_s":0,"slow_path_per_row_time_ns":0},{"stage_no":0,"fast_path_wall_time_s":0.0131043,"fast_path_time_s":0.0132672,"fast_path_per_row_time_ns":1409.06,"slow_path_wall_time_s":0,"slow_path_time_s":0,"slow_path_per_row_time_ns":0},{"stage_no":3,"fast_path_wall_time_s":211.506,"fast_path_time_s":54.5427,"fast_path_per_row_time_ns":15097.1,"slow_path_wall_time_s":0,"slow_path_time_s":0,"slow_path_per_row_time_ns":0}]}
+{"webui.enable": false, "executorMemory": "60G", "executorCount": "3", "driverMemory": "60G", "partitionSize": "32MB", "runTimeMemory": "64MB", "inputSplitSize": "64MB", "useLLVMOptimizer": false, "optimizer.nullValueOptimization": false, "csv.selectionPushdown": false, "optimizer.generateParser": false, "optimizer.mergeExceptionsInOrder": false, "optimizer.filterPushdown": false, "scratchDir": "/results/scratch"}
+{"startupTime": 0.2807936668395996, "jobTime": 59.48250484466553, "io_load": 0.32130932807922363, "compute_and_write": 59.161195516586304}
+[2021-03-31 13:56:57.181] [local execution engine] [info] Stopped local executor E/1
+[2021-03-31 13:56:57.217] [local execution engine] [info] Stopped local executor E/2
+[2021-03-31 13:56:57.252] [local execution engine] [info] Stopped local executor E/3
+[GLOBAL] Local engine terminated.
+[GLOBAL] releasing 4 active partitions

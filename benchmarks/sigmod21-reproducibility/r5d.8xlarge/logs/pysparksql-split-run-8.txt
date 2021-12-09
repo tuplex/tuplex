@@ -1,0 +1,75 @@
+PySpark startup time: 1.6808357238769531
+Pyspark job time: 765.8967413902283 s
+== Parsed Logical Plan ==
+Join Inner, (ip#5 = BadIPs#189)
+:- Project [value#0, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#153, protocol#83, response_code#93, content_size#127, randomstr#140]
+:  +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, regexp_replace(endpoint#64, ^/~[^/]+, randomstr#140) AS endpoint#153, protocol#83, response_code#93, content_size#127, randomstr#140]
+:     +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#64, protocol#83, response_code#93, content_size#127, CreateRandomID() AS randomstr#140]
+:        +- Filter (length(endpoint#64) > 0)
+:           +- Filter isnotnull(response_code#93)
+:              +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#64, protocol#83, response_code#93, coalesce(content_size#104, cast(0 as int)) AS content_size#127]
+:                 +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#64, protocol#83, response_code#93, coalesce(cast(trim(cols#2[9], None) as int), 0) AS content_size#104]
+:                    +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#64, protocol#83, cast(trim(cols#2[8], None) as int) AS response_code#93]
+:                       +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#64, substring(protocol#73, 0, (length(protocol#73) - 1)) AS protocol#83]
+:                          +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#64, trim(cols#2[7], None) AS protocol#73]
+:                             +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, trim(cols#2[6], None) AS endpoint#64]
+:                                +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, substring(method#48, 2, 1000) AS method#56]
+:                                   +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, trim(cols#2[5], None) AS method#48]
+:                                      +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, substring(date#34, 2, (length(date#34) - 1)) AS date#41]
+:                                         +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, substring(date#27, 0, (length(date#27) - 1)) AS date#34]
+:                                            +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, trim(date#20, None) AS date#27]
+:                                               +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, concat(cols#2[3],  , cols#2[4]) AS date#20]
+:                                                  +- Project [value#0, cols#2, ip#5, client_id#9, trim(cols#2[2], None) AS user_id#14]
+:                                                     +- Project [value#0, cols#2, ip#5, trim(cols#2[1], None) AS client_id#9]
+:                                                        +- Project [value#0, cols#2, trim(cols#2[0], None) AS ip#5]
+:                                                           +- Project [value#0, split(value#0,  ) AS cols#2]
+:                                                              +- Relation[value#0] text
++- Relation[BadIPs#189] csv
+
+== Analyzed Logical Plan ==
+value: string, ip: string, client_id: string, user_id: string, date: string, method: string, endpoint: string, protocol: string, response_code: int, content_size: int, randomstr: string, BadIPs: string
+Join Inner, (ip#5 = BadIPs#189)
+:- Project [value#0, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#153, protocol#83, response_code#93, content_size#127, randomstr#140]
+:  +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, regexp_replace(endpoint#64, ^/~[^/]+, randomstr#140) AS endpoint#153, protocol#83, response_code#93, content_size#127, randomstr#140]
+:     +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#64, protocol#83, response_code#93, content_size#127, CreateRandomID() AS randomstr#140]
+:        +- Filter (length(endpoint#64) > 0)
+:           +- Filter isnotnull(response_code#93)
+:              +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#64, protocol#83, response_code#93, coalesce(content_size#104, cast(0 as int)) AS content_size#127]
+:                 +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#64, protocol#83, response_code#93, coalesce(cast(trim(cols#2[9], None) as int), 0) AS content_size#104]
+:                    +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#64, protocol#83, cast(trim(cols#2[8], None) as int) AS response_code#93]
+:                       +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#64, substring(protocol#73, 0, (length(protocol#73) - 1)) AS protocol#83]
+:                          +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#64, trim(cols#2[7], None) AS protocol#73]
+:                             +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, method#56, trim(cols#2[6], None) AS endpoint#64]
+:                                +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, substring(method#48, 2, 1000) AS method#56]
+:                                   +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, date#41, trim(cols#2[5], None) AS method#48]
+:                                      +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, substring(date#34, 2, (length(date#34) - 1)) AS date#41]
+:                                         +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, substring(date#27, 0, (length(date#27) - 1)) AS date#34]
+:                                            +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, trim(date#20, None) AS date#27]
+:                                               +- Project [value#0, cols#2, ip#5, client_id#9, user_id#14, concat(cols#2[3],  , cols#2[4]) AS date#20]
+:                                                  +- Project [value#0, cols#2, ip#5, client_id#9, trim(cols#2[2], None) AS user_id#14]
+:                                                     +- Project [value#0, cols#2, ip#5, trim(cols#2[1], None) AS client_id#9]
+:                                                        +- Project [value#0, cols#2, trim(cols#2[0], None) AS ip#5]
+:                                                           +- Project [value#0, split(value#0,  ) AS cols#2]
+:                                                              +- Relation[value#0] text
++- Relation[BadIPs#189] csv
+
+== Optimized Logical Plan ==
+Join Inner, (ip#5 = BadIPs#189)
+:- Project [value#0, trim(split(value#0,  )[0], None) AS ip#5, trim(split(value#0,  )[1], None) AS client_id#9, trim(split(value#0,  )[2], None) AS user_id#14, substring(substring(trim(concat(split(value#0,  )[3],  , split(value#0,  )[4]), None), 0, (length(trim(concat(split(value#0,  )[3],  , split(value#0,  )[4]), None)) - 1)), 2, (length(substring(trim(concat(split(value#0,  )[3],  , split(value#0,  )[4]), None), 0, (length(trim(concat(split(value#0,  )[3],  , split(value#0,  )[4]), None)) - 1))) - 1)) AS date#41, substring(trim(split(value#0,  )[5], None), 2, 1000) AS method#56, regexp_replace(trim(split(value#0,  )[6], None), ^/~[^/]+, pythonUDF1#245) AS endpoint#153, substring(trim(split(value#0,  )[7], None), 0, (length(trim(split(value#0,  )[7], None)) - 1)) AS protocol#83, cast(trim(split(value#0,  )[8], None) as int) AS response_code#93, coalesce(coalesce(cast(trim(split(value#0,  )[9], None) as int), 0), 0) AS content_size#127, pythonUDF1#245 AS randomstr#140]
+:  +- BatchEvalPython [CreateRandomID(), CreateRandomID()], [value#0, pythonUDF0#244, pythonUDF1#245]
+:     +- Filter ((isnotnull(cast(trim(split(value#0,  )[8], None) as int)) && (length(trim(split(value#0,  )[6], None)) > 0)) && isnotnull(trim(split(value#0,  )[0], None)))
+:        +- Relation[value#0] text
++- Filter isnotnull(BadIPs#189)
+   +- Relation[BadIPs#189] csv
+
+== Physical Plan ==
+*(3) BroadcastHashJoin [ip#5], [BadIPs#189], Inner, BuildRight
+:- *(3) Project [value#0, trim(split(value#0,  )[0], None) AS ip#5, trim(split(value#0,  )[1], None) AS client_id#9, trim(split(value#0,  )[2], None) AS user_id#14, substring(substring(trim(concat(split(value#0,  )[3],  , split(value#0,  )[4]), None), 0, (length(trim(concat(split(value#0,  )[3],  , split(value#0,  )[4]), None)) - 1)), 2, (length(substring(trim(concat(split(value#0,  )[3],  , split(value#0,  )[4]), None), 0, (length(trim(concat(split(value#0,  )[3],  , split(value#0,  )[4]), None)) - 1))) - 1)) AS date#41, substring(trim(split(value#0,  )[5], None), 2, 1000) AS method#56, regexp_replace(trim(split(value#0,  )[6], None), ^/~[^/]+, pythonUDF1#245) AS endpoint#153, substring(trim(split(value#0,  )[7], None), 0, (length(trim(split(value#0,  )[7], None)) - 1)) AS protocol#83, cast(trim(split(value#0,  )[8], None) as int) AS response_code#93, coalesce(coalesce(cast(trim(split(value#0,  )[9], None) as int), 0), 0) AS content_size#127, pythonUDF1#245 AS randomstr#140]
+:  +- BatchEvalPython [CreateRandomID(), CreateRandomID()], [value#0, pythonUDF0#244, pythonUDF1#245]
+:     +- *(1) Filter ((isnotnull(cast(trim(split(value#0,  )[8], None) as int)) && (length(trim(split(value#0,  )[6], None)) > 0)) && isnotnull(trim(split(value#0,  )[0], None)))
+:        +- *(1) FileScan text [value#0] Batched: false, Format: Text, Location: InMemoryFileIndex[file:/data/logs/2000.01.01.txt, file:/data/logs/2000.01.02.txt, file:/data/logs..., PartitionFilters: [], PushedFilters: [], ReadSchema: struct<value:string>
++- BroadcastExchange HashedRelationBroadcastMode(List(input[0, string, true]))
+   +- *(2) Project [BadIPs#189]
+      +- *(2) Filter isnotnull(BadIPs#189)
+         +- *(2) FileScan csv [BadIPs#189] Batched: false, Format: CSV, Location: InMemoryFileIndex[file:/data/logs/ip_blacklist.csv], PartitionFilters: [], PushedFilters: [IsNotNull(BadIPs)], ReadSchema: struct<BadIPs:string>
+{"startupTime": 1.6808357238769531, "jobTime": 765.8967413902283}

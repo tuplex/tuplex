@@ -1,0 +1,5 @@
+PySpark startup took: 1.6584522724151611s
+Result::
+[Row(sum(revenue)=30104438.091099977)]
+framework,version,load,query,result
+pyspark,2.4.7,22.715094089508057,23.501993894577026,[Row(sum(revenue)=30104438.091099977)]

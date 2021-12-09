@@ -1,0 +1,3 @@
+Dask startup time: 2.0119223594665527
+Dask job time: 14.012837886810303 s
+{"startupTime": 2.0119223594665527, "jobTime": 14.012837886810303}

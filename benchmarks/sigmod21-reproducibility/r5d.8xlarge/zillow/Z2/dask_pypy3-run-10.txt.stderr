@@ -1,0 +1,81 @@
+RPython traceback:
+  File "pypy_interpreter.c", line 42998, in BuiltinCode3_fastcall_3
+  File "pypy_interpreter_2.c", line 55754, in GetSetProperty_descr_property_get
+  File "implement_3.c", line 14942, in descr_typecheck_fget_f_back
+  File "rpython_jit_metainterp.c", line 1534, in force_virtual
+RPython traceback:
+  File "rpython_jit_metainterp_3.c", line 7214, in MIFrame_run_one_step
+  File "rpython_jit_metainterp_5.c", line 22695, in MIFrame__opimpl_setarrayitem_vable
+  File "rpython_jit_metainterp_6.c", line 16719, in MIFrame__get_arrayitem_vable_index
+Fatal RPython error: AssertionError
+/opt/pypy3/site-packages/dask/dataframe/core.py:3370: UserWarning: 
+You did not provide metadata, so Dask is running your function on a small dataset to guess output types. It is possible that Dask will guess incorrectly.
+To provide an explicit output types or to silence this message, please provide the `meta=` keyword, as described in the map or apply function that you are using.
+  Before: .apply(func)
+  After:  .apply(func, meta=('title', 'object'))
+
+  warnings.warn(meta_warning(meta))
+Exception in thread Profile:
+Traceback (most recent call last):
+  File "/opt/pypy3/lib-python/3/threading.py", line 916, in _bootstrap_inner
+    self.run()
+  File "/opt/pypy3/lib-python/3/threading.py", line 864, in run
+    self._target(*self._args, **self._kwargs)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 268, in _watch
+    process(frame, None, recent, omit=omit)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 103, in process
+    state = process(prev, frame, state, stop=stop)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 103, in process
+    state = process(prev, frame, state, stop=stop)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 103, in process
+    state = process(prev, frame, state, stop=stop)
+  [Previous line repeated 4 more times]
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 99, in process
+    prev = frame.f_back
+SystemError: unexpected internal exception (please report a bug): <InvalidVirtualRef object at 0x7fe32de00168>; internal traceback was dumped to stderr
+
+distributed.nanny - WARNING - Restarting worker
+distributed.worker - ERROR - Worker stream died during communication: tcp://127.0.0.1:39661
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 195, in read
+    frames_nbytes = await stream.read_bytes(fmt_size)
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 327, in __iter__
+    yield self  # This tells Task to wait for completion.
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 250, in _wakeup
+    future.result()
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 243, in result
+    raise self._exception
+tornado.iostream.StreamClosedError: Stream is closed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 2064, in gather_dep
+    self.rpc, deps, worker, who=self.address
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 3333, in get_data_from_worker
+    return await retry_operation(_get_data, operation="get_data_from_worker")
+  File "/opt/pypy3/site-packages/distributed/utils_comm.py", line 389, in retry_operation
+    operation=operation,
+  File "/opt/pypy3/site-packages/distributed/utils_comm.py", line 369, in retry
+    return await coro()
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 3320, in _get_data
+    max_connections=max_connections,
+  File "/opt/pypy3/site-packages/distributed/core.py", line 644, in send_recv
+    response = await comm.read(deserializers=deserializers)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 128, in convert_stream_closed_error
+    raise CommClosedError("in %s: %s" % (obj, exc)) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: Stream is closed
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 22541, in BlackholeInterpreter__resume_mainloop
+  File "rpython_jit_metainterp.c", line 40172, in BlackholeInterpreter_handle_exception_in_frame
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 22541, in BlackholeInterpreter__resume_mainloop
+  File "rpython_jit_metainterp.c", line 40172, in BlackholeInterpreter_handle_exception_in_frame
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 22541, in BlackholeInterpreter__resume_mainloop
+  File "rpython_jit_metainterp.c", line 40172, in BlackholeInterpreter_handle_exception_in_frame
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 22541, in BlackholeInterpreter__resume_mainloop
+  File "rpython_jit_metainterp.c", line 40172, in BlackholeInterpreter_handle_exception_in_frame

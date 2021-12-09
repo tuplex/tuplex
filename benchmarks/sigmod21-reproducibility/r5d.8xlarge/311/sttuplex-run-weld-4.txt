@@ -1,0 +1,301 @@
+[2021-03-31 03:39:38.196] [global] [error] could not find backend, defaulting to local
+[2021-03-31 03:39:38.197] [local ee] [info] loaded runtime library from/usr/local/lib/python3.6/site-packages/Tuplex-0.1.7-py3.6.egg/tuplex/libexec/tuplex_runtime.so
+[2021-03-31 03:39:38.197] [local ee] [info] initializing LLVM backend
+[2021-03-31 03:39:38.197] [local ee] [warning] init JIT compiler also only in local mode
+[2021-03-31 03:39:38.197] [LLVM] [info] compiling code for skylake-avx512
+[2021-03-31 03:39:38.198] [memory] [info] allocated bitmap managed memory region (100.00 GB, 32.00 MB block size)
+[2021-03-31 03:39:38.198] [local execution engine] [info] started driver (100.00 GB, 32.00 MB default partition size)
+overflow will be cached at file:///tmp/driver
+[2021-03-31 03:39:38.198] [fileinputoperator] [info] found 1 file (1.10 GB) to process.
+[2021-03-31 03:39:38.198] [global] [info] sampled file:///data/311/311_preprocessed.csv on 256.00 KB
+[2021-03-31 03:39:38.338] [logical planner] [info] logical optimization took 0.007580ms
+output type of specialized pipeline is: (Option[str])
+is this the most outer stage?: 1
+[2021-03-31 03:39:38.338] [codegen] [info] generating pipeline for (Option[str]) -> (Option[str]) (1 operator pipelined)
+[2021-03-31 03:39:38.357] [global] [info] Stage0 depends on: 
+[2021-03-31 03:39:38.369] [global] [info] Optimization via LLVM passes took 0.011623 ms
+[2021-03-31 03:39:38.376] [global] [info] Compiled code paths for stage 0 in 0.01 ms
+[2021-03-31 03:39:38.376] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.0182498s
+[2021-03-31 03:39:38.376] [local ee] [info] split /data/311/311_preprocessed.csv into 17 tasks
+[2021-03-31 03:39:39.268] [driver] [info] [Task Finished] Transform to mem in 0.892196s (11184809 normal rows, 0 exceptions)
+[2021-03-31 03:39:40.157] [driver] [info] [Task Finished] Transform to mem in 0.889309s (11185477 normal rows, 0 exceptions)
+[2021-03-31 03:39:41.046] [driver] [info] [Task Finished] Transform to mem in 0.888790s (11184811 normal rows, 0 exceptions)
+[2021-03-31 03:39:41.932] [driver] [info] [Task Finished] Transform to mem in 0.886371s (11185477 normal rows, 0 exceptions)
+[2021-03-31 03:39:42.818] [driver] [info] [Task Finished] Transform to mem in 0.885997s (11183144 normal rows, 0 exceptions)
+[2021-03-31 03:39:43.705] [driver] [info] [Task Finished] Transform to mem in 0.886491s (11183144 normal rows, 0 exceptions)
+[2021-03-31 03:39:44.591] [driver] [info] [Task Finished] Transform to mem in 0.886447s (11184478 normal rows, 0 exceptions)
+[2021-03-31 03:39:45.478] [driver] [info] [Task Finished] Transform to mem in 0.886493s (11184144 normal rows, 0 exceptions)
+[2021-03-31 03:39:46.365] [driver] [info] [Task Finished] Transform to mem in 0.886548s (11184810 normal rows, 0 exceptions)
+[2021-03-31 03:39:47.253] [driver] [info] [Task Finished] Transform to mem in 0.888404s (11184811 normal rows, 0 exceptions)
+[2021-03-31 03:39:48.139] [driver] [info] [Task Finished] Transform to mem in 0.886084s (11184811 normal rows, 0 exceptions)
+[2021-03-31 03:39:49.025] [driver] [info] [Task Finished] Transform to mem in 0.885531s (11183144 normal rows, 0 exceptions)
+[2021-03-31 03:39:49.910] [driver] [info] [Task Finished] Transform to mem in 0.885711s (11187144 normal rows, 0 exceptions)
+[2021-03-31 03:39:50.796] [driver] [info] [Task Finished] Transform to mem in 0.885349s (11183810 normal rows, 0 exceptions)
+[2021-03-31 03:39:51.681] [driver] [info] [Task Finished] Transform to mem in 0.885188s (11183811 normal rows, 0 exceptions)
+[2021-03-31 03:39:52.567] [driver] [info] [Task Finished] Transform to mem in 0.886324s (11184811 normal rows, 0 exceptions)
+[2021-03-31 03:39:54.046] [driver] [info] [Task Finished] Transform to mem in 1.478489s (18675364 normal rows, 0 exceptions)
+[2021-03-31 03:39:54.046] [global] [info] [Transform Stage] Stage 0 completed 17 load&transform tasks in 15.6704s
+[2021-03-31 03:39:54.046] [global] [info] [Transform Stage] Stage 0 total wall clock time: 15.6697s, 197628000 input rows, time to process 1 row via fast path: 7.9289e-05ms
+[2021-03-31 03:39:54.046] [global] [info] [Transform Stage] Stage 0 completed 17 sink tasks in 6.9249e-05s
+[2021-03-31 03:39:54.046] [global] [info] [Transform Stage] Stage 0 took 15.6887s
+[2021-03-31 03:39:54.046] [global] [info] Query Execution took 15.7184s. (planning: 0.0296353s, execution: 15.6888s)
+[2021-03-31 03:39:54.048] [global] [info] Cached 197628000 common rows (0 general rows), memory usage: 5.52 GB/5.81 GB (0.00 B/0.00 B)
+[2021-03-31 03:39:54.065] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2021-03-31 03:39:54.068] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2021-03-31 03:39:54.072] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2021-03-31 03:39:54.077] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2021-03-31 03:39:54.077] [logical planner] [info] logical optimization took 0.008783ms
+output type of specialized pipeline is: (Option[str])
+is this the most outer stage?: 0
+need to upgrade output type to (Option[str])
+[2021-03-31 03:39:54.077] [codegen] [info] generating pipeline for (Option[str]) -> (Option[str]) (3 operators pipelined)
+[2021-03-31 03:39:54.077] [codegen] [info] generating function fix_zip_codes for (Option[str]) -> Option[str]
+output type of specialized pipeline is: (Option[str])
+is this the most outer stage?: 1
+[2021-03-31 03:39:54.078] [codegen] [info] generating pipeline for (Option[str]) -> (Option[str]) (1 operator pipelined)
+[2021-03-31 03:39:54.079] [global] [info] Stage1 depends on: Stage0 
+[2021-03-31 03:39:54.079] [global] [info] Stage0 depends on: 
+[2021-03-31 03:39:54.080] [global] [info] provided option to explicitly merge bad rows in order back, however rows will be hashed. Disabling option. To silence this warning, set
+tuplex.optimizer.mergeExceptionsInOrder=false
+[2021-03-31 03:39:54.102] [global] [info] Optimization via LLVM passes took 0.022030 ms
+[2021-03-31 03:39:54.109] [global] [info] Compiled code paths for stage 0 in 0.01 ms
+[2021-03-31 03:39:54.109] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.029812s
+[2021-03-31 03:39:54.178] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069580s (0 normal rows, 0 exceptions, 143 buckets)
+[2021-03-31 03:39:54.247] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068509s (0 normal rows, 0 exceptions, 144 buckets)
+[2021-03-31 03:39:54.316] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069506s (0 normal rows, 0 exceptions, 151 buckets)
+[2021-03-31 03:39:54.386] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069592s (0 normal rows, 0 exceptions, 149 buckets)
+[2021-03-31 03:39:54.456] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069520s (0 normal rows, 0 exceptions, 149 buckets)
+[2021-03-31 03:39:54.525] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069462s (0 normal rows, 0 exceptions, 116 buckets)
+[2021-03-31 03:39:54.594] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069229s (0 normal rows, 0 exceptions, 115 buckets)
+[2021-03-31 03:39:54.664] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069681s (0 normal rows, 0 exceptions, 111 buckets)
+[2021-03-31 03:39:54.734] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069582s (0 normal rows, 0 exceptions, 146 buckets)
+[2021-03-31 03:39:54.803] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069635s (0 normal rows, 0 exceptions, 149 buckets)
+[2021-03-31 03:39:54.803] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.000053s (0 normal rows, 0 exceptions, 1 bucket)
+[2021-03-31 03:39:54.873] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069266s (0 normal rows, 0 exceptions, 152 buckets)
+[2021-03-31 03:39:54.942] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069500s (0 normal rows, 0 exceptions, 148 buckets)
+[2021-03-31 03:39:55.012] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069875s (0 normal rows, 0 exceptions, 156 buckets)
+[2021-03-31 03:39:55.081] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069306s (0 normal rows, 0 exceptions, 124 buckets)
+[2021-03-31 03:39:55.149] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068026s (0 normal rows, 0 exceptions, 121 buckets)
+[2021-03-31 03:39:55.219] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069262s (0 normal rows, 0 exceptions, 116 buckets)
+[2021-03-31 03:39:55.289] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069898s (0 normal rows, 0 exceptions, 112 buckets)
+[2021-03-31 03:39:55.358] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069270s (0 normal rows, 0 exceptions, 134 buckets)
+[2021-03-31 03:39:55.426] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068352s (0 normal rows, 0 exceptions, 148 buckets)
+[2021-03-31 03:39:55.496] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069548s (0 normal rows, 0 exceptions, 152 buckets)
+[2021-03-31 03:39:55.496] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.000065s (0 normal rows, 0 exceptions, 2 buckets)
+[2021-03-31 03:39:55.565] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068932s (0 normal rows, 0 exceptions, 147 buckets)
+[2021-03-31 03:39:55.634] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069531s (0 normal rows, 0 exceptions, 147 buckets)
+[2021-03-31 03:39:55.704] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069673s (0 normal rows, 0 exceptions, 136 buckets)
+[2021-03-31 03:39:55.774] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069617s (0 normal rows, 0 exceptions, 115 buckets)
+[2021-03-31 03:39:55.843] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069555s (0 normal rows, 0 exceptions, 115 buckets)
+[2021-03-31 03:39:55.913] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069740s (0 normal rows, 0 exceptions, 118 buckets)
+[2021-03-31 03:39:55.983] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069695s (0 normal rows, 0 exceptions, 147 buckets)
+[2021-03-31 03:39:56.051] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068055s (0 normal rows, 0 exceptions, 153 buckets)
+[2021-03-31 03:39:56.120] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069285s (0 normal rows, 0 exceptions, 134 buckets)
+[2021-03-31 03:39:56.190] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069477s (0 normal rows, 0 exceptions, 117 buckets)
+[2021-03-31 03:39:56.190] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.000049s (0 normal rows, 0 exceptions, 1 bucket)
+[2021-03-31 03:39:56.258] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068085s (0 normal rows, 0 exceptions, 139 buckets)
+[2021-03-31 03:39:56.327] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069549s (0 normal rows, 0 exceptions, 147 buckets)
+[2021-03-31 03:39:56.395] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068047s (0 normal rows, 0 exceptions, 147 buckets)
+[2021-03-31 03:39:56.465] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069463s (0 normal rows, 0 exceptions, 126 buckets)
+[2021-03-31 03:39:56.533] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.067907s (0 normal rows, 0 exceptions, 112 buckets)
+[2021-03-31 03:39:56.602] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069159s (0 normal rows, 0 exceptions, 111 buckets)
+[2021-03-31 03:39:56.671] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069079s (0 normal rows, 0 exceptions, 143 buckets)
+[2021-03-31 03:39:56.741] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069528s (0 normal rows, 0 exceptions, 148 buckets)
+[2021-03-31 03:39:56.810] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069421s (0 normal rows, 0 exceptions, 154 buckets)
+[2021-03-31 03:39:56.880] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069507s (0 normal rows, 0 exceptions, 155 buckets)
+[2021-03-31 03:39:56.880] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.000087s (0 normal rows, 0 exceptions, 1 bucket)
+[2021-03-31 03:39:56.949] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069473s (0 normal rows, 0 exceptions, 152 buckets)
+[2021-03-31 03:39:57.019] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069796s (0 normal rows, 0 exceptions, 118 buckets)
+[2021-03-31 03:39:57.089] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069768s (0 normal rows, 0 exceptions, 124 buckets)
+[2021-03-31 03:39:57.159] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069636s (0 normal rows, 0 exceptions, 122 buckets)
+[2021-03-31 03:39:57.229] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069996s (0 normal rows, 0 exceptions, 123 buckets)
+[2021-03-31 03:39:57.298] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069774s (0 normal rows, 0 exceptions, 121 buckets)
+[2021-03-31 03:39:57.368] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069463s (0 normal rows, 0 exceptions, 135 buckets)
+[2021-03-31 03:39:57.438] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069854s (0 normal rows, 0 exceptions, 148 buckets)
+[2021-03-31 03:39:57.507] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069590s (0 normal rows, 0 exceptions, 153 buckets)
+[2021-03-31 03:39:57.576] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068989s (0 normal rows, 0 exceptions, 154 buckets)
+[2021-03-31 03:39:57.645] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068834s (0 normal rows, 0 exceptions, 156 buckets)
+[2021-03-31 03:39:57.713] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068259s (0 normal rows, 0 exceptions, 122 buckets)
+[2021-03-31 03:39:57.783] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069959s (0 normal rows, 0 exceptions, 122 buckets)
+[2021-03-31 03:39:57.853] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069143s (0 normal rows, 0 exceptions, 123 buckets)
+[2021-03-31 03:39:57.922] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069702s (0 normal rows, 0 exceptions, 110 buckets)
+[2021-03-31 03:39:57.992] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069693s (0 normal rows, 0 exceptions, 118 buckets)
+[2021-03-31 03:39:58.062] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069590s (0 normal rows, 0 exceptions, 125 buckets)
+[2021-03-31 03:39:58.131] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069517s (0 normal rows, 0 exceptions, 134 buckets)
+[2021-03-31 03:39:58.201] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069464s (0 normal rows, 0 exceptions, 149 buckets)
+[2021-03-31 03:39:58.269] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068737s (0 normal rows, 0 exceptions, 149 buckets)
+[2021-03-31 03:39:58.339] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069296s (0 normal rows, 0 exceptions, 151 buckets)
+[2021-03-31 03:39:58.408] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069173s (0 normal rows, 0 exceptions, 152 buckets)
+[2021-03-31 03:39:58.478] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069790s (0 normal rows, 0 exceptions, 144 buckets)
+[2021-03-31 03:39:58.547] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069803s (0 normal rows, 0 exceptions, 117 buckets)
+[2021-03-31 03:39:58.617] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069214s (0 normal rows, 0 exceptions, 119 buckets)
+[2021-03-31 03:39:58.686] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068824s (0 normal rows, 0 exceptions, 119 buckets)
+[2021-03-31 03:39:58.755] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069727s (0 normal rows, 0 exceptions, 118 buckets)
+[2021-03-31 03:39:58.825] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069288s (0 normal rows, 0 exceptions, 140 buckets)
+[2021-03-31 03:39:58.894] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069697s (0 normal rows, 0 exceptions, 147 buckets)
+[2021-03-31 03:39:58.964] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069425s (0 normal rows, 0 exceptions, 152 buckets)
+[2021-03-31 03:39:59.033] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069397s (0 normal rows, 0 exceptions, 157 buckets)
+[2021-03-31 03:39:59.103] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069714s (0 normal rows, 0 exceptions, 151 buckets)
+[2021-03-31 03:39:59.172] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069465s (0 normal rows, 0 exceptions, 120 buckets)
+[2021-03-31 03:39:59.242] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.070026s (0 normal rows, 0 exceptions, 113 buckets)
+[2021-03-31 03:39:59.312] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069418s (0 normal rows, 0 exceptions, 116 buckets)
+[2021-03-31 03:39:59.381] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069391s (0 normal rows, 0 exceptions, 147 buckets)
+[2021-03-31 03:39:59.451] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069426s (0 normal rows, 0 exceptions, 151 buckets)
+[2021-03-31 03:39:59.520] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068985s (0 normal rows, 0 exceptions, 152 buckets)
+[2021-03-31 03:39:59.590] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069764s (0 normal rows, 0 exceptions, 161 buckets)
+[2021-03-31 03:39:59.659] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069591s (0 normal rows, 0 exceptions, 144 buckets)
+[2021-03-31 03:39:59.728] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069224s (0 normal rows, 0 exceptions, 127 buckets)
+[2021-03-31 03:39:59.797] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069057s (0 normal rows, 0 exceptions, 106 buckets)
+[2021-03-31 03:39:59.867] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069328s (0 normal rows, 0 exceptions, 119 buckets)
+[2021-03-31 03:39:59.936] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069353s (0 normal rows, 0 exceptions, 148 buckets)
+[2021-03-31 03:40:00.005] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069117s (0 normal rows, 0 exceptions, 145 buckets)
+[2021-03-31 03:40:00.075] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069811s (0 normal rows, 0 exceptions, 127 buckets)
+[2021-03-31 03:40:00.145] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069396s (0 normal rows, 0 exceptions, 125 buckets)
+[2021-03-31 03:40:00.214] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069074s (0 normal rows, 0 exceptions, 153 buckets)
+[2021-03-31 03:40:00.283] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069373s (0 normal rows, 0 exceptions, 151 buckets)
+[2021-03-31 03:40:00.353] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069483s (0 normal rows, 0 exceptions, 152 buckets)
+[2021-03-31 03:40:00.353] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.000051s (0 normal rows, 0 exceptions, 1 bucket)
+[2021-03-31 03:40:00.421] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068495s (0 normal rows, 0 exceptions, 103 buckets)
+[2021-03-31 03:40:00.490] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069257s (0 normal rows, 0 exceptions, 145 buckets)
+[2021-03-31 03:40:00.559] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068947s (0 normal rows, 0 exceptions, 157 buckets)
+[2021-03-31 03:40:00.628] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069079s (0 normal rows, 0 exceptions, 156 buckets)
+[2021-03-31 03:40:00.698] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069258s (0 normal rows, 0 exceptions, 157 buckets)
+[2021-03-31 03:40:00.767] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069696s (0 normal rows, 0 exceptions, 135 buckets)
+[2021-03-31 03:40:00.837] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069474s (0 normal rows, 0 exceptions, 101 buckets)
+[2021-03-31 03:40:00.907] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069689s (0 normal rows, 0 exceptions, 127 buckets)
+[2021-03-31 03:40:00.975] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068360s (0 normal rows, 0 exceptions, 151 buckets)
+[2021-03-31 03:40:01.044] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069316s (0 normal rows, 0 exceptions, 157 buckets)
+[2021-03-31 03:40:01.044] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.000050s (0 normal rows, 0 exceptions, 1 bucket)
+[2021-03-31 03:40:01.114] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069273s (0 normal rows, 0 exceptions, 159 buckets)
+[2021-03-31 03:40:01.184] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.070039s (0 normal rows, 0 exceptions, 155 buckets)
+[2021-03-31 03:40:01.253] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069236s (0 normal rows, 0 exceptions, 120 buckets)
+[2021-03-31 03:40:01.322] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069380s (0 normal rows, 0 exceptions, 103 buckets)
+[2021-03-31 03:40:01.392] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069237s (0 normal rows, 0 exceptions, 126 buckets)
+[2021-03-31 03:40:01.462] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069999s (0 normal rows, 0 exceptions, 150 buckets)
+[2021-03-31 03:40:01.531] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069498s (0 normal rows, 0 exceptions, 153 buckets)
+[2021-03-31 03:40:01.601] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069588s (0 normal rows, 0 exceptions, 157 buckets)
+[2021-03-31 03:40:01.671] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069811s (0 normal rows, 0 exceptions, 150 buckets)
+[2021-03-31 03:40:01.740] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069535s (0 normal rows, 0 exceptions, 112 buckets)
+[2021-03-31 03:40:01.740] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.000054s (0 normal rows, 0 exceptions, 1 bucket)
+[2021-03-31 03:40:01.810] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069346s (0 normal rows, 0 exceptions, 108 buckets)
+[2021-03-31 03:40:01.879] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069406s (0 normal rows, 0 exceptions, 105 buckets)
+[2021-03-31 03:40:01.949] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069568s (0 normal rows, 0 exceptions, 152 buckets)
+[2021-03-31 03:40:02.018] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069604s (0 normal rows, 0 exceptions, 157 buckets)
+[2021-03-31 03:40:02.087] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068808s (0 normal rows, 0 exceptions, 154 buckets)
+[2021-03-31 03:40:02.156] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069275s (0 normal rows, 0 exceptions, 151 buckets)
+[2021-03-31 03:40:02.226] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069585s (0 normal rows, 0 exceptions, 124 buckets)
+[2021-03-31 03:40:02.300] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.073781s (0 normal rows, 0 exceptions, 113 buckets)
+[2021-03-31 03:40:02.372] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.072355s (0 normal rows, 0 exceptions, 104 buckets)
+[2021-03-31 03:40:02.444] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.072286s (0 normal rows, 0 exceptions, 154 buckets)
+[2021-03-31 03:40:02.517] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.072127s (0 normal rows, 0 exceptions, 164 buckets)
+[2021-03-31 03:40:02.589] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.072230s (0 normal rows, 0 exceptions, 153 buckets)
+[2021-03-31 03:40:02.661] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.072452s (0 normal rows, 0 exceptions, 136 buckets)
+[2021-03-31 03:40:02.734] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.072403s (0 normal rows, 0 exceptions, 109 buckets)
+[2021-03-31 03:40:02.805] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.071117s (0 normal rows, 0 exceptions, 142 buckets)
+[2021-03-31 03:40:02.877] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.071832s (0 normal rows, 0 exceptions, 156 buckets)
+[2021-03-31 03:40:02.946] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069465s (0 normal rows, 0 exceptions, 132 buckets)
+[2021-03-31 03:40:03.016] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.070002s (0 normal rows, 0 exceptions, 147 buckets)
+[2021-03-31 03:40:03.086] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069597s (0 normal rows, 0 exceptions, 152 buckets)
+[2021-03-31 03:40:03.155] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069270s (0 normal rows, 0 exceptions, 129 buckets)
+[2021-03-31 03:40:03.155] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.000168s (0 normal rows, 0 exceptions, 2 buckets)
+[2021-03-31 03:40:03.223] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068121s (0 normal rows, 0 exceptions, 147 buckets)
+[2021-03-31 03:40:03.291] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068012s (0 normal rows, 0 exceptions, 152 buckets)
+[2021-03-31 03:40:03.360] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068609s (0 normal rows, 0 exceptions, 149 buckets)
+[2021-03-31 03:40:03.428] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068056s (0 normal rows, 0 exceptions, 99 buckets)
+[2021-03-31 03:40:03.497] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069067s (0 normal rows, 0 exceptions, 94 buckets)
+[2021-03-31 03:40:03.567] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069522s (0 normal rows, 0 exceptions, 141 buckets)
+[2021-03-31 03:40:03.636] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069653s (0 normal rows, 0 exceptions, 159 buckets)
+[2021-03-31 03:40:03.707] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.070215s (0 normal rows, 0 exceptions, 153 buckets)
+[2021-03-31 03:40:03.776] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069614s (0 normal rows, 0 exceptions, 154 buckets)
+[2021-03-31 03:40:03.846] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069460s (0 normal rows, 0 exceptions, 125 buckets)
+[2021-03-31 03:40:03.915] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069549s (0 normal rows, 0 exceptions, 108 buckets)
+[2021-03-31 03:40:03.985] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069638s (0 normal rows, 0 exceptions, 101 buckets)
+[2021-03-31 03:40:04.055] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069590s (0 normal rows, 0 exceptions, 149 buckets)
+[2021-03-31 03:40:04.124] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069851s (0 normal rows, 0 exceptions, 154 buckets)
+[2021-03-31 03:40:04.194] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069919s (0 normal rows, 0 exceptions, 152 buckets)
+[2021-03-31 03:40:04.264] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069337s (0 normal rows, 0 exceptions, 160 buckets)
+[2021-03-31 03:40:04.333] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069576s (0 normal rows, 0 exceptions, 139 buckets)
+[2021-03-31 03:40:04.403] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069504s (0 normal rows, 0 exceptions, 96 buckets)
+[2021-03-31 03:40:04.472] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069155s (0 normal rows, 0 exceptions, 107 buckets)
+[2021-03-31 03:40:04.541] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069330s (0 normal rows, 0 exceptions, 145 buckets)
+[2021-03-31 03:40:04.611] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069703s (0 normal rows, 0 exceptions, 145 buckets)
+[2021-03-31 03:40:04.680] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069363s (0 normal rows, 0 exceptions, 147 buckets)
+[2021-03-31 03:40:04.750] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069638s (0 normal rows, 0 exceptions, 163 buckets)
+[2021-03-31 03:40:04.819] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068739s (0 normal rows, 0 exceptions, 159 buckets)
+[2021-03-31 03:40:04.888] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069457s (0 normal rows, 0 exceptions, 109 buckets)
+[2021-03-31 03:40:04.958] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069575s (0 normal rows, 0 exceptions, 108 buckets)
+[2021-03-31 03:40:05.028] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069791s (0 normal rows, 0 exceptions, 126 buckets)
+[2021-03-31 03:40:05.098] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.070230s (0 normal rows, 0 exceptions, 155 buckets)
+[2021-03-31 03:40:05.168] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069907s (0 normal rows, 0 exceptions, 159 buckets)
+[2021-03-31 03:40:05.237] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069529s (0 normal rows, 0 exceptions, 150 buckets)
+[2021-03-31 03:40:05.238] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.000050s (0 normal rows, 0 exceptions, 1 bucket)
+[2021-03-31 03:40:05.307] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069729s (0 normal rows, 0 exceptions, 151 buckets)
+[2021-03-31 03:40:05.377] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069523s (0 normal rows, 0 exceptions, 140 buckets)
+[2021-03-31 03:40:05.446] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069227s (0 normal rows, 0 exceptions, 101 buckets)
+[2021-03-31 03:40:05.515] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068457s (0 normal rows, 0 exceptions, 111 buckets)
+[2021-03-31 03:40:05.585] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.070042s (0 normal rows, 0 exceptions, 143 buckets)
+[2021-03-31 03:40:05.654] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069449s (0 normal rows, 0 exceptions, 147 buckets)
+[2021-03-31 03:40:05.724] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069825s (0 normal rows, 0 exceptions, 151 buckets)
+[2021-03-31 03:40:05.793] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068924s (0 normal rows, 0 exceptions, 117 buckets)
+[2021-03-31 03:40:05.863] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.069655s (0 normal rows, 0 exceptions, 145 buckets)
+[2021-03-31 03:40:05.931] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068285s (0 normal rows, 0 exceptions, 150 buckets)
+[2021-03-31 03:40:05.999] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068465s (0 normal rows, 0 exceptions, 145 buckets)
+[2021-03-31 03:40:06.068] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068503s (0 normal rows, 0 exceptions, 118 buckets)
+[2021-03-31 03:40:06.136] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068159s (0 normal rows, 0 exceptions, 147 buckets)
+[2021-03-31 03:40:06.204] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068360s (0 normal rows, 0 exceptions, 151 buckets)
+[2021-03-31 03:40:06.273] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068570s (0 normal rows, 0 exceptions, 142 buckets)
+[2021-03-31 03:40:06.341] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.068215s (0 normal rows, 0 exceptions, 144 buckets)
+[2021-03-31 03:40:06.390] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.048549s (0 normal rows, 0 exceptions, 123 buckets)
+[2021-03-31 03:40:06.390] [global] [info] [Transform Stage] Stage 0 completed 186 load&transform tasks in 12.2812s
+[2021-03-31 03:40:06.390] [global] [info] [Transform Stage] Stage 0 total wall clock time: 12.2777s, 197628000 input rows, time to process 1 row via fast path: 6.21254e-05ms
+[2021-03-31 03:40:06.393] [global] [info] [Transform Stage] Stage 0 completed 186 sink tasks in 0.00363288s
+[2021-03-31 03:40:06.393] [global] [info] [Transform Stage] Stage 0 took 12.3146s
+[2021-03-31 03:40:06.406] [global] [info] Optimization via LLVM passes took 0.011891 ms
+[2021-03-31 03:40:06.410] [global] [info] Compiled code paths for stage 1 in 0.00 ms
+[2021-03-31 03:40:06.410] [global] [info] [Transform Stage] Stage 1 compiled to x86 in 0.0166826s
+[2021-03-31 03:40:06.410] [driver] [info] [Task Finished] Transform to mem in 0.000043s (246 normal rows, 0 exceptions)
+[2021-03-31 03:40:06.410] [global] [info] [Transform Stage] Stage 1 completed 1 load&transform tasks in 6.2107e-05s
+[2021-03-31 03:40:06.410] [global] [info] [Transform Stage] Stage 1 total wall clock time: 4.3119e-05s, 246 input rows, time to process 1 row via fast path: 0.00017528ms
+[2021-03-31 03:40:06.410] [global] [info] [Transform Stage] Stage 1 completed 1 sink tasks in 4.039e-06s
+[2021-03-31 03:40:06.410] [global] [info] [Transform Stage] Stage 1 took 0.0167664s
+[2021-03-31 03:40:06.410] [global] [info] Query Execution took 12.3456s. (planning: 0.0141558s, execution: 12.3315s)
+[2021-03-31 03:40:06.413] [global] [info] Cached 246 common rows (0 general rows), memory usage: 7.20 KB/32.00 MB (0.00 B/0.00 B)
+[2021-03-31 03:40:06.416] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2021-03-31 03:40:06.418] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2021-03-31 03:40:06.421] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2021-03-31 03:40:06.421] [logical planner] [info] logical optimization took 0.005290ms
+output type of specialized pipeline is: (str)
+is this the most outer stage?: 1
+[2021-03-31 03:40:06.421] [codegen] [info] generating pipeline for (Option[str]) -> (str) (1 operator pipelined)
+outSchema is different than last operator's schema:
+outSchema: (str)
+last Op: (Option[str])
+[2021-03-31 03:40:06.421] [global] [info] Stage0 depends on: 
+[2021-03-31 03:40:06.434] [global] [info] Optimization via LLVM passes took 0.012603 ms
+[2021-03-31 03:40:06.439] [global] [info] Compiled code paths for stage 0 in 0.00 ms
+[2021-03-31 03:40:06.439] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.0176559s
+[2021-03-31 03:40:06.439] [driver] [info] [Task Finished] Transform to mem in 0.000032s (246 normal rows, 0 exceptions)
+[2021-03-31 03:40:06.439] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 5.0031e-05s
+[2021-03-31 03:40:06.439] [global] [info] [Transform Stage] Stage 0 total wall clock time: 3.2382e-05s, 246 input rows, time to process 1 row via fast path: 0.000131634ms
+
+[2021-03-31 03:40:06.439] [global] [info] Writing 246 rows as output to file (1.44 KB)
+[2021-03-31 03:40:06.439] [driver] [info] [Task Finished] write to file in 0.000061s (246 rows, 1.44 KB)
+[2021-03-31 03:40:06.439] [global] [info] writing output took 0.000253s
+[2021-03-31 03:40:06.439] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.000261437s
+[2021-03-31 03:40:06.439] [global] [info] [Transform Stage] Stage 0 took 0.017985s
+[2021-03-31 03:40:06.439] [global] [info] Query Execution took 0.0265718s. (planning: 0.00855224s, execution: 0.0180196s)
+Welcome to
+
+  _____            _
+ |_   _|   _ _ __ | | _____  __
+   | || | | | '_ \| |/ _ \ \/ /
+   | || |_| | |_) | |  __/>  <
+   |_| \__,_| .__/|_|\___/_/\_\ 0.1.7
+            |_|
+    
+using Python 3.6.9 (default, Mar 29 2021, 06:12:46) 
+[GCC 10.2.0] on linux
+Tuplex startup time: 0.2698547840118408
+{"startupTime": 0.2698547840118408, "readTime": 15.850674390792847, "jobTime": 12.364552974700928, "writeTime": 0.02891850471496582}
+[GLOBAL] Local engine terminated.
+[GLOBAL] releasing 188 active partitions

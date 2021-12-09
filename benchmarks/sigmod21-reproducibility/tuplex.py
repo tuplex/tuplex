@@ -203,6 +203,8 @@ def build():
     p.stdout.close()
     p.wait()
 
+    logging.info('Build and installed Tuplex in docker container.')
+
 commands.add_command(run)
 commands.add_command(plot)
 commands.add_command(build)

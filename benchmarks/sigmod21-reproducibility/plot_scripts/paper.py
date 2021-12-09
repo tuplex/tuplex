@@ -13,31 +13,33 @@ from matplotlib.path import *
 import os
 import glob
 
-
 column_width = 3.33 * 3
+
 
 # adjust settings for final paper (colors & Co)
 def adjust_settings():
-
     # make nice looking plot
 
     sns.set_style('whitegrid')
-    sns.set_context('poster')  #Everything is larger
+    sns.set_context('poster')  # Everything is larger
 
     # matplotlib.rcParams['font.family'] = "serif"
 
     # red 900c3f
 
     # 48A70B
-    sns.set_palette([[.22, .52, .71], [.53,.80, .81], [144 / 255., 12/255, 63/255.],[67/255., 135/255., 107/255.], [248/255., 194/255., 145/255.]])
+    sns.set_palette(
+        [[.22, .52, .71], [.53, .80, .81], [144 / 255., 12 / 255, 63 / 255.], [67 / 255., 135 / 255., 107 / 255.],
+         [248 / 255., 194 / 255., 145 / 255.]])
 
     matplotlib.rc('font', family='serif', size=9)
     matplotlib.rc('text.latex', preamble=['\\usepackage{times,mathptmx}'])
     matplotlib.rc('text', usetex=True)
     matplotlib.rc('legend', fontsize=8)
-    matplotlib.rc('figure', figsize=(2.5,1.4))
+    matplotlib.rc('figure', figsize=(2.5, 1.4))
     matplotlib.rc('axes', linewidth=0.5)
     matplotlib.rc('lines', linewidth=0.5)
+
 
 def parse_logs_exp_to_df(data_root):
     files = os.listdir(data_root)
@@ -47,6 +49,10 @@ def parse_logs_exp_to_df(data_root):
         path = os.path.join(data_root, file)
 
         if not path.endswith('txt'):
+            continue
+
+        # skip first run
+        if 'run-1.txt' in file:
             continue
 
         name = file[:file.find('run')]
@@ -71,11 +77,11 @@ def parse_logs_exp_to_df(data_root):
                         load_time = d['io_load_time']
                     if 'io_load' in d.keys():
                         load_time = d['io_load']
-                    row = {'startup_time' : d['startupTime'], 'job_time':d['jobTime'], "load":load_time}
+                    row = {'startup_time': d['startupTime'], 'job_time': d['jobTime'], "load": load_time}
                     row['framework'] = name[:name.find('-')]
                     row['type'] = '-'.join(name.split('-')[1:-1])
 
-                     #breakdown time extract for tuplex
+                    # breakdown time extract for tuplex
                     if 'tuplex' in name:
                         c = '\n'.join(lines)
 
@@ -102,14 +108,14 @@ def parse_logs_exp_to_df(data_root):
 
 
 def plt_bar(ax, x, data, w, color, name,
-            value=None, cutoff=None, fsize = 30, edge_width=2.5, th = 100,
+            value=None, cutoff=None, fsize=30, edge_width=2.5, th=100,
             above_offset=200, precision=0, yerr=None, hatch=None):
     mu = data.mean()
     std = data.std()
     h = mu
     ec = 'white'
     if cutoff:
-        h = cutoff + th/2
+        h = cutoff + th / 2
         ec = 'none' if not hatch else color
 
     if hatch:
@@ -137,9 +143,10 @@ def plt_bar(ax, x, data, w, color, name,
         #     # rect.set_lw(5)
         dx = 0
         if cutoff:
-            ax.plot([rect.get_x()+dx, rect.get_x()+dx], [rect.get_y(), rect.get_y()+rect.get_height()+th],
+            ax.plot([rect.get_x() + dx, rect.get_x() + dx], [rect.get_y(), rect.get_y() + rect.get_height() + th],
                     lw=edge_width, color='w')
-            ax.plot([rect.get_x()+rect.get_width()-dx, rect.get_x()+rect.get_width()-dx], [rect.get_y(), rect.get_y()+rect.get_height()+th],
+            ax.plot([rect.get_x() + rect.get_width() - dx, rect.get_x() + rect.get_width() - dx],
+                    [rect.get_y(), rect.get_y() + rect.get_height() + th],
                     lw=edge_width, color='w')
 
         label = '${}$'.format(int(mu))
@@ -149,32 +156,31 @@ def plt_bar(ax, x, data, w, color, name,
         neutral_col = 'k' if hatch else 'white'
 
         if value == 'center':
-            ax.text(rect.get_x() + rect.get_width()/2.0,
-                    rect.get_height()/2.0,
+            ax.text(rect.get_x() + rect.get_width() / 2.0,
+                    rect.get_height() / 2.0,
                     label,
                     ha='center',
                     va='center', rotation=90, fontSize=fsize, fontweight='bold', color=neutral_col)
         if value == 'above':
-            ax.text(rect.get_x() + rect.get_width()/2.0,
+            ax.text(rect.get_x() + rect.get_width() / 2.0,
                     rect.get_height() + above_offset,
                     label,
                     ha='center',
                     va='bottom', rotation=90, fontSize=fsize, fontweight='bold', color=color)
 
-
     # add tile to cutoff bar
     if cutoff:
 
-        tw = w/2
+        tw = w / 2
         ty = h
-        tx = x - w/2
+        tx = x - w / 2
         vertsA = [
-            (tx,   ty),
-            (tx+tw/2, ty+th),
-            (tx+tw,   ty),
-            (tx+tw, ty - 20),
-            (tx+0,   ty - 20),
-            (tx+0,   ty)
+            (tx, ty),
+            (tx + tw / 2, ty + th),
+            (tx + tw, ty),
+            (tx + tw, ty - 20),
+            (tx + 0, ty - 20),
+            (tx + 0, ty)
         ]
         codesA = [
             Path.MOVETO,
@@ -186,9 +192,9 @@ def plt_bar(ax, x, data, w, color, name,
         ]
         tx = x
         vertsB = [
-            (tx,ty),
-            (tx+tw/2, ty-th),
-            (tx+tw, ty),
+            (tx, ty),
+            (tx + tw / 2, ty - th),
+            (tx + tw, ty),
             (tx, ty)
         ]
 

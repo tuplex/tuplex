@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 # CLI to run experiments/reproduce easily
+import os.path
+
 import click
 import logging
 
@@ -117,6 +119,21 @@ def plot_figure10(flights_path='r5d.8xlarge/flights', output_folder='plots'):
 @click.option('--input-path', type=str, default=DEFAULT_RESULT_PATH)
 def plot(target, output_path, input_path):
 
+    # check if input path is r5d.8xlarge and it's not existing -> unpack tar!
+    if input_path == DEFAULT_RESULT_PATH and not os.path.isdir(input_path):
+        if os.path.isfile(input_path):
+            raise Exception('fatal error, conflicting file {} found! Remove file...'.format(DEFAULT_RESULT_PATH))
+
+        import tarfile
+
+        # extract tar file
+        logging.info('Extracting experiment data...')
+        with tarfile.open(DEFAULT_RESULT_PATH + '.tar.gz') as tf:
+            tf.extractall()
+        logging.info('Extraction done!')
+
+    os.makedirs(output_path, exist_ok=True)
+
     DEFAULT_ZILLOW_PATH = input_path + '/zillow'
     DEFAULT_FLIGHTS_PATH = input_path + '/flights'
     DEFAULT_LOGS_PATH = input_path + '/logs'
@@ -154,7 +171,7 @@ commands.add_command(run)
 commands.add_command(plot)
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG,
+    logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s:%(levelname)s: %(message)s',
                     handlers=[logging.FileHandler("experiment.log", mode='w'),
                               logging.StreamHandler()])

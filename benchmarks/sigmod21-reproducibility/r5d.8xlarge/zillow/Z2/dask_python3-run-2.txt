@@ -1,3 +1,0 @@
->>> running dask on ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv']
-<Client: 'tcp://127.0.0.1:41549' processes=16 threads=16, memory=256.00 GB>
-{'type': 'dask', 'framework': 'dask 2021.03.0', 'input_files': ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv'], 'load_time': 1.7487213611602783, 'run_time': 38.53032350540161, 'write_time': 36.718401193618774, 'job_time': 38.53032350540161}

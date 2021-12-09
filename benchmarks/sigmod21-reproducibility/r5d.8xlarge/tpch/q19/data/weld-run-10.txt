@@ -1,8 +1,0 @@
-Loading CSVs took: 23.1972s
-Compiling the Weld module took: 0.0803889s
-Result::
-30104438.091100
-Weld query took: 5.242354s
-
-framework,load,compile,query,total,result
-weld,23.197220,0.080389,5.242354,28.519963,30104438.091100

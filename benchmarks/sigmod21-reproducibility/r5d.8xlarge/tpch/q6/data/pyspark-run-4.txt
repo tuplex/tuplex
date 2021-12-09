@@ -1,5 +1,0 @@
-PySpark startup took: 1.6540923118591309s
-Result::
-1230113636.010099
-framework,version,load,query,result
-pyspark,2.4.7,0,12.802647590637207,1230113636.010099

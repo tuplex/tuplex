@@ -2,3 +2,5 @@
 *.pem.pub
 *.log
 plots/
+r5d.8xlarge/
+benchmark_results/

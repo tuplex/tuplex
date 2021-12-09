@@ -1,7 +1,0 @@
-PySpark startup took: 1.658827304840088s
-lineitem rows: 59986052
-part rows: 2000000
-Result::
-[Row(revenue=30104438.091099977)]
-framework,version,load,query,result
-pyspark-sql,2.4.7,23.528379440307617,2.733095645904541,[Row(revenue=30104438.091099977)]

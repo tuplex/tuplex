@@ -3,7 +3,7 @@
 # runs Tuplex benchmark on AWS setup
 
 # use 11 runs and a timeout after 60min
-NUM_RUNS=11
+NUM_RUNS="${NUM_RUNS:-11}"
 TIMEOUT=3600
 
 LG_INPUT_PATH='/data/flights'

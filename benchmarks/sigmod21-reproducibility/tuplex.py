@@ -194,16 +194,35 @@ def build():
     p_stdout, p_stderr = process.communicate(timeout=300)
 
     # build tuplex within docker container & install it there as well!
+    # i.e. build command is: docker exec sigmod21 bash
+    BUILD_SCRIPT_PATH='/code/benchmarks/sigmod21-reproducibility/build_scripts/build_tuplex.sh'
+    cmd = ['docker', 'exec', 'sigmod21', 'bash', BUILD_SCRIPT_PATH]
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)
     for line in iter(p.stdout.readline, b''):
-        print
-        line,
+        logging.info(line.decode())
     p.stdout.close()
     p.wait()
 
 commands.add_command(run)
 commands.add_command(plot)
 commands.add_command(build)
+
+
+# scripts to run experiments:
+# 1. Zillow
+# zillow/Z1/runbenchmark.sh
+# zillow/Z2/runbenchmark.sh
+# 2. Flights
+# flights/runbenchmark.sh
+# flights/runbreakdown.sh
+# 3. Logs
+# logs/benchmark.sh --> check? rename?
+# 4. tpch
+# tpch/Q06/runbenchmark.sh
+# tpch/Q19/runbenchmark.sh
+# 5. 311
+# 311/runbenchmark.sh
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,

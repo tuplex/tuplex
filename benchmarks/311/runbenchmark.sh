@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # use 5 runs (3 for very long jobs) and a timeout after 180min/3h
-NUM_RUNS=11
+NUM_RUNS="${NUM_RUNS:-11}"
 TIMEOUT=14400
 DATA_PATH='/data/311/311_preprocessed.csv'
 RESDIR=/results/311

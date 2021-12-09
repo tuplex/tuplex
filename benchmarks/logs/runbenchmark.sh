@@ -20,7 +20,7 @@ DATA_PATH=/data/logs
 IP_PATH=/data/logs/ip_blacklist.csv
 RESDIR=/results/weblogs
 OUTPUT_DIR=/results/output/weblogs
-NUM_RUNS=11
+NUM_RUNS="${NUM_RUNS:-11}"
 REDUCED_NUM_RUNS=4
 TIMEOUT=14400
 PYTHON=python3.6
@@ -124,4 +124,3 @@ for ((r = 1; r <= REDUCED_NUM_RUNS; r++)); do
   #date +"%F %T.%6N" >>$LOG
   rm -rf /tmp/*
 done
-

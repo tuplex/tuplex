@@ -274,7 +274,8 @@ def build():
 commands.add_command(run)
 commands.add_command(plot)
 commands.add_command(build)
-
+commands.add_command(start)
+commands.add_command(stop)
 
 # scripts to run experiments:
 # 1. Zillow

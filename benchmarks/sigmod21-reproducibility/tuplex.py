@@ -245,7 +245,7 @@ def start_container():
                        '/disk/tuplex-public': {'bind': '/code', 'mode': 'rw'}}
 
             dc.containers.run(DOCKER_IMAGE_TAG + ':latest', name=DOCKER_CONTAINER_NAME,
-                              tty=True, stdin_open=True, volumes=volumes, remove=True)
+                              tty=True, stdin_open=True, detach=True, volumes=volumes, remove=True)
             logging.info('Started docker container {} from image {}'.format(DOCKER_CONTAINER_NAME, DOCKER_IMAGE_TAG))
     else:
         logging.error('Did not find docker image {}, consider building it!'.format(DOCKER_IMAGE_TAG))

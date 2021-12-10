@@ -384,11 +384,12 @@ def build():
 def download(target, password):
     """downloads sigmod21 data to target path and extracts if password is specified"""
 
+    gdrive_md5 = '1358ffed089704f7a3e587680c1299ee'
     gdrive_link = 'https://drive.google.com/uc?id=1chJncLpuSOPUvlWwODg_a7A-sEbEORL1'
     target_path = os.path.join(target, 'sigmod21.7z')
 
     logging.info('Downloading data from Google Drive to {}'.format(target_path))
-    gdown.download(gdrive_link, target_path, quiet=False)
+    gdown.cached_download(gdrive_link, target_path, md5=gdrive_md5, quiet=False)
 
     if '' == password:
         logging.info('no password specified, extract archive manually via \n7z x {}'.format(target_path))
@@ -396,7 +397,7 @@ def download(target, password):
         logging.info('extracting data... (this might take a while, ~180G to write)')
 
         cmd = ['7z', 'x', 'sigmod21.7z']
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, cwd='target')
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, cwd=target)
         for line in iter(p.stdout.readline, b''):
             logging.info(line.decode().strip())
         p.stdout.close()

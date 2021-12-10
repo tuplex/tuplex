@@ -37,7 +37,3 @@ INSTANCE_IP=$(aws ec2 describe-instances --filters "Name=instance-state-name,Val
 echo "Connect to instance via ssh -i ${AWS_KEY_NAME} ubuntu@${INSTANCE_IP}"
 
 ```
-
-
-# commands to delete everything
-aws ec2 delete-security-group --group-name ${AWS_SG_NAME}

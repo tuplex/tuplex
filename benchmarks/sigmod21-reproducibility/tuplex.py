@@ -384,7 +384,7 @@ def build():
 def download(target, password):
     """downloads sigmod21 data to target path and extracts if password is specified"""
 
-    gdrive_link = 'https://drive.google.com/file/d/1chJncLpuSOPUvlWwODg_a7A-sEbEORL1'
+    gdrive_link = 'https://drive.google.com/uc?id=1chJncLpuSOPUvlWwODg_a7A-sEbEORL1'
     target_path = os.path.join(target, 'sigmod21.7z')
 
     logging.info('Downloading data from Google Drive to {}'.format(target_path))

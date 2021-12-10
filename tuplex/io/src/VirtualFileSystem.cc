@@ -228,10 +228,14 @@ namespace tuplex {
                                         std::function<bool(void *, const tuplex::URI &, size_t)> callback,
                                         void *userData) {
 
-        auto v = splitToArray(pattern.toPath(), ',');
+        auto v = splitToArray(pattern.toString(), ',');
         // trim all strings with the array
-        for(auto& s: v)
+        for(auto& s: v) {
             trim(s);
+        }
+        // normalize paths...
+        for(int i = 0; i < v.size(); ++i)
+            v[i] = URI(v[i]).toPath();
 
         // go through patterns & call walkPattern of impl
         for(const auto& pattern : v) {

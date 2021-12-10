@@ -601,9 +601,11 @@ namespace tuplex {
                     *rawPtr = *rawPtr + 1;
                     numBytesSerialized += requiredBytes;
                 } catch (const std::exception& e) {
-                    _badParallelizeObjects.emplace_back(std::make_tuple(i, tupleObj));
+                    _badParallelizeObjects.emplace_back(i, obj);
                 }
 
+            } else {
+                _badParallelizeObjects.emplace_back(i, obj);
             }
         }
         partition->unlockWrite();

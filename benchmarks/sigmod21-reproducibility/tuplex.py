@@ -168,6 +168,17 @@ def start():
 def stop():
     """stop Tuplex SIGMOD21 experimental container"""
 
+    # docker client
+    dc = docker.from_env()
+
+    containers = [c for c in dc.containers.list() if c.name == DOCKER_CONTAINER_NAME]
+    if len(containers) >= 1:
+        logging.info('Found docker container {}, stopping now...'.format(DOCKER_CONTAINER_NAME))
+        c = containers[0]
+        c.kill() # use kill
+        logging.info('Container stopped.')
+    else:
+        logging.info('No docker container found with name {}, nothing todo.'.format(DOCKER_CONTAINER_NAME))
 
 @click.command()
 @click.argument('target', type=click.Choice(experiment_targets, case_sensitive=False))

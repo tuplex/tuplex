@@ -104,7 +104,7 @@ def run(target, num_runs, detach):
         exit_code, output = container.exec_run(cmd, stderr=True, stdout=True, detach=detach, environment=env)
 
         logging.info('Finished with code: {}'.format(exit_code))
-        logging.info('Output:\n{}'.format(output.decode()))
+        logging.info('Output:\n{}'.format(output.decode() if isinstance(output, bytes) else output))
         if detach:
             logging.info('Started command in detached mode, to stop container use "stop" command')
         logging.info('Done.')

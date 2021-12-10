@@ -31,7 +31,7 @@ def commands():
 @click.argument('target', type=click.Choice(experiment_targets, case_sensitive=False))
 @click.option('--num-runs', type=int, default=11,
               help='How many runs to run experiment with (default=11 for 10 runs + 1 warmup run')
-@click.option('--detach', default=False, help='whether to launch command in detached mode (non-blocking)')
+@click.option('--detach/--no-detach', default=False, help='whether to launch command in detached mode (non-blocking)')
 def run(target, num_runs, detach):
     """ run benchmarks for specific dataset. THIS MIGHT TAKE A WHILE! """
     logging.info('Running experiments for target {}'.format(target))

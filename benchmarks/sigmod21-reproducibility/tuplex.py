@@ -268,7 +268,10 @@ def stop():
         logging.info('Found docker container {}, stopping now...'.format(DOCKER_CONTAINER_NAME))
         c = containers[0]
         c.kill()  # use kill
-        c.remove()
+        try:
+            c.remove()
+        except:
+            pass
         logging.info('Container stopped.')
     else:
         logging.info('No docker container found with name {}, nothing todo.'.format(DOCKER_CONTAINER_NAME))

@@ -360,6 +360,8 @@ def build():
     # set a timeout of 2 seconds to keep everything interactive
     p_stdout, p_stderr = process.communicate(timeout=300)
 
+    start_container()
+
     # build tuplex within docker container & install it there as well!
     # i.e. build command is: docker exec sigmod21 bash /code/benchmarks/sigmod21-reproducibility/build_scripts/build_tuplex.sh
     BUILD_SCRIPT_PATH = '/code/benchmarks/sigmod21-reproducibility/build_scripts/build_tuplex.sh'

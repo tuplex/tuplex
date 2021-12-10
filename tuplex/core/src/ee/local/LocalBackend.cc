@@ -1314,29 +1314,28 @@ namespace tuplex {
 
                 rtask->setOrder(tt->getOrder()); // copy order from original task for sorting later!
 
-
-                if(tstage->predecessors().size() > 0) {
-                    // debug: print out keys from first hash table!
-                    auto hm = input_intermediates.hash_maps[0];
-
-                    hashmap_iterator_t iterator = 0;
-                    const char *key = nullptr;
-                    uint64_t keylen = 0;
-                    std::cout<<"C++ hashtable:\n====\n"<<std::endl;
-                    while((key = hashmap_get_next_key(hm, &iterator, &keylen)) != nullptr) {
-                        std::cout<<"Hash table contains key: '"<<key<<"'"<<std::endl;
-                    }
-
-                    auto hybrid_hm = input_intermediates.hybrids[0];
-                    // check: hybrid hash table!
-                    python::lockGIL();
-                    PyObject *py_key = nullptr, *py_val = nullptr;
-                    Py_ssize_t pos = 0;  // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
-                    while(PyDict_Next(hybrid_hm, &pos, &py_key, &py_val)) {
-                        std::cout<<"Py/C++ hashtable contains: "<<python::PyString_AsString(py_key)<<std::endl;
-                    }
-                    python::unlockGIL();
-                }
+                // // debug: print out keys from first hash table!
+                // if(tstage->predecessors().size() > 0) {
+                //     auto hm = input_intermediates.hash_maps[0];
+                //
+                //     hashmap_iterator_t iterator = 0;
+                //     const char *key = nullptr;
+                //     uint64_t keylen = 0;
+                //     std::cout<<"C++ hashtable:\n====\n"<<std::endl;
+                //     while((key = hashmap_get_next_key(hm, &iterator, &keylen)) != nullptr) {
+                //         std::cout<<"Hash table contains key: '"<<key<<"'"<<std::endl;
+                //     }
+                //
+                //     auto hybrid_hm = input_intermediates.hybrids[0];
+                //     // check: hybrid hash table!
+                //     python::lockGIL();
+                //     PyObject *py_key = nullptr, *py_val = nullptr;
+                //     Py_ssize_t pos = 0;  // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
+                //     while(PyDict_Next(hybrid_hm, &pos, &py_key, &py_val)) {
+                //         std::cout<<"Py/C++ hashtable contains: "<<python::PyString_AsString(py_key)<<std::endl;
+                //     }
+                //     python::unlockGIL();
+                // }
 
                 // to implement, store i.e. tables within tasks...
                 rtask->setHybridIntermediateHashTables(tstage->predecessors().size(), input_intermediates.hybrids);

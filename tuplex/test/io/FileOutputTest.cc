@@ -38,7 +38,6 @@ TEST_F(FileOutputTest, NewFolder) {
     using namespace tuplex;
 
     auto opts = microTestOptions();
-    opts.set("tuplex.webui.enable", "false");
     Context c(opts);
 
     auto newFolder = uniqueFileName(folderName+"/");
@@ -57,7 +56,6 @@ TEST_F(FileOutputTest, EmptyFolder) {
     using namespace tuplex;
 
     auto opts = microTestOptions();
-    opts.set("tuplex.webui.enable", "false");
     Context c(opts);
 
     auto emptyFolder = uniqueFileName(folderName+"/");
@@ -79,7 +77,6 @@ TEST_F(FileOutputTest, NonEmptyFolder) {
     using namespace tuplex;
 
     auto opts = microTestOptions();
-    opts.set("tuplex.webui.enable", "false");
     Context c(opts);
 
     auto nonEmptyFolder = uniqueFileName(folderName+"/");

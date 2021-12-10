@@ -167,14 +167,14 @@ def start():
 @click.command()
 def stop():
     """stop Tuplex SIGMOD21 experimental container"""
-    
+
 
 @click.command()
 @click.argument('target', type=click.Choice(experiment_targets, case_sensitive=False))
-@click.option('--output-path', type=str, default=DEFAULT_OUTPUT_PATH)
-@click.option('--input-path', type=str, default=DEFAULT_RESULT_PATH)
+@click.option('--output-path', type=str, default=DEFAULT_OUTPUT_PATH, help='path where to save plots to, default={}'.format(DEFAULT_OUTPUT_PATH))
+@click.option('--input-path', type=str, default=DEFAULT_RESULT_PATH, help='path from where to read experimental logs, default={}'.format(DEFAULT_RESULT_PATH))
 def plot(target, output_path, input_path):
-
+    """Plot all or individual figures from the Tuplex paper. Use --help to retrieve more information on this command. """
     # check if input path is r5d.8xlarge and it's not existing -> unpack tar!
     if input_path == DEFAULT_RESULT_PATH and not os.path.isdir(input_path):
         if os.path.isfile(input_path):

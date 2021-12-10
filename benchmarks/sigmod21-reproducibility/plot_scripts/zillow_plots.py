@@ -215,9 +215,10 @@ def load_zillow_to_df(data_root):
                         row['run'] = run_no
                         rows.append(row)
         except Exception as e:
-            print('file: {}'.format(file))
-            print(type(e))
-            print(e)
+            # print('file: {}'.format(file))
+            # print(type(e))
+            # print(e)
+            pass
     return pd.DataFrame(rows)
 
 

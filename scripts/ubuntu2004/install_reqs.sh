@@ -19,7 +19,7 @@ add-apt-repository -y ppa:deadsnakes/ppa
 apt-get update
 
 apt-get install -y build-essential software-properties-common wget libedit-dev libz-dev \
-  python-yaml python3-pip pkg-config libssl-dev libcurl4-openssl-dev curl \
+  python3-yaml python3-pip pkg-config libssl-dev libcurl4-openssl-dev curl \
   uuid-dev git libffi-dev libmagic-dev \
   doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \
   libgflags-dev libncurses-dev \

@@ -99,8 +99,7 @@ def run(target, num_runs, detach):
 
         env = {'NUM_RUNS': num_runs}
 
-        logging.info('Starting benchmark using command: docker exec -i{}t {} {}'.format(DOCKER_CONTAINER_NAME,
-                                                                                        'd' if detach else '',
+        logging.info('Starting benchmark using command: docker exec -i{}t {} {}'.format('d' if detach else '', DOCKER_CONTAINER_NAME,
                                                                                         ' '.join(cmd)))
         container.exec_run(cmd, tty=True, detach=detach, environment=env)
         if detach:
@@ -269,6 +268,7 @@ def stop():
         logging.info('Found docker container {}, stopping now...'.format(DOCKER_CONTAINER_NAME))
         c = containers[0]
         c.kill()  # use kill
+        c.remove()
         logging.info('Container stopped.')
     else:
         logging.info('No docker container found with name {}, nothing todo.'.format(DOCKER_CONTAINER_NAME))

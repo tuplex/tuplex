@@ -132,6 +132,21 @@ Yet, users may want to select a different number of runs to save time.
 #### Lambda experiment
 The experiment comparing Tuplex's Lambda backend vs. Spark is unfortunately not any longer reproducible due to AWS having changed their infrastructure recently. Yet, upon request we're happy to provide detailed instructions to produce table 4 as well.
 
+commands for running experiments:
+
+
+echo "docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z1/ && bash runbenchmark.sh'"
+docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z1/ && bash runbenchmark.sh'
+echo "docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z2/ && bash runbenchmark.sh'"
+docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z2/ && bash runbenchmark.sh'
+
+
+docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/dirty_zillow && bash runbenchmark.sh
+
+
+
+
+<< TODO: mention verification scripts >>
 
 	- D1) Scripts and how-tos to generate all necessary data or locate datasets
 	[Ideally, there is a script called: ./prepareData.sh]

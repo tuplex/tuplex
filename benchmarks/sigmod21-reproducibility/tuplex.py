@@ -199,7 +199,7 @@ def build():
     cmd = ['docker', 'exec', 'sigmod21', 'bash', BUILD_SCRIPT_PATH]
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)
     for line in iter(p.stdout.readline, b''):
-        logging.info(line.decode())
+        logging.info(line.decode().strip())
     p.stdout.close()
     p.wait()
 

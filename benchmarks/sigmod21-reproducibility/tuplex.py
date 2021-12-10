@@ -396,7 +396,7 @@ def download(target, password):
     else:
         logging.info('extracting data... (this might take a while, ~180G to write)')
 
-        cmd = ['7z', 'x', 'sigmod21.7z', '-p{}'.format(password)]
+        cmd = ['7z', 'x', 'sigmod21.7z', '-aoa', '-p{}'.format(password)]
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, cwd=target)
         for line in iter(p.stdout.readline, b''):
             logging.info(line.decode().strip())

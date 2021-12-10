@@ -95,8 +95,7 @@ def run(target, num_runs, detach):
         if target == 'flights/breakdown':
             benchmark_script = 'runbreakdown.sh'
 
-        cmd = ['bash', '-c', '"cd {} && bash {}"'.format(benchmark_path, benchmark_script)]
-
+        cmd = 'bash -c "cd {} && bash {}"'.format(benchmark_path, benchmark_script)
         env = {'NUM_RUNS': num_runs}
 
         logging.info('Starting benchmark using command: docker exec -i{}t {} {}'.format('d' if detach else '', DOCKER_CONTAINER_NAME,
@@ -104,7 +103,7 @@ def run(target, num_runs, detach):
         exit_code, output = container.exec_run(cmd, tty=True, detach=detach, environment=env)
 
         logging.info('Finished with code: {}'.format(exit_code))
-        logging.info('Output:\n{}'.format(output))
+        logging.info('Output:\n{}'.format(output.decode()))
         if detach:
             logging.info('Started command in detached mode, to stop container use "stop" command')
         logging.info('Done.')

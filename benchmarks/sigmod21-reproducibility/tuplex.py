@@ -78,8 +78,8 @@ def run(target, num_runs, detach):
         # run individual targets
         # for these, the runbenchmark.sh scripts are used!
         # e.g., docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z1/ && bash runbenchmark.sh'
-        path_dict = {'zillow/Z1': '/code/benchmarks/zillow/Z1/',
-                     'zillow/Z2': '/code/benchmarks/zillow/Z2/',
+        path_dict = {'zillow/z1': '/code/benchmarks/zillow/Z1/',
+                     'zillow/z2': '/code/benchmarks/zillow/Z2/',
                      'zillow/exceptions': '/code/benchmarks/zillow/Zdirty/',
                      'logs': '/code/benchmarks/logs/',
                      '311': '/code/benchmarks/311/',

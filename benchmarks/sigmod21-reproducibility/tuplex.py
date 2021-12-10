@@ -266,7 +266,7 @@ def stop():
 
     containers = [c for c in dc.containers.list() if c.name == DOCKER_CONTAINER_NAME]
     if len(containers) >= 1:
-        logging.info('Found docker container {}, stopping now...'.formrt(DOCKER_CONTAINER_NAME))
+        logging.info('Found docker container {}, stopping now...'.format(DOCKER_CONTAINER_NAME))
         c = containers[0]
         c.kill()  # use kill
         logging.info('Container stopped.')

@@ -95,7 +95,7 @@ def run(target, num_runs, detach):
         if target == 'flights/breakdown':
             benchmark_script = 'runbreakdown.sh'
 
-        cmd = ['bash', '-c', 'cd {} && bash {}'.format(benchmark_path, benchmark_script)]
+        cmd = ['bash', '-c', '"cd {} && bash {}"'.format(benchmark_path, benchmark_script)]
 
         env = {'NUM_RUNS': num_runs}
 

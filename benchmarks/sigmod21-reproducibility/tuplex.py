@@ -101,7 +101,10 @@ def run(target, num_runs, detach):
 
         logging.info('Starting benchmark using command: docker exec -i{}t {} {}'.format('d' if detach else '', DOCKER_CONTAINER_NAME,
                                                                                         ' '.join(cmd)))
-        container.exec_run(cmd, tty=True, detach=detach, environment=env)
+        exit_code, output = container.exec_run(cmd, tty=True, detach=detach, environment=env)
+
+        logging.info('Finished with code: {}'.format(exit_code))
+        logging.info('Output:\n{}'.format(output))
         if detach:
             logging.info('Started command in detached mode, to stop container use "stop" command')
         logging.info('Done.')

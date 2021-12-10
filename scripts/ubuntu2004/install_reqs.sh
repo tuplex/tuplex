@@ -117,25 +117,25 @@ popd &&
   rm -rf antlr4-cpp-runtime &&
   cd -
 
-# AWS SDK
-cd /tmp &&
-  git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git &&
-  cd aws-sdk-cpp && mkdir build && pushd build &&
-  cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=/opt .. &&
-  make -j32 &&
-  make install &&
-  popd &&
-  cd -
+# # AWS SDK
+# cd /tmp &&
+#   git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git &&
+#   cd aws-sdk-cpp && mkdir build && pushd build &&
+#   cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=/opt .. &&
+#   make -j32 &&
+#   make install &&
+#   popd &&
+#   cd -
 
-# AWS Lambda cpp runtime
-git clone https://github.com/awslabs/aws-lambda-cpp.git && \
-  pushd aws-lambda-cpp && \
-  git fetch && git fetch --tags && \
-  git checkout v0.2.6 && \
-  mkdir build && \
-  cd build && \
-  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt .. && \
-  make -j 32 && make install && popd
+# # AWS Lambda cpp runtime
+# git clone https://github.com/awslabs/aws-lambda-cpp.git && \
+#   pushd aws-lambda-cpp && \
+#   git fetch && git fetch --tags && \
+#   git checkout v0.2.6 && \
+#   mkdir build && \
+#   cd build && \
+#   cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt .. && \
+#   make -j 32 && make install && popd
 
 # pcre2
 cd /tmp &&

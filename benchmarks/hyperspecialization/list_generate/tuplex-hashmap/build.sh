@@ -1,0 +1,1 @@
+g++ -g -shared -fPIC -O3 -o tuplex-int-hashmap.so tuplex-int-hashmap.cc int_hashmap.cc -I/usr/include/python3.8 -lpython3.8

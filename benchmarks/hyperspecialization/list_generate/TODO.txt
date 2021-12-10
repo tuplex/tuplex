@@ -1,0 +1,43 @@
+Immediate TODOs:
+- implement tuplex hashmap
+- implement specialized hashmap 
+- convert all results to PyDict
+
+Leonhard
+-- have way more elements per list.
+-- list contained should be smaller, random size.
+-- sketch the graph from whiteboard on google slides.
+-- fix unordered_map 
+
+-- add standard deviation.
+
+(python baseline vs c++ is x% slower.)
+
+-- assume key distribution.
+    - have statistics of key distribution and can do something smart about it.
+
+-- multiple queries is our edge
+-- real data more compelling than artificial data
+
+Unknowns
+- for replace, what should keys look like?
+- what does reorganize data mean exactly
+
+Immediate TODOs:
+- write string parser to identify type.
+- write specialized c++ code for int only (use boolean array, specialized hash function, etc.)
+
+Workloads
+- count unique (update dictionary per iteration, inserts decrease over time, only numkeys lookup)
+- replace (lookup dictionary per iteration, once everything inserted, only lookups)
+- reorganize data (JSON -> list?) (need only traverse tree structure once)
+
+Code todo
+- write python version of replace
+- write cython version of unique, replace
+- write cpp version of optimized float/int/string/bool only map/unordered_map 
+
+Plots todo
+- create multiple maps vs one map std variant/wrapper type
+  (one per type, fixing key per map, --> plot runtime vs length per list (3x unordered map, 3x ordered_map)
+   val always fixed to int)

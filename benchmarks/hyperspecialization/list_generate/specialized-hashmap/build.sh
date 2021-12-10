@@ -1,0 +1,1 @@
+g++ -shared -fPIC -O3 -o fixed-range-nopydict.so fixed-range-nopydict.cc -I/usr/include/python3.8 -lpython3.8

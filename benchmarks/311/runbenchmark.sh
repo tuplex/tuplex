@@ -19,10 +19,12 @@ cp tuplex_config.json ${RESDIR}
 echo "running tuplex"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-run-e2e-$r.txt"
+  rm -rf "${OUTPUT_DIR}/tuplex_output"
   timeout $TIMEOUT ${PYTHON} runtuplex.py --path $DATA_PATH --output-path "${OUTPUT_DIR}/tuplex_output" >$LOG 2>$LOG.stderr
 done
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-run-weld-$r.txt"
+  rm -rf "${OUTPUT_DIR}/tuplex_output"
   timeout $TIMEOUT ${PYTHON} runtuplex.py --path $DATA_PATH --weld-mode --output-path "${OUTPUT_DIR}/tuplex_output" >$LOG 2>$LOG.stderr
 done
 

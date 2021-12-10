@@ -20,6 +20,7 @@ echo "running on large flight data"
 echo "running tuplex"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${LG_RESDIR}/tuplex-run-$r.txt"
+  rm -rf $OUTPUT_DIR/tuplex
   timeout $TIMEOUT ${PYTHON} runtuplex.py --path $LG_INPUT_PATH --output-path $OUTPUT_DIR/tuplex >$LOG 2>$LOG.stderr
 done
 
@@ -27,6 +28,7 @@ echo "running on small flight data"
 echo "running tuplex"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${SM_RESDIR}/tuplex-run-$r.txt"
+  rm -rf $OUTPUT_DIR/tuplex
   timeout $TIMEOUT ${PYTHON} runtuplex.py --path $SM_INPUT_PATH --output-path $OUTPUT_DIR/tuplex  >$LOG 2>$LOG.stderr
 done
 

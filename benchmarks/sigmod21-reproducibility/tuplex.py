@@ -13,23 +13,24 @@ experiment_targets = ['all', 'zillow', 'flights', 'logs', '311',
                       'tpch/Q06', 'tpch/Q19', 'flights/breakdown', 'flights/flights']
 
 plot_targets = ['all', 'figure3', 'figure4', 'figure5',
-'figure6', 'figure7', 'figure8', 'figure9', 'figure10', 'table3']
-
-
+                'figure6', 'figure7', 'figure8', 'figure9', 'figure10', 'table3']
 
 # default paths
-DEFAULT_RESULT_PATH='r5d.8xlarge'
-DEFAULT_OUTPUT_PATH='plots'
-DOCKER_IMAGE_TAG='tuplex/benchmark'
-DOCKER_CONTAINER_NAME='sigmod21'
+DEFAULT_RESULT_PATH = 'r5d.8xlarge'
+DEFAULT_OUTPUT_PATH = 'plots'
+DOCKER_IMAGE_TAG = 'tuplex/benchmark'
+DOCKER_CONTAINER_NAME = 'sigmod21'
+
 
 @click.group()
 def commands():
     pass
 
+
 @click.command()
 @click.argument('target', type=click.Choice(experiment_targets, case_sensitive=False))
-@click.option('--num-runs', type=int, default=11, help='How many runs to run experiment with (default=11 for 10 runs + 1 warmup run')
+@click.option('--num-runs', type=int, default=11,
+              help='How many runs to run experiment with (default=11 for 10 runs + 1 warmup run')
 @click.option('--detach', default=False, help='whether to launch command in detached mode (non-blocking)')
 def run(target, num_runs, detach):
     """ run benchmarks for specific dataset. THIS MIGHT TAKE A WHILE! """
@@ -46,7 +47,7 @@ def run(target, num_runs, detach):
         container = containers[0]
     else:
         logging.info('Docker container not running yet, starting...')
-        start()
+        start_container()
         containers = [c for c in dc.containers.list() if c.name == DOCKER_CONTAINER_NAME]
         assert len(containers) >= 1, 'Failed to start docker container...'
         container = containers[0]
@@ -77,15 +78,15 @@ def run(target, num_runs, detach):
         # run individual targets
         # for these, the runbenchmark.sh scripts are used!
         # e.g., docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z1/ && bash runbenchmark.sh'
-        path_dict = {'zillow/Z1' : '/code/benchmarks/zillow/Z1/',
-                     'zillow/Z2' : '/code/benchmarks/zillow/Z2/',
-                     'zillow/exceptions' : '/code/benchmarks/zillow/Zdirty/',
-                     'logs' : '/code/benchmarks/logs/',
-                     '311' : '/code/benchmarks/311/',
+        path_dict = {'zillow/Z1': '/code/benchmarks/zillow/Z1/',
+                     'zillow/Z2': '/code/benchmarks/zillow/Z2/',
+                     'zillow/exceptions': '/code/benchmarks/zillow/Zdirty/',
+                     'logs': '/code/benchmarks/logs/',
+                     '311': '/code/benchmarks/311/',
                      'tpch/q06': '/code/benchmarks/Q06/',
                      'tpch/q19': '/code/benchmarks/Q19/',
-                     'flights/flights' : '/code/benchmarks/flights/',
-                     'flights/breakdown' : '/code/benchmarks/flights/',}
+                     'flights/flights': '/code/benchmarks/flights/',
+                     'flights/breakdown': '/code/benchmarks/flights/', }
 
         benchmark_path = path_dict[target]
         benchmark_script = 'runbenchmark.sh'
@@ -96,13 +97,16 @@ def run(target, num_runs, detach):
 
         cmd = ['bash', '-c', 'cd {} && bash {}'.format(benchmark_path, benchmark_script)]
 
-        env = {'NUM_RUNS' : num_runs}
+        env = {'NUM_RUNS': num_runs}
 
-        logging.info('Starting benchmark using command: docker exec -i{}t {} {}'.format(DOCKER_CONTAINER_NAME, 'd' if detach else '',  ' '.join(cmd)))
+        logging.info('Starting benchmark using command: docker exec -i{}t {} {}'.format(DOCKER_CONTAINER_NAME,
+                                                                                        'd' if detach else '',
+                                                                                        ' '.join(cmd)))
         container.exec_run(cmd, tty=True, detach=detach, environment=env)
         if detach:
             logging.info('Started command in detached mode, to stop container use "stop" command')
         logging.info('Done.')
+
 
 # plot helpers
 def plot_table3(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
@@ -115,6 +119,7 @@ def plot_table3(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
     table3(df_Z1)
     logging.info('Table shown.')
 
+
 def plot_figure3(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
     logging.info('Plotting Figure3 (Zillow experiment)')
     logging.info('Benchmark result folder specified as {}'.format(zillow_path))
@@ -126,6 +131,7 @@ def plot_figure3(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
     figure3(df_Z1, df_Z2, output_folder)
     logging.info('Plots saved in {}'.format(output_folder))
 
+
 def plot_figure4(flights_path='r5d.8xlarge/flights', output_folder='plots'):
     logging.info('Plotting Figure4 (Flights experiment)')
     logging.info('Benchmark result folder specified as {}'.format(flights_path))
@@ -134,6 +140,7 @@ def plot_figure4(flights_path='r5d.8xlarge/flights', output_folder='plots'):
     logging.info('Loading data...')
     figure4(flights_path, output_folder)
     logging.info('Plots saved in {}'.format(output_folder))
+
 
 def plot_figure5(logs_path='r5d.8xlarge/logs', output_folder='plots'):
     logging.info('Plotting Figure5 (logs experiment)')
@@ -145,12 +152,14 @@ def plot_figure5(logs_path='r5d.8xlarge/logs', output_folder='plots'):
     figure5(logs_path, output_folder)
     logging.info('Plots saved in {}'.format(output_folder))
 
+
 def plot_figure6(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
     logging.info('Plotting Figure6 (Tuplex exceptions)')
     logging.info('Benchmark result folder specified as {}'.format(zillow_path))
     from plot_scripts.figure6 import figure6
     figure6(zillow_path, output_folder)
     logging.info('Plots saved in {}'.format(output_folder))
+
 
 def plot_figure7(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
     logging.info('Plotting Figure7 (Tuplex vs. other JITs experiment)')
@@ -163,6 +172,7 @@ def plot_figure7(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
     figure7(df_Z1, output_folder)
     logging.info('Plots saved in {}'.format(output_folder))
 
+
 def plot_figure8(service_path='r5d.8xlarge/311', output_folder='plots'):
     logging.info('Plotting Figure8 (311 experiment/agrgegates)')
     logging.info('Benchmark result folder specified as {}'.format(service_path))
@@ -171,6 +181,7 @@ def plot_figure8(service_path='r5d.8xlarge/311', output_folder='plots'):
     logging.info('Loading data...')
     figure8(service_path, output_folder)
     logging.info('Plots saved in {}'.format(output_folder))
+
 
 def plot_figure9(tpch_path='r5d.8xlarge/tpch', output_folder='plots'):
     logging.info('Plotting Figure9 (TPCH Q6/Q19)')
@@ -181,6 +192,7 @@ def plot_figure9(tpch_path='r5d.8xlarge/tpch', output_folder='plots'):
     figure9(tpch_path, output_folder)
     logging.info('Plots saved in {}'.format(output_folder))
 
+
 def plot_figure10(flights_path='r5d.8xlarge/flights', output_folder='plots'):
     logging.info('Plotting Figure10 (Flights breakdown')
     logging.info('Benchmark result folder specified as {}'.format(flights_path))
@@ -189,13 +201,12 @@ def plot_figure10(flights_path='r5d.8xlarge/flights', output_folder='plots'):
     logging.info('Loading data...')
     figure10(flights_path, output_folder)
     logging.info('Plots saved in {}'.format(output_folder))
+
+
 # end plot helpers
 
 
-@click.command()
-def start():
-    """start Tuplex SIGMOD21 experimental container"""
-
+def start_container():
     # docker client
     dc = docker.from_env()
 
@@ -234,11 +245,17 @@ def start():
                        '/disk/tuplex-public': {'bind': '/code', 'mode': 'rw'}}
 
             dc.containers.run(DOCKER_IMAGE_TAG + ':latest', name=DOCKER_CONTAINER_NAME,
-                                  tty=True, stdin_open=True, volumes=volumes, remove=True)
+                              tty=True, stdin_open=True, volumes=volumes, remove=True)
             logging.info('Started docker container {} from image {}'.format(DOCKER_CONTAINER_NAME, DOCKER_IMAGE_TAG))
     else:
         logging.error('Did not find docker image {}, consider building it!'.format(DOCKER_IMAGE_TAG))
         raise Exception('Docker image not found')
+
+@click.command()
+def start():
+    """start Tuplex SIGMOD21 experimental container"""
+    start_container()
+
 
 @click.command()
 def stop():
@@ -249,17 +266,20 @@ def stop():
 
     containers = [c for c in dc.containers.list() if c.name == DOCKER_CONTAINER_NAME]
     if len(containers) >= 1:
-        logging.info('Found docker container {}, stopping now...'.format(DOCKER_CONTAINER_NAME))
+        logging.info('Found docker container {}, stopping now...'.formrt(DOCKER_CONTAINER_NAME))
         c = containers[0]
-        c.kill() # use kill
+        c.kill()  # use kill
         logging.info('Container stopped.')
     else:
         logging.info('No docker container found with name {}, nothing todo.'.format(DOCKER_CONTAINER_NAME))
 
+
 @click.command()
 @click.argument('target', type=click.Choice(plot_targets, case_sensitive=False))
-@click.option('--output-path', type=str, default=DEFAULT_OUTPUT_PATH, help='path where to save plots to, default={}'.format(DEFAULT_OUTPUT_PATH))
-@click.option('--input-path', type=str, default=DEFAULT_RESULT_PATH, help='path from where to read experimental logs, default={}'.format(DEFAULT_RESULT_PATH))
+@click.option('--output-path', type=str, default=DEFAULT_OUTPUT_PATH,
+              help='path where to save plots to, default={}'.format(DEFAULT_OUTPUT_PATH))
+@click.option('--input-path', type=str, default=DEFAULT_RESULT_PATH,
+              help='path from where to read experimental logs, default={}'.format(DEFAULT_RESULT_PATH))
 def plot(target, output_path, input_path):
     """Plot all or individual figures from the Tuplex paper. Use --help to retrieve more information on this command. """
     # check if input path is r5d.8xlarge and it's not existing -> unpack tar!
@@ -283,9 +303,9 @@ def plot(target, output_path, input_path):
     DEFAULT_311_PATH = input_path + '/311'
     DEFAULT_TPCH_PATH = input_path + '/tpch'
 
-    PLOT_ALL=False
+    PLOT_ALL = False
     if 'all' == target.lower():
-        PLOT_ALL=True
+        PLOT_ALL = True
 
     logging.info('Plotting output for target {}'.format(target))
 
@@ -337,7 +357,7 @@ def build():
 
     # build tuplex within docker container & install it there as well!
     # i.e. build command is: docker exec sigmod21 bash /code/benchmarks/sigmod21-reproducibility/build_scripts/build_tuplex.sh
-    BUILD_SCRIPT_PATH='/code/benchmarks/sigmod21-reproducibility/build_scripts/build_tuplex.sh'
+    BUILD_SCRIPT_PATH = '/code/benchmarks/sigmod21-reproducibility/build_scripts/build_tuplex.sh'
     cmd = ['docker', 'exec', 'sigmod21', 'bash', BUILD_SCRIPT_PATH]
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)
     for line in iter(p.stdout.readline, b''):
@@ -346,6 +366,7 @@ def build():
     p.wait()
 
     logging.info('Build and installed Tuplex in docker container.')
+
 
 commands.add_command(run)
 commands.add_command(plot)
@@ -371,11 +392,10 @@ commands.add_command(stop)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s:%(levelname)s: %(message)s',
-                    handlers=[logging.FileHandler("experiment.log", mode='w'),
-                              logging.StreamHandler()])
-    stream_handler = [h for h in logging.root.handlers if isinstance(h , logging.StreamHandler)][0]
+                        format='%(asctime)s:%(levelname)s: %(message)s',
+                        handlers=[logging.FileHandler("experiment.log", mode='w'),
+                                  logging.StreamHandler()])
+    stream_handler = [h for h in logging.root.handlers if isinstance(h, logging.StreamHandler)][0]
     stream_handler.setLevel(logging.INFO)
-
 
     commands()

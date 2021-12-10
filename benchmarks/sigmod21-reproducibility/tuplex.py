@@ -8,8 +8,13 @@ import logging
 import subprocess
 import docker
 
-experiment_targets = ['all', 'figure3', 'figure4', 'figure5',
+experiment_targets = ['all', 'zillow', 'flights', 'logs', '311',
+                      'tpch', 'zillow/Z1', 'zillow/Z2', 'zillow/exceptions',
+                      'tpch/Q06', 'tpch/Q19', 'flights/breakdown', 'flights/flights']
+
+plot_targets = ['all', 'figure3', 'figure4', 'figure5',
 'figure6', 'figure7', 'figure8', 'figure9', 'figure10', 'table3']
+
 
 
 # default paths
@@ -24,9 +29,80 @@ def commands():
 
 @click.command()
 @click.argument('target', type=click.Choice(experiment_targets, case_sensitive=False))
-def run(target):
+@click.option('--num-runs', type=int, default=11, help='How many runs to run experiment with (default=11 for 10 runs + 1 warmup run')
+@click.option('--detach', default=False)
+def run(target, num_runs, detach):
+    """ run benchmarks for specific dataset. THIS MIGHT TAKE A WHILE! """
     logging.info('Running experiments for target {}'.format(target))
 
+    # docker client
+    dc = docker.from_env()
+
+    # check if it's already running, if not start!
+    containers = [c for c in dc.containers.list() if c.name == DOCKER_CONTAINER_NAME]
+    container = None
+    if len(containers) >= 1:
+        logging.info('Docker container {} already running.'.format(DOCKER_CONTAINER_NAME))
+        container = containers[0]
+    else:
+        logging.info('Docker container not running yet, starting...')
+        start()
+        containers = [c for c in dc.containers.list() if c.name == DOCKER_CONTAINER_NAME]
+        assert len(containers) >= 1, 'Failed to start docker container...'
+        container = containers[0]
+        logging.info('Docker container started.')
+
+    assert container is not None, 'container not valid?'
+
+    # experiment_targets = ['all', 'zillow', 'flights', 'logs', '311',
+    #                       'tpch', 'zillow/Z1', 'zillow/Z2', 'zillow/exceptions',
+    #                       'tpch/Q06', 'tpch/Q19', 'flights/breakdown', 'flights/flights']
+
+    targets = []
+    target = target.lower()
+
+    # decode compound targets...
+    if target == 'zillow':
+        targets += ['zillow/Z1', 'zillow/Z2', 'zillow/exceptions']
+    elif target == 'flights':
+        targets += ['flights/flights', 'flights/breakdown']
+    elif target == 'tpch':
+        targets += ['tpch/q06', 'tpch/q19']
+    elif target == 'all':
+        targets = [name.lower() for name in experiment_targets if name.lower() != 'all']
+    else:
+        targets = [target]
+
+    for target in targets:
+        # run individual targets
+        # for these, the runbenchmark.sh scripts are used!
+        # e.g., docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z1/ && bash runbenchmark.sh'
+        path_dict = {'zillow/Z1' : '/code/benchmarks/zillow/Z1/',
+                     'zillow/Z2' : '/code/benchmarks/zillow/Z2/',
+                     'zillow/exceptions' : '/code/benchmarks/zillow/Zdirty/',
+                     'logs' : '/code/benchmarks/logs/',
+                     '311' : '/code/benchmarks/311/',
+                     'tpch/q06': '/code/benchmarks/Q06/',
+                     'tpch/q19': '/code/benchmarks/Q19/',
+                     'flights/flights' : '/code/benchmarks/flights/',
+                     'flights/breakdown' : '/code/benchmarks/flights/',}
+
+        benchmark_path = path_dict[target]
+        benchmark_script = 'runbenchmark.sh'
+
+        # only for flights/breakdown other script
+        if target == 'flights/breakdown':
+            benchmark_script = 'runbreakdown.sh'
+
+        cmd = ['bash', '-c', 'cd {} && bash {}'.format(benchmark_path, benchmark_script)]
+
+        env = {'NUM_RUNS' : num_runs}
+
+        logging.info('Starting benchmark using command: docker exec -i{}t {} {}'.format(DOCKER_CONTAINER_NAME, 'd' if detach else '',  ' '.join(cmd)))
+        container.exec_run(cmd, tty=True, detach=detach, environment=env)
+        if detach:
+            logging.info('Started command in detached mode, to stop container use "stop" command')
+        logging.info('Done.')
 
 # plot helpers
 def plot_table3(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
@@ -157,7 +233,7 @@ def start():
                        '/disk/benchmark_results': {'bind': '/results', 'mode': 'rw'},
                        '/disk/tuplex-public': {'bind': '/code', 'mode': 'rw'}}
 
-            docker.containers.run(DOCKER_IMAGE_TAG + ':latest', name=DOCKER_CONTAINER_NAME,
+            dc.containers.run(DOCKER_IMAGE_TAG + ':latest', name=DOCKER_CONTAINER_NAME,
                                   tty=True, stdin_open=True, volumes=volumes, remove=True)
             logging.info('Started docker container {} from image {}'.format(DOCKER_CONTAINER_NAME, DOCKER_IMAGE_TAG))
     else:
@@ -181,7 +257,7 @@ def stop():
         logging.info('No docker container found with name {}, nothing todo.'.format(DOCKER_CONTAINER_NAME))
 
 @click.command()
-@click.argument('target', type=click.Choice(experiment_targets, case_sensitive=False))
+@click.argument('target', type=click.Choice(plot_targets, case_sensitive=False))
 @click.option('--output-path', type=str, default=DEFAULT_OUTPUT_PATH, help='path where to save plots to, default={}'.format(DEFAULT_OUTPUT_PATH))
 @click.option('--input-path', type=str, default=DEFAULT_RESULT_PATH, help='path from where to read experimental logs, default={}'.format(DEFAULT_RESULT_PATH))
 def plot(target, output_path, input_path):

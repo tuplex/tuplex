@@ -81,7 +81,7 @@ def run(target, num_runs, detach):
         # e.g., docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z1/ && bash runbenchmark.sh'
         path_dict = {'zillow/z1': '/code/benchmarks/zillow/Z1/',
                      'zillow/z2': '/code/benchmarks/zillow/Z2/',
-                     'zillow/exceptions': '/code/benchmarks/zillow/Zdirty/',
+                     'zillow/exceptions': '/code/benchmarks/dirty_zillow/',
                      'logs': '/code/benchmarks/logs/',
                      '311': '/code/benchmarks/311/',
                      'tpch/q06': '/code/benchmarks/Q06/',
@@ -101,10 +101,10 @@ def run(target, num_runs, detach):
 
         logging.info('Starting benchmark using command: docker exec -i{}t {} {}'.format('d' if detach else '', DOCKER_CONTAINER_NAME,
                                                                                         cmd))
-        exit_code, output = container.exec_run(cmd, tty=True, detach=detach, environment=env)
+        exit_code, output = container.exec_run(cmd, stderr=True, stdout=True, detach=detach, environment=env)
 
         logging.info('Finished with code: {}'.format(exit_code))
-        logging.info('Output:\n{}'.format(output))
+        logging.info('Output:\n{}'.format(output.decode()))
         if detach:
             logging.info('Started command in detached mode, to stop container use "stop" command')
         logging.info('Done.')

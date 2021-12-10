@@ -99,7 +99,7 @@ def run(target, num_runs, detach):
         env = {'NUM_RUNS': num_runs}
 
         logging.info('Starting benchmark using command: docker exec -i{}t {} {}'.format('d' if detach else '', DOCKER_CONTAINER_NAME,
-                                                                                        ' '.join(cmd)))
+                                                                                        cmd))
         exit_code, output = container.exec_run(cmd, tty=True, detach=detach, environment=env)
 
         logging.info('Finished with code: {}'.format(exit_code))

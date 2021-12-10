@@ -125,8 +125,11 @@ using
 #### Running experiments in docker
 In our original setup, we ran each configuration 11 times (1 warmup run that's ignored and 10 runs).
 Yet, users may want to select a different number of runs to save time.
-
-
+This can be achieved by simply exporting an environment variable `NUM_RUNS`, i.e. to use 5 runs (1 warmup) use
+```bash
+export NUM_RUNS=5
+```
+or start the docker container with that setting by passing as parameter `-e NUM_RUNS=5`.
 
 
 #### Lambda experiment
@@ -143,7 +146,8 @@ docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z2/ && ba
 
 docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/dirty_zillow && bash runbenchmark.sh
 
-
+the others seem to work like this as well...
+I.e. finish up documentation & then simply add to root driver file!
 
 
 << TODO: mention verification scripts >>

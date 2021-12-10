@@ -6,6 +6,7 @@ import os.path
 import click
 import logging
 import subprocess
+import docker
 
 experiment_targets = ['all', 'figure3', 'figure4', 'figure5',
 'figure6', 'figure7', 'figure8', 'figure9', 'figure10', 'table3']
@@ -14,7 +15,8 @@ experiment_targets = ['all', 'figure3', 'figure4', 'figure5',
 # default paths
 DEFAULT_RESULT_PATH='r5d.8xlarge'
 DEFAULT_OUTPUT_PATH='plots'
-
+DOCKER_IMAGE_TAG='tuplex/benchmark'
+DOCKER_CONTAINER_NAME='sigmod21'
 
 @click.group()
 def commands():
@@ -113,6 +115,59 @@ def plot_figure10(flights_path='r5d.8xlarge/flights', output_folder='plots'):
     logging.info('Plots saved in {}'.format(output_folder))
 # end plot helpers
 
+
+@click.command()
+def start():
+    """start Tuplex SIGMOD21 experimental container"""
+
+    # docker client
+    dc = docker.from_env()
+
+    # check whether tuplex/benchmark image exists. If not run create-image script!
+    logging.info('Checking whether tuplex/benchmark image exists locally...')
+    found_tags = [img.tags for img in dc.images.list() if len(img.tags) > 0]
+    found_tags = [tags[0] for tags in found_tags]
+
+    logging.info('Found following images: {}'.format('\n'.join(found_tags)))
+
+    # check whether tag is part of it
+    found_image = False
+    for tag in found_tags:
+        if tag.startswith(DOCKER_IMAGE_TAG):
+            found_image = True
+
+    if found_image:
+        # check if it's already running, if not start!
+        containers = [c for c in dc.containers.list() if c.name == DOCKER_CONTAINER_NAME]
+        if len(containers) >= 1:
+            logging.info('Docker container {} already running.'.format(DOCKER_CONTAINER_NAME))
+        else:
+            logging.info('Starting up docker container')
+            # docker run -v /disk/data:/data -v /disk/benchmark_results:/results -v /disk/tuplex-public:/code --name sigmod21 --rm -dit tuplex/benchmark
+            # check directory layout!
+            if not os.path.isdir('/disk'):
+                raise Exception('Could not find /disk directory, is machine properly setup?')
+            # create dirs
+            os.makedirs('/disk/data', exist_ok=True)
+            os.makedirs('/disk/benchmark_results', exist_ok=True)
+            if not os.path.isdir('/disk/tuplex-public'):
+                raise Exception('Could not find tuplex repo at directory /disk/tuplex-public. Please check out first!')
+
+            volumes = {'/disk/data/': {'bind': '/data', 'mode': 'rw'},
+                       '/disk/benchmark_results': {'bind': '/results', 'mode': 'rw'},
+                       '/disk/tuplex-public': {'bind': '/code', 'mode': 'rw'}}
+
+            docker.containers.run(DOCKER_IMAGE_TAG + ':latest', name=DOCKER_CONTAINER_NAME,
+                                  tty=True, stdin_open=True, volumes=volumes, remove=True)
+            logging.info('Started docker container {} from image {}'.format(DOCKER_CONTAINER_NAME, DOCKER_IMAGE_TAG))
+    else:
+        logging.error('Did not find docker image {}, consider building it!'.format(DOCKER_IMAGE_TAG))
+        raise Exception('Docker image not found')
+
+@click.command()
+def stop():
+    """stop Tuplex SIGMOD21 experimental container"""
+    
 
 @click.command()
 @click.argument('target', type=click.Choice(experiment_targets, case_sensitive=False))

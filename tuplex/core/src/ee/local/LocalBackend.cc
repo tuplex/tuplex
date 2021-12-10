@@ -767,11 +767,12 @@ namespace tuplex {
         }
 
         if (tstage->outputMode() == EndPointMode::FILE) {
-            // run output validation one more time here before execution (assume no changes then)
-            if(!validateOutputSpecification(tstage->outputURI())) {
-                throw std::runtime_error("Failed to validate output specification,"
-                                         " can not write to " + tstage->outputURI().toString() + " (directory not empty?)");
-            }
+            // decactivated because still buggy
+            // // run output validation one more time here before execution (assume no changes then)
+            // if(!validateOutputSpecification(tstage->outputURI())) {
+            //     throw std::runtime_error("Failed to validate output specification,"
+            //                              " can not write to " + tstage->outputURI().toString() + " (directory not empty?)");
+            // }
         }
 
         // Processing of a transform stage works as follows:

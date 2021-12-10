@@ -4,7 +4,7 @@
 #include "gtest/gtest.h"
 #include <random>
 
-inline std::string uniqueFileName(std::string prefix) {
+inline std::string uniqueFileName(const std::string& prefix="") {
     using namespace tuplex;
     auto lookup = "abcdefghijklmnopqrstuvqxyz";
     auto len = strlen(lookup);

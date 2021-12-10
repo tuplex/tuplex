@@ -49,7 +49,7 @@ using namespace tuplex;
 auto opts = microTestOptions();
 Context c(opts);
 
-auto rows = c.orc(uniqueFileName("")).collectAsVector();
+auto rows = c.orc(uniqueFileName()).collectAsVector();
 EXPECT_EQ(rows.size(), 0);
 }
 

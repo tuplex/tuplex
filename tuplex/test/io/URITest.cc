@@ -93,7 +93,7 @@ TEST(URI, Writable) {
     using namespace tuplex;
     EXPECT_TRUE(isWritable("."));
 
-    auto non_existing_path = uniqueFileName("");
+    auto non_existing_path = uniqueFileName();
     EXPECT_TRUE(isWritable("test.txt"));
     EXPECT_TRUE(isWritable(non_existing_path));
 }

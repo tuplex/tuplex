@@ -88,7 +88,7 @@ We host the data in both Google Drive and on S3. We ask the validator to NOT SHA
 
 | Host option: | Link:  | Description on how to retrieve:  |
 |------------|---|---|
-| Google Drive Link | https://drive.google.com/file/d/1chJncLpuSOPUvlWwODg_a7A-sEbEORL1/view?usp=sharing |Most convenient way to retrieve is to use gdown (install via `pip3 install gdown`). |
+| Google Drive Link | https://drive.google.com/file/d/1chJncLpuSOPUvlWwODg_a7A-sEbEORL1 |Most convenient way to retrieve is to use gdown (install via `pip3 install gdown`). |
 | AWS S3 Link | s3://tuplex-public/data/sigmod21.7z | Most convenient way is to use the AWS CLI (install via `pip3 install awscli` and configure via `aws configure`). In order to download the file use e.g. `aws s3 cp s3://tuplex-public/data/sigmod21.7z . --request-payer requester` |
 
 To unpack the file, go to `/disk` on your benchmark machine and run

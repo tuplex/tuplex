@@ -7,6 +7,7 @@ import click
 import logging
 import subprocess
 import docker
+import gdown
 
 experiment_targets = ['all', 'zillow', 'flights', 'logs', '311',
                       'tpch', 'zillow/Z1', 'zillow/Z2', 'zillow/exceptions',
@@ -375,11 +376,40 @@ def build():
     logging.info('Build and installed Tuplex in docker container.')
 
 
+@click.command()
+@click.option('--target', type=str, default='/disk',
+              help='path where to save data to, default={}'.format('/disk'))
+@click.option('--password', type=str, default='',
+              help='Specify password to unpack as well')
+def download(target, password):
+    """downloads sigmod21 data to target path and extracts if password is specified"""
+
+    gdrive_link = 'https://drive.google.com/file/d/1chJncLpuSOPUvlWwODg_a7A-sEbEORL1'
+    target_path = os.path.join(target, 'sigmod21.7z')
+
+    logging.info('Downloading data from Google Drive to {}'.format(target_path))
+    gdown.download(gdrive_link, target_path, quiet=False)
+
+    if '' == password:
+        logging.info('no password specified, extract archive manually via \n7z x {}'.format(target_path))
+    else:
+        logging.info('extracting data... (this might take a while, ~180G to write)')
+
+        cmd = ['7z', 'x', 'sigmod21.7z']
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, cwd='target')
+        for line in iter(p.stdout.readline, b''):
+            logging.info(line.decode().strip())
+        p.stdout.close()
+        p.wait()
+
+        logging.info('done.')
+
 commands.add_command(run)
 commands.add_command(plot)
 commands.add_command(build)
 commands.add_command(start)
 commands.add_command(stop)
+commands.add_command(download)
 
 # scripts to run experiments:
 # 1. Zillow

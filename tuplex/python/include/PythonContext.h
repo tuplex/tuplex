@@ -123,6 +123,9 @@ namespace tuplex {
         // bad parallelize objects, i.e those who don't fit the inferred type
         std::vector<std::tuple<size_t, PyObject *>> _badParallelizeObjects;
 
+        std::vector<std::tuple<std::string, size_t>> _inputPartitionInfo;
+        std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> _inputPartitionToPythonObjectsMap;
+
         inline PythonDataSet makeError(const std::string& message) {
             PythonDataSet pds;
             pds.wrap(&_context->makeError(message));

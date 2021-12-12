@@ -240,12 +240,15 @@ namespace tuplex {
         }
     }
 
-    void Context::setParallelizePythonObjects(DataSet *ds, const std::vector<Partition *>& pythonObjects) {
+    void Context::setParallelizePythonObjects(DataSet *ds,
+                                              const std::vector<Partition *>& pythonObjects,
+                                              const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>& inputPartitionToPythonObjectsMap) {
         auto parallelizeOp = (ParallelizeOperator *) ds->getOperator();
         parallelizeOp->setPythonObjects(pythonObjects);
     }
 
-    DataSet& Context::parallelize(const std::vector<Row>& rows, const std::vector<std::string>& columnNames) {
+    DataSet& Context::parallelize(const std::vector<Row>& rows,
+                                  const std::vector<std::string>& columnNames) {
 
         Schema schema;
         int dataSetID = getNextDataSetID();

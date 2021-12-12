@@ -103,7 +103,8 @@ namespace tuplex {
                                             columnNames);
         }
 
-        DataSet& parallelize(const std::vector<Row>& L, const std::vector<std::string>& columnNames=std::vector<std::string>());
+        DataSet& parallelize(const std::vector<Row>& L,
+                             const std::vector<std::string>& columnNames=std::vector<std::string>());
 
         DataSet& parallelize(std::initializer_list<double> L, const std::vector<std::string>& columnNames=std::vector<std::string>()) {
             if(!columnNames.empty())
@@ -252,8 +253,11 @@ namespace tuplex {
          * set python object exceptions of a parallelize operator.
          * @param ds dataset
          * @param pythonObjects serialized exceptions
+         * @param inputPartitionToPythonObjectsMap maps input partitions to their corresponding pythonObjects
          */
-        void setParallelizePythonObjects(DataSet *ds, const std::vector<Partition *>& pythonObjects);
+        void setParallelizePythonObjects(DataSet *ds,
+                                         const std::vector<Partition *>& pythonObjects,
+                                         const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>& inputPartitionToPythonObjectsMap);
     };
     // needed for template mechanism to work
 #include <DataSet.h>

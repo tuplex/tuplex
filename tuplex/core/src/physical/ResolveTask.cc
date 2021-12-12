@@ -853,113 +853,169 @@ default:
             // ready normal partition for merge
             _currentNormalPartitionIdx = 0;
             _normalPtr = _partitions[_currentNormalPartitionIdx]->lockRaw();
-            _normalNumRows = *((int64_t*)_normalPtr); _normalPtr += sizeof(int64_t);
+            _normalNumRows = *((int64_t *) _normalPtr);
+            _normalPtr += sizeof(int64_t);
             _normalPtrBytesRemaining = _partitions[_currentNormalPartitionIdx]->bytesWritten();
             _normalRowNumber = 0;
             _rowNumber = 0;
-
-            // merge exceptions with normal rows after calling slow code over them...
-            // basic idea is go over all exception partitions, execute row wise the resolution function
-            // and merge the result back to the partitions
-            for(auto partition : _exceptions) {
-                const uint8_t* ptr = partition->lockRaw();
-                int64_t numRows = *((int64_t*)ptr); ptr += sizeof(int64_t);
-
-                for(int i = 0; i < numRows; ++i) {
-
-                    // old
-                    // _currentRowNumber = *((int64_t*)ptr);
-                    // ptr += sizeof(int64_t);
-                    // int64_t ecCode = *((int64_t*)ptr);
-                    // ptr += sizeof(int64_t);
-                    // int64_t operatorID = *((int64_t*)ptr);
-                    // ptr += sizeof(int64_t);
-                    // int64_t eSize = *((int64_t*)ptr);
-                    // ptr += sizeof(int64_t);
-
-                    const uint8_t *ebuf = nullptr;
-                    int64_t ecCode = -1, operatorID = -1;
-                    size_t eSize = 0;
-                    auto delta = deserializeExceptionFromMemory(ptr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
-                                                                &eSize);
-
-                    processExceptionRow(ecCode, operatorID, ebuf, eSize);
-                    ptr += delta;
-
-                    // logger.debug("processing potential output row #" + std::to_string(_currentRowNumber));
-
-                    // only inc row number if exception occurred or row was written...
-                    _rowNumber++;
-                }
-                partition->unlock();
-            }
-
-            // add remaining normal rows & partitions to merged partitions
-            while(_normalRowNumber < _normalNumRows) {
-                // trick: to get row size, you know number of normal elements + variable length!
-                // ==> can be used for quick merging!
-                size_t size = readOutputRowSize(_normalPtr, _normalPtrBytesRemaining);
-
-                writeRow(_normalPtr, size);
-                _normalPtr += size;
-                _normalPtrBytesRemaining -= size;
-                _normalRowNumber++;
-            }
-
-            _partitions[_currentNormalPartitionIdx]->unlock();
-
-            // merging is done, unlock the last partition & copy the others over.
-            unlockAll();
-
-            for(int i = _currentNormalPartitionIdx + 1; i < _partitions.size(); ++i) {
-                _mergedRowsSink.unlock();
-                _mergedRowsSink.partitions.push_back(_partitions[i]);
-                //_mergedPartitions.emplace_back(_normalCasePartitions[i]);
-            }
         } else {
-            // only exceptions, trivial to resolve. => i.e. convert them all to normal partitions...
-
             _currentNormalPartitionIdx = 0;
             _normalPtr = nullptr;
             _normalPtrBytesRemaining = 0;
             _normalNumRows = 0;
             _normalRowNumber = 0;
             _rowNumber = 0;
+        }
 
-            // merge exceptions with normal rows after calling slow code over them...
-            // basic idea is go over all exception partitions, execute row wise the resolution function
-            // and merge the result back to the partitions
-            for(auto partition : _exceptions) {
-                const uint8_t* ptr = partition->lockRaw();
-                int64_t numRows = *((int64_t*)ptr); ptr += sizeof(int64_t);
+        size_t eInd;
+        int64_t eRemaining;
+        const uint8_t *ePtr = nullptr;
+        if (_exceptions.size() > 0) {
+            eInd = 0;
+            ePtr = _exceptions[eInd]->lockRaw();
+            eRemaining = *((int64_t *) ePtr); ePtr += sizeof(int64_t);
+        }
 
-                for(int i = 0; i < numRows; ++i) {
+        size_t pyInd;
+        int64_t pyRemaining;
+        int64_t pyTotal = _numPythonObjects;
+        const uint8_t *pyPtr = nullptr;
+        if (_numPythonObjects > 0) {
+            pyInd = _pythonObjectsInd;
+            pyPtr = _pythonObjects[pyInd]->lockRaw();
+            pyRemaining = *((int64_t *) pyPtr) - _pythonObjectsOff; pyPtr += sizeof(int64_t);
+            for (int i = 0; i < _pythonObjectsOff; ++i) {
+                int64_t* ib = (int64_t*)pyPtr;
+                auto eSize = ib[3];
+                pyPtr += eSize + 4*sizeof(int64_t);
+            }
+        }
 
-                    // old
-                    // _currentRowNumber = *((int64_t*)ptr);
-                    // ptr += sizeof(int64_t);
-                    // int64_t ecCode = *((int64_t*)ptr);
-                    // ptr += sizeof(int64_t);
-                    // int64_t operatorID = *((int64_t*)ptr);
-                    // ptr += sizeof(int64_t);
-                    // int64_t eSize = *((int64_t*)ptr);
-                    // ptr += sizeof(int64_t);
-                    const uint8_t *ebuf = nullptr;
-                    int64_t ecCode = -1, operatorID = -1;
-                    size_t eSize = 0;
-                    auto delta = deserializeExceptionFromMemory(ptr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
-                                                                &eSize);
-                    processExceptionRow(ecCode, operatorID, ebuf, eSize);
-                    ptr += delta;
-                    // old
-                    // ptr += eSize;
-                }
-                partition->unlock();
+        size_t pyObjectsProcessed = 0;
+        const uint8_t **ptr;
+        while (ePtr && pyPtr) {
+            auto eRowInd = *((int64_t *) ePtr);
+            auto pyRowInd = *((int64_t *) pyPtr);
+            bool isException = false;
+            if (eRowInd + pyObjectsProcessed < pyRowInd) {
+                ptr = &ePtr;
+                eRemaining--;
+                isException = true;
+            } else {
+                ptr = &pyPtr;
+                pyRemaining--;
+                pyTotal--;
+                pyObjectsProcessed++;
             }
 
+            const uint8_t *ebuf = nullptr;
+            int64_t ecCode = -1, operatorID = -1;
+            size_t eSize = 0;
+            auto delta = deserializeExceptionFromMemory(*ptr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
+                                                        &eSize);
 
-            // done, unlock all partitions
-            unlockAll();
+            if (isException)
+                _currentRowNumber += pyObjectsProcessed;
+
+            processExceptionRow(ecCode, operatorID, ebuf, eSize);
+            *ptr += delta;
+            _rowNumber++;
+
+            if (eRemaining == 0) {
+                _exceptions[eInd]->unlock();
+                _exceptions[eInd]->invalidate();
+                eInd++;
+                if (eInd < _exceptions.size()) {
+                    ePtr = _exceptions[eInd]->lockRaw();
+                    eRemaining = *((int64_t *) ePtr); ePtr += sizeof(int64_t);
+                } else {
+                    ePtr = nullptr;
+                }
+            }
+
+            if (pyRemaining == 0 || pyTotal == 0) {
+                _pythonObjects[pyInd]->unlock();
+                pyInd++;
+                if (pyInd < _pythonObjects.size() && pyTotal > 0) {
+                    pyPtr = _pythonObjects[pyInd]->lockRaw();
+                    pyRemaining = *((int64_t *) pyPtr); pyPtr += sizeof(int64_t);
+                } else {
+                    pyPtr = nullptr;
+                }
+            }
+        }
+
+        while (ePtr) {
+            const uint8_t *ebuf = nullptr;
+            int64_t ecCode = -1, operatorID = -1;
+            size_t eSize = 0;
+            auto delta = deserializeExceptionFromMemory(ePtr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
+                                                        &eSize);
+            _currentRowNumber += pyObjectsProcessed;
+            processExceptionRow(ecCode, operatorID, ebuf, eSize);
+            ePtr += delta;
+            _rowNumber++;
+
+            eRemaining--;
+            if (eRemaining == 0) {
+                _exceptions[eInd]->unlock();
+                _exceptions[eInd]->invalidate();
+                eInd++;
+                if (eInd < _exceptions.size()) {
+                    ePtr = _exceptions[eInd]->lockRaw();
+                    eRemaining = *((int64_t *) ePtr); ePtr += sizeof(int64_t);
+                } else {
+                    ePtr = nullptr;
+                }
+            }
+        }
+
+        while (pyPtr) {
+            const uint8_t *ebuf = nullptr;
+            int64_t ecCode = -1, operatorID = -1;
+            size_t eSize = 0;
+            auto delta = deserializeExceptionFromMemory(pyPtr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
+                                                        &eSize);
+            processExceptionRow(ecCode, operatorID, ebuf, eSize);
+            pyPtr += delta;
+            _rowNumber++;
+
+            pyRemaining--;
+            pyTotal--;
+            if (pyRemaining == 0 || pyTotal == 0) {
+                _pythonObjects[pyInd]->unlock();
+                pyInd++;
+                if (pyInd < _pythonObjects.size() && pyTotal > 0) {
+                    pyPtr = _pythonObjects[pyInd]->lockRaw();
+                    pyRemaining = *((int64_t *) pyPtr); pyPtr += sizeof(int64_t);
+                } else {
+                    pyPtr = nullptr;
+                }
+            }
+        }
+
+        // add remaining normal rows & partitions to merged partitions
+        while(_normalRowNumber < _normalNumRows) {
+            // trick: to get row size, you know number of normal elements + variable length!
+            // ==> can be used for quick merging!
+            size_t size = readOutputRowSize(_normalPtr, _normalPtrBytesRemaining);
+
+            writeRow(_normalPtr, size);
+            _normalPtr += size;
+            _normalPtrBytesRemaining -= size;
+            _normalRowNumber++;
+        }
+
+        if (!_partitions.empty())
+            _partitions[_currentNormalPartitionIdx]->unlock();
+
+        // merging is done, unlock the last partition & copy the others over.
+        unlockAll();
+
+        for(int i = _currentNormalPartitionIdx + 1; i < _partitions.size(); ++i) {
+            _mergedRowsSink.unlock();
+            _mergedRowsSink.partitions.push_back(_partitions[i]);
+            //_mergedPartitions.emplace_back(_normalCasePartitions[i]);
         }
 
         // overwrite merged partitions (& in future also exceptions!!!)

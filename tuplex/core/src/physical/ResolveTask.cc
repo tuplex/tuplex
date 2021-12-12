@@ -785,6 +785,8 @@ default:
                         partition->unlock();
                         _pythonObjectsInd++;
                         partition = _pythonObjects[_pythonObjectsInd];
+                        ptr = partition->lockRaw();
+                        numRows = *((int64_t *) ptr); ptr += sizeof(int64_t);
                     }
 
                     const uint8_t *ebuf = nullptr;

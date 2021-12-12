@@ -36,47 +36,6 @@ protected:
     }
 };
 
-
-TEST_F(WrapperTest, Debug) {
-    using namespace tuplex;
-
-    PythonContext c("c", "", "{\"tuplex.webui.enable\": \"False\", \"driverMemory\": \"8MB\", \"partitionSize\": \"256KB\", \"tuplex.optimizer.mergeExceptionsInOrder\": \"False\"}");
-
-    std::unordered_set<int> sampledInds;
-    while (sampledInds.size() < 40000) {
-        int val = rand() % 100000;
-        sampledInds.insert(val);
-    }
-
-    auto listObj = PyList_New(100000);
-    for (int i = 0; i < 100000; ++i) {
-        PyList_SetItem(listObj, i, PyLong_FromLong(i + 1));
-    }
-
-    for (auto elt : sampledInds) {
-        auto randomCase = rand() % 3;
-        if (randomCase == 0) {
-            PyList_SetItem(listObj, elt, PyLong_FromLong(0));
-        } else if (randomCase == 1) {
-            PyList_SetItem(listObj, elt, python::PyString_FromString(std::to_string(elt).c_str()));
-        } else {
-            PyList_SetItem(listObj, elt, PyLong_FromLong(-1));
-        }
-    }
-
-    {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
-        auto res = c.parallelize(list)
-                .map("lambda x: 1 // (x - x) if x == -1 or x == 0 else x", "")
-                .resolve(ecToI64(ExceptionCode::ZERODIVISIONERROR), "lambda x: 1 // x if x == 0 else x", "")
-                .collect();
-
-        auto resObj = res.ptr();
-    }
-
-}
-
 #ifdef BUILD_WITH_AWS
 TEST_F(WrapperTest, LambdaBackend) {
     using namespace tuplex;

@@ -697,7 +697,7 @@ default:
         }
 
         // abort if no exceptions!
-        if(_exceptions.empty())
+        if(_exceptions.empty() && _numPythonObjects == 0)
             return;
 
         // special case: no functor & no python pipeline functor given
@@ -768,6 +768,36 @@ default:
 
                 // exception partition is done or exceptions are transferred to new partition...
                 partition->invalidate();
+            }
+
+            if (_numPythonObjects > 0) {
+                auto partition = _pythonObjects[_pythonObjectsInd];
+                const uint8_t *ptr = partition->lockRaw();
+                int64_t numRows = *((int64_t *) ptr) - _pythonObjectsOff; ptr += sizeof(int64_t);
+                for (int i = 0; i < _pythonObjectsOff; ++i) {
+                    int64_t* ib = (int64_t*)ptr;
+                    auto eSize = ib[3];
+                    ptr += eSize + 4*sizeof(int64_t);
+                }
+
+                for (int i = 0; i < _numPythonObjects; ++i) {
+                    if (numRows == 0) {
+                        partition->unlock();
+                        _pythonObjectsInd++;
+                        partition = _pythonObjects[_pythonObjectsInd];
+                    }
+
+                    const uint8_t *ebuf = nullptr;
+                    int64_t ecCode = -1, operatorID = -1;
+                    size_t eSize = 0;
+                    auto delta = deserializeExceptionFromMemory(ptr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
+                                                                &eSize);
+                    processExceptionRow(ecCode, operatorID, ebuf, eSize);
+                    ptr += delta;
+                    _rowNumber++;
+                    numRows--;
+                }
+                partition->unlock();
             }
 
             // merging is done, unlock the last partition & copy the others over.

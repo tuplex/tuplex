@@ -244,6 +244,7 @@ namespace tuplex {
                                               const std::vector<Partition *>& pythonObjects,
                                               const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>& inputPartitionToPythonObjectsMap) {
         auto parallelizeOp = (ParallelizeOperator *) ds->getOperator();
+        parallelizeOp->setInputPartitionToPythonObjectsMap(inputPartitionToPythonObjectsMap);
         parallelizeOp->setPythonObjects(pythonObjects);
     }
 

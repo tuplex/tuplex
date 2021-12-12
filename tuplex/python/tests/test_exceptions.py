@@ -91,8 +91,10 @@ class TestExceptions(unittest.TestCase):
 
     def compare(self, expectedOutput, output):
         self.assertEqual(len(expectedOutput), len(output))
-        for i in range(len(expectedOutput)):
-            self.assertEqual(expectedOutput[i], output[i])
+        expectedOutput = set(expectedOutput)
+        output = set(output)
+        for elt in expectedOutput:
+            self.assertTrue(elt in output)
 
     def test_withColumn(self):
         c = Context(self.conf_in_order)

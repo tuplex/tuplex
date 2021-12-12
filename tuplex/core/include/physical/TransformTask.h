@@ -225,6 +225,14 @@ namespace tuplex {
         */
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> exceptionCounts() const { return _exceptionCounts; }
 
+        std::string partitionId() {
+            if (_inputPartitions.size() > 0) {
+                return uuidToString(_inputPartitions.at(0)->uuid());
+            } else {
+                return "";
+            }
+        }
+
         double wallTime() const override { return _wallTime; }
     private:
         void resetSinks();

@@ -113,6 +113,7 @@ namespace tuplex {
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         copy->setPythonObjects(getPythonObjects());
+        copy->setInputPartitionToPythonObjectsMap(getInputPartitionToPythonObjectsMap());
         assert(getID() == copy->getID());
         return copy;
     }

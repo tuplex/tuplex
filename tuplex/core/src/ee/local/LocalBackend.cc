@@ -1322,7 +1322,18 @@ namespace tuplex {
             else if(compareOrders(maxOrder, tt->getOrder()))
                 maxOrder = tt->getOrder();
 
-            if (tt->exceptionCounts().size() > 0) {
+            size_t numPy = 0;
+            size_t pyInd = 0;
+            size_t pyOff = 0;
+            auto partitionId = tt->partitionId();
+            if (partitionId != "") {
+                auto info = tstage->getInputPartitionToPythonObjectsMap()[partitionId];
+                numPy = std::get<0>(info);
+                pyInd = std::get<1>(info);
+                pyOff = std::get<2>(info);
+            }
+
+            if (tt->exceptionCounts().size() > 0 || numPy > 0) {
                 // task found with exceptions in it => exception partitions need to be resolved using special functor
 
                 // hash-table output not yet supported
@@ -1337,6 +1348,10 @@ namespace tuplex {
                 auto rtask = new ResolveTask(stageID,
                                              tt->getOutputPartitions(),
                                              tt->getExceptionPartitions(),
+                                             tstage->pythonObjects(),
+                                             numPy,
+                                             pyInd,
+                                             pyOff,
                                              opsToCheck,
                                              exceptionInputSchema,
                                              compiledSlowPathOutputSchema,
@@ -1418,7 +1433,6 @@ namespace tuplex {
         }
 
         // are input exceptions given? create tasks here...
-        // @TODO: python objects??
         if(!tstage->inputExceptions().empty()) {
             // add into ops to check the dummy 0 which is used in Caching tasks...
             opsToCheck.push_back(0);
@@ -1430,6 +1444,10 @@ namespace tuplex {
                 auto rtask = new ResolveTask(stageID,
                                              std::vector<Partition*>(),
                                                      vector<Partition*>{p},
+                                                     vector<Partition*>(),
+                                                     0,
+                                                     0,
+                                                     0,
                                                      opsToCheck,
                                                      tstage->inputSchema(),
                                                      compiledSlowPathOutputSchema,
@@ -1442,48 +1460,6 @@ namespace tuplex {
                                                      csvQuotechar,
                                                      functor,
                                                      pip_object);
-
-                // to implement, store i.e. tables within tasks...
-                rtask->setHybridIntermediateHashTables(tstage->predecessors().size(), input_intermediates.hybrids);
-
-                rtask->setOrder(maxOrder); // this is arbitrary, just put the slow path rows at the end
-                // hash output?
-                if(hashOutput) {
-                    if (tstage->hashtableKeyByteWidth() == 8) {
-                        auto h = tstage->dataAggregationMode();
-                        rtask->sinkOutputToHashTable(HashTableFormat::UINT64, tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType());
-                    } else {
-                        rtask->sinkOutputToHashTable(HashTableFormat::BYTES, tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType());
-                    }
-                }
-                resolveTasks.push_back(rtask);
-            }
-        }
-
-        if(!tstage->pythonObjects().empty()) {
-            // add into ops to check the dummy 0 which is used in Caching tasks...
-            opsToCheck.push_back(0);
-
-            // @TODO: no support for this yet... -> it might be complicated because of filters & Co to figure out the right row numbers...
-            assert(!merge_rows_in_order);
-            for(auto& p : tstage->pythonObjects()) {
-                maxOrder.back()++;
-
-                auto rtask = new ResolveTask(stageID,
-                                             std::vector<Partition*>(),
-                                             vector<Partition*>{p},
-                                             opsToCheck,
-                                             tstage->inputSchema(),
-                                             compiledSlowPathOutputSchema,
-                                             targetNormalCaseOutputSchema,
-                                             targetGeneralCaseOutputSchema,
-                                             true,
-                                             allowNumericTypeUnification,
-                                             outFormat,
-                                             csvDelimiter,
-                                             csvQuotechar,
-                                             functor,
-                                             pip_object);
 
                 // to implement, store i.e. tables within tasks...
                 rtask->setHybridIntermediateHashTables(tstage->predecessors().size(), input_intermediates.hybrids);

@@ -111,6 +111,10 @@ namespace tuplex {
 
         std::vector<Partition *> pythonObjects() { return _pythonObjects; }
 
+        void setInputPartitionToPythonObjectsMap(const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>& inputPartitionToPythonObjectsMap) { _inputPartitionToPythonObjectsMap = inputPartitionToPythonObjectsMap; }
+
+        std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> getInputPartitionToPythonObjectsMap() { return _inputPartitionToPythonObjectsMap; }
+
         /*!
          * sets maximum number of rows this pipeline will produce
          * @param outputLimit
@@ -466,6 +470,7 @@ namespace tuplex {
         // unresolved exceptions. Important i.e. when no IO interleave is used...
         std::vector<Partition*> _unresolved_exceptions;
         std::vector<Partition*> _pythonObjects;
+        std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> _inputPartitionToPythonObjectsMap;
 
 
         // for hash output, the key and bucket type

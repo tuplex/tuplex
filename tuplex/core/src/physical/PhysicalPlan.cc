@@ -383,6 +383,7 @@ namespace tuplex {
             auto pop = dynamic_cast<ParallelizeOperator *>(inputNode); assert(inputNode);
             stage->setInputPartitions(pop->getPartitions());
             stage->setPythonObjects(pop->getPythonObjects());
+            stage->setInputPartitionToPythonObjectsMap(pop->getInputPartitionToPythonObjectsMap());
         } else if(inputNode->type() == LogicalOperatorType::CACHE) {
             auto cop = dynamic_cast<CacheOperator*>(inputNode);  assert(inputNode);
             stage->setInputPartitions(cop->cachedPartitions());

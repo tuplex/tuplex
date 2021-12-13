@@ -93,8 +93,8 @@ class TestFastParallelize(unittest.TestCase):
     def testAutoUnpack(self):
         c = Context(self.conf)
         input = [{"a":1,"b":2,"c":3},{"a":4,"b":5,"c":6},{"a":7,"b":8,"c":9}]
-        output = c.parallelize(input).collect()
-        self.assertEqual([(1, 3, 2), (4, 6, 5), (7, 9, 8)], output)
+        output = c.parallelize(input).map(lambda x: (x["a"], x["b"], x["c"])).collect()
+        self.assertEqual([(1, 2, 3), (4, 5, 6), (7, 8, 9)], output)
 
         input = [{"a":1,"b":2,"c":3},{"a":4,"b":5,"c":6},{"a":7,"b":8,"c":9}]
         output = c.parallelize(input, auto_unpack=False).collect()
@@ -105,8 +105,8 @@ class TestFastParallelize(unittest.TestCase):
         self.assertEqual([1, 4, 7, 1], output)
 
         input = [{"a":1,"b":2,"c":3},{"d":4,"e":5,"f":6}]
-        output = c.parallelize(input).collect()
-        self.assertEqual([(1, 2, None, None, 3, None), (None, None, 4, 5, None, 6)], output)
+        output = c.parallelize(input).map(lambda x: (x["a"], x["b"], x["c"], x["d"], x["e"], x["f"])).collect()
+        self.assertEqual([(1, 2, 3, None, None, None), (None, None, None, 4, 5, 6)], output)
 
     def testTupleOptionTypeII(self):
         c = Context(self.conf)

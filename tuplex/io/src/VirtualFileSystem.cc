@@ -549,14 +549,18 @@ COPY_FAILURE:
         // it's a file -> okay
         // it's a dir -> must not exist or be empty
         if(baseURI.isLocal()) {
-            auto local_path = baseURI.withoutPrefix();
+            auto local_path = baseURI.toPath();
+            if(strStartsWith(local_path, baseURI.prefix())) {
+                local_path = local_path.substr(baseURI.prefix().length());
+            }
+
             if(fileExists(local_path) && isFile(local_path))
                 return true;
             if(dirExists(local_path) && isDirectory(local_path)) {
                 vector<URI> uris;
                 // empty or non empty?
                 auto vfs = VirtualFileSystem::fromURI("file://");
-                vfs.ls(baseURI, uris);
+                vfs.ls(local_path, uris);
 
                 // Note: for MacOS, .DS_Store might be ok too.
 #ifdef MACOS

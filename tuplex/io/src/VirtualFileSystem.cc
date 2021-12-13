@@ -588,7 +588,7 @@ COPY_FAILURE:
                 return uris.size() == 1;
             }
 #else
-            Logger::instance().defaultLogger("Tuplex not compiled with S3 support, can't write to S3 output URI");
+            Logger::instance().defaultLogger().warn("Tuplex not compiled with S3 support, can't write to S3 output URI");
             return false;
 #endif
             return true;

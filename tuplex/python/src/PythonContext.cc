@@ -1098,6 +1098,7 @@ namespace tuplex {
                 ++i;
             }
             while (i < numSample) {
+                Py_XINCREF(Py_None);
                 PyList_SET_ITEM(listColObj, i, Py_None);
                 ++i;
             }

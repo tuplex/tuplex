@@ -100,9 +100,9 @@ class TestFastParallelize(unittest.TestCase):
         output = c.parallelize(input, auto_unpack=False).collect()
         self.assertEqual(input, output)
 
-        input = [{"a":1,"b":2,"c":3},{"a":4,"b":5,"c":6},{"a":7,"b":8,"c":9}, {"a": 1, "b":2}, {}]
-        output = c.parallelize(input).collect()
-        self.assertEqual([(1, 3, 2), (4, 6, 5), (7, 9, 8), (1, None, 2), (None, None, None)], output)
+        input = [{"a":1,"b":2,"c":3},{"a":4,"b":5,"c":6},{"a":7,"b":8,"c":9},{"a": 1, "b":2}, {"c":11}]
+        output = c.parallelize(input).map(lambda x: x["a"]).collect()
+        self.assertEqual([1, 4, 7, 1], output)
 
         input = [{"a":1,"b":2,"c":3},{"d":4,"e":5,"f":6}]
         output = c.parallelize(input).collect()

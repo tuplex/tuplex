@@ -15,6 +15,7 @@
 #include <logical/FileInputOperator.h>
 #include <logical/FileOutputOperator.h>
 #include <logical/MapOperator.h>
+#include <google/protobuf/util/json_util.h>
 
 static const std::string worker_path = "tuplex-worker";
 
@@ -34,6 +35,28 @@ std::string runCommand(const std::string& cmd) {
     }
     return result;
 }
+namespace tuplex {
+    std::string transformStageToReqMessage(const TransformStage* tstage, const std::string& inputURI, const size_t& inputSize, const std::string& output_uri) {
+        messages::InvocationRequest req;
+        auto pb_stage = tstage->to_protobuf();
+
+        pb_stage->set_bitcode(tstage->bitCode());
+        req.set_allocated_stage(pb_stage.release());
+
+        // add input file to request
+        req.add_inputuris(inputURI);
+        req.add_inputsizes(inputSize);
+
+        // output uri of job? => final one? parts?
+        req.set_outputuri(output_uri);
+
+        // transfrom to json
+        std::string json_buf;
+        google::protobuf::util::MessageToJsonString(req, &json_buf);
+        return json_buf;
+    }
+}
+
 
 TEST(BasicInvocation, Worker) {
     using namespace std;
@@ -78,6 +101,11 @@ TEST(BasicInvocation, Worker) {
 
     auto tstage = builder.build();
 
+    // transform to message
+    auto vfs = VirtualFileSystem::fromURI("file://test_input.csv");
+    uint64_t input_file_size = 0;
+    vfs.file_size("test_input.csv", input_file_size);
+    auto json_message = transformStageToReqMessage(tstage, "test_input.csv", input_file_size, "test_output.csv");
     python::lockGIL();
     python::closeInterpreter();
 

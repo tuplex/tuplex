@@ -26,6 +26,14 @@ namespace tuplex {
                                                                               _limit(limit) {
         // take schema from parent node
         setSchema(this->parent()->getOutputSchema());
+
+        // depending on output file format, if empty options are given - set default options
+        if(_options.empty() && _fmt == FileFormat::OUTFMT_CSV) {
+            _options = defaultCSVOutputOptions();
+        }
+        if(_options.empty() && _fmt == FileFormat::OUTFMT_ORC) {
+            _options = defaultORCOutputOptions();
+        }
     }
 
     LogicalOperator *FileOutputOperator::clone() {

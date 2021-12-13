@@ -54,6 +54,7 @@ namespace tuplex {
         size_t numBytesSerialized = 0;
         for(unsigned i = 0; i < numElements; ++i) {
             auto obj = PyList_GET_ITEM(listObj, i);
+            Py_XINCREF(obj);
 
             // check capacity and realloc if necessary get a new partition
             if(partition->capacity() < numBytesSerialized + sizeof(double)) {
@@ -124,6 +125,7 @@ namespace tuplex {
         size_t numBytesSerialized = 0;
         for(unsigned i = 0; i < numElements; ++i) {
             auto obj = PyList_GET_ITEM(listObj, i);
+            Py_XINCREF(obj);
 
             // check capacity and realloc if necessary get a new partition
             if(partition->capacity() < numBytesSerialized + sizeof(int64_t)) {
@@ -201,6 +203,7 @@ namespace tuplex {
         size_t numBytesSerialized = 0;
         for(unsigned i = 0; i < numElements; ++i) {
             auto obj = PyList_GET_ITEM(listObj, i);
+            Py_XINCREF(obj);
 
             // needs to be tuple with correct size
             bool check = PyTuple_Check(obj);
@@ -214,7 +217,7 @@ namespace tuplex {
                     bool nonConforming = false;
                     for(int j = 0; j < numTupleElements; ++j) {
                         if (typeStr[j] == 's') {
-                            auto tupleItem = PyTuple_GetItem(obj, j);
+                            auto tupleItem = PyTuple_GET_ITEM(obj, j);
                             if (PyUnicode_Check(tupleItem)) {
                                 requiredBytes += PyUnicode_GET_SIZE(tupleItem) + 1; // +1 for '\0'
                             } else {
@@ -353,7 +356,7 @@ namespace tuplex {
         size_t numBytesSerialized = 0;
         for(unsigned i = 0; i < numElements; ++i) {
             auto obj = PyList_GET_ITEM(listObj, i);
-
+            Py_XINCREF(obj);
 
             // check capacity and realloc if necessary get a new partition
             if(partition->capacity() < numBytesSerialized + sizeof(int64_t)) {
@@ -406,6 +409,7 @@ namespace tuplex {
         size_t numBytesSerialized = 0;
         for(unsigned i = 0; i < numElements; ++i) {
             auto obj = PyList_GET_ITEM(listObj, i);
+            Py_XINCREF(obj);
 
             // serialization code here is a little bit more complicated
             // 3 fields need to be serialized:
@@ -559,6 +563,7 @@ namespace tuplex {
         size_t numBytesSerialized = 0;
         for(unsigned i = 0; i < numElements; ++i) {
             auto obj = PyList_GET_ITEM(listObj, i);
+            Py_XINCREF(obj);
 
             // check that it is a dict!
             if(PyDict_Check(obj)) {
@@ -981,6 +986,8 @@ namespace tuplex {
             PyObject *item = nullptr;
             for(int i = 0; i < PyList_Size(listObj); ++i) {
                 item = PyList_GET_ITEM(listObj, i);
+                Py_XINCREF(item);
+
                 if(PyDict_Check(item)) {
 
                     // check that keys are all strings
@@ -1004,6 +1011,8 @@ namespace tuplex {
             assert(PyList_Check(items));
             for(int j = 0; j < PyList_Size(items); ++j) {
                 auto keyval = PyList_GET_ITEM(items, j);
+                Py_XINCREF(keyval);
+
                 assert(PyTuple_Check(keyval));
                 assert(PyTuple_Size(keyval) == 2);
                 // just use directly the type...

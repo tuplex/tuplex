@@ -2,7 +2,7 @@
 
 # install recent spark (2.4.7)
 cd /usr/src &&
-  curl --url https://downloads.apache.org/spark/spark-2.4.7/spark-2.4.7-bin-hadoop2.7.tgz --output spark-2.4.7.tgz &&
+  curl --url https://archive.apache.org/dist/spark/spark-2.4.7/spark-2.4.7-bin-hadoop2.7.tgz --output spark-2.4.7.tgz &&
   curl -L --url https://downloads.lightbend.com/scala/2.12.10/scala-2.12.10.tgz --output scala-2.12.10.tgz &&
   mkdir -p /opt/spark@2 &&
   mkdir -p /opt/scala &&

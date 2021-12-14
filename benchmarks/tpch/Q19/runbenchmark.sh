@@ -3,7 +3,7 @@
 # runs Tuplex TPCH Q19 benchmark on AWS setup
 
 # use 11 runs and a timeout after 60min
-NUM_RUNS=1
+NUM_RUNS="${NUM_RUNS:-11}"
 TIMEOUT=3600
 
 # preprocessed lineitem path (i.e. integers + only needed columns)

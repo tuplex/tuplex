@@ -11,6 +11,7 @@
 #define TUPLEX_WORKERAPP_H
 
 #include <string>
+#include <Base.h>
 
 // error codes
 #define WORKER_OK 0
@@ -19,6 +20,10 @@
 #define WORKER_ERROR_NO_TUPLEX_RUNTIME 102
 #define WORKER_ERROR_INVALID_URI 103
 
+// give 32MB standard buf size, 8MB for exceptions and hash
+#define WORKER_DEFAULT_BUFFER_SIZE 33554432
+#define WORKER_EXCEPTION_BUFFER_SIZE 8388608
+#define WORKER_HASH_BUFFER_SIZE 8388608
 // protobuf
 #include <Lambda.pb.h>
 #include <physical/TransformStage.h>
@@ -30,6 +35,8 @@
 #include <aws/core/Aws.h>
 #endif
 
+#include <Serializer.h>
+
 namespace tuplex {
 
     /// settings to use to initialize a worker application. Helpful to tune depending on
@@ -40,6 +47,16 @@ namespace tuplex {
         // -> local file cache -> how much main memory, which disk dir, how much memory available on disk dir
         // executor in total how much memory available to use
         //
+
+        size_t numThreads; //! how many threads to use (1 == single-threaded)
+
+        size_t normalBufferSize; //! how many bytes to use for storing rows before flushing them out
+        size_t exceptionBufferSize; //! how many bytes to sue for storing rows as exceptions before flushing them out
+        size_t hashBufferSize; //! how many bytes to use for hashmap before flushing it out
+
+        URI spillRootURI; //! where to store spill over files
+        // use some defaults...
+        WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE), exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE) {}
 
         inline bool operator == (const WorkerSettings& other) const {
             return true;
@@ -59,7 +76,7 @@ namespace tuplex {
         WorkerApp(const WorkerApp& other) =  delete;
 
         // create WorkerApp from settings
-        WorkerApp(const WorkerSettings& settings)  { reinitialize(settings); }
+        WorkerApp(const WorkerSettings& settings) : _threadEnvs(nullptr), _numThreads(0) { reinitialize(settings); }
 
         bool reinitialize(const WorkerSettings& settings);
 
@@ -96,13 +113,38 @@ namespace tuplex {
         Aws::SDKOptions _aws_options;
 #endif
 
-        virtual int64_t writeRow(const uint8_t* buf, int64_t bufSize);
-        virtual void writeHashedRow(const uint8_t* key, int64_t key_size, const uint8_t* bucket, int64_t bucket_size);
-        virtual void writeException(int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
+
+        // variables for each Thread
+        struct ThreadEnv {
+            size_t threadNo; //! which thread number
+            WorkerApp* app; //! which app to use
+            Buffer normalBuf; //! holds normal rows
+            size_t numNormalRows; //! how many normal rows
+            Buffer exceptionBuf; //! holds exception rows
+            size_t numExceptionRows; //! how many exception rows
+            void* hashMap; //! for hash output
+            std::vector<std::string> spillFiles; //! files used for storing spilled buffers.
+            ThreadEnv() : threadNo(0), app(nullptr), hashMap(nullptr), numNormalRows(0), numExceptionRows(0), normalBuf(100),
+                          exceptionBuf(100) {}
+        };
+
+        ThreadEnv *_threadEnvs;
+        size_t _numThreads;
+
+        virtual MessageHandler& logger() { return Logger::instance().logger("worker"); }
+
+        /*!
+         * spill buffer out to somewhere & reset counter
+         */
+        virtual void spillNormalBuffer(size_t threadNo);
+
+        virtual int64_t writeRow(size_t threadNo, const uint8_t* buf, int64_t bufSize);
+        virtual void writeHashedRow(size_t threadNo, const uint8_t* key, int64_t key_size, const uint8_t* bucket, int64_t bucket_size);
+        virtual void writeException(size_t threadNo, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
     private:
-        static int64_t writeRowCallback(WorkerApp* app, const uint8_t* buf, int64_t bufSize);
-        static void writeHashCallback(WorkerApp* app, const uint8_t* key, int64_t key_size, const uint8_t* bucket, int64_t bucket_size);
-        static void exceptRowCallback(WorkerApp* app, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
+        static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
+        static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, const uint8_t* bucket, int64_t bucket_size);
+        static void exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
     };
 }
 

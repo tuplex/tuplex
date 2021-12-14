@@ -15,7 +15,7 @@ namespace tuplex {
         auto& logger = Logger::instance().defaultLogger();
 
         // runtime library path
-        auto runtime_path = "tuplex-runtime.so";
+        auto runtime_path = ContextOptions::defaults().RUNTIME_LIBRARY().toPath();
         std::string python_home_dir = python::find_stdlib_location();
 
         if(python_home_dir.empty()) {
@@ -53,6 +53,25 @@ namespace tuplex {
         // compiler already active? Else init
         globalInit();
 
+        // initialize thread buffers (which get passed to functions)
+        _numThreads = std::max(1ul, settings.numThreads);
+        if(_threadEnvs) {
+            // check if the same, if not reinit?
+
+            // @TODO: release hashmap memory
+            delete [] _threadEnvs;
+        }
+        _threadEnvs = new ThreadEnv[_numThreads];
+        // init buffers
+        for(int i = 0; i < _numThreads; ++i) {
+            _threadEnvs[i].threadNo = i;
+            _threadEnvs[i].app = this;
+            _threadEnvs[i].normalBuf.provideSpace(settings.normalBufferSize);
+            _threadEnvs[i].exceptionBuf.provideSpace(settings.exceptionBufferSize);
+            // hashmap init?
+            // @TODO
+        }
+
         return true;
     }
 
@@ -75,7 +94,7 @@ namespace tuplex {
     }
 
     int WorkerApp::processJSONMessage(const std::string &message) {
-        auto& logger = Logger::instance().defaultLogger();
+        auto& logger = this->logger();
 
         // parse JSON into protobuf
         tuplex::messages::InvocationRequest req;
@@ -167,30 +186,77 @@ namespace tuplex {
         return syms;
     }
 
-    int64_t WorkerApp::writeRow(const uint8_t *buf, int64_t bufSize) {
+    int64_t WorkerApp::writeRow(size_t threadNo, const uint8_t *buf, int64_t bufSize) {
+
+        assert(_threadEnvs);
+        assert(threadNo < _numThreads);
+        // check if enough space is available
+        auto& out_buf = _threadEnvs[threadNo].normalBuf;
+        if(out_buf.size() + bufSize <= out_buf.capacity()) {
+            memcpy(out_buf.ptr(), buf, bufSize);
+            out_buf.movePtr(bufSize);
+            _threadEnvs[threadNo].numNormalRows++;
+        } else {
+            // buffer is full, save to spill out path
+            spillNormalBuffer(threadNo);
+        }
+
         return 0;
     }
 
-    void WorkerApp::writeException(int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input,
-                              int64_t dataLength) {
+    void WorkerApp::spillNormalBuffer(size_t threadNo) {
 
+        assert(_threadEnvs);
+        assert(threadNo < _numThreads);
+
+        // spill (in Tuplex format!), i.e. write first #rows, #bytes written & the rest!
+
+        // create file name (trivial:)
+        auto name = "spill_normal_" + std::to_string(threadNo) + "_" + std::to_string(_threadEnvs->spillFiles.size());
+
+        auto path = URI(_settings.spillRootURI.toString() + "/" + name);
+
+        // open & write
+        auto vfs = VirtualFileSystem::fromURI(path);
+        auto vf = vfs.open_file(path, VirtualFileMode::VFS_OVERWRITE);
+        if(!vf) {
+            logger().error("Failed to spill buffer to path " + path.toString());
+        } else {
+            int64_t tmp = _threadEnvs[threadNo].numNormalRows;
+            vf->write(&tmp, sizeof(int64_t));
+            tmp = _threadEnvs[threadNo].normalBuf.size();
+            vf->write(&tmp, sizeof(int64_t));
+            vf->write(_threadEnvs[threadNo].normalBuf.buffer(), _threadEnvs[threadNo].normalBuf.size());
+            logger().info("Spilled " + sizeToMemString(_threadEnvs[threadNo].normalBuf.size() + 2 * sizeof(int64_t)) + " to  " + path.toString());
+            _threadEnvs[threadNo].spillFiles.push_back(path.toString());
+        }
+
+        // reset
+        _threadEnvs[threadNo].normalBuf.reset();
+        _threadEnvs[threadNo].numNormalRows = 0;
     }
 
-    void WorkerApp::writeHashedRow(const uint8_t *key, int64_t key_size, const uint8_t *bucket, int64_t bucket_size) {
+    void WorkerApp::writeException(size_t threadNo, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input,
+                              int64_t dataLength) {
+        // same here for exception buffers...
+        logger().info("Thread " + std::to_string(threadNo) + " produced Exception " + exceptionCodeToString(i64ToEC(exceptionCode)));
+    }
+
+    void WorkerApp::writeHashedRow(size_t threadNo, const uint8_t *key, int64_t key_size, const uint8_t *bucket, int64_t bucket_size) {
 
     }
 
     // static helper functions/callbacks
-    int64_t WorkerApp::writeRowCallback(WorkerApp *app, const uint8_t *buf, int64_t bufSize) {
-        assert(app);
-        return app->writeRow(buf, bufSize);
+    int64_t WorkerApp::writeRowCallback(ThreadEnv* env, const uint8_t *buf, int64_t bufSize) {
+        assert(env);
+        return env->app->writeRow(env->threadNo, buf, bufSize);
     }
-    void WorkerApp::writeHashCallback(WorkerApp *app, const uint8_t *key, int64_t key_size, const uint8_t *bucket, int64_t bucket_size) {
-        assert(app);
-        app->writeHashedRow(key, key_size, bucket, bucket_size);
+    void WorkerApp::writeHashCallback(ThreadEnv* env, const uint8_t *key, int64_t key_size, const uint8_t *bucket, int64_t bucket_size) {
+        assert(env);
+        env->app->writeHashedRow(env->threadNo, key, key_size, bucket, bucket_size);
     }
-    void WorkerApp::exceptRowCallback(WorkerApp *app, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input, int64_t dataLength) {
-        assert(app);
-        app->writeException(exceptionCode, exceptionOperatorID, rowNumber, input, dataLength);
+    void WorkerApp::exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input, int64_t dataLength) {
+        assert(env);
+        env->app->writeException(env->threadNo, exceptionCode, exceptionOperatorID, rowNumber, input, dataLength);
     }
 }

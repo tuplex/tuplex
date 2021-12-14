@@ -57,6 +57,29 @@ namespace tuplex {
     }
 }
 
+std::string findAndReplaceAll(const std::string& str, const std::string& toSearch, const std::string& replaceStr){
+    std::string data = str;
+    // Get the first occurrence
+    size_t pos = data.find(toSearch);
+
+    // Repeat till end is reached
+    while( pos != std::string::npos) {
+        // Replace this occurrence of Sub String
+        data.replace(pos, toSearch.size(), replaceStr);
+        // Get the next occurrence from the current position
+        pos =data.find(toSearch, pos + replaceStr.size());
+    }
+    return data;
+}
+
+std::string shellEscape(const std::string& str) {
+    if(str.empty())
+        return "\"\"";
+
+    // replace all '
+    // return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"
+    return "'" + findAndReplaceAll(str, "'", "'\"'\"'") + "'";
+}
 
 TEST(BasicInvocation, Worker) {
     using namespace std;
@@ -102,10 +125,21 @@ TEST(BasicInvocation, Worker) {
     auto tstage = builder.build();
 
     // transform to message
-    auto vfs = VirtualFileSystem::fromURI("file://test_input.csv");
+    auto vfs = VirtualFileSystem::fromURI(test_path);
     uint64_t input_file_size = 0;
-    vfs.file_size("test_input.csv", input_file_size);
+    vfs.file_size(test_path, input_file_size);
     auto json_message = transformStageToReqMessage(tstage, "test_input.csv", input_file_size, "test_output.csv");
+
+
+
+    // invoke worker with that message
+    timer.reset();
+    auto cmd = work_dir + "/" + worker_path + " -m " + shellEscape(json_message);
+    res_stdout = runCommand(cmd);
+    worker_invocation_duration = timer.time();
+    cout<<res_stdout<<endl;
+    cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
+
     python::lockGIL();
     python::closeInterpreter();
 

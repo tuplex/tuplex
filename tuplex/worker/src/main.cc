@@ -72,7 +72,8 @@ int main(int argc, char* argv[]) {
          app->shutdown();
     } else {
         if(!message.empty() && message.front() == '{' && message.back() == '}') {
-            rc = app->processJSONMessage(message);
+            //rc = app->processJSONMessage(message);
+            Logger::instance().defaultLogger().debug("message found");
         }
         app->shutdown();
     }

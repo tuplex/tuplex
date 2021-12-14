@@ -642,6 +642,9 @@ TEST_F(DataSetTest, OutputValidation) {
     using namespace std;
     using namespace tuplex;
 
+    // deactivated, skip for now b.c. of deactivated output specification validation
+    GTEST_SKIP_("deactivated because output file specification not yet perfect");
+
     Context c(microTestOptions());
 
     // invalid output folder

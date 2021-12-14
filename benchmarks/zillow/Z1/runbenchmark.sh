@@ -8,7 +8,7 @@ export PATH=/opt/pypy3/bin/:$PATH
 INPUT_FILE=/data/zillow/Z1_preprocessed/zillow_Z1_10G.csv
 RESDIR=/results/zillow/Z1
 OUTPUT_DIR=/results/output/zillow/Z1
-NUM_RUNS=11
+NUM_RUNS="${NUM_RUNS:-11}"
 TIMEOUT=1800
 PYTHON=python3.6
 PYPY=/opt/pypy3/bin/pypy3
@@ -17,30 +17,40 @@ mkdir -p ${RESDIR}
 echo "benchmarking tuplex"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-run-$r.txt"
+  rm -rf $OUTPUT_DIR
+  mkdir -p $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --output-path ${OUTPUT_DIR}/tuplex_output --path $INPUT_FILE >$LOG 2>$LOG.stderr
 done
 
 echo "benchmarking tuplex no-nvo"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex_nonvo-run-$r.txt"
+  rm -rf $OUTPUT_DIR
+  mkdir -p $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --no-nvo --output-path ${OUTPUT_DIR}/tuplex_output --path $INPUT_FILE >$LOG 2>$LOG.stderr
 done
 
 echo "benchmarking tuplex (single threaded)"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex_st-run-$r.txt"
+  rm -rf $OUTPUT_DIR
+  mkdir -p $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --single-threaded --output-path ${OUTPUT_DIR}/tuplex_output --path $INPUT_FILE >$LOG 2>$LOG.stderr
 done
 
 echo "benchmarking tuplex (single threaded, no-nvo)"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex_st-nonvo-run-$r.txt"
+  rm -rf $OUTPUT_DIR
+  mkdir -p $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --no-nvo --single-threaded --output-path ${OUTPUT_DIR}/tuplex_output --path $INPUT_FILE >$LOG 2>$LOG.stderr
 done
 
 echo "benchmarking tuplex (single threaded w. preload)"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex_st-preload-run-$r.txt"
+  rm -rf $OUTPUT_DIR
+  mkdir -p $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --single-threaded --preload --output-path ${OUTPUT_DIR}/tuplex_output --path $INPUT_FILE >$LOG 2>$LOG.stderr
 done
 

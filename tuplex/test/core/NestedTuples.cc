@@ -11,7 +11,9 @@
 #include "TestUtils.h"
 #include <Context.h>
 
-TEST(NestedTuples, TupleTree) {
+class NestedTuplesTest : public TuplexTest {};
+
+TEST_F(NestedTuplesTest, TupleTree) {
     using namespace std;
     using namespace tuplex;
 
@@ -28,7 +30,7 @@ TEST(NestedTuples, TupleTree) {
     python::closeInterpreter();
 }
 
-TEST(NestedTuples, SimpleNesting) {
+TEST_F(NestedTuplesTest, SimpleNesting) {
     // basic test to check whether mapping double value to tuple works...
 
     using namespace std;
@@ -54,7 +56,7 @@ TEST(NestedTuples, SimpleNesting) {
 }
 
 // identity applied to basic column
-TEST(NestedTuples, TupleIdentityI) {
+TEST_F(NestedTuplesTest, TupleIdentityI) {
     // basic test to check whether mapping double value to tuple works...
 
     using namespace std;
@@ -78,7 +80,7 @@ TEST(NestedTuples, TupleIdentityI) {
 }
 
 // identity func applied to tuple
-TEST(NestedTuples, TupleIdentityII) {
+TEST_F(NestedTuplesTest, TupleIdentityII) {
     // basic test to check whether mapping double value to tuple works...
 
     using namespace std;
@@ -102,7 +104,7 @@ TEST(NestedTuples, TupleIdentityII) {
     python::closeInterpreter();
 }
 
-TEST(NestedTuples, TupleDeepNestedI) {
+TEST_F(NestedTuplesTest, TupleDeepNestedI) {
     // basic test to check whether mapping double value to tuple works...
 
     using namespace std;
@@ -127,7 +129,7 @@ TEST(NestedTuples, TupleDeepNestedI) {
 }
 
 
-TEST(NestedTuples, TupleBasicNestedI) {
+TEST_F(NestedTuplesTest, TupleBasicNestedI) {
     // basic test to check whether mapping double value to tuple works...
 
     using namespace std;
@@ -150,7 +152,7 @@ TEST(NestedTuples, TupleBasicNestedI) {
     python::closeInterpreter();
 }
 
-TEST(NestedTuples, TupleBasicNestedII) {
+TEST_F(NestedTuplesTest, TupleBasicNestedII) {
     using namespace std;
     using namespace tuplex;
 
@@ -170,7 +172,7 @@ TEST(NestedTuples, TupleBasicNestedII) {
 }
 
 
-TEST(NestedTuples, TupleDeepNestedII) {
+TEST_F(NestedTuplesTest, TupleDeepNestedII) {
     // basic test to check whether mapping double value to tuple works...
 
     using namespace std;
@@ -196,7 +198,7 @@ TEST(NestedTuples, TupleDeepNestedII) {
     python::closeInterpreter();
 }
 
-TEST(NestedTuples, EmptyTupleI) {
+TEST_F(NestedTuplesTest, EmptyTupleI) {
     // basic test to check whether mapping double value to tuple works...
 
     using namespace std;
@@ -219,7 +221,7 @@ TEST(NestedTuples, EmptyTupleI) {
     python::closeInterpreter();
 }
 
-TEST(NestedTuples, NestedEmptyTupleII) {
+TEST_F(NestedTuplesTest, NestedEmptyTupleII) {
     // basic test to check whether mapping double value to tuple works...
 
     using namespace std;
@@ -243,7 +245,7 @@ TEST(NestedTuples, NestedEmptyTupleII) {
 }
 
 
-TEST(NestedTuples, TupleWithString) {
+TEST_F(NestedTuplesTest, TupleWithString) {
     using namespace std;
     using namespace tuplex;
 
@@ -264,7 +266,7 @@ TEST(NestedTuples, TupleWithString) {
     python::closeInterpreter();
 }
 
-TEST(NestedTuples, MultiRows) {
+TEST_F(NestedTuplesTest, MultiRows) {
     using namespace std;
     using namespace tuplex;
 
@@ -287,7 +289,7 @@ TEST(NestedTuples, MultiRows) {
     python::closeInterpreter();
 }
 
-TEST(NestedTuples, MultiParametersTuples) {
+TEST_F(NestedTuplesTest, MultiParametersTuples) {
     using namespace std;
     using namespace tuplex;
 
@@ -310,7 +312,7 @@ TEST(NestedTuples, MultiParametersTuples) {
     python::closeInterpreter();
 }
 
-TEST(NestedTuples, MultiParameters) {
+TEST_F(NestedTuplesTest, MultiParameters) {
     using namespace std;
     using namespace tuplex;
 
@@ -333,7 +335,7 @@ TEST(NestedTuples, MultiParameters) {
     python::closeInterpreter();
 }
 
-TEST(NestedTuples, MultiInclEmptyString) {
+TEST_F(NestedTuplesTest, MultiInclEmptyString) {
     //c.parallelize([('hello', '', (), ('world',  ()))]).collect()
 
     using namespace std;
@@ -354,7 +356,7 @@ TEST(NestedTuples, MultiInclEmptyString) {
     python::closeInterpreter();
 }
 
-TEST(NestedTuples, Slicing) {
+TEST_F(NestedTuplesTest, Slicing) {
     //c.parallelize([('hello', '', (), ('world',  ()))]).collect()
 
     using namespace tuplex;
@@ -411,7 +413,7 @@ TEST(NestedTuples, Slicing) {
 }
 
 // ((), ("foobar",), 1443, "no", (100, 0))
-TEST(NestedTuples, SliceComplex) {
+TEST_F(NestedTuplesTest, SliceComplex) {
     // from python tests
     using namespace tuplex;
     using namespace std;

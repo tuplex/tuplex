@@ -364,7 +364,7 @@ TEST_F(AggregateTest, UniqueMixedTypesWithInterpreterFallback) {
     using namespace std;
 
     // for reference deactivate all options!
-    auto opt_ref = ContextOptions::defaults();
+    auto opt_ref = testOptions();
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorMemory", "64MB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded

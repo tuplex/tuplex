@@ -16,12 +16,6 @@ class CSVSelectionPushDown : public PyTest {};
 
 using namespace tuplex;
 
-ContextOptions spOptions() {
-    auto co = testOptions();
-    co.set("tuplex.csv.selectionPushdown", "true");
-    return co;
-}
-
 TEST_F(CSVSelectionPushDown, SimpleMap) {
     FILE *file = fopen("test.csv", "w");
     fprintf(file, "a,b,c,d\n");
@@ -30,7 +24,9 @@ TEST_F(CSVSelectionPushDown, SimpleMap) {
     fprintf(file, "9,10,11,12\n");
     fclose(file);
 
-    Context c(spOptions());
+    auto co = microTestOptions();
+    co.set("tuplex.csv.selectionPushdown", "true");
+    Context c(co);
     auto v = c.csv("test.csv").map(UDF("lambda x: x[2]")).collectAsVector();
     ASSERT_EQ(v.size(), 3);
     EXPECT_EQ(v[0].getInt(0), 3);
@@ -51,7 +47,9 @@ TEST_F(CSVSelectionPushDown, SimpleFilterAndMap) {
     fclose(file);
 
 
-    Context c(spOptions());
+    auto co = microTestOptions();
+    co.set("tuplex.csv.selectionPushdown", "true");
+    Context c(co);
     auto v = c.csv("test.csv").filter(UDF("lambda x: x[0] == 2")).map(UDF("lambda x: x[-1]")).collectAsVector();
     ASSERT_EQ(v.size(), 3);
     EXPECT_EQ(v[0].getInt(0), 8);
@@ -73,7 +71,9 @@ TEST_F(CSVSelectionPushDown, SimpleFilterAndMapII) {
     fclose(file);
 
 
-    Context c(spOptions());
+    auto co = microTestOptions();
+    co.set("tuplex.csv.selectionPushdown", "true");
+    Context c(co);
     auto v = c.csv("test.csv").filter(UDF("lambda a,b,c,d: a == 2")).map(UDF("lambda x,y,z, w: w")).collectAsVector();
     ASSERT_EQ(v.size(), 3);
     EXPECT_EQ(v[0].getInt(0), 8);
@@ -94,7 +94,9 @@ TEST_F(CSVSelectionPushDown, SimpleFilterAndMapIII) {
     fprintf(file, "2,2,3,4\n");
     fclose(file);
 
-    Context c(spOptions());
+    auto co = microTestOptions();
+    co.set("tuplex.csv.selectionPushdown", "true");
+    Context c(co);
     auto v = c.csv("test.csv").filter(UDF("lambda a,b,c,d: a == 2")).map(UDF("lambda x: x[-2]")).collectAsVector();
     ASSERT_EQ(v.size(), 3);
     EXPECT_EQ(v[0].getInt(0), 7);

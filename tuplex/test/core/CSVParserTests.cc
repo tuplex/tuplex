@@ -18,9 +18,11 @@
 #include <fstream>
 #include <boost/filesystem/operations.hpp>
 
+class CSVParserTest : public TuplexTest {};
+
 using namespace tuplex;
 
-TEST(CSVDataset, NonexistingFile) {
+TEST_F(CSVParserTest, NonexistingFile) {
     Context c(testOptions());
 
     auto v = c.csv("../resources/doesnotexist.csv").collectAsVector();
@@ -28,7 +30,7 @@ TEST(CSVDataset, NonexistingFile) {
     EXPECT_EQ(v.size(), 0);
 }
 
-TEST(CSVDataset, ParseWithoutHeader) {
+TEST_F(CSVParserTest, ParseWithoutHeader) {
     Context c(testOptions());
 
     auto v = c.csv("../resources/test.csv").collectAsVector();
@@ -37,7 +39,7 @@ TEST(CSVDataset, ParseWithoutHeader) {
 }
 
 // construct fake file & check whether right order is returned
-TEST(CSVDataSet, ParseWithMultiplePartitions) {
+TEST_F(CSVParserTest, ParseWithMultiplePartitions) {
     python::initInterpreter();
 
     python::unlockGIL();
@@ -69,7 +71,7 @@ TEST(CSVDataSet, ParseWithMultiplePartitions) {
     python::closeInterpreter();
 }
 
-TEST(CSVDataSet, ParseWithMultiplePartitionsLimit) {
+TEST_F(CSVParserTest, ParseWithMultiplePartitionsLimit) {
     python::initInterpreter();
 
     python::unlockGIL();

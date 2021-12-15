@@ -51,7 +51,7 @@ TEST_F(TpchTest, Q6) {
 
     using namespace tuplex;
 
-    auto ref_conf = ContextOptions::defaults();
+    auto ref_conf = testOptions();
     ref_conf.set("tuplex.executorCount", "0");
 
     // auto path = "../resources/tpch/lineitem.minisample.tbl"; // small test file, in case bugs are encountered...
@@ -112,7 +112,7 @@ TEST_F(TpchTest, Q6_AggDictRewrite) {
 
     using namespace tuplex;
 
-    auto ref_conf = ContextOptions::defaults();
+    auto ref_conf = testOptions();
     ref_conf.set("tuplex.executorCount", "0");
 
     // auto path = "../resources/tpch/lineitem.minisample.tbl"; // small test file, in case bugs are encountered...
@@ -161,7 +161,7 @@ TEST_F(TpchTest, Q6_AggDictRewrite) {
 TEST_F(TpchTest, SimpleSumAggregate) {
     using namespace tuplex;
 
-    auto conf = ContextOptions::defaults();
+    auto conf = testOptions();
     // deactivate optimizers for now
     conf.set("tuplex.optimizer.filterPushdown", "false");
     conf.set("tuplex.csv.selectionPushdown", "false");
@@ -177,7 +177,7 @@ TEST_F(TpchTest, SimpleSumAggregate) {
 TEST_F(TpchTest, SimpleFileCountWGeneratedParser) {
     using namespace tuplex;
 
-    auto conf = ContextOptions::defaults();
+    auto conf = testOptions();
     // deactivate optimizers for now
     conf.set("tuplex.optimizer.filterPushdown", "false");
     conf.set("tuplex.csv.selectionPushdown", "false");
@@ -229,7 +229,7 @@ TEST_F(TpchTest, Pip) {
 TEST_F(TpchTest, Q19) {
     using namespace tuplex;
     // See original query: https://examples.citusdata.com/tpch_queries.html
-    auto opt_ref = ContextOptions::defaults();
+    auto opt_ref = testOptions();
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
 

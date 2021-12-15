@@ -181,7 +181,7 @@ TEST_F(Resolve, LargeTracingTest) {
         rows.push_back(Row(8, 8, "Hello world said Tux!"));
     }
 
-    Context c;
+    Context c(microTestOptions());
 
     // map!
     // auto res = c.parallelize(rows).map(UDF("lambda a, b, c: (a / b, c[a])")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda a, b, c: (0.0, c[a])")).collect();
@@ -454,7 +454,7 @@ TEST_F(Resolve, FilterResolve) {
 TEST_F(Resolve, ResolverThrowingExceptions) {
     // reset log
     logStream.str("");
-    Context c;
+    Context c(microTestOptions());
 
     // check that throwing exceptions is correctly accounted for
     auto rs = c.parallelize({Row(1), Row(2), Row(0)})
@@ -512,7 +512,7 @@ TEST_F(Resolve, ResolverThrowingExceptions) {
 TEST_F(Resolve, ResolverThrowingException) {
     using namespace std;
 
-    Context c;
+    Context c(microTestOptions());
 
     // map operator produces exception
     // however, first resolver applied to it also throws an exception!
@@ -547,7 +547,7 @@ TEST_F(Resolve, ResolverResolvingResolver) {
 
 TEST_F(Resolve, SimpleResolver) {
     logStream.str("");
-    Context c;
+    Context c(microTestOptions());
 
     // c.parallelize([1, 2, 3, 4, 0]).map(lambda x: (10 /x, x * x)).resolve(ZeroDivisionError, lambda x: (0.0, x)).collect()
     auto rs = c.parallelize({Row(1), Row(2), Row(0)})
@@ -787,7 +787,7 @@ TEST_F(Resolve, DirtyZillowData) {
                          "        type = 'house'\n"
                          "    return type\n";
 
-    Context c;
+    Context c(testOptions());
 
     // This doesn't work yet. Presumably because of mapColumn...
     auto res = c.csv("../resources/zillow_dirty.csv").cache()
@@ -877,7 +877,7 @@ TEST_F(Resolve, DirtyZillowData) {
 TEST_F(Resolve, DemoII) {
 //    c.parallelize(['123', '12345', '1234567', '987']).map(lambda s: s[4]).collect()
 
-    Context c;
+    Context c(microTestOptions());
 
     auto r = c.parallelize({Row("123"), Row("12345")})
             .map(UDF("lambda s: s[4]"))

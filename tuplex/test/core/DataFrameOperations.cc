@@ -14,7 +14,7 @@
 #include <Context.h>
 #include <DataSet.h>
 
-class CSVDataFrameTest : public ::testing::Test {
+class CSVDataFrameTest : public TuplexTest {
 protected:
 
     std::unique_ptr<tuplex::Context> context;
@@ -99,7 +99,7 @@ TEST_F(CSVDataFrameTest, HeaderlessStringFile) {
     using namespace tuplex;
     using namespace std;
 
-    auto conf = ContextOptions::defaults();
+    auto conf = testOptions();
     // deactivate optimizers for now
     conf.set("tuplex.optimizer.filterPushdown", "false");
     conf.set("tuplex.csv.selectionPushdown", "false");

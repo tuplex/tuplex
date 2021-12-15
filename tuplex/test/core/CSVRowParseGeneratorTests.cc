@@ -15,7 +15,7 @@
 
 using namespace tuplex;
 
-class CSVRowParseTest : public ::testing::Test {
+class CSVRowParseTest : public TuplexTest {
 protected:
     void SetUp() override {
         Context c(testOptions());

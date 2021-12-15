@@ -14,7 +14,7 @@
 #include "FileSystemUtils.h"
 #include <VirtualFileSystem.h>
 
-class FileOutputTest : public ::testing::Test {
+class FileOutputTest : public TuplexTest {
 protected:
     std::string folderName;
 

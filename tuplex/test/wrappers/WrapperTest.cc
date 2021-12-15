@@ -18,6 +18,8 @@
 #include <VirtualFileSystem.h>
 #include <parser/Parser.h>
 
+#include <boost/filesystem/operations.hpp>
+
 // need for these tests a running python interpreter, so spin it up
 class WrapperTest : public ::testing::Test {
 protected:
@@ -298,7 +300,7 @@ TEST_F(WrapperTest, TwoContexts) {
     using namespace tuplex;
 
     PythonContext c("", "", testOptions());
-    PPythonContext c("", "", testOptions());
+    PythonContext c("", "", testOptions());
 
     {
         auto opt1 = c.options();

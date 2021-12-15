@@ -21,8 +21,13 @@
 // need for these tests a running python interpreter, so spin it up
 class WrapperTest : public ::testing::Test {
 protected:
+    std::string testName;
+    std::string scratchDir;
 
     void SetUp() override {
+        testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+        scratchDir = "/tmp/" + testName;
+
         python::initInterpreter();
 
         // hold GIL
@@ -33,6 +38,36 @@ protected:
 
         // important to get GIL for this
         python::closeInterpreter();
+    }
+
+    inline void remove_temp_files() {
+        tuplex::Timer timer;
+        boost::filesystem::remove_all(scratchDir.c_str());
+        std::cout<<"removed temp files in "<<timer.time()<<"s"<<std::endl;
+    }
+
+    ~WrapperTest() override {
+        remove_temp_files();
+    }
+
+    inline std::string testOptions() {
+        using namespace tuplex;
+        std::stringstream ss;
+        ss << "{";
+        ss << "\"tuplex.executorCount\", \"4\",";
+        ss << "\"tuplex.partitionSize\", \"512KB\",";
+        ss << "\"tuplex.executorMemory\", \"8MB\",";
+        ss << "\"tuplex.useLLVMOptimizer\", \"true\",";
+        ss << "\"tuplex.allowUndefinedBehavior\", \"false\",";
+        ss << "\"tuplex.webui.enable\", \"false\",";
+        ss << "\"tuplex.scratchDir\", \"file://" << scratchDir << "\",";
+#ifdef BUILD_FOR_CI
+        ss << "\"tuplex.aws.httpThreadCount\", \"0\"";
+#else
+        ss << "\"tuplex.aws.httpThreadCount\", \"1\"";
+#endif
+        ss << "}";
+        return ss.str();
     }
 };
 
@@ -55,7 +90,7 @@ TEST_F(WrapperTest, LambdaBackend) {
 TEST_F(WrapperTest, StringTuple) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject *listObj = PyList_New(4);
     PyObject *tupleObj1 = PyTuple_New(2);
@@ -97,7 +132,7 @@ TEST_F(WrapperTest, StringTuple) {
 TEST_F(WrapperTest, MixedSimpleTupleTuple) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject *listObj = PyList_New(4);
     PyObject *tupleObj1 = PyTuple_New(2);
@@ -139,7 +174,7 @@ TEST_F(WrapperTest, MixedSimpleTupleTuple) {
 TEST_F(WrapperTest, StringParallelize) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(3);
     PyList_SET_ITEM(listObj, 0, python::PyString_FromString("Hello"));
@@ -165,7 +200,7 @@ TEST_F(WrapperTest, StringParallelize) {
 TEST_F(WrapperTest, DictionaryParallelize) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * dictObj1 = PyDict_New();
     PyDict_SetItem(dictObj1, python::PyString_FromString("Hello"), PyFloat_FromDouble(0.0));
@@ -215,7 +250,7 @@ TEST_F(WrapperTest, SimpleCSVParse) {
     PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
 
     // RAII, destruct python context!
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     // weird block syntax due to RAII problems.
     {
@@ -246,7 +281,7 @@ TEST_F(WrapperTest, SimpleCSVParse) {
 TEST_F(WrapperTest, GetOptions) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     // weird RAII problems of boost python
     {
@@ -262,8 +297,8 @@ TEST_F(WrapperTest, GetOptions) {
 TEST_F(WrapperTest, TwoContexts) {
     using namespace tuplex;
 
-    PythonContext c("");
-    PythonContext c2("");
+    PythonContext c("", "", testOptions());
+    PPythonContext c("", "", testOptions());
 
     {
         auto opt1 = c.options();
@@ -286,7 +321,7 @@ TEST_F(WrapperTest, Show) {
     PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "");
+    PythonContext c("python", "", testOptions());
 
     // weird block syntax due to RAII problems.
     {
@@ -311,7 +346,7 @@ TEST_F(WrapperTest, GoogleTrace) {
     PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "");
+    PythonContext c("python", "", testOptions());
     /// Based on Google trace data, this mini pipeline serves as CSV parsing test ground.
     ///  c.csv(file_path) \
     ///   .filter(lambda x: x[3] == 0) \
@@ -458,7 +493,7 @@ TEST_F(WrapperTest, extractPriceExample) {
     auto cols = boost::python::list(boost::python::handle<>(colObj));
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "");
+    PythonContext c("python", "", testOptions());
 
     {
         // all calls go here...
@@ -558,7 +593,7 @@ TEST_F(WrapperTest, DictListParallelize) {
     using namespace tuplex;
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "{\"tuplex.webui.enable\" : \"False\"}");
+    PythonContext c("python", "", testOptions());
 
     // weird block syntax due to RAII problems.
     {
@@ -595,7 +630,9 @@ TEST_F(WrapperTest, UpcastParallelizeI) {
     using namespace tuplex;
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "{\"tuplex.webui.enable\":\"False\", \"tuplex.autoUpcast\":\"True\"}");
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + "\"tuplex.autoUpcast\":\"True\"}";
+    PythonContext c("python", "", opts);
 
     // weird block syntax due to RAII problems.
     {
@@ -625,7 +662,9 @@ TEST_F(WrapperTest, UpcastParallelizeII) {
     using namespace tuplex;
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "{\"tuplex.webui.enable\":\"False\", \"tuplex.autoUpcast\":\"True\"}");
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + "\"tuplex.autoUpcast\":\"True\"}";
+    PythonContext c("python", "", opts);
 
     // weird block syntax due to RAII problems.
     {
@@ -659,7 +698,9 @@ TEST_F(WrapperTest, FilterAll) {
     using namespace tuplex;
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "{\"tuplex.webui.enable\":\"False\", \"tuplex.autoUpcast\":\"True\"}");
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + "\"tuplex.autoUpcast\":\"True\"}";
+    PythonContext c("python", "", opts);
 
     // weird block syntax due to RAII problems.
     {
@@ -685,7 +726,7 @@ TEST_F(WrapperTest, ColumnNames) {
     using namespace tuplex;
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "{\"tuplex.webui.enable\":\"False\"}");
+    PythonContext c("python", "", testOptions());
 
     // weird block syntax due to RAII problems.
     {
@@ -746,7 +787,9 @@ TEST_F(WrapperTest, IntegerTuple) {
     PyDict_SetItemString(pyopt, "tuplex.autoUpcast", Py_True);
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "{\"tuplex.webui.enable\":\"False\", \"tuplex.autoUpcast\":\"True\"}");
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + "\"tuplex.autoUpcast\":\"True\"}";
+    PythonContext c("python", "", opts);
 
     // weird block syntax due to RAII problems.
     {
@@ -800,8 +843,9 @@ TEST_F(WrapperTest, IfWithNull) {
     string sampleFile = "../resources/flight_ifwithnulls.sample.csv"; // also fails, yeah!
 
     // RAII, destruct python context!
-    PythonContext c("python", "",
-                    "{\"tuplex.webui.enable\":\"False\", \"tuplex.useLLVMOptimizer\" : \"False\", \"tuplex.executorCount\":0}");
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + "\"tuplex.useLLVMOptimizer\" : \"False\", \"tuplex.executorCount\":0}";
+    PythonContext c("python", "", opts);
     // execute mini part of pipeline and output csv to file
     // pipeline is
     // df = ctx.csv(perf_path)
@@ -874,8 +918,9 @@ TEST_F(WrapperTest, FlightData) {
     string sampleFile = "../resources/flights_on_time_performance_2019_01.sample.tworows.csv"; // does not work
 
     // RAII, destruct python context!
-    PythonContext c("python", "",
-                    "{\"tuplex.webui.enable\":\"False\", \"tuplex.useLLVMOptimizer\" : \"False\", \"tuplex.executorCount\":0}");
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + "\"tuplex.useLLVMOptimizer\" : \"False\", \"tuplex.executorCount\":0}";
+    PythonContext c("python", "", opts);
     // execute mini part of pipeline and output csv to file
     // pipeline is
     // df = ctx.csv(perf_path)
@@ -1001,7 +1046,9 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
                     " \"tuplex.optimizer.csv.selectionPushdown\" : \"True\","
                     " \"tuplex.resolveWithInterpreterOnly\":\"False\","
                     "\"tuplex.executorCount\":0,"
-                    "\"tuplex.driverMemory\":\"6G\"}");
+                    "\"tuplex.driverMemory\":\"6G\","
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                    "}");
 
 
     string bts_path = "../resources/flights_on_time_performance_2019_01.sample.csv";
@@ -1082,7 +1129,7 @@ TEST_F(WrapperTest, Airport) {
 
     // RAII, destruct python context!
     PythonContext c("python", "",
-                    "{\"tuplex.webui.enable\":\"False\", \"tuplex.useLLVMOptimizer\" : \"False\"}");
+                    testOptions());
 
     // execute mini part of pipeline and output csv to file
     // pipeline is
@@ -1126,7 +1173,7 @@ TEST_F(WrapperTest, Airport) {
 TEST_F(WrapperTest, OptionParallelizeI) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(5);
     PyList_SET_ITEM(listObj, 0, PyLong_FromLong(112));
@@ -1158,7 +1205,7 @@ TEST_F(WrapperTest, OptionParallelizeI) {
 TEST_F(WrapperTest, OptionParallelizeII) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(5);
 
@@ -1203,7 +1250,7 @@ TEST_F(WrapperTest, OptionParallelizeII) {
 TEST_F(WrapperTest, NoneParallelize) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(2);
     PyList_SET_ITEM(listObj, 0, Py_None);
@@ -1229,7 +1276,7 @@ TEST_F(WrapperTest, NoneParallelize) {
 TEST_F(WrapperTest, EmptyMapI) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(4);
     PyList_SET_ITEM(listObj, 0, PyLong_FromLong(1));
@@ -1259,7 +1306,7 @@ TEST_F(WrapperTest, EmptyMapI) {
 TEST_F(WrapperTest, EmptyMapII) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(4);
     PyList_SET_ITEM(listObj, 0, PyLong_FromLong(1));
@@ -1293,7 +1340,7 @@ TEST_F(WrapperTest, EmptyMapII) {
 TEST_F(WrapperTest, EmptyMapIII) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(4);
     PyList_SET_ITEM(listObj, 0, PyLong_FromLong(1));
@@ -1327,7 +1374,7 @@ TEST_F(WrapperTest, EmptyMapIII) {
 TEST_F(WrapperTest, EmptyOptionMapI) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(4);
     PyList_SET_ITEM(listObj, 0, PyLong_FromLong(1));
@@ -1359,7 +1406,7 @@ TEST_F(WrapperTest, EmptyOptionMapI) {
 TEST_F(WrapperTest, EmptyOptionMapII) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(4);
     PyList_SET_ITEM(listObj, 0, PyLong_FromLong(1));
@@ -1391,7 +1438,7 @@ TEST_F(WrapperTest, EmptyOptionMapII) {
 TEST_F(WrapperTest, OptionTupleParallelizeI) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(3);
 
@@ -1442,7 +1489,7 @@ TEST_F(WrapperTest, OptionTupleParallelizeI) {
 TEST_F(WrapperTest, OptionTupleParallelizeII) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(3);
 
@@ -1493,7 +1540,7 @@ TEST_F(WrapperTest, OptionTupleParallelizeII) {
 TEST_F(WrapperTest, OptionTupleParallelizeIII) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(3);
 
@@ -1543,7 +1590,7 @@ TEST_F(WrapperTest, OptionTupleParallelizeIII) {
 TEST_F(WrapperTest, parallelizeOptionTypeI) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = python::runAndGet(
             "test_input = [(1.0, '2', 3, '4', 5, 6, True, 8, 9, None), (None, '2', 3, None, 5, 6, True, 8, 9, None)"
@@ -1572,7 +1619,7 @@ TEST_F(WrapperTest, parallelizeOptionTypeI) {
 TEST_F(WrapperTest, parallelizeNestedSlice) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = python::runAndGet(
             "test_input = [((), (\"hello\",), 123, \"oh no\", (1, 2)), ((), (\"goodbye\",), 123, \"yes\", (-10, 2)),\n"
@@ -1606,7 +1653,7 @@ TEST_F(WrapperTest, TPCHQ6) {
                                            "                    'l_discount', 'l_tax', 'l_returnflag', 'l_linestatus',\n"
                                            "                    'l_shipdate', 'l_commitdate', 'l_receiptdate',\n"
                                            "                    'l_shipinstruct', 'l_shipmode', 'l_comment']", "listitem_columns");
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     {
 
@@ -1629,7 +1676,7 @@ TEST_F(WrapperTest, TupleParallelizeI) {
 
     PyObject* listObj = python::runAndGet("L = [('hello', 'world', 'hi', 1, 2, 3), ('foo', 'bar', 'baz', 4, 5, 6), ('blank', '', 'not', 7, 8, 9)]", "L");
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
     {
         auto list = boost::python::list(boost::python::handle<>(listObj));
         c.parallelize(list).map("lambda x: ({x[0]: x[3], x[1]: x[4], x[2]: x[5]},)", "").show();
@@ -1641,7 +1688,7 @@ TEST_F(WrapperTest, TupleParallelizeII) {
 
     PyObject* listObj = python::runAndGet("L = [({}, {}, {}), ({}, {}, {}), ({}, {}, {})]", "L");
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
     {
         auto list = boost::python::list(boost::python::handle<>(listObj));
         c.parallelize(list).map("lambda x, y, z: [x, y, z]", "").show();
@@ -1658,7 +1705,7 @@ TEST_F(WrapperTest, DictParallelizeRefTest) {
     PyObject* strings = python::runAndGet("strings = [('hello', 'world', 'hi'), ('foo', 'bar', 'baz'), ('blank', '', 'not')]\n", "strings");
     PyObject* floats = python::runAndGet("floats = [(1.2, 3.4, -100.2), (5.6, 7.8, -1.234), (9.0, 0.1, 2.3)]\n", "floats");
     ASSERT_TRUE(floats->ob_refcnt > 0);
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     {
 
@@ -1701,7 +1748,7 @@ TEST_F(WrapperTest, DictParallelizeRefTest) {
 TEST_F(WrapperTest, BuiltinModule) {
     using namespace tuplex;
     using namespace std;
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     {
         PyObject* L = PyList_New(3);
@@ -1733,7 +1780,7 @@ TEST_F(WrapperTest, SwapIII) {
                 "    return a, b\n"
                 "\n";
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
     {
         PyObject* L = PyList_New(2);
         auto tuple1 = PyTuple_New(2);
@@ -2076,6 +2123,7 @@ TEST_F(WrapperTest, ZillowDirty) {
                      " \"optimizer.nullValueOptimization\": false,"
                      " \"csv.selectionPushdown\": false, "
                      "\"optimizer.generateParser\": false,"
+                     "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                      "\"optimizer.mergeExceptionsInOrder\": true}";
 
     auto json_opts_alt = "{\"webui.enable\": false,"
@@ -2087,7 +2135,9 @@ TEST_F(WrapperTest, ZillowDirty) {
                      " \"useLLVMOptimizer\": true,"
                      " \"optimizer.nullValueOptimization\": false,"
                      " \"csv.selectionPushdown\": false, "
+                     "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                      "\"optimizer.generateParser\": false,"
+
                      "\"optimizer.mergeExceptionsInOrder\": false}";
 
     z_path = "../resources/zillow_dirty.csv";
@@ -2139,7 +2189,7 @@ TEST_F(WrapperTest, BitwiseAnd) {
 
     PyObject* listObj = python::runAndGet("L = [(False, False), (False, True), (True, False), (True, True)]", "L");
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
     {
         auto list = boost::python::list(boost::python::handle<>(listObj));
         auto res_list = c.parallelize(list).map("lambda a, b: a & b", "").collect();
@@ -2155,7 +2205,7 @@ TEST_F(WrapperTest, MetricsTest) {
 
     PyObject* listObj = python::runAndGet("L = [(False, False), (False, True), (True, False), (True, True)]", "L");
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
     {
         auto list = boost::python::list(boost::python::handle<>(listObj));
         auto res_list = c.parallelize(list).map("lambda a, b: a & b", "").collect();
@@ -2199,6 +2249,7 @@ TEST_F(WrapperTest, LambdaResolveI) {
     auto ctx_opts = "{\"webui.enable\": false,"
                          " \"driverMemory\": \"8MB\","
                          " \"partitionSize\": \"256KB\","
+                         "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                          "\"resolveWithInterpreterOnly\": true}";
     PythonContext ctx("", "", ctx_opts);
 
@@ -2237,6 +2288,7 @@ TEST_F(WrapperTest, CollectPyObjects) {
     auto ctx_opts = "{\"webui.enable\": false,"
                     " \"driverMemory\": \"8MB\","
                     " \"partitionSize\": \"256KB\","
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                     "\"resolveWithInterpreterOnly\": true}";
     PythonContext ctx("", "", ctx_opts);
 
@@ -2275,6 +2327,7 @@ TEST_F(WrapperTest, SingleCharCSVField) {
     auto ctx_opts = "{\"webui.enable\": false,"
                     " \"driverMemory\": \"8MB\","
                     " \"partitionSize\": \"256KB\","
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                     "\"resolveWithInterpreterOnly\": true}";
     PythonContext ctx("", "", ctx_opts);
 
@@ -2303,6 +2356,7 @@ TEST_F(WrapperTest, NYC311) {
                     " \"driverMemory\": \"8MB\","
                     " \"partitionSize\": \"256KB\","
                     "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                     "\"resolveWithInterpreterOnly\": true}";
 
     auto fix_zip_codes_c = "def fix_zip_codes(zips):\n"

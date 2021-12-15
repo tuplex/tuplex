@@ -300,7 +300,7 @@ TEST_F(WrapperTest, TwoContexts) {
     using namespace tuplex;
 
     PythonContext c("", "", testOptions());
-    PythonContext c("", "", testOptions());
+    PythonContext c2("", "", testOptions());
 
     {
         auto opt1 = c.options();

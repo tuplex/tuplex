@@ -1279,7 +1279,7 @@ TEST_F(PipelinesTest, FlightWithIgnore) {
 //    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
     Context c_proj_wLLVMOpt_parse_null(opt_proj_wLLVMOpt_parse_null);
 
-    flightPipeline(c_proj_wLLVMOpt_parse_null, bts_path, carrier_path, airport_path, false, true).tocsv("test.csv");
+    flightPipeline(c_proj_wLLVMOpt_parse_null, bts_path, carrier_path, airport_path, false, true).tocsv(testName + ".csv");
 
 }
 

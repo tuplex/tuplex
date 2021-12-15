@@ -288,9 +288,9 @@ TEST_F(Resolve, ResolveAccessesOtherCol) {
 
     //    Row(0, 1, 2, 4), Row(1, 1, 2, 4)
 
-    stringToFile(URI("test.csv"), "0,1,2,4\n1,1,2,4\n");
+    stringToFile(URI(testName + ".csv"), "0,1,2,4\n1,1,2,4\n");
 
-    auto res = c.csv("test.csv").map(UDF("lambda x: 10 / x[0]"))
+    auto res = c.csv(testName + ".csv").map(UDF("lambda x: 10 / x[0]"))
             .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x[2] * 1.0"))
             .resolve(ExceptionCode::VALUEERROR, UDF("lambda x: 0.0"))
             .collectAsVector();
@@ -313,9 +313,9 @@ TEST_F(Resolve, ResolveAccessesOtherColInterpreterOnlyAndPushdown) {
     Context c(opt);
 
     //    Row(0, 1, 2, 4), Row(1, 1, 2, 4)
-    stringToFile(URI("test.csv"), "0,1,2,4\n1,1,2,4\n");
+    stringToFile(URI(testName + ".csv"), "0,1,2,4\n1,1,2,4\n");
 
-    auto res = c.csv("test.csv").map(UDF("lambda x: 10 / x[0]"))
+    auto res = c.csv(testName + ".csv").map(UDF("lambda x: 10 / x[0]"))
             .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x[2] * 1.0"))
             .resolve(ExceptionCode::VALUEERROR, UDF("lambda x: 0.0"))
             .collectAsVector();

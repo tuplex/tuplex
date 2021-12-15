@@ -377,7 +377,7 @@ TEST_F(AggregateTest, UniqueMixedTypesWithInterpreterFallback) {
 
     // create a mixed types file (majority should be string or int64 because these are the supported ones...)
     std::string content = "A\nB\n3\n4.5\nC\nNULL\n";
-    stringToFile(content, "test.csv");
+    stringToFile(content, testName + ".csv");
 
     // test pipeline could be:
     // c_ref.csv('test.csv').unique().map(lambda x: str(x)).collect()

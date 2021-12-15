@@ -15,7 +15,7 @@
 #include "TestUtils.h"
 #include "RuntimeInterface.h"
 
-class MathFunctionsTest : public PyTest {};
+class MathFunctionsTest : public TuplexTest {};
 
 TEST_F(MathFunctionsTest, MathLog) {
     using namespace std;

@@ -45,7 +45,8 @@ TEST_F(CSVParserTest, ParseWithMultiplePartitions) {
     python::unlockGIL();
 
     // write temp file
-    FILE *fp = fopen("test.csv", "w");
+    auto fName = testName + ".csv";
+    FILE *fp = fopen(fName.c_str(), "w");
     ASSERT_TRUE(fp);
     fprintf(fp, "columnA,columnB\n");
     auto N = 50000;
@@ -55,7 +56,7 @@ TEST_F(CSVParserTest, ParseWithMultiplePartitions) {
     fclose(fp);
 
     Context c(microTestOptions());
-    auto v = c.csv("test.csv").mapColumn("columnB", UDF("lambda x: x * x")).collectAsVector();
+    auto v = c.csv(testName + ".csv").mapColumn("columnB", UDF("lambda x: x * x")).collectAsVector();
 
     ASSERT_EQ(v.size(), N);
 
@@ -77,7 +78,8 @@ TEST_F(CSVParserTest, ParseWithMultiplePartitionsLimit) {
     python::unlockGIL();
 
     // write temp file
-    FILE *fp = fopen("test.csv", "w");
+    auto fName = testName + ".csv";
+    FILE *fp = fopen(fName.c_str(), "w");
     ASSERT_TRUE(fp);
     fprintf(fp, "columnA,columnB\n");
     auto N = 50000;
@@ -88,7 +90,7 @@ TEST_F(CSVParserTest, ParseWithMultiplePartitionsLimit) {
 
     size_t limit = 5;
     Context c(microTestOptions());
-    auto v = c.csv("test.csv").mapColumn("columnB", UDF("lambda x: x * x")).takeAsVector(limit);
+    auto v = c.csv(testName + ".csv").mapColumn("columnB", UDF("lambda x: x * x")).takeAsVector(limit);
 
     ASSERT_EQ(v.size(), limit);
 

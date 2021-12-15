@@ -19,7 +19,7 @@ using namespace std;
 // Note: only this test here fails...
 TEST_F(CacheTest, SimpleCSVLoad) {
     using namespace std;
-    auto fileURI = URI("test.csv");
+    auto fileURI = URI(testName + ".csv");
     auto opt = microTestOptions();
 
     // first, deactivate logical optimizations and make caching work as is...
@@ -52,7 +52,7 @@ TEST_F(CacheTest, SimpleCSVLoad) {
 // => can't push filter below .cache()
 TEST_F(CacheTest, LogicalOptCSVLoad) {
     using namespace std;
-    auto fileURI = URI("test.csv");
+    auto fileURI = URI(testName + ".csv");
     auto opt = microTestOptions();
 
     // first, deactivate logical optimizations and make caching work as is...
@@ -121,11 +121,11 @@ TEST_F(CacheTest, NullValueOptIf) {
     for(int i = 0; i < 10; ++i)
         ss<<"10,20\n";
     ss<<",20\n"; // single non-conforming row, which gets cached separately!
-    stringToFile(URI("test.csv"), ss.str());
+    stringToFile(URI(testName + ".csv"), ss.str());
 
     // => cache materializes both normal and exceptional case in memory
     // => this can be then used to speed up processing!
-    auto& ds_cached = c.csv("test.csv").cache();
+    auto& ds_cached = c.csv(testName + ".csv").cache();
 
     cout<<"cache done"<<endl;
     auto vIA = ds_cached.map(UDF(code_I)).collectAsVector();
@@ -168,11 +168,11 @@ TEST_F(CacheTest, NullValueOptIfAlt) {
     for(int i = 0; i < 10; ++i)
         ss<<"10,20\n";
     ss<<",20\n"; // single non-conforming row, which gets cached separately!
-    stringToFile(URI("test.csv"), ss.str());
+    stringToFile(URI(testName + ".csv"), ss.str());
 
     // => cache materializes both normal and exceptional case in memory
     // => this can be then used to speed up processing!
-    auto& ds_cached = c.csv("test.csv").cache();
+    auto& ds_cached = c.csv(testName + ".csv").cache();
 
     cout<<"cache done"<<endl;
     auto vIA = ds_cached.map(UDF(code_I)).collectAsVector();

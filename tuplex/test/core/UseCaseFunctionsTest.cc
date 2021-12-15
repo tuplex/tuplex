@@ -934,10 +934,10 @@ TEST_F(UseCaseFunctionsTest, NullValueOptIf) {
     for(int i = 0; i < 10; ++i)
         ss<<"10,20\n";
     ss<<",20\n";
-    stringToFile(URI("test.csv"), ss.str());
+    stringToFile(URI(testName + ".csv"), ss.str());
 
     // IA:
-    auto vIA = c.csv("test.csv")
+    auto vIA = c.csv(testName + ".csv")
                    .map(UDF(code_I)).collectAsVector();
 
     for(auto r : vIA)

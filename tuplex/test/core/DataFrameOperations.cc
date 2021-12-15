@@ -21,10 +21,11 @@ protected:
     PyThreadState *saveState;
 
     void SetUp() override {
+        TuplexTest::SetUp();
         using namespace std;
 
         // write test file
-        ofstream ofs("test.csv");
+        ofstream ofs(testName + ".csv");
 
         ofs<<"firstname,surname,income\n";
         ofs<<"Manuel,Neuer,48000\n";
@@ -48,11 +49,11 @@ protected:
         python::closeInterpreter();
 
         // remove test file
-        remove("test.csv");
+        remove(testName + ".csv");
 
     }
 
-    tuplex::DataSet& csvfile() { return context->csv("test.csv"); }
+    tuplex::DataSet& csvfile() { return context->csv(testName + ".csv"); }
 
 };
 
@@ -63,7 +64,7 @@ TEST_F(DataFrameTest, PrefixNullTest) {
     using namespace tuplex;
     using namespace std;
 
-    URI uri("test.txt");
+    URI uri(testName + ".txt");
     stringToFile(uri, "0\n000\n0000\n00\n0");
     auto confA = microTestOptions();
     auto confB = microTestOptions();
@@ -107,7 +108,7 @@ TEST_F(CSVDataFrameTest, HeaderlessStringFile) {
     conf.set("tuplex.executorCount", "0");
     conf.set("tuplex.optimizer.generateParser", "false");
     Context c(conf);
-    auto path = URI("test.txt");
+    auto path = URI(testName + ".txt");
     stringToFile(path, "a\nb");
 
     vector<string> ref{"a", "b"};
@@ -125,18 +126,18 @@ TEST_F(CSVDataFrameTest, TSVFile) {
     auto data = "4\tFAST ETL!\n"
                 "7\tFAST ETL!";
 
-    ofstream ofs("test.tsv");
+    ofstream ofs(testName + ".tsv");
     ofs<<data<<endl;
 
     Context c(microTestOptions());
 
-    auto v = c.csv("test.tsv").collectAsVector();
+    auto v = c.csv(testName + ".tsv").collectAsVector();
 
     ASSERT_EQ(v.size(), 2);
     EXPECT_EQ(v[0].toPythonString(), Row(4, "FAST ETL!").toPythonString());
     EXPECT_EQ(v[1].toPythonString(), Row(7, "FAST ETL!").toPythonString());
 
-    remove("test.tsv");
+    remove(testName + ".tsv");
 }
 
 TEST_F(CSVDataFrameTest, ReadHeaderLessFile) {
@@ -155,12 +156,12 @@ TEST_F(CSVDataFrameTest, ReadHeaderLessFile) {
     auto data = "4\tFAST ETL!\n"
                 "7\tFAST ETL!";
 
-    ofstream ofs("test.tsv");
+    ofstream ofs(testName + ".tsv");
     ofs<<data<<endl;
 
     Context c(microTestOptions());
 
-    auto v = c.csv("test.tsv", vector<string>{"a", "b"}).map(UDF("lambda x: x['a']")).collectAsVector();
+    auto v = c.csv(testName + ".tsv", vector<string>{"a", "b"}).map(UDF("lambda x: x['a']")).collectAsVector();
 
     for(auto r : v)
         std::cout<<r.toPythonString()<<std::endl;
@@ -171,13 +172,13 @@ TEST_F(CSVDataFrameTest, ReadHeaderLessFile) {
 
     // now using show, to make sure column was captured adequately
     std::stringstream ss;
-    c.csv("test.tsv", vector<string>{"a", "b"}).selectColumns({"a"}).show(100, ss);
+    c.csv(testName + ".tsv", vector<string>{"a", "b"}).selectColumns({"a"}).show(100, ss);
 
     std::cout<<ss.str()<<std::endl;
 
     EXPECT_EQ(ss.str(), ref);
 
-    remove("test.tsv");
+    remove(testName + ".tsv");
 }
 
 // @TODO: tests for header conflicting with columns, etc.
@@ -190,12 +191,12 @@ TEST_F(DataFrameTest, CSVConflictingColumns) {
     auto data = "a,b,2\n"
                 "c,d,3";
 
-    ofstream ofs("test.csv");
+    ofstream ofs(testName + ".csv");
     ofs<<data<<endl;
 
     Context c(microTestOptions());
 
-    auto v = c.csv("test.csv", vector<string>{"a", "b", "c"}, false, ',')
+    auto v = c.csv(testName + ".csv", vector<string>{"a", "b", "c"}, false, ',')
               .map(UDF("lambda x: (x['c'] + 1, x['a'])")).collectAsVector();
 
     for(auto r : v)
@@ -205,7 +206,7 @@ TEST_F(DataFrameTest, CSVConflictingColumns) {
     EXPECT_EQ(v[0].toPythonString(), Row(3, "a").toPythonString());
     EXPECT_EQ(v[1].toPythonString(), Row(4, "c").toPythonString());
 
-    remove("test.csv");
+    remove(testName + ".csv");
 }
 
 // explicit schema test
@@ -285,10 +286,10 @@ TEST_F(DataFrameTest, ToCSVFile) {
 
     c.parallelize({Row(10, 42.34, "hello", "hello \"world!\""),
                    Row(11, 43.34, "hello", "abc")})
-                   .tocsv("test.csv");
+                   .tocsv(testName + ".csv");
 
     // check that file was written locally
-    FILE *file = fopen("test.part0.csv", "r");
+    FILE *file = fopen(testName + ".part0.csv", "r");
     ASSERT_TRUE(file);
 
     fseek(file, 0L, SEEK_END);

@@ -65,6 +65,15 @@ namespace tuplex {
      */
     extern int32_t fast_dequote(const char *start, const char *end, const char quotechar, char **out, int64_t *olength, malloc_f mf);
 
+    inline std::string tolower(const std::string& s) {
+        auto data = s;
+        // convert string to back to lower case
+        std::for_each(data.begin(), data.end(), [](char & c){
+            c = ::tolower(c);
+        });
+        return data;
+    }
+
     // from https://stackoverflow.com/questions/9277906/stdvector-to-string-with-custom-delimiter in order
     // to convert quickly any container to a delimiter concatenated list.
 

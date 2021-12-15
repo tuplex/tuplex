@@ -378,8 +378,13 @@ namespace tuplex {
         // search for symbol in all dylibs
         for(auto it = _dylibs.rbegin(); it != _dylibs.rend(); ++it) {
             auto sym = _lljit->lookup(**it, Name);
+
             if(sym)
                 return reinterpret_cast<void*>(sym.get().getAddress());
+            else {
+                auto err = sym.takeError();
+                Logger::instance().logger("LLVM").error(errToString(err));
+            }
         }
 
         Logger::instance().logger("LLVM").error("could not find symbol " + Name + ". ");

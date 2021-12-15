@@ -19,6 +19,7 @@
 #define WORKER_ERROR_NO_PYTHON_HOME 101
 #define WORKER_ERROR_NO_TUPLEX_RUNTIME 102
 #define WORKER_ERROR_INVALID_URI 103
+#define WORKER_ERROR_COMPILATION_FAILED 104
 
 // give 32MB standard buf size, 8MB for exceptions and hash
 #define WORKER_DEFAULT_BUFFER_SIZE 33554432
@@ -113,6 +114,8 @@ namespace tuplex {
         Aws::SDKOptions _aws_options;
 #endif
 
+        // cache for compiled stages (sometimes same IR gets send)
+        std::unordered_map<std::string, std::shared_ptr<TransformStage::JITSymbols>> _compileCache;
 
         // variables for each Thread
         struct ThreadEnv {
@@ -145,6 +148,11 @@ namespace tuplex {
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, const uint8_t* bucket, int64_t bucket_size);
         static void exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
+
+        // slow path callbacks
+        static int64_t slowPathRowCallback(ThreadEnv *env, uint8_t* buf, int64_t bufSize);
+        static void slowPathExceptCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input, int64_t dataLength);
+
     };
 }
 

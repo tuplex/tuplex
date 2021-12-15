@@ -130,11 +130,12 @@ TEST(BasicInvocation, Worker) {
     vfs.file_size(test_path, input_file_size);
     auto json_message = transformStageToReqMessage(tstage, "test_input.csv", input_file_size, "test_output.csv");
 
-
+    // save to file
+    stringToFile("test_message.json", json_message);
 
     // invoke worker with that message
     timer.reset();
-    auto cmd = work_dir + "/" + worker_path + " -m " + shellEscape(json_message);
+    auto cmd = work_dir + "/" + worker_path + " -m " + "test_message.json";
     res_stdout = runCommand(cmd);
     worker_invocation_duration = timer.time();
     cout<<res_stdout<<endl;

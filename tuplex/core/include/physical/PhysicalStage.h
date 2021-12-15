@@ -115,7 +115,7 @@ namespace tuplex {
          * returns PhysicalPlan associated with this stage
          * @return
          */
-        const PhysicalPlan* plan() const { assert(_plan); return _plan; }
+        const PhysicalPlan* plan() const { return _plan; }
 
         /*!
          * get json representation of this stage ( no recursive call)

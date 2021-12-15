@@ -42,7 +42,7 @@ namespace tuplex {
 
         logger.info("Initializing python interpreter version " + python::python_version(true, true));
         python::initInterpreter();
-
+        python::unlockGIL();
         return WORKER_OK;
     }
 
@@ -79,7 +79,6 @@ namespace tuplex {
         if(python::isInterpreterRunning()) {
             python::lockGIL();
             python::closeInterpreter();
-            python::unlockGIL();
         }
 
         runtime::freeRunTimeMemory();
@@ -128,6 +127,25 @@ namespace tuplex {
     }
 
     int WorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
+
+        // only transform stage yet supported, in the future support other stages as well!
+
+        auto tstage = TransformStage::from_protobuf(req.stage());
+
+        // check what type of message it is & then start processing it.
+        auto syms = compileTransformStage(*tstage);
+        if(!syms)
+            return WORKER_ERROR_COMPILATION_FAILED;
+
+        // process data (single-threaded or via thread pool!)
+        if(_numThreads <= 1) {
+            // single-threaded
+
+        } else {
+            // multi-threaded
+
+        }
+
         // @TODO:
         return WORKER_OK;
     }
@@ -141,23 +159,42 @@ namespace tuplex {
     }
 
     std::shared_ptr<TransformStage::JITSymbols> WorkerApp::compileTransformStage(TransformStage &stage) {
-        // compile transform stage, depending on worker settings use optimizer before or not!
-        // -> per default, don't.
 
-        // register functions
-        // Note: only normal case for now, the other stuff is not interesting yet...
-        if(!stage.writeMemoryCallbackName().empty())
-            _compiler->registerSymbol(stage.writeMemoryCallbackName(), writeRowCallback);
-        if(!stage.exceptionCallbackName().empty())
-            _compiler->registerSymbol(stage.exceptionCallbackName(), exceptRowCallback);
-        if(!stage.writeFileCallbackName().empty())
-            _compiler->registerSymbol(stage.writeFileCallbackName(), writeRowCallback);
-        if(!stage.writeHashCallbackName().empty())
-            _compiler->registerSymbol(stage.writeHashCallbackName(), writeHashCallback);
+        // use cache
+        auto it = _compileCache.find(stage.bitCode());
+        if(it != _compileCache.end()) {
+            logger().debug("Using cached compiled code");
+            return it->second;
+        }
 
-        // in debug mode, validate module.
-        #ifdef NDEBUG
-        llvm::LLVMContext ctx;
+        try {
+            // compile transform stage, depending on worker settings use optimizer before or not!
+            // -> per default, don't.
+
+            // register functions
+            // Note: only normal case for now, the other stuff is not interesting yet...
+            if(!stage.writeMemoryCallbackName().empty())
+                _compiler->registerSymbol(stage.writeMemoryCallbackName(), writeRowCallback);
+            if(!stage.exceptionCallbackName().empty())
+                _compiler->registerSymbol(stage.exceptionCallbackName(), exceptRowCallback);
+            if(!stage.writeFileCallbackName().empty())
+                _compiler->registerSymbol(stage.writeFileCallbackName(), writeRowCallback);
+            if(!stage.writeHashCallbackName().empty())
+                _compiler->registerSymbol(stage.writeHashCallbackName(), writeHashCallback);
+
+            // slow path registration, for now dummies
+            if(!stage.resolveWriteCallbackName().empty())
+                _compiler->registerSymbol(stage.resolveWriteCallbackName(), slowPathRowCallback);
+            if(!stage.resolveExceptionCallbackName().empty())
+                _compiler->registerSymbol(stage.resolveExceptionCallbackName(), slowPathExceptCallback);
+            // @TODO: hashing callbacks...
+
+
+
+
+            // in debug mode, validate module.
+#ifdef NDEBUG
+            llvm::LLVMContext ctx;
         auto mod = codegen::bitCodeToModule(ctx, stage.bitCode());
         if(!mod)
             logger.error("error parsing module");
@@ -176,14 +213,21 @@ namespace tuplex {
             logger.info("module verified.");
 
         }
-        #endif
+#endif
 
-        // perform actual compilation
-        // -> do not compile slow path for now.
-        // -> do not register symbols, because that has been done manually above.
-        auto syms = stage.compile(*_compiler, nullptr, true, false);
+            // perform actual compilation
+            // -> do not compile slow path for now.
+            // -> do not register symbols, because that has been done manually above.
+            auto syms = stage.compile(*_compiler, nullptr, true, false);
 
-        return syms;
+            // cache symbols for reuse.
+            _compileCache[stage.bitCode()] = syms;
+
+            return syms;
+        } catch(std::runtime_error& e) {
+            logger().error(std::string("compilation failed, details: ") + e.what());
+            return nullptr;
+        }
     }
 
     int64_t WorkerApp::writeRow(size_t threadNo, const uint8_t *buf, int64_t bufSize) {
@@ -258,5 +302,15 @@ namespace tuplex {
     void WorkerApp::exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input, int64_t dataLength) {
         assert(env);
         env->app->writeException(env->threadNo, exceptionCode, exceptionOperatorID, rowNumber, input, dataLength);
+    }
+
+    int64_t WorkerApp::slowPathRowCallback(ThreadEnv *env, uint8_t *buf, int64_t bufSize) {
+        env->app->logger().warn("slowPath writeRow called, not yet implemented");
+        return 0;
+    }
+
+    void WorkerApp::slowPathExceptCallback(ThreadEnv *env, int64_t exceptionCode, int64_t exceptionOperatorID,
+                                           int64_t rowNumber, uint8_t *input, int64_t dataLength) {
+        env->app->logger().warn("slowPath writeException called, not yet implemented");
     }
 }

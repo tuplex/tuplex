@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     cli.add_argument(lyra::opt(logPath, "logPath").name("--log-path").help("path where to store log file"));
     cli.add_argument(lyra::opt(isDaemon, "daemon").name("-d").name("--daemon").help("start worker as daemon process listening to connections"));
     cli.add_argument(lyra::opt(port, "port").name("-p").name("--port").help("port on which worker should listen for messages"));
-    cli.add_argument(lyra::opt(message, "message").name("-m").name("--message").help("single message in JSON for worker to process, auto-shutdown after message"));
+    cli.add_argument(lyra::opt(message, "message").name("-m").name("--message").help("single message in JSON for worker to process, auto-shutdown after message or path to file holding a message"));
     cli.add_argument(lyra::opt(timeout, "timeout").name("-t").name("--timeout").help("if set to non-zero, timeout in ms after which worker will auto-shutdown"));
 
     auto result = cli.parse({argc, argv});
@@ -60,6 +60,7 @@ int main(int argc, char* argv[]) {
         cerr<<"Failed to initialize logging"<<endl;
         return 1;
     }
+    auto&logger = Logger::instance().defaultLogger();
 
     Logger::instance().defaultLogger().info("Starting Tuplex worker process");
 
@@ -71,9 +72,17 @@ int main(int argc, char* argv[]) {
         rc = app->messageLoop();
          app->shutdown();
     } else {
-        if(!message.empty() && message.front() == '{' && message.back() == '}') {
-            //rc = app->processJSONMessage(message);
-            Logger::instance().defaultLogger().debug("message found");
+        if(!message.empty()) {
+            // check if message is a file (dequote shell command!)
+            if(fileExists(message)) {
+                logger.debug("Loading message from file " + message);
+                message = fileToString(URI(message));
+            }
+
+            // process message
+            rc = app->processJSONMessage(message);
+
+            logger.debug("message found");
         }
         app->shutdown();
     }

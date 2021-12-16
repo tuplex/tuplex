@@ -34,7 +34,6 @@ TEST_F(CSVSelectionPushDown, SimpleMap) {
     EXPECT_EQ(v[1].getInt(0), 7);
     EXPECT_EQ(v[2].getInt(0), 11);
 
-    auto fName = testName + ".csv";
     remove(fName.c_str());
 }
 
@@ -59,7 +58,6 @@ TEST_F(CSVSelectionPushDown, SimpleFilterAndMap) {
     EXPECT_EQ(v[1].getInt(0),12);
     EXPECT_EQ(v[2].getInt(0), 4);
 
-    auto fName = testName + ".csv";
     remove(fName.c_str());
 }
 
@@ -85,7 +83,6 @@ TEST_F(CSVSelectionPushDown, SimpleFilterAndMapII) {
     EXPECT_EQ(v[1].getInt(0),12);
     EXPECT_EQ(v[2].getInt(0), 4);
 
-    auto fName = testName + ".csv";
     remove(fName.c_str());
 }
 
@@ -110,6 +107,5 @@ TEST_F(CSVSelectionPushDown, SimpleFilterAndMapIII) {
     EXPECT_EQ(v[1].getInt(0),11);
     EXPECT_EQ(v[2].getInt(0), 3);
 
-    auto fName = testName + ".csv";
     remove(fName.c_str());
 }

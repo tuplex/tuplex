@@ -243,7 +243,7 @@ TEST_F(WrapperTest, SimpleCSVParse) {
 
     // write sample file
     auto fName = testName + ".csv";
-    FILE *file = fopen(fName.c_str(), "w");
+    FILE *f = fopen(fName.c_str(), "w");
     fprintf(f, "1,2,3,FAST ETL!\n");
     fprintf(f, "4,5,6,FAST ETL!\n");
     fprintf(f, "7,8,9,\"FAST ETL!\"");
@@ -278,7 +278,6 @@ TEST_F(WrapperTest, SimpleCSVParse) {
     }
 
     // remove file
-    auto fName = testName + ".csv";
     remove(fName.c_str());
 }
 
@@ -315,7 +314,7 @@ TEST_F(WrapperTest, Show) {
 
     // write sample file
     auto fName = testName + ".csv";
-    FILE *file = fopen(fName.c_str(), "w");
+    FILE *f = fopen(fName.c_str(), "w");
     fprintf(f, "a,b,c,s\n");
     fprintf(f, "1,2,3,FAST ETL!\n");
     fprintf(f, "4,5,6,FAST ETL!\n");
@@ -337,7 +336,6 @@ TEST_F(WrapperTest, Show) {
     }
 
     // remove file
-    auto fName = testName + ".csv";
     remove(fName.c_str());
 
 }
@@ -764,7 +762,7 @@ TEST_F(WrapperTest, ColumnNames) {
 
         // write sample file
         auto fName = testName + ".csv";
-        FILE *file = fopen(fName.c_str(), "w");
+        FILE *f = fopen(fName.c_str(), "w");
         fprintf(f, "a,b,c,d\n");
         fprintf(f, "4,5,6,FAST ETL!\n");
         fprintf(f, "7,8,9,\"FAST ETL!\"");

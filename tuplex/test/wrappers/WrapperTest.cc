@@ -56,17 +56,17 @@ protected:
         using namespace tuplex;
         std::stringstream ss;
         ss << "{";
-        ss << "\"tuplex.executorCount\", \"4\",";
-        ss << "\"tuplex.partitionSize\", \"512KB\",";
-        ss << "\"tuplex.executorMemory\", \"8MB\",";
-        ss << "\"tuplex.useLLVMOptimizer\", \"true\",";
-        ss << "\"tuplex.allowUndefinedBehavior\", \"false\",";
-        ss << "\"tuplex.webui.enable\", \"false\",";
-        ss << "\"tuplex.scratchDir\", \"file://" << scratchDir << "\",";
+        ss << "\"tuplex.executorCount\": \"4\",";
+        ss << "\"tuplex.partitionSize\": \"512KB\",";
+        ss << "\"tuplex.executorMemory\": \"8MB\",";
+        ss << "\"tuplex.useLLVMOptimizer\": \"true\",";
+        ss << "\"tuplex.allowUndefinedBehavior\": \"false\",";
+        ss << "\"tuplex.webui.enable\": \"false\",";
+        ss << "\"tuplex.scratchDir\": \"file://" << scratchDir << "\",";
 #ifdef BUILD_FOR_CI
-        ss << "\"tuplex.aws.httpThreadCount\", \"0\"";
+        ss << "\"tuplex.aws.httpThreadCount\": \"0\"";
 #else
-        ss << "\"tuplex.aws.httpThreadCount\", \"1\"";
+        ss << "\"tuplex.aws.httpThreadCount\": \"1\"";
 #endif
         ss << "}";
         return ss.str();

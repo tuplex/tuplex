@@ -635,7 +635,7 @@ TEST_F(WrapperTest, UpcastParallelizeI) {
 
     // RAII, destruct python context!
     auto opts = testOptions();
-    opts = opts.substr(0, opts.length() - 1) + "\"tuplex.autoUpcast\":\"True\"}";
+    opts = opts.substr(0, opts.length() - 1) + ", \"tuplex.autoUpcast\":\"True\"}";
     PythonContext c("python", "", opts);
 
     // weird block syntax due to RAII problems.
@@ -667,7 +667,7 @@ TEST_F(WrapperTest, UpcastParallelizeII) {
 
     // RAII, destruct python context!
     auto opts = testOptions();
-    opts = opts.substr(0, opts.length() - 1) + "\"tuplex.autoUpcast\":\"True\"}";
+    opts = opts.substr(0, opts.length() - 1) + ", \"tuplex.autoUpcast\":\"True\"}";
     PythonContext c("python", "", opts);
 
     // weird block syntax due to RAII problems.
@@ -703,7 +703,7 @@ TEST_F(WrapperTest, FilterAll) {
 
     // RAII, destruct python context!
     auto opts = testOptions();
-    opts = opts.substr(0, opts.length() - 1) + "\"tuplex.autoUpcast\":\"True\"}";
+    opts = opts.substr(0, opts.length() - 1) + ",\"tuplex.autoUpcast\":\"True\"}";
     PythonContext c("python", "", opts);
 
     // weird block syntax due to RAII problems.
@@ -793,7 +793,7 @@ TEST_F(WrapperTest, IntegerTuple) {
 
     // RAII, destruct python context!
     auto opts = testOptions();
-    opts = opts.substr(0, opts.length() - 1) + "\"tuplex.autoUpcast\":\"True\"}";
+    opts = opts.substr(0, opts.length() - 1) + ",\"tuplex.autoUpcast\":\"True\"}";
     PythonContext c("python", "", opts);
 
     // weird block syntax due to RAII problems.
@@ -849,7 +849,7 @@ TEST_F(WrapperTest, IfWithNull) {
 
     // RAII, destruct python context!
     auto opts = testOptions();
-    opts = opts.substr(0, opts.length() - 1) + "\"tuplex.useLLVMOptimizer\" : \"False\", \"tuplex.executorCount\":0}";
+    opts = opts.substr(0, opts.length() - 1) + ",\"tuplex.useLLVMOptimizer\" : \"False\", \"tuplex.executorCount\":0}";
     PythonContext c("python", "", opts);
     // execute mini part of pipeline and output csv to file
     // pipeline is
@@ -924,7 +924,7 @@ TEST_F(WrapperTest, FlightData) {
 
     // RAII, destruct python context!
     auto opts = testOptions();
-    opts = opts.substr(0, opts.length() - 1) + "\"tuplex.useLLVMOptimizer\" : \"False\", \"tuplex.executorCount\":0}";
+    opts = opts.substr(0, opts.length() - 1) + ",\"tuplex.useLLVMOptimizer\" : \"False\", \"tuplex.executorCount\":0}";
     PythonContext c("python", "", opts);
     // execute mini part of pipeline and output csv to file
     // pipeline is

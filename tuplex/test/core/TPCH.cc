@@ -185,7 +185,7 @@ TEST_F(TpchTest, SimpleFileCountWGeneratedParser) {
     conf.set("tuplex.executorCount", "0");
     conf.set("tuplex.optimizer.generateParser", "true");
     Context c(conf);
-    auto path = URI("test.txt");
+    auto path = URI(testName + ".txt");
     stringToFile(path, "a\nb");
 
     // should be two rows!

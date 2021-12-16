@@ -18,7 +18,8 @@ protected:
     tuplex::ContextOptions options;
 public:
     // init function
-    ResultSetTest() {
+    void SetUp() override {
+        PyTest::SetUp();
         options = microTestOptions();
         driver = tuplex::LocalEngine::instance().getDriver(options.DRIVER_MEMORY(),
                                           options.PARTITION_SIZE(),

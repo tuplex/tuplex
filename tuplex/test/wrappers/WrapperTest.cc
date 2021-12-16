@@ -908,7 +908,7 @@ TEST_F(WrapperTest, IfWithNull) {
     }
 
     // load file and compare
-    auto contents = fileToString("test.part0.csv");
+    auto contents = fileToString(testName + ".part0.csv");
 
     EXPECT_EQ(contents, "FlDate,OpUniqueCarrier,CancellationCode,Diverted,CancellationReason\n"
                         "2019-01-06,9E,,0.00000000,None\n"
@@ -1052,8 +1052,7 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
                     " \"tuplex.resolveWithInterpreterOnly\":\"False\","
                     "\"tuplex.executorCount\":0,"
                     "\"tuplex.driverMemory\":\"6G\","
-                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
-                    "}");
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\"}");
 
 
     string bts_path = "../resources/flights_on_time_performance_2019_01.sample.csv";

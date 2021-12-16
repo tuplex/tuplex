@@ -294,7 +294,7 @@ TEST_F(DataFrameTest, ToCSVFile) {
 
     // check that file was written locally
     auto fName = testName + ".part0.csv";
-    FILE *file = fopen(testName.c_str(), "r");
+    FILE *file = fopen(fName.c_str(), "r");
     ASSERT_TRUE(file);
 
     fseek(file, 0L, SEEK_END);

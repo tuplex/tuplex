@@ -17,7 +17,8 @@ class CSVSelectionPushDown : public PyTest {};
 using namespace tuplex;
 
 TEST_F(CSVSelectionPushDown, SimpleMap) {
-    FILE *file = fopen(testName + ".csv", "w");
+    auto fName = testName + ".csv";
+    FILE *file = fopen(fName.c_str(), "w");
     fprintf(file, "a,b,c,d\n");
     fprintf(file, "1,2,3,4\n");
     fprintf(file, "5,6,7,8\n");
@@ -33,11 +34,13 @@ TEST_F(CSVSelectionPushDown, SimpleMap) {
     EXPECT_EQ(v[1].getInt(0), 7);
     EXPECT_EQ(v[2].getInt(0), 11);
 
-    remove(testName + ".csv");
+    auto fName = testName + ".csv";
+    remove(fName.c_str());
 }
 
 TEST_F(CSVSelectionPushDown, SimpleFilterAndMap) {
-    FILE *file = fopen(testName + ".csv", "w");
+    auto fName = testName + ".csv";
+    FILE *file = fopen(fName.c_str(), "w");
     fprintf(file, "a,b,c,d\n");
     fprintf(file, "1,2,3,4\n");
     fprintf(file, "2,6,7,8\n");
@@ -56,12 +59,14 @@ TEST_F(CSVSelectionPushDown, SimpleFilterAndMap) {
     EXPECT_EQ(v[1].getInt(0),12);
     EXPECT_EQ(v[2].getInt(0), 4);
 
-    remove(testName + ".csv");
+    auto fName = testName + ".csv";
+    remove(fName.c_str());
 }
 
 // same as the test before, but this time not with tuple syntax.
 TEST_F(CSVSelectionPushDown, SimpleFilterAndMapII) {
-    FILE *file = fopen(testName + ".csv", "w");
+    auto fName = testName + ".csv";
+    FILE *file = fopen(fName.c_str(), "w");
     fprintf(file, "a,b,c,d\n");
     fprintf(file, "1,2,3,4\n");
     fprintf(file, "2,6,7,8\n");
@@ -80,12 +85,14 @@ TEST_F(CSVSelectionPushDown, SimpleFilterAndMapII) {
     EXPECT_EQ(v[1].getInt(0),12);
     EXPECT_EQ(v[2].getInt(0), 4);
 
-    remove(testName + ".csv");
+    auto fName = testName + ".csv";
+    remove(fName.c_str());
 }
 
 // mixed syntax
 TEST_F(CSVSelectionPushDown, SimpleFilterAndMapIII) {
-    FILE *file = fopen(testName + ".csv", "w");
+    auto fName = testName + ".csv";
+    FILE *file = fopen(fName.c_str(), "w");
     fprintf(file, "a,b,c,d\n");
     fprintf(file, "1,2,3,4\n");
     fprintf(file, "2,6,7,8\n");
@@ -103,5 +110,6 @@ TEST_F(CSVSelectionPushDown, SimpleFilterAndMapIII) {
     EXPECT_EQ(v[1].getInt(0),11);
     EXPECT_EQ(v[2].getInt(0), 3);
 
-    remove(testName + ".csv");
+    auto fName = testName + ".csv";
+    remove(fName.c_str());
 }

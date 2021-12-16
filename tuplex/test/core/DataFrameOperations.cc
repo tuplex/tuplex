@@ -49,7 +49,8 @@ protected:
         python::closeInterpreter();
 
         // remove test file
-        remove(testName + ".csv");
+        auto fName = testName + ".csv";
+        remove(fName.c_str());
 
     }
 
@@ -137,7 +138,8 @@ TEST_F(CSVDataFrameTest, TSVFile) {
     EXPECT_EQ(v[0].toPythonString(), Row(4, "FAST ETL!").toPythonString());
     EXPECT_EQ(v[1].toPythonString(), Row(7, "FAST ETL!").toPythonString());
 
-    remove(testName + ".tsv");
+    auto fName = testName + ".tsv";
+    remove(fName.c_str());
 }
 
 TEST_F(CSVDataFrameTest, ReadHeaderLessFile) {
@@ -178,7 +180,8 @@ TEST_F(CSVDataFrameTest, ReadHeaderLessFile) {
 
     EXPECT_EQ(ss.str(), ref);
 
-    remove(testName + ".tsv");
+    auto fName = testName + ".tsv";
+    remove(fName.c_str());
 }
 
 // @TODO: tests for header conflicting with columns, etc.
@@ -206,7 +209,8 @@ TEST_F(DataFrameTest, CSVConflictingColumns) {
     EXPECT_EQ(v[0].toPythonString(), Row(3, "a").toPythonString());
     EXPECT_EQ(v[1].toPythonString(), Row(4, "c").toPythonString());
 
-    remove(testName + ".csv");
+    auto fName = testName + ".csv";
+    remove(fName.c_str());
 }
 
 // explicit schema test
@@ -289,7 +293,8 @@ TEST_F(DataFrameTest, ToCSVFile) {
                    .tocsv(testName + ".csv");
 
     // check that file was written locally
-    FILE *file = fopen(testName + ".part0.csv", "r");
+    auto fName = testName + ".part0.csv";
+    FILE *file = fopen(testName.c_str(), "r");
     ASSERT_TRUE(file);
 
     fseek(file, 0L, SEEK_END);

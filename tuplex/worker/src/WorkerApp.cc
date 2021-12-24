@@ -619,11 +619,31 @@ namespace tuplex {
             } else {
                 // split into parts & inc curThread
 
-                // check how many bytes are left
+                if(curThreadSize < bytesPerThread) {
+                    // split into part
+                }
 
-
-                while(curThread + 1 < numThreads)
+                // check how many bytes are left, distribute large file...
+                if(curThread + 1 < numThreads) {
                     curThread++;
+                    curThreadSize = 0;
+                }
+
+                if(0 == file_sizes[i])
+                    continue;
+
+                // now current thread gets the current file (or a part of it)
+                if(curThreadSize + file_sizes[i] <= bytesPerThread && file_sizes[i] > 0) {
+                    FilePart fp;
+                    fp.uri = uris[i];
+                    fp.rangeStart = 0;
+                    fp.rangeEnd = 0; // full file.
+                    vv[curThread].emplace_back(fp);
+                    curThreadSize += file_sizes[i];
+                } else {
+                    // thread only gets a part, continue with this file...
+                    throw std::runtime_error("");
+                }
             }
         }
 

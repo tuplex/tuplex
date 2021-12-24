@@ -159,5 +159,24 @@ TEST(BasicInvocation, FileSplitting) {
         sizes.push_back(2048);
     }
     auto res = splitIntoEqualParts(7, uris, sizes);
+    ASSERT_EQ(res.size(), 7);
+    for(int i = 0; i < res.size(); ++i) {
+        const auto& v = res[i];
 
+        // each thread should have two full files
+        ASSERT_EQ(v.size(), 2);
+        EXPECT_EQ(v[0].rangeEnd, 0);
+        EXPECT_EQ(v[1].rangeEnd, 0);
+
+        for(auto el : v) {
+            std::cout<<"Thread "<<i<<": "<<el.uri.toPath()<<" start: "<<el.rangeStart<<" end: "<<el.rangeEnd<<std::endl;
+        }
+    }
+
+    // split one large file into parts...
+    res = splitIntoEqualParts(7, {"test.csv"}, {10000});
+    ASSERT_EQ(res.size(), 7);
+
+    res = splitIntoEqualParts(5, {"test.csv"}, {10000});
+    ASSERT_EQ(res.size(), 5);
 }

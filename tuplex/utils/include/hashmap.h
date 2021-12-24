@@ -99,6 +99,13 @@ extern int hashmap_remove(map_t in, char* key, uint64_t keylen)  __attribute__((
  */
 extern int hashmap_get_one(map_t in, any_t *arg, int remove)  __attribute__((used));
 
+/*!
+ * computes the size of the hashmap and data elements
+ * @param in map
+ * @return size in bytes of the hashmap (not incl. data!)
+ */
+extern int hashmap_size(map_t in);
+
 /*
  * Free the hashmap
  */

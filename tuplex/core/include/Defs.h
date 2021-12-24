@@ -12,7 +12,7 @@
 #define TUPLEX_DEFS_H
 
 // this file holds common definitions for tuplex
-
+#include <string>
 
 namespace tuplex {
     enum class FileFormat {
@@ -22,6 +22,22 @@ namespace tuplex {
         OUTFMT_TEXT,
         OUTFMT_ORC
     };
+
+    inline std::string defaultFileExtension(const FileFormat& fmt) {
+        switch (fmt) {
+            case FileFormat::OUTFMT_CSV:
+                return "csv";
+            case FileFormat::OUTFMT_TEXT:
+                return "txt";
+            case FileFormat::OUTFMT_ORC:
+                return "orc";
+            case FileFormat::OUTFMT_TUPLEX:
+                return "tpx";
+            default:
+                break;
+        }
+        return "";
+    }
 }
 
 #endif //TUPLEX_DEFS_H

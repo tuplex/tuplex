@@ -20,11 +20,16 @@
 #define WORKER_ERROR_NO_TUPLEX_RUNTIME 102
 #define WORKER_ERROR_INVALID_URI 103
 #define WORKER_ERROR_COMPILATION_FAILED 104
+#define WORKER_ERROR_STAGE_INITIALIZATION 105
+#define WORKER_ERROR_STAGE_CLEANUP 106
+#define WORKER_ERROR_UNSUPPORTED_INPUT 107
+#define WORKER_ERROR_IO 108
 
 // give 32MB standard buf size, 8MB for exceptions and hash
 #define WORKER_DEFAULT_BUFFER_SIZE 33554432
 #define WORKER_EXCEPTION_BUFFER_SIZE 8388608
 #define WORKER_HASH_BUFFER_SIZE 8388608
+
 // protobuf
 #include <Lambda.pb.h>
 #include <physical/TransformStage.h>
@@ -38,7 +43,30 @@
 
 #include <Serializer.h>
 
+// Notes: For fileoutput, sometimes a reorg step might be necessary!
+// e.g., when using S3 file-system could upload 5TB per object.
+// => need to carefully check limits. Currently, maximum of 1,000 parts possible (largest size 5TB!)
+// -> check here https://docs.aws.amazon.com/AmazonS3/latest/userguide/qfacts.html
+// could do distributed S3 upload!
+
+
 namespace tuplex {
+
+
+    struct FilePart {
+        URI uri;
+        size_t rangeStart;
+        size_t rangeEnd;
+    };
+
+    /*!
+     * helper function to help distribute file processing into multilpe parts across different threads
+     * @param numThreads on how many threads to split file processing
+     * @param uris which uris
+     * @param file_sizes which file sizes
+     * @return vector<vector<FileParts>>
+     */
+    extern std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads, const std::vector<URI>& uris, const std::vector<size_t>& file_sizes);
 
     /// settings to use to initialize a worker application. Helpful to tune depending on
     /// deployment target.
@@ -129,10 +157,21 @@ namespace tuplex {
             std::vector<std::string> spillFiles; //! files used for storing spilled buffers.
             ThreadEnv() : threadNo(0), app(nullptr), hashMap(nullptr), numNormalRows(0), numExceptionRows(0), normalBuf(100),
                           exceptionBuf(100) {}
+
+          /*!
+           * calculates how many bytes of storage the hashmap takes!
+           * @return size in bytes
+           */
+            size_t hashMapSize() const;
         };
 
         ThreadEnv *_threadEnvs;
         size_t _numThreads;
+
+        int64_t initTransformStage(const TransformStage::InitData& initData, const std::shared_ptr<TransformStage::JITSymbols>& syms);
+        int64_t releaseTransformStage(const std::shared_ptr<TransformStage::JITSymbols>& syms);
+
+        int64_t processSource(int threadNo, int64_t inputNodeID, const URI& inputURI, const TransformStage* tstage, const std::shared_ptr<TransformStage::JITSymbols>& syms);
 
         virtual MessageHandler& logger() { return Logger::instance().logger("worker"); }
 
@@ -140,6 +179,15 @@ namespace tuplex {
          * spill buffer out to somewhere & reset counter
          */
         virtual void spillNormalBuffer(size_t threadNo);
+
+        void writeBufferToFile(const URI& outputURI,
+                               const FileFormat& fmt,
+                               const uint8_t* buf,
+                               const size_t buf_size,
+                               const size_t num_rows,
+                               const TransformStage* tstage);
+
+        URI getNextOutputURI(int threadNo, const URI& baseURI, bool isBaseURIFolder, const std::string& extension);
 
         virtual int64_t writeRow(size_t threadNo, const uint8_t* buf, int64_t bufSize);
         virtual void writeHashedRow(size_t threadNo, const uint8_t* key, int64_t key_size, const uint8_t* bucket, int64_t bucket_size);

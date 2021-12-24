@@ -8,6 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 #include <WorkerApp.h>
+#include <physical/TransformTask.h>
 
 namespace tuplex {
 
@@ -126,10 +127,42 @@ namespace tuplex {
         return WORKER_OK;
     }
 
+    int64_t WorkerApp::initTransformStage(const TransformStage::InitData& initData,
+                                          const std::shared_ptr<TransformStage::JITSymbols> &syms) {
+        // initialize stage
+        int64_t init_rc = 0;
+        if((init_rc = syms->initStageFunctor(initData.numArgs,
+                                             reinterpret_cast<void**>(initData.hash_maps),
+                                             reinterpret_cast<void**>(initData.null_buckets))) != 0) {
+            logger().error("initStage() failed for stage with code " + std::to_string(init_rc));
+            return WORKER_ERROR_STAGE_INITIALIZATION;
+        }
+
+        // init aggregate by key
+        if(syms->aggAggregateFunctor) {
+            initThreadLocalAggregateByKey(syms->aggInitFunctor, syms->aggCombineFunctor, syms->aggAggregateFunctor);
+        }
+        else {
+            if (syms->aggInitFunctor && syms->aggCombineFunctor) {
+                initThreadLocalAggregates(_numThreads + 1, syms->aggInitFunctor, syms->aggCombineFunctor);
+            }
+        }
+        return WORKER_OK;
+    }
+
+    int64_t WorkerApp::releaseTransformStage(const std::shared_ptr<TransformStage::JITSymbols>& syms) {
+        // call release func for stage globals
+        if(syms->releaseStageFunctor() != 0) {
+            logger().error("releaseStage() failed for stage ");
+            return WORKER_ERROR_STAGE_CLEANUP;
+        }
+
+        return WORKER_OK;
+    }
+
     int WorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
 
         // only transform stage yet supported, in the future support other stages as well!
-
         auto tstage = TransformStage::from_protobuf(req.stage());
 
         // check what type of message it is & then start processing it.
@@ -137,17 +170,221 @@ namespace tuplex {
         if(!syms)
             return WORKER_ERROR_COMPILATION_FAILED;
 
+        // init stage, abort on error
+        auto rc = initTransformStage(tstage->initData(), syms);
+        if(rc != WORKER_OK)
+            return rc;
+
+        // input uris
+        std::vector<URI> input_uris;
+        for(auto path : req.inputuris())
+            input_uris.emplace_back(URI(path));
+
         // process data (single-threaded or via thread pool!)
         if(_numThreads <= 1) {
             // single-threaded
-
+            for(unsigned i = 0; i < input_uris.size(); ++i) {
+                processSource(0, tstage->fileInputOperatorID(), input_uris[i], tstage, syms);
+                logger().debug("processed file " + std::to_string(i + 1) + "/" + std::to_string(input_uris.size()));
+            }
         } else {
             // multi-threaded
+            // -> split into parts according to size and distribute between threads!
 
         }
 
-        // @TODO:
+        // file reorganizing part...
+        //   //        auto outputURI = getNextOutputURI(threadNo, tstage->outputURI(),
+        //        //                                          strEndsWith(tstage->outputURI().toPath(), "/"),
+        //        //                                          defaultFileExtension(tstage->outputFormat()));
+        //        auto outputURI = tstage->outputURI();
+
+
+
+        // release stage
+        rc = releaseTransformStage(syms);
+        if(rc != WORKER_OK)
+            return rc;
+
         return WORKER_OK;
+    }
+
+    int64_t WorkerApp::processSource(int threadNo, int64_t inputNodeID, const URI &inputURI, const TransformStage *tstage,
+                                     const std::shared_ptr<TransformStage::JITSymbols>& syms) {
+        using namespace std;
+
+        // couple checks
+        assert(tstage);
+        assert(syms->functor);
+        assert(threadNo > 0 && threadNo < _numThreads);
+
+        // input reader
+        std::unique_ptr<FileInputReader> reader;
+        bool normalCaseEnabled = false;
+        void* userData = reinterpret_cast<void*>(&_threadEnvs[threadNo]);
+        ThreadEnv* env = &_threadEnvs[threadNo];
+
+        switch(tstage->inputMode()) {
+            case EndPointMode::FILE: {
+
+                // there should be a couple input uris in this request!
+                // => decode using optional fileinput params from the
+                // @TODO: ranges
+
+                // only csv + text so far supported!
+                if(tstage->inputFormat() == FileFormat::OUTFMT_CSV) {
+
+                    // decode from file input params everything
+                    auto numColumns = tstage->csvNumFileInputColumns();
+                    vector<std::string> header;
+                    if(tstage->csvHasHeader())
+                        header = tstage->csvHeader();
+                    auto delimiter = tstage->csvInputDelimiter();
+                    auto quotechar = tstage->csvInputQuotechar();
+                    auto colsToKeep = tstage->columnsToKeep();
+
+                    auto csv = new CSVReader(userData, reinterpret_cast<codegen::cells_row_f>(syms->functor),
+                                             normalCaseEnabled,
+                                             inputNodeID,
+                                             reinterpret_cast<codegen::exception_handler_f>(exceptRowCallback),
+                                             numColumns, delimiter,
+                                             quotechar, colsToKeep);
+                    // fetch full file for now, later make this optional!
+                    // csv->setRange(rangeStart, rangeStart + rangeSize);
+                    csv->setHeader(header);
+                    reader.reset(csv);
+                } else if(tstage->inputFormat() == FileFormat::OUTFMT_TEXT) {
+                    auto text = new TextReader(userData, reinterpret_cast<codegen::cells_row_f>(syms->functor));
+                    // fetch full range for now, later make this optional!
+                    // text->setRange(rangeStart, rangeStart + rangeSize);
+                    reader.reset(text);
+                } else throw std::runtime_error("unsupported input file format given");
+
+                // read assigned file...
+                reader->read(inputURI);
+                runtime::rtfree_all();
+                break;
+            }
+            case EndPointMode::MEMORY: {
+                // not supported yet
+                // => simply read in partition from file (tuplex in memory format)
+                // load file into partition, then call functor on the partition.
+
+                // TODO: Could optimize this by streaming in data & calling compute over blocks of data!
+                auto vf = VirtualFileSystem::open_file(inputURI, VirtualFileMode::VFS_READ);
+                if(vf) {
+                    auto file_size = vf->size();
+                    size_t bytes_read = 0;
+                    auto input_buffer = new uint8_t[file_size];
+                    vf->read(input_buffer, file_size, &bytes_read);
+                    logger().info("Read " + std::to_string(bytes_read) + " bytes from " + inputURI.toString());
+
+                    assert(syms->functor);
+                    int64_t normal_row_output_count = 0;
+                    int64_t bad_row_output_count = 0;
+                    auto response_code = syms->functor(userData, input_buffer, bytes_read, &normal_row_output_count, &bad_row_output_count, false);
+                    {
+                        std::stringstream ss;
+                        ss << "RC=" << response_code << " ,computed " << normal_row_output_count << " normal rows, "
+                             << bad_row_output_count << " bad rows" << endl;
+                        logger().debug(ss.str());
+                    }
+
+                    delete [] input_buffer;
+                    vf->close();
+                } else {
+                    logger().error("Error reading " + inputURI.toString());
+                    return WORKER_ERROR_IO;
+                }
+                break;
+            }
+            default: {
+                logger().error("unsupported input mode found");
+                return WORKER_ERROR_UNSUPPORTED_INPUT;
+                break;
+            }
+        }
+
+        // when processing is done, simply output everything to URI (should be an S3 one!)
+        stringstream ss;
+        ss<<"Task resulted in: "<<sizeToMemString(env->normalBuf.size())<<" (normal)  "
+          <<sizeToMemString(env->exceptionBuf.size())<<" (except)  "
+          <<sizeToMemString(env->hashMapSize())<<" (hash)";
+
+        // lazy write each threadEnv back to S3!
+        // @TODO: file reorg at the end???
+        // --> need to specify that!
+        // --> should files be partitioned after certain things??
+
+        logger().info("Task done!");
+
+        return WORKER_OK;
+    }
+
+    void WorkerApp::writeBufferToFile(const URI& outputURI,
+                                      const FileFormat& fmt,
+                                      const uint8_t* buf,
+                                      const size_t buf_size,
+                                      const size_t num_rows,
+                                      const TransformStage* tstage) {
+
+        logger().info("writing " + sizeToMemString(buf_size) + " to " + outputURI.toPath());
+        // write first the # rows, then the data
+        auto vfs = VirtualFileSystem::fromURI(outputURI);
+        auto mode = VirtualFileMode::VFS_OVERWRITE | VirtualFileMode::VFS_WRITE;
+        if(tstage->outputFormat() == FileFormat::OUTFMT_CSV || tstage->outputFormat() == FileFormat::OUTFMT_TEXT)
+            mode |= VirtualFileMode::VFS_TEXTMODE;
+        auto file = tuplex::VirtualFileSystem::open_file(outputURI, mode);
+        if(!file)
+            throw std::runtime_error("could not open " + outputURI.toPath() + " to write output");
+
+
+        // open file & write
+        if(FileFormat::OUTFMT_CSV == fmt) {
+            // header?
+            // create CSV header if desired
+            uint8_t *header = nullptr;
+            size_t header_length = 0;
+
+            // write header if desired...
+            auto outOptions = tstage->outputOptions();
+            bool writeHeader = stringToBool(get_or(outOptions, "header", "false"));
+            if(writeHeader) {
+                // fetch special var csvHeader
+                auto headerLine = outOptions["csvHeader"];
+                header_length = headerLine.length();
+                header = new uint8_t[header_length+1];
+                memset(header, 0, header_length + 1 );
+                memcpy(header, (uint8_t *)headerLine.c_str(), header_length);
+
+                delete [] header;
+            }
+        }
+
+        // write header for Tuplex fileformat (i.e. header!)
+        else if(FileFormat::OUTFMT_TUPLEX == fmt) {
+            // header of tuplex fmt is simply bytesWritten + numoutputrows
+            assert(sizeof(int64_t) == sizeof(size_t));
+            int64_t tmp = buf_size;
+            file->write(&tmp, sizeof(int64_t));
+            tmp = num_rows;
+            file->write(&tmp, sizeof(int64_t));
+        }
+        else {
+            file->close();
+            throw std::runtime_error("unknown file format " + std::to_string(static_cast<int64_t>(fmt)) + " found.");
+        }
+
+
+        // write buffer & close file
+        file->write(buf, buf_size);
+        file->close();
+
+        // ORC?
+        if(FileFormat::OUTFMT_ORC == fmt) {
+            // @TODO:
+        }
+
     }
 
 //    tuplex::messages::InvocationResponse WorkerApp::executeTransformTask(const TransformStage* tstage);
@@ -312,5 +549,84 @@ namespace tuplex {
     void WorkerApp::slowPathExceptCallback(ThreadEnv *env, int64_t exceptionCode, int64_t exceptionOperatorID,
                                            int64_t rowNumber, uint8_t *input, int64_t dataLength) {
         env->app->logger().warn("slowPath writeException called, not yet implemented");
+    }
+
+    URI WorkerApp::getNextOutputURI(int threadNo, const URI& baseURI, bool isBaseURIFolder, const std::string& extension) {
+        using namespace std;
+
+        // @TODO: maybe add global file number to worker!
+        // -> maybe worker should be told directly where to put files? how to consolidate them etc.?
+        // -> need to find smart strategy for S3!
+        // -> multi-file upload?
+
+        assert(0 <= threadNo && threadNo < _numThreads);
+
+        int num_files = _threadEnvs[threadNo].spillFiles.size();
+
+        // use 4 digit code for files?
+        string path = baseURI.toPath();
+        if(isBaseURIFolder) {
+            path += "/";
+        }
+
+        path += fmt::format("part_{:02d}_{:04d}.", threadNo, num_files, extension);
+
+        return path;
+    }
+
+    size_t WorkerApp::ThreadEnv::hashMapSize() const {
+        // only works for regular bytes hashmap right now... --> specialize further!
+        if(!this->hashMap)
+            return 0;
+        auto hm_size = hashmap_size(this->hashMap);
+
+        // @TODO: in order to add size of data-elements, need to decode bucket entries!
+
+        // for now just return the hashmap size...
+        return hm_size;
+    }
+
+
+    extern std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads,
+                                                                  const std::vector<URI>& uris,
+                                                                  const std::vector<size_t>& file_sizes) {
+        using namespace std;
+
+        assert(uris.size() == file_sizes.size());
+
+        auto vv = vector<vector<FilePart>>(numThreads, vector<FilePart>{});
+
+        // check how many bytes each vector should get
+        size_t totalBytes = 0;
+        for(auto fs : file_sizes)
+            totalBytes += fs;
+
+        auto bytesPerThread = totalBytes / numThreads;
+
+        assert(bytesPerThread != 0);
+
+        // do not process empty files...
+        size_t curThreadSize = 0;
+        unsigned curThread = 0;
+        for(unsigned i = 0; i < std::min(uris.size(), file_sizes.size()); ++i) {
+            if(curThreadSize + file_sizes[i] <= bytesPerThread && file_sizes[i] > 0) {
+                FilePart fp;
+                fp.uri = uris[i];
+                fp.rangeStart = 0;
+                fp.rangeEnd = 0; // full file.
+                vv[curThread].emplace_back(fp);
+                curThreadSize += file_sizes[i];
+            } else {
+                // split into parts & inc curThread
+
+                // check how many bytes are left
+
+
+                while(curThread + 1 < numThreads)
+                    curThread++;
+            }
+        }
+
+        return vv;
     }
 }

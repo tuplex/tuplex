@@ -297,7 +297,7 @@ namespace tuplex {
             InitData() : numArgs(0), hash_maps(nullptr), null_buckets(nullptr), hybrids(nullptr) {}
         };
 
-        InitData initData() const { return _initData; }
+        const InitData initData() const { return _initData; }
         void setInitData(int64_t numArgs=0, uint8_t** hash_maps=nullptr, uint8_t** null_buckets=nullptr, PyObject** hybrids=nullptr) {
             _initData.numArgs = numArgs;
             _initData.hash_maps = hash_maps;

@@ -18,6 +18,16 @@ option(BUILD_WITH_AWS "Build Tuplex with AWS support. This will include access t
 option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for faster testing speeds." OFF)
 option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
 option(USE_LD_GOLD "Use GNU gold linker" ON)
+option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." ON)
+
+# add flags to compiler to enable colored output.
+if (${FORCE_COLORED_OUTPUT})
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        add_compile_options (-fdiagnostics-color=always)
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        add_compile_options (-fcolor-diagnostics)
+    endif ()
+endif ()
 
 # via -DVERSION_INFO a string may be passed down. --> include it somehow
 if(VERSION_INFO)
@@ -632,6 +642,14 @@ if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     else()
         message(WARNING "GNU gold linker isn't available, using the default system linker.")
     endif()
+endif()
+
+# on MacOS, disable the warning message ranlib: no symbols found
+if(APPLE)
+    SET(CMAKE_C_ARCHIVE_CREATE   "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+    SET(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+    SET(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+    SET(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
 endif()
 
 # print flags

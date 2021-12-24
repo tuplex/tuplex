@@ -16,6 +16,7 @@
 #include <logical/FileOutputOperator.h>
 #include <logical/MapOperator.h>
 #include <google/protobuf/util/json_util.h>
+#include "../../worker/include/WorkerApp.h"
 
 static const std::string worker_path = "tuplex-worker";
 
@@ -143,5 +144,20 @@ TEST(BasicInvocation, Worker) {
 
     python::lockGIL();
     python::closeInterpreter();
+
+}
+
+TEST(BasicInvocation, FileSplitting) {
+    // test file splitting function (into parts)
+    using namespace tuplex;
+
+    // 1. equally sized files -> each thread should get same number of files (i.e. here 2)
+    std::vector<URI> uris;
+    std::vector<size_t> sizes;
+    for(int i = 0; i < 14; ++i) {
+        uris.push_back("file" + std::to_string(i) + ".csv");
+        sizes.push_back(2048);
+    }
+    auto res = splitIntoEqualParts(7, uris, sizes);
 
 }

@@ -151,14 +151,16 @@ TEST(BasicInvocation, FileSplitting) {
     // test file splitting function (into parts)
     using namespace tuplex;
 
-    // 1. equally sized files -> each thread should get same number of files (i.e. here 2)
     std::vector<URI> uris;
     std::vector<size_t> sizes;
+    std::vector<std::vector<FilePart>> res;
+
+    // 1. equally sized files -> each thread should get same number of files (i.e. here 2)
     for(int i = 0; i < 14; ++i) {
         uris.push_back("file" + std::to_string(i) + ".csv");
         sizes.push_back(2048);
     }
-    auto res = splitIntoEqualParts(7, uris, sizes);
+    res = splitIntoEqualParts(7, uris, sizes);
     ASSERT_EQ(res.size(), 7);
     for(int i = 0; i < res.size(); ++i) {
         const auto& v = res[i];

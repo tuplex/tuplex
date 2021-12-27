@@ -594,7 +594,10 @@ namespace tuplex {
 
         assert(uris.size() == file_sizes.size());
 
+        size_t partNo = 0;
+
         auto vv = vector<vector<FilePart>>(numThreads, vector<FilePart>{});
+
 
         // check how many bytes each vector should get
         size_t totalBytes = 0;
@@ -603,46 +606,85 @@ namespace tuplex {
 
         auto bytesPerThread = totalBytes / numThreads;
 
+        // set bytes per thread to a minimum
+        // bytesPerThread = std::max(bytesPerThread, 256 * 1024ul); // min 256KB per thread...
+
         assert(bytesPerThread != 0);
 
         // do not process empty files...
         size_t curThreadSize = 0;
         unsigned curThread = 0;
         for(unsigned i = 0; i < std::min(uris.size(), file_sizes.size()); ++i) {
+            // skip empty files...
+            if(0 == file_sizes[i])
+                continue;
+
+            // does current thread get the whole file?
             if(curThreadSize + file_sizes[i] <= bytesPerThread && file_sizes[i] > 0) {
                 FilePart fp;
                 fp.uri = uris[i];
                 fp.rangeStart = 0;
                 fp.rangeEnd = 0; // full file.
+                fp.partNo = partNo++;
                 vv[curThread].emplace_back(fp);
                 curThreadSize += file_sizes[i];
             } else {
+                // no, current thread gets part of the file only
+                // rest of file needs to get distributed among other threads!
+
                 // split into parts & inc curThread
+                size_t remaining_bytes = file_sizes[i];
+                size_t cur_start = 0;
 
-                if(curThreadSize < bytesPerThread) {
-                    // split into part
-                }
+                size_t bytes_this_thread_gets = bytesPerThread > curThreadSize ? bytesPerThread - curThreadSize : 0;
 
-                // check how many bytes are left, distribute large file...
-                if(curThread + 1 < numThreads) {
-                    curThread++;
-                    curThreadSize = 0;
-                }
-
-                if(0 == file_sizes[i])
-                    continue;
-
-                // now current thread gets the current file (or a part of it)
-                if(curThreadSize + file_sizes[i] <= bytesPerThread && file_sizes[i] > 0) {
+                if(bytes_this_thread_gets > 0) {
+                    // split into part (depending on how many bytes remain)
                     FilePart fp;
                     fp.uri = uris[i];
-                    fp.rangeStart = 0;
-                    fp.rangeEnd = 0; // full file.
+                    fp.rangeStart = cur_start;
+                    fp.rangeEnd = std::min(bytes_this_thread_gets, remaining_bytes);
+                    fp.partNo = partNo++;
+                    cur_start += fp.rangeEnd - fp.rangeStart;
                     vv[curThread].emplace_back(fp);
-                    curThreadSize += file_sizes[i];
-                } else {
-                    // thread only gets a part, continue with this file...
-                    throw std::runtime_error("");
+                }
+
+                // go to next thread
+                // check how many bytes are left, distribute large file...
+                curThread = (curThread + 1) % numThreads;
+                curThreadSize = 0;
+
+                // split into parts...
+                while(cur_start < remaining_bytes) {
+
+                    bytes_this_thread_gets = remaining_bytes - cur_start;
+
+                    // now current thread gets the current file (or a part of it)
+                    if(curThreadSize + bytes_this_thread_gets <= bytesPerThread && bytes_this_thread_gets > 0) {
+                        FilePart fp;
+                        fp.uri = uris[i];
+                        fp.rangeStart = cur_start;
+                        fp.rangeEnd = cur_start + bytes_this_thread_gets;
+                        fp.partNo = partNo++;
+                        vv[curThread].emplace_back(fp);
+                        curThreadSize += fp.rangeEnd - fp.rangeStart;
+                        cur_start += fp.rangeEnd - fp.rangeStart;
+                    } else {
+                        // thread only gets a part, inc thread!
+                        bytes_this_thread_gets = std::min(bytes_this_thread_gets, bytesPerThread);
+                        FilePart fp;
+                        fp.uri = uris[i];
+                        fp.rangeStart = cur_start;
+                        fp.rangeEnd = cur_start + bytes_this_thread_gets;
+                        fp.partNo = partNo++;
+                        vv[curThread].emplace_back(fp);
+                        curThreadSize += bytes_this_thread_gets;
+                        cur_start += bytes_this_thread_gets;
+
+                        // next thread!
+                        curThread = (curThread + 1) % numThreads;
+                        curThreadSize = 0;
+                    }
                 }
             }
         }

@@ -55,6 +55,7 @@ namespace tuplex {
 
     struct FilePart {
         URI uri;
+        size_t partNo; // when trying to restore in order, select here partNo
         size_t rangeStart;
         size_t rangeEnd;
     };

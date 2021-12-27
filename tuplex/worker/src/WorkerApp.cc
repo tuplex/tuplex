@@ -189,6 +189,8 @@ namespace tuplex {
         for(auto file_size : req.inputsizes())
             input_sizes.emplace_back(file_size);
 
+        URI outputURI(req.outputuri());
+
         // process data (single-threaded or via thread pool!)
         if(_numThreads <= 1) {
             runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
@@ -261,19 +263,6 @@ namespace tuplex {
         // => need order for this from original parts + spill parts
         std::stringstream ss;
 
-        // helper struct for storing info related to sorting buffers + spill files together...
-        struct WriteInfo {
-            bool use_buf; // whether to use buf OR spill info
-            size_t partNo;
-            size_t threadNo;
-            // data...
-            uint8_t *buf;
-            size_t buf_size;
-            size_t num_rows;
-            SpillInfo spill_info;
-            WriteInfo() : buf(nullptr), use_buf(true) {};
-        };
-
         std::vector<WriteInfo> reorganized_normal_parts;
         // @TODO: same for exceptions... => need to correct numbers??
         //  @Ben Givertz will know how to do this...
@@ -291,6 +280,7 @@ namespace tuplex {
                     info.use_buf = false;
                     info.threadNo = i;
                     info.spill_info = spill_info;
+                    info.num_rows = info.spill_info.num_rows;
                     reorganized_normal_parts.push_back(info);
                 } else {
                     // @TODO...
@@ -302,6 +292,7 @@ namespace tuplex {
                 info.partNo = env.normalOriginalPartNo;
                 info.buf = static_cast<uint8_t*>(env.normalBuf.buffer());
                 info.buf_size = env.normalBuf.size();
+                info.num_rows = env.numNormalRows;
                 info.use_buf = true;
                 info.threadNo = i;
                 reorganized_normal_parts.push_back(info);
@@ -327,12 +318,11 @@ namespace tuplex {
 #endif
 
         // no write everything to final output_uri out in order!
-        logger().info("TODO: write out to final URI!");
-
-        // write out exceptions & normal buffers in global order!
+        logger().info("Writing data to " + outputURI.toString());
+        writePartsToFile(outputURI, tstage->outputFormat(), reorganized_normal_parts, tstage);
+        logger().info("Data fully materialized");
 
         // @TODO: write exceptions in order...
-
 
 
         // release stage
@@ -341,6 +331,25 @@ namespace tuplex {
             return rc;
 
         return WORKER_OK;
+    }
+
+    void WorkerApp::writePartsToFile(const URI &outputURI, const FileFormat &fmt, const std::vector<WriteInfo> &parts,
+                                     const TransformStage *stage) {
+        logger().info("file output initiated...");
+
+        // write header if desired...
+        // use multi-threading for S3!!!
+        for(auto part_info : parts) {
+            // is it buf or file?
+            if(part_info.use_buf) {
+                // write the buffer...
+
+            } else {
+                // read & copy back the file contents of the spill file!
+
+            }
+        }
+        logger().info("file output done.");
     }
 
     int64_t WorkerApp::processSource(int threadNo, int64_t inputNodeID, const FilePart& part, const TransformStage *tstage,

@@ -208,6 +208,20 @@ namespace tuplex {
             size_t hashMapSize() const;
         };
 
+        // helper struct for storing info related to sorting buffers + spill files together...
+        struct WriteInfo {
+            bool use_buf; // whether to use buf OR spill info
+            size_t partNo;
+            size_t threadNo;
+            size_t num_rows;
+
+            // data...
+            uint8_t *buf;
+            size_t buf_size;
+            SpillInfo spill_info;
+            WriteInfo() : buf(nullptr), use_buf(true), num_rows(0), buf_size(0) {};
+        };
+
         ThreadEnv *_threadEnvs;
         size_t _numThreads;
 
@@ -231,6 +245,9 @@ namespace tuplex {
                                const size_t buf_size,
                                const size_t num_rows,
                                const TransformStage* tstage);
+
+        void writePartsToFile(const URI& outputURI, const FileFormat& fmt,
+                              const std::vector<WriteInfo>& parts, const TransformStage* stage);
 
         URI getNextOutputURI(int threadNo, const URI& baseURI, bool isBaseURIFolder, const std::string& extension);
 

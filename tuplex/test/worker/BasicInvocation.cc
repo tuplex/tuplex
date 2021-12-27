@@ -37,7 +37,8 @@ std::string runCommand(const std::string& cmd) {
     return result;
 }
 namespace tuplex {
-    std::string transformStageToReqMessage(const TransformStage* tstage, const std::string& inputURI, const size_t& inputSize, const std::string& output_uri) {
+    std::string transformStageToReqMessage(const TransformStage* tstage, const std::string& inputURI, const size_t& inputSize, const std::string& output_uri,
+                                           size_t numThreads = 1) {
         messages::InvocationRequest req;
         auto pb_stage = tstage->to_protobuf();
 
@@ -50,6 +51,10 @@ namespace tuplex {
 
         // output uri of job? => final one? parts?
         req.set_outputuri(output_uri);
+
+        auto ws = std::make_unique<messages::WorkerSettings>();
+        ws->set_numthreads(numThreads);
+        req.set_allocated_settings(ws.release());
 
         // transfrom to json
         std::string json_buf;
@@ -129,21 +134,30 @@ TEST(BasicInvocation, Worker) {
     auto vfs = VirtualFileSystem::fromURI(test_path);
     uint64_t input_file_size = 0;
     vfs.file_size(test_path, input_file_size);
-    auto json_message = transformStageToReqMessage(tstage, "test_input.csv", input_file_size, "test_output.csv");
+    auto json_message = transformStageToReqMessage(tstage, URI(test_path).toPath(),
+                                                   input_file_size, "test_output.csv",
+                                                   4);
 
     // save to file
     stringToFile("test_message.json", json_message);
 
-    // invoke worker with that message
-    timer.reset();
-    auto cmd = work_dir + "/" + worker_path + " -m " + "test_message.json";
-    res_stdout = runCommand(cmd);
-    worker_invocation_duration = timer.time();
-    cout<<res_stdout<<endl;
-    cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
-
     python::lockGIL();
     python::closeInterpreter();
+
+    // start worker within same process to easier debug...
+    auto app = make_unique<WorkerApp>(WorkerSettings());
+    app->processJSONMessage(json_message);
+    app->shutdown();
+
+
+//    // invoke worker with that message
+//    timer.reset();
+//    auto cmd = work_dir + "/" + worker_path + " -m " + "test_message.json";
+//    res_stdout = runCommand(cmd);
+//    worker_invocation_duration = timer.time();
+//    cout<<res_stdout<<endl;
+//    cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
+//
 
 }
 

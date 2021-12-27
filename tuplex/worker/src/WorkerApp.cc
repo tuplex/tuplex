@@ -15,6 +15,10 @@ namespace tuplex {
     int WorkerApp::globalInit() {
         auto& logger = Logger::instance().defaultLogger();
 
+        // skip if already initialized.
+        if(_globallyInitialized)
+            return WORKER_OK;
+
         // runtime library path
         auto runtime_path = ContextOptions::defaults().RUNTIME_LIBRARY().toPath();
         std::string python_home_dir = python::find_stdlib_location();
@@ -44,6 +48,8 @@ namespace tuplex {
         logger.info("Initializing python interpreter version " + python::python_version(true, true));
         python::initInterpreter();
         python::unlockGIL();
+
+        _globallyInitialized = true;
         return WORKER_OK;
     }
 
@@ -177,20 +183,72 @@ namespace tuplex {
 
         // input uris
         std::vector<URI> input_uris;
+        std::vector<size_t> input_sizes;
         for(auto path : req.inputuris())
             input_uris.emplace_back(URI(path));
+        for(auto file_size : req.inputsizes())
+            input_sizes.emplace_back(file_size);
 
         // process data (single-threaded or via thread pool!)
         if(_numThreads <= 1) {
+            runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
+
             // single-threaded
             for(unsigned i = 0; i < input_uris.size(); ++i) {
-                processSource(0, tstage->fileInputOperatorID(), input_uris[i], tstage, syms);
+                FilePart fp;
+                fp.rangeStart = 0;
+                fp.rangeEnd = 0;
+                fp.uri = input_uris[i];
+                fp.partNo = i;
+                processSource(0, tstage->fileInputOperatorID(), fp, tstage, syms);
                 logger().debug("processed file " + std::to_string(i + 1) + "/" + std::to_string(input_uris.size()));
             }
+
+            runtime::releaseRunTimeMemory();
         } else {
             // multi-threaded
             // -> split into parts according to size and distribute between threads!
+            auto parts = splitIntoEqualParts(_numThreads, input_uris, input_sizes);
+            auto num_parts = 0;
+            for(auto part : parts)
+                num_parts += part.size();
+            logger().debug("split files into " + pluralize(num_parts, "part"));
 
+            // launch threads & process in each assigned parts
+            std::vector<std::thread> threads;
+            for(int i = 1; i < _numThreads; ++i) {
+
+                runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
+
+                threads.emplace_back(std::thread([this, tstage, syms](int threadNo, const std::vector<FilePart>& parts) {
+                    logger().debug("thread (" + std::to_string(threadNo) + ") started.");
+                    for(auto part : parts) {
+                        logger().debug("thread (" + std::to_string(threadNo) + ") processing part");
+                        processSource(threadNo, tstage->fileInputOperatorID(), part, tstage, syms);
+                    }
+                    logger().debug("thread (" + std::to_string(threadNo) + ") done.");
+
+                    // release here runtime memory...
+                    runtime::releaseRunTimeMemory();
+
+                }, i, parts[i]));
+            }
+
+            // process with this thread data as well!
+            logger().debug("thread (main) processing started");
+            runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
+            for(auto part : parts[0]) {
+                logger().debug("thread (main) processing part");
+                processSource(0, tstage->fileInputOperatorID(), part, tstage, syms);
+            }
+            logger().debug("thread (main) processing done, waiting for others to finish.");
+            // release here runtime memory...
+            runtime::releaseRunTimeMemory();
+
+            // wait for all threads to finish (what about interrupt signal?)
+            for(auto& thread : threads)
+                thread.join();
+            logger().debug("All threads joined, processing done.");
         }
 
         // file reorganizing part...
@@ -198,6 +256,82 @@ namespace tuplex {
         //        //                                          strEndsWith(tstage->outputURI().toPath(), "/"),
         //        //                                          defaultFileExtension(tstage->outputFormat()));
         //        auto outputURI = tstage->outputURI();
+
+        // save buffers now if desired (i.e. data exchange)
+        // => need order for this from original parts + spill parts
+        std::stringstream ss;
+
+        // helper struct for storing info related to sorting buffers + spill files together...
+        struct WriteInfo {
+            bool use_buf; // whether to use buf OR spill info
+            size_t partNo;
+            size_t threadNo;
+            // data...
+            uint8_t *buf;
+            size_t buf_size;
+            size_t num_rows;
+            SpillInfo spill_info;
+            WriteInfo() : buf(nullptr), use_buf(true) {};
+        };
+
+        std::vector<WriteInfo> reorganized_normal_parts;
+        // @TODO: same for exceptions... => need to correct numbers??
+        //  @Ben Givertz will know how to do this...
+        for(unsigned i = 0; i < _numThreads; ++i) {
+
+            auto& env = _threadEnvs[i];
+
+            // first come all the spill parts, then the remaining buffer...
+            // add write info...
+            // !!! stable sort necessary after this !!!
+            WriteInfo info;
+            for(auto spill_info : env.spillFiles) {
+                if(!spill_info.isExceptionBuf) {
+                    info.partNo = info.partNo;
+                    info.use_buf = false;
+                    info.threadNo = i;
+                    info.spill_info = spill_info;
+                    reorganized_normal_parts.push_back(info);
+                } else {
+                    // @TODO...
+                }
+            }
+
+            // now add buffer (if > 0)
+            if(env.normalBuf.size() > 0) {
+                info.partNo = env.normalOriginalPartNo;
+                info.buf = static_cast<uint8_t*>(env.normalBuf.buffer());
+                info.buf_size = env.normalBuf.size();
+                info.use_buf = true;
+                info.threadNo = i;
+                reorganized_normal_parts.push_back(info);
+            }
+        }
+
+        // sort parts (!!! STABLE SORT !!!)
+        std::stable_sort(reorganized_normal_parts.begin(),
+                         reorganized_normal_parts.end(), [](const WriteInfo& a, const WriteInfo& b) {
+            return a.partNo < b.partNo;
+        });
+
+        // debug: print out parts
+#ifndef NDEBUG
+        for(auto info : reorganized_normal_parts) {
+            ss<<"Part ("<<info.partNo<<") produced by thread "<<info.threadNo<<" ";
+            if(info.use_buf)
+                ss<<" (main memory, "<<info.buf_size<<" bytes, "<<pluralize(info.num_rows, "row")<<")\n";
+            else
+                ss<<" (spilled to "<<info.spill_info.path<<")\n";
+        }
+        logger().debug("Result overview: \n" + ss.str());
+#endif
+
+        // no write everything to final output_uri out in order!
+        logger().info("TODO: write out to final URI!");
+
+        // write out exceptions & normal buffers in global order!
+
+        // @TODO: write exceptions in order...
 
 
 
@@ -209,20 +343,43 @@ namespace tuplex {
         return WORKER_OK;
     }
 
-    int64_t WorkerApp::processSource(int threadNo, int64_t inputNodeID, const URI &inputURI, const TransformStage *tstage,
+    int64_t WorkerApp::processSource(int threadNo, int64_t inputNodeID, const FilePart& part, const TransformStage *tstage,
                                      const std::shared_ptr<TransformStage::JITSymbols>& syms) {
         using namespace std;
 
         // couple checks
         assert(tstage);
         assert(syms->functor);
-        assert(threadNo > 0 && threadNo < _numThreads);
+        assert(threadNo >= 0 && threadNo < _numThreads);
+
+        auto inputURI = part.uri;
+
 
         // input reader
         std::unique_ptr<FileInputReader> reader;
         bool normalCaseEnabled = false;
         void* userData = reinterpret_cast<void*>(&_threadEnvs[threadNo]);
         ThreadEnv* env = &_threadEnvs[threadNo];
+
+        // spill files if they do not add up!
+        if(env->normalOriginalPartNo != part.partNo) {
+            if(env->normalBuf.size() > 0)
+                spillNormalBuffer(threadNo);
+            env->normalOriginalPartNo = part.partNo;
+        }
+
+        // do the same for the exception buffer...
+        if(env->exceptionOriginalPartNo != part.partNo) {
+            if(env->exceptionBuf.size() > 0)
+                spillExceptionBuffer(threadNo);
+            env->exceptionOriginalPartNo = part.partNo;
+        }
+        // same for hash buf as well
+        if(env->hashOriginalPartNo != part.partNo) {
+            if(hashmap_bucket_count((map_t)env->hashMap) > 0)
+                spillHashMap(threadNo);
+            env->hashOriginalPartNo = part.partNo;
+        }
 
         switch(tstage->inputMode()) {
             case EndPointMode::FILE: {
@@ -252,15 +409,20 @@ namespace tuplex {
                     // fetch full file for now, later make this optional!
                     // csv->setRange(rangeStart, rangeStart + rangeSize);
                     csv->setHeader(header);
+                    csv->setRange(part.rangeStart, part.rangeEnd);
                     reader.reset(csv);
                 } else if(tstage->inputFormat() == FileFormat::OUTFMT_TEXT) {
                     auto text = new TextReader(userData, reinterpret_cast<codegen::cells_row_f>(syms->functor));
                     // fetch full range for now, later make this optional!
                     // text->setRange(rangeStart, rangeStart + rangeSize);
+                    text->setRange(part.rangeStart, part.rangeEnd);
                     reader.reset(text);
                 } else throw std::runtime_error("unsupported input file format given");
 
+                // Note: ORC reader does not support parts yet... I.e., function needs to read FULL file!
+
                 // read assigned file...
+
                 reader->read(inputURI);
                 runtime::rtfree_all();
                 break;
@@ -269,6 +431,10 @@ namespace tuplex {
                 // not supported yet
                 // => simply read in partition from file (tuplex in memory format)
                 // load file into partition, then call functor on the partition.
+
+                // TODO: parts? -> for tuplex reader maybe also important!
+                // Tuplex reader doesn't support chunking yet either...
+
 
                 // TODO: Could optimize this by streaming in data & calling compute over blocks of data!
                 auto vf = VirtualFileSystem::open_file(inputURI, VirtualFileMode::VFS_READ);
@@ -392,6 +558,20 @@ namespace tuplex {
     WorkerSettings WorkerApp::settingsFromMessage(const tuplex::messages::InvocationRequest& req) {
         WorkerSettings ws;
 
+        // decode from message if certain settings are present
+        if(req.settings().has_numthreads())
+            ws.numThreads = req.settings().numthreads();
+        if(req.settings().has_normalbuffersize())
+            ws.normalBufferSize = req.settings().normalbuffersize();
+        if(req.settings().has_exceptionbuffersize())
+            ws.exceptionBufferSize = req.settings().exceptionbuffersize();
+        if(req.settings().has_spillrooturi())
+            ws.spillRootURI = req.settings().spillrooturi();
+        if(req.settings().has_runtimememoryperthread())
+            ws.runTimeMemory = req.settings().runtimememoryperthread();
+        if(req.settings().has_runtimememoryperthreadblocksize())
+            ws.runTimeMemoryDefaultBlockSize = req.settings().runtimememoryperthreadblocksize();
+
         return ws;
     }
 
@@ -478,6 +658,14 @@ namespace tuplex {
             out_buf.movePtr(bufSize);
             _threadEnvs[threadNo].numNormalRows++;
         } else {
+
+            // check if bufSize exceeds limit, if so resize and call again!
+            if(bufSize > out_buf.capacity()) {
+                out_buf.provideSpace(bufSize);
+                writeRow(threadNo, buf, bufSize); // call again, do not return. Instead spill for sure after the resize...
+                logger().debug("row size exceeded internal buffer size, forced resize.");
+            }
+
             // buffer is full, save to spill out path
             spillNormalBuffer(threadNo);
         }
@@ -509,12 +697,27 @@ namespace tuplex {
             vf->write(&tmp, sizeof(int64_t));
             vf->write(_threadEnvs[threadNo].normalBuf.buffer(), _threadEnvs[threadNo].normalBuf.size());
             logger().info("Spilled " + sizeToMemString(_threadEnvs[threadNo].normalBuf.size() + 2 * sizeof(int64_t)) + " to  " + path.toString());
-            _threadEnvs[threadNo].spillFiles.push_back(path.toString());
+
+            SpillInfo info;
+            info.path = path.toString();
+            info.isExceptionBuf = false;
+            info.num_rows = _threadEnvs[threadNo].numNormalRows;
+            info.originalPartNo = _threadEnvs[threadNo].normalOriginalPartNo;
+            _threadEnvs[threadNo].spillFiles.push_back(info);
         }
 
         // reset
         _threadEnvs[threadNo].normalBuf.reset();
         _threadEnvs[threadNo].numNormalRows = 0;
+        _threadEnvs[threadNo].normalOriginalPartNo = 0;
+    }
+
+    void WorkerApp::spillExceptionBuffer(size_t threadNo) {
+
+    }
+
+    void WorkerApp::spillHashMap(size_t threadNo) {
+
     }
 
     void WorkerApp::writeException(size_t threadNo, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input,

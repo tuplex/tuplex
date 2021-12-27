@@ -54,11 +54,22 @@ message TransformStage {
     map<string, string> outputParameters = 33;
 }
 
+message WorkerSettings {
+    optional uint32 numThreads = 1;
+    optional uint32 normalBufferSize = 2;
+    optional uint32 exceptionBufferSize = 3;
+    optional uint32 hashBufferSize = 4;
+    optional string spillRootURI = 5;
+    optional uint32 runTimeMemoryPerThread = 6;
+    optional uint32 runTimeMemoryPerThreadBlockSize = 7;
+}
+
 message InvocationRequest {
     repeated string inputURIS = 1;
     repeated uint64 inputSizes = 2;
     string outputURI = 3;
     TransformStage stage = 4;
+    WorkerSettings settings = 5;
 }
 
 message InvocationResponse {

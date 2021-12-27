@@ -999,6 +999,7 @@ namespace tuplex {
         msg->set_funcinitstagename(_initStageFuncName);
         msg->set_funcreleasestagename(_releaseStageFuncName);
         msg->set_resolverowfunctionname(_resolveRowFunctionName);
+        msg->set_resolverowwritecallbackname(_resolveRowWriteCallbackName);
         msg->set_resolverowexceptioncallbackname(_resolveRowExceptionCallbackName);
         msg->set_resolvehashcallbackname(_resolveHashCallbackName);
         msg->set_stagenumber(number());

@@ -85,10 +85,41 @@ namespace tuplex {
         size_t hashBufferSize; //! how many bytes to use for hashmap before flushing it out
 
         URI spillRootURI; //! where to store spill over files
+
+
+        // ContextOption dependent variables...
+        size_t runTimeMemory;
+        size_t runTimeMemoryDefaultBlockSize;
+
         // use some defaults...
-        WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE), exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE) {}
+        WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
+        exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE) {
+
+            // set some options from defaults...
+            auto opt = ContextOptions::defaults();
+            runTimeMemory = opt.RUNTIME_MEMORY();
+            runTimeMemoryDefaultBlockSize = opt.RUNTIME_MEMORY_DEFAULT_BLOCK_SIZE();
+
+        }
 
         inline bool operator == (const WorkerSettings& other) const {
+
+            // compare variables...
+            if(numThreads != other.numThreads)
+                return false;
+            if(normalBufferSize != other.normalBufferSize)
+                return false;
+            if(exceptionBufferSize != other.exceptionBufferSize)
+                return false;
+            if(hashBufferSize != other.hashBufferSize)
+                return false;
+            if(spillRootURI != other.spillRootURI)
+                return false;
+            if(runTimeMemory != other.runTimeMemory)
+                return false;
+            if(runTimeMemoryDefaultBlockSize != other.runTimeMemoryDefaultBlockSize)
+                return false;
+
             return true;
         }
 
@@ -106,7 +137,7 @@ namespace tuplex {
         WorkerApp(const WorkerApp& other) =  delete;
 
         // create WorkerApp from settings
-        WorkerApp(const WorkerSettings& settings) : _threadEnvs(nullptr), _numThreads(0) { reinitialize(settings); }
+        WorkerApp(const WorkerSettings& settings) : _threadEnvs(nullptr), _numThreads(0), _globallyInitialized(false) { reinitialize(settings); }
 
         bool reinitialize(const WorkerSettings& settings);
 
@@ -138,6 +169,7 @@ namespace tuplex {
 
         // inherited variables
         WorkerSettings _settings;
+        bool _globallyInitialized;
         std::shared_ptr<JITCompiler> _compiler;
 #ifdef BUILD_WITH_AWS
         Aws::SDKOptions _aws_options;
@@ -146,16 +178,26 @@ namespace tuplex {
         // cache for compiled stages (sometimes same IR gets send)
         std::unordered_map<std::string, std::shared_ptr<TransformStage::JITSymbols>> _compileCache;
 
+        struct SpillInfo {
+            std::string path;
+            size_t num_rows;
+            size_t originalPartNo;
+            bool isExceptionBuf;
+        };
+
         // variables for each Thread
         struct ThreadEnv {
             size_t threadNo; //! which thread number
             WorkerApp* app; //! which app to use
-            Buffer normalBuf; //! holds normal rows
+            Buffer normalBuf; //! holds normal rows, can only hold rows of a single part row before spilling becomes active
+            size_t normalOriginalPartNo; //! holds original part no for normal buffer
             size_t numNormalRows; //! how many normal rows
             Buffer exceptionBuf; //! holds exception rows
+            size_t exceptionOriginalPartNo; //! holds original part no for exception buffer
             size_t numExceptionRows; //! how many exception rows
             void* hashMap; //! for hash output
-            std::vector<std::string> spillFiles; //! files used for storing spilled buffers.
+            size_t hashOriginalPartNo; //! original part No
+            std::vector<SpillInfo> spillFiles; //! files used for storing spilled buffers.
             ThreadEnv() : threadNo(0), app(nullptr), hashMap(nullptr), numNormalRows(0), numExceptionRows(0), normalBuf(100),
                           exceptionBuf(100) {}
 
@@ -172,7 +214,7 @@ namespace tuplex {
         int64_t initTransformStage(const TransformStage::InitData& initData, const std::shared_ptr<TransformStage::JITSymbols>& syms);
         int64_t releaseTransformStage(const std::shared_ptr<TransformStage::JITSymbols>& syms);
 
-        int64_t processSource(int threadNo, int64_t inputNodeID, const URI& inputURI, const TransformStage* tstage, const std::shared_ptr<TransformStage::JITSymbols>& syms);
+        int64_t processSource(int threadNo, int64_t inputNodeID, const FilePart& part, const TransformStage* tstage, const std::shared_ptr<TransformStage::JITSymbols>& syms);
 
         virtual MessageHandler& logger() { return Logger::instance().logger("worker"); }
 
@@ -180,6 +222,8 @@ namespace tuplex {
          * spill buffer out to somewhere & reset counter
          */
         virtual void spillNormalBuffer(size_t threadNo);
+        virtual void spillExceptionBuffer(size_t threadNo);
+        virtual void spillHashMap(size_t threadNo);
 
         void writeBufferToFile(const URI& outputURI,
                                const FileFormat& fmt,

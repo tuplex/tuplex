@@ -333,22 +333,105 @@ namespace tuplex {
         return WORKER_OK;
     }
 
-    void WorkerApp::writePartsToFile(const URI &outputURI, const FileFormat &fmt, const std::vector<WriteInfo> &parts,
+    void WorkerApp::writePartsToFile(const URI &outputURI, const FileFormat &fmt,
+                                     const std::vector<WriteInfo> &parts,
                                      const TransformStage *stage) {
         logger().info("file output initiated...");
 
-        // write header if desired...
-        // use multi-threading for S3!!!
+        // need to potentially accumulate some info!
+        // csv has no amount of rows, ORC doesn't care either as well as Text
+        size_t totalRows = 0;
+        size_t totalBytes = 0;
+        for(auto part_info : parts) {
+            if(part_info.use_buf) {
+                totalRows += part_info.num_rows;
+                totalBytes += part_info.buf_size;
+            } else {
+                totalRows += part_info.spill_info.num_rows;
+                totalBytes += part_info.spill_info.file_size;
+            }
+        }
+
+        logger().info("Writing output from " + pluralize(parts.size(), "part")
+        + " (" + sizeToMemString(totalBytes) + ", " + pluralize(totalRows, "row") + ")");
+
+
+        // open file
+        auto vfs = VirtualFileSystem::fromURI(outputURI);
+        auto mode = VirtualFileMode::VFS_OVERWRITE | VirtualFileMode::VFS_WRITE;
+        if(fmt == FileFormat::OUTFMT_CSV || fmt == FileFormat::OUTFMT_TEXT)
+            mode |= VirtualFileMode::VFS_TEXTMODE;
+        auto file = tuplex::VirtualFileSystem::open_file(outputURI, mode);
+        if(!file)
+            throw std::runtime_error("could not open " + outputURI.toPath() + " to write output");
+
+        // & write header
+        if(FileFormat::OUTFMT_TUPLEX == fmt) {
+            //  1. numbytes 2. numrows
+            int64_t tmp = totalBytes;
+            file->write(&tmp, sizeof(int64_t));
+            tmp = totalRows;
+            file->write(&tmp, sizeof(int64_t));
+        } else if(FileFormat::OUTFMT_CSV == fmt) {
+            // header if desired...
+            // create CSV header if desired
+            uint8_t *header = nullptr;
+            size_t header_length = 0;
+
+            // write header if desired...
+            auto outOptions = stage->outputOptions();
+            bool writeHeader = stringToBool(get_or(outOptions, "header", "false"));
+            if(writeHeader) {
+                // fetch special var csvHeader
+                auto headerLine = outOptions["csvHeader"];
+                header_length = headerLine.length();
+                header = new uint8_t[header_length+1];
+                memset(header, 0, header_length + 1 );
+                memcpy(header, (uint8_t *)headerLine.c_str(), header_length);
+
+                file->write(header, header_length);
+                delete [] header; // delete temp buffer.
+            }
+        }
+
+        // use multi-threading for S3!!! --> that makes faster upload! I.e., multi-part-upload.
         for(auto part_info : parts) {
             // is it buf or file?
             if(part_info.use_buf) {
                 // write the buffer...
-
+                // -> directly to file!
+                assert(part_info.buf);
+                file->write(part_info.buf, part_info.buf_size);
             } else {
                 // read & copy back the file contents of the spill file!
+                logger().debug("opening spilled part file");
+                auto part_file = VirtualFileSystem::open_file(part_info.spill_info.path, VirtualFileMode::VFS_READ);
+                if(!part_file) {
+                    auto err_msg = "part file could not be found under " + part_info.spill_info.path + ", output corrupted.";
+                    logger().error(err_msg);
+                    throw std::runtime_error(err_msg);
+                }
 
+                // read contents in...
+                assert(part_file->size() == part_info.spill_info.file_size);
+                assert(part_file->size() >= 2 * sizeof(int64_t));
+                part_file->seek(2 * sizeof(int64_t)); // skip first two bytes representing bytes/rows
+                size_t part_buffer_size = part_info.spill_info.file_size - 2 * sizeof(int64_t);
+                uint8_t* part_buffer = new uint8_t[part_buffer_size];
+                size_t bytes_read = 0;
+                part_file->readOnly(part_buffer, part_buffer_size, &bytes_read);
+                logger().debug("read from parts file " + sizeToMemString(bytes_read));
+                part_file->close();
+                // copy part buffer to output file!
+                file->write(part_buffer, part_buffer_size);
+                delete [] part_buffer;
+                logger().debug("copied contents from part back to output buffer");
+                logger().debug("TODO: delete file? Add to job cleanup queue?");
             }
         }
+
+        file->close();
+
         logger().info("file output done.");
     }
 

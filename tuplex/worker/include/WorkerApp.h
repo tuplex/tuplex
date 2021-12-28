@@ -181,6 +181,7 @@ namespace tuplex {
         struct SpillInfo {
             std::string path;
             size_t num_rows;
+            size_t file_size;
             size_t originalPartNo;
             bool isExceptionBuf;
         };

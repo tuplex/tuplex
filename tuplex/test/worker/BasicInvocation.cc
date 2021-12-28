@@ -149,6 +149,11 @@ TEST(BasicInvocation, Worker) {
     app->processJSONMessage(json_message);
     app->shutdown();
 
+    // fetch output file and check contents...
+    auto file_content = fileToString("test_output.csv");
+
+    std::cout<<"file content:\n"<<file_content<<std::endl;
+
 
 //    // invoke worker with that message
 //    timer.reset();

@@ -15,6 +15,9 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 
+#include "VirtualFileSystem.h"
+#include "S3FileSystemImpl.h"
+
 namespace tuplex {
 
     const URI URI::INVALID = URI();
@@ -91,6 +94,11 @@ namespace tuplex {
                 // does path end with /.? => replace with /! it's a folder then ...
                 if(weakly_normal.size() >= 2 && weakly_normal[weakly_normal.size() -1] == '.' && weakly_normal[weakly_normal.size() - 2] == '/')
                     weakly_normal = weakly_normal.substr(0, weakly_normal.length() - 1);
+
+                // check if weakly normal starts with /, if not use current working directory and append path!
+                if(weakly_normal.front() != '/')
+                    return current_working_directory() + "/" + _uri.substr(str_constant("file://").length());
+
                 return weakly_normal;
             }
             case URIType::S3: {
@@ -127,6 +135,17 @@ namespace tuplex {
                 auto path = toPath();
                 return boost::filesystem::exists(path);
             }
+#ifdef BUILD_WITH_AWS
+            case URIType::S3: {
+                // check meta data
+                auto s3fs = VirtualFileSystem::getS3FileSystemImpl();
+                if(!s3fs)
+                    return false;
+
+                auto response = s3GetHeadObject(s3fs->client(), *this);
+                return !response.empty();
+            }
+#endif
             default:
                 logger.error("unsupported URI type found. Can't determine whether file or directory exists.");
                 return false;

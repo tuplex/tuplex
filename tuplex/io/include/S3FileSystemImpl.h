@@ -94,6 +94,15 @@ namespace tuplex {
         std::vector<URI> glob(const std::string& pattern) override;
     };
 
+    /*!
+     * retrieves meta-data about bucket. Returns empty string if not found or request fails.
+     * @param client on which S3 clien to run request
+     * @param uri uri
+     * @param os_err optional output stream where to log errors.
+     * @return string containing JSON meta-data or empty string for failure
+     */
+    extern std::string s3GetHeadObject(Aws::S3::S3Client const& client, const URI& uri, std::ostream *os_err=nullptr);
+
 }
 
 

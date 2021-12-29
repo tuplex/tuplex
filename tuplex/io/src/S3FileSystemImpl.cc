@@ -23,6 +23,7 @@
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/DeleteObjectsRequest.h>
 #include <aws/s3/model/CopyObjectRequest.h>
+#include <aws/s3/model/HeadObjectRequest.h>
 #include <Timer.h>
 #include <Utils.h>
 #include <FileUtils.h>
@@ -974,6 +975,45 @@ namespace tuplex {
             logger.debug("copied " + s3_src.toString() + " to " + s3_dest.toString());
             return true;
         }
+    }
+
+
+    std::string s3GetHeadObject(Aws::S3::S3Client const& client, const URI& uri, std::ostream *os_err) {
+        using namespace std;
+        string meta_data;
+
+        assert(uri.prefix() == "s3://");
+
+        // perform request
+        Aws::S3::Model::HeadObjectRequest request;
+        request.WithBucket(uri.s3Bucket().c_str());
+        request.WithKey(uri.s3Key().c_str());
+        auto head_outcome = client.HeadObject(request);
+        if (head_outcome.IsSuccess()) {
+            auto& result = head_outcome.GetResult();
+
+            // there's a ton of options, https://docs.aws.amazon.com/cli/latest/reference/s3api/head-object.html
+            // just serialize as json out a couple
+            stringstream ss;
+
+            ss<<"{";
+            ss<<"\"LastModified\":"<<chronoToISO8601(result.GetLastModified().UnderlyingTimestamp())<<","
+              <<"\"ContentLength\":"<<result.GetContentLength()<<","
+              <<"\"VersionId\":"<<result.GetVersionId().c_str()<<","
+              <<"\"ContentType\":"<<result.GetContentType().c_str();
+            ss<<"}";
+
+            return ss.str();
+        } else {
+            if(os_err) {
+                *os_err<<"HeadObject Request failed with HTTP code "
+                       <<static_cast<int>(head_outcome.GetError().GetResponseCode())
+                       <<", details: "
+                       <<head_outcome.GetError().GetMessage().c_str();
+            }
+        }
+
+        return meta_data;
     }
 
 }

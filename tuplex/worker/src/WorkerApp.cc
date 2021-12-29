@@ -168,6 +168,8 @@ namespace tuplex {
 
     int WorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
 
+        Timer timer;
+
         // only transform stage yet supported, in the future support other stages as well!
         auto tstage = TransformStage::from_protobuf(req.stage());
 
@@ -253,6 +255,41 @@ namespace tuplex {
             logger().debug("All threads joined, processing done.");
         }
 
+        // print out info
+
+        size_t numNormalRows = 0;
+        size_t numExceptionRows = 0;
+        size_t numHashRows = 0;
+        size_t normalBufSize = 0;
+        size_t exceptionBufSize = 0;
+        size_t hashMapSize = 0;
+        for(unsigned i = 0; i < _numThreads; ++i) {
+            numNormalRows += _threadEnvs[i].numNormalRows;
+            numExceptionRows += _threadEnvs[i].numExceptionRows;
+            normalBufSize += _threadEnvs[i].normalBuf.size();
+            exceptionBufSize += _threadEnvs[i].exceptionBuf.size();
+            hashMapSize += _threadEnvs[i].hashMapSize();
+            for(auto info : _threadEnvs[i].spillFiles) {
+                if(info.isExceptionBuf)
+                    numExceptionRows += info.num_rows;
+                else
+                    numNormalRows += info.num_rows;
+            }
+        }
+
+        if(tstage->outputMode() == EndPointMode::HASHTABLE) {
+            numHashRows = numNormalRows;
+            numNormalRows = 0;
+        }
+
+        auto task_duration = timer.time();
+        std::stringstream ss;
+        ss<<"in "<<task_duration<<"s "<<sizeToMemString(normalBufSize)
+          <<" ("<<pluralize(numNormalRows, "normal row")<<")  "
+          <<sizeToMemString(exceptionBufSize)<<" ("<<pluralize(numExceptionRows, "exception row")<<")  "
+          <<sizeToMemString(hashMapSize)<<" ("<<pluralize(numHashRows, "hash row")<<")";
+
+        logger().info("Data processed " + ss.str());
         // file reorganizing part...
         //   //        auto outputURI = getNextOutputURI(threadNo, tstage->outputURI(),
         //        //                                          strEndsWith(tstage->outputURI().toPath(), "/"),
@@ -261,7 +298,7 @@ namespace tuplex {
 
         // save buffers now if desired (i.e. data exchange)
         // => need order for this from original parts + spill parts
-        std::stringstream ss;
+        ss.clear();
 
         std::vector<WriteInfo> reorganized_normal_parts;
         // @TODO: same for exceptions... => need to correct numbers??
@@ -314,7 +351,9 @@ namespace tuplex {
             else
                 ss<<" (spilled to "<<info.spill_info.path<<")\n";
         }
-        logger().debug("Result overview: \n" + ss.str());
+        auto res_msg = "Result overview: \n" + ss.str();
+        trim(res_msg);
+        logger().debug(res_msg);
 #endif
 
         // no write everything to final output_uri out in order!
@@ -330,6 +369,7 @@ namespace tuplex {
         if(rc != WORKER_OK)
             return rc;
 
+        logger().info("Took " + std::to_string(timer.time()) + "s in total");
         return WORKER_OK;
     }
 
@@ -564,18 +604,6 @@ namespace tuplex {
         }
 
         // when processing is done, simply output everything to URI (should be an S3 one!)
-        stringstream ss;
-        ss<<"Task resulted in: "<<sizeToMemString(env->normalBuf.size())<<" (normal)  "
-          <<sizeToMemString(env->exceptionBuf.size())<<" (except)  "
-          <<sizeToMemString(env->hashMapSize())<<" (hash)";
-
-        // lazy write each threadEnv back to S3!
-        // @TODO: file reorg at the end???
-        // --> need to specify that!
-        // --> should files be partitioned after certain things??
-
-        logger().info("Task done!");
-
         return WORKER_OK;
     }
 
@@ -774,14 +802,17 @@ namespace tuplex {
 
         // create file name (trivial:)
         auto name = "spill_normal_" + std::to_string(threadNo) + "_" + std::to_string(_threadEnvs->spillFiles.size());
-
-        auto path = URI(_settings.spillRootURI.toString() + "/" + name);
+        std::string ext = ".tmp";
+        auto rootURI = _settings.spillRootURI.toString().empty() ? "" : _settings.spillRootURI.toString() + "/";
+        auto path = URI(rootURI + name + ext);
 
         // open & write
         auto vfs = VirtualFileSystem::fromURI(path);
         auto vf = vfs.open_file(path, VirtualFileMode::VFS_OVERWRITE);
         if(!vf) {
-            logger().error("Failed to spill buffer to path " + path.toString());
+            auto err_msg = "Failed to spill buffer to path " + path.toString();
+            logger().error(err_msg);
+            throw std::runtime_error(err_msg);
         } else {
             int64_t tmp = _threadEnvs[threadNo].numNormalRows;
             vf->write(&tmp, sizeof(int64_t));
@@ -815,7 +846,10 @@ namespace tuplex {
     void WorkerApp::writeException(size_t threadNo, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input,
                               int64_t dataLength) {
         // same here for exception buffers...
-        logger().info("Thread " + std::to_string(threadNo) + " produced Exception " + exceptionCodeToString(i64ToEC(exceptionCode)));
+        // logger().info("Thread " + std::to_string(threadNo) + " produced Exception " + exceptionCodeToString(i64ToEC(exceptionCode)));
+
+        // @TODO: save exception!
+        _threadEnvs[threadNo].numExceptionRows++;
     }
 
     void WorkerApp::writeHashedRow(size_t threadNo, const uint8_t *key, int64_t key_size, const uint8_t *bucket, int64_t bucket_size) {

@@ -301,6 +301,16 @@ namespace tuplex {
     }
 
 #ifdef BUILD_WITH_AWS
+
+    S3FileSystemImpl* VirtualFileSystem::getS3FileSystemImpl() {
+        // check whether s3 is registered
+        auto it = fsRegistry.find("s3://");
+        if(it == fsRegistry.end())
+            return nullptr;
+        return static_cast<S3FileSystemImpl*>(it->second.get());
+    }
+
+
     int VirtualFileSystem::copyLocalToS3(const std::vector<std::string> &src_uris, const URI &target,
                                             const std::string &lcp, std::vector<URI> &copied_uris, bool overwrite) {
         using namespace std;

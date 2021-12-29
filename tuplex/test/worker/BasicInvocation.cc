@@ -18,6 +18,10 @@
 #include <google/protobuf/util/json_util.h>
 #include "../../worker/include/WorkerApp.h"
 
+#ifdef BUILD_WITH_AWS
+#include <ee/aws/AWSLambdaBackend.h>
+#endif
+
 static const std::string worker_path = "tuplex-worker";
 
 /*!
@@ -40,6 +44,9 @@ namespace tuplex {
     std::string transformStageToReqMessage(const TransformStage* tstage, const std::string& inputURI, const size_t& inputSize, const std::string& output_uri,
                                            size_t numThreads = 1) {
         messages::InvocationRequest req;
+
+        size_t buf_spill_size = 512 * 1024; // for testing, set spill size to 512KB!
+
         auto pb_stage = tstage->to_protobuf();
 
         pb_stage->set_bitcode(tstage->bitCode());
@@ -54,6 +61,9 @@ namespace tuplex {
 
         auto ws = std::make_unique<messages::WorkerSettings>();
         ws->set_numthreads(numThreads);
+        ws->set_normalbuffersize(buf_spill_size);
+        ws->set_exceptionbuffersize(buf_spill_size);
+        ws->set_spillrooturi("spill_folder");
         req.set_allocated_settings(ws.release());
 
         // transfrom to json
@@ -89,6 +99,9 @@ std::string shellEscape(const std::string& str) {
 
 TEST(BasicInvocation, Worker) {
     using namespace std;
+    using namespace tuplex;
+
+
     char buf[4096];
     auto cur_dir = getcwd(buf, 4096);
 
@@ -96,6 +109,32 @@ TEST(BasicInvocation, Worker) {
 
     // check worker exists
     ASSERT_TRUE(tuplex::fileExists(worker_path));
+
+
+    // test config here:
+    // local csv test file!
+    auto test_path = URI("file://../resources/flights_on_time_performance_2019_01.sample.csv");
+    auto test_output_path = URI("file://output.txt");
+
+    // S3 paths?
+    test_path = URI("s3://tuplex-public/data/flights_on_time_performance_2009_01.csv");
+    test_output_path = URI("file://output_s3.txt");
+
+    size_t num_threads = 4;
+    num_threads = 1;
+
+    // need to init AWS SDK...
+#ifdef BUILD_WITH_AWS
+    {
+        // init AWS SDK to get access to S3 filesystem
+        auto& logger = Logger::instance().logger("aws");
+        auto aws_credentials = AWSCredentials::get();
+        auto options = ContextOptions::defaults();
+        Timer timer;
+        bool aws_init_rc = initAWS(aws_credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
+        logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
+    }
+#endif
 
     // invoke helper with --help
     std::string work_dir = cur_dir;
@@ -108,12 +147,8 @@ TEST(BasicInvocation, Worker) {
 
 
     // create a simple TransformStage reading in a file & saving it. Then, execute via Worker!
-    using namespace tuplex;
 
-    // local csv test file!
-    auto test_path = URI("file://../resources/flights_on_time_performance_2019_01.sample.csv");
-    auto test_output_path = URI("file://output.txt");
-    ASSERT_TRUE(fileExists(test_path.toPath()));
+    ASSERT_TRUE(test_path.exists());
     python::initInterpreter();
     python::unlockGIL();
     ContextOptions co = ContextOptions::defaults();
@@ -122,7 +157,7 @@ TEST(BasicInvocation, Worker) {
                                        option<bool>(true),
                                                option<char>(','), option<char>('"'),
             {}, {}, {}, {});
-    auto mapop = new MapOperator(csvop, UDF("lambda x: {'airport': x['ORIGIN_AIRPORT_ID']}"), csvop->columns());
+    auto mapop = new MapOperator(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
     auto fop = new FileOutputOperator(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, {});
     builder.addFileInput(csvop);
     builder.addOperator(mapop);
@@ -135,8 +170,8 @@ TEST(BasicInvocation, Worker) {
     uint64_t input_file_size = 0;
     vfs.file_size(test_path, input_file_size);
     auto json_message = transformStageToReqMessage(tstage, URI(test_path).toPath(),
-                                                   input_file_size, "test_output.csv",
-                                                   4);
+                                                   input_file_size, test_output_path.toString(),
+                                                   num_threads);
 
     // save to file
     stringToFile("test_message.json", json_message);
@@ -150,9 +185,9 @@ TEST(BasicInvocation, Worker) {
     app->shutdown();
 
     // fetch output file and check contents...
-    auto file_content = fileToString("test_output.csv");
+    auto file_content = fileToString(test_output_path);
 
-    std::cout<<"file content:\n"<<file_content<<std::endl;
+    // std::cout<<"file content:\n"<<file_content<<std::endl;
 
 
 //    // invoke worker with that message

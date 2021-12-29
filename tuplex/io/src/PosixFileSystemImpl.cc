@@ -162,7 +162,8 @@ namespace tuplex {
 
         // check whether parent dir exists, if not create dirs!
         auto parent_path = parentPath(uri.toPath());
-        if(!fileExists(parent_path)) {
+        if((VirtualFileMode::VFS_WRITE == vfm || VirtualFileMode::VFS_OVERWRITE == vfm) &&
+        !fileExists(parent_path)) {
             logger.debug("parent dir " + parent_path + " does not exist, creating it.");
             create_dir(parent_path);
             assert(isDirectory(parent_path));

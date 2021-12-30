@@ -63,14 +63,14 @@ namespace tuplex {
 
         // to compute pricing, use https://calculator.s3.amazonaws.com/index.html
         // counters, practical for price estimation
-        size_t _putRequests;
-        size_t _initMultiPartUploadRequests;
-        size_t _multiPartPutRequests;
-        size_t _closeMultiPartUploadRequests;
-        size_t _getRequests;
-        size_t _bytesTransferred;
-        size_t _bytesReceived;
-        size_t _lsRequests;
+        std::atomic<size_t> _putRequests;
+         std::atomic<size_t> _initMultiPartUploadRequests;
+         std::atomic<size_t> _multiPartPutRequests;
+         std::atomic<size_t> _closeMultiPartUploadRequests;
+         std::atomic<size_t> _getRequests;
+         std::atomic<size_t> _bytesTransferred;
+         std::atomic<size_t> _bytesReceived;
+         std::atomic<size_t> _lsRequests;
 
         // transfer manager uses a threadpool, simply use here a pool for some additional threads.
         // Note: this design might be not that great together with the executor threadpool!

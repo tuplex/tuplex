@@ -121,7 +121,7 @@ TEST(BasicInvocation, Worker) {
     test_output_path = URI("file://output_s3.txt");
 
     size_t num_threads = 4;
-    num_threads = 1;
+    num_threads = 4;
 
     // need to init AWS SDK...
 #ifdef BUILD_WITH_AWS

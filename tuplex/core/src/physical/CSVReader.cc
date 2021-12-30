@@ -304,9 +304,12 @@ namespace tuplex {
             // if ranges, fill!
             if(_rangeStart < _rangeEnd) {
 
+#ifndef NDEBUG
                 // sanity check
-                assert(_rangeEnd - _rangeStart >= 256); // range should be at least 256bytes for a row!
-
+                // range should be at least 256bytes for a row!
+                if(_rangeEnd - _rangeStart < 256)
+                    Logger::instance().defaultLogger().debug("extremely small range of " + std::to_string(_rangeEnd - _rangeStart) + " requested, merge with other part?");
+#endif
                 getChunkStart();
 
                 _curFilePos = _rangeStart;

@@ -137,7 +137,7 @@ namespace tuplex {
         WorkerApp(const WorkerApp& other) =  delete;
 
         // create WorkerApp from settings
-        WorkerApp(const WorkerSettings& settings) : _threadEnvs(nullptr), _numThreads(0), _globallyInitialized(false) { reinitialize(settings); }
+        WorkerApp(const WorkerSettings& settings) : _threadEnvs(nullptr), _numThreads(0), _globallyInitialized(false), _logger(Logger::instance().logger("worker")) { reinitialize(settings); }
 
         bool reinitialize(const WorkerSettings& settings);
 
@@ -171,6 +171,7 @@ namespace tuplex {
         WorkerSettings _settings;
         bool _globallyInitialized;
         std::shared_ptr<JITCompiler> _compiler;
+        MessageHandler& _logger;
 #ifdef BUILD_WITH_AWS
         Aws::SDKOptions _aws_options;
 #endif
@@ -231,7 +232,11 @@ namespace tuplex {
 
         int64_t processSource(int threadNo, int64_t inputNodeID, const FilePart& part, const TransformStage* tstage, const std::shared_ptr<TransformStage::JITSymbols>& syms);
 
-        virtual MessageHandler& logger() { return Logger::instance().logger("worker"); }
+        /*!
+         * thread-safe logger function
+         * @return message handler
+         */
+        virtual MessageHandler& logger() const { return _logger; }
 
         /*!
          * spill buffer out to somewhere & reset counter

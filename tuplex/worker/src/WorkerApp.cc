@@ -218,15 +218,18 @@ namespace tuplex {
                 num_parts += part.size();
             logger().debug("split files into " + pluralize(num_parts, "part"));
 
+            // todo: logger() is not mt-safe!!!
+
+
             // launch threads & process in each assigned parts
             std::vector<std::thread> threads;
             for(int i = 1; i < _numThreads; ++i) {
-
-                runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
-
-                threads.emplace_back(std::thread([this, tstage, syms](int threadNo, const std::vector<FilePart>& parts) {
+                threads.push_back(std::thread([this, tstage, syms](int threadNo, const std::vector<FilePart>& parts) {
                     logger().debug("thread (" + std::to_string(threadNo) + ") started.");
-                    for(auto part : parts) {
+
+                    runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
+
+                    for(const auto& part : parts) {
                         logger().debug("thread (" + std::to_string(threadNo) + ") processing part");
                         processSource(threadNo, tstage->fileInputOperatorID(), part, tstage, syms);
                     }
@@ -235,7 +238,7 @@ namespace tuplex {
                     // release here runtime memory...
                     runtime::releaseRunTimeMemory();
 
-                }, i, parts[i]));
+                }, i, std::cref(parts[i])));
             }
 
             // process with this thread data as well!
@@ -250,8 +253,7 @@ namespace tuplex {
             runtime::releaseRunTimeMemory();
 
             // wait for all threads to finish (what about interrupt signal?)
-            for(auto& thread : threads)
-                thread.join();
+            std::for_each(threads.begin(), threads.end(), std::mem_fn(&std::thread::join));
             logger().debug("All threads joined, processing done.");
         }
 
@@ -344,8 +346,9 @@ namespace tuplex {
 
         // debug: print out parts
 #ifndef NDEBUG
+        ss.str("");
         for(auto info : reorganized_normal_parts) {
-            ss<<"Part ("<<info.partNo<<") produced by thread "<<info.threadNo<<" ";
+            ss<<"Part ("<<info.partNo<<") produced by thread "<<info.threadNo;
             if(info.use_buf)
                 ss<<" (main memory, "<<info.buf_size<<" bytes, "<<pluralize(info.num_rows, "row")<<")\n";
             else
@@ -453,8 +456,13 @@ namespace tuplex {
                 }
 
                 // read contents in...
-                assert(part_file->size() == part_info.spill_info.file_size);
+
+                if(part_file->size() != part_info.spill_info.file_size) {
+                    logger().warn("part_file: " + std::to_string(part_file->size()) + " part_info: " + std::to_string(part_info.spill_info.file_size));
+                }
+                // assert(part_file->size() == part_info.spill_info.file_size);
                 assert(part_file->size() >= 2 * sizeof(int64_t));
+
                 part_file->seek(2 * sizeof(int64_t)); // skip first two bytes representing bytes/rows
                 size_t part_buffer_size = part_info.spill_info.file_size - 2 * sizeof(int64_t);
                 uint8_t* part_buffer = new uint8_t[part_buffer_size];
@@ -801,7 +809,7 @@ namespace tuplex {
         // spill (in Tuplex format!), i.e. write first #rows, #bytes written & the rest!
 
         // create file name (trivial:)
-        auto name = "spill_normal_" + std::to_string(threadNo) + "_" + std::to_string(_threadEnvs->spillFiles.size());
+        auto name = "spill_normal_" + std::to_string(threadNo) + "_" + std::to_string(_threadEnvs[threadNo].spillFiles.size());
         std::string ext = ".tmp";
         auto rootURI = _settings.spillRootURI.toString().empty() ? "" : _settings.spillRootURI.toString() + "/";
         auto path = URI(rootURI + name + ext);
@@ -819,14 +827,16 @@ namespace tuplex {
             tmp = _threadEnvs[threadNo].normalBuf.size();
             vf->write(&tmp, sizeof(int64_t));
             vf->write(_threadEnvs[threadNo].normalBuf.buffer(), _threadEnvs[threadNo].normalBuf.size());
-            logger().info("Spilled " + sizeToMemString(_threadEnvs[threadNo].normalBuf.size() + 2 * sizeof(int64_t)) + " to  " + path.toString());
 
             SpillInfo info;
             info.path = path.toString();
             info.isExceptionBuf = false;
             info.num_rows = _threadEnvs[threadNo].numNormalRows;
             info.originalPartNo = _threadEnvs[threadNo].normalOriginalPartNo;
+            info.file_size =  _threadEnvs[threadNo].normalBuf.size() + 2 * sizeof(int64_t);
             _threadEnvs[threadNo].spillFiles.push_back(info);
+
+            logger().info("Spilled " + sizeToMemString(info.file_size) + " to " + path.toString());
         }
 
         // reset

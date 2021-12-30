@@ -223,37 +223,59 @@ namespace tuplex {
 
             // launch threads & process in each assigned parts
             std::vector<std::thread> threads;
+            threads.reserve(_numThreads);
             for(int i = 1; i < _numThreads; ++i) {
-                threads.push_back(std::thread([this, tstage, syms](int threadNo, const std::vector<FilePart>& parts) {
+                threads.emplace_back([this, tstage, syms](int threadNo, const std::vector<FilePart>& parts) {
                     logger().debug("thread (" + std::to_string(threadNo) + ") started.");
 
                     runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
 
-                    for(const auto& part : parts) {
-                        logger().debug("thread (" + std::to_string(threadNo) + ") processing part");
-                        processSource(threadNo, tstage->fileInputOperatorID(), part, tstage, syms);
+                    try {
+                        for(const auto& part : parts) {
+                            logger().debug("thread (" + std::to_string(threadNo) + ") processing part");
+                            processSource(threadNo, tstage->fileInputOperatorID(), part, tstage, syms);
+                        }
+                    } catch(const std::exception& e) {
+                        logger().error(std::string("exception recorded: ") + e.what());
+                    } catch(...) {
+                        logger().error("unknown exception encountered, abort.");
                     }
+
                     logger().debug("thread (" + std::to_string(threadNo) + ") done.");
 
                     // release here runtime memory...
                     runtime::releaseRunTimeMemory();
 
-                }, i, std::cref(parts[i])));
+                }, i, std::cref(parts[i]));
             }
 
             // process with this thread data as well!
             logger().debug("thread (main) processing started");
             runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
-            for(auto part : parts[0]) {
-                logger().debug("thread (main) processing part");
-                processSource(0, tstage->fileInputOperatorID(), part, tstage, syms);
+
+            try {
+                for(auto part : parts[0]) {
+                    logger().debug("thread (main) processing part");
+                    processSource(0, tstage->fileInputOperatorID(), part, tstage, syms);
+                }
+            } catch(const std::exception& e) {
+                logger().error(std::string("exception recorded: ") + e.what());
+            } catch(...) {
+                logger().error("unknown exception encountered, abort.");
             }
+
             logger().debug("thread (main) processing done, waiting for others to finish.");
             // release here runtime memory...
             runtime::releaseRunTimeMemory();
 
             // wait for all threads to finish (what about interrupt signal?)
-            std::for_each(threads.begin(), threads.end(), std::mem_fn(&std::thread::join));
+            // std::for_each(threads.begin(), threads.end(), std::mem_fn(&std::thread::join));
+            for(auto& thread : threads) {
+                if(thread.joinable())
+                    thread.join();
+                logger().debug("Thread joined");
+            }
+
             logger().debug("All threads joined, processing done.");
         }
 

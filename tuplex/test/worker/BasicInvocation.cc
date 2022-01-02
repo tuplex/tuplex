@@ -18,11 +18,33 @@
 #include <google/protobuf/util/json_util.h>
 #include "../../worker/include/WorkerApp.h"
 
+
+#include <boost/filesystem.hpp>
+
 #ifdef BUILD_WITH_AWS
 #include <ee/aws/AWSLambdaBackend.h>
 #endif
 
-static const std::string worker_path = "tuplex-worker";
+#include <procinfo.h>
+#include <FileUtils.h>
+
+std::string find_worker() {
+    using namespace tuplex;
+
+    // find worker executable (tuplex-worker)
+    static const std::string exec_name = "tuplex-worker";
+
+    // check current working dir
+    auto exec_dir = dir_from_pid(pid_from_self());
+
+    auto path = exec_dir + "/" + exec_name;
+
+    if(!fileExists(path))
+        throw std::runtime_error("Could not find worker under " + path);
+
+    return eliminateSeparatorRuns(path);
+}
+
 
 /*!
  * runs command and returns stdout?
@@ -97,19 +119,66 @@ std::string shellEscape(const std::string& str) {
     return "'" + findAndReplaceAll(str, "'", "'\"'\"'") + "'";
 }
 
+void createRefPipeline(const std::string& test_input_path,
+                       const std::string& test_output_path,
+                       const std::string& scratch_dir) {
+    using namespace tuplex;
+
+    python::initInterpreter();
+    python::unlockGIL();
+    try {
+        auto co = ContextOptions::defaults();
+        co.set("tuplex.executorCount", "4");
+        co.set("tuplex.partitionSize", "512KB");
+        co.set("tuplex.executorMemory", "32MB");
+        co.set("tuplex.useLLVMOptimizer", "true");
+        co.set("tuplex.allowUndefinedBehavior", "false");
+        co.set("tuplex.webui.enable", "false");
+        co.set("tuplex.scratchDir", "file://" + scratch_dir);
+
+        Context c(co);
+
+        // from:
+        //  auto csvop = FileInputOperator::fromCsv(test_path.toString(), co,
+        //                                       option<bool>(true),
+        //                                               option<char>(','), option<char>('"'),
+        //            {}, {}, {}, {});
+        //    auto mapop = new MapOperator(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
+        //    auto fop = new FileOutputOperator(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, {});
+        c.csv(test_input_path).map(UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}", "")).tocsv(test_output_path);
+    } catch (...) {
+        FAIL();
+    }
+    python::lockGIL();
+    python::closeInterpreter();
+}
+
 TEST(BasicInvocation, Worker) {
     using namespace std;
     using namespace tuplex;
 
+    auto worker_path = find_worker();
+
+    auto testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+    auto scratchDir = "/tmp/" + testName;
+
+    // change cwd & create dir to avoid conflicts!
+    auto cwd_path = boost::filesystem::current_path();
+    auto desired_cwd = cwd_path.string() + "/tests/" + testName;
+    // create dir if it doesn't exist
+    auto vfs = VirtualFileSystem::fromURI("file://");
+    vfs.create_dir(desired_cwd);
+    boost::filesystem::current_path(desired_cwd);
 
     char buf[4096];
     auto cur_dir = getcwd(buf, 4096);
+
+    EXPECT_NE(std::string(cur_dir).find(testName), std::string::npos);
 
     cout<<"current working dir: "<<buf<<endl;
 
     // check worker exists
     ASSERT_TRUE(tuplex::fileExists(worker_path));
-
 
     // test config here:
     // local csv test file!
@@ -143,11 +212,32 @@ TEST(BasicInvocation, Worker) {
     std::string work_dir = cur_dir;
 
     tuplex::Timer timer;
-    auto res_stdout = runCommand(work_dir + "/" + worker_path + " --help");
+    auto res_stdout = runCommand(worker_path + " --help");
     auto worker_invocation_duration = timer.time();
     cout<<res_stdout<<endl;
     cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
 
+
+    // Step 1: create ref pipeline using direct Tuplex invocation
+    auto test_ref_path = testName + "_ref.csv";
+    createRefPipeline(test_path.toString(), test_ref_path, scratchDir);
+
+    // load ref file from parts!
+    auto ref_files = glob(current_working_directory() + "/" + testName + "_ref*part*csv");
+    std::sort(ref_files.begin(), ref_files.end());
+
+    // merge into single large string
+    std::string ref_content = "";
+    for(unsigned i = 0; i < ref_files.size(); ++i) {
+        if(i > 0) {
+            auto file_content = fileToString(ref_files[i]);
+            // skip header for these parts
+            auto idx = file_content.find("\n");
+            ref_content += file_content.substr(idx + 1);
+        } else {
+            ref_content = fileToString(ref_files[0]);
+        }
+    }
 
     // create a simple TransformStage reading in a file & saving it. Then, execute via Worker!
 
@@ -161,7 +251,7 @@ TEST(BasicInvocation, Worker) {
                                                option<char>(','), option<char>('"'),
             {}, {}, {}, {});
     auto mapop = new MapOperator(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
-    auto fop = new FileOutputOperator(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, {});
+    auto fop = new FileOutputOperator(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
     builder.addFileInput(csvop);
     builder.addOperator(mapop);
     builder.addFileOutput(fop);
@@ -169,7 +259,7 @@ TEST(BasicInvocation, Worker) {
     auto tstage = builder.build();
 
     // transform to message
-    auto vfs = VirtualFileSystem::fromURI(test_path);
+    vfs = VirtualFileSystem::fromURI(test_path);
     uint64_t input_file_size = 0;
     vfs.file_size(test_path, input_file_size);
     auto json_message = transformStageToReqMessage(tstage, URI(test_path).toPath(),
@@ -190,8 +280,9 @@ TEST(BasicInvocation, Worker) {
     // fetch output file and check contents...
     auto file_content = fileToString(test_output_path);
 
-    // std::cout<<"file content:\n"<<file_content<<std::endl;
-
+    // check files are 1:1 the same!
+    EXPECT_EQ(file_content.size(), ref_content.size());
+    EXPECT_EQ(file_content, ref_content);
 
 //    // invoke worker with that message
 //    timer.reset();

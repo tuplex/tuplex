@@ -363,7 +363,8 @@ namespace tuplex {
         // sort parts (!!! STABLE SORT !!!)
         std::stable_sort(reorganized_normal_parts.begin(),
                          reorganized_normal_parts.end(), [](const WriteInfo& a, const WriteInfo& b) {
-            return a.partNo < b.partNo;
+            // bufs come last!
+            return a.use_buf < b.use_buf && a.partNo < b.partNo;
         });
 
         // debug: print out parts

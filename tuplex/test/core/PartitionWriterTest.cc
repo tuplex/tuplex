@@ -13,7 +13,9 @@
 #include <PartitionWriter.h>
 #include <Context.h>
 
-TEST(PartitionWriter, BasicRowWrite) {
+class PartitionWriterTest : public TuplexTest {};
+
+TEST_F(PartitionWriterTest, BasicRowWrite) {
     using namespace tuplex;
 
     Context c(microTestOptions());

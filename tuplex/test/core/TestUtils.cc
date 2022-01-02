@@ -70,7 +70,7 @@ tuplex::Row execRow(const tuplex::Row& input, tuplex::UDF udf) {
 
 
     // init runtime
-    auto co = microTestOptions();
+    auto co = ContextOptions::defaults();
     runtime::init(co.RUNTIME_LIBRARY().toPath());
 
     // execute row executor

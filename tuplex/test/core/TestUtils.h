@@ -43,67 +43,6 @@ extern tuplex::Row execRow(const tuplex::Row& input, tuplex::UDF udf=tuplex::UDF
 
 extern std::unique_ptr<tuplex::Executor> testExecutor();
 
-inline tuplex::ContextOptions testOptions() {
-    using namespace tuplex;
-    ContextOptions co = ContextOptions::defaults();
-    co.set("tuplex.executorCount", "4");
-    co.set("tuplex.partitionSize", "512KB");
-    co.set("tuplex.executorMemory", "8MB");
-    co.set("tuplex.useLLVMOptimizer", "true");
-    co.set("tuplex.allowUndefinedBehavior", "false");
-    co.set("tuplex.webui.enable", "false");
-#ifdef BUILD_FOR_CI
-    co.set("tuplex.aws.httpThreadCount", "0");
-#else
-    co.set("tuplex.aws.httpThreadCount", "1");
-#endif
-    return co;
-}
-
-inline tuplex::ContextOptions microTestOptions() {
-    using namespace tuplex;
-    ContextOptions co = ContextOptions::defaults();
-    co.set("tuplex.executorCount", "4");
-    co.set("tuplex.partitionSize", "256B");
-    co.set("tuplex.executorMemory", "4MB");
-    co.set("tuplex.useLLVMOptimizer", "true");
-//    co.set("tuplex.useLLVMOptimizer", "false");
-    co.set("tuplex.allowUndefinedBehavior", "false");
-    co.set("tuplex.webui.enable", "false");
-    co.set("tuplex.optimizer.mergeExceptionsInOrder", "true"); // force exception resolution for single stages to occur in order
-
-    // disable schema pushdown
-    co.set("tuplex.csv.selectionPushdown", "true");
-
-#ifdef BUILD_FOR_CI
-    co.set("tuplex.aws.httpThreadCount", "0");
-#else
-    co.set("tuplex.aws.httpThreadCount", "1");
-#endif
-    return co;
-}
-
-#ifdef BUILD_WITH_AWS
-inline tuplex::ContextOptions microLambdaOptions() {
-    auto co = microTestOptions();
-    co.set("tuplex.backend", "lambda");
-
-    // enable requester pays
-    co.set("tuplex.aws.requesterPay", "true");
-
-    // scratch dir
-    co.set("tuplex.aws.scratchDir", std::string("s3://") + S3_TEST_BUCKET + "/.tuplex-cache");
-
-#ifdef BUILD_FOR_CI
-    co.set("tuplex.aws.httpThreadCount", "1");
-#else
-    co.set("tuplex.aws.httpThreadCount", "4");
-#endif
-
-    return co;
-}
-#endif
-
 inline void printRows(const std::vector<tuplex::Row>& v) {
     for(auto r : v)
         std::cout<<"type: "<<r.getRowType().desc()<<" content: "<<r.toPythonString()<<std::endl;
@@ -121,15 +60,99 @@ inline void compareStrArrays(std::vector<std::string> arr_A, std::vector<std::st
     ASSERT_EQ(arr_A.size(), arr_B.size());
 }
 
+class TuplexTest : public ::testing::Test {
+protected:
+    std::string testName;
+    std::string scratchDir;
+
+    void SetUp() override {
+        testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+        scratchDir = "/tmp/" + testName;
+    }
+
+    inline void remove_temp_files() {
+        tuplex::Timer timer;
+        boost::filesystem::remove_all(scratchDir.c_str());
+        std::cout<<"removed temp files in "<<timer.time()<<"s"<<std::endl;
+    }
+
+    ~TuplexTest() override {
+        remove_temp_files();
+    }
+
+    inline tuplex::ContextOptions testOptions() {
+        using namespace tuplex;
+        ContextOptions co = ContextOptions::defaults();
+        co.set("tuplex.executorCount", "4");
+        co.set("tuplex.partitionSize", "512KB");
+        co.set("tuplex.executorMemory", "8MB");
+        co.set("tuplex.useLLVMOptimizer", "true");
+        co.set("tuplex.allowUndefinedBehavior", "false");
+        co.set("tuplex.webui.enable", "false");
+        co.set("tuplex.scratchDir", "file://" + scratchDir);
+#ifdef BUILD_FOR_CI
+        co.set("tuplex.aws.httpThreadCount", "0");
+#else
+        co.set("tuplex.aws.httpThreadCount", "1");
+#endif
+        return co;
+    }
+
+    inline tuplex::ContextOptions microTestOptions() {
+        using namespace tuplex;
+        ContextOptions co = ContextOptions::defaults();
+        co.set("tuplex.executorCount", "4");
+        co.set("tuplex.partitionSize", "256B");
+        co.set("tuplex.executorMemory", "4MB");
+        co.set("tuplex.useLLVMOptimizer", "true");
+//    co.set("tuplex.useLLVMOptimizer", "false");
+        co.set("tuplex.allowUndefinedBehavior", "false");
+        co.set("tuplex.webui.enable", "false");
+        co.set("tuplex.optimizer.mergeExceptionsInOrder", "true"); // force exception resolution for single stages to occur in order
+        co.set("tuplex.scratchDir", "file://" + scratchDir);
+
+        // disable schema pushdown
+        co.set("tuplex.csv.selectionPushdown", "true");
+
+#ifdef BUILD_FOR_CI
+        co.set("tuplex.aws.httpThreadCount", "0");
+#else
+        co.set("tuplex.aws.httpThreadCount", "1");
+#endif
+        return co;
+    }
+
+#ifdef BUILD_WITH_AWS
+    inline tuplex::ContextOptions microLambdaOptions() {
+        auto co = microTestOptions();
+        co.set("tuplex.backend", "lambda");
+
+        // enable requester pays
+        co.set("tuplex.aws.requesterPay", "true");
+
+        // scratch dir
+        co.set("tuplex.aws.scratchDir", std::string("s3://") + S3_TEST_BUCKET + "/.tuplex-cache");
+
+#ifdef BUILD_FOR_CI
+        co.set("tuplex.aws.httpThreadCount", "1");
+#else
+        co.set("tuplex.aws.httpThreadCount", "4");
+#endif
+
+        return co;
+    }
+#endif
+};
+
 // helper class to not have to write always the python interpreter startup stuff
 // need for these tests a running python interpreter, so spin it up
-class PyTest : public ::testing::Test {
+class PyTest : public TuplexTest {
 protected:
     PyThreadState *saveState;
     std::stringstream logStream;
 
     void SetUp() override {
-
+        TuplexTest::SetUp();
         // reset global static variables, i.e. whether to use UDF compilation or not!
         tuplex::UDF::enableCompilation();
 
@@ -163,20 +186,6 @@ protected:
         } catch(...) {
             std::cout << "test done." << std::endl;
         }
-    }
-
-    inline void remove_temp_files() {
-        tuplex::Timer timer;
-        // remove the temporary files
-        // get path from default context options
-        auto temp_cache_path = tuplex::ContextOptions::defaults().SCRATCH_DIR();
-        boost::filesystem::remove_all(temp_cache_path.toPath().c_str());
-
-        std::cout<<"removed temp files in "<<timer.time()<<"s"<<std::endl;
-    }
-
-    virtual ~PyTest() {
-        remove_temp_files();
     }
 };
 

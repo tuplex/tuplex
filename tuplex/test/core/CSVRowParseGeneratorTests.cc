@@ -15,9 +15,10 @@
 
 using namespace tuplex;
 
-class CSVRowParseTest : public ::testing::Test {
+class CSVRowParseTest : public TuplexTest {
 protected:
     void SetUp() override {
+        TuplexTest::SetUp();
         Context c(testOptions());
 
         // init result Object with enough memory (1KB should be sufficient

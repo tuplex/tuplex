@@ -195,7 +195,7 @@ TEST_F(OrcWrite, Gtrace) {
 using namespace tuplex;
 auto files = VirtualFileSystem::globAll("../resources/pipelines/gtrace/*.csv");
 
-auto opts = ContextOptions::defaults();
+auto opts = testOptions();
 Context c(opts);
 
 for (const auto& file : files) {

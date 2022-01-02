@@ -20,16 +20,19 @@ DATA_PATH=/data/logs
 IP_PATH=/data/logs/ip_blacklist.csv
 RESDIR=/results/weblogs
 OUTPUT_DIR=/results/output/weblogs
-NUM_RUNS=11
+NUM_RUNS="${NUM_RUNS:-11}"
 REDUCED_NUM_RUNS=4
 TIMEOUT=14400
 PYTHON=python3.6
 
 mkdir -p ${RESDIR}
 
+# Tuplex
 echo "running tuplex (split mode)"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-split-run-$r.txt"
+  rm -rf $OUTPUT_DIR
+  mkdir -p $OUTPUT_DIR
   timeout $TIMEOUT ${HWLOC} ${PYTHON} runtuplex.py --path $DATA_PATH --output-path ${OUTPUT_DIR}/tuplex_split_output --ip_blacklist_path $IP_PATH --pipeline_type split >$LOG 2>$LOG.stderr
   rm -rf /tmp/*
 done
@@ -37,6 +40,8 @@ done
 echo "running tuplex (strip mode)"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-strip-run-$r.txt"
+  rm -rf $OUTPUT_DIR
+  mkdir -p $OUTPUT_DIR
   timeout $TIMEOUT ${HWLOC} ${PYTHON} runtuplex.py --path $DATA_PATH --output-path ${OUTPUT_DIR}/tuplex_strip_output --ip_blacklist_path $IP_PATH --pipeline_type strip >$LOG 2>$LOG.stderr
   rm -rf /tmp/*
 done
@@ -44,6 +49,8 @@ done
 echo "running tuplex (regex mode)"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-regex-run-$r.txt"
+  rm -rf $OUTPUT_DIR
+  mkdir -p $OUTPUT_DIR
   timeout $TIMEOUT ${HWLOC} ${PYTHON} runtuplex.py --path $DATA_PATH --output-path ${OUTPUT_DIR}/tuplex_regex_output --ip_blacklist_path $IP_PATH --pipeline_type regex >$LOG 2>$LOG.stderr
   rm -rf /tmp/*
 done
@@ -51,6 +58,8 @@ done
 echo "running tuplex (split regex mode)"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-split-regex-run-$r.txt"
+  rm -rf $OUTPUT_DIR
+  mkdir -p $OUTPUT_DIR
   timeout $TIMEOUT ${HWLOC} ${PYTHON} runtuplex.py --path $DATA_PATH --output-path ${OUTPUT_DIR}/tuplex_splitregex_output --ip_blacklist_path $IP_PATH --pipeline_type split_regex >$LOG 2>$LOG.stderr
   rm -rf /tmp/*
 done
@@ -124,4 +133,3 @@ for ((r = 1; r <= REDUCED_NUM_RUNS; r++)); do
   #date +"%F %T.%6N" >>$LOG
   rm -rf /tmp/*
 done
-

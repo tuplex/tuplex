@@ -228,10 +228,14 @@ namespace tuplex {
                                         std::function<bool(void *, const tuplex::URI &, size_t)> callback,
                                         void *userData) {
 
-        auto v = splitToArray(pattern.toPath(), ',');
+        auto v = splitToArray(pattern.toString(), ',');
         // trim all strings with the array
-        for(auto& s: v)
+        for(auto& s: v) {
             trim(s);
+        }
+        // normalize paths...
+        for(int i = 0; i < v.size(); ++i)
+            v[i] = URI(v[i]).toPath();
 
         // go through patterns & call walkPattern of impl
         for(const auto& pattern : v) {
@@ -559,14 +563,18 @@ COPY_FAILURE:
         // it's a file -> okay
         // it's a dir -> must not exist or be empty
         if(baseURI.isLocal()) {
-            auto local_path = baseURI.withoutPrefix();
+            auto local_path = baseURI.toPath();
+            if(strStartsWith(local_path, baseURI.prefix())) {
+                local_path = local_path.substr(baseURI.prefix().length());
+            }
+
             if(fileExists(local_path) && isFile(local_path))
                 return true;
             if(dirExists(local_path) && isDirectory(local_path)) {
                 vector<URI> uris;
                 // empty or non empty?
                 auto vfs = VirtualFileSystem::fromURI("file://");
-                vfs.ls(baseURI, uris);
+                vfs.ls(local_path, uris);
 
                 // Note: for MacOS, .DS_Store might be ok too.
 #ifdef MACOS
@@ -594,7 +602,7 @@ COPY_FAILURE:
                 return uris.size() == 1;
             }
 #else
-            Logger::instance().defaultLogger("Tuplex not compiled with S3 support, can't write to S3 output URI");
+            Logger::instance().defaultLogger().warn("Tuplex not compiled with S3 support, can't write to S3 output URI");
             return false;
 #endif
             return true;

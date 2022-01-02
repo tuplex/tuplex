@@ -950,7 +950,8 @@ namespace tuplex {
 
     extern std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads,
                                                                   const std::vector<URI>& uris,
-                                                                  const std::vector<size_t>& file_sizes) {
+                                                                  const std::vector<size_t>& file_sizes,
+                                                                  size_t minimumPartSize) {
         using namespace std;
 
         assert(uris.size() == file_sizes.size());
@@ -965,10 +966,13 @@ namespace tuplex {
         for(auto fs : file_sizes)
             totalBytes += fs;
 
+        if(0 == totalBytes)
+            return vv;
+
         auto bytesPerThread = totalBytes / numThreads;
 
         // set bytes per thread to a minimum
-        // bytesPerThread = std::max(bytesPerThread, 256 * 1024ul); // min 256KB per thread...
+        bytesPerThread = std::max(bytesPerThread, minimumPartSize);
 
         assert(bytesPerThread != 0);
 
@@ -1004,8 +1008,16 @@ namespace tuplex {
                     FilePart fp;
                     fp.uri = uris[i];
                     fp.rangeStart = cur_start;
-                    fp.rangeEnd = std::min(bytes_this_thread_gets, remaining_bytes);
+                    fp.rangeEnd = cur_start + std::min(bytes_this_thread_gets, remaining_bytes);
                     fp.partNo = partNo++;
+
+                    // correction to avoid tiny parts...
+                    auto this_part_size = fp.rangeEnd - fp.rangeStart;
+                    if(remaining_bytes - cur_start - this_part_size < minimumPartSize) {
+                        // add remaining bytes to this part!
+                        fp.rangeEnd = file_sizes[i];
+                    }
+
                     cur_start += fp.rangeEnd - fp.rangeStart;
                     vv[curThread].emplace_back(fp);
                 }
@@ -1027,9 +1039,22 @@ namespace tuplex {
                         fp.rangeStart = cur_start;
                         fp.rangeEnd = cur_start + bytes_this_thread_gets;
                         fp.partNo = partNo++;
-                        vv[curThread].emplace_back(fp);
+
+                        // correction to avoid tiny parts...
+                        auto this_part_size = fp.rangeEnd - fp.rangeStart;
+                        if(remaining_bytes - cur_start - this_part_size < minimumPartSize) {
+                            // add remaining bytes to this part!
+                            fp.rangeEnd = file_sizes[i];
+                        }
+
                         curThreadSize += fp.rangeEnd - fp.rangeStart;
                         cur_start += fp.rangeEnd - fp.rangeStart;
+
+                        // full file? -> use 0,0 as special value pair
+                        if(fp.rangeStart == 0 && fp.rangeEnd == file_sizes[i])
+                            fp.rangeEnd = 0;
+
+                        vv[curThread].emplace_back(fp);
                     } else {
                         // thread only gets a part, inc thread!
                         bytes_this_thread_gets = std::min(bytes_this_thread_gets, bytesPerThread);
@@ -1038,6 +1063,14 @@ namespace tuplex {
                         fp.rangeStart = cur_start;
                         fp.rangeEnd = cur_start + bytes_this_thread_gets;
                         fp.partNo = partNo++;
+
+                        // correction to avoid tiny parts...
+                        auto this_part_size = fp.rangeEnd - fp.rangeStart;
+                        if(remaining_bytes - cur_start - this_part_size < minimumPartSize) {
+                            // add remaining bytes to this part!
+                            fp.rangeEnd = file_sizes[i];
+                        }
+
                         vv[curThread].emplace_back(fp);
                         curThreadSize += bytes_this_thread_gets;
                         cur_start += bytes_this_thread_gets;

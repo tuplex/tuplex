@@ -209,12 +209,24 @@ TEST(BasicInvocation, FileSplitting) {
     std::vector<size_t> sizes;
     std::vector<std::vector<FilePart>> res;
 
+
+    // 0. avoiding tiny parts
+//    res = splitIntoEqualParts(2, {"test.csv"}, {8000}, 4096);
+//    ASSERT_EQ(res.size(), 2);
+//    EXPECT_EQ(res[0].size(), 1);
+//    EXPECT_EQ(res[1].size(), 0);
+
+    res = splitIntoEqualParts(2, {"test.csv"}, {32256}, 4096);
+    ASSERT_EQ(res.size(), 2);
+    //EXPECT_EQ(res[0].size());
+
+
     // 1. equally sized files -> each thread should get same number of files (i.e. here 2)
     for(int i = 0; i < 14; ++i) {
         uris.push_back("file" + std::to_string(i) + ".csv");
         sizes.push_back(2048);
     }
-    res = splitIntoEqualParts(7, uris, sizes);
+    res = splitIntoEqualParts(7, uris, sizes, 0);
     ASSERT_EQ(res.size(), 7);
     for(int i = 0; i < res.size(); ++i) {
         const auto& v = res[i];
@@ -230,9 +242,9 @@ TEST(BasicInvocation, FileSplitting) {
     }
 
     // split one large file into parts...
-    res = splitIntoEqualParts(7, {"test.csv"}, {10000});
+    res = splitIntoEqualParts(7, {"test.csv"}, {10000}, 0);
     ASSERT_EQ(res.size(), 7);
 
-    res = splitIntoEqualParts(5, {"test.csv"}, {10000});
+    res = splitIntoEqualParts(5, {"test.csv"}, {10000}, 0);
     ASSERT_EQ(res.size(), 5);
 }

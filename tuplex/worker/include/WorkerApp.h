@@ -65,9 +65,13 @@ namespace tuplex {
      * @param numThreads on how many threads to split file processing
      * @param uris which uris
      * @param file_sizes which file sizes
+     * @param minimumPartSize minimum part size, helpful to avoid tiny parts (default: 4KB)
      * @return vector<vector<FileParts>>
      */
-    extern std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads, const std::vector<URI>& uris, const std::vector<size_t>& file_sizes);
+    extern std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads,
+                                                                  const std::vector<URI>& uris,
+                                                                  const std::vector<size_t>& file_sizes,
+                                                                  size_t minimumPartSize=1024 * 4);
 
     /// settings to use to initialize a worker application. Helpful to tune depending on
     /// deployment target.

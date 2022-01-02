@@ -35,7 +35,7 @@ TEST_F(FlightDataTest, boolConv) {
     using namespace tuplex;
     using namespace std;
 
-    Context c;
+    Context c(microTestOptions());
 
     auto res = c.parallelize({Row(10), Row(0), Row(-10)}).map(
             UDF("lambda x: True if x > 0 else False")).collectAsVector();
@@ -59,7 +59,7 @@ TEST_F(FlightDataTest, cleanCodeUDF) {
 
     // not working!!! need to fix...
 
-    Context c;
+    Context c(microTestOptions());
 
     auto cleanCode_c = "def cleanCode(t):\n"
                        "  if t == 'A':\n"
@@ -197,7 +197,7 @@ TEST_F(FlightDataTest, DefunctYearFunc) {
     using namespace tuplex;
     using namespace std;
 
-    auto opt = ContextOptions::defaults();
+    auto opt = testOptions();
     opt.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt.set("tuplex.executorCount", "0"); // single-threaded
     opt.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -287,7 +287,7 @@ TEST_F(FlightDataTest, AirportCleaning) {
 
     string path = "../resources/GlobalAirportDatabase_sample.txt";
 
-    auto opt = ContextOptions::defaults();
+    auto opt = testOptions();
     opt.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt.set("tuplex.executorCount", "0"); // single-threaded
     opt.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -361,7 +361,7 @@ TEST_F(FlightDataTest, LeftJoin) {
     using namespace tuplex;
     using namespace std;
 
-    auto opt = ContextOptions::defaults();
+    auto opt = testOptions();
     opt.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     //opt.set("tuplex.executorCount", "0"); // single-threaded
     opt.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -578,7 +578,7 @@ TEST_F(FlightDataTest, SelectAndFilterPushdown) {
     using namespace tuplex;
     string airport_path = "../resources/pipelines/flights/GlobalAirportDatabase.txt"; // restricted set of airports so not for any ORIGIN entry in the above sample there is an airport...
 
-    auto opt = ContextOptions::defaults();
+    auto opt = testOptions();
     opt.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt.set("tuplex.executorCount", "0"); // single-threaded
     opt.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -610,7 +610,7 @@ TEST_F(FlightDataTest, WeirdFilterIssue) {
     using namespace std;
     using namespace tuplex;
 
-    auto opt = ContextOptions::defaults();
+    auto opt = testOptions();
     opt.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt.set("tuplex.executorCount", "0"); // single-threaded
     opt.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -647,7 +647,7 @@ TEST_F(FlightDataTest, ProjectionPushdown) {
     using namespace tuplex;
     using namespace std;
 
-    auto opt = ContextOptions::defaults();
+    auto opt = testOptions();
     opt.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt.set("tuplex.executorCount", "0"); // single-threaded
     opt.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -740,7 +740,7 @@ TEST_F(FlightDataTest, ProjectionPushdownInvariant) {
     using namespace tuplex;
     using namespace std;
 
-    auto opt = ContextOptions::defaults();
+    auto opt = testOptions();
     opt.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt.set("tuplex.executorCount", "0"); // single-threaded
     opt.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -767,7 +767,7 @@ TEST_F(FlightDataTest, NullGeneratedParserTest) {
     using namespace std;
 
     // production
-    auto opt = ContextOptions::defaults();
+    auto opt = testOptions();
     opt.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt.set("tuplex.executorCount", "0"); // single-threaded
     opt.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -803,7 +803,7 @@ TEST_F(FlightDataTest, LargeFilePipeline) {
     // ==> for test forced to option types!
 
     // production
-    auto opt = ContextOptions::defaults();
+    auto opt = testOptions();
     opt.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     //opt.set("tuplex.executorCount", "0"); // single-threaded
     opt.set("tuplex.useLLVMOptimizer", "false"); // deactivate

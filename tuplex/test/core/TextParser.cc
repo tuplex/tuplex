@@ -25,9 +25,9 @@ TEST_F(TextParse, Basic) {
                    "how\n"
                    "\n"
                    "is everything?"; // note: last line not delimited
-    stringToFile("test.txt", content);
+    stringToFile(testName + ".txt", content);
 
-    auto res = c.text("test.txt").collectAsVector();
+    auto res = c.text(testName + ".txt").collectAsVector();
     ASSERT_EQ(res.size(), 4);
     EXPECT_EQ(res[0].toPythonString(), "('hello',)");
     EXPECT_EQ(res[1].toPythonString(), "('how',)");
@@ -47,9 +47,9 @@ TEST_F(TextParse, NULLValues) {
                    "test\n"
                    "\n"
                    "how is everything?\n";
-    stringToFile("test.txt", content);
+    stringToFile(testName + ".txt", content);
 
-    auto res = c.text("test.txt", vector<string>{"", "NULL", "N/A"}).collectAsVector();
+    auto res = c.text(testName + ".txt", vector<string>{"", "NULL", "N/A"}).collectAsVector();
     ASSERT_EQ(res.size(), 7);
     EXPECT_EQ(res[0].toPythonString(), "('hello',)");
     EXPECT_EQ(res[1].toPythonString(), "('world',)");

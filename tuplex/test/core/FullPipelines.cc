@@ -610,7 +610,7 @@ TEST_F(PipelinesTest, ZillowAWS) {
 #endif
     using namespace std;
     using namespace tuplex;
-    auto co = ContextOptions::defaults();
+    auto co = testOptions();
 
     co.set("tuplex.backend", "lambda");
     co.set("tuplex.scratchDir", "s3://tuplex/scratch");
@@ -651,7 +651,7 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
 
     for(auto cache: cache_values) {
         // for reference deactivate all options!
-        auto opt_ref = ContextOptions::defaults();
+        auto opt_ref = testOptions();
         opt_ref.set("tuplex.runTimeMemory", "128MB");
         opt_ref.set("tuplex.executorCount", "0"); // single-threaded
         opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -738,7 +738,7 @@ TEST_F(PipelinesTest, ServiceRequestsConfigHarnessNVOvsNormal) {
     using namespace std;
 
     // for reference deactivate all options!
-    auto opt_ref = ContextOptions::defaults();
+    auto opt_ref = testOptions();
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -814,7 +814,7 @@ TEST_F(PipelinesTest, FlightsWithPyResolver) {
     using namespace tuplex;
 
     // for reference deactivate all options!
-    auto opt_ref = ContextOptions::defaults();
+    auto opt_ref = testOptions();
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.driverMemory", "4GB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
@@ -867,7 +867,7 @@ TEST_F(PipelinesTest, FlightDevWithColumnPyFallback) {
     using namespace tuplex;
 
     // for reference deactivate all options!
-    auto opt_ref = ContextOptions::defaults();
+    auto opt_ref = testOptions();
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.driverMemory", "4GB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
@@ -917,7 +917,7 @@ TEST_F(PipelinesTest, FlightDevToFixWithPurePythonPipeline) {
     using namespace tuplex;
 
     // for reference deactivate all options!
-    auto opt_ref = ContextOptions::defaults();
+    auto opt_ref = testOptions();
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.driverMemory", "4GB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
@@ -944,7 +944,7 @@ TEST_F(PipelinesTest, TypeErrorFlightPipeline) {
     using namespace tuplex;
 
     // exploratory test...
-    auto opt = ContextOptions::defaults();
+    auto opt = testOptions();
     opt.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt.set("tuplex.driverMemory", "4GB");
     opt.set("tuplex.executorCount", "15"); // single-threaded
@@ -976,7 +976,7 @@ TEST_F(PipelinesTest, FlightNullValueCacheMini) {
     using namespace tuplex;
 
     // for reference deactivate all options!
-    auto opt_ref = ContextOptions::defaults();
+    auto opt_ref = testOptions();
     opt_ref.set("tuplex.runTimeMemory", "256MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorMemory", "4GB");
     opt_ref.set("tuplex.driverMemory", "4GB");
@@ -1045,7 +1045,7 @@ TEST_F(PipelinesTest, ZillowDev) {
     using namespace tuplex;
 
     // for reference deactivate all options!
-    auto opt_ref = ContextOptions::defaults();
+    auto opt_ref = testOptions();
 
     //     conf = {"webui.enable" : False,
     //            "executorCount" : 16,
@@ -1263,7 +1263,7 @@ TEST_F(PipelinesTest, FlightWithIgnore) {
     std::string carrier_path="../resources/pipelines/flights/L_CARRIER_HISTORY.csv";
     std::string airport_path="../resources/pipelines/flights/GlobalAirportDatabase.txt";
 
-    auto opt_ref = ContextOptions::defaults();
+    auto opt_ref = testOptions();
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -1279,7 +1279,7 @@ TEST_F(PipelinesTest, FlightWithIgnore) {
 //    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
     Context c_proj_wLLVMOpt_parse_null(opt_proj_wLLVMOpt_parse_null);
 
-    flightPipeline(c_proj_wLLVMOpt_parse_null, bts_path, carrier_path, airport_path, false, true).tocsv("test.csv");
+    flightPipeline(c_proj_wLLVMOpt_parse_null, bts_path, carrier_path, airport_path, false, true).tocsv(testName + ".csv");
 
 }
 
@@ -1293,7 +1293,7 @@ TEST_F(PipelinesTest, CarriersOnly) {
     vector<bool> cache_values{false, true};
 
     // for reference deactivate all options!
-    auto opt_ref = ContextOptions::defaults();
+    auto opt_ref = testOptions();
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -1339,7 +1339,7 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
 
     for(auto cache: cache_values) {
         // for reference deactivate all options!
-        auto opt_ref = ContextOptions::defaults();
+        auto opt_ref = testOptions();
         opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
         opt_ref.set("tuplex.executorCount", "0"); // single-threaded
         opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
@@ -1409,7 +1409,7 @@ TEST_F(PipelinesTest, GoogleTrace) {
     using namespace std;
 
     // for reference deactivate all options!
-    auto opt_ref = ContextOptions::defaults();
+    auto opt_ref = testOptions();
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate

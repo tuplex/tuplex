@@ -18,9 +18,11 @@
 #include <fstream>
 #include <boost/filesystem/operations.hpp>
 
+class CSVParserTest : public TuplexTest {};
+
 using namespace tuplex;
 
-TEST(CSVDataset, NonexistingFile) {
+TEST_F(CSVParserTest, NonexistingFile) {
     Context c(testOptions());
 
     auto v = c.csv("../resources/doesnotexist.csv").collectAsVector();
@@ -28,7 +30,7 @@ TEST(CSVDataset, NonexistingFile) {
     EXPECT_EQ(v.size(), 0);
 }
 
-TEST(CSVDataset, ParseWithoutHeader) {
+TEST_F(CSVParserTest, ParseWithoutHeader) {
     Context c(testOptions());
 
     auto v = c.csv("../resources/test.csv").collectAsVector();
@@ -37,13 +39,14 @@ TEST(CSVDataset, ParseWithoutHeader) {
 }
 
 // construct fake file & check whether right order is returned
-TEST(CSVDataSet, ParseWithMultiplePartitions) {
+TEST_F(CSVParserTest, ParseWithMultiplePartitions) {
     python::initInterpreter();
 
     python::unlockGIL();
 
     // write temp file
-    FILE *fp = fopen("test.csv", "w");
+    auto fName = testName + ".csv";
+    FILE *fp = fopen(fName.c_str(), "w");
     ASSERT_TRUE(fp);
     fprintf(fp, "columnA,columnB\n");
     auto N = 50000;
@@ -53,7 +56,7 @@ TEST(CSVDataSet, ParseWithMultiplePartitions) {
     fclose(fp);
 
     Context c(microTestOptions());
-    auto v = c.csv("test.csv").mapColumn("columnB", UDF("lambda x: x * x")).collectAsVector();
+    auto v = c.csv(testName + ".csv").mapColumn("columnB", UDF("lambda x: x * x")).collectAsVector();
 
     ASSERT_EQ(v.size(), N);
 
@@ -69,13 +72,14 @@ TEST(CSVDataSet, ParseWithMultiplePartitions) {
     python::closeInterpreter();
 }
 
-TEST(CSVDataSet, ParseWithMultiplePartitionsLimit) {
+TEST_F(CSVParserTest, ParseWithMultiplePartitionsLimit) {
     python::initInterpreter();
 
     python::unlockGIL();
 
     // write temp file
-    FILE *fp = fopen("test.csv", "w");
+    auto fName = testName + ".csv";
+    FILE *fp = fopen(fName.c_str(), "w");
     ASSERT_TRUE(fp);
     fprintf(fp, "columnA,columnB\n");
     auto N = 50000;
@@ -86,7 +90,7 @@ TEST(CSVDataSet, ParseWithMultiplePartitionsLimit) {
 
     size_t limit = 5;
     Context c(microTestOptions());
-    auto v = c.csv("test.csv").mapColumn("columnB", UDF("lambda x: x * x")).takeAsVector(limit);
+    auto v = c.csv(testName + ".csv").mapColumn("columnB", UDF("lambda x: x * x")).takeAsVector(limit);
 
     ASSERT_EQ(v.size(), limit);
 

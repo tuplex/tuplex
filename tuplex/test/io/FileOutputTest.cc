@@ -14,11 +14,12 @@
 #include "FileSystemUtils.h"
 #include <VirtualFileSystem.h>
 
-class FileOutputTest : public ::testing::Test {
+class FileOutputTest : public TuplexTest {
 protected:
     std::string folderName;
 
     void SetUp() override {
+        TuplexTest::SetUp();
         using namespace tuplex;
         auto vfs = VirtualFileSystem::fromURI(".");
         folderName = "FileOutput" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());

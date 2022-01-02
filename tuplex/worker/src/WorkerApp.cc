@@ -1071,9 +1071,14 @@ namespace tuplex {
                             fp.rangeEnd = file_sizes[i];
                         }
 
+                        curThreadSize += fp.rangeEnd - fp.rangeStart;
+                        cur_start += fp.rangeEnd - fp.rangeStart;
+
+                        // full file? -> use 0,0 as special value pair
+                        if(fp.rangeStart == 0 && fp.rangeEnd == file_sizes[i])
+                            fp.rangeEnd = 0;
+
                         vv[curThread].emplace_back(fp);
-                        curThreadSize += bytes_this_thread_gets;
-                        cur_start += bytes_this_thread_gets;
 
                         // next thread!
                         curThread = (curThread + 1) % numThreads;

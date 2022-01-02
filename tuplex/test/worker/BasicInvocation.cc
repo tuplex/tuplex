@@ -120,6 +120,9 @@ TEST(BasicInvocation, Worker) {
     test_path = URI("s3://tuplex-public/data/flights_on_time_performance_2009_01.csv");
     test_output_path = URI("file://output_s3.txt");
 
+    // local for quicker dev
+    test_path = URI("file:///Users/leonhards/data/flights/flights_on_time_performance_2009_01.csv");
+
     size_t num_threads = 4;
     num_threads = 4;
 

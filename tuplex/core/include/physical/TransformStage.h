@@ -174,36 +174,52 @@ namespace tuplex {
                         ecounts);
         }
 
-        std::string bitCode() const {
-            return _irBitCode;
+        std::string fastPathBitCode() const {
+            return _fastCodePath._fastPathIRBitCode;
         }
 
-        // to retrieve actual IR, use code
-        std::string code() const {
-            if(_irBitCode.empty())
+        std::string slowPathBitCode() const {
+            return _slowCodePath._slowPathIRBitCode;
+        }
+
+        // Retrieve fast path IR code
+        std::string fastPathCode() const {
+            if(fastPathBitCode().empty())
                 return "";
 
             // parse bit code & convert
             llvm::LLVMContext ctx;
-            auto mod = codegen::bitCodeToModule(ctx, _irBitCode);
+            auto mod = codegen::bitCodeToModule(ctx, fastPathBitCode());
             if(!mod)
                 return "";
             return codegen::moduleToString(*mod.get());
         }
 
-        std::string funcName() const { return _funcStageName; }
-        std::string writerFuncName() const { return _writerFuncName; }
-        std::string writeMemoryCallbackName() const { return _funcMemoryWriteCallbackName; }
-        std::string writeFileCallbackName() const { return _funcFileWriteCallbackName; }
-        std::string writeHashCallbackName() const { return _funcHashWriteCallbackName; }
-        std::string exceptionCallbackName() const { return _funcExceptionCallback; }
-        std::string aggCombineCallbackName() const { return _aggregateCallbackName; }
+        // Retrieve slow path IR code
+        std::string slowPathCode() const {
+            if(slowPathBitCode().empty())
+                return "";
+
+            // parse bit code & convert
+            llvm::LLVMContext ctx;
+            auto mod = codegen::bitCodeToModule(ctx, slowPathBitCode());
+            if(!mod)
+                return "";
+            return codegen::moduleToString(*mod.get());
+        }
+
+        std::string funcName() const { return _fastCodePath._funcStageName; }
+        std::string writerFuncName() const { return _fastCodePath._writerFuncName; }
+        std::string writeMemoryCallbackName() const { return _fastCodePath._funcMemoryWriteCallbackName; }
+        std::string writeFileCallbackName() const { return _fastCodePath._funcFileWriteCallbackName; }
+        std::string exceptionCallbackName() const { return _fastCodePath._funcExceptionCallback; }
+        std::string aggCombineCallbackName() const { return _fastCodePath._aggregateCallbackName; }
 
         // std::string resolveCode() const { return _irResolveCode; }
-        std::string resolveRowName() const { return _resolveRowFunctionName; }
-        std::string resolveWriteCallbackName() const { return _resolveRowWriteCallbackName; }
-        std::string resolveHashCallbackName() const { return _resolveHashCallbackName; }
-        std::string resolveExceptionCallbackName() const { return _resolveRowExceptionCallbackName; }
+        std::string resolveRowName() const { return _slowCodePath._resolveRowFunctionName; }
+        std::string resolveWriteCallbackName() const { return _slowCodePath._resolveRowWriteCallbackName; }
+        std::string resolveHashCallbackName() const { return _slowCodePath._resolveHashCallbackName; }
+        std::string resolveExceptionCallbackName() const { return _slowCodePath._resolveRowExceptionCallbackName; }
 
         std::string purePythonCode() const { return _pyCode; }
         std::string pythonPipelineName() const { return _pyPipelineName; }
@@ -256,6 +272,16 @@ namespace tuplex {
 
         // JITSymbols for this stage
         struct JITSymbols {
+            struct CodePath {
+                codegen::init_stage_f initStageFunctor;
+                codegen::release_stage_f releaseStageFunctor;
+
+                CodePath() : initStageFunctor(nullptr), releaseStageFunctor(nullptr) {}
+            };
+
+            CodePath _fastCodePath;
+            CodePath _slowCodePath;
+
             codegen::read_block_f functor; // can be memory2memory or file2memory
             codegen::read_block_f writeFunctor; // memory2file
             codegen::resolve_f resolveFunctor; // always memory2memory
@@ -268,8 +294,8 @@ namespace tuplex {
 
             JITSymbols() : functor(nullptr), writeFunctor(nullptr),
                            resolveFunctor(nullptr),
-                           initStageFunctor(nullptr),
-                           releaseStageFunctor(nullptr),
+                           _fastCodePath(),
+                           _slowCodePath(),
                            aggInitFunctor(nullptr),
                            aggCombineFunctor(nullptr),
                            aggAggregateFunctor(nullptr) {}
@@ -284,6 +310,9 @@ namespace tuplex {
          * @return a struct of all function pointers
          */
         std::shared_ptr<JITSymbols> compile(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool excludeSlowPath=false, bool registerSymbols=true);
+
+        void compileSlowPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr);
+        void compileFastPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr);
 
         EndPointMode outputMode() const override { return _outputMode; }
         EndPointMode inputMode() const override { return _inputMode; }
@@ -390,18 +419,39 @@ namespace tuplex {
                        int64_t number,
                        bool allowUndefinedBehavior);
 
-        std::string _irBitCode; //! llvm IR bitcode
-        std::string _funcStageName; //! llvm function name of the stage function
-        std::string _funcMemoryWriteCallbackName; //! llvm function name of the write callback
-        std::string _funcFileWriteCallbackName; //! llvm function name of the write callback used for file output.
-        std::string _funcExceptionCallback; //! llvm function of the exception callback function
-        std::string _funcHashWriteCallbackName; //! the function to call when saving to hash table
-        std::string _initStageFuncName; //! init function for a stage (sets up globals & Co)
-        std::string _releaseStageFuncName; //! release function for a stage (releases globals & Co)
-        std::string _aggregateInitFuncName; //! to initiate aggregate (allocates via C-malloc)
-        std::string _aggregateCombineFuncName; //! to combine two aggregates (allocates & frees via C-malloc).
-        std::string _aggregateCallbackName; //! the callback to call with an aggregate
-        std::string _aggregateAggregateFuncName; //! to combine aggregate and result (allocates & frees via C-malloc).
+        struct TransformStageCodePath {
+            // Fast path variables
+            std::string _fastPathIRBitCode; //! llvm IR bitcode for fast path
+            std::string _fastPathInitStageFuncName; //! init function for a stage (sets up globals & Co)
+            std::string _fastPathReleaseStageFuncName; //! release function for a stage (releases globals & Co)
+
+            std::string _funcStageName; //! llvm function name of the stage function
+            std::string _funcMemoryWriteCallbackName; //! llvm function name of the write callback
+            std::string _funcFileWriteCallbackName; //! llvm function name of the write callback used for file output.
+            std::string _funcExceptionCallback; //! llvm function of the exception callback function
+            std::string _funcHashWriteCallbackName; //! the function to call when saving to hash table
+            std::string _aggregateInitFuncName; //! to initiate aggregate (allocates via C-malloc)
+            std::string _aggregateCombineFuncName; //! to combine two aggregates (allocates & frees via C-malloc).
+
+            std::string _writerFuncName;
+            std::string _aggregateCallbackName; //! the callback to call with an aggregate
+
+            // Slow path variables
+            std::string _slowPathIRBitCode; //! llvm IR bitcode for slow path
+            std::string _slowPathInitStageFuncName; //! init function for a stage (sets up globals & Co)
+            std::string _slowPathReleaseStageFuncName; //! release function for a stage (releases globals & Co)
+
+            std::string _resolveRowFunctionName;
+            std::string _resolveRowWriteCallbackName;
+            std::string _resolveRowExceptionCallbackName;
+            std::string _resolveHashCallbackName;
+
+            // Common variables
+            std::string _aggregateAggregateFuncName; //! to combine aggregate and result (allocates & frees via C-malloc).
+        };
+
+        TransformStageCodePath _fastCodePath;
+        TransformStageCodePath _slowCodePath;
         EndPointMode _inputMode; //! indicate whether stage takes hash table, serialized mem or files as input
         EndPointMode _outputMode; //! analog
 
@@ -435,17 +485,9 @@ namespace tuplex {
 
         URI _outputURI; //! the output uri for file mode of this stage
 
-        // resolve/exception handling code
-        // std::string _irResolveCode;
-        std::string _resolveRowFunctionName;
-        std::string _resolveRowWriteCallbackName;
-        std::string _resolveRowExceptionCallbackName;
-        std::string _resolveHashCallbackName;
-
         // pure python pipeline code & names
         std::string _pyCode;
         std::string _pyPipelineName;
-        std::string _writerFuncName;
 
         std::shared_ptr<ResultSet> emptyResultSet() const;
 

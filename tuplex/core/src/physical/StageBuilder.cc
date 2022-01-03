@@ -11,6 +11,7 @@
 #include <physical/StageBuilder.h>
 #include <physical/PythonPipelineBuilder.h>
 #include <physical/PipelineBuilder.h>
+#include <physical/PhysicalPlan.h>
 #include <physical/BlockBasedTaskBuilder.h>
 #include <physical/CellSourceTaskBuilder.h>
 #include <physical/JITCSVSourceTaskBuilder.h>
@@ -20,6 +21,7 @@
 #include <JSONUtils.h>
 #include <CSVUtils.h>
 #include <Utils.h>
+#include <string.h>
 #include <logical/AggregateOperator.h>
 
 // @TODO: code gen needs to be lazily done
@@ -232,7 +234,7 @@ namespace tuplex {
             _inputNode = csvop;
         }
 
-        std::string StageBuilder::formatBadUDFNode(tuplex::UDFOperator *udfop) {
+        std::string StageBuilder::formatBadUDFNode(tuplex::UDFOperator *udfop) const {
             assert(udfop);
             assert(hasUDF(udfop));
 
@@ -526,77 +528,26 @@ namespace tuplex {
             return opt_ops;
         }
 
-        bool StageBuilder::generateFastCodePath() {
+        TransformStage::TransformStageCodePath StageBuilder::generateFastCodePath(const CodeGenerationContext& fastLocalVariables) const {
             using namespace std;
 
-
-            // special case: no operators and mem2mem
-            // ==> no code needed, i.e. empty stage
-            bool mem2mem = _inputMode == EndPointMode::MEMORY && _outputMode == EndPointMode::MEMORY;
-            if (_operators.empty() && mem2mem) {
-                // _irCode = "";
-                // _irResolveCode = "";
-                _irBitCode = "";
-                _pyCode = "";
-                return true;
-            }
-
-            // null-value optimization?
-            // => specialize operators of THIS stage then.
-            // => joins take the general type
-            auto operators = specializePipeline(_nullValueOptimization, _inputNode, _operators);
+            TransformStage::TransformStageCodePath ret;
 
             string env_name = "tuplex_fastCodePath";
             string func_prefix = "";
             // name for function processing a row (include stage number)
             string funcStageName = func_prefix + "Stage_" + to_string(number());
             string funcProcessRowName = func_prefix + "processRow_Stage_" + to_string(number());
-            _funcFileWriteCallbackName = func_prefix + "writeOut_Stage_" + to_string(number());
-            _funcMemoryWriteCallbackName = func_prefix + "memOut_Stage_" + to_string(number());
-            _funcHashWriteCallbackName = func_prefix + "hashOut_Stage_" + to_string(number());
-            _funcExceptionCallback = func_prefix + "except_Stage_" + to_string(number());
+            ret._funcFileWriteCallbackName = func_prefix + "writeOut_Stage_" + to_string(number());
+            ret._funcMemoryWriteCallbackName = func_prefix + "memOut_Stage_" + to_string(number());
+            ret._funcHashWriteCallbackName = func_prefix + "hashOut_Stage_" + to_string(number());
+            ret._funcExceptionCallback = func_prefix + "except_Stage_" + to_string(number());
+            ret._writerFuncName = _writerFuncName;
 
             auto &logger = Logger::instance().logger("codegen");
-            auto readSchema = _readSchema.getRowType(); // what to read from files (before projection pushdown)
-            auto inSchema = _inputSchema.getRowType(); // with what to start the pipeline (after projection pushdown)
-            auto outSchema = _outputSchema.getRowType(); // what to output from pipeline
             auto env = make_shared<codegen::LLVMEnvironment>(env_name);
 
-            // per default, set normalcase to output types!
-            _normalCaseInputSchema = _inputSchema;
-            _normalCaseOutputSchema = _outputSchema;
-
             Row intermediateInitialValue; // filled by aggregate operator, if needed.
-
-            // null-value optimization? => use input schema from operators!
-            if(_nullValueOptimization) {
-                if(_inputMode == EndPointMode::FILE) {
-                    readSchema = dynamic_cast<FileInputOperator*>(_inputNode)->getOptimizedInputSchema().getRowType();
-                    _normalCaseInputSchema = dynamic_cast<FileInputOperator*>(_inputNode)->getOptimizedOutputSchema();
-                    inSchema = _normalCaseInputSchema.getRowType();
-                    _normalCaseOutputSchema = _normalCaseInputSchema;
-                } else if(_inputMode == EndPointMode::MEMORY && _inputNode && _inputNode->type() == LogicalOperatorType::CACHE) {
-                    _normalCaseInputSchema = dynamic_cast<CacheOperator*>(_inputNode)->getOptimizedOutputSchema();
-                    inSchema = _normalCaseInputSchema.getRowType();
-                } else {
-                    _normalCaseOutputSchema = _outputSchema;
-                }
-
-                // output schema stays the same unless it's the most outer stage...
-                // i.e. might need type upgrade in the middle for inner stages as last operator
-                if(_isRootStage) {
-                    if(!operators.empty()) {
-                        _normalCaseOutputSchema = operators.back()->getOutputSchema();
-
-                        // special case: CacheOperator => use optimized schema!
-                        auto lastOp = operators.back();
-                        if(lastOp->type() == LogicalOperatorType::CACHE)
-                            _normalCaseOutputSchema = ((CacheOperator*)lastOp)->getOptimizedOutputSchema();
-                    }
-
-                    outSchema = _normalCaseOutputSchema.getRowType();
-                }
-            }
 
 #ifdef VERBOSE_BUILD
             {
@@ -613,29 +564,28 @@ namespace tuplex {
 #endif
 
 #ifndef NDEBUG
-            if(!operators.empty()) {
+            if(!fastLocalVariables.fastOperators.empty()) {
                 stringstream ss;
-                ss<<"output type of specialized pipeline is: "<<outSchema.desc()<<endl;
-                ss<<"is this the most outer stage?: "<<_isRootStage<<endl;
-                if(!_isRootStage)
-                    ss<<"need to upgrade output type to "<<_operators.back()->getOutputSchema().getRowType().desc()<<endl;
-
+                ss<<"output type of specialized pipeline is: "<<fastLocalVariables.fastOutSchema.desc()<<endl;
+                ss<<"is this the most outer stage?: "<<fastLocalVariables.isRootStage<<endl;
+                if(!fastLocalVariables.isRootStage)
+                    ss<<"need to upgrade output type to "<<fastLocalVariables.fastOperators.back()->getOutputSchema().getRowType().desc()<<endl;
                 logger.debug(ss.str());
             }
 #endif
 
-            assert(inSchema != python::Type::UNKNOWN);
-            assert(outSchema != python::Type::UNKNOWN);
+            assert(fastLocalVariables.fastInSchema != python::Type::UNKNOWN);
+            assert(fastLocalVariables.fastOutSchema != python::Type::UNKNOWN);
 
             // special case: empty pipeline
-            if (outSchema.parameters().empty() && inSchema.parameters().empty()) {
+            if (fastLocalVariables.fastOutSchema.parameters().empty() && fastLocalVariables.fastInSchema.parameters().empty()) {
                 logger.info("no pipeline code generated, empty pipeline");
-                return true;
+                return ret;
             }
 
             // go through nodes & add operation
-            logger.info("generating pipeline for " + inSchema.desc() + " -> "
-                        + outSchema.desc() + " (" + pluralize(_operators.size(), "operator") + " pipelined)");
+            logger.info("generating pipeline for " + fastLocalVariables.fastInSchema.desc() + " -> "
+                        + fastLocalVariables.fastOutSchema.desc() + " (" + pluralize(_operators.size(), "operator") + " pipelined)");
 
             // first node determines the data source
 
@@ -644,77 +594,77 @@ namespace tuplex {
 
             // create initstage/release stage functions (LLVM)
             using namespace llvm;
-            _initStageFuncName = func_prefix + "initStage" + to_string(number());
-            _releaseStageFuncName = func_prefix + "releaseStage" + to_string(number());
-            auto initStageFuncType = FunctionType::get(env->i64Type(),
+            ret._fastPathInitStageFuncName = func_prefix + "fastPathInitStage" + to_string(number());
+            ret._fastPathReleaseStageFuncName = func_prefix + "fastPathReleaseStage" + to_string(number());
+            auto fastPathInitStageFuncType = FunctionType::get(env->i64Type(),
                                                        {env->i64Type(), env->i8ptrType()->getPointerTo(),
                                                         env->i8ptrType()->getPointerTo()}, false);
-            auto releaseStageFuncType = FunctionType::get(env->i64Type(), false);
+            auto fastPathReleaseStageFuncType = FunctionType::get(env->i64Type(), false);
 
             // create functions + builders
-            auto initStageFunc = cast<Function>(
-                    env->getModule()->getOrInsertFunction(_initStageFuncName, initStageFuncType).getCallee());
-            auto releaseStageFunc = cast<Function>(
-                    env->getModule()->getOrInsertFunction(_releaseStageFuncName, releaseStageFuncType).getCallee());
+            auto fastPathInitStageFunc = cast<Function>(
+                    env->getModule()->getOrInsertFunction(ret._fastPathInitStageFuncName, fastPathInitStageFuncType).getCallee());
+            auto fastPathReleaseStageFunc = cast<Function>(
+                    env->getModule()->getOrInsertFunction(ret._fastPathReleaseStageFuncName, fastPathReleaseStageFuncType).getCallee());
 
-            BasicBlock *bbISBody = BasicBlock::Create(env->getContext(), "", initStageFunc);
-            BasicBlock *bbRSBody = BasicBlock::Create(env->getContext(), "", releaseStageFunc);
+            BasicBlock *bbISBody = BasicBlock::Create(env->getContext(), "", fastPathInitStageFunc);
+            BasicBlock *bbRSBody = BasicBlock::Create(env->getContext(), "", fastPathReleaseStageFunc);
             IRBuilder<> isBuilder(bbISBody);
             IRBuilder<> rsBuilder(bbRSBody);
-            auto isArgs = codegen::mapLLVMFunctionArgs(initStageFunc, {"num_args", "hashmaps", "null_buckets"});
+            auto isArgs = codegen::mapLLVMFunctionArgs(fastPathInitStageFunc, {"num_args", "hashmaps", "null_buckets"});
 
             // step 1. build pipeline, i.e. how to process data
-            auto pip = std::make_shared<codegen::PipelineBuilder>(env, inSchema, intermediateType(), funcProcessRowName);
+            auto pip = std::make_shared<codegen::PipelineBuilder>(env, fastLocalVariables.fastInSchema, intermediateType(fastLocalVariables.fastOperators), funcProcessRowName);
 
             // Note: the pipeline function will return whether an exception occured.
             // if that happens, then call to handler in transform task builder
             // pip->addExceptionHandler(_funcExceptionCallback); // don't add a exception handler here.
 
             // sanity check: output of last op should match schema!
-            if(!operators.empty() && outSchema != operators.back()->getOutputSchema().getRowType()) {
+            if(!fastLocalVariables.fastOperators.empty() && fastLocalVariables.fastOutSchema != fastLocalVariables.fastOperators.back()->getOutputSchema().getRowType()) {
                 cout<<"outSchema is different than last operator's schema:"<<endl;
-                cout<<"outSchema: "<<outSchema.desc()<<endl;
-                cout<<"last Op: "<<operators.back()->getOutputSchema().getRowType().desc()<<endl;
+                cout<<"outSchema: "<<fastLocalVariables.fastOutSchema.desc()<<endl;
+                cout<<"last Op: "<<fastLocalVariables.fastOperators.back()->getOutputSchema().getRowType().desc()<<endl;
             }
 
             int global_var_cnt = 0;
-            auto num_operators = operators.size();
+            auto num_operators = fastLocalVariables.fastOperators.size();
             for (int i = 0; i < num_operators; ++i) {
-                auto node = operators[i];
+                auto node = fastLocalVariables.fastOperators[i];
                 assert(node);
                 UDFOperator *udfop = dynamic_cast<UDFOperator *>(node);
                 switch (node->type()) {
                     case LogicalOperatorType::MAP: {
-                        if (!pip->mapOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, _allowUndefinedBehavior,
-                                               _sharedObjectPropagation)) {
+                        if (!pip->mapOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, fastLocalVariables.allowUndefinedBehavior,
+                                               fastLocalVariables.sharedObjectPropagation)) {
                             logger.error(formatBadUDFNode(udfop));
-                            return false;
+                            return ret;
                         }
                         break;
                     }
                     case LogicalOperatorType::FILTER: {
-                        if (!pip->filterOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, _allowUndefinedBehavior,
-                                                  _sharedObjectPropagation)) {
+                        if (!pip->filterOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, fastLocalVariables.allowUndefinedBehavior,
+                                                  fastLocalVariables.sharedObjectPropagation)) {
                             logger.error(formatBadUDFNode(udfop));
-                            return false;
+                            return ret;
                         }
                         break;
                     }
                     case LogicalOperatorType::MAPCOLUMN: {
                         auto mop = dynamic_cast<MapColumnOperator *>(node);
                         if (!pip->mapColumnOperation(node->getID(), mop->getColumnIndex(), udfop->getUDF(),
-                                                     _normalCaseThreshold, _allowUndefinedBehavior, _sharedObjectPropagation)) {
+                                                     _normalCaseThreshold, fastLocalVariables.allowUndefinedBehavior, fastLocalVariables.sharedObjectPropagation)) {
                             logger.error(formatBadUDFNode(udfop));
-                            return false;
+                            return ret;
                         }
                         break;
                     }
                     case LogicalOperatorType::WITHCOLUMN: {
                         auto wop = dynamic_cast<WithColumnOperator *>(node);
                         if (!pip->withColumnOperation(node->getID(), wop->getColumnIndex(), udfop->getUDF(),
-                                                      _normalCaseThreshold, _allowUndefinedBehavior, _sharedObjectPropagation)) {
+                                                      _normalCaseThreshold, fastLocalVariables.allowUndefinedBehavior, fastLocalVariables.sharedObjectPropagation)) {
                             logger.error(formatBadUDFNode(udfop));
-                            return false;
+                            return ret;
                         }
                         break;
                     }
@@ -754,9 +704,6 @@ namespace tuplex {
                         auto null_bucket_global = env->createNullInitializedGlobal(null_bucket_global_name,
                                                                                    env->i8ptrType());
 
-                        // add to lookup map for slow case
-                        _hashmap_vars[jop->getID()] = make_tuple(hash_map_global, null_bucket_global);
-
                         isBuilder.CreateStore(isBuilder.CreateLoad(
                                 isBuilder.CreateGEP(isArgs["hashmaps"], env->i32Const(global_var_cnt))),
                                               hash_map_global);
@@ -772,7 +719,7 @@ namespace tuplex {
                         auto rightRowType = jop->right()->getOutputSchema().getRowType();
 
                         // if null-value optimization is used, might need to adjust the type for the normal path!
-                        if(_nullValueOptimization) {
+                        if(fastLocalVariables.nullValueOptimization) {
                             // build right or left?
                             if(jop->buildRight()) {
                                 // i.e.
@@ -790,7 +737,7 @@ namespace tuplex {
                                                    hash_map_global,
                                                    null_bucket_global)) {
                             logger.error(formatBadUDFNode(udfop));
-                            return false;
+                            return ret;
                         }
                         break;
                     }
@@ -805,17 +752,17 @@ namespace tuplex {
 
                             // NOTE: these functions need to be generated only once for the general case type!
                             auto aggType = aop->aggregateOutputType();
-                            _aggregateInitFuncName = "init_aggregate_stage" + std::to_string(number());
-                            _aggregateCombineFuncName = "combine_aggregate_stage" + std::to_string(number());
+                            ret._aggregateInitFuncName = "init_aggregate_stage" + std::to_string(number());
+                            ret._aggregateCombineFuncName = "combine_aggregate_stage" + std::to_string(number());
                             if(aop->aggType() == AggregateType::AGG_BYKEY)
-                                _aggregateAggregateFuncName = "aggregate_aggregate_stage" + std::to_string(number());
-                            _aggregateCallbackName = "aggregate_callback_stage" + std::to_string(number());
+                                ret._aggregateAggregateFuncName = "aggregate_aggregate_stage" + std::to_string(number());
+                            ret._aggregateCallbackName = "aggregate_callback_stage" + std::to_string(number());
                             auto aggregateInitFunc = codegen::createAggregateInitFunction(env.get(),
-                                                                                          _aggregateInitFuncName,
+                                                                                          ret._aggregateInitFuncName,
                                                                                           aop->initialValue(),
                                                                                           aggType); // use c-malloc!
                             auto combFunc = codegen::createAggregateCombineFunction(env.get(),
-                                                                                    _aggregateCombineFuncName,
+                                                                                    ret._aggregateCombineFuncName,
                                                                                     aop->combinerUDF(),
                                                                                     aggType,
                                                                                     malloc);
@@ -824,28 +771,28 @@ namespace tuplex {
                             if(!combFunc)
                                 throw std::runtime_error("error compiling combiner function for aggregate");
                             // update func names, to avoid duplicates
-                            _aggregateInitFuncName = aggregateInitFunc->getName().str();
-                            _aggregateCombineFuncName = combFunc->getName().str();
+                            ret._aggregateInitFuncName = aggregateInitFunc->getName().str();
+                            ret._aggregateCombineFuncName = combFunc->getName().str();
 
                             if(aop->aggType() == AggregateType::AGG_BYKEY) { // need to make the aggregate functor
                                 auto aggregateFunc = codegen::createAggregateFunction(env.get(),
-                                                                                      _aggregateAggregateFuncName,
+                                                                                      ret._aggregateAggregateFuncName,
                                                                                       aop->aggregatorUDF(), aggType,
                                                                                       aop->parent()->getOutputSchema().getRowType(),
                                                                                       malloc);
                                 if(!aggregateFunc)
                                     throw std::runtime_error("error compiling aggregate function");
-                                _aggregateAggregateFuncName = aggregateFunc->getName().str();
+                                ret._aggregateAggregateFuncName = aggregateFunc->getName().str();
                             } else {
                                 // init intermediate within Stage process function.
                                 intermediateInitialValue = aop->initialValue();
                                 if (!pip->addAggregate(aop->getID(), aop->aggregatorUDF(),
                                                        aop->getOutputSchema().getRowType(),
                                                        _normalCaseThreshold,
-                                                       _allowUndefinedBehavior,
-                                                       _sharedObjectPropagation)) {
+                                                       fastLocalVariables.allowUndefinedBehavior,
+                                                       fastLocalVariables.sharedObjectPropagation)) {
                                     logger.error(formatBadAggNode(aop));
-                                    return false;
+                                    return ret;
                                 }
                             }
                         } else if(aop->aggType() == AggregateType::AGG_UNIQUE) {
@@ -884,15 +831,15 @@ namespace tuplex {
 
 
             // only fast
-            switch(_outputMode) {
+            switch(fastLocalVariables.outputMode) {
                 case EndPointMode::FILE: {
                     // for file mode, can directly merge output rows
                     //pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID); //output node id
 
-                    switch (_outputFileFormat) {
+                    switch (fastLocalVariables.outputFileFormat) {
                         case FileFormat::OUTFMT_CSV: {
                             // i.e. write to memory writer!
-                            pip->buildWithCSVRowWriter(_funcMemoryWriteCallbackName, _outputNodeID, _fileOutputParameters["null_value"],
+                            pip->buildWithCSVRowWriter(ret._funcMemoryWriteCallbackName, fastLocalVariables.outputNodeID, fastLocalVariables.fileOutputParameters.at("null_value"),
                                                        true, csvOutputDelimiter(), csvOutputQuotechar());
                             break;
                         }
@@ -919,23 +866,23 @@ namespace tuplex {
 
                      // special case: join is executed on top of a .cache()
                      // =>
-                    if(_nullValueOptimization) {
+                    if(fastLocalVariables.nullValueOptimization) {
                         if(!leaveNormalCase) {
-                            if (!pip->addTypeUpgrade(_outputSchema.getRowType()))
+                            if (!pip->addTypeUpgrade(fastLocalVariables.outputSchema.getRowType()))
                                 throw std::runtime_error(
-                                        "type upgrade from " + outSchema.desc() + " to " +
-                                        _outputSchema.getRowType().desc() + "failed.");
+                                        "type upgrade from " + fastLocalVariables.fastOutSchema.desc() + " to " +
+                                        fastLocalVariables.outputSchema.getRowType().desc() + "failed.");
                             // set normal case output type to general case
                             _normalCaseOutputSchema = _outputSchema;
                         }
                     }
-                    pip->buildWithHashmapWriter(_funcHashWriteCallbackName, _hashColKeys, hashtableKeyWidth(_hashKeyType), _hashSaveOthers, _hashAggregate);
+                    pip->buildWithHashmapWriter(ret._funcHashWriteCallbackName, fastLocalVariables.hashColKeys, hashtableKeyWidth(fastLocalVariables.hashKeyType), fastLocalVariables.hashSaveOthers, fastLocalVariables.hashAggregate);
                     break;
                 }
                 case EndPointMode::MEMORY: {
 
                     // special case: writing intermediate output
-                    if(intermediateType() == python::Type::UNKNOWN) {
+                    if(intermediateType(fastLocalVariables.fastOperators) == python::Type::UNKNOWN) {
                         // NOTE: forcing output to be general case is not necessary for cache operator!
                         // => i.e. may manually convert...
 
@@ -943,21 +890,21 @@ namespace tuplex {
                         // => always pass cache node!
                         bool leaveNormalCase = false;
 
-                        if(!operators.empty())
-                            leaveNormalCase = operators.back()->type() == LogicalOperatorType::CACHE;
+                        if(!fastLocalVariables.fastOperators.empty())
+                            leaveNormalCase = fastLocalVariables.fastOperators.back()->type() == LogicalOperatorType::CACHE;
 
                         // force output type to be always general case (=> so merging works easily!)
-                        if(_nullValueOptimization) {
+                        if(fastLocalVariables.nullValueOptimization) {
                             if(!leaveNormalCase) {
-                                if (!pip->addTypeUpgrade(_outputSchema.getRowType()))
+                                if (!pip->addTypeUpgrade(fastLocalVariables.outputSchema.getRowType()))
                                     throw std::runtime_error(
-                                            "type upgrade from " + outSchema.desc() + " to " +
-                                            _outputSchema.getRowType().desc() + "failed.");
+                                            "type upgrade from " + fastLocalVariables.fastOutSchema.desc() + " to " +
+                                            fastLocalVariables.outputSchema.getRowType().desc() + "failed.");
                                 // set normal case output type to general case
-                                _normalCaseOutputSchema = _outputSchema;
+                                // _normalCaseOutputSchema = _outputSchema;
                             }
                         }
-                        pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID);
+                        pip->buildWithTuplexWriter(ret._funcMemoryWriteCallbackName, fastLocalVariables.outputNodeID);
                     } else {
                         // build w/o writer
                         pip->build();
@@ -973,39 +920,39 @@ namespace tuplex {
 
             // step 2. build connector to data source, i.e. generated parser or simply iterating over stuff
             std::shared_ptr<codegen::BlockBasedTaskBuilder> tb;
-            if (_inputMode == EndPointMode::FILE) {
+            if (fastLocalVariables.inputMode == EndPointMode::FILE) {
 
                 // only CSV supported yet // throw std::runtime_error("found unknown data-source operator " + node->name() + " for which a pipeline could not be generated");
 
                 // input schema holds for CSV node the original, unoptimized number of columns.
                 // if pushdown is performed, outputschema holds whatever is left.
-                char delimiter = _fileInputParameters.at("delimiter")[0];
-                char quotechar = _fileInputParameters.at("quotechar")[0];
+                char delimiter = fastLocalVariables.fileInputParameters.at("delimiter")[0];
+                char quotechar = fastLocalVariables.fileInputParameters.at("quotechar")[0];
 
                 // note: null_values may be empty!
-                auto null_values = jsonToStringArray(_fileInputParameters.at("null_values"));
+                auto null_values = jsonToStringArray(fastLocalVariables.fileInputParameters.at("null_values"));
 
                 switch (_inputFileFormat) {
                     case FileFormat::OUTFMT_CSV:
                     case FileFormat::OUTFMT_TEXT: {
-                        if (_generateParser) {
+                        if (fastLocalVariables.generateParser) {
                             tb = make_shared<codegen::JITCSVSourceTaskBuilder>(env,
-                                                                               readSchema,
-                                                                               _columnsToRead,
+                                                                               fastLocalVariables.fastReadSchema,
+                                                                               fastLocalVariables.columnsToRead,
                                                                                funcStageName,
-                                                                               _inputNodeID,
+                                                                               fastLocalVariables.inputNodeID,
                                                                                null_values,
                                                                                delimiter,
                                                                                quotechar);
                         } else {
-                            tb = make_shared<codegen::CellSourceTaskBuilder>(env, readSchema, _columnsToRead,
+                            tb = make_shared<codegen::CellSourceTaskBuilder>(env, fastLocalVariables.fastReadSchema, fastLocalVariables.columnsToRead,
                                                                              funcStageName,
-                                                                             _inputNodeID, null_values);
+                                                                             fastLocalVariables.inputNodeID, null_values);
                         }
                         break;
                     }
                     case FileFormat::OUTFMT_ORC: {
-                        tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, inSchema, funcStageName);
+                        tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, fastLocalVariables.fastInSchema, funcStageName);
                         break;
                     }
                     default:
@@ -1013,41 +960,25 @@ namespace tuplex {
                 }
             } else {
                 // tuplex (in-memory) reader
-                tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, inSchema, funcStageName);
+                tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, fastLocalVariables.fastInSchema, funcStageName);
             }
 
             // set pipeline and
             // add ignore codes & exception handler
-            tb->setExceptionHandler(_funcExceptionCallback);
+            tb->setExceptionHandler(ret._funcExceptionCallback);
             tb->setIgnoreCodes(ignoreCodes);
             tb->setPipeline(pip);
 
             // special case: intermediate
-            if(intermediateType() != python::Type::UNKNOWN) {
-                tb->setIntermediateInitialValueByRow(intermediateType(), intermediateInitialValue);
-                tb->setIntermediateWriteCallback(_aggregateCallbackName);
+            if(intermediateType(fastLocalVariables.fastOperators) != python::Type::UNKNOWN) {
+                tb->setIntermediateInitialValueByRow(intermediateType(fastLocalVariables.fastOperators), intermediateInitialValue);
+                tb->setIntermediateWriteCallback(ret._aggregateCallbackName);
             }
 
             // create code for "wrap-around" function
             auto func = tb->build();
             if (!func)
                 throw std::runtime_error("could not build codegen csv parser");
-
-            // compile on top of this pipeline resolve code path if several conditons are met
-            // 1.) compile if resolve function is present
-            // 2.) compile if null-value optimization is present (could be done lazily)
-            auto numResolveOperators = resolveOperatorCount();
-            // if resolvers are present, compile a slowPath.
-            bool requireSlowPath = _nullValueOptimization; // per default, slow path is always required when null-value opt is enabled.
-
-            // special case: input source is cached and no exceptions happened => no resolve path necessary if there are no resolvers!
-            if(_inputNode->type() == LogicalOperatorType::CACHE && dynamic_cast<CacheOperator*>(_inputNode)->cachedExceptions().empty())
-                requireSlowPath = false;
-
-            if (numResolveOperators > 0 || requireSlowPath) {
-                // generate in same env b.c. need to have access to globals...
-                generateResolveCodePath(env);
-            }
 
             assert(func);
 
@@ -1064,25 +995,36 @@ namespace tuplex {
 
             // save into variables (allows to serialize stage etc.)
             // IR is generated. Save into stage.
-            _funcStageName = func->getName();
-            _irBitCode = codegen::moduleToBitCodeString(*env->getModule()); // trafo stage takes ownership of module
+            ret._funcStageName = func->getName();
+            ret._fastPathIRBitCode = codegen::moduleToBitCodeString(*env->getModule()); // trafo stage takes ownership of module
 
             // @TODO: lazy & fast codegen of the different paths + lowering of them
             // generate interpreter fallback path (always) --> probably do that lazily or parallelize it...
-            generatePythonCode();
-
-            return true;
+            return ret;
         }
 
-        bool StageBuilder::generateResolveCodePath(const std::shared_ptr<codegen::LLVMEnvironment> &env) {
+        TransformStage::TransformStageCodePath StageBuilder::generateResolveCodePath(const CodeGenerationContext& resolveLocalVariables) const {
             using namespace std;
             using namespace llvm;
 
+            TransformStage::TransformStageCodePath ret;
+
+            // Compile if resolve function is present or if null-value optimization is present
+            auto numResolveOperators = resolveOperatorCount();
+            bool requireSlowPath = resolveLocalVariables.nullValueOptimization; // per default, slow path is always required when null-value opt is enabled.
+
+            // special case: input source is cached and no exceptions happened => no resolve path necessary if there are no resolvers!
+            if(resolveLocalVariables.inputNode->type() == LogicalOperatorType::CACHE && dynamic_cast<CacheOperator*>(resolveLocalVariables.inputNode)->cachedExceptions().empty())
+                requireSlowPath = false;
+
+            if (numResolveOperators == 0 && !requireSlowPath) {
+                return ret;
+            }
 
             // when there are no operators present, there is no way to generate a resolve path
             // => skip
-            if(_operators.empty() && !_nullValueOptimization) // when null value optimization is done, need to always generate resolve path.
-                return true;
+            if(resolveLocalVariables.resolveOperators.empty() && !resolveLocalVariables.nullValueOptimization) // when null value optimization is done, need to always generate resolve path.
+                return ret;
 
             // @TODO: one needs to add here somewhere an option where bad input rows/data get resolved when they do not fit the initial schema!
             //  r/n it's all squashed together in a pipeline.
@@ -1091,6 +1033,36 @@ namespace tuplex {
             // ==> i.e. the larger, unspecialized type!
 
             auto &logger = Logger::instance().logger("codegen");
+
+            // Create environment
+            string env_name = "tuplex_slowCodePath";
+            string func_prefix = "";
+
+            auto readSchema = resolveLocalVariables.resolveReadSchema.getRowType(); // what to read from files (before projection pushdown)
+            auto inSchema = resolveLocalVariables.resolveInputSchema.getRowType(); // with what to start the pipeline (after projection pushdown)
+            auto resolveInSchema = inSchema;
+            auto outSchema = resolveLocalVariables.resolveOutputSchema.getRowType(); // what to output from pipeline
+
+            auto env = make_shared<codegen::LLVMEnvironment>(env_name);
+
+            ret._slowPathInitStageFuncName = func_prefix + "slowPathInitStage" + to_string(number());
+            ret._slowPathReleaseStageFuncName = func_prefix + "slowPathReleaseStage" + to_string(number());
+            auto slowPathInitStageFuncType = FunctionType::get(env->i64Type(),
+                                                       {env->i64Type(), env->i8ptrType()->getPointerTo(),
+                                                        env->i8ptrType()->getPointerTo()}, false);
+            auto slowPathReleaseStageFuncType = FunctionType::get(env->i64Type(), false);
+
+            // create functions + builders
+            auto slowPathInitStageFunc = cast<Function>(
+                    env->getModule()->getOrInsertFunction(ret._slowPathInitStageFuncName, slowPathInitStageFuncType).getCallee());
+            auto slowPathReleaseStageFunc = cast<Function>(
+                    env->getModule()->getOrInsertFunction(ret._slowPathReleaseStageFuncName, slowPathReleaseStageFuncType).getCallee());
+
+            BasicBlock *bbISBody = BasicBlock::Create(env->getContext(), "", slowPathInitStageFunc);
+            BasicBlock *bbRSBody = BasicBlock::Create(env->getContext(), "", slowPathReleaseStageFunc);
+            IRBuilder<> isBuilder(bbISBody);
+            IRBuilder<> rsBuilder(bbRSBody);
+            auto isArgs = codegen::mapLLVMFunctionArgs(slowPathInitStageFunc, {"num_args", "hashmaps", "null_buckets"});
 
             // Note: this here is quite confusing, because for map operator when tuples are needed, this will return not the row schema but the UDF input schema =? fix that
             // @TODO: fix getInputSchema for MapOperator!!!
@@ -1101,32 +1073,37 @@ namespace tuplex {
             string slowPathHashWriteCallback = "hashOutViaSlowPath_Stage_" + to_string(number());
             string slowPathExceptionCallback = "exceptionOutViaSlowPath_Stage_" + to_string(number());
 
-            auto slowPip = std::make_shared<codegen::PipelineBuilder>(env, inSchema, intermediateType(), funcSlowPathName);
-            for (auto it = _operators.begin(); it != _operators.end(); ++it) {
-                auto node = *it;
+            logger.debug("input schema for general case is: " + resolveInSchema.desc());
+            logger.debug("intermediate type for general case is: " + intermediateType(resolveLocalVariables.resolveOperators).desc());
+
+            auto slowPip = std::make_shared<codegen::PipelineBuilder>(env, resolveInSchema, intermediateType(resolveLocalVariables.resolveOperators), funcSlowPathName);
+            int global_var_cnt = 0;
+            auto num_operators = resolveLocalVariables.resolveOperators.size();
+            for (int i = 0; i < num_operators; ++i) {
+                auto node = resolveLocalVariables.resolveOperators[i];
                 assert(node);
                 UDFOperator *udfop = dynamic_cast<UDFOperator *>(node);
                 switch (node->type()) {
                     case LogicalOperatorType::MAP: {
-                        slowPip->mapOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, _allowUndefinedBehavior,
-                                              _sharedObjectPropagation);
+                        slowPip->mapOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, resolveLocalVariables.allowUndefinedBehavior,
+                                              resolveLocalVariables.sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::FILTER: {
-                        slowPip->filterOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, _allowUndefinedBehavior,
-                                                 _sharedObjectPropagation);
+                        slowPip->filterOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, resolveLocalVariables.allowUndefinedBehavior,
+                                                 resolveLocalVariables.sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::MAPCOLUMN: {
                         auto mop = dynamic_cast<MapColumnOperator *>(node);
                         slowPip->mapColumnOperation(node->getID(), mop->getColumnIndex(), udfop->getUDF(),
-                                                    _normalCaseThreshold, _allowUndefinedBehavior, _sharedObjectPropagation);
+                                                    _normalCaseThreshold, resolveLocalVariables.allowUndefinedBehavior, resolveLocalVariables.sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::WITHCOLUMN: {
                         auto wop = dynamic_cast<WithColumnOperator *>(node);
                         slowPip->withColumnOperation(node->getID(), wop->getColumnIndex(), udfop->getUDF(),
-                                                     _normalCaseThreshold, _allowUndefinedBehavior, _sharedObjectPropagation);
+                                                     _normalCaseThreshold, resolveLocalVariables.allowUndefinedBehavior, resolveLocalVariables.sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::CACHE:
@@ -1138,8 +1115,8 @@ namespace tuplex {
                     case LogicalOperatorType::RESOLVE: {
                         // ==> this means slow code path needs to be generated as well!
                         auto rop = dynamic_cast<ResolveOperator *>(node);
-                        slowPip->addResolver(rop->ecCode(), rop->getID(), rop->getUDF(), _normalCaseThreshold, _allowUndefinedBehavior,
-                                             _sharedObjectPropagation);
+                        slowPip->addResolver(rop->ecCode(), rop->getID(), rop->getUDF(), _normalCaseThreshold, resolveLocalVariables.allowUndefinedBehavior,
+                                             resolveLocalVariables.sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::IGNORE: {
@@ -1164,12 +1141,30 @@ namespace tuplex {
                         auto jop = dynamic_cast<JoinOperator *>(node);
                         assert(jop);
 
-                        auto entry = _hashmap_vars.at(jop->getID());
+                        string hashmap_global_name =
+                                func_prefix + "hash_map_" + to_string(global_var_cnt) + "_stage" + to_string(number());
+                        string null_bucket_global_name =
+                                func_prefix + "null_bucket_" + to_string(global_var_cnt) + "_stage" + to_string(number());
 
                         // add two new globals + init code to init/release func
-                        auto hash_map_global = std::get<0>(entry);
-                        auto null_bucket_global = std::get<1>(entry);
+                        auto hash_map_global = env->createNullInitializedGlobal(hashmap_global_name, env->i8ptrType());
+                        auto null_bucket_global = env->createNullInitializedGlobal(null_bucket_global_name,
+                                                                                   env->i8ptrType());
 
+                        isBuilder.CreateStore(isBuilder.CreateLoad(
+                                isBuilder.CreateGEP(isArgs["hashmaps"], env->i32Const(global_var_cnt))),
+                                              hash_map_global);
+                        isBuilder.CreateStore(isBuilder.CreateLoad(
+                                isBuilder.CreateGEP(isArgs["null_buckets"], env->i32Const(global_var_cnt))),
+                                              null_bucket_global);
+
+                        rsBuilder.CreateStore(env->i8nullptr(), hash_map_global);
+                        rsBuilder.CreateStore(env->i8nullptr(), null_bucket_global);
+
+                        auto leftRowType = jop->left()->getOutputSchema().getRowType();
+                        auto rightRowType = jop->right()->getOutputSchema().getRowType();
+
+                        global_var_cnt++;
 
                         if (!slowPip->addHashJoinProbe(jop->leftKeyIndex(), jop->left()->getOutputSchema().getRowType(),
                                                    jop->rightKeyIndex(),
@@ -1179,38 +1174,73 @@ namespace tuplex {
                                                    hash_map_global,
                                                    null_bucket_global)) {
                             logger.error(formatBadUDFNode(udfop));
-                            return false;
+                            return ret;
                         }
                         break;
                     }
 
                     case LogicalOperatorType::AGGREGATE: {
-//                        auto aop = dynamic_cast<AggregateOperator *>(node); assert(aop);
-//                        auto entry = _hashmap_vars.at(aop->getID());
-//
-//                        if(aop->aggType() == AggregateType::AGG_UNIQUE) {
-//                            auto hash_map_global = std::get<0>(entry);
-//                            if (!slowPip->addHashUnique(aop->parent()->getOutputSchema().getRowType(), hash_map_global)) {
-//                                logger.error(formatBadUDFNode(udfop));
-//                                return false;
-//                            }
-//                        } else {
-//                            throw runtime_error("Unsupported aggregate type!");
-//                        }
+//  @TODO: needs more support for full aggregate fallback code
+                        auto aop = dynamic_cast<AggregateOperator*>(node); assert(aop);
+                        if(aop->aggType() == AggregateType::AGG_GENERAL || aop->aggType() == AggregateType::AGG_BYKEY) {
 
-                        // for byKey separate logic is required to key properly
-                        auto aop = dynamic_cast<AggregateOperator *>(node); assert(aop);
-                        switch(aop->aggType()) {
-                            case AggregateType::AGG_UNIQUE: {
-                                // this is supported => do not need to specify further!
-                                break;
+                            // right now aggregation is done using a global variable.
+                            // this is because of the overall compilation design
+                            // in the future we should prob. rewrite this to compile better plans...
+                            // writing to a pointer seems like a bad idea...
+
+                            // NOTE: these functions need to be generated only once for the general case type!
+                            auto aggType = aop->aggregateOutputType();
+                            ret._aggregateInitFuncName = "init_aggregate_stage" + std::to_string(number());
+                            ret._aggregateCombineFuncName = "combine_aggregate_stage" + std::to_string(number());
+                            if(aop->aggType() == AggregateType::AGG_BYKEY)
+                                ret._aggregateAggregateFuncName = "aggregate_aggregate_stage" + std::to_string(number());
+                            ret._aggregateCallbackName = "aggregate_callback_stage" + std::to_string(number());
+                            auto aggregateInitFunc = codegen::createAggregateInitFunction(env.get(),
+                                                                                          ret._aggregateInitFuncName,
+                                                                                          aop->initialValue(),
+                                                                                          aggType); // use c-malloc!
+                            auto combFunc = codegen::createAggregateCombineFunction(env.get(),
+                                                                                    ret._aggregateCombineFuncName,
+                                                                                    aop->combinerUDF(),
+                                                                                    aggType,
+                                                                                    malloc,
+                                                                                    _allowUndefinedBehavior,
+                                                                                    _sharedObjectPropagation);
+                            if(!aggregateInitFunc)
+                                throw std::runtime_error("error compiling aggregate initialize function");
+                            if(!combFunc)
+                                throw std::runtime_error("error compiling combiner function for aggregate");
+                            // update func names, to avoid duplicates
+                            ret._aggregateInitFuncName = aggregateInitFunc->getName().str();
+                            ret._aggregateCombineFuncName = combFunc->getName().str();
+
+                            if(aop->aggType() == AggregateType::AGG_BYKEY) { // need to make the aggregate functor
+                                auto aggregateFunc = codegen::createAggregateFunction(env.get(),
+                                                                                      ret._aggregateAggregateFuncName,
+                                                                                      aop->aggregatorUDF(), aggType,
+                                                                                      aop->parent()->getOutputSchema().getRowType(),
+                                                                                      malloc, _allowUndefinedBehavior,
+                                                                                      _sharedObjectPropagation);
+                                if(!aggregateFunc)
+                                    throw std::runtime_error("error compiling aggregate function");
+                                ret._aggregateAggregateFuncName = aggregateFunc->getName().str();
+                            } else {
+                                // init intermediate within Stage process function.
+//                                intermediateInitialValue = aop->initialValue();
+                                if (!slowPip->addAggregate(aop->getID(), aop->aggregatorUDF(),
+                                                       aop->getOutputSchema().getRowType(),
+                                                       _allowUndefinedBehavior, _sharedObjectPropagation)) {
+                                    logger.error(formatBadAggNode(aop));
+                                    return ret;
+                                }
                             }
-                            default:
-                                // --> need to codegen aggregate for resolve??
-                                // or should this be handled directly in ResolveTask incl. function to extract potentially the key
-                                // from the output buffer?
-                                throw std::runtime_error("aggregateResolve not yet supported, have to think about this...");
+                        } else if(aop->aggType() == AggregateType::AGG_UNIQUE) {
+                            // nothing to do...
+                        } else {
+                            throw std::runtime_error("unsupported aggregate type");
                         }
+
                         break; // aggregate isn't codegen'd
                     }
 
@@ -1229,36 +1259,43 @@ namespace tuplex {
             // => else, error!
 
 
-            bool useRawOutput = _outputMode == EndPointMode::FILE && _outputFileFormat == FileFormat::OUTFMT_CSV;
+            bool useRawOutput = resolveLocalVariables.outputMode == EndPointMode::FILE && resolveLocalVariables.outputFileFormat == FileFormat::OUTFMT_CSV;
             // build slow path with mem writer or to CSV
             llvm::Function* slowPathFunc = nullptr;
             if(useRawOutput) {
-                slowPathFunc = slowPip->buildWithCSVRowWriter(slowPathMemoryWriteCallback, _outputNodeID,
-                                                              _fileOutputParameters["null_value"], true,
-                                                              csvOutputDelimiter(), csvOutputQuotechar());
+                slowPathFunc = slowPip->buildWithCSVRowWriter(slowPathMemoryWriteCallback, resolveLocalVariables.outputNodeID,
+                                                              resolveLocalVariables.fileOutputParameters.at("null_value"), true,
+                                                              resolveLocalVariables.fileOutputParameters.at("delimiter")[0], resolveLocalVariables.fileOutputParameters.at("quotechar")[0]);
             } else {
                 // @TODO: hashwriter if hash output desired
-                if(_outputMode == EndPointMode::HASHTABLE) {
-                    slowPathFunc = slowPip->buildWithHashmapWriter(slowPathHashWriteCallback, _hashColKeys, hashtableKeyWidth(_hashKeyType), _hashSaveOthers, _hashAggregate);
+                if(resolveLocalVariables.outputMode == EndPointMode::HASHTABLE) {
+                    slowPathFunc = slowPip->buildWithHashmapWriter(slowPathHashWriteCallback, resolveLocalVariables.hashColKeys, hashtableKeyWidth(resolveLocalVariables.hashKeyType), resolveLocalVariables.hashSaveOthers, resolveLocalVariables.hashAggregate);
                 } else {
                     slowPathFunc = slowPip->buildWithTuplexWriter(slowPathMemoryWriteCallback, 0);
                 }
             }
 
             // create wrapper which decodes automatically normal-case rows with optimized types...
-            auto normalCaseType = _normalCaseInputSchema.getRowType();
+            auto normalCaseType = resolveLocalVariables.normalCaseInputSchema.getRowType();
             auto null_values =
-                    _inputMode == EndPointMode::FILE ? jsonToStringArray(_fileInputParameters.at("null_values"))
+                    resolveLocalVariables.inputMode == EndPointMode::FILE ? jsonToStringArray(resolveLocalVariables.fileInputParameters.at("null_values"))
                                                      : std::vector<std::string>{"None"};
             auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip, funcResolveRowName,
                                                                             normalCaseType, null_values);
 
-            _resolveRowFunctionName = rowProcessFunc->getName();
-            _resolveRowWriteCallbackName = slowPathMemoryWriteCallback;
-            _resolveRowExceptionCallbackName = slowPathExceptionCallback;
-            _resolveHashCallbackName = slowPathHashWriteCallback;
+            ret._resolveRowFunctionName = rowProcessFunc->getName();
+            ret._resolveRowWriteCallbackName = slowPathMemoryWriteCallback;
+            ret._resolveRowExceptionCallbackName = slowPathExceptionCallback;
+            ret._resolveHashCallbackName = slowPathHashWriteCallback;
 
-            return true;
+            // close initStage/releaseStage functions
+            // => call global init function of llvm env
+            isBuilder.CreateRet(env->callGlobalsInit(isBuilder));
+            rsBuilder.CreateRet(env->callGlobalsRelease(rsBuilder));
+
+            ret._slowPathIRBitCode = codegen::moduleToBitCodeString(*env->getModule()); // transform stage takes ownership of module
+
+            return ret;
         }
 
         void StageBuilder::addFileOutput(FileOutputOperator *fop) {
@@ -1376,12 +1413,98 @@ namespace tuplex {
         }
 
         TransformStage *StageBuilder::build(PhysicalPlan *plan, IBackend *backend) {
-
-            // generate fast code path
-            // --> slow code path is generated within this function (i.e. resolve & Co)
-            generateFastCodePath();
-
             TransformStage *stage = new TransformStage(plan, backend, _stageNumber, _allowUndefinedBehavior);
+
+            bool mem2mem = _inputMode == EndPointMode::MEMORY && _outputMode == EndPointMode::MEMORY;
+
+            JobMetrics& metrics = stage->PhysicalStage::plan()->getContext().metrics();
+            Timer timer;
+            if (_operators.empty() && mem2mem) {
+                _pyCode = "";
+
+                TransformStage::TransformStageCodePath slow;
+                TransformStage::TransformStageCodePath fast;
+                stage->_slowCodePath = slow;
+                stage->_fastCodePath = fast;
+            } else {
+
+                auto operators = specializePipeline(_nullValueOptimization, _inputNode, _operators);
+
+                auto readSchema = _readSchema.getRowType(); // what to read from files (before projection pushdown)
+                auto inSchema = _inputSchema.getRowType(); // with what to start the pipeline (after projection pushdown)
+                auto outSchema = _outputSchema.getRowType(); // what to output from pipeline
+
+                // per default, set normalcase to output types!
+                _normalCaseInputSchema = _inputSchema;
+                _normalCaseOutputSchema = _outputSchema;
+
+                // null-value optimization? => use input schema from operators!
+                if(_nullValueOptimization) {
+                    if(_inputMode == EndPointMode::FILE) {
+                        readSchema = dynamic_cast<FileInputOperator*>(_inputNode)->getOptimizedInputSchema().getRowType();
+                        _normalCaseInputSchema = dynamic_cast<FileInputOperator*>(_inputNode)->getOptimizedOutputSchema();
+                        inSchema = _normalCaseInputSchema.getRowType();
+                        _normalCaseOutputSchema = _normalCaseInputSchema;
+                    } else if(_inputMode == EndPointMode::MEMORY && _inputNode && _inputNode->type() == LogicalOperatorType::CACHE) {
+                        _normalCaseInputSchema = dynamic_cast<CacheOperator*>(_inputNode)->getOptimizedOutputSchema();
+                        inSchema = _normalCaseInputSchema.getRowType();
+                    } else {
+                        _normalCaseOutputSchema = _outputSchema;
+                    }
+
+                    // output schema stays the same unless it's the most outer stage...
+                    // i.e. might need type upgrade in the middle for inner stages as last operator
+                    if(_isRootStage) {
+                        if(!operators.empty()) {
+                            _normalCaseOutputSchema = operators.back()->getOutputSchema();
+
+                            // special case: CacheOperator => use optimized schema!
+                            auto lastOp = operators.back();
+                            if(lastOp->type() == LogicalOperatorType::CACHE)
+                                _normalCaseOutputSchema = ((CacheOperator*)lastOp)->getOptimizedOutputSchema();
+                        }
+
+                        outSchema = _normalCaseOutputSchema.getRowType();
+                    }
+
+                    if (_outputMode == EndPointMode::HASHTABLE) {
+                        _normalCaseOutputSchema = _outputSchema;
+                    } else if (_outputMode == EndPointMode::MEMORY && intermediateType(operators) == python::Type::UNKNOWN) {
+                        bool leaveNormalCase = false;
+
+                        // If outputNode is not a cache operator then leave normal case as is
+                        if (!operators.empty())
+                            leaveNormalCase = operators.back()->type() == LogicalOperatorType::CACHE;
+
+                        if (!leaveNormalCase)
+                            _normalCaseOutputSchema = _outputSchema;
+                    }
+                }
+
+                auto& logger = Logger::instance().defaultLogger();
+
+                CodeGenerationContext codeGenerationContext {
+                    _allowUndefinedBehavior, _sharedObjectPropagation,
+                    _nullValueOptimization, _outputMode, _outputFileFormat, _outputNodeID,
+                    _fileOutputParameters, _outputSchema, _hashColKeys, _hashKeyType,
+                    _hashSaveOthers, _hashAggregate, _inputMode, _fileInputParameters, _operators,
+                    _inputNode, _readSchema, _inputSchema, _outputSchema, _normalCaseInputSchema,
+                    _hashBucketType, operators, readSchema, inSchema, outSchema, _isRootStage,
+                    _generateParser, _columnsToRead, _inputNodeID
+                };
+
+
+                std::shared_future<TransformStage::TransformStageCodePath> slowCodePath_f = std::async(std::launch::async, [this, &codeGenerationContext]() {
+                    return generateResolveCodePath(codeGenerationContext);
+                });
+
+                generatePythonCode();
+
+                stage->_fastCodePath = generateFastCodePath(codeGenerationContext);
+
+                stage->_slowCodePath = slowCodePath_f.get();
+
+            }
 
             stage->_inputColumns = _inputColumns;
             stage->_outputColumns = _outputColumns;
@@ -1420,7 +1543,6 @@ namespace tuplex {
             // => https://llvm.org/doxygen/BitcodeWriter_8cpp_source.html#l04457
             // stage->_irCode = _irCode;
             // stage->_irResolveCode = _irResolveCode;
-            stage->_irBitCode = _irBitCode;
             stage->_pyCode = _pyCode;
             stage->_pyPipelineName = _pyPipelineName;
 
@@ -1432,40 +1554,22 @@ namespace tuplex {
 
             // DEBUG, write out generated trafo code...
 #ifndef NDEBUG
-            stringToFile(URI("transform_stage_" + std::to_string(_stageNumber) + ".txt"), stage->code());
+            stringToFile(URI("fastpath_transform_stage_" + std::to_string(_stageNumber) + ".txt"), stage->fastPathCode());
+            stringToFile(URI("slowpath_transform_stage_" + std::to_string(_stageNumber) + ".txt"), stage->slowPathCode());
 #endif
-
-            // code names/symbols
-            stage->_funcStageName = _funcStageName;
-            stage->_funcMemoryWriteCallbackName = _funcMemoryWriteCallbackName;
-            stage->_funcExceptionCallback = _funcExceptionCallback;
-            stage->_funcFileWriteCallbackName = _funcFileWriteCallbackName;
-            stage->_funcHashWriteCallbackName = _funcHashWriteCallbackName;
-            stage->_writerFuncName = _writerFuncName;
-
-            stage->_initStageFuncName = _initStageFuncName;
-            stage->_releaseStageFuncName = _releaseStageFuncName;
-            stage->_resolveRowFunctionName = _resolveRowFunctionName;
-            stage->_resolveRowWriteCallbackName = _resolveRowWriteCallbackName;
-            stage->_resolveRowExceptionCallbackName = _resolveRowExceptionCallbackName;
-            stage->_resolveHashCallbackName = _resolveHashCallbackName;
-
-            stage->_aggregateInitFuncName = _aggregateInitFuncName;
-            stage->_aggregateCombineFuncName = _aggregateCombineFuncName;
-            stage->_aggregateCallbackName = _aggregateCallbackName;
-            stage->_aggregateAggregateFuncName = _aggregateAggregateFuncName;
 
             stage->_operatorIDsWithResolvers = getOperatorIDsAffectedByResolvers(_operators);
 
             stage->setInitData();
 
+            metrics.setGenerateLLVMTime(timer.time());
             return stage;
         }
 
-        python::Type StageBuilder::intermediateType() const {
+        python::Type intermediateType(const std::vector<LogicalOperator*>& operators) {
             // output node aggregate? --> save intermediate schema!
-            if(!_operators.empty() && _operators.back()) {
-                auto output_node = _operators.back();
+            if(!operators.empty() && operators.back()) {
+                auto output_node = operators.back();
                 if(output_node->type() == LogicalOperatorType::AGGREGATE) {
                     auto aop = dynamic_cast<AggregateOperator*>(output_node);
                     if(aop->aggType() == AggregateType::AGG_GENERAL) {
@@ -1473,7 +1577,6 @@ namespace tuplex {
                     }
                 }
             }
-
             return python::Type::UNKNOWN;
         }
 

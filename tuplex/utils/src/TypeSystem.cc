@@ -74,6 +74,7 @@ namespace python {
                                         const python::Type& retval,
                                         const std::vector<Type>& baseClasses,
                                         bool isVarLen) {
+        const std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = std::find_if(_typeMap.begin(),
                                _typeMap.end(),
                                [name](const std::pair<const int, TypeEntry>& p) {
@@ -344,6 +345,7 @@ namespace python {
 
 
     std::vector<Type> TypeFactory::parameters(const Type& t) const {
+        const std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         assert(it != _typeMap.end());
         // exclude dictionary here, but internal reuse.

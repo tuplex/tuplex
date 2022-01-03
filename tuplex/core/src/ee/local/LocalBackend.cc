@@ -745,7 +745,7 @@ namespace tuplex {
         }
 
         // special case: skip stage, i.e. empty code and mem2mem
-        if(tstage->code().empty() && !tstage->fileInputMode() && !tstage->fileOutputMode()) {
+        if(tstage->fastPathCode().empty() && !tstage->fileInputMode() && !tstage->fileOutputMode()) {
             tstage->setMemoryResult(tstage->inputPartitions());
             // skip stage
             Logger::instance().defaultLogger().info("[Transform Stage] skipped stage " + std::to_string(tstage->number()) + " because there is nothing todo here.");
@@ -810,10 +810,10 @@ namespace tuplex {
 
         // ==> init using optionally hashmaps from dependents
         int64_t init_rc = 0;
-        if((init_rc = syms->initStageFunctor(tstage->initData().numArgs,
+        if((init_rc = syms->_fastCodePath.initStageFunctor(tstage->initData().numArgs,
                                   reinterpret_cast<void**>(tstage->initData().hash_maps),
                                   reinterpret_cast<void**>(tstage->initData().null_buckets))) != 0)
-            throw std::runtime_error("initStage() failed for stage " + std::to_string(tstage->number()) + " with code " + std::to_string(init_rc));
+            throw std::runtime_error("fastPathInitStage() failed for stage " + std::to_string(tstage->number()) + " with code " + std::to_string(init_rc));
 
 
         // init aggregate by key
@@ -872,6 +872,7 @@ namespace tuplex {
         // => there are fallback mechanisms...
 
         bool executeSlowPath = true;
+        bool slowPathActuallyExecuted = false;
 
         //TODO: implement pure python resolution here...
         // exceptions found or slowpath data given?
@@ -952,6 +953,15 @@ namespace tuplex {
                     // if resolution via compiled slow path is deactivated, use always the interpreter
                     // => this can be achieved by setting functor to nullptr!
                     auto resolveFunctor = _options.RESOLVE_WITH_INTERPRETER_ONLY() ? nullptr : syms->resolveFunctor;
+
+                    if (resolveFunctor != nullptr) {
+                        slowPathActuallyExecuted = true;
+                        int64_t init_rc = 0;
+                        if((init_rc = syms->_slowCodePath.initStageFunctor(tstage->initData().numArgs,
+                                                                     reinterpret_cast<void**>(tstage->initData().hash_maps),
+                                                                     reinterpret_cast<void**>(tstage->initData().null_buckets))) != 0)
+                            throw std::runtime_error("slowPathInitStage() failed for stage " + std::to_string(tstage->number()) + " with code " + std::to_string(init_rc));
+                    }
 
                     // cout<<"*** num tasks before resolution: "<<completedTasks.size()<<" ***"<<endl;
                     completedTasks = resolveViaSlowPath(completedTasks, merge_except_rows, resolveFunctor, tstage, combineOutputHashmaps);
@@ -1113,8 +1123,11 @@ namespace tuplex {
 
 
         // call release func for stage globals
-        if(syms->releaseStageFunctor() != 0)
-            throw std::runtime_error("releaseStage() failed for stage " + std::to_string(tstage->number()));
+        if(syms->_fastCodePath.releaseStageFunctor() != 0)
+            throw std::runtime_error("fastPathReleaseStage() failed for stage " + std::to_string(tstage->number()));
+
+        if(slowPathActuallyExecuted && syms->_slowCodePath.releaseStageFunctor() != 0)
+            throw std::runtime_error("slowPathReleaseStage() failed for stage " + std::to_string(tstage->number()));
 
         // add exception counts from previous stages to current one
         // @TODO: need to add test for this. I.e. the whole exceptions + joins needs to revised...
@@ -1428,6 +1441,8 @@ namespace tuplex {
 
         // add all resolved tasks to the result
         // cout<<"*** need to compute "<<resolveTasks.size()<<" resolve tasks ***"<<endl;
+        JobMetrics& metrics = tstage->PhysicalStage::plan()->getContext().metrics();
+        Timer interpretedPathTimer;
         auto resolvedTasks = performTasks(resolveTasks);
         // cout<<"*** git "<<resolvedTasks.size()<<" resolve tasks ***"<<endl;
         std::copy(resolvedTasks.cbegin(), resolvedTasks.cend(), std::back_inserter(tasks_result));

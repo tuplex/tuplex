@@ -135,7 +135,7 @@ void createRefPipeline(const std::string& test_input_path,
         co.set("tuplex.allowUndefinedBehavior", "false");
         co.set("tuplex.webui.enable", "false");
         co.set("tuplex.scratchDir", "file://" + scratch_dir);
-
+        co.set("tuplex.csv.selectionPushdown", "false"); // same setting as below??
         Context c(co);
 
         // from:
@@ -238,18 +238,21 @@ TEST(BasicInvocation, Worker) {
             ref_content = fileToString(ref_files[0]);
         }
     }
+    stringToFile("ref_content.txt", ref_content);
 
     // create a simple TransformStage reading in a file & saving it. Then, execute via Worker!
-
+    // Note: This one is unoptimized, i.e. no projection pushdown, filter pushdown etc.
     ASSERT_TRUE(test_path.exists());
     python::initInterpreter();
     python::unlockGIL();
     ContextOptions co = ContextOptions::defaults();
-    codegen::StageBuilder builder(0, true, true, false, 0.9, true, true);
+    auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
+    co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
+    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo);
     auto csvop = FileInputOperator::fromCsv(test_path.toString(), co,
                                        option<bool>(true),
                                                option<char>(','), option<char>('"'),
-            {}, {}, {}, {});
+            {""}, {}, {}, {});
     auto mapop = new MapOperator(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
     auto fop = new FileOutputOperator(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
     builder.addFileInput(csvop);
@@ -282,7 +285,7 @@ TEST(BasicInvocation, Worker) {
 
     // check files are 1:1 the same!
     EXPECT_EQ(file_content.size(), ref_content.size());
-    EXPECT_EQ(file_content, ref_content);
+    EXPECT_TRUE(file_content == ref_content);
 
 //    // invoke worker with that message
 //    timer.reset();

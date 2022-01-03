@@ -218,6 +218,19 @@ namespace tuplex {
                 num_parts += part.size();
             logger().debug("split files into " + pluralize(num_parts, "part"));
 
+#ifndef NDEBUG
+            {
+                std::stringstream ss;
+                ss<<"Parts overview:\n";
+                for(auto part : parts) {
+                   for(auto p : part) {
+                       ss<<"Part "<<p.partNo<<": "<<p.uri.toString()<<":"<<p.rangeStart<<"-"<<p.rangeEnd<<"\n";
+                   }
+                }
+                logger().debug(ss.str());
+            }
+#endif
+
             // todo: logger() is not mt-safe!!!
 
 

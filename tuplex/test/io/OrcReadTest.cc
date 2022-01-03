@@ -189,7 +189,7 @@ testReadInput(folderName, c, ds);
 
 TEST_F(OrcRead, Gtrace) {
 using namespace tuplex;
-ContextOptions co = ContextOptions::defaults();
+ContextOptions co = testOptions();
 Context context(co);
 auto files = VirtualFileSystem::globAll("../resources/pipelines/gtrace/*.csv");
 for (const auto& file : files) {

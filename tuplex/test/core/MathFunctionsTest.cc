@@ -15,9 +15,9 @@
 #include "TestUtils.h"
 #include "RuntimeInterface.h"
 
-class MathFunctionsTest : public PyTest {};
+class MathFunctionsTest : public TuplexTest {};
 
-TEST(MathFunctionsTest, MathLog) {
+TEST_F(MathFunctionsTest, MathLog) {
     using namespace std;
     using namespace tuplex;
 
@@ -59,7 +59,7 @@ TEST(MathFunctionsTest, MathLog) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathExp) {
+TEST_F(MathFunctionsTest, MathExp) {
     using namespace std;
     using namespace tuplex;
 
@@ -101,7 +101,7 @@ TEST(MathFunctionsTest, MathExp) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathLog1p) {
+TEST_F(MathFunctionsTest, MathLog1p) {
     using namespace std;
     using namespace tuplex;
 
@@ -135,7 +135,7 @@ TEST(MathFunctionsTest, MathLog1p) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathLog2) {
+TEST_F(MathFunctionsTest, MathLog2) {
     using namespace std;
     using namespace tuplex;
 
@@ -177,7 +177,7 @@ TEST(MathFunctionsTest, MathLog2) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathLog10) {
+TEST_F(MathFunctionsTest, MathLog10) {
     using namespace std;
     using namespace tuplex;
 
@@ -219,7 +219,7 @@ TEST(MathFunctionsTest, MathLog10) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathExpm1) {
+TEST_F(MathFunctionsTest, MathExpm1) {
     using namespace std;
     using namespace tuplex;
 
@@ -253,7 +253,7 @@ TEST(MathFunctionsTest, MathExpm1) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathSin) {
+TEST_F(MathFunctionsTest, MathSin) {
     using namespace std;
     using namespace tuplex;
 
@@ -286,7 +286,7 @@ TEST(MathFunctionsTest, MathSin) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathSinH) {
+TEST_F(MathFunctionsTest, MathSinH) {
     using namespace std;
     using namespace tuplex;
 
@@ -307,7 +307,7 @@ TEST(MathFunctionsTest, MathSinH) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathArcSinH) {
+TEST_F(MathFunctionsTest, MathArcSinH) {
     using namespace std;
     using namespace tuplex;
 
@@ -329,7 +329,7 @@ TEST(MathFunctionsTest, MathArcSinH) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathCos) {
+TEST_F(MathFunctionsTest, MathCos) {
     using namespace std;
     using namespace tuplex;
 
@@ -362,7 +362,7 @@ TEST(MathFunctionsTest, MathCos) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathCosH) {
+TEST_F(MathFunctionsTest, MathCosH) {
     using namespace std;
     using namespace tuplex;
 
@@ -383,7 +383,7 @@ TEST(MathFunctionsTest, MathCosH) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathArcCos) {
+TEST_F(MathFunctionsTest, MathArcCos) {
     using namespace std;
     using namespace tuplex;
 
@@ -406,7 +406,7 @@ TEST(MathFunctionsTest, MathArcCos) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathTanH) {
+TEST_F(MathFunctionsTest, MathTanH) {
     using namespace std;
     using namespace tuplex;
 
@@ -430,7 +430,7 @@ TEST(MathFunctionsTest, MathTanH) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathArcTan) {
+TEST_F(MathFunctionsTest, MathArcTan) {
     using namespace std;
     using namespace tuplex;
 
@@ -456,7 +456,7 @@ TEST(MathFunctionsTest, MathArcTan) {
 }
 
 
-TEST(MathFunctionsTest, MathArcTanH) {
+TEST_F(MathFunctionsTest, MathArcTanH) {
     using namespace std;
     using namespace tuplex;
 
@@ -478,7 +478,7 @@ TEST(MathFunctionsTest, MathArcTanH) {
 }
 
 
-TEST(MathFunctionsTest, MathRadians) {
+TEST_F(MathFunctionsTest, MathRadians) {
     using namespace std;
     using namespace tuplex;
 
@@ -501,7 +501,7 @@ TEST(MathFunctionsTest, MathRadians) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathDegrees) {
+TEST_F(MathFunctionsTest, MathDegrees) {
     using namespace std;
     using namespace tuplex;
 
@@ -524,7 +524,7 @@ TEST(MathFunctionsTest, MathDegrees) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathArcTan2) {
+TEST_F(MathFunctionsTest, MathArcTan2) {
     using namespace std;
     using namespace tuplex;
 
@@ -547,7 +547,7 @@ TEST(MathFunctionsTest, MathArcTan2) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathArcCosH) {
+TEST_F(MathFunctionsTest, MathArcCosH) {
     using namespace std;
     using namespace tuplex;
 
@@ -569,7 +569,7 @@ TEST(MathFunctionsTest, MathArcCosH) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathSqrt) {
+TEST_F(MathFunctionsTest, MathSqrt) {
     using namespace std;
     using namespace tuplex;
 
@@ -594,7 +594,7 @@ TEST(MathFunctionsTest, MathSqrt) {
     python::closeInterpreter();
 }
 
-TEST(MathFunctionsTest, MathAsin) {
+TEST_F(MathFunctionsTest, MathAsin) {
     using namespace std;
     using namespace tuplex;
 
@@ -629,7 +629,7 @@ TEST(MathFunctionsTest, MathAsin) {
 
 
 
-TEST(MathFunctionsTest, MathPow) {
+TEST_F(MathFunctionsTest, MathPow) {
     using namespace std;
     using namespace tuplex;
 

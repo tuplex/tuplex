@@ -103,7 +103,7 @@ TEST_F(NonCompilableUDFTest, SingleMapNonCompilableFunction) {
 TEST_F(NonCompilableUDFTest, SingleMapNonCompilableFunctionMT) {
     using namespace tuplex;
 
-    ContextOptions co = ContextOptions::defaults();
+    ContextOptions co = testOptions();
 
     // lower partition Size to force multitreading & use 8 tasks
     co.set("tuplex.partitionSize", "128B");
@@ -140,7 +140,7 @@ TEST_F(NonCompilableUDFTest, SingleMapNonCompilableFunctionMT) {
 TEST_F(NonCompilableUDFTest, SingleMapMixedWithFallbackMTOrderI) {
     using namespace tuplex;
 
-    ContextOptions co = ContextOptions::defaults();
+    ContextOptions co = testOptions();
 
     // lower partition Size to force multitreading & use 8 tasks
     co.set("tuplex.partitionSize", "128B");
@@ -179,7 +179,7 @@ TEST_F(NonCompilableUDFTest, SingleMapMixedWithFallbackMTOrderI) {
 TEST_F(NonCompilableUDFTest, SingleMapMixedWithFallbackMTOrderII) {
     using namespace tuplex;
 
-    ContextOptions co = ContextOptions::defaults();
+    ContextOptions co = testOptions();
 
     // lower partition Size to force multitreading & use 8 tasks
     co.set("tuplex.partitionSize", "128B");
@@ -218,7 +218,7 @@ TEST_F(NonCompilableUDFTest, SingleMapMixedWithFallbackMTOrderII) {
 TEST_F(NonCompilableUDFTest, SingleFilterNonCompilableFunction) {
     using namespace tuplex;
 
-    Context c;
+    Context c(microTestOptions());
 
     // manually disable compilation for this UDF
     UDF::disableCompilation();
@@ -246,7 +246,7 @@ TEST_F(NonCompilableUDFTest, SingleFilterNonCompilableFunction) {
 TEST_F(NonCompilableUDFTest, SingleFilterCompilableFunction) {
     using namespace tuplex;
 
-    Context c;
+    Context c(microTestOptions());
 
     // manually disable compilation for this UDF
     UDF::disableCompilation();

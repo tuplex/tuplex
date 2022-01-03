@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # (c) L.Spiegelberg 2017-2021
 # use 11 runs and a timeout after 60min
-NUM_RUNS=11
+NUM_RUNS="${NUM_RUNS:-11}"
 TIMEOUT=3600
 
 LG_INPUT_PATH='/data/flights'
@@ -26,6 +26,7 @@ python3.6 create_conf.py ${CONF} | tee tuplex_config.json
 cp tuplex_config.json $RESDIR/tuplex_config-nosf-noopt.json
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-nosf+noopt-run-$r.txt"
+  rm -rf $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --simulate-spark --path $DATA_PATH --output-path $OUTPUT_DIR >$LOG 2>$LOG.stderr
 done
 
@@ -35,6 +36,7 @@ python3.6 create_conf.py ${CONF} --opt-llvm | tee tuplex_config.json
 cp tuplex_config.json $RESDIR/tuplex_config-nosf-noopt+llvm.json
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-nosf+noopt+llvm-run-$r.txt"
+  rm -rf $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --simulate-spark --path $DATA_PATH --output-path $OUTPUT_DIR >$LOG 2>$LOG.stderr
 done
 
@@ -44,6 +46,7 @@ python3.6 create_conf.py ${CONF} --opt-filter --opt-pushdown | tee tuplex_config
 cp tuplex_config.json $RESDIR/tuplex_config-nosf-logical.json
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-nosf+logical-run-$r.txt"
+  rm -rf $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --simulate-spark --path $DATA_PATH --output-path $OUTPUT_DIR >$LOG 2>$LOG.stderr
 done
 
@@ -53,6 +56,7 @@ python3.6 create_conf.py ${CONF} --opt-filter --opt-pushdown --opt-llvm | tee tu
 cp tuplex_config.json $RESDIR/tuplex_config-nosf-logical+llvm.json
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-nosf+logical+llvm-run-$r.txt"
+  rm -rf $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --simulate-spark --path $DATA_PATH --output-path $OUTPUT_DIR >$LOG 2>$LOG.stderr
 done
 
@@ -62,6 +66,7 @@ python3.6 create_conf.py ${CONF} --opt-filter --opt-pushdown --opt-null | tee tu
 cp tuplex_config.json $RESDIR/tuplex_config-nosf-null.json
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-nosf+null-run-$r.txt"
+  rm -rf $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --simulate-spark --path $DATA_PATH --output-path $OUTPUT_DIR >$LOG 2>$LOG.stderr
 done
 
@@ -71,6 +76,7 @@ python3.6 create_conf.py ${CONF} --opt-filter --opt-pushdown --opt-null --opt-ll
 cp tuplex_config.json $RESDIR/tuplex_config-nosf-null+llvm.json
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-nosf+null+llvm-run-$r.txt"
+  rm -rf $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --simulate-spark --path $DATA_PATH --output-path $OUTPUT_DIR >$LOG 2>$LOG.stderr
 done
 
@@ -84,6 +90,7 @@ python3.6 create_conf.py ${CONF} | tee tuplex_config.json
 cp tuplex_config.json $RESDIR/tuplex_config-noopt.json
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-noopt-run-$r.txt"
+  rm -rf $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --path $DATA_PATH --output-path $OUTPUT_DIR >$LOG 2>$LOG.stderr
 done
 
@@ -93,6 +100,7 @@ python3.6 create_conf.py ${CONF} --opt-llvm | tee tuplex_config.json
 cp tuplex_config.json $RESDIR/tuplex_config-noopt+llvm.json
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-noopt+llvm-run-$r.txt"
+  rm -rf $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --path $DATA_PATH --output-path $OUTPUT_DIR >$LOG 2>$LOG.stderr
 done
 
@@ -102,6 +110,7 @@ python3.6 create_conf.py ${CONF} --opt-filter --opt-pushdown | tee tuplex_config
 cp tuplex_config.json $RESDIR/tuplex_config-logical.json
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-logical-run-$r.txt"
+  rm -rf $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --path $DATA_PATH --output-path $OUTPUT_DIR >$LOG 2>$LOG.stderr
 done
 
@@ -111,6 +120,7 @@ python3.6 create_conf.py ${CONF} --opt-filter --opt-pushdown --opt-llvm | tee tu
 cp tuplex_config.json $RESDIR/tuplex_config-logical+llvm.json
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-logical+llvm-run-$r.txt"
+  rm -rf $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --path $DATA_PATH --output-path $OUTPUT_DIR >$LOG 2>$LOG.stderr
 done
 
@@ -120,6 +130,7 @@ python3.6 create_conf.py ${CONF} --opt-filter --opt-pushdown --opt-null | tee tu
 cp tuplex_config.json $RESDIR/tuplex_config-null.json
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-null-run-$r.txt"
+  rm -rf $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --path $DATA_PATH --output-path $OUTPUT_DIR >$LOG 2>$LOG.stderr
 done
 
@@ -129,6 +140,7 @@ python3.6 create_conf.py ${CONF} --opt-filter --opt-pushdown --opt-null --opt-ll
 cp tuplex_config.json $RESDIR/tuplex_config-null+llvm.json
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-null+llvm-run-$r.txt"
+  rm -rf $OUTPUT_DIR
   timeout $TIMEOUT ${PYTHON} runtuplex.py --path $DATA_PATH --output-path $OUTPUT_DIR >$LOG 2>$LOG.stderr
 done
 

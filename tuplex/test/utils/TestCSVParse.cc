@@ -79,7 +79,7 @@ TEST(CSVUtils, parseNonEscapedFields) {
     auto end = test.c_str() + test.length();
 
     // now with csv monkey
-    auto fp = fopen("test.csv", "w");
+    auto fp = fopen("CSVUtils.parseNonEscapedFields.csv", "w");
     fwrite(start, test.length(), 1, fp);
     fclose(fp);
 

@@ -75,7 +75,7 @@ namespace tuplex {
                              "        # else, keep it as dict return object!\n"
                              "        if all(map(lambda k: type(k) == str, res.keys())):\n"
                              "            # columns become keys, values \n"
-                             "            columns = res.keys()\n"
+                             "            columns = tuple(res.keys())\n"
                              "            data = tuple(map(lambda k: res[k], columns))\n"
                              "            return Row(data, columns)\n"
                              "    \n"

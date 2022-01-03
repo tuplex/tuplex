@@ -831,6 +831,32 @@ TEST_F(FlightDataTest, LargeFilePipeline) {
     ds.tocsv(URI("tuplex_output.csv"));
 }
 
+TEST_F(FlightDataTest, FallbackPythonDict) {
+    using namespace tuplex;
+    using namespace std;
+
+    // check that auto-dict unwrapping in fallback mode works
+
+    // production
+    auto opt = testOptions();
+    opt.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
+    opt.set("tuplex.executorCount", "0"); // single-threaded
+    opt.set("tuplex.useLLVMOptimizer", "false"); // deactivate
+    opt.set("tuplex.optimizer.generateParser", "false");
+    opt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt.set("tuplex.optimizer.operatorReordering", "false");
+    opt.set("tuplex.csv.selectionPushdown", "false");
+
+    Context c(opt);
+
+    auto v = c.csv("../resources/flights_on_time_performance_2019_01.sample.csv")
+            .map(UDF("lambda x: {'origin': x['ORIGIN_AIRPORT_ID'], 'dest': x['DEST_AIRPORT_ID']}")).collectAsVector();
+
+    ASSERT_NE(v.size(), 0);
+
+}
+
+
 
 // TODO: following code doesn't work yet
 //     auto cleanCode_c = "def cleanCode(t):\n"

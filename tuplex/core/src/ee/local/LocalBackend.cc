@@ -1453,7 +1453,7 @@ namespace tuplex {
 
 #ifndef NDEBUG
         if(orderlessTaskFound) {
-            logger().warn("task without order found, please fix in code.");
+            logger().debug("task without order found, please fix in code.");
         }
 #endif
 

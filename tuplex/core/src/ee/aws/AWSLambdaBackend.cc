@@ -265,6 +265,8 @@ namespace tuplex {
         // async limit is 128K, requestresponse is 6MB.
 
         // https://www.stackery.io/blog/RequestEntityTooLargeException-aws-lambda-message-invocation-limits/
+        // Note: ObjectExpiration date for temp objects and can also use multiobject delete request
+        // https://aws.amazon.com/blogs/aws/amazon-s3-multi-object-deletion/
 
         // construct req object
         Aws::Lambda::Model::InvokeRequest invoke_req;

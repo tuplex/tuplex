@@ -270,7 +270,8 @@ TEST(BasicInvocation, Worker) {
                                                    num_threads);
 
     // save to file
-    stringToFile("test_message.json", json_message);
+    auto msg_file = URI("test_message.json");
+    stringToFile(msg_file, json_message);
 
     python::lockGIL();
     python::closeInterpreter();
@@ -296,15 +297,29 @@ TEST(BasicInvocation, Worker) {
         EXPECT_EQ(res_lines[i], ref_lines[i]);
     }
 
-//    // invoke worker with that message
-//    timer.reset();
-//    auto cmd = work_dir + "/" + worker_path + " -m " + "test_message.json";
-//    res_stdout = runCommand(cmd);
-//    worker_invocation_duration = timer.time();
-//    cout<<res_stdout<<endl;
-//    cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
-//
+    // test again, but this time invoking the worker with a message as separate process.
 
+    // invoke worker with that message
+    timer.reset();
+    auto cmd = worker_path + " -m " + msg_file.toPath();
+    res_stdout = runCommand(cmd);
+    worker_invocation_duration = timer.time();
+    cout<<res_stdout<<endl;
+    cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
+
+    // check result contents
+    cout<<"Checking worker results..."<<endl;
+    file_content = fileToString(test_output_path);
+
+    // check files are 1:1 the same!
+    EXPECT_EQ(file_content.size(), ref_content.size());
+    res_lines = splitToLines(file_content);
+    std::sort(res_lines.begin(), res_lines.end());
+    EXPECT_EQ(res_lines.size(), ref_lines.size());
+    for(unsigned i = 0; i < std::min(res_lines.size(), ref_lines.size()); ++i) {
+        EXPECT_EQ(res_lines[i], ref_lines[i]);
+    }
+    cout<<"Invoked worker check done."<<endl;
 }
 
 TEST(BasicInvocation, FileSplitting) {

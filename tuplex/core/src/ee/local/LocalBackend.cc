@@ -682,6 +682,9 @@ namespace tuplex {
 
         // decode
         if(!py_code.empty()) {
+
+            assert(!pipeline_name.empty());
+
             python::lockGIL();
 
             //Note: maybe put all these user-defined functions into fake, tuplex module??

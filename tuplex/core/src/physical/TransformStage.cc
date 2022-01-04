@@ -932,6 +932,7 @@ namespace tuplex {
 
         stage->_irBitCode = msg.bitcode();
         stage->_pyCode = msg.pycode();
+        stage->_pyPipelineName = msg.pypipelinename();
 
         stage->_persistSeparateCases = msg.persistseparatecases();
 
@@ -964,6 +965,7 @@ namespace tuplex {
 
         msg->set_bitcode(_irBitCode);
         msg->set_pycode(_pyCode);
+        msg->set_pypipelinename(_pyPipelineName);
 
         for(const auto& col : _inputColumns)
             msg->add_inputcolumns(col);

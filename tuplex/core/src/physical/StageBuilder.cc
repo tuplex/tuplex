@@ -1316,6 +1316,7 @@ namespace tuplex {
             _outputNodeID = fop->getID();
             _outputDataSetID = fop->getDataSetID();
             _outputSchema = fop->getOutputSchema();
+            _outputColumns = fop->columns();
             _normalCaseOutputSchema = fop->getOutputSchema();
             _outputURI = fop->uri();
             _outputMode = EndPointMode::FILE;

@@ -416,6 +416,9 @@ namespace tuplex {
         // create cursor
         VFCSVStreamCursor cursor(inputFilePath, _delimiter, _quotechar, _numColumns, _rangeStart, _rangeEnd);
 
+        // debug: find actual start range
+        auto actual_byte_start = cursor.curFilePos();
+
         // read using csvmonkey
         csvmonkey::CsvReader<> reader(cursor, _delimiter, _quotechar);
         auto &row = reader.row();
@@ -630,5 +633,17 @@ namespace tuplex {
         delete [] cells;
         delete [] cell_sizes;
         runtime::rtfree_all();
+
+        auto actual_byte_end = cursor.curFilePos();
+
+#ifndef NDEBUG
+        {
+            std::stringstream ss;
+            ss<<"Read CSV from "<<inputFilePath.toString()<<":"
+            <<actual_byte_start<<"-"<<actual_byte_end<<" ("
+            <<_rangeStart<<"-"<<_rangeEnd<<") "<<pluralize(rowNumber, "row");
+            Logger::instance().defaultLogger().debug(ss.str());
+        }
+#endif
     }
 }

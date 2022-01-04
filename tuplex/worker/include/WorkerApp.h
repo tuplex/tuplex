@@ -95,6 +95,8 @@ namespace tuplex {
         size_t runTimeMemory;
         size_t runTimeMemoryDefaultBlockSize;
 
+        bool allowNumericTypeUnification;
+
         // use some defaults...
         WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
         exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE) {
@@ -103,7 +105,7 @@ namespace tuplex {
             auto opt = ContextOptions::defaults();
             runTimeMemory = opt.RUNTIME_MEMORY();
             runTimeMemoryDefaultBlockSize = opt.RUNTIME_MEMORY_DEFAULT_BLOCK_SIZE();
-
+            allowNumericTypeUnification = opt.AUTO_UPCAST_NUMBERS();
         }
 
         inline bool operator == (const WorkerSettings& other) const {
@@ -122,6 +124,8 @@ namespace tuplex {
             if(runTimeMemory != other.runTimeMemory)
                 return false;
             if(runTimeMemoryDefaultBlockSize != other.runTimeMemoryDefaultBlockSize)
+                return false;
+            if(allowNumericTypeUnification != other.allowNumericTypeUnification)
                 return false;
 
             return true;
@@ -237,6 +241,17 @@ namespace tuplex {
         int64_t processSource(int threadNo, int64_t inputNodeID, const FilePart& part, const TransformStage* tstage, const std::shared_ptr<TransformStage::JITSymbols>& syms);
 
         /*!
+         * performs out-of-order exception resolution of exceptions, and appends them simply to normal buffer.
+         * @param threadNo for which thread to run resolution (only exceptions of that thread will be resolved
+         * @param stage stage
+         * @param syms symbols
+         * @return err or success code
+         */
+        int64_t resolveOutOfOrder(int threadNo, const TransformStage* stage, const std::shared_ptr<TransformStage::JITSymbols>& syms);
+
+        int64_t resolveBuffer(int threadNo, Buffer& buf, size_t numRows, const TransformStage* stage, const std::shared_ptr<TransformStage::JITSymbols>& syms);
+
+        /*!
          * thread-safe logger function
          * @return message handler
          */
@@ -274,6 +289,47 @@ namespace tuplex {
         static void slowPathExceptCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input, int64_t dataLength);
 
     };
+
+
+    // helper function to process within gil a row using the fallback path...
+    struct FallbackPathResult {
+        int64_t code; // result code
+        int64_t operatorID; // operator ID if code is not SUCCESS
+
+        // rows can be stored multiple ways:
+        // 1. converted to serialized representation (specialized_target_schema)
+        Buffer buf;
+        size_t bufRowCount;
+
+        Buffer generalBuf;
+        size_t generalBufCount;
+
+        // 2. plain python objects
+        std::vector<PyObject*> pyObjects;
+
+        FallbackPathResult() : buf(4096),
+                               bufRowCount(0),
+                               generalBuf(4096),
+                               generalBufCount(0),
+                               code(ecToI64(ExceptionCode::SUCCESS)),
+                               operatorID(0) {}
+    };
+
+
+    extern PyObject* fallbackTupleFromParseException(const uint8_t* buf, size_t buf_size);
+    extern FallbackPathResult processRowUsingFallback(PyObject* func,
+                                                      int64_t ecCode,
+                                                      int64_t ecOperatorID,
+                                                      const Schema& input_schema,
+                                                      const uint8_t* buf,
+                                                      size_t buf_size,
+                                                      const Schema& specialized_target_schema,
+                                                      const Schema& general_target_schema,
+                                                      const std::vector<PyObject*>& py_intermediates,
+                                                      bool allowNumericTypeUnification,
+                                                      bool returnAllAsPyObjects=false,
+                                                      std::ostream *err_stream=nullptr);
+
 }
 
 #endif //TUPLEX_WORKERAPP_H

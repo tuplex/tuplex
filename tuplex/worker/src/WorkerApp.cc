@@ -9,6 +9,8 @@
 //--------------------------------------------------------------------------------------------------------------------//
 #include <WorkerApp.h>
 #include <physical/TransformTask.h>
+#include "ee/local/LocalBackend.h"
+#include "TypeAnnotatorVisitor.h"
 
 namespace tuplex {
 
@@ -319,10 +321,20 @@ namespace tuplex {
             numNormalRows = 0;
         }
 
+        // @TODO: write exceptions in order...
+
+        // for now, everything out of order
+        logger().info("Starting exception resolution/slow path execution");
+        for(unsigned i = 0; i < _numThreads; ++i) {
+            resolveOutOfOrder(i, tstage, syms);
+        }
+        logger().info("Exception resolution/slow path done.");
+
+
         auto task_duration = timer.time();
         std::stringstream ss;
         ss<<"in "<<task_duration<<"s "<<sizeToMemString(normalBufSize)
-          <<" ("<<pluralize(numNormalRows, "normal row")<<")  "
+          <<" ("<<pluralize(numNormalRows, "normal row")<<") "
           <<sizeToMemString(exceptionBufSize)<<" ("<<pluralize(numExceptionRows, "exception row")<<")  "
           <<sizeToMemString(hashMapSize)<<" ("<<pluralize(numHashRows, "hash row")<<")";
 
@@ -399,9 +411,6 @@ namespace tuplex {
         logger().info("Writing data to " + outputURI.toString());
         writePartsToFile(outputURI, tstage->outputFormat(), reorganized_normal_parts, tstage);
         logger().info("Data fully materialized");
-
-        // @TODO: write exceptions in order...
-
 
         // release stage
         rc = releaseTransformStage(syms);
@@ -735,7 +744,8 @@ namespace tuplex {
             ws.runTimeMemory = req.settings().runtimememoryperthread();
         if(req.settings().has_runtimememoryperthreadblocksize())
             ws.runTimeMemoryDefaultBlockSize = req.settings().runtimememoryperthreadblocksize();
-
+        if(req.settings().has_allownumerictypeunification())
+            ws.allowNumericTypeUnification = req.settings().allownumerictypeunification();
         return ws;
     }
 
@@ -822,16 +832,20 @@ namespace tuplex {
             out_buf.movePtr(bufSize);
             _threadEnvs[threadNo].numNormalRows++;
         } else {
-
             // check if bufSize exceeds limit, if so resize and call again!
             if(bufSize > out_buf.capacity()) {
                 out_buf.provideSpace(bufSize);
-                writeRow(threadNo, buf, bufSize); // call again, do not return. Instead spill for sure after the resize...
+                writeRow(threadNo, buf, bufSize); // call again, do not return yet. Instead, spill for sure after the resize...
                 logger().debug("row size exceeded internal buffer size, forced resize.");
-            }
+                // buffer is full, save to spill out path
+                spillNormalBuffer(threadNo);
+            } else {
+                // buffer is full, save to spill out path
+                spillNormalBuffer(threadNo);
 
-            // buffer is full, save to spill out path
-            spillNormalBuffer(threadNo);
+                // now write the row
+                writeRow(threadNo, buf, bufSize);
+            }
         }
 
         return 0;
@@ -882,20 +896,90 @@ namespace tuplex {
     }
 
     void WorkerApp::spillExceptionBuffer(size_t threadNo) {
+        assert(_threadEnvs);
+        assert(threadNo < _numThreads);
 
+        // spill (in Tuplex format!), i.e. write first #rows, #bytes written & the rest!
+
+        auto env = &_threadEnvs[threadNo];
+
+        // create file name (trivial:)
+        auto name = "spill_except_" + std::to_string(threadNo) + "_" + std::to_string(env->spillFiles.size());
+        std::string ext = ".tmp";
+        auto rootURI = _settings.spillRootURI.toString().empty() ? "" : _settings.spillRootURI.toString() + "/";
+        auto path = URI(rootURI + name + ext);
+
+        // open & write
+        auto vfs = VirtualFileSystem::fromURI(path);
+        auto vf = vfs.open_file(path, VirtualFileMode::VFS_OVERWRITE);
+        if(!vf) {
+            auto err_msg = "Failed to spill except buffer to path " + path.toString();
+            logger().error(err_msg);
+            throw std::runtime_error(err_msg);
+        } else {
+            int64_t tmp = env->numExceptionRows;
+            vf->write(&tmp, sizeof(int64_t));
+            tmp = env->exceptionBuf.size();
+            vf->write(&tmp, sizeof(int64_t));
+            vf->write(env->exceptionBuf.buffer(), env->exceptionBuf.size());
+
+            SpillInfo info;
+            info.path = path.toString();
+            info.isExceptionBuf = true;
+            info.num_rows = env->numExceptionRows;
+            info.originalPartNo = env->exceptionOriginalPartNo;
+            info.file_size =  env->exceptionBuf.size() + 2 * sizeof(int64_t);
+            env->spillFiles.push_back(info);
+
+            logger().info("Spilled " + sizeToMemString(info.file_size) + " to " + path.toString());
+        }
+
+        // reset
+        env->exceptionBuf.reset();
+        env->numExceptionRows = 0;
+        env->exceptionOriginalPartNo = 0;
     }
 
     void WorkerApp::spillHashMap(size_t threadNo) {
-
+        throw std::runtime_error("not yet supported");
     }
 
     void WorkerApp::writeException(size_t threadNo, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input,
                               int64_t dataLength) {
         // same here for exception buffers...
-        // logger().info("Thread " + std::to_string(threadNo) + " produced Exception " + exceptionCodeToString(i64ToEC(exceptionCode)));
+        assert(_threadEnvs);
+        assert(threadNo < _numThreads);
 
-        // @TODO: save exception!
-        _threadEnvs[threadNo].numExceptionRows++;
+        auto env = &_threadEnvs[threadNo];
+
+        // check if enough space is available
+        auto& out_buf = env->exceptionBuf;
+
+        // for speed reasons, serialize exception directly!
+        size_t bufSize = 0;
+        auto buf = serializeExceptionToMemory(exceptionCode, exceptionOperatorID, rowNumber, input, dataLength, &bufSize);
+
+        if(out_buf.size() + bufSize <= out_buf.capacity()) {
+            memcpy(out_buf.ptr(), buf, bufSize);
+            out_buf.movePtr(bufSize);
+            env->numExceptionRows++;
+        } else {
+
+            // check if bufSize exceeds limit, if so resize and call again!
+            if(bufSize > out_buf.capacity()) {
+                out_buf.provideSpace(bufSize);
+                writeException(threadNo, exceptionCode, exceptionOperatorID, rowNumber, input, dataLength); // call again, do not return. Instead spill for sure after the resize...
+                logger().debug("row size exceeded internal exception buffer size, forced resize.");
+                // buffer is full, save to spill out path
+                spillExceptionBuffer(threadNo);
+            } else {
+                // buffer is full, save to spill out path
+                spillExceptionBuffer(threadNo);
+                writeException(threadNo, exceptionCode, exceptionOperatorID, rowNumber, input, dataLength);
+            }
+        }
+
+        free(buf);
     }
 
     void WorkerApp::writeHashedRow(size_t threadNo, const uint8_t *key, int64_t key_size, const uint8_t *bucket, int64_t bucket_size) {
@@ -1103,5 +1187,419 @@ namespace tuplex {
         }
 
         return vv;
+    }
+
+
+    int64_t WorkerApp::resolveOutOfOrder(int threadNo, const TransformStage *stage,
+                                         const std::shared_ptr<TransformStage::JITSymbols> &syms) {
+        using namespace std;
+
+        assert(threadNo >= 0 && threadNo < _numThreads);
+        auto env = &_threadEnvs[threadNo];
+
+        if(0 == env->numExceptionRows)
+            return WORKER_OK; // nothing todo
+
+        // if no compiled resolver & no interpreted resolver are present, simply return.
+        if(!syms->resolveFunctor && stage->purePythonCode().empty()) {
+            logger().info("No resolve code shipped. Nothing can't be resolved here.");
+            return WORKER_OK;
+        }
+
+        // is exception output schema different than normal case schema? I.e., upgrade necessary?
+        if(stage->normalCaseOutputSchema() != stage->outputSchema()) {
+            throw std::runtime_error("different schemas between normal/exception case not yet supported!");
+        }
+
+        // now go through all exceptions & resolve them.
+
+        // --> create a copy of the buffer & spill-files, then empty them!
+        Buffer exceptionBuf(1024 * 4);
+        if(env->exceptionBuf.size() > 0) {
+            exceptionBuf.provideSpace(env->exceptionBuf.size());
+            memcpy(exceptionBuf.ptr(), env->exceptionBuf.buffer(), env->exceptionBuf.size());
+            exceptionBuf.movePtr(env->exceptionBuf.size());
+        }
+
+        vector<SpillInfo> exceptFiles;
+        vector<SpillInfo> normalFiles;
+        std::copy_if(env->spillFiles.begin(), env->spillFiles.end(),
+                     std::back_inserter(exceptFiles),
+                     [](const SpillInfo& info) {return info.isExceptionBuf; });
+        std::copy_if(env->spillFiles.begin(), env->spillFiles.end(),
+                     std::back_inserter(normalFiles),
+                     [](const SpillInfo& info) {return !info.isExceptionBuf; });
+        env->spillFiles = normalFiles; // only normal files
+
+        // reset internal exception buf stats
+        size_t numExceptionRows = env->numExceptionRows;
+        env->numExceptionRows = 0;
+        env->exceptionOriginalPartNo = 0;
+        env->exceptionBuf.reset();
+
+        // 1. buffer, then spill files
+        int64_t rc = WORKER_OK;
+        if(exceptionBuf.size() > 0) {
+            rc = resolveBuffer(threadNo, exceptionBuf, numExceptionRows, stage, syms);
+            if(rc != WORKER_OK)
+                return rc;
+        }
+
+        // same story with exception spill files. Load them first to the temp buffer, and then resolve...
+        for(auto info : exceptFiles) {
+
+        }
+
+        return WORKER_OK;
+    }
+
+    int64_t WorkerApp::resolveBuffer(int threadNo, Buffer &buf, size_t numRows, const TransformStage *stage,
+                                     const std::shared_ptr<TransformStage::JITSymbols> &syms) {
+
+        if(0 == numRows)
+            return WORKER_OK;
+
+        // fetch functors
+        auto compiledResolver = syms->resolveFunctor;
+        auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
+
+        // when both compiled resolver & interpreted resolver are invalid, this means basically that all exceptions stay...
+        const auto* ptr = static_cast<const uint8_t*>(buf.buffer());
+        auto env = &_threadEnvs[threadNo];
+        for(unsigned i = 0; i < numRows; ++i) {
+            auto rc = -1;
+            // most of the code here is similar to ResolveTask.cc --> maybe avoid redundant code!
+            // deserialize exception
+            const uint8_t *ecBuf = nullptr;
+            int64_t ecCode = -1, ecOperatorID = -1;
+            int64_t ecRowNumber = -1;
+            size_t ecBufSize = 0;
+            auto delta = deserializeExceptionFromMemory(ptr, &ecCode, &ecOperatorID, &ecRowNumber, &ecBuf,
+                                                        &ecBufSize);
+
+            // try to resolve using compiled resolver...
+            if(compiledResolver) {
+                rc = compiledResolver(env, ecRowNumber, ecCode, ecBuf, ecBufSize);
+                if(rc == ecToI32(ExceptionCode::NORMALCASEVIOLATION))
+                    rc = -1;
+            }
+
+            // try to resolve using interpreted resolver
+            if(-1 == rc && interpretedResolver) {
+
+                bool output_is_hashtable = stage->outputMode() == EndPointMode::HASHTABLE;
+                Schema exception_input_schema = stage->inputSchema();
+                Schema specialized_output_schema = stage->normalCaseOutputSchema();
+                Schema general_output_schema = stage->outputSchema();
+
+                python::lockGIL();
+                auto fallbackRes = processRowUsingFallback(interpretedResolver, ecCode, ecOperatorID,
+                                                           exception_input_schema,
+                                                           ecBuf, ecBufSize,
+                                                           specialized_output_schema,
+                                                           general_output_schema,
+                                                           {},
+                                                           _settings.allowNumericTypeUnification,
+                                                           output_is_hashtable);
+                python::unlockGIL();
+
+                // check whether output succeeded
+                if(fallbackRes.code == ecToI64(ExceptionCode::SUCCESS)) {
+                    // worked, take buffer result and serialize!
+                    if(!fallbackRes.pyObjects.empty() || fallbackRes.generalBuf.size() > 0) {
+                        throw std::runtime_error("not yet supported!");
+                    }
+
+                    // take normal buf and add to output (i.e. simple copy)!
+                    env->normalBuf.provideSpace(fallbackRes.buf.size());
+                    memcpy(env->normalBuf.ptr(), fallbackRes.buf.buffer(), fallbackRes.buf.size());
+                    env->normalBuf.movePtr(fallbackRes.buf.size());
+                    env->numNormalRows += fallbackRes.bufRowCount;
+                    rc = 0; // all good, next row!
+                } else {
+                    // didn't work, keep as original exception or partially resolved path?
+                    // -> for now keep as it is...
+                    rc = -1;
+                }
+            }
+
+            // else, save as exception!
+            if(-1 == rc) {
+                writeException(threadNo, ecCode, ecOperatorID, ecRowNumber, const_cast<uint8_t *>(ecBuf), ecBufSize);
+            }
+
+            ptr += delta;
+        }
+
+        return WORKER_OK;
+    }
+
+
+    PyObject* fallbackTupleFromParseException(const uint8_t* buf, size_t buf_size) {
+        // cf.  char* serializeParseException(int64_t numCells,
+        //            char **cells,
+        //            int64_t* sizes,
+        //            size_t *buffer_size,
+        //            std::vector<bool> colsToSerialize,
+        //            decltype(malloc) allocator)
+        int64_t num_cells = *(int64_t*)buf; buf += sizeof(int64_t);
+        PyObject* tuple = PyTuple_New(num_cells);
+        for(unsigned j = 0; j < num_cells; ++j) {
+            auto info = *(int64_t*)buf;
+            auto offset = info & 0xFFFFFFFF;
+            const char* cell = reinterpret_cast<const char *>(buf + offset);
+
+            // @TODO: quicker conversion from str cell?
+            PyTuple_SET_ITEM(tuple, j, python::PyString_FromString(cell));
+
+            auto cell_size = info >> 32u;
+            buf += sizeof(int64_t);
+        }
+        return tuple;
+    }
+
+    FallbackPathResult processRowUsingFallback(PyObject* func,
+                                               int64_t ecCode,
+                                               int64_t ecOperatorID,
+                                               const Schema& input_schema,
+                                               const uint8_t* buf,
+                                               size_t buf_size,
+                                               const Schema& specialized_target_schema,
+                                               const Schema& general_target_schema,
+                                               const std::vector<PyObject*>& py_intermediates,
+                                               bool allowNumericTypeUnification,
+                                               bool returnAllAsPyObjects,
+                                               std::ostream *err_stream) {
+
+        assert(func && PyCallable_Check(func));
+
+        FallbackPathResult res;
+
+        // holds the pythonized data
+        PyObject* tuple = nullptr;
+
+        bool parse_cells = false;
+
+        // there are different data reps for certain error codes.
+        // => decode the correct object from memory & then feed it into the pipeline...
+        if(ecCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)) {
+            // it's a string!
+            tuple = fallbackTupleFromParseException(buf, buf_size);
+            parse_cells = true; // need to parse cells in python mode.
+        } else if(ecCode == ecToI64(ExceptionCode::NORMALCASEVIOLATION)) {
+            // changed, why are these names so random here? makes no sense...
+            auto row = Row::fromMemory(input_schema, buf, buf_size);
+
+            tuple = python::rowToPython(row, true);
+            parse_cells = false;
+            // called below...
+        } else {
+            // normal case, i.e. an exception occurred somewhere.
+            // --> this means if pipeline is using string as input, we should convert
+            auto row = Row::fromMemory(input_schema, buf, buf_size);
+
+            // cell source automatically takes input, i.e. no need to convert. simply get tuple from row object
+            tuple = python::rowToPython(row, true);
+
+#ifndef NDEBUG
+            if(PyTuple_Check(tuple)) {
+                // make sure tuple is valid...
+                for(unsigned i = 0; i < PyTuple_Size(tuple); ++i) {
+                    auto elemObj = PyTuple_GET_ITEM(tuple, i);
+                    assert(elemObj);
+                }
+            }
+#endif
+            parse_cells = false;
+        }
+
+        // compute
+        // @TODO: we need to encode the hashmaps as these hybrid objects!
+        // ==> for more efficiency we prob should store one per executor!
+        //     the same goes for any hashmap...
+
+        assert(tuple);
+#ifndef NDEBUG
+        if(!tuple) {
+            if(err_stream)
+                *err_stream<<"bad decode, using () as dummy..."<<std::endl;
+            tuple = PyTuple_New(0); // empty tuple.
+        }
+#endif
+
+
+        // note: current python pipeline always expects a tuple arg. hence pack current element.
+        if(PyTuple_Check(tuple) && PyTuple_Size(tuple) > 1) {
+            // nothing todo...
+        } else {
+            auto tmp_tuple = PyTuple_New(1);
+            PyTuple_SET_ITEM(tmp_tuple, 0, tuple);
+            tuple = tmp_tuple;
+        }
+
+#ifndef NDEBUG
+        // // to print python object
+        // Py_XINCREF(tuple);
+        // PyObject_Print(tuple, stdout, 0);
+        // std::cout<<std::endl;
+#endif
+
+        // call pipFunctor
+        PyObject* args = PyTuple_New(1 + py_intermediates.size());
+        PyTuple_SET_ITEM(args, 0, tuple);
+        for(unsigned i = 0; i < py_intermediates.size(); ++i) {
+            Py_XINCREF(py_intermediates[i]);
+            PyTuple_SET_ITEM(args, i + 1, py_intermediates[i]);
+        }
+
+        auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", parse_cells ? Py_True : Py_False);
+        auto pcr = python::callFunctionEx(func, args, kwargs);
+
+        if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
+            // this should not happen, bad internal error. codegen'ed python should capture everything.
+            if(err_stream)
+                *err_stream<<"bad internal python error: " + pcr.exceptionMessage<<std::endl;
+        } else {
+            // all good, row is fine. exception occured?
+            assert(pcr.res);
+
+            // type check: save to regular rows OR save to python row collection
+            if(!pcr.res) {
+                if(err_stream)
+                    *err_stream<<"bad internal python error, NULL object returned"<<std::endl;
+            } else {
+
+#ifndef NDEBUG
+                // // uncomment to print res obj
+                // Py_XINCREF(pcr.res);
+                // PyObject_Print(pcr.res, stdout, 0);
+                // std::cout<<std::endl;
+#endif
+                auto exceptionObject = PyDict_GetItemString(pcr.res, "exception");
+                if(exceptionObject) {
+
+                    // overwrite operatorID which is throwing.
+                    auto exceptionOperatorID = PyDict_GetItemString(pcr.res, "exceptionOperatorID");
+                    ecOperatorID = PyLong_AsLong(exceptionOperatorID);
+                    auto exceptionType = PyObject_Type(exceptionObject);
+                    // can ignore input row.
+                    ecCode = ecToI64(python::translatePythonExceptionType(exceptionType));
+
+#ifndef NDEBUG
+                    // // debug printing of exception and what the reason is...
+                    // // print res obj
+                    // Py_XINCREF(pcr.res);
+                    // std::cout<<"exception occurred while processing using python: "<<std::endl;
+                    // PyObject_Print(pcr.res, stdout, 0);
+                    // std::cout<<std::endl;
+#endif
+                    // deliver that result is exception
+                    res.code = ecCode;
+                    res.operatorID = ecOperatorID;
+                } else {
+                    // normal, check type and either merge to normal set back OR onto python set together with row number?
+                    auto resultRows = PyDict_GetItemString(pcr.res, "outputRows");
+                    assert(PyList_Check(resultRows));
+                    for(int i = 0; i < PyList_Size(resultRows); ++i) {
+                        // type check w. output schema
+                        // cf. https://pythonextensionpatterns.readthedocs.io/en/latest/refcount.html
+                        auto rowObj = PyList_GetItem(resultRows, i);
+                        Py_XINCREF(rowObj);
+
+                        // returnAllAsPyObjects makes especially sense when hashtable is used!
+                        if(returnAllAsPyObjects) {
+                            res.pyObjects.push_back(rowObj);
+                            continue;
+                        }
+
+                        auto rowType = python::mapPythonClassToTuplexType(rowObj);
+
+                        // special case output schema is str (fileoutput!)
+                        if(rowType == python::Type::STRING) {
+                            // write to file, no further type check necessary b.c.
+                            // if it was the object string it would be within a tuple!
+                            auto cptr = PyUnicode_AsUTF8(rowObj);
+                            Py_XDECREF(rowObj);
+
+                            auto size = strlen(cptr);
+                            res.buf.provideSpace(size);
+                            memcpy(res.buf.ptr(), reinterpret_cast<const uint8_t *>(cptr), size);
+                            res.buf.movePtr(size);
+                            res.bufRowCount++;
+                            //mergeRow(reinterpret_cast<const uint8_t *>(cptr), strlen(cptr), BUF_FORMAT_NORMAL_OUTPUT); // don't write '\0'!
+                        } else {
+
+                            // there are three options where to store the result now
+                            // 1. fits targetOutputSchema (i.e. row becomes normalcase row)
+                            bool outputAsNormalRow = python::Type::UNKNOWN != unifyTypes(rowType, specialized_target_schema.getRowType(), allowNumericTypeUnification)
+                                                     && canUpcastToRowType(rowType, specialized_target_schema.getRowType());
+                            // 2. fits generalCaseOutputSchema (i.e. row becomes generalcase row)
+                            bool outputAsGeneralRow = python::Type::UNKNOWN != unifyTypes(rowType,
+                                                                                          general_target_schema.getRowType(), allowNumericTypeUnification)
+                                                      && canUpcastToRowType(rowType, general_target_schema.getRowType());
+
+                            // 3. doesn't fit, store as python object. => we should use block storage for this as well. Then data can be shared.
+
+                            // can upcast? => note that the && is necessary because of cases where outputSchema is
+                            // i64 but the given row type f64. We can cast up i64 to f64 but not the other way round.
+                            if(outputAsNormalRow) {
+                                Row resRow = python::pythonToRow(rowObj).upcastedRow(specialized_target_schema.getRowType());
+                                assert(resRow.getRowType() == specialized_target_schema.getRowType());
+
+                                // write to buffer & perform callback
+                                // auto buf_size = 2 * resRow.serializedLength();
+                                // uint8_t *buf = new uint8_t[buf_size];
+                                // memset(buf, 0, buf_size);
+                                // auto serialized_length = resRow.serializeToMemory(buf, buf_size);
+                                // // call row func!
+                                // // --> merge row distinguishes between those two cases. Distinction has to be done there
+                                // //     because of compiled functor who calls mergeRow in the write function...
+                                // mergeRow(buf, serialized_length, BUF_FORMAT_NORMAL_OUTPUT);
+                                // delete [] buf;
+                                auto serialized_length = resRow.serializedLength();
+                                res.buf.provideSpace(serialized_length);
+                                auto actual_length = resRow.serializeToMemory(static_cast<uint8_t *>(res.buf.ptr()), res.buf.capacity() - res.buf.size());
+                                assert(serialized_length == actual_length);
+                                res.buf.movePtr(serialized_length);
+                                res.bufRowCount++;
+                            } else if(outputAsGeneralRow) {
+                                Row resRow = python::pythonToRow(rowObj).upcastedRow(general_target_schema.getRowType());
+                                assert(resRow.getRowType() == general_target_schema.getRowType());
+
+                                throw std::runtime_error("not yet supported");
+
+//                                // write to buffer & perform callback
+//                                auto buf_size = 2 * resRow.serializedLength();
+//                                uint8_t *buf = new uint8_t[buf_size];
+//                                memset(buf, 0, buf_size);
+//                                auto serialized_length = resRow.serializeToMemory(buf, buf_size);
+//                                // call row func!
+//                                // --> merge row distinguishes between those two cases. Distinction has to be done there
+//                                //     because of compiled functor who calls mergeRow in the write function...
+//                                mergeRow(buf, serialized_length, BUF_FORMAT_GENERAL_OUTPUT);
+//                                delete [] buf;
+                            } else {
+                                res.pyObjects.push_back(rowObj);
+                            }
+                            // Py_XDECREF(rowObj);
+                        }
+                    }
+
+#ifndef NDEBUG
+                    if(PyErr_Occurred()) {
+                        // print out the otber objects...
+                        std::cout<<__FILE__<<":"<<__LINE__<<" python error not cleared properly!"<<std::endl;
+                        PyErr_Print();
+                        std::cout<<std::endl;
+                        PyErr_Clear();
+                    }
+#endif
+                    // everything was successful, change resCode to 0!
+                    res.code = ecToI64(ExceptionCode::SUCCESS);
+                }
+            }
+        }
+
+        return res;
     }
 }

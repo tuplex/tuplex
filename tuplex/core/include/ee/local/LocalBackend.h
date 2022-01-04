@@ -184,6 +184,14 @@ namespace tuplex {
      * @return
      */
     extern URI outputURI(const UDF& udf, const URI& baseURI, int64_t partNo, FileFormat fmt);
+
+    /*!
+     * converts python fallback path into runnable func object
+     * @param py_code python code as string
+     * @param pipeline_name the name of the pipeline function
+     * @return nullptr or PyObject* referring to the function named pipeline_name
+     */
+    extern PyObject* preparePythonPipeline(const std::string& py_code, const std::string& pipeline_name);
 }
 
 #endif //TUPLEX_LOCALBACKEND_H

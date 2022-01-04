@@ -81,8 +81,10 @@ namespace tuplex {
             auto ds = parent()->getDataSet();
             if(ds)
                 return ds->columns();
-            else
-                return std::vector<std::string>();
+            else if(parent()) {
+                return parent()->columns();
+            } else
+                return {};
         }
 
         size_t limit() const { return _limit; }

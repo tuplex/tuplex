@@ -47,11 +47,12 @@ message TransformStage {
     string resolveHashCallbackName = 28;
     uint32 stageNumber = 29;
     uint32 numColumns = 30;
-    string pycode = 31;
+    string pyCode = 31;
+    string pyPipelineName = 32;
 
     // file input + output params as dict
-    map<string, string> inputParameters = 32;
-    map<string, string> outputParameters = 33;
+    map<string, string> inputParameters = 33;
+    map<string, string> outputParameters = 34;
 }
 
 message WorkerSettings {
@@ -62,6 +63,7 @@ message WorkerSettings {
     optional string spillRootURI = 5;
     optional uint32 runTimeMemoryPerThread = 6;
     optional uint32 runTimeMemoryPerThreadBlockSize = 7;
+    optional bool allowNumericTypeUnification = 8;
 }
 
 message InvocationRequest {

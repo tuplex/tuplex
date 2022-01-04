@@ -285,7 +285,16 @@ TEST(BasicInvocation, Worker) {
 
     // check files are 1:1 the same!
     EXPECT_EQ(file_content.size(), ref_content.size());
-    EXPECT_TRUE(file_content == ref_content);
+
+    // because order may be different (unless specified), split into lines & sort and compare
+    auto res_lines = splitToLines(file_content);
+    auto ref_lines = splitToLines(ref_content);
+    std::sort(res_lines.begin(), res_lines.end());
+    std::sort(ref_lines.begin(), ref_lines.end());
+    EXPECT_EQ(res_lines.size(), ref_lines.size());
+    for(unsigned i = 0; i < std::min(res_lines.size(), ref_lines.size()); ++i) {
+        EXPECT_EQ(res_lines[i], ref_lines[i]);
+    }
 
 //    // invoke worker with that message
 //    timer.reset();

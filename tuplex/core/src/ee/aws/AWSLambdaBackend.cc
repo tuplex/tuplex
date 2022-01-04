@@ -261,6 +261,11 @@ namespace tuplex {
 
         auto taskID = getUniqueID();
 
+        // Note: If message too large, will receive RequestEntityTooLargeException. => need to deal with that!
+        // async limit is 128K, requestresponse is 6MB.
+
+        // https://www.stackery.io/blog/RequestEntityTooLargeException-aws-lambda-message-invocation-limits/
+
         // construct req object
         Aws::Lambda::Model::InvokeRequest invoke_req;
         invoke_req.SetFunctionName(_functionName.c_str());

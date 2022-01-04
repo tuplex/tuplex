@@ -105,7 +105,7 @@ if(NOT SKIP_AWS_TESTS AND NOT AWS_S3_TEST_BUCKET)
     message(FATAL_ERROR "To run AWS tests, please specify a test-bucket. I.e., by setting an environment variable export AWS_S3_TEST_BUCKET=<bucket> or passing an option to cmake via -DAWS_S3_TEST_BUCKET=<bucket>")
 endif()
 if(AWS_S3_TEST_BUCKET)
-    add_compile_definitions("S3_TEST_BUCKET=${AWS_S3_TEST_BUCKET}")
+    add_compile_definitions("S3_TEST_BUCKET=\"${AWS_S3_TEST_BUCKET}\"")
 endif()
 
 # add -Werror=return-type  to turn missing returns into errors!!!

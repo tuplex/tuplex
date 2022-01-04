@@ -134,7 +134,7 @@ void createRefPipeline(const std::string& test_input_path,
         co.set("tuplex.useLLVMOptimizer", "true");
         co.set("tuplex.allowUndefinedBehavior", "false");
         co.set("tuplex.webui.enable", "false");
-        co.set("tuplex.scratchDir", "file://" + scratch_dir);
+        co.set("tuplex.scratchDir", scratch_dir);
         co.set("tuplex.csv.selectionPushdown", "false"); // same setting as below??
         Context c(co);
 
@@ -191,6 +191,10 @@ TEST(BasicInvocation, Worker) {
 
     // local for quicker dev
     test_path = URI("file:///Users/leonhards/data/flights/flights_on_time_performance_2009_01.csv");
+
+    // test using S3
+
+
 
     size_t num_threads = 4;
     num_threads = 4;

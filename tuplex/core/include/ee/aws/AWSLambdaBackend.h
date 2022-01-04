@@ -13,10 +13,6 @@
 #ifndef TUPLEX_AWSLAMBDABACKEND_H
 #define TUPLEX_AWSLAMBDABACKEND_H
 
-// this bucket is used for testing (change to personal testing bucket in case)
-// @TODO: make this an AWS option
-#define S3_TEST_BUCKET "tuplex-test"
-
 #include "../IBackend.h"
 #include <vector>
 #include <physical/TransformStage.h>

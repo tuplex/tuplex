@@ -19,6 +19,8 @@ option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for
 option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
 option(USE_LD_GOLD "Use GNU gold linker" ON)
 option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." ON)
+# variables:
+# AWS_S3_TEST_BUCKET ==> specifies bucket to run tests on!
 
 # add flags to compiler to enable colored output.
 if (${FORCE_COLORED_OUTPUT})
@@ -94,6 +96,16 @@ endif()
 
 if(BUILD_WITH_ORC)
     add_definitions(-DBUILD_WITH_ORC)
+endif()
+
+if(NOT AWS_S3_TEST_BUCKET AND ENV{AWS_S3_TEST_BUCKET})
+    set(AWS_S3_TEST_BUCKET $ENV{AWS_S3_TEST_BUCKET})
+endif()
+if(NOT SKIP_AWS_TESTS AND NOT AWS_S3_TEST_BUCKET)
+    message(FATAL_ERROR "To run AWS tests, please specify a test-bucket. I.e., by setting an environment variable export AWS_S3_TEST_BUCKET=<bucket> or passing an option to cmake via -DAWS_S3_TEST_BUCKET=<bucket>")
+endif()
+if(AWS_S3_TEST_BUCKET)
+    add_compile_definitions("S3_TEST_BUCKET=${AWS_S3_TEST_BUCKET}")
 endif()
 
 # add -Werror=return-type  to turn missing returns into errors!!!

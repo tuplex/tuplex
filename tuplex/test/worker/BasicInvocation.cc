@@ -64,7 +64,7 @@ std::string runCommand(const std::string& cmd) {
 }
 namespace tuplex {
     std::string transformStageToReqMessage(const TransformStage* tstage, const std::string& inputURI, const size_t& inputSize, const std::string& output_uri,
-                                           size_t numThreads = 1) {
+                                           size_t numThreads = 1, const std::string& spillURI="spill_folder") {
         messages::InvocationRequest req;
 
         size_t buf_spill_size = 512 * 1024; // for testing, set spill size to 512KB!
@@ -85,7 +85,7 @@ namespace tuplex {
         ws->set_numthreads(numThreads);
         ws->set_normalbuffersize(buf_spill_size);
         ws->set_exceptionbuffersize(buf_spill_size);
-        ws->set_spillrooturi("spill_folder");
+        ws->set_spillrooturi(spillURI);
         req.set_allocated_settings(ws.release());
 
         // transfrom to json
@@ -184,6 +184,7 @@ TEST(BasicInvocation, Worker) {
     // local csv test file!
     auto test_path = URI("file://../resources/flights_on_time_performance_2019_01.sample.csv");
     auto test_output_path = URI("file://output.txt");
+    auto spillURI = std::string("spill_folder");
 
     // S3 paths?
     test_path = URI("s3://tuplex-public/data/flights_on_time_performance_2009_01.csv");
@@ -193,8 +194,10 @@ TEST(BasicInvocation, Worker) {
     test_path = URI("file:///Users/leonhards/data/flights/flights_on_time_performance_2009_01.csv");
 
     // test using S3
-    
-
+    test_path = URI("s3://tuplex-public/data/flights_on_time_performance_2009_01.csv");
+    test_output_path = URI(std::string("s3://") + S3_TEST_BUCKET + "/output/output_s3.txt");
+    scratchDir = URI(std::string("s3://") + S3_TEST_BUCKET + "/scratch/").toString();
+    spillURI = URI(std::string("s3://") + S3_TEST_BUCKET + "/scratch/spill_folder/").toString();
 
     size_t num_threads = 4;
     num_threads = 4;
@@ -271,7 +274,8 @@ TEST(BasicInvocation, Worker) {
     vfs.file_size(test_path, input_file_size);
     auto json_message = transformStageToReqMessage(tstage, URI(test_path).toPath(),
                                                    input_file_size, test_output_path.toString(),
-                                                   num_threads);
+                                                   num_threads,
+                                                   spillURI);
 
     // save to file
     auto msg_file = URI("test_message.json");

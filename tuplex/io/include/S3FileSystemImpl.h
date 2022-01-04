@@ -103,6 +103,8 @@ namespace tuplex {
      */
     extern std::string s3GetHeadObject(Aws::S3::S3Client const& client, const URI& uri, std::ostream *os_err=nullptr);
 
+
+    extern size_t s3GetContentLength(Aws::S3::S3Client const& client, const URI& uri, std::ostream *os_err=nullptr);
 }
 
 

@@ -1016,6 +1016,34 @@ namespace tuplex {
         return meta_data;
     }
 
+    size_t s3GetContentLength(Aws::S3::S3Client const& client, const URI& uri, std::ostream *os_err) {
+        using namespace std;
+        string meta_data;
+
+        assert(uri.prefix() == "s3://");
+
+        size_t content_length = 0;
+
+        // perform request
+        Aws::S3::Model::HeadObjectRequest request;
+        request.WithBucket(uri.s3Bucket().c_str());
+        request.WithKey(uri.s3Key().c_str());
+        auto head_outcome = client.HeadObject(request);
+        if (head_outcome.IsSuccess()) {
+            auto& result = head_outcome.GetResult();
+            content_length = result.GetContentLength();
+        } else {
+            if(os_err) {
+                *os_err<<"HeadObject Request failed with HTTP code "
+                       <<static_cast<int>(head_outcome.GetError().GetResponseCode())
+                       <<", details: "
+                       <<head_outcome.GetError().GetMessage().c_str();
+            }
+        }
+
+        return content_length;
+    }
+
 }
 
 #endif

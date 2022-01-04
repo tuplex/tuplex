@@ -50,9 +50,9 @@ std::string outcome_error_message(const Aws::Utils::Outcome<R, E>& outcome) {
         return ss.str();
     }
 
-    return std::string("\nException:  ") +
+    return std::string("\nException: ") +
            outcome.GetError().GetExceptionName().c_str() +
-           std::string("\nError message:  ") +
+           std::string("\nError message: ") +
            outcome.GetError().GetMessage().c_str();
 }
 
@@ -63,6 +63,7 @@ namespace tuplex {
         _bufferPosition = 0;
         _bufferLength = 0;
         _fileSize = 0;
+        _bufferedAbsoluteFilePosition = 0;
         _filePosition = 0;
         _partNumber = 0; // set to 0
 
@@ -288,7 +289,7 @@ namespace tuplex {
     }
 
 
-    // fast tiny read
+    // fast tiny read (do not advance internal pointers)
     VirtualFileSystemStatus S3File::readOnly(void *buffer, uint64_t nbytes, size_t *bytesRead) const {
 
         // short cut for empty read
@@ -296,6 +297,26 @@ namespace tuplex {
             if(bytesRead)
                 *bytesRead = 0;
             return VirtualFileSystemStatus::VFS_OK;
+        }
+
+        // shortcut: is buffer filled and nbytes available?
+        // --> no need to query again!
+        if(_buffer && _bufferPosition + nbytes <= _bufferLength) {
+            memcpy(buffer, _buffer, nbytes);
+            return VirtualFileSystemStatus::VFS_OK;
+        }
+
+        // check if file size has been queried/filled.
+        // --> required to clamp request to avoid invalid range!
+        size_t fileSize = _fileSize;
+        if(!_buffer) {
+            // ==> fill in file size
+            fileSize = s3GetContentLength(this->_s3fs.client(), this->_uri);
+        }
+
+        // clamp nbytes
+        if(_filePosition + nbytes > fileSize) {
+            nbytes = fileSize - _filePosition;
         }
 
         // simply issue here one direct request
@@ -384,7 +405,7 @@ namespace tuplex {
 
                 // now there are two options: 1) file already exhausted, no need to refill
                 // 2) still data left, refill buffer
-                if(_filePosition >= _fileSize) // exhausted, leave loop
+                if(_bufferedAbsoluteFilePosition >= _fileSize) // exhausted, leave loop
                     break;
 
                 // fill buffer up again
@@ -425,12 +446,12 @@ namespace tuplex {
             _fileSize = 0;
         } else {
             // shortcut: if eof reached, then do not perform request
-            if(_filePosition >= _fileSize)
+            if(_bufferedAbsoluteFilePosition >= _fileSize)
                 return 0;
         }
 
         // range header
-        std::string range = "bytes=" + std::to_string(_filePosition) + "-" + std::to_string(_filePosition + bytesToRequest - 1);
+        std::string range = "bytes=" + std::to_string(_bufferedAbsoluteFilePosition) + "-" + std::to_string(_bufferedAbsoluteFilePosition + bytesToRequest - 1);
         // make AWS S3 part request to uri
         // check how to retrieve object in poarts
         Aws::S3::Model::GetObjectRequest req;
@@ -470,7 +491,7 @@ namespace tuplex {
             assert(_bufferPosition + retrievedBytes <= _bufferSize);
             retrieved_file.read((char*)(_buffer + _bufferPosition), retrievedBytes);
             _bufferLength += retrievedBytes;
-            _filePosition += retrievedBytes;
+            _bufferedAbsoluteFilePosition += retrievedBytes;
 
             // in bounds check
             assert(_bufferPosition + _bufferLength <= _bufferSize);
@@ -512,29 +533,56 @@ namespace tuplex {
         // when is end of file reached?
         // buffer is filled, filePos == fileSize and _bufferPosistion reached buffer Length
         return _buffer &&
-               _filePosition == _fileSize &&
+               _bufferedAbsoluteFilePosition == _fileSize &&
                _bufferLength == _bufferPosition;
     }
 
     VirtualFileSystemStatus S3File::seek(int64_t delta) {
 
+        // new file pos (clamp)
+        // is file size known?
+        if(!_buffer && _fileSize == 0) { // not 100% correct, but we can live with additional request for empty files...
+            _fileSize = s3GetContentLength(_s3fs.client(), _uri);
+        }
+
+        // clamp delta
+        int64_t curPos = _filePosition;
+        int64_t newPos = curPos + delta;
+        if(newPos < 0)
+            newPos = 0;
+        if(newPos > _fileSize)
+            newPos = _fileSize;
+        delta = newPos - curPos;
+        if(0 == delta)
+            return VirtualFileSystemStatus::VFS_OK;
+
         // check if buffer is valid
         if(_buffer) {
-
-        } else {
-            if(_fileSize == 0) {
-                // buffer is not active yet & fileSize neither. => best effort jump on filePosition
-                int64_t relativePos = ((int64_t)_filePosition) + delta;
-                if(relativePos < 0)
-                    relativePos = 0;
-
-                _filePosition = relativePos;
+            // can delta be consumed by moving buffer pos only?
+            if(delta < 0) {
+                if(_bufferPosition >= std::abs(delta)) {
+                    _bufferPosition += delta;
+                    _filePosition += delta;
+                    return VirtualFileSystemStatus::VFS_OK;
+                } else {
+                    // need to move back more bytes -> i.e. request new buffer!
+#error "TODO"
+                }
             } else {
-                // try to move buffer posisition
-                int64_t newPos = std::min((int64_t)_fileSize, std::max((int64_t)_filePosition + delta, (int64_t)0l));
-
-                EXCEPTION("nyimpl");
+                if(_bufferPosition + delta <= _bufferLength) {
+                    _bufferPosition += delta;
+                    _filePosition += delta;
+                    return VirtualFileSystemStatus::VFS_OK;
+                } else {
+                    // need to move forward more bytes -> i.e. request new buffer!
+#error "TODO"
+                }
             }
+        } else {
+           // no buffer, so move both fileposition and buffere pos
+           _bufferPosition = 0;
+           _bufferedAbsoluteFilePosition += delta;
+           _filePosition += delta;
         }
 
         return VirtualFileSystemStatus::VFS_OK;

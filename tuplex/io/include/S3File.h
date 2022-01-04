@@ -87,8 +87,8 @@ namespace tuplex {
 //        static const size_t _bufferSize = 256; ///! size of the buffer, set here to 32MB buffer
         size_t _bufferPosition; ///! position in the buffer
         size_t _fileSize; ///! lazily set file size from request
-        size_t _filePosition; ///! global filePosition (for parts request or multipart upload)
-
+        size_t _bufferedAbsoluteFilePosition; ///! global filePosition (for parts request or multipart upload)
+        size_t _filePosition; // global filePosition (moved by read/write).
 
         // variables for uploading files to S3
         void lazyUpload();

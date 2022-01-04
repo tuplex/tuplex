@@ -753,8 +753,6 @@ namespace tuplex {
             unoptimizedIR = code();
         }
 
-        logger.info("retrieved metrics object");
-
         // step 1: run optimizer if desired
         if(optimizer) {
             optimizer->optimizeModule(*mod.get());
@@ -764,7 +762,6 @@ namespace tuplex {
             double llvm_optimization_time = timer.time();
             metrics.setLLVMOptimizationTime(llvm_optimization_time);
             logger.info("Optimization via LLVM passes took " + std::to_string(llvm_optimization_time) + " ms");
-
             timer.reset();
         }
 

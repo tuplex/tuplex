@@ -19,6 +19,25 @@ class TestExceptions(unittest.TestCase):
         self.conf = {"tuplex.webui.enable": False, "driverMemory": "8MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": False}
         self.conf_in_order = {"tuplex.webui.enable": False, "driverMemory": "8MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": True}
 
+    def test_merge_with_filter(self):
+        c = Context(self.conf_in_order)
+
+        output = c.parallelize([0, "e1", 0]).filter(lambda x: x != 0).collect()
+        self.compare_in_order(["e1"], output)
+        output = c.parallelize([0, 0, "e1"]).filter(lambda x: x != 0).collect()
+        self.compare_in_order(["e1"], output)
+        output = c.parallelize(["e1", 0, 0]).filter(lambda x: x != 0).collect()
+        self.compare_in_order(["e1"], output)
+
+        output = c.parallelize([-1.1, 1, 2, -2.2, 4, 5, -6.6]).filter(lambda x: x < 0 or x > 3).collect()
+        self.compare_in_order([-1.1, -2.2, 4, 5, -6.6], output)
+
+    def test_merge_with_filter_on_exps(self):
+        c = Context(self.conf_in_order)
+
+        output = c.parallelize([0, 1.1, 2.2, 1, 3.3, 4, 5]).filter(lambda x: x != 0 and x != 1.1).collect()
+        self.compare_in_order([2.2, 1, 3.3, 4, 5], output)
+
     def test_merge_runtime_only(self):
         c = Context(self.conf_in_order)
 
@@ -54,7 +73,7 @@ class TestExceptions(unittest.TestCase):
             .map(lambda x: 1 // (x - x) if x == -1 or x == -2 or x == -3 else x) \
             .resolve(ZeroDivisionError, lambda x: 1 // (x - x) if x == -2 else x) \
             .collect()
-        self.compare([1, 2, -1, 5, 6, 7, 10, 11, 12, -3, 15], output)
+        self.compare_in_order([1, 2, -1, 5, 6, 7, 10, 11, 12, -3, 15], output)
 
     def test_merge_both_but_no_resolve(self):
         c = Context(self.conf_in_order)
@@ -64,7 +83,7 @@ class TestExceptions(unittest.TestCase):
             .map(lambda x: 1 // (x - x) if x == -1 or x == -2 or x == -3 else x) \
             .resolve(ZeroDivisionError, lambda x: 1 // (x - x) if x == -2 else x) \
             .collect()
-        self.compare([1, 2, -1, "a", 5, 6, 7, "b", 10, 11, 12, -3, "c", 15], output)
+        self.compare_in_order([1, 2, -1, "a", 5, 6, 7, "b", 10, 11, 12, -3, "c", 15], output)
 
         input = list(range(1, 100001))
         sampled = sample(input, 40000)
@@ -79,18 +98,18 @@ class TestExceptions(unittest.TestCase):
         expectedOutput = list(filter(lambda x: x != 0, input))
 
         output = c.parallelize(input).map(lambda x: 1 // (x - x) if x == -1 or x == 0 else x).resolve(ZeroDivisionError, lambda x: 1 // x if x == 0 else x).collect()
-        self.compare(expectedOutput, output)
+        self.compare_in_order(expectedOutput, output)
 
     def test_merge_both(self):
         c = Context(self.conf_in_order)
 
         input = [1, 2, 0, "a", 5, 6, 7, 0, "b", 10, 11, 12, 0, "c", 15]
         output = c.parallelize(input).map(lambda x: 1 / x if x == 0 else x).resolve(ZeroDivisionError, lambda x: -1).collect()
-        self.compare([1, 2, -1, "a", 5, 6, 7, -1, "b", 10, 11, 12, -1, "c", 15], output)
+        self.compare_in_order([1, 2, -1, "a", 5, 6, 7, -1, "b", 10, 11, 12, -1, "c", 15], output)
 
         input = [1, 2, "a", 0, 5, 6, 7, "b", 0, 10, 11, 12, "c", 0, 15]
         output = c.parallelize(input).map(lambda x: 1 / x if x == 0 else x).resolve(ZeroDivisionError, lambda x: -1).collect()
-        self.compare([1, 2, "a", -1, 5, 6, 7, "b", -1, 10, 11, 12, "c", -1, 15], output)
+        self.compare_in_order([1, 2, "a", -1, 5, 6, 7, "b", -1, 10, 11, 12, "c", -1, 15], output)
 
         input = list(range(1, 100001))
         sampled = sample(input, 40000)
@@ -101,14 +120,14 @@ class TestExceptions(unittest.TestCase):
                 input[i - 1] = 0
 
         output = c.parallelize(input).map(lambda x: 1 / x if x == 0 else x).resolve(ZeroDivisionError, lambda x: x).collect()
-        self.compare(input, output)
+        self.compare_in_order(input, output)
 
     def test_merge_input_only(self):
         c = Context(self.conf_in_order)
 
         input = [1, 2, "a", 4, 5, "b", 6, 7, 8, 9, 10, "d"]
         output = c.parallelize([1, 2, "a", 4, 5, "b", 6, 7, 8, 9, 10, "d"]).map(lambda x: x).collect()
-        self.compare(input, output)
+        self.compare_in_order(input, output)
 
         input = []
         for i in range(40000):
@@ -118,7 +137,7 @@ class TestExceptions(unittest.TestCase):
                 input.append(i)
 
         output = c.parallelize(input).map(lambda x: x).collect()
-        self.compare(input, output)
+        self.compare_in_order(input, output)
 
     def test_no_normal_rows_in_result(self):
         c = Context(self.conf)

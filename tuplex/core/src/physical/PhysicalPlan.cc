@@ -62,6 +62,7 @@ namespace tuplex {
                                              EndPointMode outMode=EndPointMode::UNKNOWN) {
         using namespace std;
 
+        bool hasFilter = false;
         // step 1: break up pipeline according to cost model
         // go through nodes
         queue<LogicalOperator*> q; q.push(root);
@@ -113,6 +114,8 @@ namespace tuplex {
                         throw std::runtime_error("unsupported aggregate type found");
                     }
                 } else { // follow tree
+                    if (node->type() == LogicalOperatorType::FILTER)
+                        hasFilter = true;
                     q.push(node->parent());
                 }
 
@@ -183,6 +186,7 @@ namespace tuplex {
         //   --> indicates how the hashtable values should be converted to partitions)
         auto hashGroupedDataType = AggregateType::AGG_NONE;
 
+        bool hasPythonObjects = false;
         assert(!ops.empty());
         LogicalOperator* ioNode = nullptr; // needed to reconstruct when IO is separated from rest
         if(ops.front()->isDataSource()) {
@@ -193,6 +197,8 @@ namespace tuplex {
                 // type should be parallelize or cache!
                 auto t = ops.front()->type();
                 assert(t == LogicalOperatorType::PARALLELIZE || t == LogicalOperatorType::CACHE);
+                if (t == LogicalOperatorType::PARALLELIZE)
+                    hasPythonObjects = !((ParallelizeOperator *)ops.front())->getPythonObjects().empty();
             }
         }
 
@@ -226,6 +232,8 @@ namespace tuplex {
             outputMode = outMode;
         }
 
+        bool updateInputExceptions = hasFilter && hasPythonObjects && _context.getOptions().OPT_MERGE_EXCEPTIONS_INORDER();
+
         // create trafostage via builder pattern
         auto builder = codegen::StageBuilder(_num_stages++,
                                                isRootStage,
@@ -233,7 +241,8 @@ namespace tuplex {
                                                _context.getOptions().OPT_GENERATE_PARSER(),
                                                _context.getOptions().NORMALCASE_THRESHOLD(),
                                                _context.getOptions().OPT_SHARED_OBJECT_PROPAGATION(),
-                                               _context.getOptions().OPT_NULLVALUE_OPTIMIZATION());
+                                               _context.getOptions().OPT_NULLVALUE_OPTIMIZATION(),
+                                               updateInputExceptions);
         // start code generation
 
         // first, add input

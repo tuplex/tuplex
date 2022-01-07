@@ -28,7 +28,8 @@ namespace tuplex {
             StageBuilder(int64_t stage_number, bool rootStage, bool allowUndefinedBehavior, bool generateParser,
                          double normalCaseThreshold,
                          bool sharedObjectPropagation,
-                         bool nullValueOptimization);
+                         bool nullValueOptimization,
+                         bool updateInputExceptions);
 
             // builder functions
             void addMemoryInput(const Schema& schema, LogicalOperator* node);
@@ -71,6 +72,7 @@ namespace tuplex {
             double _normalCaseThreshold;
             bool _sharedObjectPropagation;
             bool _nullValueOptimization;
+            bool _updateInputExceptions;
             std::vector<LogicalOperator*> _operators;
 
             // codegen strings

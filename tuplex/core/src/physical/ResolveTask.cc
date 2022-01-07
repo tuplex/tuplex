@@ -417,7 +417,7 @@ default:
 
         // fallback 1: slow, compiled code path
         int resCode = -1;
-        if(_functor) {
+        if(_functor && ecCode != ecToI32(ExceptionCode::PYTHON_PARALLELIZE)) {
             resCode = _functor(this, _rowNumber, ecCode, ebuf, eSize);
             // uncomment to print out details on demand
             // if(resCode != 0) {

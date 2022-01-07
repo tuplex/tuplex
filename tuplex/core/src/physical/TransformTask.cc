@@ -528,10 +528,8 @@ namespace tuplex {
             const uint8_t *inPtr = inputPartition->lockRaw();
             _numInputRowsRead += static_cast<size_t>(*((int64_t*)inPtr));
 
-            int64_t indicator = -1;
-
             // call functor
-            auto bytesParsed = functor(this, inPtr, inSize, expPtrs, expPtrSizes, _numPy, &num_normal_rows, &num_bad_rows, false, &indicator);
+            auto bytesParsed = functor(this, inPtr, inSize, expPtrs, expPtrSizes, _numPy, &num_normal_rows, &num_bad_rows, false);
 
             // save number of normal rows to output rows written if not writeTofile
             if(hasMemorySink())

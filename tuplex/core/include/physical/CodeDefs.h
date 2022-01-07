@@ -47,7 +47,7 @@ namespace tuplex {
         // parameters are userData, array of globals (e.g. hashmaps), block, blocksize, normalrowsout, badrowsout, lastRow
         typedef int64_t(*read_block_f)(void*, const uint8_t*, int64_t, int64_t*, int64_t*, int8_t);
 
-        typedef int64_t(*read_block_exp_f)(void*, const uint8_t*, int64_t, uint8_t **, int64_t *, int64_t, int64_t*, int64_t*, bool, int64_t*);
+        typedef int64_t(*read_block_exp_f)(void*, const uint8_t*, int64_t, uint8_t **, int64_t *, int64_t, int64_t*, int64_t*, bool);
 
         /*!
          * prototype for processing a single row (with callbacks etc.). Returns how many bytes were processed

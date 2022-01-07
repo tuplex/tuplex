@@ -42,7 +42,7 @@ class TestExceptions(unittest.TestCase):
         c = Context(self.conf_in_order)
 
         output = c.parallelize([1, 0, 0, 4]).map(lambda x: 1 // x).resolve(ZeroDivisionError, lambda x: -1).collect()
-        self.compare_in_order([1.0, -1, -1, 0.25], output)
+        self.compare_in_order([1, -1, -1, 0], output)
 
         output = c.parallelize([0 for i in range(100000)]).map(lambda x: 1 // x).resolve(ZeroDivisionError, lambda x: -1).collect()
         self.compare_in_order([-1 for i in range(100000)], output)
@@ -61,7 +61,7 @@ class TestExceptions(unittest.TestCase):
             if i % 100 == 0:
                 expectedOutput.append(-1)
             else:
-                expectedOutput.append(1 / i)
+                expectedOutput.append(1 // i)
 
         self.compare_in_order(expectedOutput, output)
 
@@ -256,7 +256,7 @@ class TestExceptions(unittest.TestCase):
         c = Context(self.conf)
 
         output = c.parallelize([1, 0, 0, 4]).map(lambda x: 1 // x).resolve(ZeroDivisionError, lambda x: -1).collect()
-        self.compare([1.0, -1, -1, 0.25], output)
+        self.compare([1, -1, -1, 0], output)
 
         input = []
         for i in range(100000):

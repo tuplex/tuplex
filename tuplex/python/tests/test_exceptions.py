@@ -16,8 +16,8 @@ from random import randint, sample
 class TestExceptions(unittest.TestCase):
 
     def setUp(self):
-        self.conf = {"tuplex.webui.enable": False, "executorCount": 8, "executorMemory": "8MB", "driverMemory": "8MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": False}
-        self.conf_in_order = {"tuplex.webui.enable": False, "executorCount": 8, "executorMemory": "8MB", "driverMemory": "8MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": True}
+        self.conf = {"tuplex.webui.enable": False, "executorCount": 8, "executorMemory": "256MB", "driverMemory": "256MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": False}
+        self.conf_in_order = {"tuplex.webui.enable": False, "executorCount": 8, "executorMemory": "256MB", "driverMemory": "256MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": True}
 
     def test_merge_with_filter(self):
         c = Context(self.conf_in_order)

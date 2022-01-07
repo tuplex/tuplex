@@ -433,6 +433,11 @@ default:
                 }
                 resCode = -1;
             }
+
+            if (resCode != 0) {
+                _numUnresolved++;
+                exceptionCallback(ecCode, operatorID, _rowNumber, ebuf, eSize);
+            }
         }
 
         // fallback 2: interpreter path

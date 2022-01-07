@@ -365,7 +365,10 @@ namespace tuplex {
         } else if(hasMemorySource()) {
             if(_inputPartitions.empty())
                 throw std::runtime_error("no input partition assigned!");
-            processMemorySource();
+            if (_updateInputExceptions)
+                processMemorySourceWithExp();
+            else
+                processMemorySource();
         } else {
             throw std::runtime_error("no source (file/memory) specified, error!");
         }
@@ -482,6 +485,76 @@ namespace tuplex {
 
         // reset output row counter...
         _outputRowCounter = 0;
+    }
+
+    void TransformTask::processMemorySourceWithExp() {
+        assert(!_inputPartitions.empty());
+        assert(_functor);
+
+        _numInputRowsRead = 0;
+        _numOutputRowsWritten = 0;
+
+        int64_t  num_normal_rows = 0, num_bad_rows = 0;
+
+        auto functor = reinterpret_cast<codegen::read_block_exp_f>(_functor);
+
+        uint8_t** expPtrs = (uint8_t **) malloc((_pythonObjects.size() - _pyInd)*sizeof(uint8_t *));
+        int64_t* expPtrSizes = (int64_t *) malloc((_pythonObjects.size() - _pyInd) * sizeof(int64_t));
+        for (int i = _pyInd; i < _pythonObjects.size(); ++i) {
+
+            if (i == _pyInd) {
+                auto ptr = _pythonObjects[i]->lockRaw();
+                auto numRows = *((int64_t *) ptr) - _pyOff; ptr += sizeof(int64_t);
+                for (int j = 0; j < _pyOff; ++j) {
+                    int64_t* ib = (int64_t*)ptr;
+                    auto eSize = ib[3];
+                    ptr += eSize + 4*sizeof(int64_t);
+                }
+                expPtrSizes[i] = numRows;
+                expPtrs[i] = (uint8_t *) ptr;
+            } else {
+                auto ptr = _pythonObjects[i]->lockRaw();
+                expPtrSizes[i] = *((int64_t *) ptr);
+                expPtrs[i] = (uint8_t *) (ptr + sizeof(int64_t));
+            }
+
+        }
+
+        // go over all input partitions.
+        for(auto inputPartition : _inputPartitions) {
+            // lock ptr, extract number of rows ==> store them
+            // lock raw & call functor!
+            int64_t inSize = inputPartition->size();
+            const uint8_t *inPtr = inputPartition->lockRaw();
+            _numInputRowsRead += static_cast<size_t>(*((int64_t*)inPtr));
+
+            int64_t indicator = -1;
+
+            // call functor
+            auto bytesParsed = functor(this, inPtr, inSize, expPtrs, expPtrSizes, _numPy, &num_normal_rows, &num_bad_rows, false, &indicator);
+
+            // save number of normal rows to output rows written if not writeTofile
+            if(hasMemorySink())
+                _numOutputRowsWritten += num_normal_rows;
+
+            // unlock memory sinks if necessary
+            unlockAllMemorySinks();
+
+            inputPartition->unlock();
+
+            // delete partition if desired...
+            if(_invalidateSourceAfterUse)
+                inputPartition->invalidate();
+        }
+
+        for (int i = _pyInd; i < _pythonObjects.size(); ++i) {
+            _pythonObjects[i]->unlock();
+        }
+
+#ifndef NDEBUG
+        owner()->info("Trafo task memory source exhausted (" + pluralize(_inputPartitions.size(), "partition") + ", "
+                      + pluralize(num_normal_rows, "normal row") + ", " + pluralize(num_bad_rows, "exceptional row") + ")");
+#endif
     }
 
     void TransformTask::processMemorySource() {

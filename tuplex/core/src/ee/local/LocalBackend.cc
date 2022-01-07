@@ -459,12 +459,14 @@ namespace tuplex {
     }
 
     std::vector<IExecutorTask*> LocalBackend::createLoadAndTransformToMemoryTasks(
-            tuplex::TransformStage *tstage, const tuplex::ContextOptions &options,
-            tuplex::codegen::read_block_f functor) {
+            tuplex::TransformStage *tstage,
+            const tuplex::ContextOptions &options,
+            TransformStage::JITSymbols *syms) {
 
         using namespace std;
         vector<IExecutorTask*> tasks;
         assert(tstage);
+        assert(syms);
 
         size_t readBufferSize = options.READ_BUFFER_SIZE();
         bool normalCaseEnabled = options.OPT_NULLVALUE_OPTIMIZATION(); // this is important so exceptions get upgraded to internal ones
@@ -520,7 +522,7 @@ namespace tuplex {
                     if(options.INPUT_SPLIT_SIZE() == 0) {
                         // one task per URI
                         auto task = new TransformTask();
-                        task->setFunctor(functor);
+                        task->setFunctor(syms->functor);
                         task->setInputFileSource(uri, normalCaseEnabled, tstage->fileInputOperatorID(), inputRowType, header,
                                                  !options.OPT_GENERATE_PARSER(),
                                                  numColumns, 0, 0, delimiter, quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
@@ -553,7 +555,7 @@ namespace tuplex {
                         if(file_size <= splitSize) {
                             // 1 task (range 0,0 to indicate full file)
                             auto task = new TransformTask();
-                            task->setFunctor(functor);
+                            task->setFunctor(syms->functor);
                             task->setInputFileSource(uri, normalCaseEnabled, tstage->fileInputOperatorID(), inputRowType, header,
                                                      !options.OPT_GENERATE_PARSER(),
                                                      numColumns, 0, 0, delimiter,
@@ -589,7 +591,7 @@ namespace tuplex {
                                     rangeEnd = file_size;
 
                                 auto task = new TransformTask();
-                                task->setFunctor(functor);
+                                task->setFunctor(syms->functor);
                                 task->setInputFileSource(uri, normalCaseEnabled, tstage->fileInputOperatorID(), inputRowType, header,
                                                          !options.OPT_GENERATE_PARSER(),
                                                          numColumns, rangeStart, rangeEnd - rangeStart, delimiter,
@@ -643,7 +645,12 @@ namespace tuplex {
             for(int i = 0; i < inputPartitions.size(); ++i) {
                 auto partition = inputPartitions[i];
                 auto task = new TransformTask();
-                task->setFunctor(functor);
+                if (tstage->updateInputExceptions()) {
+                    task->setFunctor(syms->functorWithExp);
+                    task->setUpdateInputExceptions(true);
+                } else {
+                    task->setFunctor(syms->functor);
+                }
                 task->setInputMemorySource(partition, !partition->isImmortal());
                 // hash table or memory output?
                 if(tstage->outputMode() == EndPointMode::HASHTABLE) {
@@ -659,6 +666,16 @@ namespace tuplex {
                            tstage->outputMode() == EndPointMode::MEMORY);
                     task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID());
                 }
+
+                auto partitionId = task->partitionId();
+                if (partitionId != "") {
+                    auto info = tstage->getInputPartitionToPythonObjectsMap()[partitionId];
+                    task->setNumPy(std::get<0>(info));
+                    task->setPyInd(std::get<1>(info));
+                    task->setPyOff(std::get<2>(info));
+                    task->setPythonObjects(tstage->pythonObjects());
+                }
+
                 task->sinkExceptionsToMemory(inputSchema);
                 task->setStageID(tstage->getID());
                 tasks.emplace_back(std::move(task));
@@ -857,7 +874,7 @@ namespace tuplex {
             }
         }
 
-        auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms->functor);
+        auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms.get());
         auto completedTasks = performTasks(tasks);
 
         // Note: this doesn't work yet because of the globals.
@@ -1323,18 +1340,7 @@ namespace tuplex {
             else if(compareOrders(maxOrder, tt->getOrder()))
                 maxOrder = tt->getOrder();
 
-            size_t numPy = 0;
-            size_t pyInd = 0;
-            size_t pyOff = 0;
-            auto partitionId = tt->partitionId();
-            if (partitionId != "") {
-                auto info = tstage->getInputPartitionToPythonObjectsMap()[partitionId];
-                numPy = std::get<0>(info);
-                pyInd = std::get<1>(info);
-                pyOff = std::get<2>(info);
-            }
-
-            if (tt->exceptionCounts().size() > 0 || numPy > 0) {
+            if (tt->exceptionCounts().size() > 0 || tt->numPy() > 0) {
                 // task found with exceptions in it => exception partitions need to be resolved using special functor
 
                 // hash-table output not yet supported
@@ -1349,10 +1355,10 @@ namespace tuplex {
                 auto rtask = new ResolveTask(stageID,
                                              tt->getOutputPartitions(),
                                              tt->getExceptionPartitions(),
-                                             tstage->pythonObjects(),
-                                             numPy,
-                                             pyInd,
-                                             pyOff,
+                                             tt->pythonObjects(),
+                                             tt->numPy(),
+                                             tt->pyInd(),
+                                             tt->pyOff(),
                                              opsToCheck,
                                              exceptionInputSchema,
                                              compiledSlowPathOutputSchema,

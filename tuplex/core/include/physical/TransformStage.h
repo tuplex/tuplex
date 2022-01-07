@@ -378,6 +378,11 @@ namespace tuplex {
         }
 
         /*!
+         * whether to update indices of input exceptions during row processing
+         */
+        bool updateInputExceptions() const { return _updateInputExceptions; }
+
+        /*!
          * @return Returns the type of the hash-grouped data. Hash-grouped data refers to when the operator is a
          *         pipeline breaker that needs the previous stage's hashmap to be converted to partitions
          *         (e.g. unique() and aggregateBy())

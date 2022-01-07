@@ -112,7 +112,11 @@ namespace tuplex {
                           _functor(nullptr),
                           _stageID(-1),
                           _htableFormat(HashTableFormat::UNKNOWN),
-                          _wallTime(0.0) {
+                          _wallTime(0.0),
+                          _numPy(0),
+                          _pyOff(0),
+                          _pyInd(0),
+                          _updateInputExceptions(false) {
             resetSinks();
             resetSources();
         }
@@ -121,6 +125,10 @@ namespace tuplex {
 
         void sinkExceptionsToMemory(const Schema& inputSchema) { _inputSchema = inputSchema; }
         void sinkExceptionsToFile(const Schema& inputSchema, const URI& exceptionOutputURI) { throw std::runtime_error("not yet supported"); }
+
+        void setFunctor(codegen::read_block_exp_f functor) {
+            _functor = (void*)functor;
+        }
 
         void setFunctor(codegen::read_block_f functor) {
             _functor = (void*)functor;
@@ -233,6 +241,18 @@ namespace tuplex {
             }
         }
 
+        size_t numPy() { return _numPy; }
+        size_t pyInd() { return _pyInd; }
+        size_t pyOff() { return _pyOff; }
+        std::vector<Partition*> pythonObjects() { return _pythonObjects; }
+
+        void setNumPy(size_t numPy) { _numPy = numPy; }
+        void setPyInd(size_t pyInd) { _pyInd = pyInd; }
+        void setPyOff(size_t pyOff) { _pyOff = pyOff; }
+        void setPythonObjects(const std::vector<Partition*>& pythonObjects) { _pythonObjects = pythonObjects; }
+        void setUpdateInputExceptions(bool updateInputExceptions) { _updateInputExceptions = updateInputExceptions; }
+
+
         double wallTime() const override { return _wallTime; }
     private:
         void resetSinks();
@@ -275,6 +295,11 @@ namespace tuplex {
         MemorySink _exceptions;
         Schema _inputSchema;
 
+        size_t _numPy;
+        size_t _pyInd;
+        size_t _pyOff;
+        std::vector<Partition*> _pythonObjects;
+        bool _updateInputExceptions;
 
         // hash table sink
         HashTableSink _htable;
@@ -290,6 +315,7 @@ namespace tuplex {
            _exceptions.unlock();
         }
 
+        void processMemorySourceWithExp();
         void processMemorySource();
         void processFileSource();
 

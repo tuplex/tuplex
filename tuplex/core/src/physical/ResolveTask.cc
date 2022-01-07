@@ -228,7 +228,7 @@ namespace tuplex {
 
         // needs to be put into separate list of python objects...
         // save index as well to merge back in order.
-        _py_nonconfirming.push_back(std::make_tuple(_rowNumber, out_row));
+        _py_nonconfirming.push_back(std::make_tuple(_rowNumber - _numUnresolved, out_row));
     }
 
     int64_t ResolveTask::mergeNormalRow(const uint8_t *buf, int64_t bufSize) {
@@ -410,6 +410,7 @@ default:
             // and true exception, i.e. no resolvers available.
             // => need a list of for which opIds/codes resolvers are available...
             ///....
+            _numUnresolved++;
             exceptionCallback(ecCode, operatorID, _rowNumber, ebuf, eSize);
             return;
         }
@@ -567,7 +568,13 @@ default:
                         // normal, check type and either merge to normal set back OR onto python set together with row number?
                         auto resultRows = PyDict_GetItemString(pcr.res, "outputRows");
                         assert(PyList_Check(resultRows));
-                        for(int i = 0; i < PyList_Size(resultRows); ++i) {
+
+                        auto listSize = PyList_Size(resultRows);
+                        if (listSize == 0) {
+                            _numUnresolved++;
+                        }
+
+                        for(int i = 0; i < listSize; ++i) {
                             // type check w. output schema
                             // cf. https://pythonextensionpatterns.readthedocs.io/en/latest/refcount.html
                             auto rowObj = PyList_GetItem(resultRows, i);
@@ -662,6 +669,7 @@ default:
 
         // fallback 3: still exception? save...
         if(resCode == -1) {
+            _numUnresolved++;
             exceptionCallback(ecCode, operatorID, _rowNumber, ebuf, eSize);
         }
     }

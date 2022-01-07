@@ -107,7 +107,7 @@ namespace tuplex {
          * set python objects, i.e. rows that could come from a parallelize operator.
          * @param pythonObjects
          */
-        void setPythonObjects(const std::vector<Partition *> pythonObjects) { _pythonObjects = pythonObjects; }
+        void setPythonObjects(const std::vector<Partition *>& pythonObjects) { _pythonObjects = pythonObjects; }
 
         std::vector<Partition *> pythonObjects() { return _pythonObjects; }
 
@@ -269,6 +269,7 @@ namespace tuplex {
         // JITSymbols for this stage
         struct JITSymbols {
             codegen::read_block_f functor; // can be memory2memory or file2memory
+            codegen::read_block_exp_f functorWithExp;
             codegen::read_block_f writeFunctor; // memory2file
             codegen::resolve_f resolveFunctor; // always memory2memory
             codegen::init_stage_f initStageFunctor;
@@ -278,7 +279,9 @@ namespace tuplex {
             codegen::agg_agg_f aggAggregateFunctor;
 
 
-            JITSymbols() : functor(nullptr), writeFunctor(nullptr),
+            JITSymbols() : functor(nullptr),
+                           functorWithExp(nullptr),
+                           writeFunctor(nullptr),
                            resolveFunctor(nullptr),
                            initStageFunctor(nullptr),
                            releaseStageFunctor(nullptr),
@@ -458,6 +461,7 @@ namespace tuplex {
         std::string _pyCode;
         std::string _pyPipelineName;
         std::string _writerFuncName;
+        bool _updateInputExceptions;
 
         std::shared_ptr<ResultSet> emptyResultSet() const;
 

@@ -822,8 +822,10 @@ namespace tuplex {
         logger.info("first compile done");
 
         // fetch symbols (this actually triggers the compilation first with register alloc etc.)
-        if(!_syms->functor)
+        if(!_syms->functor && !_updateInputExceptions)
             _syms->functor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(funcName()));
+        if(!_syms->functorWithExp && _updateInputExceptions)
+            _syms->functorWithExp = reinterpret_cast<codegen::read_block_exp_f>(jit.getAddrOfSymbol(funcName()));
         logger.info("functor " + funcName() + " retrieved from llvm");
         if(_outputMode == EndPointMode::FILE && !_syms->writeFunctor)
                 _syms->writeFunctor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(writerFuncName()));
@@ -848,7 +850,7 @@ namespace tuplex {
         }
 
         // check symbols are valid...
-        if(!(_syms->functor && _syms->initStageFunctor && _syms->releaseStageFunctor)) {
+        if(!((_syms->functor || _syms->functorWithExp) && _syms->initStageFunctor && _syms->releaseStageFunctor)) {
             logger.error("invalid pointer address for JIT code returned");
             throw std::runtime_error("invalid pointer address for JIT code returned");
         }

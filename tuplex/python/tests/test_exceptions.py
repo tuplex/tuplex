@@ -32,6 +32,18 @@ class TestExceptions(unittest.TestCase):
         output = c.parallelize([-1.1, 1, 2, -2.2, 4, 5, -6.6]).filter(lambda x: x < 0 or x > 3).collect()
         self.compare_in_order([-1.1, -2.2, 4, 5, -6.6], output)
 
+        input = list(range(1, 40001))
+        sampled = sample(input, 8000)
+        for i in sampled:
+            ind = randint(0, 1)
+            if ind == 0:
+                input[i - 1] = str(input[i - 1])
+            elif ind == 1:
+                input[i - 1] = 0
+
+        output = c.parallelize(input).filter(lambda x: x != 0).collect()
+        self.compare_in_order(list(filter(lambda x: x != 0, input)), output)
+
     def test_merge_with_filter_on_exps(self):
         c = Context(self.conf_in_order)
 

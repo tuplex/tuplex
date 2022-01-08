@@ -498,26 +498,28 @@ namespace tuplex {
 
         auto functor = reinterpret_cast<codegen::read_block_exp_f>(_functor);
 
-        uint8_t** expPtrs = (uint8_t **) malloc((_pythonObjects.size() - _pyInd)*sizeof(uint8_t *));
-        int64_t* expPtrSizes = (int64_t *) malloc((_pythonObjects.size() - _pyInd) * sizeof(int64_t));
+        auto expPtrs = (uint8_t **) malloc((_pythonObjects.size() - _pyInd) * sizeof(uint8_t *));
+        auto expPtrSizes = (int64_t *) malloc((_pythonObjects.size() - _pyInd) * sizeof(int64_t));
+        int expInd = 0;
         for (int i = _pyInd; i < _pythonObjects.size(); ++i) {
-
             if (i == _pyInd) {
                 auto ptr = _pythonObjects[i]->lockRaw();
                 auto numRows = *((int64_t *) ptr) - _pyOff; ptr += sizeof(int64_t);
                 for (int j = 0; j < _pyOff; ++j) {
-                    int64_t* ib = (int64_t*)ptr;
+                    int64_t *ib = (int64_t *)ptr;
                     auto eSize = ib[3];
-                    ptr += eSize + 4*sizeof(int64_t);
+                    ptr += eSize + 4 * sizeof(int64_t);
                 }
-                expPtrSizes[i] = numRows;
-                expPtrs[i] = (uint8_t *) ptr;
+                expPtrSizes[expInd] = numRows;
+                expPtrs[expInd] = (uint8_t *) ptr;
+                expInd++;
             } else {
                 auto ptr = _pythonObjects[i]->lockRaw();
-                expPtrSizes[i] = *((int64_t *) ptr);
-                expPtrs[i] = (uint8_t *) (ptr + sizeof(int64_t));
+                auto numRows = *((int64_t *) ptr); ptr += sizeof(int64_t);
+                expPtrSizes[expInd] = numRows;
+                expPtrs[expInd] = (uint8_t *) ptr;
+                expInd++;
             }
-
         }
 
         // go over all input partitions.
@@ -548,6 +550,8 @@ namespace tuplex {
         for (int i = _pyInd; i < _pythonObjects.size(); ++i) {
             _pythonObjects[i]->unlock();
         }
+        free(expPtrs);
+        free(expPtrSizes);
 
 #ifndef NDEBUG
         owner()->info("Trafo task memory source exhausted (" + pluralize(_inputPartitions.size(), "partition") + ", "

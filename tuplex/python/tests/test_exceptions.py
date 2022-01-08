@@ -32,8 +32,8 @@ class TestExceptions(unittest.TestCase):
         output = c.parallelize([-1.1, 1, 2, -2.2, 4, 5, -6.6]).filter(lambda x: x < 0 or x > 3).collect()
         self.compare_in_order([-1.1, -2.2, 4, 5, -6.6], output)
 
-        input = list(range(1, 40001))
-        sampled = sample(input, 8000)
+        input = list(range(1, 100001))
+        sampled = sample(input, 40000)
         for i in sampled:
             ind = randint(0, 1)
             if ind == 0:

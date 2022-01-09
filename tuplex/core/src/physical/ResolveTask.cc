@@ -432,11 +432,10 @@ default:
 #endif
                 }
                 resCode = -1;
-            }
-
-            if (resCode != 0) {
+            } else if (resCode != 0) {
                 _numUnresolved++;
             }
+
         }
 
         // fallback 2: interpreter path

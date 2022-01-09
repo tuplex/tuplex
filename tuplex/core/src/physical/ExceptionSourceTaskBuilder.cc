@@ -242,31 +242,6 @@ namespace tuplex {
             builder.CreateStore(builder.CreateLoad(builder.CreateGEP(argExpPtrSizes, builder.CreateLoad(curExpIndVar))), curExpNumRowsVar);
             builder.CreateBr(bbExpUpdate);
 
-//            builder.SetInsertPoint(bbIncrement);
-//            auto bbChange = llvm::BasicBlock::Create(context, "change", builder.GetInsertBlock()->getParent());
-//            auto bbChangeDone = llvm::BasicBlock::Create(context, "change_done", builder.GetInsertBlock()->getParent());
-//            auto changeCond = builder.CreateICmpSGE(builder.CreateLoad(curExpCurRowVar), builder.CreateLoad(curExpNumRowsVar));
-//            auto leftCond = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
-//            builder.CreateCondBr(builder.CreateAnd(leftCond, changeCond), bbChange, bbChangeDone);
-//
-//            builder.SetInsertPoint(bbChange);
-//            builder.CreateStore(env().i64Const(0), curExpCurRowVar);
-//            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curExpIndVar), env().i64Const(1)), curExpIndVar);
-//            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(argExpPtrs, builder.CreateLoad(curExpIndVar))), curExpPtrVar);
-//            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(argExpPtrSizes, builder.CreateLoad(curExpIndVar))), curExpNumRowsVar);
-//            builder.CreateBr(bbChangeDone);
-//
-//            builder.SetInsertPoint(bbChangeDone);
-//            auto curExpRowIndPtr2 = builder.CreatePointerCast(builder.CreateLoad(curExpPtrVar), env().i64Type()->getPointerTo(0));
-//            builder.CreateStore(builder.CreateSub(builder.CreateLoad(curExpRowIndPtr2), builder.CreateLoad(expAccVar)), curExpRowIndPtr2);
-//            auto curOffset = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curOffset");
-//            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(curExpRowIndPtr2, env().i64Const(3))), curOffset);
-//            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curOffset), env().i64Const(4 * sizeof(int64_t))), curOffset);
-//            builder.CreateStore(builder.CreateGEP(builder.CreateLoad(curExpPtrVar), builder.CreateLoad(curOffset)), curExpPtrVar);
-//            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curExpCurRowVar), env().i64Const(1)), curExpCurRowVar);
-//            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(expCurRowVar), env().i64Const(1)), expCurRowVar);
-//            builder.CreateBr(bbExpUpdate);
-
             builder.SetInsertPoint(bbIncrementDone);
             builder.CreateStore(builder.CreateAdd(builder.CreateLoad(expAccVar), env().i64Const(1)), expAccVar);
             builder.CreateBr(bbLoopCondition);
@@ -301,39 +276,14 @@ namespace tuplex {
             builder.CreateStore(builder.CreateLoad(builder.CreateGEP(argExpPtrSizes, builder.CreateLoad(curExpIndVar))), curExpNumRowsVar);
             builder.CreateBr(bbLoopDone);
 
-//            builder.SetInsertPoint(bbRemainingExceptions);
-//            auto bbChange2 = llvm::BasicBlock::Create(context, "change2", builder.GetInsertBlock()->getParent());
-//            auto bbChangeDone2 = llvm::BasicBlock::Create(context, "change_done2", builder.GetInsertBlock()->getParent());
-//            auto changeCond2 = builder.CreateICmpSGE(builder.CreateLoad(curExpCurRowVar), builder.CreateLoad(curExpNumRowsVar));
-//            auto leftCond2 = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
-//            builder.CreateCondBr(builder.CreateAnd(leftCond2, changeCond2), bbChange2, bbChangeDone2);
-//
-//            builder.SetInsertPoint(bbChange2);
-//            builder.CreateStore(env().i64Const(0), curExpCurRowVar);
-//            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curExpIndVar), env().i64Const(1)), curExpIndVar);
-//            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(argExpPtrs, builder.CreateLoad(curExpIndVar))), curExpPtrVar);
-//            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(argExpPtrSizes, builder.CreateLoad(curExpIndVar))), curExpNumRowsVar);
-//            builder.CreateBr(bbChangeDone2);
-//
-//            builder.SetInsertPoint(bbChangeDone2);
-//            auto curExpRowIndPtr3 = builder.CreatePointerCast(builder.CreateLoad(curExpPtrVar), env().i64Type()->getPointerTo(0));
-//            builder.CreateStore(builder.CreateSub(builder.CreateLoad(curExpRowIndPtr3), builder.CreateLoad(expAccVar)), curExpRowIndPtr3);
-//            auto curOffset2 = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curOffset2");
-//            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(curExpRowIndPtr3, env().i64Const(3))), curOffset2);
-//            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curOffset2), env().i64Const(4 * sizeof(int64_t))), curOffset2);
-//            builder.CreateStore(builder.CreateGEP(builder.CreateLoad(curExpPtrVar), builder.CreateLoad(curOffset2)), curExpPtrVar);
-//            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curExpCurRowVar), env().i64Const(1)), curExpCurRowVar);
-//            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(expCurRowVar), env().i64Const(1)), expCurRowVar);
-//            builder.CreateBr(bbLoopDone);
-
             builder.SetInsertPoint(bbRemainingDone);
             // if intermediate callback desired, perform!
             if(_intermediateType != python::Type::UNKNOWN && !_intermediateCallbackName.empty()) {
                 writeIntermediate(builder, argUserData, _intermediateCallbackName);
             }
 
-//            env().storeIfNotNull(builder, builder.CreateLoad(normalRowCountVar), argOutNormalRowCount);
-//            env().storeIfNotNull(builder, builder.CreateLoad(badRowCountVar), argOutBadRowCount);
+            env().storeIfNotNull(builder, builder.CreateLoad(normalRowCountVar), argOutNormalRowCount);
+            env().storeIfNotNull(builder, builder.CreateLoad(badRowCountVar), argOutBadRowCount);
 
             // return bytes read
             Value* curPtr = builder.CreateLoad(currentInputPtrVar, "ptr");

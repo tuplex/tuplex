@@ -436,7 +436,6 @@ default:
 
             if (resCode != 0) {
                 _numUnresolved++;
-                exceptionCallback(ecCode, operatorID, _rowNumber, ebuf, eSize);
             }
         }
 

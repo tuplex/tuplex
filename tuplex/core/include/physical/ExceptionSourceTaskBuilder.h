@@ -41,7 +41,7 @@ namespace tuplex {
 
             void callProcessFuncWithHandler(llvm::IRBuilder<> &builder, llvm::Value *userData,
                                             const FlattenedTuple &tuple,
-                                            llvm::Value *normalRowCountVar, llvm::Value *rowNumberVar,
+                                            llvm::Value *normalRowCountVar, llvm::Value *badRowCountVar, llvm::Value *rowNumberVar,
                                             llvm::Value *inputRowPtr, llvm::Value *inputRowSize,
                                             llvm::Function *processRowFunc);
         public:

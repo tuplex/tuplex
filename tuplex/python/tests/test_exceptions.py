@@ -11,7 +11,8 @@
 
 import unittest
 from tuplex import Context
-from random import randint, sample
+from random import randint, sample, shuffle
+from math import floor
 
 class TestExceptions(unittest.TestCase):
 
@@ -43,6 +44,56 @@ class TestExceptions(unittest.TestCase):
 
         output = c.parallelize(input).filter(lambda x: x != 0).collect()
         self.compare_in_order(list(filter(lambda x: x != 0, input)), output)
+        
+    def process(self, input_size, num_filtered, num_schema, num_resolved, num_unresolved):
+        inds = list(range(input_size))
+        shuffle(inds)
+        inds = iter(inds)
+
+        input = list(range(1, input_size + 1))
+
+        for _ in range(floor(num_filtered * input_size)):
+            ind = next(inds)
+            input[ind] = -1
+
+        for _ in range(floor(num_schema * input_size)):
+            ind = next(inds)
+            input[ind] = "E"
+
+        for _ in range(floor(num_resolved * input_size)):
+            ind = next(inds)
+            input[ind] = -2
+
+        for _ in range(floor(num_unresolved * input_size)):
+            ind = next(inds)
+            input[ind] = -3
+
+        def filter_udf(x):
+            return x != -1
+
+        def map_udf(x):
+            if x == -2 or x == -3:
+                return 1 // (x - x)
+            else:
+                return x
+
+        def resolve_udf(x):
+            if x == -3:
+                return 1 // (x - x)
+            else:
+                return x
+
+        c = Context(self.conf_in_order)
+        output = c.parallelize(input).filter(filter_udf).map(map_udf).resolve(ZeroDivisionError, resolve_udf).collect()
+
+        self.assertEqual(list(filter(lambda x: x != -3 and x != -1, input)), output)
+
+    def test_everything(self):
+        self.process(100, 0.25, 0.25, 0.25, 0.25)
+        self.process(1000, 0.25, 0.25, 0.25, 0.25)
+        self.process(10000, 0.25, 0.25, 0.25, 0.25)
+        self.process(100000, 0.25, 0.25, 0.25, 0.25)
+        self.process(1000000, 0.25, 0.25, 0.25, 0.25)
 
     def test_merge_with_filter_on_exps(self):
         c = Context(self.conf_in_order)

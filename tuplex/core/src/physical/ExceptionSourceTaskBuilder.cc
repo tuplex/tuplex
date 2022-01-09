@@ -33,7 +33,7 @@ namespace tuplex {
 
             // call pipeline function, then increase normalcounter
             if(processRowFunc) {
-                callProcessFuncWithHandler(builder, userData, tuple, normalRowCountVar, rowNumberVar, inputRowPtr,
+                callProcessFuncWithHandler(builder, userData, tuple, normalRowCountVar, badRowCountVar, rowNumberVar, inputRowPtr,
                                            inputRowSize, processRowFunc);
             } else {
                 Value *normalRowCount = builder.CreateLoad(normalRowCountVar, "normalRowCount");
@@ -44,6 +44,7 @@ namespace tuplex {
         void ExceptionSourceTaskBuilder::callProcessFuncWithHandler(llvm::IRBuilder<> &builder, llvm::Value *userData,
                                                                  const FlattenedTuple& tuple,
                                                                  llvm::Value *normalRowCountVar,
+                                                                 llvm::Value *badRowCountVar,
                                                                  llvm::Value *rowNumberVar,
                                                                  llvm::Value *inputRowPtr,
                                                                  llvm::Value *inputRowSize,
@@ -62,21 +63,26 @@ namespace tuplex {
 
             auto exceptionRaised = builder.CreateICmpNE(ecCode, env().i64Const(ecToI32(ExceptionCode::SUCCESS)));
 
+            llvm::BasicBlock* bbPipelineFailedUpdate = llvm::BasicBlock::Create(context, "pipeline_failed", builder.GetInsertBlock()->getParent());
             llvm::BasicBlock* bbPipelineOK = llvm::BasicBlock::Create(context, "pipeline_ok", builder.GetInsertBlock()->getParent());
             llvm::BasicBlock* curBlock = builder.GetInsertBlock();
             llvm::BasicBlock* bbPipelineFailed = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber, inputRowPtr, inputRowSize); // generate exception block (incl. ignore & handler if necessary)
+
 
             llvm::BasicBlock* lastExceptionBlock = builder.GetInsertBlock();
             llvm::BasicBlock* bbPipelineDone = llvm::BasicBlock::Create(context, "pipeline_done", builder.GetInsertBlock()->getParent());
 
             builder.SetInsertPoint(curBlock);
-            builder.CreateCondBr(exceptionRaised, bbPipelineFailed, bbPipelineOK);
+            builder.CreateCondBr(exceptionRaised, bbPipelineFailedUpdate, bbPipelineOK);
+
+            builder.SetInsertPoint(bbPipelineFailedUpdate);
+            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(badRowCountVar), env().i64Const(1)), badRowCountVar);
+            builder.CreateBr(bbPipelineFailed);
 
             // pipeline ok
             builder.SetInsertPoint(bbPipelineOK);
             llvm::Value *normalRowCount = builder.CreateLoad(normalRowCountVar, "normalRowCount");
             builder.CreateStore(builder.CreateAdd(normalRowCount, env().i64Const(1)), normalRowCountVar);
-
             builder.CreateBr(bbPipelineDone);
 
             // connect exception block to pipeline failure
@@ -146,6 +152,7 @@ namespace tuplex {
             builder.CreateStore(env().i64Const(0), expAccVar);
 
             auto prevRowNumVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "prevRowNumVar");
+            auto prevBadRowNumVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "prevBadRowNumVar");
 
             auto expCurRowVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "expCurRowVar");
             builder.CreateStore(env().i64Const(0), expCurRowVar);
@@ -193,6 +200,7 @@ namespace tuplex {
             builder.CreateStore(newInputPtr, currentInputPtrVar);
 
             builder.CreateStore(builder.CreateLoad(outRowCountVar), prevRowNumVar);
+            builder.CreateStore(builder.CreateLoad(badRowCountVar), prevBadRowNumVar);
 
             // call function --> incl. exception handling
             // process row here -- BEGIN
@@ -201,14 +209,15 @@ namespace tuplex {
 
             auto bbExpUpdate = llvm::BasicBlock::Create(context, "exp_update", builder.GetInsertBlock()->getParent());
             auto expCond = builder.CreateICmpEQ(builder.CreateLoad(outRowCountVar), builder.CreateLoad(prevRowNumVar));
+            auto badCond = builder.CreateICmpEQ(builder.CreateLoad(badRowCountVar), builder.CreateLoad(prevBadRowNumVar));
             auto remCond = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
-            builder.CreateCondBr(builder.CreateAnd(remCond, expCond), bbExpUpdate, bbLoopCondition);
+            builder.CreateCondBr(builder.CreateAnd(remCond, builder.CreateAnd(badCond, expCond)), bbExpUpdate, bbLoopCondition);
 
             builder.SetInsertPoint(bbExpUpdate);
             auto bbIncrement = llvm::BasicBlock::Create(context, "increment", builder.GetInsertBlock()->getParent());
             auto bbIncrementDone = llvm::BasicBlock::Create(context, "increment_done", builder.GetInsertBlock()->getParent());
             auto curExpRowIndPtr = builder.CreatePointerCast(builder.CreateLoad(curExpPtrVar), env().i64ptrType());
-            auto incCond = builder.CreateICmpSGE(builder.CreateAdd(builder.CreateSub(builder.CreateLoad(normalRowCountVar), env().i64Const(1)), builder.CreateLoad(expCurRowVar)), builder.CreateLoad(curExpRowIndPtr));
+            auto incCond = builder.CreateICmpSGE(builder.CreateAdd(builder.CreateLoad(badRowCountVar), builder.CreateAdd(builder.CreateSub(builder.CreateLoad(normalRowCountVar), env().i64Const(1)), builder.CreateLoad(expCurRowVar))), builder.CreateLoad(curExpRowIndPtr));
             auto remCond2 = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
             builder.CreateCondBr(builder.CreateAnd(remCond2, incCond), bbIncrement, bbIncrementDone);
 
@@ -323,8 +332,8 @@ namespace tuplex {
                 writeIntermediate(builder, argUserData, _intermediateCallbackName);
             }
 
-            env().storeIfNotNull(builder, builder.CreateLoad(normalRowCountVar), argOutNormalRowCount);
-            env().storeIfNotNull(builder, builder.CreateLoad(badRowCountVar), argOutBadRowCount);
+//            env().storeIfNotNull(builder, builder.CreateLoad(normalRowCountVar), argOutNormalRowCount);
+//            env().storeIfNotNull(builder, builder.CreateLoad(badRowCountVar), argOutBadRowCount);
 
             // return bytes read
             Value* curPtr = builder.CreateLoad(currentInputPtrVar, "ptr");

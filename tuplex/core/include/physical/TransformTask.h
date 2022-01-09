@@ -233,7 +233,11 @@ namespace tuplex {
         */
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> exceptionCounts() const { return _exceptionCounts; }
 
-        std::string partitionId() {
+        /*!
+         * returns the uuid of the first input partition as a string or an empty string if no partitions exist.
+         * @return
+         */
+        std::string firstPartitionId() {
             if (_inputPartitions.size() > 0) {
                 return uuidToString(_inputPartitions.at(0)->uuid());
             } else {

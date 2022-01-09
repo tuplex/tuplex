@@ -667,7 +667,7 @@ namespace tuplex {
                     task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID());
                 }
 
-                auto partitionId = task->partitionId();
+                auto partitionId = task->firstPartitionId();
                 if (partitionId != "") {
                     auto info = tstage->getInputPartitionToPythonObjectsMap()[partitionId];
                     task->setNumPy(std::get<0>(info));

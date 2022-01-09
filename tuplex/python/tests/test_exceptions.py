@@ -93,7 +93,6 @@ class TestExceptions(unittest.TestCase):
         self.process(1000, 0.25, 0.25, 0.25, 0.25)
         self.process(10000, 0.25, 0.25, 0.25, 0.25)
         self.process(100000, 0.25, 0.25, 0.25, 0.25)
-        self.process(1000000, 0.25, 0.25, 0.25, 0.25)
 
     def test_merge_with_filter_on_exps(self):
         c = Context(self.conf_in_order)

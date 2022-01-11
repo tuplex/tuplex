@@ -67,7 +67,21 @@ TEST_F(S3Tests, FileSeek) {
     file->close();
 
     // now perform file seeking!
+    file = VirtualFileSystem::open_file(file_uri, VirtualFileMode::VFS_READ);
+    ASSERT_TRUE(file);
+    // seek forward 8 bytes!
+    file->seek(sizeof(int64_t));
 
+    // now read in bytes
+    memset(buf, 0, sizeof(int64_t) * 5);
+    file->readOnly(buf, 5 * sizeof(int64_t), &nbytes_read);
+    EXPECT_EQ(nbytes_read, 4 * sizeof(int64_t));
+    for(int i = 1; i < 10; ++i) {
+        if(i < 5)
+            EXPECT_EQ(buf[i - 1], i);
+        else
+            EXPECT_EQ(buf[i - 1], 0);
+    }
 }
 
 #endif

@@ -303,13 +303,15 @@ namespace tuplex {
         // --> no need to query again!
         if(_buffer && _bufferPosition + nbytes <= _bufferLength) {
             memcpy(buffer, _buffer, nbytes);
+            if(bytesRead)
+                *bytesRead = nbytes;
             return VirtualFileSystemStatus::VFS_OK;
         }
 
         // check if file size has been queried/filled.
         // --> required to clamp request to avoid invalid range!
         size_t fileSize = _fileSize;
-        if(!_buffer) {
+        if(!_buffer && fileSize == 0) {
             // ==> fill in file size
             fileSize = s3GetContentLength(this->_s3fs.client(), this->_uri);
         }
@@ -451,7 +453,13 @@ namespace tuplex {
         }
 
         // range header
-        std::string range = "bytes=" + std::to_string(_bufferedAbsoluteFilePosition) + "-" + std::to_string(_bufferedAbsoluteFilePosition + bytesToRequest - 1);
+
+        // make sure file size is not 0
+        if(_fileSize == 0 && !_buffer)
+            _fileSize = s3GetContentLength(_s3fs.client(), _uri);
+
+        size_t range_end = std::min(_bufferedAbsoluteFilePosition + bytesToRequest - 1, _fileSize - 1);
+        std::string range = "bytes=" + std::to_string(_bufferedAbsoluteFilePosition) + "-" + std::to_string(range_end);
         // make AWS S3 part request to uri
         // check how to retrieve object in poarts
         Aws::S3::Model::GetObjectRequest req;
@@ -531,7 +539,7 @@ namespace tuplex {
     bool S3File::eof() const {
         // note that buffer must be initialized, even for empty files!
         // when is end of file reached?
-        // buffer is filled, filePos == fileSize and _bufferPosistion reached buffer Length
+        // buffer is filled, filePos == fileSize and _bufferPosition reached buffer Length
         return _buffer &&
                _bufferedAbsoluteFilePosition == _fileSize &&
                _bufferLength == _bufferPosition;
@@ -566,7 +574,10 @@ namespace tuplex {
                     return VirtualFileSystemStatus::VFS_OK;
                 } else {
                     // need to move back more bytes -> i.e. request new buffer!
-#error "TODO"
+                    _bufferPosition = 0;
+                    _filePosition += delta;
+                    _bufferedAbsoluteFilePosition += delta;
+                    fillBuffer(_bufferSize);
                 }
             } else {
                 if(_bufferPosition + delta <= _bufferLength) {
@@ -575,11 +586,15 @@ namespace tuplex {
                     return VirtualFileSystemStatus::VFS_OK;
                 } else {
                     // need to move forward more bytes -> i.e. request new buffer!
-#error "TODO"
+                    _bufferPosition = 0;
+                    _filePosition += delta;
+                    _filePosition += delta;
+                    _bufferedAbsoluteFilePosition += delta;
+                    fillBuffer(_bufferSize);
                 }
             }
         } else {
-           // no buffer, so move both fileposition and buffere pos
+           // no buffer, so move both fileposition and buffered pos
            _bufferPosition = 0;
            _bufferedAbsoluteFilePosition += delta;
            _filePosition += delta;

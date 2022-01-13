@@ -224,30 +224,28 @@ TEST(BasicInvocation, Worker) {
     cout<<res_stdout<<endl;
     cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
 
+    // Step 1: create ref pipeline using direct Tuplex invocation
+    auto test_ref_path = testName + "_ref.csv";
+    createRefPipeline(test_path.toString(), test_ref_path, scratchDir);
 
-//    // Step 1: create ref pipeline using direct Tuplex invocation
-//    auto test_ref_path = testName + "_ref.csv";
-//    createRefPipeline(test_path.toString(), test_ref_path, scratchDir);
-//
-//    // load ref file from parts!
-//    auto ref_files = glob(current_working_directory() + "/" + testName + "_ref*part*csv");
-//    std::sort(ref_files.begin(), ref_files.end());
-//
-//    // merge into single large string
-//    std::string ref_content = "";
-//    for(unsigned i = 0; i < ref_files.size(); ++i) {
-//        if(i > 0) {
-//            auto file_content = fileToString(ref_files[i]);
-//            // skip header for these parts
-//            auto idx = file_content.find("\n");
-//            ref_content += file_content.substr(idx + 1);
-//        } else {
-//            ref_content = fileToString(ref_files[0]);
-//        }
-//    }
-//    stringToFile("ref_content.txt", ref_content);
+    // load ref file from parts!
+    auto ref_files = glob(current_working_directory() + "/" + testName + "_ref*part*csv");
+    std::sort(ref_files.begin(), ref_files.end());
 
-    auto ref_content = fileToString("ref_content.txt");
+    // merge into single large string
+    std::string ref_content = "";
+    for(unsigned i = 0; i < ref_files.size(); ++i) {
+        if(i > 0) {
+            auto file_content = fileToString(ref_files[i]);
+            // skip header for these parts
+            auto idx = file_content.find("\n");
+            ref_content += file_content.substr(idx + 1);
+        } else {
+            ref_content = fileToString(ref_files[0]);
+        }
+    }
+    stringToFile("ref_content.txt", ref_content);
+    ref_content = fileToString("ref_content.txt");
 
     // create a simple TransformStage reading in a file & saving it. Then, execute via Worker!
     // Note: This one is unoptimized, i.e. no projection pushdown, filter pushdown etc.
@@ -291,8 +289,10 @@ TEST(BasicInvocation, Worker) {
     app->processJSONMessage(json_message);
     app->shutdown();
 
+#ifdef BUILD_WITH_AWS
     // reinit SDK, b.c. app shutdown also closes AWS SDK.
     initAWS();
+#endif
 
     // fetch output file and check contents...
     auto file_content = fileToString(test_output_path);
@@ -347,15 +347,13 @@ TEST(BasicInvocation, FileSplitting) {
 
 
     // 0. avoiding tiny parts
-//    res = splitIntoEqualParts(2, {"test.csv"}, {8000}, 4096);
-//    ASSERT_EQ(res.size(), 2);
-//    EXPECT_EQ(res[0].size(), 1);
-//    EXPECT_EQ(res[1].size(), 0);
+    res = splitIntoEqualParts(2, {"test.csv"}, {8000}, 4096);
+    ASSERT_EQ(res.size(), 2);
+    EXPECT_EQ(res[0].size(), 1);
+    EXPECT_EQ(res[1].size(), 0);
 
     res = splitIntoEqualParts(2, {"test.csv"}, {32256}, 4096);
     ASSERT_EQ(res.size(), 2);
-    //EXPECT_EQ(res[0].size());
-
 
     // 1. equally sized files -> each thread should get same number of files (i.e. here 2)
     for(int i = 0; i < 14; ++i) {

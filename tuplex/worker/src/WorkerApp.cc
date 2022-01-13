@@ -131,10 +131,6 @@ namespace tuplex {
         logger.debug("Found " + to_string(num_input_files) + " input URIs to process");
 
         return processMessage(req);
-
-//        auto response = executeTransformTask(tstage);
-
-        return WORKER_OK;
     }
 
     int64_t WorkerApp::initTransformStage(const TransformStage::InitData& initData,
@@ -234,9 +230,6 @@ namespace tuplex {
                 logger().debug(ss.str());
             }
 #endif
-
-            // todo: logger() is not mt-safe!!!
-
 
             // launch threads & process in each assigned parts
             std::vector<std::thread> threads;
@@ -341,21 +334,12 @@ namespace tuplex {
           <<sizeToMemString(hashMapSize)<<" ("<<pluralize(numHashRows, "hash row")<<")";
 
         logger().info("Data processed " + ss.str());
-        // file reorganizing part...
-        //   //        auto outputURI = getNextOutputURI(threadNo, tstage->outputURI(),
-        //        //                                          strEndsWith(tstage->outputURI().toPath(), "/"),
-        //        //                                          defaultFileExtension(tstage->outputFormat()));
-        //        auto outputURI = tstage->outputURI();
-
-        // save buffers now if desired (i.e. data exchange)
-        // => need order for this from original parts + spill parts
         ss.clear();
 
         std::vector<WriteInfo> reorganized_normal_parts;
         // @TODO: same for exceptions... => need to correct numbers??
         //  @Ben Givertz will know how to do this...
         for(unsigned i = 0; i < _numThreads; ++i) {
-
             auto& env = _threadEnvs[i];
 
             // first come all the spill parts, then the remaining buffer...
@@ -372,6 +356,7 @@ namespace tuplex {
                     reorganized_normal_parts.push_back(info);
                 } else {
                     // @TODO...
+                    // --> these should be saved somewhere separate?
                 }
             }
 
@@ -502,8 +487,7 @@ namespace tuplex {
                     throw std::runtime_error(err_msg);
                 }
 
-                // read contents in...
-
+                // read contents in from spill file...
                 if(part_file->size() != part_info.spill_info.file_size) {
                     logger().warn("part_file: " + std::to_string(part_file->size()) + " part_info: " + std::to_string(part_info.spill_info.file_size));
                 }
@@ -527,7 +511,6 @@ namespace tuplex {
         }
 
         file->close();
-
         logger().info("file output done.");
     }
 
@@ -541,7 +524,6 @@ namespace tuplex {
         assert(threadNo >= 0 && threadNo < _numThreads);
 
         auto inputURI = part.uri;
-
 
         // input reader
         std::unique_ptr<FileInputReader> reader;
@@ -713,23 +695,16 @@ namespace tuplex {
             file->write(&tmp, sizeof(int64_t));
         }
         else {
+            // TODO: ORC file format??
+
             file->close();
             throw std::runtime_error("unknown file format " + std::to_string(static_cast<int64_t>(fmt)) + " found.");
         }
 
-
         // write buffer & close file
         file->write(buf, buf_size);
         file->close();
-
-        // ORC?
-        if(FileFormat::OUTFMT_ORC == fmt) {
-            // @TODO:
-        }
-
     }
-
-//    tuplex::messages::InvocationResponse WorkerApp::executeTransformTask(const TransformStage* tstage);
 
     WorkerSettings WorkerApp::settingsFromMessage(const tuplex::messages::InvocationRequest& req) {
         WorkerSettings ws;
@@ -1047,8 +1022,7 @@ namespace tuplex {
         // for now just return the hashmap size...
         return hm_size;
     }
-
-
+    
     extern std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads,
                                                                   const std::vector<URI>& uris,
                                                                   const std::vector<size_t>& file_sizes,

@@ -773,7 +773,8 @@ namespace tuplex {
                 case FileFormat::OUTFMT_ORC: {
 
 #ifdef BUILD_WITH_ORC
-                    auto orc = new OrcReader(this, reinterpret_cast<codegen::read_block_f>(_functor), operatorID, partitionSize, _inputSchema);
+                    auto orc = new OrcReader(this, reinterpret_cast<codegen::read_block_f>(_functor),
+                                             operatorID, contextID(), partitionSize, _inputSchema);
                     orc->setRange(rangeStart, rangeSize);
                     _reader.reset(orc);
 #else

@@ -77,7 +77,15 @@ namespace tuplex {
             return WORKER_ERROR_INVALID_URI;
 #endif
 
-        // @TODO:
+        // @TODO
+        // can reuse here infrastructure from WorkerApp!
+
+        // TODO notes for Lambda:
+        // 1. scale-out should work (via self-invocation!)
+        // 2. Joins (i.e. allow flight query to work)
+        // 3. self-specialization (for flights should work) --> requires range optimization + detection on files.
+        // ==> need other optimizations as well -.-
+
         return WORKER_OK;
     }
 }

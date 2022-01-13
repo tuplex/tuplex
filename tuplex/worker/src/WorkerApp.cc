@@ -1022,7 +1022,7 @@ namespace tuplex {
         // for now just return the hashmap size...
         return hm_size;
     }
-    
+
     extern std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads,
                                                                   const std::vector<URI>& uris,
                                                                   const std::vector<size_t>& file_sizes,

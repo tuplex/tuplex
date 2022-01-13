@@ -46,7 +46,8 @@ namespace tuplex {
 
     inline int64_t rowToMemorySink(Executor *owner, MemorySink& sink,
                                    const Schema& outputSchema,
-                                   int64_t outputDataSetID, const uint8_t *buf, int64_t size) {
+                                   int64_t outputDataSetID, int64_t contextID,
+                                   const uint8_t *buf, int64_t size) {
         // @TODO: make sure outputDataSetID works... for now ignored
         assert(outputDataSetID >= 0 && outputSchema != Schema::UNKNOWN);
 
@@ -59,7 +60,7 @@ namespace tuplex {
         // empty partition? ==> allocate!
         if(!sink.currentPartition) {
             assert(owner);
-            sink.currentPartition = owner->allocWritablePartition(minRequiredSize, outputSchema, outputDataSetID);
+            sink.currentPartition = owner->allocWritablePartition(minRequiredSize, outputSchema, outputDataSetID, contextID);
             sink.bytesWritten = 0;
             sink.outputPtr = sink.currentPartition->lockWriteRaw();
             *((int64_t*)sink.outputPtr) = 0; // 0 rows written yet
@@ -71,7 +72,7 @@ namespace tuplex {
         if(sink.bytesWritten + size > sink.currentPartition->capacity()) {
             sink.currentPartition->unlockWrite();
             sink.currentPartition->setBytesWritten(sink.bytesWritten); // set bytes written to partition
-            sink.currentPartition = owner->allocWritablePartition(minRequiredSize, outputSchema, outputDataSetID);
+            sink.currentPartition = owner->allocWritablePartition(minRequiredSize, outputSchema, outputDataSetID, contextID);
             sink.bytesWritten = 0;
             sink.outputPtr = sink.currentPartition->lockWriteRaw();
             *((int64_t*)sink.outputPtr) = 0; // 0 rows written yet
@@ -169,7 +170,7 @@ namespace tuplex {
                                 size_t partitionSize,
                                 FileFormat fmt);
 
-        void sinkOutputToMemory(const Schema& outputSchema, int64_t outputDataSetID);
+        void sinkOutputToMemory(const Schema& outputSchema, int64_t outputDataSetID, int64_t contextID);
         void sinkOutputToFile(const URI& uri, const std::unordered_map<std::string, std::string>& options);
         void setOutputPrefix(const char* buf, size_t bufSize); // extra prefix to write first to output.
 
@@ -261,6 +262,7 @@ namespace tuplex {
         // memory sink variables
         Schema _outputSchema; //! schema of the final output rows.
         int64_t _outputDataSetID; //! datasetID of the final operator.
+        int64_t _contextID; //! contextID where output partitions belong to
         MemorySink _output;
 
         // exception partitions (sunk to memory)
@@ -276,6 +278,8 @@ namespace tuplex {
         int64_t _outputRowCounter;
 
         double _wallTime;
+
+        inline int64_t contextID() const { return _contextID; }
 
         inline void unlockAllMemorySinks() {  // output partition existing? if so unlock
            _output.unlock();

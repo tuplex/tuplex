@@ -2395,6 +2395,69 @@ TEST_F(WrapperTest, NYC311) {
     }
 }
 
+TEST_F(WrapperTest, PartitionRelease) {
+    // this test checks that when context is destroyed, partitions are also properly released
+
+      using namespace tuplex;
+    using namespace std;
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                    "\"resolveWithInterpreterOnly\": true}";
+
+    auto fix_zip_codes_c = "def fix_zip_codes(zips):\n"
+                           "    if not zips:\n"
+                           "         return None\n"
+                           "    # Truncate everything to length 5 \n"
+                           "    s = zips[:5]\n"
+                           "    \n"
+                           "    # Set 00000 zip codes to nan\n"
+                           "    if s == '00000':\n"
+                           "         return None\n"
+                           "    else:\n"
+                           "         return s";
+
+    auto service_path = "../resources/pipelines/311/311_nyc_sample.csv";
+
+    PythonContext *ctx = new PythonContext("", "", ctx_opts);
+
+    PythonContext ctx2("", "", ctx_opts);
+    {
+        auto type_dict = PyDict_New();
+        PyDict_SetItem(type_dict, python::PyString_FromString("Incident Zip"), python::PyString_FromString("str"));
+        auto cols_to_select = PyList_New(1);
+        PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
+        // type hints:
+        // vector<string>{"Unspecified", "NO CLUE", "NA", "N/A", "0", ""}
+        ctx->csv(service_path,boost::python::object(), true, false, "", "\"",
+                boost::python::object(), boost::python::object(boost::python::handle<>(type_dict)))
+                .mapColumn("Incident Zip", fix_zip_codes_c, "")
+                .selectColumns(boost::python::list(boost::python::handle<>(cols_to_select)))
+                .unique().show();
+
+        std::cout<<std::endl;
+
+        delete ctx; // should invoke partitions!
+        ctx = nullptr;
+
+
+        type_dict = PyDict_New();
+        PyDict_SetItem(type_dict, python::PyString_FromString("Incident Zip"), python::PyString_FromString("str"));
+        cols_to_select = PyList_New(1);
+        PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
+
+        ctx2.csv(service_path,boost::python::object(), true, false, "", "\"",
+                 boost::python::object(), boost::python::object(boost::python::handle<>(type_dict)))
+                .mapColumn("Incident Zip", fix_zip_codes_c, "")
+                .selectColumns(boost::python::list(boost::python::handle<>(cols_to_select)))
+                .unique().show();
+    }
+
+}
+
 
 //// debug any python module...
 ///** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.

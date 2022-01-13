@@ -473,6 +473,7 @@ namespace tuplex {
         _output.reset();
         _outputSchema = Schema::UNKNOWN;
         _outputDataSetID =  -1;
+        _contextID = -1;
 
         // reset exception memory sink
         _exceptions.reset();
@@ -567,7 +568,7 @@ namespace tuplex {
 
     int64_t TransformTask::writeRowToMemory(uint8_t *buf, int64_t size) {
         _outputRowCounter++;
-        return rowToMemorySink(owner(), _output, _outputSchema, _outputDataSetID, buf, size);
+        return rowToMemorySink(owner(), _output, _outputSchema, _outputDataSetID, contextID(), buf, size);
     }
 
     // note: could also use a int64_t, int64_t hashmap for string when string key is stored in bucket...
@@ -683,7 +684,7 @@ namespace tuplex {
         // ==> this would things EVEN faster...
         size_t bufferSize = 0;
         auto buffer = serializeExceptionToMemory(ecCode, opID, _outputRowCounter++, buf, bufSize, &bufferSize);
-        int64_t code = rowToMemorySink(owner(), _exceptions, _inputSchema, _outputDataSetID, buffer, bufferSize);
+        int64_t code = rowToMemorySink(owner(), _exceptions, _inputSchema, _outputDataSetID, contextID(), buffer, bufferSize);
         free(buffer);
         incExceptionCounts(ecCode, opID);
     }
@@ -697,7 +698,7 @@ namespace tuplex {
         _outOptions = options;
     }
 
-    void TransformTask::sinkOutputToMemory(const Schema& outputSchema, int64_t outputDataSetID) {
+    void TransformTask::sinkOutputToMemory(const Schema& outputSchema, int64_t outputDataSetID, int64_t contextID) {
         assert(outputDataSetID >= 0);
 
         // reset sinks
@@ -706,6 +707,7 @@ namespace tuplex {
         // memory sinks
         _outputSchema = outputSchema;
         _outputDataSetID = outputDataSetID;
+        _contextID = contextID;
     }
 
     void TransformTask::setInputMemorySource(tuplex::Partition *partition, bool invalidateAfterUse) {

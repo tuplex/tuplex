@@ -94,8 +94,8 @@ TEST_F(ContextBasicsTest, EmptyResultSetII) {
     auto schema = Schema(Schema::MemoryLayout::ROW, python::Type::I64);
     ResultSet *rs = new ResultSet(schema,
                                   std::vector<Partition*>{
-            exec->allocWritablePartition(1000, schema, 100),
-            exec->allocWritablePartition(1000, schema, 101)
+            exec->allocWritablePartition(1000, schema, 100, 0),
+            exec->allocWritablePartition(1000, schema, 101, 0)
                                   });
 
     EXPECT_TRUE(rs);

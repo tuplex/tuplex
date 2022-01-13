@@ -237,7 +237,7 @@ namespace tuplex {
         }
     }
 
-    Partition* Executor::allocWritablePartition(const size_t minRequired, const Schema& schema, const int dataSetID) {
+    Partition* Executor::allocWritablePartition(const size_t minRequired, const Schema& schema, const int dataSetID, const int contextID) {
 
         // memory is a valid pointer!
         // --> add to list as recently used
@@ -258,7 +258,7 @@ namespace tuplex {
             evictLRUPartition();
         }
 
-        Partition *p = new Partition(this, memory, _allocator.allocatedSize(memory), schema, dataSetID);
+        Partition *p = new Partition(this, memory, _allocator.allocatedSize(memory), schema, dataSetID, contextID);
 
         // print out info:
         //info("new partition at addr: " + hexAddr(p) + " uuid: " + uuidToString(p->uuid()));
@@ -339,6 +339,56 @@ namespace tuplex {
         partition->free(_allocator);
         delete partition;
         partition = nullptr;
+    }
+
+    void Executor::freeAllPartitionsOfContext(const Context *ctx) {
+        using namespace std;
+        if(!ctx)
+            return;
+
+        vector<Partition*> partitionsToFree;
+
+        // partitions is not needed anymore. I.e. remove from either stored or non-stored partitions
+        // before all, acquire list lock because we are going to modify lists!
+        //lockListMutex();
+        {
+            std::unique_lock<boost::shared_mutex> lock(_listMutex);
+
+            // go through both partitions and storedPartitions
+            std::copy_if(_partitions.begin(), _partitions.end(), std::back_inserter(partitionsToFree), [ctx](const Partition* partition) {
+                return partition->contextID() == ctx->id();
+            });
+
+            std::copy_if(_storedPartitions.begin(), _storedPartitions.end(), std::back_inserter(partitionsToFree), [ctx](const Partition* partition) {
+                return partition->contextID() == ctx->id();
+            });
+
+            // remove all partitions
+            size_t numPartitionsToFree = partitionsToFree.size();
+            size_t freeSize = 0;
+            for(auto p : partitionsToFree)
+                freeSize += p->size();
+
+            if(numPartitionsToFree > 0) {
+                _partitions.erase(std::remove_if(_partitions.begin(), _partitions.end(), [ctx](const Partition* partition) {
+                    return partition->contextID() == ctx->id();
+                }), _partitions.end());
+
+                _storedPartitions.erase(std::remove_if(_storedPartitions.begin(), _storedPartitions.end(), [ctx](const Partition* partition) {
+                    return partition->contextID() == ctx->id();
+                }), _storedPartitions.end());
+
+                // perform actual free
+                for(auto& partition : partitionsToFree) {
+                    // free memory
+                    partition->free(_allocator);
+                    delete partition;
+                    partition = nullptr;
+                }
+
+                info("freed " + pluralize(numPartitionsToFree, "partition") + " (" + sizeToMemString(freeSize) + ")");
+            }
+        }
     }
 
     size_t Executor::usedMemory() {

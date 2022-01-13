@@ -47,6 +47,13 @@ namespace tuplex {
         return VirtualFileSystem::registerFileSystem(std::make_shared<S3FileSystemImpl>(access_key, secret_key, session_token, region, ns, lambdaMode, requesterPay), "s3://");
     }
 
+    void VirtualFileSystem::removeS3FileSystem() {
+        auto it = fsRegistry.find("s3://");
+        if(it != fsRegistry.end()) {
+            fsRegistry.erase(it);
+        }
+    }
+
     std::map<std::string, size_t> VirtualFileSystem::s3TransferStats() {
         MessageHandler& logger = Logger::instance().logger("filesystem");
         std::map<std::string, size_t> m;

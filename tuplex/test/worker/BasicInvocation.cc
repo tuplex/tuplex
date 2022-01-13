@@ -225,27 +225,29 @@ TEST(BasicInvocation, Worker) {
     cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
 
 
-    // Step 1: create ref pipeline using direct Tuplex invocation
-    auto test_ref_path = testName + "_ref.csv";
-    createRefPipeline(test_path.toString(), test_ref_path, scratchDir);
+//    // Step 1: create ref pipeline using direct Tuplex invocation
+//    auto test_ref_path = testName + "_ref.csv";
+//    createRefPipeline(test_path.toString(), test_ref_path, scratchDir);
+//
+//    // load ref file from parts!
+//    auto ref_files = glob(current_working_directory() + "/" + testName + "_ref*part*csv");
+//    std::sort(ref_files.begin(), ref_files.end());
+//
+//    // merge into single large string
+//    std::string ref_content = "";
+//    for(unsigned i = 0; i < ref_files.size(); ++i) {
+//        if(i > 0) {
+//            auto file_content = fileToString(ref_files[i]);
+//            // skip header for these parts
+//            auto idx = file_content.find("\n");
+//            ref_content += file_content.substr(idx + 1);
+//        } else {
+//            ref_content = fileToString(ref_files[0]);
+//        }
+//    }
+//    stringToFile("ref_content.txt", ref_content);
 
-    // load ref file from parts!
-    auto ref_files = glob(current_working_directory() + "/" + testName + "_ref*part*csv");
-    std::sort(ref_files.begin(), ref_files.end());
-
-    // merge into single large string
-    std::string ref_content = "";
-    for(unsigned i = 0; i < ref_files.size(); ++i) {
-        if(i > 0) {
-            auto file_content = fileToString(ref_files[i]);
-            // skip header for these parts
-            auto idx = file_content.find("\n");
-            ref_content += file_content.substr(idx + 1);
-        } else {
-            ref_content = fileToString(ref_files[0]);
-        }
-    }
-    stringToFile("ref_content.txt", ref_content);
+    auto ref_content = fileToString("ref_content.txt");
 
     // create a simple TransformStage reading in a file & saving it. Then, execute via Worker!
     // Note: This one is unoptimized, i.e. no projection pushdown, filter pushdown etc.
@@ -289,6 +291,9 @@ TEST(BasicInvocation, Worker) {
     app->processJSONMessage(json_message);
     app->shutdown();
 
+    // reinit SDK, b.c. app shutdown also closes AWS SDK.
+    initAWS();
+
     // fetch output file and check contents...
     auto file_content = fileToString(test_output_path);
 
@@ -300,7 +305,7 @@ TEST(BasicInvocation, Worker) {
     auto ref_lines = splitToLines(ref_content);
     std::sort(res_lines.begin(), res_lines.end());
     std::sort(ref_lines.begin(), ref_lines.end());
-    EXPECT_EQ(res_lines.size(), ref_lines.size());
+    ASSERT_EQ(res_lines.size(), ref_lines.size());
     for(unsigned i = 0; i < std::min(res_lines.size(), ref_lines.size()); ++i) {
         EXPECT_EQ(res_lines[i], ref_lines[i]);
     }
@@ -320,7 +325,7 @@ TEST(BasicInvocation, Worker) {
     file_content = fileToString(test_output_path);
 
     // check files are 1:1 the same!
-    EXPECT_EQ(file_content.size(), ref_content.size());
+    ASSERT_EQ(file_content.size(), ref_content.size());
     res_lines = splitToLines(file_content);
     std::sort(res_lines.begin(), res_lines.end());
     EXPECT_EQ(res_lines.size(), ref_lines.size());
@@ -328,6 +333,8 @@ TEST(BasicInvocation, Worker) {
         EXPECT_EQ(res_lines[i], ref_lines[i]);
     }
     cout<<"Invoked worker check done."<<endl;
+
+    cout<<"Test done."<<endl;
 }
 
 TEST(BasicInvocation, FileSplitting) {

@@ -75,6 +75,11 @@ namespace tuplex {
                                                        bool requesterPay=false);
 
         /*!
+         * removes S3 file system if it exists.
+         */
+        static void removeS3FileSystem();
+
+        /*!
          * helper function to get the S3 file system impl.
          * @return nullptr if not registered, else the implementation.
          */

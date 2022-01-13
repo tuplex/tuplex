@@ -31,6 +31,7 @@ static std::string throw_if_missing_envvar(const std::string &name) {
 }
 
 static bool isAWSInitialized = false;
+static Aws::SDKOptions aws_options;
 
 // for Lambda, check: https://docs.aws.amazon.com/code-samples/latest/catalog/cpp-lambda-lambda_example.cpp.html
 
@@ -52,8 +53,6 @@ private:
 
 static bool initAWSSDK() {
     if(!isAWSInitialized) {
-        Aws::SDKOptions options;
-
 //        // hookup to Tuplex logger...
 //        // --> https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/logging.html
 //        options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
@@ -62,7 +61,7 @@ static bool initAWSSDK() {
         // => https://sdk.amazonaws.com/cpp/api/LATEST/class_aws_1_1_utils_1_1_logging_1_1_log_system_interface.html
 
         // note: AWSSDk uses curl by default, can disable curl init here via https://sdk.amazonaws.com/cpp/api/LATEST/struct_aws_1_1_http_options.html
-        Aws::InitAPI(options);
+        Aws::InitAPI(aws_options);
 
         // init logging
 //        Aws::Utils::Logging::InitializeAWSLogging(
@@ -166,6 +165,14 @@ namespace tuplex {
                                            credentials.session_token, credentials.default_region,
                                            ns, false, requesterPay);
         return true;
+    }
+
+    void shutdownAWS() {
+
+        // remove S3 File System
+        VirtualFileSystem::removeS3FileSystem();
+        Aws::ShutdownAPI(aws_options);
+        isAWSInitialized = false;
     }
 
     bool isValidAWSZone(const std::string& zone) {

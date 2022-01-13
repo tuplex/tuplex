@@ -11,6 +11,7 @@
 #include <physical/TransformTask.h>
 #include "ee/local/LocalBackend.h"
 #include "TypeAnnotatorVisitor.h"
+#include "AWSCommon.h"
 
 namespace tuplex {
 
@@ -34,7 +35,8 @@ namespace tuplex {
         ns.verifySSL = false;
 
 #ifdef BUILD_WITH_AWS
-        Aws::InitAPI(_aws_options);
+        auto credentials = AWSCredentials::get();
+        initAWS(credentials, ns, true);
 #endif
 
         if(!runtime::init(runtime_path)) {
@@ -93,7 +95,7 @@ namespace tuplex {
         runtime::freeRunTimeMemory();
 
 #ifdef BUILD_WITH_AWS
-        Aws::ShutdownAPI(_aws_options);
+        shutdownAWS();
 #endif
     }
 
@@ -514,6 +516,7 @@ namespace tuplex {
                 size_t bytes_read = 0;
                 part_file->readOnly(part_buffer, part_buffer_size, &bytes_read);
                 logger().debug("read from parts file " + sizeToMemString(bytes_read));
+
                 part_file->close();
                 // copy part buffer to output file!
                 file->write(part_buffer, part_buffer_size);
@@ -692,7 +695,7 @@ namespace tuplex {
                 // fetch special var csvHeader
                 auto headerLine = outOptions["csvHeader"];
                 header_length = headerLine.length();
-                header = new uint8_t[header_length+1];
+                header = new uint8_t[header_length + 1];
                 memset(header, 0, header_length + 1 );
                 memcpy(header, (uint8_t *)headerLine.c_str(), header_length);
 

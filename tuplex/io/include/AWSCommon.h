@@ -42,8 +42,12 @@ namespace tuplex {
      * initializes AWS SDK globally (lazy) and add S3 FileSystem.
      * @return true if initializing, else false
      */
-    extern bool initAWS(const AWSCredentials& credentials, const NetworkSettings& ns=NetworkSettings(), bool requesterPay=false);
+    extern bool initAWS(const AWSCredentials& credentials=AWSCredentials::get(), const NetworkSettings& ns=NetworkSettings(), bool requesterPay=false);
 
+    /*!
+     * shuts down AWS SDK (freeing resourced).
+     */
+    extern void shutdownAWS();
 
     /*!
      * validates zone string.

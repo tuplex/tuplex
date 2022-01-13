@@ -29,7 +29,7 @@ namespace tuplex {
         S3FileSystemImpl(const std::string& access_key, const std::string& secret_key, const std::string& session_token,
                          const std::string& region, const NetworkSettings& ns, bool lambdaMode, bool requesterPay);
 
-        Aws::S3::S3Client const& client() const { return *_client.get(); }
+        Aws::S3::S3Client const& client() const { assert(_client); return *_client.get(); }
 
         // fetch stats
         void resetCounters();

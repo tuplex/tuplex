@@ -302,7 +302,7 @@ namespace tuplex {
         // shortcut: is buffer filled and nbytes available?
         // --> no need to query again!
         if(_buffer && _bufferPosition + nbytes <= _bufferLength) {
-            memcpy(buffer, _buffer, nbytes);
+            memcpy(buffer, _buffer + _bufferPosition, nbytes);
             if(bytesRead)
                 *bytesRead = nbytes;
             return VirtualFileSystemStatus::VFS_OK;

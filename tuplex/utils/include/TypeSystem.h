@@ -16,6 +16,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <mutex>
 #include <TTuple.h>
 
 namespace python {

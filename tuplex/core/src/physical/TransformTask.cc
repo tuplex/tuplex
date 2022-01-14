@@ -498,11 +498,11 @@ namespace tuplex {
 
         auto functor = reinterpret_cast<codegen::read_block_exp_f>(_functor);
 
-        auto expPtrs = (uint8_t **) malloc((_inputExceptions.size() - inputExceptionIndex) * sizeof(uint8_t *));
-        auto expPtrSizes = (int64_t *) malloc((_inputExceptions.size() - inputExceptionIndex) * sizeof(int64_t));
+        auto expPtrs = (uint8_t **) malloc((_inputExceptions.size() - _inputExceptionIndex) * sizeof(uint8_t *));
+        auto expPtrSizes = (int64_t *) malloc((_inputExceptions.size() - _inputExceptionIndex) * sizeof(int64_t));
         int expInd = 0;
-        for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
-            if (i == inputExceptionIndex) {
+        for (int i = _inputExceptionIndex; i < _inputExceptions.size(); ++i) {
+            if (i == _inputExceptionIndex) {
                 auto ptr = _inputExceptions[i]->lockRaw();
                 auto numRows = *((int64_t *) ptr) - _inputExceptionOffset; ptr += sizeof(int64_t);
                 for (int j = 0; j < _inputExceptionOffset; ++j) {
@@ -547,7 +547,7 @@ namespace tuplex {
                 inputPartition->invalidate();
         }
 
-        for (int i = inputExceptionIndexex; i < _inputExceptions.size(); ++i) {
+        for (int i = _inputExceptionIndex; i < _inputExceptions.size(); ++i) {
             _inputExceptions[i]->unlock();
         }
         free(expPtrs);

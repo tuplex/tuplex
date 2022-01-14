@@ -669,11 +669,11 @@ namespace tuplex {
 
                 auto partitionId = task->firstPartitionId();
                 if (partitionId != "") {
-                    auto info = tstage->getInputPartitionToPythonObjectsMap()[partitionId];
-                    task->setNumPy(std::get<0>(info));
-                    task->setPyInd(std::get<1>(info));
-                    task->setPyOff(std::get<2>(info));
-                    task->setPythonObjects(tstage->pythonObjects());
+                    auto info = tstage->partitionToExceptionsMap()[partitionId];
+                    task->setNumInputExceptions(std::get<0>(info));
+                    task->setInputExceptionIndex(std::get<1>(info));
+                    task->setInputExceptionOffset(std::get<2>(info));
+                    task->setInputExceptions(tstage->inputExceptions());
                 }
 
                 task->sinkExceptionsToMemory(inputSchema);
@@ -744,7 +744,7 @@ namespace tuplex {
         return pip_object;
     }
 
-    std::vector<std::tuple<size_t, PyObject*>> deserializePythonObjects(std::vector<Partition *> partitions) {
+    std::vector<std::tuple<size_t, PyObject*>> inputExceptionsToPythonObjects(std::vector<Partition *> partitions, Schema schema) {
         using namespace tuplex;
 
         std::vector<std::tuple<size_t, PyObject*>> pyObjects;
@@ -754,15 +754,23 @@ namespace tuplex {
 
             for (int i = 0; i < numRows; ++i) {
                 int64_t rowNum = *((int64_t*)ptr);
-                ptr += 3 * sizeof(int64_t);
+                ptr += sizeof(int64_t);
+                int64_t ecCode = *((int64_t*)ptr);
+                ptr += 2 * sizeof(int64_t);
                 int64_t objSize = *((int64_t*)ptr);
                 ptr += sizeof(int64_t);
-                python::lockGIL();
-                auto pyObject = python::deserializePickledObject(python::getMainModule(), (char *) ptr, objSize);
-                python::unlockGIL();
-                ptr += objSize;
 
-                pyObjects.emplace_back(rowNum, pyObject);
+                PyObject* pyObj = nullptr;
+                python::lockGIL();
+                if (ecCode == ecToI64(ExceptionCode::PYTHON_PARALLELIZE)) {
+                    pyObj = python::deserializePickledObject(python::getMainModule(), (char *) ptr, objSize);
+                } else {
+                    pyObj = python::rowToPython(Row::fromMemory(schema, ptr, objSize), true);
+                }
+                python::unlockGIL();
+
+                ptr += objSize;
+                pyObjects.emplace_back(rowNum, pyObj);
             }
 
             partition->unlock();
@@ -790,10 +798,9 @@ namespace tuplex {
         }
 
         // special case: skip stage, i.e. empty code and mem2mem
-        if(tstage->code().empty() && !tstage->fileInputMode() && !tstage->fileOutputMode()) {
-            auto pyObjects = deserializePythonObjects(tstage->pythonObjects());
-
-            tstage->setMemoryResult(tstage->inputPartitions(), tstage->inputExceptions(), pyObjects);
+        if(tstage->code().empty() &&  !tstage->fileInputMode() && !tstage->fileOutputMode()) {
+            auto pyObjects = inputExceptionsToPythonObjects(tstage->inputExceptions(), tstage->normalCaseInputSchema());
+            tstage->setMemoryResult(tstage->inputPartitions(), std::vector<Partition*>{}, std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>(), pyObjects);
             pyObjects.clear();
             // skip stage
             Logger::instance().defaultLogger().info("[Transform Stage] skipped stage " + std::to_string(tstage->number()) + " because there is nothing todo here.");
@@ -922,7 +929,7 @@ namespace tuplex {
         bool executeSlowPath = true;
         //TODO: implement pure python resolution here...
         // exceptions found or slowpath data given?
-        if(totalECountsBeforeResolution > 0 || !tstage->inputExceptions().empty() || !tstage->pythonObjects().empty()) {
+        if(totalECountsBeforeResolution > 0 || !tstage->inputExceptions().empty()) {
             stringstream ss;
             // log out what exists in a table
             ss<<"Exception details: "<<endl;
@@ -945,21 +952,13 @@ namespace tuplex {
                     lines.push_back(Row((int64_t)opid, exceptionCodeToPythonClass(ec), (int64_t)keyval.second));
                 }
             }
-            // input partitions given?
-            if(!tstage->inputExceptions().empty()) {
-                size_t numSlowPath = 0;
-                for(auto& p : tstage->inputExceptions())
-                    numSlowPath += p->getNumRows();
-                lines.push_back(Row("(cached)", exceptionCodeToPythonClass(ExceptionCode::NORMALCASEVIOLATION), (int64_t)numSlowPath));
-                totalECountsBeforeResolution += numSlowPath;
-            }
 
-            if(!tstage->pythonObjects().empty()) {
-                size_t numPyObjs = 0;
-                for (auto &p : tstage->pythonObjects())
-                    numPyObjs += p->getNumRows();
-                lines.push_back(Row("(parallelize)", exceptionCodeToPythonClass(ExceptionCode::NORMALCASEVIOLATION), (int64_t)numPyObjs));
-                totalECountsBeforeResolution += numPyObjs;
+            if(!tstage->inputExceptions().empty()) {
+                size_t numExceptions = 0;
+                for (auto &p : tstage->inputExceptions())
+                    numExceptions += p->getNumRows();
+                lines.push_back(Row("(schema)", exceptionCodeToPythonClass(ExceptionCode::NORMALCASEVIOLATION), (int64_t)numExceptions));
+                totalECountsBeforeResolution += numExceptions;
             }
 
             printTable(ss, headers, lines, false);
@@ -973,13 +972,6 @@ namespace tuplex {
             if(tstage->persistSeparateCases()) {
                 // deactivate merging in order
                 merge_except_rows = false;
-            }
-
-            // were initial exceptions (general case) given?
-            if(!tstage->inputExceptions().empty() && merge_except_rows) {
-                auto err_msg = "when using cache with normal/general optimization, set mergeRowsInOrder=false. Not yet supported";
-                logger().error(err_msg);
-                throw std::runtime_error(err_msg);
             }
 
             // should slow path get executed
@@ -996,7 +988,7 @@ namespace tuplex {
                 executeSlowPath = true;
 
             // input exceptions or py objects?
-            if(!tstage->inputExceptions().empty() || !tstage->pythonObjects().empty())
+            if(!tstage->inputExceptions().empty())
                 executeSlowPath = true;
 
             if(executeSlowPath) {
@@ -1076,7 +1068,8 @@ namespace tuplex {
             case EndPointMode::MEMORY: {
                 // memory output, fetch partitions & ecounts
                 vector<Partition *> output;
-                vector<Partition*> generalOutput; // partitions which violate the normal case
+                vector<Partition *> generalOutput;
+                unordered_map<string, tuple<size_t, size_t, size_t>> partitionToExceptionsMap;
                 vector<Partition*> remainingExceptions;
                 vector<tuple<size_t, PyObject*>> nonConformingRows; // rows where the output type does not fit,
                                                                      // need to manually merged.
@@ -1097,6 +1090,17 @@ namespace tuplex {
                         auto t = taskNonConformingRows[i];
                         t = std::make_tuple(std::get<0>(t) + rowDelta, std::get<1>(t));
                         taskNonConformingRows[i] = t;
+                    }
+
+                    auto exceptionInd = generalOutput.size();
+                    auto numExceptions = 0;
+                    for (auto p : taskGeneralOutput) {
+                        numExceptions += p->getNumRows();
+                    }
+
+                    auto firstPartitionId = task->firstPartitionId();
+                    if (firstPartitionId != "") {
+                        partitionToExceptionsMap[firstPartitionId] = make_tuple(numExceptions, exceptionInd, 0);
                     }
 
                     // debug trace issues
@@ -1120,7 +1124,7 @@ namespace tuplex {
                     rowDelta += taskNonConformingRows.size();
                 }
 
-                tstage->setMemoryResult(output, generalOutput, nonConformingRows, remainingExceptions, ecounts);
+                tstage->setMemoryResult(output, generalOutput, partitionToExceptionsMap, nonConformingRows, remainingExceptions, ecounts);
                 break;
             }
             case EndPointMode::HASHTABLE: {
@@ -1340,7 +1344,7 @@ namespace tuplex {
             else if(compareOrders(maxOrder, tt->getOrder()))
                 maxOrder = tt->getOrder();
 
-            if (tt->exceptionCounts().size() > 0 || tt->numPy() > 0) {
+            if (tt->exceptionCounts().size() > 0 || tt->numInputExceptions() > 0) {
                 // task found with exceptions in it => exception partitions need to be resolved using special functor
 
                 // hash-table output not yet supported
@@ -1355,10 +1359,10 @@ namespace tuplex {
                 auto rtask = new ResolveTask(stageID,
                                              tt->getOutputPartitions(),
                                              tt->getExceptionPartitions(),
-                                             tt->pythonObjects(),
-                                             tt->numPy(),
-                                             tt->pyInd(),
-                                             tt->pyOff(),
+                                             tt->inputExceptions(),
+                                             tt->numInputExceptions(),
+                                             tt->inputExceptionIndex(),
+                                             tt->inputExceptionOffset(),
                                              opsToCheck,
                                              exceptionInputSchema,
                                              compiledSlowPathOutputSchema,
@@ -1435,52 +1439,6 @@ namespace tuplex {
             } else {
                 // just append to output
                 tasks_result.push_back(task);
-            }
-        }
-
-        // are input exceptions given? create tasks here...
-        if(!tstage->inputExceptions().empty()) {
-            // add into ops to check the dummy 0 which is used in Caching tasks...
-            opsToCheck.push_back(0);
-
-            assert(!merge_rows_in_order); // @TODO: no support for this yet... -> it might be complicated because of filters & Co to figure out the right row numbers...
-            for(auto& p : tstage->inputExceptions()) {
-                maxOrder.back()++;
-
-                auto rtask = new ResolveTask(stageID,
-                                             std::vector<Partition*>(),
-                                                     vector<Partition*>{p},
-                                                     vector<Partition*>(),
-                                                     0,
-                                                     0,
-                                                     0,
-                                                     opsToCheck,
-                                                     tstage->inputSchema(),
-                                                     compiledSlowPathOutputSchema,
-                                                     targetNormalCaseOutputSchema,
-                                                     targetGeneralCaseOutputSchema,
-                                                     merge_rows_in_order,
-                                                     allowNumericTypeUnification,
-                                                     outFormat,
-                                                     csvDelimiter,
-                                                     csvQuotechar,
-                                                     functor,
-                                                     pip_object);
-
-                // to implement, store i.e. tables within tasks...
-                rtask->setHybridIntermediateHashTables(tstage->predecessors().size(), input_intermediates.hybrids);
-
-                rtask->setOrder(maxOrder); // this is arbitrary, just put the slow path rows at the end
-                // hash output?
-                if(hashOutput) {
-                    if (tstage->hashtableKeyByteWidth() == 8) {
-                        auto h = tstage->dataAggregationMode();
-                        rtask->sinkOutputToHashTable(HashTableFormat::UINT64, tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType());
-                    } else {
-                        rtask->sinkOutputToHashTable(HashTableFormat::BYTES, tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType());
-                    }
-                }
-                resolveTasks.push_back(rtask);
             }
         }
 

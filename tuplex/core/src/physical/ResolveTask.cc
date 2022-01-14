@@ -708,7 +708,7 @@ default:
         }
 
         // abort if no exceptions!
-        if(_exceptions.empty() && _numPythonObjects == 0)
+        if(_runtimeExceptions.empty() && _numInputExceptions == 0)
             return;
 
         // special case: no functor & no python pipeline functor given
@@ -721,12 +721,12 @@ default:
 #endif
 
             // copy _generalCasePartitions over to base class
-            IExceptionableTask::setExceptions(_exceptions);
+            IExceptionableTask::setExceptions(_runtimeExceptions);
 
             // clear exceptions, because they have been resolved (or put to new exceptions!)
             // if task produced exceptions, they are stored in the IExceptionableTask class!
             // => no need to overwrite them, getter for iexceptionabletask has all info!
-            _exceptions.clear();
+            _runtimeExceptions.clear();
             _wallTime = timer.time();
 
             return;
@@ -739,7 +739,7 @@ default:
             // merge exceptions with normal rows after calling slow code over them...
             // basic idea is go over all exception partitions, execute row wise the resolution function
             // and merge the result back to the partitions
-            for(auto partition : _exceptions) {
+            for(auto partition : _runtimeExceptions) {
                 const uint8_t *ptr = partition->lockRaw();
                 int64_t numRows = *((int64_t *) ptr);
                 ptr += sizeof(int64_t);
@@ -781,21 +781,21 @@ default:
                 partition->invalidate();
             }
 
-            if (_numPythonObjects > 0) {
-                auto partition = _pythonObjects[_pythonObjectsInd];
+            if (_numInputExceptions > 0) {
+                auto partition = _inputExceptions[_inputExceptionIndex];
                 const uint8_t *ptr = partition->lockRaw();
-                int64_t numRows = *((int64_t *) ptr) - _pythonObjectsOff; ptr += sizeof(int64_t);
-                for (int i = 0; i < _pythonObjectsOff; ++i) {
+                int64_t numRows = *((int64_t *) ptr) - _inputExceptionOffset; ptr += sizeof(int64_t);
+                for (int i = 0; i < _inputExceptionOffset; ++i) {
                     int64_t* ib = (int64_t*)ptr;
                     auto eSize = ib[3];
                     ptr += eSize + 4*sizeof(int64_t);
                 }
 
-                for (int i = 0; i < _numPythonObjects; ++i) {
+                for (int i = 0; i < _numInputExceptions; ++i) {
                     if (numRows == 0) {
                         partition->unlock();
-                        _pythonObjectsInd++;
-                        partition = _pythonObjects[_pythonObjectsInd];
+                        _inputExceptionIndex++;
+                        partition = _inputExceptions[_inputExceptionIndex];
                         ptr = partition->lockRaw();
                         numRows = *((int64_t *) ptr); ptr += sizeof(int64_t);
                     }
@@ -829,7 +829,11 @@ default:
             // clear exceptions, because they have been resolved (or put to new exceptions!)
             // if task produced exceptions, they are stored in the IExceptionableTask class!
             // => no need to overwrite them, getter for iexceptionabletask has all info!
-            _exceptions.clear();
+            _runtimeExceptions.clear();
+            for (auto p : _inputExceptions) {
+                p->invalidate();
+            }
+            _inputExceptions.clear();
         } else {
             executeInOrder();
         }
@@ -878,45 +882,45 @@ default:
             _rowNumber = 0;
         }
 
-        size_t eInd;
-        int64_t eRemaining;
-        const uint8_t *ePtr = nullptr;
-        if (_exceptions.size() > 0) {
-            eInd = 0;
-            ePtr = _exceptions[eInd]->lockRaw();
-            eRemaining = *((int64_t *) ePtr); ePtr += sizeof(int64_t);
+        size_t runInd;
+        int64_t runRemaining;
+        const uint8_t *runPtr = nullptr;
+        if (_runtimeExceptions.size() > 0) {
+            runInd = 0;
+            runPtr = _runtimeExceptions[runInd]->lockRaw();
+            runRemaining = *((int64_t *) runPtr); runPtr += sizeof(int64_t);
         }
 
-        size_t pyInd;
-        int64_t pyRemaining;
-        int64_t pyTotal = _numPythonObjects;
-        const uint8_t *pyPtr = nullptr;
-        if (_numPythonObjects > 0) {
-            pyInd = _pythonObjectsInd;
-            pyPtr = _pythonObjects[pyInd]->lockRaw();
-            pyRemaining = *((int64_t *) pyPtr) - _pythonObjectsOff; pyPtr += sizeof(int64_t);
-            for (int i = 0; i < _pythonObjectsOff; ++i) {
-                int64_t* ib = (int64_t*)pyPtr;
+        size_t inputInd;
+        int64_t inputRemaining;
+        int64_t inputTotal = _numInputExceptions;
+        const uint8_t *inputPtr = nullptr;
+        if (_numInputExceptions > 0) {
+            inputInd = _inputExceptionIndex;
+            inputPtr = _inputExceptions[inputInd]->lockRaw();
+            inputRemaining = *((int64_t *) inputPtr) - _inputExceptionOffset; inputPtr += sizeof(int64_t);
+            for (int i = 0; i < _inputExceptionOffset; ++i) {
+                int64_t* ib = (int64_t*)inputPtr;
                 auto eSize = ib[3];
-                pyPtr += eSize + 4*sizeof(int64_t);
+                inputPtr += eSize + 4*sizeof(int64_t);
             }
         }
 
-        size_t pyObjectsProcessed = 0;
+        size_t inputProcessed = 0;
         const uint8_t **ptr;
-        while (ePtr && pyPtr) {
-            auto eRowInd = *((int64_t *) ePtr);
-            auto pyRowInd = *((int64_t *) pyPtr);
-            bool isException = false;
-            if (eRowInd + pyObjectsProcessed < pyRowInd) {
-                ptr = &ePtr;
-                eRemaining--;
-                isException = true;
+        while (runPtr && inputPtr) {
+            auto runRowInd = *((int64_t *) runPtr);
+            auto inputRowInd = *((int64_t *) inputPtr);
+            bool isRuntime = false;
+            if (runRowInd + inputProcessed < inputRowInd) {
+                ptr = &runPtr;
+                runRemaining--;
+                isRuntime = true;
             } else {
-                ptr = &pyPtr;
-                pyRemaining--;
-                pyTotal--;
-                pyObjectsProcessed++;
+                ptr = &inputPtr;
+                inputRemaining--;
+                inputTotal--;
+                inputProcessed++;
             }
 
             const uint8_t *ebuf = nullptr;
@@ -925,82 +929,82 @@ default:
             auto delta = deserializeExceptionFromMemory(*ptr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
                                                         &eSize);
 
-            if (isException)
-                _currentRowNumber += pyObjectsProcessed;
+            if (isRuntime)
+                _currentRowNumber += inputProcessed;
 
             processExceptionRow(ecCode, operatorID, ebuf, eSize);
             *ptr += delta;
             _rowNumber++;
 
-            if (eRemaining == 0) {
-                _exceptions[eInd]->unlock();
-                _exceptions[eInd]->invalidate();
-                eInd++;
-                if (eInd < _exceptions.size()) {
-                    ePtr = _exceptions[eInd]->lockRaw();
-                    eRemaining = *((int64_t *) ePtr); ePtr += sizeof(int64_t);
+            if (runRemaining == 0) {
+                _runtimeExceptions[runInd]->unlock();
+                _runtimeExceptions[runInd]->invalidate();
+                runInd++;
+                if (runInd < _runtimeExceptions.size()) {
+                    runPtr = _runtimeExceptions[runInd]->lockRaw();
+                    runRemaining = *((int64_t *) runPtr); runPtr += sizeof(int64_t);
                 } else {
-                    ePtr = nullptr;
+                    runPtr = nullptr;
                 }
             }
 
-            if (pyRemaining == 0 || pyTotal == 0) {
-                _pythonObjects[pyInd]->unlock();
-                pyInd++;
-                if (pyInd < _pythonObjects.size() && pyTotal > 0) {
-                    pyPtr = _pythonObjects[pyInd]->lockRaw();
-                    pyRemaining = *((int64_t *) pyPtr); pyPtr += sizeof(int64_t);
+            if (inputRemaining == 0 || inputTotal == 0) {
+                _inputExceptions[inputInd]->unlock();
+                inputInd++;
+                if (inputInd < _inputExceptions.size() && inputTotal > 0) {
+                    inputPtr = _inputExceptions[inputInd]->lockRaw();
+                    inputRemaining = *((int64_t *) inputPtr); inputPtr += sizeof(int64_t);
                 } else {
-                    pyPtr = nullptr;
-                }
-            }
-        }
-
-        while (ePtr) {
-            const uint8_t *ebuf = nullptr;
-            int64_t ecCode = -1, operatorID = -1;
-            size_t eSize = 0;
-            auto delta = deserializeExceptionFromMemory(ePtr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
-                                                        &eSize);
-            _currentRowNumber += pyObjectsProcessed;
-            processExceptionRow(ecCode, operatorID, ebuf, eSize);
-            ePtr += delta;
-            _rowNumber++;
-
-            eRemaining--;
-            if (eRemaining == 0) {
-                _exceptions[eInd]->unlock();
-                _exceptions[eInd]->invalidate();
-                eInd++;
-                if (eInd < _exceptions.size()) {
-                    ePtr = _exceptions[eInd]->lockRaw();
-                    eRemaining = *((int64_t *) ePtr); ePtr += sizeof(int64_t);
-                } else {
-                    ePtr = nullptr;
+                    inputPtr = nullptr;
                 }
             }
         }
 
-        while (pyPtr) {
+        while (runPtr) {
             const uint8_t *ebuf = nullptr;
             int64_t ecCode = -1, operatorID = -1;
             size_t eSize = 0;
-            auto delta = deserializeExceptionFromMemory(pyPtr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
+            auto delta = deserializeExceptionFromMemory(runPtr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
                                                         &eSize);
+            _currentRowNumber += inputProcessed;
             processExceptionRow(ecCode, operatorID, ebuf, eSize);
-            pyPtr += delta;
+            runPtr += delta;
             _rowNumber++;
 
-            pyRemaining--;
-            pyTotal--;
-            if (pyRemaining == 0 || pyTotal == 0) {
-                _pythonObjects[pyInd]->unlock();
-                pyInd++;
-                if (pyInd < _pythonObjects.size() && pyTotal > 0) {
-                    pyPtr = _pythonObjects[pyInd]->lockRaw();
-                    pyRemaining = *((int64_t *) pyPtr); pyPtr += sizeof(int64_t);
+            runRemaining--;
+            if (runRemaining == 0) {
+                _runtimeExceptions[runInd]->unlock();
+                _runtimeExceptions[runInd]->invalidate();
+                runInd++;
+                if (runInd < _runtimeExceptions.size()) {
+                    runPtr = _runtimeExceptions[runInd]->lockRaw();
+                    runRemaining = *((int64_t *) runPtr); runPtr += sizeof(int64_t);
                 } else {
-                    pyPtr = nullptr;
+                    runPtr = nullptr;
+                }
+            }
+        }
+
+        while (inputPtr) {
+            const uint8_t *ebuf = nullptr;
+            int64_t ecCode = -1, operatorID = -1;
+            size_t eSize = 0;
+            auto delta = deserializeExceptionFromMemory(inputPtr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
+                                                        &eSize);
+            processExceptionRow(ecCode, operatorID, ebuf, eSize);
+            inputPtr += delta;
+            _rowNumber++;
+
+            inputRemaining--;
+            inputTotal--;
+            if (inputRemaining == 0 || inputTotal == 0) {
+                _inputExceptions[inputInd]->unlock();
+                inputInd++;
+                if (inputInd < _inputExceptions.size() && inputTotal > 0) {
+                    inputPtr = _inputExceptions[inputInd]->lockRaw();
+                    inputRemaining = *((int64_t *) inputPtr); inputPtr += sizeof(int64_t);
+                } else {
+                    inputPtr = nullptr;
                 }
             }
         }
@@ -1035,7 +1039,7 @@ default:
         // clear exceptions, because they have been resolved (or put to new exceptions!)
         // if task produced exceptions, they are stored in the IExceptionableTask class!
         // => no need to overwrite them, getter for iexceptionabletask has all info!
-        _exceptions.clear();
+        _runtimeExceptions.clear();
     }
 
     void ResolveTask::sendStatusToHistoryServer() {

@@ -113,9 +113,9 @@ namespace tuplex {
                           _stageID(-1),
                           _htableFormat(HashTableFormat::UNKNOWN),
                           _wallTime(0.0),
-                          _numPy(0),
-                          _pyOff(0),
-                          _pyInd(0),
+                          _numInputExceptions(0),
+                          _inputExceptionOffset(0),
+                          _inputExceptionIndex(0),
                           _updateInputExceptions(false) {
             resetSinks();
             resetSources();
@@ -233,11 +233,7 @@ namespace tuplex {
         */
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> exceptionCounts() const { return _exceptionCounts; }
 
-        /*!
-         * returns the uuid of the first input partition as a string or an empty string if no partitions exist.
-         * @return
-         */
-        std::string firstPartitionId() {
+        std::string firstPartitionId() const override {
             if (_inputPartitions.size() > 0) {
                 return uuidToString(_inputPartitions.at(0)->uuid());
             } else {
@@ -245,15 +241,15 @@ namespace tuplex {
             }
         }
 
-        size_t numPy() { return _numPy; }
-        size_t pyInd() { return _pyInd; }
-        size_t pyOff() { return _pyOff; }
-        std::vector<Partition*> pythonObjects() { return _pythonObjects; }
+        size_t numInputExceptions() { return _numInputExceptions; }
+        size_t inputExceptionIndex() { return _inputExceptionIndex; }
+        size_t inputExceptionOffset() { return _inputExceptionOffset; }
+        std::vector<Partition*> inputExceptions() { return _inputExceptions; }
 
-        void setNumPy(size_t numPy) { _numPy = numPy; }
-        void setPyInd(size_t pyInd) { _pyInd = pyInd; }
-        void setPyOff(size_t pyOff) { _pyOff = pyOff; }
-        void setPythonObjects(const std::vector<Partition*>& pythonObjects) { _pythonObjects = pythonObjects; }
+        void setNumInputExceptions(size_t numInputExceptions) { _numInputExceptions = numInputExceptions; }
+        void setInputExceptionIndex(size_t inputExceptionIndex) { _inputExceptionIndex = inputExceptionIndex; }
+        void setInputExceptionOffset(size_t inputExceptionOffset) { _inputExceptionOffset = inputExceptionOffset; }
+        void setInputExceptions(const std::vector<Partition*>& inputExceptions) { _inputExceptions = inputExceptions; }
         void setUpdateInputExceptions(bool updateInputExceptions) { _updateInputExceptions = updateInputExceptions; }
 
 
@@ -299,10 +295,10 @@ namespace tuplex {
         MemorySink _exceptions;
         Schema _inputSchema;
 
-        size_t _numPy;
-        size_t _pyInd;
-        size_t _pyOff;
-        std::vector<Partition*> _pythonObjects;
+        size_t _numInputExceptions;
+        size_t _inputExceptionIndex;
+        size_t _inputExceptionOffset;
+        std::vector<Partition*> _inputExceptions;
         bool _updateInputExceptions;
 
         // hash table sink

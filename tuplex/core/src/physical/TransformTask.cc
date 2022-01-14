@@ -498,14 +498,14 @@ namespace tuplex {
 
         auto functor = reinterpret_cast<codegen::read_block_exp_f>(_functor);
 
-        auto expPtrs = (uint8_t **) malloc((_pythonObjects.size() - _pyInd) * sizeof(uint8_t *));
-        auto expPtrSizes = (int64_t *) malloc((_pythonObjects.size() - _pyInd) * sizeof(int64_t));
+        auto expPtrs = (uint8_t **) malloc((_inputExceptions.size() - _inputExceptionInd) * sizeof(uint8_t *));
+        auto expPtrSizes = (int64_t *) malloc((_inputExceptions.size() - _inputExceptionInd) * sizeof(int64_t));
         int expInd = 0;
-        for (int i = _pyInd; i < _pythonObjects.size(); ++i) {
-            if (i == _pyInd) {
-                auto ptr = _pythonObjects[i]->lockRaw();
-                auto numRows = *((int64_t *) ptr) - _pyOff; ptr += sizeof(int64_t);
-                for (int j = 0; j < _pyOff; ++j) {
+        for (int i = _inputExceptionInd; i < _inputExceptions.size(); ++i) {
+            if (i == _inputExceptionInd) {
+                auto ptr = _inputExceptions[i]->lockRaw();
+                auto numRows = *((int64_t *) ptr) - _inputExceptionOffset; ptr += sizeof(int64_t);
+                for (int j = 0; j < _inputExceptionOffset; ++j) {
                     int64_t *ib = (int64_t *)ptr;
                     auto eSize = ib[3];
                     ptr += eSize + 4 * sizeof(int64_t);
@@ -514,7 +514,7 @@ namespace tuplex {
                 expPtrs[expInd] = (uint8_t *) ptr;
                 expInd++;
             } else {
-                auto ptr = _pythonObjects[i]->lockRaw();
+                auto ptr = _inputExceptions[i]->lockRaw();
                 auto numRows = *((int64_t *) ptr); ptr += sizeof(int64_t);
                 expPtrSizes[expInd] = numRows;
                 expPtrs[expInd] = (uint8_t *) ptr;
@@ -531,7 +531,7 @@ namespace tuplex {
             _numInputRowsRead += static_cast<size_t>(*((int64_t*)inPtr));
 
             // call functor
-            auto bytesParsed = functor(this, inPtr, inSize, expPtrs, expPtrSizes, _numPy, &num_normal_rows, &num_bad_rows, false);
+            auto bytesParsed = functor(this, inPtr, inSize, expPtrs, expPtrSizes, _numInputExceptions, &num_normal_rows, &num_bad_rows, false);
 
             // save number of normal rows to output rows written if not writeTofile
             if(hasMemorySink())
@@ -547,8 +547,8 @@ namespace tuplex {
                 inputPartition->invalidate();
         }
 
-        for (int i = _pyInd; i < _pythonObjects.size(); ++i) {
-            _pythonObjects[i]->unlock();
+        for (int i = _inputExceptionIndex; i < _inputExceptions.size(); ++i) {
+            _inputExceptions[i]->unlock();
         }
         free(expPtrs);
         free(expPtrSizes);

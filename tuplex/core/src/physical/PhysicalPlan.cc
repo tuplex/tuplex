@@ -391,12 +391,13 @@ namespace tuplex {
         if (inputNode->type() == LogicalOperatorType::PARALLELIZE) {
             auto pop = dynamic_cast<ParallelizeOperator *>(inputNode); assert(inputNode);
             stage->setInputPartitions(pop->getPartitions());
-            stage->setPythonObjects(pop->getPythonObjects());
-            stage->setInputPartitionToPythonObjectsMap(pop->getInputPartitionToPythonObjectsMap());
+            stage->setInputExceptions(pop->getPythonObjects());
+            stage->setPartitionToExceptionsMap(pop->getInputPartitionToPythonObjectsMap());
         } else if(inputNode->type() == LogicalOperatorType::CACHE) {
             auto cop = dynamic_cast<CacheOperator*>(inputNode);  assert(inputNode);
             stage->setInputPartitions(cop->cachedPartitions());
             stage->setInputExceptions(cop->cachedExceptions());
+            stage->setPartitionToExceptionsMap(cop->partitionToExceptionsMap());
         } else if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
             auto csvop = dynamic_cast<FileInputOperator*>(inputNode);
             stage->setInputFiles(csvop->getURIs(), csvop->getURISizes());

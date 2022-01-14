@@ -56,11 +56,11 @@ namespace tuplex {
         // need to define the schema what the resolve functor returns...
         ResolveTask(int64_t stageID,
                     const std::vector<Partition*>& partitions,
-                    const std::vector<Partition*>& exceptions,
-                    const std::vector<Partition*>& pythonObjects,
-                    size_t numPythonObjects,
-                    size_t pythonObjectsInd,
-                    size_t pythonObjectsOff,
+                    const std::vector<Partition*>& runtimeExceptions,
+                    const std::vector<Partition*>& inputExceptions,
+                    size_t numInputExceptions,
+                    size_t inputExceptionIndex,
+                    size_t inputExceptionOffset,
                     const std::vector<int64_t>& operatorIDsAffectedByResolvers, //! used to identify which exceptions DO require reprocessing because there might be a resolver in the slow path for them.
                     Schema exceptionInputSchema, //! schema of the input rows in which both user exceptions and normal-case violations are stored in. This is also the schema in which rows which on the slow path produce again an exception will be stored in.
                     Schema resolverOutputSchema, //! schema of rows that the resolve function outputs if it doesn't rethrow exceptions
@@ -75,11 +75,11 @@ namespace tuplex {
                     PyObject* interpreterFunctor=nullptr) : IExceptionableTask::IExceptionableTask(exceptionInputSchema),
                                                             _stageID(stageID),
                                                             _partitions(partitions),
-                                                            _exceptions(exceptions),
-                                                            _pythonObjects(pythonObjects),
-                                                            _numPythonObjects(numPythonObjects),
-                                                            _pythonObjectsInd(pythonObjectsInd),
-                                                            _pythonObjectsOff(pythonObjectsOff),
+                                                            _runtimeExceptions(runtimeExceptions),
+                                                            _inputExceptions(inputExceptions),
+                                                            _numInputExceptions(numInputExceptions),
+                                                            _inputExceptionIndex(inputExceptionIndex),
+                                                            _inputExceptionOffset(inputExceptionOffset),
                                                             _resolverOutputSchema(resolverOutputSchema),
                                                             _targetOutputSchema(targetNormalCaseOutputSchema),
                                                             _mergeRows(mergeRows),
@@ -166,6 +166,14 @@ namespace tuplex {
 
         std::vector<Partition*> getOutputPartitions() const override { return _partitions; }
 
+        std::string firstPartitionId() const override {
+            if (_partitions.size() > 0) {
+                return uuidToString(_partitions.at(0)->uuid());
+            } else {
+                return "";
+            }
+        }
+
         std::vector<std::tuple<size_t, PyObject*>> getNonConformingRows() const { return _py_nonconfirming; }
 
         /// very important to override this because of the special two exceptions fields of ResolveTask
@@ -210,11 +218,11 @@ namespace tuplex {
     private:
         int64_t                 _stageID; /// to which stage does this task belong to.
         std::vector<Partition*> _partitions;
-        std::vector<Partition*> _exceptions;
-        std::vector<Partition*> _pythonObjects;
-        size_t _numPythonObjects;
-        size_t _pythonObjectsInd;
-        size_t _pythonObjectsOff;
+        std::vector<Partition*> _runtimeExceptions;
+        std::vector<Partition*> _inputExceptions;
+        size_t _numInputExceptions;
+        size_t _inputExceptionIndex;
+        size_t _inputExceptionOffset;
         inline Schema commonCaseInputSchema() const { return _deserializerGeneralCaseOutput->getSchema(); }
         Schema                  _resolverOutputSchema; //! what the resolve functor produces
         Schema                  _targetOutputSchema; //! which schema the final rows should be in...

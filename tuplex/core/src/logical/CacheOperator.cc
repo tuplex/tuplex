@@ -24,6 +24,7 @@ namespace tuplex {
         setSchema(other->getOutputSchema());
         _normalCasePartitions = cop->cachedPartitions();
         _generalCasePartitions = cop->cachedExceptions();
+        _partitionToExceptionsMap = cop->partitionToExceptionsMap();
         // copy python objects and incref for each!
         _py_objects = cop->_py_objects;
         python::lockGIL();
@@ -84,6 +85,8 @@ namespace tuplex {
         _generalCasePartitions = rs->exceptions();
         for(auto p : _generalCasePartitions)
             p->makeImmortal();
+
+        _partitionToExceptionsMap = rs->partitionToExceptionsMap();
 
         // check whether partitions have different schema than the currently set one
         // => i.e. they have been specialized.

@@ -16,6 +16,41 @@ class CacheTest : public PyTest {
 using namespace tuplex;
 using namespace std;
 
+TEST_F(CacheTest, CacheInOrder) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto fileURI = URI(testName + ".csv");
+
+    auto opt = microTestOptions();
+    // enable NullValue Optimization
+    opt.set("tuplex.useLLVMOptimizer", "true");
+    opt.set("tuplex.optimizer.generateParser", "true");
+    opt.set("tuplex.executorCount", "0");
+    opt.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
+    opt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt.set("tuplex.normalcaseThreshold", "0.6");
+    opt.set("tuplex.resolveWithInterpreterOnly", "false");
+
+    Context c(opt);
+
+    stringstream ss;
+    ss << "A, B\n";
+    ss << "1, 2\n";
+    ss << "3, 4\n";
+    ss << ",-1\n";
+    ss << "5, 6\n";
+    ss << "7, 8\n";
+    stringToFile(fileURI, ss.str());
+
+    auto ds = c.csv(fileURI.toPath()).cache();
+
+    auto res2 = ds.map(UDF("lambda x, y: y")).collectAsVector();
+
+    ASSERT_EQ(res2.size(), 5);
+    EXPECT_EQ(res2.at(2).toPythonString(), "(-1,)");
+}
+
 // Note: only this test here fails...
 TEST_F(CacheTest, SimpleCSVLoad) {
     using namespace std;

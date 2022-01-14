@@ -17,6 +17,15 @@
 #include <physical/OrcReader.h>
 #include <bucket.h>
 
+namespace tuplex {
+    // atomic var to count output rows!
+    static std::atomic_int64_t g_totalOutputRows;
+
+    void TransformTask::resetOutputLimitCounter() {
+        g_totalOutputRows = 0;
+    }
+}
+
 extern "C" {
     static int64_t w2mCallback(tuplex::TransformTask* task, uint8_t* buf, int64_t bufSize) {
         assert(task);
@@ -25,6 +34,31 @@ extern "C" {
     }
 
     static int64_t w2fCallback(tuplex::TransformTask* task, uint8_t* buf, int64_t bufSize) {
+        assert(task);
+        assert(dynamic_cast<tuplex::TransformTask*>(task));
+        return task->writeRowToFile(buf, bufSize);
+    }
+
+    static int64_t limited_w2mCallback(tuplex::TransformTask* task, uint8_t* buf, int64_t bufSize) {
+        // i.e. check here how many output rows, if already limit reached - jump to goto!
+        if(tuplex::g_totalOutputRows >= task->output_limit()) {
+            return tuplex::ecToI64(tuplex::ExceptionCode::OUTPUT_LIMIT_REACHED);
+        }
+
+        assert(task);
+        assert(dynamic_cast<tuplex::TransformTask*>(task));
+        auto rc = task->writeRowToMemory(buf, bufSize);
+        if(0 == rc)
+            tuplex::g_totalOutputRows++;
+
+        // i.e. check here how many output rows, if already limit reached - jump to goto!
+        if(tuplex::g_totalOutputRows >= task->output_limit()) {
+            return tuplex::ecToI64(tuplex::ExceptionCode::OUTPUT_LIMIT_REACHED);
+        }
+        return rc;
+    }
+
+    static int64_t limited_w2fCallback(tuplex::TransformTask* task, uint8_t* buf, int64_t bufSize) {
         assert(task);
         assert(dynamic_cast<tuplex::TransformTask*>(task));
         return task->writeRowToFile(buf, bufSize);
@@ -41,7 +75,6 @@ extern "C" {
         assert(dynamic_cast<tuplex::TransformTask*>(task));
         task->writeExceptionToFile(ecCode, opID, row, buf, bufSize);
     }
-
 
     static void strw2hCallback(tuplex::TransformTask *task, char *strkey, size_t key_size, bool bucketize, char *buf, size_t buf_size) {
         assert(task);
@@ -135,11 +168,18 @@ namespace tuplex {
 
 
     // callbacks
-    codegen::write_row_f TransformTask::writeRowCallback(bool fileOutput) {
-        if(fileOutput)
-            return reinterpret_cast<codegen::write_row_f>(w2fCallback);
-        else
-            return reinterpret_cast<codegen::write_row_f>(w2mCallback);
+    codegen::write_row_f TransformTask::writeRowCallback(bool globalOutputLimit, bool fileOutput) {
+        if(globalOutputLimit) {
+            if(fileOutput)
+                return reinterpret_cast<codegen::write_row_f>(limited_w2fCallback);
+            else
+                return reinterpret_cast<codegen::write_row_f>(limited_w2mCallback);
+        } else {
+            if(fileOutput)
+                return reinterpret_cast<codegen::write_row_f>(w2fCallback);
+            else
+                return reinterpret_cast<codegen::write_row_f>(w2mCallback);
+        }
     }
     codegen::exception_handler_f TransformTask::exceptionCallback(bool fileOutput) {
         if(fileOutput)
@@ -369,6 +409,10 @@ namespace tuplex {
         } else {
             throw std::runtime_error("no source (file/memory) specified, error!");
         }
+
+        // @TODO: use setjmp buffer etc. here to stop execution... ==> each thread needs one context -.- -> might be difficult...
+        // alternative is to generate early leave in code-generated function...
+
 
         // free runtime memory
         runtime::rtfree_all();

@@ -470,6 +470,10 @@ namespace tuplex {
             tuplex::TransformStage *tstage, const tuplex::ContextOptions &options,
             tuplex::codegen::read_block_f functor) {
 
+        // @TODO: if an output limit is given for this tage, could use a shared atomic variable to check and early abort
+        // tasks. => that's probably the easiest design!
+        // --> need to make sure that mechanism doesn't cause weird overheads in the end...
+
         using namespace std;
         vector<IExecutorTask*> tasks;
         assert(tstage);
@@ -540,8 +544,7 @@ namespace tuplex {
                             else
                                 task->sinkOutputToHashTable(HashTableFormat::BYTES,
                                                             tstage->outputDataSetID());
-                        }
-                        else {
+                        } else {
                             assert(tstage->outputMode() == EndPointMode::FILE ||
                             tstage->outputMode() == EndPointMode::MEMORY);
                             task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID(), tstage->context().id());
@@ -549,6 +552,7 @@ namespace tuplex {
 
                         task->sinkExceptionsToMemory(inputSchema);
                         task->setStageID(tstage->getID());
+                        task->setOutputLimit(tstage->outputLimit());
                         // add to tasks
                         tasks.emplace_back(std::move(task));
                     } else {
@@ -582,6 +586,7 @@ namespace tuplex {
                             }
                             task->sinkExceptionsToMemory(inputSchema);
                             task->setStageID(tstage->getID());
+                            task->setOutputLimit(tstage->outputLimit());
                             // add to tasks
                             tasks.emplace_back(std::move(task));
                             num_parts++;
@@ -618,6 +623,7 @@ namespace tuplex {
                                 }
                                 task->sinkExceptionsToMemory(inputSchema);
                                 task->setStageID(tstage->getID());
+                                task->setOutputLimit(tstage->outputLimit());
                                 // add to tasks
                                 tasks.emplace_back(std::move(task));
 
@@ -669,6 +675,7 @@ namespace tuplex {
                 }
                 task->sinkExceptionsToMemory(inputSchema);
                 task->setStageID(tstage->getID());
+                task->setOutputLimit(tstage->outputLimit());
                 tasks.emplace_back(std::move(task));
                 numInputRows += partition->getNumRows();
 

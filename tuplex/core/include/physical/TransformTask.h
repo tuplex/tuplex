@@ -177,7 +177,7 @@ namespace tuplex {
         void sinkOutputToHashTable(HashTableFormat fmt, int64_t outputDataSetID);
         HashTableSink hashTableSink() const { return _htable; } // needs to be freed manually!
 
-        void setOutputLimit(size_t limit) { _outLimit = limit; }
+        void setOutputLimit(size_t limit) { _outLimit = limit; resetOutputLimitCounter(); }
         void setOutputSkip(size_t numRowsToSkip) { _outSkipRows = numRowsToSkip; }
         void execute() override;
 
@@ -188,13 +188,21 @@ namespace tuplex {
         bool hasHashTableSink() const { return _htableFormat != HashTableFormat::UNKNOWN; }
         HashTableFormat hashTableFormat() const { return _htableFormat; }
 
-        static codegen::write_row_f writeRowCallback(bool fileOutput=false);
+        /*!
+         * get the function which to use for writing output rows.
+         * @param globalOutputLimit if true, then task uses global aggregate limit
+         * @param fileOutput whether to use fileoutput or not
+         * @return writerow function address
+         */
+        static codegen::write_row_f writeRowCallback(bool globalOutputLimit, bool fileOutput=false);
         static codegen::exception_handler_f exceptionCallback(bool fileOutput=false);
         static codegen::str_hash_row_f writeStringHashTableCallback();
         static codegen::i64_hash_row_f writeInt64HashTableCallback();
         static codegen::str_hash_row_f writeStringHashTableAggregateCallback();
         static codegen::i64_hash_row_f writeInt64HashTableAggregateCallback();
         static codegen::write_row_f aggCombineCallback();
+
+        static void resetOutputLimitCounter();
 
         // most be public because of C++ issues -.-
         int64_t writeRowToMemory(uint8_t* buf, int64_t bufSize);
@@ -227,6 +235,9 @@ namespace tuplex {
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> exceptionCounts() const { return _exceptionCounts; }
 
         double wallTime() const override { return _wallTime; }
+
+        size_t output_rows_written() const { return _numOutputRowsWritten; }
+        size_t output_limit() const { return _outLimit; }
     private:
         void resetSinks();
         void resetSources();
@@ -301,6 +312,8 @@ namespace tuplex {
         size_t getNumInputRows() const override {
             return _numInputRowsRead;
         }
+
+
     };
 
     // thread-local helper funcs for aggregates!

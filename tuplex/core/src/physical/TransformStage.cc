@@ -770,11 +770,11 @@ namespace tuplex {
         logger.debug("registering symbols...");
         // step 2: register callback functions with compiler
         if(registerSymbols && !writeMemoryCallbackName().empty())
-            jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(false));
+            jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(hasOutputLimit(), false));
         if(registerSymbols && !exceptionCallbackName().empty())
             jit.registerSymbol(exceptionCallbackName(), TransformTask::exceptionCallback(false));
         if(registerSymbols && !writeFileCallbackName().empty())
-            jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(true));
+            jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(hasOutputLimit(), true));
 
         if(outputMode() == EndPointMode::HASHTABLE && !_funcHashWriteCallbackName.empty()) {
             if (hashtableKeyByteWidth() == 8) {

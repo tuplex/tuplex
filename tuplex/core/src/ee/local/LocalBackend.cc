@@ -1092,7 +1092,18 @@ namespace tuplex {
                         taskNonConformingRows[i] = t;
                     }
 
+                    // compute the delta used to offset records!
+                    for(auto p : taskOutput)
+                        rowDelta += p->getNumRows();
+                    rowDelta += taskNonConformingRows.size();
+                    auto generalTotalRows = 0;
+                    for (auto p : taskGeneralOutput) {
+                        generalTotalRows += p->getNumRows();
+                    }
+                    rowDelta += generalTotalRows;
+
                     if (!taskGeneralOutput.empty()) {
+                        auto generalRowCount = 0;
                         auto generalInd = 0;
                         auto generalOff = 0;
                         auto generalNumRows = taskGeneralOutput[0]->getNumRows();
@@ -1104,11 +1115,12 @@ namespace tuplex {
                             auto exceptionInd = generalInd;
                             auto exceptionOff = generalOff;
 
-                            while (*((int64_t *) generalPtr) - prevRows <= p->getNumRows() + numExceptions) {
+                            while (*((int64_t *) generalPtr) - prevRows <= p->getNumRows() + numExceptions && generalRowCount < generalTotalRows) {
                                 *((int64_t *) generalPtr) -= prevRows;
                                 numExceptions++;
                                 generalOff++;
                                 generalPtr += ((int64_t*)generalPtr)[3] + 4*sizeof(int64_t);
+                                generalRowCount++;
 
                                 if (generalOff == generalNumRows && generalInd < taskGeneralOutput.size() - 1) {
                                     taskGeneralOutput[generalInd]->unlock();
@@ -1137,13 +1149,6 @@ namespace tuplex {
                     std::copy(taskRemainingExceptions.begin(), taskRemainingExceptions.end(), std::back_inserter(remainingExceptions));
                     std::copy(taskGeneralOutput.begin(), taskGeneralOutput.end(), std::back_inserter(generalOutput));
                     std::copy(taskNonConformingRows.begin(), taskNonConformingRows.end(), std::back_inserter(nonConformingRows));
-
-                    // compute the delta used to offset records!
-                    for(auto p : taskOutput)
-                        rowDelta += p->getNumRows();
-                    for(auto p : taskGeneralOutput)
-                        rowDelta += p->getNumRows();
-                    rowDelta += taskNonConformingRows.size();
                 }
 
                 tstage->setMemoryResult(output, generalOutput, partitionToExceptionsMap, nonConformingRows, remainingExceptions, ecounts);

@@ -34,12 +34,13 @@ TEST_F(CacheTest, MergeInOrder) {
 
     Context c(opt);
 
-    auto size = 101;
-    auto mod = 5;
+    auto size = 403;
+    auto mod1 = 5;
+    auto mod2 = 6;
 
     stringstream ss;
     for (int i = 0; i < size; ++i) {
-        if (i % mod == 0) {
+        if (i % mod1 == 0 || i % mod2 == 0) {
             ss << ",,,,-1\n";
         } else {
             ss << to_string(i) << "," << to_string(i) << "," << to_string(i) << "," << to_string(i) << "," << to_string(i) << "\n";
@@ -55,7 +56,7 @@ TEST_F(CacheTest, MergeInOrder) {
 
     ASSERT_EQ(res.size(), size);
     for (int i = 0; i < res.size(); ++i) {
-        if (i % mod == 0) {
+        if (i % mod1 == 0 || i % mod2 == 0) {
             EXPECT_EQ(res[i].toPythonString(), Row(-1).toPythonString());
         } else {
             EXPECT_EQ(res[i].toPythonString(), Row(i).toPythonString());

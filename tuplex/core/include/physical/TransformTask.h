@@ -233,14 +233,6 @@ namespace tuplex {
         */
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> exceptionCounts() const { return _exceptionCounts; }
 
-        std::string firstPartitionId() const override {
-            if (_inputPartitions.size() > 0) {
-                return uuidToString(_inputPartitions.at(0)->uuid());
-            } else {
-                return "";
-            }
-        }
-
         size_t numInputExceptions() { return _numInputExceptions; }
         size_t inputExceptionIndex() { return _inputExceptionIndex; }
         size_t inputExceptionOffset() { return _inputExceptionOffset; }

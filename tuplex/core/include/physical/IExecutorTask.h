@@ -42,12 +42,6 @@ namespace tuplex {
 
         virtual std::vector<Partition*> getOutputPartitions() const = 0;
 
-        /*!
-         * returns the uuid of the first input partition as a string or an empty string if no partitions exist.
-         * @return
-         */
-        virtual std::string firstPartitionId() const { return ""; }
-
         virtual size_t getNumOutputRows() const;
         virtual size_t getNumInputRows() const { return 0; }
 

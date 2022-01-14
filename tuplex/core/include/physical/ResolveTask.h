@@ -166,14 +166,6 @@ namespace tuplex {
 
         std::vector<Partition*> getOutputPartitions() const override { return _partitions; }
 
-        std::string firstPartitionId() const override {
-            if (_partitions.size() > 0) {
-                return uuidToString(_partitions.at(0)->uuid());
-            } else {
-                return "";
-            }
-        }
-
         std::vector<std::tuple<size_t, PyObject*>> getNonConformingRows() const { return _py_nonconfirming; }
 
         /// very important to override this because of the special two exceptions fields of ResolveTask

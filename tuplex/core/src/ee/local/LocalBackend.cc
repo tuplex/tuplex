@@ -647,10 +647,10 @@ namespace tuplex {
                 auto task = new TransformTask();
                 if (tstage->updateInputExceptions()) {
                     task->setFunctor(syms->functorWithExp);
-                    task->setUpdateInputExceptions(true);
                 } else {
                     task->setFunctor(syms->functor);
                 }
+                task->setUpdateInputExceptions(tstage->updateInputExceptions());
                 task->setInputMemorySource(partition, !partition->isImmortal());
                 // hash table or memory output?
                 if(tstage->outputMode() == EndPointMode::HASHTABLE) {
@@ -667,14 +667,12 @@ namespace tuplex {
                     task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID());
                 }
 
-                auto partitionId = task->firstPartitionId();
-                if (partitionId != "") {
-                    auto info = tstage->partitionToExceptionsMap()[partitionId];
-                    task->setNumInputExceptions(std::get<0>(info));
-                    task->setInputExceptionIndex(std::get<1>(info));
-                    task->setInputExceptionOffset(std::get<2>(info));
-                    task->setInputExceptions(tstage->inputExceptions());
-                }
+                auto partitionId = uuidToString(partition->uuid());
+                auto info = tstage->partitionToExceptionsMap()[partitionId];
+                task->setNumInputExceptions(std::get<0>(info));
+                task->setInputExceptionIndex(std::get<1>(info));
+                task->setInputExceptionOffset(std::get<2>(info));
+                task->setInputExceptions(tstage->inputExceptions());
 
                 task->sinkExceptionsToMemory(inputSchema);
                 task->setStageID(tstage->getID());

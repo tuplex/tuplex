@@ -186,7 +186,7 @@ namespace tuplex {
         //   --> indicates how the hashtable values should be converted to partitions)
         auto hashGroupedDataType = AggregateType::AGG_NONE;
 
-        bool hasPythonObjects = false;
+        bool hasInputExceptions = false;
         assert(!ops.empty());
         LogicalOperator* ioNode = nullptr; // needed to reconstruct when IO is separated from rest
         if(ops.front()->isDataSource()) {
@@ -198,7 +198,9 @@ namespace tuplex {
                 auto t = ops.front()->type();
                 assert(t == LogicalOperatorType::PARALLELIZE || t == LogicalOperatorType::CACHE);
                 if (t == LogicalOperatorType::PARALLELIZE)
-                    hasPythonObjects = !((ParallelizeOperator *)ops.front())->getPythonObjects().empty();
+                    hasInputExceptions = !((ParallelizeOperator *)ops.front())->getPythonObjects().empty();
+                if (t == LogicalOperatorType::CACHE)
+                    hasInputExceptions = !((CacheOperator *)ops.front())->cachedExceptions().empty();
             }
         }
 
@@ -232,7 +234,7 @@ namespace tuplex {
             outputMode = outMode;
         }
 
-        bool updateInputExceptions = hasFilter && hasPythonObjects && _context.getOptions().OPT_MERGE_EXCEPTIONS_INORDER();
+        bool updateInputExceptions = hasFilter && hasInputExceptions && _context.getOptions().OPT_MERGE_EXCEPTIONS_INORDER();
 
         // create trafostage via builder pattern
         auto builder = codegen::StageBuilder(_num_stages++,

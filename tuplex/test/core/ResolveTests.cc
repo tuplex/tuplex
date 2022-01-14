@@ -787,7 +787,11 @@ TEST_F(Resolve, DirtyZillowData) {
                          "        type = 'house'\n"
                          "    return type\n";
 
-    Context c(testOptions());
+    auto opt = testOptions();
+    opt.set("tuplex.executorMemory", "48MB");
+    opt.set("tuplex.driverMemory", "48MB");
+
+    Context c(opt);
 
     // This doesn't work yet. Presumably because of mapColumn...
     auto res = c.csv("../resources/zillow_dirty.csv").cache()

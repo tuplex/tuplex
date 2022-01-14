@@ -780,6 +780,50 @@ namespace tuplex {
         return pyObjects;
     }
 
+    void setExceptionInfo(const std::vector<Partition*> &normalOutput, const std::vector<Partition*> &exceptions, std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> &partitionToExceptionsMap) {
+        if (exceptions.empty()) {
+            for (const auto &p : normalOutput) {
+                partitionToExceptionsMap[uuidToString(p->uuid())] = std::make_tuple(0, 0, 0);
+            }
+            return;
+        }
+
+        auto expRowCount = 0;
+        auto expInd = 0;
+        auto expOff = 0;
+        auto expNumRows = exceptions[0]->getNumRows();
+        auto expPtr = exceptions[0]->lockWrite();
+        auto rowsProcessed = 0;
+        for (const auto &p : normalOutput) {
+            auto pNumRows = p->getNumRows();
+            auto curNumExps = 0;
+            auto curExpOff = expOff;
+            auto curExpInd = expInd;
+
+            while (*((int64_t *) expPtr) - rowsProcessed <= pNumRows + curNumExps && expRowCount < expNumRows) {
+                *((int64_t *) expPtr) -= rowsProcessed;
+                curNumExps++;
+                expOff++;
+                expPtr += ((int64_t *)expPtr)[3] + 4*sizeof(int64_t);
+                expRowCount++;
+
+                if (expOff == expNumRows && expInd < exceptions.size() - 1) {
+                    exceptions[expInd]->unlockWrite();
+                    expInd++;
+                    expPtr = exceptions[expInd]->lockWrite();
+                    expNumRows = exceptions[expInd]->getNumRows();
+                    expOff = 0;
+                    expRowCount = 0;
+                }
+            }
+
+            rowsProcessed += curNumExps + pNumRows;
+            partitionToExceptionsMap[uuidToString(p->uuid())] = std::make_tuple(curNumExps, curExpInd, curExpOff);
+        }
+
+        exceptions[expInd]->unlockWrite();
+    }
+
     void LocalBackend::executeTransformStage(tuplex::TransformStage *tstage) {
 
         Timer stageTimer;
@@ -1092,51 +1136,6 @@ namespace tuplex {
                         taskNonConformingRows[i] = t;
                     }
 
-                    // compute the delta used to offset records!
-                    for(auto p : taskOutput)
-                        rowDelta += p->getNumRows();
-                    rowDelta += taskNonConformingRows.size();
-                    auto generalTotalRows = 0;
-                    for (auto p : taskGeneralOutput) {
-                        generalTotalRows += p->getNumRows();
-                    }
-                    rowDelta += generalTotalRows;
-
-                    if (!taskGeneralOutput.empty()) {
-                        auto generalRowCount = 0;
-                        auto generalInd = 0;
-                        auto generalOff = 0;
-                        auto generalNumRows = taskGeneralOutput[0]->getNumRows();
-                        auto generalPtr = taskGeneralOutput[0]->lock();
-
-                        auto prevRows = 0;
-                        for (auto p : taskOutput) {
-                            auto numExceptions = 0;
-                            auto exceptionInd = generalInd;
-                            auto exceptionOff = generalOff;
-
-                            while (*((int64_t *) generalPtr) - prevRows <= p->getNumRows() + numExceptions && generalRowCount < generalTotalRows) {
-                                *((int64_t *) generalPtr) -= prevRows;
-                                numExceptions++;
-                                generalOff++;
-                                generalPtr += ((int64_t*)generalPtr)[3] + 4*sizeof(int64_t);
-                                generalRowCount++;
-
-                                if (generalOff == generalNumRows && generalInd < taskGeneralOutput.size() - 1) {
-                                    taskGeneralOutput[generalInd]->unlock();
-                                    generalInd++;
-                                    generalPtr = taskGeneralOutput[generalInd]->lock();
-                                    generalNumRows = taskGeneralOutput[generalInd]->getNumRows();
-                                    generalOff = 0;
-                                }
-                            }
-
-                            prevRows += numExceptions + p->getNumRows();
-                            partitionToExceptionsMap[uuidToString(p->uuid())] = make_tuple(numExceptions, exceptionInd, exceptionOff);
-                        }
-                        taskGeneralOutput[generalInd]->unlock();
-                    }
-
                     // debug trace issues
                     using namespace std;
                     std::string task_name = "unknown";
@@ -1145,10 +1144,18 @@ namespace tuplex {
                     if(task->type() == TaskType::RESOLVE)
                         task_name = "resolve";
 
+                    setExceptionInfo(taskOutput, taskGeneralOutput, partitionToExceptionsMap);
                     std::copy(taskOutput.begin(), taskOutput.end(), std::back_inserter(output));
                     std::copy(taskRemainingExceptions.begin(), taskRemainingExceptions.end(), std::back_inserter(remainingExceptions));
                     std::copy(taskGeneralOutput.begin(), taskGeneralOutput.end(), std::back_inserter(generalOutput));
                     std::copy(taskNonConformingRows.begin(), taskNonConformingRows.end(), std::back_inserter(nonConformingRows));
+
+                    // compute the delta used to offset records!
+                    for (auto p : taskOutput)
+                        rowDelta += p->getNumRows();
+                    for (auto p : taskGeneralOutput)
+                        rowDelta += p->getNumRows();
+                    rowDelta += taskNonConformingRows.size();
                 }
 
                 tstage->setMemoryResult(output, generalOutput, partitionToExceptionsMap, nonConformingRows, remainingExceptions, ecounts);

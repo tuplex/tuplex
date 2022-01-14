@@ -830,9 +830,6 @@ default:
             // if task produced exceptions, they are stored in the IExceptionableTask class!
             // => no need to overwrite them, getter for iexceptionabletask has all info!
             _runtimeExceptions.clear();
-            for (auto p : _inputExceptions) {
-                p->invalidate();
-            }
             _inputExceptions.clear();
         } else {
             executeInOrder();

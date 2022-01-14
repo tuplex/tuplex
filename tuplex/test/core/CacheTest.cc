@@ -34,22 +34,28 @@ TEST_F(CacheTest, MergeInOrder) {
 
     Context c(opt);
 
+    auto size = 101;
+    auto mod = 5;
+
     stringstream ss;
-    for (int i = 0; i < 100000; ++i) {
-        if (i % 100 == 0) {
-            ss << ",-1\n";
+    for (int i = 0; i < size; ++i) {
+        if (i % mod == 0) {
+            ss << ",,,,-1\n";
         } else {
-            ss << to_string(i) << "," << to_string(i) << "\n";
+            ss << to_string(i) << "," << to_string(i) << "," << to_string(i) << "," << to_string(i) << "," << to_string(i) << "\n";
         }
     }
 
     stringToFile(fileURI, ss.str());
 
-    auto res = c.csv(fileURI.toPath()).cache().map(UDF("lambda x, y: y")).collectAsVector();
+    auto ds_cached = c.csv(fileURI.toPath()).cache();
 
-    ASSERT_EQ(res.size(), 100000);
+    auto res = ds_cached.map(UDF("lambda x: x[4]")).collectAsVector();
+    printRows(res);
+
+    ASSERT_EQ(res.size(), size);
     for (int i = 0; i < res.size(); ++i) {
-        if (i % 100 == 0) {
+        if (i % mod == 0) {
             EXPECT_EQ(res[i].toPythonString(), Row(-1).toPythonString());
         } else {
             EXPECT_EQ(res[i].toPythonString(), Row(i).toPythonString());

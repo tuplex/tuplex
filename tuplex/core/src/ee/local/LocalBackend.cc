@@ -1092,15 +1092,37 @@ namespace tuplex {
                         taskNonConformingRows[i] = t;
                     }
 
-                    auto exceptionInd = generalOutput.size();
-                    auto numExceptions = 0;
-                    for (auto p : taskGeneralOutput) {
-                        numExceptions += p->getNumRows();
-                    }
+                    if (!taskGeneralOutput.empty()) {
+                        auto generalInd = 0;
+                        auto generalOff = 0;
+                        auto generalNumRows = taskGeneralOutput[0]->getNumRows();
+                        auto generalPtr = taskGeneralOutput[0]->lock();
 
-                    auto firstPartitionId = task->firstPartitionId();
-                    if (firstPartitionId != "") {
-                        partitionToExceptionsMap[firstPartitionId] = make_tuple(numExceptions, exceptionInd, 0);
+                        auto prevRows = 0;
+                        for (auto p : taskOutput) {
+                            auto numExceptions = 0;
+                            auto exceptionInd = generalInd;
+                            auto exceptionOff = generalOff;
+
+                            while (*((int64_t *) generalPtr) - prevRows <= p->getNumRows() + numExceptions) {
+                                *((int64_t *) generalPtr) -= prevRows;
+                                numExceptions++;
+                                generalOff++;
+                                generalPtr += ((int64_t*)generalPtr)[3] + 4*sizeof(int64_t);
+
+                                if (generalOff == generalNumRows && generalInd < taskGeneralOutput.size() - 1) {
+                                    taskGeneralOutput[generalInd]->unlock();
+                                    generalInd++;
+                                    generalPtr = taskGeneralOutput[generalInd]->lock();
+                                    generalNumRows = taskGeneralOutput[generalInd]->getNumRows();
+                                    generalOff = 0;
+                                }
+                            }
+
+                            prevRows += numExceptions + p->getNumRows();
+                            partitionToExceptionsMap[uuidToString(p->uuid())] = make_tuple(numExceptions, exceptionInd, exceptionOff);
+                        }
+                        taskGeneralOutput[generalInd]->unlock();
                     }
 
                     // debug trace issues

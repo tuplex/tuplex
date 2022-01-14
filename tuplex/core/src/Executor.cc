@@ -350,7 +350,6 @@ namespace tuplex {
 
         // partitions is not needed anymore. I.e. remove from either stored or non-stored partitions
         // before all, acquire list lock because we are going to modify lists!
-        //lockListMutex();
         {
             std::unique_lock<boost::shared_mutex> lock(_listMutex);
 

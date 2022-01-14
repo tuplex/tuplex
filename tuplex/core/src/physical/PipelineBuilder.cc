@@ -906,9 +906,6 @@ namespace tuplex {
             auto callback_func = env().getModule()->getOrInsertFunction(writeCallbackFnName, writeCallback_type);
             auto callbackECVal = builder.CreateCall(callback_func, {userData, serialized_row.val, serialized_row.size});
 
-            // TODO:
-            env().debugPrint(builder, "ecval of writer is: ", callbackECVal);
-
             if(returnCallbackResult)
                 assignWriteCallbackReturnValue(builder, operatorID, callbackECVal);
 

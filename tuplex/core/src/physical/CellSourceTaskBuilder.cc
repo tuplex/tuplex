@@ -59,9 +59,6 @@ namespace tuplex {
                 if(terminateEarlyOnLimitCode)
                     generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
 
-                // debug: print ecCode!
-                env().debugPrint(builder, "ecCode of pipeline is: ", ecCode);
-
                 // // -- debug print row numbers
                 // env().debugPrint(builder, "numRowsCreatedByPipeline", numRowsCreated);
                 // env().debugPrint(builder, "outputRowNumber", builder.CreateLoad(outputRowNumberVar));

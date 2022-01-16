@@ -518,4 +518,14 @@ namespace tuplex {
         // use number of input rows as cost
         return _estimatedRowCount;
     }
+
+    bool FileInputOperator::isEmpty() const {
+        if(_fileURIs.empty() || _sizes.empty())
+            return true;
+
+        size_t totalSize = 0;
+        for(auto s: _sizes)
+            totalSize += s;
+        return totalSize == 0;
+    }
 }

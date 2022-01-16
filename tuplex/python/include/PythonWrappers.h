@@ -88,12 +88,17 @@ inline std::unordered_map<size_t, python::Type> extractIndexBasedTypeHints(PyObj
                     python::Type valType = python::decodePythonSchema(val);
                     m[keyVal] = valType;
                 } else if(PyUnicode_Check(key)) {
+
+                    // continue if no columns specified...
+                    if(columns.empty())
+                        continue;
+
                     auto name = python::PyString_AsString(key);
 
                     // check if contained in columns, if not print warning.
                     size_t idx = 0;
                     for(idx = 0; idx < columns.size() && name != columns[idx]; ++idx);
-                    if(columns.empty() || idx > columns.size()) {
+                    if(idx > columns.size()) {
                         logger.warn("received type hint for column '" + name + "', but could not find column. Ignoring hint.");
                     } else {
                         // encode as int

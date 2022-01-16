@@ -33,8 +33,10 @@ namespace tuplex {
         OrcReader(IExecutorTask *task,
                   codegen::read_block_f functor,
                   uint64_t id,
+                  int64_t contextID,
                   size_t partitionSize,
-                  Schema schema) : _task(task), _functor(functor), _id(id), _partitionSize(partitionSize), _schema(schema), _numRowsRead(0) {};
+                  Schema schema) : _task(task), _functor(functor), _id(id), _contextID(contextID),
+                  _partitionSize(partitionSize), _schema(schema), _numRowsRead(0) {};
         size_t inputRowCount() const override { return _numRowsRead; }
         virtual ~OrcReader() {}
 
@@ -62,7 +64,7 @@ namespace tuplex {
             }
             ORC_UNIQUE_PTR<RowReader> rowReader = reader->createRowReader(rowReaderOptions);
             ORC_UNIQUE_PTR<ColumnVectorBatch> batch = rowReader->createRowBatch(1024);
-            PartitionWriter pw(_task->owner(), _schema, _id, _partitionSize);
+            PartitionWriter pw(_task->owner(), _schema, _id, _contextID, _partitionSize);
 
             std::vector<tuplex::orc::OrcBatch *> columns;
             if (rowReader->next(*batch)) {
@@ -117,6 +119,7 @@ namespace tuplex {
         IExecutorTask *_task;
         codegen::read_block_f _functor;
         uint64_t _id;
+        int64_t _contextID;
         size_t _partitionSize;
         Schema _schema;
 

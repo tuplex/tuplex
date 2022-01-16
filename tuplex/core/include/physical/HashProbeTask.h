@@ -25,11 +25,14 @@ namespace tuplex {
         MemorySink _output;
         Schema _outputSchema;
         int64_t _outputDataSetID;
+        int64_t _contextID;
     public:
         HashProbeTask(Partition *partition, map_t hmap,
                       void(*functor)(void *, map_t, const uint8_t *), const python::Type &joinedRowType,
-                      int64_t outputDataSetID) : _inputPartition(partition), _hmap(hmap),
-                      _functor(functor), _outputSchema(Schema(Schema::MemoryLayout::ROW, joinedRowType)), _outputDataSetID(outputDataSetID) {
+                      int64_t outputDataSetID,
+                      int64_t contextID) : _inputPartition(partition), _hmap(hmap),
+                      _functor(functor), _outputSchema(Schema(Schema::MemoryLayout::ROW, joinedRowType)),
+                      _outputDataSetID(outputDataSetID), _contextID(contextID) {
 
         }
 
@@ -42,8 +45,6 @@ namespace tuplex {
         void execute() override;
         TaskType type() const override { return TaskType::HASHPROBE; }
     };
-
-
 }
 
 #endif //TUPLEX_HASHPROBETASK_H

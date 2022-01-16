@@ -377,16 +377,16 @@ TEST_F(DataFrameTest, FolderOutput) {
 
     c.parallelize({Row(10, 20), Row(10, 40)})
      .map(UDF("lambda a, b: {'A' :a +1, 'B' : b}"))
-     .tocsv(URI("output")); // no extension, so folder assumed.
+     .tocsv(URI(testName + "_output")); // no extension, so folder assumed.
 
     // check folder output/ exists!
-    auto uri = URI("output/");
+    auto uri = URI(testName + "_output/");
     ASSERT_TRUE(uri.exists());
 
-    ASSERT_TRUE(URI("output/part0.csv").exists());
+    ASSERT_TRUE(URI(testName + "_output/part0.csv").exists());
 
     // load file from disk
-    auto content = fileToString(URI("output/part0.csv"));
+    auto content = fileToString(URI(testName + "_output/part0.csv"));
     EXPECT_EQ(content, "A,B\n11,20\n11,40\n");
 }
 
@@ -437,4 +437,38 @@ TEST_F(DataFrameTest, IsKeywordAndFilter) {
     ASSERT_FALSE(ds.isError());
     v = ds.collectAsVector();
     ASSERT_EQ(v.size(), 0);
+}
+
+TEST_F(DataFrameTest, FastPreview) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    // show on a couple rows should be faster by simply using the sample as input...
+    // --> note: should also work with fallback!
+
+    // test for CSV, TEXT, ORC
+    // TODO.
+
+    auto res = c.csv("../resources/flights_on_time_performance_2019_01.sample.csv")
+     .selectColumns({"DAY_OF_MONTH", "MONTH", "YEAR", "ORIGIN", "DEST", "OP_UNIQUE_CARRIER"})
+     .takeAsVector(5);
+    ASSERT_EQ(res.size(), 5);
+
+    auto textURI = testName + "_test.txt";
+
+    stringToFile(textURI, "A\nB\nC\nD\nE\nF\nG\nH\nI\nJ");
+    res = c.text(textURI)
+    .map(UDF("lambda x: x.lower()"))
+    .takeAsVector(5);
+    ASSERT_EQ(res.size(), 5);
+
+    // JITCompiled CSV source
+    auto opt_jit = microTestOptions();
+    opt_jit.set("tuplex.optimizer.generateParser", "true");
+    Context c_jit(opt_jit);
+
+    res = c_jit.csv("../resources/flights_on_time_performance_2019_01.sample.csv")
+            .selectColumns({"DAY_OF_MONTH", "MONTH", "YEAR", "ORIGIN", "DEST", "OP_UNIQUE_CARRIER"})
+            .takeAsVector(5);
+    ASSERT_EQ(res.size(), 5);
 }

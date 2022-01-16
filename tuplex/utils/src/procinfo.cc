@@ -3,6 +3,7 @@
 //
 
 #include <procinfo.h>
+#include <string>
 
 namespace tuplex {
 
@@ -28,24 +29,24 @@ namespace tuplex {
 #endif
     }
 
-    std::string dir_from_pid(process_t pid) {
-        std::string fname = path_from_pid(pid);
-        std::size_t fp = fname.find_last_of("/\\");
+    ::std::string dir_from_pid(process_t pid) {
+        ::std::string fname = path_from_pid(pid);
+        ::std::size_t fp = fname.find_last_of("/\\");
         return fname.substr(0, fp + 1);
     }
 
-    std::string name_from_pid(process_t pid) {
-        std::string fname = path_from_pid(pid);
-        std::size_t fp = fname.find_last_of("/\\");
+    ::std::string name_from_pid(process_t pid) {
+        ::std::string fname = path_from_pid(pid);
+        ::std::size_t fp = fname.find_last_of("/\\");
         return fname.substr(fp + 1);
     }
 
 #ifdef __linux__
     #include <cstdlib>
 
-    std::string path_from_pid(process_t pid) {
-      std::string path;
-      std::string link = std::string("/proc/") + std::to_string(pid) + std::string("/exe");
+    ::std::string path_from_pid(process_t pid) {
+      ::std::string path;
+      ::std::string link = ::std::string("/proc/") + ::std::to_string(pid) + ::std::string("/exe");
       char *buffer = realpath(link.c_str(), NULL);
       path = buffer ? : "";
       free(buffer);

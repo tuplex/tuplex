@@ -84,7 +84,7 @@ namespace tuplex {
                 assert(_columnsToSerialize.size() == _fileInputRowType.parameters().size());
             }
 
-            llvm::Function *build() override;
+            llvm::Function *build(bool terminateEarlyOnLimitCode) override;
         };
     }
 }

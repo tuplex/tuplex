@@ -578,6 +578,10 @@ namespace tuplex {
                     using namespace std;
                     // serialize
 
+                    // output limit reached?
+                    if(ExceptionCode::OUTPUT_LIMIT_REACHED == resCode)
+                        break;
+
                     // TODO here: for 311 need to put row onto separate exception stack!
                     // ==> save parse information here!
                     // or simpler: If parse error, then save all cells as string output!

@@ -44,12 +44,13 @@ namespace tuplex {
                             llvm::Value *outputRowNumberVar,
                             llvm::Value *inputRowPtr,
                             llvm::Value *inputRowSize,
+                            bool terminateEarlyOnLimitCode,
                             llvm::Function *processRowFunc = nullptr);
 
             void generateParser();
 
             // building vars for LLVM
-            void createMainLoop(llvm::Function *read_block_func);
+            void createMainLoop(llvm::Function *read_block_func, bool terminateEarlyOnLimitCode);
 
             FlattenedTuple createFlattenedTupleFromCSVParseResult(llvm::IRBuilder<> &builder, llvm::Value *parseResult,
                                                                   const python::Type &parseRowType);
@@ -88,7 +89,7 @@ namespace tuplex {
                                                                _fileInputRowType(rowType) {
             }
 
-            virtual llvm::Function *build() override;
+            virtual llvm::Function *build(bool terminateEarlyOnFailureCode) override;
         };
     }
 }

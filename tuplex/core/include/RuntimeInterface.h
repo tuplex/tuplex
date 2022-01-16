@@ -11,6 +11,7 @@
 #ifndef TUPLEX_RUNTIMEINTERFACE_H
 #define TUPLEX_RUNTIMEINTERFACE_H
 
+#include <string>
 #include <Base.h>
 #include <pcre2.h>
 

@@ -108,7 +108,7 @@ namespace tuplex {
 
         // write data to partitions
         int64_t dataSetID = 0; // no ID here
-        _inputPartitions = rowsToPartitions(backend()->driver(), dataSetID, rows);
+        _inputPartitions = rowsToPartitions(backend()->driver(), dataSetID, context().id(), rows);
     }
 
 
@@ -245,7 +245,7 @@ namespace tuplex {
            return std::vector<Partition*>();
 
         Partition* partition = nullptr;
-        PartitionWriter pw(driver, outputSchema, outputDataSetID, context.getOptions().PARTITION_SIZE());
+        PartitionWriter pw(driver, outputSchema, outputDataSetID, context.id(), context.getOptions().PARTITION_SIZE());
 
         // check whether null-bucket is filled, if so output!
         if(result.null_bucket) {
@@ -478,7 +478,7 @@ namespace tuplex {
         }
 
         // construct return partition
-        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1);
+        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1, context.id());
         auto data_region = reinterpret_cast<char *>(p->lockWrite());
         for(const auto& pr: unique_rows) {
             memcpy(data_region, pr.first, pr.second);
@@ -524,7 +524,7 @@ namespace tuplex {
         }
 
         // construct return partition
-        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1);
+        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1, context.id());
         auto data_region = reinterpret_cast<char *>(p->lockWrite());
         for(const auto& pr: unique_rows) {
             memcpy(data_region, pr.first, pr.second);
@@ -540,7 +540,9 @@ namespace tuplex {
         return ret;
     }
 
-    static std::vector<Partition*> convertInt64HashTableToPartitionsAggByKey(const TransformStage::HashResult& result, const Schema &schema, const Context &context) {
+    static std::vector<Partition*> convertInt64HashTableToPartitionsAggByKey(const TransformStage::HashResult& result,
+                                                                             const Schema &schema,
+                                                                             const Context &context) {
         std::vector<std::pair<const char*, size_t>> unique_rows;
         size_t total_serialized_size = 0;
         const map_t &hashtable = result.hash_map;
@@ -564,7 +566,7 @@ namespace tuplex {
         }
 
         // construct return partition
-        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1);
+        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1, context.id());
         auto data_region = reinterpret_cast<char *>(p->lockWrite());
         for(const auto& pr: unique_rows) {
             memcpy(data_region, pr.first, pr.second);
@@ -768,11 +770,11 @@ namespace tuplex {
         logger.debug("registering symbols...");
         // step 2: register callback functions with compiler
         if(registerSymbols && !writeMemoryCallbackName().empty())
-            jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(false));
+            jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(hasOutputLimit(), false));
         if(registerSymbols && !exceptionCallbackName().empty())
             jit.registerSymbol(exceptionCallbackName(), TransformTask::exceptionCallback(false));
         if(registerSymbols && !writeFileCallbackName().empty())
-            jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(true));
+            jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(hasOutputLimit(), true));
 
         if(outputMode() == EndPointMode::HASHTABLE && !_funcHashWriteCallbackName.empty()) {
             if (hashtableKeyByteWidth() == 8) {

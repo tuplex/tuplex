@@ -21,12 +21,12 @@ namespace tuplex {
             auto requiredSize = std::max(_defaultPartitionSize, sizeof(int64_t) + scaleFactor * bytesRequired);
 
             if(!_currentPartition) {
-                _currentPartition = _executor->allocWritablePartition(requiredSize, _schema, _dataSetID);
+                _currentPartition = _executor->allocWritablePartition(requiredSize, _schema, _dataSetID, _contextID);
             } else {
                 // add current partition to output list
                 _currentPartition->unlockWrite();
                 _outputPartitions.emplace_back(_currentPartition);
-                _currentPartition = _executor->allocWritablePartition(requiredSize, _schema, _dataSetID);
+                _currentPartition = _executor->allocWritablePartition(requiredSize, _schema, _dataSetID, _contextID);
             }
 
             // lock & init
@@ -105,13 +105,13 @@ namespace tuplex {
         } else return _outputPartitions;
     }
 
-    std::vector<Partition*> rowsToPartitions(Executor *executor, int64_t dataSetID, const std::vector<Row>& rows) {
+    std::vector<Partition*> rowsToPartitions(Executor *executor, int64_t dataSetID, int64_t contextID, const std::vector<Row>& rows) {
         if(rows.empty())
             return std::vector<Partition*>();
 
         auto schema = rows.front().getSchema();
 
-        PartitionWriter pw(executor, schema, dataSetID, executor->blockSize());
+        PartitionWriter pw(executor, schema, dataSetID, contextID, executor->blockSize());
 
         for(auto row : rows) {
             pw.writeRow(row);

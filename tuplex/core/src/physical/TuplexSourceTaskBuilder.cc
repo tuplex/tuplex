@@ -12,11 +12,11 @@
 
 namespace tuplex {
     namespace codegen {
-        llvm::Function* TuplexSourceTaskBuilder::build() {
+        llvm::Function* TuplexSourceTaskBuilder::build(bool terminateEarlyOnLimitCode) {
             auto func = createFunction();
 
             // create main loop
-            createMainLoop(func);
+            createMainLoop(func, terminateEarlyOnLimitCode);
 
             return func;
         }
@@ -28,13 +28,14 @@ namespace tuplex {
                                                  llvm::Value *rowNumberVar,
                                                  llvm::Value *inputRowPtr,
                                                  llvm::Value *inputRowSize,
+                                                 bool terminateEarlyOnLimitCode,
                                                  llvm::Function *processRowFunc) {
             using namespace llvm;
 
             // call pipeline function, then increase normalcounter
             if(processRowFunc) {
                 callProcessFuncWithHandler(builder, userData, tuple, normalRowCountVar, rowNumberVar, inputRowPtr,
-                                           inputRowSize, processRowFunc);
+                                           inputRowSize, terminateEarlyOnLimitCode, processRowFunc);
             } else {
                 Value *normalRowCount = builder.CreateLoad(normalRowCountVar, "normalRowCount");
                 builder.CreateStore(builder.CreateAdd(normalRowCount, env().i64Const(1)), normalRowCountVar);
@@ -47,6 +48,7 @@ namespace tuplex {
                                                                  llvm::Value *rowNumberVar,
                                                                  llvm::Value *inputRowPtr,
                                                                  llvm::Value *inputRowSize,
+                                                                 bool terminateEarlyOnLimitCode,
                                                                  llvm::Function *processRowFunc) {
             auto& context = env().getContext();
             auto pip_res = PipelineBuilder::call(builder, processRowFunc, tuple, userData, builder.CreateLoad(rowNumberVar), initIntermediate(builder));
@@ -55,6 +57,9 @@ namespace tuplex {
             auto ecCode = builder.CreateZExtOrTrunc(pip_res.resultCode, env().i64Type());
             auto ecOpID = builder.CreateZExtOrTrunc(pip_res.exceptionOperatorID, env().i64Type());
             auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env().i64Type());
+
+            if(terminateEarlyOnLimitCode)
+                generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
 
             // add number of rows created to output row number variable
             auto outputRowNumber = builder.CreateLoad(rowNumberVar);
@@ -89,7 +94,7 @@ namespace tuplex {
             _env->freeAll(builder);
         }
 
-        void TuplexSourceTaskBuilder::createMainLoop(llvm::Function *read_block_func) {
+        void TuplexSourceTaskBuilder::createMainLoop(llvm::Function *read_block_func, bool terminateEarlyOnLimitCode) {
             using namespace std;
             using namespace llvm;
 
@@ -178,7 +183,7 @@ namespace tuplex {
             // call function --> incl. exception handling
             // process row here -- BEGIN
             Value *inputRowSize = ft.getSize(builder);
-            processRow(builder, argUserData, ft, normalRowCountVar, badRowCountVar, outRowCountVar, oldInputPtr, inputRowSize, pipeline() ? pipeline()->getFunction() : nullptr);
+            processRow(builder, argUserData, ft, normalRowCountVar, badRowCountVar, outRowCountVar, oldInputPtr, inputRowSize, terminateEarlyOnLimitCode, pipeline() ? pipeline()->getFunction() : nullptr);
             // end process row here -- END
             builder.CreateBr(bbLoopCondition);
 

@@ -22,7 +22,7 @@
 
 namespace tuplex {
 
-    class IBackend;
+    class IBackend;\
     class PhysicalStage;
     class PhysicalPlan;
     class LogicalPlan;
@@ -116,6 +116,12 @@ namespace tuplex {
          * @return
          */
         const PhysicalPlan* plan() const { return _plan; }
+
+        /*!
+         * returns the context to which this stage belongs
+         * @return Tuplex Context object
+         */
+        const Context& context() const;
 
         /*!
          * get json representation of this stage ( no recursive call)

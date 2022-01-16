@@ -160,7 +160,13 @@ namespace tuplex {
             auto resCode = i64ToEC(_rowFunctor(_userData, rowNumber, cells, cell_sizes));
             _numRowsRead++;
             if(resCode != ExceptionCode::SUCCESS) {
-                std::cout<<"Row "<<rowNumber<<" exception: "<<exceptionCodeToString(resCode)<<std::endl;
+
+                // output limit reached?
+                if(ExceptionCode::OUTPUT_LIMIT_REACHED == resCode)
+                    break;
+
+                // this should not happen in text-reader...
+                std::cerr<<"TextReader failure (should not happen), Row "<<rowNumber<<" exception: "<<exceptionCodeToString(resCode)<<std::endl;
             }
 
             // fetch contents

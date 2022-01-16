@@ -30,6 +30,7 @@ namespace tuplex {
         Executor *_executor; //! executor to use for allocating memory
         Schema _schema; //! output schema of partitions
         int64_t _dataSetID; //! dataset ID to which partitions shall belong to
+        int64_t _contextID; //! under which context to register partition
         size_t _defaultPartitionSize; //! default size to alloc new partitions with
 
 
@@ -51,9 +52,11 @@ namespace tuplex {
         PartitionWriter(Executor *executor,
                 const Schema& schema,
                 int64_t dataSetID,
+                int64_t contextID,
                 size_t defaultPartitionSize) : _executor(executor),
                                                _schema(schema),
                                                _dataSetID(dataSetID),
+                                               _contextID(contextID),
                                                _defaultPartitionSize(defaultPartitionSize),
                                                _currentPartition(nullptr),
                                                _capacityLeft(0),
@@ -106,7 +109,19 @@ namespace tuplex {
         return true;
     }
 
-    extern std::vector<Partition*> rowsToPartitions(Executor *executor, int64_t dataSetID, const std::vector<Row>& rows);
+    /*!
+     * converts given vector of rows into blocks of memory using Tuplex's internal memory format.
+     * Rows should have the same schema, else exception is thrown.
+     * @param executor
+     * @param dataSetID
+     * @param contextID
+     * @param rows
+     * @return vector of Partitions holding rows.
+     */
+    extern std::vector<Partition*> rowsToPartitions(Executor *executor,
+                                                    int64_t dataSetID,
+                                                    int64_t contextID,
+                                                    const std::vector<Row>& rows);
 }
 
 #endif //TUPLEX_PARTITIONWRITER_H

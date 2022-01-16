@@ -492,7 +492,7 @@ namespace tuplex {
                     size_t bytesRead = 0;
 
                     // alloc new driver partition
-                    Partition *partition = _driver->allocWritablePartition(file_size, tstage->outputSchema(), tstage->outputDataSetID());
+                    Partition *partition = _driver->allocWritablePartition(file_size, tstage->outputSchema(), tstage->outputDataSetID(), stage->context().id());
                     auto ptr = partition->lockWrite();
                     int64_t bytesWritten = file_size;
                     int64_t numRows = 0;
@@ -620,8 +620,9 @@ namespace tuplex {
         return response;
     }
 
-    AwsLambdaBackend::AwsLambdaBackend(const AWSCredentials &credentials, const std::string &functionName,
-                                       const ContextOptions &options) : _credentials(credentials), _functionName(functionName), _options(options), _tag("tuplex"), _client(nullptr), _numPendingRequests(0), _numRequests(0) {
+    AwsLambdaBackend::AwsLambdaBackend(const Context& context,
+                                       const AWSCredentials &credentials,
+                                       const std::string &functionName) : IBackend(context), _credentials(credentials), _functionName(functionName), _options(context.getOptions()), _tag("tuplex"), _client(nullptr), _numPendingRequests(0), _numRequests(0) {
 
 
         _deleteScratchDirOnShutdown = false;
@@ -631,7 +632,7 @@ namespace tuplex {
         // if(options.SCRATCH_DIR().prefix() != "s3://") // @TODO: check further it's a dir...
         //     throw std::runtime_error("need to provide as scratch dir an s3 path to Lambda backend");
 
-        initAWS(credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
+        initAWS(credentials, _options.AWS_NETWORK_SETTINGS(), _options.AWS_REQUESTER_PAY());
 
         // several options are NOT supported currently in AWS Lambda Backend, hence
         // force them to what works
@@ -644,14 +645,14 @@ namespace tuplex {
             _options.set("tuplex.optimizer.nullValueOptimization", "false");
         }
 
-        _driver.reset(new Executor(options.DRIVER_MEMORY(),
-                                   options.PARTITION_SIZE(),
-                                   options.RUNTIME_MEMORY(),
-                                   options.RUNTIME_MEMORY_DEFAULT_BLOCK_SIZE(),
-                                   options.SCRATCH_DIR(), "aws-local-driver"));
+        _driver.reset(new Executor(_options.DRIVER_MEMORY(),
+                                   _options.PARTITION_SIZE(),
+                                   _options.RUNTIME_MEMORY(),
+                                   _options.RUNTIME_MEMORY_DEFAULT_BLOCK_SIZE(),
+                                   _options.SCRATCH_DIR(), "aws-local-driver"));
 
-        _lambdaSizeInMB = options.AWS_LAMBDA_MEMORY();
-        _lambdaTimeOut = options.AWS_LAMBDA_TIMEOUT();
+        _lambdaSizeInMB = _options.AWS_LAMBDA_MEMORY();
+        _lambdaTimeOut = _options.AWS_LAMBDA_TIMEOUT();
 
         logger().info("Execution over lambda with " + std::to_string(_lambdaSizeInMB) + "MB");
 

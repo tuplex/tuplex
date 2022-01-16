@@ -233,22 +233,26 @@ class CMakeBuild(build_ext):
                 if os.path.isfile(alt_path):
                     logging.info('Found tplxlam.zip under {}, using...'.format(alt_path))
                     lambda_zip = alt_path
+                else:
+                    logging.warn("Tuplex Lambda runner not found, not packaging.")
+                    lambda_zip = None
 
-            logging.info('Packaging Tuplex Lambda runner')
+            if lambda_zip and os.path.isfile(lambda_zip):
+                logging.info('Packaging Tuplex Lambda runner')
 
-            # need to copy / link zip file into temp dir
-            # -> this is the root setup.py file, hence find root
-            logging.info('Root path is: {}'.format(tplx_package_root))
-            zip_target = os.path.join(self.build_temp, 'tuplex', 'other')
-            os.makedirs(zip_target, exist_ok=True)
-            zip_dest = os.path.join(zip_target, 'tplxlam.zip')
-            shutil.copyfile(lambda_zip, zip_dest)
-            logging.info('Copied {} to {}'.format(lambda_zip, zip_dest))
+                # need to copy / link zip file into temp dir
+                # -> this is the root setup.py file, hence find root
+                logging.info('Root path is: {}'.format(tplx_package_root))
+                zip_target = os.path.join(self.build_temp, 'tuplex', 'other')
+                os.makedirs(zip_target, exist_ok=True)
+                zip_dest = os.path.join(zip_target, 'tplxlam.zip')
+                shutil.copyfile(lambda_zip, zip_dest)
+                logging.info('Copied {} to {}'.format(lambda_zip, zip_dest))
 
-            alt_dest = os.path.join(tplx_lib_root, 'other')
-            os.makedirs(alt_dest, exist_ok=True)
-            shutil.copyfile(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip'))
-            logging.info('Copied {} to {} as well'.format(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip')))
+                alt_dest = os.path.join(tplx_lib_root, 'other')
+                os.makedirs(alt_dest, exist_ok=True)
+                shutil.copyfile(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip'))
+                logging.info('Copied {} to {} as well'.format(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip')))
 
         # get from BuildType info
         cfg = build_config['BUILD_TYPE']
@@ -587,7 +591,7 @@ def tplx_package_data():
 
     # package lambda as well?
     lambda_zip = os.environ.get('TUPLEX_LAMBDA_ZIP', None)
-    if lambda_zip:
+    if lambda_zip and os.path.isfile(lambda_zip):
         package_data['tuplex.other'] = ['*.zip']
     return package_data
 

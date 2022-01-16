@@ -38,9 +38,9 @@ namespace tuplex {
 
         /*!
          * constructor for convenience
-         * @param options
+         * @param context
          */
-        explicit LocalBackend(const ContextOptions& options);
+        explicit LocalBackend(const Context& context);
 
         Executor* driver() override; // for local execution
 

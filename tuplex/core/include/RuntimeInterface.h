@@ -12,11 +12,7 @@
 #define TUPLEX_RUNTIMEINTERFACE_H
 
 #include <string>
-#ifdef BUILD_WITH_AWS
-#include <aws/core/external/cjson/cJSON.h>
-#else
-#include <cJSON.h>
-#endif
+#include <Base.h>
 #include <pcre2.h>
 
 /// this file contains convenience definitions for accessing functions within the runtime, loaded dynamically

@@ -24,6 +24,7 @@ namespace tuplex {
     enum class ExceptionCode : int32_t {
         UNKNOWN=-1,
         SUCCESS = 0, // important to set this to zero to speed up things.
+        OUTPUT_LIMIT_REACHED=2, // dummy code to return/check for when output limit has been reached (aggregate limit!)
 
         // Python exceptions from https://docs.python.org/3/library/exceptions.html
         BASEEXCEPTION=100,

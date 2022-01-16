@@ -156,6 +156,9 @@ namespace tuplex {
                                            llvm::Value* match_found);
 
             static llvm::StructType* resultStructType(llvm::LLVMContext& ctx);
+
+            void assignWriteCallbackReturnValue(llvm::IRBuilder<> &builder, int64_t operatorID,
+                                                llvm::CallInst *callbackECVal);
         protected:
             llvm::StructType* resultStructType() const {
                 return resultStructType(_env->getContext());
@@ -229,13 +232,17 @@ namespace tuplex {
             /*!
              * calls callback with data serialized as CSV. Data is runtime allocated.
              * @param callbackName name of the callback where the row is sent to
-             * @param operatorID operator to raise exceptions for
+             * @param operatorID operator to raise exceptions for when returnCallbackResult is true
+             * @param returnCallbackResult add additional check for callback and return its code
              * @param null_value the value (can be empty string) to write as null value
              * @param newLineDelimited whether to delimit the CSV string with '\n' or not
-             * @return
+             * @param delimiter delimiter to use when outputting CSV according to RFC standard
+             * @param quotechar quotechar to use when outputting CSV according to RFC standard
+             * @return function
              */
             llvm::Function *buildWithCSVRowWriter(const std::string &callbackName,
                                                   int64_t operatorID,
+                                                  bool returnCallbackResult,
                                                   const std::string &null_value,
                                                   bool newLineDelimited = true,
                                                   char delimiter = ',',
@@ -243,11 +250,12 @@ namespace tuplex {
 
             /*!
              * calls callback with data serialized in Tuplex's internal memory format. Data is runtime allocated.
-             * @param callbackName
-             * @param operatorID
+              * @param callbackName name of the callback where the row is sent to
+             * @param operatorID operator to raise exceptions for when returnCallbackResult is true
+             * @param returnCallbackResult add additional check for callback and return its code
              * @return function
              */
-            llvm::Function *buildWithTuplexWriter(const std::string &callbackName, int64_t operatorID);
+            llvm::Function *buildWithTuplexWriter(const std::string &callbackName, int64_t operatorID, bool returnCallbackResult);
 
 
             /*!

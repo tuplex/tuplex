@@ -276,7 +276,8 @@ namespace tuplex {
                         uint8_t* except_buf = serializeExceptionToMemory(ecCode, ecOpID, rowNumber, buf, bufSize, &except_size);
 
                         // sink row to type violation exceptions with commonCaseOutputSchema
-                        rowToMemorySink(owner(), _generalCaseSink, commonCaseOutputSchema(), 0, except_buf, except_size);
+                        rowToMemorySink(owner(), _generalCaseSink, commonCaseOutputSchema(),
+                                        0, contextID(), except_buf, except_size);
                         if(except_buf)
                             free(except_buf);
                         return 0;
@@ -1091,7 +1092,7 @@ default:
         // when hash table is activated, output here has to go to a hash table!
         assert(!hasHashTableSink());
 
-        rowToMemorySink(owner(), _mergedRowsSink, commonCaseOutputSchema(), 0, buf, bufSize);
+        rowToMemorySink(owner(), _mergedRowsSink, commonCaseOutputSchema(), 0, contextID(), buf, bufSize);
     }
 
     void ResolveTask::sinkRowToHashTable(PyObject *rowObject) {

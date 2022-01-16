@@ -25,7 +25,10 @@ namespace tuplex {
         public:
             StageBuilder() = delete;
 
-            StageBuilder(int64_t stage_number, bool rootStage, bool allowUndefinedBehavior, bool generateParser,
+            StageBuilder(int64_t stage_number,
+                         bool rootStage,
+                         bool allowUndefinedBehavior,
+                         bool generateParser,
                          double normalCaseThreshold,
                          bool sharedObjectPropagation,
                          bool nullValueOptimization,
@@ -61,6 +64,10 @@ namespace tuplex {
 
             void addFileInput(FileInputOperator* csvop);
             void addFileOutput(FileOutputOperator* fop);
+
+            inline void setOutputLimit(size_t limit) {
+                _outputLimit = limit;
+            }
 
             TransformStage* build(PhysicalPlan* plan, IBackend* backend);
         private:
@@ -116,6 +123,7 @@ namespace tuplex {
             FileFormat _outputFileFormat;
             int64_t _outputNodeID;
             int64_t _inputNodeID;
+            size_t _outputLimit;
 
             LogicalOperator* _inputNode;
             std::vector<bool> _columnsToRead;
@@ -137,6 +145,9 @@ namespace tuplex {
             size_t number() const { return _stageNumber; }
             int64_t outputDataSetID() const;
 
+            inline bool hasOutputLimit() const {
+                return _outputLimit < std::numeric_limits<size_t>::max();
+            }
 
             inline char csvOutputDelimiter() const {
                 return _fileOutputParameters.at("delimiter")[0];

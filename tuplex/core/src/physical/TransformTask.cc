@@ -17,6 +17,15 @@
 #include <physical/OrcReader.h>
 #include <bucket.h>
 
+namespace tuplex {
+    // atomic var to count output rows!
+    static std::atomic_int64_t g_totalOutputRows;
+
+    void TransformTask::resetOutputLimitCounter() {
+        g_totalOutputRows = 0;
+    }
+}
+
 extern "C" {
     static int64_t w2mCallback(tuplex::TransformTask* task, uint8_t* buf, int64_t bufSize) {
         assert(task);
@@ -25,6 +34,31 @@ extern "C" {
     }
 
     static int64_t w2fCallback(tuplex::TransformTask* task, uint8_t* buf, int64_t bufSize) {
+        assert(task);
+        assert(dynamic_cast<tuplex::TransformTask*>(task));
+        return task->writeRowToFile(buf, bufSize);
+    }
+
+    static int64_t limited_w2mCallback(tuplex::TransformTask* task, uint8_t* buf, int64_t bufSize) {
+        // i.e. check here how many output rows, if already limit reached - jump to goto!
+        if(tuplex::g_totalOutputRows >= task->output_limit()) {
+            return tuplex::ecToI64(tuplex::ExceptionCode::OUTPUT_LIMIT_REACHED);
+        }
+
+        assert(task);
+        assert(dynamic_cast<tuplex::TransformTask*>(task));
+        auto rc = task->writeRowToMemory(buf, bufSize);
+        if(0 == rc)
+            tuplex::g_totalOutputRows++;
+
+        // i.e. check here how many output rows, if already limit reached - jump to goto!
+        if(tuplex::g_totalOutputRows >= task->output_limit()) {
+            return tuplex::ecToI64(tuplex::ExceptionCode::OUTPUT_LIMIT_REACHED);
+        }
+        return rc;
+    }
+
+    static int64_t limited_w2fCallback(tuplex::TransformTask* task, uint8_t* buf, int64_t bufSize) {
         assert(task);
         assert(dynamic_cast<tuplex::TransformTask*>(task));
         return task->writeRowToFile(buf, bufSize);
@@ -41,7 +75,6 @@ extern "C" {
         assert(dynamic_cast<tuplex::TransformTask*>(task));
         task->writeExceptionToFile(ecCode, opID, row, buf, bufSize);
     }
-
 
     static void strw2hCallback(tuplex::TransformTask *task, char *strkey, size_t key_size, bool bucketize, char *buf, size_t buf_size) {
         assert(task);
@@ -135,11 +168,18 @@ namespace tuplex {
 
 
     // callbacks
-    codegen::write_row_f TransformTask::writeRowCallback(bool fileOutput) {
-        if(fileOutput)
-            return reinterpret_cast<codegen::write_row_f>(w2fCallback);
-        else
-            return reinterpret_cast<codegen::write_row_f>(w2mCallback);
+    codegen::write_row_f TransformTask::writeRowCallback(bool globalOutputLimit, bool fileOutput) {
+        if(globalOutputLimit) {
+            if(fileOutput)
+                return reinterpret_cast<codegen::write_row_f>(limited_w2fCallback);
+            else
+                return reinterpret_cast<codegen::write_row_f>(limited_w2mCallback);
+        } else {
+            if(fileOutput)
+                return reinterpret_cast<codegen::write_row_f>(w2fCallback);
+            else
+                return reinterpret_cast<codegen::write_row_f>(w2mCallback);
+        }
     }
     codegen::exception_handler_f TransformTask::exceptionCallback(bool fileOutput) {
         if(fileOutput)
@@ -373,6 +413,10 @@ namespace tuplex {
             throw std::runtime_error("no source (file/memory) specified, error!");
         }
 
+        // @TODO: use setjmp buffer etc. here to stop execution... ==> each thread needs one context -.- -> might be difficult...
+        // alternative is to generate early leave in code-generated function...
+
+
         // free runtime memory
         runtime::rtfree_all();
 
@@ -476,6 +520,7 @@ namespace tuplex {
         _output.reset();
         _outputSchema = Schema::UNKNOWN;
         _outputDataSetID =  -1;
+        _contextID = -1;
 
         // reset exception memory sink
         _exceptions.reset();
@@ -642,7 +687,7 @@ namespace tuplex {
 
     int64_t TransformTask::writeRowToMemory(uint8_t *buf, int64_t size) {
         _outputRowCounter++;
-        return rowToMemorySink(owner(), _output, _outputSchema, _outputDataSetID, buf, size);
+        return rowToMemorySink(owner(), _output, _outputSchema, _outputDataSetID, contextID(), buf, size);
     }
 
     // note: could also use a int64_t, int64_t hashmap for string when string key is stored in bucket...
@@ -758,7 +803,7 @@ namespace tuplex {
         // ==> this would things EVEN faster...
         size_t bufferSize = 0;
         auto buffer = serializeExceptionToMemory(ecCode, opID, _outputRowCounter++, buf, bufSize, &bufferSize);
-        int64_t code = rowToMemorySink(owner(), _exceptions, _inputSchema, _outputDataSetID, buffer, bufferSize);
+        int64_t code = rowToMemorySink(owner(), _exceptions, _inputSchema, _outputDataSetID, contextID(), buffer, bufferSize);
         free(buffer);
         incExceptionCounts(ecCode, opID);
     }
@@ -772,7 +817,7 @@ namespace tuplex {
         _outOptions = options;
     }
 
-    void TransformTask::sinkOutputToMemory(const Schema& outputSchema, int64_t outputDataSetID) {
+    void TransformTask::sinkOutputToMemory(const Schema& outputSchema, int64_t outputDataSetID, int64_t contextID) {
         assert(outputDataSetID >= 0);
 
         // reset sinks
@@ -781,6 +826,7 @@ namespace tuplex {
         // memory sinks
         _outputSchema = outputSchema;
         _outputDataSetID = outputDataSetID;
+        _contextID = contextID;
     }
 
     void TransformTask::setInputMemorySource(tuplex::Partition *partition, bool invalidateAfterUse) {
@@ -846,7 +892,8 @@ namespace tuplex {
                 case FileFormat::OUTFMT_ORC: {
 
 #ifdef BUILD_WITH_ORC
-                    auto orc = new OrcReader(this, reinterpret_cast<codegen::read_block_f>(_functor), operatorID, partitionSize, _inputSchema);
+                    auto orc = new OrcReader(this, reinterpret_cast<codegen::read_block_f>(_functor),
+                                             operatorID, contextID(), partitionSize, _inputSchema);
                     orc->setRange(rangeStart, rangeSize);
                     _reader.reset(orc);
 #else

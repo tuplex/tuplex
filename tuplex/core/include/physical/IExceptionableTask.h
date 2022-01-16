@@ -57,8 +57,8 @@ namespace tuplex {
      */
     class IExceptionableTask : public IExecutorTask {
     public:
-        IExceptionableTask(const Schema &rowSchema) : _exceptionRowSchema(rowSchema), _lastPtr(nullptr),
-                                                      _startPtr(nullptr) {}
+        IExceptionableTask(const Schema &rowSchema, int64_t contextID) : _exceptionRowSchema(rowSchema), _lastPtr(nullptr),
+                                                      _startPtr(nullptr), _contextID(contextID) {}
 
         virtual std::vector<Partition *> getExceptions() const { return _exceptions; }
 
@@ -87,6 +87,8 @@ namespace tuplex {
             _exceptions = v;
         }
 
+        int64_t contextID() const { return _contextID; }
+
     private:
         Schema _exceptionRowSchema;
         std::vector<Partition *> _exceptions;
@@ -97,6 +99,8 @@ namespace tuplex {
         // helps for serializing stuff
         uint8_t *_lastPtr;
         uint8_t *_startPtr;
+
+        int64_t _contextID;
 
         void makeSpace(Executor *owner, const Schema &schema, size_t size);
 

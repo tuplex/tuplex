@@ -42,6 +42,9 @@ namespace tuplex {
     private:
         int _datasetIDGenerator;
         uniqueid_t _uuid;
+        int _id;
+
+        static int _contextIDGenerator;
 
         // stores all datasets belonging to this context
         // right now, this class handles memory for this
@@ -73,6 +76,9 @@ namespace tuplex {
 
         codegen::CompilePolicy _compilePolicy;
         codegen::CompilePolicy compilePolicyFromOptions(const ContextOptions& options);
+
+        inline int getNextContextID() { return _contextIDGenerator++; }
+
     protected:
         inline int getNextDataSetID() { return _datasetIDGenerator++; };
 
@@ -90,6 +96,8 @@ namespace tuplex {
 
         // disable copying
         Context(const Context& other) = delete;
+
+        int id() const { return _id; }
 
         // create from array
         DataSet& parallelize(std::initializer_list<int> L, const std::vector<std::string>& columnNames=std::vector<std::string>()) {

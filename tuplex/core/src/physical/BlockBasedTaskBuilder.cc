@@ -200,5 +200,20 @@ namespace tuplex {
             auto callback_func = env().getModule()->getOrInsertFunction(intermediateCallbackName, writeCallback_type);
             auto callbackECVal = builder.CreateCall(callback_func, {userData, serialized_row.val, serialized_row.size});
         }
+
+        void BlockBasedTaskBuilder::generateTerminateEarlyOnCode(llvm::IRBuilder<> &builder, llvm::Value *ecCode,
+                                                                 ExceptionCode code) {
+            using namespace llvm;
+
+            // create block & terminate early!
+            auto& ctx = builder.GetInsertBlock()->getContext();
+            auto bbEarlyTermination = BasicBlock::Create(ctx, "terminate_early", builder.GetInsertBlock()->getParent());
+            auto bbContinue = BasicBlock::Create(ctx, "continue_execution", builder.GetInsertBlock()->getParent());
+            auto terminateEarlyCond = builder.CreateICmpEQ(ecCode, env().i64Const(ecToI64(code)));
+            builder.CreateCondBr(terminateEarlyCond, bbEarlyTermination, bbContinue);
+            builder.SetInsertPoint(bbEarlyTermination);
+            builder.CreateRet(ecCode);
+            builder.SetInsertPoint(bbContinue);
+        }
     }
 }

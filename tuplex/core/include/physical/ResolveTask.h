@@ -55,6 +55,7 @@ namespace tuplex {
         // => if data does not adhere to the targetNormalCaseOutputSchema, it should be redone as commoncase violation/python violation exception with the LAST operator ID
         // need to define the schema what the resolve functor returns...
         ResolveTask(int64_t stageID,
+                    int64_t contextID,
                     const std::vector<Partition*>& partitions,
                     const std::vector<Partition*>& runtimeExceptions,
                     const std::vector<Partition*>& inputExceptions,
@@ -72,7 +73,7 @@ namespace tuplex {
                     char csvDelimiter,
                     char csvQuotechar,
                     codegen::resolve_f functor=nullptr,
-                    PyObject* interpreterFunctor=nullptr) : IExceptionableTask::IExceptionableTask(exceptionInputSchema),
+                    PyObject* interpreterFunctor=nullptr) : IExceptionableTask::IExceptionableTask(exceptionInputSchema, contextID),
                                                             _stageID(stageID),
                                                             _partitions(partitions),
                                                             _runtimeExceptions(runtimeExceptions),

@@ -42,7 +42,7 @@ namespace tuplex {
         tasks.clear();
     }
 
-    LocalBackend::LocalBackend(const tuplex::ContextOptions &options) : _compiler(nullptr), _options(options) {
+    LocalBackend::LocalBackend(const Context& context) : IBackend(context), _compiler(nullptr), _options(context.getOptions()) {
 
         // initialize driver
         auto& logger = this->logger();
@@ -50,7 +50,7 @@ namespace tuplex {
         // load runtime
 
         // load runtime library
-        auto runtimePath = options.RUNTIME_LIBRARY().toPath();
+        auto runtimePath = _options.RUNTIME_LIBRARY().toPath();
         if(!runtime::init(runtimePath)) {
             // runtime not present is a fatal error.
             logger.error("FATAL ERROR: Could not load runtime library");
@@ -63,24 +63,31 @@ namespace tuplex {
         _compiler = std::make_unique<JITCompiler>();
 
         // connect to history server if given
-        if(options.USE_WEBUI()) {
+        if(_options.USE_WEBUI()) {
 
             TUPLEX_TRACE("initializing REST/Curl interface");
             // init rest interface if required (check if already done by AWS!)
             RESTInterface::init();
             TUPLEX_TRACE("creating history server connector");
-            _historyConn = HistoryServerConnector::connect(options.WEBUI_HOST(),
-                                                           options.WEBUI_PORT(),
-                                                           options.WEBUI_DATABASE_HOST(),
-                                                           options.WEBUI_DATABASE_PORT());
+            _historyConn = HistoryServerConnector::connect(_options.WEBUI_HOST(),
+                                                           _options.WEBUI_PORT(),
+                                                           _options.WEBUI_DATABASE_HOST(),
+                                                           _options.WEBUI_DATABASE_PORT());
             TUPLEX_TRACE("connection established");
         }
 
         // init local threads
-        initExecutors(options);
+        initExecutors(_options);
     }
 
     LocalBackend::~LocalBackend() {
+
+        // remove partitions belonging to context of backend...
+        if(_driver)
+            _driver->freeAllPartitionsOfContext(&context());
+        for(auto exec : _executors)
+            exec->freeAllPartitionsOfContext(&context());
+
         freeExecutors();
     }
 
@@ -106,8 +113,6 @@ namespace tuplex {
         LocalEngine::instance().freeExecutors(_executors);
         _executors.clear();
         assert(_executors.empty());
-
-        // free driver ??
     }
 
     Executor *LocalBackend::driver() {
@@ -431,7 +436,10 @@ namespace tuplex {
         Schema combinedSchema(Schema::MemoryLayout::ROW, combinedType);
         std::vector<IExecutorTask*> probeTasks;
         for(auto partition : rsLeft->partitions()) {
-            probeTasks.emplace_back(new HashProbeTask(partition, hmap, probeFunction, hstage->combinedType(), hstage->outputDataSetID()));
+            probeTasks.emplace_back(new HashProbeTask(partition, hmap, probeFunction,
+                                                      hstage->combinedType(),
+                                                      hstage->outputDataSetID(),
+                                                      hstage->context().id()));
         }
 
         auto completedTasks = performTasks(probeTasks);
@@ -534,15 +542,15 @@ namespace tuplex {
                             else
                                 task->sinkOutputToHashTable(HashTableFormat::BYTES,
                                                             tstage->outputDataSetID());
-                        }
-                        else {
+                        } else {
                             assert(tstage->outputMode() == EndPointMode::FILE ||
                             tstage->outputMode() == EndPointMode::MEMORY);
-                            task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID());
+                            task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID(), tstage->context().id());
                         }
 
                         task->sinkExceptionsToMemory(inputSchema);
                         task->setStageID(tstage->getID());
+                        task->setOutputLimit(tstage->outputLimit());
                         // add to tasks
                         tasks.emplace_back(std::move(task));
                     } else {
@@ -572,10 +580,11 @@ namespace tuplex {
                             else {
                                 assert(tstage->outputMode() == EndPointMode::FILE ||
                                        tstage->outputMode() == EndPointMode::MEMORY);
-                                task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID());
+                                task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID(), tstage->context().id());
                             }
                             task->sinkExceptionsToMemory(inputSchema);
                             task->setStageID(tstage->getID());
+                            task->setOutputLimit(tstage->outputLimit());
                             // add to tasks
                             tasks.emplace_back(std::move(task));
                             num_parts++;
@@ -608,10 +617,11 @@ namespace tuplex {
                                 else {
                                     assert(tstage->outputMode() == EndPointMode::FILE ||
                                            tstage->outputMode() == EndPointMode::MEMORY);
-                                    task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID());
+                                    task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID(), tstage->context().id());
                                 }
                                 task->sinkExceptionsToMemory(inputSchema);
                                 task->setStageID(tstage->getID());
+                                task->setOutputLimit(tstage->outputLimit());
                                 // add to tasks
                                 tasks.emplace_back(std::move(task));
 
@@ -664,7 +674,7 @@ namespace tuplex {
                 else {
                     assert(tstage->outputMode() == EndPointMode::FILE ||
                            tstage->outputMode() == EndPointMode::MEMORY);
-                    task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID());
+                    task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID(), tstage->context().id());
                 }
 
                 auto partitionId = uuidToString(partition->uuid());
@@ -673,9 +683,9 @@ namespace tuplex {
                 task->setInputExceptionIndex(std::get<1>(info));
                 task->setInputExceptionOffset(std::get<2>(info));
                 task->setInputExceptions(tstage->inputExceptions());
-
                 task->sinkExceptionsToMemory(inputSchema);
                 task->setStageID(tstage->getID());
+                task->setOutputLimit(tstage->outputLimit());
                 tasks.emplace_back(std::move(task));
                 numInputRows += partition->getNumRows();
 
@@ -1190,7 +1200,8 @@ namespace tuplex {
             // later however, it's going to be hashaggregate which needs to be divided into partitions.
 
             Partition* p = _driver->allocWritablePartition(aggResultSize + sizeof(int64_t),
-                                                           tstage->outputSchema(), tstage->outputDataSetID());
+                                                           tstage->outputSchema(), tstage->outputDataSetID(),
+                                                           tstage->context().id());
             auto ptr = p->lockWriteRaw();
             *(int64_t*)ptr = 1; // one row (it's a general aggregate for now...)
             memcpy(ptr + sizeof(int64_t), aggResult, aggResultSize);
@@ -1389,6 +1400,7 @@ namespace tuplex {
                 // pretty simple, just create a ResolveTask
                 auto exceptionInputSchema = tt->inputSchema(); // this could be specialized!
                 auto rtask = new ResolveTask(stageID,
+                                             tstage->context().id(),
                                              tt->getOutputPartitions(),
                                              tt->getExceptionPartitions(),
                                              tt->inputExceptions(),
@@ -1708,7 +1720,8 @@ namespace tuplex {
         // include null if found
 
         // schema is option[str] for this query...
-        PartitionWriter pw(driver(), rs->schema(), astage->outputDataSetID(), _options.PARTITION_SIZE());
+        PartitionWriter pw(driver(), rs->schema(), astage->outputDataSetID(),
+                           astage->context().id(), _options.PARTITION_SIZE());
 
 
         // bug in here, leave out...

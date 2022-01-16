@@ -25,7 +25,10 @@
 #endif
 
 namespace tuplex {
-    Context::Context(const ContextOptions& options) : _datasetIDGenerator(0), _compilePolicy(compilePolicyFromOptions(options)) {
+
+    int Context::_contextIDGenerator = 10000;
+
+    Context::Context(const ContextOptions& options) : _datasetIDGenerator(0), _compilePolicy(compilePolicyFromOptions(options)), _id(getNextContextID()) {
         // init metrics
         _lastJobMetrics = std::make_unique<JobMetrics>();
         // make sure this is called without holding the GIL
@@ -54,7 +57,7 @@ namespace tuplex {
         switch(options.BACKEND()) {
             case Backend::LOCAL: {
                 // creates a new local backend! --> maybe reuse for multiple contexts?
-                _ee = std::make_unique<LocalBackend>(options);
+                _ee = std::make_unique<LocalBackend>(*this);
                 break;
             }
             case Backend::LAMBDA: {
@@ -72,7 +75,7 @@ namespace tuplex {
                 }
 
                 // @TODO: function name should come from options!
-                _ee = std::make_unique<AwsLambdaBackend>(AWSCredentials::get(), "tuplex-lambda-runner", options);
+                _ee = std::make_unique<AwsLambdaBackend>(*this, AWSCredentials::get(), "tuplex-lambda-runner");
 #endif
                 break;
             }
@@ -109,7 +112,7 @@ namespace tuplex {
             throw std::runtime_error("driver not initialized for backend");
 
         size_t bytes_to_alloc = std::max(minBytesRequired + sizeof(int64_t), _options.PARTITION_SIZE());
-        return driver->allocWritablePartition(bytes_to_alloc, schema, dataSetID);
+        return driver->allocWritablePartition(bytes_to_alloc, schema, dataSetID, id());
     }
 
     DataSet* Context::createDataSet(const Schema& schema) {

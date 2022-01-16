@@ -30,7 +30,7 @@ public:
 
     tuplex::Partition* allocPartition(const python::Type& rowType, int dataSetID) {
         assert(driver);
-        return driver->allocWritablePartition(options.PARTITION_SIZE(), tuplex::Schema(tuplex::Schema::MemoryLayout::ROW, rowType), dataSetID);
+        return driver->allocWritablePartition(options.PARTITION_SIZE(), tuplex::Schema(tuplex::Schema::MemoryLayout::ROW, rowType), dataSetID, 0);
     }
 
     std::vector<tuplex::Partition*> rowsToPartitions(std::vector<tuplex::Row> rows) {
@@ -45,7 +45,7 @@ public:
             EXPECT_EQ(r.getRowType(), first_type);
 
         // now write via partition writer
-        tuplex::PartitionWriter pw(driver, Schema(Schema::MemoryLayout::ROW, first_type), 0, options.PARTITION_SIZE());
+        tuplex::PartitionWriter pw(driver, Schema(Schema::MemoryLayout::ROW, first_type), 0, 0, options.PARTITION_SIZE());
         for(const auto& r : rows)
             pw.writeRow(r);
         return pw.getOutputPartitions();

@@ -47,7 +47,7 @@ namespace tuplex {
         auto driver = _context->getDriver();
 
         std::vector<Partition*> partitions;
-        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1);
+        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1, _context->id());
         int64_t* rawPtr = (int64_t*)partition->lockWriteRaw();
         *rawPtr = 0;
         double* ptr = (double*)(rawPtr + 1);
@@ -67,7 +67,7 @@ namespace tuplex {
 
                 partition->unlockWrite();
                 partitions.push_back(partition);
-                partition = driver->allocWritablePartition(std::max(sizeof(double), allocMinSize), schema, -1);
+                partition = driver->allocWritablePartition(std::max(sizeof(double), allocMinSize), schema, -1, _context->id());
                 rawPtr = (int64_t*)partition->lockWriteRaw();
                 *rawPtr = 0;
                 ptr = (double*)(rawPtr + 1);
@@ -128,7 +128,7 @@ namespace tuplex {
         auto driver = _context->getDriver();
 
         std::vector<Partition*> partitions;
-        Partition* partition = driver->allocWritablePartition(std::max(sizeof(int64_t), allocMinSize), schema, -1);
+        Partition* partition = driver->allocWritablePartition(std::max(sizeof(int64_t), allocMinSize), schema, -1,  _context->id());
         int64_t* rawPtr = (int64_t*)partition->lockWriteRaw();
         *rawPtr = 0;
         int64_t* ptr = rawPtr + 1;
@@ -148,7 +148,7 @@ namespace tuplex {
 
                 partition->unlockWrite();
                 partitions.push_back(partition);
-                partition = driver->allocWritablePartition(std::max(sizeof(int64_t), allocMinSize), schema, -1);
+                partition = driver->allocWritablePartition(std::max(sizeof(int64_t), allocMinSize), schema, -1, _context->id());
                 rawPtr = (int64_t*)partition->lockWriteRaw();
                 *rawPtr = 0;
                 ptr = rawPtr + 1;
@@ -216,7 +216,7 @@ namespace tuplex {
         auto driver = _context->getDriver();
 
         std::vector<Partition*> partitions;
-        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1);
+        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1, _context->id());
         int64_t* rawPtr = (int64_t*)partition->lockWriteRaw();
         *rawPtr = 0;
         uint8_t* ptr = (uint8_t*)(rawPtr + 1);
@@ -263,7 +263,7 @@ namespace tuplex {
 
                     partition->unlockWrite();
                     partitions.push_back(partition);
-                    partition = driver->allocWritablePartition(std::max(allocMinSize, requiredBytes), schema, -1);
+                    partition = driver->allocWritablePartition(std::max(allocMinSize, requiredBytes), schema, -1, _context->id());
                     rawPtr = (int64_t*)partition->lockWriteRaw();
                     *rawPtr = 0;
                     ptr = (uint8_t*)(rawPtr + 1);
@@ -378,7 +378,7 @@ namespace tuplex {
         auto driver = _context->getDriver();
 
         std::vector<Partition*> partitions;
-        Partition* partition = driver->allocWritablePartition(std::max(sizeof(int64_t), allocMinSize), schema, -1);
+        Partition* partition = driver->allocWritablePartition(std::max(sizeof(int64_t), allocMinSize), schema, -1, _context->id());
         int64_t* rawPtr = (int64_t*)partition->lockWriteRaw();
         *rawPtr = 0;
         int64_t* ptr = rawPtr + 1;
@@ -398,7 +398,7 @@ namespace tuplex {
 
                 partition->unlockWrite();
                 partitions.push_back(partition);
-                partition = driver->allocWritablePartition(std::max(sizeof(int64_t), allocMinSize), schema, -1);
+                partition = driver->allocWritablePartition(std::max(sizeof(int64_t), allocMinSize), schema, -1, _context->id());
                 rawPtr = (int64_t*)partition->lockWriteRaw();
                 *rawPtr = 0;
                 ptr = rawPtr + 1;
@@ -441,7 +441,7 @@ namespace tuplex {
         auto driver = _context->getDriver();
 
         std::vector<Partition*> partitions;
-        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1);
+        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1, _context->id());
         int64_t* rawPtr = (int64_t*)partition->lockWriteRaw();
         *rawPtr = 0;
         uint8_t* ptr = (uint8_t*)(rawPtr + 1);
@@ -474,7 +474,7 @@ namespace tuplex {
 
                     partition->unlockWrite();
                     partitions.push_back(partition);
-                    partition = driver->allocWritablePartition(std::max(allocMinSize, requiredBytes), schema, -1);
+                    partition = driver->allocWritablePartition(std::max(allocMinSize, requiredBytes), schema, -1, _context->id());
                     rawPtr = (int64_t*)partition->lockWriteRaw();
                     *rawPtr = 0;
                     ptr = (uint8_t*)(rawPtr + 1);
@@ -646,7 +646,7 @@ namespace tuplex {
         auto driver = _context->getDriver();
 
         std::vector<Partition*> partitions;
-        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1);
+        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1, _context->id());
         int64_t* rawPtr = (int64_t*)partition->lockWriteRaw();
         *rawPtr = 0;
         uint8_t* ptr = (uint8_t*)(rawPtr + 1);
@@ -655,6 +655,7 @@ namespace tuplex {
         size_t prevNumRows = 0;
         for(unsigned i = 0; i < numElements; ++i) {
             auto obj = PyList_GET_ITEM(listObj, i);
+            Py_XINCREF(obj);
 
             // check that it is a dict!
             if (PyDict_Check(obj)) {
@@ -686,7 +687,7 @@ namespace tuplex {
 
                         partition->unlockWrite();
                         partitions.push_back(partition);
-                        partition = driver->allocWritablePartition(allocMinSize, schema, -1);
+                        partition = driver->allocWritablePartition(allocMinSize, schema, -1, _context->id());
                         rawPtr = (int64_t *) partition->lockWriteRaw();
                         *rawPtr = 0;
                         ptr = (uint8_t *) (rawPtr + 1);

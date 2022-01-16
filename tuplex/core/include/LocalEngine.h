@@ -72,8 +72,10 @@ namespace tuplex {
 
         /*!
          * releases executors (invoked by context)
+         * @param executors
+         * @param ctx
          */
-        void freeExecutors(const std::vector<Executor*>&);
+        void freeExecutors(const std::vector<Executor*>& executors, const Context* ctx=nullptr);
 
         Executor* getDriver(const size_t size,
                             const size_t blockSize,

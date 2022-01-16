@@ -366,7 +366,7 @@ namespace tuplex {
             Timer timer;
             llvm::LLVMContext ctx;
             LLVMOptimizer opt;
-            auto mod = codegen::bitCodeToModule(ctx, tstage->bitCode());
+            auto mod = codegen::bitCodeToModule(ctx, tstage->fastPathBitCode());
             opt.optimizeModule(*mod);
             optimizedBitcode = codegen::moduleToBitCodeString(*mod);
             logger().info("client-side LLVM IR optimization took " + std::to_string(timer.time()) + "s");
@@ -393,7 +393,7 @@ namespace tuplex {
             if(_options.USE_LLVM_OPTIMIZER() && !optimizedBitcode.empty())
                 pb_stage->set_bitcode(optimizedBitcode);
             else
-                pb_stage->set_bitcode(tstage->bitCode());
+                pb_stage->set_bitcode(tstage->fastPathBitCode());
 
             req.set_allocated_stage(pb_stage.release());
 

@@ -16,6 +16,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <mutex>
 #include <TTuple.h>
 
 namespace python {
@@ -309,6 +310,7 @@ namespace python {
         // need threadsafe hashmap here...
         // either tbb's or the one from folly...
         std::map<int, TypeEntry> _typeMap;
+        mutable std::mutex _typeMapMutex;
 
         TypeFactory() : _hash_generator(0)  {}
         std::string getDesc(const int _hash) const;

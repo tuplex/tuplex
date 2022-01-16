@@ -28,6 +28,7 @@ namespace tuplex {
         double _llvm_compilation_time_s = 0.0;
         double _total_compilation_time_s = 0.0;
         double _sampling_time_s = 0.0;
+        double _generate_llvm_time_s = 0.0; // how long StageBuilder::build takes
 
         // numbers per stage, can get combined in case.
         struct StageMetrics {
@@ -116,6 +117,12 @@ namespace tuplex {
             _total_compilation_time_s = time;
         }
         /*!
+        * @param time a double representing time in s
+        */
+        void setGenerateLLVMTime(double time) {
+            _generate_llvm_time_s = time;
+        }
+        /*!
         * getter for logical optimization time
         * @returns a double representing logical optimization time in s
         */    
@@ -142,6 +149,12 @@ namespace tuplex {
         */   
         double getTotalCompilationTime() {
             return _total_compilation_time_s;
+        }
+        /*!
+        * @returns a double representing time in s
+        */
+        double getGenerateLLVMTime() {
+            return _generate_llvm_time_s;
         }
 
         /*!
@@ -219,6 +232,7 @@ namespace tuplex {
             ss<<"\"llvm_compilation_time_s\":"<<_llvm_compilation_time_s<<",";
             ss<<"\"total_compilation_time_s\":"<<_total_compilation_time_s<<",";
             ss<<"\"sampling_time_s\":"<<_sampling_time_s<<",";
+            ss<<"\"generate_llvm_time_s\":"<<_generate_llvm_time_s<<",";
 
             // per stage numbers
             ss<<"\"stages\":[";

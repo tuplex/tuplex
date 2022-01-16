@@ -723,149 +723,152 @@ namespace tuplex {
         return fields;
     }
 
-    std::shared_ptr<TransformStage::JITSymbols> TransformStage::compile(JITCompiler &jit, LLVMOptimizer *optimizer, bool excludeSlowPath, bool registerSymbols) {
+    void TransformStage::compileSlowPath(JITCompiler &jit, LLVMOptimizer *optimizer) {
+        Timer timer;
+        JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
         auto& logger = Logger::instance().defaultLogger();
 
-        // lazy compile
-        if(!_syms) {
-            logger.debug("lazy init symbols");
-            _syms = std::make_shared<JITSymbols>();
-        }
-
-        Timer timer;
+//        _slowCodePath = _slowCodePath_f.get();
 
         llvm::LLVMContext ctx;
-        auto bit_code = bitCode();
-        if(bit_code.empty())
-            return _syms;
+        auto slow_path_bit_code = slowPathBitCode();
+        auto slow_path_mod = slow_path_bit_code.empty() ? nullptr : codegen::bitCodeToModule(ctx, slow_path_bit_code);
 
-        auto mod = codegen::bitCodeToModule(ctx, bit_code);
-        if(!mod)
-            throw std::runtime_error("invalid bitcode");
-
-        logger.debug("parse module in " + std::to_string(timer.time()));
-
-        // because in Lambda there's no context yet, use some dummy object...
-        JobMetrics dummy_metrics;
-        JobMetrics& metrics = PhysicalStage::plan() ? PhysicalStage::plan()->getContext().metrics() : dummy_metrics;
-
-        std::string unoptimizedIR;
-        std::string optimizedIR = "Not currently optimized.";
-        if (_historyServer) {
-            unoptimizedIR = code();
-        }
-
-        // step 1: run optimizer if desired
         if(optimizer) {
-            optimizer->optimizeModule(*mod.get());
-            if (_historyServer) {
-                optimizedIR = code();
-            }
-            double llvm_optimization_time = timer.time();
-            metrics.setLLVMOptimizationTime(llvm_optimization_time);
-            logger.info("Optimization via LLVM passes took " + std::to_string(llvm_optimization_time) + " ms");
-            timer.reset();
-        }
-
-        logger.debug("registering symbols...");
-        // step 2: register callback functions with compiler
-        if(registerSymbols && !writeMemoryCallbackName().empty())
-            jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(hasOutputLimit(), false));
-        if(registerSymbols && !exceptionCallbackName().empty())
-            jit.registerSymbol(exceptionCallbackName(), TransformTask::exceptionCallback(false));
-        if(registerSymbols && !writeFileCallbackName().empty())
-            jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(hasOutputLimit(), true));
-
-        if(outputMode() == EndPointMode::HASHTABLE && !_funcHashWriteCallbackName.empty()) {
-            if (hashtableKeyByteWidth() == 8) {
-                if(_aggregateAggregateFuncName.empty())
-                    jit.registerSymbol(_funcHashWriteCallbackName, TransformTask::writeInt64HashTableCallback());
-                else jit.registerSymbol(_funcHashWriteCallbackName, TransformTask::writeInt64HashTableAggregateCallback());
-            }
-            else {
-                if(_aggregateAggregateFuncName.empty())
-                    jit.registerSymbol(_funcHashWriteCallbackName, TransformTask::writeStringHashTableCallback());
-                else jit.registerSymbol(_funcHashWriteCallbackName, TransformTask::writeStringHashTableAggregateCallback());
+            if (slow_path_mod) {
+                Timer pathTimer;
+                pathTimer.reset();
+                optimizer->optimizeModule(*slow_path_mod.get());
             }
         }
-        assert(!_initStageFuncName.empty() && !_releaseStageFuncName.empty());
-        if(registerSymbols && !_aggregateCombineFuncName.empty())
-            jit.registerSymbol(aggCombineCallbackName(), TransformTask::aggCombineCallback());
 
         // compile & link with resolve tasks
-        if(registerSymbols && !resolveWriteCallbackName().empty())
+        if(!resolveWriteCallbackName().empty())
             jit.registerSymbol(resolveWriteCallbackName(), ResolveTask::mergeRowCallback());
-        if(registerSymbols && !resolveExceptionCallbackName().empty())
+        if(!resolveExceptionCallbackName().empty())
             jit.registerSymbol(resolveExceptionCallbackName(), ResolveTask::exceptionCallback());
-
         if(outputMode() == EndPointMode::HASHTABLE && !resolveExceptionCallbackName().empty()) {
             if(hashtableKeyByteWidth() == 8) {
-                if(_aggregateAggregateFuncName.empty())
+                if(_slowCodePath._aggregateAggregateFuncName.empty())
                     jit.registerSymbol(resolveHashCallbackName(), ResolveTask::writeInt64HashTableCallback());
                 else jit.registerSymbol(resolveHashCallbackName(), ResolveTask::writeInt64HashTableAggregateCallback());
             }
             else {
-                if(_aggregateAggregateFuncName.empty())
+                if(_slowCodePath._aggregateAggregateFuncName.empty())
                     jit.registerSymbol(resolveHashCallbackName(), ResolveTask::writeStringHashTableCallback());
                 else jit.registerSymbol(resolveHashCallbackName(), ResolveTask::writeStringHashTableAggregateCallback());
             }
         }
 
-        logger.info("starting code compilation");
+        // compile slow code path if desired
+        if(slow_path_mod && !jit.compile(std::move(slow_path_mod)))
+            throw std::runtime_error("could not compile slow code for stage " + std::to_string(number()));
+        Timer llvmLowerTimer;
+        if(!_syms->resolveFunctor)
+            _syms->resolveFunctor = !resolveWriteCallbackName().empty() ? reinterpret_cast<codegen::resolve_f>(jit.getAddrOfSymbol(resolveRowName())) : nullptr;
+
+        if(!_syms->_slowCodePath.initStageFunctor)
+            _syms->_slowCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_slowCodePath._slowPathInitStageFuncName));
+        if(!_syms->_slowCodePath.releaseStageFunctor)
+            _syms->_slowCodePath.releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_slowCodePath._slowPathReleaseStageFuncName));
+    }
+
+    void TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer) {
+        Timer timer;
+        JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
+        auto& logger = Logger::instance().defaultLogger();
+
+        llvm::LLVMContext ctx;
+        auto fast_path_bit_code = fastPathBitCode();
+        if(fast_path_bit_code.empty())
+            return;
+
+        auto fast_path_mod = codegen::bitCodeToModule(ctx, fast_path_bit_code);
+        if(!fast_path_mod)
+            throw std::runtime_error("invalid fast path bitcode");
+
+        // step 1: run optimizer if desired
+        if(optimizer) {
+            Timer pathTimer;
+            optimizer->optimizeModule(*fast_path_mod.get());
+
+            double llvm_optimization_time = timer.time();
+            metrics.setLLVMOptimizationTime(llvm_optimization_time);
+            logger.info("TransformStage - Optimization via LLVM passes took " + std::to_string(llvm_optimization_time) + " ms");
+
+            timer.reset();
+        }
+
+        // step 2: register callback functions with compiler
+        if(!writeMemoryCallbackName().empty())
+            jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(false));
+        if(!exceptionCallbackName().empty())
+            jit.registerSymbol(exceptionCallbackName(), TransformTask::exceptionCallback(false));
+        if(!writeFileCallbackName().empty())
+            jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(true));
+        if(outputMode() == EndPointMode::HASHTABLE && !_fastCodePath._funcHashWriteCallbackName.empty()) {
+            if (hashtableKeyByteWidth() == 8) {
+                if(_fastCodePath._aggregateAggregateFuncName.empty())
+                    jit.registerSymbol(_fastCodePath._funcHashWriteCallbackName, TransformTask::writeInt64HashTableCallback());
+                else jit.registerSymbol(_fastCodePath._funcHashWriteCallbackName, TransformTask::writeInt64HashTableAggregateCallback());
+            }
+            else {
+                if(_fastCodePath._aggregateAggregateFuncName.empty())
+                    jit.registerSymbol(_fastCodePath._funcHashWriteCallbackName, TransformTask::writeStringHashTableCallback());
+                else jit.registerSymbol(_fastCodePath._funcHashWriteCallbackName, TransformTask::writeStringHashTableAggregateCallback());
+            }
+        }
+        assert(!_fastCodePath._fastPathInitStageFuncName.empty() && !_fastCodePath._fastPathReleaseStageFuncName.empty());
+        if(!_fastCodePath._aggregateCombineFuncName.empty())
+            jit.registerSymbol(aggCombineCallbackName(), TransformTask::aggCombineCallback());
 
         // 3. compile code
         // @TODO: use bitcode or llvm Module for more efficiency...
-        if(!jit.compile(std::move(mod))) {
-            logger.error("could not compile code for stage " + std::to_string(number()));
-            throw std::runtime_error("could not compile code for stage " + std::to_string(number()));
-        }
+        if(!jit.compile(std::move(fast_path_mod)))
+            throw std::runtime_error("could not compile fast code for stage " + std::to_string(number()));
         std::stringstream ss;
 
-        logger.info("first compile done");
-
         // fetch symbols (this actually triggers the compilation first with register alloc etc.)
+        Timer llvmLowerTimer;
         if(!_syms->functor)
             _syms->functor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(funcName()));
-        logger.info("functor " + funcName() + " retrieved from llvm");
         if(_outputMode == EndPointMode::FILE && !_syms->writeFunctor)
-                _syms->writeFunctor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(writerFuncName()));
-       logger.info("retrieving init/release stage functors");
-        if(!_syms->initStageFunctor)
-            _syms->initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_initStageFuncName));
-        if(!_syms->releaseStageFunctor)
-            _syms->releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_releaseStageFuncName));
+            _syms->writeFunctor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(writerFuncName()));
+        if(!_syms->_fastCodePath.initStageFunctor)
+            _syms->_fastCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_fastCodePath._fastPathInitStageFuncName));
+        if(!_syms->_fastCodePath.releaseStageFunctor)
+            _syms->_fastCodePath.releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_fastCodePath._fastPathReleaseStageFuncName));
 
         // get aggregate functors
-        if(!_aggregateInitFuncName.empty())
-            _syms->aggInitFunctor = reinterpret_cast<codegen::agg_init_f>(jit.getAddrOfSymbol(_aggregateInitFuncName));
-        if(!_aggregateCombineFuncName.empty())
-            _syms->aggCombineFunctor = reinterpret_cast<codegen::agg_combine_f>(jit.getAddrOfSymbol(_aggregateCombineFuncName));
-        if(!_aggregateAggregateFuncName.empty())
-            _syms->aggAggregateFunctor = reinterpret_cast<codegen::agg_agg_f>(jit.getAddrOfSymbol(_aggregateAggregateFuncName));
+        if(!_fastCodePath._aggregateInitFuncName.empty())
+            _syms->aggInitFunctor = reinterpret_cast<codegen::agg_init_f>(jit.getAddrOfSymbol(_fastCodePath._aggregateInitFuncName));
+        if(!_fastCodePath._aggregateCombineFuncName.empty())
+            _syms->aggCombineFunctor = reinterpret_cast<codegen::agg_combine_f>(jit.getAddrOfSymbol(_fastCodePath._aggregateCombineFuncName));
+        if(!_fastCodePath._aggregateAggregateFuncName.empty())
+            _syms->aggAggregateFunctor = reinterpret_cast<codegen::agg_agg_f>(jit.getAddrOfSymbol(_fastCodePath._aggregateAggregateFuncName));
+    }
 
-        // compile slow code path if desired
-        if(!excludeSlowPath) {
-            if(!_syms->resolveFunctor)
-                _syms->resolveFunctor = !resolveWriteCallbackName().empty() ? reinterpret_cast<codegen::resolve_f>(jit.getAddrOfSymbol(resolveRowName())) : nullptr;
-        }
+    std::shared_ptr<TransformStage::JITSymbols> TransformStage::compile(JITCompiler &jit, LLVMOptimizer *optimizer, bool excludeSlowPath) {
+        // lazy compile
+        if(!_syms)
+            _syms = std::make_shared<JITSymbols>();
 
-        // check symbols are valid...
-        if(!(_syms->functor && _syms->initStageFunctor && _syms->releaseStageFunctor)) {
-            logger.error("invalid pointer address for JIT code returned");
-            throw std::runtime_error("invalid pointer address for JIT code returned");
+        Timer timer;
+        JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
+        if (!excludeSlowPath) {
+            compileSlowPath(jit, optimizer);
         }
+        compileFastPath(jit, optimizer);
 
         double compilation_time_via_llvm_this_number = timer.time();
         double compilation_time_via_llvm_thus_far = compilation_time_via_llvm_this_number +
-                metrics.getLLVMCompilationTime();
+                                                    metrics.getLLVMCompilationTime();
         metrics.setLLVMCompilationTime(compilation_time_via_llvm_thus_far);
+        std::stringstream ss;
         ss<<"Compiled code paths for stage "<<number()<<" in "<<std::fixed<<std::setprecision(2)<<compilation_time_via_llvm_this_number<<" ms";
 
-        logger.info(ss.str());
+        Logger::instance().defaultLogger().info(ss.str());
 
-        if(_historyServer) {
-            _historyServer->sendStagePlan("Stage" + std::to_string(number()), unoptimizedIR, optimizedIR, "");
-        }
         return _syms;
     }
 

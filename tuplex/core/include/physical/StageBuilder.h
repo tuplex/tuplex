@@ -80,34 +80,62 @@ namespace tuplex {
             bool _nullValueOptimization;
             std::vector<LogicalOperator*> _operators;
 
-            // codegen strings
-            std::string _funcFileWriteCallbackName;
-            std::string _funcMemoryWriteCallbackName;
-            std::string _funcExceptionCallback;
-
             int64_t _stageNumber;
             int64_t _outputDataSetID;
 
-            std::string _resolveRowFunctionName;
-            std::string _resolveRowWriteCallbackName;
-            std::string _resolveRowExceptionCallbackName;
-            std::string _resolveHashCallbackName;
+            struct CodeGenerationContext {
+                // Common variables
+                bool allowUndefinedBehavior;
+                bool sharedObjectPropagation;
+                bool nullValueOptimization;
 
-            std::string _initStageFuncName;
-            std::string _releaseStageFuncName;
+                EndPointMode outputMode;
+                FileFormat outputFileFormat;
+                int64_t outputNodeID;
 
-            std::string _aggregateInitFuncName;
-            std::string _aggregateCombineFuncName;
-            std::string _aggregateAggregateFuncName;
+                std::unordered_map<std::string, std::string> fileOutputParameters; // parameters specific for a file output format
+                Schema outputSchema; //! output schema of stage
+
+                std::vector<size_t>      hashColKeys; // the column to use as hash key
+                python::Type hashKeyType;
+                bool        hashSaveOthers; // whether to save other columns than the key or not. => TODO: UDAs, meanByKey etc. all will require similar things...
+                bool        hashAggregate; // whether the hashtable is an aggregate
+
+                EndPointMode inputMode;
+                std::unordered_map<std::string, std::string> fileInputParameters; // parameters specific for a file input format
+
+                // Resolve variables
+                std::vector<LogicalOperator*> resolveOperators;
+                LogicalOperator* inputNode;
+
+                Schema resolveReadSchema; //! schema for reading input
+                Schema resolveInputSchema; //! schema after applying projection pushdown to input source code
+                Schema resolveOutputSchema; //! output schema of stage
+
+                Schema normalCaseInputSchema; //! schema after applying normal case optimizations
+
+                python::Type hashBucketType;
+
+                // Fast Path
+                std::vector<LogicalOperator*> fastOperators;
+                python::Type fastReadSchema;
+                python::Type fastInSchema;
+                python::Type fastOutSchema;
+
+                bool isRootStage;
+                bool generateParser;
+
+                std::vector<bool> columnsToRead;
+                int64_t inputNodeID;
+            };
+
             std::string _aggregateCallbackName;
 
             std::string _pyPipelineName;
-            std::string _irBitCode;         // store code as bitcode (faster for parsing)
             std::string _pyCode;            // python backup code
 
             std::string _writerFuncName; // name of the function where to write stuff to.
 
-            std::string _funcStageName;
             std::unordered_map<std::string, std::string> _fileInputParameters; // parameters specific for a file input format
             std::unordered_map<std::string, std::string> _fileOutputParameters; // parameters specific for a file output format
 
@@ -126,7 +154,6 @@ namespace tuplex {
             LogicalOperator* _inputNode;
             std::vector<bool> _columnsToRead;
 
-            std::string _funcHashWriteCallbackName; // callback for writing to hash table
             std::vector<size_t>      _hashColKeys; // the column to use as hash key
             python::Type _hashKeyType;
             python::Type _hashBucketType;
@@ -164,16 +191,16 @@ namespace tuplex {
              * @param udfop
              * @return string
              */
-            std::string formatBadUDFNode(UDFOperator* udfop);
+            std::string formatBadUDFNode(UDFOperator* udfop) const;
 
             /*!
              * generate LLVM IR code
              * @param fastCodePath whether to generate for fastCodePath or not. When false, always generates mem2mem.
              * @return
              */
-            bool generateFastCodePath(); // file2mem always
+            TransformStage::TransformStageCodePath generateFastCodePath(const CodeGenerationContext& fastLocalVariables) const; // file2mem always
 
-            size_t resolveOperatorCount() {
+            size_t resolveOperatorCount() const {
                 return std::count_if(_operators.begin(), _operators.end(), [](const LogicalOperator* op) {
                     return op && op->type() == LogicalOperatorType::RESOLVE;
                 });
@@ -185,14 +212,18 @@ namespace tuplex {
             /*!
              * code path for mem2mem exception resolution => sh
              */
-            bool generateResolveCodePath(const std::shared_ptr<codegen::LLVMEnvironment>& env); //! generates mix of LLVM / python code for slow code path including resolvers
+            TransformStage::TransformStageCodePath generateResolveCodePath(const CodeGenerationContext& resolveLocalVariables) const; //! generates mix of LLVM / python code for slow code path including resolvers
 
             void generatePythonCode(); //! generates fallback pipeline in pure python. => i.e. special case here...
 
-            python::Type intermediateType() const;
-
             std::vector<int64_t> getOperatorIDsAffectedByResolvers(const std::vector<LogicalOperator *> &operators);
         };
+
+        /*
+         * Returns the intermediate schema if the output node of the list of operators is an aggregate.
+         * @param operators
+         */
+        python::Type intermediateType(const std::vector<LogicalOperator*>& operators);
     }
 }
 

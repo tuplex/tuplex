@@ -306,10 +306,9 @@ namespace tuplex {
          * @param jit JIT instance
          * @param optimizer optional instance of optimizer to run over code first. No optimization run when set to 0
          * @param excludeSlowPath if true, only fast path functions are compiled. This helps to have threads already busy when slow path still need to get compiled.
-         * @param registerSymbols whether to add task symbols to JIT compiler
          * @return a struct of all function pointers
          */
-        std::shared_ptr<JITSymbols> compile(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool excludeSlowPath=false, bool registerSymbols=true);
+        std::shared_ptr<JITSymbols> compile(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool excludeSlowPath=false);
 
         void compileSlowPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr);
         void compileFastPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr);

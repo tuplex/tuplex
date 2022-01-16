@@ -393,7 +393,7 @@ namespace tuplex {
             if(_options.USE_LLVM_OPTIMIZER() && !optimizedBitcode.empty())
                 pb_stage->set_bitcode(optimizedBitcode);
             else
-                pb_stage->set_bitcode(tstage->bitCode());
+                pb_stage->set_bitcode(tstage->fastPathBitCode());
 
             req.set_allocated_stage(pb_stage.release());
 

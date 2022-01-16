@@ -554,7 +554,7 @@ namespace tuplex {
         auto driver = _context->getDriver();
 
         std::vector<Partition*> partitions;
-        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1);
+        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1, _context->id());
         int64_t* rawPtr = (int64_t*)partition->lockWriteRaw();
         *rawPtr = 0;
         uint8_t* ptr = (uint8_t*)(rawPtr + 1);
@@ -600,7 +600,7 @@ namespace tuplex {
 
                     partition->unlockWrite();
                     partitions.push_back(partition);
-                    partition = driver->allocWritablePartition(std::max(allocMinSize, requiredBytes), schema, -1);
+                    partition = driver->allocWritablePartition(std::max(allocMinSize, requiredBytes), schema, -1, _context->id());
                     rawPtr = (int64_t*)partition->lockWriteRaw();
                     *rawPtr = 0;
                     ptr = (uint8_t*)(rawPtr + 1);
@@ -965,7 +965,7 @@ namespace tuplex {
         Schema schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::STRING}));
         auto driver = _context->getDriver();
 
-        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1);
+        Partition* partition = driver->allocWritablePartition(allocMinSize, schema, -1, _context->id());
         int64_t* rawPtr = (int64_t*)partition->lockWriteRaw();
         *rawPtr = 0;
         uint8_t* ptr = (uint8_t*)(rawPtr + 1);
@@ -988,7 +988,7 @@ namespace tuplex {
             if (partition->capacity() < numBytesSerialized + requiredBytes) {
                 partition->unlockWrite();
                 partitions.push_back(partition);
-                partition = driver->allocWritablePartition(std::max(allocMinSize, requiredBytes), schema, -1);
+                partition = driver->allocWritablePartition(std::max(allocMinSize, requiredBytes), schema, -1, _context->id());
                 rawPtr = (int64_t *) partition->lockWriteRaw();
                 *rawPtr = 0;
                 ptr = (uint8_t * )(rawPtr + 1);

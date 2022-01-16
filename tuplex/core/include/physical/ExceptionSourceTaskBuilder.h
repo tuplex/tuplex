@@ -17,7 +17,7 @@ namespace tuplex {
     namespace codegen {
         class ExceptionSourceTaskBuilder : public BlockBasedTaskBuilder {
         private:
-            void createMainLoop(llvm::Function* read_block_func);
+            void createMainLoop(llvm::Function* read_block_func, bool terminateEarlyOnLimitCode);
 
             /*!
             * generates code to process a row depending on parse result...
@@ -37,19 +37,21 @@ namespace tuplex {
                             llvm::Value *outputRowNumberVar,
                             llvm::Value *inputRowPtr,
                             llvm::Value *inputRowSize,
+                            bool terminateEarlyOnLimitCode,
                             llvm::Function* processRowFunc=nullptr);
 
             void callProcessFuncWithHandler(llvm::IRBuilder<> &builder, llvm::Value *userData,
                                             const FlattenedTuple &tuple,
                                             llvm::Value *normalRowCountVar, llvm::Value *badRowCountVar, llvm::Value *rowNumberVar,
                                             llvm::Value *inputRowPtr, llvm::Value *inputRowSize,
+                                            bool terminateEarlyOnLimitCode,
                                             llvm::Function *processRowFunc);
         public:
             ExceptionSourceTaskBuilder() = delete;
 
             explicit ExceptionSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment>& env, const python::Type& rowType, const std::string& name) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env, rowType, name)   {}
 
-            llvm::Function* build() override;
+            llvm::Function* build(bool terminateEarlyOnFailureCode) override;
         };
     }
 }

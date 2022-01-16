@@ -504,6 +504,10 @@ namespace tuplex {
         // for hash output, the key and bucket type
         python::Type _hashOutputKeyType;
         python::Type _hashOutputBucketType;
+
+        bool hasOutputLimit() const {
+            return _outputLimit < std::numeric_limits<size_t>::max();
+        }
     };
 }
 #endif //TUPLEX_TRANSFORMSTAGE_H

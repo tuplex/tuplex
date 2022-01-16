@@ -9,6 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <physical/PhysicalStage.h>
+#include <physical/PhysicalPlan.h>
 
 namespace tuplex {
     PhysicalStage::~PhysicalStage() {
@@ -40,5 +41,9 @@ namespace tuplex {
             children.emplace_back(c->_number);
         j["predecessors"] = children;
         return j;
+    }
+
+    const Context &PhysicalStage::context() const {
+        return plan()->getContext();
     }
 }

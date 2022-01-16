@@ -12,11 +12,7 @@
 #include <FlattenedTuple.h>
 #include <ASTHelpers.h>
 #include <StringUtils.h>
-#ifdef BUILD_WITH_AWS
-#include <aws/core/external/cjson/cJSON.h>
-#else
-#include <cJSON.h>
-#endif
+#include <Base.h>
 #include <TypeAnnotatorVisitor.h>
 #include <ApplyVisitor.h>
 

@@ -24,6 +24,8 @@
 #include <string.h>
 #include <logical/AggregateOperator.h>
 
+#include <limits.h>
+
 // @TODO: code gen needs to be lazily done
 // i.e. codegen stages then execute
 // => if normal case passes, then codegen the big pipeline!
@@ -48,7 +50,7 @@ namespace tuplex {
                 : _stageNumber(stage_number), _isRootStage(rootStage), _allowUndefinedBehavior(allowUndefinedBehavior),
                   _generateParser(generateParser), _normalCaseThreshold(normalCaseThreshold), _sharedObjectPropagation(sharedObjectPropagation),
                   _nullValueOptimization(nullValueOptimization),
-                  _inputNode(nullptr) {
+                  _inputNode(nullptr), _outputLimit(std::numeric_limits<size_t>::max()) {
         }
 
         void StageBuilder::generatePythonCode() {
@@ -839,12 +841,15 @@ namespace tuplex {
                     switch (fastLocalVariables.outputFileFormat) {
                         case FileFormat::OUTFMT_CSV: {
                             // i.e. write to memory writer!
-                            pip->buildWithCSVRowWriter(ret._funcMemoryWriteCallbackName, fastLocalVariables.outputNodeID, fastLocalVariables.fileOutputParameters.at("null_value"),
+                            pip->buildWithCSVRowWriter(ret._funcMemoryWriteCallbackName,
+                                                       fastLocalVariables.outputNodeID,
+                                                       hasOutputLimit(),
+                                                       fastLocalVariables.fileOutputParameters.at("null_value"),
                                                        true, csvOutputDelimiter(), csvOutputQuotechar());
                             break;
                         }
                         case FileFormat::OUTFMT_ORC: {
-                            pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID);
+                            pip->buildWithTuplexWriter(ret._funcMemoryWriteCallbackName, fastLocalVariables.outputNodeID, hasOutputLimit());
                             break;
                         }
                         default:
@@ -904,7 +909,7 @@ namespace tuplex {
                                 // _normalCaseOutputSchema = _outputSchema;
                             }
                         }
-                        pip->buildWithTuplexWriter(ret._funcMemoryWriteCallbackName, fastLocalVariables.outputNodeID);
+                        pip->buildWithTuplexWriter(ret._funcMemoryWriteCallbackName, fastLocalVariables.outputNodeID, hasOutputLimit());
                     } else {
                         // build w/o writer
                         pip->build();
@@ -976,7 +981,7 @@ namespace tuplex {
             }
 
             // create code for "wrap-around" function
-            auto func = tb->build();
+            auto func = tb->build(hasOutputLimit());
             if (!func)
                 throw std::runtime_error("could not build codegen csv parser");
 
@@ -1180,7 +1185,7 @@ namespace tuplex {
                     }
 
                     case LogicalOperatorType::AGGREGATE: {
-//  @TODO: needs more support for full aggregate fallback code
+                        //  @TODO: needs more support for full aggregate fallback code
                         auto aop = dynamic_cast<AggregateOperator*>(node); assert(aop);
                         if(aop->aggType() == AggregateType::AGG_GENERAL || aop->aggType() == AggregateType::AGG_BYKEY) {
 
@@ -1264,6 +1269,7 @@ namespace tuplex {
             llvm::Function* slowPathFunc = nullptr;
             if(useRawOutput) {
                 slowPathFunc = slowPip->buildWithCSVRowWriter(slowPathMemoryWriteCallback, resolveLocalVariables.outputNodeID,
+                                                              hasOutputLimit(),
                                                               resolveLocalVariables.fileOutputParameters.at("null_value"), true,
                                                               resolveLocalVariables.fileOutputParameters.at("delimiter")[0], resolveLocalVariables.fileOutputParameters.at("quotechar")[0]);
             } else {
@@ -1271,7 +1277,7 @@ namespace tuplex {
                 if(resolveLocalVariables.outputMode == EndPointMode::HASHTABLE) {
                     slowPathFunc = slowPip->buildWithHashmapWriter(slowPathHashWriteCallback, resolveLocalVariables.hashColKeys, hashtableKeyWidth(resolveLocalVariables.hashKeyType), resolveLocalVariables.hashSaveOthers, resolveLocalVariables.hashAggregate);
                 } else {
-                    slowPathFunc = slowPip->buildWithTuplexWriter(slowPathMemoryWriteCallback, 0);
+                    slowPathFunc = slowPip->buildWithTuplexWriter(slowPathMemoryWriteCallback, resolveLocalVariables.outputNodeID, hasOutputLimit());
                 }
             }
 
@@ -1529,6 +1535,12 @@ namespace tuplex {
             stage->_outputURI = _outputURI;
             stage->_inputFormat = _inputFileFormat;
             stage->_outputFormat = _outputFileFormat;
+
+            // output limit?
+            // no limit operator yet...
+
+            // get limit
+            stage->_outputLimit = _outputLimit;
 
             // copy input/output configurations
             stage->_fileInputParameters = _fileInputParameters;

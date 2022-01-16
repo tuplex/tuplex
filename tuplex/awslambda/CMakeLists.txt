@@ -38,8 +38,11 @@ include_directories(${json_INCLUDE_DIR})
 include_directories("../worker/include")
 
 # linking
-add_executable(${LAMBDA_NAME} "src/main.cc" "src/lambda_main.cc"
-        "src/sighandler.cc" "../../worker/src/LambdaWorkerApp.cc" "../../worker/src/WorkerApp.cc")
+add_executable(${LAMBDA_NAME} "src/main.cc"
+        "src/lambda_main.cc"
+        "src/sighandler.cc"
+        "${CMAKE_CURRENT_LIST_DIR}/../worker/src/LambdaWorkerApp.cc"
+        "${CMAKE_CURRENT_LIST_DIR}/../worker/src/WorkerApp.cc")
 
 # enable export symbols in debug for backtrace
 set_target_properties(${LAMBDA_NAME} PROPERTIES ENABLE_EXPORTS 1)

@@ -766,21 +766,20 @@ namespace tuplex {
             llvm::LLVMContext ctx;
         auto mod = codegen::bitCodeToModule(ctx, stage.bitCode());
         if(!mod)
-            logger.error("error parsing module");
+            logger().error("error parsing module");
         else {
-            logger.info("parsed llvm module from bitcode, " + mod->getName().str());
+            logger().info("parsed llvm module from bitcode, " + mod->getName().str());
 
             // run verify pass on module and print out any errors, before attempting to compile it
             std::string moduleErrors;
             llvm::raw_string_ostream os(moduleErrors);
             if (verifyModule(*mod, &os)) {
                 os.flush();
-                logger.error("could not verify module from bitcode");
-                logger.error(moduleErrors);
-                logger.error(core::withLineNumbers(codegen::moduleToString(*mod)));
+                logger().error("could not verify module from bitcode");
+                logger().error(moduleErrors);
+                logger().error(core::withLineNumbers(codegen::moduleToString(*mod)));
             } else
-            logger.info("module verified.");
-
+            logger().info("module verified.");
         }
 #endif
 

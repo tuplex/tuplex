@@ -35,6 +35,7 @@
 #include <aws/lambda/model/InvokeRequest.h>
 #include <aws/lambda/model/ListFunctionsRequest.h>
 #include <aws/lambda/LambdaClient.h>
+#include <regex>
 
 namespace tuplex {
 
@@ -74,7 +75,11 @@ namespace tuplex {
             size_t memorySizeInMb;
             size_t maxMemoryUsedInMb;
 
-            InvokeInfo() : durationInMs(0), billedDurationInMs(100), memorySizeInMb(0), maxMemoryUsedInMb(0) {}
+            // log may display error message!
+            int returnCode;
+            std::string errorMessage;
+
+            InvokeInfo() : durationInMs(0), billedDurationInMs(100), memorySizeInMb(0), maxMemoryUsedInMb(0), returnCode(0) {}
         };
 
         InvokeInfo parseFromLog(const std::string& log);

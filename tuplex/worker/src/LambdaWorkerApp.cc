@@ -26,7 +26,10 @@ namespace tuplex {
 
     int LambdaWorkerApp::globalInit() {
         // Lambda specific initialization
+        // init logger to only act with stdout sink
+        Logger::init({std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>()});
         auto& logger = Logger::instance().defaultLogger();
+        logger.info("global_init(): logging system initialized");
 
         Timer timer;
         Aws::InitAPI(_aws_options);
@@ -37,6 +40,7 @@ namespace tuplex {
         std::string access_key = Aws::Environment::GetEnv("AWS_ACCESS_KEY_ID").c_str();
         std::string secret_key = Aws::Environment::GetEnv("AWS_SECRET_ACCESS_KEY").c_str();
         std::string session_token = Aws::Environment::GetEnv("AWS_SESSION_TOKEN").c_str();
+
         // get region from AWS_REGION env
         auto region = Aws::Environment::GetEnv("AWS_REGION");
 

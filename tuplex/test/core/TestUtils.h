@@ -38,6 +38,14 @@
 
 #include <boost/filesystem/operations.hpp>
 
+// declare dummy S3 Test Bucket if skip tests is enabled
+#ifdef SKIP_AWS_TESTS
+#ifndef S3_TEST_BUCKET
+#define S3_TEST_BUCKET "tuplex-test"
+#endif
+#endif
+
+
 // helper functions to faciliate test writing
 extern tuplex::Row execRow(const tuplex::Row& input, tuplex::UDF udf=tuplex::UDF("lambda x: x"));
 
@@ -129,10 +137,15 @@ protected:
 
         // enable requester pays
         co.set("tuplex.aws.requesterPay", "true");
-
+#ifndef SKIP_AWS_TESTS
+#ifndef S3_TEST_BUCKET
+#error "no S3 test bucket specified, can't really run AWS queries..."
+#endif
         // scratch dir
         co.set("tuplex.aws.scratchDir", std::string("s3://") + S3_TEST_BUCKET + "/.tuplex-cache");
-
+#else
+        co.set("tuplex.aws.scratchDir", std::string("s3://tuplex-test-") + tuplex::getUserName() + "/.tuplex-cache");
+#endif
 #ifdef BUILD_FOR_CI
         co.set("tuplex.aws.httpThreadCount", "1");
 #else

@@ -25,6 +25,16 @@
 #include <ee/aws/AWSLambdaBackend.h>
 #endif
 
+#ifndef S3_TEST_BUCKET
+// define dummy to compile
+#ifdef SKIP_AWS_TESTS
+#define S3_TEST_BUCKET "tuplex-test"
+#endif
+
+#warning "need S3 Test bucket to run these tests"
+#endif
+
+
 #include <procinfo.h>
 #include <FileUtils.h>
 

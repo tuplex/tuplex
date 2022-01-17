@@ -359,7 +359,6 @@ TEST_F(AWSTest, BucketList) {
     uris.clear();
 }
 
-
 // zillow Pipeline on AWS Lambda (incl. various options -> multithreading, self-invocation, ...)
 TEST_F(AWSTest, FullZillowPipeline) {
 #ifdef SKIP_AWS_TESTS

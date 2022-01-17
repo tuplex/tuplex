@@ -3,15 +3,18 @@
 //
 
 #include "FileSystemUtils.h"
-
 #ifdef BUILD_WITH_AWS
 
 #include <AWSCommon.h>
 #include <VirtualFileSystem.h>
 
-
 #ifndef S3_TEST_BUCKET
-#error "need S3 Test bucket to run these tests"
+// define dummy to compile
+#ifdef SKIP_AWS_TESTS
+#define S3_TEST_BUCKET "tuplex-test"
+#endif
+
+#warning "need S3 Test bucket to run these tests"
 #endif
 
 static const std::string s3TestBase = "s3://" + std::string(S3_TEST_BUCKET) + "/tests";
@@ -31,6 +34,8 @@ protected:
         testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
     }
 };
+
+#ifndef SKIP_AWS_TESTS
 
 TEST_F(S3Tests, FileSeek) {
     using namespace tuplex;
@@ -83,5 +88,7 @@ TEST_F(S3Tests, FileSeek) {
             EXPECT_EQ(buf[i - 1], 0);
     }
 }
+
+#endif
 
 #endif

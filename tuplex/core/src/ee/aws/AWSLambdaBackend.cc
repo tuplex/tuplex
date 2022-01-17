@@ -828,7 +828,7 @@ namespace tuplex {
         for(auto col : tabCols) {
             trim(col);
 
-            if (strStartsWith(col, "RequestId: ")) {
+            if (info.requestID.empty() && strStartsWith(col, "RequestId: ")) {
                 // extract ID and store it
                 info.requestID = col.substr(strlen("RequestId: "));
             }
@@ -855,6 +855,29 @@ namespace tuplex {
                 // extract ID and store it
                 auto r = col.substr(strlen("Max Memory Used: "), col.length() - 3 - strlen("Max Memory Used: "));
                 info.maxMemoryUsedInMb = std::stoi(r);
+            }
+
+            // error message is formatted using RequestId: .... Error: ...
+            // i.e., this here is the regex: RequestId:\s+([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\s+Error:.*
+            if(strStartsWith(col, "RequestId: ") && col.find("Error: ") != std::string::npos) {
+                // extract error message
+                info.errorMessage = col.substr(col.find("Error: "));
+
+                // per default assign retcode -1
+                info.returnCode = -1;
+
+                // find exit status via regex
+                // exit status (\d+)
+                std::regex re_exit_status("exit status (\\d+)");
+                std::smatch base_match;
+                if(regex_search(col, base_match, re_exit_status)) {
+                    // sub_match is the first parenthesized expression.
+                    if (base_match.size() == 2) {
+                        std::ssub_match base_sub_match = base_match[1];
+                        std::string base = base_sub_match.str();
+                        info.returnCode = std::stoi(base);
+                    }
+                }
             }
         }
         return info;

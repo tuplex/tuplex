@@ -89,6 +89,23 @@ namespace tuplex {
 
         return WORKER_OK;
     }
+
+    tuplex::messages::InvocationResponse LambdaWorkerApp::generateResponse() {
+        tuplex::messages::InvocationResponse result;
+
+        result.set_status(tuplex::messages::InvocationResponse_Status_SUCCESS);
+        // TODO: other stuff...
+//        for(const auto& uri : inputURIs) {
+//            result.add_inputuris(uri.toPath());
+//        }
+//        result.add_outputuris(outputURI.toPath());
+//        result.set_taskexecutiontime(taskTime);
+//        for(const auto& keyval : timer.timings) {
+//            (*result.mutable_breakdowntimes())[keyval.first] = keyval.second;
+//        }
+
+        return result;
+    }
 }
 
 #endif

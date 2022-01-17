@@ -127,6 +127,11 @@ namespace tuplex {
         // @TODO: in the future this could change!
         auto tstage = TransformStage::from_protobuf(req.stage());
 
+
+        for(unsigned i = 0; i < req.inputuris_size(); ++i) {
+            logger.info("inout uri: " + req.inputuris(i) + " size: " + std::to_string(req.inputsizes(i)));
+        }
+
         return processMessage(req);
     }
 
@@ -183,7 +188,7 @@ namespace tuplex {
         // input uris
         std::vector<URI> input_uris;
         std::vector<size_t> input_sizes;
-        for(auto path : req.inputuris())
+        for(const auto& path : req.inputuris())
             input_uris.emplace_back(URI(path));
         for(auto file_size : req.inputsizes())
             input_sizes.emplace_back(file_size);

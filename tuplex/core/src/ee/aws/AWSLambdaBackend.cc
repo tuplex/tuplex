@@ -579,12 +579,21 @@ namespace tuplex {
                    << ", " << pluralize(response.numexceptions(), "exception") << ", "
                    << container_status << ", id: " << response.containerid() << "] ";
 
+                // extract info
+                AwsLambdaBackend::InvokeInfo info = backend->parseFromLog(log.c_str());
 
                 // lock and move to vector
                 {
                     std::lock_guard<std::mutex> lock(backend->_mutex);
                     backend->_tasks.push_back(response);
-                    backend->_infos.push_back(backend->parseFromLog(log.c_str()));
+                    backend->_infos.push_back(info);
+                }
+
+                // did request fail on Lambda?
+                if(info.returnCode != 0) {
+                    // stop execution
+                    backend->abortRequestsAndFailWith(info.returnCode, info.errorMessage);
+                    return;
                 }
 
                 // compute cost and print out
@@ -599,7 +608,6 @@ namespace tuplex {
                 // TODO: maybe still track the response info (e.g. reused, cost, etc.)
                 ss<<"Lambda task failed, details: "<<response.errormessage();
             }
-
         }
 
         // log out message
@@ -622,7 +630,10 @@ namespace tuplex {
 
     AwsLambdaBackend::AwsLambdaBackend(const Context& context,
                                        const AWSCredentials &credentials,
-                                       const std::string &functionName) : IBackend(context), _credentials(credentials), _functionName(functionName), _options(context.getOptions()), _tag("tuplex"), _client(nullptr), _numPendingRequests(0), _numRequests(0) {
+                                       const std::string &functionName) : IBackend(context), _credentials(credentials),
+                                       _functionName(functionName), _options(context.getOptions()),
+                                       _logger(Logger::instance().logger("aws-lambda")), _tag("tuplex"),
+                                       _client(nullptr), _numPendingRequests(0), _numRequests(0) {
 
 
         _deleteScratchDirOnShutdown = false;
@@ -673,7 +684,7 @@ namespace tuplex {
         // wait for requests to be finished & check periodically PyErrCheckSignals for Ctrl+C
 
         size_t pendingTasks = 0;
-        while((pendingTasks = _numPendingRequests.load(std::memory_order_acquire)) != 0) {
+        while((pendingTasks = _numPendingRequests.load(std::memory_order_acquire)) > 0) {
             // sleep
             usleep(sleepInterval);
 
@@ -972,6 +983,17 @@ namespace tuplex {
         _infos.clear();
 
         // other reset? @TODO.
+    }
+
+    void AwsLambdaBackend::abortRequestsAndFailWith(int returnCode, const std::string &errorMessage) {
+        logger().error("LAMBDA execution failed due to exit code " + std::to_string(returnCode) + " on one executor, details: " + errorMessage);
+
+        logger().info("Aborting " + std::to_string(_numPendingRequests) + " pending requests");
+        _numPendingRequests = 0;
+        _client->DisableRequestProcessing();
+        logger().info("Shutdown remote execution.");
+
+        _client->EnableRequestProcessing();
     }
 }
 #endif

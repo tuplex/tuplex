@@ -60,6 +60,8 @@ namespace tuplex {
         ContextOptions _options;
         std::unique_ptr<Executor> _driver;
 
+        MessageHandler& _logger;
+
         // AWS Lambda interface
         std::string _tag;
         std::shared_ptr<Aws::Lambda::LambdaClient> _client;
@@ -115,11 +117,13 @@ namespace tuplex {
 
         std::vector<URI> hintsFromTransformStage(const TransformStage* stage);
 
-        inline MessageHandler& logger() const { return Logger::instance().logger("aws-lambda"); }
+        inline MessageHandler logger() const { return _logger; }
 
         void waitForRequests(size_t sleepInterval=100*1000);
 
         static messages::InvocationResponse parsePayload(const Aws::Lambda::Model::InvokeResult &result);
+
+        void abortRequestsAndFailWith(int returnCode, const std::string& errorMessage);
 
         /*!
          * print extended lambda statistics out

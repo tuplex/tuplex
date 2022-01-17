@@ -426,7 +426,7 @@ namespace tuplex {
 
             // make invocation
             std::stringstream ss;
-            ss<<"LAMDA request "<<(i+1)<<"/"<<uri_infos.size()<<" on "<<sizeToMemString(inputSize);
+            ss<<"LAMBDA request "<<(i+1)<<"/"<<uri_infos.size()<<" on "<<sizeToMemString(inputSize);
             logger().info(ss.str());
 
             // debug, save to protobuf!

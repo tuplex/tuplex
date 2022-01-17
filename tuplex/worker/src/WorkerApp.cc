@@ -16,8 +16,6 @@
 namespace tuplex {
 
     int WorkerApp::globalInit() {
-        auto& logger = Logger::instance().defaultLogger();
-
         // skip if already initialized.
         if(_globallyInitialized)
             return WORKER_OK;
@@ -29,7 +27,7 @@ namespace tuplex {
         std::string python_home_dir = python::find_stdlib_location();
 
         if(python_home_dir.empty()) {
-            logger.error("Could not detect python stdlib location");
+            logger().error("Could not detect python stdlib location");
             return WORKER_ERROR_NO_PYTHON_HOME;
         }
 
@@ -42,7 +40,7 @@ namespace tuplex {
 #endif
 
         if(!runtime::init(runtime_path)) {
-            logger.error("runtime specified as " + std::string(runtime_path) + " could not be found.");
+            logger().error("runtime specified as " + std::string(runtime_path) + " could not be found.");
             return WORKER_ERROR_NO_TUPLEX_RUNTIME;
         }
         _compiler = std::make_shared<JITCompiler>();
@@ -51,7 +49,7 @@ namespace tuplex {
         // // https://www.python.org/dev/peps/pep-0405/ for meaning of it. Per default, just use default behavior.
         // python::python_home_setup(python_home_dir);
 
-        logger.info("Initializing python interpreter version " + python::python_version(true, true));
+        logger().info("Initializing python interpreter version " + python::python_version(true, true));
         python::initInterpreter();
         python::unlockGIL();
 

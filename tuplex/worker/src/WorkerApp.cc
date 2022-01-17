@@ -721,7 +721,7 @@ namespace tuplex {
 
         // decode from message if certain settings are present
         if(req.settings().has_numthreads())
-            ws.numThreads = req.settings().numthreads();
+            ws.numThreads = std::max(1u, req.settings().numthreads());
         if(req.settings().has_normalbuffersize())
             ws.normalBufferSize = req.settings().normalbuffersize();
         if(req.settings().has_exceptionbuffersize())

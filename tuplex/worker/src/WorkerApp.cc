@@ -130,7 +130,7 @@ namespace tuplex {
         vector<URI> inputURIs;
         vector<size_t> inputSizes;
         auto num_input_files = inputURIs.size();
-        logger.debug("Found " + to_string(num_input_files) + " input URIs to process");
+        logger.info("Found " + to_string(num_input_files) + " input URIs to process");
 
         return processMessage(req);
     }
@@ -734,6 +734,8 @@ namespace tuplex {
             ws.runTimeMemoryDefaultBlockSize = req.settings().runtimememoryperthreadblocksize();
         if(req.settings().has_allownumerictypeunification())
             ws.allowNumericTypeUnification = req.settings().allownumerictypeunification();
+
+        ws.numThreads = std::max(1ul, ws.numThreads);
         return ws;
     }
 

@@ -442,7 +442,16 @@ namespace tuplex {
 
         // wait till everything finished computing
         waitForRequests();
-        logger().info("LAMBDA compute took " + std::to_string(timer.time()) + "s");
+        {
+            std::stringstream ss;
+            ss<<"LAMBDA compute took "<<timer.time()<<"s";
+            double cost = lambdaCost();
+            if(cost < 0.01)
+                ss<<", cost < $0.01";
+            else
+                ss<<std::fixed<<std::setprecision(2)<<", cost $"<<cost;
+            logger().info(ss.str());
+        }
 
         // @TODO: results sets etc.
         switch(tstage->outputMode()) {

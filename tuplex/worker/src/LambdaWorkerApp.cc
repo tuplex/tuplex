@@ -85,6 +85,7 @@ namespace tuplex {
 
         // @TODO
         // can reuse here infrastructure from WorkerApp!
+        return WorkerApp::processMessage(req);
 
         // TODO notes for Lambda:
         // 1. scale-out should work (via self-invocation!)

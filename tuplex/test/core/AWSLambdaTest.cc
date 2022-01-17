@@ -371,7 +371,7 @@ TEST_F(AWSTest, FullZillowPipeline) {
     auto opt = microLambdaOptions();
 
     string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
-    string outputDir = string("s3://") + S3_TEST_BUCKET + "/test/" + testName + "/zillow_output.csv";
+    string outputDir = string("s3://") + S3_TEST_BUCKET + "/tests/" + testName + "/zillow_output.csv";
     Context ctx(opt);
 
     Timer timer;

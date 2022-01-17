@@ -31,9 +31,6 @@ namespace tuplex {
             return WORKER_OK;
 
         // Lambda specific initialization
-        // init logger to only act with stdout sink
-        Logger::init({std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>()});
-
         Timer timer;
         Aws::InitAPI(_aws_options);
 

@@ -66,8 +66,13 @@ namespace tuplex {
         if(WORKER_OK != globalInit())
             return false;
 
+        initThreadEnvironments();
+        return true;
+    }
+
+    void WorkerApp::initThreadEnvironments() {
         // initialize thread buffers (which get passed to functions)
-        _numThreads = std::max(1ul, settings.numThreads);
+        _numThreads = std::max(1ul, _settings.numThreads);
         if(_threadEnvs) {
             // check if the same, if not reinit?
 
@@ -79,13 +84,11 @@ namespace tuplex {
         for(int i = 0; i < _numThreads; ++i) {
             _threadEnvs[i].threadNo = i;
             _threadEnvs[i].app = this;
-            _threadEnvs[i].normalBuf.provideSpace(settings.normalBufferSize);
-            _threadEnvs[i].exceptionBuf.provideSpace(settings.exceptionBufferSize);
+            _threadEnvs[i].normalBuf.provideSpace(_settings.normalBufferSize);
+            _threadEnvs[i].exceptionBuf.provideSpace(_settings.exceptionBufferSize);
             // hashmap init?
             // @TODO
         }
-
-        return true;
     }
 
     void WorkerApp::shutdown() {

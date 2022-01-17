@@ -237,6 +237,8 @@ namespace tuplex {
         ThreadEnv *_threadEnvs;
         size_t _numThreads;
 
+        void initThreadEnvironments();
+
         int64_t initTransformStage(const TransformStage::InitData& initData, const std::shared_ptr<TransformStage::JITSymbols>& syms);
         int64_t releaseTransformStage(const std::shared_ptr<TransformStage::JITSymbols>& syms);
 

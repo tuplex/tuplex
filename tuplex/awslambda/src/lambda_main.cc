@@ -204,17 +204,6 @@ void fillInGlobals(tuplex::messages::InvocationResponse* m) {
     if(!m)
         return;
 
-    // fill in globals
-    if(lambda_executor_setup) {
-        m->set_numrowswritten(g_executor->numOutputRows);
-        m->set_numexceptions(g_executor->numExceptionRows);
-        m->set_numbyteswritten(g_executor->bytesWritten);
-    } else { // didn't set up executor yet for this invocation
-        m->set_numrowswritten(0);
-        m->set_numexceptions(0);
-        m->set_numbyteswritten(0);
-    }
-
     m->set_containerreused(container_reused());
     m->set_containerid(tuplex::uuidToString(container_id()));
     m->set_awsinittime(g_aws_init_time);
@@ -222,13 +211,6 @@ void fillInGlobals(tuplex::messages::InvocationResponse* m) {
         auto remaining_time = chrono::duration_cast<chrono::milliseconds, long>(g_lambda_req->get_time_remaining()).count() / 1000.0;
         m->set_remaininglambdatime(remaining_time);
     }
-
-    // fill in s3 stats
-    auto stats = tuplex::VirtualFileSystem::s3TransferStats();
-    for(const auto& keyval : stats) {
-        (*m->mutable_s3stats())[keyval.first] = keyval.second;
-    }
-    tuplex::VirtualFileSystem::s3ResetCounters();
 }
 
 tuplex::messages::InvocationResponse make_exception(const std::string& message) {
@@ -325,23 +307,22 @@ tuplex::messages::InvocationResponse lambda_main(aws::lambda_runtime::invocation
     if(!app)
         return make_exception("invalid worker app");
 
-    // perform global init
+    // perform global init (this is a lazy function)
     int rc = app->globalInit();
     if(rc != WORKER_OK)
         return make_exception("failed processing with code " + std::to_string(rc));
 
+    // process message
     rc = app->processJSONMessage(lambda_req.payload.c_str());
     if(rc != WORKER_OK)
         return make_exception("failed processing with code " + std::to_string(rc));
 
     // get last response/message?
     // --> what about global stats? @TODO
-    return app->generateResponse();
+    auto ret = app->generateResponse();
 
-    // create protobuf result
-    tuplex::messages::InvocationResponse result;
-    // fill in globals
-    fillInGlobals(&result);
+    // fill in global stats (Lambda specific)
+    fillInGlobals(&ret);
 
-    return result;
+    return ret;
 }

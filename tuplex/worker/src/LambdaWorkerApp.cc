@@ -25,9 +25,14 @@ namespace tuplex {
 
 
     int LambdaWorkerApp::globalInit() {
+
+        // skip if already initialized
+        if(_globallyInitialized)
+            return WORKER_OK;
+
         // Lambda specific initialization
-        auto& logger = Logger::instance().defaultLogger();
-        logger.info("Calling Lambda global Init");
+        // init logger to only act with stdout sink
+        Logger::init({std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>()});
 
         Timer timer;
         Aws::InitAPI(_aws_options);
@@ -55,7 +60,7 @@ namespace tuplex {
         // init python & set explicitly python home for Lambda
         std::string task_root = std::getenv("LAMBDA_TASK_ROOT");
         python::python_home_setup(task_root);
-        logger.debug("Set PYTHONHOME=" + task_root);
+        logger().debug("Set PYTHONHOME=" + task_root);
         python::initInterpreter();
         metrics.global_init_time = timer.time();
 

@@ -28,13 +28,13 @@ namespace tuplex {
 
         tuplex::messages::InvocationResponse generateResponse();
 
+        int globalInit() override;
+
     protected:
         /// put here Lambda specific constants to easily update them
         static const std::string caFile;
         static const std::string tuplexRuntimePath;
         static const bool verifySSL;
-
-        int globalInit() override;
 
         int processMessage(const tuplex::messages::InvocationRequest& req) override;
 

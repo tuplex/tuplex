@@ -325,7 +325,12 @@ tuplex::messages::InvocationResponse lambda_main(aws::lambda_runtime::invocation
     if(!app)
         return make_exception("invalid worker app");
 
-    auto rc = app->processJSONMessage(lambda_req.payload.c_str());
+    // perform global init
+    int rc = app->globalInit();
+    if(rc != WORKER_OK)
+        return make_exception("failed processing with code " + std::to_string(rc));
+
+    rc = app->processJSONMessage(lambda_req.payload.c_str());
     if(rc != WORKER_OK)
         return make_exception("failed processing with code " + std::to_string(rc));
 

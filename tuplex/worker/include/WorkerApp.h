@@ -145,7 +145,7 @@ namespace tuplex {
         WorkerApp(const WorkerApp& other) =  delete;
 
         // create WorkerApp from settings
-        WorkerApp(const WorkerSettings& settings) : _threadEnvs(nullptr), _numThreads(0), _globallyInitialized(false), _logger(Logger::instance().logger("worker")) { reinitialize(settings); }
+        WorkerApp(const WorkerSettings& settings) : _threadEnvs(nullptr), _numThreads(0), _globallyInitialized(false), _logger(Logger::instance().logger("worker")) {}
 
         bool reinitialize(const WorkerSettings& settings);
 
@@ -164,14 +164,14 @@ namespace tuplex {
 
         bool isInitialized() const;
 
+        virtual int globalInit();
+
     protected:
         WorkerSettings settingsFromMessage(const tuplex::messages::InvocationRequest& req);
 
          virtual int processMessage(const tuplex::messages::InvocationRequest& req);
 
         tuplex::messages::InvocationResponse executeTransformTask(const TransformStage* tstage);
-
-        virtual int globalInit();
 
         std::shared_ptr<TransformStage::JITSymbols> compileTransformStage(TransformStage& stage);
 

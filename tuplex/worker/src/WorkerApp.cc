@@ -762,7 +762,7 @@ namespace tuplex {
 
 
             // in debug mode, validate module.
-#ifdef NDEBUG
+#ifndef NDEBUG
             llvm::LLVMContext ctx;
         auto mod = codegen::bitCodeToModule(ctx, stage.bitCode());
         if(!mod)

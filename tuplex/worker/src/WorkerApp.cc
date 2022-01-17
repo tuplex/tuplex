@@ -525,6 +525,14 @@ namespace tuplex {
         assert(syms->functor);
         assert(threadNo >= 0 && threadNo < _numThreads);
 
+        // perform check
+        if(!tstage || !syms->functor || !(threadNo >= 0 && threadNo < _numThreads)) {
+            std::stringstream err_stream;
+            err_stream<<"tstage: "<<tstage<<" functor: "<<syms->functor<<" _numThreads: "<<_numThreads<<" threadNo: "<<threadNo;
+            logger().error(err_stream.str());
+            return WORKER_ERROR_UNSUPPORTED_INPUT;
+        }
+
         auto inputURI = part.uri;
 
         // input reader

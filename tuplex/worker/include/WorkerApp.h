@@ -54,6 +54,11 @@
 
 namespace tuplex {
 
+    struct MessageStatistic {
+        double totalTime;
+        size_t numNormalOutputRows;
+        size_t numExceptionOutputRows;
+    };
 
     struct FilePart {
         URI uri;
@@ -169,6 +174,9 @@ namespace tuplex {
         virtual int globalInit();
 
     protected:
+
+        std::vector<MessageStatistic> _statistics; // statistics per message
+
         WorkerSettings settingsFromMessage(const tuplex::messages::InvocationRequest& req);
 
          virtual int processMessage(const tuplex::messages::InvocationRequest& req);
@@ -185,6 +193,8 @@ namespace tuplex {
 #ifdef BUILD_WITH_AWS
         Aws::SDKOptions _aws_options;
 #endif
+
+
 
         // cache for compiled stages (sometimes same IR gets send)
         std::unordered_map<std::string, std::shared_ptr<TransformStage::JITSymbols>> _compileCache;

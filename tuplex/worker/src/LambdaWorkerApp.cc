@@ -83,6 +83,11 @@ namespace tuplex {
             return WORKER_ERROR_INVALID_URI;
 #endif
 
+        // extract settings from req
+        _settings = settingsFromMessage(req);
+        if(!_threadEnvs)
+            initThreadEnvironments();
+
         // @TODO
         // can reuse here infrastructure from WorkerApp!
         return WorkerApp::processMessage(req);
@@ -100,6 +105,15 @@ namespace tuplex {
         tuplex::messages::InvocationResponse result;
 
         result.set_status(tuplex::messages::InvocationResponse_Status_SUCCESS);
+
+        if(!_statistics.empty()) {
+            auto& last = _statistics.back();
+            // set metrics (num rows etc.)
+            result.set_taskexecutiontime(last.totalTime);
+            result.set_numrowswritten(last.numNormalOutputRows);
+            result.set_numexceptions(last.numExceptionOutputRows);
+        }
+
         // TODO: other stuff...
 //        for(const auto& uri : inputURIs) {
 //            result.add_inputuris(uri.toPath());

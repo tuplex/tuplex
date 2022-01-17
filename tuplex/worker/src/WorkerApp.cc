@@ -132,7 +132,7 @@ namespace tuplex {
 
 
         for(unsigned i = 0; i < req.inputuris_size(); ++i) {
-            logger.info("inout uri: " + req.inputuris(i) + " size: " + std::to_string(req.inputsizes(i)));
+            logger.info("input uri: " + req.inputuris(i) + " size: " + std::to_string(req.inputsizes(i)));
         }
 
         return processMessage(req);
@@ -442,6 +442,12 @@ namespace tuplex {
         rc = releaseTransformStage(syms);
         if(rc != WORKER_OK)
             return rc;
+
+        MessageStatistic stat;
+        stat.totalTime = timer.time();
+        stat.numNormalOutputRows = numNormalRows;
+        stat.numExceptionOutputRows = numExceptionRows;
+        _statistics.push_back(stat);
 
         logger().info("Took " + std::to_string(timer.time()) + "s in total");
         return WORKER_OK;

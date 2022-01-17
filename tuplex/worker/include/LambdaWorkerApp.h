@@ -25,7 +25,6 @@ namespace tuplex {
     class LambdaWorkerApp : public WorkerApp {
     public:
         LambdaWorkerApp(const LambdaWorkerSettings& ws) : WorkerApp(ws) {
-            initThreadEnvironments();
         }
 
         tuplex::messages::InvocationResponse generateResponse();

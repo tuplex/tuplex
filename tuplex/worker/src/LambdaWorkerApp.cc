@@ -26,8 +26,6 @@ namespace tuplex {
 
     int LambdaWorkerApp::globalInit() {
         // Lambda specific initialization
-        // init logger to only act with stdout sink
-        Logger::init({std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>()});
         auto& logger = Logger::instance().defaultLogger();
         logger.info("global_init(): logging system initialized");
 

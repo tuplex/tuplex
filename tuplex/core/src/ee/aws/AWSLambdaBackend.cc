@@ -592,6 +592,7 @@ namespace tuplex {
                 // did request fail on Lambda?
                 if(info.returnCode != 0) {
                     // stop execution
+                    backend->_numPendingRequests.fetch_add(-1, std::memory_order_release);
                     backend->abortRequestsAndFailWith(info.returnCode, info.errorMessage);
                     return;
                 }
@@ -988,11 +989,15 @@ namespace tuplex {
     void AwsLambdaBackend::abortRequestsAndFailWith(int returnCode, const std::string &errorMessage) {
         logger().error("LAMBDA execution failed due to exit code " + std::to_string(returnCode) + " on one executor, details: " + errorMessage);
 
-        logger().info("Aborting " + std::to_string(_numPendingRequests) + " pending requests");
+        int numPending = std::max((int)_numPendingRequests, 0);
+        if(numPending > 0)
+            logger().info("Aborting " + pluralize(numPending, " pending request"));
+        else
+            logger().info("Aborting.");
+
         _numPendingRequests = 0;
         _client->DisableRequestProcessing();
         logger().info("Shutdown remote execution.");
-
         _client->EnableRequestProcessing();
     }
 }

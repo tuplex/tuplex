@@ -81,7 +81,7 @@ int main() {
 
     // TODO: determine whether this is needed for the new AWS C++ Runtime
     using namespace aws::lambda_runtime;
-    
+
     // init logger to only act with stdout sink
     Logger::init({std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>()});
 

@@ -46,7 +46,7 @@ add_executable(${LAMBDA_NAME} "src/main.cc"
 
 # enable export symbols in debug for backtrace
 set_target_properties(${LAMBDA_NAME} PROPERTIES ENABLE_EXPORTS 1)
-
+message(STATUS "Protobuf libs are: ${Protobuf_LIBRARIES}")
 target_link_libraries(${LAMBDA_NAME} PRIVATE AWS::aws-lambda-runtime ${AWSSDK_LINK_LIBRARIES}
         libio libutils libcore ${Boost_LIBRARIES} ${LibMagic_LIBRARIES} ${Protobuf_LIBRARIES})
 target_compile_features(${LAMBDA_NAME} PRIVATE "cxx_std_11")

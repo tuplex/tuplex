@@ -127,13 +127,6 @@ namespace tuplex {
         // @TODO: in the future this could change!
         auto tstage = TransformStage::from_protobuf(req.stage());
 
-        // check number of input files
-        using namespace std;
-        vector<URI> inputURIs;
-        vector<size_t> inputSizes;
-        auto num_input_files = inputURIs.size();
-        logger.info("Found " + to_string(num_input_files) + " input URIs to process");
-
         return processMessage(req);
     }
 
@@ -194,6 +187,9 @@ namespace tuplex {
             input_uris.emplace_back(URI(path));
         for(auto file_size : req.inputsizes())
             input_sizes.emplace_back(file_size);
+
+        auto num_input_files = input_uris.size();
+        logger().info("Found " + std::to_string(num_input_files) + " input URIs to process");
 
         URI outputURI(req.outputuri());
 

@@ -22,6 +22,8 @@ namespace tuplex {
         if(_globallyInitialized)
             return WORKER_OK;
 
+        logger().info("WorkerAPP globalInit");
+
         // runtime library path
         auto runtime_path = ContextOptions::defaults().RUNTIME_LIBRARY().toPath();
         std::string python_home_dir = python::find_stdlib_location();
@@ -62,7 +64,9 @@ namespace tuplex {
 
         // general init here...
         // compiler already active? Else init
-        globalInit();
+        logger().info("performing global initialization (Worker App)");
+        if(WORKER_OK != globalInit())
+            return false;
 
         // initialize thread buffers (which get passed to functions)
         _numThreads = std::max(1ul, settings.numThreads);

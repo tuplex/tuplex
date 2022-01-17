@@ -27,7 +27,7 @@ namespace tuplex {
     int LambdaWorkerApp::globalInit() {
         // Lambda specific initialization
         auto& logger = Logger::instance().defaultLogger();
-        logger.info("global_init(): logging system initialized");
+        logger.info("Calling Lambda global Init");
 
         Timer timer;
         Aws::InitAPI(_aws_options);
@@ -59,6 +59,7 @@ namespace tuplex {
         python::initInterpreter();
         metrics.global_init_time = timer.time();
 
+        _globallyInitialized = true;
         return WORKER_OK;
     }
 

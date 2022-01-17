@@ -16,6 +16,8 @@
 #include <VirtualFileSystem.h>
 #include <PosixFileSystemImpl.h>
 
+#include "FullPipelines.h"
+
 class AWSTest : public PyTest {
 protected:
 
@@ -367,11 +369,16 @@ TEST_F(AWSTest, FullZillowPipeline) {
     using namespace std;
     using namespace tuplex;
 
+    auto opt = microLambdaOptions();
 
+    string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
+    string outputDir = string("s3://") + S3_TEST_BUCKET + "/test/" + testName + "/zillow_output.csv";
+    Context ctx(opt);
 
-
-    Context c(microLambdaOptions());
+    Timer timer;
+    auto ds = zillowPipeline(ctx, inputFiles);
+    ds.tocsv(outputDir);
+    cout<<"Lambda zillow took: "<<timer.time()<<endl;
 }
-
 
 #endif // BUILD_WITH_AWS

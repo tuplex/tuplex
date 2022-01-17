@@ -250,7 +250,7 @@ namespace tuplex {
             std::vector<std::thread> threads;
             threads.reserve(_numThreads);
             for(int i = 1; i < _numThreads; ++i) {
-                threads.emplace_back([this, tstage, syms](int threadNo, const std::vector<FilePart>& parts) {
+                threads.emplace_back([this, tstage, syms, &processCodes](int threadNo, const std::vector<FilePart>& parts) {
                     logger().debug("thread (" + std::to_string(threadNo) + ") started.");
 
                     runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);

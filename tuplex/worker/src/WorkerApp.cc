@@ -198,21 +198,31 @@ namespace tuplex {
 
         URI outputURI(req.outputuri());
 
+        auto numCodes = std::max(1ul, _numThreads);
+        auto processCodes = new int[numCodes];
+        memset(processCodes, WORKER_OK, sizeof(int) * numCodes);
+
         // process data (single-threaded or via thread pool!)
         if(_numThreads <= 1) {
             runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
 
-            // single-threaded
-            for(unsigned i = 0; i < input_uris.size(); ++i) {
-                FilePart fp;
-                fp.rangeStart = 0;
-                fp.rangeEnd = 0;
-                fp.uri = input_uris[i];
-                fp.partNo = i;
-                processSource(0, tstage->fileInputOperatorID(), fp, tstage, syms);
-                logger().debug("processed file " + std::to_string(i + 1) + "/" + std::to_string(input_uris.size()));
-            }
+            try {
+                // single-threaded
+                for(unsigned i = 0; i < input_uris.size(); ++i) {
+                    FilePart fp;
+                    fp.rangeStart = 0;
+                    fp.rangeEnd = 0;
+                    fp.uri = input_uris[i];
+                    fp.partNo = i;
 
+                    processCodes[0] = processSource(0, tstage->fileInputOperatorID(), fp, tstage, syms);
+                    logger().debug("processed file " + std::to_string(i + 1) + "/" + std::to_string(input_uris.size()));
+                    if(processCodes[0] != WORKER_OK)
+                        break;
+                }
+            } catch(...) {
+                processCodes[0] = WORKER_ERROR_EXCEPTION;
+            }
             runtime::releaseRunTimeMemory();
         } else {
             // multi-threaded
@@ -248,12 +258,16 @@ namespace tuplex {
                     try {
                         for(const auto& part : parts) {
                             logger().debug("thread (" + std::to_string(threadNo) + ") processing part");
-                            processSource(threadNo, tstage->fileInputOperatorID(), part, tstage, syms);
+                            processCodes[threadNo] = processSource(threadNo, tstage->fileInputOperatorID(), part, tstage, syms);
+                            if(processCodes[threadNo] != WORKER_OK)
+                                break;
                         }
                     } catch(const std::exception& e) {
                         logger().error(std::string("exception recorded: ") + e.what());
+                        processCodes[threadNo] = WORKER_ERROR_EXCEPTION;
                     } catch(...) {
                         logger().error("unknown exception encountered, abort.");
+                        processCodes[threadNo] = WORKER_ERROR_EXCEPTION;
                     }
 
                     logger().debug("thread (" + std::to_string(threadNo) + ") done.");
@@ -271,12 +285,16 @@ namespace tuplex {
             try {
                 for(auto part : parts[0]) {
                     logger().debug("thread (main) processing part");
-                    processSource(0, tstage->fileInputOperatorID(), part, tstage, syms);
+                    processCodes[0] = processSource(0, tstage->fileInputOperatorID(), part, tstage, syms);
+                    if(processCodes[0] != WORKER_OK)
+                        break;
                 }
             } catch(const std::exception& e) {
                 logger().error(std::string("exception recorded: ") + e.what());
+                processCodes[0] = WORKER_ERROR_EXCEPTION;
             } catch(...) {
                 logger().error("unknown exception encountered, abort.");
+                processCodes[0] = WORKER_ERROR_EXCEPTION;
             }
 
             logger().debug("thread (main) processing done, waiting for others to finish.");
@@ -292,6 +310,19 @@ namespace tuplex {
             }
 
             logger().debug("All threads joined, processing done.");
+        }
+
+        // check return codes of threads...
+        bool failed = false;
+        for(unsigned i = 0; i < numCodes; ++i) {
+            if(processCodes[i] != WORKER_OK) {
+                logger().error("Thread " + std::to_string(i) + " failed processing with code " + std::to_string(processCodes[i]));
+                failed = true;
+            }
+        }
+        delete [] processCodes;
+        if(failed) {
+            return WORKER_ERROR_PIPELINE_FAILED;
         }
 
         // print out info

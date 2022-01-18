@@ -18,7 +18,8 @@ TEST_F(IncrementalTest, Debug) {
     using namespace tuplex;
 
     auto opts = microTestOptions();
-    opts.set("tuplex.optimizer.incrementalResolution", "true");
+    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    opts.set("tuplex.resolveWithInterpreterOnly", "false");
     Context c(opts);
 
     auto &ds = c.parallelize({Row(1), Row(2), Row(0), Row(4), Row(5)});
@@ -36,6 +37,7 @@ TEST_F(IncrementalTest, Performance) {
     auto opts = testOptions();
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
     opts.set("tuplex.optimizer.incrementalResolution", "true");
+    opts.set("tuplex.resolveWithInterpreterOnly", "false");
     Context c(opts);
 
     auto numRows = 100;

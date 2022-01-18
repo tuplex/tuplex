@@ -301,9 +301,9 @@ namespace tuplex {
             // issue a couple self-invoke requests...
             Timer timer;
 
-            size_t numWarmingRequests = 2;
+            size_t numWarmingRequests = 50;
             size_t timeOutInMs = 2000; // do not spend more than 1s on warming a Lambda...
-            size_t numLambdasToInvoke = 1;
+            size_t numLambdasToInvoke = 10;
             logger().info("Warming up containers...");
             for(unsigned i = 0; i < numWarmingRequests; ++i) {
 

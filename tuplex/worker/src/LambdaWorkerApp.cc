@@ -107,14 +107,18 @@ namespace tuplex {
             messages::InvocationResponse response;
             google::protobuf::util::JsonStringToMessage(data, &response);
 
-            logger.info("got answer from self-invocation request");
+            // logger.info("got answer from self-invocation request");
 
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
 
                 if(response.containerreused()) {
-                    logger.info("container reused, invoke again.");
+                    // logger.info("container reused, invoke again.");
 
                     // invoke again (do not change count)
+
+                    // sleep for a bit though
+                    std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 50 + 5));
+
                     // Tuplex request
                     messages::InvocationRequest req;
                     req.set_type(messages::MessageType::MT_WARMUP);

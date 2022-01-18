@@ -41,6 +41,7 @@ namespace tuplex {
         std::string tag;
         std::string functionName;
         size_t timeOutInMs;
+        std::chrono::high_resolution_clock::time_point tstart; // start point of context
         std::shared_ptr<Aws::Lambda::LambdaClient> client;
 
         static void lambdaCallback(const Aws::Lambda::LambdaClient* client,
@@ -48,7 +49,14 @@ namespace tuplex {
                                         const Aws::Lambda::Model::InvokeOutcome& outcome,
                                         const std::shared_ptr<const Aws::Client::AsyncCallerContext>& ctx);
 
-        SelfInvocationContext() : numPendingRequests(0) {}
+        SelfInvocationContext() : numPendingRequests(0), tstart(std::chrono::high_resolution_clock::now()) {}
+
+        inline double timeSinceStartInSeconds() {
+            auto stop = std::chrono::high_resolution_clock::now();
+
+            double duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - _start).count() / 1000000000.0;
+            return duration;
+        }
 
         class CallbackContext : public Aws::Client::AsyncCallerContext {
         private:
@@ -108,43 +116,51 @@ namespace tuplex {
             google::protobuf::util::JsonStringToMessage(data, &response);
 
             // logger.info("got answer from self-invocation request");
+            double timeout = self_ctx->timeOutInMs / 1000.0;
 
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
 
                 if(response.containerreused()) {
-                    // logger.info("container reused, invoke again.");
 
-                    // invoke again (do not change count)
+                    // check whether to re-invoke or to leave
+                    if(self_ctx->timeSinceStartInSeconds() < timeout) {
+                        // logger.info("container reused, invoke again.");
+                        // invoke again (do not change count)
 
-                    // sleep for a bit though
-                    std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 50 + 5));
+                        // sleep for a bit though
+                        std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 50 + 5));
 
-                    // Tuplex request
-                    messages::InvocationRequest req;
-                    req.set_type(messages::MessageType::MT_WARMUP);
+                        // Tuplex request
+                        messages::InvocationRequest req;
+                        req.set_type(messages::MessageType::MT_WARMUP);
 
-                    // specific warmup message contents
-                    auto wm = std::make_unique<messages::WarmupMessage>();
-                    wm->set_timeoutinms(self_ctx->timeOutInMs); // remaining time?
-                    wm->set_invocationcount(0); // do not self-invoke again? Or should they?
-                    req.set_allocated_warmup(wm.release());
+                        // specific warmup message contents
+                        auto wm = std::make_unique<messages::WarmupMessage>();
+                        wm->set_timeoutinms(self_ctx->timeOutInMs); // remaining time?
+                        wm->set_invocationcount(0); // do not self-invoke again? Or should they?
+                        req.set_allocated_warmup(wm.release());
 
-                    // construct invocation request
-                    Aws::Lambda::Model::InvokeRequest invoke_req;
-                    invoke_req.SetFunctionName(self_ctx->functionName.c_str());
-                    // note: may redesign lambda backend to work async, however then response only yields status code
-                    // i.e., everything regarding state needs to be managed explicitly...
-                    invoke_req.SetInvocationType(Aws::Lambda::Model::InvocationType::RequestResponse);
-                    // logtype to extract log data??
-                    //req.SetLogtype(Aws::Lambda::Model::LogType::None);
-                    std::string json_buf;
-                    google::protobuf::util::MessageToJsonString(req, &json_buf);
-                    invoke_req.SetBody(stringToAWSStream(json_buf));
-                    invoke_req.SetContentType("application/javascript");
+                        // construct invocation request
+                        Aws::Lambda::Model::InvokeRequest invoke_req;
+                        invoke_req.SetFunctionName(self_ctx->functionName.c_str());
+                        // note: may redesign lambda backend to work async, however then response only yields status code
+                        // i.e., everything regarding state needs to be managed explicitly...
+                        invoke_req.SetInvocationType(Aws::Lambda::Model::InvocationType::RequestResponse);
+                        // logtype to extract log data??
+                        //req.SetLogtype(Aws::Lambda::Model::LogType::None);
+                        std::string json_buf;
+                        google::protobuf::util::MessageToJsonString(req, &json_buf);
+                        invoke_req.SetBody(stringToAWSStream(json_buf));
+                        invoke_req.SetContentType("application/javascript");
 
-                    self_ctx->client->InvokeAsync(invoke_req,
-                                            SelfInvocationContext::lambdaCallback,
-                                            Aws::MakeShared<SelfInvocationContext::CallbackContext>(self_ctx->tag.c_str(), self_ctx, callback_ctx->no()));
+                        self_ctx->client->InvokeAsync(invoke_req,
+                                                      SelfInvocationContext::lambdaCallback,
+                                                      Aws::MakeShared<SelfInvocationContext::CallbackContext>(self_ctx->tag.c_str(), self_ctx, callback_ctx->no()));
+                    } else {
+                        // atomic decref
+                        self_ctx->numPendingRequests.fetch_add(-1, std::memory_order_release);
+                        logger.info("warmup request timed out.");
+                    }
                 } else {
                     logger.info("New container " + std::string(response.containerid().c_str()) + " started.");
 
@@ -211,6 +227,8 @@ namespace tuplex {
         ctx.timeOutInMs = timeOutInMs;
         ctx.functionName = functionName;
 
+        double timeout = (double)timeOutInMs / 1000.0;
+
         // async callback & invocation
         for(unsigned i = 0; i < count; ++i) {
 
@@ -236,20 +254,20 @@ namespace tuplex {
             google::protobuf::util::MessageToJsonString(req, &json_buf);
             invoke_req.SetBody(stringToAWSStream(json_buf));
             invoke_req.SetContentType("application/javascript");
-            ctx.numPendingRequests.fetch_add(1, std::memory_order_release);
 
-            ctx.client->InvokeAsync(invoke_req,
-                                SelfInvocationContext::lambdaCallback,
-                                Aws::MakeShared<SelfInvocationContext::CallbackContext>(tag.c_str(), &ctx, i));
+            if(ctx.timeSinceStartInSeconds() < timeout) {
+                // invoke if time is larger
+                ctx.numPendingRequests.fetch_add(1, std::memory_order_release);
+                ctx.client->InvokeAsync(invoke_req,
+                                        SelfInvocationContext::lambdaCallback,
+                                        Aws::MakeShared<SelfInvocationContext::CallbackContext>(tag.c_str(), &ctx, i));
+            }
         }
 
-        // wait till pending is 0 or timeout
-        double timeout = (double)timeOutInMs / 1000.0;
-        while(timer.time() < timeout && ctx.numPendingRequests > 0) {
+        // wait till pending is 0 or timeout (done in individual tasks)
+        while(ctx.numPendingRequests > 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(25));
         }
-        // stop processing, important to avoid crash.
-        ctx.client->DisableRequestProcessing();
 
         logger.info("warmup done, result are " + pluralize(ctx.containerIds.size(), "container"));
 
@@ -326,6 +344,9 @@ namespace tuplex {
                 logger().info("invoking " + pluralize(selfInvokeCount, "other lambda") + " (timeout: " + std::to_string(timeOutInMs) + "ms)");
                 _containerIds = selfInvoke(_functionName, selfInvokeCount, timeOutInMs, _credentials, _networkSettings);
                 logger().info("warmup done.");
+            } else {
+                // random sleep??
+                std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 100 + 2));
             }
 
             return WORKER_OK;

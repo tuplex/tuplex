@@ -74,6 +74,8 @@ namespace tuplex {
         auto self_ctx = callback_ctx->ctx();
         assert(self_ctx);
 
+        MessageHandler& logger = Logger::instance().logger("lambda-warmup");
+
         int statusCode = 0;
 
         // lock & add container ID if successful outcome!
@@ -85,6 +87,11 @@ namespace tuplex {
             if(statusCode == static_cast<int>(Aws::Http::HttpResponseCode::TOO_MANY_REQUESTS) || // i.e. 429
                statusCode == static_cast<int>(Aws::Http::HttpResponseCode::INTERNAL_SERVER_ERROR)) {
                 // should retry...
+
+                logger.info("should retry request... (nyimpl)");
+
+            } else {
+                logger.error("Self-Invoke request errored with code " + std::to_string(statusCode) + " details: " + std::string(error.GetMessage().c_str()));
             }
         } else {
             // write response
@@ -100,9 +107,13 @@ namespace tuplex {
             messages::InvocationResponse response;
             google::protobuf::util::JsonStringToMessage(data, &response);
 
+            logger.info("got answer from self-invocation request");
+
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
 
                 if(response.containerreused()) {
+                    logger.info("container reused, invoke again.");
+
                     // invoke again (do not change count)
                     // Tuplex request
                     messages::InvocationRequest req;
@@ -142,6 +153,7 @@ namespace tuplex {
                 }
             } else {
                 // failed...
+                logger.error("invoke failed, wrong code returned.");
             }
         }
     }
@@ -153,6 +165,8 @@ namespace tuplex {
                                         const AWSCredentials& credentials,
                                         const NetworkSettings& ns,
                                         std::string tag) {
+
+        MessageHandler& logger = Logger::instance().logger("lambda-warmup");
 
         if(0 == count)
             return {};
@@ -224,6 +238,8 @@ namespace tuplex {
         while(timer.time() < timeout && ctx.numPendingRequests > 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(25));
         }
+
+        logger.info("warmup done, result are " + pluralize(ctx.containerIds, "container"));
 
         // how long did it take?
         containerIds = ctx.containerIds;

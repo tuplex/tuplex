@@ -290,9 +290,14 @@ namespace tuplex {
 
         reset();
 
+        // Notes:
+        // ==> could use the warm up events for sampling & speed detection
+        // ==> helps to plan the query more efficiently!
+
         // perform warmup phase if desired (only for first stage?)
         if(_options.AWS_LAMBDA_SELF_INVOCATION()) {
             // issue a couple self-invoke requests...
+            Timer timer;
 
             size_t numWarmingRequests = 5;
             size_t timeOutInMs = 1000; // do not spend more than 1s on warming a Lambda...
@@ -314,6 +319,19 @@ namespace tuplex {
             }
             waitForRequests();
             logger().info("warmup done");
+
+            // check response!
+            std::set<std::string> containerIds;
+            for(const auto& task : _tasks) {
+                if(task.type() == messages::MessageType::MT_WARMUP) {
+                    containerIds.insert(task.containerid());
+                    for(auto id : task.warmedupcontainers())
+                        containerIds.insert(id);
+                }
+            }
+
+            logger().info("Warmup yielded " + pluralize(containerIds.size(), "container id"));
+            logger().info("Warmup took: " + std::to_string(timer.time()));
         }
 
         auto tstage = dynamic_cast<TransformStage *>(stage);

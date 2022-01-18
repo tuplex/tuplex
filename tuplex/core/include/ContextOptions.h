@@ -67,6 +67,8 @@ namespace tuplex {
         std::string AWS_REGION() const { return _store.at("tuplex.aws.region"); }
         size_t AWS_LAMBDA_MEMORY() const { return std::stoi(_store.at("tuplex.aws.lambdaMemory")); } // 1536MB
         size_t AWS_LAMBDA_TIMEOUT() const { return std::stoi(_store.at("tuplex.aws.lambdaTimeout"));  } // 5min?
+        std::string AWS_LAMBDA_THREAD_COUNT() const { return _store.at("tuplex.aws.lambdaThreads"); } // auto or number > 0
+        bool AWS_LAMBDA_SELF_INVOCATION() const { return stringToBool(_store.at("tuplex.aws.lambdaInvokeOthers")); } // whether Lambdas should perform self-invocation to scale faster...
         bool AWS_REQUESTER_PAY() const { return stringToBool(_store.at("tuplex.aws.requesterPay")); }
 
         // access parameters via their getter functions

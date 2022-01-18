@@ -38,16 +38,6 @@
 
 namespace tuplex {
 
-    // use base64 library from https://github.com/ReneNyffenegger/cpp-base64
-
-    inline std::shared_ptr<Aws::IOStream> stringToAWSStream(const std::string &str, const std::string &tag = "tuplex") {
-        auto input = Aws::MakeShared<Aws::StringStream>(tag.c_str());
-
-        *input << str.c_str();
-        input->flush();
-        return input;
-    }
-
     // helper class to provide backend in callback
     class AwsLambdaBackendCallerContext : public Aws::Client::AsyncCallerContext {
     private:
@@ -395,6 +385,7 @@ namespace tuplex {
         for (int i = 0; i < uri_infos.size(); ++i) {
             auto info = uri_infos[i];
             messages::InvocationRequest req;
+            req.set_type(messages::MessageType::MT_TRANSFORM);
             auto pb_stage = tstage->to_protobuf();
 
             if(_options.USE_LLVM_OPTIMIZER() && !optimizedBitcode.empty())
@@ -409,6 +400,26 @@ namespace tuplex {
             auto inputSize = std::get<1>(info);
             req.add_inputuris(inputURI);
             req.add_inputsizes(inputSize);
+
+            // worker config
+            auto ws = std::make_unique<messages::WorkerSettings>();
+
+            size_t numThreads = 1;
+            // check what setting is given for threads
+            if(_options.AWS_LAMBDA_THREAD_COUNT() == "auto") {
+                numThreads = core::ceilToMultiple(_options.AWS_LAMBDA_MEMORY(), 1792ul) / 1792ul; // 1792MB is one vCPU. Use the 200+ for rounding.
+                logger().debug("Given Lambda size of " + std::to_string(_options.AWS_LAMBDA_MEMORY()) + "MB, use " + pluralize(numThreads, "thread"));
+            } else {
+                numThreads = std::stoi(_options.AWS_LAMBDA_THREAD_COUNT());
+            }
+            auto spillURI = _options.AWS_SCRATCH_DIR() + "/spill_folder";
+            // perhaps also use:  - 64 * numThreads ==> smarter buffer scaling necessary.
+            size_t buf_spill_size = (_options.AWS_LAMBDA_MEMORY() - 256) / numThreads * 1000 * 1024;
+            ws->set_numthreads(numThreads);
+            ws->set_normalbuffersize(buf_spill_size);
+            ws->set_exceptionbuffersize(buf_spill_size);
+            ws->set_spillrooturi(spillURI);
+            req.set_allocated_settings(ws.release());
 
             // output uri of job? => final one? parts?
             // => create temporary if output is local! i.e. to memory etc.

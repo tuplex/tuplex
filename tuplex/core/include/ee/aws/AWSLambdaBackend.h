@@ -134,7 +134,9 @@ namespace tuplex {
         size_t getMBMs();
 
         double usedGBSeconds() {
-            return (double)getMBMs() / 10000.0;
+            // 1ms = 0.001s
+            // 1mb = 0.001Gb
+            return (double)getMBMs() / 1000000.0;
 
             // old: Before Dec 2020, now costs changed.
             // return (double)getMB100Ms() / 10000.0;
@@ -155,7 +157,7 @@ namespace tuplex {
             if(_functionArchitecture == "arm64")
                 cost_per_gb_second = cost_per_gb_second_arm;
 
-            return usedGBSeconds() * cost_per_gb_second + numRequests() * cost_per_request;
+            return usedGBSeconds() * cost_per_gb_second + (double)numRequests() * cost_per_request;
         }
     };
 }

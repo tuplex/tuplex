@@ -370,7 +370,17 @@ TEST_F(AWSTest, FullZillowPipeline) {
 
     auto opt = microLambdaOptions();
 
+    // Experiment 1: plain, single-threaded option -> 1792MB
+
+    // use 6 threads and 10GB of RAM
+    opt.set("tuplex.aws.lambdaMemory", "10000");
+
+
+
     string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
+
+    inputFiles = "s3://tuplex-public/data/100GB/*.csv";
+
     string outputDir = string("s3://") + S3_TEST_BUCKET + "/tests/" + testName + "/zillow_output.csv";
     Context ctx(opt);
 

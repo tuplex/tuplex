@@ -19,6 +19,8 @@
 
 #include <Utils.h>
 #include <aws/core/client/ClientConfiguration.h>
+#include <aws/core/utils/json/JsonSerializer.h>
+#include <aws/core/utils/memory/stl/AWSStringStream.h>
 
 namespace tuplex {
 
@@ -30,6 +32,16 @@ namespace tuplex {
 
         static AWSCredentials get();
     };
+
+    // use base64 library from https://github.com/ReneNyffenegger/cpp-base64
+
+    inline std::shared_ptr<Aws::IOStream> stringToAWSStream(const std::string &str, const std::string &tag = "tuplex") {
+        auto input = Aws::MakeShared<Aws::StringStream>(tag.c_str());
+
+        *input << str.c_str();
+        input->flush();
+        return input;
+    }
 
     /*!
      * update clientConfig with given Network settings.

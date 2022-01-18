@@ -15,6 +15,12 @@ enum EndPointMode {
     EPM_HASHTABLE = 3;
 }
 
+enum MessageType {
+    MT_UNKNOWN = 0;
+    MT_WARMUP = 1;
+    MT_TRANSFORM = 2;
+}
+
 message TransformStage {
     bytes bitcode = 1;
     repeated string inputColumns = 2;
@@ -66,12 +72,21 @@ message WorkerSettings {
     optional bool allowNumericTypeUnification = 8;
 }
 
+message WarmupMessage {
+    uint32 invocationCount = 1;
+    uint32 timeOutInMs = 2;
+}
+
 message InvocationRequest {
     repeated string inputURIS = 1;
     repeated uint64 inputSizes = 2;
     string outputURI = 3;
-    TransformStage stage = 4;
+
+    MessageType type = 4;
     WorkerSettings settings = 5;
+
+    optional TransformStage stage = 6;
+    optional WarmupMessage warmup = 7;
 }
 
 message InvocationResponse {
@@ -81,19 +96,22 @@ message InvocationResponse {
     }
     Status status = 1;
     string errorMessage = 2;
+    MessageType type = 3;
 
-    repeated string inputURIS = 3;
-    repeated string outputURIs = 4;
+    repeated string inputURIS = 4;
+    repeated string outputURIs = 5;
 
-    uint64 numRowsWritten = 5;
-    uint64 numExceptions = 6;
-    uint64 numBytesWritten = 7;
+    uint64 numRowsWritten = 6;
+    uint64 numExceptions = 7;
+    uint64 numBytesWritten = 8;
 
-    bool containerReused = 8;
-    double awsInitTime = 9;
-    string containerID = 10;
-    double taskExecutionTime = 11;
-    double remainingLambdaTime = 12;
-    map<string, uint64> s3Stats = 13;
-    map<string, double> breakdownTimes = 14;
+    bool containerReused = 9;
+    double awsInitTime = 10;
+    string containerID = 11;
+    double taskExecutionTime = 12;
+    double remainingLambdaTime = 13;
+    map<string, uint64> s3Stats = 14;
+    map<string, double> breakdownTimes = 15;
+
+    repeated string warmedupContainers = 16;
 }

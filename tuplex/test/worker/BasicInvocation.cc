@@ -79,6 +79,8 @@ namespace tuplex {
 
         size_t buf_spill_size = 512 * 1024; // for testing, set spill size to 512KB!
 
+        req.set_type(messages::MessageType::MT_TRANSFORM);
+
         auto pb_stage = tstage->to_protobuf();
 
         pb_stage->set_bitcode(tstage->bitCode());

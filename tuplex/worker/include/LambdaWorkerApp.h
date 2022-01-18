@@ -42,13 +42,28 @@ namespace tuplex {
         MessageHandler& logger() const {
             return Logger::instance().logger("Lambda worker");
         }
+
+        std::string _functionName;
+        NetworkSettings _networkSettings;
+        AWSCredentials _credentials;
     private:
 
         struct Metrics {
             double global_init_time;
         };
         Metrics metrics;
+
+        // @TODO: redesign this...
+        messages::MessageType _messageType;
+        std::vector<std::string> _containerIds;
     };
+
+    extern std::vector<std::string> selfInvoke(const std::string& functionName,
+                                               size_t count,
+                                               size_t timeOutInMs,
+                                               const AWSCredentials& credentials,
+                                               const NetworkSettings& ns,
+                                               std::string tag="lambda");
 }
 
 #endif

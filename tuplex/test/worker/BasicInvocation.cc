@@ -17,7 +17,7 @@
 #include <logical/MapOperator.h>
 #include <google/protobuf/util/json_util.h>
 #include "../../worker/include/WorkerApp.h"
-
+#include "../../worker/include/LambdaWorkerApp.h"
 
 #include <boost/filesystem.hpp>
 
@@ -393,4 +393,20 @@ TEST(BasicInvocation, FileSplitting) {
 
     res = splitIntoEqualParts(5, {"test.csv"}, {10000}, 0);
     ASSERT_EQ(res.size(), 5);
+}
+
+
+TEST(BasicInvocation, SelfInvoke) {
+    using namespace tuplex;
+
+    // test selfInvoke function...
+
+    auto cred = AWSCredentials::get();
+    NetworkSettings ns;
+
+    initAWS(cred, ns);
+
+    auto ids = selfInvoke("tuplex-lambda-runner", 4, 1500, cred, ns);
+
+    shutdownAWS();
 }

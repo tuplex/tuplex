@@ -38,6 +38,10 @@ namespace tuplex {
         std::atomic_int32_t numPendingRequests;
         std::mutex mutex;
         std::vector<std::string> containerIds;
+        std::string tag;
+        std::string functionName;
+        size_t timeOutInMs;
+        std::shared_ptr<Aws::Lambda::LambdaClient> client;
 
         static void lambdaCallback(const Aws::Lambda::LambdaClient* client,
                                         const Aws::Lambda::Model::InvokeRequest& req,
@@ -53,6 +57,9 @@ namespace tuplex {
         public:
             CallbackContext() = delete;
             CallbackContext(SelfInvocationContext* ctx, uint32_t invocationNo) : _ctx(ctx), _no(invocationNo) {}
+
+            SelfInvocationContext* ctx() const { return _ctx; }
+            uint32_t no() const { return _no; }
         };
     };
 
@@ -62,7 +69,9 @@ namespace tuplex {
                                                const std::shared_ptr<const Aws::Client::AsyncCallerContext>& ctx) {
         using namespace std;
 
-        auto self_ctx = dynamic_cast<const SelfInvocationContext*>(ctx.get());
+        auto callback_ctx = dynamic_cast<const SelfInvocationContext::CallbackContext*>(ctx.get());
+        assert(callback_ctx);
+        auto self_ctx = callback_ctx->ctx();
         assert(self_ctx);
 
         int statusCode = 0;
@@ -92,12 +101,44 @@ namespace tuplex {
             google::protobuf::util::JsonStringToMessage(data, &response);
 
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
-                std::unique_lock<std::mutex> lock(const_cast<SelfInvocationContext*>(self_ctx)->mutex);
-                // add the ID of the container
-                const_cast<SelfInvocationContext*>(self_ctx)->containerIds.emplace_back(response.containerid().c_str());
-                // and all IDs that container invoked
-                for(auto id : response.warmedupcontainers()) {
-                    const_cast<SelfInvocationContext*>(self_ctx)->containerIds.emplace_back(id);
+
+                if(response.containerreused()) {
+                    // invoke again (do not change count)
+                    // Tuplex request
+                    messages::InvocationRequest req;
+                    req.set_type(messages::MessageType::MT_WARMUP);
+
+                    // specific warmup message contents
+                    auto wm = std::make_unique<messages::WarmupMessage>();
+                    wm->set_timeoutinms(self_ctx->timeOutInMs); // remaining time?
+                    wm->set_invocationcount(0); // do not self-invoke again? Or should they?
+                    req.set_allocated_warmup(wm.release());
+
+                    // construct invocation request
+                    Aws::Lambda::Model::InvokeRequest invoke_req;
+                    invoke_req.SetFunctionName(self_ctx->functionName.c_str());
+                    // note: may redesign lambda backend to work async, however then response only yields status code
+                    // i.e., everything regarding state needs to be managed explicitly...
+                    invoke_req.SetInvocationType(Aws::Lambda::Model::InvocationType::RequestResponse);
+                    // logtype to extract log data??
+                    //req.SetLogtype(Aws::Lambda::Model::LogType::None);
+                    std::string json_buf;
+                    google::protobuf::util::MessageToJsonString(req, &json_buf);
+                    invoke_req.SetBody(stringToAWSStream(json_buf));
+                    invoke_req.SetContentType("application/javascript");
+
+                    self_ctx->client->InvokeAsync(invoke_req,
+                                            SelfInvocationContext::lambdaCallback,
+                                            Aws::MakeShared<SelfInvocationContext::CallbackContext>(self_ctx->tag.c_str(), self_ctx, callback_ctx->no()));
+                } else {
+                    std::unique_lock<std::mutex> lock(self_ctx->mutex);
+                    // add the ID of the container
+                    const_cast<SelfInvocationContext*>(self_ctx)->containerIds.emplace_back(response.containerid().c_str());
+                    // and all IDs that container invoked
+                    for(auto id : response.warmedupcontainers()) {
+                        self_ctx->containerIds.emplace_back(id);
+                    }
+                    self_ctx->numPendingRequests.fetch_add(-1, std::memory_order_release);
                 }
             } else {
                 // failed...
@@ -139,9 +180,12 @@ namespace tuplex {
 
         // change aws settings here
         Aws::Auth::AWSCredentials cred(credentials.access_key.c_str(), credentials.secret_key.c_str());
-        auto client = Aws::MakeShared<Aws::Lambda::LambdaClient>(tag.c_str(), cred, clientConfig);
 
         SelfInvocationContext ctx;
+        ctx.client = Aws::MakeShared<Aws::Lambda::LambdaClient>(tag.c_str(), cred, clientConfig);
+        ctx.tag = tag;
+        ctx.timeOutInMs = timeOutInMs;
+        ctx.functionName = functionName;
 
         // async callback & invocation
         for(unsigned i = 0; i < count; ++i) {
@@ -170,7 +214,7 @@ namespace tuplex {
             invoke_req.SetContentType("application/javascript");
             ctx.numPendingRequests.fetch_add(1, std::memory_order_release);
 
-            client->InvokeAsync(invoke_req,
+            ctx.client->InvokeAsync(invoke_req,
                                 SelfInvocationContext::lambdaCallback,
                                 Aws::MakeShared<SelfInvocationContext::CallbackContext>(tag.c_str(), &ctx, i));
         }

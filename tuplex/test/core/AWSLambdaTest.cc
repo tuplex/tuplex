@@ -379,7 +379,7 @@ TEST_F(AWSTest, FullZillowPipeline) {
 
     string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
 
-    inputFiles = "s3://tuplex-public/data/100GB/*.csv";
+    //inputFiles = "s3://tuplex-public/data/100GB/*.csv";
 
     string outputDir = string("s3://") + S3_TEST_BUCKET + "/tests/" + testName + "/zillow_output.csv";
     Context ctx(opt);

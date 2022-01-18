@@ -290,6 +290,32 @@ namespace tuplex {
 
         reset();
 
+        // perform warmup phase if desired (only for first stage?)
+        if(_options.AWS_LAMBDA_SELF_INVOCATION()) {
+            // issue a couple self-invoke requests...
+
+            size_t numWarmingRequests = 5;
+            size_t timeOutInMs = 1000; // do not spend more than 1s on warming a Lambda...
+            size_t numLambdasToInvoke = 5;
+            logger().info("Warming up containers...");
+            for(unsigned i = 0; i < numWarmingRequests; ++i) {
+
+                // Tuplex request
+                messages::InvocationRequest req;
+                req.set_type(messages::MessageType::MT_WARMUP);
+
+                // specific warmup message contents
+                auto wm = std::make_unique<messages::WarmupMessage>();
+                wm->set_timeoutinms(timeOutInMs);
+                wm->set_invocationcount(numLambdasToInvoke);
+                req.set_allocated_warmup(wm.release());
+
+                invokeAsync(req);
+            }
+            waitForRequests();
+            logger().info("warmup done");
+        }
+
         auto tstage = dynamic_cast<TransformStage *>(stage);
         if (!tstage)
             throw std::runtime_error("only trafo stage from AWSLambdda backend yet supported");

@@ -7,7 +7,7 @@ FILE(GLOB SRCS *.cc)
 
 include(GoogleTest)
 
-ADD_EXECUTABLE(testworker ${SRCS} ../../worker/src/WorkerApp.cc)
+ADD_EXECUTABLE(testworker ${SRCS} ../../worker/src/WorkerApp.cc ../../worker/src/LambdaWorkerApp.cc)
 target_include_directories(testworker PUBLIC "../../worker/include")
 TARGET_LINK_LIBRARIES(testworker
         libio

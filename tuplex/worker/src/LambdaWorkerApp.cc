@@ -248,6 +248,8 @@ namespace tuplex {
         while(timer.time() < timeout && ctx.numPendingRequests > 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(25));
         }
+        // stop processing, important to avoid crash.
+        ctx.client->DisableRequestProcessing();
 
         logger.info("warmup done, result are " + pluralize(ctx.containerIds.size(), "container"));
 

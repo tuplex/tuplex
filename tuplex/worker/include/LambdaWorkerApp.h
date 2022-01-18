@@ -15,6 +15,8 @@
 
 #ifdef BUILD_WITH_AWS
 
+#include <AWSCommon.h>
+
 namespace tuplex {
 
     struct LambdaWorkerSettings : public WorkerSettings {
@@ -39,13 +41,13 @@ namespace tuplex {
 
         int processMessage(const tuplex::messages::InvocationRequest& req) override;
 
-        MessageHandler& logger() const {
+        MessageHandler& logger() const override {
             return Logger::instance().logger("Lambda worker");
         }
 
         std::string _functionName;
         NetworkSettings _networkSettings;
-        AWSCredentials _credentials;
+        tuplex::AWSCredentials _credentials;
     private:
 
         struct Metrics {
@@ -61,7 +63,7 @@ namespace tuplex {
     extern std::vector<std::string> selfInvoke(const std::string& functionName,
                                                size_t count,
                                                size_t timeOutInMs,
-                                               const AWSCredentials& credentials,
+                                               const tuplex::AWSCredentials& credentials,
                                                const NetworkSettings& ns,
                                                std::string tag="lambda");
 }

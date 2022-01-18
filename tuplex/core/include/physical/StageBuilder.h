@@ -29,7 +29,8 @@ namespace tuplex {
                          double normalCaseThreshold,
                          bool sharedObjectPropagation,
                          bool nullValueOptimization,
-                         bool updateInputExceptions);
+                         bool updateInputExceptions,
+                         bool useIncrementalResolution);
 
             // builder functions
             void addMemoryInput(const Schema& schema, LogicalOperator* node);
@@ -73,6 +74,7 @@ namespace tuplex {
             bool _sharedObjectPropagation;
             bool _nullValueOptimization;
             bool _updateInputExceptions;
+            bool _useIncrementalResolution;
             std::vector<LogicalOperator*> _operators;
 
             // codegen strings

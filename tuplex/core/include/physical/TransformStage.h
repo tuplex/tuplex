@@ -31,6 +31,7 @@
 #include <Defs.h>
 #include <logical/FileOutputOperator.h>
 #include <logical/AggregateOperator.h>
+#include <IncrementalCache.h>
 
 #ifdef BUILD_WITH_AWS
 // include protobuf serialization of TrafoStage for Lambda executor
@@ -82,6 +83,12 @@ namespace tuplex {
          * @param sizes
          */
         void setInputFiles(const std::vector<URI>& uris, const std::vector<size_t>& sizes);
+
+        void setCacheEntry(CacheEntry *cacheEntry) { _cacheEntry = cacheEntry; }
+
+        CacheEntry *cacheEntry() { return _cacheEntry; }
+
+        bool useIncrementalResolution() { return _useIncrementalResolution; }
 
         /*!
          * set input partitions to this executor
@@ -374,6 +381,8 @@ namespace tuplex {
          */
         bool updateInputExceptions() const { return _updateInputExceptions; }
 
+        bool useIncrementalResolution() const { return _useIncrementalResolution; }
+
         /*!
          * @return Returns the type of the hash-grouped data. Hash-grouped data refers to when the operator is a
          *         pipeline breaker that needs the previous stage's hashmap to be converted to partitions
@@ -459,6 +468,9 @@ namespace tuplex {
         std::string _pyPipelineName;
         std::string _writerFuncName;
         bool _updateInputExceptions;
+
+        bool _useIncrementalResolution;
+        CacheEntry *_cacheEntry;
 
         std::shared_ptr<ResultSet> emptyResultSet() const;
 

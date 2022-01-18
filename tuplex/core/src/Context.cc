@@ -28,6 +28,9 @@ namespace tuplex {
     Context::Context(const ContextOptions& options) : _datasetIDGenerator(0), _compilePolicy(compilePolicyFromOptions(options)) {
         // init metrics
         _lastJobMetrics = std::make_unique<JobMetrics>();
+
+        _incrementalCache = std::make_unique<IncrementalCache>();
+
         // make sure this is called without holding the GIL
         if(python::isInterpreterRunning())
             assert(!python::holdsGIL());
@@ -524,6 +527,19 @@ namespace tuplex {
         }
 
         return *dsptr;
+    }
+
+    CacheEntry *Context::getCacheEntry(LogicalOperator *pipeline) const {
+        return _incrementalCache->getCacheEntry(pipeline);
+    }
+
+    void Context::addCacheEntry(LogicalOperator *pipeline,
+                       const std::vector<Partition *> &outputPartitions,
+                       const std::vector<std::tuple<size_t, PyObject*>> &outputPyObjects,
+                       const std::vector<Partition*> &exceptionPartitions,
+                       const std::vector<Partition*> &generalCasePartitions,
+                       const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> &partitionToExceptionsMap) const {
+        _incrementalCache->addCacheEntry(pipeline, outputPartitions, outputPyObjects, exceptionPartitions, generalCasePartitions, partitionToExceptionsMap);
     }
 
     uint8_t* Context::partitionLockRaw(tuplex::Partition *partition) {

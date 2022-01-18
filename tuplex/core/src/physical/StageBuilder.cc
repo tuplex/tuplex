@@ -44,10 +44,11 @@ namespace tuplex {
                                    double normalCaseThreshold,
                                    bool sharedObjectPropagation,
                                    bool nullValueOptimization,
-                                   bool updateInputExceptions)
+                                   bool updateInputExceptions,
+                                   bool useIncrementalResolution)
                 : _stageNumber(stage_number), _isRootStage(rootStage), _allowUndefinedBehavior(allowUndefinedBehavior),
                   _generateParser(generateParser), _normalCaseThreshold(normalCaseThreshold), _sharedObjectPropagation(sharedObjectPropagation),
-                  _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions),
+                  _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions), _useIncrementalResolution(useIncrementalResolution),
                   _inputNode(nullptr) {
         }
 
@@ -1429,6 +1430,7 @@ namespace tuplex {
             stage->_pyCode = _pyCode;
             stage->_pyPipelineName = _pyPipelineName;
             stage->_updateInputExceptions = _updateInputExceptions;
+            stage->_useIncrementalResolution = _useIncrementalResolution;
 
             // if last op is CacheOperator, check whether normal/exceptional case should get cached separately
             // or an upcasting step should be performed.

@@ -27,6 +27,7 @@
 #include <graphviz/GraphVizBuilder.h>
 #include <ee/IBackend.h>
 #include "JobMetrics.h"
+#include <IncrementalCache.h>
 
 
 namespace tuplex {
@@ -37,6 +38,8 @@ namespace tuplex {
     class Executor;
     class Partition;
     class IBackend;
+    class IncrementalCache;
+    class CacheEntry;
 
     class Context {
     private:
@@ -65,6 +68,8 @@ namespace tuplex {
         ContextOptions _options; //! global config for a context object. Holds defaults for memory/code generation/...
 
         std::unique_ptr<IBackend> _ee; //! execution backend of this context
+
+        std::unique_ptr<IncrementalCache> _incrementalCache;
 
         // context properties
         std::string _name;
@@ -228,6 +233,15 @@ namespace tuplex {
                 const_cast<Context *>(this)->_lastJobMetrics.reset(new JobMetrics());
             return *_lastJobMetrics.get();
         }
+
+        CacheEntry *getCacheEntry(LogicalOperator *pipeline) const;
+
+        void addCacheEntry(LogicalOperator *pipeline,
+                       const std::vector<Partition *> &outputPartitions,
+                       const std::vector<std::tuple<size_t, PyObject*>> &outputPyObjects,
+                       const std::vector<Partition*> &exceptionPartitions,
+                       const std::vector<Partition*> &generalCasePartitions,
+                       const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> &partitionToExceptionsMap) const;
 
         /*!
          * gets a JobMetrics object

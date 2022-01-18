@@ -125,6 +125,13 @@ namespace tuplex {
                                          const std::vector<Partition*>& remainingExceptions,
                                          const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> &ecounts) {
         setExceptionCounts(ecounts);
+        PhysicalStage::plan()->getContext().addCacheEntry(
+                PhysicalStage::plan()->originalLogicalPlan()->getAction(),
+                partitions,
+                interpreterRows,
+                remainingExceptions,
+                generalCase,
+                partitionToExceptionsMap);
 
         if (partitions.empty() && interpreterRows.empty() && generalCase.empty())
             _rs = emptyResultSet();

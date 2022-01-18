@@ -32,6 +32,8 @@ namespace tuplex {
         void optimizeFilters();
         void emitPartialFilters();
         void reorderDataProcessingOperators();
+        void incrementalResolution(const Context &context);
+        void updateIDs(LogicalOperator *previous);
 
     public:
 

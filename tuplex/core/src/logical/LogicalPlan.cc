@@ -68,6 +68,39 @@ namespace tuplex {
         return new PhysicalPlan(optimized_plan, this, context);
     }
 
+    void LogicalPlan::incrementalResolution(const Context& context) {
+        auto cacheEntry = context.getCacheEntry(_action);
+        if (cacheEntry) {
+            updateIDs(cacheEntry->pipeline());
+        }
+    }
+
+    void LogicalPlan::updateIDs(LogicalOperator *previous) {
+        std::queue<LogicalOperator*> currentQ;
+        std::queue<LogicalOperator*> previousQ;
+        currentQ.push(_action);
+        previousQ.push(previous);
+        while(!currentQ.empty() && !previousQ.empty()) {
+            auto curNode = currentQ.front(); currentQ.pop();
+            auto prevNode = previousQ.front(); previousQ.pop();
+            if (curNode->type() == LogicalOperatorType::RESOLVE) {
+                for (auto parent : curNode->parents()) {
+                    currentQ.push(parent);
+                }
+                previousQ.push(prevNode);
+            } else {
+                assert(curNode->type() == prevNode->type());
+                curNode->setID(prevNode->getID());
+                for (auto parent : curNode->parents()) {
+                    currentQ.push(parent);
+                }
+                for (auto parent : prevNode->parents()) {
+                    previousQ.push(parent);
+                }
+            }
+        }
+    }
+
 
     void rewriteAllFollowingResolvers(LogicalOperator* op, const std::unordered_map<size_t, size_t>& rewriteMap) {
         // go over children (single!)
@@ -1300,6 +1333,10 @@ namespace tuplex {
 #ifndef NDEBUG
         assert(verifyLogicalPlan(_action));
 #endif
+
+        if (context.getOptions().OPT_INCREMENTAL_RESOLUTION()) {
+            incrementalResolution(context);
+        }
 
         if(context.getOptions().OPT_FILTER_PUSHDOWN()) {
             emitPartialFilters();

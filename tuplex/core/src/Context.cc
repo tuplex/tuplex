@@ -529,6 +529,8 @@ namespace tuplex {
         return *dsptr;
     }
 
+    void Context::clearCache() const { _incrementalCache->clear(); }
+
     CacheEntry *Context::getCacheEntry(LogicalOperator *pipeline) const {
         return _incrementalCache->getCacheEntry(pipeline);
     }

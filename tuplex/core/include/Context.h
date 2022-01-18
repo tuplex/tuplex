@@ -234,7 +234,7 @@ namespace tuplex {
             return *_lastJobMetrics.get();
         }
 
-        void clearCache() const { _incrementalCache.clear(); }
+        void clearCache() const;
 
         CacheEntry *getCacheEntry(LogicalOperator *pipeline) const;
 

@@ -110,7 +110,9 @@ namespace tuplex {
         applyNetworkSettings(ns, clientConfig);
 
         // change aws settings here
-        Aws::Auth::AWSCredentials cred(_credentials.access_key.c_str(), _credentials.secret_key.c_str());
+        Aws::Auth::AWSCredentials cred(_credentials.access_key.c_str(),
+                                       _credentials.secret_key.c_str(),
+                                       _credentials.session_token.c_str());
         auto client = Aws::MakeShared<Aws::Lambda::LambdaClient>(_tag.c_str(), cred, clientConfig);
 
         Aws::Lambda::Model::ListFunctionsRequest list_req;
@@ -299,9 +301,9 @@ namespace tuplex {
             // issue a couple self-invoke requests...
             Timer timer;
 
-            size_t numWarmingRequests = 5;
-            size_t timeOutInMs = 1000; // do not spend more than 1s on warming a Lambda...
-            size_t numLambdasToInvoke = 5;
+            size_t numWarmingRequests = 2;
+            size_t timeOutInMs = 2000; // do not spend more than 1s on warming a Lambda...
+            size_t numLambdasToInvoke = 1;
             logger().info("Warming up containers...");
             for(unsigned i = 0; i < numWarmingRequests; ++i) {
 
@@ -332,6 +334,8 @@ namespace tuplex {
 
             logger().info("Warmup yielded " + pluralize(containerIds.size(), "container id"));
             logger().info("Warmup took: " + std::to_string(timer.time()));
+
+            reset();
         }
 
         auto tstage = dynamic_cast<TransformStage *>(stage);
@@ -497,6 +501,7 @@ namespace tuplex {
 
         // wait till everything finished computing
         waitForRequests();
+        printStatistics();
         {
             std::stringstream ss;
             ss<<"LAMBDA compute took "<<timer.time()<<"s";
@@ -764,8 +769,6 @@ namespace tuplex {
 
             python::unlockGIL();
         }
-
-        printStatistics();
     }
 
     static void printBreakdowns(const std::map<std::string, RollingStats<double>> &breakdownTimings, std::stringstream &ss) {

@@ -142,7 +142,7 @@ namespace tuplex {
                                             SelfInvocationContext::lambdaCallback,
                                             Aws::MakeShared<SelfInvocationContext::CallbackContext>(self_ctx->tag.c_str(), self_ctx, callback_ctx->no()));
                 } else {
-                    logger.info("New container" + std::string(response.containerid().c_str()) + " started.");
+                    logger.info("New container " + std::string(response.containerid().c_str()) + " started.");
 
                     std::unique_lock<std::mutex> lock(self_ctx->mutex);
                     // add the ID of the container
@@ -179,8 +179,10 @@ namespace tuplex {
         // init Lambda client
         Aws::Client::ClientConfiguration clientConfig;
 
-        clientConfig.requestTimeoutMs = timeOutInMs; // conv seconds to ms
-        clientConfig.connectTimeoutMs = timeOutInMs; // connection timeout
+        size_t lambdaToLambdaTimeOutInMs = 200;
+
+        clientConfig.requestTimeoutMs = lambdaToLambdaTimeOutInMs; // conv seconds to ms
+        clientConfig.connectTimeoutMs = lambdaToLambdaTimeOutInMs; // connection timeout
 
         // tune client, according to https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/client-config.html
         // note: max connections should not exceed max concurrency if it is below 100, else aws lambda
@@ -362,6 +364,7 @@ namespace tuplex {
         tuplex::messages::InvocationResponse result;
 
         result.set_status(tuplex::messages::InvocationResponse_Status_SUCCESS);
+        result.set_type(_messageType);
 
         if(!_statistics.empty()) {
             auto& last = _statistics.back();
@@ -373,8 +376,8 @@ namespace tuplex {
 
         // message specific results
         if(_messageType == tuplex::messages::MessageType::MT_WARMUP) {
-            for(auto id : _containerIds) {
-                result.add_warmedupcontainers(id);
+            for(const auto& id : _containerIds) {
+                result.add_warmedupcontainers(id.c_str());
             }
         }
 

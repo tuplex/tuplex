@@ -52,9 +52,13 @@ TEST_F(IncrementalTest, Performance) {
 
     auto &ds_cached = c.parallelize(rows).cache();
 
+    Timer timer;
     auto res1 = ds_cached.map(UDF("lambda x: 1 / x")).collectAsVector();
+    std::cout << "First iteration took: " << std::to_string(timer.time());
     ASSERT_EQ(res1.size(), numRows - numRows / 100);
 
+    timer.reset();
     auto res2 = ds_cached.map(UDF("lambda x: 1 / x")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: -1.0")).collectAsVector();
+    std::cout << "Second iteration took: " << std::to_string(timer.time());
     ASSERT_EQ(res2.size(), numRows);
 }

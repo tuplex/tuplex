@@ -11,6 +11,10 @@
 #include <IncrementalCache.h>
 
 namespace tuplex {
+    void IncrementalCache::clear() {
+        _cache.clear();
+    }
+
     void IncrementalCache::addCacheEntry(LogicalOperator *pipeline,
                        const std::vector<Partition *> &outputPartitions,
                        const std::vector<std::tuple<size_t, PyObject*>> &outputPyObjects,
@@ -33,12 +37,12 @@ namespace tuplex {
         cacheEntry->setGeneralCasePartitions(generalCasePartitions);
         cacheEntry->setPartitionToExceptionsMap(partitionToExceptionsMap);
 
-        cache["1"] = cacheEntry;
+        _cache["1"] = cacheEntry;
     }
 
     CacheEntry *IncrementalCache::getCacheEntry(LogicalOperator *action) const {
-        auto elt = cache.find("1");
-        if (elt == cache.end()) {
+        auto elt = _cache.find("1");
+        if (elt == _cache.end()) {
             return nullptr;
         }
         return elt->second;

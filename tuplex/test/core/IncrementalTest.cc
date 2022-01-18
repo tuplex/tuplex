@@ -38,12 +38,12 @@ TEST_F(IncrementalTest, Performance) {
     opts.set("tuplex.optimizer.incrementalResolution", "true");
     Context c(opts);
 
-    auto numRows = 100000;
+    auto numRows = 100;
     std::vector<Row> rows;
     rows.reserve(numRows);
 
     for (int i = 0; i < numRows; ++i) {
-        if (i % 100 == 0) {
+        if (i % 10 == 0) {
             rows.push_back(Row(0));
         } else {
             rows.push_back(Row(i));
@@ -51,11 +51,12 @@ TEST_F(IncrementalTest, Performance) {
     }
 
     auto &ds_cached = c.parallelize(rows).cache();
+    c.clearCache();
 
     Timer timer;
     auto res1 = ds_cached.map(UDF("lambda x: 1 / x")).collectAsVector();
     std::cout << "First iteration took: " << std::to_string(timer.time());
-    ASSERT_EQ(res1.size(), numRows - numRows / 100);
+    ASSERT_EQ(res1.size(), numRows - numRows / 10);
 
     timer.reset();
     auto res2 = ds_cached.map(UDF("lambda x: 1 / x")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: -1.0")).collectAsVector();

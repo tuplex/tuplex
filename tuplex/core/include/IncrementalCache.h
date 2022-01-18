@@ -45,9 +45,11 @@ namespace tuplex {
 
     class IncrementalCache {
     private:
-        std::unordered_map<std::string, CacheEntry*> cache;
+        std::unordered_map<std::string, CacheEntry*> _cache;
 
     public:
+        void clear();
+
         void addCacheEntry(LogicalOperator *pipeline,
                            const std::vector<Partition *> &outputPartitions,
                            const std::vector<std::tuple<size_t, PyObject*>> &outputPyObjects,

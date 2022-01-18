@@ -195,7 +195,9 @@ namespace tuplex {
         applyNetworkSettings(ns, clientConfig);
 
         // change aws settings here
-        Aws::Auth::AWSCredentials cred(credentials.access_key.c_str(), credentials.secret_key.c_str());
+        Aws::Auth::AWSCredentials cred(credentials.access_key.c_str(),
+                                       credentials.secret_key.c_str(),
+                                       credentials.session_token.c_str());
 
         SelfInvocationContext ctx;
         ctx.client = Aws::MakeShared<Aws::Lambda::LambdaClient>(tag.c_str(), cred, clientConfig);

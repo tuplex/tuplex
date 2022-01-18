@@ -38,7 +38,7 @@ TEST_F(IncrementalTest, Performance) {
     opts.set("tuplex.optimizer.incrementalResolution", "true");
     Context c(opts);
 
-    auto numRows = 100000
+    auto numRows = 100000;
     std::vector<Row> rows;
     rows.reserve(numRows);
 

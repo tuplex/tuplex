@@ -53,8 +53,7 @@ namespace tuplex {
 
         inline double timeSinceStartInSeconds() {
             auto stop = std::chrono::high_resolution_clock::now();
-
-            double duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - _start).count() / 1000000000.0;
+            double duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - tstart).count() / 1000000000.0;
             return duration;
         }
 
@@ -331,6 +330,11 @@ namespace tuplex {
         // check message type
         if(req.type() == messages::MessageType::MT_WARMUP) {
             logger().info("Received warmup message");
+            // use a delay of 75ms to ensure other lambdas can get warmed up (75ms)
+            std::this_thread::sleep_for(std::chrono::milliseconds(75));
+            // should use fan out and delay curve?
+            // --> i.e. need to avoid reuse!
+            // encode as part of message!
 
             size_t selfInvokeCount = 0;
             size_t timeOutInMs = 100;
@@ -344,9 +348,6 @@ namespace tuplex {
                 logger().info("invoking " + pluralize(selfInvokeCount, "other lambda") + " (timeout: " + std::to_string(timeOutInMs) + "ms)");
                 _containerIds = selfInvoke(_functionName, selfInvokeCount, timeOutInMs, _credentials, _networkSettings);
                 logger().info("warmup done.");
-            } else {
-                // random sleep??
-                std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 100 + 2));
             }
 
             return WORKER_OK;

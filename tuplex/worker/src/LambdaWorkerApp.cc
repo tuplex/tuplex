@@ -222,7 +222,7 @@ namespace tuplex {
         // wait till pending is 0 or timeout
         double timeout = (double)timeOutInMs / 1000.0;
         while(timer.time() < timeout && ctx.numPendingRequests > 0) {
-            sleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(25));
         }
 
         // how long did it take?

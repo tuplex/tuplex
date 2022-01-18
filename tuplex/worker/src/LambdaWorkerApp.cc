@@ -142,6 +142,8 @@ namespace tuplex {
                                             SelfInvocationContext::lambdaCallback,
                                             Aws::MakeShared<SelfInvocationContext::CallbackContext>(self_ctx->tag.c_str(), self_ctx, callback_ctx->no()));
                 } else {
+                    logger.info("New container" + std::string(response.containerid().c_str()) + " started.");
+
                     std::unique_lock<std::mutex> lock(self_ctx->mutex);
                     // add the ID of the container
                     const_cast<SelfInvocationContext*>(self_ctx)->containerIds.emplace_back(response.containerid().c_str());
@@ -239,7 +241,7 @@ namespace tuplex {
             std::this_thread::sleep_for(std::chrono::milliseconds(25));
         }
 
-        logger.info("warmup done, result are " + pluralize(ctx.containerIds, "container"));
+        logger.info("warmup done, result are " + pluralize(ctx.containerIds.size(), "container"));
 
         // how long did it take?
         containerIds = ctx.containerIds;

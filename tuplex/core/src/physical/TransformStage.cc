@@ -857,7 +857,7 @@ namespace tuplex {
             hasValidFunctor = false;
         if (!_updateInputExceptions && !_syms->functor)
             hasValidFunctor = false;
-        if(hasValidFunctor && _syms->initStageFunctor && _syms->releaseStageFunctor) {
+        if(hasValidFunctor && _syms->initStageFunctor && _syms->releaseStageFunctor)) {
             logger.error("invalid pointer address for JIT code returned");
             throw std::runtime_error("invalid pointer address for JIT code returned");
         }

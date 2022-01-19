@@ -2400,17 +2400,26 @@ TEST_F(WrapperTest, MixedTypesIsWithNone) {
     PythonContext c("python", "",  "{\"tuplex.webui.enable\":\"False\", \"tuplex.optimizer.mergeExceptionsInOrder\":\"True\"}");
 
     // use this test data as soon as parallelize(...) supports exception model properly...
-    PyObject *listObj = PyList_New(8);
+    //    PyObject *listObj = PyList_New(8);
+    //    PyList_SetItem(listObj, 0, Py_None);
+    //    PyList_SetItem(listObj, 1, PyLong_FromLong(255));
+    //    PyList_SetItem(listObj, 2, PyLong_FromLong(400));
+    //    PyList_SetItem(listObj, 3, Py_True);
+    //    PyList_SetItem(listObj, 4, PyFloat_FromDouble(2.7));
+    //    PyList_SetItem(listObj, 5, PyTuple_New(0)); // empty tuple
+    //    PyList_SetItem(listObj, 6, PyList_New(0)); // empty list
+    //    PyList_SetItem(listObj, 7, PyDict_New()); // empty dict
+    //
+    //    auto ref = vector<bool>{true, false, false, false, false, false, false, false, false};
+
+    PyObject *listObj = PyList_New(3);
     PyList_SetItem(listObj, 0, Py_None);
     PyList_SetItem(listObj, 1, PyLong_FromLong(255));
     PyList_SetItem(listObj, 2, PyLong_FromLong(400));
-    PyList_SetItem(listObj, 3, Py_True);
-    PyList_SetItem(listObj, 4, PyFloat_FromDouble(2.7));
-    PyList_SetItem(listObj, 5, PyTuple_New(0)); // empty tuple
-    PyList_SetItem(listObj, 6, PyList_New(0)); // empty list
-    PyList_SetItem(listObj, 7, PyDict_New()); // empty dict
 
-    auto ref = vector<bool>{true, false, false, false, false, false, false, false, false};
+    Py_IncRef(listObj);
+
+    auto ref = vector<bool>{true, false, false};
 
     {
         auto list = boost::python::list(boost::python::handle<>(listObj));

@@ -223,8 +223,9 @@ void fillInGlobals(tuplex::messages::InvocationResponse* m) {
         return;
 
     // fill in this container info
+    m->set_allocated_container(tuplex::getThisContainerInfo().to_protobuf());
 
-
+    // fill in AWS time
     m->set_awsinittime(g_aws_init_time);
 }
 

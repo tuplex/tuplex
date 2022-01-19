@@ -1038,9 +1038,10 @@ namespace tuplex {
         auto eNumRows = partitions[eInd]->getNumRows();
         // Update the partition map with the correct indices and offsets
         for (auto info : _inputPartitionToPythonObjectsMap) {
-            info.second->setExceptionIndex(eInd);
-            info.second->setExceptionOffset(eOff);
-            auto numExceptions = info.second->numExceptions();
+            info.second.exceptionIndex = eInd;
+            info.second.exceptionOffset = eOff;
+            _inputPartitionToPythonObjectsMap[info.first] = info.second;
+            auto numExceptions = info.second.numExceptions;
             while (eOff + numExceptions >= eNumRows) {
                 numExceptions -= eNumRows - eOff;
                 eOff = 0;

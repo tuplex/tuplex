@@ -266,7 +266,7 @@ namespace tuplex {
          */
         void setParallelizePythonObjects(DataSet *ds,
                                          const std::vector<Partition *>& pythonObjects,
-                                         const std::unordered_map<std::string, ExceptionInfo>& inputPartitionToPythonObjectsMap);
+                                         const std::unordered_map<std::string, ExceptionInfo*>& inputPartitionToPythonObjectsMap);
     };
     // needed for template mechanism to work
 #include <DataSet.h>

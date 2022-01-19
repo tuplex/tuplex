@@ -2393,30 +2393,6 @@ TEST_F(WrapperTest, NYC311) {
     }
 }
 
-TEST_F(WrapperTest, Debug) {
-    using namespace tuplex;
-    using namespace std;
-
-    PythonContext c("python", "",  "{\"tuplex.webui.enable\":\"False\", \"tuplex.optimizer.mergeExceptionsInOrder\":\"True\"}");
-
-    auto listObj = PyList_New(100000);
-    for (int i = 0; i < 100000; ++i) {
-        if (i % 100 == 0) {
-            PyList_SetItem(listObj, i, python::PyString_FromString("a"));
-        } else {
-            PyList_SetItem(listObj, i, PyLong_FromLong(1));
-        }
-    }
-
-    {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
-        auto res = c.parallelize(list).map("lambda x: x", "").collect();
-
-        auto resObj = res.ptr();
-    }
-}
-
 TEST_F(WrapperTest, MixedTypesIsWithNone) {
     using namespace tuplex;
     using namespace std;

@@ -63,7 +63,7 @@ namespace tuplex {
                     const std::vector<Partition*>& partitions,
                     const std::vector<Partition*>& runtimeExceptions,
                     const std::vector<Partition*>& inputExceptions,
-                    ExceptionInfo inputExceptionInfo,
+                    ExceptionInfo *inputExceptionInfo,
                     const std::vector<int64_t>& operatorIDsAffectedByResolvers, //! used to identify which exceptions DO require reprocessing because there might be a resolver in the slow path for them.
                     Schema exceptionInputSchema, //! schema of the input rows in which both user exceptions and normal-case violations are stored in. This is also the schema in which rows which on the slow path produce again an exception will be stored in.
                     Schema resolverOutputSchema, //! schema of rows that the resolve function outputs if it doesn't rethrow exceptions
@@ -80,9 +80,9 @@ namespace tuplex {
                                                             _partitions(partitions),
                                                             _runtimeExceptions(runtimeExceptions),
                                                             _inputExceptions(inputExceptions),
-                                                            _numInputExceptions(inputExceptionInfo.numExceptions),
-                                                            _inputExceptionIndex(inputExceptionInfo.exceptionIndex),
-                                                            _inputExceptionOffset(inputExceptionInfo.exceptionOffset),
+                                                            _numInputExceptions(inputExceptionInfo->numExceptions()),
+                                                            _inputExceptionIndex(inputExceptionInfo->exceptionIndex()),
+                                                            _inputExceptionOffset(inputExceptionInfo->exceptionOffset()),
                                                             _resolverOutputSchema(resolverOutputSchema),
                                                             _targetOutputSchema(targetNormalCaseOutputSchema),
                                                             _mergeRows(mergeRows),

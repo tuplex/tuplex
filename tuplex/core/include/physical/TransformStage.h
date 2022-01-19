@@ -102,9 +102,9 @@ namespace tuplex {
 
         std::vector<Partition *> inputExceptions() { return _inputExceptions; }
 
-        void setPartitionToExceptionsMap(const std::unordered_map<std::string, ExceptionInfo>& partitionToExceptionsMap) { _partitionToExceptionsMap = partitionToExceptionsMap; }
+        void setPartitionToExceptionsMap(const std::unordered_map<std::string, ExceptionInfo*>& partitionToExceptionsMap) { _partitionToExceptionsMap = partitionToExceptionsMap; }
 
-        std::unordered_map<std::string, ExceptionInfo> partitionToExceptionsMap() { return _partitionToExceptionsMap; }
+        std::unordered_map<std::string, ExceptionInfo*> partitionToExceptionsMap() { return _partitionToExceptionsMap; }
 
         /*!
          * sets maximum number of rows this pipeline will produce
@@ -159,7 +159,7 @@ namespace tuplex {
 
         void setMemoryResult(const std::vector<Partition*>& partitions,
                              const std::vector<Partition*>& generalCase=std::vector<Partition*>{},
-                             const std::unordered_map<std::string, ExceptionInfo>& partitionsToGeneralCaseMap=std::unordered_map<std::string, ExceptionInfo>(),
+                             const std::unordered_map<std::string, ExceptionInfo*>& partitionsToGeneralCaseMap=std::unordered_map<std::string, ExceptionInfo*>(),
                              const std::vector<std::tuple<size_t, PyObject*>>& interpreterRows=std::vector<std::tuple<size_t, PyObject*>>{},
                              const std::vector<Partition*>& remainingExceptions=std::vector<Partition*>{},
                              const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>& ecounts=std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>()); // creates local result set?
@@ -173,7 +173,7 @@ namespace tuplex {
                 setMemoryResult(
                         std::vector<Partition*>(),
                         std::vector<Partition*>(),
-                        std::unordered_map<std::string, ExceptionInfo>(),
+                        std::unordered_map<std::string, ExceptionInfo*>(),
                         std::vector<std::tuple<size_t, PyObject*>>(),
                         std::vector<Partition*>(),
                         ecounts);
@@ -471,7 +471,7 @@ namespace tuplex {
 
         // unresolved exceptions. Important i.e. when no IO interleave is used...
         std::vector<Partition*> _inputExceptions;
-        std::unordered_map<std::string, ExceptionInfo> _partitionToExceptionsMap;
+        std::unordered_map<std::string, ExceptionInfo*> _partitionToExceptionsMap;
 
 
         // for hash output, the key and bucket type

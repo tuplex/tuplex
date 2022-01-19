@@ -62,7 +62,7 @@ namespace tuplex {
             if(partition->capacity() < numBytesSerialized + sizeof(double)) {
                 assert(_badParallelizeObjects.size() >= prevNumExceptions);
                 auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-                _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+                _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
                 prevNumExceptions = _badParallelizeObjects.size();
                 prevNumRows += numNewExceptions + *rawPtr;
 
@@ -107,7 +107,7 @@ namespace tuplex {
 
         assert(_badParallelizeObjects.size() >= prevNumExceptions);
         auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
 
         partition->unlockWrite();
         partitions.push_back(partition);
@@ -147,7 +147,7 @@ namespace tuplex {
             if(partition->capacity() < numBytesSerialized + sizeof(int64_t)) {
                 assert(_badParallelizeObjects.size() >= prevNumExceptions);
                 auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-                _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+                _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
                 prevNumExceptions = _badParallelizeObjects.size();
                 prevNumRows += numNewExceptions + *rawPtr;
 
@@ -188,7 +188,7 @@ namespace tuplex {
 
         assert(_badParallelizeObjects.size() >= prevNumExceptions);
         auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
 
         partition->unlockWrite();
         partitions.push_back(partition);
@@ -267,7 +267,7 @@ namespace tuplex {
                 if(partition->capacity() < numBytesSerialized + requiredBytes) {
                     assert(_badParallelizeObjects.size() >= prevNumExceptions);
                     auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-                    _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+                    _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
                     prevNumExceptions = _badParallelizeObjects.size();
                     prevNumRows += numNewExceptions + *rawPtr;
 
@@ -364,7 +364,7 @@ namespace tuplex {
         }
         assert(_badParallelizeObjects.size() >= prevNumExceptions);
         auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
 
         partition->unlockWrite();
         partitions.push_back(partition);
@@ -406,7 +406,7 @@ namespace tuplex {
             if(partition->capacity() < numBytesSerialized + sizeof(int64_t)) {
                 assert(_badParallelizeObjects.size() >= prevNumExceptions);
                 auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-                _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+                _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
                 prevNumExceptions = _badParallelizeObjects.size();
                 prevNumRows += numNewExceptions + *rawPtr;
 
@@ -432,7 +432,7 @@ namespace tuplex {
 
         assert(_badParallelizeObjects.size() >= prevNumExceptions);
         auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
 
         partition->unlockWrite();
         partitions.push_back(partition);
@@ -485,7 +485,7 @@ namespace tuplex {
                 if(partition->capacity() < numBytesSerialized + requiredBytes) {
                     assert(_badParallelizeObjects.size() >= prevNumExceptions);
                     auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-                    _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+                    _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
                     prevNumExceptions = _badParallelizeObjects.size();
                     prevNumRows += numNewExceptions + *rawPtr;
 
@@ -519,7 +519,7 @@ namespace tuplex {
         }
         assert(_badParallelizeObjects.size() >= prevNumExceptions);
         auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
 
         partition->unlockWrite();
         partitions.push_back(partition);
@@ -614,7 +614,7 @@ namespace tuplex {
                 if(partition->capacity() < numBytesSerialized + requiredBytes) {
                     assert(_badParallelizeObjects.size() >= prevNumExceptions);
                     auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-                    _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+                    _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
                     prevNumExceptions = _badParallelizeObjects.size();
                     prevNumRows += numNewExceptions + *rawPtr;
 
@@ -639,7 +639,7 @@ namespace tuplex {
         }
         assert(_badParallelizeObjects.size() >= prevNumExceptions);
         auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
 
         partition->unlockWrite();
         partitions.push_back(partition);
@@ -705,7 +705,7 @@ namespace tuplex {
                     if (partition->capacity() < numBytesSerialized + allocMinSize) {
                         assert(_badParallelizeObjects.size() >= prevNumExceptions);
                         auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-                        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+                        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
                         prevNumExceptions = _badParallelizeObjects.size();
                         prevNumRows += numNewExceptions + *rawPtr;
 
@@ -733,7 +733,7 @@ namespace tuplex {
         }
         assert(_badParallelizeObjects.size() >= prevNumExceptions);
         auto numNewExceptions = _badParallelizeObjects.size() - prevNumExceptions;
-        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = ExceptionInfo(numNewExceptions, 0, 0);
+        _inputPartitionToPythonObjectsMap[uuidToString(partition->uuid())] = new ExceptionInfo(numNewExceptions, 0, 0);
 
         partition->unlockWrite();
         partitions.push_back(partition);

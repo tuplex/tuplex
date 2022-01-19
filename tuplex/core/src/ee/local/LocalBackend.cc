@@ -679,7 +679,7 @@ namespace tuplex {
 
                 auto partitionId = uuidToString(partition->uuid());
                 auto info = tstage->partitionToExceptionsMap()[partitionId];
-                task->setInputExceptionInfo(info ? info : new ExceptionInfo());
+                task->setInputExceptionInfo(info);
                 task->setInputExceptions(tstage->inputExceptions());
                 task->sinkExceptionsToMemory(inputSchema);
                 task->setStageID(tstage->getID());

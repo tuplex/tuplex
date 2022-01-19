@@ -545,10 +545,12 @@ namespace tuplex {
         auto inputExceptionIndex = _inputExceptionInfo->exceptionIndex();
         auto inputExceptionOffset = _inputExceptionInfo->exceptionOffset();
         auto numInputExceptions = _inputExceptionInfo->numExceptions();
-
-        auto expPtrs = (uint8_t **) malloc((_inputExceptions.size() - inputExceptionIndex) * sizeof(uint8_t *));
-        auto expPtrSizes = (int64_t *) malloc((_inputExceptions.size() - inputExceptionIndex) * sizeof(int64_t));
+        auto arrSize = _inputExceptions.size() - inputExceptionIndex;
+        auto expPtrs = new uint8_t*[arrSize];
+        auto expPtrSizes = new int64_t[arrSize];
         int expInd = 0;
+
+        // Populate expPtrs and expPtrSizes with a pointer to the first exception in the partition
         for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
             if (i == inputExceptionIndex) {
                 auto ptr = _inputExceptions[i]->lockRaw();
@@ -571,7 +573,7 @@ namespace tuplex {
         }
 
         // go over all input partitions.
-        for(auto inputPartition : _inputPartitions) {
+        for(const auto &inputPartition : _inputPartitions) {
             // lock ptr, extract number of rows ==> store them
             // lock raw & call functor!
             int64_t inSize = inputPartition->size();
@@ -598,8 +600,6 @@ namespace tuplex {
         for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
             _inputExceptions[i]->unlock();
         }
-        free(expPtrs);
-        free(expPtrSizes);
 
 #ifndef NDEBUG
         owner()->info("Trafo task memory source exhausted (" + pluralize(_inputPartitions.size(), "partition") + ", "

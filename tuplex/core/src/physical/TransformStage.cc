@@ -852,7 +852,12 @@ namespace tuplex {
         }
 
         // check symbols are valid...
-        if(!((_syms->functor || _syms->functorWithExp) && _syms->initStageFunctor && _syms->releaseStageFunctor)) {
+        bool hasValidFunctor = true;
+        if (_updateInputExceptions && !_syms->functorWithExp)
+            hasValidFunctor = false;
+        if (!_updateInputExceptions && !_syms->functor)
+            hasValidFunctor = false;
+        if(hasValidFunctor && _syms->initStageFunctor && _syms->releaseStageFunctor)) {
             logger.error("invalid pointer address for JIT code returned");
             throw std::runtime_error("invalid pointer address for JIT code returned");
         }

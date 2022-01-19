@@ -95,7 +95,7 @@ namespace tuplex {
          * @param opID parallelize operator ID
          * @return vector of exception partitions
          */
-        std::vector<Partition *> serializeExceptions(std::vector<std::tuple<size_t, PyObject *>> exceptions, int64_t opID);
+        std::vector<Partition *> serializeExceptions(const std::vector<std::tuple<size_t, PyObject *>> &exceptions, int64_t opID);
 
         python::Type inferType(const boost::python::list &L) const;
 

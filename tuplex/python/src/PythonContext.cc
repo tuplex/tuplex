@@ -1013,7 +1013,7 @@ namespace tuplex {
         for (auto info : _inputPartitionInfo) {
             auto partitionId = std::get<0>(info);
             auto numExceptions = std::get<1>(info);
-            _inputPartitionToPythonObjectsMap[partitionId] = std::make_tuple(numExceptions, eInd, eOff);
+            _inputPartitionToPythonObjectsMap[partitionId] = new ExceptionInfo(numExceptions, eInd, eOff, 0);
             while (eOff + numExceptions >= eNumRows) {
                 numExceptions -= eNumRows - eOff;
                 eOff = 0;

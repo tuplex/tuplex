@@ -240,10 +240,8 @@ namespace tuplex {
 
         void addCacheEntry(LogicalOperator *pipeline,
                        const std::vector<Partition *> &outputPartitions,
-                       const std::vector<std::tuple<size_t, PyObject*>> &outputPyObjects,
                        const std::vector<Partition*> &exceptionPartitions,
-                       const std::vector<Partition*> &generalCasePartitions,
-                       const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> &partitionToExceptionsMap) const;
+                       const std::unordered_map<std::string, ExceptionInfo*> &exceptionsMap) const;
 
         /*!
          * gets a JobMetrics object

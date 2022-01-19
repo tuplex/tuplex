@@ -245,7 +245,7 @@ namespace tuplex {
 
     void Context::setParallelizePythonObjects(DataSet *ds,
                                               const std::vector<Partition *>& pythonObjects,
-                                              const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>& inputPartitionToPythonObjectsMap) {
+                                              const std::unordered_map<std::string, ExceptionInfo*>& inputPartitionToPythonObjectsMap) {
         assert(ds);
         auto parallelizeOp = (ParallelizeOperator *) ds->getOperator();
         assert(parallelizeOp);
@@ -537,11 +537,9 @@ namespace tuplex {
 
     void Context::addCacheEntry(LogicalOperator *pipeline,
                        const std::vector<Partition *> &outputPartitions,
-                       const std::vector<std::tuple<size_t, PyObject*>> &outputPyObjects,
                        const std::vector<Partition*> &exceptionPartitions,
-                       const std::vector<Partition*> &generalCasePartitions,
-                       const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> &partitionToExceptionsMap) const {
-        _incrementalCache->addCacheEntry(pipeline, outputPartitions, outputPyObjects, exceptionPartitions, generalCasePartitions, partitionToExceptionsMap);
+                       const std::unordered_map<std::string, ExceptionInfo*> &exceptionsMap) const {
+        _incrementalCache->addCacheEntry(pipeline, outputPartitions, exceptionPartitions, exceptionsMap);
     }
 
     uint8_t* Context::partitionLockRaw(tuplex::Partition *partition) {

@@ -14,6 +14,29 @@
 
 class IncrementalTest : public PyTest {};
 
+TEST_F(IncrementalTest, CSV) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto opts = microTestOptions();
+    Context c(opts);
+
+    auto fileURI = URI(testName + ".csv");
+    stringstream ss;
+    ss << "1, 1.0\n",
+    ss << "2, 2.0\n",
+    ss << "3, 3.0\n";
+    stringToFile(fileURI, ss.str());
+
+    c.csv(fileURI.toPath(),
+                     vector<string>(),
+                     option<bool>::none,
+                     option<char>::none,
+                     '"',
+                     std::vector<std::string>{""},
+                     unordered_map<size_t, python::Type>({{1, python::Type::I64}})).show();
+}
+
 TEST_F(IncrementalTest, Debug) {
     using namespace tuplex;
 
@@ -26,9 +49,9 @@ TEST_F(IncrementalTest, Debug) {
 
     auto res1 = ds.map(UDF("lambda x: 1 / x")).collectAsVector();
     printRows(res1);
-
-    auto res2 = ds.map(UDF("lambda x: 1 / x")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: -1.0")).collectAsVector();
-    printRows(res2);
+//
+//    auto res2 = ds.map(UDF("lambda x: 1 / x")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: -1.0")).collectAsVector();
+//    printRows(res2);
 }
 
 TEST_F(IncrementalTest, Performance) {

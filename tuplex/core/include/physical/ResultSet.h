@@ -17,6 +17,7 @@
 #include <limits>
 #include <ExceptionCodes.h>
 #include <Python.h>
+#include <ExceptionInfo.h>
 
 namespace tuplex {
 
@@ -26,7 +27,7 @@ namespace tuplex {
     private:
         std::list<Partition*> _partitions;
         std::vector<Partition*> _exceptions; // unresolved exceptions
-        std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> _partitionToExceptionsMap;
+        std::unordered_map<std::string, ExceptionInfo *> _partitionToExceptionsMap;
         // @TODO: use here rows instead? would make it potentially cleaner...
         std::deque<std::tuple<size_t, PyObject*>> _pyobjects; // python objects remaining whose type
         // did not confirm to the one of partitions. Maybe use Row here instead?
@@ -53,7 +54,7 @@ namespace tuplex {
         ResultSet(const Schema& _schema,
                   const std::vector<Partition*>& partitions,
                   const std::vector<Partition*>& exceptions=std::vector<Partition*>{},
-                  const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>& partitionToExceptionsMap=std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>(),
+                  const std::unordered_map<std::string, ExceptionInfo*>& partitionToExceptionsMap=std::unordered_map<std::string, ExceptionInfo*>(),
                   const std::vector<std::tuple<size_t, PyObject*>> pyobjects=std::vector<std::tuple<size_t, PyObject*>>{},
                   int64_t maxRows=std::numeric_limits<int64_t>::max());
 
@@ -107,7 +108,7 @@ namespace tuplex {
          */
         std::vector<Partition*> exceptions() const { return _exceptions; }
 
-        std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> partitionToExceptionsMap() const { return _partitionToExceptionsMap; }
+        std::unordered_map<std::string, ExceptionInfo *> partitionToExceptionsMap() const { return _partitionToExceptionsMap; }
 
         /*!
          * returns/removes all objects

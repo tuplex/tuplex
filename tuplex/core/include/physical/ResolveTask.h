@@ -57,6 +57,9 @@ namespace tuplex {
         ResolveTask(int64_t stageID,
                     const std::vector<Partition*>& partitions,
                     const std::vector<Partition*>& runtimeExceptions,
+                    size_t numRuntimeExceptions,
+                    size_t runtimeExceptionIndex,
+                    size_t runtimeExceptionOffset,
                     const std::vector<Partition*>& inputExceptions,
                     size_t numInputExceptions,
                     size_t inputExceptionIndex,
@@ -76,6 +79,9 @@ namespace tuplex {
                                                             _stageID(stageID),
                                                             _partitions(partitions),
                                                             _runtimeExceptions(runtimeExceptions),
+                                                            _numRuntimeExceptions(numRuntimeExceptions),
+                                                            _runtimeExceptionIndex(runtimeExceptionIndex),
+                                                            _runtimeExceptionOffset(runtimeExceptionOffset),
                                                             _inputExceptions(inputExceptions),
                                                             _numInputExceptions(numInputExceptions),
                                                             _inputExceptionIndex(inputExceptionIndex),
@@ -211,6 +217,9 @@ namespace tuplex {
         int64_t                 _stageID; /// to which stage does this task belong to.
         std::vector<Partition*> _partitions;
         std::vector<Partition*> _runtimeExceptions;
+        size_t _numRuntimeExceptions;
+        size_t _runtimeExceptionIndex;
+        size_t _runtimeExceptionOffset;
         std::vector<Partition*> _inputExceptions;
         size_t _numInputExceptions;
         size_t _inputExceptionIndex;

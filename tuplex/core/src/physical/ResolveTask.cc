@@ -739,46 +739,36 @@ default:
             // merge exceptions with normal rows after calling slow code over them...
             // basic idea is go over all exception partitions, execute row wise the resolution function
             // and merge the result back to the partitions
-            for(auto partition : _runtimeExceptions) {
+            if (_numRuntimeExceptions > 0) {
+                auto partition = _runtimeExceptions[_runtimeExceptionIndex];
                 const uint8_t *ptr = partition->lockRaw();
-                int64_t numRows = *((int64_t *) ptr);
-                ptr += sizeof(int64_t);
+                int64_t numRows = *((int64_t *) ptr) - _runtimeExceptionOffset; ptr += sizeof(int64_t);
+                for (int i = 0; i < _runtimeExceptionOffset; ++i) {
+                    int64_t* ib = (int64_t*)ptr;
+                    auto eSize = ib[3];
+                    ptr += eSize + 4*sizeof(int64_t);
+                }
 
-                for(int i = 0; i < numRows; ++i) {
-                    // old
-                    // _currentRowNumber = *((int64_t*)ptr);
-                    // ptr += sizeof(int64_t);
-                    // int64_t ecCode = *((int64_t*)ptr);
-                    // ptr += sizeof(int64_t);
-                    // int64_t operatorID = *((int64_t*)ptr);
-                    // ptr += sizeof(int64_t);
-                    // int64_t eSize = *((int64_t*)ptr);
-                    // ptr += sizeof(int64_t);
+                for (int i = 0; i < _numRuntimeExceptions; ++i) {
+                    if (numRows == 0) {
+                        partition->unlock();
+                        _runtimeExceptionIndex++;
+                        partition = _runtimeExceptions[_runtimeExceptionIndex];
+                        ptr = partition->lockRaw();
+                        numRows = *((int64_t *) ptr); ptr += sizeof(int64_t);
+                    }
 
                     const uint8_t *ebuf = nullptr;
                     int64_t ecCode = -1, operatorID = -1;
                     size_t eSize = 0;
                     auto delta = deserializeExceptionFromMemory(ptr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
                                                                 &eSize);
-
-
-                    // call functor over this...
-                    // ==> important to use row number here for continuous exception resolution!
-                    // args are: "userData",  "rowNumber", "exceptionCode", "rowBuf", "bufSize"
-
                     processExceptionRow(ecCode, operatorID, ebuf, eSize);
-
                     ptr += delta;
-                    // old
-                    //ptr += eSize;
-
-                    // always inc row number
                     _rowNumber++;
+                    numRows--;
                 }
                 partition->unlock();
-
-                // exception partition is done or exceptions are transferred to new partition...
-                partition->invalidate();
             }
 
             if (_numInputExceptions > 0) {
@@ -881,11 +871,17 @@ default:
 
         size_t runInd;
         int64_t runRemaining;
+        int64_t runTotal = _numRuntimeExceptions;
         const uint8_t *runPtr = nullptr;
-        if (_runtimeExceptions.size() > 0) {
-            runInd = 0;
-            runPtr = _runtimeExceptions[runInd]->lockRaw();
-            runRemaining = *((int64_t *) runPtr); runPtr += sizeof(int64_t);
+        if (_numInputExceptions > 0) {
+            runInd = _inputExceptionIndex;
+            runPtr = _inputExceptions[runInd]->lockRaw();
+            runRemaining = *((int64_t *) runPtr) - _inputExceptionOffset; runPtr += sizeof(int64_t);
+            for (int i = 0; i < _inputExceptionOffset; ++i) {
+                int64_t* ib = (int64_t*)runPtr;
+                auto eSize = ib[3];
+                runPtr += eSize + 4*sizeof(int64_t);
+            }
         }
 
         size_t inputInd;
@@ -912,6 +908,7 @@ default:
             if (runRowInd + inputProcessed < inputRowInd) {
                 ptr = &runPtr;
                 runRemaining--;
+                runTotal--;
                 isRuntime = true;
             } else {
                 ptr = &inputPtr;
@@ -933,11 +930,10 @@ default:
             *ptr += delta;
             _rowNumber++;
 
-            if (runRemaining == 0) {
+            if (runRemaining == 0 || runTotal == 0) {
                 _runtimeExceptions[runInd]->unlock();
-                _runtimeExceptions[runInd]->invalidate();
                 runInd++;
-                if (runInd < _runtimeExceptions.size()) {
+                if (runInd < _runtimeExceptions.size() && runTotal > 0) {
                     runPtr = _runtimeExceptions[runInd]->lockRaw();
                     runRemaining = *((int64_t *) runPtr); runPtr += sizeof(int64_t);
                 } else {
@@ -969,11 +965,11 @@ default:
             _rowNumber++;
 
             runRemaining--;
-            if (runRemaining == 0) {
+            runTotal--;
+            if (runRemaining == 0 || runTotal == 0) {
                 _runtimeExceptions[runInd]->unlock();
-                _runtimeExceptions[runInd]->invalidate();
                 runInd++;
-                if (runInd < _runtimeExceptions.size()) {
+                if (runInd < _runtimeExceptions.size() && runTotal > 0) {
                     runPtr = _runtimeExceptions[runInd]->lockRaw();
                     runRemaining = *((int64_t *) runPtr); runPtr += sizeof(int64_t);
                 } else {

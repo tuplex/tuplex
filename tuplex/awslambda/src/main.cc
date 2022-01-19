@@ -13,12 +13,13 @@
 #include <nlohmann/json.hpp>
 #include <google/protobuf/util/json_util.h>
 
-
 using namespace nlohmann;
 using namespace aws::lambda_runtime;
 
 static bool g_reused = false;
 static tuplex::uniqueid_t g_id = tuplex::getUniqueID();
+uint64_t g_start_timestamp = 0;
+
 bool container_reused() { return g_reused; }
 extern tuplex::uniqueid_t container_id() { return g_id; }
 

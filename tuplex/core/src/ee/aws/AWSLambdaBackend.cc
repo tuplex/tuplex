@@ -343,7 +343,7 @@ namespace tuplex {
                     for(auto info: task.invokedcontainers())
                         containerIds.insert(info.uuid());
                 }
-                ss<<"Warmup took "<<response.taskexecutiontime()<<" s, "<<"initialized "<<containerIds.size();
+                ss<<"Warmup request took "<<response.taskexecutiontime()<<" s, "<<"initialized "<<containerIds.size();
                 logger().info(ss.str());
             } else {
                 logger().info("Message returned was weird.");

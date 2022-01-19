@@ -679,7 +679,7 @@ namespace tuplex {
 
                 auto partitionId = uuidToString(partition->uuid());
                 auto info = tstage->partitionToExceptionsMap()[partitionId];
-                task->setInputExceptionInfo(info ? info : new ExceptionInfo());
+                task->setInputExceptionInfo(info);
                 task->setInputExceptions(tstage->inputExceptions());
                 task->sinkExceptionsToMemory(inputSchema);
                 task->setStageID(tstage->getID());
@@ -786,10 +786,10 @@ namespace tuplex {
         return pyObjects;
     }
 
-    void setExceptionInfo(const std::vector<Partition*> &normalOutput, const std::vector<Partition*> &exceptions, std::unordered_map<std::string, ExceptionInfo*> &partitionToExceptionsMap) {
+    void setExceptionInfo(const std::vector<Partition*> &normalOutput, const std::vector<Partition*> &exceptions, std::unordered_map<std::string, ExceptionInfo> &partitionToExceptionsMap) {
         if (exceptions.empty()) {
             for (const auto &p : normalOutput) {
-                partitionToExceptionsMap[uuidToString(p->uuid())] = new ExceptionInfo();
+                partitionToExceptionsMap[uuidToString(p->uuid())] = ExceptionInfo();
             }
             return;
         }
@@ -823,7 +823,7 @@ namespace tuplex {
                 }
             }
 
-            partitionToExceptionsMap[uuidToString(p->uuid())] = new ExceptionInfo(curNumExps, curExpInd, curExpOff);
+            partitionToExceptionsMap[uuidToString(p->uuid())] = ExceptionInfo(curNumExps, curExpInd, curExpOff);
             rowsProcessed += curNumExps + pNumRows;
         }
 
@@ -850,7 +850,7 @@ namespace tuplex {
         // special case: skip stage, i.e. empty code and mem2mem
         if(tstage->code().empty() &&  !tstage->fileInputMode() && !tstage->fileOutputMode()) {
             auto pyObjects = inputExceptionsToPythonObjects(tstage->inputExceptions(), tstage->normalCaseInputSchema());
-            tstage->setMemoryResult(tstage->inputPartitions(), std::vector<Partition*>{}, std::unordered_map<std::string, ExceptionInfo*>(), pyObjects);
+            tstage->setMemoryResult(tstage->inputPartitions(), std::vector<Partition*>{}, std::unordered_map<std::string, ExceptionInfo>(), pyObjects);
             pyObjects.clear();
             // skip stage
             Logger::instance().defaultLogger().info("[Transform Stage] skipped stage " + std::to_string(tstage->number()) + " because there is nothing todo here.");
@@ -1119,7 +1119,7 @@ namespace tuplex {
                 // memory output, fetch partitions & ecounts
                 vector<Partition *> output;
                 vector<Partition *> generalOutput;
-                unordered_map<string, ExceptionInfo*> partitionToGeneralCaseMap;
+                unordered_map<string, ExceptionInfo> partitionToGeneralCaseMap;
                 vector<Partition*> remainingExceptions;
                 vector<tuple<size_t, PyObject*>> nonConformingRows; // rows where the output type does not fit,
                                                                      // need to manually merged.

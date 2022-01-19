@@ -798,7 +798,7 @@ namespace tuplex {
         auto expInd = 0;
         auto expOff = 0;
         auto expNumRows = exceptions[0]->getNumRows();
-        auto expPtr = exceptions[0]->lockWrite();
+        auto expPtr = exceptions[0]->lock();
         auto rowsProcessed = 0;
         for (const auto &p : normalOutput) {
             auto pNumRows = p->getNumRows();
@@ -814,9 +814,9 @@ namespace tuplex {
                 expRowCount++;
 
                 if (expOff == expNumRows && expInd < exceptions.size() - 1) {
-                    exceptions[expInd]->unlockWrite();
+                    exceptions[expInd]->unlock();
                     expInd++;
-                    expPtr = exceptions[expInd]->lockWrite();
+                    expPtr = exceptions[expInd]->lock();
                     expNumRows = exceptions[expInd]->getNumRows();
                     expOff = 0;
                     expRowCount = 0;
@@ -827,7 +827,7 @@ namespace tuplex {
             rowsProcessed += curNumExps + pNumRows;
         }
 
-        exceptions[expInd]->unlockWrite();
+        exceptions[expInd]->unlock();
     }
 
     void LocalBackend::executeTransformStage(tuplex::TransformStage *tstage) {

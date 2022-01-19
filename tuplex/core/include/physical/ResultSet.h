@@ -55,7 +55,7 @@ namespace tuplex {
                   const std::vector<Partition*>& partitions,
                   const std::vector<Partition*>& exceptions=std::vector<Partition*>{},
                   const std::unordered_map<std::string, ExceptionInfo*>& exceptionsMap=std::unordered_map<std::string, ExceptionInfo*>(),
-                  const std::vector<std::tuple<size_t, PyObject*>> &pyobjects=std::vector<std::tuple<size_t, PyObject*>>{},
+                  const std::vector<std::tuple<size_t, PyObject*>> pyobjects=std::vector<std::tuple<size_t, PyObject*>>{},
                   int64_t maxRows=std::numeric_limits<int64_t>::max());
 
         /*!

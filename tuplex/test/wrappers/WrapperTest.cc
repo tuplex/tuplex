@@ -2410,8 +2410,6 @@ TEST_F(WrapperTest, MixedTypesIsWithNone) {
     PyList_SetItem(listObj, 6, PyList_New(0)); // empty list
     PyList_SetItem(listObj, 7, PyDict_New()); // empty dict
 
-    Py_IncRef(listObj);
-
     auto ref = vector<bool>{true, false, false, false, false, false, false, false};
 
     {

@@ -679,7 +679,9 @@ namespace tuplex {
 
                 auto partitionId = uuidToString(partition->uuid());
                 auto info = tstage->partitionToExceptionsMap()[partitionId];
-                task->setInputExceptionInfo(info);
+                task->setNumInputExceptions(std::get<0>(info));
+                task->setInputExceptionIndex(std::get<1>(info));
+                task->setInputExceptionOffset(std::get<2>(info));
                 task->setInputExceptions(tstage->inputExceptions());
                 task->sinkExceptionsToMemory(inputSchema);
                 task->setStageID(tstage->getID());
@@ -786,10 +788,10 @@ namespace tuplex {
         return pyObjects;
     }
 
-    void setExceptionInfo(const std::vector<Partition*> &normalOutput, const std::vector<Partition*> &exceptions, std::unordered_map<std::string, ExceptionInfo*> &partitionToExceptionsMap) {
+    void setExceptionInfo(const std::vector<Partition*> &normalOutput, const std::vector<Partition*> &exceptions, std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> &partitionToExceptionsMap) {
         if (exceptions.empty()) {
             for (const auto &p : normalOutput) {
-                partitionToExceptionsMap[uuidToString(p->uuid())] = new ExceptionInfo();
+                partitionToExceptionsMap[uuidToString(p->uuid())] = std::make_tuple(0, 0, 0);
             }
             return;
         }
@@ -798,7 +800,7 @@ namespace tuplex {
         auto expInd = 0;
         auto expOff = 0;
         auto expNumRows = exceptions[0]->getNumRows();
-        auto expPtr = exceptions[0]->lock();
+        auto expPtr = exceptions[0]->lockWrite();
         auto rowsProcessed = 0;
         for (const auto &p : normalOutput) {
             auto pNumRows = p->getNumRows();
@@ -814,20 +816,20 @@ namespace tuplex {
                 expRowCount++;
 
                 if (expOff == expNumRows && expInd < exceptions.size() - 1) {
-                    exceptions[expInd]->unlock();
+                    exceptions[expInd]->unlockWrite();
                     expInd++;
-                    expPtr = exceptions[expInd]->lock();
+                    expPtr = exceptions[expInd]->lockWrite();
                     expNumRows = exceptions[expInd]->getNumRows();
                     expOff = 0;
                     expRowCount = 0;
                 }
             }
 
-            partitionToExceptionsMap[uuidToString(p->uuid())] = new ExceptionInfo(curNumExps, curExpInd, curExpOff);
             rowsProcessed += curNumExps + pNumRows;
+            partitionToExceptionsMap[uuidToString(p->uuid())] = std::make_tuple(curNumExps, curExpInd, curExpOff);
         }
 
-        exceptions[expInd]->unlock();
+        exceptions[expInd]->unlockWrite();
     }
 
     void LocalBackend::executeTransformStage(tuplex::TransformStage *tstage) {
@@ -850,7 +852,7 @@ namespace tuplex {
         // special case: skip stage, i.e. empty code and mem2mem
         if(tstage->code().empty() &&  !tstage->fileInputMode() && !tstage->fileOutputMode()) {
             auto pyObjects = inputExceptionsToPythonObjects(tstage->inputExceptions(), tstage->normalCaseInputSchema());
-            tstage->setMemoryResult(tstage->inputPartitions(), std::vector<Partition*>{}, std::unordered_map<std::string, ExceptionInfo*>(), pyObjects);
+            tstage->setMemoryResult(tstage->inputPartitions(), std::vector<Partition*>{}, std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>(), pyObjects);
             pyObjects.clear();
             // skip stage
             Logger::instance().defaultLogger().info("[Transform Stage] skipped stage " + std::to_string(tstage->number()) + " because there is nothing todo here.");
@@ -1119,7 +1121,7 @@ namespace tuplex {
                 // memory output, fetch partitions & ecounts
                 vector<Partition *> output;
                 vector<Partition *> generalOutput;
-                unordered_map<string, ExceptionInfo*> partitionToGeneralCaseMap;
+                unordered_map<string, tuple<size_t, size_t, size_t>> partitionToExceptionsMap;
                 vector<Partition*> remainingExceptions;
                 vector<tuple<size_t, PyObject*>> nonConformingRows; // rows where the output type does not fit,
                                                                      // need to manually merged.
@@ -1150,7 +1152,7 @@ namespace tuplex {
                     if(task->type() == TaskType::RESOLVE)
                         task_name = "resolve";
 
-                    setExceptionInfo(taskOutput, taskGeneralOutput, partitionToGeneralCaseMap);
+                    setExceptionInfo(taskOutput, taskGeneralOutput, partitionToExceptionsMap);
                     std::copy(taskOutput.begin(), taskOutput.end(), std::back_inserter(output));
                     std::copy(taskRemainingExceptions.begin(), taskRemainingExceptions.end(), std::back_inserter(remainingExceptions));
                     std::copy(taskGeneralOutput.begin(), taskGeneralOutput.end(), std::back_inserter(generalOutput));
@@ -1164,7 +1166,7 @@ namespace tuplex {
                     rowDelta += taskNonConformingRows.size();
                 }
 
-                tstage->setMemoryResult(output, generalOutput, partitionToGeneralCaseMap, nonConformingRows, remainingExceptions, ecounts);
+                tstage->setMemoryResult(output, generalOutput, partitionToExceptionsMap, nonConformingRows, remainingExceptions, ecounts);
                 break;
             }
             case EndPointMode::HASHTABLE: {
@@ -1385,7 +1387,7 @@ namespace tuplex {
             else if(compareOrders(maxOrder, tt->getOrder()))
                 maxOrder = tt->getOrder();
 
-            if (tt->exceptionCounts().size() > 0 || tt->inputExceptionInfo().numExceptions > 0) {
+            if (tt->exceptionCounts().size() > 0 || tt->numInputExceptions() > 0) {
                 // task found with exceptions in it => exception partitions need to be resolved using special functor
 
                 // hash-table output not yet supported
@@ -1402,7 +1404,9 @@ namespace tuplex {
                                              tt->getOutputPartitions(),
                                              tt->getExceptionPartitions(),
                                              tt->inputExceptions(),
-                                             tt->inputExceptionInfo(),
+                                             tt->numInputExceptions(),
+                                             tt->inputExceptionIndex(),
+                                             tt->inputExceptionOffset(),
                                              opsToCheck,
                                              exceptionInputSchema,
                                              compiledSlowPathOutputSchema,

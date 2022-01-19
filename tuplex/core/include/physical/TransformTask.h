@@ -114,7 +114,9 @@ namespace tuplex {
                           _stageID(-1),
                           _htableFormat(HashTableFormat::UNKNOWN),
                           _wallTime(0.0),
-                          _inputExceptionInfo(new ExceptionInfo()),
+                          _numInputExceptions(0),
+                          _inputExceptionOffset(0),
+                          _inputExceptionIndex(0),
                           _updateInputExceptions(false) {
             resetSinks();
             resetSources();
@@ -240,10 +242,14 @@ namespace tuplex {
         */
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> exceptionCounts() const { return _exceptionCounts; }
 
-        ExceptionInfo *inputExceptionInfo() { return _inputExceptionInfo; }
+        size_t numInputExceptions() { return _numInputExceptions; }
+        size_t inputExceptionIndex() { return _inputExceptionIndex; }
+        size_t inputExceptionOffset() { return _inputExceptionOffset; }
         std::vector<Partition*> inputExceptions() { return _inputExceptions; }
 
-        void setInputExceptionInfo(ExceptionInfo *info) { _inputExceptionInfo = info; }
+        void setNumInputExceptions(size_t numInputExceptions) { _numInputExceptions = numInputExceptions; }
+        void setInputExceptionIndex(size_t inputExceptionIndex) { _inputExceptionIndex = inputExceptionIndex; }
+        void setInputExceptionOffset(size_t inputExceptionOffset) { _inputExceptionOffset = inputExceptionOffset; }
         void setInputExceptions(const std::vector<Partition*>& inputExceptions) { _inputExceptions = inputExceptions; }
         void setUpdateInputExceptions(bool updateInputExceptions) { _updateInputExceptions = updateInputExceptions; }
 
@@ -294,7 +300,9 @@ namespace tuplex {
         MemorySink _exceptions;
         Schema _inputSchema;
 
-        ExceptionInfo *_inputExceptionInfo;
+        size_t _numInputExceptions;
+        size_t _inputExceptionIndex;
+        size_t _inputExceptionOffset;
         std::vector<Partition*> _inputExceptions;
         bool _updateInputExceptions;
 

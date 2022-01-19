@@ -20,7 +20,7 @@ namespace tuplex {
         std::vector<Partition*> _partitions; // data, conforming to majority type
         std::vector<Partition*> _generalCasePartitions;
         std::vector<Partition*> _pythonObjects;
-        std::unordered_map<std::string, ExceptionInfo*> _inputPartitionToPythonObjectsMap;
+        std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> _inputPartitionToPythonObjectsMap;
         std::vector<std::string> _columnNames;
 
         std::vector<Row> _sample; // sample, not necessary conforming to one type
@@ -52,8 +52,8 @@ namespace tuplex {
         void setPythonObjects(const std::vector<Partition *>& pythonObjects) { _pythonObjects = pythonObjects; }
         std::vector<Partition *> getPythonObjects() { return _pythonObjects; }
 
-        void setInputPartitionToPythonObjectsMap(const std::unordered_map<std::string, ExceptionInfo*>& inputPartitionToPythonObjectsMap) { _inputPartitionToPythonObjectsMap = inputPartitionToPythonObjectsMap; }
-        std::unordered_map<std::string, ExceptionInfo*> getInputPartitionToPythonObjectsMap() { return _inputPartitionToPythonObjectsMap; }
+        void setInputPartitionToPythonObjectsMap(const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>& inputPartitionToPythonObjectsMap) { _inputPartitionToPythonObjectsMap = inputPartitionToPythonObjectsMap; }
+        std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> getInputPartitionToPythonObjectsMap() { return _inputPartitionToPythonObjectsMap; }
 
         Schema getInputSchema() const override { return getOutputSchema(); }
 

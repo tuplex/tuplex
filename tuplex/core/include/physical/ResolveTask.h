@@ -35,12 +35,8 @@ namespace tuplex {
         /*!
          * create a new resolve task
          * @param stageID to which task belongs to
-         * @param contextID to which context belongs to
          * @param partitions input rows with normal case
-         * @param runtimeExceptions input rows for exceptions, in exception format
-         * @param inputExceptions schema based exceptions occuring before pipeline excecution
-         * @param inputExceptionInfo mapping from partitions to input exceptions
-         * @param operatorIDsAffectedByResolvers ids of operators that could be resolved
+         * @param exceptions input rows for exceptions, in exception format
          * @param inputSchema input schema of exception rows
          * @param outputSchema output schema which resolution must adhere to
          * @param mergeRows whether to merge rows in order (makes only sense when no hashjoin is involved)

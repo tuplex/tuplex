@@ -113,7 +113,7 @@ namespace tuplex {
                                                           //! an exception while being processed through the pipeline before
         std::vector<PyObject*>  _py_objects;              //! all python objects who do not adhere to the general case schema (
         std::vector<std::string> _columns;
-        std::unordered_map<std::string, ExceptionInfo*> _partitionToExceptionsMap; //! maps normal case partitions to general case partitions
+        std::unordered_map<std::string, ExceptionInfo*> _partitionToExceptionsMap;
 
         // internal sample of normal case rows, used for tracing & Co.
         std::vector<Row> _sample;

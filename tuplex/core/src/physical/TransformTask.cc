@@ -542,15 +542,13 @@ namespace tuplex {
         int64_t  num_normal_rows = 0, num_bad_rows = 0;
 
         auto functor = reinterpret_cast<codegen::read_block_exp_f>(_functor);
-        auto inputExceptionIndex = _inputExceptionInfo.exceptionIndex;
-        auto inputExceptionOffset = _inputExceptionInfo.exceptionOffset;
-        auto numInputExceptions = _inputExceptionInfo.numExceptions;
-        auto arrSize = _inputExceptions.size() - inputExceptionIndex;
-        auto expPtrs = new uint8_t*[arrSize];
-        auto expPtrSizes = new int64_t[arrSize];
-        int expInd = 0;
+        auto inputExceptionIndex = _inputExceptionInfo->exceptionIndex();
+        auto inputExceptionOffset = _inputExceptionInfo->exceptionOffset();
+        auto numInputExceptions = _inputExceptionInfo->numExceptions();
 
-        // Populate expPtrs and expPtrSizes with a pointer to the first exception in the partition
+        auto expPtrs = (uint8_t **) malloc((_inputExceptions.size() - inputExceptionIndex) * sizeof(uint8_t *));
+        auto expPtrSizes = (int64_t *) malloc((_inputExceptions.size() - inputExceptionIndex) * sizeof(int64_t));
+        int expInd = 0;
         for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
             if (i == inputExceptionIndex) {
                 auto ptr = _inputExceptions[i]->lockRaw();
@@ -573,7 +571,7 @@ namespace tuplex {
         }
 
         // go over all input partitions.
-        for(const auto &inputPartition : _inputPartitions) {
+        for(auto inputPartition : _inputPartitions) {
             // lock ptr, extract number of rows ==> store them
             // lock raw & call functor!
             int64_t inSize = inputPartition->size();
@@ -600,6 +598,8 @@ namespace tuplex {
         for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
             _inputExceptions[i]->unlock();
         }
+        free(expPtrs);
+        free(expPtrSizes);
 
 #ifndef NDEBUG
         owner()->info("Trafo task memory source exhausted (" + pluralize(_inputPartitions.size(), "partition") + ", "

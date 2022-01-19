@@ -25,17 +25,6 @@ namespace tuplex {
         public:
             StageBuilder() = delete;
 
-            /*!
-             * Create new StageBuilder.
-             * @param stage_number number of stage
-             * @param rootStage whether stage is root stage
-             * @param allowUndefinedBehavior whether stage allows undefined behavior
-             * @param generateParser whether to generate a parser
-             * @param normalCaseThreshold number between 0 and 1
-             * @param sharedObjectPropagation whether to use shared object propagation
-             * @param nullValueOptimization whether to use null value optimization
-             * @param updateInputExceptions whether to update input exceptions due to filters present
-             */
             StageBuilder(int64_t stage_number,
                          bool rootStage,
                          bool allowUndefinedBehavior,

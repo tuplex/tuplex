@@ -28,16 +28,8 @@ namespace tuplex {
 
             std::shared_ptr<codegen::PipelineBuilder> pipeline() { return _pipBuilder; }
 
-            /*!
-             * function that processes partitions through the pipeline.
-             * @return llvm function
-             */
             llvm::Function *createFunction();
 
-            /*!
-             * function that processes partitions through the pipeline and updates indices of input exceptions when filtering occurs.
-             * @return llvm function
-             */
             llvm::Function *createFunctionWithExceptions();
 
             python::Type _inputRowType; //@TODO: make this private??

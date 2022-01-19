@@ -228,7 +228,6 @@ namespace tuplex {
 
         // needs to be put into separate list of python objects...
         // save index as well to merge back in order.
-        assert(_rowNumber >= _numUnresolved);
         _py_nonconfirming.push_back(std::make_tuple(_rowNumber - _numUnresolved, out_row));
     }
 
@@ -434,10 +433,10 @@ default:
 #endif
                 }
                 resCode = -1;
-            // an exception was thrown that was unresolvable, so row is not found in the output
             } else if (resCode != 0) {
                 _numUnresolved++;
             }
+
         }
 
         // fallback 2: interpreter path
@@ -575,7 +574,7 @@ default:
                         assert(PyList_Check(resultRows));
 
                         auto listSize = PyList_Size(resultRows);
-                        if (0 == listSize) {
+                        if (listSize == 0) {
                             _numUnresolved++;
                         }
 
@@ -881,9 +880,8 @@ default:
             _rowNumber = 0;
         }
 
-        // Initialize variables for runtime exceptions
-        size_t runInd = 0;
-        int64_t runRemaining = 0;
+        size_t runInd;
+        int64_t runRemaining;
         const uint8_t *runPtr = nullptr;
         if (_runtimeExceptions.size() > 0) {
             runInd = 0;
@@ -891,9 +889,8 @@ default:
             runRemaining = *((int64_t *) runPtr); runPtr += sizeof(int64_t);
         }
 
-        // Initialize variables for input exceptions
-        size_t inputInd = 0;
-        int64_t inputRemaining = 0;
+        size_t inputInd;
+        int64_t inputRemaining;
         int64_t inputTotal = _numInputExceptions;
         const uint8_t *inputPtr = nullptr;
         if (_numInputExceptions > 0) {
@@ -907,20 +904,18 @@ default:
             }
         }
 
-        // Need to merge both runtime and exceptions and input exceptions in the correct order
-        // To do, compare their row numbers and process the smaller row number
         size_t inputProcessed = 0;
-        const uint8_t *ptr = nullptr;
+        const uint8_t **ptr;
         while (runPtr && inputPtr) {
             auto runRowInd = *((int64_t *) runPtr);
             auto inputRowInd = *((int64_t *) inputPtr);
-            bool isRuntimeException = false;
+            bool isRuntime = false;
             if (runRowInd + inputProcessed < inputRowInd) {
-                ptr = runPtr;
+                ptr = &runPtr;
                 runRemaining--;
-                isRuntimeException = true;
+                isRuntime = true;
             } else {
-                ptr = inputPtr;
+                ptr = &inputPtr;
                 inputRemaining--;
                 inputTotal--;
                 inputProcessed++;
@@ -929,18 +924,14 @@ default:
             const uint8_t *ebuf = nullptr;
             int64_t ecCode = -1, operatorID = -1;
             size_t eSize = 0;
-            auto delta = deserializeExceptionFromMemory(ptr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
+            auto delta = deserializeExceptionFromMemory(*ptr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
                                                         &eSize);
 
-            // Runtime exceptions don't know about input exceptions, need to update their row number
-            if (isRuntimeException) {
+            if (isRuntime)
                 _currentRowNumber += inputProcessed;
-                runPtr += delta;
-            } else {
-                inputPtr += delta;
-            }
 
             processExceptionRow(ecCode, operatorID, ebuf, eSize);
+            *ptr += delta;
             _rowNumber++;
 
             if (runRemaining == 0) {
@@ -967,7 +958,6 @@ default:
             }
         }
 
-        // Process remaining runtime exceptions if any exist
         while (runPtr) {
             const uint8_t *ebuf = nullptr;
             int64_t ecCode = -1, operatorID = -1;
@@ -993,7 +983,6 @@ default:
             }
         }
 
-        // process remaining input exceptions if any exist
         while (inputPtr) {
             const uint8_t *ebuf = nullptr;
             int64_t ecCode = -1, operatorID = -1;

@@ -18,8 +18,9 @@ namespace tuplex {
     class ParallelizeOperator : public LogicalOperator {
 
         std::vector<Partition*> _partitions; // data, conforming to majority type
-        std::vector<Partition*> _pythonObjects; // schema violations created from parallelize saved as PyObject exceptions
-        std::unordered_map<std::string, ExceptionInfo*> _inputPartitionToPythonObjectsMap; // maps partitions to corresponding pyObjects
+        std::vector<Partition*> _generalCasePartitions;
+        std::vector<Partition*> _pythonObjects;
+        std::unordered_map<std::string, ExceptionInfo*> _inputPartitionToPythonObjectsMap;
         std::vector<std::string> _columnNames;
 
         std::vector<Row> _sample; // sample, not necessary conforming to one type
@@ -48,27 +49,10 @@ namespace tuplex {
          */
         std::vector<tuplex::Partition*> getPartitions();
 
-        /*!
-         * set python objects of schema violation rows.
-         */
         void setPythonObjects(const std::vector<Partition *>& pythonObjects) { _pythonObjects = pythonObjects; }
-
-        /*!
-         * get python object partitions.
-         * @return vector of partitions.
-         */
         std::vector<Partition *> getPythonObjects() { return _pythonObjects; }
 
-        /*!
-         * set mapping from partitions to python objects.
-         * @param inputPartitionToPythonObjectsMap
-         */
         void setInputPartitionToPythonObjectsMap(const std::unordered_map<std::string, ExceptionInfo*>& inputPartitionToPythonObjectsMap) { _inputPartitionToPythonObjectsMap = inputPartitionToPythonObjectsMap; }
-
-        /*!
-         * get mapping from partitions to python objects.
-         * @return
-         */
         std::unordered_map<std::string, ExceptionInfo*> getInputPartitionToPythonObjectsMap() { return _inputPartitionToPythonObjectsMap; }
 
         Schema getInputSchema() const override { return getOutputSchema(); }

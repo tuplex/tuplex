@@ -467,9 +467,9 @@ namespace tuplex {
     }
 
     std::vector<IExecutorTask*> LocalBackend::createLoadAndTransformToMemoryTasks(
-            TransformStage* tstage,
+            tuplex::TransformStage *tstage,
             const tuplex::ContextOptions &options,
-            std::shared_ptr<TransformStage::JITSymbols> syms) {
+            TransformStage::JITSymbols *syms) {
 
         using namespace std;
         vector<IExecutorTask*> tasks;
@@ -750,15 +750,14 @@ namespace tuplex {
         return pip_object;
     }
 
-    std::vector<std::tuple<size_t, PyObject*>> inputExceptionsToPythonObjects(const std::vector<Partition *>& partitions, Schema schema) {
+    std::vector<std::tuple<size_t, PyObject*>> inputExceptionsToPythonObjects(std::vector<Partition *> partitions, Schema schema) {
         using namespace tuplex;
 
         std::vector<std::tuple<size_t, PyObject*>> pyObjects;
-        for (const auto &partition : partitions) {
+        for (auto &partition : partitions) {
             auto numRows = partition->getNumRows();
             const uint8_t* ptr = partition->lock();
 
-            python::lockGIL();
             for (int i = 0; i < numRows; ++i) {
                 int64_t rowNum = *((int64_t*)ptr);
                 ptr += sizeof(int64_t);
@@ -768,16 +767,17 @@ namespace tuplex {
                 ptr += sizeof(int64_t);
 
                 PyObject* pyObj = nullptr;
+                python::lockGIL();
                 if (ecCode == ecToI64(ExceptionCode::PYTHON_PARALLELIZE)) {
                     pyObj = python::deserializePickledObject(python::getMainModule(), (char *) ptr, objSize);
                 } else {
                     pyObj = python::rowToPython(Row::fromMemory(schema, ptr, objSize), true);
                 }
+                python::unlockGIL();
 
                 ptr += objSize;
                 pyObjects.emplace_back(rowNum, pyObj);
             }
-            python::unlockGIL();
 
             partition->unlock();
             partition->invalidate();
@@ -931,7 +931,7 @@ namespace tuplex {
             }
         }
 
-        auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms);
+        auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms.get());
         auto completedTasks = performTasks(tasks);
 
         // Note: this doesn't work yet because of the globals.
@@ -1157,9 +1157,9 @@ namespace tuplex {
                     std::copy(taskNonConformingRows.begin(), taskNonConformingRows.end(), std::back_inserter(nonConformingRows));
 
                     // compute the delta used to offset records!
-                    for (const auto &p : taskOutput)
+                    for (auto p : taskOutput)
                         rowDelta += p->getNumRows();
-                    for (const auto &p : taskGeneralOutput)
+                    for (auto p : taskGeneralOutput)
                         rowDelta += p->getNumRows();
                     rowDelta += taskNonConformingRows.size();
                 }

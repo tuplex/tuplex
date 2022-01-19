@@ -21,7 +21,7 @@ namespace tuplex {
         for(const auto &p : partitions)
             _partitions.push_back(p);
 
-        _pyobjects = pyobjects;
+        _pyobjects = std::deque<std::tuple<size_t, PyObject*>>(pyobjects.begin(), pyobjects.end());
         _exceptions = exceptions;
         _partitionToExceptionsMap = partitionToExceptionsMap;
         _curRowCounter = 0;

@@ -542,15 +542,18 @@ namespace tuplex {
         int64_t  num_normal_rows = 0, num_bad_rows = 0;
 
         auto functor = reinterpret_cast<codegen::read_block_exp_f>(_functor);
+        auto inputExceptionIndex = _inputExceptionInfo->exceptionIndex();
+        auto inputExceptionOffset = _inputExceptionInfo->exceptionOffset();
+        auto numInputExceptions = _inputExceptionInfo->numExceptions();
 
-        auto expPtrs = (uint8_t **) malloc((_inputExceptions.size() - _inputExceptionIndex) * sizeof(uint8_t *));
-        auto expPtrSizes = (int64_t *) malloc((_inputExceptions.size() - _inputExceptionIndex) * sizeof(int64_t));
+        auto expPtrs = (uint8_t **) malloc((_inputExceptions.size() - inputExceptionIndex) * sizeof(uint8_t *));
+        auto expPtrSizes = (int64_t *) malloc((_inputExceptions.size() - inputExceptionIndex) * sizeof(int64_t));
         int expInd = 0;
-        for (int i = _inputExceptionIndex; i < _inputExceptions.size(); ++i) {
-            if (i == _inputExceptionIndex) {
+        for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
+            if (i == inputExceptionIndex) {
                 auto ptr = _inputExceptions[i]->lockRaw();
-                auto numRows = *((int64_t *) ptr) - _inputExceptionOffset; ptr += sizeof(int64_t);
-                for (int j = 0; j < _inputExceptionOffset; ++j) {
+                auto numRows = *((int64_t *) ptr) - inputExceptionOffset; ptr += sizeof(int64_t);
+                for (int j = 0; j < inputExceptionOffset; ++j) {
                     int64_t *ib = (int64_t *)ptr;
                     auto eSize = ib[3];
                     ptr += eSize + 4 * sizeof(int64_t);
@@ -576,7 +579,7 @@ namespace tuplex {
             _numInputRowsRead += static_cast<size_t>(*((int64_t*)inPtr));
 
             // call functor
-            auto bytesParsed = functor(this, inPtr, inSize, expPtrs, expPtrSizes, _numInputExceptions, &num_normal_rows, &num_bad_rows, false);
+            auto bytesParsed = functor(this, inPtr, inSize, expPtrs, expPtrSizes, numInputExceptions, &num_normal_rows, &num_bad_rows, false);
 
             // save number of normal rows to output rows written if not writeTofile
             if(hasMemorySink())
@@ -592,7 +595,7 @@ namespace tuplex {
                 inputPartition->invalidate();
         }
 
-        for (int i = _inputExceptionIndex; i < _inputExceptions.size(); ++i) {
+        for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
             _inputExceptions[i]->unlock();
         }
         free(expPtrs);

@@ -120,7 +120,7 @@ namespace tuplex {
 
     void TransformStage::setMemoryResult(const std::vector<Partition *> &partitions,
                                          const std::vector<Partition*>& generalCase,
-                                         const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>& partitionToExceptionsMap,
+                                         const std::unordered_map<std::string, ExceptionInfo*>& partitionsToGeneralCaseMap,
                                          const std::vector<std::tuple<size_t, PyObject*>>& interpreterRows,
                                          const std::vector<Partition*>& remainingExceptions,
                                          const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> &ecounts) {
@@ -159,7 +159,7 @@ namespace tuplex {
 
             // put ALL partitions to result set
             _rs = std::make_shared<ResultSet>(schema, limitedPartitions,
-                                              generalCase, partitionToExceptionsMap, interpreterRows,
+                                              generalCase, partitionsToGeneralCaseMap, interpreterRows,
                                               outputLimit());
         }
     }

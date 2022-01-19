@@ -84,7 +84,7 @@ TEST_F(ResultSetTest, NoPyObjects) {
     int Nlimit = 17;
     auto rsB = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, sample_rows.front().getRowType()), partitions,
                                       std::vector<Partition*>{},
-                                      std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>(),
+                                      std::unordered_map<std::string, ExceptionInfo*>(),
                                       vector<tuple<size_t, PyObject*>>{},
                                       Nlimit);
     pos = 0;
@@ -142,7 +142,7 @@ TEST_F(ResultSetTest, WithPyObjects) {
     auto rsA = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, rows.front().getRowType()),
                                       partitions,
                                       std::vector<Partition*>{},
-                                      std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>(),
+                                      std::unordered_map<std::string, ExceptionInfo*>(),
                                       objsA);
     EXPECT_EQ(rsA->rowCount(), objsA.size() + rows.size());
     pos = 0;
@@ -156,7 +156,7 @@ TEST_F(ResultSetTest, WithPyObjects) {
     auto rsB = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, rows.front().getRowType()),
                                       partitions,
                                       std::vector<Partition*>{},
-                                      std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>(),
+                                      std::unordered_map<std::string, ExceptionInfo*>(),
                                       objsB);
     EXPECT_EQ(rsB->rowCount(), objsB.size() + rows.size());
     pos = 0;
@@ -171,7 +171,7 @@ TEST_F(ResultSetTest, WithPyObjects) {
     auto rsC = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, rows.front().getRowType()),
                                       partitions,
                                       std::vector<Partition*>{},
-                                      std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>(),
+                                      std::unordered_map<std::string, ExceptionInfo*>(),
                                       objsC);
     EXPECT_EQ(rsC->rowCount(), objsC.size() + rows.size());
     pos = 0;
@@ -188,7 +188,7 @@ TEST_F(ResultSetTest, WithPyObjects) {
     auto rsD = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, rows.front().getRowType()),
                                       std::vector<Partition*>{},
                                       std::vector<Partition*>{},
-                                      std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>(),
+                                      std::unordered_map<std::string, ExceptionInfo*>(),
                                       objsD);
     EXPECT_EQ(rsD->rowCount(), objsD.size());
     pos = 0;

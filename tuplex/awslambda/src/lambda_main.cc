@@ -31,6 +31,7 @@
 #include <physical/TextReader.h>
 #include <google/protobuf/util/json_util.h>
 
+
 // maybe add FILE // LINE to exception
 
 
@@ -185,7 +186,6 @@ void exceptRowCallback(LambdaExecutor* exec, int64_t exceptionCode, int64_t exce
 
 aws::lambda_runtime::invocation_request const* g_lambda_req = nullptr;
 
-
 // @TODO: output buffer size is an issue -> need to write partial results if required!!!
 
 // how much memory to use for the Lambda??
@@ -198,19 +198,34 @@ LambdaExecutor *g_executor = nullptr; // global buffer to hold results!
 static bool lambda_executor_setup = false;
 void reset_executor_setup() { lambda_executor_setup = false; }
 
+
+namespace tuplex {
+    ContainerInfo getThisContainerInfo() {
+        using namespace std;
+
+        ContainerInfo info;
+        info.reused = container_reused();
+        info.requestId = g_lambda_req->request_id.c_str();
+        info.uuid = uuidToString(container_id());
+        info.msRemaining = chrono::duration_cast<chrono::milliseconds, long>(g_lambda_req->get_time_remaining()).count();
+        info.startTimestamp = g_start_timestamp;
+        std::chrono::high_resolution_clock clock;
+        info.deadlineTimestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(clock.now().time_since_epoch()).count();
+        return info;
+    }
+}
+
+
 void fillInGlobals(tuplex::messages::InvocationResponse* m) {
     using namespace std;
 
     if(!m)
         return;
 
-    m->set_containerreused(container_reused());
-    m->set_containerid(tuplex::uuidToString(container_id()));
+    // fill in this container info
+
+
     m->set_awsinittime(g_aws_init_time);
-    if(g_lambda_req) {
-        auto remaining_time = chrono::duration_cast<chrono::milliseconds, long>(g_lambda_req->get_time_remaining()).count() / 1000.0;
-        m->set_remaininglambdatime(remaining_time);
-    }
 }
 
 tuplex::messages::InvocationResponse make_exception(const std::string& message) {

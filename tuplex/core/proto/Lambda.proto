@@ -89,6 +89,17 @@ message InvocationRequest {
     optional WarmupMessage warmup = 7;
 }
 
+
+// info about a running container, cf. ContainerInfo struct
+message ContainerInfo {
+    bool reused = 1;
+    string requestId = 2;
+    string uuid = 3;
+    uint32 msRemaining = 4;
+    uint64 start = 5;
+    uint64 deadline = 6;
+}
+
 message InvocationResponse {
     enum Status {
         SUCCESS = 0;
@@ -105,13 +116,12 @@ message InvocationResponse {
     uint64 numExceptions = 7;
     uint64 numBytesWritten = 8;
 
-    bool containerReused = 9;
-    double awsInitTime = 10;
-    string containerID = 11;
-    double taskExecutionTime = 12;
-    double remainingLambdaTime = 13;
-    map<string, uint64> s3Stats = 14;
-    map<string, double> breakdownTimes = 15;
+    ContainerInfo container = 9;
+    repeated ContainerInfo invokedContainers = 10;
 
-    repeated string warmedupContainers = 16;
+    // stats
+    double awsInitTime = 11;
+    double taskExecutionTime = 12;
+    map<string, uint64> s3Stats = 13;
+    map<string, double> breakdownTimes = 14;
 }

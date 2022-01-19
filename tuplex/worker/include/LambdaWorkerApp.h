@@ -19,6 +19,47 @@
 
 namespace tuplex {
 
+    struct ContainerInfo {
+        bool reused; //! whether container has been reused or not
+        std::string requestId; //! Lambda Request ID
+        std::string uuid; //! uuid of container
+        uint32_t msRemaining; //! how many milliseconds remain of this container when info was added
+        uint64_t startTimestamp; //! when container was started
+        uint64_t deadlineTimestamp; //! when container will shutdown/expire
+
+        ContainerInfo() = default;
+
+        ContainerInfo(const messages::ContainerInfo& info) : reused(info.reused()),
+                                                             requestId(info.requestid().c_str()),
+                                                             uuid(info.uuid().c_str()),
+                                                             msRemaining(info.msremaining()),
+                                                             startTimestamp(info.start()),
+                                                             deadlineTimestamp(info.deadline()) {
+
+        }
+
+        inline void fill(messages::ContainerInfo* c) const {
+            if(!c)
+                return;
+
+            c->set_reused(reused);
+            c->set_requestid(requestId.c_str());
+            c->set_uuid(uuid.c_str());
+            c->set_msremaining(msRemaining);
+            c->set_start(startTimestamp);
+            c->set_deadline(deadlineTimestamp);
+        }
+
+        inline messages::ContainerInfo* to_protobuf() const {
+            auto c = new messages::ContainerInfo();
+            fill(c);
+            return c;
+        }
+    };
+
+    // externally link, i.e. in testing need dummy to make linking work!
+    extern ContainerInfo getThisContainerInfo();
+
     struct LambdaWorkerSettings : public WorkerSettings {
         // add here specific Lambda settings
     };
@@ -57,10 +98,10 @@ namespace tuplex {
 
         // @TODO: redesign this...
         messages::MessageType _messageType;
-        std::vector<std::string> _containerIds;
+        std::vector<ContainerInfo> _invokedContainers;
     };
 
-    extern std::vector<std::string> selfInvoke(const std::string& functionName,
+    extern std::vector<ContainerInfo> selfInvoke(const std::string& functionName,
                                                size_t count,
                                                size_t timeOutInMs,
                                                const tuplex::AWSCredentials& credentials,

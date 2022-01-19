@@ -38,6 +38,14 @@
 #include <procinfo.h>
 #include <FileUtils.h>
 
+// dummy so linking works
+namespace tuplex {
+    ContainerInfo getThisContainerInfo() {
+        ContainerInfo info;
+        return info;
+    }
+}
+
 std::string find_worker() {
     using namespace tuplex;
 

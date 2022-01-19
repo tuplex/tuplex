@@ -204,6 +204,11 @@ namespace tuplex {
         // concurrency?
         // PutFunctionConcurrency
 
+        // Also need to check that Lambda is in ready status...
+
+        // print out timing info...
+
+
         delete fc;
 
         return client;
@@ -287,6 +292,98 @@ namespace tuplex {
                              Aws::MakeShared<AwsLambdaBackendCallerContext>(_tag.c_str(), this, req.SerializeAsString(), taskID));
     }
 
+    std::set<std::string> AwsLambdaBackend::performWarmup(size_t concurrency, size_t timeOutInMs, size_t delayInMs) {
+
+        //            size_t numWarmingRequests = 50;
+        std::set<std::string> containerIds;
+        size_t numLambdasToInvoke = concurrency - 1;
+        logger().info("Warming up containers...");
+        // do a single synced request (else reuse will occur!)
+        // Tuplex request
+        messages::InvocationRequest req;
+        req.set_type(messages::MessageType::MT_WARMUP);
+
+        // specific warmup message contents
+        auto wm = std::make_unique<messages::WarmupMessage>();
+        wm->set_timeoutinms(timeOutInMs);
+        wm->set_invocationcount(numLambdasToInvoke);
+        req.set_allocated_warmup(wm.release());
+
+        // construct req object
+        Aws::Lambda::Model::InvokeRequest invoke_req;
+        invoke_req.SetFunctionName(_functionName.c_str());
+        invoke_req.SetInvocationType(Aws::Lambda::Model::InvocationType::RequestResponse);
+        // logtype to extract log data??
+        //req.SetLogtype(Aws::Lambda::Model::LogType::None);
+        invoke_req.SetLogType(Aws::Lambda::Model::LogType::Tail);
+        std::string json_buf;
+        google::protobuf::util::MessageToJsonString(req, &json_buf);
+        invoke_req.SetBody(stringToAWSStream(json_buf));
+        invoke_req.SetContentType("application/javascript");
+
+        // perform synced (!) invoke.
+        auto outcome = _client->Invoke(invoke_req);
+        if(outcome.IsSuccess()) {
+
+            // write response
+            auto& result = outcome.GetResult();
+            auto statusCode = result.GetStatusCode();
+            std::string version = result.GetExecutedVersion().c_str();
+            auto response = parsePayload(result);
+
+            auto log = result.GetLogResult();
+
+            if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
+                // extract info
+                AwsLambdaBackend::InvokeInfo info = parseFromLog(log.c_str());
+                std::stringstream ss;
+                auto& task = response;
+                if(task.type() == messages::MessageType::MT_WARMUP) {
+                    containerIds.insert(task.container().uuid());
+                    for(auto info: task.invokedcontainers())
+                        containerIds.insert(info.uuid());
+                }
+                ss<<"Warmup took "<<response.taskexecutiontime()<<" s, "<<"initialized "<<containerIds.size();
+                logger().info(ss.str());
+            } else {
+                logger().info("Message returned was weird.");
+            }
+
+            logger().info("Warming succeeded.");
+        } else {
+            // failed
+            logger().error("Warming request failed.");
+
+            auto &error = outcome.GetError();
+            auto statusCode = static_cast<int>(error.GetResponseCode());
+            std::string exceptionName = outcome.GetError().GetExceptionName().c_str();
+            std::string errorMessage= outcome.GetError().GetMessage().c_str();
+            // rate limit? => reissue request
+            if(statusCode == static_cast<int>(Aws::Http::HttpResponseCode::TOO_MANY_REQUESTS) || // i.e. 429
+                statusCode == static_cast<int>(Aws::Http::HttpResponseCode::INTERNAL_SERVER_ERROR)) {  // i.e. 500
+            } else {
+            }
+        }
+//            for(unsigned i = 0; i < numWarmingRequests; ++i) {
+//
+//                // Tuplex request
+//                messages::InvocationRequest req;
+//                req.set_type(messages::MessageType::MT_WARMUP);
+//
+//                // specific warmup message contents
+//                auto wm = std::make_unique<messages::WarmupMessage>();
+//                wm->set_timeoutinms(timeOutInMs);
+//                wm->set_invocationcount(numLambdasToInvoke);
+//                req.set_allocated_warmup(wm.release());
+//
+//                invokeAsync(req);
+//            }
+//            waitForRequests();
+        logger().info("warmup done");
+
+        return containerIds;
+    }
+
     void AwsLambdaBackend::execute(PhysicalStage *stage) {
         using namespace std;
 
@@ -301,36 +398,7 @@ namespace tuplex {
             // issue a couple self-invoke requests...
             Timer timer;
 
-            size_t numWarmingRequests = 50;
-            size_t timeOutInMs = 2000; // do not spend more than 1s on warming a Lambda...
-            size_t numLambdasToInvoke = 10;
-            logger().info("Warming up containers...");
-            for(unsigned i = 0; i < numWarmingRequests; ++i) {
-
-                // Tuplex request
-                messages::InvocationRequest req;
-                req.set_type(messages::MessageType::MT_WARMUP);
-
-                // specific warmup message contents
-                auto wm = std::make_unique<messages::WarmupMessage>();
-                wm->set_timeoutinms(timeOutInMs);
-                wm->set_invocationcount(numLambdasToInvoke);
-                req.set_allocated_warmup(wm.release());
-
-                invokeAsync(req);
-            }
-            waitForRequests();
-            logger().info("warmup done");
-
-            // check response!
-            std::set<std::string> containerIds;
-            for(const auto& task : _tasks) {
-                if(task.type() == messages::MessageType::MT_WARMUP) {
-                    containerIds.insert(task.containerid());
-                    for(auto id : task.warmedupcontainers())
-                        containerIds.insert(id);
-                }
-            }
+            auto containerIds = performWarmup();
 
             logger().info("Warmup yielded " + pluralize(containerIds.size(), "container id"));
             logger().info("Warmup took: " + std::to_string(timer.time()));
@@ -426,6 +494,19 @@ namespace tuplex {
             }
         }
 
+        // Worker config variables
+        size_t numThreads = 1;
+        // check what setting is given for threads
+        if(_options.AWS_LAMBDA_THREAD_COUNT() == "auto") {
+            numThreads = core::ceilToMultiple(_options.AWS_LAMBDA_MEMORY(), 1792ul) / 1792ul; // 1792MB is one vCPU. Use the 200+ for rounding.
+            logger().debug("Given Lambda size of " + std::to_string(_options.AWS_LAMBDA_MEMORY()) + "MB, use " + pluralize(numThreads, "thread"));
+        } else {
+            numThreads = std::stoi(_options.AWS_LAMBDA_THREAD_COUNT());
+        }
+        auto spillURI = _options.AWS_SCRATCH_DIR() + "/spill_folder";
+        // perhaps also use:  - 64 * numThreads ==> smarter buffer scaling necessary.
+        size_t buf_spill_size = (_options.AWS_LAMBDA_MEMORY() - 256) / numThreads * 1000 * 1024;
+
         // Note: for now, super simple: 1 request per file (this is inefficient, but whatever)
         // @TODO: more sophisticated splitting of workload!
         Timer timer;
@@ -451,18 +532,6 @@ namespace tuplex {
 
             // worker config
             auto ws = std::make_unique<messages::WorkerSettings>();
-
-            size_t numThreads = 1;
-            // check what setting is given for threads
-            if(_options.AWS_LAMBDA_THREAD_COUNT() == "auto") {
-                numThreads = core::ceilToMultiple(_options.AWS_LAMBDA_MEMORY(), 1792ul) / 1792ul; // 1792MB is one vCPU. Use the 200+ for rounding.
-                logger().debug("Given Lambda size of " + std::to_string(_options.AWS_LAMBDA_MEMORY()) + "MB, use " + pluralize(numThreads, "thread"));
-            } else {
-                numThreads = std::stoi(_options.AWS_LAMBDA_THREAD_COUNT());
-            }
-            auto spillURI = _options.AWS_SCRATCH_DIR() + "/spill_folder";
-            // perhaps also use:  - 64 * numThreads ==> smarter buffer scaling necessary.
-            size_t buf_spill_size = (_options.AWS_LAMBDA_MEMORY() - 256) / numThreads * 1000 * 1024;
             ws->set_numthreads(numThreads);
             ws->set_normalbuffersize(buf_spill_size);
             ws->set_exceptionbuffersize(buf_spill_size);
@@ -643,10 +712,10 @@ namespace tuplex {
 
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
                 ss << "LAMBDA task done in " << response.taskexecutiontime() << "s ";
-                string container_status = response.containerreused() ? "reused" : "new";
+                string container_status = response.container().reused() ? "reused" : "new";
                 ss << "[" << statusCode << ", " << pluralize(response.numrowswritten(), "row")
                    << ", " << pluralize(response.numexceptions(), "exception") << ", "
-                   << container_status << ", id: " << response.containerid() << "] ";
+                   << container_status << ", id: " << response.container().uuid() << "] ";
 
                 // extract info
                 AwsLambdaBackend::InvokeInfo info = backend->parseFromLog(log.c_str());
@@ -860,9 +929,9 @@ namespace tuplex {
                     breakdownTimings[key].update(val);
                 }
 
-                containerIDs.insert(task.containerid());
-                numReused += task.containerreused();
-                numNew += !task.containerreused();
+                containerIDs.insert(task.container().uuid());
+                numReused += task.container().reused();
+                numNew += !task.container().reused();
             }
 
             // compute cost of s3 + Lambda

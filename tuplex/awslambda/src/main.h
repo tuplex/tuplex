@@ -15,6 +15,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <chrono>
 #include <nlohmann/json.hpp>
 #include <Utils.h>
 
@@ -37,5 +38,12 @@ extern void global_cleanup();
 extern bool container_reused();
 extern tuplex::uniqueid_t container_id();
 extern void reset_executor_setup();
+
+extern uint64_t g_start_timestamp;
+
+uinline int64_t currentTimestamp() {
+    std::chrono::high_resolution_clock clock;
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(clock.now().time_since_epoch()).count();
+}
 
 #endif //TUPLEX_MAIN_H

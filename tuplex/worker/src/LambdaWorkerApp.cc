@@ -36,8 +36,8 @@ namespace tuplex {
 
     struct SelfInvocationContext {
         std::atomic_int32_t numPendingRequests;
-        std::mutex mutex;
-        std::vector<std::string> containerIds;
+        mutable std::mutex mutex;
+        std::vector<ContainerInfo> containers;
         std::string tag;
         std::string functionName;
         size_t timeOutInMs;
@@ -55,6 +55,17 @@ namespace tuplex {
             auto stop = std::chrono::high_resolution_clock::now();
             double duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - tstart).count() / 1000000000.0;
             return duration;
+        }
+
+        /*!
+         * checks whether container with uuid is contained already or not
+         */
+        inline bool contains(const std::string& uuid) const {
+            std::unique_lock<std::mutex> lock(mutex);
+            auto it = std::find_if(containers.cbegin(), containers.cend(), [&uuid](const ContainerInfo& info) {
+                return info.uuid == uuid;
+            });
+            return it != containers.cend();
         }
 
         class CallbackContext : public Aws::Client::AsyncCallerContext {
@@ -119,7 +130,8 @@ namespace tuplex {
 
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
 
-                if(response.containerreused()) {
+                // check if container is already part of containers or not, if reused and part of it -> reinvoke!
+                if(response.container().reused() && self_ctx->contains(response.container().uuid())) {
 
                     // check whether to re-invoke or to leave
                     if(self_ctx->timeSinceStartInSeconds() < timeout) {
@@ -161,14 +173,17 @@ namespace tuplex {
                         logger.info("warmup request timed out.");
                     }
                 } else {
-                    logger.info("New container " + std::string(response.containerid().c_str()) + " started.");
-
+                    if(!response.container().reused())
+                        logger.info("New container " + std::string(response.container().uuid().c_str()) + " started.");
+                    else {
+                        logger.info("Found already running container " + std::string(response.container().uuid().c_str()) + ".");
+                    }
                     std::unique_lock<std::mutex> lock(self_ctx->mutex);
-                    // add the ID of the container
-                    const_cast<SelfInvocationContext*>(self_ctx)->containerIds.emplace_back(response.containerid().c_str());
-                    // and all IDs that container invoked
-                    for(auto id : response.warmedupcontainers()) {
-                        self_ctx->containerIds.emplace_back(id);
+                    // add the container info of the invoker itself!
+                    const_cast<SelfInvocationContext*>(self_ctx)->containers.emplace_back(response.container());
+                    // and all IDs that that container invoked
+                    for(auto info : response.invokedcontainers()) {
+                        self_ctx->containers.emplace_back(info);
                     }
                     self_ctx->numPendingRequests.fetch_add(-1, std::memory_order_release);
                 }
@@ -180,7 +195,7 @@ namespace tuplex {
     }
 
     // helper function to self-invoke quickly (creates new client!)
-    std::vector<std::string> selfInvoke(const std::string& functionName,
+    std::vector<ContainerInfo> selfInvoke(const std::string& functionName,
                                         size_t count,
                                         size_t timeOutInMs,
                                         const AWSCredentials& credentials,
@@ -268,11 +283,10 @@ namespace tuplex {
             std::this_thread::sleep_for(std::chrono::milliseconds(25));
         }
 
-        logger.info("warmup done, result are " + pluralize(ctx.containerIds.size(), "container"));
+        logger.info("warmup done, result are " + pluralize(ctx.containers.size(), "container"));
 
         // how long did it take?
-        containerIds = ctx.containerIds;
-        return containerIds;
+        return ctx.containers;
     }
 
     int LambdaWorkerApp::globalInit() {
@@ -346,7 +360,7 @@ namespace tuplex {
             // use self invocation
             if(selfInvokeCount > 0) {
                 logger().info("invoking " + pluralize(selfInvokeCount, "other lambda") + " (timeout: " + std::to_string(timeOutInMs) + "ms)");
-                _containerIds = selfInvoke(_functionName, selfInvokeCount, timeOutInMs, _credentials, _networkSettings);
+                _invokedContainers = selfInvoke(_functionName, selfInvokeCount, timeOutInMs, _credentials, _networkSettings);
                 logger().info("warmup done.");
             }
 
@@ -404,8 +418,9 @@ namespace tuplex {
 
         // message specific results
         if(_messageType == tuplex::messages::MessageType::MT_WARMUP) {
-            for(const auto& id : _containerIds) {
-                result.add_warmedupcontainers(id.c_str());
+            for(const auto& c_info : _invokedContainers) {
+                auto element = result.add_invokedcontainers();
+                c_info.fill(element);
             }
         }
 

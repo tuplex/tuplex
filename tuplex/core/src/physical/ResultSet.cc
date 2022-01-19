@@ -21,9 +21,7 @@ namespace tuplex {
         for(const auto &p : partitions)
             _partitions.push_back(p);
 
-        for (const auto &elt : pyobjects) {
-            _pyobjects.push_back(elt);
-        }
+        _pyobjects = pyobjects;
         _exceptions = exceptions;
         _partitionToExceptionsMap = partitionToExceptionsMap;
         _curRowCounter = 0;

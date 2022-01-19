@@ -1385,9 +1385,7 @@ namespace tuplex {
             else if(compareOrders(maxOrder, tt->getOrder()))
                 maxOrder = tt->getOrder();
 
-            auto numInputExceptions = tt->inputExceptionInfo()->numExceptions();
-
-            if (tt->exceptionCounts().size() > 0 || numInputExceptions > 0) {
+            if (tt->exceptionCounts().size() > 0 || tt->inputExceptionInfo().numExceptions > 0) {
                 // task found with exceptions in it => exception partitions need to be resolved using special functor
 
                 // hash-table output not yet supported

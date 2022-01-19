@@ -542,9 +542,9 @@ namespace tuplex {
         int64_t  num_normal_rows = 0, num_bad_rows = 0;
 
         auto functor = reinterpret_cast<codegen::read_block_exp_f>(_functor);
-        auto inputExceptionIndex = _inputExceptionInfo->exceptionIndex();
-        auto inputExceptionOffset = _inputExceptionInfo->exceptionOffset();
-        auto numInputExceptions = _inputExceptionInfo->numExceptions();
+        auto inputExceptionIndex = _inputExceptionInfo.exceptionIndex;
+        auto inputExceptionOffset = _inputExceptionInfo.exceptionOffset;
+        auto numInputExceptions = _inputExceptionInfo.numExceptions;
         auto arrSize = _inputExceptions.size() - inputExceptionIndex;
         auto expPtrs = new uint8_t*[arrSize];
         auto expPtrSizes = new int64_t[arrSize];

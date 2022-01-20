@@ -94,6 +94,9 @@ namespace tuplex {
 // note(Leonhard): I think the number of available cores/threads is dependent on the memory size
 #define AWS_MAXIMUM_LAMBDA_THREADS 6
 
+// may change, the minimum AWS limit for unreserved concurrency functions. Also a limit how much can get executed...
+#define AWS_MINIMUM_UNRESERVED_CONCURRENCY 100
+
 // the 64MB increase limit seems to have been changed now...
 
 #endif //TUPLEX_AWSCOMMON_H

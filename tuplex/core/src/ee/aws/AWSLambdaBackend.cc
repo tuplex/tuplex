@@ -19,6 +19,12 @@
 #include <aws/lambda/model/ListFunctionsRequest.h>
 #include <aws/lambda/model/UpdateFunctionConfigurationRequest.h>
 #include <aws/lambda/model/UpdateFunctionConfigurationResult.h>
+#include <aws/lambda/model/GetFunctionConcurrencyRequest.h>
+#include <aws/lambda/model/GetFunctionConcurrencyResult.h>
+#include <aws/lambda/model/PutFunctionConcurrencyRequest.h>
+#include <aws/lambda/model/PutFunctionConcurrencyResult.h>
+#include <aws/lambda/model/GetAccountSettingsRequest.h>
+#include <aws/lambda/model/GetAccountSettingsResult.h>
 #include <aws/core/utils/threading/Executor.h>
 #include <aws/core/auth/AWSCredentials.h>
 #include <aws/core/utils/json/JsonSerializer.h>
@@ -90,7 +96,7 @@ namespace tuplex {
         // tune client, according to https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/client-config.html
         // note: max connections should not exceed max concurrency if it is below 100, else aws lambda
         // will return toomanyrequestsexception
-        clientConfig.maxConnections = _options.AWS_MAX_CONCURRENCY();
+        clientConfig.maxConnections = std::max(32ul, _options.AWS_MAX_CONCURRENCY());
 
         // to avoid thread exhaust of system, use pool thread executor with 8 threads
         clientConfig.executor = Aws::MakeShared<Aws::Utils::Threading::PooledThreadExecutor>(_tag.c_str(), _options.AWS_NUM_HTTP_THREADS());
@@ -172,6 +178,11 @@ namespace tuplex {
 
         logger().info("Using Lambda running on " + _functionArchitecture);
 
+        // could also check account limits in case:
+        // https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.get_function_configuration
+
+        checkAndUpdateFunctionConcurrency(client, _options.AWS_MAX_CONCURRENCY(), _functionName, false); // no provisioned concurrency!
+
         // limit concurrency + mem of function manually (TODO: uncomment for faster speed!), if it doesn't fit options
         // i.e. aws lambda put-function-concurrency --function-name tplxlam --reserved-concurrent-executions $MAX_CONCURRENCY
         //      aws lambda update-function-configuration --function-name tplxlam --memory-size $MEM_SIZE --timeout 60
@@ -213,6 +224,111 @@ namespace tuplex {
 
         return client;
     }
+
+    void AwsLambdaBackend::checkAndUpdateFunctionConcurrency(const std::shared_ptr<Aws::Lambda::LambdaClient>& client,
+                                                             size_t concurrency,
+                                                             const std::string& functionName,
+                                                             bool provisioned) {
+        if(provisioned) {
+            throw std::runtime_error("Provisioned concurrency not yet supported...");
+        } else {
+            // check concurrency & adjust (may fail with account limits...)
+            Aws::Lambda::Model::GetFunctionConcurrencyRequest req;
+            req.SetFunctionName(functionName.c_str());
+            auto outcome = client->GetFunctionConcurrency(req);
+            if(!outcome.IsSuccess()) {
+                logger().error("Failed to retrieve function concurrency");
+            } else {
+                auto& result = outcome.GetResult();
+                _functionConcurrency = result.GetReservedConcurrentExecutions();
+
+                // different than what is desired?
+                if(_functionConcurrency != concurrency) {
+                    auto concurrency_description = std::to_string(_functionConcurrency);
+                    if(0 == _functionConcurrency)
+                        concurrency_description = "(no reserved concurrency)";
+                    logger().info("Adjusting reserved concurrency from " + concurrency_description + " to " + std::to_string(concurrency));
+
+                    // update function
+                    Aws::Lambda::Model::PutFunctionConcurrencyRequest u_req;
+                    u_req.SetFunctionName(functionName.c_str());
+                    u_req.SetReservedConcurrentExecutions(concurrency);
+
+                    auto outcome = client->PutFunctionConcurrency(u_req);
+                    if(!outcome.IsSuccess()) {
+                        // check error
+                        auto &error = outcome.GetError();
+                        auto statusCode = static_cast<int>(error.GetResponseCode());
+                        auto errorMessage = std::string(error.GetMessage().c_str());
+                        auto errorName = std::string(error.GetExceptionName().c_str());
+
+                        // check if it was invalid param
+                        if(error.GetErrorType() == Aws::Lambda::LambdaErrors::INVALID_PARAMETER_VALUE) {
+                            // get max allowed concurrency from account & adjust
+                            //Aws::Lambda::Model::
+                            Aws::Lambda::Model::GetAccountSettingsRequest a_req;
+                            auto outcome = client->GetAccountSettings(a_req);
+                            if(!outcome.IsSuccess()) {
+                                auto& error = outcome.GetError();
+                                logger().error("Failed to retrieve account settings, can not adjust invalid concurrency configuration. Details: " + std::string(error.GetMessage().c_str()));
+                                return;
+                            } else {
+                                // check what the limit is, adjust accordingly
+                                auto& result = outcome.GetResult();
+                                auto unreserved_capacity = result.GetAccountLimit().GetUnreservedConcurrentExecutions();
+
+                                // unreserved must be at least 100
+                                if(unreserved_capacity > AWS_MINIMUM_UNRESERVED_CONCURRENCY)
+                                    unreserved_capacity -= AWS_MINIMUM_UNRESERVED_CONCURRENCY;
+                                else {
+                                    throw std::runtime_error("No account capacity remaining, can't assign any concurrency to LAMBDA function " + _functionName);
+                                }
+
+                                auto max_account_concurrency = result.GetAccountLimit().GetConcurrentExecutions();
+                                auto concurrency_to_assign = unreserved_capacity + _functionConcurrency;
+                                std::stringstream ss;
+                                ss<<"""Account has overall concurrency limit of "<<max_account_concurrency
+                                  <<", remaining capacity of "<<unreserved_capacity
+                                  <<": Can assign maximum of "<<concurrency_to_assign<<" to function "<<_functionName<<".";
+                                logger().info(ss.str());
+
+                                // assign concurrency to assign
+                                Aws::Lambda::Model::PutFunctionConcurrencyRequest u_req;
+                                u_req.SetFunctionName(functionName.c_str());
+                                u_req.SetReservedConcurrentExecutions(concurrency_to_assign);
+                                auto outcome = client->PutFunctionConcurrency(u_req);
+                                if(!outcome.IsSuccess()) {
+                                    auto &error = outcome.GetError();
+                                    auto statusCode = static_cast<int>(error.GetResponseCode());
+                                    auto errorMessage = std::string(error.GetMessage().c_str());
+                                    auto errorName = std::string(error.GetExceptionName().c_str());
+                                    throw std::runtime_error("internal error assigning maximum, remaining capacity to Lambda runner.");
+                                } else {
+                                    logger().info("Used maximum available concurrency of "
+                                    + std::to_string(concurrency_to_assign) + " for Lambda runner.");
+                                    _functionConcurrency = concurrency_to_assign;
+                                }
+                            }
+                        }
+
+                        logger().error("Failed to update concurrency with error " + errorName + ", details: " + errorMessage);
+                    } else {
+                        auto& result = outcome.GetResult();
+                        _functionConcurrency = result.GetReservedConcurrentExecutions();
+                        logger().info("Function concurrency adjusted to " + std::to_string(_functionConcurrency));
+                    }
+                }
+            }
+        }
+
+        if(0 == _functionConcurrency) {
+            // issue message & set dummy limit of 100
+            logger().info("Function is treated as unreserved concurrency, thus AWS Limit of " + std::to_string(AWS_MINIMUM_UNRESERVED_CONCURRENCY) + " applies.");
+            _functionConcurrency = AWS_MINIMUM_UNRESERVED_CONCURRENCY;
+        }
+
+    }
+
 
     std::vector<std::tuple<std::string, size_t> >
     AwsLambdaBackend::decodeFileURIs(const std::vector<Partition *> &partitions, bool invalidate) {

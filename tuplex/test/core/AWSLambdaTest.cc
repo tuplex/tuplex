@@ -374,8 +374,7 @@ TEST_F(AWSTest, FullZillowPipeline) {
 
     // use 6 threads and 10GB of RAM
     opt.set("tuplex.aws.lambdaMemory", "10000");
-
-
+    opt.set("tuplex.aws.maxConcurrency", "800");
 
     string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
 

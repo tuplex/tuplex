@@ -88,6 +88,12 @@ namespace tuplex {
 
         void reset();
 
+        void checkAndUpdateFunctionConcurrency(const std::shared_ptr<Aws::Lambda::LambdaClient>& client,
+                                               size_t concurrency,
+                                               const std::string& functionName,
+                                               bool provisioned=false);
+        size_t _functionConcurrency;
+
         URI _scratchDir;
         bool _deleteScratchDirOnShutdown;
         /*!

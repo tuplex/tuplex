@@ -62,7 +62,9 @@ namespace tuplex {
                                              EndPointMode outMode=EndPointMode::UNKNOWN) {
         using namespace std;
 
+        // Indicators for stage
         bool hasFilter = false;
+        bool hasInputExceptions = false;
         // step 1: break up pipeline according to cost model
         // go through nodes
         queue<LogicalOperator*> q; q.push(root);
@@ -186,7 +188,6 @@ namespace tuplex {
         //   --> indicates how the hashtable values should be converted to partitions)
         auto hashGroupedDataType = AggregateType::AGG_NONE;
 
-        bool hasInputExceptions = false;
         assert(!ops.empty());
         LogicalOperator* ioNode = nullptr; // needed to reconstruct when IO is separated from rest
         if(ops.front()->isDataSource()) {
@@ -234,6 +235,8 @@ namespace tuplex {
             outputMode = outMode;
         }
 
+        // Need to update indices input exceptions in the case that input exceptions exist, the pipeline has filters, and the
+        // user wants to merge exceptions in order.
         bool updateInputExceptions = hasFilter && hasInputExceptions && _context.getOptions().OPT_MERGE_EXCEPTIONS_INORDER();
 
         // create trafostage via builder pattern

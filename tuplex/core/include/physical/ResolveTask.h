@@ -35,8 +35,14 @@ namespace tuplex {
         /*!
          * create a new resolve task
          * @param stageID to which task belongs to
+         * @param contextID to which context belongs to
          * @param partitions input rows with normal case
-         * @param exceptions input rows for exceptions, in exception format
+         * @param runtimeExceptions input rows for exceptions, in exception format
+         * @param inputExceptions schema violations that occur during data loading
+         * @param numInputExceptions number of input exceptions belonging to partitions
+         * @param inputExceptionIndex starting index within the vector
+         * @param inputExceptionOffset starting offset within the starting partition
+         * @param operatorIDsAffectedByResolvers operators that are followed by resolvers in the pipeline
          * @param inputSchema input schema of exception rows
          * @param outputSchema output schema which resolution must adhere to
          * @param mergeRows whether to merge rows in order (makes only sense when no hashjoin is involved)

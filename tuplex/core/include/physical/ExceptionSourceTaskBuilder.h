@@ -15,6 +15,10 @@
 
 namespace tuplex {
     namespace codegen {
+        /*!
+         * Class used to process tuplex partitions through the pipeline when both input exceptions and filters are
+         * present. This is necessary to update the row indices of any input exceptions if rows are filtered out.
+         */
         class ExceptionSourceTaskBuilder : public BlockBasedTaskBuilder {
         private:
             void createMainLoop(llvm::Function* read_block_func, bool terminateEarlyOnLimitCode);

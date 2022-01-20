@@ -18,8 +18,8 @@ namespace tuplex {
     class ParallelizeOperator : public LogicalOperator {
 
         std::vector<Partition*> _partitions; // data, conforming to majority type
-        std::vector<Partition*> _generalCasePartitions;
-        std::vector<Partition*> _pythonObjects;
+        std::vector<Partition*> _pythonObjects; // schema violations stored for interpreter processing as python objects
+        // maps partitions to their corresponding python objects
         std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> _inputPartitionToPythonObjectsMap;
         std::vector<std::string> _columnNames;
 

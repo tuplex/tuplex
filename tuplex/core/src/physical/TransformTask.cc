@@ -570,9 +570,6 @@ namespace tuplex {
             expInd++;
         }
 
-        delete[] expPtrs;
-        delete[] expPtrSizes;
-
         // go over all input partitions.
         for(auto inputPartition : _inputPartitions) {
             // lock ptr, extract number of rows ==> store them
@@ -597,6 +594,9 @@ namespace tuplex {
             if(_invalidateSourceAfterUse)
                 inputPartition->invalidate();
         }
+
+        delete[] expPtrs;
+        delete[] expPtrSizes;
 
         for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
             _inputExceptions[i]->unlock();

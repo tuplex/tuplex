@@ -970,6 +970,8 @@ namespace tuplex {
         uint8_t* ptr = (uint8_t*)(rawPtr + 1);
         size_t numBytesSerialized = 0;
 
+        auto prevExpOffset = 0;
+        auto prevExpInd = 0;
         auto curNormalPartitionInd = 0;
         auto numNewExps = 0;
 
@@ -997,13 +999,15 @@ namespace tuplex {
                 numBytesSerialized = 0;
             }
 
+            // Check if we have reached the number of exceptions in the input partition
+            // Record the current exception index and offset and iterate to next one
             auto curNormalPartition = normalPartitions[curNormalPartitionInd];
             auto normalUUID = uuidToString(curNormalPartition->uuid());
             auto numExceptionsInPartition = _inputPartitionToPythonObjectsMap[normalUUID].numExceptions;
             if (numNewExps >= numExceptionsInPartition) {
-                auto expPartitionStartInd = partitions.size();
-                auto expPartitionsStartOff = *rawPtr - 1;
-                _inputPartitionToPythonObjectsMap[normalUUID] = ExceptionInfo(numExceptionsInPartition, expPartitionStartInd, expPartitionsStartOff);
+                _inputPartitionToPythonObjectsMap[normalUUID] = ExceptionInfo(numExceptionsInPartition, prevExpInd, prevExpOffset);
+                prevExpOffset = *rawPtr;
+                prevExpInd = partitions.size();
                 numNewExps = 0;
                 curNormalPartitionInd++;
             }
@@ -1019,26 +1023,14 @@ namespace tuplex {
             numNewExps += 1;
         }
 
+        // Record mapping for normal last partition
+        auto curNormalPartition = normalPartitions[curNormalPartitionInd];
+        auto normalUUID = uuidToString(curNormalPartition->uuid());
+        auto numExceptionsInPartition = _inputPartitionToPythonObjectsMap[normalUUID].numExceptions;
+        _inputPartitionToPythonObjectsMap[normalUUID] = ExceptionInfo(numExceptionsInPartition, prevExpInd, prevExpOffset);
+
         partition->unlockWrite();
         partitions.push_back(partition);
-
-//        int eInd = 0;
-//        int eOff = 0;
-//        auto eNumRows = partitions[eInd]->getNumRows();
-//        for (const auto & p : normalPartitions) {
-//            auto info = _inputPartitionToPythonObjectsMap[uuidToString(p->uuid())];
-//            auto numExceptions = info.numExceptions;
-//            _inputPartitionToPythonObjectsMap[uuidToString(p->uuid())] = ExceptionInfo(numExceptions, eInd, eOff);
-//            while (eOff + numExceptions >= eNumRows) {
-//                numExceptions -= eNumRows - eOff;
-//                eOff = 0;
-//                eInd++;
-//                if (eInd < partitions.size()) {
-//                    eNumRows = partitions[eInd]->getNumRows();
-//                }
-//            }
-//            eOff += numExceptions;
-//        }
 
         return partitions;
     }

@@ -207,6 +207,7 @@ namespace tuplex {
         info.reused = container_reused();
         info.requestId = g_lambda_req->request_id.c_str();
         info.uuid = uuidToString(container_id());
+        info.requestsServed = g_num_requests_served;
         info.msRemaining = chrono::duration_cast<chrono::milliseconds, long>(g_lambda_req->get_time_remaining()).count();
         info.startTimestamp = g_start_timestamp;
         std::chrono::high_resolution_clock clock;
@@ -315,6 +316,8 @@ public:
 tuplex::messages::InvocationResponse lambda_main(aws::lambda_runtime::invocation_request const& lambda_req) {
 
     g_lambda_req = &lambda_req;
+    g_num_requests_served++;
+
     using namespace tuplex;
     using namespace std;
 

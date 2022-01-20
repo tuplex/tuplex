@@ -402,11 +402,12 @@ namespace tuplex {
                              Aws::MakeShared<AwsLambdaBackendCallerContext>(_tag.c_str(), this, req.SerializeAsString(), taskID));
     }
 
-    std::set<std::string> AwsLambdaBackend::performWarmup(size_t concurrency, size_t timeOutInMs, size_t delayInMs) {
+    std::set<std::string> AwsLambdaBackend::performWarmup(const std::vector<int>& countsToInvoke,
+                                                          size_t timeOutInMs,
+                                                          size_t baseDelayInMs) {
 
         //            size_t numWarmingRequests = 50;
         std::set<std::string> containerIds;
-        size_t numLambdasToInvoke = concurrency - 1;
         logger().info("Warming up containers...");
         // do a single synced request (else reuse will occur!)
         // Tuplex request
@@ -416,7 +417,9 @@ namespace tuplex {
         // specific warmup message contents
         auto wm = std::make_unique<messages::WarmupMessage>();
         wm->set_timeoutinms(timeOutInMs);
-        wm->set_invocationcount(numLambdasToInvoke);
+        wm->set_basedelayinms(baseDelayInMs);
+        for(auto count : countsToInvoke)
+            wm->add_invocationcount(count);
         req.set_allocated_warmup(wm.release());
 
         // construct req object
@@ -513,7 +516,7 @@ namespace tuplex {
 //            for(int i = 0; i < 10; ++i) {
                 logger().info("Performing warmup.");
                 auto before_count = containerIds.size();
-                auto ids = performWarmup();
+                auto ids = performWarmup({20, 10, 4}); // 800 total invocations??
                 for(auto id : ids)
                     containerIds.insert(id);
                 auto after_count = containerIds.size();

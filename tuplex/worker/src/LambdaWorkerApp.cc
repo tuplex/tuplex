@@ -41,6 +41,7 @@ namespace tuplex {
         std::string tag;
         std::string functionName;
         size_t timeOutInMs;
+        size_t baseDelayInMs;
         std::chrono::high_resolution_clock::time_point tstart; // start point of context
         std::shared_ptr<Aws::Lambda::LambdaClient> client;
 
@@ -72,12 +73,14 @@ namespace tuplex {
         private:
             SelfInvocationContext* _ctx;
             uint32_t _no;
+            messages::WarmupMessage _wm;
         public:
             CallbackContext() = delete;
-            CallbackContext(SelfInvocationContext* ctx, uint32_t invocationNo) : _ctx(ctx), _no(invocationNo) {}
+            CallbackContext(SelfInvocationContext* ctx, uint32_t invocationNo, messages::WarmupMessage wm) : _ctx(ctx), _no(invocationNo), _wm(wm) {}
 
             SelfInvocationContext* ctx() const { return _ctx; }
             uint32_t no() const { return _no; }
+            const messages::WarmupMessage& message() const { return _wm; }
         };
     };
 
@@ -138,18 +141,28 @@ namespace tuplex {
                         // logger.info("container reused, invoke again.");
                         // invoke again (do not change count)
 
-                        // sleep for a bit though
-                        std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 50 + 5));
-
                         // Tuplex request
                         messages::InvocationRequest req;
                         req.set_type(messages::MessageType::MT_WARMUP);
 
+                        const auto& original_message = callback_ctx->message();
+                        vector<size_t> remaining_counts;
+                        for(unsigned i = 1; i < original_message.invocationcount_size(); ++i)
+                            remaining_counts.push_back(original_message.invocationcount(i));
+
                         // specific warmup message contents
                         auto wm = std::make_unique<messages::WarmupMessage>();
                         wm->set_timeoutinms(self_ctx->timeOutInMs); // remaining time?
-                        wm->set_invocationcount(0); // do not self-invoke again? Or should they?
+                        wm->set_basedelayinms(self_ctx->baseDelayInMs);
+                        for(auto count : remaining_counts)
+                            wm->add_invocationcount(count);
                         req.set_allocated_warmup(wm.release());
+
+                        messages::WarmupMessage message;
+                        message.set_timeoutinms(self_ctx->timeOutInMs);
+                        message.set_basedelayinms(self_ctx->baseDelayInMs);
+                        for(auto count : remaining_counts)
+                            message.add_invocationcount(count);
 
                         // construct invocation request
                         Aws::Lambda::Model::InvokeRequest invoke_req;
@@ -166,7 +179,10 @@ namespace tuplex {
 
                         self_ctx->client->InvokeAsync(invoke_req,
                                                       SelfInvocationContext::lambdaCallback,
-                                                      Aws::MakeShared<SelfInvocationContext::CallbackContext>(self_ctx->tag.c_str(), self_ctx, callback_ctx->no()));
+                                                      Aws::MakeShared<SelfInvocationContext::CallbackContext>(self_ctx->tag.c_str(),
+                                                                                                              self_ctx,
+                                                                                                              callback_ctx->no(),
+                                                                                                              message));
                     } else {
                         // atomic decref
                         self_ctx->numPendingRequests.fetch_add(-1, std::memory_order_release);
@@ -197,7 +213,9 @@ namespace tuplex {
     // helper function to self-invoke quickly (creates new client!)
     std::vector<ContainerInfo> selfInvoke(const std::string& functionName,
                                         size_t count,
+                                        const std::vector<size_t>& recursive_counts,
                                         size_t timeOutInMs,
+                                        size_t baseDelayInMs,
                                         const AWSCredentials& credentials,
                                         const NetworkSettings& ns,
                                         std::string tag) {
@@ -239,6 +257,7 @@ namespace tuplex {
         ctx.client = Aws::MakeShared<Aws::Lambda::LambdaClient>(tag.c_str(), cred, clientConfig);
         ctx.tag = tag;
         ctx.timeOutInMs = timeOutInMs;
+        ctx.baseDelayInMs = baseDelayInMs;
         ctx.functionName = functionName;
 
         double timeout = (double)timeOutInMs / 1000.0;
@@ -252,8 +271,10 @@ namespace tuplex {
 
             // specific warmup message contents
             auto wm = std::make_unique<messages::WarmupMessage>();
-            wm->set_timeoutinms(timeOutInMs);
-            wm->set_invocationcount(0); // do not self-invoke again? Or should they?
+            wm->set_timeoutinms(baseDelayInMs > timeOutInMs ? baseDelayInMs : timeOutInMs - baseDelayInMs);
+            wm->set_basedelayinms(baseDelayInMs);
+            for(auto count : recursive_counts)
+                wm->add_invocationcount(count);
             req.set_allocated_warmup(wm.release());
 
             // construct invocation request
@@ -338,29 +359,68 @@ namespace tuplex {
     }
 
     int LambdaWorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
+        using namespace std;
 
         _messageType = req.type();
 
         // check message type
         if(req.type() == messages::MessageType::MT_WARMUP) {
             logger().info("Received warmup message");
-            // use a delay of 75ms to ensure other lambdas can get warmed up (75ms)
-            std::this_thread::sleep_for(std::chrono::milliseconds(75));
-            // should use fan out and delay curve?
-            // --> i.e. need to avoid reuse!
-            // encode as part of message!
-
             size_t selfInvokeCount = 0;
+            vector<size_t> recursive_counts;
             size_t timeOutInMs = 100;
+            size_t baseDelayInMs = 75;
             if(req.has_warmup()) {
-                selfInvokeCount = req.warmup().invocationcount();
+                for(unsigned i = 0; i < req.warmup().invocationcount_size(); ++i) {
+                    if(0 == i)
+                        selfInvokeCount = req.warmup().invocationcount(i);
+                    else
+                        recursive_counts.push_back(req.warmup().invocationcount(i));
+                }
+
                 timeOutInMs = req.warmup().timeoutinms();
+                baseDelayInMs = req.warmup().basedelayinms();
             }
 
             // use self invocation
             if(selfInvokeCount > 0) {
                 logger().info("invoking " + pluralize(selfInvokeCount, "other lambda") + " (timeout: " + std::to_string(timeOutInMs) + "ms)");
-                _invokedContainers = selfInvoke(_functionName, selfInvokeCount, timeOutInMs, _credentials, _networkSettings);
+                Timer timer;
+                auto ret = selfInvoke(_functionName,
+                                                selfInvokeCount,
+                                                recursive_counts,
+                                                timeOutInMs,
+                                                baseDelayInMs,
+                                                _credentials,
+                                                _networkSettings);
+
+                // clean containers
+                std::unordered_map<std::string, ContainerInfo> uniqueContainers;
+                for(auto info : ret) {
+                    auto it = uniqueContainers.find(info.uuid);
+                    if(it == uniqueContainers.end())
+                        uniqueContainers[info.uuid] = info;
+                    else {
+                        // update if more recent (only for reused, new should be unique!)
+                        if(it->second.reused && it->second.msRemaining >= info.msRemaining) {
+                            it->second = info;
+                        }
+
+                        if(!it->second.reused)
+                            logger().error("internal error, 2x new with unique ID?");
+                    }
+                }
+
+                _invokedContainers.clear();
+                for(auto keyval : uniqueContainers) {
+                    _invokedContainers.push_back(keyval.second);
+                }
+
+                // wait till delay for this func is reached
+                double delayForThis = static_cast<double>(recursive_counts.size() * baseDelayInMs) / 1000.0;
+                while(timer.time() < delayForThis)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
                 logger().info("warmup done.");
             }
 

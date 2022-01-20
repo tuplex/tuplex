@@ -24,6 +24,7 @@ namespace tuplex {
         std::string requestId; //! Lambda Request ID
         std::string uuid; //! uuid of container
         uint32_t msRemaining; //! how many milliseconds remain of this container when info was added
+        uint32_t requestsServed; //! how many requests did this container already serve? (incl. the current one)
         uint64_t startTimestamp; //! when container was started
         uint64_t deadlineTimestamp; //! when container will shutdown/expire
 
@@ -33,6 +34,7 @@ namespace tuplex {
                                                              requestId(info.requestid().c_str()),
                                                              uuid(info.uuid().c_str()),
                                                              msRemaining(info.msremaining()),
+                                                             requestsServed(info.requestsserved()),
                                                              startTimestamp(info.start()),
                                                              deadlineTimestamp(info.deadline()) {
 
@@ -46,6 +48,7 @@ namespace tuplex {
             c->set_requestid(requestId.c_str());
             c->set_uuid(uuid.c_str());
             c->set_msremaining(msRemaining);
+            c->set_requestsserved(requestsServed);
             c->set_start(startTimestamp);
             c->set_deadline(deadlineTimestamp);
         }
@@ -103,10 +106,22 @@ namespace tuplex {
 
     extern std::vector<ContainerInfo> selfInvoke(const std::string& functionName,
                                                size_t count,
+                                               const std::vector<size_t>& recursive_counts,
                                                size_t timeOutInMs,
+                                               size_t baseDelayInMs,
                                                const tuplex::AWSCredentials& credentials,
                                                const NetworkSettings& ns,
                                                std::string tag="lambda");
+
+    inline std::vector<ContainerInfo> selfInvoke(const std::string& functionName,
+                                                 size_t count,
+                                                 size_t timeOutInMs,
+                                                 size_t baseDelayInMs,
+                                                 const tuplex::AWSCredentials& credentials,
+                                                 const NetworkSettings& ns,
+                                                 std::string tag="lambda") {
+        return selfInvoke(functionName, count, timeOutInMs, baseDelayInMs, {}, credentials, ns, tag);
+    }
 }
 
 #endif

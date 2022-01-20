@@ -73,8 +73,11 @@ message WorkerSettings {
 }
 
 message WarmupMessage {
-    uint32 invocationCount = 1;
-    uint32 timeOutInMs = 2;
+    // how many lambdas should each Lambda invoke? Recursive, i.e. {1, 1, 1} means the first Lambda invokes another
+    // lambda, that again another etc. The total wait time thereby is baseDelay * depth
+    repeated uint32 invocationCount = 1;
+    uint32 baseDelayInMs = 2;
+    uint32 timeOutInMs = 3;
 }
 
 message InvocationRequest {
@@ -96,8 +99,9 @@ message ContainerInfo {
     string requestId = 2;
     string uuid = 3;
     uint32 msRemaining = 4;
-    uint64 start = 5;
-    uint64 deadline = 6;
+    uint32 requestsServed = 5;
+    uint64 start = 6;
+    uint64 deadline = 7;
 }
 
 message InvocationResponse {

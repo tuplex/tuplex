@@ -131,7 +131,7 @@ namespace tuplex {
 
         void abortRequestsAndFailWith(int returnCode, const std::string& errorMessage);
 
-        std::set<std::string> performWarmup(size_t concurrency=200, size_t timeOutInMs=4000, size_t delayInMs=75);
+        std::set<std::string> performWarmup(const std::vector<int>& countsToInvoke, size_t timeOutInMs=4000, size_t baseDelayInMs=75);
 
         /*!
          * print extended lambda statistics out

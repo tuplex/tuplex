@@ -120,7 +120,7 @@ namespace tuplex {
                                                  const tuplex::AWSCredentials& credentials,
                                                  const NetworkSettings& ns,
                                                  std::string tag="lambda") {
-        return selfInvoke(functionName, count, timeOutInMs, baseDelayInMs, {}, credentials, ns, tag);
+        return selfInvoke(functionName, count, {}, timeOutInMs, baseDelayInMs, credentials, ns, tag);
     }
 }
 

@@ -271,11 +271,18 @@ namespace tuplex {
 
             // specific warmup message contents
             auto wm = std::make_unique<messages::WarmupMessage>();
-            wm->set_timeoutinms(baseDelayInMs > timeOutInMs ? baseDelayInMs : timeOutInMs - baseDelayInMs);
+            auto invoked_timeout = baseDelayInMs > timeOutInMs ? baseDelayInMs : timeOutInMs - baseDelayInMs;
+            wm->set_timeoutinms(invoked_timeout);
             wm->set_basedelayinms(baseDelayInMs);
             for(auto count : recursive_counts)
                 wm->add_invocationcount(count);
             req.set_allocated_warmup(wm.release());
+
+            messages::WarmupMessage message;
+            message.set_timeoutinms(invoked_timeout);
+            message.set_basedelayinms(baseDelayInMs);
+            for(auto count : recursive_counts)
+                message.add_invocationcount(count);
 
             // construct invocation request
             Aws::Lambda::Model::InvokeRequest invoke_req;
@@ -295,7 +302,7 @@ namespace tuplex {
                 ctx.numPendingRequests.fetch_add(1, std::memory_order_release);
                 ctx.client->InvokeAsync(invoke_req,
                                         SelfInvocationContext::lambdaCallback,
-                                        Aws::MakeShared<SelfInvocationContext::CallbackContext>(tag.c_str(), &ctx, i));
+                                        Aws::MakeShared<SelfInvocationContext::CallbackContext>(tag.c_str(), &ctx, i, message));
             }
         }
 

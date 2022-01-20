@@ -414,7 +414,7 @@ TEST(BasicInvocation, SelfInvoke) {
 
     initAWS(cred, ns);
 
-    auto ids = selfInvoke("tuplex-lambda-runner", 4, 1500, cred, ns);
+    auto ids = selfInvoke("tuplex-lambda-runner", 4, 1500, 75, cred, ns);
 
     shutdownAWS();
 }

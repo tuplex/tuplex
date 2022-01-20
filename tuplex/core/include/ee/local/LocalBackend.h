@@ -66,7 +66,7 @@ namespace tuplex {
         void freeExecutors();
 
 
-        std::vector<IExecutorTask*> createLoadAndTransformToMemoryTasks(TransformStage* tstage, const ContextOptions& options,  std::shared_ptr<TransformStage::JITSymbols> syms);
+        std::vector<IExecutorTask*> createLoadAndTransformToMemoryTasks(TransformStage* tstage, const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms);
         void executeTransformStage(TransformStage* tstage);
 
 

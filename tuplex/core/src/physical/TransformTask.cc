@@ -545,7 +545,8 @@ namespace tuplex {
 
         auto numInputExceptions = _inputExceptionInfo.numExceptions;
         auto inputExceptionIndex = _inputExceptionInfo.exceptionIndex;
-        auto inputExceptionOffset = _inputExceptionInfo.exceptionOffset;
+        auto inputExceptionRowOffset = _inputExceptionInfo.exceptionRowOffset;
+        auto inputExceptionByteOffset = _inputExceptionInfo.exceptionByteOffset;
 
         // First, prepare the input exception partitions to pass into the code-gen
         // This is done to simplify the LLVM code. We will end up passing it an
@@ -559,21 +560,18 @@ namespace tuplex {
         for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
             auto numRows = _inputExceptions[i]->getNumRows();
             auto ptr = _inputExceptions[i]->lock();
-
             // If its the first partition, we need to account for the offset
             if (i == inputExceptionIndex) {
-                numRows -= inputExceptionOffset;
-                // Iterate through partition to correct offset
-                for (int j = 0; j < inputExceptionOffset; ++j) {
-                    auto ib = (int64_t *) ptr;
-                    auto eSize = ib[3];
-                    ptr += eSize + 4 * sizeof(int64_t); // eSize + 4 int fields of the exception
-                }
+                numRows -= inputExceptionRowOffset;
+                ptr += inputExceptionByteOffset;
             }
             expPtrSizes[expInd] = numRows;
             expPtrs[expInd] = (uint8_t *) ptr;
             expInd++;
         }
+
+        delete[] expPtrs;
+        delete[] expPtrSizes;
 
         // go over all input partitions.
         for(auto inputPartition : _inputPartitions) {

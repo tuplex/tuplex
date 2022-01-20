@@ -82,7 +82,8 @@ namespace tuplex {
                                                             _inputExceptions(inputExceptions),
                                                             _numInputExceptions(inputExceptionInfo.numExceptions),
                                                             _inputExceptionIndex(inputExceptionInfo.exceptionIndex),
-                                                            _inputExceptionOffset(inputExceptionInfo.exceptionOffset),
+                                                            _inputExceptionRowOffset(inputExceptionInfo.exceptionRowOffset),
+                                                            _inputExceptionByteOffset(inputExceptionInfo.exceptionByteOffset),
                                                             _resolverOutputSchema(resolverOutputSchema),
                                                             _targetOutputSchema(targetNormalCaseOutputSchema),
                                                             _mergeRows(mergeRows),
@@ -217,7 +218,8 @@ namespace tuplex {
         std::vector<Partition*> _inputExceptions;
         size_t _numInputExceptions;
         size_t _inputExceptionIndex;
-        size_t _inputExceptionOffset;
+        size_t _inputExceptionRowOffset;
+        size_t _inputExceptionByteOffset;
         inline Schema commonCaseInputSchema() const { return _deserializerGeneralCaseOutput->getSchema(); }
         Schema                  _resolverOutputSchema; //! what the resolve functor produces
         Schema                  _targetOutputSchema; //! which schema the final rows should be in...

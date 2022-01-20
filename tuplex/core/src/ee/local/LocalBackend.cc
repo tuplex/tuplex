@@ -469,7 +469,7 @@ namespace tuplex {
     std::vector<IExecutorTask*> LocalBackend::createLoadAndTransformToMemoryTasks(
             TransformStage *tstage,
             const tuplex::ContextOptions &options,
-            std::shared_ptr<TransformStage::JITSymbols> syms) {
+            const std::shared_ptr<TransformStage::JITSymbols>& syms) {
 
         using namespace std;
         vector<IExecutorTask*> tasks;
@@ -789,42 +789,48 @@ namespace tuplex {
     void setExceptionInfo(const std::vector<Partition*> &normalOutput, const std::vector<Partition*> &exceptions, std::unordered_map<std::string, ExceptionInfo> &partitionToExceptionsMap) {
         if (exceptions.empty()) {
             for (const auto &p : normalOutput) {
-                partitionToExceptionsMap[uuidToString(p->uuid())] = ExceptionInfo(0, 0, 0);
+                partitionToExceptionsMap[uuidToString(p->uuid())] = ExceptionInfo();
             }
             return;
         }
 
         auto expRowCount = 0;
         auto expInd = 0;
-        auto expOff = 0;
+        auto expRowOff = 0;
+        auto expByteOff = 0;
+
         auto expNumRows = exceptions[0]->getNumRows();
         auto expPtr = exceptions[0]->lockWrite();
         auto rowsProcessed = 0;
         for (const auto &p : normalOutput) {
             auto pNumRows = p->getNumRows();
             auto curNumExps = 0;
-            auto curExpOff = expOff;
+            auto curExpOff = expRowOff;
             auto curExpInd = expInd;
+            auto curExpByteOff = expByteOff;
 
             while (*((int64_t *) expPtr) - rowsProcessed <= pNumRows + curNumExps && expRowCount < expNumRows) {
                 *((int64_t *) expPtr) -= rowsProcessed;
                 curNumExps++;
-                expOff++;
-                expPtr += ((int64_t *)expPtr)[3] + 4*sizeof(int64_t);
+                expRowOff++;
+                auto eSize = ((int64_t *)expPtr)[3] + 4*sizeof(int64_t);
+                expPtr += eSize;
+                expByteOff += eSize;
                 expRowCount++;
 
-                if (expOff == expNumRows && expInd < exceptions.size() - 1) {
+                if (expRowOff == expNumRows && expInd < exceptions.size() - 1) {
                     exceptions[expInd]->unlockWrite();
                     expInd++;
                     expPtr = exceptions[expInd]->lockWrite();
                     expNumRows = exceptions[expInd]->getNumRows();
-                    expOff = 0;
+                    expRowOff = 0;
+                    expByteOff = 0;
                     expRowCount = 0;
                 }
             }
 
             rowsProcessed += curNumExps + pNumRows;
-            partitionToExceptionsMap[uuidToString(p->uuid())] = ExceptionInfo(curNumExps, curExpInd, curExpOff);
+            partitionToExceptionsMap[uuidToString(p->uuid())] = ExceptionInfo(curNumExps, curExpInd, curExpOff, curExpByteOff);
         }
 
         exceptions[expInd]->unlockWrite();

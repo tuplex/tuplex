@@ -546,29 +546,33 @@ namespace tuplex {
         auto numInputExceptions = _inputExceptionInfo.numExceptions;
         auto inputExceptionIndex = _inputExceptionInfo.exceptionIndex;
         auto inputExceptionOffset = _inputExceptionInfo.exceptionOffset;
+
+        // First, prepare the input exception partitions to pass into the code-gen
+        // This is done to simplify the LLVM code. We will end up passing it an
+        // array of expPtrs which point to the first exception in their partition
+        // and expPtrSizes which tell how many exceptions are in that partition.
         auto arrSize = _inputExceptions.size() - inputExceptionIndex;
         auto expPtrs = new uint8_t*[arrSize];
         auto expPtrSizes = new int64_t[arrSize];
         int expInd = 0;
+        // Iterate through all exception partitions beginning at the one specified by the starting index
         for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
+            auto numRows = _inputExceptions[i]->getNumRows();
+            auto ptr = _inputExceptions[i]->lock();
+
+            // If its the first partition, we need to account for the offset
             if (i == inputExceptionIndex) {
-                auto ptr = _inputExceptions[i]->lockRaw();
-                auto numRows = *((int64_t *) ptr) - inputExceptionOffset; ptr += sizeof(int64_t);
+                numRows -= inputExceptionOffset;
+                // Iterate through partition to correct offset
                 for (int j = 0; j < inputExceptionOffset; ++j) {
-                    int64_t *ib = (int64_t *)ptr;
+                    auto ib = (int64_t *) ptr;
                     auto eSize = ib[3];
-                    ptr += eSize + 4 * sizeof(int64_t);
+                    ptr += eSize + 4 * sizeof(int64_t); // eSize + 4 int fields of the exception
                 }
-                expPtrSizes[expInd] = numRows;
-                expPtrs[expInd] = (uint8_t *) ptr;
-                expInd++;
-            } else {
-                auto ptr = _inputExceptions[i]->lockRaw();
-                auto numRows = *((int64_t *) ptr); ptr += sizeof(int64_t);
-                expPtrSizes[expInd] = numRows;
-                expPtrs[expInd] = (uint8_t *) ptr;
-                expInd++;
             }
+            expPtrSizes[expInd] = numRows;
+            expPtrs[expInd] = (uint8_t *) ptr;
+            expInd++;
         }
 
         // go over all input partitions.

@@ -1492,6 +1492,11 @@ namespace tuplex {
         // cout<<"*** git "<<resolvedTasks.size()<<" resolve tasks ***"<<endl;
         std::copy(resolvedTasks.cbegin(), resolvedTasks.cend(), std::back_inserter(tasks_result));
 
+        // Invalidate partitions after all resolve tasks execute because shared among tasks
+        for (auto& p : tstage->inputExceptions()) {
+            p->invalidate();
+        }
+
         // cout<<"*** total number of tasks to return is "<<tasks_result.size()<<endl;
         return tasks_result;
     }

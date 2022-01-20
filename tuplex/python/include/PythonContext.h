@@ -95,7 +95,7 @@ namespace tuplex {
          * @param opID parallelize operator ID
          * @return vector of exception partitions
          */
-        std::vector<Partition *> serializeExceptions(const std::vector<std::tuple<size_t, PyObject *>>& exceptions, int64_t opID);
+        std::vector<Partition *> serializeExceptions(const std::vector<std::tuple<size_t, PyObject *>>& exceptions, const std::vector<Partition*> &normalPartitions, int64_t opID);
 
         python::Type inferType(const boost::python::list &L) const;
 
@@ -123,7 +123,6 @@ namespace tuplex {
         // bad parallelize objects, i.e those who don't fit the inferred type
         std::vector<std::tuple<size_t, PyObject *>> _badParallelizeObjects;
 
-        std::vector<std::tuple<std::string, size_t>> _inputPartitionInfo;
         std::unordered_map<std::string, ExceptionInfo> _inputPartitionToPythonObjectsMap;
 
         inline PythonDataSet makeError(const std::string& message) {

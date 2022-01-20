@@ -87,6 +87,8 @@ namespace tuplex {
     }
 
     std::shared_ptr<Aws::Lambda::LambdaClient> AwsLambdaBackend::makeClient() {
+        // Note: should have only a SINGLE context with Lambda backend...
+
         // init Lambda client
         Aws::Client::ClientConfiguration clientConfig;
 
@@ -211,14 +213,6 @@ namespace tuplex {
             }
             logger().info("Updated Lambda configuration successfully.");
         }
-
-        // concurrency?
-        // PutFunctionConcurrency
-
-        // Also need to check that Lambda is in ready status...
-
-        // print out timing info...
-
 
         delete fc;
 
@@ -514,7 +508,17 @@ namespace tuplex {
             // issue a couple self-invoke requests...
             Timer timer;
 
-            auto containerIds = performWarmup();
+            // warmup in multiple steps (for a maximum time...)
+            std::set<std::string> containerIds;
+//            for(int i = 0; i < 10; ++i) {
+                logger().info("Performing warmup.");
+                auto before_count = containerIds.size();
+                auto ids = performWarmup();
+                for(auto id : ids)
+                    containerIds.insert(id);
+                auto after_count = containerIds.size();
+                logger().info("Warmup gave " + std::to_string(after_count - before_count) + " new IDs (" + std::to_string(after_count) + " total)");
+//            }
 
             logger().info("Warmup yielded " + pluralize(containerIds.size(), "container id"));
             logger().info("Warmup took: " + std::to_string(timer.time()));
@@ -524,7 +528,7 @@ namespace tuplex {
 
         auto tstage = dynamic_cast<TransformStage *>(stage);
         if (!tstage)
-            throw std::runtime_error("only trafo stage from AWSLambdda backend yet supported");
+            throw std::runtime_error("only transform stage from AWS Lambda backend yet supported");
 
         vector <tuple<std::string, size_t>> uri_infos;
 

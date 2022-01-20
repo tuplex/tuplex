@@ -228,6 +228,7 @@ namespace tuplex {
 
         // needs to be put into separate list of python objects...
         // save index as well to merge back in order.
+        assert(_rowNumber >= _numUnresolved);
         _py_nonconfirming.push_back(std::make_tuple(_rowNumber - _numUnresolved, out_row));
     }
 

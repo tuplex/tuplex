@@ -37,6 +37,7 @@ namespace tuplex {
     class Executor;
     class Partition;
     class IBackend;
+    class ExceptionInfo;
 
     class Context {
     private:
@@ -265,7 +266,7 @@ namespace tuplex {
          */
         void setParallelizePythonObjects(DataSet *ds,
                                          const std::vector<Partition *>& pythonObjects,
-                                         const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>& inputPartitionToPythonObjectsMap);
+                                         const std::unordered_map<std::string, ExceptionInfo>& inputPartitionToPythonObjectsMap);
     };
     // needed for template mechanism to work
 #include <DataSet.h>

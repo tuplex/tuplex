@@ -245,7 +245,7 @@ namespace tuplex {
 
     void Context::setParallelizePythonObjects(DataSet *ds,
                                               const std::vector<Partition *>& pythonObjects,
-                                              const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>& inputPartitionToPythonObjectsMap) {
+                                              const std::unordered_map<std::string, ExceptionInfo>& inputPartitionToPythonObjectsMap) {
         assert(ds);
         auto parallelizeOp = (ParallelizeOperator *) ds->getOperator();
         assert(parallelizeOp);

@@ -15,7 +15,7 @@ namespace tuplex {
     ResultSet::ResultSet(const Schema& schema,
             const std::vector<Partition*>& partitions,
             const std::vector<Partition*>& exceptions,
-            const std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>>& partitionToExceptionsMap,
+            const std::unordered_map<std::string, ExceptionInfo>& partitionToExceptionsMap,
             const std::vector<std::tuple<size_t, PyObject*>> pyobjects,
             int64_t maxRows) : ResultSet::ResultSet() {
         for(Partition *p : partitions)

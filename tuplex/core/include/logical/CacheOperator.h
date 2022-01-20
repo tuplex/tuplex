@@ -81,7 +81,7 @@ namespace tuplex {
         bool isCached() const { return _cached; }
         std::vector<Partition*> cachedPartitions() const { return _normalCasePartitions; }
         std::vector<Partition*> cachedExceptions() const { return _generalCasePartitions; }
-        std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> partitionToExceptionsMap() const { return _partitionToExceptionsMap; }
+        std::unordered_map<std::string, ExceptionInfo> partitionToExceptionsMap() const { return _partitionToExceptionsMap; }
 
         size_t getTotalCachedRows() const;
 
@@ -111,7 +111,7 @@ namespace tuplex {
         std::vector<Partition*> _generalCasePartitions;   //! holds all data which is considered to be a normal-case violation,
                                                           //! i.e. which does not adhere to the normal case schema, but did not produce
                                                           //! an exception while being processed through the pipeline before
-        std::unordered_map<std::string, std::tuple<size_t, size_t, size_t>> _partitionToExceptionsMap; //! maps normal case partitions to corresponding general case ones
+        std::unordered_map<std::string, ExceptionInfo> _partitionToExceptionsMap; //! maps normal case partitions to corresponding general case ones
         std::vector<PyObject*>  _py_objects;              //! all python objects who do not adhere to the general case schema
         std::vector<std::string> _columns;
 

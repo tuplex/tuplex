@@ -543,8 +543,9 @@ namespace tuplex {
 
         auto functor = reinterpret_cast<codegen::read_block_exp_f>(_functor);
 
-        auto expPtrs = (uint8_t **) malloc((_inputExceptions.size() - _inputExceptionIndex) * sizeof(uint8_t *));
-        auto expPtrSizes = (int64_t *) malloc((_inputExceptions.size() - _inputExceptionIndex) * sizeof(int64_t));
+        auto arrSize = _inputExceptions.size() - _inputExceptionIndex;
+        auto expPtrs = new uint8_t*[arrSize];
+        auto expPtrSizes = new int64_t[arrSize];
         int expInd = 0;
         for (int i = _inputExceptionIndex; i < _inputExceptions.size(); ++i) {
             if (i == _inputExceptionIndex) {
@@ -595,8 +596,6 @@ namespace tuplex {
         for (int i = _inputExceptionIndex; i < _inputExceptions.size(); ++i) {
             _inputExceptions[i]->unlock();
         }
-        free(expPtrs);
-        free(expPtrSizes);
 
 #ifndef NDEBUG
         owner()->info("Trafo task memory source exhausted (" + pluralize(_inputPartitions.size(), "partition") + ", "
@@ -616,7 +615,7 @@ namespace tuplex {
         auto functor = reinterpret_cast<codegen::read_block_f>(_functor);
 
         // go over all input partitions.
-        for(auto inputPartition : _inputPartitions) {
+        for(const auto &inputPartition : _inputPartitions) {
             // lock ptr, extract number of rows ==> store them
             // lock raw & call functor!
             int64_t inSize = inputPartition->size();

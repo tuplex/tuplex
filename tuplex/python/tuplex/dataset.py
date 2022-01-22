@@ -28,6 +28,88 @@ class DataSet:
     def __init__(self):
         self._dataSet = None
 
+    def getDataLen(self):
+        data = self.collect()
+        if len(data) == 0:
+            return 0, 0
+        else:
+            return len(data), len(data[0])
+
+    def revTake(self, nRows = 5):
+        return self.collect()[-nRows:]
+
+    def _repr_html_(self):
+        rows_list = self.take()
+        total_row_cnt, total_col_cnt = self.getDataLen()
+        print('rowlist')
+        print(rows_list)
+        if len(rows_list) == 0:
+            header = '<th></th>\n'
+            rows = '<tr></tr>\n'
+        else:
+            header = '<th></th>\n'
+
+            if self.columns != None:
+                for x in self.columns:
+                    header += f'      <th>{x}</th>\n'
+            else:
+                for i in range(len(rows_list[0])):
+                    header += f'      <th>column {i + 1}</th>\n'
+
+            rows = ''
+            for i, r in enumerate(rows_list):
+                rows += '    <tr>\n'
+                rows += f'      <th>{i}</th>\n'
+                for data in r:
+                    rows += f'      <td>{data}</td>\n'
+                rows += '    </tr>\n'
+
+            # add the ...
+            rows += '    <tr>\n'
+            rows += '      <th>...</th>\n'
+            for i in range(total_col_cnt):
+                rows += '      <td>...</td>\n'
+            rows += '    </tr>\n'
+
+            lastData = self.revTake()
+            for i, r in enumerate(lastData):
+                rows += '    <tr>\n'
+                rows += f'      <th>{total_row_cnt - len(lastData) + i}</th>\n'
+                for data in r:
+                    rows += f'      <td>{data}</td>\n'
+                rows += '    </tr>\n'
+
+        html_template = (
+            '<div>\n'
+            '<style scoped>\n'
+            '    .dataframe tbody tr th:only-of-type {\n'
+            '        vertical-align: middle;\n'
+            '    }\n'
+            '\n'
+            '    .dataframe tbody tr th {\n'
+            '        vertical-align: top;\n'
+            '    }\n'
+            '\n'
+            '    .dataframe thead th {\n'
+            '        text-align: right;\n'
+            '    }\n'
+            '</style>\n'
+            '<table border="1" class="dataframe">\n'
+            '  <thead>\n'
+            '    <tr style="text-align: right;">\n'
+            f'{header}'
+            '    </tr>\n'
+            '  </thead>\n'
+            '  <tbody>\n'
+            f'{rows}'
+            '  </tbody>\n'
+            '</table>\n'
+            f'<p>{total_row_cnt} rows × {total_col_cnt} columns</p>\n'
+            '</div>'
+        )
+
+        return html_template
+
     def unique(self):
         """ removes duplicates from Dataset (out-of-order). Equivalent to a DISTINCT clause in a SQL-statement.
         Returns:

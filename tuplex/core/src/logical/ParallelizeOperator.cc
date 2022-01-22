@@ -109,9 +109,11 @@ namespace tuplex {
     }
 
     LogicalOperator *ParallelizeOperator::clone() {
-        auto copy = new ParallelizeOperator(getOutputSchema(), _partitions, columns(), _pythonObjects, _inputPartitionToPythonObjectsMap);
+        auto copy = new ParallelizeOperator(getOutputSchema(), _partitions, columns());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
+        copy->setPythonObjects(_pythonObjects);
+        copy->setInputPartitionToPythonObjectsMap(_inputPartitionToPythonObjectsMap);
         assert(getID() == copy->getID());
         return copy;
     }

@@ -39,7 +39,10 @@ echo "starting docker (this might take a while...)"
 # --> The preload is necessary as a shared version of python is used.
 # just use tplxlam as target, then run custom python script to package contents up.
 
-docker run --name lambda --rm -v $SRC_FOLDER:/code/tuplex -v $LOCAL_BUILD_FOLDER:/build tuplex/ci bash -c "export LD_LIBRARY_PATH=/opt/lambda-python/lib:\$LD_LIBRARY_PATH && /opt/lambda-python/bin/python3.8 -m pip install cloudpickle numpy && cd /build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DPYTHON3_EXECUTABLE=/opt/lambda-python/bin/python3.8 -DBOOST_ROOT=/opt/boost/python3.8/ -GNinja /code/tuplex && cmake --build . --target tplxlam && python3.8 /code/tuplex/python/zip_cc_runtime.py --input /build/dist/bin/tplxlam --runtime /build/dist/bin/tuplex_runtime.so --python /opt/lambda-python/bin/python3.8 --output /build/tplxlam.zip"
+# only release works, b.c. of size restriction
+BUILD_TYPE=Release
+
+docker run --name lambda --rm -v $SRC_FOLDER:/code/tuplex -v $LOCAL_BUILD_FOLDER:/build tuplex/ci bash -c "export LD_LIBRARY_PATH=/opt/lambda-python/lib:\$LD_LIBRARY_PATH && /opt/lambda-python/bin/python3.8 -m pip install cloudpickle numpy && cd /build && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DPYTHON3_EXECUTABLE=/opt/lambda-python/bin/python3.8 -DBOOST_ROOT=/opt/boost/python3.8/ -GNinja /code/tuplex && cmake --build . --target tplxlam && python3.8 /code/tuplex/python/zip_cc_runtime.py --input /build/dist/bin/tplxlam --runtime /build/dist/bin/tuplex_runtime.so --python /opt/lambda-python/bin/python3.8 --output /build/tplxlam.zip"
 DOCKER_EXIT_CODE=$?
 if [ "${DOCKER_EXIT_CODE}" -eq "0" ]; then
    echo "docker command run, zipped Lambda file can be found in: ${LOCAL_BUILD_FOLDER}/tplxlam.zip"

@@ -329,7 +329,7 @@ tuplex::messages::InvocationResponse lambda_main(aws::lambda_runtime::invocation
     // parse protobuf request
     tuplex::messages::InvocationRequest req;
     auto rc = google::protobuf::util::JsonStringToMessage(lambda_req.payload, &req);
-    if(rc != google::protobuf::util::Status::OK)
+    if(!rc.ok())
         throw std::runtime_error("could not parse json into protobuf message, bad parse for request");
 
     timer.mark_time("decode_request");

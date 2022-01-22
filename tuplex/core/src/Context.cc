@@ -410,7 +410,7 @@ namespace tuplex {
                 pythonObjectsMap[normalUUID] = ExceptionInfo(numExps, prevExpInd, prevExpRowOffset, prevExpByteOffset);
                 prevExpRowOffset = *rawPtr;
                 prevExpByteOffset = numBytesSerialized;
-                prevExpInd = normalPartitions.size();
+                prevExpInd = serializedPythonObjects.size();
                 numNewExps = 0;
                 curNormalPartitionInd++;
             }

@@ -12,9 +12,11 @@
 
 namespace tuplex {
     ParallelizeOperator::ParallelizeOperator(const Schema& schema,
-            std::vector<Partition*> partitions,
-            const std::vector<std::string>& columns) :  _partitions(partitions),
-            _columnNames(columns) {
+            const std::vector<Partition*>& partitions,
+            const std::vector<std::string>& columns,
+            const std::vector<Partition*> &pythonObjects,
+            const std::unordered_map<std::string, ExceptionInfo> &pythonObjectsMap) :  _partitions(partitions),
+            _columnNames(columns), _pythonObjects(pythonObjects), _inputPartitionToPythonObjectsMap(pythonObjectsMap) {
 
         setSchema(schema);
 
@@ -109,11 +111,9 @@ namespace tuplex {
     }
 
     LogicalOperator *ParallelizeOperator::clone() {
-        auto copy = new ParallelizeOperator(getOutputSchema(), _partitions, columns());
+        auto copy = new ParallelizeOperator(getOutputSchema(), _partitions, columns(), _pythonObjects, _inputPartitionToPythonObjectsMap);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
-        copy->setPythonObjects(getPythonObjects());
-        copy->setInputPartitionToPythonObjectsMap(getInputPartitionToPythonObjectsMap());
         assert(getID() == copy->getID());
         return copy;
     }

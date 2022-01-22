@@ -1046,7 +1046,6 @@ default:
         for(int i = _currentNormalPartitionIdx + 1; i < _partitions.size(); ++i) {
             _mergedRowsSink.unlock();
             _mergedRowsSink.partitions.push_back(_partitions[i]);
-            //_mergedPartitions.emplace_back(_normalCasePartitions[i]);
         }
 
         // overwrite merged partitions (& in future also exceptions!!!)

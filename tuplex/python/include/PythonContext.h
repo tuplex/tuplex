@@ -89,14 +89,6 @@ namespace tuplex {
         DataSet &parallelizeAnyType(boost::python::list &L, const python::Type &majType,
                                     const std::vector<std::string> &columns);
 
-        /*!
-         * serialize exceptions into partitions with pickled PyObjects
-         * @param exceptions map of row index to exception
-         * @param opID parallelize operator ID
-         * @return vector of exception partitions
-         */
-        std::vector<Partition *> serializeExceptions(const std::vector<std::tuple<size_t, PyObject *>>& exceptions, const std::vector<Partition*> &normalPartitions, int64_t opID);
-
         python::Type inferType(const boost::python::list &L) const;
 
         /*!
@@ -119,11 +111,6 @@ namespace tuplex {
 
         DataSet &
         strDictParallelize(PyObject *listObj, const python::Type &rowType, const std::vector<std::string> &columns);
-
-        // bad parallelize objects, i.e those who don't fit the inferred type
-        std::vector<std::tuple<size_t, PyObject *>> _badParallelizeObjects;
-
-        std::unordered_map<std::string, ExceptionInfo> _inputPartitionToPythonObjectsMap;
 
         inline PythonDataSet makeError(const std::string& message) {
             PythonDataSet pds;

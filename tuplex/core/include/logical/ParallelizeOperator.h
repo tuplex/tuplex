@@ -32,9 +32,7 @@ namespace tuplex {
         // this a root node
         ParallelizeOperator(const Schema& schema,
                             const std::vector<Partition*>& partitions,
-                            const std::vector<std::string>& columns,
-                            const std::vector<Partition*> &pythonObjects,
-                            const std::unordered_map<std::string, ExceptionInfo> &pythonObjectsMap);
+                            const std::vector<std::string>& columns);
 
         std::string name() override { return "parallelize"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::PARALLELIZE; }
@@ -51,8 +49,10 @@ namespace tuplex {
          */
         std::vector<tuplex::Partition*> getPartitions();
 
+        void setPythonObjects(const std::vector<Partition*> &pythonObjects) { _pythonObjects = pythonObjects; }
         std::vector<Partition *> getPythonObjects() { return _pythonObjects; }
 
+        void setInputPartitionToPythonObjectsMap(const std::unordered_map<std::string, ExceptionInfo>& pythonObjectsMap) { _inputPartitionToPythonObjectsMap = pythonObjectsMap; }
         std::unordered_map<std::string, ExceptionInfo> getInputPartitionToPythonObjectsMap() { return _inputPartitionToPythonObjectsMap; }
 
         Schema getInputSchema() const override { return getOutputSchema(); }

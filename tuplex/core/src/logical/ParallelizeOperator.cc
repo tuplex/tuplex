@@ -13,10 +13,8 @@
 namespace tuplex {
     ParallelizeOperator::ParallelizeOperator(const Schema& schema,
             const std::vector<Partition*>& partitions,
-            const std::vector<std::string>& columns,
-            const std::vector<Partition*> &pythonObjects,
-            const std::unordered_map<std::string, ExceptionInfo> &pythonObjectsMap) :  _partitions(partitions),
-            _columnNames(columns), _pythonObjects(pythonObjects), _inputPartitionToPythonObjectsMap(pythonObjectsMap) {
+            const std::vector<std::string>& columns) :  _partitions(partitions),
+            _columnNames(columns) {
 
         setSchema(schema);
 

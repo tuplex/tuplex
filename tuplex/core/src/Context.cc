@@ -445,12 +445,15 @@ namespace tuplex {
 
         assert(ds->_schema.getRowType() != python::Type::UNKNOWN);
 
+        auto op = new ParallelizeOperator(ds->_schema, ds->getPartitions(), ds->columns());
         std::vector<Partition*> serializedPythonObjects;
         std::unordered_map<std::string, ExceptionInfo> pythonObjectsMap;
-        serializePythonObjects(badParallelizeObjects, numExceptionsInPartition, ds->getPartitions(), ds->getOperator()->getID(), serializedPythonObjects, pythonObjectsMap);
+        serializePythonObjects(badParallelizeObjects, numExceptionsInPartition, ds->getPartitions(), op->getID(), serializedPythonObjects, pythonObjectsMap);
+        op->setPythonObjects(serializedPythonObjects);
+        op->setInputPartitionToPythonObjectsMap(pythonObjectsMap);
 
         // add new (root) node
-        ds->_operator = addOperator(new ParallelizeOperator(ds->_schema, ds->getPartitions(), ds->columns(), serializedPythonObjects, pythonObjectsMap));
+        ds->_operator = addOperator(op);
 
         // set dataset
         ds->_operator->setDataSet(ds);

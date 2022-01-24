@@ -43,6 +43,11 @@ def fix_zip_codes(zips):
 # save the run configuration
 output_path = args.output_path
 
+# if dir exists, remove
+
+# dask will fail if it is a directory else
+output_path = os.path.join(output_path, 'export-*.csv')
+
 # get the input files
 perf_paths = [args.data_path]
 if not os.path.isfile(args.data_path):

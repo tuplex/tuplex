@@ -100,7 +100,7 @@ In `AWS_Configuration.md` we provide the commands we used to configure the machi
 
 ### D) Experimentation Info
 
-For convenience we provide a top-level command-line interface `/tuplex.py` to carry out various tasks in order to reproduce the results. In order to carry out experiments, a couple steps to be performed after setting up a benchmark machine (as described in C) or `AWS_Setup.md` / `AWS_Configuration.md`), for which the CLI may be used:
+For convenience, we provide a top-level command-line interface `/tuplex.py` to carry out various tasks in order to reproduce the results. In order to carry out experiments, a couple steps to be performed after setting up a benchmark machine (as described in C) or `AWS_Setup.md` / `AWS_Configuration.md`), for which the CLI may be used:
 
 1. download & extract data  
     `./tuplex.py download --password <PASSWORD HERE>`

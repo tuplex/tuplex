@@ -8,6 +8,10 @@ import logging
 import subprocess
 import docker
 import gdown
+import sys
+
+#  meta targets, i.e. targets that are comprised of other targets
+meta_targets = ['all', 'zillow', 'tpch', 'flights']
 
 experiment_targets = ['all', 'zillow', 'flights', 'logs', '311',
                       'tpch', 'zillow/Z1', 'zillow/Z2', 'zillow/exceptions',
@@ -37,6 +41,30 @@ def run(target, num_runs, detach):
     """ run benchmarks for specific dataset. THIS MIGHT TAKE A WHILE! """
     logging.info('Running experiments for target {}'.format(target))
 
+    # experiment_targets = ['all', 'zillow', 'flights', 'logs', '311',
+    #                       'tpch', 'zillow/Z1', 'zillow/Z2', 'zillow/exceptions',
+    #                       'tpch/Q06', 'tpch/Q19', 'flights/breakdown', 'flights/flights']
+
+    targets = []
+    target = target.lower()
+
+    # decode compound targets...
+    if target == 'zillow':
+        targets += ['zillow/Z1', 'zillow/Z2', 'zillow/exceptions']
+    elif target == 'flights':
+        targets += ['flights/flights', 'flights/breakdown']
+    elif target == 'tpch':
+        targets += ['tpch/q06', 'tpch/q19']
+    elif target == 'all':
+        targets = [name.lower() for name in experiment_targets if name.lower() not in meta_targets]
+    else:
+        targets = [target]
+
+    targets = sorted(targets)
+
+    if len(targets) > 1:
+        logging.info('Target {} comprised of subtargets:\n\t- {}'.format(target, '\n\t- '.join(targets)))
+
     # docker client
     dc = docker.from_env()
 
@@ -56,25 +84,6 @@ def run(target, num_runs, detach):
 
     assert container is not None, 'container not valid?'
 
-    # experiment_targets = ['all', 'zillow', 'flights', 'logs', '311',
-    #                       'tpch', 'zillow/Z1', 'zillow/Z2', 'zillow/exceptions',
-    #                       'tpch/Q06', 'tpch/Q19', 'flights/breakdown', 'flights/flights']
-
-    targets = []
-    target = target.lower()
-
-    # decode compound targets...
-    if target == 'zillow':
-        targets += ['zillow/Z1', 'zillow/Z2', 'zillow/exceptions']
-    elif target == 'flights':
-        targets += ['flights/flights', 'flights/breakdown']
-    elif target == 'tpch':
-        targets += ['tpch/q06', 'tpch/q19']
-    elif target == 'all':
-        targets = [name.lower() for name in experiment_targets if name.lower() != 'all']
-    else:
-        targets = [target]
-
     for target in targets:
         # run individual targets
         # for these, the runbenchmark.sh scripts are used!
@@ -84,8 +93,8 @@ def run(target, num_runs, detach):
                      'zillow/exceptions': '/code/benchmarks/dirty_zillow/',
                      'logs': '/code/benchmarks/logs/',
                      '311': '/code/benchmarks/311/',
-                     'tpch/q06': '/code/benchmarks/Q06/',
-                     'tpch/q19': '/code/benchmarks/Q19/',
+                     'tpch/q06': '/code/benchmarks/tpch/Q06/',
+                     'tpch/q19': '/code/benchmarks/tpch/Q19/',
                      'flights/flights': '/code/benchmarks/flights/',
                      'flights/breakdown': '/code/benchmarks/flights/', }
 

@@ -50,6 +50,47 @@ namespace tuplex {
             return _func;
         }
 
+        llvm::Function* BlockBasedTaskBuilder::createFunctionWithExceptions() {
+            using namespace llvm;
+            using namespace std;
+
+            auto& context = env().getContext();
+            FunctionType* read_block_type = FunctionType::get(env().i64Type(), {env().i8ptrType(),
+                                                                                env().i8ptrType(),
+                                                                                env().i64Type(),
+                                                                                env().i8ptrType()->getPointerTo(0),
+                                                                                env().i64Type()->getPointerTo(0),
+                                                                                env().i64Type(),
+                                                                                env().i64Type()->getPointerTo(0),
+                                                                                env().i64Type()->getPointerTo(0),
+                                                                                env().getBooleanType()}, false);
+            // create function and set argNames
+            Function* read_block_func = Function::Create(read_block_type, Function::ExternalLinkage, _desiredFuncName, env().getModule().get());
+
+            std::vector<llvm::Argument*> args;
+            for(auto& arg : read_block_func->args()) {
+                args.push_back(&arg);
+            }
+
+            // rename args
+            vector<string> argNames{"userData",
+                                    "inPtr",
+                                    "inSize",
+                                    "expPtrs",
+                                    "expPtrSizes",
+                                    "numExps",
+                                    "outNormalRowCount",
+                                    "outBadRowCount",
+                                    "ignoreLastRow"};
+            for(int i = 0; i < argNames.size(); ++i) {
+                args[i]->setName(argNames[i]);
+                _args[argNames[i]] = args[i];
+            }
+
+            _func = read_block_func;
+            return _func;
+        }
+
         void BlockBasedTaskBuilder::setIntermediateInitialValueByRow(const python::Type &intermediateType,
                                                                      const Row &row) {
             _intermediateInitialValue = row;

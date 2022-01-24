@@ -16,6 +16,101 @@ class CacheTest : public PyTest {
 using namespace tuplex;
 using namespace std;
 
+TEST_F(CacheTest, MergeInOrderWithFilter) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto fileURI = URI(testName + ".csv");
+
+    auto opt = microTestOptions();
+    // enable NullValue Optimization
+    opt.set("tuplex.useLLVMOptimizer", "true");
+    opt.set("tuplex.optimizer.generateParser", "true");
+    opt.set("tuplex.executorCount", "0");
+    opt.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
+    opt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt.set("tuplex.normalcaseThreshold", "0.6");
+    opt.set("tuplex.resolveWithInterpreterOnly", "false");
+
+    Context c(opt);
+
+    stringstream ss;
+    for (int i = 0; i < 500; ++i) {
+        if (i % 4 == 0) {
+            ss << ",-1\n";
+        } else {
+            ss << to_string(i) << "," << to_string(i) << "\n";
+        }
+    }
+    stringToFile(fileURI, ss.str());
+
+    auto ds_cached = c.csv(fileURI.toPath()).cache();
+
+    auto res = ds_cached.filter(UDF("lambda x, y: y % 3 != 0")).map(UDF("lambda x, y: y")).collectAsVector();
+
+    std::vector<Row> expectedOutput;
+    for (int i = 0; i < 500; ++i) {
+        if (i % 4 == 0) {
+            expectedOutput.push_back(Row(-1));
+        } else if (i % 3 != 0) {
+            expectedOutput.push_back(Row(i));
+        }
+    }
+
+    ASSERT_EQ(expectedOutput.size(), res.size());
+    for (int i = 0; i < expectedOutput.size(); ++i) {
+        EXPECT_EQ(expectedOutput[i].toPythonString(), res[i].toPythonString());
+    }
+}
+
+TEST_F(CacheTest, MergeInOrder) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto fileURI = URI(testName + ".csv");
+
+    auto opt = microTestOptions();
+    // enable NullValue Optimization
+    opt.set("tuplex.useLLVMOptimizer", "true");
+    opt.set("tuplex.optimizer.generateParser", "true");
+    opt.set("tuplex.executorCount", "0");
+    opt.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
+    opt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt.set("tuplex.normalcaseThreshold", "0.6");
+    opt.set("tuplex.resolveWithInterpreterOnly", "false");
+
+    Context c(opt);
+
+    auto size = 403;
+    auto mod1 = 5;
+    auto mod2 = 6;
+
+    stringstream ss;
+    for (int i = 0; i < size; ++i) {
+        if (i % mod1 == 0 || i % mod2 == 0) {
+            ss << ",,,,-1\n";
+        } else {
+            ss << to_string(i) << "," << to_string(i) << "," << to_string(i) << "," << to_string(i) << "," << to_string(i) << "\n";
+        }
+    }
+
+    stringToFile(fileURI, ss.str());
+
+    auto ds_cached = c.csv(fileURI.toPath()).cache();
+
+    auto res = ds_cached.map(UDF("lambda x: x[4]")).collectAsVector();
+    printRows(res);
+
+    ASSERT_EQ(res.size(), size);
+    for (int i = 0; i < res.size(); ++i) {
+        if (i % mod1 == 0 || i % mod2 == 0) {
+            EXPECT_EQ(res[i].toPythonString(), Row(-1).toPythonString());
+        } else {
+            EXPECT_EQ(res[i].toPythonString(), Row(i).toPythonString());
+        }
+    }
+}
+
 // Note: only this test here fails...
 TEST_F(CacheTest, SimpleCSVLoad) {
     using namespace std;

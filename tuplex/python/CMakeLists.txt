@@ -138,6 +138,7 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_tuples.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_math.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_aggregates.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_webui.py
+          ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_exceptions.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/helper.py
         DESTINATION ${PYTHON_DIST_DIR}/tests)
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/libexec/__init__.py DESTINATION ${PYTHON_DIST_DIR}/tuplex/libexec)

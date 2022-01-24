@@ -120,11 +120,11 @@ namespace tuplex {
 
     void TransformStage::setMemoryResult(const std::vector<Partition *> &partitions,
                                          const std::vector<Partition*>& generalCase,
+                                         const std::unordered_map<std::string, ExceptionInfo>& partitionToExceptionsMap,
                                          const std::vector<std::tuple<size_t, PyObject*>>& interpreterRows,
                                          const std::vector<Partition*>& remainingExceptions,
                                          const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> &ecounts) {
         setExceptionCounts(ecounts);
-        _unresolved_exceptions = generalCase;
 
         if (partitions.empty() && interpreterRows.empty() && generalCase.empty())
             _rs = emptyResultSet();
@@ -159,7 +159,7 @@ namespace tuplex {
 
             // put ALL partitions to result set
             _rs = std::make_shared<ResultSet>(schema, limitedPartitions,
-                                              generalCase, interpreterRows,
+                                              generalCase, partitionToExceptionsMap, interpreterRows,
                                               outputLimit());
         }
     }
@@ -674,7 +674,6 @@ namespace tuplex {
         // execute stage via backend
         backend()->execute(this);
 
-
         // free hashmaps of dependents (b.c. it's a tree this is ok)
         if(numArgs > 0) {
             for(int i = 0; i < numPreds; ++i) {
@@ -824,8 +823,10 @@ namespace tuplex {
         logger.info("first compile done");
 
         // fetch symbols (this actually triggers the compilation first with register alloc etc.)
-        if(!_syms->functor)
+        if(!_syms->functor && !_updateInputExceptions)
             _syms->functor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(funcName()));
+        if(!_syms->functorWithExp && _updateInputExceptions)
+            _syms->functorWithExp = reinterpret_cast<codegen::read_block_exp_f>(jit.getAddrOfSymbol(funcName()));
         logger.info("functor " + funcName() + " retrieved from llvm");
         if(_outputMode == EndPointMode::FILE && !_syms->writeFunctor)
                 _syms->writeFunctor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(writerFuncName()));
@@ -850,7 +851,12 @@ namespace tuplex {
         }
 
         // check symbols are valid...
-        if(!(_syms->functor && _syms->initStageFunctor && _syms->releaseStageFunctor)) {
+        bool hasValidFunctor = true;
+        if (_updateInputExceptions && !_syms->functorWithExp)
+            hasValidFunctor = false;
+        if (!_updateInputExceptions && !_syms->functor)
+            hasValidFunctor = false;
+        if(!hasValidFunctor && _syms->initStageFunctor && _syms->releaseStageFunctor) {
             logger.error("invalid pointer address for JIT code returned");
             throw std::runtime_error("invalid pointer address for JIT code returned");
         }

@@ -73,7 +73,6 @@ protected:
     }
 };
 
-
 #ifdef BUILD_WITH_AWS
 TEST_F(WrapperTest, LambdaBackend) {
     using namespace tuplex;
@@ -166,8 +165,7 @@ TEST_F(WrapperTest, MixedSimpleTupleTuple) {
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
-        // Change to 4 when parallelize changes are merged
-        ASSERT_EQ(PyList_GET_SIZE(resObj), 3);
+        ASSERT_EQ(PyList_GET_SIZE(resObj), 4);
 
         PyObject_Print(resObj, stdout, 0);
     }
@@ -205,14 +203,14 @@ TEST_F(WrapperTest, DictionaryParallelize) {
     PythonContext c("c", "", testOptions());
 
     PyObject * dictObj1 = PyDict_New();
-    PyDict_SetItem(dictObj1, python::PyString_FromString("Hello"), PyFloat_FromDouble(0.0));
-    PyDict_SetItem(dictObj1, python::PyString_FromString("World"), PyFloat_FromDouble(1.345));
-    PyDict_SetItem(dictObj1, python::PyString_FromString("!"), PyFloat_FromDouble(-2.234));
+    PyDict_SetItem(dictObj1, python::PyString_FromString("a"), PyFloat_FromDouble(0.0));
+    PyDict_SetItem(dictObj1, python::PyString_FromString("b"), PyFloat_FromDouble(1.345));
+    PyDict_SetItem(dictObj1, python::PyString_FromString("c"), PyFloat_FromDouble(-2.234));
 
     PyObject * dictObj2 = PyDict_New();
-    PyDict_SetItem(dictObj2, python::PyString_FromString("a"), PyFloat_FromDouble(1.23));
-    PyDict_SetItem(dictObj2, python::PyString_FromString("b"), PyFloat_FromDouble(2.34));
-    PyDict_SetItem(dictObj2, python::PyString_FromString("c"), PyFloat_FromDouble(-3.45));
+    PyDict_SetItem(dictObj2, python::PyString_FromString("d"), PyFloat_FromDouble(1.23));
+    PyDict_SetItem(dictObj2, python::PyString_FromString("e"), PyFloat_FromDouble(2.34));
+    PyDict_SetItem(dictObj2, python::PyString_FromString("f"), PyFloat_FromDouble(-3.45));
 
     PyObject * listObj = PyList_New(2);
     PyList_SET_ITEM(listObj, 0, dictObj1);
@@ -227,14 +225,14 @@ TEST_F(WrapperTest, DictionaryParallelize) {
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
-        ASSERT_EQ(PyList_Size(resObj), 1);
+        ASSERT_EQ(PyList_Size(resObj), 2);
 
         // check contents
         // ==> there will be only one result though, because of the type inference. Basically the first row will be taken :)
         // --> the other row will be stored as bad input row.
         auto tuple1 = PyList_GetItem(resObj, 0);
         ASSERT_TRUE(PyTuple_Check(tuple1));
-        ASSERT_EQ(PyTuple_Size(tuple1), 3);
+        ASSERT_EQ(PyTuple_Size(tuple1), 6);
     }
 }
 
@@ -2392,6 +2390,63 @@ TEST_F(WrapperTest, NYC311) {
                 .unique().show();
 
         std::cout<<std::endl;
+    }
+}
+
+TEST_F(WrapperTest, MixedTypesIsWithNone) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + ",\"tuplex.optimizer.mergeExceptionsInOrder\":\"True\"}";
+    PythonContext c("python", "",  opts);
+
+    PyObject *listObj = PyList_New(8);
+    PyList_SetItem(listObj, 0, Py_None);
+    PyList_SetItem(listObj, 1, PyLong_FromLong(255));
+    PyList_SetItem(listObj, 2, PyLong_FromLong(400));
+    PyList_SetItem(listObj, 3, Py_True);
+    PyList_SetItem(listObj, 4, PyFloat_FromDouble(2.7));
+    PyList_SetItem(listObj, 5, PyTuple_New(0)); // empty tuple
+    PyList_SetItem(listObj, 6, PyList_New(0)); // empty list
+    PyList_SetItem(listObj, 7, PyDict_New()); // empty dict
+
+    auto ref = vector<bool>{true, false, false, false, false, false, false, false};
+
+    Py_IncRef(listObj);
+
+    {
+        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto res = c.parallelize(list).map("lambda x: (x, x is None)", "").collect();
+        auto resObj = res.ptr();
+        PyObject_Print(resObj, stdout, 0);
+        std::cout<<std::endl;
+
+        // convert to list and check
+        ASSERT_TRUE(PyList_Check(resObj));
+        ASSERT_EQ(PyList_Size(resObj), ref.size());
+
+        for(int i = 0; i < ref.size(); ++i) {
+            auto item = PyList_GetItem(resObj, i);
+            Py_INCREF(item);
+            ASSERT_TRUE(PyTuple_Check(item));
+
+            auto el0 = PyTuple_GetItem(item, 0);
+            auto el1 = PyTuple_GetItem(item, 1);
+            Py_INCREF(el0);
+            Py_IncRef(el1);
+            ASSERT_TRUE(el1 == Py_False || el1 == Py_True);
+            auto el1_true = el1 == Py_True;
+            EXPECT_EQ(el1_true, ref[i]);
+
+            auto cmp_res = PyObject_RichCompare(PyList_GetItem(listObj, i), el0, Py_EQ);
+
+            cout<<"comparing "<<python::PyString_AsString(PyList_GetItem(listObj, i))<<" == "<<python::PyString_AsString(el0)<<endl;
+            PyObject_Print(cmp_res, stdout, 0);
+            std::cout<<std::endl;
+            ASSERT_TRUE(cmp_res);
+            EXPECT_EQ(cmp_res, Py_True);
+        }
     }
 }
 

@@ -15,6 +15,7 @@
 #include <physical/CellSourceTaskBuilder.h>
 #include <physical/JITCSVSourceTaskBuilder.h>
 #include <physical/TuplexSourceTaskBuilder.h>
+#include <physical/ExceptionSourceTaskBuilder.h>
 #include <physical/AggregateFunctions.h>
 #include <logical/CacheOperator.h>
 #include <JSONUtils.h>
@@ -44,10 +45,11 @@ namespace tuplex {
                                    bool generateParser,
                                    double normalCaseThreshold,
                                    bool sharedObjectPropagation,
-                                   bool nullValueOptimization)
+                                   bool nullValueOptimization,
+                                   bool updateInputExceptions)
                 : _stageNumber(stage_number), _isRootStage(rootStage), _allowUndefinedBehavior(allowUndefinedBehavior),
                   _generateParser(generateParser), _normalCaseThreshold(normalCaseThreshold), _sharedObjectPropagation(sharedObjectPropagation),
-                  _nullValueOptimization(nullValueOptimization),
+                  _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions),
                   _inputNode(nullptr), _outputLimit(std::numeric_limits<size_t>::max()) {
         }
 
@@ -1018,7 +1020,10 @@ namespace tuplex {
                 }
             } else {
                 // tuplex (in-memory) reader
-                tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, inSchema, funcStageName);
+                if (_updateInputExceptions)
+                    tb = make_shared<codegen::ExceptionSourceTaskBuilder>(env, inSchema, funcStageName);
+                else
+                    tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, inSchema, funcStageName);
             }
 
             // set pipeline and
@@ -1439,6 +1444,7 @@ namespace tuplex {
             stage->_irBitCode = _irBitCode;
             stage->_pyCode = _pyCode;
             stage->_pyPipelineName = _pyPipelineName;
+            stage->_updateInputExceptions = _updateInputExceptions;
 
             // if last op is CacheOperator, check whether normal/exceptional case should get cached separately
             // or an upcasting step should be performed.

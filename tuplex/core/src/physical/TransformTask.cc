@@ -405,7 +405,10 @@ namespace tuplex {
         } else if(hasMemorySource()) {
             if(_inputPartitions.empty())
                 throw std::runtime_error("no input partition assigned!");
-            processMemorySource();
+            if (_updateInputExceptions)
+                processMemorySourceWithExp();
+            else
+                processMemorySource();
         } else {
             throw std::runtime_error("no source (file/memory) specified, error!");
         }
@@ -529,6 +532,82 @@ namespace tuplex {
         _outputRowCounter = 0;
     }
 
+    void TransformTask::processMemorySourceWithExp() {
+        assert(!_inputPartitions.empty());
+        assert(_functor);
+
+        _numInputRowsRead = 0;
+        _numOutputRowsWritten = 0;
+
+        int64_t  num_normal_rows = 0, num_bad_rows = 0;
+
+        auto functor = reinterpret_cast<codegen::read_block_exp_f>(_functor);
+
+        auto numInputExceptions = _inputExceptionInfo.numExceptions;
+        auto inputExceptionIndex = _inputExceptionInfo.exceptionIndex;
+        auto inputExceptionRowOffset = _inputExceptionInfo.exceptionRowOffset;
+        auto inputExceptionByteOffset = _inputExceptionInfo.exceptionByteOffset;
+
+        // First, prepare the input exception partitions to pass into the code-gen
+        // This is done to simplify the LLVM code. We will end up passing it an
+        // array of expPtrs which point to the first exception in their partition
+        // and expPtrSizes which tell how many exceptions are in that partition.
+        auto arrSize = _inputExceptions.size() - inputExceptionIndex;
+        auto expPtrs = new uint8_t*[arrSize];
+        auto expPtrSizes = new int64_t[arrSize];
+        int expInd = 0;
+        // Iterate through all exception partitions beginning at the one specified by the starting index
+        for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
+            auto numRows = _inputExceptions[i]->getNumRows();
+            auto ptr = _inputExceptions[i]->lock();
+            // If its the first partition, we need to account for the offset
+            if (i == inputExceptionIndex) {
+                numRows -= inputExceptionRowOffset;
+                ptr += inputExceptionByteOffset;
+            }
+            expPtrSizes[expInd] = numRows;
+            expPtrs[expInd] = (uint8_t *) ptr;
+            expInd++;
+        }
+
+        // go over all input partitions.
+        for(auto inputPartition : _inputPartitions) {
+            // lock ptr, extract number of rows ==> store them
+            // lock raw & call functor!
+            int64_t inSize = inputPartition->size();
+            const uint8_t *inPtr = inputPartition->lockRaw();
+            _numInputRowsRead += static_cast<size_t>(*((int64_t*)inPtr));
+
+            // call functor
+            auto bytesParsed = functor(this, inPtr, inSize, expPtrs, expPtrSizes, numInputExceptions, &num_normal_rows, &num_bad_rows, false);
+
+            // save number of normal rows to output rows written if not writeTofile
+            if(hasMemorySink())
+                _numOutputRowsWritten += num_normal_rows;
+
+            // unlock memory sinks if necessary
+            unlockAllMemorySinks();
+
+            inputPartition->unlock();
+
+            // delete partition if desired...
+            if(_invalidateSourceAfterUse)
+                inputPartition->invalidate();
+        }
+
+        delete[] expPtrs;
+        delete[] expPtrSizes;
+
+        for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
+            _inputExceptions[i]->unlock();
+        }
+
+#ifndef NDEBUG
+        owner()->info("Trafo task memory source exhausted (" + pluralize(_inputPartitions.size(), "partition") + ", "
+                      + pluralize(num_normal_rows, "normal row") + ", " + pluralize(num_bad_rows, "exceptional row") + ")");
+#endif
+    }
+
     void TransformTask::processMemorySource() {
         assert(!_inputPartitions.empty());
         assert(_functor);
@@ -541,7 +620,7 @@ namespace tuplex {
         auto functor = reinterpret_cast<codegen::read_block_f>(_functor);
 
         // go over all input partitions.
-        for(auto inputPartition : _inputPartitions) {
+        for(const auto &inputPartition : _inputPartitions) {
             // lock ptr, extract number of rows ==> store them
             // lock raw & call functor!
             int64_t inSize = inputPartition->size();

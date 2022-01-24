@@ -191,7 +191,7 @@ class Context:
         self.metrics = Metrics(python_metrics)
         assert self.metrics
 
-    def parallelize(self, value_list, columns=None, schema=None):
+    def parallelize(self, value_list, columns=None, schema=None, auto_unpack=True):
         """ passes data to the Tuplex framework. Must be a list of primitive objects (e.g. of type bool, int, float, str) or
         a list of (nested) tuples of these types.
 
@@ -200,11 +200,13 @@ class Context:
             columns (list): a list of strings or None to pass to the Tuplex backend in order to name the columns.
                             Allows for dict access in functions then.
             schema: a schema defined as tuple of typing types. If None, then most likely schema will be inferred.
+            auto_unpack: whether or not to automatically unpack dictionaries with string keys.
         Returns:
             Tuplex.dataset.DataSet: A Tuplex Dataset object that allows further ETL operations
         """
 
         assert isinstance(value_list, list), "data must be given as a list of objects"
+        assert isinstance(auto_unpack, bool), "auto_unpack must be given as a boolean"
 
         cols = []
         if not columns:
@@ -221,7 +223,7 @@ class Context:
 
 
         ds = DataSet()
-        ds._dataSet = self._context.parallelize(value_list, columns, schema)
+        ds._dataSet = self._context.parallelize(value_list, columns, schema, auto_unpack)
         return ds
 
     def csv(self, pattern, columns=None, header=None, delimiter=None, quotechar='"', null_values=[''], type_hints={}):

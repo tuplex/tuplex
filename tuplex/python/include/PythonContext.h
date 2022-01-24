@@ -112,9 +112,6 @@ namespace tuplex {
         DataSet &
         strDictParallelize(PyObject *listObj, const python::Type &rowType, const std::vector<std::string> &columns);
 
-        // bad parallelize objects, i.e those who don't fit the inferred type
-        std::vector<std::tuple<size_t, PyObject *>> _badParallelizeObjects;
-
         inline PythonDataSet makeError(const std::string& message) {
             PythonDataSet pds;
             pds.wrap(&_context->makeError(message));
@@ -156,7 +153,7 @@ namespace tuplex {
          * @return PythonDataSet wrapper around internal DataSet class
          */
         PythonDataSet parallelize(boost::python::list L, boost::python::object cols = boost::python::object(),
-                                  boost::python::object schema = boost::python::object());
+                                  boost::python::object schema = boost::python::object(), bool autoUnpack = true);
 
         /*!
          * reads one (or multiple) csv files into memory

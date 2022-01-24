@@ -113,7 +113,8 @@ namespace tuplex {
                           _functor(nullptr),
                           _stageID(-1),
                           _htableFormat(HashTableFormat::UNKNOWN),
-                          _wallTime(0.0) {
+                          _wallTime(0.0),
+                          _updateInputExceptions(false) {
             resetSinks();
             resetSources();
         }
@@ -122,6 +123,10 @@ namespace tuplex {
 
         void sinkExceptionsToMemory(const Schema& inputSchema) { _inputSchema = inputSchema; }
         void sinkExceptionsToFile(const Schema& inputSchema, const URI& exceptionOutputURI) { throw std::runtime_error("not yet supported"); }
+
+        void setFunctor(codegen::read_block_exp_f functor) {
+            _functor = (void*)functor;
+        }
 
         void setFunctor(codegen::read_block_f functor) {
             _functor = (void*)functor;
@@ -234,6 +239,13 @@ namespace tuplex {
         */
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> exceptionCounts() const { return _exceptionCounts; }
 
+        ExceptionInfo inputExceptionInfo() { return _inputExceptionInfo; }
+        std::vector<Partition*> inputExceptions() { return _inputExceptions; }
+
+        void setInputExceptionInfo(ExceptionInfo info) { _inputExceptionInfo = info; }
+        void setInputExceptions(const std::vector<Partition*>& inputExceptions) { _inputExceptions = inputExceptions; }
+        void setUpdateInputExceptions(bool updateInputExceptions) { _updateInputExceptions = updateInputExceptions; }
+
         double wallTime() const override { return _wallTime; }
 
         size_t output_rows_written() const { return _numOutputRowsWritten; }
@@ -280,6 +292,9 @@ namespace tuplex {
         MemorySink _exceptions;
         Schema _inputSchema;
 
+        ExceptionInfo _inputExceptionInfo;
+        std::vector<Partition*> _inputExceptions;
+        bool _updateInputExceptions;
 
         // hash table sink
         HashTableSink _htable;
@@ -297,6 +312,7 @@ namespace tuplex {
            _exceptions.unlock();
         }
 
+        void processMemorySourceWithExp();
         void processMemorySource();
         void processFileSource();
 

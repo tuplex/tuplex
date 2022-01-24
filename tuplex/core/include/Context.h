@@ -37,6 +37,7 @@ namespace tuplex {
     class Executor;
     class Partition;
     class IBackend;
+    class ExceptionInfo;
 
     class Context {
     private:
@@ -58,7 +59,25 @@ namespace tuplex {
 
         // needed because of C++ template issues
         void addPartition(DataSet* ds, Partition *partition);
-        void addParallelizeNode(DataSet *ds); //! adds a paralellize node to the computation graph
+        void addParallelizeNode(DataSet *ds, const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects=std::vector<std::tuple<size_t, PyObject*>>(), const std::vector<size_t> &numExceptionsInPartition=std::vector<size_t>()); //! adds a paralellize node to the computation graph
+
+        /*!
+         * serialize python objects as pickled objects into exception partitions. Set the python objects map to
+         * map all normalPartitions to the exceptions that occured within them.
+         * @param pythonObjects normal case schema violations and their initial row numbers
+         * @param numExceptionsInPartition number of exceptions in each normal partition
+         * @param normalPartitions normal partitions created
+         * @param opID parallelize operator ID
+         * @param serializedPythonObjects output vector for partitions
+         * @param pythonObjectsMap output for mapping
+         */
+        void serializePythonObjects(const std::vector<std::tuple<size_t, PyObject*>>& pythonObjects,
+                                    const std::vector<size_t> &numExceptionsInPartition,
+                                    const std::vector<Partition*> &normalPartitions,
+                                    const int64_t opID,
+                                    std::vector<Partition*> &serializedPythonObjects,
+                                    std::unordered_map<std::string, ExceptionInfo> &pythonObjectsMap);
+
         Partition* requestNewPartition(const Schema& schema, const int dataSetID, size_t minBytesRequired);
         uint8_t* partitionLockRaw(Partition *partition);
         void partitionUnlock(Partition *partition);
@@ -111,7 +130,8 @@ namespace tuplex {
                                             columnNames);
         }
 
-        DataSet& parallelize(const std::vector<Row>& L, const std::vector<std::string>& columnNames=std::vector<std::string>());
+        DataSet& parallelize(const std::vector<Row>& L,
+                             const std::vector<std::string>& columnNames=std::vector<std::string>());
 
         DataSet& parallelize(std::initializer_list<double> L, const std::vector<std::string>& columnNames=std::vector<std::string>()) {
             if(!columnNames.empty())
@@ -252,9 +272,11 @@ namespace tuplex {
          *        empty dataset will be created.
          *
          * @param columns optional column names
+         * @param badParallelizeObjects schema violations found during parallelization of partitions
+         * @param numExceptionsInPartition number of schema violations that occured in each of the partitions
          * @return reference to newly created dataset.
          */
-        DataSet& fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<std::string>& columns);
+        DataSet& fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<std::string>& columns, const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects, const std::vector<size_t> &numExceptionsInPartition);
     };
     // needed for template mechanism to work
 #include <DataSet.h>

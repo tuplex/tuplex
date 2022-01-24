@@ -62,6 +62,9 @@ namespace tuplex {
                                              EndPointMode outMode=EndPointMode::UNKNOWN) {
         using namespace std;
 
+        // Indicators for stage
+        bool hasFilter = false;
+        bool hasInputExceptions = false;
         // step 1: break up pipeline according to cost model
         // go through nodes
         queue<LogicalOperator*> q; q.push(root);
@@ -113,6 +116,8 @@ namespace tuplex {
                         throw std::runtime_error("unsupported aggregate type found");
                     }
                 } else { // follow tree
+                    if (node->type() == LogicalOperatorType::FILTER)
+                        hasFilter = true;
                     q.push(node->parent());
                 }
 
@@ -193,6 +198,10 @@ namespace tuplex {
                 // type should be parallelize or cache!
                 auto t = ops.front()->type();
                 assert(t == LogicalOperatorType::PARALLELIZE || t == LogicalOperatorType::CACHE);
+                if (t == LogicalOperatorType::PARALLELIZE)
+                    hasInputExceptions = !((ParallelizeOperator *)ops.front())->getPythonObjects().empty();
+                if (t == LogicalOperatorType::CACHE)
+                    hasInputExceptions = !((CacheOperator *)ops.front())->cachedExceptions().empty();
             }
         }
 
@@ -226,6 +235,10 @@ namespace tuplex {
             outputMode = outMode;
         }
 
+        // Need to update indices input exceptions in the case that input exceptions exist, the pipeline has filters, and the
+        // user wants to merge exceptions in order.
+        bool updateInputExceptions = hasFilter && hasInputExceptions && _context.getOptions().OPT_MERGE_EXCEPTIONS_INORDER();
+
         // create trafostage via builder pattern
         auto builder = codegen::StageBuilder(_num_stages++,
                                                isRootStage,
@@ -233,7 +246,8 @@ namespace tuplex {
                                                _context.getOptions().OPT_GENERATE_PARSER(),
                                                _context.getOptions().NORMALCASE_THRESHOLD(),
                                                _context.getOptions().OPT_SHARED_OBJECT_PROPAGATION(),
-                                               _context.getOptions().OPT_NULLVALUE_OPTIMIZATION());
+                                               _context.getOptions().OPT_NULLVALUE_OPTIMIZATION(),
+                                               updateInputExceptions);
         // start code generation
 
         // first, add input
@@ -388,10 +402,13 @@ namespace tuplex {
         if (inputNode->type() == LogicalOperatorType::PARALLELIZE) {
             auto pop = dynamic_cast<ParallelizeOperator *>(inputNode); assert(inputNode);
             stage->setInputPartitions(pop->getPartitions());
+            stage->setInputExceptions(pop->getPythonObjects());
+            stage->setPartitionToExceptionsMap(pop->getInputPartitionToPythonObjectsMap());
         } else if(inputNode->type() == LogicalOperatorType::CACHE) {
             auto cop = dynamic_cast<CacheOperator*>(inputNode);  assert(inputNode);
             stage->setInputPartitions(cop->cachedPartitions());
             stage->setInputExceptions(cop->cachedExceptions());
+            stage->setPartitionToExceptionsMap(cop->partitionToExceptionsMap());
         } else if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
             auto csvop = dynamic_cast<FileInputOperator*>(inputNode);
             stage->setInputFiles(csvop->getURIs(), csvop->getURISizes());

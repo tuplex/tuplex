@@ -4061,7 +4061,7 @@ def run(target, num_runs, detach):
     file_failure = False
     for i, path in enumerate(required_paths_in_docker):
         cmd = "test -f {}".format(path)
-        exit_code, output = container.exec_run(cmd, stderr=True, stdout=True, detach=detach, environment=env)
+        exit_code, output = container.exec_run(cmd, stderr=True, stdout=True, detach=detach)
         if 0 != exit_code:
             logging.error("path {} not found in docker container, please check host.".format(path))
             file_failure = True

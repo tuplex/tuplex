@@ -4057,6 +4057,13 @@ def run(target, num_runs, detach):
 /data/zillow/Zdirty/zillow_dirty@10G.csv
 /data/zillow/Zdirty/zillow_dirty_synthetic@10G.csv'''.split()
 
+    # check that tuplex exists python3.6 -c "import tuplex"
+    cmd = 'python3.6 -c "import tuplex"'
+    exit_code, output = container.exec_run(cmd, stderr=True, stdout=True, detach=detach)
+    if 0 != exit_code:
+        logging.error("Did not find tuplex module, please run first build subcommand.")
+        sys.exit(1)
+
     # check that each file exists
     file_failure = False
     for i, path in enumerate(required_paths_in_docker):
@@ -4072,6 +4079,7 @@ def run(target, num_runs, detach):
     if file_failure:
         logging.error("Not all files required to run benchmarks are present, aborting benchmark.")
         sys.exit(1)
+
 
     for target in targets:
         # run individual targets

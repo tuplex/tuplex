@@ -59,6 +59,10 @@ message TransformStage {
     // file input + output params as dict
     map<string, string> inputParameters = 33;
     map<string, string> outputParameters = 34;
+
+    // how many lambdas should each Lambda invoke? Recursive, i.e. {1, 1, 1} means the first Lambda invokes another
+    // lambda, that again another etc. The total wait time thereby is baseDelay * depth
+    repeated uint32 invocationCount = 35;
 }
 
 message WorkerSettings {
@@ -80,6 +84,13 @@ message WarmupMessage {
     uint32 timeOutInMs = 3;
 }
 
+// a simple message for a resource that may be send along an invocation request
+message Resource {
+    string id = 1;
+    uint32 type = 2;
+    bytes payload = 3;
+}
+
 message InvocationRequest {
     repeated string inputURIS = 1;
     repeated uint64 inputSizes = 2;
@@ -88,8 +99,11 @@ message InvocationRequest {
     MessageType type = 4;
     WorkerSettings settings = 5;
 
-    optional TransformStage stage = 6;
-    optional WarmupMessage warmup = 7;
+    // optional resources attached with this message
+    repeated Resource resources = 6;
+
+    optional TransformStage stage = 7;
+    optional WarmupMessage warmup = 8;
 }
 
 
@@ -123,9 +137,12 @@ message InvocationResponse {
     ContainerInfo container = 9;
     repeated ContainerInfo invokedContainers = 10;
 
+    // messages may contain already result data, given in form of a resource
+    repeated Resource resources = 11;
+
     // stats
-    double awsInitTime = 11;
-    double taskExecutionTime = 12;
-    map<string, uint64> s3Stats = 13;
-    map<string, double> breakdownTimes = 14;
+    double awsInitTime = 12;
+    double taskExecutionTime = 13;
+    map<string, uint64> s3Stats = 14;
+    map<string, double> breakdownTimes = 15;
 }

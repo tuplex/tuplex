@@ -507,27 +507,27 @@ namespace tuplex {
         // ==> helps to plan the query more efficiently!
 
         // perform warmup phase if desired (only for first stage?)
-        if(_options.AWS_LAMBDA_SELF_INVOCATION()) {
-            // issue a couple self-invoke requests...
-            Timer timer;
-
-            // warmup in multiple steps (for a maximum time...)
-            std::set<std::string> containerIds;
-//            for(int i = 0; i < 10; ++i) {
-                logger().info("Performing warmup.");
-                auto before_count = containerIds.size();
-                auto ids = performWarmup({20, 10, 4}); // 800 total invocations??
-                for(auto id : ids)
-                    containerIds.insert(id);
-                auto after_count = containerIds.size();
-                logger().info("Warmup gave " + std::to_string(after_count - before_count) + " new IDs (" + std::to_string(after_count) + " total)");
-//            }
-
-            logger().info("Warmup yielded " + pluralize(containerIds.size(), "container id"));
-            logger().info("Warmup took: " + std::to_string(timer.time()));
-
-            reset();
-        }
+//        if(_options.AWS_LAMBDA_SELF_INVOCATION()) {
+//            // issue a couple self-invoke requests...
+//            Timer timer;
+//
+//            // warmup in multiple steps (for a maximum time...)
+//            std::set<std::string> containerIds;
+////            for(int i = 0; i < 10; ++i) {
+//                logger().info("Performing warmup.");
+//                auto before_count = containerIds.size();
+//                auto ids = performWarmup({20, 10, 4}); // 800 total invocations??
+//                for(auto id : ids)
+//                    containerIds.insert(id);
+//                auto after_count = containerIds.size();
+//                logger().info("Warmup gave " + std::to_string(after_count - before_count) + " new IDs (" + std::to_string(after_count) + " total)");
+////            }
+//
+//            logger().info("Warmup yielded " + pluralize(containerIds.size(), "container id"));
+//            logger().info("Warmup took: " + std::to_string(timer.time()));
+//
+//            reset();
+//        }
 
         auto tstage = dynamic_cast<TransformStage *>(stage);
         if (!tstage)
@@ -606,6 +606,8 @@ namespace tuplex {
             opt.optimizeModule(*mod);
             optimizedBitcode = codegen::moduleToBitCodeString(*mod);
             logger().info("client-side LLVM IR optimization took " + std::to_string(timer.time()) + "s");
+        } else {
+            optimizedBitcode = tstage->bitCode();
         }
 
         if(stage->outputMode() == EndPointMode::MEMORY) {
@@ -630,63 +632,15 @@ namespace tuplex {
         // perhaps also use:  - 64 * numThreads ==> smarter buffer scaling necessary.
         size_t buf_spill_size = (_options.AWS_LAMBDA_MEMORY() - 256) / numThreads * 1000 * 1024;
 
-        // Note: for now, super simple: 1 request per file (this is inefficient, but whatever)
-        // @TODO: more sophisticated splitting of workload!
         Timer timer;
-        int num_digits = ilog10c(uri_infos.size());
-        for (int i = 0; i < uri_infos.size(); ++i) {
-            auto info = uri_infos[i];
-            messages::InvocationRequest req;
-            req.set_type(messages::MessageType::MT_TRANSFORM);
-            auto pb_stage = tstage->to_protobuf();
+        //        auto requests = createSingleFileRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI, buf_spill_size);
+        auto requests = createSelfInvokingRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI, buf_spill_size);
 
-            if(_options.USE_LLVM_OPTIMIZER() && !optimizedBitcode.empty())
-                pb_stage->set_bitcode(optimizedBitcode);
-            else
-                pb_stage->set_bitcode(tstage->bitCode());
+        logger().info("Invoking requests...");
 
-            req.set_allocated_stage(pb_stage.release());
-
-            // add request for this
-            auto inputURI = std::get<0>(info);
-            auto inputSize = std::get<1>(info);
-            req.add_inputuris(inputURI);
-            req.add_inputsizes(inputSize);
-
-            // worker config
-            auto ws = std::make_unique<messages::WorkerSettings>();
-            ws->set_numthreads(numThreads);
-            ws->set_normalbuffersize(buf_spill_size);
-            ws->set_exceptionbuffersize(buf_spill_size);
-            ws->set_spillrooturi(spillURI);
-            req.set_allocated_settings(ws.release());
-
-            // output uri of job? => final one? parts?
-            // => create temporary if output is local! i.e. to memory etc.
-            int taskNo = i;
-            if (tstage->outputMode() == EndPointMode::MEMORY) {
-                // create temp file in scratch dir!
-                req.set_outputuri(scratchDir(hintsFromTransformStage(tstage)).join_path("output.part" + fixedLength(taskNo, num_digits)).toString());
-            } else if (tstage->outputMode() == EndPointMode::FILE) {
-                // create output URI based on taskNo
-                auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
-                req.set_outputuri(uri.toPath());
-            } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
-                throw std::runtime_error("join, aggregate not yet supported in lambda backend");
-            } else throw std::runtime_error("unknown output endpoint in lambda backend");
-
-            // make invocation
-            std::stringstream ss;
-            ss<<"LAMBDA request "<<(i+1)<<"/"<<uri_infos.size()<<" on "<<sizeToMemString(inputSize);
-            logger().info(ss.str());
-
-            // debug, save to protobuf!
-#ifndef NDEBUG
-            stringToFile("zillow.pb", req.SerializeAsString());
-#endif
-
+        for(auto req : requests)
             invokeAsync(req);
-        }
+
         logger().info("LAMBDA requesting took "+ std::to_string(timer.time()) + "s");
 
         // TODO: check signals, allow abort...
@@ -782,6 +736,90 @@ namespace tuplex {
             }
         }
     }
+
+
+    // recurse depth:
+    // 2^n?
+    // 3^n?
+
+    std::vector<messages::InvocationRequest>
+    AwsLambdaBackend::createSelfInvokingRequests(const TransformStage *tstage, const std::string &bitCode,
+                                                 const size_t numThreads,
+                                                 const std::vector<std::tuple<std::string, std::size_t>> &uri_infos,
+                                                 const std::string &spillURI, const size_t buf_spill_size) {
+
+        // how many files are there? What's the total size?
+        std::vector<messages::InvocationRequest> requests;
+
+        size_t total_size = 0;
+        for(auto info : uri_infos) {
+            total_size += std::get<1>(info);
+        }
+        logger().info("Creating self-invoking requests for " + pluralize(uri_infos.size(), "file") + " - " + sizeToMemString(total_size));
+
+
+        return requests;
+    }
+
+    std::vector<messages::InvocationRequest>
+    AwsLambdaBackend::createSingleFileRequests(const TransformStage* tstage,
+                                               const std::string& bitCode,
+                                               const size_t numThreads,
+                                               const std::vector<std::tuple<std::string, std::size_t>> &uri_infos,
+                                               const std::string &spillURI,
+                                               const size_t buf_spill_size) {
+
+        std::vector<messages::InvocationRequest> requests;
+
+        // Note: for now, super simple: 1 request per file (this is inefficient, but whatever)
+        // @TODO: more sophisticated splitting of workload!
+        Timer timer;
+        int num_digits = ilog10c(uri_infos.size());
+        for (int i = 0; i < uri_infos.size(); ++i) {
+            auto info = uri_infos[i];
+            messages::InvocationRequest req;
+            req.set_type(messages::MessageType::MT_TRANSFORM);
+            auto pb_stage = tstage->to_protobuf();
+
+            pb_stage->set_bitcode(bitCode);
+
+            req.set_allocated_stage(pb_stage.release());
+
+            // add request for this
+            auto inputURI = std::get<0>(info);
+            auto inputSize = std::get<1>(info);
+            req.add_inputuris(inputURI);
+            req.add_inputsizes(inputSize);
+
+            // worker config
+            auto ws = std::make_unique<messages::WorkerSettings>();
+            ws->set_numthreads(numThreads);
+            ws->set_normalbuffersize(buf_spill_size);
+            ws->set_exceptionbuffersize(buf_spill_size);
+            ws->set_spillrooturi(spillURI);
+            req.set_allocated_settings(ws.release());
+
+            // output uri of job? => final one? parts?
+            // => create temporary if output is local! i.e. to memory etc.
+            int taskNo = i;
+            if (tstage->outputMode() == EndPointMode::MEMORY) {
+                // create temp file in scratch dir!
+                req.set_outputuri(scratchDir(hintsFromTransformStage(tstage)).join_path("output.part" + fixedLength(taskNo, num_digits)).toString());
+            } else if (tstage->outputMode() == EndPointMode::FILE) {
+                // create output URI based on taskNo
+                auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
+                req.set_outputuri(uri.toPath());
+            } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
+                throw std::runtime_error("join, aggregate not yet supported in lambda backend");
+            } else throw std::runtime_error("unknown output endpoint in lambda backend");
+            requests.push_back(req);
+        }
+
+        logger().info("Created " + std::to_string(requests.size()) + " LAMBDA requests.");
+
+        return requests;
+    }
+
 
     void AwsLambdaBackend::asyncLambdaCallback(const Aws::Lambda::LambdaClient *client,
                                                const Aws::Lambda::Model::InvokeRequest &req,

@@ -94,6 +94,21 @@ namespace tuplex {
                                                bool provisioned=false);
         size_t _functionConcurrency;
 
+        std::vector<messages::InvocationRequest> createSingleFileRequests(const TransformStage* tstage,
+                                                                          const std::string& bitCode,
+                                                                          const size_t numThreads,
+                                                                          const std::vector<std::tuple<
+                                                                          std::string, std::size_t>>& uri_infos,
+                                                                          const std::string& spillURI, const size_t buf_spill_size);
+
+        std::vector<messages::InvocationRequest> createSelfInvokingRequests(const TransformStage* tstage,
+                                                                          const std::string& bitCode,
+                                                                          const size_t numThreads,
+                                                                          const std::vector<std::tuple<
+                                                                                  std::string, std::size_t>>& uri_infos,
+                                                                          const std::string& spillURI, const size_t buf_spill_size);
+
+
         URI _scratchDir;
         bool _deleteScratchDirOnShutdown;
         /*!

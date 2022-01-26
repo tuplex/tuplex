@@ -130,9 +130,8 @@ namespace tuplex {
         // @TODO: in the future this could change!
         auto tstage = TransformStage::from_protobuf(req.stage());
 
-
         for(unsigned i = 0; i < req.inputuris_size(); ++i) {
-            logger.info("input uri: " + req.inputuris(i) + " size: " + std::to_string(req.inputsizes(i)));
+            logger.debug("input uri: " + req.inputuris(i) + " size: " + std::to_string(req.inputsizes(i)));
         }
 
         return processMessage(req);
@@ -171,22 +170,10 @@ namespace tuplex {
         return WORKER_OK;
     }
 
-    int WorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
+    std::vector<FilePart> WorkerApp::partsFromMessage(const tuplex::messages::InvocationRequest& req, bool silent) {
+        std::vector<FilePart> parts;
 
-        Timer timer;
-
-        // only transform stage yet supported, in the future support other stages as well!
-        auto tstage = TransformStage::from_protobuf(req.stage());
-
-        // check what type of message it is & then start processing it.
-        auto syms = compileTransformStage(*tstage);
-        if(!syms)
-            return WORKER_ERROR_COMPILATION_FAILED;
-
-        // init stage, abort on error
-        auto rc = initTransformStage(tstage->initData(), syms);
-        if(rc != WORKER_OK)
-            return rc;
+        // decode parts from URIs
 
         // input uris
         std::vector<URI> input_uris;
@@ -197,9 +184,53 @@ namespace tuplex {
             input_sizes.emplace_back(file_size);
 
         auto num_input_files = input_uris.size();
-        logger().info("Found " + std::to_string(num_input_files) + " input URIs to process");
+
+        if(input_uris.size() != input_sizes.size())
+            throw std::runtime_error("Invalid JSON message, need to have same number of sizes/uris");
+
+        if(!silent)
+            logger().info("Found " + std::to_string(num_input_files) + " input URIs to process");
+
+        // push back full part?
+        for(unsigned i = 0; i < input_uris.size(); ++i) {
+            FilePart fp;
+            fp.partNo = i;
+            fp.rangeStart = 0;
+            fp.rangeEnd = 0;
+            fp.uri = input_uris[i];
+            fp.size = input_sizes[i];
+            parts.push_back(fp);
+        }
+
+        return parts;
+    }
+
+    int WorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
+        // only transform stage yet supported, in the future support other stages as well!
+        auto tstage = TransformStage::from_protobuf(req.stage());
+
+        // check what type of message it is & then start processing it.
+        auto syms = compileTransformStage(*tstage);
+        if(!syms)
+            return WORKER_ERROR_COMPILATION_FAILED;
+
 
         URI outputURI(req.outputuri());
+
+        auto parts = partsFromMessage(req);
+
+        return processTransformStage(tstage, syms, parts, outputURI);
+    }
+
+    int WorkerApp::processTransformStage(const TransformStage *tstage,
+                                         const std::shared_ptr<TransformStage::JITSymbols> &syms,
+                                         const std::vector<FilePart> &parts, const URI &output_uri) {
+        Timer timer;
+
+        // init stage, abort on error
+        auto rc = initTransformStage(tstage->initData(), syms);
+        if(rc != WORKER_OK)
+            return rc;
 
         auto numCodes = std::max(1ul, _numThreads);
         auto processCodes = new int[numCodes];
@@ -211,15 +242,11 @@ namespace tuplex {
 
             try {
                 // single-threaded
-                for(unsigned i = 0; i < input_uris.size(); ++i) {
-                    FilePart fp;
-                    fp.rangeStart = 0;
-                    fp.rangeEnd = 0;
-                    fp.uri = input_uris[i];
-                    fp.partNo = i;
+                for(unsigned i = 0; i < parts.size(); ++i) {
+                   auto fp = parts[i];
 
                     processCodes[0] = processSource(0, tstage->fileInputOperatorID(), fp, tstage, syms);
-                    logger().debug("processed file " + std::to_string(i + 1) + "/" + std::to_string(input_uris.size()));
+                    logger().debug("processed file " + std::to_string(i + 1) + "/" + std::to_string(parts.size()));
                     if(processCodes[0] != WORKER_OK)
                         break;
                 }
@@ -234,16 +261,16 @@ namespace tuplex {
             auto num_parts = 0;
             for(auto part : parts)
                 num_parts += part.size();
-            logger().debug("split files into " + pluralize(num_parts, "part"));
+            logger().debug("split input data into " + pluralize(num_parts, "part"));
 
 #ifndef NDEBUG
             {
                 std::stringstream ss;
                 ss<<"Parts overview:\n";
                 for(auto part : parts) {
-                   for(auto p : part) {
-                       ss<<"Part "<<p.partNo<<": "<<p.uri.toString()<<":"<<p.rangeStart<<"-"<<p.rangeEnd<<"\n";
-                   }
+                    for(auto p : part) {
+                        ss<<"Part "<<p.partNo<<": "<<p.uri.toString()<<":"<<p.rangeStart<<"-"<<p.rangeEnd<<"\n";
+                    }
                 }
                 logger().debug(ss.str());
             }
@@ -414,9 +441,9 @@ namespace tuplex {
         // sort parts (!!! STABLE SORT !!!)
         std::stable_sort(reorganized_normal_parts.begin(),
                          reorganized_normal_parts.end(), [](const WriteInfo& a, const WriteInfo& b) {
-            // bufs come last!
-            return a.use_buf < b.use_buf && a.partNo < b.partNo;
-        });
+                    // bufs come last!
+                    return a.use_buf < b.use_buf && a.partNo < b.partNo;
+                });
 
         // debug: print out parts
 #ifndef NDEBUG
@@ -452,6 +479,7 @@ namespace tuplex {
         logger().info("Took " + std::to_string(timer.time()) + "s in total");
         return WORKER_OK;
     }
+
 
     void WorkerApp::writePartsToFile(const URI &outputURI, const FileFormat &fmt,
                                      const std::vector<WriteInfo> &parts,
@@ -1077,13 +1105,11 @@ namespace tuplex {
         return hm_size;
     }
 
-    extern std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads,
-                                                                  const std::vector<URI>& uris,
-                                                                  const std::vector<size_t>& file_sizes,
-                                                                  size_t minimumPartSize) {
-        using namespace std;
 
-        assert(uris.size() == file_sizes.size());
+    std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads,
+                                                           const std::vector<FilePart>& parts,
+                                                           size_t minimumPartSize) {
+        using namespace std;
 
         size_t partNo = 0;
 
@@ -1092,8 +1118,13 @@ namespace tuplex {
 
         // check how many bytes each vector should get
         size_t totalBytes = 0;
-        for(auto fs : file_sizes)
-            totalBytes += fs;
+        for(auto part : parts) {
+            if(part.rangeStart == 0 && part.rangeEnd == 0) {
+                totalBytes += part.size;
+            } else {
+                totalBytes += part.rangeEnd - part.rangeStart;
+            }
+        }
 
         if(0 == totalBytes)
             return vv;
@@ -1108,43 +1139,52 @@ namespace tuplex {
         // do not process empty files...
         size_t curThreadSize = 0;
         unsigned curThread = 0;
-        for(unsigned i = 0; i < std::min(uris.size(), file_sizes.size()); ++i) {
+        for(unsigned i = 0; i < parts.size(); ++i) {
+
+            auto file_size = parts[i].size;
+            assert(parts[i].rangeEnd >= parts[i].rangeStart);
+            auto part_size = (parts[i].rangeStart == 0 && parts[i].rangeEnd == 0) ? file_size : parts[i].rangeEnd - parts[i].rangeStart;
+            auto uri = parts[i].uri;
+
             // skip empty files...
-            if(0 == file_sizes[i])
+            if(0 == file_size)
                 continue;
 
             // does current thread get the whole file?
-            if(curThreadSize + file_sizes[i] <= bytesPerThread && file_sizes[i] > 0) {
+            if(curThreadSize + part_size <= bytesPerThread && part_size > 0) {
                 FilePart fp;
-                fp.uri = uris[i];
-                fp.rangeStart = 0;
-                fp.rangeEnd = 0; // full file.
-                fp.partNo = partNo++;
+                fp.uri = uri;
+                fp.rangeStart = parts[i].rangeStart;
+                fp.rangeEnd = parts[i].rangeEnd;
+                fp.size = file_size;
+                fp.partNo = partNo++; // new part number!
                 vv[curThread].emplace_back(fp);
-                curThreadSize += file_sizes[i];
+                curThreadSize += part_size;
             } else {
                 // no, current thread gets part of the file only
                 // rest of file needs to get distributed among other threads!
 
                 // split into parts & inc curThread
-                size_t remaining_bytes = file_sizes[i];
-                size_t cur_start = 0;
+                size_t remaining_bytes = part_size;
+                size_t offset = parts[i].rangeStart;
+                size_t cur_start = 0; // byte counter
 
                 size_t bytes_this_thread_gets = bytesPerThread > curThreadSize ? bytesPerThread - curThreadSize : 0;
 
                 if(bytes_this_thread_gets > 0) {
                     // split into part (depending on how many bytes remain)
                     FilePart fp;
-                    fp.uri = uris[i];
-                    fp.rangeStart = cur_start;
-                    fp.rangeEnd = cur_start + std::min(bytes_this_thread_gets, remaining_bytes);
+                    fp.uri = uri;
+                    fp.rangeStart = offset + cur_start;
+                    fp.rangeEnd = offset + cur_start + std::min(bytes_this_thread_gets, remaining_bytes);
                     fp.partNo = partNo++;
+                    fp.size = file_size;
 
                     // correction to avoid tiny parts...
                     auto this_part_size = fp.rangeEnd - fp.rangeStart;
-                    if(remaining_bytes - cur_start - this_part_size < minimumPartSize) {
+                    if(remaining_bytes < minimumPartSize + cur_start + this_part_size) {
                         // add remaining bytes to this part!
-                        fp.rangeEnd = file_sizes[i];
+                        fp.rangeEnd = offset + part_size;
                     }
 
                     cur_start += fp.rangeEnd - fp.rangeStart;
@@ -1164,23 +1204,24 @@ namespace tuplex {
                     // now current thread gets the current file (or a part of it)
                     if(curThreadSize + bytes_this_thread_gets <= bytesPerThread && bytes_this_thread_gets > 0) {
                         FilePart fp;
-                        fp.uri = uris[i];
-                        fp.rangeStart = cur_start;
-                        fp.rangeEnd = cur_start + bytes_this_thread_gets;
+                        fp.uri = uri;
+                        fp.rangeStart = offset + cur_start;
+                        fp.rangeEnd = offset + cur_start + bytes_this_thread_gets;
                         fp.partNo = partNo++;
+                        fp.size = file_size;
 
                         // correction to avoid tiny parts...
                         auto this_part_size = fp.rangeEnd - fp.rangeStart;
                         if(remaining_bytes - cur_start - this_part_size < minimumPartSize) {
                             // add remaining bytes to this part!
-                            fp.rangeEnd = file_sizes[i];
+                            fp.rangeEnd = offset + part_size;
                         }
 
                         curThreadSize += fp.rangeEnd - fp.rangeStart;
                         cur_start += fp.rangeEnd - fp.rangeStart;
 
                         // full file? -> use 0,0 as special value pair
-                        if(fp.rangeStart == 0 && fp.rangeEnd == file_sizes[i])
+                        if(fp.rangeStart == 0 && fp.rangeEnd == file_size)
                             fp.rangeEnd = 0;
 
                         vv[curThread].emplace_back(fp);
@@ -1188,23 +1229,24 @@ namespace tuplex {
                         // thread only gets a part, inc thread!
                         bytes_this_thread_gets = std::min(bytes_this_thread_gets, bytesPerThread);
                         FilePart fp;
-                        fp.uri = uris[i];
-                        fp.rangeStart = cur_start;
-                        fp.rangeEnd = cur_start + bytes_this_thread_gets;
+                        fp.uri = uri;
+                        fp.rangeStart = offset + cur_start;
+                        fp.rangeEnd = offset + cur_start + bytes_this_thread_gets;
                         fp.partNo = partNo++;
+                        fp.size = file_size;
 
                         // correction to avoid tiny parts...
                         auto this_part_size = fp.rangeEnd - fp.rangeStart;
                         if(remaining_bytes - cur_start - this_part_size < minimumPartSize) {
                             // add remaining bytes to this part!
-                            fp.rangeEnd = file_sizes[i];
+                            fp.rangeEnd = offset + part_size;
                         }
 
                         curThreadSize += fp.rangeEnd - fp.rangeStart;
                         cur_start += fp.rangeEnd - fp.rangeStart;
 
                         // full file? -> use 0,0 as special value pair
-                        if(fp.rangeStart == 0 && fp.rangeEnd == file_sizes[i])
+                        if(fp.rangeStart == 0 && fp.rangeEnd == file_size)
                             fp.rangeEnd = 0;
 
                         vv[curThread].emplace_back(fp);
@@ -1218,6 +1260,30 @@ namespace tuplex {
         }
 
         return vv;
+    }
+
+    extern std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads,
+                                                                  const std::vector<URI>& uris,
+                                                                  const std::vector<size_t>& file_sizes,
+                                                                  size_t minimumPartSize) {
+        using namespace std;
+        vector<FilePart> parts;
+
+        if(uris.size() != file_sizes.size())
+            throw std::runtime_error("invalid number of uris/file sizes.");
+
+        parts.reserve(uris.size());
+        for(unsigned i = 0; i < uris.size(); ++i) {
+            FilePart fp;
+            fp.uri = uris[i];
+            fp.rangeStart = 0;
+            fp.rangeEnd = 0;
+            fp.partNo = i;
+            fp.size = file_sizes[i];
+            parts.push_back(fp);
+        }
+
+        return splitIntoEqualParts(numThreads, parts, minimumPartSize);
     }
 
 

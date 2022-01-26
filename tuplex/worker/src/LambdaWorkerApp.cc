@@ -495,15 +495,47 @@ namespace tuplex {
                     std::stringstream ss;
                     for(unsigned i = 0; i < parts.size(); ++i) {
                         if(0 == i)
-                            ss<<"Lambda (this) will process: ";
+                            ss<<"Overview which Lambda will process what:\nLambda (this) will process: ";
                         else
-                            ss<<"Lambda ("<<") will process: ";
+                            ss<<"\nLambda ("<<i<<") will process: ";
                         for(auto part : parts[i]) {
                             ss<<"\n - "<<part.uri.toString()<<":"<<part.rangeStart<<"-"<<part.rangeEnd;
                         }
                     }
                     logger().info(ss.str());
                 }
+
+                // issue requests & wait for them
+
+                // @TODO...
+
+                // perform task on this Lambda...
+                auto parts_to_execute = parts[0];
+
+                // prep local execution
+                // only transform stage yet supported, in the future support other stages as well!
+                auto tstage = TransformStage::from_protobuf(req.stage());
+
+                // check what type of message it is & then start processing it.
+                auto syms = compileTransformStage(*tstage);
+                if(!syms)
+                    return WORKER_ERROR_COMPILATION_FAILED;
+
+                logger().info("Executing " + pluralize(parts_to_execute.size(), "part") + " on this Lambda, spawning others");
+                auto output_uri(req.outputuri());
+
+                // should parts get merged or not??
+                // i.e. initiate multi-upload requests??
+                auto rc = processTransformStage(tstage, syms, parts_to_execute, output_uri);
+                if(rc != WORKER_OK)
+                    return rc;
+                logger().info("This Lambda done executing, waiting for requests...");
+
+                // wait for requests to finish unless this Lambda expires...
+
+
+                // form message to return...
+                // i.e. which parts succeeded? which are missing?
 
                 return WORKER_OK;
             }

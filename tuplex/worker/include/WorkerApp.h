@@ -64,12 +64,13 @@ namespace tuplex {
     struct FilePart {
         URI uri;
         size_t partNo; // when trying to restore in order, select here partNo
-        size_t rangeStart;
+        size_t rangeStart; // rangeStart == rangeEnd == 0 indicate full file!
         size_t rangeEnd;
+        size_t size; // file size
     };
 
     /*!
-     * helper function to help distribute file processing into multilpe parts across different threads
+     * helper function to help distribute file processing into multiple parts across different threads
      * @param numThreads on how many threads to split file processing
      * @param uris which uris
      * @param file_sizes which file sizes
@@ -80,6 +81,17 @@ namespace tuplex {
                                                                   const std::vector<URI>& uris,
                                                                   const std::vector<size_t>& file_sizes,
                                                                   size_t minimumPartSize=1024 * 4);
+
+    /*!
+     * helper function to distribute file parts equally according to size across multiple threads
+     * @param numThreads across how many threads to split
+     * @param parts full files or parts of files
+     * @param minimumPartSize minimum part size to acknowledge while splitting. Note, that parts are assumed to be larger than that.
+     */
+    extern std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads,
+                                                                  const std::vector<FilePart>& parts,
+                                                                  size_t minimumPartSize);
+
 
     /// settings to use to initialize a worker application. Helpful to tune depending on
     /// deployment target.
@@ -180,9 +192,17 @@ namespace tuplex {
 
         WorkerSettings settingsFromMessage(const tuplex::messages::InvocationRequest& req);
 
-         virtual int processMessage(const tuplex::messages::InvocationRequest& req);
+        virtual int processMessage(const tuplex::messages::InvocationRequest& req);
+
+        virtual int processTransformStage(const TransformStage* tstage,
+                                          const std::shared_ptr<TransformStage::JITSymbols>& syms,
+                                          const std::vector<FilePart>& parts,
+                                          const URI& output_uri);
+
 
         tuplex::messages::InvocationResponse executeTransformTask(const TransformStage* tstage);
+
+        std::vector<FilePart> partsFromMessage(const tuplex::messages::InvocationRequest& req, bool silent=false);
 
         std::shared_ptr<TransformStage::JITSymbols> compileTransformStage(TransformStage& stage);
 

@@ -196,7 +196,7 @@ namespace tuplex {
 
         virtual int processTransformStage(const TransformStage* tstage,
                                           const std::shared_ptr<TransformStage::JITSymbols>& syms,
-                                          const std::vector<FilePart>& parts,
+                                          const std::vector<FilePart>& input_parts,
                                           const URI& output_uri);
 
 

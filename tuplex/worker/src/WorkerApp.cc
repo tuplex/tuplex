@@ -224,7 +224,10 @@ namespace tuplex {
 
     int WorkerApp::processTransformStage(const TransformStage *tstage,
                                          const std::shared_ptr<TransformStage::JITSymbols> &syms,
-                                         const std::vector<FilePart> &parts, const URI &output_uri) {
+                                         const std::vector<FilePart> &input_parts, const URI &output_uri) {
+
+        size_t minimumPartSize = 1024 * 1024; // 1MB.
+
         Timer timer;
 
         // init stage, abort on error
@@ -242,11 +245,11 @@ namespace tuplex {
 
             try {
                 // single-threaded
-                for(unsigned i = 0; i < parts.size(); ++i) {
-                   auto fp = parts[i];
+                for(unsigned i = 0; i < input_parts.size(); ++i) {
+                   auto fp = input_parts[i];
 
                     processCodes[0] = processSource(0, tstage->fileInputOperatorID(), fp, tstage, syms);
-                    logger().debug("processed file " + std::to_string(i + 1) + "/" + std::to_string(parts.size()));
+                    logger().debug("processed file " + std::to_string(i + 1) + "/" + std::to_string(input_parts.size()));
                     if(processCodes[0] != WORKER_OK)
                         break;
                 }
@@ -257,7 +260,7 @@ namespace tuplex {
         } else {
             // multi-threaded
             // -> split into parts according to size and distribute between threads!
-            auto parts = splitIntoEqualParts(_numThreads, input_uris, input_sizes);
+            auto parts = splitIntoEqualParts(_numThreads, input_parts, minimumPartSize);
             auto num_parts = 0;
             for(auto part : parts)
                 num_parts += part.size();
@@ -461,8 +464,8 @@ namespace tuplex {
 #endif
 
         // no write everything to final output_uri out in order!
-        logger().info("Writing data to " + outputURI.toString());
-        writePartsToFile(outputURI, tstage->outputFormat(), reorganized_normal_parts, tstage);
+        logger().info("Writing data to " + output_uri.toString());
+        writePartsToFile(output_uri, tstage->outputFormat(), reorganized_normal_parts, tstage);
         logger().info("Data fully materialized");
 
         // release stage

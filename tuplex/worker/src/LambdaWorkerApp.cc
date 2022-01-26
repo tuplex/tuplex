@@ -448,6 +448,68 @@ namespace tuplex {
             return WORKER_ERROR_INVALID_URI;
 #endif
 
+
+            // check whether self-invocation is used
+            if(req.has_stage() && req.stage().invocationcount_size() > 0) {
+                std::stringstream ss;
+                ss<<"Invoking ";
+                for(auto count : req.stage().invocationcount())
+                    ss<<count<<", ";
+                ss<<"Lambdas recursively.";
+                logger().info(ss.str());
+
+                // split into parts for all Lambdas to invoke!
+                size_t total_parts = 1;
+                size_t prod = 1;
+                for(auto count : req.stage().invocationcount()) {
+                    if(count != 0) {
+                        total_parts += count * prod; // this is recursive, so try splitting into that many parts!
+                        prod *= count;
+                    }
+                }
+
+                logger().info("Splitting submitted " + pluralize(req.inputsizes().size(), "file") + " into " + pluralize(total_parts, "part") + ".");
+
+                // min part size should be 1MB
+                std::vector<URI> uris;
+                std::vector<size_t> file_sizes;
+                auto num_files = req.inputuris_size();
+                uris.reserve(num_files);
+                file_sizes.reserve(num_files);
+                if(req.inputsizes_size() != num_files) {
+                    logger().error("#input files does not equal submitted sizes");
+                    return WORKER_ERROR_INVALID_JSON_MESSAGE;
+                }
+
+                for(unsigned i = 0 ; i < num_files; ++i) {
+                    uris.push_back(req.inputuris(i));
+                    file_sizes.push_back(req.inputsizes(i));
+                }
+
+                size_t minimumPartSize = 1024 * 1024; // 1MB.
+                auto parts = splitIntoEqualParts(total_parts, uris, file_sizes, minimumPartSize);
+
+                // process data, first part is for this Lambda
+                // log it here out
+                {
+                    std::stringstream ss;
+                    for(unsigned i = 0; i < parts.size(); ++i) {
+                        if(0 == i)
+                            ss<<"Lambda (this) will process: ";
+                        else
+                            ss<<"Lambda ("<<") will process: ";
+                        for(auto part : parts[i]) {
+                            ss<<"\n - "<<part.uri.toString()<<":"<<part.rangeStart<<"-"<<part.rangeEnd;
+                        }
+                    }
+                    logger().info(ss.str());
+                }
+
+                return WORKER_OK;
+            }
+
+            // @TODO: what about remaining time? Partial completion?
+
             // extract settings from req
             _settings = settingsFromMessage(req);
             if(!_threadEnvs)

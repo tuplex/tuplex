@@ -757,7 +757,56 @@ namespace tuplex {
         }
         logger().info("Creating self-invoking requests for " + pluralize(uri_infos.size(), "file") + " - " + sizeToMemString(total_size));
 
+        // create a request which invokes Lambdas recursively?
+        // for now simply let one Lambda invoke all the others
+        std::vector<size_t> recursive_invocations;
+        if(uri_infos.size() > 2)
+            recursive_invocations.push_back(uri_infos.size() - 1);
 
+
+        // transform to request
+        messages::InvocationRequest req;
+        req.set_type(messages::MessageType::MT_TRANSFORM);
+        auto pb_stage = tstage->to_protobuf();
+        for(auto count : recursive_invocations)
+            pb_stage->add_invocationcount(count);
+
+        pb_stage->set_bitcode(bitCode);
+        req.set_allocated_stage(pb_stage.release());
+
+        // add request for this
+        for(auto info : uri_infos) {
+            auto inputURI = std::get<0>(info);
+            auto inputSize = std::get<1>(info);
+            req.add_inputuris(inputURI);
+            req.add_inputsizes(inputSize);
+        }
+
+        // worker config
+        auto ws = std::make_unique<messages::WorkerSettings>();
+        ws->set_numthreads(numThreads);
+        ws->set_normalbuffersize(buf_spill_size);
+        ws->set_exceptionbuffersize(buf_spill_size);
+        ws->set_spillrooturi(spillURI);
+        req.set_allocated_settings(ws.release());
+
+        // output uri of job? => final one? parts?
+        // => create temporary if output is local! i.e. to memory etc.
+        int taskNo = 0;
+        int num_digits = 5;
+        if (tstage->outputMode() == EndPointMode::MEMORY) {
+            // create temp file in scratch dir!
+            req.set_outputuri(scratchDir(hintsFromTransformStage(tstage)).join_path("output.part" + fixedLength(taskNo, num_digits)).toString());
+        } else if (tstage->outputMode() == EndPointMode::FILE) {
+            // create output URI based on taskNo
+            auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
+            req.set_outputuri(uri.toPath());
+        } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
+            throw std::runtime_error("join, aggregate not yet supported in lambda backend");
+        } else throw std::runtime_error("unknown output endpoint in lambda backend");
+        requests.push_back(req);
+
+        logger().info("Created " + pluralize(requests.size(), "LAMBDA request") +  + ".");
         return requests;
     }
 

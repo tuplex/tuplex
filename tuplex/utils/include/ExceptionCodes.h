@@ -114,7 +114,8 @@ namespace tuplex {
         BOOLPARSE_ERROR=54, // parsing error as bool.
         DOUBLEQUOTEERROR=55, // may happen whenever there is a single quote in a quoted field
         PYTHONFALLBACK_SERIALIZATION=60, // happens when callWithExceptionHandler is executed and serialization to user mem fails
-        BADPARSE_STRING_INPUT=70 // used to signal that parsing didn't work, exception input will be then stored as length/string field.
+        BADPARSE_STRING_INPUT=70, // used to signal that parsing didn't work, exception input will be then stored as length/string field.
+        PYTHON_PARALLELIZE=80 // used to signal schema violation from a python object in parallelize
     };
 
 

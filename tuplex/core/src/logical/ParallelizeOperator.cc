@@ -12,7 +12,7 @@
 
 namespace tuplex {
     ParallelizeOperator::ParallelizeOperator(const Schema& schema,
-            std::vector<Partition*> partitions,
+            const std::vector<Partition*>& partitions,
             const std::vector<std::string>& columns) :  _partitions(partitions),
             _columnNames(columns) {
 
@@ -112,6 +112,8 @@ namespace tuplex {
         auto copy = new ParallelizeOperator(getOutputSchema(), _partitions, columns());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
+        copy->setPythonObjects(_pythonObjects);
+        copy->setInputPartitionToPythonObjectsMap(_inputPartitionToPythonObjectsMap);
         assert(getID() == copy->getID());
         return copy;
     }

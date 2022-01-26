@@ -30,6 +30,13 @@ namespace tuplex {
 
             llvm::Function *createFunction();
 
+            /*!
+             * create function to process blocks of data along with any input exceptions. Used when filters are present
+             * to update the indices of the exceptions.
+             * @return llvm function
+             */
+            llvm::Function *createFunctionWithExceptions();
+
             python::Type _inputRowType; //@TODO: make this private??
 
             std::string _intermediateCallbackName;
@@ -48,7 +55,6 @@ namespace tuplex {
              * @return
              */
             inline llvm::Value *arg(const std::string &name) {
-                assert(_args.size() == 6);
                 auto it = _args.find(name);
                 if (it == _args.end())
                     throw std::runtime_error("unknown arg " + name + " requested");

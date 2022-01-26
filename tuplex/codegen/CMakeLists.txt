@@ -53,23 +53,26 @@ IF(BREW_FOUND)
             # check if empty, if it is parse again using brew info json
             IF("${LLVM_VERSION}" STREQUAL "")
                 EXECUTE_PROCESS(COMMAND bash "-c" "brew info --json=v1 llvm | python3 -c 'import sys,json; x=json.load(sys.stdin); print(x[0][\"versions\"][\"stable\"])'" OUTPUT_VARIABLE LLVM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+                execute_process(COMMAND bash "-c" "brew info llvm | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
             ENDIF()
 
-            IF("${LLVM_VERSION}" STREQUAL "" OR "${LLVM_VERSION}" VERSION_LESS 5.0.0 OR "${LLVM_VERSION}" VERSION_GREATER_EQUAL 10.0.0)
-                # check if any other llvm version is installed...
-                MESSAGE(STATUS "LLVM version installed is ${LLVM_VERSION}, which is incompatible with Tuplex")
+            message(STATUS "Found llvm version: ${LLVM_VERSION}")
 
-                # check for llvm@9 (do not check other versions)
-                # note that we can't simply use brew --prefix due to different subversions in brew...
-                execute_process(COMMAND bash "-c" "brew info llvm@9 | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
-                if(BREW_RET EQUAL "1")
-                    message(FATAL_ERROR "checked whether in addition to ${LLVM_VERSION} LLVM 9.x is installed, but could not could find it. Please install via `brew install llvm@9`")
-                else()
-                    message(STATUS "Found another installed llvm version under ${LLVM_ROOT_DIR}, using this version for Tuplex.")
-                endif()
-            ELSE()
-                MESSAGE(STATUS "found brewed llvm under: " ${LLVM_ROOT_DIR})
-            ENDIF()
+#            IF("${LLVM_VERSION}" STREQUAL "" OR "${LLVM_VERSION}" VERSION_LESS 5.0.0 OR "${LLVM_VERSION}" VERSION_GREATER_EQUAL 10.0.0)
+#                # check if any other llvm version is installed...
+#                MESSAGE(STATUS "LLVM version installed is ${LLVM_VERSION}, which is incompatible with Tuplex")
+#
+#                # check for llvm@9 (do not check other versions)
+#                # note that we can't simply use brew --prefix due to different subversions in brew...
+#                execute_process(COMMAND bash "-c" "brew info llvm@9 | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
+#                if(BREW_RET EQUAL "1")
+#                    message(FATAL_ERROR "checked whether in addition to ${LLVM_VERSION} LLVM 9.x is installed, but could not could find it. Please install via `brew install llvm@9`")
+#                else()
+#                    message(STATUS "Found another installed llvm version under ${LLVM_ROOT_DIR}, using this version for Tuplex.")
+#                endif()
+#            ELSE()
+             # MESSAGE(STATUS "found brewed llvm under: " ${LLVM_ROOT_DIR})
+#            ENDIF()
         ENDIF()
 
     ELSEIF(UNIX)
@@ -78,12 +81,15 @@ IF(BREW_FOUND)
 ENDIF()
 
 # for brewed llvm, add to cmakemodulepath
-IF(LLVM_ROOT_DIR)
+IF(NOT "${LLVM_ROOT_DIR}" STREQUAL "")
+    message(STATUS "root dir: ${LLVM_ROOT_DIR}")
     # make cmake find in config mode the right LLVMConfig.cmake file which is located here
     set(LLVM_DIR "${LLVM_ROOT_DIR}/lib/cmake/llvm")
+    FIND_PACKAGE(LLVM 6.0 REQUIRED)
+ELSE()
+    FIND_PACKAGE(LLVM 6.0 REQUIRED)
 ENDIF()
 
-FIND_PACKAGE(LLVM REQUIRED CONFIG)
 MESSAGE(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 MESSAGE(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 MESSAGE(STATUS "Found llvm include dirs at: " ${LLVM_INCLUDE_DIRS})
@@ -132,6 +138,8 @@ set_target_properties(libcodegen PROPERTIES PREFIX "")
 # find libraries for LLVM components that are intended to be used
 #llvm_map_components_to_libnames(llvm_libs support core irreader)
 # to get list overview, use llvm-config --components
+
+# check: https://github.com/ldc-developers/ldc/blob/master/CMakeLists.txt
 
 # list to reduce size of shared object. Compared to linking against all LLVM components, this saves about ~10MB.
 llvm_map_components_to_libnames(llvm_libs core orcjit nativecodegen native scalaropts objcarcopts passes)

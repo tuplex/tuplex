@@ -521,8 +521,11 @@ namespace tuplex {
                 if(!syms)
                     return WORKER_ERROR_COMPILATION_FAILED;
 
+                if(!syms->functor)
+                    logger().error("functor not valid, what's going on?");
+
                 logger().info("Executing " + pluralize(parts_to_execute.size(), "part") + " on this Lambda, spawning others");
-                auto output_uri(req.outputuri());
+                URI output_uri(req.outputuri());
 
                 // should parts get merged or not??
                 // i.e. initiate multi-upload requests??

@@ -194,7 +194,7 @@ namespace tuplex {
 
         virtual int processMessage(const tuplex::messages::InvocationRequest& req);
 
-        virtual int processTransformStage(const TransformStage* tstage,
+        int processTransformStage(const TransformStage* tstage,
                                           const std::shared_ptr<TransformStage::JITSymbols>& syms,
                                           const std::vector<FilePart>& input_parts,
                                           const URI& output_uri);

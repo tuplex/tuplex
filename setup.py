@@ -424,8 +424,9 @@ class CMakeBuild(build_ext):
 
         # check environment variable CMAKE_ARGS and overwrite whichever args are passed there
         if len(os.environ.get('CMAKE_ARGS', '')) > 0:
+            logging.info('Found CMAKE_ARGS in environment: {}'.format(os.environ.get('CMAKE_ARGS')))
             extra_args = shlex.split(os.environ['CMAKE_ARGS'])
-
+            logging.info('Args: {}'.format(extra_args))
             print(cmake_args)
             for arg in extra_args:
                 # cmake option in the style of -D/-G=?
@@ -599,7 +600,7 @@ def tplx_package_data():
 # logic and declaration, and simpler if you include description/version in a file.
 setup(name="tuplex",
     python_requires='>=3.7.0',
-    version="0.3.2rc1",
+    version="0.3.2rc3",
     author="Leonhard Spiegelberg",
     author_email="tuplex@cs.brown.edu",
     description="Tuplex is a novel big data analytics framework incorporating a Python UDF compiler based on LLVM "

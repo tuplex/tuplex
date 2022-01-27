@@ -230,12 +230,6 @@ namespace tuplex {
 
         Timer timer;
 
-        {
-            std::stringstream ss;
-            ss<<"functor is: "<<syms->functor;
-            logger().info(ss.str());
-        }
-
         // init stage, abort on error
         auto rc = initTransformStage(tstage->initData(), syms);
         if(rc != WORKER_OK)

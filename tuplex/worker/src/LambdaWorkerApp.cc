@@ -462,10 +462,14 @@ namespace tuplex {
                 size_t total_parts = 1;
                 size_t prod = 1;
                 size_t num_lambdas_to_invoke = 0;
-                for(auto count : req.stage().invocationcount()) {
+                std::vector<size_t> remaining_invocation_counts;
+                for(unsigned i = 0; i < req.stage().invocationcount_size(); ++i) {
+                    auto count = req.stage().invocationcount(i);
                     if(count != 0) {
                         total_parts += count * prod; // this is recursive, so try splitting into that many parts!
                         prod *= count;
+
+                        remaining_invocation_counts.push_back(count);
 
                         // set how many lambdas to invoke
                         if(num_lambdas_to_invoke == 0)
@@ -535,6 +539,13 @@ namespace tuplex {
                 // redistribute according to how many lambdas should be invoked now
                 auto lambda_parts = splitIntoEqualParts(num_lambdas_to_invoke, other_lambda_parts, minimumPartSize);
 
+
+                // invoke
+                double timeout = 25.0;
+                for(auto lambda_part : lambda_parts) {
+                    invokeLambda(timeout, lambda_part, req, remaining_invocation_counts);
+                }
+
                 // ------
 
 
@@ -549,9 +560,6 @@ namespace tuplex {
                 auto syms = compileTransformStage(*tstage);
                 if(!syms)
                     return WORKER_ERROR_COMPILATION_FAILED;
-
-                if(!syms->functor)
-                    logger().error("functor not valid, what's going on?");
 
                 logger().info("Executing " + pluralize(parts_to_execute.size(), "part") + " on this Lambda, spawning others");
                 URI output_uri(req.outputuri());
@@ -594,6 +602,21 @@ namespace tuplex {
 
         return WORKER_OK;
     }
+
+    void LambdaWorkerApp::invokeLambda(double timeout, const std::vector<FilePart>& parts,
+                                  const tuplex::messages::InvocationRequest& original_message,
+                                  const std::vector<size_t>& invocation_counts) {
+        std::stringstream ss;
+
+        ss<<"Invoking LAMBDA with timeout="<<timeout<<", over: ";
+        for(auto part: parts) {
+            ss<<part.uri.toString()<<":"<<part.rangeStart<<"-"<<part.rangeEnd<<",";
+        }
+        ss<<" w. remaining inbocation counts: "<<invocation_counts;
+
+        logger().info(ss.str());
+    }
+
 
     tuplex::messages::InvocationResponse LambdaWorkerApp::generateResponse() {
         tuplex::messages::InvocationResponse result;

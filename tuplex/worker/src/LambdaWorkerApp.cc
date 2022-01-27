@@ -368,6 +368,9 @@ namespace tuplex {
     int LambdaWorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
         using namespace std;
 
+        // reset results
+        resetResult();
+
         _messageType = req.type();
 
         // check message type
@@ -401,27 +404,7 @@ namespace tuplex {
                                                 _credentials,
                                                 _networkSettings);
 
-                // clean containers
-                std::unordered_map<std::string, ContainerInfo> uniqueContainers;
-                for(auto info : ret) {
-                    auto it = uniqueContainers.find(info.uuid);
-                    if(it == uniqueContainers.end())
-                        uniqueContainers[info.uuid] = info;
-                    else {
-                        // update if more recent (only for reused, new should be unique!)
-                        if(it->second.reused && it->second.msRemaining >= info.msRemaining) {
-                            it->second = info;
-                        }
-
-                        if(!it->second.reused)
-                            logger().error("internal error, 2x new with unique ID?");
-                    }
-                }
-
-                _invokedContainers.clear();
-                for(auto keyval : uniqueContainers) {
-                    _invokedContainers.push_back(keyval.second);
-                }
+                _invokedContainers = normalizeInvokedContainers(ret);
 
                 // wait till delay for this func is reached
                 double delayForThis = static_cast<double>(recursive_counts.size() * baseDelayInMs) / 1000.0;
@@ -433,6 +416,7 @@ namespace tuplex {
 
             return WORKER_OK;
         } else if(req.type() == messages::MessageType::MT_TRANSFORM) {
+
             // validate only S3 uris are given (in debug mode)
 #ifdef NDEBUG
             bool invalid_uri_found = false;
@@ -560,9 +544,6 @@ namespace tuplex {
                 // ------
 
 
-                // @TODO...
-
-
                 // prep local execution
                 // only transform stage yet supported, in the future support other stages as well!
                 auto tstage = TransformStage::from_protobuf(req.stage());
@@ -577,12 +558,35 @@ namespace tuplex {
                 // should parts get merged or not??
                 // i.e. initiate multi-upload requests??
                 auto rc = processTransformStage(tstage, syms, parts_to_execute, output_uri);
-                if(rc != WORKER_OK)
-                    return rc;
+                if(rc != WORKER_OK) {
+                    // this part didn't work, yet when lambdas are invoked they might have succeeded!
+                    logger().error("Parent LAMBDA did not succeed processing with code " + std::to_string(rc));
+                } else {
+                    // ok, add output_uri and parts to request success output
+                    for(const auto& part : parts_to_execute)
+                        _input_uris.push_back(encodeRangeURI(part.uri, part.rangeStart, part.rangeEnd));
+                    _output_uris.push_back(output_uri.toString());
+                }
                 logger().info("This Lambda done executing, waiting for requests...");
 
                 // wait for requests to finish unless this Lambda expires...
 
+                // wait for requests to finish
+                // check how much time is remaining
+                double timeRemainingOnLambda = getThisContainerInfo().msRemaining / 1000.0;
+                if(timeRemainingOnLambda < AWS_LAMBDA_SAFETY_DURATION_IN_MS / 1000.0) // add some safety time... 1s
+                    timeRemainingOnLambda = 0.0;
+                Timer timer;
+                while(_outstandingRequests > 0 && timer.time() < timeRemainingOnLambda) {
+                   std::this_thread::sleep_for(std::chrono::milliseconds(25));
+                }
+
+                // timeout occured?
+                if(_outstandingRequests > 0)
+                    logger().info("Timeout occurred, still some requests open...");
+
+                // create answer
+                prepareResponseFromSelfInvocations();
 
                 // form message to return...
                 // i.e. which parts succeeded? which are missing?
@@ -599,7 +603,16 @@ namespace tuplex {
 
             // @TODO
             // can reuse here infrastructure from WorkerApp!
-            return WorkerApp::processMessage(req);
+            auto rc = WorkerApp::processMessage(req);
+            if(rc == WORKER_OK) {
+                // add to output
+                // ok, add output_uri and parts to request success output
+                for(const auto& in_uri : req.inputuris())
+                    _input_uris.push_back(in_uri);
+                _output_uris.push_back(req.outputuri());
+            }
+
+            return rc;
         } else {
             return WORKER_ERROR_UNKNOWN_MESSAGE;
         }
@@ -611,6 +624,38 @@ namespace tuplex {
         // ==> need other optimizations as well -.-
 
         return WORKER_OK;
+    }
+
+    void LambdaWorkerApp::prepareResponseFromSelfInvocations() {
+
+        std::vector<ContainerInfo> successful_containers;
+        std::vector<std::string> output_uris;
+        std::vector<std::string> input_uris;
+
+        // go over all invocations
+        {
+            std::unique_lock<std::mutex> lock(_invokeRequestMutex);
+            unsigned n = _invokeRequests.size();
+
+            for(unsigned i = 0; i < n; ++i) {
+                auto& req = _invokeRequests[i];
+                if(req.response.success()) {
+                    successful_containers.push_back(req.response.container);
+                    std::copy(req.response.output_uris.begin(), req.response.output_uris.end(), std::back_inserter(output_uris));
+                    std::copy(req.response.input_uris.begin(), req.response.input_uris.end(), std::back_inserter(input_uris));
+                }
+            }
+        }
+
+        std::sort(output_uris.begin(), output_uris.end());
+        std::sort(input_uris.begin(), input_uris.end());
+
+        // TODO: merge input uris?
+
+        // fetch invoked containers etc.
+        _invokedContainers = normalizeInvokedContainers(successful_containers);
+        _output_uris = output_uris;
+        _input_uris = input_uris;
     }
 
     void LambdaWorkerApp::invokeLambda(double timeout, const std::vector<FilePart>& parts,
@@ -708,6 +753,15 @@ namespace tuplex {
         }
 
         logger().info(ss.str());
+
+        // save result, i.e. containerInfo of invoked container etc.
+        request.response.returnCode = (int)response.status();
+        request.response.container = response.container();
+        request.response.invoke_desc = desc;
+        for(auto out_uri : response.outputuris())
+            request.response.output_uris.push_back(out_uri);
+        for(auto in_uri : response.inputuris())
+            request.response.input_uris.push_back(in_uri);
     }
 
     void LambdaWorkerApp::lambdaCallback(const Aws::Lambda::LambdaClient *client,
@@ -793,12 +847,18 @@ namespace tuplex {
         }
 
         // message specific results
-        if(_messageType == tuplex::messages::MessageType::MT_WARMUP) {
-            for(const auto& c_info : _invokedContainers) {
-                auto element = result.add_invokedcontainers();
-                c_info.fill(element);
-            }
+        //if(_messageType == tuplex::messages::MessageType::MT_WARMUP) {
+        for(const auto& c_info : _invokedContainers) {
+            auto element = result.add_invokedcontainers();
+            c_info.fill(element);
         }
+       // }
+
+       // add which outputs from which inputs this query produced
+        for(const auto& uri : _input_uris)
+            result.add_inputuris(uri);
+        for(const auto& uri : _output_uris)
+            result.add_outputuris(uri);
 
         // TODO: other stuff...
 //        for(const auto& uri : inputURIs) {
@@ -841,6 +901,35 @@ namespace tuplex {
                                        _credentials.session_token.c_str());
 
         return Aws::MakeShared<Aws::Lambda::LambdaClient>(tag.c_str(), cred, clientConfig);
+    }
+
+    std::vector<ContainerInfo> normalizeInvokedContainers(const std::vector<ContainerInfo>& containers) {
+
+        auto& logger = Logger::instance().defaultLogger();
+
+        // clean containers
+        std::unordered_map<std::string, ContainerInfo> uniqueContainers;
+        for(auto info : containers) {
+            auto it = uniqueContainers.find(info.uuid);
+            if(it == uniqueContainers.end())
+                uniqueContainers[info.uuid] = info;
+            else {
+                // update if more recent (only for reused, new should be unique!)
+                if(it->second.reused && it->second.msRemaining >= info.msRemaining) {
+                    it->second = info;
+                }
+
+                if(!it->second.reused)
+                    logger.error("internal error, 2x new with unique ID?");
+            }
+        }
+
+        std::vector<ContainerInfo> ret;
+        ret.reserve(uniqueContainers.size());
+        for(auto keyval : uniqueContainers) {
+            ret.push_back(keyval.second);
+        }
+        return ret;
     }
 }
 

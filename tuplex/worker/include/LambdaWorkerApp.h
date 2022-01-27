@@ -27,6 +27,9 @@
 #include <aws/lambda/model/ListFunctionsRequest.h>
 #include <aws/lambda/LambdaClient.h>
 
+// safety time to allocate for creating proper response
+#define AWS_LAMBDA_SAFETY_DURATION_IN_MS 1000
+
 namespace tuplex {
 
     struct ContainerInfo {
@@ -112,7 +115,15 @@ namespace tuplex {
         // @TODO: redesign this...
         messages::MessageType _messageType;
         std::vector<ContainerInfo> _invokedContainers;
+        std::vector<std::string> _output_uris;
+        std::vector<std::string> _input_uris;
 
+        inline void resetResult() {
+            _messageType = messages::MT_UNKNOWN;
+            _invokedContainers.clear();
+            _output_uris.clear();
+            _input_uris.clear();
+        }
 
         // self-invocation to scale-out
         struct SelfInvokeRequest {
@@ -121,6 +132,19 @@ namespace tuplex {
             size_t retries;
             std::string payload; // json payload
 
+            struct Result {
+                int returnCode;
+                ContainerInfo container;
+                LambdaInvokeDescription invoke_desc;
+                std::vector<std::string> output_uris;
+                std::vector<std::string> input_uris; // which parts succeeded processing
+
+                inline bool success() const {
+                    return returnCode == (int)messages::InvocationResponse_Status_SUCCESS;
+                }
+            };
+
+            Result response; // response (to be overwritten on callback)
 
             SelfInvokeRequest() : retries(0), max_retries(0) {}
         };
@@ -177,6 +201,8 @@ namespace tuplex {
         void lambdaOnSuccess(SelfInvokeRequest& request, const messages::InvocationResponse& response,
                              const LambdaInvokeDescription& desc);
 
+        void prepareResponseFromSelfInvocations();
+
     };
 
     extern std::vector<ContainerInfo> selfInvoke(const std::string& functionName,
@@ -197,6 +223,11 @@ namespace tuplex {
                                                  std::string tag="lambda") {
         return selfInvoke(functionName, count, {}, timeOutInMs, baseDelayInMs, credentials, ns, tag);
     }
+
+    // in invoked containers the same uuid may be present multiple timnes,
+    // this functions cleans the member var
+    extern std::vector<ContainerInfo> normalizeInvokedContainers(const std::vector<ContainerInfo>& containers);
+
 }
 
 #endif

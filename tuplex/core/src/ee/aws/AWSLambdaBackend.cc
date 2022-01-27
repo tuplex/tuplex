@@ -760,9 +760,15 @@ namespace tuplex {
         // create a request which invokes Lambdas recursively?
         // for now simply let one Lambda invoke all the others
         std::vector<size_t> recursive_invocations;
-        if(uri_infos.size() > 2)
-            recursive_invocations.push_back(uri_infos.size() - 1);
 
+        // // Strategy I:
+        // // one lambda per file?
+        // if(uri_infos.size() > 2)
+        //     recursive_invocations.push_back(uri_infos.size() - 1);
+
+        // Strategy II: use concurrency setting!
+        if(uri_infos.size() > 2)
+            recursive_invocations.push_back(_functionConcurrency - 1);
 
         // transform to request
         messages::InvocationRequest req;

@@ -127,6 +127,7 @@ namespace tuplex {
             auto requestNo = _invokeRequests.size() - 1;
             _invokeRequests.back().requestIdx = requestNo;
             _outstandingRequests++;
+            return requestNo;
         }
 
         /*!

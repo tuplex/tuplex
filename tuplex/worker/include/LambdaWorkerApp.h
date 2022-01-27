@@ -143,11 +143,13 @@ namespace tuplex {
          * invoke another Lambda function
          * @param timeout how many seconds to allow this Lambda invocation max
          * @param parts on which parts to run this Lambda invocation
+         * @param output_uri where to save results for that particular lambda invocation.
          * @param original_message original message (copy will be created and params overwritten)
          * @param max_retries how often to retry each request at most
          * @param invocation_counts recursive invocation counts
          */
         void invokeLambda(double timeout, const std::vector<FilePart>& parts,
+                          const URI& output_uri,
                           const tuplex::messages::InvocationRequest& original_message,
                           size_t max_retries = 3,
                           const std::vector<size_t>& invocation_counts={});

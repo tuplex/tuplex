@@ -553,7 +553,8 @@ namespace tuplex {
                 _lambdaClient = createClient(timeout, lambda_parts.size());
                 for(auto lambda_part : lambda_parts) {
                     URI part_uri = base_output_uri + ".part" + std::to_string(partNo++) + ".csv";
-                    invokeLambda(timeout, lambda_part, req, max_retries, remaining_invocation_counts);
+                    // this is not completely correct, need to perform better part naming!
+                    invokeLambda(timeout, lambda_part, part_uri, req, max_retries, remaining_invocation_counts);
                 }
 
                 // ------
@@ -613,6 +614,7 @@ namespace tuplex {
     }
 
     void LambdaWorkerApp::invokeLambda(double timeout, const std::vector<FilePart>& parts,
+                                  const URI& output_uri,
                                   const tuplex::messages::InvocationRequest& original_message,
                                   size_t max_retries,
                                   const std::vector<size_t>& invocation_counts) {
@@ -626,7 +628,7 @@ namespace tuplex {
         std::stringstream ss;
 
         ss<<"Invoking LAMBDA with timeout="<<timeout<<", over: ";
-        for(auto part: parts) {
+        for(const auto& part: parts) {
             ss<<part.uri.toString()<<":"<<part.rangeStart<<"-"<<part.rangeEnd<<",";
         }
         ss<<" w. remaining invocation counts: "<<invocation_counts;
@@ -647,6 +649,8 @@ namespace tuplex {
             assert(part.size != 0);
             req.add_inputsizes(part.size);
         }
+
+        req.set_outputuri(output_uri.toString());
 
         auto transform_message = req.mutable_stage();
         transform_message->mutable_invocationcount()->Clear();
@@ -695,7 +699,14 @@ namespace tuplex {
                                           const LambdaInvokeDescription& desc) {
         // Lambda succeeded, now deal with response.
         std::stringstream ss;
-        ss<<"LAMBDA succeeded, took "<<desc.durationInMs<<"ms, billed: "<<desc.billedDurationInMs;
+
+        // check what the return code is...
+        if(!desc.errorMessage.empty()) {
+            ss<<"LAMBDA ["<<(int)response.status()<<"]Error: "<<desc.returnCode<<" "<<desc.errorMessage;
+        } else {
+            ss<<"LAMBDA ["<<(int)response.status()<<"] succeeded, took "<<desc.durationInMs<<"ms, billed: "<<desc.billedDurationInMs;
+        }
+
         logger().info(ss.str());
     }
 

@@ -40,29 +40,30 @@ message TransformStage {
     FileFormat inputFormat = 15;
     FileFormat outputFormat = 16;
     bool persistSeparateCases = 17;
-    string funcStageName = 18;
-    string funcMemoryWriteCallbackName = 19;
-    string funcFileWriteCallbackName = 20;
-    string funcHashWriteCallbackName = 21;
-    string funcExceptionCallback = 22;
-    string funcInitStageName = 23;
-    string funcReleaseStageName = 24;
-    string resolveRowFunctionName = 25;
-    string resolveRowWriteCallbackName = 26;
-    string resolveRowExceptionCallbackName = 27;
-    string resolveHashCallbackName = 28;
-    uint32 stageNumber = 29;
-    uint32 numColumns = 30;
-    string pyCode = 31;
-    string pyPipelineName = 32;
+    bool updateInputExceptions = 18;
+    string funcStageName = 19;
+    string funcMemoryWriteCallbackName = 20;
+    string funcFileWriteCallbackName = 21;
+    string funcHashWriteCallbackName = 22;
+    string funcExceptionCallback = 23;
+    string funcInitStageName = 24;
+    string funcReleaseStageName = 25;
+    string resolveRowFunctionName = 26;
+    string resolveRowWriteCallbackName = 27;
+    string resolveRowExceptionCallbackName = 28;
+    string resolveHashCallbackName = 29;
+    uint32 stageNumber = 30;
+    uint32 numColumns = 31;
+    string pyCode = 32;
+    string pyPipelineName = 33;
 
     // file input + output params as dict
-    map<string, string> inputParameters = 33;
-    map<string, string> outputParameters = 34;
+    map<string, string> inputParameters = 34;
+    map<string, string> outputParameters = 35;
 
     // how many lambdas should each Lambda invoke? Recursive, i.e. {1, 1, 1} means the first Lambda invokes another
     // lambda, that again another etc. The total wait time thereby is baseDelay * depth
-    repeated uint32 invocationCount = 35;
+    repeated uint32 invocationCount = 36;
 }
 
 message WorkerSettings {

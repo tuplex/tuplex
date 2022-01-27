@@ -940,6 +940,7 @@ namespace tuplex {
         stage->_pyPipelineName = msg.pypipelinename();
 
         stage->_persistSeparateCases = msg.persistseparatecases();
+        stage->_updateInputExceptions = msg.updateinputexceptions();
 
         stage->_funcStageName = msg.funcstagename();
         stage->_funcMemoryWriteCallbackName = msg.funcmemorywritecallbackname();
@@ -998,6 +999,7 @@ namespace tuplex {
         msg->set_outputformat(fileFormat_toproto(_outputFormat));
 
         msg->set_persistseparatecases(_persistSeparateCases);
+        msg->set_updateinputexceptions(_updateInputExceptions);
         msg->set_funcstagename(_funcStageName);
         msg->set_funcmemorywritecallbackname(_funcMemoryWriteCallbackName);
         msg->set_funcfilewritecallbackname(_funcFileWriteCallbackName);

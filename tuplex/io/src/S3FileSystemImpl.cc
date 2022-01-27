@@ -525,9 +525,20 @@ namespace tuplex {
         else
             _requestPayer = Aws::S3::Model::RequestPayer::NOT_SET;
 
-        _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(),
-                                                                      credentials.secret_key.c_str(),
-                                                                      credentials.session_token.c_str()), config);
+        auto aws_credentials = Auth::AWSCredentials(credentials.access_key.c_str(),
+                                                    credentials.secret_key.c_str(),
+                                                    credentials.session_token.c_str());
+        if(lambdaMode) {
+            // disable virtual host to prevent curl code 6 https://guihao-liang.github.io/2020/04/08/aws-virtual-address
+            _client = std::make_shared<S3::S3Client>(aws_credentials,
+                                                     config,
+                                                     Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
+                                                     false);
+        } else {
+            _client = std::make_shared<S3::S3Client>(aws_credentials, config);
+        }
+
+
 
         // set counters to zero
         _putRequests = 0;

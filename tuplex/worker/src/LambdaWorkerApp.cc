@@ -469,7 +469,8 @@ namespace tuplex {
                         total_parts += count * prod; // this is recursive, so try splitting into that many parts!
                         prod *= count;
 
-                        remaining_invocation_counts.push_back(count);
+                        if(i > 0)
+                            remaining_invocation_counts.push_back(count);
 
                         // set how many lambdas to invoke
                         if(num_lambdas_to_invoke == 0)

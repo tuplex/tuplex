@@ -22,6 +22,10 @@
 #include <aws/core/platform/Environment.h>
 #include <Network.h>
 
+#include <regex>
+#include <algorithm>
+#include <memory>
+
 static std::string throw_if_missing_envvar(const std::string &name) {
     auto value = getenv(name.c_str());
     if(!value)

@@ -230,7 +230,34 @@ namespace tuplex {
         return uri;
     }
 
+    bool decodeRangeURI(const std::string& uri, URI& target, size_t& rangeStart, size_t& rangeEnd) {
+        auto ridx = uri.rfind(':');
+        auto prefix_idx = uri.rfind("://");
+        if(ridx != std::string::npos && (prefix_idx != std::string::npos && ridx > prefix_idx)) {
+            // range present...
+            auto target_str = uri.substr(0, ridx);
+            auto midx = uri.rfind('-');
+            if(midx == std::string::npos || midx <= ridx)
+                return false;
+            auto start_str = uri.substr(ridx + 1, midx - ridx - 1);
+            auto end_str = uri.substr(midx + 1);
+            rangeStart = std::stoul(start_str);
+            rangeEnd = std::stoul(end_str);
+            target = URI(target_str);
+        } else {
+            rangeStart = 0;
+            rangeEnd = 0;
+            target = URI(uri);
+        }
+        return true;
+    }
 
+    std::string encodeRangeURI(const URI& uri, size_t rangeStart, size_t rangeEnd) {
+        if(0 == rangeStart && 0 == rangeEnd)
+            return uri.toString();
+
+        return uri.toString() + ":" + std::to_string(rangeStart) + "-" + std::to_string(rangeEnd);
+    }
 }
 
 

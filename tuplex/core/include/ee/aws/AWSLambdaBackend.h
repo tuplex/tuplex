@@ -70,22 +70,6 @@ namespace tuplex {
         size_t _lambdaSizeInMB;
         size_t _lambdaTimeOut;
 
-        struct InvokeInfo {
-            std::string requestID;
-            double durationInMs;
-            size_t billedDurationInMs;
-            size_t memorySizeInMb;
-            size_t maxMemoryUsedInMb;
-
-            // log may display error message!
-            int returnCode;
-            std::string errorMessage;
-
-            InvokeInfo() : durationInMs(0), billedDurationInMs(100), memorySizeInMb(0), maxMemoryUsedInMb(0), returnCode(0) {}
-        };
-
-        InvokeInfo parseFromLog(const std::string& log);
-
         void reset();
 
         void checkAndUpdateFunctionConcurrency(const std::shared_ptr<Aws::Lambda::LambdaClient>& client,
@@ -121,7 +105,7 @@ namespace tuplex {
         // store for tasks done
         std::mutex _mutex;
         std::vector<messages::InvocationResponse> _tasks;
-        std::vector<InvokeInfo> _infos;
+        std::vector<LambdaInvokeDescription> _infos;
 
         std::shared_ptr<Aws::Lambda::LambdaClient> makeClient();
 

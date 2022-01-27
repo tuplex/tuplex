@@ -16,6 +16,7 @@
 #ifdef BUILD_WITH_AWS
 
 #include <AWSCommon.h>
+#include <aws/lambda/LambdaClient.h>
 
 namespace tuplex {
 
@@ -106,18 +107,63 @@ namespace tuplex {
 
         // self-invocation to scale-out
         struct SelfInvokeRequest {
+            int requestIdx; // for self reference
+            size_t max_retries;
+            size_t retries;
+            std::string payload; // json payload
 
+
+            SelfInvokeRequest() : retries(0), max_retries(0) {}
         };
+
+        std::mutex _invokeRequestMutex;
+        std::vector<SelfInvokeRequest> _invokeRequests;
+        std::atomic_int _outstandingRequests;
+
+
+        inline int addRequest(const SelfInvokeRequest& req) {
+            std::unique_lock<std::mutex> lock(_invokeRequestMutex);
+            _invokeRequests.push_back(req);
+            auto requestNo = _invokeRequests.size() - 1;
+            _invokeRequests.back().requestIdx = requestNo;
+            _outstandingRequests++;
+        }
 
         /*!
          * invoke another Lambda function
          * @param timeout how many seconds to allow this Lambda invocation max
          * @param parts on which parts to run this Lambda invocation
          * @param original_message original message (copy will be created and params overwritten)
+         * @param max_retries how often to retry each request at most
          * @param invocation_counts recursive invocation counts
          */
         void invokeLambda(double timeout, const std::vector<FilePart>& parts,
-                          const tuplex::messages::InvocationRequest& original_message, const std::vector<size_t>& invocation_counts={});
+                          const tuplex::messages::InvocationRequest& original_message,
+                          size_t max_retries = 3,
+                          const std::vector<size_t>& invocation_counts={});
+
+        std::shared_ptr<Aws::Lambda::Client> _lambdaClient;
+        std::shared_ptr<Aws::Lambda::Client> createClient(double timeout, size_t max_connections);
+
+
+        struct LambdaRequestContext : public Aws::Client::AsyncCallerContext {
+            LambdaWorkerApp *app;
+            int requestIdx;
+
+            LambdaRequestContext(LambdaWorkerApp* the_app, int idx) : app(the_app), requestIdx(idx) {}
+        };
+
+        // static functions/callbacks for invocation
+        static void lambdaCallback(const Aws::Lambda::LambdaClient* client,
+                                   const Aws::Lambda::Model::InvokeRequest& req,
+                                   const Aws::Lambda::Model::InvokeOutcome& outcome,
+                                   const std::shared_ptr<const Aws::Client::AsyncCallerContext>& ctx);
+
+
+        // callback
+        void lambdaOnSuccess(SelfInvokeRequest& request, const messages::InvocationResponse& response,
+                             const LambdaInvokeDescription& desc);
+
     };
 
     extern std::vector<ContainerInfo> selfInvoke(const std::string& functionName,

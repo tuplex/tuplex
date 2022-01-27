@@ -168,6 +168,24 @@ namespace tuplex {
     };
 
 
+    /*!
+     *
+     * @param uri string containing uri w. range description
+     * @param target to which URI to decode
+     * @param rangeStart byte offset
+     * @param rangeEnd byte offset
+     * @return true if decode was successful, else false
+     */
+    extern bool decodeRangeURI(const std::string& uri, URI& target, size_t& rangeStart, size_t& rangeEnd);
+
+    /*!
+     * encode range into URI
+     * @param uri
+     * @param rangeStart
+     * @param rangeEnd
+     * @return string representing uri + ranges
+     */
+    extern std::string encodeRangeURI(const URI& uri, size_t rangeStart, size_t rangeEnd);
 
 }
 

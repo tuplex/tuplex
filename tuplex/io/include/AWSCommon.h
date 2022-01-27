@@ -68,7 +68,24 @@ namespace tuplex {
      */
     extern bool isValidAWSZone(const std::string& zone);
 
+    /*!
+     * helper struct holding decoded information obtained from a log of a Lambda request
+     */
+    struct LambdaInvokeDescription {
+        std::string requestID;
+        double durationInMs;
+        size_t billedDurationInMs;
+        size_t memorySizeInMb;
+        size_t maxMemoryUsedInMb;
 
+        // log may display error message!
+        int returnCode;
+        std::string errorMessage;
+
+        InvokeInfo() : durationInMs(0), billedDurationInMs(100), memorySizeInMb(0), maxMemoryUsedInMb(0), returnCode(0) {}
+
+        static LambdaInvokeDescription parseFromLog(const std::string& log);
+    };
 
 }
 

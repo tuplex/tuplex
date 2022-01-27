@@ -197,7 +197,10 @@ namespace tuplex {
             fp.partNo = i;
             fp.rangeStart = 0;
             fp.rangeEnd = 0;
-            fp.uri = input_uris[i];
+
+            // decode uri
+            decodeRangeURI(input_uris[i], fp.uri, fp.rangeStart, fp.rangeEnd);
+
             fp.size = input_sizes[i];
             parts.push_back(fp);
         }

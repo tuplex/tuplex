@@ -21,18 +21,7 @@
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/core/platform/Environment.h>
 
-#include <aws/lambda/model/CreateFunctionRequest.h>
-#include <aws/lambda/model/DeleteFunctionRequest.h>
-#include <aws/lambda/model/InvokeRequest.h>
-#include <aws/lambda/model/ListFunctionsRequest.h>
-#include <aws/lambda/model/UpdateFunctionConfigurationRequest.h>
-#include <aws/lambda/model/UpdateFunctionConfigurationResult.h>
-#include <aws/lambda/model/GetFunctionConcurrencyRequest.h>
-#include <aws/lambda/model/GetFunctionConcurrencyResult.h>
-#include <aws/lambda/model/PutFunctionConcurrencyRequest.h>
-#include <aws/lambda/model/PutFunctionConcurrencyResult.h>
-#include <aws/lambda/model/GetAccountSettingsRequest.h>
-#include <aws/lambda/model/GetAccountSettingsResult.h>
+#include <aws/core/utils/HashingUtils.h>
 #include <aws/core/utils/threading/Executor.h>
 #include <aws/core/auth/AWSCredentials.h>
 #include <aws/core/utils/json/JsonSerializer.h>

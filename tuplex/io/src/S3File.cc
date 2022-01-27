@@ -35,7 +35,7 @@
  * @return Error message string
  */
 template <typename R, typename E>
-std::string outcome_error_message(const Aws::Utils::Outcome<R, E>& outcome) {
+std::string outcome_error_message(const Aws::Utils::Outcome<R, E>& outcome, const std::string& uri="") {
 
     // special case: For public buckets just 403 is emitted, which is hard to decode
     if(outcome.GetError().GetResponseCode() == Aws::Http::HttpResponseCode::FORBIDDEN) {
@@ -50,10 +50,25 @@ std::string outcome_error_message(const Aws::Utils::Outcome<R, E>& outcome) {
         return ss.str();
     }
 
-    return std::string("\nException: ") +
-           outcome.GetError().GetExceptionName().c_str() +
-           std::string("\nError message: ") +
-           outcome.GetError().GetMessage().c_str();
+
+    // improve error messaging:
+    std::string aws_exception = outcome.GetError().GetExceptionName().c_str();
+    std::string aws_message = outcome.GetError().GetMessage().c_str();
+
+    tuplex::trim(aws_exception);
+    tuplex::trim(aws_message);
+
+    std::stringstream ss;
+    if(!uri.empty())
+        ss<<"S3 error for "<<uri<<" ";
+    if(!aws_exception.empty())
+        ss<<"Exception "<<aws_exception<<", ";
+    if(!aws_message.empty())
+        ss<<aws_message;
+    else
+        ss<<"Unknown AWS error code";
+
+    return ss.str();
 }
 
 
@@ -120,8 +135,9 @@ namespace tuplex {
                 _s3fs._putRequests++;
                 if(!outcome.IsSuccess()) {
                     MessageHandler& logger = Logger::instance().logger("s3fs");
-                    logger.error(outcome_error_message(outcome));
-                    throw std::runtime_error(outcome_error_message(outcome));
+                    auto err_msg = outcome_error_message(outcome, _uri.toString());
+                    logger.error(err_msg);
+                    throw std::runtime_error(err_msg);
                 }
                 _s3fs._bytesTransferred += _bufferLength;
             }
@@ -157,8 +173,9 @@ namespace tuplex {
         // count as put request
 
         if(!outcome.IsSuccess()) {
-            logger.error(outcome_error_message(outcome));
-            throw std::runtime_error(outcome_error_message(outcome));
+            auto err_msg = outcome_error_message(outcome, _uri.toString());
+            logger.error(err_msg);
+            throw std::runtime_error(err_msg);
         }
 
         _uploadID = outcome.GetResult().GetUploadId();
@@ -203,8 +220,9 @@ namespace tuplex {
         _s3fs._multiPartPutRequests++;
         _s3fs._bytesTransferred += _bufferLength;
         if(!outcome.IsSuccess()) {
-            logger.error(outcome_error_message(outcome));
-            throw std::runtime_error(outcome_error_message(outcome));
+            auto err_msg = outcome_error_message(outcome, _uri.toString());
+            logger.error(err_msg);
+            throw std::runtime_error(err_msg);
         }
 
         // record upload
@@ -241,8 +259,9 @@ namespace tuplex {
         auto outcome = _s3fs.client().CompleteMultipartUpload(req);
         _s3fs._closeMultiPartUploadRequests++;
         if(!outcome.IsSuccess()) {
-            logger.error(outcome_error_message(outcome));
-            throw std::runtime_error(outcome_error_message(outcome));
+            auto err_msg = outcome_error_message(outcome, _uri.toString());
+            logger.error(err_msg);
+            throw std::runtime_error(err_msg);
         }
     }
 
@@ -359,8 +378,9 @@ namespace tuplex {
             _s3fs._bytesReceived += retrievedBytes;
         } else {
             MessageHandler& logger = Logger::instance().logger("s3fs");
-            logger.error(outcome_error_message(get_object_outcome));
-            throw std::runtime_error(outcome_error_message(get_object_outcome));
+            auto err_msg = outcome_error_message(get_object_outcome, _uri.toString());
+            logger.error(err_msg);
+            throw std::runtime_error(err_msg);
         }
 
         if(bytesRead)
@@ -508,8 +528,9 @@ namespace tuplex {
             _s3fs._bytesReceived += retrievedBytes;
         } else {
             MessageHandler& logger = Logger::instance().logger("s3fs");
-            logger.error(outcome_error_message(get_object_outcome));
-            throw std::runtime_error(outcome_error_message(get_object_outcome));
+            auto err_msg = outcome_error_message(get_object_outcome, _uri.toString());
+            logger.error(err_msg);
+            throw std::runtime_error(err_msg);
         }
         return retrievedBytes;
     }

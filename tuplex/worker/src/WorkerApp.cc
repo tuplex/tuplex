@@ -1743,6 +1743,8 @@ namespace tuplex {
                 // correction for full file
                 if(merged.back().rangeStart == 0 && merged.back().rangeEnd == merged.back().size)
                     merged.back().rangeEnd = 0;
+            } else {
+                merged.push_back(part);
             }
         }
 

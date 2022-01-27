@@ -16,6 +16,15 @@
 #ifdef BUILD_WITH_AWS
 
 #include <AWSCommon.h>
+#include <aws/core/Aws.h>
+#include <aws/core/utils/Outcome.h>
+#include <aws/core/utils/logging/DefaultLogSystem.h>
+#include <aws/core/utils/logging/AWSLogging.h>
+#include <aws/core/utils/HashingUtils.h>
+#include <aws/lambda/model/CreateFunctionRequest.h>
+#include <aws/lambda/model/DeleteFunctionRequest.h>
+#include <aws/lambda/model/InvokeRequest.h>
+#include <aws/lambda/model/ListFunctionsRequest.h>
 #include <aws/lambda/LambdaClient.h>
 
 namespace tuplex {
@@ -143,8 +152,9 @@ namespace tuplex {
                           size_t max_retries = 3,
                           const std::vector<size_t>& invocation_counts={});
 
-        std::shared_ptr<Aws::Lambda::Client> _lambdaClient;
-        std::shared_ptr<Aws::Lambda::Client> createClient(double timeout, size_t max_connections);
+
+        std::shared_ptr<Aws::Lambda::LambdaClient> _lambdaClient;
+        std::shared_ptr<Aws::Lambda::LambdaClient> createClient(double timeout, size_t max_connections);
 
 
         struct LambdaRequestContext : public Aws::Client::AsyncCallerContext {

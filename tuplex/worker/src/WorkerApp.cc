@@ -199,7 +199,7 @@ namespace tuplex {
             fp.rangeEnd = 0;
 
             // decode uri
-            decodeRangeURI(input_uris[i], fp.uri, fp.rangeStart, fp.rangeEnd);
+            decodeRangeURI(input_uris[i].toString(), fp.uri, fp.rangeStart, fp.rangeEnd);
 
             fp.size = input_sizes[i];
             parts.push_back(fp);

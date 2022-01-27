@@ -543,9 +543,10 @@ namespace tuplex {
 
                 // invoke
                 double timeout = 25.0;
+                auto max_retries = 3;
                 _lambdaClient = createClient(timeout, lambda_parts.size());
                 for(auto lambda_part : lambda_parts) {
-                    invokeLambda(timeout, lambda_part, req, remaining_invocation_counts);
+                    invokeLambda(timeout, lambda_part, req, max_retries, remaining_invocation_counts);
                 }
 
                 // ------
@@ -739,12 +740,12 @@ namespace tuplex {
             messages::InvocationResponse response;
             google::protobuf::util::JsonStringToMessage(data, &response);
 
-            auto desc = LambdaInvokeDescription::parseFromLog(result.GetLog().c_str());
+            auto desc = LambdaInvokeDescription::parseFromLog(result.GetLogResult().c_str());
 
             // invoke from app callback function
             // fetch right request
             auto& self_req = callback_ctx->app->_invokeRequests[callback_ctx->requestIdx];
-            callback_ctx->lambdaOnSuccess(self_req, response, desc);
+            callback_ctx->app->lambdaOnSuccess(self_req, response, desc);
 
 //            // logger.info("got answer from self-invocation request");
 //            double timeout = self_ctx->timeOutInMs / 1000.0;
@@ -792,7 +793,7 @@ namespace tuplex {
         return result;
     }
 
-    std::shared_ptr<Aws::Lambda::Client> LambdaWorkerApp::createClient(double timeout, size_t max_connections) {
+    std::shared_ptr<Aws::Lambda::LambdaClient> LambdaWorkerApp::createClient(double timeout, size_t max_connections) {
         // init Lambda client
         Aws::Client::ClientConfiguration clientConfig;
 

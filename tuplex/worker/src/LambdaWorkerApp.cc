@@ -540,12 +540,19 @@ namespace tuplex {
                 // redistribute according to how many lambdas should be invoked now
                 auto lambda_parts = splitIntoEqualParts(num_lambdas_to_invoke, other_lambda_parts, minimumPartSize);
 
+                // @TODO: generate better output parts!
+                std::string base_output_uri = req.outputuri();
+                int partNo = 0;
+                URI output_uri(base_output_uri + ".part" + std::to_string(partNo) + ".csv");
+                partNo++;
+
 
                 // invoke
                 double timeout = 25.0;
                 auto max_retries = 3;
                 _lambdaClient = createClient(timeout, lambda_parts.size());
                 for(auto lambda_part : lambda_parts) {
+                    URI part_uri = base_output_uri + ".part" + std::to_string(partNo++) + ".csv";
                     invokeLambda(timeout, lambda_part, req, max_retries, remaining_invocation_counts);
                 }
 
@@ -565,7 +572,6 @@ namespace tuplex {
                     return WORKER_ERROR_COMPILATION_FAILED;
 
                 logger().info("Executing " + pluralize(parts_to_execute.size(), "part") + " on this Lambda, spawning others");
-                URI output_uri(req.outputuri());
 
                 // should parts get merged or not??
                 // i.e. initiate multi-upload requests??
@@ -740,7 +746,10 @@ namespace tuplex {
             messages::InvocationResponse response;
             google::protobuf::util::JsonStringToMessage(data, &response);
 
-            auto desc = LambdaInvokeDescription::parseFromLog(result.GetLogResult().c_str());
+            callback_ctx->app->logger().info("extracting log...");
+            auto log = result.GetLogResult();
+            callback_ctx->app0>logger().info("Got log, size: " + std::to_string(log.size()));
+            auto desc = LambdaInvokeDescription::parseFromLog(log);
 
             // invoke from app callback function
             // fetch right request

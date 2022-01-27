@@ -920,15 +920,15 @@ namespace tuplex {
 
             auto log = result.GetLogResult();
 
+            // extract info
+            auto info = LambdaInvokeDescription::parseFromLog(log.c_str());
+
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
                 ss << "LAMBDA task done in " << response.taskexecutiontime() << "s ";
                 string container_status = response.container().reused() ? "reused" : "new";
                 ss << "[" << statusCode << ", " << pluralize(response.numrowswritten(), "row")
                    << ", " << pluralize(response.numexceptions(), "exception") << ", "
                    << container_status << ", id: " << response.container().uuid() << "] ";
-
-                // extract info
-                auto info = LambdaInvokeDescription::parseFromLog(log.c_str());
 
                 // lock and move to vector
                 {
@@ -956,6 +956,10 @@ namespace tuplex {
             } else {
                 // TODO: maybe still track the response info (e.g. reused, cost, etc.)
                 ss<<"Lambda task failed, details: "<<response.errormessage();
+                ss<<" RequestId: "<<info.requestID;
+
+                // print out log:
+                ss<<"\nLog:\n"<<decodeAWSBase64(log);
             }
         }
 

@@ -226,6 +226,10 @@ namespace tuplex {
     LambdaInvokeDescription LambdaInvokeDescription::parseFromLog(const std::string& log) {
         LambdaInvokeDescription info;
 
+        // empty log?
+        if(log.empty())
+            return info;
+
         std::stringstream ss;
         // Decode the result header to see requested log information
         auto byteLogResult = Aws::Utils::HashingUtils::Base64Decode(log.c_str());

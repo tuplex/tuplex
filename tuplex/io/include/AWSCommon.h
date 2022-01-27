@@ -21,6 +21,7 @@
 #include <aws/core/client/ClientConfiguration.h>
 #include <aws/core/utils/json/JsonSerializer.h>
 #include <aws/core/utils/memory/stl/AWSStringStream.h>
+#include <aws/core/utils/HashingUtils.h>
 
 namespace tuplex {
 
@@ -86,6 +87,17 @@ namespace tuplex {
 
         static LambdaInvokeDescription parseFromLog(const std::string& log);
     };
+
+
+    inline std::string decodeAWSBase64(const std::string& log) {
+        std::stringstream ss;
+        // Decode the result header to see requested log information
+        auto byteLogResult = Aws::Utils::HashingUtils::Base64Decode(log.c_str());
+        for (unsigned i = 0; i < byteLogResult.GetLength(); i++)
+            ss << byteLogResult.GetItem(i);
+        auto logTail =  ss.str();
+        return logTail;
+    }
 
 }
 

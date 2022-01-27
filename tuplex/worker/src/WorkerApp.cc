@@ -879,12 +879,6 @@ namespace tuplex {
                                         true,
                                         false);
 
-            logger().info("Stage updateInputExceptions: " + std::to_string(stage.updateInputExceptions()));
-
-            // check validity of symbols
-            if(!syms->functor)
-                logger().info(std::to_string(__LINE__) + ": functor after compile not valid.");
-
             // cache symbols for reuse.
             _compileCache[stage.bitCode()] = syms;
 
@@ -1712,5 +1706,51 @@ namespace tuplex {
         }
 
         return res;
+    }
+
+
+    std::vector<FilePart> mergeParts(const std::vector<FilePart>& parts, size_t startPartNo) {
+        std::vector<FilePart> merged;
+
+        // create copy & sort after partNo
+        std::vector<FilePart> copy_parts(parts.begin(), parts.end());
+        std::sort(copy_parts.begin(), copy_parts.end(), [](const FilePart& a, const FilePart& b) {
+
+            auto end_a = a.rangeEnd;
+            auto end_b = b.rangeEnd;
+            // correct for full file
+            if(a.rangeStart == 0 && a.rangeEnd == 0)
+                end_a = a.size;
+            if(b.rangeStart == 0 && b.rangeEnd == 0)
+                end_b = b.size;
+
+            return a.partNo < b.partNo && end_a < end_b;
+        });
+
+        for(const auto& part : copy_parts) {
+            if(merged.empty()) {
+                merged.push_back(part);
+                continue;
+            }
+
+            // check whether this part can be merged with current one (same uri and consecutive partNo!)
+            assert(!merged.empty());
+            if((merged.back().partNo == part.partNo || merged.back().partNo + 1 == part.partNo)
+            && (merged.back().uri == part.uri)) {
+                merged.back().rangeEnd = part.rangeEnd;
+                merged.back().partNo = part.partNo;
+
+                // correction for full file
+                if(merged.back().rangeStart == 0 && merged.back().rangeEnd == merged.back().size)
+                    merged.back().rangeEnd = 0;
+            }
+        }
+
+        // overwrite part numbers
+        for(unsigned i = 0; i < merged.size(); ++i) {
+            merged[i].partNo = startPartNo + i;
+        }
+
+        return merged;
     }
 }

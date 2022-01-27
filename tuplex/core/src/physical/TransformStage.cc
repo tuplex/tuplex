@@ -49,7 +49,8 @@ namespace tuplex {
                                    bool allowUndefinedBehavior) : PhysicalStage::PhysicalStage(plan, backend, number),
                                                                   _inputLimit(std::numeric_limits<size_t>::max()),
                                                                   _outputLimit(std::numeric_limits<size_t>::max()),
-                                                                  _aggMode(AggregateType::AGG_NONE) {
+                                                                  _aggMode(AggregateType::AGG_NONE),
+                                                                  _updateInputExceptions(false) {
 
         // TODO: is this code out of date? + is allowUndefinedBehavior needed here?
         // plan stage using operators.

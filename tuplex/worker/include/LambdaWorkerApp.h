@@ -102,6 +102,22 @@ namespace tuplex {
         // @TODO: redesign this...
         messages::MessageType _messageType;
         std::vector<ContainerInfo> _invokedContainers;
+
+
+        // self-invocation to scale-out
+        struct SelfInvokeRequest {
+
+        };
+
+        /*!
+         * invoke another Lambda function
+         * @param timeout how many seconds to allow this Lambda invocation max
+         * @param parts on which parts to run this Lambda invocation
+         * @param original_message original message (copy will be created and params overwritten)
+         * @param invocation_counts recursive invocation counts
+         */
+        void invokeLambda(double timeout, const std::vector<FilePart>& parts,
+                          const tuplex::messages::InvocationRequest& original_message, const std::vector<size_t>& invocation_counts={});
     };
 
     extern std::vector<ContainerInfo> selfInvoke(const std::string& functionName,

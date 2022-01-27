@@ -365,6 +365,13 @@ namespace tuplex {
                                                       bool returnAllAsPyObjects=false,
                                                       std::ostream *err_stream=nullptr);
 
+    /*!
+     * merges neighboring parts (only parts where partNo is consecutive!)
+     * @param parts
+     * @return merged parts
+     */
+    extern std::vector<FilePart> mergeParts(const std::vector<FilePart>& parts, size_t startPartNo=0);
+
 }
 
 #endif //TUPLEX_WORKERAPP_H

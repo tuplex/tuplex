@@ -461,11 +461,21 @@ namespace tuplex {
                 // split into parts for all Lambdas to invoke!
                 size_t total_parts = 1;
                 size_t prod = 1;
+                size_t num_lambdas_to_invoke = 0;
                 for(auto count : req.stage().invocationcount()) {
                     if(count != 0) {
                         total_parts += count * prod; // this is recursive, so try splitting into that many parts!
                         prod *= count;
+
+                        // set how many lambdas to invoke
+                        if(num_lambdas_to_invoke == 0)
+                            num_lambdas_to_invoke = count;
                     }
+                }
+
+                if(0 == num_lambdas_to_invoke) {
+                    logger().error("invalid invocation count, 0 lambdas to invoke here?");
+                    return WORKER_ERROR_INVALID_JSON_MESSAGE;
                 }
 
                 logger().info("Splitting submitted " + pluralize(req.inputsizes().size(), "file") + " into " + pluralize(total_parts, "part") + ".");
@@ -507,10 +517,29 @@ namespace tuplex {
 
                 // issue requests & wait for them
 
-                // @TODO...
-
+                // invoke other lambdas here...
+                // -----
                 // perform task on this Lambda...
                 auto parts_to_execute = parts[0];
+
+                std::vector<FilePart> other_lambda_parts;
+                for(unsigned i = 1; i < parts.size(); ++i)
+                    std::copy(parts[i].begin(), parts[i].end(), std::back_inserter(other_lambda_parts));
+                auto before_merge_count = other_lambda_parts.size();
+                other_lambda_parts = mergeParts(other_lambda_parts);
+                logger().info("Merged " + pluralize(before_merge_count, "part") + " to " + pluralize(other_lambda_parts.size(), "part"));
+                logger().info("Redistributing " + pluralize(other_lambda_parts.size(), "part")
+                + " to " + pluralize(num_lambdas_to_invoke, "other lambda") + ", executing "
+                + pluralize(parts_to_execute.size(), "part") + " on this lambda." );
+
+                // redistribute according to how many lambdas should be invoked now
+                auto lambda_parts = splitIntoEqualParts(num_lambdas_to_invoke, other_lambda_parts, minimumPartSize);
+
+                // ------
+
+
+                // @TODO...
+
 
                 // prep local execution
                 // only transform stage yet supported, in the future support other stages as well!

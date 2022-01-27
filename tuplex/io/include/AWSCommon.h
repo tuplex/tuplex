@@ -82,7 +82,7 @@ namespace tuplex {
         int returnCode;
         std::string errorMessage;
 
-        InvokeInfo() : durationInMs(0), billedDurationInMs(100), memorySizeInMb(0), maxMemoryUsedInMb(0), returnCode(0) {}
+        LambdaInvokeDescription() : durationInMs(0), billedDurationInMs(100), memorySizeInMb(0), maxMemoryUsedInMb(0), returnCode(0) {}
 
         static LambdaInvokeDescription parseFromLog(const std::string& log);
     };

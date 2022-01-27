@@ -230,6 +230,12 @@ namespace tuplex {
 
         Timer timer;
 
+        {
+            std::stringstream ss;
+            ss<<"functor is: "<<syms->functor;
+            logger().info(ss.str());
+        }
+
         // init stage, abort on error
         auto rc = initTransformStage(tstage->initData(), syms);
         if(rc != WORKER_OK)
@@ -818,7 +824,7 @@ namespace tuplex {
         // use cache
         auto it = _compileCache.find(stage.bitCode());
         if(it != _compileCache.end()) {
-            logger().debug("Using cached compiled code");
+            logger().info("Using cached compiled code");
             return it->second;
         }
 
@@ -843,9 +849,6 @@ namespace tuplex {
             if(!stage.resolveExceptionCallbackName().empty())
                 _compiler->registerSymbol(stage.resolveExceptionCallbackName(), slowPathExceptCallback);
             // @TODO: hashing callbacks...
-
-
-
 
             // in debug mode, validate module.
 #ifndef NDEBUG
@@ -872,7 +875,15 @@ namespace tuplex {
             // perform actual compilation
             // -> do not compile slow path for now.
             // -> do not register symbols, because that has been done manually above.
-            auto syms = stage.compile(*_compiler, nullptr, true, false);
+            auto syms = stage.compile(*_compiler, nullptr,
+                                        true,
+                                        false);
+
+            logger().info("Stage updateInputExceptions: " + std::to_string(stage.updateInputExceptions()));
+
+            // check validity of symbols
+            if(!syms->functor)
+                logger().info(std::to_string(__LINE__) + ": functor after compile not valid.");
 
             // cache symbols for reuse.
             _compileCache[stage.bitCode()] = syms;

@@ -126,11 +126,15 @@ namespace tuplex {
         return _driver.get();
     }
 
-    void LocalEngine::freeExecutors(const std::vector<tuplex::Executor *> & execs) {
+    void LocalEngine::freeExecutors(const std::vector<tuplex::Executor *> & executors, const Context* ctx) {
 
-        for(auto& e : execs) {
+        for(auto& e : executors) {
             // check that they are contained!
             assert(_refCounts.find(e) != _refCounts.end());
+
+            // free partitions belonging to ctx
+            if(e && ctx)
+                e->freeAllPartitionsOfContext(ctx);
 
             // decrease ref count, if ref count is zero, then stop executor!
             _refCounts[e]--;

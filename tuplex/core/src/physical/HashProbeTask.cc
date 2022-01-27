@@ -27,7 +27,7 @@ namespace tuplex {
     }
 
     int64_t HashProbeTask::writeRowToMemory(uint8_t *buf, int64_t bufSize) {
-        return rowToMemorySink(owner(), _output, _outputSchema, _outputDataSetID, buf, bufSize);
+        return rowToMemorySink(owner(), _output, _outputSchema, _outputDataSetID, _contextID, buf, bufSize);
     }
 
     void HashProbeTask::execute() {

@@ -62,7 +62,9 @@ namespace tuplex {
                                              EndPointMode outMode=EndPointMode::UNKNOWN) {
         using namespace std;
 
+        // Indicators for stage
         bool hasFilter = false;
+        bool hasInputExceptions = false;
         // step 1: break up pipeline according to cost model
         // go through nodes
         queue<LogicalOperator*> q; q.push(root);
@@ -186,7 +188,6 @@ namespace tuplex {
         //   --> indicates how the hashtable values should be converted to partitions)
         auto hashGroupedDataType = AggregateType::AGG_NONE;
 
-        bool hasInputExceptions = false;
         assert(!ops.empty());
         LogicalOperator* ioNode = nullptr; // needed to reconstruct when IO is separated from rest
         if(ops.front()->isDataSource()) {
@@ -234,6 +235,8 @@ namespace tuplex {
             outputMode = outMode;
         }
 
+        // Need to update indices input exceptions in the case that input exceptions exist, the pipeline has filters, and the
+        // user wants to merge exceptions in order.
         bool updateInputExceptions = hasFilter && hasInputExceptions && _context.getOptions().OPT_MERGE_EXCEPTIONS_INORDER();
 
         auto cacheEntry = getContext().getCacheEntry(originalLogicalPlan()->getAction());
@@ -248,7 +251,7 @@ namespace tuplex {
                                                _context.getOptions().OPT_SHARED_OBJECT_PROPAGATION(),
                                                _context.getOptions().OPT_NULLVALUE_OPTIMIZATION(),
                                                updateInputExceptions,
-                                                useIncrementalResolution);
+                                               useIncrementalResolution);
         // start code generation
 
         // first, add input
@@ -377,6 +380,12 @@ namespace tuplex {
             default: {
                 throw std::runtime_error("unknown endpoint encountered");
             }
+        }
+
+        // set limit if output node has a limit (currently only TakeOperator)
+        if(outputNode->type() == LogicalOperatorType::TAKE) {
+            auto top = static_cast<TakeOperator*>(outputNode);
+            builder.setOutputLimit(top->limit());
         }
 
         // @TODO: add slowPip builder to this process...

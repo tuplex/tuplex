@@ -23,6 +23,8 @@
 #include <Utils.h>
 #include <logical/AggregateOperator.h>
 
+#include <limits.h>
+
 // @TODO: code gen needs to be lazily done
 // i.e. codegen stages then execute
 // => if normal case passes, then codegen the big pipeline!
@@ -48,8 +50,8 @@ namespace tuplex {
                                    bool useIncrementalResolution)
                 : _stageNumber(stage_number), _isRootStage(rootStage), _allowUndefinedBehavior(allowUndefinedBehavior),
                   _generateParser(generateParser), _normalCaseThreshold(normalCaseThreshold), _sharedObjectPropagation(sharedObjectPropagation),
-                  _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions), _useIncrementalResolution(useIncrementalResolution),
-                  _inputNode(nullptr) {
+                  _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions),
+                  _inputNode(nullptr), _outputLimit(std::numeric_limits<size_t>::max()), _useIncrementalResolution(useIncrementalResolution) {
         }
 
         void StageBuilder::generatePythonCode() {
@@ -895,12 +897,15 @@ namespace tuplex {
                     switch (_outputFileFormat) {
                         case FileFormat::OUTFMT_CSV: {
                             // i.e. write to memory writer!
-                            pip->buildWithCSVRowWriter(_funcMemoryWriteCallbackName, _outputNodeID, _fileOutputParameters["null_value"],
+                            pip->buildWithCSVRowWriter(_funcMemoryWriteCallbackName,
+                                                       _outputNodeID,
+                                                                hasOutputLimit(),
+                                                       _fileOutputParameters["null_value"],
                                                        true, csvOutputDelimiter(), csvOutputQuotechar());
                             break;
                         }
                         case FileFormat::OUTFMT_ORC: {
-                            pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID);
+                            pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID, hasOutputLimit());
                             break;
                         }
                         default:
@@ -960,7 +965,7 @@ namespace tuplex {
                                 _normalCaseOutputSchema = _outputSchema;
                             }
                         }
-                        pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID);
+                        pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID, hasOutputLimit());
                     } else {
                         // build w/o writer
                         pip->build();
@@ -1035,7 +1040,7 @@ namespace tuplex {
             }
 
             // create code for "wrap-around" function
-            auto func = tb->build();
+            auto func = tb->build(hasOutputLimit());
             if (!func)
                 throw std::runtime_error("could not build codegen csv parser");
 
@@ -1240,14 +1245,18 @@ namespace tuplex {
             llvm::Function* slowPathFunc = nullptr;
             if(useRawOutput) {
                 slowPathFunc = slowPip->buildWithCSVRowWriter(slowPathMemoryWriteCallback, _outputNodeID,
+                                                              hasOutputLimit(),
                                                               _fileOutputParameters["null_value"], true,
                                                               csvOutputDelimiter(), csvOutputQuotechar());
             } else {
                 // @TODO: hashwriter if hash output desired
                 if(_outputMode == EndPointMode::HASHTABLE) {
-                    slowPathFunc = slowPip->buildWithHashmapWriter(slowPathHashWriteCallback, _hashColKeys, hashtableKeyWidth(_hashKeyType), _hashSaveOthers, _hashAggregate);
+                    slowPathFunc = slowPip->buildWithHashmapWriter(slowPathHashWriteCallback,
+                                                                   _hashColKeys,
+                                                                   hashtableKeyWidth(_hashKeyType),
+                                                                   _hashSaveOthers, _hashAggregate);
                 } else {
-                    slowPathFunc = slowPip->buildWithTuplexWriter(slowPathMemoryWriteCallback, 0);
+                    slowPathFunc = slowPip->buildWithTuplexWriter(slowPathMemoryWriteCallback, _outputNodeID, hasOutputLimit());
                 }
             }
 
@@ -1412,6 +1421,12 @@ namespace tuplex {
             stage->_outputURI = _outputURI;
             stage->_inputFormat = _inputFileFormat;
             stage->_outputFormat = _outputFileFormat;
+
+            // output limit?
+            // no limit operator yet...
+
+            // get limit
+            stage->_outputLimit = _outputLimit;
 
             // copy input/output configurations
             stage->_fileInputParameters = _fileInputParameters;

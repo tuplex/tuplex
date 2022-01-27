@@ -13,7 +13,7 @@
 
 namespace tuplex {
     namespace codegen {
-        llvm::Function * CellSourceTaskBuilder::build() {
+        llvm::Function * CellSourceTaskBuilder::build(bool terminateEarlyOnLimitCode) {
             using namespace llvm;
 
             FunctionType* FT = FunctionType::get(env().i64Type(), {env().i8ptrType(),
@@ -55,6 +55,9 @@ namespace tuplex {
                 auto ecCode = builder.CreateZExtOrTrunc(res.resultCode, env().i64Type());
                 auto ecOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env().i64Type());
                 auto numRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env().i64Type());
+
+                if(terminateEarlyOnLimitCode)
+                    generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
 
                 // // -- debug print row numbers
                 // env().debugPrint(builder, "numRowsCreatedByPipeline", numRowsCreated);

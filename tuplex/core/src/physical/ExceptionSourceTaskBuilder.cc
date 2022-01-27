@@ -12,11 +12,11 @@
 
 namespace tuplex {
     namespace codegen {
-        llvm::Function* ExceptionSourceTaskBuilder::build() {
+        llvm::Function* ExceptionSourceTaskBuilder::build(bool terminateEarlyOnFailureCode) {
             auto func = createFunctionWithExceptions();
 
             // create main loop
-            createMainLoop(func);
+            createMainLoop(func, terminateEarlyOnFailureCode);
 
             return func;
         }
@@ -28,13 +28,14 @@ namespace tuplex {
                                                  llvm::Value *rowNumberVar,
                                                  llvm::Value *inputRowPtr,
                                                  llvm::Value *inputRowSize,
+                                                 bool terminateEarlyOnLimitCode,
                                                  llvm::Function *processRowFunc) {
             using namespace llvm;
 
             // call pipeline function, then increase normalcounter
             if(processRowFunc) {
                 callProcessFuncWithHandler(builder, userData, tuple, normalRowCountVar, badRowCountVar, rowNumberVar, inputRowPtr,
-                                           inputRowSize, processRowFunc);
+                                           inputRowSize, terminateEarlyOnLimitCode, processRowFunc);
             } else {
                 Value *normalRowCount = builder.CreateLoad(normalRowCountVar, "normalRowCount");
                 builder.CreateStore(builder.CreateAdd(normalRowCount, env().i64Const(1)), normalRowCountVar);
@@ -48,6 +49,7 @@ namespace tuplex {
                                                                  llvm::Value *rowNumberVar,
                                                                  llvm::Value *inputRowPtr,
                                                                  llvm::Value *inputRowSize,
+                                                                 bool terminateEarlyOnLimitCode,
                                                                  llvm::Function *processRowFunc) {
             auto& context = env().getContext();
             auto pip_res = PipelineBuilder::call(builder, processRowFunc, tuple, userData, builder.CreateLoad(rowNumberVar), initIntermediate(builder));
@@ -56,6 +58,9 @@ namespace tuplex {
             auto ecCode = builder.CreateZExtOrTrunc(pip_res.resultCode, env().i64Type());
             auto ecOpID = builder.CreateZExtOrTrunc(pip_res.exceptionOperatorID, env().i64Type());
             auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env().i64Type());
+
+            if(terminateEarlyOnLimitCode)
+                generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
 
             // add number of rows created to output row number variable
             auto outputRowNumber = builder.CreateLoad(rowNumberVar);
@@ -95,7 +100,7 @@ namespace tuplex {
             _env->freeAll(builder);
         }
 
-        void ExceptionSourceTaskBuilder::createMainLoop(llvm::Function *read_block_func) {
+        void ExceptionSourceTaskBuilder::createMainLoop(llvm::Function *read_block_func, bool terminateEarlyOnLimitCode) {
             using namespace std;
             using namespace llvm;
 
@@ -135,25 +140,31 @@ namespace tuplex {
             builder.CreateStore(builder.CreateAdd(builder.CreateLoad(argOutBadRowCount),
                                                   builder.CreateLoad(argOutNormalRowCount)), outRowCountVar);
 
-
+            // current index into array of exception partitions
             auto curExpIndVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curExpIndVar");
             builder.CreateStore(env().i64Const(0), curExpIndVar);
 
+            // current partition pointer
             auto curExpPtrVar = builder.CreateAlloca(env().i8ptrType(), 0, nullptr, "curExpPtrVar");
             builder.CreateStore(builder.CreateLoad(argExpPtrs), curExpPtrVar);
 
+            // number of rows total in current partition
             auto curExpNumRowsVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curExpNumRowsVar");
             builder.CreateStore(builder.CreateLoad(argExpPtrSizes), curExpNumRowsVar);
 
+            // current row number in current partition
             auto curExpCurRowVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curExpCurRowVar");
             builder.CreateStore(env().i64Const(0), curExpCurRowVar);
 
+            // accumulator used to update exception indices when rows are filtered, counts number of previously fitlered rows
             auto expAccVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "expAccVar");
             builder.CreateStore(env().i64Const(0), expAccVar);
 
+            // used to see if rows are filtered during pipeline execution
             auto prevRowNumVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "prevRowNumVar");
             auto prevBadRowNumVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "prevBadRowNumVar");
 
+            // current number of exceptions prosessed across all partitions
             auto expCurRowVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "expCurRowVar");
             builder.CreateStore(env().i64Const(0), expCurRowVar);
 
@@ -205,14 +216,28 @@ namespace tuplex {
             // call function --> incl. exception handling
             // process row here -- BEGIN
             Value *inputRowSize = ft.getSize(builder);
-            processRow(builder, argUserData, ft, normalRowCountVar, badRowCountVar, outRowCountVar, oldInputPtr, inputRowSize, pipeline() ? pipeline()->getFunction() : nullptr);
+            processRow(builder, argUserData, ft, normalRowCountVar, badRowCountVar, outRowCountVar, oldInputPtr, inputRowSize, terminateEarlyOnLimitCode, pipeline() ? pipeline()->getFunction() : nullptr);
 
+            // After row is processed we need to update exceptions if the row was filtered
+            // We check that: outRowCountVar == prevRowCountVar (no new row was emitted)
+            //                badRowCountVar == prevBadRowNumVar (it was filtered, not just an exception)
+            //                expCurRowVar < argNumExps (we still have exceptions that need updating)
+            // if (outRowCountVar == prevRowNumVar && badRowCountVar == prevBadRowNumVar && expCurRowVar < argNumExps)
             auto bbExpUpdate = llvm::BasicBlock::Create(context, "exp_update", builder.GetInsertBlock()->getParent());
             auto expCond = builder.CreateICmpEQ(builder.CreateLoad(outRowCountVar), builder.CreateLoad(prevRowNumVar));
             auto badCond = builder.CreateICmpEQ(builder.CreateLoad(badRowCountVar), builder.CreateLoad(prevBadRowNumVar));
             auto remCond = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
             builder.CreateCondBr(builder.CreateAnd(remCond, builder.CreateAnd(badCond, expCond)), bbExpUpdate, bbLoopCondition);
 
+            // We have determined a row is filtered so we can iterate through all the input exceptions that occured before this
+            // row and decrement their row index with the number of previously filtered rows (expAccVar).
+            // This is a while loop that iterates over all exceptions that occured before this filtered row
+            //
+            // while (expCurRowVar < numExps && ((*outNormalRowCount - 1) + expCurRowVar) >= *((int64_t *) curExpPtrVar))
+            //
+            // *outNormalRowCount - 1 changes cardinality of rows into its row index, we add the number of previously processed
+            // exceptions because the normal rows do not know about the exceptions to obtain the correct index. It's then compared
+            // against the row index of the exception pointed to currently in our partition
             builder.SetInsertPoint(bbExpUpdate);
             auto bbIncrement = llvm::BasicBlock::Create(context, "increment", builder.GetInsertBlock()->getParent());
             auto bbIncrementDone = llvm::BasicBlock::Create(context, "increment_done", builder.GetInsertBlock()->getParent());
@@ -221,7 +246,21 @@ namespace tuplex {
             auto remCond2 = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
             builder.CreateCondBr(builder.CreateAnd(remCond2, incCond), bbIncrement, bbIncrementDone);
 
+            // Body of the while loop we need to
+            // 1. decrement the current exception row index by the expAccVar (all rows previously filtered)
+            // 2. Increment our partition pointer to next exception
+            // 3. Change partitions if we've exhausted all exceptions in the current, but still have more remaining in tototal
+            //
+            // Increment to the next exception by adding eSize and 4*sizeof(int64_t) to the partition pointer
+            // *((int64_t *) curExpPtrVar) -= expAccVar;
+            // curExpPtrVar += 4 * sizeof(int64_t) + ((int64_t *)curExpPtrVar)[3];
+            // expCurRowVar += 1;
+            // curExpCurRowVar += 1;
+            //
+            // Finally we check to see if a partition change is required
+            // if (expCurRowVar < numExps && curExpCurRowVar >= curExpNumRowsVar)
             builder.SetInsertPoint(bbIncrement);
+            // Change row index and go to next exception in partition
             auto curExpRowIndPtr2 = builder.CreatePointerCast(builder.CreateLoad(curExpPtrVar), env().i64Type()->getPointerTo(0));
             builder.CreateStore(builder.CreateSub(builder.CreateLoad(curExpRowIndPtr2), builder.CreateLoad(expAccVar)), curExpRowIndPtr2);
             auto curOffset = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curOffset");
@@ -230,11 +269,17 @@ namespace tuplex {
             builder.CreateStore(builder.CreateGEP(builder.CreateLoad(curExpPtrVar), builder.CreateLoad(curOffset)), curExpPtrVar);
             builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curExpCurRowVar), env().i64Const(1)), curExpCurRowVar);
             builder.CreateStore(builder.CreateAdd(builder.CreateLoad(expCurRowVar), env().i64Const(1)), expCurRowVar);
+            // See if partition change needs to occur
             auto bbChange = llvm::BasicBlock::Create(context, "change", builder.GetInsertBlock()->getParent());
             auto changeCond = builder.CreateICmpSGE(builder.CreateLoad(curExpCurRowVar), builder.CreateLoad(curExpNumRowsVar));
             auto leftCond = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
             builder.CreateCondBr(builder.CreateAnd(leftCond, changeCond), bbChange, bbExpUpdate);
 
+            // This block changes to the next partition
+            // curExpCurRowVar = 0;
+            // curExpIndVar = curExpIndVar + 1;
+            // curExpPtrVar = expPtrs[curExpIndVar];
+            // curExpNumRowsVar = expPtrSizes[curExpIndVar];
             builder.SetInsertPoint(bbChange);
             builder.CreateStore(env().i64Const(0), curExpCurRowVar);
             builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curExpIndVar), env().i64Const(1)), curExpIndVar);
@@ -242,6 +287,8 @@ namespace tuplex {
             builder.CreateStore(builder.CreateLoad(builder.CreateGEP(argExpPtrSizes, builder.CreateLoad(curExpIndVar))), curExpNumRowsVar);
             builder.CreateBr(bbExpUpdate);
 
+            // Finally increment the expAccVar by 1 becasue a row was filtered
+            // expAccVar += 1;
             builder.SetInsertPoint(bbIncrementDone);
             builder.CreateStore(builder.CreateAdd(builder.CreateLoad(expAccVar), env().i64Const(1)), expAccVar);
             builder.CreateBr(bbLoopCondition);
@@ -254,6 +301,10 @@ namespace tuplex {
             auto expRemaining = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
             builder.CreateCondBr(expRemaining, bbRemainingExceptions, bbRemainingDone);
 
+            // We have processed all of the normal rows. If we have not exhausted all of our exceptions
+            // we just iterate through the remaining exceptions and decrement their row index by the final
+            // value of expAccVar counting our filtered rows.
+            // Same code as above, but just don't need to keep updating expAccVar by 1.
             builder.SetInsertPoint(bbRemainingExceptions);
             auto curExpRowIndPtr3 = builder.CreatePointerCast(builder.CreateLoad(curExpPtrVar), env().i64Type()->getPointerTo(0));
             builder.CreateStore(builder.CreateSub(builder.CreateLoad(curExpRowIndPtr3), builder.CreateLoad(expAccVar)), curExpRowIndPtr3);

@@ -24,11 +24,7 @@
 #include <sstream>
 #include <boost/algorithm/string/join.hpp>
 
-#ifdef BUILD_WITH_AWS
-#include <aws/core/external/cjson/cJSON.h>
-#else
-#include <cJSON.h>
-#endif
+#include "Base.h"
 
 namespace tuplex {
     // helper functions for data conversion (optimized for correct input)

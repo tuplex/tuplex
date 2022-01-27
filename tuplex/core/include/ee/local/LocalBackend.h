@@ -38,9 +38,9 @@ namespace tuplex {
 
         /*!
          * constructor for convenience
-         * @param options
+         * @param context
          */
-        explicit LocalBackend(const ContextOptions& options);
+        explicit LocalBackend(const Context& context);
 
         Executor* driver() override; // for local execution
 
@@ -66,7 +66,7 @@ namespace tuplex {
         void freeExecutors();
 
 
-        std::vector<IExecutorTask*> createLoadAndTransformToMemoryTasks(TransformStage* tstage, const ContextOptions& options,  TransformStage::JITSymbols *syms);
+        std::vector<IExecutorTask*> createLoadAndTransformToMemoryTasks(TransformStage* tstage, const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms);
         void executeTransformStage(TransformStage* tstage);
 
 

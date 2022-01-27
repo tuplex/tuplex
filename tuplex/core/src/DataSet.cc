@@ -24,6 +24,8 @@
 #include <Utils.h>
 #include <ErrorDataSet.h>
 #include <Signals.h>
+#include "logical/FileInputOperator.h"
+#include "logical/ParallelizeOperator.h"
 
 namespace tuplex {
     DataSet::~DataSet() {
@@ -863,10 +865,16 @@ namespace tuplex {
 
         // do we have an operator?
         if(_operator) {
-            if(_operator->isDataSource())
-                // check if partitions are defined
-                return _partitions.empty();
-            else return false;
+            if(_operator->isDataSource()) {
+              // what data source operators are there?
+              if(_operator->type() == LogicalOperatorType::FILEINPUT)
+                  return static_cast<FileInputOperator*>(_operator)->isEmpty();
+              else if(_operator->type() == LogicalOperatorType::PARALLELIZE)
+                  return static_cast<ParallelizeOperator*>(_operator)->getPartitions().empty();
+              else
+                  throw std::runtime_error("unknown data source operator detected");
+            } else
+                return false;
         } else {
             return false;
         }

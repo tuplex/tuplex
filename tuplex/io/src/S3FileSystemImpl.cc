@@ -491,6 +491,17 @@ namespace tuplex {
 
         using namespace Aws;
 
+
+        // set counters to zero
+        _putRequests = 0;
+        _initMultiPartUploadRequests = 0;
+        _multiPartPutRequests = 0;
+        _closeMultiPartUploadRequests = 0;
+        _getRequests = 0;
+        _bytesTransferred = 0;
+        _bytesReceived = 0;
+        _lsRequests = 0;
+
         Client::ClientConfiguration config;
 
         AWSCredentials credentials;
@@ -516,12 +527,6 @@ namespace tuplex {
         if(lambdaMode) {
             if(config.region.empty())
                 config.region = Aws::Environment::GetEnv("AWS_REGION");
-
-            // test: modify back to defaults for Lambda
-            config.caPath = "";
-            config.caFile = "";
-            config.region = "";
-            config.verifySSL = false;
         }
 
         if(requesterPay)
@@ -532,31 +537,35 @@ namespace tuplex {
         auto aws_credentials = Auth::AWSCredentials(credentials.access_key.c_str(),
                                                     credentials.secret_key.c_str(),
                                                     credentials.session_token.c_str());
+
+        // lambda Mode? just use default settings.
         if(lambdaMode) {
-            // disable virtual host to prevent curl code 6 https://guihao-liang.github.io/2020/04/08/aws-virtual-address
-            _client = std::make_shared<S3::S3Client>(aws_credentials,
-                                                     config,
-                                                     Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
-                                                     false);
+            _client = std::make_shared<S3::S3Client>(aws_credentials);
+            _requestPayer = Aws::S3::Model::RequestPayer::requester;
 
-            // log out settings quickly (debug)
             std::stringstream ss;
-            ss<<"S3 settings: REGION="<<config.region.c_str()<<" VERIFY_SSL="<<config.verifySSL<<" CAFILE="<<config.caFile<<" CAPATH="<<config.caPath;
+            ss<<"S3 Client initialized using defaults";
             Logger::instance().defaultLogger().info(ss.str());
-
-        } else {
-            _client = std::make_shared<S3::S3Client>(aws_credentials, config);
+            return;
         }
 
-        // set counters to zero
-        _putRequests = 0;
-        _initMultiPartUploadRequests = 0;
-        _multiPartPutRequests = 0;
-        _closeMultiPartUploadRequests = 0;
-        _getRequests = 0;
-        _bytesTransferred = 0;
-        _bytesReceived = 0;
-        _lsRequests = 0;
+        _client = std::make_shared<S3::S3Client>(aws_credentials, config);
+
+//        if(lambdaMode) {
+//            // disable virtual host to prevent curl code 6 https://guihao-liang.github.io/2020/04/08/aws-virtual-address
+//            _client = std::make_shared<S3::S3Client>(aws_credentials,
+//                                                     config,
+//                                                     Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
+//                                                     false);
+//
+//            // log out settings quickly (debug)
+//            std::stringstream ss;
+//            ss<<"S3 settings: REGION="<<config.region.c_str()<<" VERIFY_SSL="<<config.verifySSL<<" CAFILE="<<config.caFile<<" CAPATH="<<config.caPath;
+//            Logger::instance().defaultLogger().info(ss.str());
+//
+//        } else {
+//
+//        }
     }
 
 

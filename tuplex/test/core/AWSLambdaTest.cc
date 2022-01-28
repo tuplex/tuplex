@@ -370,42 +370,13 @@ TEST_F(AWSTest, FullZillowPipeline) {
 
     auto opt = microLambdaOptions();
 
-    // Experiment 1: plain, single-threaded option -> 1792MB
-
-    // use 6 threads and 10GB of RAM
+    // startegies:
+    // 1. no-op Lambda spin out experiment
+    opt.set("tuplex.aws.lambdaInvokeOthers", "true");
     opt.set("tuplex.aws.lambdaMemory", "10000");
     opt.set("tuplex.aws.maxConcurrency", "4");
-    string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
 
-    // now more complex test:
-    opt.set("tuplex.aws.lambdaMemory", "10000");
-    opt.set("tuplex.aws.maxConcurrency", "400");
-    inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
-
-
-    // now more complex test: --> this will result in Resource temporarily unavailable... -> request again!
-    opt.set("tuplex.aws.lambdaMemory", "10000");
-    opt.set("tuplex.aws.maxConcurrency", "800");
-    inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
-
-    // Something broken in splitPArts functioN!!!
-
-    // ==> Need to fix that!!!
-
-
-
-    //    opt.set("tuplex.aws.maxConcurrency", "800");
-
-    // TOOD: test over single file...
-
-
-    // Re broken pipe, try out maybe: options.httpOptions.installSigPipeHandler = true;
-
-
-//    inputFiles = "s3://tuplex-public/data/100GB/*.csv";
-
-
-
+    auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
     string outputDir = string("s3://") + S3_TEST_BUCKET + "/tests/" + testName + "/zillow_output.csv";
     Context ctx(opt);
 
@@ -413,6 +384,53 @@ TEST_F(AWSTest, FullZillowPipeline) {
     auto ds = zillowPipeline(ctx, inputFiles);
     ds.tocsv(outputDir);
     cout<<"Lambda zillow took: "<<timer.time()<<endl;
+    // 2. get S3 thing working
+
+
+
+//    // Experiment 1: plain, single-threaded option -> 1792MB
+//
+//    // use 6 threads and 10GB of RAM
+//    opt.set("tuplex.aws.lambdaMemory", "10000");
+//    opt.set("tuplex.aws.maxConcurrency", "4");
+//    string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
+//
+//    // now more complex test:
+//    opt.set("tuplex.aws.lambdaMemory", "10000");
+//    opt.set("tuplex.aws.maxConcurrency", "400");
+//    inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
+//
+//
+//    // now more complex test: --> this will result in Resource temporarily unavailable... -> request again!
+//    opt.set("tuplex.aws.lambdaMemory", "10000");
+//    opt.set("tuplex.aws.maxConcurrency", "800");
+//    inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
+//
+//    // Something broken in splitPArts functioN!!!
+//
+//    // ==> Need to fix that!!!
+//
+//
+//
+//    //    opt.set("tuplex.aws.maxConcurrency", "800");
+//
+//    // TOOD: test over single file...
+//
+//
+//    // Re broken pipe, try out maybe: options.httpOptions.installSigPipeHandler = true;
+//
+//
+////    inputFiles = "s3://tuplex-public/data/100GB/*.csv";
+
+
+
+//    string outputDir = string("s3://") + S3_TEST_BUCKET + "/tests/" + testName + "/zillow_output.csv";
+//    Context ctx(opt);
+//
+//    Timer timer;
+//    auto ds = zillowPipeline(ctx, inputFiles);
+//    ds.tocsv(outputDir);
+//    cout<<"Lambda zillow took: "<<timer.time()<<endl;
 }
 
 #endif // BUILD_WITH_AWS

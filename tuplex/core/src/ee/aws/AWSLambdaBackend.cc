@@ -529,6 +529,7 @@ namespace tuplex {
 //            logger().info("Warmup took: " + std::to_string(timer.time()));
 //
 //            reset();
+//            exit(0);
 //        }
 
         auto tstage = dynamic_cast<TransformStage *>(stage);

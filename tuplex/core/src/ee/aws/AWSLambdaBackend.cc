@@ -934,7 +934,7 @@ namespace tuplex {
             statusCode = result.GetStatusCode();
             string version = result.GetExecutedVersion().c_str();
             auto response = parsePayload(result);
-
+            string function_error = result.GetFunctionError().c_str();
             log = result.GetLogResult();
 
             // extract info
@@ -972,9 +972,10 @@ namespace tuplex {
                 ss<<std::fixed<<price;
             } else {
                 // TODO: maybe still track the response info (e.g. reused, cost, etc.)
-                ss<<"Lambda task failed, details: "<<response.errormessage();
+                ss<<"Lambda task failed ["<<statusCode<<"], details: "<<response.errormessage();
                 ss<<" RequestId: "<<info.requestID;
-
+                if(!function_error.empty())
+                    ss<<" Function Error: "<<function_error;
                 // print out log:
                 ss<<"\nLog:\n"<<decodeAWSBase64(log);
             }

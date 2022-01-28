@@ -111,7 +111,7 @@ namespace tuplex {
     int WorkerApp::processJSONMessage(const std::string &message) {
         auto& logger = this->logger();
 
-        logger.info("JSON request: " + message);
+        // logger.info("JSON request: " + message);
 
         // parse JSON into protobuf
         tuplex::messages::InvocationRequest req;

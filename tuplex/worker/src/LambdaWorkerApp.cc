@@ -532,7 +532,7 @@ namespace tuplex {
 
 
                 // invoke
-                double timeout = 25.0;
+                double timeout = 25.0; // timeout in seconds
                 auto max_retries = 3;
                 _lambdaClient = createClient(timeout, lambda_parts.size());
                 for(auto lambda_part : lambda_parts) {
@@ -597,6 +597,11 @@ namespace tuplex {
                 // timeout occured?
                 if(_outstandingRequests > 0)
                     logger().info("Timeout occurred, still " + std::to_string(_outstandingRequests) + " requests open...");
+
+                // disable processing for client
+                logger().info("disabling Lambda client processing...");
+                _lambdaClient->DisableRequestProcessing();
+                logger().info("lambda processing disabled");
 
                 // create answer
                 prepareResponseFromSelfInvocations();
@@ -763,7 +768,7 @@ namespace tuplex {
 
         // check what the return code is...
         if(!desc.errorMessage.empty()) {
-            ss<<"LAMBDA ["<<(int)response.status()<<"]Error: "<<desc.returnCode<<" "<<desc.errorMessage;
+            ss<<"LAMBDA ["<<(int)response.status()<<"] Error: "<<desc.returnCode<<" "<<desc.errorMessage;
         } else {
             ss<<"LAMBDA ["<<(int)response.status()<<"] succeeded, took "<<desc.durationInMs<<"ms, billed: "<<desc.billedDurationInMs<<"ms";
         }

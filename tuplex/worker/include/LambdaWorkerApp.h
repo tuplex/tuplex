@@ -187,6 +187,7 @@ namespace tuplex {
             LambdaWorkerApp *app;
             int requestIdx;
 
+            LambdaRequestContext() = delete;
             LambdaRequestContext(LambdaWorkerApp* the_app, int idx) : app(the_app), requestIdx(idx) {}
         };
 

@@ -83,10 +83,10 @@
 #  include <windows.h>
 #endif  // _WIN32
 
-#include "date/tz_private.h"
+#include "third_party/date/tz_private.h"
 
 #ifdef __APPLE__
-#  include "date/ios.h"
+#  include "third_party/date/ios.h"
 #else
 #  define TARGET_OS_IPHONE 0
 #  define TARGET_OS_SIMULATOR 0

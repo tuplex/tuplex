@@ -1,4 +1,3 @@
-// from https://github.com/HowardHinnant/date/releases/tag/v3.0.1
 #ifndef DATE_H
 #define DATE_H
 

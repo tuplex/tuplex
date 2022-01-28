@@ -634,7 +634,7 @@ namespace tuplex {
 
         // go over all invocations
         {
-            std::unique_lock<std::mutex> lock(_invokeRequestMutex);
+            //std::unique_lock<std::mutex> lock(_invokeRequestMutex);
             unsigned n = _invokeRequests.size();
 
             for(unsigned i = 0; i < n; ++i) {

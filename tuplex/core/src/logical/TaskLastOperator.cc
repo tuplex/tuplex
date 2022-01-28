@@ -8,35 +8,36 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#ifndef TUPLEX_LOGICALOPERATORTYPE_H
-#define TUPLEX_LOGICALOPERATORTYPE_H
+#include <logical/TakeLastOperator.h>
+#include <cassert>
 
 namespace tuplex {
-    enum class LogicalOperatorType {
-        UNKNOWN,
-        MAP,
-        FILTER,
-        TAKE, // i.e. output to python / in memory
-        TAKELAST,
-        PARALLELIZE, // i.e. input from python
-        FILEINPUT,
-        RESOLVE,
-        IGNORE,
-        MAPCOLUMN,
-        WITHCOLUMN,
-        FILEOUTPUT, // output to file
-        JOIN,
-        AGGREGATE,
-        CACHE // i.e. to materialize intermediates & reuse partitions
-    };
+    TakeLastOperator::TakeLastOperator(LogicalOperator *parent, const int64_t numElements) : LogicalOperator::LogicalOperator(parent), _limit(numElements) {
+        // take schema from parent node
+        setSchema(this->parent()->getOutputSchema());
+    }
 
-    inline bool isExceptionOperator(LogicalOperatorType lot) {
-        if(lot == LogicalOperatorType::RESOLVE)
-            return true;
-        if(lot == LogicalOperatorType::IGNORE)
-            return true;
-        return false;
+    bool TakeLastOperator::good() const {
+            return _limit >= -1;
+    }
+
+    std::vector<Row> TakeLastOperator::getSample(const size_t num) const {
+        // take sample from parent
+        return parent()->getSample(num);
+    }
+
+    std::vector<std::string> TakeLastOperator::columns() const {
+        assert(parent());
+        return parent()->columns();
+    }
+
+    LogicalOperator *TakeLastOperator::clone() {
+        // create clone of this operator
+        auto copy = new TakeLastOperator(parent()->clone(), _limit);
+
+        copy->setDataSet(getDataSet()); // weak ptr to old dataset...
+        copy->copyMembers(this);
+        assert(getID() == copy->getID());
+        return copy;
     }
 }
-
-#endif //TUPLEX_LOGICALOPERATORTYPE_H

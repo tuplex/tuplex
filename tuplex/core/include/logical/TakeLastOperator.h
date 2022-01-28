@@ -8,35 +8,44 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#ifndef TUPLEX_LOGICALOPERATORTYPE_H
-#define TUPLEX_LOGICALOPERATORTYPE_H
+#ifndef TUPLEX_TAKELASTOPERATOR_H
+#define TUPLEX_TAKELASTOPERATOR_H
+
+
+#include "LogicalOperator.h"
 
 namespace tuplex {
-    enum class LogicalOperatorType {
-        UNKNOWN,
-        MAP,
-        FILTER,
-        TAKE, // i.e. output to python / in memory
-        TAKELAST,
-        PARALLELIZE, // i.e. input from python
-        FILEINPUT,
-        RESOLVE,
-        IGNORE,
-        MAPCOLUMN,
-        WITHCOLUMN,
-        FILEOUTPUT, // output to file
-        JOIN,
-        AGGREGATE,
-        CACHE // i.e. to materialize intermediates & reuse partitions
-    };
+    class TakeLastOperator : public LogicalOperator {
+    private:
+        int64_t _limit;
+    public:
+        LogicalOperator *clone() override;
 
-    inline bool isExceptionOperator(LogicalOperatorType lot) {
-        if(lot == LogicalOperatorType::RESOLVE)
-            return true;
-        if(lot == LogicalOperatorType::IGNORE)
-            return true;
-        return false;
-    }
+    public:
+        TakeLastOperator(LogicalOperator *parent, const int64_t numElements);
+
+        std::string name() override {
+            if(_limit < 0 || std::numeric_limits<int64_t>::max() == _limit)
+                return "collect";
+            return "take";
+        }
+        LogicalOperatorType type() const override { return LogicalOperatorType::TAKELAST; }
+
+        bool isActionable() override { return true; }
+
+        bool isDataSource() override { return false; }
+
+        bool good() const override;
+
+        int64_t limit() { return _limit; }
+
+
+        std::vector<Row> getSample(const size_t num) const override;
+
+        Schema getInputSchema() const override { return getOutputSchema(); }
+
+        std::vector<std::string> columns() const override;
+    };
 }
 
-#endif //TUPLEX_LOGICALOPERATORTYPE_H
+#endif //TUPLEX_TAKELASTOPERATOR_H

@@ -43,6 +43,7 @@ PYMODULE {
             .def("show", &tuplex::PythonDataSet::show)
             .def("collect", &tuplex::PythonDataSet::collect)
             .def("take", &tuplex::PythonDataSet::take)
+            .def("takeLast", &tuplex::PythonDataSet::takeLast)
             .def("map", &tuplex::PythonDataSet::map)
             .def("resolve", &tuplex::PythonDataSet::resolve)
             .def("ignore", &tuplex::PythonDataSet::ignore)

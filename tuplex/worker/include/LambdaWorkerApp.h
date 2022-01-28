@@ -16,6 +16,7 @@
 #ifdef BUILD_WITH_AWS
 
 #include <AWSCommon.h>
+#include <ee/aws/ContainerInfo.h>
 #include <aws/core/Aws.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/core/utils/logging/DefaultLogSystem.h>
@@ -31,47 +32,6 @@
 #define AWS_LAMBDA_SAFETY_DURATION_IN_MS 1000
 
 namespace tuplex {
-
-    struct ContainerInfo {
-        bool reused; //! whether container has been reused or not
-        std::string requestId; //! Lambda Request ID
-        std::string uuid; //! uuid of container
-        uint32_t msRemaining; //! how many milliseconds remain of this container when info was added
-        uint32_t requestsServed; //! how many requests did this container already serve? (incl. the current one)
-        uint64_t startTimestamp; //! when container was started
-        uint64_t deadlineTimestamp; //! when container will shutdown/expire
-
-        ContainerInfo() = default;
-
-        ContainerInfo(const messages::ContainerInfo& info) : reused(info.reused()),
-                                                             requestId(info.requestid().c_str()),
-                                                             uuid(info.uuid().c_str()),
-                                                             msRemaining(info.msremaining()),
-                                                             requestsServed(info.requestsserved()),
-                                                             startTimestamp(info.start()),
-                                                             deadlineTimestamp(info.deadline()) {
-
-        }
-
-        inline void fill(messages::ContainerInfo* c) const {
-            if(!c)
-                return;
-
-            c->set_reused(reused);
-            c->set_requestid(requestId.c_str());
-            c->set_uuid(uuid.c_str());
-            c->set_msremaining(msRemaining);
-            c->set_requestsserved(requestsServed);
-            c->set_start(startTimestamp);
-            c->set_deadline(deadlineTimestamp);
-        }
-
-        inline messages::ContainerInfo* to_protobuf() const {
-            auto c = new messages::ContainerInfo();
-            fill(c);
-            return c;
-        }
-    };
 
     // externally link, i.e. in testing need dummy to make linking work!
     extern ContainerInfo getThisContainerInfo();

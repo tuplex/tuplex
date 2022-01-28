@@ -98,7 +98,6 @@ namespace tuplex {
         auto logTail =  ss.str();
         return logTail;
     }
-
 }
 
 // Amazon frequently changes the parameters of lambda functions,

@@ -14,7 +14,7 @@
 // standard message strings
 #define MISSING_ORC_MESSAGE ("Tuplex was not built with ORC support. To build Tuplex with ORC, set BUILD_WITH_ORC=ON.")
 
-
+#include <ctime>
 #include "Base.h"
 #include "StringUtils.h"
 #include "StatUtils.h"
@@ -172,7 +172,33 @@ struct hash<std::tuple<TT...>>
 // use this here to activate additional checks & easier debugging.
 // #define TUPLEX_DEBUG
 
+#include <time.h>
+#include <sys/time.h>
+#include <stdio.h>
+
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
+
+#include "third_party/date/date.h"
+#include "third_party/date/tz.h"
+
 namespace tuplex {
+
+    // current system timestamp
+    inline int64_t currentTimestamp() {
+        std::chrono::high_resolution_clock clock;
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(clock.now().time_since_epoch()).count();
+    }
+
+    // current UTC timestamp
+    inline uint64_t current_utc_timestamp() {
+        // https://howardhinnant.github.io/date/tz.html#utc_clock
+        std::chrono::high_resolution_clock clock;
+        auto utc = date::utc_clock::now();
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(utc.time_since_epoch()).count();
+    }
 
     // from https://stackoverflow.com/questions/1068849/how-do-i-determine-the-number-of-digits-of-an-integer-in-c
     // and http://graphics.stanford.edu/~seander/bithacks.html#IntegerLog10Obvious

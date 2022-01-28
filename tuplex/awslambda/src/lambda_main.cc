@@ -211,7 +211,8 @@ namespace tuplex {
         info.msRemaining = chrono::duration_cast<chrono::milliseconds, long>(g_lambda_req->get_time_remaining()).count();
         info.startTimestamp = g_start_timestamp;
         std::chrono::high_resolution_clock clock;
-        info.deadlineTimestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(clock.now().time_since_epoch()).count();
+        auto utc_deadline = date::utc_clock::from_sys(g_lambda_req->deadline);
+        info.deadlineTimestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(utc_deadline.time_since_epoch()).count();
         return info;
     }
 }

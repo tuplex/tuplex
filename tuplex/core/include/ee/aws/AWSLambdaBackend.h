@@ -25,6 +25,7 @@
 #include <physical/ResolveTask.h>
 
 #include "AWSCommon.h"
+#include "ContainerInfo.h"
 #include <aws/core/Aws.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/core/utils/logging/DefaultLogSystem.h>
@@ -69,6 +70,9 @@ namespace tuplex {
         // fetch values via options
         size_t _lambdaSizeInMB;
         size_t _lambdaTimeOut;
+
+        int64_t _startTimestamp;
+
 
         void reset();
 
@@ -136,6 +140,12 @@ namespace tuplex {
          * print extended lambda statistics out
          */
         void printStatistics();
+
+        /*!
+         * outputs all the stats etc. as json file for analysis
+         * @param json_path
+         */
+        void dumpAsJSON(const std::string& json_path);
 
         size_t getMB100Ms();
         size_t getMBMs();

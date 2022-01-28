@@ -42,9 +42,4 @@ extern void reset_executor_setup();
 extern uint64_t g_start_timestamp;
 extern uint32_t g_num_requests_served;
 
-inline int64_t currentTimestamp() {
-    std::chrono::high_resolution_clock clock;
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(clock.now().time_since_epoch()).count();
-}
-
 #endif //TUPLEX_MAIN_H

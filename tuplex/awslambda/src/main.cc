@@ -83,9 +83,10 @@ int main() {
 
     // TODO: determine whether this is needed for the new AWS C++ Runtime
     using namespace aws::lambda_runtime;
+    using namespace tuplex;
 
     // record start timestamp
-    g_start_timestamp = currentTimestamp();
+    g_start_timestamp = current_utc_timestamp();
 
     // init logger to only act with stdout sink (no file logging!)
     Logger::init({std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>()});

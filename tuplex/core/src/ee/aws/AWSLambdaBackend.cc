@@ -500,6 +500,8 @@ namespace tuplex {
     void AwsLambdaBackend::execute(PhysicalStage *stage) {
         using namespace std;
 
+        _startTimestamp = current_utc_timestamp();
+
         reset();
 
         // Notes:
@@ -649,6 +651,9 @@ namespace tuplex {
         // wait till everything finished computing
         waitForRequests();
         printStatistics();
+
+        dumpAsJSON("aws_job.json");
+
         {
             std::stringstream ss;
             ss<<"LAMBDA compute took "<<timer.time()<<"s";
@@ -937,10 +942,6 @@ namespace tuplex {
                    << ", " << pluralize(response.numexceptions(), "exception") << ", "
                    << container_status << ", id: " << response.container().uuid() << "] ";
 
-                // debug: print log
-                std::cout<<"LOG:\n" + decodeAWSBase64(log)<<std::endl;
-
-
                 // lock and move to vector
                 {
                     std::lock_guard<std::mutex> lock(backend->_mutex);
@@ -997,7 +998,8 @@ namespace tuplex {
                                        const std::string &functionName) : IBackend(context), _credentials(credentials),
                                        _functionName(functionName), _options(context.getOptions()),
                                        _logger(Logger::instance().logger("aws-lambda")), _tag("tuplex"),
-                                       _client(nullptr), _numPendingRequests(0), _numRequests(0) {
+                                       _client(nullptr), _numPendingRequests(0), _numRequests(0),
+                                       _startTimestamp(current_utc_timestamp()) {
 
 
         _deleteScratchDirOnShutdown = false;
@@ -1115,6 +1117,40 @@ namespace tuplex {
         }
 
         ss << "}\n";
+    }
+
+
+    void AwsLambdaBackend::dumpAsJSON(const std::string& json_path) {
+        using namespace std;
+        stringstream ss;
+
+        ss<<"{";
+
+        // 0. general info
+        ss<<"\"stageStartTimestamp\":"<<_startTimestamp<<",";
+
+        // 1. tasks
+        ss<<"\"tasks\":[";
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+
+            for (const auto &task : _tasks) {
+                ContainerInfo info = task.container();
+                ss<<"{\"container\":"<<info.asJSON()<<",\"invoked_containers\":[";
+                for(unsigned i = 0; i < task.invokedcontainers_size(); ++i) {
+                    info = task.invokedcontainers(i);
+                    ss<<info.asJSON();
+                    if(i != task.invokedcontainers_size() - 1)
+                        ss<<",";
+                }
+                ss<<"]}";
+            }
+        }
+        ss<<"]";
+
+        ss<<"}";
+
+        stringToFile(json_path, ss.str());
     }
 
     void AwsLambdaBackend::printStatistics() {

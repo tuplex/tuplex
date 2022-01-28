@@ -10,6 +10,16 @@
 #include <Lambda.pb.h>
 
 namespace tuplex {
+
+    // Notes: hm, maybe should separate requestInfo and containerinfo!
+    // I.e., container info is re a running Lambda and request info re a running requst!
+
+    // yeah, prob the right choice -> because request info should also contain things like
+    // cost, start/end, duration, breakdowns etc.
+
+    // TODO: what else is missing, is the correct part numbering + what should happen to the end-result!
+    // i.e. multi-upload request?
+
     struct ContainerInfo {
         bool reused; //! whether container has been reused or not
         std::string requestId; //! Lambda Request ID
@@ -18,6 +28,10 @@ namespace tuplex {
         uint32_t requestsServed; //! how many requests did this container already serve? (incl. the current one)
         uint64_t startTimestamp; //! when container was started
         uint64_t deadlineTimestamp; //! when container will shutdown/expire
+        //uint64_t requestStartTimestamp; //! when this particular request was started
+        //uint64_t requestEndTimestamp; //! when this particular request was ended
+
+        //ContainerInfo() : reused(false), requestStartTimestamp(0), requestEndTimestamp(0) {}
 
         ContainerInfo() = default;
 
@@ -40,6 +54,8 @@ namespace tuplex {
             ss<<",\"requestsServed\":"<<requestsServed;
             ss<<",\"startTimestamp\":"<<startTimestamp;
             ss<<",\"deadlineTimestamp\":"<<deadlineTimestamp;
+            //ss<<",\"requestStartTimestamp\":"<<requestStartTimestamp;
+            //ss<<",\"requestEndTimestamp\":"<<requestEndTimestamp
             ss<<"}";
             return ss.str();
         }

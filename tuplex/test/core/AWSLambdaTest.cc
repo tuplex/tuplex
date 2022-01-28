@@ -377,10 +377,22 @@ TEST_F(AWSTest, FullZillowPipeline) {
     opt.set("tuplex.aws.maxConcurrency", "4");
     string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
 
-//    // now more complex test:
-//    opt.set("tuplex.aws.lambdaMemory", "10000");
-//    opt.set("tuplex.aws.maxConcurrency", "400");
-//    inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
+    // now more complex test:
+    opt.set("tuplex.aws.lambdaMemory", "10000");
+    opt.set("tuplex.aws.maxConcurrency", "400");
+    inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
+
+
+    // now more complex test: --> this will result in Resource temporarily unavailable... -> request again!
+    opt.set("tuplex.aws.lambdaMemory", "10000");
+    opt.set("tuplex.aws.maxConcurrency", "800");
+    inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
+
+    // Something broken in splitPArts functioN!!!
+
+    // ==> Need to fix that!!!
+
+
 
     //    opt.set("tuplex.aws.maxConcurrency", "800");
 

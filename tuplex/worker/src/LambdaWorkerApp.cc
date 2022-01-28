@@ -837,9 +837,9 @@ namespace tuplex {
             messages::InvocationResponse response;
             google::protobuf::util::JsonStringToMessage(data, &response);
 
-            callback_ctx->app->logger().info("extracting log...");
+            //callback_ctx->app->logger().info("extracting log...");
             auto log = result.GetLogResult();
-            callback_ctx->app->logger().info("Got log, size: " + std::to_string(log.size()));
+            //callback_ctx->app->logger().info("Got log, size: " + std::to_string(log.size()));
             auto desc = LambdaInvokeDescription::parseFromLog(log);
 
             // invoke from app callback function
@@ -858,9 +858,9 @@ namespace tuplex {
         }
 
         // dec counter
-        callback_ctx->app->logger().info("dec request");
+        //callback_ctx->app->logger().info("dec request");
         callback_ctx->app->decRequests();
-        callback_ctx->app->logger().info("there are: " + std::to_string(callback_ctx->app->_outstandingRequests));
+        //callback_ctx->app->logger().info("there are: " + std::to_string(callback_ctx->app->_outstandingRequests));
     }
 
     tuplex::messages::InvocationResponse LambdaWorkerApp::generateResponse() {

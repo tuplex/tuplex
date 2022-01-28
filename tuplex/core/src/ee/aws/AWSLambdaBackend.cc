@@ -647,10 +647,15 @@ namespace tuplex {
 
         // TODO: check signals, allow abort...
 
-
         // wait till everything finished computing
         waitForRequests();
         printStatistics();
+
+        // check here whether all files where successfully processed or not!
+        // -> reissue requests for missing files...!
+
+        // save request end! --> i.e. synchronization points!
+        _endTimestamp = current_utc_timestamp();
 
         dumpAsJSON("aws_job.json");
 
@@ -999,7 +1004,7 @@ namespace tuplex {
                                        _functionName(functionName), _options(context.getOptions()),
                                        _logger(Logger::instance().logger("aws-lambda")), _tag("tuplex"),
                                        _client(nullptr), _numPendingRequests(0), _numRequests(0),
-                                       _startTimestamp(current_utc_timestamp()) {
+                                       _startTimestamp(0), _endTimestamp(0) {
 
 
         _deleteScratchDirOnShutdown = false;
@@ -1128,6 +1133,7 @@ namespace tuplex {
 
         // 0. general info
         ss<<"\"stageStartTimestamp\":"<<_startTimestamp<<",";
+        ss<<"\"stageEndTimestamp\":"<<_endTimestamp<<",";
 
         // 1. tasks
         ss<<"\"tasks\":[";

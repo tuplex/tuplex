@@ -71,7 +71,8 @@ namespace tuplex {
         size_t _lambdaSizeInMB;
         size_t _lambdaTimeOut;
 
-        int64_t _startTimestamp;
+        uint64_t _startTimestamp;
+        uint64_t _endTimestamp;
 
 
         void reset();

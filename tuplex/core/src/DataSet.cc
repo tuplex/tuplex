@@ -12,6 +12,7 @@
 #include <logical/MapOperator.h>
 #include <logical/FilterOperator.h>
 #include <logical/TakeOperator.h>
+#include <logical/TakeLastOperator.h>
 #include <logical/ResolveOperator.h>
 #include <logical/IgnoreOperator.h>
 #include <logical/MapColumnOperator.h>
@@ -100,6 +101,29 @@ namespace tuplex {
         }
 
         return v;
+    }
+
+    std::shared_ptr<ResultSet> DataSet::takeLast(int64_t numElements, std::ostream &os) {
+        // error dataset?
+        if (isError())
+            throw std::runtime_error("is error dataset!");
+
+        // negative numbers mean get all elements!
+        if (numElements < 0)
+            numElements = std::numeric_limits<int64_t>::max();
+
+        // create a take node
+        assert(_context);
+        LogicalOperator *op = _context->addOperator(new TakeLastOperator(this->_operator, numElements));
+        DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
+        dsptr->_operator = op;
+        op->setDataSet(dsptr);
+
+        // perform action.
+        assert(this->_context);
+        auto rs = op->compute(*this->_context);
+
+        return rs;
     }
 
     void DataSet::tofile(tuplex::FileFormat fmt, const tuplex::URI &uri, const tuplex::UDF &udf,

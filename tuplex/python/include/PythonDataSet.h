@@ -78,6 +78,7 @@ namespace tuplex {
 
         py::object collect();
         py::object take(const int64_t numRows);
+        boost::python::object takeLast(const int64_t numRows);
         void show(const int64_t numRows=-1);
 
         // DataFrame like operations

@@ -269,6 +269,8 @@ namespace tuplex {
 
         virtual std::vector<Row> takeAsVector(int64_t numElements, std::ostream &os = std::cout);
 
+        virtual std::shared_ptr<ResultSet> takeLast(int64_t numElements, std::ostream &os = std::cout);
+        
         /*!
          * saves dataset to file. There are multiple options to control the behavior
          * ==> 1.) files can be split across multiple ones. Specify number of files to split rows to

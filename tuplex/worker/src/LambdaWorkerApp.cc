@@ -24,6 +24,12 @@
 #include <aws/core/auth/AWSCredentials.h>
 #include <aws/core/utils/json/JsonSerializer.h>
 
+#include <aws/core/utils/logging/ConsoleLogSystem.h>
+#include <aws/core/utils/logging/FormattedLogSystem.h>
+#include <aws/core/utils/logging/DefaultLogSystem.h>
+#include <aws/core/utils/logging/AWSLogging.h>
+#include <aws/core/platform/Environment.h>
+
 #include <AWSCommon.h>
 #include <aws/lambda/LambdaClient.h>
 
@@ -327,6 +333,13 @@ namespace tuplex {
         Timer timer;
         Aws::InitAPI(_aws_options);
 
+
+        // if desired, turn here logging on
+        auto log_level = Aws::Utils::Logging::LogLevel::Trace;
+        log_level = Aws::Utils::Logging::LogLevel::Info;
+        auto log_system = Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>("tuplex", log_level);
+        Aws::Utils::Logging::InitializeAWSLogging(log_system);
+
         // get AWS credentials from Lambda environment...
         // Note that to run on Lambda this requires a session token!
         // e.g., https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime
@@ -416,6 +429,12 @@ namespace tuplex {
 
             return WORKER_OK;
         } else if(req.type() == messages::MessageType::MT_TRANSFORM) {
+
+            // extract settings from req & init multi-threading!
+            _settings = settingsFromMessage(req);
+            if(!_threadEnvs)
+                initThreadEnvironments();
+
 
             // validate only S3 uris are given (in debug mode)
 #ifdef NDEBUG
@@ -619,11 +638,6 @@ namespace tuplex {
             }
 
             // @TODO: what about remaining time? Partial completion?
-
-            // extract settings from req
-            _settings = settingsFromMessage(req);
-            if(!_threadEnvs)
-                initThreadEnvironments();
 
             // @TODO
             // can reuse here infrastructure from WorkerApp!

@@ -50,7 +50,6 @@ std::string outcome_error_message(const Aws::Utils::Outcome<R, E>& outcome, cons
         return ss.str();
     }
 
-
     // improve error messaging:
     std::string aws_exception = outcome.GetError().GetExceptionName().c_str();
     std::string aws_message = outcome.GetError().GetMessage().c_str();

@@ -30,6 +30,9 @@
 #include <cstring>
 #include <unordered_map>
 
+#include "third_party/date/date.h"
+#include "third_party/date/tz.h"
+
 #include <utility>
 #include <cstdint>
 
@@ -171,18 +174,6 @@ struct hash<std::tuple<TT...>>
 // llvm has competing debug macro -.-
 // use this here to activate additional checks & easier debugging.
 // #define TUPLEX_DEBUG
-
-#include <time.h>
-#include <sys/time.h>
-#include <stdio.h>
-
-#ifdef __MACH__
-#include <mach/clock.h>
-#include <mach/mach.h>
-#endif
-
-#include "third_party/date/date.h"
-#include "third_party/date/tz.h"
 
 namespace tuplex {
 

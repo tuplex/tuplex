@@ -583,7 +583,7 @@ namespace tuplex {
 
                 // timeout occured?
                 if(_outstandingRequests > 0)
-                    logger().info("Timeout occurred, still some requests open...");
+                    logger().info("Timeout occurred, still " + std::to_string(_outstandingRequests) + " requests open...");
 
                 // create answer
                 prepareResponseFromSelfInvocations();
@@ -913,6 +913,9 @@ namespace tuplex {
 
         // clean containers
         std::unordered_map<std::string, ContainerInfo> uniqueContainers;
+
+        bool internal_error = false;
+
         for(auto info : containers) {
             auto it = uniqueContainers.find(info.uuid);
             if(it == uniqueContainers.end())
@@ -924,9 +927,12 @@ namespace tuplex {
                 }
 
                 if(!it->second.reused)
-                    logger.error("internal error, 2x new with unique ID?");
+                    internal_error = true;
             }
         }
+
+        if(internal_error)
+            logger.error("internal error, 2x new with unique ID?");
 
         std::vector<ContainerInfo> ret;
         ret.reserve(uniqueContainers.size());

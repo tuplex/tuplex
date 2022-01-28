@@ -248,6 +248,21 @@ namespace tuplex {
             _mutex.unlock();
         }
 
+        void setNumLastRows(const size_t numRows) {
+            // TODO: set another value instead
+            _mutex.lock();
+
+            _numRows = numRows;
+
+            // save to memptr
+            if(_arena) {
+                *((int64_t*)_arena) = numRows;
+            }
+
+            _mutex.unlock();
+        }
+
+
 
         int64_t getDataSetID() const { return _dataSetID; }
 

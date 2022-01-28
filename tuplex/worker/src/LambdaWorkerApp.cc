@@ -577,8 +577,21 @@ namespace tuplex {
                 if(timeRemainingOnLambda < AWS_LAMBDA_SAFETY_DURATION_IN_MS / 1000.0) // add some safety time... 1s
                     timeRemainingOnLambda = 0.0;
                 Timer timer;
-                while(_outstandingRequests > 0 && timer.time() < timeRemainingOnLambda) {
+                double time_elapsed = timer.time();
+                int next_sec = 1;
+
+                // debug: make waiting < 10s
+                timeRemainingOnLambda = std::min(timeRemainingOnLambda, 10.0);
+
+                logger().info("time remaining on Lambda: " + std::to_string(timeRemainingOnLambda) + "s");
+                while(_outstandingRequests > 0 && time_elapsed < timeRemainingOnLambda) {
                    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+                   time_elapsed = timer.time();
+                   if(time_elapsed > next_sec) {
+                       logger().info("still waiting for " + std::to_string(_outstandingRequests)
+                       + " to finish (since " + std::to_string(time_elapsed) + "s).");
+                       next_sec++;
+                   }
                 }
 
                 // timeout occured?
@@ -752,7 +765,7 @@ namespace tuplex {
         if(!desc.errorMessage.empty()) {
             ss<<"LAMBDA ["<<(int)response.status()<<"]Error: "<<desc.returnCode<<" "<<desc.errorMessage;
         } else {
-            ss<<"LAMBDA ["<<(int)response.status()<<"] succeeded, took "<<desc.durationInMs<<"ms, billed: "<<desc.billedDurationInMs;
+            ss<<"LAMBDA ["<<(int)response.status()<<"] succeeded, took "<<desc.durationInMs<<"ms, billed: "<<desc.billedDurationInMs<<"ms";
         }
 
         logger().info(ss.str());

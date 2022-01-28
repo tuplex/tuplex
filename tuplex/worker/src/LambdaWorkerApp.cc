@@ -728,6 +728,7 @@ namespace tuplex {
         lambda_req.SetInvocationType(Aws::Lambda::Model::InvocationType::RequestResponse);
         // logtype to extract log data??
         //req.SetLogtype(Aws::Lambda::Model::LogType::None);
+        lambda_req.SetLogType(Aws::Lambda::Model::LogType::Tail);
         lambda_req.SetBody(stringToAWSStream(invoke_req.payload));
         lambda_req.SetContentType("application/javascript");
 
@@ -832,7 +833,7 @@ namespace tuplex {
         }
 
         // dec counter
-        _outstandingRequests--;
+        callback_ctx->app->_outstandingRequests--;
     }
 
     tuplex::messages::InvocationResponse LambdaWorkerApp::generateResponse() {

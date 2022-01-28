@@ -763,7 +763,6 @@ namespace tuplex {
                                 lambdaCallback,
                                 Aws::MakeShared<LambdaRequestContext>(tag.c_str(), this, requestNo));
 //        }
-        _outstandingRequests++;
     }
 
 

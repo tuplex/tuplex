@@ -908,11 +908,13 @@ namespace tuplex {
         // init Lambda client
         Aws::Client::ClientConfiguration clientConfig;
 
-        size_t lambdaToLambdaTimeOutInMs = 200;
+        size_t lambdaToLambdaTimeOutInMs = 800; // 200 should be sufficient, yet sometimes lambdas break with broken pipe
         std::string tag = "tuplex-lambda";
 
         clientConfig.requestTimeoutMs = static_cast<int>(timeout * 1000.0); // conv seconds to ms
         clientConfig.connectTimeoutMs = lambdaToLambdaTimeOutInMs; // connection timeout
+
+        clientConfig.tcpKeepAliveIntervalMs = 15; // lower this
 
         // tune client, according to https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/client-config.html
         // note: max connections should not exceed max concurrency if it is below 100, else aws lambda

@@ -44,6 +44,9 @@ namespace tuplex {
     class LambdaWorkerApp : public WorkerApp {
     public:
         LambdaWorkerApp(const LambdaWorkerSettings& ws) : WorkerApp(ws), _outstandingRequests(0) {
+
+            // for Lambda install sighandler for curl
+            _aws_options.httpOptions.installSigPipeHandler = true;
         }
 
         tuplex::messages::InvocationResponse generateResponse();

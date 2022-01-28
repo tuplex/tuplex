@@ -374,13 +374,21 @@ TEST_F(AWSTest, FullZillowPipeline) {
 
     // use 6 threads and 10GB of RAM
     opt.set("tuplex.aws.lambdaMemory", "10000");
-//    opt.set("tuplex.aws.maxConcurrency", "800");
     opt.set("tuplex.aws.maxConcurrency", "4");
+    string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
 
+//    // now more complex test:
+//    opt.set("tuplex.aws.lambdaMemory", "10000");
+//    opt.set("tuplex.aws.maxConcurrency", "400");
+//    inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
+
+    //    opt.set("tuplex.aws.maxConcurrency", "800");
 
     // TOOD: test over single file...
 
-    string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
+
+    // Re broken pipe, try out maybe: options.httpOptions.installSigPipeHandler = true;
+
 
 //    inputFiles = "s3://tuplex-public/data/100GB/*.csv";
 

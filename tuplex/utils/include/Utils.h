@@ -30,6 +30,10 @@
 #include <cstring>
 #include <unordered_map>
 
+// note: there're different options re the IANA tz database
+// do not download, just rely on OS
+#define USE_OS_TZDB 1
+
 #include "third_party/date/date.h"
 #include "third_party/date/tz.h"
 

@@ -858,7 +858,9 @@ namespace tuplex {
         }
 
         // dec counter
-        callback_ctx->app->_outstandingRequests--;
+        callback_ctx->app->logger().info("dec request");
+        callback_ctx->app->decRequests();
+        callback_ctx->app->logger().info("there are: " + std::to_string(callback_ctx->app->_outstandingRequests));
     }
 
     tuplex::messages::InvocationResponse LambdaWorkerApp::generateResponse() {

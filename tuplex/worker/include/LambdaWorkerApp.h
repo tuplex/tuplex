@@ -163,6 +163,10 @@ namespace tuplex {
             return requestNo;
         }
 
+        inline void decRequests() {
+            _outstandingRequests--;
+        }
+
         /*!
          * invoke another Lambda function
          * @param timeout how many seconds to allow this Lambda invocation max

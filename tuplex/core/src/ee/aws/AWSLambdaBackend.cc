@@ -768,8 +768,8 @@ namespace tuplex {
         //     recursive_invocations.push_back(uri_infos.size() - 1);
 
         // Strategy II: use concurrency setting!
-        if(uri_infos.size() > 2)
-            recursive_invocations.push_back(_functionConcurrency - 1);
+        //if(uri_infos.size() > 2)
+        recursive_invocations.push_back(_functionConcurrency - 1);
 
         // transform to request
         messages::InvocationRequest req;

@@ -374,11 +374,17 @@ TEST_F(AWSTest, FullZillowPipeline) {
 
     // use 6 threads and 10GB of RAM
     opt.set("tuplex.aws.lambdaMemory", "10000");
-    opt.set("tuplex.aws.maxConcurrency", "800");
+//    opt.set("tuplex.aws.maxConcurrency", "800");
+    opt.set("tuplex.aws.maxConcurrency", "4");
+
+
+    // TOOD: test over single file...
 
     string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
 
-    inputFiles = "s3://tuplex-public/data/100GB/*.csv";
+//    inputFiles = "s3://tuplex-public/data/100GB/*.csv";
+
+
 
     string outputDir = string("s3://") + S3_TEST_BUCKET + "/tests/" + testName + "/zillow_output.csv";
     Context ctx(opt);

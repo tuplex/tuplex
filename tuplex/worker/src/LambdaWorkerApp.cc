@@ -488,21 +488,21 @@ namespace tuplex {
                 size_t minimumPartSize = 1024 * 1024; // 1MB.
                 auto parts = splitIntoEqualParts(total_parts, uris, file_sizes, minimumPartSize);
 
-                // process data, first part is for this Lambda
-                // log it here out
-                {
-                    std::stringstream ss;
-                    for(unsigned i = 0; i < parts.size(); ++i) {
-                        if(0 == i)
-                            ss<<"Overview which Lambda will process what:\nLambda (this) will process: ";
-                        else
-                            ss<<"\nLambda ("<<i<<") will process: ";
-                        for(auto part : parts[i]) {
-                            ss<<"\n - "<<part.uri.toString()<<":"<<part.rangeStart<<"-"<<part.rangeEnd;
-                        }
-                    }
-                    logger().info(ss.str());
-                }
+//                // process data, first part is for this Lambda
+//                // log it here out
+//                {
+//                    std::stringstream ss;
+//                    for(unsigned i = 0; i < parts.size(); ++i) {
+//                        if(0 == i)
+//                            ss<<"Overview which Lambda will process what:\nLambda (this) will process: ";
+//                        else
+//                            ss<<"\nLambda ("<<i<<") will process: ";
+//                        for(auto part : parts[i]) {
+//                            ss<<"\n - "<<part.uri.toString()<<":"<<part.rangeStart<<"-"<<part.rangeEnd;
+//                        }
+//                    }
+//                    logger().info(ss.str());
+//                }
 
                 // issue requests & wait for them
 
@@ -540,6 +540,8 @@ namespace tuplex {
                     // this is not completely correct, need to perform better part naming!
                     invokeLambda(timeout, lambda_part, part_uri, req, max_retries, remaining_invocation_counts);
                 }
+
+                logger().info("Requests to other LAMBDAs created");
 
                 // ------
 

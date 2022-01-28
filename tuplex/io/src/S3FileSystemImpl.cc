@@ -516,6 +516,12 @@ namespace tuplex {
         if(lambdaMode) {
             if(config.region.empty())
                 config.region = Aws::Environment::GetEnv("AWS_REGION");
+
+            // test: modify back to defaults for Lambda
+            config.caPath = "";
+            config.caFile = "";
+            config.region = "";
+            config.verifySSL = false;
         }
 
         if(requesterPay)

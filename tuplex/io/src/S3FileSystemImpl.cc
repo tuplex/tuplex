@@ -516,8 +516,6 @@ namespace tuplex {
         if(lambdaMode) {
             if(config.region.empty())
                 config.region = Aws::Environment::GetEnv("AWS_REGION");
-            char const TAG[] = "LAMBDA_ALLOC";
-            auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
         }
 
         if(requesterPay)
@@ -534,11 +532,15 @@ namespace tuplex {
                                                      config,
                                                      Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
                                                      false);
+
+            // log out settings quickly (debug)
+            std::stringstream ss;
+            ss<<"S3 settings: REGION="<<config.region.c_str()<<" VERIFY_SSL="<<config.verifySSL<<" CAFILE="<<config.caFile<<" CAPATH="<<config.caPath;
+            Logger::instance().defaultLogger().info(ss.str());
+
         } else {
             _client = std::make_shared<S3::S3Client>(aws_credentials, config);
         }
-
-
 
         // set counters to zero
         _putRequests = 0;

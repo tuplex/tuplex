@@ -908,6 +908,8 @@ namespace tuplex {
         // init Lambda client
         Aws::Client::ClientConfiguration clientConfig;
 
+        logger().info("Modifying lambda");
+
         size_t lambdaToLambdaTimeOutInMs = 800; // 200 should be sufficient, yet sometimes lambdas break with broken pipe
         std::string tag = "tuplex-lambda";
 
@@ -920,6 +922,8 @@ namespace tuplex {
         // note: max connections should not exceed max concurrency if it is below 100, else aws lambda
         // will return toomanyrequestsexception
         clientConfig.maxConnections = max_connections;
+
+        logger().info(std::string(__FILE__) + ":" + std::to_string(__LINE__) + "Creating thread executor Pool");
 
         // to avoid thread exhaust of system, use pool thread executor with 8 threads
         clientConfig.executor = Aws::MakeShared<Aws::Utils::Threading::PooledThreadExecutor>(tag.c_str(), max_connections);
@@ -934,6 +938,8 @@ namespace tuplex {
                                        _credentials.session_token.c_str());
 
         _outstandingRequests = 0;
+
+        logger().info("config done, now creating object");
         return Aws::MakeShared<Aws::Lambda::LambdaClient>(tag.c_str(), cred, clientConfig);
     }
 

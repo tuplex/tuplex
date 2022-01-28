@@ -909,7 +909,7 @@ namespace tuplex {
 
 //        backend->lambdaCallback(req, outcome, lctx->time(), lctx->getTaskID());
         int statusCode = 0;
-
+        std::string log;
         if (!outcome.IsSuccess()) {
             auto &error = outcome.GetError();
             statusCode = static_cast<int>(error.GetResponseCode());
@@ -935,7 +935,7 @@ namespace tuplex {
             string version = result.GetExecutedVersion().c_str();
             auto response = parsePayload(result);
 
-            auto log = result.GetLogResult();
+            log = result.GetLogResult();
 
             // extract info
             auto info = LambdaInvokeDescription::parseFromLog(log);
@@ -982,6 +982,10 @@ namespace tuplex {
 
         // log out message
         backend->logger().info(ss.str());
+
+        // debug: pritn out log
+        backend->logger().debug(decodeAWSBase64(log));
+
 
         // decrease wait counter
         backend->_numPendingRequests.fetch_add(-1, std::memory_order_release);

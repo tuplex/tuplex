@@ -670,15 +670,17 @@ namespace tuplex {
         if(parts.empty())
             return;
 
-        std::stringstream ss;
 
-        ss<<"Invoking LAMBDA with timeout="<<timeout<<", over: ";
-        for(const auto& part: parts) {
-            ss<<part.uri.toString()<<":"<<part.rangeStart<<"-"<<part.rangeEnd<<",";
-        }
-        ss<<" w. remaining invocation counts: "<<invocation_counts;
+        // too much output...
+//        std::stringstream ss;
+//
+//        ss<<"Invoking LAMBDA with timeout="<<timeout<<", over: ";
+//        for(const auto& part: parts) {
+//            ss<<part.uri.toString()<<":"<<part.rangeStart<<"-"<<part.rangeEnd<<",";
+//        }
+//        ss<<" w. remaining invocation counts: "<<invocation_counts;
 
-        logger().info(ss.str());
+        // logger().info(ss.str());
 
         // create protobuf message
         tuplex::messages::InvocationRequest req = original_message;

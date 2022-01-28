@@ -645,6 +645,7 @@ namespace tuplex {
 
         // TODO: check signals, allow abort...
 
+
         // wait till everything finished computing
         waitForRequests();
         printStatistics();
@@ -927,7 +928,7 @@ namespace tuplex {
             auto log = result.GetLogResult();
 
             // extract info
-            auto info = LambdaInvokeDescription::parseFromLog(log.c_str());
+            auto info = LambdaInvokeDescription::parseFromLog(log);
 
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
                 ss << "LAMBDA task done in " << response.taskexecutiontime() << "s ";
@@ -935,6 +936,10 @@ namespace tuplex {
                 ss << "[" << statusCode << ", " << pluralize(response.numrowswritten(), "row")
                    << ", " << pluralize(response.numexceptions(), "exception") << ", "
                    << container_status << ", id: " << response.container().uuid() << "] ";
+
+                // debug: print log
+                std::cout<<"LOG:\n" + decodeAWSBase64(log)<<std::endl;
+
 
                 // lock and move to vector
                 {

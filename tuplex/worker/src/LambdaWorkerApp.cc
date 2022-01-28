@@ -534,11 +534,15 @@ namespace tuplex {
                 // invoke
                 double timeout = 25.0; // timeout in seconds
                 auto max_retries = 3;
+
+                logger().info("creating Lambda client on LAMBDA");
                 _lambdaClient = createClient(timeout, lambda_parts.size());
+                logger().info("Invoking " + pluralize(lambda_parts.size(), "other LAMBDA"));
                 for(auto lambda_part : lambda_parts) {
                     URI part_uri = base_output_uri + ".part" + std::to_string(partNo++) + ".csv";
                     // this is not completely correct, need to perform better part naming!
                     invokeLambda(timeout, lambda_part, part_uri, req, max_retries, remaining_invocation_counts);
+                    logger().info(std::to_string(_outstandingRequests) + " outstanding requests...");
                 }
 
                 logger().info("Requests to other LAMBDAs created");
@@ -926,6 +930,7 @@ namespace tuplex {
                                        _credentials.secret_key.c_str(),
                                        _credentials.session_token.c_str());
 
+        _outstandingRequests = 0;
         return Aws::MakeShared<Aws::Lambda::LambdaClient>(tag.c_str(), cred, clientConfig);
     }
 

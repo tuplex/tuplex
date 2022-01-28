@@ -83,7 +83,7 @@ namespace tuplex {
     /// AWS Lambda specific Worker, inherits from base WorkerApp class
     class LambdaWorkerApp : public WorkerApp {
     public:
-        LambdaWorkerApp(const LambdaWorkerSettings& ws) : WorkerApp(ws) {
+        LambdaWorkerApp(const LambdaWorkerSettings& ws) : WorkerApp(ws), _outstandingRequests(0) {
         }
 
         tuplex::messages::InvocationResponse generateResponse();

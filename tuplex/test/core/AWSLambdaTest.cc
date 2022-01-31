@@ -422,7 +422,7 @@ TEST_F(AWSTest, FullZillowPipeline) {
     // 1. no-op Lambda spin out experiment
     opt.set("tuplex.aws.lambdaInvokeOthers", "true");
     opt.set("tuplex.aws.lambdaMemory", "10000");
-    opt.set("tuplex.aws.maxConcurrency", "4");
+    opt.set("tuplex.aws.maxConcurrency", "200");
 
     auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
     string outputDir = string("s3://") + S3_TEST_BUCKET + "/tests/" + testName + "/zillow_output.csv";

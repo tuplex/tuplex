@@ -333,11 +333,13 @@ namespace tuplex {
         Timer timer;
         Aws::InitAPI(_aws_options);
 
-        // if desired, turn here logging on
-        auto log_level = Aws::Utils::Logging::LogLevel::Trace;
-        log_level = Aws::Utils::Logging::LogLevel::Info;
-        auto log_system = Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>("tuplex", log_level);
-        Aws::Utils::Logging::InitializeAWSLogging(log_system);
+        // if desired (i.e. environment variable TUPLEX_ENABLE_FULL_AWS_LOGGING is set), turn here logging on
+        if(checkIfOptionIsSetInEnv("TUPLEX_ENABLE_FULL_AWS_LOGGING")) {
+            auto log_level = Aws::Utils::Logging::LogLevel::Trace;
+            log_level = Aws::Utils::Logging::LogLevel::Info;
+            auto log_system = Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>("tuplex", log_level);
+            Aws::Utils::Logging::InitializeAWSLogging(log_system);
+        }
 
         // get AWS credentials from Lambda environment...
         // Note that to run on Lambda this requires a session token!
@@ -1068,6 +1070,29 @@ namespace tuplex {
             ret.push_back(keyval.second);
         }
         return ret;
+    }
+
+
+    bool checkIfOptionIsSetInEnv(const std::string& option_name) {
+        auto var = getenv(option_name.c_str());
+        if(!var)
+            return false;
+        if(var) {
+            std::string value = var;
+            for(auto& c : value)
+                c = tolower(c);
+            // compare to true, on, ...
+            if(value == "true" || value == "on" || value == "yes")
+                return true;
+            else if(value == "false" || value == "off" || value == "no")
+                return false;
+            else {
+                Logger::instance().defaultLogger().error("Found option " + option_name + " in environment, but with invalid value");
+                return false;
+            }
+        }
+
+        return false;
     }
 }
 

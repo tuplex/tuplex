@@ -216,6 +216,9 @@ namespace tuplex {
     // this functions cleans the member var
     extern std::vector<ContainerInfo> normalizeInvokedContainers(const std::vector<ContainerInfo>& containers);
 
+    // check whether AWS env is set
+    extern bool checkIfOptionIsSetInEnv(const std::string& option_name);
+
 }
 
 #endif

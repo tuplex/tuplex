@@ -9,6 +9,8 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <cerror>
+#include <stdexcept>
 
 #include "FileUtils.h"
 #include "URI.h"

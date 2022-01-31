@@ -142,7 +142,7 @@ namespace tuplex {
 
         void setLambdaTimeout(std::chrono::milliseconds timeOutInMs) {
             _timeOutRefPoint = std::chrono::high_resolution_clock::now();
-            _timeOutInMs = timeOutInMs;tim
+            _timeOutInMs = timeOutInMs;
         }
 
         /*!

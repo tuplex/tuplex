@@ -40,7 +40,8 @@ namespace tuplex {
         // add here specific Lambda settings
     };
 
-    /// AWS Lambda specific Worker, inherits from base WorkerApp class
+    /// AWS
+    /// Lambda specific Worker, inherits from base WorkerApp class
     class LambdaWorkerApp : public WorkerApp {
     public:
         LambdaWorkerApp(const LambdaWorkerSettings& ws) : WorkerApp(ws), _outstandingRequests(0) {
@@ -130,6 +131,20 @@ namespace tuplex {
             _outstandingRequests--;
         }
 
+        // helper function to check whether time is left on worker or not!
+        std::chrono::high_resolution_clock::time_point _timeOutRefPoint;
+        std::chrono::milliseconds _timeOutInMs;
+        inline bool timeLeftOnLambda() const {
+            auto now = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - _timeOutRefPoint);
+            return duration < _timeOutInMs;
+        }
+
+        void setLambdaTimeout(std::chrono::milliseconds timeOutInMs) {
+            _timeOutRefPoint = std::chrono::high_resolution_clock::now();
+            _timeOutInMs = timeOutInMs;tim
+        }
+
         /*!
          * invoke another Lambda function
          * @param timeout how many seconds to allow this Lambda invocation max
@@ -168,6 +183,11 @@ namespace tuplex {
         // callback
         void lambdaOnSuccess(SelfInvokeRequest& request, const messages::InvocationResponse& response,
                              const LambdaInvokeDescription& desc);
+
+        void lambdaOnFailure(SelfInvokeRequest& request,
+                             int statusCode,
+                             const std::string& errorName,
+                             const std::string& errorMessage);
 
         void prepareResponseFromSelfInvocations();
 

@@ -15,6 +15,7 @@
 #include <AWSCommon.h>
 #include <VirtualFileSystem.h>
 #include <PosixFileSystemImpl.h>
+#include <FilePart.h>
 
 #include "FullPipelines.h"
 
@@ -357,6 +358,53 @@ TEST_F(AWSTest, BucketList) {
 //    }
     //ASSERT_GT(v.size(), 0);
     uris.clear();
+}
+
+TEST_F(AWSTest, FileSplitting) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+
+    // glob 100GB files
+
+    auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
+
+    vector<URI> uris;
+    vector<size_t> sizes;
+
+    VirtualFileSystem::walkPattern(URI(inputFiles), [&](void *userData, const tuplex::URI &uri, size_t size) {
+        uris.push_back(uri);
+        sizes.push_back(size);
+        return true;
+    });
+
+    cout<<"Found "<<pluralize(uris.size(), "file")<<endl;
+
+    // split into parts...
+
+    int N = 800;
+    auto parts = splitIntoEqualParts(N, uris, sizes);
+    ASSERT_EQ(parts.size(), N);
+
+    // print out first part (that's the weird one!)
+    size_t totalFirstBytes = 0;
+    for(auto p : parts.front()) {
+        totalFirstBytes += p.part_size();
+        std::cout<<"- "<<p.uri.toString()<<std::endl;
+    }
+    std::cout<<"first part got: "<<totalFirstBytes<<" bytes "<<sizeToMemString(totalFirstBytes)<<std::endl;
+
+    // merge parts now together & redistribute again
+    std::vector<FilePart> mergedParts;
+    for(auto pit = parts.begin() + 1; pit != parts.end(); ++pit)
+        std::copy(pit->begin(), pit->end(), std::back_inserter(mergedParts));
+    EXPECT_EQ(mergedParts.size(), 799 );
+
+    // redistribute:
+
 }
 
 // zillow Pipeline on AWS Lambda (incl. various options -> multithreading, self-invocation, ...)

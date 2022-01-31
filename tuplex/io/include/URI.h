@@ -187,6 +187,11 @@ namespace tuplex {
      */
     extern std::string encodeRangeURI(const URI& uri, size_t rangeStart, size_t rangeEnd);
 
+    inline std::ostream& operator << (std::ostream& os, const URI& uri) {
+        os<<uri.toString();
+        return os;
+    }
+
 }
 
 #endif //TUPLEX_URI_H

@@ -333,7 +333,6 @@ namespace tuplex {
         Timer timer;
         Aws::InitAPI(_aws_options);
 
-
         // if desired, turn here logging on
         auto log_level = Aws::Utils::Logging::LogLevel::Trace;
         log_level = Aws::Utils::Logging::LogLevel::Info;
@@ -374,6 +373,14 @@ namespace tuplex {
         python::initInterpreter();
         metrics.global_init_time = timer.time();
 
+        // fetch container info and set timeout based on that incl. security buffer!
+        auto this_container = getThisContainerInfo();
+        if(this_container.msRemaining < AWS_LAMBDA_SAFETY_DURATION_IN_MS) {
+            logger().error("timeout for LAMBDA set to low. Please set higher.");
+            return WORKER_ERROR_GLOBAL_INIT;
+        }
+        std::chrono::milliseconds timeout(this_container.msRemaining - AWS_LAMBDA_SAFETY_DURATION_IN_MS);
+        setLambdaTimeout(timeout);
         _globallyInitialized = true;
         return WORKER_OK;
     }
@@ -772,11 +779,11 @@ namespace tuplex {
         lambda_req.SetBody(stringToAWSStream(invoke_req.payload));
         lambda_req.SetContentType("application/javascript");
 
-//        if(ctx.timeSinceStartInSeconds() < timeout) {
-        _lambdaClient->InvokeAsync(lambda_req,
-                                lambdaCallback,
-                                Aws::MakeShared<LambdaRequestContext>(tag.c_str(), this, requestNo));
-//        }
+        // invoke if time left permits
+        if(timeLeftOnLambda())
+            _lambdaClient->InvokeAsync(lambda_req,
+                                    lambdaCallback,
+                                    Aws::MakeShared<LambdaRequestContext>(tag.c_str(), this, requestNo));
     }
 
 
@@ -809,34 +816,27 @@ namespace tuplex {
                                          const Aws::Lambda::Model::InvokeOutcome &outcome,
                                          const std::shared_ptr<const Aws::Client::AsyncCallerContext> &ctx) {
         // cast & invoke app
-
         using namespace std;
 
         auto callback_ctx = dynamic_cast<const LambdaRequestContext*>(ctx.get());
         assert(callback_ctx);
 
         assert(callback_ctx->app);
-//        assert(callback_ctx->requestNo >= 0 && callback_ctx->requestNo < app->
-
         MessageHandler& logger = Logger::instance().logger("lambda-warmup");
 
         int statusCode = 0;
+        auto& self_req = callback_ctx->app->_invokeRequests[callback_ctx->requestIdx];
 
         // lock & add container ID if successful outcome!
         if(!outcome.IsSuccess()) {
             auto &error = outcome.GetError();
             statusCode = static_cast<int>(error.GetResponseCode());
 
-            // rate limit? => reissue request
-            if(statusCode == static_cast<int>(Aws::Http::HttpResponseCode::TOO_MANY_REQUESTS) || // i.e. 429
-               statusCode == static_cast<int>(Aws::Http::HttpResponseCode::INTERNAL_SERVER_ERROR)) {
-                // should retry...
+            std::string error_message = error.GetMessage();
+            std::string error_name = error.GetExceptionName();
 
-                logger.info("should retry request... (nyimpl)");
-
-            } else {
-                logger.error("Self-Invoke request errored with code " + std::to_string(statusCode) + " details: " + std::string(error.GetMessage().c_str()));
-            }
+            // invoke failure callback
+            callback_ctx->app->lambdaOnFailure(self_req, statusCode, error_name, error_message);
         } else {
             // write response
             auto &result = outcome.GetResult();
@@ -858,23 +858,11 @@ namespace tuplex {
 
             // invoke from app callback function
             // fetch right request
-            auto& self_req = callback_ctx->app->_invokeRequests[callback_ctx->requestIdx];
             callback_ctx->app->lambdaOnSuccess(self_req, response, desc);
-
-//            // logger.info("got answer from self-invocation request");
-//            double timeout = self_ctx->timeOutInMs / 1000.0;
-//
-//            if (response.status() == messages::InvocationResponse_Status_SUCCESS) {
-//
-//            } else {
-//
-//            }
         }
 
         // dec counter
-        //callback_ctx->app->logger().info("dec request");
         callback_ctx->app->decRequests();
-        //callback_ctx->app->logger().info("there are: " + std::to_string(callback_ctx->app->_outstandingRequests));
     }
 
     tuplex::messages::InvocationResponse LambdaWorkerApp::generateResponse() {
@@ -916,6 +904,84 @@ namespace tuplex {
 //        }
 
         return result;
+    }
+
+    void LambdaWorkerApp::lambdaOnFailure(SelfInvokeRequest &request, int statusCode, const std::string &errorName,
+                                          const std::string &errorMessage) {
+
+        static const std::string tag = "TUPLEX_LAMBDA";
+
+        // rate limit? => reissue request
+        if(statusCode == static_cast<int>(Aws::Http::HttpResponseCode::TOO_MANY_REQUESTS) || // i.e. 429
+           statusCode == static_cast<int>(Aws::Http::HttpResponseCode::INTERNAL_SERVER_ERROR) ||
+           statusCode == static_cast<int>(Aws::Http::HttpResponseCode::SERVICE_UNAVAILABLE)) { // 503
+
+            // (silent retry)
+            if(request.retries < request.max_retries) {
+                // retry
+                _outstandingRequests++;
+                request.retries++;
+
+                // exponential sleep
+                // AWS recommends the following:
+                // Do some asynchronous operation.
+                //
+                //retries = 0
+                //
+                //DO
+                //    wait for (2^retries * 100) milliseconds
+                //
+                //    status = Get the result of the asynchronous operation.
+                //
+                //    IF status = SUCCESS
+                //        retry = false
+                //    ELSE IF status = NOT_READY
+                //        retry = true
+                //    ELSE IF status = THROTTLED
+                //        retry = true
+                //    ELSE
+                //        Some other error occurred, so stop calling the API.
+                //        retry = false
+                //    END IF
+                //
+                //    retries = retries + 1
+                //
+                //WHILE (retry AND (retries < MAX_RETRIES))
+                // source: https://docs.aws.amazon.com/general/latest/gr/api-retries.html
+                std::this_thread::sleep_for(std::chrono::milliseconds((0x1 << request.retries) * 100));
+
+                // construct invocation request
+                Aws::Lambda::Model::InvokeRequest lambda_req;
+                lambda_req.SetFunctionName(_functionName.c_str());
+                // note: may redesign lambda backend to work async, however then response only yields status code
+                // i.e., everything regarding state needs to be managed explicitly...
+                lambda_req.SetInvocationType(Aws::Lambda::Model::InvocationType::RequestResponse);
+                // logtype to extract log data??
+                //req.SetLogtype(Aws::Lambda::Model::LogType::None);
+                lambda_req.SetLogType(Aws::Lambda::Model::LogType::Tail);
+                lambda_req.SetBody(stringToAWSStream(request.payload));
+                lambda_req.SetContentType("application/javascript");
+
+                if(timeLeftOnLambda())
+                    _lambdaClient->InvokeAsync(lambda_req,
+                                               lambdaCallback,
+                                               Aws::MakeShared<LambdaRequestContext>(tag.c_str(), this, request.requestIdx));
+            } else {
+                std::stringstream ss;
+                ss<<"Self-invoke request "<<request.requestIdx<<" failed with HTTP="<<statusCode;
+                ss<<"exceeded "<<request.retries<<" retries.";
+                request.response.returnCode = statusCode; // indicate failure.
+                logger().warn(ss.str());
+            }
+        } else {
+            std::stringstream ss;
+            ss<<"Self-invoke request "<<request.requestIdx<<" failed with HTTP="<<statusCode;
+            if(!errorName.empty())
+                ss<<" "<<errorName;
+            if(!errorMessage.empty())
+                ss<<" "<<errorMessage;
+            logger().error(ss.str());
+        }
     }
 
     std::shared_ptr<Aws::Lambda::LambdaClient> LambdaWorkerApp::createClient(double timeout, size_t max_connections) {

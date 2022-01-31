@@ -27,6 +27,7 @@
 #define WORKER_ERROR_EXCEPTION 109
 #define WORKER_ERROR_PIPELINE_FAILED 110
 #define WORKER_ERROR_UNKNOWN_MESSAGE 111
+#define WROKER_ERROR_GLOBAL_INIT 112
 
 // give 32MB standard buf size, 8MB for exceptions and hash
 #define WORKER_DEFAULT_BUFFER_SIZE 33554432
@@ -45,6 +46,7 @@
 #endif
 
 #include <Serializer.h>
+#include <FilePart.h>
 
 // Notes: For fileoutput, sometimes a reorg step might be necessary!
 // e.g., when using S3 file-system could upload 5TB per object.
@@ -60,38 +62,6 @@ namespace tuplex {
         size_t numNormalOutputRows;
         size_t numExceptionOutputRows;
     };
-
-    struct FilePart {
-        URI uri;
-        size_t partNo; // when trying to restore in order, select here partNo
-        size_t rangeStart; // rangeStart == rangeEnd == 0 indicate full file!
-        size_t rangeEnd;
-        size_t size; // file size
-    };
-
-    /*!
-     * helper function to help distribute file processing into multiple parts across different threads
-     * @param numThreads on how many threads to split file processing
-     * @param uris which uris
-     * @param file_sizes which file sizes
-     * @param minimumPartSize minimum part size, helpful to avoid tiny parts (default: 4KB)
-     * @return vector<vector<FileParts>>
-     */
-    extern std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads,
-                                                                  const std::vector<URI>& uris,
-                                                                  const std::vector<size_t>& file_sizes,
-                                                                  size_t minimumPartSize=1024 * 4);
-
-    /*!
-     * helper function to distribute file parts equally according to size across multiple threads
-     * @param numThreads across how many threads to split
-     * @param parts full files or parts of files
-     * @param minimumPartSize minimum part size to acknowledge while splitting. Note, that parts are assumed to be larger than that.
-     */
-    extern std::vector<std::vector<FilePart>> splitIntoEqualParts(size_t numThreads,
-                                                                  const std::vector<FilePart>& parts,
-                                                                  size_t minimumPartSize);
-
 
     /// settings to use to initialize a worker application. Helpful to tune depending on
     /// deployment target.

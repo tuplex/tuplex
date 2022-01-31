@@ -564,11 +564,17 @@ namespace tuplex {
                 logger().info("creating Lambda client on LAMBDA");
                 _lambdaClient = createClient(timeout, lambda_parts.size());
                 logger().info("Invoking " + pluralize(lambda_parts.size(), "other LAMBDA"));
+                int numInvoked = 0;
                 for(auto lambda_part : lambda_parts) {
                     URI part_uri = base_output_uri + ".part" + std::to_string(partNo++) + ".csv";
                     // this is not completely correct, need to perform better part naming!
                     invokeLambda(timeout, lambda_part, part_uri, req, max_retries, remaining_invocation_counts);
                     logger().info(std::to_string(_outstandingRequests) + " outstanding requests...");
+                    numInvoked++;
+
+                    // invoke 45 requests per 100ms, i.e. sleep a bit to avoid 429 errors...
+                    if(numInvoked % 45 == 0)
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
 
                 logger().info("Requests to other LAMBDAs created");
@@ -586,6 +592,12 @@ namespace tuplex {
                     return WORKER_ERROR_COMPILATION_FAILED;
 
                 logger().info("Executing " + pluralize(parts_to_execute.size(), "part") + " on this Lambda, spawning others");
+
+                // optimize which parts to execute
+                auto before_this_parts = parts_to_execute.size();
+                parts_to_execute = mergeParts(parts_to_execute);
+                if(parts_to_execute.size() != before_this_parts)
+                    logger().info("Optimized parts from " + std::to_string(before_this_parts) + " to " + pluralize(parts_to_execute.size(), "part"));
 
                 // should parts get merged or not??
                 // i.e. initiate multi-upload requests??

@@ -26,6 +26,7 @@
 
 #include "AWSCommon.h"
 #include "ContainerInfo.h"
+#include "RequestInfo.h"
 #include <aws/core/Aws.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/core/utils/logging/DefaultLogSystem.h>
@@ -74,7 +75,6 @@ namespace tuplex {
         uint64_t _startTimestamp;
         uint64_t _endTimestamp;
 
-
         void reset();
 
         void checkAndUpdateFunctionConcurrency(const std::shared_ptr<Aws::Lambda::LambdaClient>& client,
@@ -110,7 +110,7 @@ namespace tuplex {
         // store for tasks done
         std::mutex _mutex;
         std::vector<messages::InvocationResponse> _tasks;
-        std::vector<LambdaInvokeDescription> _infos;
+        std::vector<RequestInfo> _infos;
 
         std::shared_ptr<Aws::Lambda::LambdaClient> makeClient();
 

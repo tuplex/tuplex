@@ -23,8 +23,8 @@
                 "s3:DeleteObject"
             ],
             "Resource": [
-                "arn:aws:s3:::DOC-EXAMPLE-BUCKET",
-                "arn:aws:s3:::DOC-EXAMPLE-BUCKET/*"
+                "arn:aws:s3:::serverless-emr",
+                "arn:aws:s3:::serverless-emr/*"
             ]
         }
     ]

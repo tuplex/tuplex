@@ -17,6 +17,7 @@
 
 #include <AWSCommon.h>
 #include <ee/aws/ContainerInfo.h>
+#include <ee/aws/RequestInfo.h>
 #include <aws/core/Aws.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/core/utils/logging/DefaultLogSystem.h>
@@ -79,12 +80,14 @@ namespace tuplex {
         // @TODO: redesign this...
         messages::MessageType _messageType;
         std::vector<ContainerInfo> _invokedContainers;
+        std::vector<RequestInfo> _requests;
         std::vector<std::string> _output_uris;
         std::vector<std::string> _input_uris;
 
         inline void resetResult() {
             _messageType = messages::MT_UNKNOWN;
             _invokedContainers.clear();
+            _requests.clear();
             _output_uris.clear();
             _input_uris.clear();
         }
@@ -95,11 +98,12 @@ namespace tuplex {
             size_t max_retries;
             size_t retries;
             std::string payload; // json payload
+            uint64_t tsStart; // timestamp for this request.
 
             struct Result {
                 int returnCode;
                 ContainerInfo container;
-                LambdaInvokeDescription invoke_desc;
+                RequestInfo invoke_desc;
                 std::vector<std::string> output_uris;
                 std::vector<std::string> input_uris; // which parts succeeded processing
 
@@ -182,7 +186,7 @@ namespace tuplex {
 
         // callback
         void lambdaOnSuccess(SelfInvokeRequest& request, const messages::InvocationResponse& response,
-                             const LambdaInvokeDescription& desc);
+                             const RequestInfo& desc);
 
         void lambdaOnFailure(SelfInvokeRequest& request,
                              int statusCode,

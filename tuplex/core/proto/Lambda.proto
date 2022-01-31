@@ -119,6 +119,23 @@ message ContainerInfo {
     uint64 deadline = 7;
 }
 
+// info about a single request , cf. Request Info struct
+message RequestInfo {
+    string requestId = 1;
+    string containerId = 2;
+    double durationInMs = 3;
+    uint32 billedDurationInMs = 4;
+    uint32 memorySizeInMb = 5;
+    uint32 maxMemoryUsedInMb = 6;
+
+    uint64 tsRequestStart = 7; // UTC timestamp when request was invoked
+    uint64 tsRequestEnd = 8; // UTC timestamp when request returned
+
+    // in case of failure, these fields here are filled.
+    uint32 returnCode = 9;
+    string errorMessage = 10;
+}
+
 message InvocationResponse {
     enum Status {
         SUCCESS = 0;
@@ -137,13 +154,14 @@ message InvocationResponse {
 
     ContainerInfo container = 9;
     repeated ContainerInfo invokedContainers = 10;
+    repeated RequestInfo invokedRequests = 11;
 
     // messages may contain already result data, given in form of a resource
-    repeated Resource resources = 11;
+    repeated Resource resources = 12;
 
     // stats
-    double awsInitTime = 12;
-    double taskExecutionTime = 13;
-    map<string, uint64> s3Stats = 14;
-    map<string, double> breakdownTimes = 15;
+    double awsInitTime = 13;
+    double taskExecutionTime = 14;
+    map<string, uint64> s3Stats = 15;
+    map<string, double> breakdownTimes = 16;
 }

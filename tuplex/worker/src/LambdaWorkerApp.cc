@@ -688,6 +688,7 @@ namespace tuplex {
     void LambdaWorkerApp::prepareResponseFromSelfInvocations() {
 
         std::vector<ContainerInfo> successful_containers;
+        std::vector<RequestInfo> requests; // which requests to send along message
         std::vector<std::string> output_uris;
         std::vector<std::string> input_uris;
 
@@ -704,7 +705,16 @@ namespace tuplex {
                     std::copy(req.response.input_uris.begin(), req.response.input_uris.end(), std::back_inserter(input_uris));
                 }
             }
+
+            // copy ALL requests to output message for proper debugging/cost metrics.
+            for(unsigned i = 0; i < n; ++i) {
+                auto& req = _invokeRequests[i];
+                requests.push_back(req.response.invoke_desc);
+            }
         }
+
+
+
 
         std::sort(output_uris.begin(), output_uris.end());
         std::sort(input_uris.begin(), input_uris.end());
@@ -794,15 +804,18 @@ namespace tuplex {
         lambda_req.SetContentType("application/javascript");
 
         // invoke if time left permits
-        if(timeLeftOnLambda())
+        if(timeLeftOnLambda()) {
+            // update req start timestamp
+            auto& req = _invokeRequests[requestNo];
+            req.tsStart = current_utc_timestamp();
             _lambdaClient->InvokeAsync(lambda_req,
-                                    lambdaCallback,
-                                    Aws::MakeShared<LambdaRequestContext>(tag.c_str(), this, requestNo));
+                                       lambdaCallback,
+                                       Aws::MakeShared<LambdaRequestContext>(tag.c_str(), this, requestNo));
+        }
     }
 
-
     void LambdaWorkerApp::lambdaOnSuccess(SelfInvokeRequest &request, const messages::InvocationResponse &response,
-                                          const LambdaInvokeDescription& desc) {
+                                          const RequestInfo& desc) {
         // Lambda succeeded, now deal with response.
         std::stringstream ss;
 
@@ -831,6 +844,9 @@ namespace tuplex {
                                          const std::shared_ptr<const Aws::Client::AsyncCallerContext> &ctx) {
         // cast & invoke app
         using namespace std;
+
+        // get timestamp (request length)
+        auto tsEnd = current_utc_timestamp();
 
         auto callback_ctx = dynamic_cast<const LambdaRequestContext*>(ctx.get());
         assert(callback_ctx);
@@ -868,7 +884,11 @@ namespace tuplex {
             //callback_ctx->app->logger().info("extracting log...");
             auto log = result.GetLogResult();
             //callback_ctx->app->logger().info("Got log, size: " + std::to_string(log.size()));
-            auto desc = LambdaInvokeDescription::parseFromLog(log);
+            auto desc = RequestInfo::parseFromLog(log);
+
+            // update timestamp info in desc
+            desc.tsRequestStart = self_req.tsStart;
+            desc.tsRequestEnd = tsEnd;
 
             // invoke from app callback function
             // fetch right request
@@ -898,6 +918,11 @@ namespace tuplex {
         for(const auto& c_info : _invokedContainers) {
             auto element = result.add_invokedcontainers();
             c_info.fill(element);
+        }
+
+        for(const auto& r_info : _requests) {
+            auto element = result.add_invokedrequests();
+            r_info.fill(element);
         }
        // }
 
@@ -976,10 +1001,13 @@ namespace tuplex {
                 lambda_req.SetBody(stringToAWSStream(request.payload));
                 lambda_req.SetContentType("application/javascript");
 
-                if(timeLeftOnLambda())
+                if(timeLeftOnLambda()) {
+                    // update timestamp
+                    request.tsStart = current_utc_timestamp();
                     _lambdaClient->InvokeAsync(lambda_req,
                                                lambdaCallback,
                                                Aws::MakeShared<LambdaRequestContext>(tag.c_str(), this, request.requestIdx));
+                }
             } else {
                 std::stringstream ss;
                 ss<<"Self-invoke request "<<request.requestIdx<<" failed with HTTP="<<statusCode;

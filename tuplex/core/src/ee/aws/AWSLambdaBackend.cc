@@ -49,6 +49,7 @@ namespace tuplex {
     private:
         AwsLambdaBackend *_backend;
         std::chrono::high_resolution_clock::time_point _ts;
+        uint64_t _tsUTC; //! utc start of this request
         std::string _payload;
         uniqueid_t _taskID;
     public:
@@ -56,6 +57,7 @@ namespace tuplex {
 
         AwsLambdaBackendCallerContext(AwsLambdaBackend *backend, const std::string& payload, uniqueid_t taskID) : _backend(backend),
                                                                                       _ts(std::chrono::high_resolution_clock::now()),
+                                                                                      _tsUTC(current_utc_timestamp()),
                                                                                       _payload(payload),
                                                                                       _taskID(taskID) {
         }
@@ -63,6 +65,8 @@ namespace tuplex {
         AwsLambdaBackend *getBackend() const { return _backend; }
 
         std::string payload() const { return _payload; }
+
+        uint64_t utc_start() const { return _tsUTC; }
 
         double time() const {
             auto stop = std::chrono::high_resolution_clock::now();
@@ -448,7 +452,7 @@ namespace tuplex {
 
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
                 // extract info
-                auto info = LambdaInvokeDescription::parseFromLog(log.c_str());
+                auto info = RequestInfo::parseFromLog(log.c_str());
                 std::stringstream ss;
                 auto& task = response;
                 if(task.type() == messages::MessageType::MT_WARMUP) {
@@ -895,9 +899,13 @@ namespace tuplex {
         using namespace std;
         stringstream ss;
 
+        // get timestamp
+        auto tsEnd = current_utc_timestamp();
+
         auto lctx = dynamic_cast<const AwsLambdaBackendCallerContext*>(ctx.get());
         assert(lctx);
 
+        auto tsStart = lctx->utc_start();
         auto backend = lctx->getBackend();
         assert(backend);
 
@@ -939,7 +947,10 @@ namespace tuplex {
             log = result.GetLogResult();
 
             // extract info
-            auto info = LambdaInvokeDescription::parseFromLog(log);
+            auto info = RequestInfo::parseFromLog(log);
+            // update with timestamp info
+            info.tsRequestStart = tsStart;
+            info.tsRequestEnd = tsEnd;
 
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
                 ss << "LAMBDA task done in " << response.taskexecutiontime() << "s ";
@@ -974,7 +985,7 @@ namespace tuplex {
             } else {
                 // TODO: maybe still track the response info (e.g. reused, cost, etc.)
                 ss<<"Lambda task failed ["<<statusCode<<"], details: "<<response.errormessage();
-                ss<<" RequestId: "<<info.requestID;
+                ss<<" RequestId: "<<info.requestId;
                 if(!function_error.empty())
                     ss<<" Function Error: "<<function_error;
                 // print out log:
@@ -987,7 +998,6 @@ namespace tuplex {
 
         // debug: pritn out log
         backend->logger().debug(decodeAWSBase64(log));
-
 
         // decrease wait counter
         backend->_numPendingRequests.fetch_add(-1, std::memory_order_release);
@@ -1155,7 +1165,20 @@ namespace tuplex {
                     if(i != task.invokedcontainers_size() - 1)
                         ss<<",";
                 }
-                ss<<"]}";
+                ss<<"]";
+
+                ss<<"\"invoked_requests\":[";
+                RequestInfo r_info;
+                for(unsigned i = 0; i < task.invokedrequests_size(); ++i) {
+                    r_info = task.invokedrequests(i);
+                    ss<<r_info.asJSON();
+                    if(i != task.invokedrequests_size() - 1)
+                        ss<<",";
+                }
+                ss<<"]";
+
+
+                ss<<"}";
             }
         }
         ss<<"]";

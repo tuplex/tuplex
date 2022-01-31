@@ -9,7 +9,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-#include <cerror>
+#include <cassert>
 #include <stdexcept>
 
 #include "FileUtils.h"

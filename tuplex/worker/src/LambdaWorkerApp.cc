@@ -562,11 +562,11 @@ namespace tuplex {
                      // !!! important to inc before (skip the current part basically!)
                     // this is not completely correct, need to perform better part naming!
 
-                    logger().info("Invoking LAMBDA with base=" + base_output_uri + " partNoOffset=" + std::to_string(partno));
+                    // logger().info("Invoking LAMBDA with base=" + base_output_uri + " partNoOffset=" + std::to_string(partno));
 
                     invokeLambda(timeout, lambda_part, base_output_uri, partno,
                                  req, max_retries, remaining_invocation_counts);
-                    logger().info(std::to_string(_outstandingRequests) + " outstanding requests...");
+                    // logger().info(std::to_string(_outstandingRequests) + " outstanding requests...");
                     numInvoked++;
                     partno += defaultPartRange; // inc using range...
 
@@ -575,7 +575,7 @@ namespace tuplex {
                         std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
 
-                logger().info("Requests to other LAMBDAs created");
+                logger().info("Requests to " + std::to_string(numInvoked) + " other LAMBDAs created.");
 
                 // ------
 
@@ -628,7 +628,7 @@ namespace tuplex {
                 int next_sec = 1;
 
                 // debug: make waiting < 10s
-                timeRemainingOnLambda = std::min(timeRemainingOnLambda, 10.0);
+                timeRemainingOnLambda = std::min(timeRemainingOnLambda, 30.0);
 
                 logger().info("time remaining on Lambda: " + std::to_string(timeRemainingOnLambda) + "s");
                 while(_outstandingRequests > 0 && time_elapsed < timeRemainingOnLambda) {

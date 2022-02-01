@@ -788,6 +788,11 @@ namespace tuplex {
         // just use  2 -> 2 -> 2
         recursive_invocations = std::vector<size_t>{1, 1, 1}; // 2 * 2 * 2 -> 8 invocations. still need to figure out the part naming.
 
+        // test, use 5 x 4 --> spawns 512 Lambdas.
+        recursive_invocations = std::vector<size_t>{4, 4, 4, 4, 4}; // 512 Lambdas?
+
+        recursive_invocations = std::vector<size_t>{200, 2};
+
         // transform to request
         messages::InvocationRequest req;
         req.set_type(messages::MessageType::MT_TRANSFORM);

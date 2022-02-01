@@ -429,6 +429,8 @@ TEST_F(AWSTest, LambdaCounts) {
 
     // offset and part add up test
     EXPECT_EQ(1 + lambdaCount({2, 1}) + lambdaCount({2, 1}), lambdaCount({2, 2, 1}));
+
+    std::cout<<"Lambda {4, 4, 4, 4, 4}: "<<lambdaCount({4, 4, 4, 4, 4})<<std::endl;
 }
 
 // zillow Pipeline on AWS Lambda (incl. various options -> multithreading, self-invocation, ...)
@@ -446,10 +448,10 @@ TEST_F(AWSTest, FullZillowPipeline) {
     // 1. no-op Lambda spin out experiment
     opt.set("tuplex.aws.lambdaInvokeOthers", "true");
     opt.set("tuplex.aws.lambdaMemory", "10000");
-    opt.set("tuplex.aws.maxConcurrency", "16");
+    opt.set("tuplex.aws.maxConcurrency", "800");
 
-    //auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
-    string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
+    auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
+//    string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
     string outputDir = string("s3://") + S3_TEST_BUCKET + "/tests/" + testName + "/zillow_output.csv";
     Context ctx(opt);
 

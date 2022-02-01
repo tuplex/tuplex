@@ -178,6 +178,7 @@ namespace tuplex {
         // input uris
         std::vector<URI> input_uris;
         std::vector<size_t> input_sizes;
+
         for(const auto& path : req.inputuris())
             input_uris.emplace_back(URI(path));
         for(auto file_size : req.inputsizes())

@@ -120,6 +120,14 @@ TEST(URI, RangeBased) {
     EXPECT_EQ(uri.toString(), "s3://test/test/test");
     EXPECT_EQ(rangeStart, 0);
     EXPECT_EQ(rangeEnd, 0);
+
+    // check bad s3 example
+    rangeStart=42; rangeEnd=42;
+    uri = URI();
+    decodeRangeURI("s3://tuplex-public/data/100GB/zillow_00001.csv:62500637-250002549", uri, rangeStart, rangeEnd);
+    EXPECT_EQ(uri.toString(), "s3://tuplex-public/data/100GB/zillow_00001.csv");
+    EXPECT_EQ(rangeStart, 62500637);
+    EXPECT_EQ(rangeEnd, 250002549);
 }
 
 #ifdef BUILD_WITH_AWS

@@ -543,7 +543,7 @@ namespace tuplex {
                 auto file_ext = defaultFileExtension(out_format);
                 uint32_t partno = 0;
                 if(req.has_partnooffset()) {
-                    uint32_t partno = req.partnooffset();
+                    partno = req.partnooffset();
                     output_uri = URI(base_output_uri).join("part" + std::to_string(partno) + "." + file_ext);
                 } else {
                     output_uri = base_output_uri + "." + file_ext;
@@ -664,6 +664,7 @@ namespace tuplex {
             // @TODO: what about remaining time? Partial completion?
 
             // @TODO
+            logging.info("Invoking WorkerApp fallback");
             // can reuse here infrastructure from WorkerApp!
             auto rc = WorkerApp::processMessage(req);
             if(rc == WORKER_OK) {
@@ -1038,7 +1039,7 @@ namespace tuplex {
         // will return toomanyrequestsexception
         clientConfig.maxConnections = max_connections;
 
-        logger().info(std::string(__FILE__) + ":" + std::to_string(__LINE__) + "Creating thread executor Pool");
+        logger().info(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " Creating thread executor Pool");
 
         // to avoid thread exhaust of system, use pool thread executor with 8 threads
         clientConfig.executor = Aws::MakeShared<Aws::Utils::Threading::PooledThreadExecutor>(tag.c_str(), max_connections);

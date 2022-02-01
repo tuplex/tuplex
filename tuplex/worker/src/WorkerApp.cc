@@ -613,8 +613,13 @@ namespace tuplex {
         size_t rangeStart=0, rangeEnd=0;
         auto inputURI = part.uri;
         decodeRangeURI(part.uri.toString(), inputURI, rangeStart, rangeEnd);
-        if(rangeStart != part.rangeStart || rangeEnd != part.rangeEnd)
-            logger().warn("submitted part uri has differing rangestat/rangend from part info");
+        if(rangeStart != part.rangeStart || rangeEnd != part.rangeEnd) {
+            std::stringstream ss;
+            ss<<"submitted part uri has differing rangestat/rangend from part info. ";
+            ss<<"part.start="<<part.rangeStart<<" part.end="<<part.rangeEnd<<" rangeStart="<<rangeStart<<" rangeEnd="<<rangeEnd;
+            logger().warn(ss.str());
+        }
+
 
         // input reader
         std::unique_ptr<FileInputReader> reader;

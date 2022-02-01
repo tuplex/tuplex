@@ -23,6 +23,18 @@ namespace tuplex {
         size_t rangeEnd;
         size_t size; // file size
 
+        FilePart(const FilePart& other) : uri(other.uri), partNo(other.partNo),
+        rangeStart(other.rangeStart), rangeEnd(other.rangeEnd), size(other.size) {}
+
+        inline FilePart& operator = (const FilePart& other) {
+            uri = other.uri;
+            partNo = other.partNo;
+            rangeStart = other.rangeStart;
+            rangeEnd = other.rangeEnd;
+            size = other.size;
+            return *this;
+        }
+
         inline size_t part_size() const {
             if(0 == rangeStart && 0 == rangeEnd)
                 return size;

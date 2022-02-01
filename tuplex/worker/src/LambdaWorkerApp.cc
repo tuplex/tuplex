@@ -664,7 +664,7 @@ namespace tuplex {
             // @TODO: what about remaining time? Partial completion?
 
             // @TODO
-            logging.info("Invoking WorkerApp fallback");
+            logger().info("Invoking WorkerApp fallback");
             // can reuse here infrastructure from WorkerApp!
             auto rc = WorkerApp::processMessage(req);
             if(rc == WORKER_OK) {
@@ -717,9 +717,6 @@ namespace tuplex {
             }
         }
 
-
-
-
         std::sort(output_uris.begin(), output_uris.end());
         std::sort(input_uris.begin(), input_uris.end());
 
@@ -750,11 +747,7 @@ namespace tuplex {
         req.mutable_inputuris()->Clear();
 
         for(const auto& part : parts) {
-            if(part.rangeStart == 0 && part.rangeEnd == 0)
-                req.add_inputuris(part.uri.toString().c_str());
-            else {
-                req.add_inputuris(encodeRangeURI(part.uri, part.rangeStart, part.rangeEnd));
-            }
+            req.add_inputuris(encodeRangeURI(part.uri, part.rangeStart, part.rangeEnd));
             assert(part.size != 0);
             req.add_inputsizes(part.size);
         }

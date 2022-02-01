@@ -131,6 +131,7 @@ def cancel_job(application_id, job_id):
     try:
         ret = run_awscli(cmd)
         logging.info('canceled job {}'.format(job_id))
+        wait_for_job_state(application_id, job_id, 'CANCELLED')
     except:
         pass
 
@@ -296,7 +297,7 @@ def main():
     LAMBDA_MEMORY=10000 # lambda memory in mb
     LAMBDA_THREADS = int(ceil_to_multiple(LAMBDA_MEMORY, 1792) / 1792)
     # concurrency 10, 20, 40, 80 works
-    LAMBDA_CONCURRENCY = 160
+    LAMBDA_CONCURRENCY = 100
 
     # AWS EMR only supports up to 4 cores -.-, hence limit
     LAMBDA_THREADS = min(LAMBDA_THREADS, 4)

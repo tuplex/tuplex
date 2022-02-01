@@ -23,6 +23,8 @@ namespace tuplex {
         size_t rangeEnd;
         size_t size; // file size
 
+        FilePart() : uri(URI::INVALID), partNo(0), rangeStart(0), rangeEnd(0), size(0) {}
+
         FilePart(const FilePart& other) : uri(other.uri), partNo(other.partNo),
         rangeStart(other.rangeStart), rangeEnd(other.rangeEnd), size(other.size) {}
 

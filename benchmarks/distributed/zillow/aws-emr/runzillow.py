@@ -296,8 +296,8 @@ def main():
     #           }
     LAMBDA_MEMORY=10000 # lambda memory in mb
     LAMBDA_THREADS = int(ceil_to_multiple(LAMBDA_MEMORY, 1792) / 1792)
-    # concurrency 10, 20, 40, 80 works
-    LAMBDA_CONCURRENCY = 100
+    # concurrency 10, 20, 40, 80, 100 works
+    LAMBDA_CONCURRENCY = 120
 
     # AWS EMR only supports up to 4 cores -.-, hence limit
     LAMBDA_THREADS = min(LAMBDA_THREADS, 4)

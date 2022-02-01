@@ -549,6 +549,7 @@ namespace tuplex {
                     output_uri = base_output_uri + "." + file_ext;
                 }
 
+                logger().info("Output URI of this Lambda is: " + output_uri.toString());
 
                 // invoke
                 double timeout = 25.0; // timeout in seconds
@@ -567,6 +568,9 @@ namespace tuplex {
                     URI part_uri = URI(base_output_uri).join("part" + std::to_string(partno) + "." + file_ext);
                      // !!! important to inc before (skip the current part basically!)
                     // this is not completely correct, need to perform better part naming!
+
+                    logger().info("Invoking LAMBDA with base=" + base_putput_uri + " partNoOffset=" + std::to_string(partno));
+
                     invokeLambda(timeout, lambda_part, base_output_uri, partno,
                                  req, max_retries, remaining_invocation_counts);
                     logger().info(std::to_string(_outstandingRequests) + " outstanding requests...");

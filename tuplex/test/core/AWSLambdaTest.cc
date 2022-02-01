@@ -368,42 +368,54 @@ TEST_F(AWSTest, FileSplitting) {
     using namespace std;
     using namespace tuplex;
 
-    // glob 100GB files
+    // splitting a single part across 6 threads!
+    URI partURI("s3://tuplex-public/data/100GB/zillow_00001.csv:0-62500637");
+    FilePart fp;
+    fp.size = 250002549;
+    decodeRangeURI(partURI.toString(), fp.uri, fp.rangeStart, fp.rangeEnd);
 
-    auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
-
-    vector<URI> uris;
-    vector<size_t> sizes;
-
-    VirtualFileSystem::walkPattern(URI(inputFiles), [&](void *userData, const tuplex::URI &uri, size_t size) {
-        uris.push_back(uri);
-        sizes.push_back(size);
-        return true;
-    });
-
-    cout<<"Found "<<pluralize(uris.size(), "file")<<endl;
-
-    // split into parts...
-
-    int N = 800;
-    auto parts = splitIntoEqualParts(N, uris, sizes);
-    ASSERT_EQ(parts.size(), N);
-
-    // print out first part (that's the weird one!)
-    size_t totalFirstBytes = 0;
-    for(auto p : parts.front()) {
-        totalFirstBytes += p.part_size();
-        std::cout<<"- "<<p.uri.toString()<<std::endl;
+    auto parts = splitIntoEqualParts(6, {fp}, 1024 * 1024);
+    for(auto tp : parts) {
+        auto tfp = tp.front();
+        std::cout<<encodeRangeURI(tfp.uri, tfp.rangeStart, tfp.rangeEnd)<<std::endl;
     }
-    std::cout<<"first part got: "<<totalFirstBytes<<" bytes "<<sizeToMemString(totalFirstBytes)<<std::endl;
 
-    // merge parts now together & redistribute again
-    std::vector<FilePart> mergedParts;
-    for(auto pit = parts.begin() + 1; pit != parts.end(); ++pit)
-        std::copy(pit->begin(), pit->end(), std::back_inserter(mergedParts));
-    EXPECT_EQ(mergedParts.size(), 799 );
-
-    // redistribute:
+//    // glob 100GB files
+//
+//    auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
+//
+//    vector<URI> uris;
+//    vector<size_t> sizes;
+//
+//    VirtualFileSystem::walkPattern(URI(inputFiles), [&](void *userData, const tuplex::URI &uri, size_t size) {
+//        uris.push_back(uri);
+//        sizes.push_back(size);
+//        return true;
+//    });
+//
+//    cout<<"Found "<<pluralize(uris.size(), "file")<<endl;
+//
+//    // split into parts...
+//
+//    int N = 800;
+//    auto parts = splitIntoEqualParts(N, uris, sizes);
+//    ASSERT_EQ(parts.size(), N);
+//
+//    // print out first part (that's the weird one!)
+//    size_t totalFirstBytes = 0;
+//    for(auto p : parts.front()) {
+//        totalFirstBytes += p.part_size();
+//        std::cout<<"- "<<p.uri.toString()<<std::endl;
+//    }
+//    std::cout<<"first part got: "<<totalFirstBytes<<" bytes "<<sizeToMemString(totalFirstBytes)<<std::endl;
+//
+//    // merge parts now together & redistribute again
+//    std::vector<FilePart> mergedParts;
+//    for(auto pit = parts.begin() + 1; pit != parts.end(); ++pit)
+//        std::copy(pit->begin(), pit->end(), std::back_inserter(mergedParts));
+//    EXPECT_EQ(mergedParts.size(), 799 );
+//
+//    // redistribute:
 
 }
 

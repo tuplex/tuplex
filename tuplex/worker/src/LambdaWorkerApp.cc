@@ -498,23 +498,16 @@ namespace tuplex {
                 logger().info("Splitting submitted " + pluralize(req.inputsizes().size(), "file") + " into " + pluralize(total_parts, "part") + ".");
 
                 // min part size should be 1MB
-                std::vector<URI> uris;
-                std::vector<size_t> file_sizes;
                 auto num_files = req.inputuris_size();
-                uris.reserve(num_files);
-                file_sizes.reserve(num_files);
                 if(req.inputsizes_size() != num_files) {
                     logger().error("#input files does not equal submitted sizes");
                     return WORKER_ERROR_INVALID_JSON_MESSAGE;
                 }
 
-                for(unsigned i = 0 ; i < num_files; ++i) {
-                    uris.push_back(req.inputuris(i));
-                    file_sizes.push_back(req.inputsizes(i));
-                }
+                auto input_parts = partsFromMessage(req);
 
                 size_t minimumPartSize = 1024 * 1024; // 1MB.
-                auto parts = splitIntoEqualParts(total_parts, uris, file_sizes, minimumPartSize);
+                auto parts = splitIntoEqualParts(total_parts, input_parts, minimumPartSize);
 
                 // issue requests & wait for them
 

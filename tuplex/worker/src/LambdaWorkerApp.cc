@@ -722,6 +722,7 @@ namespace tuplex {
 
         // fetch invoked containers etc.
         _invokedContainers = normalizeInvokedContainers(successful_containers);
+        _requests = requests;
         _output_uris = output_uris;
         _input_uris = input_uris;
     }

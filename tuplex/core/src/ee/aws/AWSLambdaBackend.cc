@@ -791,7 +791,7 @@ namespace tuplex {
         // test, use 5 x 4 --> spawns 512 Lambdas.
         recursive_invocations = std::vector<size_t>{4, 4, 4, 4, 4}; // 512 Lambdas?
 
-        recursive_invocations = std::vector<size_t>{200, 2};
+        recursive_invocations = std::vector<size_t>{200, 4};
 
         // transform to request
         messages::InvocationRequest req;
@@ -1177,7 +1177,7 @@ namespace tuplex {
                 }
                 ss<<"]";
 
-                ss<<"\"invoked_requests\":[";
+                ss<<",\"invoked_requests\":[";
                 RequestInfo r_info;
                 for(unsigned i = 0; i < task.invokedrequests_size(); ++i) {
                     r_info = task.invokedrequests(i);

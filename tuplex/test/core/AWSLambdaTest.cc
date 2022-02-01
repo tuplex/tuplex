@@ -407,6 +407,32 @@ TEST_F(AWSTest, FileSplitting) {
 
 }
 
+// helper function to calculate how many parts to invoke from recurse specification
+size_t lambdaCount(const std::vector<size_t>& recursive_counts) {
+
+    if(recursive_counts.empty())
+        return 0;
+
+    size_t total_parts = 1;
+    size_t prod = 1;
+    size_t num_lambdas_to_invoke = 0;
+    for(unsigned i = 0; i < recursive_counts.size(); ++i) {
+        auto count = recursive_counts[i];
+        if(count != 0) {
+            total_parts += count * prod; // this is recursive, so try splitting into that many parts!
+            prod *= count;
+        }
+    }
+    return total_parts;
+}
+
+TEST_F(AWSTest, LambdaCounts) {
+    EXPECT_EQ(lambdaCount({}), 0);
+    EXPECT_EQ(lambdaCount({1, 1, 1}), 4);
+    EXPECT_EQ(lambdaCount({2, 1}), 5);
+    EXPECT_EQ(lambdaCount({2, 2, 1}), 11);
+}
+
 // zillow Pipeline on AWS Lambda (incl. various options -> multithreading, self-invocation, ...)
 TEST_F(AWSTest, FullZillowPipeline) {
 #ifdef SKIP_AWS_TESTS
@@ -422,9 +448,10 @@ TEST_F(AWSTest, FullZillowPipeline) {
     // 1. no-op Lambda spin out experiment
     opt.set("tuplex.aws.lambdaInvokeOthers", "true");
     opt.set("tuplex.aws.lambdaMemory", "10000");
-    opt.set("tuplex.aws.maxConcurrency", "200");
+    opt.set("tuplex.aws.maxConcurrency", "16");
 
-    auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
+    //auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
+    string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
     string outputDir = string("s3://") + S3_TEST_BUCKET + "/tests/" + testName + "/zillow_output.csv";
     Context ctx(opt);
 

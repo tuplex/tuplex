@@ -610,7 +610,11 @@ namespace tuplex {
             return WORKER_ERROR_UNSUPPORTED_INPUT;
         }
 
+        size_t rangeStart=0, rangeEnd=0;
         auto inputURI = part.uri;
+        decodeRangeURI(part.uri.toString(), inputURI, rangeStart, rangeEnd);
+        if(rangeStart != part.rangeStart || rangeEnd != part.rangeEnd)
+            logger().warn("submitted part uri has differing rangestat/rangend from part info");
 
         // input reader
         std::unique_ptr<FileInputReader> reader;

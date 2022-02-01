@@ -783,8 +783,10 @@ namespace tuplex {
         //     recursive_invocations.push_back(uri_infos.size() - 1);
 
         // Strategy II: use concurrency setting!
-        //if(uri_infos.size() > 2)
-        recursive_invocations.push_back(_functionConcurrency - 1);
+        //recursive_invocations.push_back(_functionConcurrency - 1);
+
+        // just use  2 -> 2 -> 2
+        recursive_invocations = std::vector<size_t>{1, 1, 1}; // 2 * 2 * 2 -> 8 invocations. still need to figure out the part naming.
 
         // transform to request
         messages::InvocationRequest req;

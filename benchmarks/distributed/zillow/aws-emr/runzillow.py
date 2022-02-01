@@ -28,7 +28,7 @@ def run_awscli(cmd):
         return {}
 
 # global config
-EMR_APPLICATION_NAME='emrWordCount'
+EMR_APPLICATION_NAME='emrZillow'
 EMR_ROLE='emrExecutionRole'
 EMR_BUCKET='serverless-emr'
 EMR_ACCESS_POLICY='emrS3AccessPolicy'
@@ -112,17 +112,46 @@ def get_application_id(application_name):
             return app['id']
     return None
 
+def get_all_jobs(application_id):
+    list_cmd = 'aws emr-serverless list-job-runs --application-id "{}"'.format(application_id)
+    job_ids = []
+    ret = run_awscli(list_cmd)
+    print(ret)
+    job_ids += list(map(lambda jr: jr['id'], ret['jobRuns']))
+    while 'nextToken' in ret:
+        nextToken = ret['nextToken']
+        list_cmd = 'aws emr-serverless list-job-runs --application-id "{}" --next-token "{}"'.format(application_id, nextToken)
+        ret = run_awscli(list_cmd)
+        print(ret)
+        job_ids += list(map(lambda jr: jr['id'], ret['jobRuns']))
+    return job_ids
+
+def cancel_job(application_id, job_id):
+    cmd = 'aws emr-serverless cancel-job-run --application-id "{}" --job-run-id "{}"'.format(application_id, job_id)
+    try:
+        ret = run_awscli(cmd)
+        logging.info('canceled job {}'.format(job_id))
+    except:
+        pass
+
 def remove_application(application_name):
 
     id = get_application_id(application_name)
     if id is None:
         raise Exception('can not find application {}'.format(application_name))
 
+    # check if there are any jobs running
+    active_jobs = get_all_jobs(id)
+
+    for job_id in active_jobs:
+        cancel_job(id, job_id)
+
     try:
         stop_cmd = "aws emr-serverless stop-application --application-id {}".format(id)
         ret = run_awscli(stop_cmd)
         logging.info('stopped application')
-    except:
+    except Exception as e:
+        print(e)
         pass
     del_cmd = "aws emr-serverless delete-application --application-id {}".format(id)
     ret = run_awscli(del_cmd)
@@ -249,8 +278,14 @@ def conf_dict_to_str(conf):
     return s
 
 def main():
-    logging.info('Running wordcount AWS EMR benchmark')
+    logging.info('Running Zillow (Z1) AWS EMR benchmark')
 
+
+    # to stop application, need to cancel all jobs!
+    # aws emr-serverless list-job-runs --application-id '00eubtpiun2ua609'
+    # aws emr-serverless cancel-job-run --application-id '00eubtpiun2ua609' --job-run-id "00eubtt6ej6vr901"
+
+    ts = time.time()
 
     # for AWS EMR serverless there's an option to configure a maximum capacity given in cpu and memory
     #           {
@@ -261,6 +296,9 @@ def main():
     LAMBDA_MEMORY=10000 # lambda memory in mb
     LAMBDA_THREADS = int(ceil_to_multiple(LAMBDA_MEMORY, 1792) / 1792)
     LAMBDA_CONCURRENCY = 200
+
+    # AWS EMR only supports up to 4 cores -.-, hence limit
+    LAMBDA_THREADS = min(LAMBDA_THREADS, 4)
 
     # spark settings from there:
     spark_conf = {'spark.executor.cores' : LAMBDA_THREADS,
@@ -278,10 +316,17 @@ def main():
     # starting application & invoking job!
     start_emr(EMR_APPLICATION_NAME)
 
+    # upload script to S3
+    logging.info('uploading file to S3')
+    s3_client = boto3.client('s3')
+    s3_client.upload_file('zillow_Z1.py', EMR_BUCKET, 'zillow/Z1/script.py')
+    logging.info('file upload done.')
+
     # run job (application needs to be in started mode)
-    ENTRY_POINT = 's3://us-east-1.elasticmapreduce/emr-containers/samples/wordcount/scripts/wordcount.py'
-    ENTRY_ARGS = ['s3://' + EMR_BUCKET + '/wordcount/output']
-    SPARK_PARAMS = "--conf spark.executor.cores=1 --conf spark.executor.memory=4g --conf spark.driver.cores=1 --conf spark.driver.memory=4g --conf spark.executor.instances=1"
+    ENTRY_POINT = 's3://' + EMR_BUCKET + '/zillow/Z1/script.py'
+    ENTRY_ARGS = ['--path', '"s3://tuplex-public/data/100GB"',
+                  '--output-path', 's3://' + EMR_BUCKET + '/zillow/Z1/output',
+                  '--mode', 'tuple']
     LOG_URI = 's3://' + EMR_BUCKET + "/wordcount/logs"
     run_emr_job(EMR_APPLICATION_NAME, EMR_ROLE, ENTRY_POINT, LOG_URI, ENTRY_ARGS, SPARK_PARAMS)
 
@@ -289,6 +334,8 @@ def main():
 
     # check e.g. also https://github.com/lightbend/spark-history-server-docker
     # stopping application & removing everything?
+
+    logging.info('EMR took in total: {}s'.format(time.time() - ts))
 
 if __name__ == '__main__':
 

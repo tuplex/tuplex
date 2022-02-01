@@ -569,7 +569,7 @@ namespace tuplex {
                      // !!! important to inc before (skip the current part basically!)
                     // this is not completely correct, need to perform better part naming!
 
-                    logger().info("Invoking LAMBDA with base=" + base_putput_uri + " partNoOffset=" + std::to_string(partno));
+                    logger().info("Invoking LAMBDA with base=" + base_output_uri + " partNoOffset=" + std::to_string(partno));
 
                     invokeLambda(timeout, lambda_part, base_output_uri, partno,
                                  req, max_retries, remaining_invocation_counts);

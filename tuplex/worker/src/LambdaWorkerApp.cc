@@ -703,6 +703,10 @@ namespace tuplex {
                 auto& req = _invokeRequests[i];
                 if(req.response.success()) {
                     successful_containers.push_back(req.response.container);
+
+                    // all other invoked containers
+                    std::copy(req.response.invoked_containers.begin(), req.response.invoked_containers.end(), std::back_inserter(successful_containers));
+
                     std::copy(req.response.output_uris.begin(), req.response.output_uris.end(), std::back_inserter(output_uris));
                     std::copy(req.response.input_uris.begin(), req.response.input_uris.end(), std::back_inserter(input_uris));
                 }
@@ -712,6 +716,7 @@ namespace tuplex {
             for(unsigned i = 0; i < n; ++i) {
                 auto& req = _invokeRequests[i];
                 requests.push_back(req.response.invoke_desc);
+                std::copy(req.response.invoked_requests.begin(), req.response.invoked_requests.end(), std::back_inserter(requests));
             }
         }
 
@@ -818,6 +823,10 @@ namespace tuplex {
         request.response.returnCode = (int)response.status();
         request.response.container = response.container();
         request.response.invoke_desc = desc;
+        for(auto c : response.invokedcontainers())
+            request.response.invoked_containers.push_back(c);
+        for(auto r : response.invokedrequests())
+            request.response.invoked_requests.push_back(r);
         for(auto out_uri : response.outputuris())
             request.response.output_uris.push_back(out_uri);
         for(auto in_uri : response.inputuris())
@@ -875,6 +884,7 @@ namespace tuplex {
             // update timestamp info in desc
             desc.tsRequestStart = self_req.tsStart;
             desc.tsRequestEnd = tsEnd;
+            desc.containerId = response.container().uuid();
 
             // invoke from app callback function
             // fetch right request

@@ -104,6 +104,11 @@ namespace tuplex {
                 int returnCode;
                 ContainerInfo container;
                 RequestInfo invoke_desc;
+
+                // all the containers any subinvocations invoked
+                std::vector<ContainerInfo> invoked_containers;
+                std::vector<RequestInfo> invoked_requests;
+
                 std::vector<std::string> output_uris;
                 std::vector<std::string> input_uris; // which parts succeeded processing
 

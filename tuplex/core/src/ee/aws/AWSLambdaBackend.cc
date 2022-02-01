@@ -961,6 +961,7 @@ namespace tuplex {
             // update with timestamp info
             info.tsRequestStart = tsStart;
             info.tsRequestEnd = tsEnd;
+            info.containerId = response.container().uuid();
 
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
                 ss << "LAMBDA task done in " << response.taskexecutiontime() << "s ";

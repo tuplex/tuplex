@@ -516,22 +516,6 @@ namespace tuplex {
                 size_t minimumPartSize = 1024 * 1024; // 1MB.
                 auto parts = splitIntoEqualParts(total_parts, uris, file_sizes, minimumPartSize);
 
-//                // process data, first part is for this Lambda
-//                // log it here out
-//                {
-//                    std::stringstream ss;
-//                    for(unsigned i = 0; i < parts.size(); ++i) {
-//                        if(0 == i)
-//                            ss<<"Overview which Lambda will process what:\nLambda (this) will process: ";
-//                        else
-//                            ss<<"\nLambda ("<<i<<") will process: ";
-//                        for(auto part : parts[i]) {
-//                            ss<<"\n - "<<part.uri.toString()<<":"<<part.rangeStart<<"-"<<part.rangeEnd;
-//                        }
-//                    }
-//                    logger().info(ss.str());
-//                }
-
                 // issue requests & wait for them
 
                 // invoke other lambdas here...
@@ -552,11 +536,18 @@ namespace tuplex {
                 // redistribute according to how many lambdas should be invoked now
                 auto lambda_parts = splitIntoEqualParts(num_lambdas_to_invoke, other_lambda_parts, minimumPartSize);
 
-                // @TODO: generate better output parts!
-                std::string base_output_uri = req.outputuri();
-                int partNo = 0;
-                URI output_uri(base_output_uri + ".part" + std::to_string(partNo) + ".csv");
-                partNo++;
+                // get output uri for THIS lambda
+                std::string base_output_uri = req.baseoutputuri();
+                URI output_uri;
+                FileFormat out_format = proto_toFileFormat(req.stage().outputformat());
+                auto file_ext = defaultFileExtension(out_format);
+                uint32_t partno = 0;
+                if(req.has_partnooffset()) {
+                    uint32_t partno = req.partnooffset();
+                    output_uri = base_output_uri.join("part" + std::to_string(partno) + "." + file_ext);
+                } else {
+                    output_uri = base_output_uri + "." + file_ext;
+                }
 
 
                 // invoke
@@ -566,13 +557,21 @@ namespace tuplex {
                 logger().info("creating Lambda client on LAMBDA");
                 _lambdaClient = createClient(timeout, lambda_parts.size());
                 logger().info("Invoking " + pluralize(lambda_parts.size(), "other LAMBDA"));
-                int numInvoked = 0;
+
+                uint32_t defaultPartRange = std::max(1ul, lambdaCount(remaining_invocation_counts)); // at least one!
+                uint32_t numInvoked = 0;
+                // inc here because this lambda produces the part at partNo.
+                partno++;
                 for(auto lambda_part : lambda_parts) {
-                    URI part_uri = base_output_uri + ".part" + std::to_string(partNo++) + ".csv";
+                    // construct partURI out of partNo!
+                    URI part_uri = base_output_uri.join("part" + std::to_string(partno) + "." + file_ext);
+                     // !!! important to inc before (skip the current part basically!)
                     // this is not completely correct, need to perform better part naming!
-                    invokeLambda(timeout, lambda_part, part_uri, req, max_retries, remaining_invocation_counts);
+                    invokeLambda(timeout, lambda_part, base_output_uri, partno,
+                                 req, max_retries, remaining_invocation_counts);
                     logger().info(std::to_string(_outstandingRequests) + " outstanding requests...");
                     numInvoked++;
+                    partno += defaultPartRange; // inc using range...
 
                     // invoke 45 requests per 100ms, i.e. sleep a bit to avoid 429 errors...
                     if(numInvoked % 45 == 0)
@@ -668,7 +667,7 @@ namespace tuplex {
                 // ok, add output_uri and parts to request success output
                 for(const auto& in_uri : req.inputuris())
                     _input_uris.push_back(in_uri);
-                _output_uris.push_back(req.outputuri());
+                _output_uris.push_back(req.baseoutputuri());
             }
 
             return rc;
@@ -728,7 +727,8 @@ namespace tuplex {
     }
 
     void LambdaWorkerApp::invokeLambda(double timeout, const std::vector<FilePart>& parts,
-                                  const URI& output_uri,
+                                  const URI& base_output_uri,
+                                  uint32_t partNoOffset,
                                   const tuplex::messages::InvocationRequest& original_message,
                                   size_t max_retries,
                                   const std::vector<size_t>& invocation_counts) {
@@ -738,18 +738,6 @@ namespace tuplex {
         // skip if empty
         if(parts.empty())
             return;
-
-
-        // too much output...
-//        std::stringstream ss;
-//
-//        ss<<"Invoking LAMBDA with timeout="<<timeout<<", over: ";
-//        for(const auto& part: parts) {
-//            ss<<part.uri.toString()<<":"<<part.rangeStart<<"-"<<part.rangeEnd<<",";
-//        }
-//        ss<<" w. remaining invocation counts: "<<invocation_counts;
-
-        // logger().info(ss.str());
 
         // create protobuf message
         tuplex::messages::InvocationRequest req = original_message;
@@ -766,7 +754,8 @@ namespace tuplex {
             req.add_inputsizes(part.size);
         }
 
-        req.set_outputuri(output_uri.toString());
+        req.set_baseoutputuri(base_output_uri.toString());
+        req.set_partnooffset(partNoOffset);
 
         auto transform_message = req.mutable_stage();
         transform_message->mutable_invocationcount()->Clear();

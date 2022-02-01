@@ -814,17 +814,20 @@ namespace tuplex {
         ws->set_spillrooturi(spillURI);
         req.set_allocated_settings(ws.release());
 
+        // partNo offset
+        req.set_partnooffset(0); // single request!
+
         // output uri of job? => final one? parts?
         // => create temporary if output is local! i.e. to memory etc.
         int taskNo = 0;
         int num_digits = 5;
         if (tstage->outputMode() == EndPointMode::MEMORY) {
             // create temp file in scratch dir!
-            req.set_outputuri(scratchDir(hintsFromTransformStage(tstage)).join_path("output.part" + fixedLength(taskNo, num_digits)).toString());
+            req.set_baseoutputuri(scratchDir(hintsFromTransformStage(tstage)).join_path("output.part" + fixedLength(taskNo, num_digits)).toString());
         } else if (tstage->outputMode() == EndPointMode::FILE) {
             // create output URI based on taskNo
             auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
-            req.set_outputuri(uri.toPath());
+            req.set_baseoutputuri(uri.toPath());
         } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
             throw std::runtime_error("join, aggregate not yet supported in lambda backend");
         } else throw std::runtime_error("unknown output endpoint in lambda backend");
@@ -877,11 +880,11 @@ namespace tuplex {
             int taskNo = i;
             if (tstage->outputMode() == EndPointMode::MEMORY) {
                 // create temp file in scratch dir!
-                req.set_outputuri(scratchDir(hintsFromTransformStage(tstage)).join_path("output.part" + fixedLength(taskNo, num_digits)).toString());
+                req.set_baseoutputuri(scratchDir(hintsFromTransformStage(tstage)).join_path("output.part" + fixedLength(taskNo, num_digits)).toString());
             } else if (tstage->outputMode() == EndPointMode::FILE) {
                 // create output URI based on taskNo
                 auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
-                req.set_outputuri(uri.toPath());
+                req.set_baseoutputuri(uri.toPath());
             } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
                 throw std::runtime_error("join, aggregate not yet supported in lambda backend");
             } else throw std::runtime_error("unknown output endpoint in lambda backend");

@@ -295,7 +295,8 @@ def main():
     #           }
     LAMBDA_MEMORY=10000 # lambda memory in mb
     LAMBDA_THREADS = int(ceil_to_multiple(LAMBDA_MEMORY, 1792) / 1792)
-    LAMBDA_CONCURRENCY = 200
+    # concurrency 10, 20 works
+    LAMBDA_CONCURRENCY = 40
 
     # AWS EMR only supports up to 4 cores -.-, hence limit
     LAMBDA_THREADS = min(LAMBDA_THREADS, 4)
@@ -323,8 +324,10 @@ def main():
     logging.info('file upload done.')
 
     # run job (application needs to be in started mode)
+    # data_path = "s3://tuplex-public/data/100GB"
+    data_path = 's3://tuplex-public/data/100GB/zillow_00001.csv'
     ENTRY_POINT = 's3://' + EMR_BUCKET + '/zillow/Z1/script.py'
-    ENTRY_ARGS = ['--path', '"s3://tuplex-public/data/100GB"',
+    ENTRY_ARGS = ['--path', data_path,
                   '--output-path', 's3://' + EMR_BUCKET + '/zillow/Z1/output',
                   '--mode', 'tuple']
     LOG_URI = 's3://' + EMR_BUCKET + "/wordcount/logs"

@@ -893,19 +893,6 @@ namespace tuplex {
         }
     }
 
-    static FileFormat proto_toFileFormat(messages::FileFormat fmt) {
-        switch(fmt) {
-            case messages::FileFormat::FF_CSV:
-                return FileFormat::OUTFMT_CSV;
-            case messages::FileFormat::FF_TEXT:
-                return FileFormat::OUTFMT_TEXT;
-            case messages::FileFormat::FF_TUPLEX:
-                return FileFormat::OUTFMT_TUPLEX;
-            default:
-                return FileFormat::OUTFMT_UNKNOWN;
-        }
-    }
-
     TransformStage* TransformStage::from_protobuf(const messages::TransformStage &msg) {
         auto stage = new TransformStage(nullptr, nullptr, msg.stagenumber(), true); // dummy, no backend/plan
 

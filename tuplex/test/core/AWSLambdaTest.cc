@@ -407,30 +407,16 @@ TEST_F(AWSTest, FileSplitting) {
 
 }
 
-// helper function to calculate how many parts to invoke from recurse specification
-size_t lambdaCount(const std::vector<size_t>& recursive_counts) {
-
-    if(recursive_counts.empty())
-        return 0;
-
-    size_t total_parts = 1;
-    size_t prod = 1;
-    size_t num_lambdas_to_invoke = 0;
-    for(unsigned i = 0; i < recursive_counts.size(); ++i) {
-        auto count = recursive_counts[i];
-        if(count != 0) {
-            total_parts += count * prod; // this is recursive, so try splitting into that many parts!
-            prod *= count;
-        }
-    }
-    return total_parts;
-}
-
 TEST_F(AWSTest, LambdaCounts) {
+    using namespace tuplex;
+
     EXPECT_EQ(lambdaCount({}), 0);
     EXPECT_EQ(lambdaCount({1, 1, 1}), 4);
     EXPECT_EQ(lambdaCount({2, 1}), 5);
     EXPECT_EQ(lambdaCount({2, 2, 1}), 11);
+
+    // offset and part add up test
+    EXPECT_EQ(1 + lambdaCount({2, 1}) + lambdaCount({2, 1}), lambdaCount({2, 2, 1}));
 }
 
 // zillow Pipeline on AWS Lambda (incl. various options -> multithreading, self-invocation, ...)

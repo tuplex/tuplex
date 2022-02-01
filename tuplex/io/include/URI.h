@@ -44,6 +44,16 @@ namespace tuplex {
 
         template<std::size_t N> URI(const char(&path)[N]) : URI(std::string(path)) {}
 
+        inline URI join(const std::string& file_name) {
+            // ends with '/'?
+            if(_uri.empty())
+                return URI(file_name);
+            if(_uri.back() == '/')
+                return URI(_uri + file_name);
+            else
+                return URI(_uri + "/" + file_name);
+        }
+
         /*!
          * checks whether URI locates a file or not. True if file doesn't exist.
          * @return

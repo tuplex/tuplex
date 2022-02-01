@@ -40,6 +40,19 @@
 
 namespace tuplex {
 
+    inline FileFormat proto_toFileFormat(messages::FileFormat fmt) {
+        switch(fmt) {
+            case messages::FileFormat::FF_CSV:
+                return FileFormat::OUTFMT_CSV;
+            case messages::FileFormat::FF_TEXT:
+                return FileFormat::OUTFMT_TEXT;
+            case messages::FileFormat::FF_TUPLEX:
+                return FileFormat::OUTFMT_TUPLEX;
+            default:
+                return FileFormat::OUTFMT_UNKNOWN;
+        }
+    }
+
 
     // forward declaration of friend class
     namespace codegen {

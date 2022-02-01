@@ -10,7 +10,27 @@
 #include <Lambda.pb.h>
 
 namespace tuplex {
-/*!
+
+    // helper function to calculate how many parts to invoke from recurse specification
+    inline size_t lambdaCount(const std::vector<size_t>& recursive_counts) {
+
+        if(recursive_counts.empty())
+            return 0;
+
+        size_t total_parts = 1;
+        size_t prod = 1;
+        size_t num_lambdas_to_invoke = 0;
+        for(unsigned i = 0; i < recursive_counts.size(); ++i) {
+            auto count = recursive_counts[i];
+            if(count != 0) {
+                total_parts += count * prod; // this is recursive, so try splitting into that many parts!
+                prod *= count;
+            }
+        }
+        return total_parts;
+    }
+
+    /*!
      * helper struct holding decoded information obtained from a log of a Lambda request
      */
     struct RequestInfo {

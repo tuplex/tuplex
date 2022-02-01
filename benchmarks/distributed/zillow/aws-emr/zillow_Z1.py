@@ -690,7 +690,9 @@ if __name__ == '__main__':
     assert args.data_path, 'need to set data path!'
 
     # config vars
-    paths = args.data_path + '/*.csv' # because AWS EMR does not allow *
+    paths = args.data_path
+    if not paths.endswith('.csv'):
+        paths = args.data_path + '/*.csv' # because AWS EMR does not allow *
     output_path = args.output_path
 
     print('>>> running pyspark on {}'.format(paths))

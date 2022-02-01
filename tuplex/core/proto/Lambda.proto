@@ -95,16 +95,17 @@ message Resource {
 message InvocationRequest {
     repeated string inputURIS = 1;
     repeated uint64 inputSizes = 2;
-    string outputURI = 3;
+    string baseOutputURI = 3; // final output uri or base URI to form parts
+    optional uint32 partNoOffset = 4; // this is where to start the parts. important when recursive invocations are used
 
-    MessageType type = 4;
-    WorkerSettings settings = 5;
+    MessageType type = 5;
+    WorkerSettings settings = 6;
 
     // optional resources attached with this message
-    repeated Resource resources = 6;
+    repeated Resource resources = 7;
 
-    optional TransformStage stage = 7;
-    optional WarmupMessage warmup = 8;
+    optional TransformStage stage = 8;
+    optional WarmupMessage warmup = 9;
 }
 
 

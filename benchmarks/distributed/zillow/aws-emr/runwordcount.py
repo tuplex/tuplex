@@ -159,8 +159,21 @@ def wait_for_state(application_name, id, state, sleep_interval=0.1):
         logging.info('Application {} is in state {}, waiting for state {}...'.format(application_name,
                                                                                           ret['application']['state'],
                                                                                      state))
-        time.sleep(0.1)
+        time.sleep(sleep_interval)
         ret = run_awscli(wait_cmd)
+
+def wait_for_job_state(appId, jobId, state, sleep_interval=0.1):
+
+    # wait till application is created
+    wait_cmd = 'aws emr-serverless get-job-run --application-id "{}" --job-run-id "{}"'.format(appId, jobId)
+    ret = run_awscli(wait_cmd)
+    while ret['jobRun']['state'] != state:
+        logging.info('Job {} is in state {}, waiting for state {}...'.format(jobId,
+                                                                                          ret['jobRun']['state'],
+                                                                                     state))
+        time.sleep(sleep_interval)
+        ret = run_awscli(wait_cmd)
+    logging.info('Job duration: {}s'.format(ret['jobRun']['updatedAt'] - ret['jobRun']['createdAt']))
 
 def start_emr(application_name):
 
@@ -176,16 +189,64 @@ def start_emr(application_name):
     wait_for_state(application_name, id, 'STARTED')
     logging.info('Took {}s to start application {}'.format(time.time() - ts, application_name))
 
+
+def get_role_arn(role_name):
+    iam_client = boto3.client('iam')
+
+    response = iam_client.get_role(RoleName=role_name)
+    role_arn = response['Role']['Arn']
+    return role_arn
+
+def run_emr_job(application_name, role_name, s3_entry_point, s3_log_uri, args, spark_params="--conf spark.executor.cores=1 --conf spark.executor.memory=4g --conf spark.driver.cores=1 --conf spark.driver.memory=4g --conf spark.executor.instances=1"):
+
+    ts = time.time()
+
+    id = get_application_id(application_name)
+
+    role_arn = get_role_arn(role_name)
+
+    sparkSubmitDict = {'sparkSubmit':
+                           {'entryPoint' : s3_entry_point,
+                            'entryPointArguments' : args,
+                            'sparkSubmitParameters' : spark_params}
+                       }
+    configDict = {'monitoringConfiguration' : {'s3MonitoringConfiguration' : {'logUri' : s3_log_uri}}}
+
+    run_cmd = 'aws emr-serverless start-job-run --application-id "' + str(id) + '"'+ \
+    ' --execution-role-arn {} '.format(role_arn) + "--job-driver '{}'".format(json.dumps(sparkSubmitDict)) + \
+    " --configuration-overrides '{}'".format(json.dumps(configDict))
+
+    logging.debug('Running with command: {}'.format(run_cmd))
+
+    ret = run_awscli(run_cmd)
+    jobId = ret['jobRunId']
+    appId = ret['applicationId']
+    logging.info('Started job run {} for application {} with id {}'.format(jobId, appId, application_name))
+
+    # wait till EMR job completed
+    wait_for_job_state(appId, jobId, 'SUCCESS')
+
+    logging.info('Running job took {}s in script.'.format(time.time() - ts))
+
 def main():
     logging.info('Running wordcount AWS EMR benchmark')
 
-    # setting up role and application if they don't exist
-    logging.info('Running EMR setup')
-    setup_emr(EMR_APPLICATION_NAME, EMR_ROLE, EMR_BUCKET, EMR_ACCESS_POLICY)
-    logging.info('EMR setup done')
+    # # setting up role and application if they don't exist
+    # logging.info('Running EMR setup')
+    # setup_emr(EMR_APPLICATION_NAME, EMR_ROLE, EMR_BUCKET, EMR_ACCESS_POLICY)
+    # logging.info('EMR setup done')
+    #
+    # # starting application & invoking job!
+    # start_emr(EMR_APPLICATION_NAME)
 
-    # starting application & invoking job!
-    start_emr(EMR_APPLICATION_NAME)
+    # run job (application needs to be in started mode)
+    ENTRY_POINT = 's3://us-east-1.elasticmapreduce/emr-containers/samples/wordcount/scripts/wordcount.py'
+    ENTRY_ARGS = ['s3://' + EMR_BUCKET + '/wordcount/output']
+    SPARK_PARAMS = "--conf spark.executor.cores=1 --conf spark.executor.memory=4g --conf spark.driver.cores=1 --conf spark.driver.memory=4g --conf spark.executor.instances=1"
+    LOG_URI = 's3://' + EMR_BUCKET + "/wordcount/logs"
+    run_emr_job(EMR_APPLICATION_NAME, EMR_ROLE, ENTRY_POINT, LOG_URI, ENTRY_ARGS, SPARK_PARAMS)
+
+
     # stopping application & removing everything?
 
 if __name__ == '__main__':

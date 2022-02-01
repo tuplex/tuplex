@@ -217,8 +217,7 @@ namespace tuplex {
         if(!syms)
             return WORKER_ERROR_COMPILATION_FAILED;
 
-
-        URI outputURI(req.outputuri());
+        URI outputURI = outputURIFromReq(req);
 
         auto parts = partsFromMessage(req);
 
@@ -1258,6 +1257,16 @@ namespace tuplex {
         return WORKER_OK;
     }
 
+    URI WorkerApp::outputURIFromReq(const messages::InvocationRequest &request) {
+
+        URI baseURI(request.baseoutputuri());
+        auto output_fmt = proto_toFileFormat(request.stage().outputformat());
+        auto ext = defaultFileExtension(output_fmt);
+        if(request.has_partnooffset())
+            return baseURI.join("part" + std::to_string(request.partnooffset()) + "." + ext);
+        else
+            return URI(request.baseoutputuri() + "." + ext);
+    }
 
     PyObject* fallbackTupleFromParseException(const uint8_t* buf, size_t buf_size) {
         // cf.  char* serializeParseException(int64_t numCells,

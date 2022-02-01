@@ -269,6 +269,8 @@ namespace tuplex {
         virtual void spillExceptionBuffer(size_t threadNo);
         virtual void spillHashMap(size_t threadNo);
 
+        URI outputURIFromReq(const messages::InvocationRequest &request);
+
         void writeBufferToFile(const URI& outputURI,
                                const FileFormat& fmt,
                                const uint8_t* buf,
@@ -292,7 +294,6 @@ namespace tuplex {
         // slow path callbacks
         static int64_t slowPathRowCallback(ThreadEnv *env, uint8_t* buf, int64_t bufSize);
         static void slowPathExceptCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input, int64_t dataLength);
-
     };
 
 

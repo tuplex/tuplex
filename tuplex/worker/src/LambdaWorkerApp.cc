@@ -544,7 +544,7 @@ namespace tuplex {
                 uint32_t partno = 0;
                 if(req.has_partnooffset()) {
                     uint32_t partno = req.partnooffset();
-                    output_uri = base_output_uri.join("part" + std::to_string(partno) + "." + file_ext);
+                    output_uri = URI(base_output_uri).join("part" + std::to_string(partno) + "." + file_ext);
                 } else {
                     output_uri = base_output_uri + "." + file_ext;
                 }
@@ -564,7 +564,7 @@ namespace tuplex {
                 partno++;
                 for(auto lambda_part : lambda_parts) {
                     // construct partURI out of partNo!
-                    URI part_uri = base_output_uri.join("part" + std::to_string(partno) + "." + file_ext);
+                    URI part_uri = URI(base_output_uri).join("part" + std::to_string(partno) + "." + file_ext);
                      // !!! important to inc before (skip the current part basically!)
                     // this is not completely correct, need to perform better part naming!
                     invokeLambda(timeout, lambda_part, base_output_uri, partno,

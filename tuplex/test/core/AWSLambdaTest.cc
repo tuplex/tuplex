@@ -448,7 +448,8 @@ TEST_F(AWSTest, FullZillowPipeline) {
     // 1. no-op Lambda spin out experiment
     opt.set("tuplex.aws.lambdaInvokeOthers", "true");
     opt.set("tuplex.aws.lambdaMemory", "10000");
-    opt.set("tuplex.aws.maxConcurrency", "800");
+    opt.set("tuplex.aws.maxConcurrency", "120");
+    opt.set("tuplex.aws.lambdaThreads", "4"); // AWS EMR compatible setting
 
     auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
 //    string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";

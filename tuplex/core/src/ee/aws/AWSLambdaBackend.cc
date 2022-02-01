@@ -639,6 +639,12 @@ namespace tuplex {
         // perhaps also use:  - 64 * numThreads ==> smarter buffer scaling necessary.
         size_t buf_spill_size = (_options.AWS_LAMBDA_MEMORY() - 256) / numThreads * 1000 * 1024;
 
+        // limit to 128mb each
+        if(buf_spill_size > 128 * 1000 * 1024)
+            buf_spill_size = 128 * 1000 * 1024;
+
+        logger().info("Setting buffer size for each thread to " + sizeToMemString(buf_spill_size));
+
         Timer timer;
         //        auto requests = createSingleFileRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI, buf_spill_size);
         auto requests = createSelfInvokingRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI, buf_spill_size);
@@ -792,6 +798,13 @@ namespace tuplex {
         recursive_invocations = std::vector<size_t>{4, 4, 4, 4, 4}; // 512 Lambdas?
 
         recursive_invocations = std::vector<size_t>{200, 4};
+
+        // when concurrency is < 200, use simple invocation strategy.
+        // AWS EMR compatible setting.
+
+        // always should split into MORE parts than function concurrenct in order
+        // to max out everything...
+        recursive_invocations = std::vector<size_t>{2 * _functionConcurrency - 1};
 
         // transform to request
         messages::InvocationRequest req;

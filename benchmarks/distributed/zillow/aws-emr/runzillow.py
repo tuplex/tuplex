@@ -296,10 +296,11 @@ def main():
     #           }
     LAMBDA_MEMORY=10000 # lambda memory in mb
     LAMBDA_THREADS = int(ceil_to_multiple(LAMBDA_MEMORY, 1792) / 1792)
-    # concurrency 10, 20, 40, 80, 100 works
+    # concurrency 10, 20, 40, 80, 100, 120 works
     LAMBDA_CONCURRENCY = 120
 
     # AWS EMR only supports up to 4 cores -.-, hence limit
+    # perhaps limit can be pushed by providing more memory? => looks like some spark safety feature...
     LAMBDA_THREADS = min(LAMBDA_THREADS, 4)
 
     # spark settings from there:
@@ -325,8 +326,8 @@ def main():
     logging.info('file upload done.')
 
     # run job (application needs to be in started mode)
-    # data_path = "s3://tuplex-public/data/100GB"
-    data_path = 's3://tuplex-public/data/100GB/zillow_00001.csv'
+    data_path = "s3://tuplex-public/data/100GB"
+    # data_path = 's3://tuplex-public/data/100GB/zillow_00001.csv'
     ENTRY_POINT = 's3://' + EMR_BUCKET + '/zillow/Z1/script.py'
     ENTRY_ARGS = ['--path', data_path,
                   '--output-path', 's3://' + EMR_BUCKET + '/zillow/Z1/output',

@@ -14,7 +14,6 @@ namespace tuplex {
 
         auto vv = vector<vector<FilePart>>(numThreads, vector<FilePart>{});
 
-
         // check how many bytes each vector should get
         size_t totalBytes = 0;
         for(auto part : parts) {

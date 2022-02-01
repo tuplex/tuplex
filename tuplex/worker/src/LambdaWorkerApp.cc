@@ -604,6 +604,11 @@ namespace tuplex {
                 if(parts_to_execute.size() != before_this_parts)
                     logger().info("Optimized parts from " + std::to_string(before_this_parts) + " to " + pluralize(parts_to_execute.size(), "part"));
 
+                // print out parts (remove)
+                for(auto part : parts_to_execute) {
+                    logger().info("Processing on this Lambda " + encodeRangeURI(part.uri, part.rangeStart, part.rangeEnd));
+                }
+
                 // should parts get merged or not??
                 // i.e. initiate multi-upload requests??
                 auto rc = processTransformStage(tstage, syms, parts_to_execute, output_uri);

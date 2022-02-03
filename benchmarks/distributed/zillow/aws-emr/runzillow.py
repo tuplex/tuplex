@@ -146,7 +146,6 @@ def remove_application(application_name):
 
     for job_id in active_jobs:
         cancel_job(id, job_id)
-
     try:
         stop_cmd = "aws emr-serverless stop-application --application-id {}".format(id)
         ret = run_awscli(stop_cmd)
@@ -154,6 +153,9 @@ def remove_application(application_name):
     except Exception as e:
         print(e)
         pass
+
+    wait_for_state(application_name, ['STOPPED', 'CREATED'])
+
     del_cmd = "aws emr-serverless delete-application --application-id {}".format(id)
     ret = run_awscli(del_cmd)
     logging.info('deleted application {}'.format(application_name))
@@ -180,12 +182,25 @@ def setup_emr(application_name, role_name, bucket_name, access_policy_name, regi
 
     setup_application(application_name, overwrite)
 
+
+def state_equals(current_state, state, *args):
+    assert isinstance(current_state, str)
+
+    states = (state,) + args
+    return current_state in states
+
 def wait_for_state(application_name, id, state, sleep_interval=0.1):
+
+    states = ()
+    if isinstance(state, str):
+        states = (state,)
+    else:
+        states = tuple(state)
 
     # wait till application is created
     wait_cmd = "aws emr-serverless get-application --application-id {}".format(id)
     ret = run_awscli(wait_cmd)
-    while ret['application']['state'] != state:
+    while not state_equals(ret['application']['state'], states[0], *states[1:]):
         logging.info('Application {} is in state {}, waiting for state {}...'.format(application_name,
                                                                                           ret['application']['state'],
                                                                                      state))
@@ -194,10 +209,16 @@ def wait_for_state(application_name, id, state, sleep_interval=0.1):
 
 def wait_for_job_state(appId, jobId, state, sleep_interval=0.1):
 
+    states = ()
+    if isinstance(state, str):
+        states = (state,)
+    else:
+        states = tuple(state)
+
     # wait till application is created
     wait_cmd = 'aws emr-serverless get-job-run --application-id "{}" --job-run-id "{}"'.format(appId, jobId)
     ret = run_awscli(wait_cmd)
-    while ret['jobRun']['state'] != state:
+    while not state_equals(ret['jobRun']['state'] , states[0], *states[1:]):
         logging.info('Job {} is in state {}, waiting for state {}...'.format(jobId,
                                                                                           ret['jobRun']['state'],
                                                                                      state))
@@ -312,7 +333,7 @@ def main():
     SPARK_PARAMS = conf_dict_to_str(spark_conf)
 
     # setting up role and application if they don't exist
-    logging.info('Running EMR setup')
+    logging.info('Running EMR ')
     setup_emr(EMR_APPLICATION_NAME, EMR_ROLE, EMR_BUCKET, EMR_ACCESS_POLICY)
     logging.info('EMR setup done')
 

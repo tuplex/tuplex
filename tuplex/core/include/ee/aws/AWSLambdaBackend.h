@@ -45,6 +45,29 @@ namespace tuplex {
     class PhysicalPlan;
     class PhysicalStage;
 
+
+    enum class AwsLambdaExecutionStrategy {
+        UNKNOWN=0,
+        DIRECT,
+        TREE
+    };
+
+    inline AwsLambdaExecutionStrategy stringToAwsExecutionStrategy(const std::string& str) {
+        std::string name = str;
+        trim(name);
+        for(auto& c : name)
+             c = std::tolower(c);
+
+        if("direct" == name)
+            return AwsLambdaExecutionStrategy::DIRECT;
+        if("tree" == name)
+            return AwsLambdaExecutionStrategy::TREE;
+
+        throw std::runtime_error("Unknown Lambda execution strategy " + str);
+
+        return AwsLambdaExecutionStrategy::UNKNOWN;
+    }
+
     class AwsLambdaBackend : public IBackend {
     public:
         AwsLambdaBackend() = delete;

@@ -66,13 +66,13 @@ namespace tuplex {
         if(WORKER_OK != globalInit())
             return false;
 
-        initThreadEnvironments();
+        initThreadEnvironments(_settings.numThreads);
         return true;
     }
 
-    void WorkerApp::initThreadEnvironments() {
+    void WorkerApp::initThreadEnvironments(size_t numThreads) {
         // initialize thread buffers (which get passed to functions)
-        _numThreads = std::max(1ul, _settings.numThreads);
+        _numThreads = std::max(1ul, numThreads);
         if(_threadEnvs) {
             // check if the same, if not reinit?
 
@@ -210,19 +210,70 @@ namespace tuplex {
     }
 
     int WorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
+
         // only transform stage yet supported, in the future support other stages as well!
         auto tstage = TransformStage::from_protobuf(req.stage());
+        URI outputURI = outputURIFromReq(req);
+        auto parts = partsFromMessage(req);
 
-        // check what type of message it is & then start processing it.
+
+        // check settings, pure python mode?
+        if(req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly())
+            return processTransformStageInPythonMode(tstage, parts, outputURI);
+
+        // if not, compile given code & process using both compile code & fallback
         auto syms = compileTransformStage(*tstage);
         if(!syms)
             return WORKER_ERROR_COMPILATION_FAILED;
 
-        URI outputURI = outputURIFromReq(req);
-
-        auto parts = partsFromMessage(req);
-
         return processTransformStage(tstage, syms, parts, outputURI);
+    }
+
+    int
+    WorkerApp::processTransformStageInPythonMode(const TransformStage *tstage, const std::vector<FilePart> &input_parts,
+                                                 const URI &output_uri) {
+        // make sure python code exists
+        assert(tstage);
+        auto pythonCode = tstage->purePythonCode();
+        auto pythonPipelineName = tstage->pythonPipelineName();
+        if(pythonCode.empty() || pythonPipelineName.empty())
+            return WORKER_ERROR_MISSING_PYTHON_CODE;
+
+        // compile func
+        auto pipelineFunctionObj = preparePythonPipeline(pythonCode, pythonPipelineName);
+
+        // now go through input parts (files) and read them into python!
+        // (single-threaded), could do multi-processing...
+
+        // init single-threaded env
+        initThreadEnvironments(1);
+
+        runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
+
+        // loop over parts & process
+        python::lockGIL();
+
+        for(auto part : input_parts) {
+            auto rc = processSourceInPython(0, tstage->fileInputOperatorID(),
+                                            part, tstage, pipelineFunctionObj, false);
+            if(rc != WORKER_OK) {
+                python::unlockGIL();
+                runtime::releaseRunTimeMemory();
+                return rc;
+            }
+        }
+
+        python::unlockGIL();
+        runtime::releaseRunTimeMemory();
+
+        // all sources are processed, because fallback path was used no exception resolution necessary.
+        // Exceptions are "true" exceptions
+
+        // write output parts (incl. spilled parts) to output file
+        auto rc = writeAllPartsToOutput(output_uri, tstage->outputFormat(), tstage->outputOptions());
+        if(rc != WORKER_OK)
+            return rc;
+        return WORKER_OK;
     }
 
     int WorkerApp::processTransformStage(const TransformStage *tstage,
@@ -408,6 +459,28 @@ namespace tuplex {
         logger().info("Data processed " + ss.str());
         ss.clear();
 
+        rc = writeAllPartsToOutput(output_uri, tstage->outputFormat(), tstage->outputOptions());
+        if(rc != WORKER_OK)
+            return rc;
+
+        // release stage
+        rc = releaseTransformStage(syms);
+        if(rc != WORKER_OK)
+            return rc;
+
+        MessageStatistic stat;
+        stat.totalTime = timer.time();
+        stat.numNormalOutputRows = numNormalRows;
+        stat.numExceptionOutputRows = numExceptionRows;
+        _statistics.push_back(stat);
+
+        logger().info("Took " + std::to_string(timer.time()) + "s in total");
+        return WORKER_OK;
+    }
+
+    int64_t WorkerApp::writeAllPartsToOutput(const URI& output_uri, const FileFormat& output_format, const std::unordered_map<std::string, std::string>& output_options) {
+
+        std::stringstream ss;
         std::vector<WriteInfo> reorganized_normal_parts;
         // @TODO: same for exceptions... => need to correct numbers??
         //  @Ben Givertz will know how to do this...
@@ -468,28 +541,17 @@ namespace tuplex {
 
         // no write everything to final output_uri out in order!
         logger().info("Writing data to " + output_uri.toString());
-        writePartsToFile(output_uri, tstage->outputFormat(), reorganized_normal_parts, tstage);
+        writePartsToFile(output_uri, output_format, reorganized_normal_parts, output_options);
         logger().info("Data fully materialized");
 
-        // release stage
-        rc = releaseTransformStage(syms);
-        if(rc != WORKER_OK)
-            return rc;
-
-        MessageStatistic stat;
-        stat.totalTime = timer.time();
-        stat.numNormalOutputRows = numNormalRows;
-        stat.numExceptionOutputRows = numExceptionRows;
-        _statistics.push_back(stat);
-
-        logger().info("Took " + std::to_string(timer.time()) + "s in total");
         return WORKER_OK;
     }
 
 
-    void WorkerApp::writePartsToFile(const URI &outputURI, const FileFormat &fmt,
+    void WorkerApp::writePartsToFile(const URI &outputURI,
+                                     const FileFormat &fmt,
                                      const std::vector<WriteInfo> &parts,
-                                     const TransformStage *stage) {
+                                     const std::unordered_map<std::string, std::string>& output_options) {
         logger().info("file output initiated...");
 
         // need to potentially accumulate some info!
@@ -533,11 +595,10 @@ namespace tuplex {
             size_t header_length = 0;
 
             // write header if desired...
-            auto outOptions = stage->outputOptions();
-            bool writeHeader = stringToBool(get_or(outOptions, "header", "false"));
+            bool writeHeader = stringToBool(get_or(output_options, "header", "false"));
             if(writeHeader) {
                 // fetch special var csvHeader
-                auto headerLine = outOptions["csvHeader"];
+                auto headerLine = output_options.at("csvHeader");
                 header_length = headerLine.length();
                 header = new uint8_t[header_length+1];
                 memset(header, 0, header_length + 1 );
@@ -592,6 +653,358 @@ namespace tuplex {
         file->close();
         logger().info("file output done.");
     }
+
+
+    int64_t WorkerApp::pythonCellFunctor(void *userData, int64_t row_number, char **cells, int64_t *cell_sizes) {
+        assert(userData);
+        auto ctx = static_cast<WorkerApp::PythonExecutionContext*>(userData);
+        return ctx->app->processCellsInPython(ctx->threadNo,
+                                              ctx->pipelineObject,
+                                              ctx->py_intermediates,row_number,
+                                              ctx->numInputColumns,
+                                              cells,
+                                              cell_sizes);
+    }
+
+
+    int64_t
+    WorkerApp::processCellsInPython(int threadNo, PyObject *pipelineObject,
+                                    const std::vector<PyObject*>& py_intermediates,
+                                    int64_t row_number, size_t num_cells,
+                                    char **cells, int64_t *cell_sizes) {
+
+        assert(pipelineObject);
+        assert(num_cells > 0 && cells);
+        PyObject* tuple = PyTuple_New(num_cells);
+        for(unsigned i = 0; i < num_cells; ++i) {
+            // zero terminated? if not, need to copy
+            PyObject* str_obj = nullptr;
+            assert(cells[i]);
+            auto cell = cells[i];
+            auto cell_size = cell_sizes[i];
+            if(cell_size > 0 && cell[cell_size - 1] == '\0') {
+                str_obj = python::PyString_FromString(cell);
+            } else {
+                // need to memcpy
+                auto buffer = new char[cell_size + 1];
+                buffer[cell_size] = '\0';
+                memcpy(buffer, cell, cell_size);
+                str_obj = python::PyString_FromString(buffer);
+                delete [] buffer;
+            }
+
+            PyTuple_SET_ITEM(tuple, i, str_obj);
+        }
+
+        // call pipFunctor
+        PyObject* args = PyTuple_New(1 + py_intermediates.size());
+        PyTuple_SET_ITEM(args, 0, tuple);
+        for(unsigned i = 0; i < py_intermediates.size(); ++i) {
+            Py_XINCREF(py_intermediates[i]);
+            PyTuple_SET_ITEM(args, i + 1, py_intermediates[i]);
+        }
+
+        auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", Py_True);
+        auto pcr = python::callFunctionEx(pipelineObject, args, kwargs);
+
+        auto err_stream = &std::cerr;
+        int64_t ecOperatorID = 0;
+        int64_t ecCode = 0;
+        std::vector<PyObject*> resultObjects;
+        bool returnAllAsPyObjects = false;
+        bool outputAsNormalRow = false;
+        bool outputAsGeneralRow = false;
+
+        if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
+            // this should not happen, bad internal error. codegen'ed python should capture everything.
+            if(err_stream)
+                *err_stream<<"bad internal python error: " + pcr.exceptionMessage<<std::endl;
+        } else {
+            // all good, row is fine. exception occured?
+            assert(pcr.res);
+
+            // type check: save to regular rows OR save to python row collection
+            if(!pcr.res) {
+                if(err_stream)
+                    *err_stream<<"bad internal python error, NULL object returned"<<std::endl;
+            } else {
+
+#ifndef NDEBUG
+                // // uncomment to print res obj
+                // Py_XINCREF(pcr.res);
+                // PyObject_Print(pcr.res, stdout, 0);
+                // std::cout<<std::endl;
+#endif
+                auto exceptionObject = PyDict_GetItemString(pcr.res, "exception");
+                if(exceptionObject) {
+
+                    // overwrite operatorID which is throwing.
+                    auto exceptionOperatorID = PyDict_GetItemString(pcr.res, "exceptionOperatorID");
+                    ecOperatorID = PyLong_AsLong(exceptionOperatorID);
+                    auto exceptionType = PyObject_Type(exceptionObject);
+                    // can ignore input row.
+                    ecCode = ecToI64(python::translatePythonExceptionType(exceptionType));
+                } else {
+                    // normal, check type and either merge to normal set back OR onto python set together with row number?
+                    auto resultRows = PyDict_GetItemString(pcr.res, "outputRows");
+                    assert(PyList_Check(resultRows));
+                    for(int i = 0; i < PyList_Size(resultRows); ++i) {
+                        // type check w. output schema
+                        // cf. https://pythonextensionpatterns.readthedocs.io/en/latest/refcount.html
+                        auto rowObj = PyList_GetItem(resultRows, i);
+                        Py_XINCREF(rowObj);
+
+                        // returnAllAsPyObjects makes especially sense when hashtable is used!
+                        if(returnAllAsPyObjects) {
+                            // res.pyObjects.push_back(rowObj);
+                            continue;
+                        }
+
+                        auto rowType = python::mapPythonClassToTuplexType(rowObj);
+
+                        // special case output schema is str (fileoutput!)
+                        if(rowType == python::Type::STRING) {
+                            // write to file, no further type check necessary b.c.
+                            // if it was the object string it would be within a tuple!
+                            auto cptr = PyUnicode_AsUTF8(rowObj);
+                            Py_XDECREF(rowObj);
+
+                            auto size = strlen(cptr);
+
+                            // this i.e. the output of tocsv
+                            // note that because it's a zero-terminated string, do not write everything!
+                            int64_t rc = 0;
+                            if(size > 1)
+                                if((rc = writeRow(threadNo, reinterpret_cast<const uint8_t *>(cptr), size - 1)) != ecToI64(ExceptionCode::SUCCESS))
+                                    return rc;
+
+//                            res.buf.provideSpace(size);
+//                            memcpy(res.buf.ptr(), reinterpret_cast<const uint8_t *>(cptr), size);
+//                            res.buf.movePtr(size);
+//                            res.bufRowCount++;
+                            //mergeRow(reinterpret_cast<const uint8_t *>(cptr), strlen(cptr), BUF_FORMAT_NORMAL_OUTPUT); // don't write '\0'!
+                        } else {
+                            throw std::runtime_error("not yet supported in pure python mode");
+                            // there are three options where to store the result now
+//                            // 1. fits targetOutputSchema (i.e. row becomes normalcase row)
+//                            bool outputAsNormalRow = python::Type::UNKNOWN != unifyTypes(rowType, specialized_target_schema.getRowType(), allowNumericTypeUnification)
+//                                                     && canUpcastToRowType(rowType, specialized_target_schema.getRowType());
+//                            // 2. fits generalCaseOutputSchema (i.e. row becomes generalcase row)
+//                            bool outputAsGeneralRow = python::Type::UNKNOWN != unifyTypes(rowType,
+//                                                                                          general_target_schema.getRowType(), allowNumericTypeUnification)
+//                                                      && canUpcastToRowType(rowType, general_target_schema.getRowType());
+
+                            // 3. doesn't fit, store as python object. => we should use block storage for this as well. Then data can be shared.
+
+                            // can upcast? => note that the && is necessary because of cases where outputSchema is
+                            // i64 but the given row type f64. We can cast up i64 to f64 but not the other way round.
+                            if(outputAsNormalRow) {
+                                // Row resRow = python::pythonToRow(rowObj).upcastedRow(specialized_target_schema.getRowType());
+                                // assert(resRow.getRowType() == specialized_target_schema.getRowType());
+                                // auto serialized_length = resRow.serializedLength();
+                                // res.buf.provideSpace(serialized_length);
+                                // auto actual_length = resRow.serializeToMemory(static_cast<uint8_t *>(res.buf.ptr()), res.buf.capacity() - res.buf.size());
+                                // assert(serialized_length == actual_length);
+                                // res.buf.movePtr(serialized_length);
+                                //  res.bufRowCount++;
+                            } else if(outputAsGeneralRow) {
+                                // Row resRow = python::pythonToRow(rowObj).upcastedRow(general_target_schema.getRowType());
+                                // assert(resRow.getRowType() == general_target_schema.getRowType());
+
+                                throw std::runtime_error("not yet supported");
+
+//                                // write to buffer & perform callback
+//                                auto buf_size = 2 * resRow.serializedLength();
+//                                uint8_t *buf = new uint8_t[buf_size];
+//                                memset(buf, 0, buf_size);
+//                                auto serialized_length = resRow.serializeToMemory(buf, buf_size);
+//                                // call row func!
+//                                // --> merge row distinguishes between those two cases. Distinction has to be done there
+//                                //     because of compiled functor who calls mergeRow in the write function...
+//                                mergeRow(buf, serialized_length, BUF_FORMAT_GENERAL_OUTPUT);
+//                                delete [] buf;
+                            } else {
+                                // res.pyObjects.push_back(rowObj);
+                            }
+                            // Py_XDECREF(rowObj);
+                        }
+                    }
+
+#ifndef NDEBUG
+                    if(PyErr_Occurred()) {
+                        // print out the otber objects...
+                        std::cout<<__FILE__<<":"<<__LINE__<<" python error not cleared properly!"<<std::endl;
+                        PyErr_Print();
+                        std::cout<<std::endl;
+                        PyErr_Clear();
+                    }
+#endif
+                    // // everything was successful, change resCode to 0!
+                    // res.code = ecToI64(ExceptionCode::SUCCESS);
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    int64_t WorkerApp::processSourceInPython(int threadNo, int64_t inputNodeID, const FilePart& part,
+                                             const TransformStage* tstage, PyObject* pipelineObject,
+                                             bool acquireGIL) {
+        using namespace std;
+        assert(tstage);
+        assert(pipelineObject);
+
+        if(acquireGIL)
+            python::lockGIL();
+
+        size_t rangeStart=0, rangeEnd=0;
+        auto inputURI = part.uri;
+        decodeRangeURI(part.uri.toString(), inputURI, rangeStart, rangeEnd);
+
+        auto normalCaseEnabled = false;
+
+        // input reader
+        std::unique_ptr<FileInputReader> reader;
+        ThreadEnv* env = &_threadEnvs[threadNo];
+
+        // spill files if they do not add up!
+        if(env->normalOriginalPartNo != part.partNo) {
+            if(env->normalBuf.size() > 0)
+                spillNormalBuffer(threadNo);
+            env->normalOriginalPartNo = part.partNo;
+        }
+
+        // do the same for the exception buffer...
+        if(env->exceptionOriginalPartNo != part.partNo) {
+            if(env->exceptionBuf.size() > 0)
+                spillExceptionBuffer(threadNo);
+            env->exceptionOriginalPartNo = part.partNo;
+        }
+        // same for hash buf as well
+        if(env->hashOriginalPartNo != part.partNo) {
+            if(hashmap_bucket_count((map_t)env->hashMap) > 0)
+                spillHashMap(threadNo);
+            env->hashOriginalPartNo = part.partNo;
+        }
+
+        // use try/catch b.c. of GIL
+        try {
+
+            PythonExecutionContext ctx;
+            ctx.app = this;
+            ctx.threadNo = 0;
+            ctx.pipelineObject = pipelineObject;
+            void* userData = reinterpret_cast<void*>(&ctx);
+
+            switch(tstage->inputMode()) {
+                case EndPointMode::FILE: {
+
+                    // there should be a couple input uris in this request!
+                    // => decode using optional fileinput params from the
+                    // @TODO: ranges
+
+                    // only csv + text so far supported!
+                    if(tstage->inputFormat() == FileFormat::OUTFMT_CSV) {
+
+                        // decode from file input params everything
+                        auto numColumns = tstage->csvNumFileInputColumns();
+                        vector<std::string> header;
+                        if(tstage->csvHasHeader())
+                            header = tstage->csvHeader();
+                        auto delimiter = tstage->csvInputDelimiter();
+                        auto quotechar = tstage->csvInputQuotechar();
+                        auto colsToKeep = tstage->columnsToKeep();
+
+                        ctx.numInputColumns = numColumns;
+
+                        auto csv = new CSVReader(userData, reinterpret_cast<codegen::cells_row_f>(pythonCellFunctor),
+                                                 normalCaseEnabled,
+                                                 inputNodeID,
+                                                 reinterpret_cast<codegen::exception_handler_f>(exceptRowCallback),
+                                                 numColumns, delimiter,
+                                                 quotechar, colsToKeep);
+                        // fetch full file for now, later make this optional!
+                        // csv->setRange(rangeStart, rangeStart + rangeSize);
+                        csv->setHeader(header);
+                        csv->setRange(part.rangeStart, part.rangeEnd);
+                        reader.reset(csv);
+                    } else if(tstage->inputFormat() == FileFormat::OUTFMT_TEXT) {
+                        ctx.numInputColumns = 1;
+                        auto text = new TextReader(userData, reinterpret_cast<codegen::cells_row_f>(pythonCellFunctor));
+                        // fetch full range for now, later make this optional!
+                        // text->setRange(rangeStart, rangeStart + rangeSize);
+                        text->setRange(part.rangeStart, part.rangeEnd);
+                        reader.reset(text);
+                    } else throw std::runtime_error("unsupported input file format given");
+
+                    // Note: ORC reader does not support parts yet... I.e., function needs to read FULL file!
+
+                    // read assigned file...
+
+                    reader->read(inputURI);
+                    runtime::rtfree_all();
+                    break;
+                }
+//                case EndPointMode::MEMORY: {
+//                    // not supported yet
+//                    // => simply read in partition from file (tuplex in memory format)
+//                    // load file into partition, then call functor on the partition.
+//
+//                    // TODO: parts? -> for tuplex reader maybe also important!
+//                    // Tuplex reader doesn't support chunking yet either...
+//
+//
+//                    // TODO: Could optimize this by streaming in data & calling compute over blocks of data!
+//                    auto vf = VirtualFileSystem::open_file(inputURI, VirtualFileMode::VFS_READ);
+//                    if(vf) {
+//                        auto file_size = vf->size();
+//                        size_t bytes_read = 0;
+//                        auto input_buffer = new uint8_t[file_size];
+//                        vf->read(input_buffer, file_size, &bytes_read);
+//                        logger().info("Read " + std::to_string(bytes_read) + " bytes from " + inputURI.toString());
+//
+//                        int64_t normal_row_output_count = 0;
+//                        int64_t bad_row_output_count = 0;
+//                        auto response_code = syms->functor(userData, input_buffer, bytes_read, &normal_row_output_count, &bad_row_output_count, false);
+//                        {
+//                            std::stringstream ss;
+//                            ss << "RC=" << response_code << " ,computed " << normal_row_output_count << " normal rows, "
+//                               << bad_row_output_count << " bad rows" << endl;
+//                            logger().debug(ss.str());
+//                        }
+//
+//                        delete [] input_buffer;
+//                        vf->close();
+//                    } else {
+//                        logger().error("Error reading " + inputURI.toString());
+//                        if(acquireGIL)
+//                            python::unlockGIL();
+//                        return WORKER_ERROR_IO;
+//                    }
+//                    break;
+//                }
+                default: {
+                    logger().error("unsupported input mode found");
+                    if(acquireGIL)
+                        python::unlockGIL();
+                    return WORKER_ERROR_UNSUPPORTED_INPUT;
+                    break;
+                }
+            }
+
+        } catch(const std::exception& e) {
+            logger().error("Exception occurred while processing part " + encodeRangeURI(part.uri, part.rangeStart, part.rangeEnd) + ": " + e.what());
+        } catch(...) {
+            logger().error("Unknown exception occurred while processing part " + encodeRangeURI(part.uri, part.rangeStart, part.rangeEnd));
+        }
+
+        if(acquireGIL)
+            python::unlockGIL();
+
+        return WORKER_OK;
+    }
+
 
     int64_t WorkerApp::processSource(int threadNo, int64_t inputNodeID, const FilePart& part, const TransformStage *tstage,
                                      const std::shared_ptr<TransformStage::JITSymbols>& syms) {
@@ -739,13 +1152,13 @@ namespace tuplex {
                                       const uint8_t* buf,
                                       const size_t buf_size,
                                       const size_t num_rows,
-                                      const TransformStage* tstage) {
+                                      const std::unordered_map<std::string, std::string>& output_options) {
 
         logger().info("writing " + sizeToMemString(buf_size) + " to " + outputURI.toPath());
         // write first the # rows, then the data
         auto vfs = VirtualFileSystem::fromURI(outputURI);
         auto mode = VirtualFileMode::VFS_OVERWRITE | VirtualFileMode::VFS_WRITE;
-        if(tstage->outputFormat() == FileFormat::OUTFMT_CSV || tstage->outputFormat() == FileFormat::OUTFMT_TEXT)
+        if(fmt == FileFormat::OUTFMT_CSV || fmt == FileFormat::OUTFMT_TEXT)
             mode |= VirtualFileMode::VFS_TEXTMODE;
         auto file = tuplex::VirtualFileSystem::open_file(outputURI, mode);
         if(!file)
@@ -760,16 +1173,14 @@ namespace tuplex {
             size_t header_length = 0;
 
             // write header if desired...
-            auto outOptions = tstage->outputOptions();
-            bool writeHeader = stringToBool(get_or(outOptions, "header", "false"));
+            bool writeHeader = stringToBool(get_or(output_options, "header", "false"));
             if(writeHeader) {
                 // fetch special var csvHeader
-                auto headerLine = outOptions["csvHeader"];
+                auto headerLine = output_options.at("csvHeader");
                 header_length = headerLine.length();
                 header = new uint8_t[header_length + 1];
                 memset(header, 0, header_length + 1 );
                 memcpy(header, (uint8_t *)headerLine.c_str(), header_length);
-
                 delete [] header;
             }
         }
@@ -813,7 +1224,8 @@ namespace tuplex {
             ws.runTimeMemoryDefaultBlockSize = req.settings().runtimememoryperthreadblocksize();
         if(req.settings().has_allownumerictypeunification())
             ws.allowNumericTypeUnification = req.settings().allownumerictypeunification();
-
+        if(req.settings().has_useinterpreteronly())
+            ws.useInterpreterOnly = req.settings().useinterpreteronly();
         ws.numThreads = std::max(1ul, ws.numThreads);
         return ws;
     }

@@ -81,7 +81,7 @@ std::string runCommand(const std::string& cmd) {
     return result;
 }
 namespace tuplex {
-    std::string transformStageToReqMessage(const TransformStage* tstage, const std::string& inputURI, const size_t& inputSize, const std::string& output_uri,
+    std::string transformStageToReqMessage(const TransformStage* tstage, const std::string& inputURI, const size_t& inputSize, const std::string& output_uri, bool interpreterOnly,
                                            size_t numThreads = 1, const std::string& spillURI="spill_folder") {
         messages::InvocationRequest req;
 
@@ -99,13 +99,14 @@ namespace tuplex {
         req.add_inputsizes(inputSize);
 
         // output uri of job? => final one? parts?
-        req.set_outputuri(output_uri);
+        req.set_baseoutputuri(output_uri);
 
         auto ws = std::make_unique<messages::WorkerSettings>();
         ws->set_numthreads(numThreads);
         ws->set_normalbuffersize(buf_spill_size);
         ws->set_exceptionbuffersize(buf_spill_size);
         ws->set_spillrooturi(spillURI);
+        ws->set_useinterpreteronly(interpreterOnly);
         req.set_allocated_settings(ws.release());
 
         // transfrom to json
@@ -171,6 +172,158 @@ void createRefPipeline(const std::string& test_input_path,
     }
     python::lockGIL();
     python::closeInterpreter();
+}
+
+// @TODO: should either have constructable outputURI or baseURI + partNo!
+
+TEST(BasicInvocation, PurePythonMode) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto worker_path = find_worker();
+
+    auto testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+    auto scratchDir = "/tmp/" + testName;
+
+    // change cwd & create dir to avoid conflicts!
+    auto cwd_path = boost::filesystem::current_path();
+    auto desired_cwd = cwd_path.string() + "/tests/" + testName;
+    // create dir if it doesn't exist
+    auto vfs = VirtualFileSystem::fromURI("file://");
+    vfs.create_dir(desired_cwd);
+    boost::filesystem::current_path(desired_cwd);
+
+    char buf[4096];
+    auto cur_dir = getcwd(buf, 4096);
+
+    EXPECT_NE(std::string(cur_dir).find(testName), std::string::npos);
+
+    cout<<"current working dir: "<<buf<<endl;
+
+    // check worker exists
+    ASSERT_TRUE(tuplex::fileExists(worker_path));
+
+    // test config here:
+    // local csv test file!
+    auto test_path = URI("file://../resources/flights_on_time_performance_2019_01.sample.csv");
+    auto test_output_path = URI("file://output.txt");
+    auto spillURI = std::string("spill_folder");
+
+    // local for quicker dev
+    test_path = URI("file:///Users/leonhards/data/flights/flights_on_time_performance_2009_01.csv");
+
+    size_t num_threads = 4;
+
+    // invoke helper with --help
+    std::string work_dir = cur_dir;
+
+//    // Step 1: create ref pipeline using direct Tuplex invocation
+//    auto test_ref_path = testName + "_ref.csv";
+//    createRefPipeline(test_path.toString(), test_ref_path, scratchDir);
+//
+//    // load ref file from parts!
+//    auto ref_files = glob(current_working_directory() + "/" + testName + "_ref*part*csv");
+//    std::sort(ref_files.begin(), ref_files.end());
+//
+//    // merge into single large string
+    std::string ref_content = "";
+//    for(unsigned i = 0; i < ref_files.size(); ++i) {
+//        if(i > 0) {
+//            auto file_content = fileToString(ref_files[i]);
+//            // skip header for these parts
+//            auto idx = file_content.find("\n");
+//            ref_content += file_content.substr(idx + 1);
+//        } else {
+//            ref_content = fileToString(ref_files[0]);
+//        }
+//    }
+//    stringToFile("ref_content.txt", ref_content);
+    ref_content = fileToString("ref_content.txt");
+
+    // create a simple TransformStage reading in a file & saving it. Then, execute via Worker!
+    // Note: This one is unoptimized, i.e. no projection pushdown, filter pushdown etc.
+    ASSERT_TRUE(test_path.exists());
+    python::initInterpreter();
+    python::unlockGIL();
+    ContextOptions co = ContextOptions::defaults();
+    auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
+    co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
+    co.set("tuplex.useInterpreterOnly", "true");
+    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, false);
+    auto csvop = FileInputOperator::fromCsv(test_path.toString(), co,
+                                            option<bool>(true),
+                                            option<char>(','), option<char>('"'),
+                                            {""}, {}, {}, {});
+    auto mapop = new MapOperator(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
+    auto fop = new FileOutputOperator(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
+    builder.addFileInput(csvop);
+    builder.addOperator(mapop);
+    builder.addFileOutput(fop);
+
+    auto tstage = builder.build();
+
+    // transform to message
+    vfs = VirtualFileSystem::fromURI(test_path);
+    uint64_t input_file_size = 0;
+    vfs.file_size(test_path, input_file_size);
+    auto json_message = transformStageToReqMessage(tstage, URI(test_path).toPath(),
+                                                   input_file_size, test_output_path.toString(),
+                                                   true,
+                                                   num_threads,
+                                                   spillURI);
+
+    // save to file
+    auto msg_file = URI("test_message.json");
+    stringToFile(msg_file, json_message);
+
+    python::lockGIL();
+    python::closeInterpreter();
+
+    // start worker within same process to easier debug...
+    auto app = make_unique<WorkerApp>(WorkerSettings());
+    app->processJSONMessage(json_message);
+    app->shutdown();
+
+    // fetch output file and check contents...
+    auto file_content = fileToString(test_output_path.toString() + ".csv");
+
+    // check files are 1:1 the same!
+    EXPECT_EQ(file_content.size(), ref_content.size());
+
+    // because order may be different (unless specified), split into lines & sort and compare
+    auto res_lines = splitToLines(file_content);
+    auto ref_lines = splitToLines(ref_content);
+    std::sort(res_lines.begin(), res_lines.end());
+    std::sort(ref_lines.begin(), ref_lines.end());
+    ASSERT_EQ(res_lines.size(), ref_lines.size());
+    for(unsigned i = 0; i < std::min(res_lines.size(), ref_lines.size()); ++i) {
+        EXPECT_EQ(res_lines[i], ref_lines[i]);
+    }
+
+    // test again, but this time invoking the worker with a message as separate process.
+
+    // invoke worker with that message
+    Timer timer;
+    auto cmd = worker_path + " -m " + msg_file.toPath();
+    auto res_stdout = runCommand(cmd);
+    auto worker_invocation_duration = timer.time();
+    cout<<res_stdout<<endl;
+    cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
+
+    // check result contents
+    cout<<"Checking worker results..."<<endl;
+    file_content = fileToString(test_output_path.toString() + ".csv");
+
+    // check files are 1:1 the same!
+    ASSERT_EQ(file_content.size(), ref_content.size());
+    res_lines = splitToLines(file_content);
+    std::sort(res_lines.begin(), res_lines.end());
+    EXPECT_EQ(res_lines.size(), ref_lines.size());
+    for(unsigned i = 0; i < std::min(res_lines.size(), ref_lines.size()); ++i) {
+        EXPECT_EQ(res_lines[i], ref_lines[i]);
+    }
+    cout<<"Invoked worker check done."<<endl;
+    cout<<"Test done."<<endl;
 }
 
 TEST(BasicInvocation, Worker) {
@@ -294,6 +447,7 @@ TEST(BasicInvocation, Worker) {
     vfs.file_size(test_path, input_file_size);
     auto json_message = transformStageToReqMessage(tstage, URI(test_path).toPath(),
                                                    input_file_size, test_output_path.toString(),
+                                                   false,
                                                    num_threads,
                                                    spillURI);
 

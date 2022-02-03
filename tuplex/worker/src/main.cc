@@ -7,6 +7,14 @@
 
 #include <Logger.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <ee/aws/ContainerInfo.h>
+
+namespace tuplex {
+    ContainerInfo getThisContainerInfo() {
+        ContainerInfo info;
+        return info;
+    }
+}
 
 int initLogging(const std::string& logPath) {
     using namespace std;

@@ -70,6 +70,9 @@ namespace tuplex {
         std::string AWS_LAMBDA_THREAD_COUNT() const { return _store.at("tuplex.aws.lambdaThreads"); } // auto or number > 0
         bool AWS_LAMBDA_SELF_INVOCATION() const { return stringToBool(_store.at("tuplex.aws.lambdaInvokeOthers")); } // whether Lambdas should perform self-invocation to scale faster...
         bool AWS_REQUESTER_PAY() const { return stringToBool(_store.at("tuplex.aws.requesterPay")); }
+        bool PURE_PYTHON_MODE() const { return stringToBool(_store.at("tuplex.useInterpreterOnly")); } // if set to true, then everything will be processed using the generated py-code only!
+
+        std::string AWS_LAMBDA_INVOCATION_STRATEGY() const { return _store.at("tuplex.aws.lambdaInvocationStrategy"); }
 
         // access parameters via their getter functions
         size_t RUNTIME_MEMORY() const;                        //! in bytes how much memory should be given to UDFs (soft limit)

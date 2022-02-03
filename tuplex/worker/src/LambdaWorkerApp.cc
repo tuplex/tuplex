@@ -441,9 +441,16 @@ namespace tuplex {
 
             // extract settings from req & init multi-threading!
             _settings = settingsFromMessage(req);
-            if(!_threadEnvs)
-                initThreadEnvironments();
 
+
+            bool purePythonMode = req.has_settings() && req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly();
+            auto numThreads = purePythonMode ? 1 : _settings.numThreads;
+
+            if(purePythonMode)
+                logger().info("Processing in pure python/fallback only mode");
+
+            if(!_threadEnvs)
+                initThreadEnvironments(numThreads);
 
             // validate only S3 uris are given (in debug mode)
 #ifdef NDEBUG
@@ -578,17 +585,7 @@ namespace tuplex {
                 logger().info("Requests to " + std::to_string(numInvoked) + " other LAMBDAs created.");
 
                 // ------
-
-
                 // prep local execution
-                // only transform stage yet supported, in the future support other stages as well!
-                auto tstage = TransformStage::from_protobuf(req.stage());
-
-                // check what type of message it is & then start processing it.
-                auto syms = compileTransformStage(*tstage);
-                if(!syms)
-                    return WORKER_ERROR_COMPILATION_FAILED;
-
                 logger().info("Executing " + pluralize(parts_to_execute.size(), "part") + " on this Lambda, spawning others");
 
                 // optimize which parts to execute
@@ -602,9 +599,24 @@ namespace tuplex {
                     logger().info("Processing on this Lambda " + encodeRangeURI(part.uri, part.rangeStart, part.rangeEnd));
                 }
 
-                // should parts get merged or not??
-                // i.e. initiate multi-upload requests??
-                auto rc = processTransformStage(tstage, syms, parts_to_execute, output_uri);
+                // only transform stage yet supported, in the future support other stages as well!
+                auto tstage = TransformStage::from_protobuf(req.stage());
+
+                // pure Python Mode? ==> process in python only!
+                int64_t rc = WORKER_OK;
+                if(purePythonMode) {
+                    rc = processTransformStageInPythonMode(tstage, parts_to_execute, output_uri);
+                } else {
+                    // check what type of message it is & then start processing it.
+                    auto syms = compileTransformStage(*tstage);
+                    if(!syms)
+                        return WORKER_ERROR_COMPILATION_FAILED;
+
+                    // should parts get merged or not??
+                    // i.e. initiate multi-upload requests??
+                    rc = processTransformStage(tstage, syms, parts_to_execute, output_uri);
+                }
+
                 if(rc != WORKER_OK) {
                     // this part didn't work, yet when lambdas are invoked they might have succeeded!
                     logger().error("Parent LAMBDA did not succeed processing with code " + std::to_string(rc));

@@ -646,15 +646,30 @@ namespace tuplex {
         logger().info("Setting buffer size for each thread to " + sizeToMemString(buf_spill_size));
 
         Timer timer;
-        //        auto requests = createSingleFileRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI, buf_spill_size);
-        auto requests = createSelfInvokingRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI, buf_spill_size);
 
-        logger().info("Invoking requests...");
-
-        for(auto req : requests)
-            invokeAsync(req);
-
-        logger().info("LAMBDA requesting took "+ std::to_string(timer.time()) + "s");
+        // create requests depending on execution strategy
+        vector<messages::InvocationRequest> requests;
+        switch(stringToAwsExecutionStrategy(_options.AWS_LAMBDA_INVOCATION_STRATEGY())) {
+            case AwsLambdaExecutionStrategy::DIRECT: {
+                requests = createSingleFileRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI, buf_spill_size);
+                break;
+            }
+            case AwsLambdaExecutionStrategy::TREE: {
+                requests = createSelfInvokingRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI, buf_spill_size);
+                break;
+            }
+            default:
+                logger().error("Unknown execution strategy");
+                break;
+        }
+        if(!requests.empty()) {
+            logger().info("Invoking " + pluralize(requests.size(), "request") + " ...");
+            for(const auto& req : requests)
+                invokeAsync(req);
+            logger().info("LAMBDA requesting took "+ std::to_string(timer.time()) + "s");
+        } else {
+            logger().warn("No requests generated, skipping stage.");
+        }
 
         // TODO: check signals, allow abort...
 
@@ -830,6 +845,7 @@ namespace tuplex {
         ws->set_normalbuffersize(buf_spill_size);
         ws->set_exceptionbuffersize(buf_spill_size);
         ws->set_spillrooturi(spillURI);
+        ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
         req.set_allocated_settings(ws.release());
 
         // partNo offset
@@ -891,6 +907,7 @@ namespace tuplex {
             ws->set_normalbuffersize(buf_spill_size);
             ws->set_exceptionbuffersize(buf_spill_size);
             ws->set_spillrooturi(spillURI);
+            ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
             req.set_allocated_settings(ws.release());
 
             // output uri of job? => final one? parts?

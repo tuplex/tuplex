@@ -28,6 +28,7 @@
 #define WORKER_ERROR_PIPELINE_FAILED 110
 #define WORKER_ERROR_UNKNOWN_MESSAGE 111
 #define WORKER_ERROR_GLOBAL_INIT 112
+#define WORKER_ERROR_MISSING_PYTHON_CODE 113
 
 // give 32MB standard buf size, 8MB for exceptions and hash
 #define WORKER_DEFAULT_BUFFER_SIZE 33554432
@@ -86,10 +87,11 @@ namespace tuplex {
         size_t runTimeMemoryDefaultBlockSize;
 
         bool allowNumericTypeUnification;
+        bool useInterpreterOnly;
 
         // use some defaults...
         WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
-        exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE) {
+        exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE), useInterpreterOnly(false) {
 
             // set some options from defaults...
             auto opt = ContextOptions::defaults();
@@ -117,7 +119,8 @@ namespace tuplex {
                 return false;
             if(allowNumericTypeUnification != other.allowNumericTypeUnification)
                 return false;
-
+            if(useInterpreterOnly != other.useInterpreterOnly)
+                return false;
             return true;
         }
 
@@ -148,8 +151,6 @@ namespace tuplex {
          */
         int processJSONMessage(const std::string& message);
 
-
-
         void shutdown();
 
         bool isInitialized() const;
@@ -169,6 +170,9 @@ namespace tuplex {
                                           const std::vector<FilePart>& input_parts,
                                           const URI& output_uri);
 
+        int processTransformStageInPythonMode(const TransformStage* tstage,
+                                              const std::vector<FilePart>& input_parts,
+                                              const URI& output_uri);
 
         tuplex::messages::InvocationResponse executeTransformTask(const TransformStage* tstage);
 
@@ -238,12 +242,39 @@ namespace tuplex {
         ThreadEnv *_threadEnvs;
         size_t _numThreads;
 
-        void initThreadEnvironments();
+        void initThreadEnvironments(size_t numThreads);
 
         int64_t initTransformStage(const TransformStage::InitData& initData, const std::shared_ptr<TransformStage::JITSymbols>& syms);
         int64_t releaseTransformStage(const std::shared_ptr<TransformStage::JITSymbols>& syms);
 
         int64_t processSource(int threadNo, int64_t inputNodeID, const FilePart& part, const TransformStage* tstage, const std::shared_ptr<TransformStage::JITSymbols>& syms);
+
+        int64_t processSourceInPython(int threadNo, int64_t inputNodeID, const FilePart& part,
+                                      const TransformStage* tstage, PyObject* pipelineObject,
+                                      bool acquireGIL);
+
+        int64_t writeAllPartsToOutput(const URI& output_uri, const FileFormat& output_format, const std::unordered_map<std::string, std::string>& output_options);
+
+        // this function needs to have the same signature as codegen::cell_rows_f
+        // it internally calls the processCellsInPython function.
+        struct PythonExecutionContext {
+            WorkerApp *app;
+            int threadNo;
+            size_t numInputColumns;
+            PyObject* pipelineObject;
+            std::vector<PyObject*> py_intermediates;
+            PythonExecutionContext(): app(nullptr), threadNo(0), numInputColumns(0), pipelineObject(nullptr) {}
+        };
+
+        static int64_t pythonCellFunctor(void* userData, int64_t row_number, char **cells, int64_t* cell_sizes);
+
+        int64_t processCellsInPython(int threadNo,
+                                     PyObject* pipelineObject,
+                                     const std::vector<PyObject*>& py_intermediates,
+                                     int64_t row_number,
+                                     size_t num_cells,
+                                     char **cells,
+                                     int64_t* cell_sizes);
 
         /*!
          * performs out-of-order exception resolution of exceptions, and appends them simply to normal buffer.
@@ -276,10 +307,12 @@ namespace tuplex {
                                const uint8_t* buf,
                                const size_t buf_size,
                                const size_t num_rows,
-                               const TransformStage* tstage);
+                               const std::unordered_map<std::string, std::string>& output_options);
 
-        void writePartsToFile(const URI& outputURI, const FileFormat& fmt,
-                              const std::vector<WriteInfo>& parts, const TransformStage* stage);
+        void writePartsToFile(const URI& outputURI,
+                              const FileFormat& fmt,
+                              const std::vector<WriteInfo>& parts,
+                              const std::unordered_map<std::string, std::string>& outOptions);
 
         URI getNextOutputURI(int threadNo, const URI& baseURI, bool isBaseURIFolder, const std::string& extension);
 

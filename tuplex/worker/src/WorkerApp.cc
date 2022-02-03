@@ -658,6 +658,10 @@ namespace tuplex {
     int64_t WorkerApp::pythonCellFunctor(void *userData, int64_t row_number, char **cells, int64_t *cell_sizes) {
         assert(userData);
         auto ctx = static_cast<WorkerApp::PythonExecutionContext*>(userData);
+
+        if(row_number > 0 && row_number % 100000 == 0)
+            Logger::instance().defaultLogger().info("processed 100k rows...");
+
         return ctx->app->processCellsInPython(ctx->threadNo,
                                               ctx->pipelineObject,
                                               ctx->py_intermediates,row_number,
@@ -774,9 +778,8 @@ namespace tuplex {
                             // this i.e. the output of tocsv
                             // note that because it's a zero-terminated string, do not write everything!
                             int64_t rc = 0;
-                            if(size > 1)
-                                if((rc = writeRow(threadNo, reinterpret_cast<const uint8_t *>(cptr), size - 1)) != ecToI64(ExceptionCode::SUCCESS))
-                                    return rc;
+                            if((rc = writeRow(threadNo, reinterpret_cast<const uint8_t *>(cptr), size)) != ecToI64(ExceptionCode::SUCCESS))
+                                return rc;
 
 //                            res.buf.provideSpace(size);
 //                            memcpy(res.buf.ptr(), reinterpret_cast<const uint8_t *>(cptr), size);

@@ -451,8 +451,11 @@ TEST_F(AWSTest, FullZillowPipeline) {
     opt.set("tuplex.aws.maxConcurrency", "120");
     opt.set("tuplex.aws.lambdaThreads", "4"); // AWS EMR compatible setting
 
-    auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
-//    string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
+    opt.set("tuplex.aws.lambdaInvocationStrategy", "direct");
+    opt.set("tuplex.useInterpreterOnly", "true");
+
+//    auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
+    string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
     string outputDir = string("s3://") + S3_TEST_BUCKET + "/tests/" + testName + "/zillow_output.csv";
     Context ctx(opt);
 

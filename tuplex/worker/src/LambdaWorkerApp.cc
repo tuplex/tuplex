@@ -372,7 +372,9 @@ namespace tuplex {
         std::string task_root = std::getenv("LAMBDA_TASK_ROOT");
         python::python_home_setup(task_root);
         logger().debug("Set PYTHONHOME=" + task_root);
+        // init interpreter AND release GIL!!!
         python::initInterpreter();
+        python::unlockGIL();
         metrics.global_init_time = timer.time();
 
         // fetch container info and set timeout based on that incl. security buffer!

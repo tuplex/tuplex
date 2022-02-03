@@ -216,10 +216,11 @@ namespace tuplex {
         URI outputURI = outputURIFromReq(req);
         auto parts = partsFromMessage(req);
 
-
         // check settings, pure python mode?
-        if(req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly())
+        if(req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly()) {
+            logger().info("WorkerApp is processing everything in single-threaded python/fallback mode.");
             return processTransformStageInPythonMode(tstage, parts, outputURI);
+        }
 
         // if not, compile given code & process using both compile code & fallback
         auto syms = compileTransformStage(*tstage);
@@ -239,8 +240,12 @@ namespace tuplex {
         if(pythonCode.empty() || pythonPipelineName.empty())
             return WORKER_ERROR_MISSING_PYTHON_CODE;
 
+        logger().info("Invoking processTransformStage in Python mode");
+
         // compile func
         auto pipelineFunctionObj = preparePythonPipeline(pythonCode, pythonPipelineName);
+
+        logger().info("pipeline prepared");
 
         // now go through input parts (files) and read them into python!
         // (single-threaded), could do multi-processing...
@@ -248,14 +253,19 @@ namespace tuplex {
         // init single-threaded env
         initThreadEnvironments(1);
 
+        logger().info("Thread environment (single-thread) prepared");
+
         runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
+
+        logger().info("runtime memory initialized, attempting to lock GIL");
 
         // loop over parts & process
         python::lockGIL();
-
-        for(auto part : input_parts) {
+        logger().info("GIL locked, processing " + pluralize(input_parts.size(), "part"));
+        for(const auto& part : input_parts) {
             auto rc = processSourceInPython(0, tstage->fileInputOperatorID(),
                                             part, tstage, pipelineFunctionObj, false);
+            logger().info("part processed, rc=" + std::to_string(rc));
             if(rc != WORKER_OK) {
                 python::unlockGIL();
                 runtime::releaseRunTimeMemory();
@@ -268,6 +278,7 @@ namespace tuplex {
 
         // all sources are processed, because fallback path was used no exception resolution necessary.
         // Exceptions are "true" exceptions
+        logger().info("Writing parts out to destination file");
 
         // write output parts (incl. spilled parts) to output file
         auto rc = writeAllPartsToOutput(output_uri, tstage->outputFormat(), tstage->outputOptions());
@@ -900,6 +911,8 @@ namespace tuplex {
             ctx.pipelineObject = pipelineObject;
             void* userData = reinterpret_cast<void*>(&ctx);
 
+            logger().info("Starting python processing...");
+
             switch(tstage->inputMode()) {
                 case EndPointMode::FILE: {
 
@@ -944,7 +957,7 @@ namespace tuplex {
                     // Note: ORC reader does not support parts yet... I.e., function needs to read FULL file!
 
                     // read assigned file...
-
+                    logger().info("Calling read func on reader...");
                     reader->read(inputURI);
                     runtime::rtfree_all();
                     break;

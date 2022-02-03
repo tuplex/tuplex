@@ -658,7 +658,8 @@ namespace tuplex {
     int64_t WorkerApp::pythonCellFunctor(void *userData, int64_t row_number, char **cells, int64_t *cell_sizes) {
         assert(userData);
         auto ctx = static_cast<WorkerApp::PythonExecutionContext*>(userData);
-
+        if(row_number < 10)
+		Logger::instance().defaultLogger().info("processing row " + std::to_string(row_number));
         if(row_number > 0 && row_number % 100000 == 0)
             Logger::instance().defaultLogger().info("processed 100k rows...");
 

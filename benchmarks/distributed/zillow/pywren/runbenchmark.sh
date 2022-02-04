@@ -1,29 +1,11 @@
 #!/usr/bin/env bash
-# (c) L.Spiegelberg 2017-2022
-# runs zillow Z1 benchmark via PyWren
+# need to run benchmark via docker because of python versions etc.
 
-NUM_RUNS="${NUM_RUNS:-11}"
-TIMEOUT=1500
-PYTHON=python3.8
-RESDIR=/results/zillow/Z1
-mkdir -p ${RESDIR}
+# current dir, make benchmark results dir
+mkdir -p results/
+# check from where script is invoked
+CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
-# experiment variables
-INPUT_PATH="s3://tuplex-public/data/100GB/"
-OUTPUT_PATH="s3://pywren-leonhard/pywren-100GB-zillow-output"\
-
-# make comparable to AWS EMR (i.e., use only 4 threads, 10G, 120 concurrency)
-LAMBDA_MEMORY=10000
-LAMBDA_CONCURRENCY=120
-
-echo "benchmarking Zillow (Z1) over 100G with PyWren"
-for ((r = 1; r <= NUM_RUNS; r++)); do
-  echo "Run $r/${NUM_RUNS}"
-  LOG="${RESDIR}/pywren-run-$r.txt"
-  timeout $TIMEOUT ${PYTHON} runpywren.py -m "compiled" --path $INPUT_PATH --output-path $OUTPUT_PATH \
-                                          --lambda-memory $LAMBDA_MEMORY \
-                                          --lambda-concurrency $LAMBDA_CONCURRENCY  >$LOG 2>$LOG.stderr
-  cp experiment.log "${RESDIR}/pywren-run-$r.log.txt"
-done
-
-echo "Done!"
+./configure.py && \
+docker build -t pywren . && \
+docker run -it -v $CWD/results:/results -e AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} pywren bash /work/benchmark.sh

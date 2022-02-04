@@ -158,12 +158,16 @@ if __name__ == "__main__":
     type=int,
     default=10000,
     help='how many MB to assign to Lambda runner')
-    args = parser.parse_args()
     parser.add_argument('--lambda-concurrency', type=int, dest='max_concurrency', default=120, help='maximum concurrency of pipeline')
 
     # parser.add_argument('--interpreter-only', dest='interpreter_only', action="store_true", help="whether to use pure python mode for processing only")
     parser.add_argument('-m', '--mode', choices=["compiled", "interpreter"],
                                              default="compiled", help='whether to run pipeline using compiled mode or in pure python.')
+
+
+
+    # NOW: parse args
+    args = parser.parse_args()
 
     assert args.data_path, "need to set data path!"
 

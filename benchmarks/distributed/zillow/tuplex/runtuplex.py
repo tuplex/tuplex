@@ -180,7 +180,7 @@ if __name__ == "__main__":
     maximum_lambda_concurrency = args.max_concurrency
     lambda_memory = args.lambda_memory
     use_interpreter_only = False
-    if args.mode == 'interpreter':
+    if args.mode == 'interpreted':
         use_interpreter_only = True
 
     logging.info('Running experiment with {} concurrency, {}MB Lambda memory, mode={}'.format(maximum_lambda_concurrency, lambda_memory, args.mode))

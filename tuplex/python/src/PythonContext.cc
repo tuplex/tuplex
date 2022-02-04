@@ -1272,7 +1272,7 @@ namespace tuplex {
         auto& logger = Logger::instance().logger("python");
 
         // go through keyval pairs and check whether they exist in default
-        for(auto keyval : m) {
+        for(const auto& keyval : m) {
             auto key = keyval.first;
             auto val = keyval.second;
 

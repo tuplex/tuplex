@@ -62,6 +62,7 @@ namespace tuplex {
                     int64_t contextID,
                     const std::vector<Partition*>& partitions,
                     const std::vector<Partition*>& runtimeExceptions,
+                    ExceptionInfo runtimeExceptionInfo,
                     const std::vector<Partition*>& inputExceptions,
                     ExceptionInfo inputExceptionInfo,
                     const std::vector<int64_t>& operatorIDsAffectedByResolvers, //! used to identify which exceptions DO require reprocessing because there might be a resolver in the slow path for them.
@@ -79,6 +80,10 @@ namespace tuplex {
                                                             _stageID(stageID),
                                                             _partitions(partitions),
                                                             _runtimeExceptions(runtimeExceptions),
+                                                            _numRuntimeExceptions(runtimeExceptionInfo.numExceptions),
+                                                            _runtimeExceptionIndex(runtimeExceptionInfo.exceptionIndex),
+                                                            _runtimeExceptionRowOffset(runtimeExceptionInfo.exceptionRowOffset),
+                                                            _runtimeExceptionByteOffset(runtimeExceptionInfo.exceptionByteOffset),
                                                             _inputExceptions(inputExceptions),
                                                             _numInputExceptions(inputExceptionInfo.numExceptions),
                                                             _inputExceptionIndex(inputExceptionInfo.exceptionIndex),
@@ -220,6 +225,11 @@ namespace tuplex {
         size_t _inputExceptionIndex;
         size_t _inputExceptionRowOffset;
         size_t _inputExceptionByteOffset;
+        size_t _numRuntimeExceptions;
+        size_t _runtimeExceptionIndex;
+        size_t _runtimeExceptionRowOffset;
+        size_t _runtimeExceptionByteOffset;
+
         inline Schema commonCaseInputSchema() const { return _deserializerGeneralCaseOutput->getSchema(); }
         Schema                  _resolverOutputSchema; //! what the resolve functor produces
         Schema                  _targetOutputSchema; //! which schema the final rows should be in...

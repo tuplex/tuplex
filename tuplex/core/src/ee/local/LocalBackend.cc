@@ -1349,6 +1349,7 @@ namespace tuplex {
 
         std::vector<IExecutorTask*> tasks_result;
         std::vector<IExecutorTask*> resolveTasks;
+        std::vector<Partition*> exceptionPartitions;
         std::vector<size_t> maxOrder;
 
         auto opsToCheck = tstage->operatorIDsWithResolvers();
@@ -1400,13 +1401,20 @@ namespace tuplex {
 
                 assert(tt->getStageID() == stageID);
 
+                // On first execution, taks hold their own runtime exceptions so they can iterate over all partitions fully
+                auto runtimeExceptionInfo = ExceptionInfo(tt->getNumExceptions(), 0, 0, 0);
+                // save exception partitions to invalidate after all tasks have been completed
+                auto taskExceptionPartitions = tt->getExceptionPartitions();
+                exceptionPartitions.insert(exceptionPartitions.end(), taskExceptionPartitions.begin(), taskExceptionPartitions.end());
+
                 // this task needs to be resolved, b.c. exceptions occurred...
                 // pretty simple, just create a ResolveTask
                 auto exceptionInputSchema = tt->inputSchema(); // this could be specialized!
                 auto rtask = new ResolveTask(stageID,
                                              tstage->context().id(),
                                              tt->getOutputPartitions(),
-                                             tt->getExceptionPartitions(),
+                                             taskExceptionPartitions,
+                                             runtimeExceptionInfo,
                                              tt->inputExceptions(),
                                              tt->inputExceptionInfo(),
                                              opsToCheck,
@@ -1500,6 +1508,9 @@ namespace tuplex {
 
         // Invalidate partitions after all resolve tasks execute because shared among tasks
         for (auto& p : tstage->inputExceptions()) {
+            p->invalidate();
+        }
+        for (auto& p : exceptionPartitions) {
             p->invalidate();
         }
 

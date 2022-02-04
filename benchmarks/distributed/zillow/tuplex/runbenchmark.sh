@@ -11,7 +11,7 @@ mkdir -p ${RESDIR}
 # experiment variables
 INPUT_PATH="s3://tuplex-public/data/100GB/*.csv"
 OUTPUT_PATH="s3://tuplex-leonhard/experiments/Zillow/Z1/output_compiled"
-SCRACTH_DIR="s3://tuplex-leonhard/scratch"
+SCRATCH_DIR="s3://tuplex-leonhard/scratch"
 LAMBDA_MEMORY=10000
 LAMBDA_CONCURRENCY=120
 

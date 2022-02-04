@@ -159,7 +159,7 @@ if __name__ == "__main__":
     default=10000,
     help='how many MB to assign to Lambda runner')
     parser.add_argument('--lambda-concurrency', type=int, dest='max_concurrency', default=120, help='maximum concurrency of pipeline')
-
+    parser.add_argument('--lambda-threads', type=int, dest='thread_count', default=1, help='how many threads a lambda should use')
     # parser.add_argument('--interpreter-only', dest='interpreter_only', action="store_true", help="whether to use pure python mode for processing only")
     parser.add_argument('-m', '--mode', choices=["compiled", "interpreted"],
                                              default="compiled", help='whether to run pipeline using compiled mode or in pure python.')
@@ -179,9 +179,14 @@ if __name__ == "__main__":
 
     maximum_lambda_concurrency = args.max_concurrency
     lambda_memory = args.lambda_memory
+    lambda_threads = args.thread_count
     use_interpreter_only = False
     if args.mode == 'interpreted':
         use_interpreter_only = True
+    elif args.mode == 'compiled':
+        pass
+    else:
+        raise Exception('unknown mode')
 
     logging.info('Running experiment with {} concurrency, {}MB Lambda memory, mode={}'.format(maximum_lambda_concurrency, lambda_memory, args.mode))
 
@@ -193,9 +198,10 @@ if __name__ == "__main__":
         "backend": "lambda",
         "scratchDir": args.scratch_dir,
         "aws.httpThreadCount": maximum_lambda_concurrency,
-        "aws.requestTimeout": 600,
+        "aws.requestTimeout": 890,
         "aws.connectTimeout": 30,
         "aws.maxConcurrency": maximum_lambda_concurrency, # adjust this to allow for more concurrency with the function...
+        "aws.lambdaThreads": lambda_threads,
         "aws.requesterPay": True,
         "aws.lambdaMemory": lambda_memory,
         "useInterpreterOnly": use_interpreter_only,

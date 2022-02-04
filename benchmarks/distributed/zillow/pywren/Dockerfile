@@ -14,7 +14,7 @@ RUN cd /tmp && wget https://bootstrap.pypa.io/get-pip.py && python3.7 get-pip.py
 
 WORKDIR /work
 
-RUN git clone https://github.com/LeonhardFS/pywren.git && cd pywren && python3.7 setup.py install
+RUN git clone https://github.com/LeonhardFS/pywren.git pywren-code && cd pywren-code && python3.7 setup.py install --user
 
 RUN python3.7 -m pip install awscli pandas
 

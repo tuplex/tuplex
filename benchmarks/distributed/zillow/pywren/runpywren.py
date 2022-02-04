@@ -331,7 +331,7 @@ def main():
     lambda_memory = args.lambda_memory
     lambda_client = boto3.client('lambda')
     response = lambda_client.update_function_configuration(FunctionName=PYWREN_FUNCTION_NAME, Timeout=890, MemorySize=lambda_memory)
-    response = lambda_client.put_function_concurrency(FunctioName=PYWREN_FUNCTION_NAME, ReservedConcurrentExecutions=maximum_lambda_concurrency)
+    response = lambda_client.put_function_concurrency(FunctionName=PYWREN_FUNCTION_NAME, ReservedConcurrentExecutions=maximum_lambda_concurrency)
 
     # yet, we want to have the result for ALL files...
     # first need to list root path

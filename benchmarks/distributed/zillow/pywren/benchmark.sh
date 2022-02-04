@@ -4,7 +4,7 @@
 
 NUM_RUNS="${NUM_RUNS:-11}"
 TIMEOUT=1500
-PYTHON=python3.8
+PYTHON=python3.7
 RESDIR=/results/zillow/Z1
 mkdir -p ${RESDIR}
 
@@ -20,7 +20,7 @@ echo "benchmarking Zillow (Z1) over 100G with PyWren"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   echo "Run $r/${NUM_RUNS}"
   LOG="${RESDIR}/pywren-run-$r.txt"
-  timeout $TIMEOUT ${PYTHON} runpywren.py --path $INPUT_PATH --output-path $OUTPUT_PATH \
+  timeout $TIMEOUT ${PYTHON} runpywren.py --input-uri $INPUT_PATH --output-uri $OUTPUT_PATH \
                                           --lambda-memory $LAMBDA_MEMORY \
                                           --lambda-concurrency $LAMBDA_CONCURRENCY  >$LOG 2>$LOG.stderr
   cp experiment.log "${RESDIR}/pywren-run-$r.log.txt"

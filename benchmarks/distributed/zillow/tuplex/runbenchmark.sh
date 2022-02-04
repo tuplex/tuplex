@@ -31,11 +31,11 @@ echo "benchmarking Zillow (Z1) over 100G with Tuplex (interpreted)"
 OUTPUT_PATH="s3://tuplex-leonhard/experiments/Zillow/Z1/output_interpreted"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   echo "Run $r/${NUM_RUNS}"
-  LOG="${RESDIR}/tuplex-compiled-run-$r.txt"
-  timeout $TIMEOUT ${PYTHON} runtuplex.py -m "compiled" --path $INPUT_PATH --output-path $OUTPUT_PATH \
+  LOG="${RESDIR}/tuplex-interpreted-run-$r.txt"
+  timeout $TIMEOUT ${PYTHON} runtuplex.py -m "interpreted" --path $INPUT_PATH --output-path $OUTPUT_PATH \
                                           --scratch-dir $SCRATCH_DIR --lambda-memory $LAMBDA_MEMORY \
                                           --lambda-concurrency $LAMBDA_CONCURRENCY >$LOG 2>$LOG.stderr
-  cp experiment.log "${RESDIR}/tuplex-compiled-run-$r.log.txt"
+  cp experiment.log "${RESDIR}/tuplex-interpreted-run-$r.log.txt"
 done
 
 echo "Done!"

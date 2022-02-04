@@ -192,7 +192,7 @@ if __name__ == "__main__":
     conf = {
         "backend": "lambda",
         "scratchDir": args.scratch_dir,
-        "aws.httpThreadCount": 100,
+        "aws.httpThreadCount": maximum_lambda_concurrency,
         "aws.requestTimeout": 600,
         "aws.connectTimeout": 30,
         "aws.maxConcurrency": maximum_lambda_concurrency, # adjust this to allow for more concurrency with the function...

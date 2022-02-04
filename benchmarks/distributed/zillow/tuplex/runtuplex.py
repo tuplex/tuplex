@@ -154,10 +154,7 @@ if __name__ == "__main__":
         default="s3://tuplex-leonhard/scratch",
         help="specify scratch directory for Tuplex to use",
     )
-    parser.add_argument('--lambda-memory',
-    type=int,
-    default=10000,
-    help='how many MB to assign to Lambda runner')
+    parser.add_argument('--lambda-memory', type=int, default=10000, help='how many MB to assign to Lambda runner')
     parser.add_argument('--lambda-concurrency', type=int, dest='max_concurrency', default=120, help='maximum concurrency of pipeline')
     parser.add_argument('--lambda-threads', type=int, dest='thread_count', default=1, help='how many threads a lambda should use')
     # parser.add_argument('--interpreter-only', dest='interpreter_only', action="store_true", help="whether to use pure python mode for processing only")

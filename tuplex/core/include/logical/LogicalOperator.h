@@ -55,12 +55,16 @@ namespace tuplex {
         virtual void copyMembers(const LogicalOperator* other);
     public:
         explicit LogicalOperator(const std::vector<LogicalOperator*>& parents) : _id(logicalOperatorIDGenerator++), _parents(parents), _dataSet(nullptr) { addThisToParents(); }
-        explicit LogicalOperator(LogicalOperator* parent) : _id(logicalOperatorIDGenerator++), _parents({parent}), _dataSet(nullptr) { if(!parent) throw std::runtime_error("can't have nullptr as parent"); addThisToParents(); }
+        explicit LogicalOperator(LogicalOperator* parent) : _id(logicalOperatorIDGenerator++), _parents({parent}), _dataSet(nullptr) {
+            if(!parent)
+                throw std::runtime_error(name() + " can't have nullptr as parent");
+            addThisToParents();
+        }
         LogicalOperator() : _id(logicalOperatorIDGenerator++), _dataSet(nullptr) { addThisToParents(); }
 
         virtual ~LogicalOperator();
 
-        virtual std::string name() = 0;
+        virtual std::string name() { return "logical operator"; }
         virtual LogicalOperatorType type() const = 0;
 
         bool isLeaf() { return 0 == _children.size(); }

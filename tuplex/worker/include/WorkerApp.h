@@ -213,9 +213,10 @@ namespace tuplex {
             size_t exceptionOriginalPartNo; //! holds original part no for exception buffer
             size_t numExceptionRows; //! how many exception rows
             void* hashMap; //! for hash output
+            uint8_t* nullBucket;
             size_t hashOriginalPartNo; //! original part No
             std::vector<SpillInfo> spillFiles; //! files used for storing spilled buffers.
-            ThreadEnv() : threadNo(0), app(nullptr), hashMap(nullptr), numNormalRows(0), numExceptionRows(0), normalBuf(100),
+            ThreadEnv() : threadNo(0), app(nullptr), hashMap(nullptr), nullBucket(nullptr), numNormalRows(0), numExceptionRows(0), normalBuf(100),
                           exceptionBuf(100) {}
 
           /*!
@@ -317,11 +318,11 @@ namespace tuplex {
         URI getNextOutputURI(int threadNo, const URI& baseURI, bool isBaseURIFolder, const std::string& extension);
 
         virtual int64_t writeRow(size_t threadNo, const uint8_t* buf, int64_t bufSize);
-        virtual void writeHashedRow(size_t threadNo, const uint8_t* key, int64_t key_size, const uint8_t* bucket, int64_t bucket_size);
+        virtual void writeHashedRow(size_t threadNo, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         virtual void writeException(size_t threadNo, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
     private:
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
-        static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, const uint8_t* bucket, int64_t bucket_size);
+        static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         static void exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
 
         // slow path callbacks

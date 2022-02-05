@@ -39,6 +39,14 @@ typedef struct _hashmap_element {
     any_t data;
 } hashmap_element;
 
+/* A hashmap has some maximum size and current size,
+ * as well as the data to hold. */
+typedef struct _hashmap_map {
+    int table_size;
+    int size;
+    hashmap_element *data;
+} hashmap_map;
+
 /*
  * PFany is a pointer to a function that can take two any_t arguments
  * and return an integer. Returns status code..

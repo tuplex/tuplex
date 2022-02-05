@@ -326,6 +326,95 @@ TEST(BasicInvocation, PurePythonMode) {
     cout<<"Test done."<<endl;
 }
 
+TEST(BasicInvocation, HashOutput) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto worker_path = find_worker();
+
+    auto testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+    auto scratchDir = "/tmp/" + testName;
+
+    // change cwd & create dir to avoid conflicts!
+    auto cwd_path = boost::filesystem::current_path();
+    auto desired_cwd = cwd_path.string() + "/tests/" + testName;
+    // create dir if it doesn't exist
+    auto vfs = VirtualFileSystem::fromURI("file://");
+    vfs.create_dir(desired_cwd);
+    boost::filesystem::current_path(desired_cwd);
+
+    char buf[4096];
+    auto cur_dir = getcwd(buf, 4096);
+
+    EXPECT_NE(std::string(cur_dir).find(testName), std::string::npos);
+
+    cout<<"current working dir: "<<buf<<endl;
+
+    // check worker exists
+    ASSERT_TRUE(tuplex::fileExists(worker_path));
+
+    // test config here:
+    // local csv test file!
+    auto test_path = URI("file://../resources/flights_on_time_performance_2019_01.sample.csv");
+    auto test_output_path = URI("file://output.ht");
+    auto spillURI = std::string("spill_folder");
+
+    // local for quicker dev
+    test_path = URI("file:///Users/leonhards/data/flights/flights_on_time_performance_2009_01.csv");
+
+    size_t num_threads = 1;
+
+    // invoke helper with --help
+    std::string work_dir = cur_dir;
+
+    python::initInterpreter();
+    python::unlockGIL();
+    ContextOptions co = ContextOptions::defaults();
+    auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
+    co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
+    co.set("tuplex.useInterpreterOnly", "false");
+    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, false);
+    auto csvop = FileInputOperator::fromCsv(test_path.toString(), co,
+                                            option<bool>(true),
+                                            option<char>(','), option<char>('"'),
+                                            {""}, {}, {}, {});
+    auto mapop = new MapOperator(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
+    auto fop = new FileOutputOperator(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
+    builder.addFileInput(csvop);
+    builder.addOperator(mapop);
+
+    auto key_type = mapop->getOutputSchema().getRowType().parameters()[0];
+    auto bucket_type = mapop->getOutputSchema().getRowType().parameters()[1];
+    builder.addHashTableOutput(mapop->getOutputSchema(), true, false, {0}, key_type, bucket_type);
+
+
+#error "given pipeline is with i64 keys. -> issue. want to specialize stuff properly!"
+
+    auto tstage = builder.build();
+
+    // transform to message
+    vfs = VirtualFileSystem::fromURI(test_path);
+    uint64_t input_file_size = 0;
+    vfs.file_size(test_path, input_file_size);
+    auto json_message = transformStageToReqMessage(tstage, URI(test_path).toPath(),
+                                                   input_file_size, test_output_path.toString(),
+                                                   co.PURE_PYTHON_MODE(),
+                                                   num_threads,
+                                                   spillURI);
+
+    // save to file
+    auto msg_file = URI("test_message.json");
+    stringToFile(msg_file, json_message);
+
+    python::lockGIL();
+    python::closeInterpreter();
+
+    // start worker within same process to easier debug...
+    auto app = make_unique<WorkerApp>(WorkerSettings());
+    app->processJSONMessage(json_message);
+    app->shutdown();
+}
+
 TEST(BasicInvocation, Worker) {
     using namespace std;
     using namespace tuplex;

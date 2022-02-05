@@ -23,14 +23,6 @@
 
 // optimize strstr further using avx2, i.e. http://0x80.pl/articles/simd-strfind.html#generic-sse-avx2
 
-/* A hashmap has some maximum size and current size,
- * as well as the data to hold. */
-typedef struct _hashmap_map {
-    int table_size;
-    int size;
-    hashmap_element *data;
-} hashmap_map;
-
 /*
  * Return an empty hashmap, or NULL on failure.
  */

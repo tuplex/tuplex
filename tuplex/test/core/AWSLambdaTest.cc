@@ -433,6 +433,52 @@ TEST_F(AWSTest, LambdaCounts) {
     std::cout<<"Lambda {4, 4, 4, 4, 4}: "<<lambdaCount({4, 4, 4, 4, 4})<<std::endl;
 }
 
+
+TEST_F(AWSTest, FlightBasedJoin) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+
+    auto opt = microLambdaOptions();
+
+    // startegies:
+    // 1. no-op Lambda spin out experiment
+    opt.set("tuplex.aws.lambdaInvokeOthers", "true");
+    opt.set("tuplex.aws.lambdaMemory", "10000");
+    opt.set("tuplex.aws.maxConcurrency", "120");
+    opt.set("tuplex.aws.lambdaThreads", "4"); // AWS EMR compatible setting
+
+    // just edit one...
+    opt.set("tuplex.aws.lambdaInvocationStrategy", "direct");
+
+    string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
+    string outputDir = string("s3://") + S3_TEST_BUCKET + "/tests/" + testName + "/zillow_output.csv";
+    Context ctx(opt);
+
+    // for join always multiple options:
+    // local to remote?
+    // remote to remote?
+
+    string airport_uri = "s3://tuplex-public/data/flights/GlobalAirportDatabase.txt";
+    string flights_uri = "s3://tuplex-public/data/flights_on_time_performance_2009_01.10k.csv";
+
+    auto& ds = ctx.csv(airport_uri,
+                        vector<string>{"ICAOCode", "IATACode", "AirportName", "AirportCity", "Country", "LatitudeDegrees", "LatitudeMinutes",
+                                       "LatitudeSeconds", "LatitudeDirection", "LongitudeDegrees", "LongitudeMinutes",
+                                       "LongitudeSeconds", "LongitudeDirection", "Altitude", "LatitudeDecimal", "LongitudeDecimal"},
+                        option<bool>::none, option<char>(':'));
+
+    auto& ds_final = ctx.csv(flights_uri).renameColumn("ORIGIN", "Origin").renameColumn("DEST", "Dest")
+            .leftJoin(ds, std::string("Origin"), std::string("IATACode"),std::string(), std::string(), std::string("Origin"), std::string())
+            .leftJoin(ds, std::string("Dest"), std::string("IATACode"),std::string(), std::string(), std::string("Dest"), std::string())
+            .selectColumns({"OriginAirportName", "DestAirportName", "OriginCountry", "DestCountry", "OriginLatitudeDegrees", "DestLatitudeDegrees"});
+
+    ds_final.show(5);
+}
+
 // zillow Pipeline on AWS Lambda (incl. various options -> multithreading, self-invocation, ...)
 TEST_F(AWSTest, FullZillowPipeline) {
 #ifdef SKIP_AWS_TESTS

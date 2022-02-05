@@ -921,7 +921,12 @@ namespace tuplex {
                 auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
                 req.set_baseoutputuri(uri.toPath());
             } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
-                throw std::runtime_error("join, aggregate not yet supported in lambda backend");
+
+                // there's two options now, either this is an end-stage (i.e., unique/aggregateByKey/...)
+                // or an intermediate stage where a temp hash-table is required.
+                // in any case, because compute is done on Lambda materialize hash-table as temp file.
+                auto temp_uri = tempStageURI(tstage->number());
+                req.set_baseoutputuri(temp_uri.toString());
             } else throw std::runtime_error("unknown output endpoint in lambda backend");
             requests.push_back(req);
         }

@@ -12,6 +12,7 @@
 #include "ee/local/LocalBackend.h"
 #include "TypeAnnotatorVisitor.h"
 #include "AWSCommon.h"
+#include "bucket.h"
 
 namespace tuplex {
 
@@ -86,8 +87,10 @@ namespace tuplex {
             _threadEnvs[i].app = this;
             _threadEnvs[i].normalBuf.provideSpace(_settings.normalBufferSize);
             _threadEnvs[i].exceptionBuf.provideSpace(_settings.exceptionBufferSize);
-            // hashmap init?
-            // @TODO
+
+            // TODO: if other hashmaps are supported, init them here as well...
+            _threadEnvs[i].hashMap = hashmap_new();
+            _threadEnvs[i].nullBucket = nullptr; // empty bucket.
         }
     }
 
@@ -1437,7 +1440,7 @@ namespace tuplex {
     }
 
     void WorkerApp::spillHashMap(size_t threadNo) {
-        throw std::runtime_error("not yet supported");
+        throw std::runtime_error("spilling hashmap not yet supported");
     }
 
     void WorkerApp::writeException(size_t threadNo, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input,
@@ -1478,8 +1481,28 @@ namespace tuplex {
         free(buf);
     }
 
-    void WorkerApp::writeHashedRow(size_t threadNo, const uint8_t *key, int64_t key_size, const uint8_t *bucket, int64_t bucket_size) {
+    void WorkerApp::writeHashedRow(size_t threadNo, const uint8_t *key, int64_t key_size, bool bucketize, uint8_t *buf, int64_t buf_size) {
 
+        assert(0 <= threadNo && threadNo < _numThreads);
+
+        // write to corresponding env
+        auto& env = _threadEnvs[threadNo];
+        assert(env.hashMap);
+
+        // only bytes map so far supported...
+        if(key != nullptr && key_size > 0) {
+            // put into hashmap!
+            uint8_t *bucket = nullptr;
+            if(bucketize) { //@TODO: maybe get rid off this if by specializing pipeline better for unique case...
+                hashmap_get(env.hashMap, reinterpret_cast<const char *>(key), key_size, (void **) (&bucket));
+                // update or new entry
+                bucket = extend_bucket(bucket, buf, buf_size);
+            }
+            hashmap_put(env.hashMap, reinterpret_cast<const char *>(key), key_size, bucket);
+        } else {
+            // goes into null bucket, no hash
+            env.nullBucket = extend_bucket(env.nullBucket, buf, buf_size);
+        }
     }
 
     // static helper functions/callbacks
@@ -1487,9 +1510,9 @@ namespace tuplex {
         assert(env);
         return env->app->writeRow(env->threadNo, buf, bufSize);
     }
-    void WorkerApp::writeHashCallback(ThreadEnv* env, const uint8_t *key, int64_t key_size, const uint8_t *bucket, int64_t bucket_size) {
+    void WorkerApp::writeHashCallback(ThreadEnv* env, const uint8_t *key, int64_t key_size, bool bucketize, uint8_t *bucket, int64_t bucket_size) {
         assert(env);
-        env->app->writeHashedRow(env->threadNo, key, key_size, bucket, bucket_size);
+        env->app->writeHashedRow(env->threadNo, key, key_size, bucketize, bucket, bucket_size);
     }
     void WorkerApp::exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input, int64_t dataLength) {
         assert(env);

@@ -776,7 +776,7 @@ namespace tuplex {
         if(registerSymbols && !writeFileCallbackName().empty())
             jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(hasOutputLimit(), true));
 
-        if(outputMode() == EndPointMode::HASHTABLE && !_funcHashWriteCallbackName.empty()) {
+        if(registerSymbols && outputMode() == EndPointMode::HASHTABLE && !_funcHashWriteCallbackName.empty()) {
             if (hashtableKeyByteWidth() == 8) {
                 if(_aggregateAggregateFuncName.empty())
                     jit.registerSymbol(_funcHashWriteCallbackName, TransformTask::writeInt64HashTableCallback());
@@ -798,7 +798,7 @@ namespace tuplex {
         if(registerSymbols && !resolveExceptionCallbackName().empty())
             jit.registerSymbol(resolveExceptionCallbackName(), ResolveTask::exceptionCallback());
 
-        if(outputMode() == EndPointMode::HASHTABLE && !resolveExceptionCallbackName().empty()) {
+        if(registerSymbols && outputMode() == EndPointMode::HASHTABLE && !resolveExceptionCallbackName().empty()) {
             if(hashtableKeyByteWidth() == 8) {
                 if(_aggregateAggregateFuncName.empty())
                     jit.registerSymbol(resolveHashCallbackName(), ResolveTask::writeInt64HashTableCallback());

@@ -200,6 +200,15 @@ namespace tuplex {
 
             return usedGBSeconds() * cost_per_gb_second + (double)numRequests() * cost_per_request;
         }
+
+        /*!
+         * generate a baseURI for a temporary file.
+         * @param stageNo
+         * @return URI
+         */
+        inline URI tempStageURI(int stageNo) const {
+            return URI(_options.AWS_SCRATCH_DIR() + "/temporary_stage_output/" + "stage_" + std::to_string(stageNo));
+        }
     };
 }
 

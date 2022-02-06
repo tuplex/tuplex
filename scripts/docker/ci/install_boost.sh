@@ -14,10 +14,10 @@ cd $INCLUDE_DIR && ln -s ${PYTHON_VERSION}m ${PYTHON_VERSION} && cd - || exit
 
 
 # build incl. boost python
-cd /usr/src || exit
+cd /tmp || exit
 wget https://boostorg.jfrog.io/artifactory/main/release/1.75.0/source/boost_1_75_0.tar.gz
 tar xf boost_1_75_0.tar.gz
-cd /usr/src/boost_1_75_0 || exit
+cd /tmp/boost_1_75_0 || exit
 
 ./bootstrap.sh --with-python=${PYTHON_VERSION} --prefix=${DEST_PATH} --with-libraries="thread,iostreams,regex,system,filesystem,python,stacktrace,atomic,chrono,date_time"
 ./b2 cxxflags="-fPIC" link=static -j "$(nproc)"

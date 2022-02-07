@@ -13,7 +13,7 @@ jobs:
         #       2. Mac OS not working yet (delocate produces invalid package)
         #          hence, use only ubuntu for now
         #os: [ ubuntu-20.04, macos-10.15 ]
-        os: [ ubuntu-20.04 ]
+        os: [ ubuntu-20.04, macos-10.15 ]
 
 
     steps:
@@ -39,14 +39,15 @@ jobs:
 
       - name: MacOS dependencies
         if: runner.os == 'macOS'
-        run: bash ./scripts/ci/setup-macos.sh
+        run: bash ./scripts/ci/macos/setup-macos.sh
         shell: bash
 
       - name: Build Lambda runner
         run: docker pull registry-1.docker.io/tuplex/ci:latest && bash ./scripts/create_lambda_zip.sh && mkdir -p ./tuplex/python/tuplex/other && cp /home/runner/work/tuplex/tuplex/build-lambda/tplxlam.zip ./tuplex/python/tuplex/other
         shell: bash
 
-      - name: Build wheels
+      - name: Build Linux wheels
+        if: runner.os != 'macOS'
         uses: pypa/cibuildwheel@v1.11.1.post1
         env:
           # configure cibuildwheel to build native archs ('auto'), and some
@@ -66,10 +67,14 @@ jobs:
           #CIBW_SKIP: "cp3{5,6,7,8}-macosx* pp*"
 
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
-          CIBW_BEFORE_BUILD_MACOS: ./scripts/ci/setup-macos.sh
 
           # set this environment variable to include the Lambda zip from the previous build step
           CIBW_ENVIRONMENT: TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip'
+
+      - name: Build Linux wheels
+        if: runner.os == 'macOS'
+        run: bash ./scripts/build_wheel_macos.sh
+        shell: bash
 
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./scripts/test_pypi.sh ./wheelhouse

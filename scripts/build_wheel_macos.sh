@@ -55,7 +55,7 @@ for ((i=0; i<${#PY_VERSIONS[@]}; ++i)); do
   ls $ROOT_DIR/..
   pushd $ROOT_DIR/.. && \
   # Add the correct Python to the path and build the wheel.
-  PATH=$MACPYTHON_PY_PREFIX/$PY_MM/bin:$PATH CMAKE_ARGS="-DBoost_USE_STATIC_LIBS=ON" $PYTHON_EXE setup.py bdist_wheel && \
+  PATH=$MACPYTHON_PY_PREFIX/$PY_MM/bin:$PATH CMAKE_ARGS="-DBUILD_WITH_ORC=ON -DBoost_USE_STATIC_LIBS=ON" $PYTHON_EXE setup.py bdist_wheel && \
   popd
 
 done

@@ -97,6 +97,6 @@ done
 # install boost python for this script
 cd $CWD
 sudo mkdir -p /opt/boost
-sudo install_boost_macos.sh /opt/boost
+sudo bash ./install_boost_macos.sh /opt/boost
 
 cd $ORIGINAL_WD

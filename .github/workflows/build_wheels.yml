@@ -34,7 +34,7 @@ jobs:
       # this will create a dummy dev version based on the current time to avoid conflicts on test.pypi.org
       - name: Create dev version
         if: github.event_name != 'push' || startsWith(github.event.ref, 'refs/tags/v') != true
-        run: cd ./scripts && python3 set_version.py --dev
+        run: cd ./scripts && pip3 install requests && python3 set_version.py --dev
         shell: bash
 
       - name: MacOS dependencies

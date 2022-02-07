@@ -3,8 +3,12 @@
 
 export CFLAGS=-I/usr/include/openssl
 
-# select python version, Lambda uses 3.8.11
-PYTHON3_VERSION=3.8.11
+# use Python 3.9 runtime
+
+# exact python versions AWS uses:
+# Python 3.9 runtime --> Python 3.9.8
+# Python 3.8 runtime --> Python 3.8.11
+PYTHON3_VERSION=3.9.8
 PYTHON3_MAJMIN=${PYTHON3_VERSION%.*}
 
 # from https://bugs.python.org/issue36044

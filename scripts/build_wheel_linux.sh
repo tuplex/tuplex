@@ -33,7 +33,7 @@ if [[ -f "${TUPLEX_LAMBDA_ZIP}" ]]; then
 	cp ${TUPLEX_LAMBDA_ZIP} tuplex/other/tplxlam.zip
 fi
 
-export CIBW_ENVIRONMENT="TUPLEX_LAMBDA_ZIP='./tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
+export CIBW_ENVIRONMENT="TUPLEX_LAMBDA_ZIP='./tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
 
 # Use the following line to build only python3.9 wheel
 export CIBW_BUILD="cp39-*"

@@ -71,11 +71,10 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
 
           # set this environment variable to include the Lambda zip from the previous build step
-          CIBW_ENVIRONMENT: TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip'
-
+          CIBW_ENVIRONMENT: "TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
       - name: Build MacOS wheels
         if: runner.os == 'macOS'
-        run: bash ./scripts/build_wheel_macos.sh
+        run: bash ./scripts/build_wheel_macos.sh && mkdir -p ./wheelhouse && cp ./dist/*.whl ./wheelhouse
         shell: bash
 
       - name: reorganize files

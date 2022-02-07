@@ -4205,7 +4205,7 @@ def plot_figure9(tpch_path='r5d.8xlarge/tpch', output_folder='plots'):
 
 
 def plot_figure10(flights_path='r5d.8xlarge/flights', output_folder='plots'):
-    logging.info('Plotting Figure10 (Flights breakdown')
+    logging.info('Plotting Figure10 (Flights breakdown)')
     logging.info('Benchmark result folder specified as {}'.format(flights_path))
     from plot_scripts.figure10 import figure10
 
@@ -4314,6 +4314,7 @@ def plot(target, output_path, input_path):
 
     DEFAULT_ZILLOW_PATH = input_path + '/zillow'
     DEFAULT_FLIGHTS_PATH = input_path + '/flights'
+    DEFAULT_FLIGHTS_BREAKDOWN_PATH = input_path + '/flights/flights_breakdown'
     DEFAULT_LOGS_PATH = input_path + '/logs'
     DEFAULT_311_PATH = input_path + '/311'
     DEFAULT_TPCH_PATH = input_path + '/tpch'
@@ -4332,6 +4333,8 @@ def plot(target, output_path, input_path):
     if 'figure4' == target.lower() or PLOT_ALL:
         plot_figure4(DEFAULT_FLIGHTS_PATH, output_path)
     if 'figure5' == target.lower() or PLOT_ALL:
+        if not os.path.isdir(DEFAULT_LOGS_PATH):
+            DEFAULT_LOGS_PATH = input_path + '/weblogs'
         plot_figure5(DEFAULT_LOGS_PATH, output_path)
     if 'figure6' == target.lower() or PLOT_ALL:
         plot_figure6(DEFAULT_ZILLOW_PATH, output_path)
@@ -4342,7 +4345,7 @@ def plot(target, output_path, input_path):
     if 'figure9' == target.lower() or PLOT_ALL:
         plot_figure9(DEFAULT_TPCH_PATH, output_path)
     if 'figure10' == target.lower() or PLOT_ALL:
-        plot_figure10(DEFAULT_FLIGHTS_PATH, output_path)
+        plot_figure10(DEFAULT_FLIGHTS_BREAKDOWN_PATH, output_path)
     logging.info('Plotting done.')
 
 

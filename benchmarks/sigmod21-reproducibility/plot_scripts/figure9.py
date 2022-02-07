@@ -42,7 +42,7 @@ def figure9(tpch_path='r5d.8xlarge/tpch', output_folder='plots'):
     if not tpch_path.endswith('/'):
         tpch_path += '/'
 
-    hyper_files = glob.glob(tpch_path + 'q19/data/hyper*.txt')
+    hyper_files = glob.glob(tpch_path + 'q19/hyper*.txt')
 
     rows = []
     for path in hyper_files:

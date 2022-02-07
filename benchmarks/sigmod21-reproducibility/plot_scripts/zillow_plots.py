@@ -288,7 +288,7 @@ def table3(df): # use here df_Z1!
 
     # Compare this to best CPython result
     best_cpython_result = df[df['framework'] == 'python3'].groupby(['framework', 'mode', 'type'])  .mean().reset_index().sort_values('compute').head(1)[['framework', 'mode', 'type', 'compute']]
-    logging.info('Best CPYthon result: {}s'.format(best_cpython_result['compute'].values[0]))
+    logging.info('Best CPython result: {}s'.format(best_cpython_result['compute'].values[0]))
 
 
 def figure3(df_Z1, df_Z2, output_folder):
@@ -300,7 +300,7 @@ def figure3(df_Z1, df_Z2, output_folder):
 
     # which df to use?
     df = df_Z1.copy()
-    # drop tuplex preload
+    # drop tuplex preload and single-threaded
     df = df[df['type'] != 'single-threaded-preload']
     query_name = 'Z1'
 
@@ -313,12 +313,15 @@ def figure3(df_Z1, df_Z2, output_folder):
     df_st_dict = df_st_mu[df_st_mu['type'] == 'dict'].sort_values(by='job_time').reset_index(drop=True)
     df_st_rest = df_st_mu[~df_st_mu['type'].isin(['tuple', 'dict'])].sort_values(by='job_time').reset_index(drop=True)
 
+    # exclude tuplex/single-threaded from st_rest (use the no-nvo version!)
+    df_st_rest = df_st_rest[~((df_st_rest['type'] == 'single-threaded') & (df_st_rest['framework'] == 'tuplex'))]
+
     df_st_tuple_std = df_st_std[df_st_std['type'] == 'tuple']
     df_st_dict_std = df_st_std[df_st_std['type'] == 'dict']
     df_st_rest_std = df_st_std[~df_st_std['type'].isin(['tuple', 'dict'])]
 
     df_st = df[(df['mode'].isin(['python3', 'c++', 'scala'])) & (df['framework'].isin(st_fws))]
-    df_st = df_st[~df_st['type'].isin(['multi-threaded', 'cached', 'preload'])]
+    df_st = df_st[~df_st['type'].isin(['multi-threaded', 'multi-threaded-no-nvo', 'cached', 'preload'])]
     df_st_mu = df_st.groupby(['framework', 'type']).mean().reset_index()
     df_st_std = df_st.groupby(['framework', 'type']).std().reset_index()
 
@@ -331,7 +334,10 @@ def figure3(df_Z1, df_Z2, output_folder):
     df_st_rest_std = df_st_std[~df_st_std['type'].isin(['tuple', 'dict'])]
 
     df_mt = df[(df['mode'].isin(['python3', 'c++', 'scala'])) & (df['framework'].isin(mt_fws))]
-    df_mt = df_mt[~df_mt['type'].isin(['single-threaded', 'cached', 'preload'])]
+    df_mt = df_mt[~df_mt['type'].isin(['single-threaded', 'single-threaded-no-nvo', 'cached', 'preload'])]
+
+    # exclude tuplex multi-threaded, use the no-nvo setting
+    df_mt = df_mt[~((df_mt['type'] == 'multi-threaded') & (df_mt['framework'] == 'tuplex'))]
     df_mt_mu = df_mt.groupby(['framework', 'type']).mean().reset_index()
     df_mt_std = df_mt.groupby(['framework', 'type']).std().reset_index()
 
@@ -363,6 +369,12 @@ def figure3(df_Z1, df_Z2, output_folder):
 
     ##### SINGLE-THREADED ######
     ax = axs[0]
+
+
+    # select Tuplex with single-threaded-no-nvo!
+    # df_st_rest, df_st_rest_std affected!
+    df_st_rest = df_st_rest[~((df_st_rest['type'] == 'single-threaded') & (df_st_rest['framework'] == 'tuplex'))]
+    df_st_rest_std = df_st_rest_std[~((df_st_rest_std['type'] == 'single-threaded') & (df_st_rest_std['framework'] == 'tuplex'))]
 
     python3_dict_err = np.array([df_st_dict_std[df_st_dict_std['framework'] == 'python3']['job_time']])
     python3_tuple_err = np.array([df_st_tuple_std[df_st_tuple_std['framework'] == 'python3']['job_time']])
@@ -519,7 +531,11 @@ def figure3(df_Z1, df_Z2, output_folder):
     df_st_rest_std = df_st_std[~df_st_std['type'].isin(['tuple', 'dict'])]
 
     df_mt = df[(df['mode'].isin(['python3', 'c++', 'scala'])) & (df['framework'].isin(mt_fws))]
-    df_mt = df_mt[~df_mt['type'].isin(['single-threaded', 'cached', 'preload'])]
+    df_mt = df_mt[~df_mt['type'].isin(['single-threaded', 'single-threaded-no-nvo', 'cached', 'preload'])]
+
+    # exclude tuplex multi-threaded, use the no-nvo setting
+    df_mt = df_mt[~((df_mt['type'] == 'multi-threaded') & (df_mt['framework'] == 'tuplex'))]
+
     df_mt_mu = df_mt.groupby(['framework', 'type']).mean().reset_index()
     df_mt_std = df_mt.groupby(['framework', 'type']).std().reset_index()
 
@@ -697,7 +713,11 @@ def figure7(df_Z1, output_folder):
     df_st_rest_std = df_st_std[~df_st_std['type'].isin(['tuple', 'dict'])]
 
     df_mt = df[(df['mode'].isin(['python3', 'c++', 'scala'])) & (df['framework'].isin(mt_fws))]
-    df_mt = df_mt[~df_mt['type'].isin(['single-threaded', 'cached', 'preload'])]
+    df_mt = df_mt[~df_mt['type'].isin(['single-threaded', 'single-threaded-no-nvo', 'cached', 'preload'])]
+
+    # exclude tuplex multi-threaded, use the no-nvo setting
+    df_mt = df_mt[~((df_mt['type'] == 'multi-threaded') & (df_mt['framework'] == 'tuplex'))]
+
     df_mt_mu = df_mt.groupby(['framework', 'type']).mean().reset_index()
     df_mt_std = df_mt.groupby(['framework', 'type']).std().reset_index()
 

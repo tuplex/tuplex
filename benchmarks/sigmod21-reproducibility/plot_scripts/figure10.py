@@ -109,10 +109,10 @@ def load_to_df(data_root):
 
 # In[15]:
 
-def figure10(flights_path='r5d.8xlarge/flights/', output_folder='plots'):
+def figure10(flights_path='r5d.8xlarge/flights/breakdown_small/', output_folder='plots'):
     logging.info('loading flights data...')
 
-    df_flights = load_to_df(os.path.join(flights_path, 'breakdown_small/'))
+    df_flights = load_to_df(flights_path)
 
     # clean type based on settings flags!
     def extractType(row):

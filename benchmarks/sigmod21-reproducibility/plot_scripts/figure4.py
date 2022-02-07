@@ -101,8 +101,13 @@ def load_flights_to_df(data_root):
                         print(e)
                     row['mode'] = 'python3'
                 else:
-                    d = json.loads(lines[-1].replace("'", '"'))
-                    
+                    d = {}
+                    try:
+                        d = json.loads(lines[-1].replace("'", '"'))
+                    except Exception as e:
+                        logging.error("failed to load JSON data for {}, did benchmark run through?".format(path))
+                        continue
+
                     # clean framework
                     if 'pyspark' in file.lower():
                         # adjust spark types

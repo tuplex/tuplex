@@ -17,7 +17,7 @@ brew upgrade python3
 brew link --force --overwrite python3
 
 # boost and boost python have to be installed separately
-brew install protobuf llvm@9 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget
+brew install protobuf libmagic llvm@9 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget
 
 # install boost and different python versions
 MACPYTHON_URL=https://www.python.org/ftp/python

@@ -136,7 +136,7 @@ def runDask(paths, output_path):
     df = df[df['bedrooms'] < 10]
 
     # correct for PyPy internal error
-    meta_title = None
+    meta_title = {}
     if platform.python_implementation().lower() == 'pypy':
         meta_title = ('title', 'str')
 

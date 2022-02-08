@@ -16,6 +16,14 @@ python3 create_conf.py --opt-null --opt-pushdown --opt-filter --opt-llvm > tuple
 python3 create_conf.py --opt-pushdown --opt-filter --opt-llvm > tuplex_config.json
 cp tuplex_config.json ${RESDIR}
 
+# Weld
+echo "running weld"
+for ((r = 1; r <= NUM_RUNS; r++)); do
+  LOG="${RESDIR}/weld-run-$r.txt"
+  rm -rf "${OUTPUT_DIR}/weld_output"
+  timeout $TIMEOUT ${HWLOC} python2 rungrizzly.py --path $DATA_PATH --output-path ${OUTPUT_DIR}/weld_output >$LOG 2>$LOG.stderr
+done
+
 echo "running tuplex"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-run-e2e-$r.txt"

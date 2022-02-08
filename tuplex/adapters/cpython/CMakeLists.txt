@@ -21,7 +21,7 @@ target_include_directories(libcpythonadapter PUBLIC
         )
 
 # Declare the library
-target_link_libraries(libcpythonadapter
-        ${Python3_LIBRARIES}
-        libutils
-        )
+target_link_libraries(libcpythonadapter libutils)
+
+# Because of Mac OS X, weakly link python libs
+target_link_libraries_with_dynamic_lookup(${MODULE_NAME} ${Python3_LIBRARIES})

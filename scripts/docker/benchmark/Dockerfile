@@ -158,7 +158,7 @@ RUN set -ex; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends wget; \
 	\
-	wget -O get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
+	wget -O get-pip.py 'https://bootstrap.pypa.io/pip/3.6/get-pip.py'; \
 	\
 	apt-mark auto '.*' > /dev/null; \
 	[ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
@@ -197,6 +197,7 @@ COPY install_llvm9.sh /usr/src/install_llvm9.sh
 RUN /bin/bash /usr/src/install_llvm9.sh
 
 # install weld
+ADD PatchedGrizzlyMakefile.make /usr/src/PatchedGrizzlyMakefile.make
 COPY install_weld.sh /usr/src/install_weld.sh
 RUN /bin/bash /usr/src/install_weld.sh
 

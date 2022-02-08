@@ -18,7 +18,7 @@ fi
 
 
 # invoke preprocess script
-python3 ./process_data.py /data/logs /data/logs_clean
+python3 process_data.py --input-path /data/logs --output-path /data/logs_clean
 
 DATA_PATH=/data/logs_clean
 IP_PATH=/data/logs/ip_blacklist.csv

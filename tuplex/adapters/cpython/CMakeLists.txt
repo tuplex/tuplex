@@ -24,4 +24,4 @@ target_include_directories(libcpythonadapter PUBLIC
 target_link_libraries(libcpythonadapter libutils)
 
 # Because of Mac OS X, weakly link python libs
-target_link_libraries_with_dynamic_lookup(${MODULE_NAME} ${Python3_LIBRARIES})
+target_link_libraries_with_dynamic_lookup(libcpythonadapter ${Python3_LIBRARIES})

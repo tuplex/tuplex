@@ -80,12 +80,11 @@ target_compile_definitions(${MODULE_NAME} PRIVATE PYMODULE=${PYMODULE})
 
 # Declare the library
 target_link_libraries(${MODULE_NAME}
-        ${Boost_LIBRARIES}
         libcodegen
         libcore
         libcpythonadapter)
 # Because of Mac OS X, weakly link python libs
-target_link_libraries_with_dynamic_lookup(${MODULE_NAME} ${Python3_LIBRARIES})
+target_link_libraries_with_dynamic_lookup(${MODULE_NAME} ${Python3_LIBRARIES} ${Boost_LIBRARIES})
 
 #check if single generator or multiple
 # copy setup.py/MANIFEST.in files and the directory tuplex

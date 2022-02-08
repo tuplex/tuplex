@@ -46,6 +46,7 @@ message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
 include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate compiler flags
 # for debug mode export all symbols
 set(CMAKE_ENABLE_EXPORTS true)
+include(targetLinkLibrariesWithDynamicLookup)
 
 # this here will enable LTO (link-time optimization) globally
 include(CheckIPOSupported)

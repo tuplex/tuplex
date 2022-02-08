@@ -67,6 +67,8 @@ target_include_directories(libcore PUBLIC
         ${CURL_INCLUDE_DIR}
         )
 
+message(STATUS "Boost libraries are: ${Boost_LIBRARIES}")
+
 # Declare the library
 target_link_libraries(libcore
         libcodegen
@@ -75,6 +77,8 @@ target_link_libraries(libcore
         ${YAMLCPP_LIBRARY}
         ${CURL_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
-        ${Boost_LIBRARIES}
         ${Protobuf_LIBRARIES}
         )
+
+# weakly link boost python especially
+target_link_libraries_with_dynamic_lookup(libcore ${Boost_LIBRARIES})

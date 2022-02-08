@@ -862,6 +862,9 @@ namespace tuplex {
 
                 break;
             }
+            default:
+                // other nodes not supported.
+                break;
         }
     }
 

@@ -187,6 +187,9 @@ namespace tuplex {
                         Interval(str->value(), false)
                     });
                 }
+                default:
+                    // others are not relevant, handled below.
+                    break;
             }
         }
 

@@ -78,7 +78,11 @@ target_link_libraries(libcore
         ${CURL_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
         ${Protobuf_LIBRARIES}
+        Boost::iostreams
+        Boost::thread
+        Boost::system
+        Boost::filesystem
         )
 
 # weakly link boost python especially
-target_link_libraries_with_dynamic_lookup(libcore ${Boost_LIBRARIES})
+#target_link_libraries_with_dynamic_lookup(libcore Boost::python)

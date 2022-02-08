@@ -21,9 +21,6 @@ message(STATUS "includes: ${Python3_INCLUDE_DIRS}")
 # because FindPython3 is broken in recent cmake, we can simply use add_library to define this directly
 add_library(${MODULE_NAME} MODULE ${SOURCES})
 set_target_properties(${MODULE_NAME} PROPERTIES PREFIX "")
-#target_link_libraries(${MODULE_NAME} PRIVATE ${Python3_LIBRARIES})
-#target_include_directories(${MODULE_NAME} PRIVATE ${Python3_INCLUDE_DIRS})
-
 
 # python pip package creation/distribution
 SET(PYTHON_DIST_DIR ${DIST_DIR}/python)
@@ -69,7 +66,6 @@ add_dependencies(${MODULE_NAME} libcore libcodegen)
 # Specify here the include directories exported
 # by this library
 target_include_directories(${MODULE_NAME} PUBLIC
-        ${Python3_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}
         )
@@ -82,9 +78,13 @@ target_compile_definitions(${MODULE_NAME} PRIVATE PYMODULE=${PYMODULE})
 target_link_libraries(${MODULE_NAME}
         libcodegen
         libcore
-        libcpythonadapter)
+        libcpythonadapter
+        Boost::iostreams
+        Boost::thread
+        Boost::system
+        Boost::filesystem)
 # Because of Mac OS X, weakly link python libs
-target_link_libraries_with_dynamic_lookup(${MODULE_NAME} ${Python3_LIBRARIES} ${Boost_LIBRARIES})
+#target_link_libraries_with_dynamic_lookup(${MODULE_NAME} ${Python3_LIBRARIES} Boost::python)
 
 #check if single generator or multiple
 # copy setup.py/MANIFEST.in files and the directory tuplex

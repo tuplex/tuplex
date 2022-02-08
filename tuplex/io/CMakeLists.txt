@@ -255,17 +255,14 @@ if(BUILD_WITH_ORC)
             ${LZ4_LIBRARIES})
     endif()
 
-
-    set(EXTRA_CXX_FLAGS "")
-
     # if supported, set no-poioson-system-directories. Requires Clang > 10.0
     if(CMAKE_CXX_COMPILED_ID STREQUAL "Clang")
       # set if CLANG version > 10
       if(CMAKE_CXX_COMPILER_VERSION_GREATER_EQUAL 10.0)
-        set(EXTRA_CXX_FLAGS "-Wno-poison-system-directories")
+          ucm_add_flags("-Wno-poison-system-directories")
       endif()
     elseif(CMAKE_CXX_COMPILED_ID STREQUAL "GNU")
-      set(EXTRA_CXX_FLAGS "-Wno-poison-system-directories")
+        ucm_add_flags("-Wno-poison-system-directories")
     endif()
 
     ExternalProject_Add(orc

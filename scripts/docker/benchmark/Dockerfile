@@ -196,11 +196,6 @@ RUN /bin/bash /usr/src/install_llvm6.sh
 COPY install_llvm9.sh /usr/src/install_llvm9.sh
 RUN /bin/bash /usr/src/install_llvm9.sh
 
-# install weld
-ADD PatchedGrizzlyMakefile.make /usr/src/PatchedGrizzlyMakefile.make
-COPY install_weld.sh /usr/src/install_weld.sh
-RUN /bin/bash /usr/src/install_weld.sh
-
 # TODO: LS --> Spark 2.4.7 + Scala 2.12.10
 COPY install_spark.sh /usr/src/install_spark.sh
 RUN /bin/bash /usr/src/install_spark.sh
@@ -224,6 +219,11 @@ RUN /bin/bash /usr/src/install_tuplex_reqs.sh
 # install sbt
 ADD install_sbt.sh /usr/src/install_sbt.sh
 RUN /bin/bash /usr/src/install_sbt.sh
+
+# install weld (last)
+ADD PatchedGrizzlyMakefile.make /usr/src/PatchedGrizzlyMakefile.make
+COPY install_weld.sh /usr/src/install_weld.sh
+RUN /bin/bash /usr/src/install_weld.sh
 
 # clean
 RUN rm -rf /usr/src

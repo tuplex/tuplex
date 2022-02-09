@@ -469,7 +469,7 @@ class CMakeBuild(build_ext):
 
         if not os.path.isfile(tuplexso_path):
             print('Could not find file tuplex.so under {}, searching for it...'.format(tuplexso_path))
-            paths = find_files("*tuplex.so", self.build_temp)
+            paths = find_files("*tuplex*.so", self.build_temp)
             assert len(paths) > 0, 'did not find any file under {}'.format(self.build_temp)
             print('Found following paths: {}'.format(''.join(paths)))
             print('Using {}'.format(paths[0]))

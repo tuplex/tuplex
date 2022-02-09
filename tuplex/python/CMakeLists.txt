@@ -49,6 +49,38 @@ target_link_libraries(${MODULE_NAME} PRIVATE pybind11::module
 # copy setup.py/MANIFEST.in files and the directory tuplex
 # python pip package creation/distribution
 SET(PYTHON_DIST_DIR ${DIST_DIR}/python)
+message(STATUS "${MODULE_NAME}.so object will be saved to ${PYTHON_DIST_DIR}/tuplex/libexec")
+# C++ shared object is placed in libexec within module
+SET_TARGET_PROPERTIES(${MODULE_NAME}
+        PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${PYTHON_DIST_DIR}/tuplex/libexec"
+        LIBRARY_OUTPUT_DIRECTORY "${PYTHON_DIST_DIR}/tuplex/libexec"
+        RUNTIME_OUTPUT_DIRECTORY "${PYTHON_DIST_DIR}/tuplex/libexec"
+        )
+SET_TARGET_PROPERTIES(${MODULE_NAME}
+        PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${PYTHON_DIST_DIR}/tuplex/libexec"
+        LIBRARY_OUTPUT_DIRECTORY_DEBUG "${PYTHON_DIST_DIR}/tuplex/libexec"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${PYTHON_DIST_DIR}/tuplex/libexec"
+        )
+SET_TARGET_PROPERTIES(${MODULE_NAME}
+        PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${PYTHON_DIST_DIR}/tuplex/libexec"
+        LIBRARY_OUTPUT_DIRECTORY_RELEASE "${PYTHON_DIST_DIR}/tuplex/libexec"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PYTHON_DIST_DIR}/tuplex/libexec"
+        )
+SET_TARGET_PROPERTIES(${MODULE_NAME}
+        PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY_MINSIZEREL "${PYTHON_DIST_DIR}/tuplex/libexec"
+        LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL "${PYTHON_DIST_DIR}/tuplex/libexec"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${PYTHON_DIST_DIR}/tuplex/libexec"
+        )
+SET_TARGET_PROPERTIES(${MODULE_NAME}
+        PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO "${PYTHON_DIST_DIR}/tuplex/libexec"
+        LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${PYTHON_DIST_DIR}/tuplex/libexec"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${PYTHON_DIST_DIR}/tuplex/libexec"
+        )
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/__init__.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/dataset.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/context.py

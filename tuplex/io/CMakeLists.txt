@@ -293,7 +293,7 @@ if(BUILD_WITH_ORC)
             liborc)
 endif()
 
-add_library(libio STATIC
+add_library(libio OBJECT
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 set_target_properties(libio PROPERTIES PREFIX "")
 

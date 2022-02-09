@@ -159,6 +159,9 @@ namespace tuplex {
                     }
                     break;
                 }
+                default:
+                    // no other ops can be broken down.
+                    break;
             }
         }
 

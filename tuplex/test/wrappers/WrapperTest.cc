@@ -494,7 +494,7 @@ TEST_F(WrapperTest, extractPriceExample) {
     auto cols = boost::python::list(boost::python::handle<>(colObj));
 
     // RAII, destruct python context!
-    PythonContext c("python", "", microTestOptions().asJSON());
+    PythonContext c("python", "", testOptions().asJSON());
 
     {
         // all calls go here...

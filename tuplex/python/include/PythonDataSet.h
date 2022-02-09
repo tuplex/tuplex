@@ -13,7 +13,6 @@
 
 #include "../../core/include/Context.h"
 #include <DataSet.h>
-#include <boost/python.hpp>
 #include <ErrorDataSet.h>
 #include "PythonWrappers.h"
 
@@ -77,8 +76,8 @@ namespace tuplex {
          */
         PythonDataSet resolve(const int64_t exceptionCode, const std::string& lambda_code, const std::string& pickled_code, PyObject* closureObject=nullptr);
 
-        boost::python::object collect();
-        boost::python::object take(const int64_t numRows);
+        py::object collect();
+        py::object take(const int64_t numRows);
         void show(const int64_t numRows=-1);
 
         // DataFrame like operations
@@ -86,7 +85,7 @@ namespace tuplex {
 
         PythonDataSet withColumn(const std::string& column, const std::string& lambda_code, const std::string& pickled_code, PyObject* closureObject=nullptr);
 
-        PythonDataSet selectColumns(boost::python::list L);
+        PythonDataSet selectColumns(py::list L);
 
         PythonDataSet renameColumn(const std::string& oldName, const std::string& newName);
 
@@ -108,20 +107,20 @@ namespace tuplex {
 
         PythonDataSet aggregateByKey(const std::string& comb, const std::string& comb_pickled,
                                 const std::string& agg, const std::string& agg_pickled,
-                                const std::string& initial_value_pickled, boost::python::list columns);
+                                const std::string& initial_value_pickled, py::list columns);
 
         // returns list of strings or empty list
-        boost::python::list columns();
+        py::list columns();
 
         // returns list of types (according to typing object)
         // None for error
-        boost::python::object types();
+        py::object types();
 
         /*!
          * expose exception counts of a specific operator!
          * returns dictionary with counts
          */
-        boost::python::object exception_counts();
+        py::object exception_counts();
 
         /*!
          * save dataset to one or more csv files. Triggers execution of pipeline.
@@ -141,7 +140,7 @@ namespace tuplex {
               size_t shardSize=0,
               size_t limit=std::numeric_limits<size_t>::max(),
               const std::string& null_value="",
-              boost::python::object header=boost::python::object());
+              py::object header=py::object());
 
         /*!
          * save dataset to one or more orc files. Triggers execution of pipeline.

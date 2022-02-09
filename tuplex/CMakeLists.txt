@@ -506,7 +506,7 @@ if(Python3_FOUND)
     if(APPLE AND BREW_FOUND) # i.e. boost-python via brew? --> check maybe better in the future...
         set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE) # gets rid off annoying boost warning.
     endif()
-    find_package(Boost 1.70 COMPONENTS python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR} ${BOOST_COMPONENTS} REQUIRED)
+    find_package(Boost 1.70 COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
 
     # check if headers/libs are set.
     # at least set headers!

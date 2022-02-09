@@ -173,8 +173,8 @@ namespace tuplex {
 
                     Partition* partition = nullptr;
                     size_t pos = 0;
-                    while(rs->hasNextPartition()) {
-                        partition = rs->getNextPartition();
+                    while(rs->hasNextNormalPartition()) {
+                        partition = rs->getNextNormalPartition();
 
                         // add memory towards list object
                         auto ptr = partition->lockRaw();

@@ -106,89 +106,115 @@ namespace tuplex {
 
             assert(read_block_func);
 
+            // Initialize context
             auto& context = env().getContext();
 
+            // Load function arguments
             auto argUserData = arg("userData");
             auto argInPtr = arg("inPtr");
             auto argInSize = arg("inSize");
-            auto argExpPtrs = arg("expPtrs");
-            auto argExpPtrSizes = arg("expPtrSizes");
-            auto argNumExps = arg("numExps");
             auto argOutNormalRowCount = arg("outNormalRowCount");
             auto argOutBadRowCount = arg("outBadRowCount");
             auto argIgnoreLastRow = arg("ignoreLastRow");
+            auto totalFilterCounter = arg("totalFilterCounter");
+            auto totalNormalRowCounter = arg("totalNormalRowCounter");
+            auto totalGeneralRowCounter = arg("totalGeneralRowCounter");
+            auto totalFallbackRowCounter = arg("totalFallbackRowCounter");
+            auto generalPartitions = arg("generalPartitions");
+            auto numGeneralPartitions = arg("numGeneralPartitions");
+            auto generalIndexOffset = arg("generalIndexOffset");
+            auto generalRowOffset = arg("generalRowOffset");
+            auto generalByteOffset = arg("generalByteOffset");
+            auto fallbackPartitions = arg("fallbackPartitions");
+            auto numFallbackPartitions = arg("numFallbackPartitions");
+            auto fallbackIndexOffset = arg("fallbackIndexOffset");
+            auto fallbackRowOffset = arg("fallbackRowOffset");
+            auto fallbackByteOffset = arg("fallbackByteOffset");
 
+            // Initialize function body
             BasicBlock *bbBody = BasicBlock::Create(context, "entry", read_block_func);
 
             IRBuilder<> builder(bbBody);
 
+            // Define basic blocks for function
+            auto bbInitializeGeneral = llvm::BasicBlock::Create(context, "initialize_general", builder.GetInsertBlock()->getParent());
+            auto bbDeclareFallback = llvm::BasicBlock::Create(context, "declare_fallback", builder.GetInsertBlock()->getParent());
+            auto bbInitializeFallback = llvm::BasicBlock::Create(context, "initialize_fallback", builder.GetInsertBlock()->getParent());
+            auto bbUpdateGeneralCond = llvm::BasicBlock::Create(context, "update_general_cond", builder.GetInsertBlock()->getParent());
+            auto bbUpdateGeneralBody = llvm::BasicBlock::Create(context, "update_general_body", builder.GetInsertBlock()->getParent());
+            auto bbNextGeneralPartition = llvm::BasicBlock::Create(context, "next_general_partition", builder.GetInsertBlock()->getParent());
+            auto bbUpdateFallbackCond = llvm::BasicBlock::Create(context, "update_fallback_cond", builder.GetInsertBlock()->getParent());
+            auto bbUpdateFallbackBody = llvm::BasicBlock::Create(context, "update_fallback_body", builder.GetInsertBlock()->getParent());
+            auto bbNextFallbackPartition = llvm::BasicBlock::Create(context, "next_fallback_partition", builder.GetInsertBlock()->getParent());
+            auto bbUpdateDone = llvm::BasicBlock::Create(context, "update_done", builder.GetInsertBlock()->getParent());
+            auto bbLoopCondition = BasicBlock::Create(context, "loop_cond", read_block_func);
+            auto bbLoopBody = BasicBlock::Create(context, "loop_body", read_block_func);
+            auto bbLoopDone = BasicBlock::Create(context, "loop_done", read_block_func);
 
-            // there should be a check if argInSize is 0
-            // if so -> handle separately, i.e. return immediately
-#warning "add here argInSize > 0 check"
-
-
-            // compute endptr from args
-            Value *endPtr = builder.CreateGEP(argInPtr, argInSize, "endPtr");
-            Value *currentPtrVar = builder.CreateAlloca(env().i8ptrType(), 0, nullptr, "readPtrVar");
-            // later use combi of normal & bad rows
-            Value *outRowCountVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "outRowCountVar"); // counter for output row number (used for exception resolution)
+            // Initialize values for normal partitions
+            auto endPtr = builder.CreateGEP(argInPtr, argInSize, "endPtr");
+            auto currentPtrVar = builder.CreateAlloca(env().i8ptrType(), 0, nullptr, "readPtrVar");
+            auto outRowCountVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "outRowCountVar"); // counter for output row number (used for exception resolution)
             builder.CreateStore(argInPtr, currentPtrVar);
-
-            Value *normalRowCountVar = argOutNormalRowCount;
-            Value *badRowCountVar = argOutBadRowCount;
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(argOutBadRowCount),
-                                                  builder.CreateLoad(argOutNormalRowCount)), outRowCountVar);
-
-            // current index into array of exception partitions
-            auto curExpIndVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curExpIndVar");
-            builder.CreateStore(env().i64Const(0), curExpIndVar);
-
-            // current partition pointer
-            auto curExpPtrVar = builder.CreateAlloca(env().i8ptrType(), 0, nullptr, "curExpPtrVar");
-            builder.CreateStore(builder.CreateLoad(argExpPtrs), curExpPtrVar);
-
-            // number of rows total in current partition
-            auto curExpNumRowsVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curExpNumRowsVar");
-            builder.CreateStore(builder.CreateLoad(argExpPtrSizes), curExpNumRowsVar);
-
-            // current row number in current partition
-            auto curExpCurRowVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curExpCurRowVar");
-            builder.CreateStore(env().i64Const(0), curExpCurRowVar);
-
-            // accumulator used to update exception indices when rows are filtered, counts number of previously fitlered rows
-            auto expAccVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "expAccVar");
-            builder.CreateStore(env().i64Const(0), expAccVar);
+            // Update the arguments at the end
+            auto normalRowCountVar = argOutNormalRowCount;
+            auto badRowCountVar = argOutBadRowCount;
+            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(argOutBadRowCount),builder.CreateLoad(argOutNormalRowCount)), outRowCountVar);
+            // get num rows to read & process in loop
+            auto numRowsVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "numRowsVar");
+            auto input_ptr = builder.CreatePointerCast(argInPtr, env().i64Type()->getPointerTo(0));
+            builder.CreateStore(builder.CreateLoad(input_ptr), numRowsVar);
+            // store current input ptr
+            auto currentInputPtrVar = builder.CreateAlloca(env().i8ptrType(), 0, nullptr, "ptr");
+            builder.CreateStore(builder.CreateGEP(argInPtr, env().i32Const(sizeof(int64_t))), currentInputPtrVar);
+            // variable for current row number...
+            auto rowVar = builder.CreateAlloca(env().i64Type(), 0, nullptr);
+            builder.CreateStore(env().i64Const(0), rowVar);
 
             // used to see if rows are filtered during pipeline execution
             auto prevRowNumVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "prevRowNumVar");
             auto prevBadRowNumVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "prevBadRowNumVar");
 
-            // current number of exceptions prosessed across all partitions
-            auto expCurRowVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "expCurRowVar");
-            builder.CreateStore(env().i64Const(0), expCurRowVar);
+            // Initialize values for index updating
+            // uint8_t *curGeneralPtr;
+            // int64_t curGeneralNumRows = 0;
+            // if (*generalIndexOffset < numGeneralPartitions) {
+            //     curGeneralPtr = generalPartitions[*generalIndexOffset];
+            //     curGeneralNumRows = *curGeneralPtr;
+            //     curGeneralPtr += sizeof(int64_t) + *generalByteOffset;
+            // }
+            auto curGeneralPtr = builder.CreateAlloca(env().i8ptrType(), 0, nullptr, "curGeneralPtr");
+            auto curGeneralNumRows = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curGeneralNumRows");
+            builder.CreateStore(env().i64Const(0), curGeneralNumRows);
+            auto shouldInitializeGeneral = builder.CreateICmpSLT(builder.CreateLoad(generalIndexOffset), numGeneralPartitions);
+            builder.CreateCondBr(shouldInitializeGeneral, bbInitializeGeneral, bbDeclareFallback);
 
-            // get num rows to read & process in loop
-            Value *numRowsVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "numRowsVar");
-            Value *input_ptr = builder.CreatePointerCast(argInPtr, env().i64Type()->getPointerTo(0));
-            builder.CreateStore(builder.CreateLoad(input_ptr), numRowsVar);
-            // store current input ptr
-            Value *currentInputPtrVar = builder.CreateAlloca(env().i8ptrType(), 0, nullptr, "ptr");
-            builder.CreateStore(builder.CreateGEP(argInPtr, env().i32Const(sizeof(int64_t))), currentInputPtrVar);
+            builder.SetInsertPoint(bbInitializeGeneral);
+            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(generalPartitions, builder.CreateLoad(generalIndexOffset))), curGeneralPtr);
+            builder.CreateStore(builder.CreateLoad(builder.CreatePointerCast(builder.CreateLoad(curGeneralPtr), env().i64ptrType())), curGeneralNumRows);
+            builder.CreateStore(builder.CreateGEP(builder.CreateLoad(curGeneralPtr), builder.CreateAdd(env().i64Const(sizeof(int64_t)), builder.CreateLoad(generalByteOffset))), curGeneralPtr);
+            builder.CreateBr(bbDeclareFallback);
 
+            // uint8_t *curFallbackPtr;
+            // int64_t curFallbackNumRows = 0;
+            // if (*fallbackIndexOffset < numFallbackPartitions) {
+            //     curFallbackPtr = fallbackPartitions[*fallbackIndexOffset];
+            //     curFallbackNumRows = *curFallbackPtr;
+            //     curFallbackPtr += sizeof(int64_t) + *fallbackByteOffset;
+            // }
+            builder.SetInsertPoint(bbDeclareFallback);
+            auto curFallbackPtr = builder.CreateAlloca(env().i8ptrType(), 0, nullptr, "curFallbackPtr");
+            auto curFallbackNumRows = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curFallbackNumRows");
+            builder.CreateStore(env().i64Const(0), curFallbackNumRows);
+            auto shouldInitializeFallback = builder.CreateICmpSLT(builder.CreateLoad(fallbackIndexOffset), numFallbackPartitions);
+            builder.CreateCondBr(shouldInitializeFallback, bbInitializeFallback, bbLoopBody);
 
-            // variable for current row number...
-            Value *rowVar = builder.CreateAlloca(env().i64Type(), 0, nullptr);
-            builder.CreateStore(env().i64Const(0), rowVar);
-
-            BasicBlock* bbLoopCondition = BasicBlock::Create(context, "loop_cond", read_block_func);
-            BasicBlock* bbLoopBody = BasicBlock::Create(context, "loop_body", read_block_func);
-            BasicBlock* bbLoopDone = BasicBlock::Create(context, "loop_done", read_block_func);
-
-            // go from entry block to loop body
+            builder.SetInsertPoint(bbInitializeFallback);
+            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(fallbackPartitions, builder.CreateLoad(fallbackIndexOffset))), curFallbackPtr);
+            builder.CreateStore(builder.CreateLoad(builder.CreatePointerCast(builder.CreateLoad(curFallbackPtr), env().i64ptrType())), curFallbackNumRows);
+            builder.CreateStore(builder.CreateGEP(builder.CreateLoad(curFallbackPtr), builder.CreateAdd(env().i64Const(sizeof(int64_t)), builder.CreateLoad(fallbackByteOffset))), curFallbackPtr);
             builder.CreateBr(bbLoopBody);
 
-            // --------------
             // loop condition
             builder.SetInsertPoint(bbLoopCondition);
             Value *row = builder.CreateLoad(rowVar, "row");
@@ -198,8 +224,6 @@ namespace tuplex {
             auto cond = builder.CreateICmpSLT(nextRow, numRows);
             builder.CreateCondBr(cond, bbLoopBody, bbLoopDone);
 
-
-            // ---------
             // loop body
             builder.SetInsertPoint(bbLoopBody);
             // decode tuple from input ptr
@@ -207,9 +231,8 @@ namespace tuplex {
             ft.init(_inputRowType);
             Value* oldInputPtr = builder.CreateLoad(currentInputPtrVar, "ptr");
             ft.deserializationCode(builder, oldInputPtr);
-            Value* newInputPtr = builder.CreateGEP(oldInputPtr, ft.getSize(builder)); // @TODO: maybe use inbounds
+            Value* newInputPtr = builder.CreateGEP(oldInputPtr, ft.getSize(builder));
             builder.CreateStore(newInputPtr, currentInputPtrVar);
-
             builder.CreateStore(builder.CreateLoad(outRowCountVar), prevRowNumVar);
             builder.CreateStore(builder.CreateLoad(badRowCountVar), prevBadRowNumVar);
 
@@ -218,117 +241,113 @@ namespace tuplex {
             Value *inputRowSize = ft.getSize(builder);
             processRow(builder, argUserData, ft, normalRowCountVar, badRowCountVar, outRowCountVar, oldInputPtr, inputRowSize, terminateEarlyOnLimitCode, pipeline() ? pipeline()->getFunction() : nullptr);
 
+            builder.CreateStore(builder.CreateAdd(env().i64Const(1), builder.CreateLoad(totalNormalRowCounter)), totalNormalRowCounter);
+
             // After row is processed we need to update exceptions if the row was filtered
             // We check that: outRowCountVar == prevRowCountVar (no new row was emitted)
             //                badRowCountVar == prevBadRowNumVar (it was filtered, not just an exception)
-            //                expCurRowVar < argNumExps (we still have exceptions that need updating)
-            // if (outRowCountVar == prevRowNumVar && badRowCountVar == prevBadRowNumVar && expCurRowVar < argNumExps)
-            auto bbExpUpdate = llvm::BasicBlock::Create(context, "exp_update", builder.GetInsertBlock()->getParent());
-            auto expCond = builder.CreateICmpEQ(builder.CreateLoad(outRowCountVar), builder.CreateLoad(prevRowNumVar));
-            auto badCond = builder.CreateICmpEQ(builder.CreateLoad(badRowCountVar), builder.CreateLoad(prevBadRowNumVar));
-            auto remCond = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
-            builder.CreateCondBr(builder.CreateAnd(remCond, builder.CreateAnd(badCond, expCond)), bbExpUpdate, bbLoopCondition);
+            // if (outRowCountVar == prevRowNumVar && badRowCountVar == prevBadRowNumVar)
+            auto rowNotEmitted = builder.CreateICmpEQ(builder.CreateLoad(outRowCountVar), builder.CreateLoad(prevRowNumVar));
+            auto rowNotException = builder.CreateICmpEQ(builder.CreateLoad(badRowCountVar), builder.CreateLoad(prevBadRowNumVar));
+            builder.CreateCondBr(builder.CreateAnd(rowNotEmitted, rowNotException), bbUpdateGeneralCond, bbLoopCondition);
 
-            // We have determined a row is filtered so we can iterate through all the input exceptions that occured before this
-            // row and decrement their row index with the number of previously filtered rows (expAccVar).
-            // This is a while loop that iterates over all exceptions that occured before this filtered row
-            //
-            // while (expCurRowVar < numExps && ((*outNormalRowCount - 1) + expCurRowVar) >= *((int64_t *) curExpPtrVar))
-            //
-            // *outNormalRowCount - 1 changes cardinality of rows into its row index, we add the number of previously processed
-            // exceptions because the normal rows do not know about the exceptions to obtain the correct index. It's then compared
-            // against the row index of the exception pointed to currently in our partition
-            builder.SetInsertPoint(bbExpUpdate);
-            auto bbIncrement = llvm::BasicBlock::Create(context, "increment", builder.GetInsertBlock()->getParent());
-            auto bbIncrementDone = llvm::BasicBlock::Create(context, "increment_done", builder.GetInsertBlock()->getParent());
-            auto curExpRowIndPtr = builder.CreatePointerCast(builder.CreateLoad(curExpPtrVar), env().i64ptrType());
-            auto incCond = builder.CreateICmpSGE(builder.CreateAdd(builder.CreateLoad(badRowCountVar), builder.CreateAdd(builder.CreateSub(builder.CreateLoad(normalRowCountVar), env().i64Const(1)), builder.CreateLoad(expCurRowVar))), builder.CreateLoad(curExpRowIndPtr));
-            auto remCond2 = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
-            builder.CreateCondBr(builder.CreateAnd(remCond2, incCond), bbIncrement, bbIncrementDone);
+            // Update general cond
+            // while (*generalRowOffset < curGeneralNumRows && *((int64_t*)curGeneralPtr) < curNormalRowInd + totalGeneralRowCounter)
+            builder.SetInsertPoint(bbUpdateGeneralCond);
+            auto generalRowsRemainCond = builder.CreateICmpSLT(builder.CreateLoad(generalRowOffset), builder.CreateLoad(curGeneralNumRows));
+            auto curGeneralRowInd = builder.CreateLoad(builder.CreatePointerCast(builder.CreateLoad(curGeneralPtr), env().i64ptrType()));
+            auto generalIndexLTCond = builder.CreateICmpSLT(curGeneralRowInd, builder.CreateAdd(builder.CreateLoad(totalGeneralRowCounter), builder.CreateLoad(totalNormalRowCounter)));
+            builder.CreateCondBr(builder.CreateAnd(generalRowsRemainCond, generalIndexLTCond), bbUpdateGeneralBody, bbUpdateFallbackCond);
 
-            // Body of the while loop we need to
-            // 1. decrement the current exception row index by the expAccVar (all rows previously filtered)
-            // 2. Increment our partition pointer to next exception
-            // 3. Change partitions if we've exhausted all exceptions in the current, but still have more remaining in tototal
-            //
-            // Increment to the next exception by adding eSize and 4*sizeof(int64_t) to the partition pointer
-            // *((int64_t *) curExpPtrVar) -= expAccVar;
-            // curExpPtrVar += 4 * sizeof(int64_t) + ((int64_t *)curExpPtrVar)[3];
-            // expCurRowVar += 1;
-            // curExpCurRowVar += 1;
-            //
-            // Finally we check to see if a partition change is required
-            // if (expCurRowVar < numExps && curExpCurRowVar >= curExpNumRowsVar)
-            builder.SetInsertPoint(bbIncrement);
-            // Change row index and go to next exception in partition
-            auto curExpRowIndPtr2 = builder.CreatePointerCast(builder.CreateLoad(curExpPtrVar), env().i64Type()->getPointerTo(0));
-            builder.CreateStore(builder.CreateSub(builder.CreateLoad(curExpRowIndPtr2), builder.CreateLoad(expAccVar)), curExpRowIndPtr2);
-            auto curOffset = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curOffset");
-            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(curExpRowIndPtr2, env().i64Const(3))), curOffset);
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curOffset), env().i64Const(4 * sizeof(int64_t))), curOffset);
-            builder.CreateStore(builder.CreateGEP(builder.CreateLoad(curExpPtrVar), builder.CreateLoad(curOffset)), curExpPtrVar);
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curExpCurRowVar), env().i64Const(1)), curExpCurRowVar);
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(expCurRowVar), env().i64Const(1)), expCurRowVar);
-            // See if partition change needs to occur
-            auto bbChange = llvm::BasicBlock::Create(context, "change", builder.GetInsertBlock()->getParent());
-            auto changeCond = builder.CreateICmpSGE(builder.CreateLoad(curExpCurRowVar), builder.CreateLoad(curExpNumRowsVar));
-            auto leftCond = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
-            builder.CreateCondBr(builder.CreateAnd(leftCond, changeCond), bbChange, bbExpUpdate);
+            // Update general body
+            // generalNewRowInd = *((int64_t*)curGeneralPtr) - totalFilterCounter;
+            // *((int64_t*)curGeneralPtr) = generalNewRowInd;
+            // auto generalRowDelta = 4 * sizeof(int64_t) + ((int64_t*)curGeneralPtr)[3];
+            // curGeneralPtr += generalRowDelta;
+            // *generalByteOffset += generalRowDelta;
+            // *generalRowOffset++;
+            // *totalGeneralRowCounter++;
+            builder.SetInsertPoint(bbUpdateGeneralBody);
+            auto generalNewRowInd = builder.CreateSub(builder.CreateLoad(builder.CreatePointerCast(builder.CreateLoad(curGeneralPtr), env().i64ptrType())), builder.CreateLoad(totalFilterCounter));
+            builder.CreateStore(generalNewRowInd, builder.CreatePointerCast(builder.CreateLoad(curGeneralPtr), env().i64ptrType()));
+            auto generalRowDelta = builder.CreateAdd(builder.CreateLoad(builder.CreateGEP(builder.CreatePointerCast(builder.CreateLoad(curGeneralPtr), env().i64ptrType()), env().i64Const(3))), env().i64Const(4 * sizeof(int64_t)));
+            builder.CreateStore(builder.CreateGEP(builder.CreateLoad(curGeneralPtr), generalRowDelta), curGeneralPtr);
+            builder.CreateStore(builder.CreateAdd(generalRowDelta, builder.CreateLoad(generalByteOffset)), generalByteOffset);
+            builder.CreateStore(builder.CreateAdd(env().i64Const(1), builder.CreateLoad(generalRowOffset)), generalRowOffset);
+            builder.CreateStore(builder.CreateAdd(env().i64Const(1), builder.CreateLoad(totalGeneralRowCounter)), totalGeneralRowCounter);
 
-            // This block changes to the next partition
-            // curExpCurRowVar = 0;
-            // curExpIndVar = curExpIndVar + 1;
-            // curExpPtrVar = expPtrs[curExpIndVar];
-            // curExpNumRowsVar = expPtrSizes[curExpIndVar];
-            builder.SetInsertPoint(bbChange);
-            builder.CreateStore(env().i64Const(0), curExpCurRowVar);
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curExpIndVar), env().i64Const(1)), curExpIndVar);
-            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(argExpPtrs, builder.CreateLoad(curExpIndVar))), curExpPtrVar);
-            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(argExpPtrSizes, builder.CreateLoad(curExpIndVar))), curExpNumRowsVar);
-            builder.CreateBr(bbExpUpdate);
+            // if (*generalRowOffset == curGeneralNumRows && *generalIndexOffset < numGeneralPartitions - 1)
+            auto generalNoRowsRemain = builder.CreateICmpEQ(builder.CreateLoad(generalRowOffset), builder.CreateLoad(curGeneralNumRows));
+            auto generalHasMorePartitions = builder.CreateICmpSLT(builder.CreateLoad(generalIndexOffset), builder.CreateSub(numGeneralPartitions, env().i64Const(1)));
+            builder.CreateCondBr(builder.CreateAnd(generalNoRowsRemain, generalHasMorePartitions), bbNextGeneralPartition, bbUpdateGeneralCond);
 
-            // Finally increment the expAccVar by 1 becasue a row was filtered
-            // expAccVar += 1;
-            builder.SetInsertPoint(bbIncrementDone);
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(expAccVar), env().i64Const(1)), expAccVar);
+            // generalIndexOffset += 1;
+            // *generalRowOffset = 0;
+            // *generalByteOffset = 0;
+            // curGeneralPtr = generalPartitions[*generalIndexOffset];
+            // curGeneralNumRows = *((int64_t*)curGeneralPtr);
+            // curGeneralPtr += sizeof(int64_t);
+            builder.SetInsertPoint(bbNextGeneralPartition);
+            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(generalIndexOffset), env().i64Const(1)), generalIndexOffset);
+            builder.CreateStore(env().i64Const(0), generalRowOffset);
+            builder.CreateStore(env().i64Const(0), generalByteOffset);
+            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(generalPartitions, builder.CreateLoad(generalIndexOffset))), curGeneralPtr);
+            builder.CreateStore(builder.CreateLoad(builder.CreatePointerCast(builder.CreateLoad(curGeneralPtr), env().i64ptrType())), curGeneralNumRows);
+            builder.CreateStore(builder.CreateGEP(builder.CreateLoad(curGeneralPtr), builder.CreateAdd(env().i64Const(sizeof(int64_t)), builder.CreateLoad(generalByteOffset))), curGeneralPtr);
+            builder.CreateBr(bbUpdateGeneralCond);
+
+            // Update fallback cond
+            // while (*fallbackRowOffset < curFallbackNumRows && *((int64_t*)curFallbackPtr) < curNormalRowInd + totalGeneralRowCounter + totalFallbackRowCounter)
+            builder.SetInsertPoint(bbUpdateFallbackCond);
+            auto fallbackRowsRemainCond = builder.CreateICmpSLT(builder.CreateLoad(fallbackRowOffset), builder.CreateLoad(curFallbackNumRows));
+            auto curFallbackRowInd = builder.CreateLoad(builder.CreatePointerCast(builder.CreateLoad(curFallbackPtr), env().i64ptrType()));
+            auto fallbackIndexLTCond = builder.CreateICmpSLT(curFallbackRowInd, builder.CreateAdd(builder.CreateLoad(totalGeneralRowCounter), builder.CreateAdd(builder.CreateLoad(totalFallbackRowCounter), builder.CreateLoad(totalNormalRowCounter))));
+            builder.CreateCondBr(builder.CreateAnd(fallbackRowsRemainCond, fallbackIndexLTCond), bbUpdateFallbackBody, bbUpdateDone);
+
+            // Update fallback body
+            // fallbackNewRowInd = *((int64_t*)curFallbackPtr) - totalFilterCounter;
+            // *((int64_t*)curFallbackPtr) = fallbackNewRowInd;
+            // auto fallbackRowDelta = 4 * sizeof(int64_t) + ((int64_t*)curFallbackPtr)[3];
+            // curFallbackPtr += fallbackRowDelta;
+            // *fallbackByteOffset += fallbackRowDelta;
+            // *fallbackRowOffset++;
+            // *totalFallbackRowCounter++;
+            builder.SetInsertPoint(bbUpdateFallbackBody);
+            auto fallbackNewRowInd = builder.CreateSub(builder.CreateLoad(builder.CreatePointerCast(builder.CreateLoad(curFallbackPtr), env().i64ptrType())), builder.CreateLoad(totalFilterCounter));
+            builder.CreateStore(fallbackNewRowInd, builder.CreatePointerCast(builder.CreateLoad(curFallbackPtr), env().i64ptrType()));
+            auto fallbackRowDelta = builder.CreateAdd(builder.CreateLoad(builder.CreateGEP(builder.CreatePointerCast(builder.CreateLoad(curFallbackPtr), env().i64ptrType()), env().i64Const(3))), env().i64Const(4 * sizeof(int64_t)));
+            builder.CreateStore(builder.CreateGEP(builder.CreateLoad(curFallbackPtr), fallbackRowDelta), curFallbackPtr);
+            builder.CreateStore(builder.CreateAdd(fallbackRowDelta, builder.CreateLoad(fallbackByteOffset)), fallbackByteOffset);
+            builder.CreateStore(builder.CreateAdd(env().i64Const(1), builder.CreateLoad(fallbackRowOffset)), fallbackRowOffset);
+            builder.CreateStore(builder.CreateAdd(env().i64Const(1), builder.CreateLoad(totalFallbackRowCounter)), totalFallbackRowCounter);
+
+            // if (*fallbackRowOffset == curFallbackNumRows && *fallbackIndexOffset < numFallbackPartitions - 1)
+            auto fallbackNoRowsRemain = builder.CreateICmpEQ(builder.CreateLoad(fallbackRowOffset), builder.CreateLoad(curFallbackNumRows));
+            auto fallbackHasMorePartitions = builder.CreateICmpSLT(builder.CreateLoad(fallbackIndexOffset), builder.CreateSub(numFallbackPartitions, env().i64Const(1)));
+            builder.CreateCondBr(builder.CreateAnd(fallbackNoRowsRemain, fallbackHasMorePartitions), bbNextFallbackPartition, bbUpdateFallbackCond);
+
+            // fallbackIndexOffset += 1;
+            // *fallbackRowOffset = 0;
+            // *fallbackByteOffset = 0;
+            // curFallbackPtr = fallbackPartitions[*fallbackIndexOffset];
+            // curFallbackNumRows = *((int64_t*)curFallbackPtr);
+            // curFallbackPtr += sizeof(int64_t);
+            builder.SetInsertPoint(bbNextFallbackPartition);
+            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(fallbackIndexOffset), env().i64Const(1)), fallbackIndexOffset);
+            builder.CreateStore(env().i64Const(0), fallbackRowOffset);
+            builder.CreateStore(env().i64Const(0), fallbackByteOffset);
+            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(fallbackPartitions, builder.CreateLoad(fallbackIndexOffset))), curFallbackPtr);
+            builder.CreateStore(builder.CreateLoad(builder.CreatePointerCast(builder.CreateLoad(curFallbackPtr), env().i64ptrType())), curFallbackNumRows);
+            builder.CreateStore(builder.CreateGEP(builder.CreateLoad(curFallbackPtr), builder.CreateAdd(env().i64Const(sizeof(int64_t)), builder.CreateLoad(fallbackByteOffset))), curFallbackPtr);
+            builder.CreateBr(bbUpdateFallbackCond);
+
+            // Update done
+            // totalFilterCounter += 1;
+            builder.SetInsertPoint(bbUpdateDone);
+            builder.CreateStore(builder.CreateAdd(env().i64Const(1), builder.CreateLoad(totalFilterCounter)), totalFilterCounter);
             builder.CreateBr(bbLoopCondition);
 
-            // ---------
-            // loop done
             builder.SetInsertPoint(bbLoopDone);
-            auto bbRemainingExceptions = llvm::BasicBlock::Create(context, "remaining_exceptions", builder.GetInsertBlock()->getParent());
-            auto bbRemainingDone = llvm::BasicBlock::Create(context, "remaining_done", builder.GetInsertBlock()->getParent());
-            auto expRemaining = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
-            builder.CreateCondBr(expRemaining, bbRemainingExceptions, bbRemainingDone);
-
-            // We have processed all of the normal rows. If we have not exhausted all of our exceptions
-            // we just iterate through the remaining exceptions and decrement their row index by the final
-            // value of expAccVar counting our filtered rows.
-            // Same code as above, but just don't need to keep updating expAccVar by 1.
-            builder.SetInsertPoint(bbRemainingExceptions);
-            auto curExpRowIndPtr3 = builder.CreatePointerCast(builder.CreateLoad(curExpPtrVar), env().i64Type()->getPointerTo(0));
-            builder.CreateStore(builder.CreateSub(builder.CreateLoad(curExpRowIndPtr3), builder.CreateLoad(expAccVar)), curExpRowIndPtr3);
-            auto curOffset2 = builder.CreateAlloca(env().i64Type(), 0, nullptr, "curOffset2");
-            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(curExpRowIndPtr3, env().i64Const(3))), curOffset2);
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curOffset2), env().i64Const(4 * sizeof(int64_t))), curOffset2);
-            builder.CreateStore(builder.CreateGEP(builder.CreateLoad(curExpPtrVar), builder.CreateLoad(curOffset2)), curExpPtrVar);
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curExpCurRowVar), env().i64Const(1)), curExpCurRowVar);
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(expCurRowVar), env().i64Const(1)), expCurRowVar);
-
-            auto bbChange2 = llvm::BasicBlock::Create(context, "change2", builder.GetInsertBlock()->getParent());
-            auto changeCond2 = builder.CreateICmpSGE(builder.CreateLoad(curExpCurRowVar), builder.CreateLoad(curExpNumRowsVar));
-            auto leftCond2 = builder.CreateICmpSLT(builder.CreateLoad(expCurRowVar), argNumExps);
-            builder.CreateCondBr(builder.CreateAnd(leftCond2, changeCond2), bbChange2, bbLoopDone);
-
-            builder.SetInsertPoint(bbChange2);
-            builder.CreateStore(env().i64Const(0), curExpCurRowVar);
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curExpIndVar), env().i64Const(1)), curExpIndVar);
-            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(argExpPtrs, builder.CreateLoad(curExpIndVar))), curExpPtrVar);
-            builder.CreateStore(builder.CreateLoad(builder.CreateGEP(argExpPtrSizes, builder.CreateLoad(curExpIndVar))), curExpNumRowsVar);
-            builder.CreateBr(bbLoopDone);
-
-            builder.SetInsertPoint(bbRemainingDone);
-            // if intermediate callback desired, perform!
             if(_intermediateType != python::Type::UNKNOWN && !_intermediateCallbackName.empty()) {
                 writeIntermediate(builder, argUserData, _intermediateCallbackName);
             }

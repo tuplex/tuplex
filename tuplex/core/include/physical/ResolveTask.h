@@ -61,10 +61,9 @@ namespace tuplex {
         ResolveTask(int64_t stageID,
                     int64_t contextID,
                     const std::vector<Partition*>& partitions,
-                    const std::vector<Partition*>& runtimeExceptions,
-                    ExceptionInfo runtimeExceptionInfo,
-                    const std::vector<Partition*>& inputExceptions,
-                    ExceptionInfo inputExceptionInfo,
+                    const std::vector<Partition*>& exceptionPartitions,
+                    const std::vector<Partition*>& generalPartitions,
+                    const std::vector<Partition*>& fallbackPartitions,
                     const std::vector<int64_t>& operatorIDsAffectedByResolvers, //! used to identify which exceptions DO require reprocessing because there might be a resolver in the slow path for them.
                     Schema exceptionInputSchema, //! schema of the input rows in which both user exceptions and normal-case violations are stored in. This is also the schema in which rows which on the slow path produce again an exception will be stored in.
                     Schema resolverOutputSchema, //! schema of rows that the resolve function outputs if it doesn't rethrow exceptions
@@ -79,16 +78,12 @@ namespace tuplex {
                     PyObject* interpreterFunctor=nullptr) : IExceptionableTask::IExceptionableTask(exceptionInputSchema, contextID),
                                                             _stageID(stageID),
                                                             _partitions(partitions),
-                                                            _runtimeExceptions(runtimeExceptions),
-                                                            _numRuntimeExceptions(runtimeExceptionInfo.numExceptions),
-                                                            _runtimeExceptionIndex(runtimeExceptionInfo.exceptionIndex),
-                                                            _runtimeExceptionRowOffset(runtimeExceptionInfo.exceptionRowOffset),
-                                                            _runtimeExceptionByteOffset(runtimeExceptionInfo.exceptionByteOffset),
-                                                            _inputExceptions(inputExceptions),
-                                                            _numInputExceptions(inputExceptionInfo.numExceptions),
-                                                            _inputExceptionIndex(inputExceptionInfo.exceptionIndex),
-                                                            _inputExceptionRowOffset(inputExceptionInfo.exceptionRowOffset),
-                                                            _inputExceptionByteOffset(inputExceptionInfo.exceptionByteOffset),
+                                                            _exceptionPartitions(exceptionPartitions),
+                                                            _generalPartitions(generalPartitions),
+                                                            _fallbackPartitions(fallbackPartitions),
+                                                            _exceptionCounter(0),
+                                                            _generalCounter(0),
+                                                            _fallbackCounter(0),
                                                             _resolverOutputSchema(resolverOutputSchema),
                                                             _targetOutputSchema(targetNormalCaseOutputSchema),
                                                             _mergeRows(mergeRows),
@@ -175,7 +170,7 @@ namespace tuplex {
 
         std::vector<Partition*> getOutputPartitions() const override { return _partitions; }
 
-        std::vector<std::tuple<size_t, PyObject*>> getNonConformingRows() const { return _py_nonconfirming; }
+        std::vector<Partition*> getOutputFallbackPartitions() const { return _fallbackSink.partitions; }
 
         /// very important to override this because of the special two exceptions fields of ResolveTask
         /// i.e. _generalCasePartitions store what exceptions to resolve, IExceptionableTask::_generalCasePartitions exceptions that occurred
@@ -219,16 +214,13 @@ namespace tuplex {
     private:
         int64_t                 _stageID; /// to which stage does this task belong to.
         std::vector<Partition*> _partitions;
-        std::vector<Partition*> _runtimeExceptions;
-        std::vector<Partition*> _inputExceptions;
-        size_t _numInputExceptions;
-        size_t _inputExceptionIndex;
-        size_t _inputExceptionRowOffset;
-        size_t _inputExceptionByteOffset;
-        size_t _numRuntimeExceptions;
-        size_t _runtimeExceptionIndex;
-        size_t _runtimeExceptionRowOffset;
-        size_t _runtimeExceptionByteOffset;
+        std::vector<Partition*> _exceptionPartitions;
+        std::vector<Partition*> _generalPartitions;
+        std::vector<Partition*> _fallbackPartitions;
+
+        size_t _exceptionCounter;
+        size_t _generalCounter;
+        size_t _fallbackCounter;
 
         inline Schema commonCaseInputSchema() const { return _deserializerGeneralCaseOutput->getSchema(); }
         Schema                  _resolverOutputSchema; //! what the resolve functor produces
@@ -268,6 +260,8 @@ namespace tuplex {
         // sink for type violation rows
         MemorySink _generalCaseSink;
 
+        MemorySink _fallbackSink;
+
         // hash table sink
         // -> hash to be a hybrid because sometimes incompatible python objects have to be hashed here.
         HashTableSink _htable;
@@ -281,7 +275,6 @@ namespace tuplex {
 
         // python output which can't be consolidated, saved as separate list
         void writePythonObject(PyObject* out_row);
-        std::vector<std::tuple<size_t, PyObject*>> _py_nonconfirming;
 
         int64_t _outputRowNumber;
 

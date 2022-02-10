@@ -1,0 +1,5 @@
+data/*.csv
+tuplex_output/
+python_code_pipeline_stage_*.py
+transform_stage_*.txt
+results_dirty_zillow@10G/

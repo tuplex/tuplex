@@ -1642,7 +1642,7 @@ namespace tuplex {
     py::object PythonDataSet::types() {
         // is error dataset? if so return it directly!
         if (this->_dataset->isError()) {
-            return py::object(); // none
+            return py::none(); // none
         }
 
         auto row_type = _dataset->schema().getRowType();
@@ -1660,11 +1660,11 @@ namespace tuplex {
     }
 
     py::object PythonDataSet::exception_counts() {
+        if(this->_dataset->isError())
+            return py::none(); // none
+
         // return dict object
         auto dict = PyDict_New();
-
-        if(this->_dataset->isError())
-            return py::object(); // none
 
         // fetch from dataset corresponding metrics
         auto counts = _dataset->getContext()->metrics().getOperatorExceptionCounts(this->_dataset->getOperator()->getID());

@@ -152,8 +152,8 @@ namespace tuplex {
          * @param schema python object to define a schema
          * @return PythonDataSet wrapper around internal DataSet class
          */
-        PythonDataSet parallelize(py::list L, py::object cols = py::object(),
-                                  py::object schema = py::object(), bool autoUnpack = true);
+        PythonDataSet parallelize(py::list L, py::object cols = py::none(),
+                                  py::object schema = py::none(), bool autoUnpack = true);
 
         /*!
          * reads one (or multiple) csv files into memory
@@ -168,13 +168,13 @@ namespace tuplex {
          * @return PythonDataSet wrapper around internal DataSet class corresponding to a csv read call
          */
         PythonDataSet csv(const std::string &pattern,
-                          py::object cols = py::object(),
+                          py::object cols = py::none(),
                           bool autodetect_header = true,
                           bool header = false,
                           const std::string &delimiter = "",
                           const std::string &quotechar = "\"",
-                          py::object null_values = py::object(),
-                          py::object type_hints = py::object());
+                          py::object null_values = py::none(),
+                          py::object type_hints = py::none());
 
         /*!
          * reads one (or multiple) text files into memory
@@ -182,7 +182,7 @@ namespace tuplex {
          * @param null_values list of null values
          * @return PythonDataSet wrapper around internal DataSet class corresponding to a text read call
          */
-        PythonDataSet text(const std::string &pattern, py::object null_values = py::object());
+        PythonDataSet text(const std::string &pattern, py::object null_values = py::none());
 
         /*!
          * reads one (or multiple) orc files into memory
@@ -191,7 +191,7 @@ namespace tuplex {
          * @return PythonDataSet wrapper around internal DataSet class corresponding to a orc read call
          */
         PythonDataSet orc(const std::string &pattern,
-                          py::object cols = py::object());
+                          py::object cols = py::none());
 
         /*!
          * retrieves options as flattened dictionary.

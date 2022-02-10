@@ -25,13 +25,13 @@ namespace tuplex {
                 if(strcmp(keyString, "False") == 0)
                     return py::cast(false);
                 Logger::instance().defaultLogger().error("invalid boolean key: " + std::string(keyString) + ", returning Py_None");
-                return py::object();
+                return py::none();
             case 'i':
                 return py::cast(strtoll(keyString, nullptr, 10));
             case 'f':
                 return py::cast(strtod(keyString, nullptr));
             default:
-                return py::object();
+                return py::none();
         }
     }
 
@@ -46,7 +46,7 @@ namespace tuplex {
             case 'f':
                 return py::cast(obj->valuedouble);
             default:
-                return py::object();
+                return py::none();
         }
     }
 
@@ -92,7 +92,7 @@ namespace tuplex {
                 }
                 return py::tuple(L);
             } else
-                return py::object();
+                return py::none();
         }
     }
 

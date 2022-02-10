@@ -2311,8 +2311,8 @@ TEST_F(WrapperTest, SingleCharCSVField) {
         PyDict_SetItem(typehints, PyLong_FromLong(0), python::PyString_FromString("str"));
 
         // read from file incl. type hints
-        auto ds = ctx.csv("testdata.part0.csv",py::object(), true, false, "", "\"",
-                          py::object(),
+        auto ds = ctx.csv("testdata.part0.csv",py::none(), true, false, "", "\"",
+                          py::none(),
                           py::reinterpret_steal<py::dict>(typehints));
     }
 }
@@ -2350,8 +2350,8 @@ TEST_F(WrapperTest, NYC311) {
         PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
         // type hints:
         // vector<string>{"Unspecified", "NO CLUE", "NA", "N/A", "0", ""}
-        ctx.csv(service_path,py::object(), true, false, "", "\"",
-                py::object(), py::reinterpret_steal<py::dict>(type_dict))
+        ctx.csv(service_path,py::none(), true, false, "", "\"",
+                py::none(), py::reinterpret_steal<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
                 .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select))
                 .unique().show();
@@ -2494,8 +2494,8 @@ TEST_F(WrapperTest, PartitionRelease) {
         PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
         // type hints:
         // vector<string>{"Unspecified", "NO CLUE", "NA", "N/A", "0", ""}
-        ctx->csv(service_path,py::object(), true, false, "", "\"",
-                py::object(), py::reinterpret_steal<py::dict>(type_dict))
+        ctx->csv(service_path,py::none(), true, false, "", "\"",
+                py::none(), py::reinterpret_steal<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
                 .selectColumns(py::reinterpret_steal<py::dict>(cols_to_select))
                 .unique().show();
@@ -2511,8 +2511,8 @@ TEST_F(WrapperTest, PartitionRelease) {
         cols_to_select = PyList_New(1);
         PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
 
-        ctx2.csv(service_path,py::object(), true, false, "", "\"",
-                 py::object(), py::reinterpret_steal<py::dict>(type_dict))
+        ctx2.csv(service_path,py::none(), true, false, "", "\"",
+                 py::none(), py::reinterpret_steal<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
                 .selectColumns(py::reinterpret_steal<py::dict>(cols_to_select))
                 .unique().show();

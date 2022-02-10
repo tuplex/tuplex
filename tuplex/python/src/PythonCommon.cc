@@ -38,6 +38,6 @@ namespace tuplex {
         python::lockGIL();
 
         // return None
-        return py::object();
+        return py::none();
     }
 }

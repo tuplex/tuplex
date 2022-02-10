@@ -28,6 +28,7 @@ endif()
 
 # g++ -std=c++17 -msse4.2 -mcx16 -Wall -Wextra -O3 -march=native -DNDEBUG -o basic basic.cpp -ldl
 add_executable(runner src/basic.cc)
+target_link_libraries(runner ${CMAKE_DL_LIBS}) # -ldl on linux
 
 
 # create shared libraries for the different modes

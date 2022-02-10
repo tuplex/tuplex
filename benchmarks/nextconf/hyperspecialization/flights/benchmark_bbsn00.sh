@@ -8,10 +8,9 @@ mkdir -p ${RESDIR}
 
 # build benchmark
 mkdir -p build && cd build &&
-
-
+cmake -DCMAKE_BUILD_TYPE=Release .. &&
 cd ..
-cmake --build . --target MyExe --config Debug
+
 
 # run query using runner
-./
+./build/runner --path $INPUT_FILE --

@@ -1,0 +1,5 @@
+temp/
+test-ctypes-python/cloudpickle/
+test-ctypes-python/cloudpickle-1.6.0.dist-info/
+test-ctypes-python/lib/
+test-ctypes-python/test-ctypes-python.zip

@@ -1,61 +1,55 @@
 #!/usr/bin/env bash
 
-# Cause the script to exit if a single command fails.
-set -e
+set -ex
+#set -euo pipefail
 
-# Show explicitly which commands are currently running.
-set -x
+# cur dir
+CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+TUPLEX_ROOT_DIR=$(realpath $CWD/..)
+WHEEL_OUTPUT_DIR=$TUPLEX_ROOT_DIR/wheelhouse
+# create wheelhouse dir
+mkdir -p $WHEEL_OUTPUT_DIR
 
-ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE:-$0}")"; pwd)
 
-platform=""
+# detect platform & display message via echo
+achitecture="${HOSTTYPE}"
+platform="unknown"
 case "${OSTYPE}" in
-  linux*) platform="linux";;
-  darwin*) platform="macosx";;
-  msys*) platform="windows";;
-  *) echo "Unrecognized platform."; exit 1;;
+  msys)
+    echo "Detected Windows. Tuplex currently has no windows support, consider using WSL (https://docs.microsoft.com/en-us/windows/wsl/install)"
+    platform="windows"
+    exit 1
+    ;;
+  darwin*)
+    echo "Building on MacOS"
+    platform="darwin"
+    ;;
+  linux*)
+    echo "Building on Linux (or WSL)."
+    platform="linux"
+    ;;
+  *)
+    echo "Unrecognized OS, no support."
+    exit 1
 esac
 
-# select here py-versions to build for
-MACPYTHON_PY_PREFIX=/Library/Frameworks/Python.framework/Versions
-PY_VERSIONS=("3.6.8"
-             "3.7.9"
-             "3.8.10"
-             "3.9.10")
-NUMPY_VERSIONS=("1.14.5"
-  "1.14.5"
-  "1.14.5"
-  "1.19.3")
-PY_MMS=("3.6"
-        "3.7"
-        "3.8"
-        "3.9")
+# MacOS wheel building
+if [ $platform = 'darwin' ]; then
 
-mkdir -p wheelhouse
+  # !!! make sure llvm from homebrew is NOT on path when running delocate-wheel !!!
+  echo ">>> Building wheel"
+  # build wheel on mac os, add -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON to print out cmake verbosely
+  CMAKE_ARGS="-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DBoost_USE_STATIC_LIBS=ON" python3 setup.py bdist_wheel
 
-for ((i=0; i<${#PY_VERSIONS[@]}; ++i)); do
-  PY_VERSION=${PY_VERSIONS[i]}
-  PY_INST=${PY_INSTS[i]}
-  PY_MM=${PY_MMS[i]}
-  NUMPY_VERSION=${NUMPY_VERSIONS[i]}
+  # fix wheel using delocate
+  echo ">>> Fixing wheel using delocate"
+  for file in `ls ./dist/*macosx*.whl`; do
+    echo " - delocating $file"
 
-  # Install Python.
-  # In Buildkite, the Python packages are installed on the machine before the build has ran.
-  PYTHON_EXE=$MACPYTHON_PY_PREFIX/$PY_MM/bin/python$PY_MM
-  PIP_CMD="$(dirname "$PYTHON_EXE")/pip$PY_MM"
+    # make sure to remove brewed llvm from path!
+    # /usr/local/opt/llvm/bin
+    PATH==$(echo $PATH | sed -e 's|:[a-zA-z/]*/usr/local/opt/llvm/bin||g') delocate-wheel -w $WHEEL_OUTPUT_DIR/ $file
+  done
+fi
 
-  # check if installed version exists, if not fail
-  INSTALLED_PY_VERSION=""
-  if [ ! -f $PYTHON_EXE ]; then
-    echo "did not find python $PYTHON_EXE, please run setup-macos.sh first"
-    INSTALLED_PY_VERSION=$($PYTHON_EXE --version | perl -pe 'if(($_)=/([0-9]+([.][0-9]+)+)/){$_.="\n"}')
-  fi
-
-  # go to root dir where root setup.py is for tuplex
-  ls $ROOT_DIR/..
-  pushd $ROOT_DIR/.. && \
-  # Add the correct Python to the path and build the wheel.
-  PATH=$MACPYTHON_PY_PREFIX/$PY_MM/bin:$PATH CMAKE_ARGS="-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DBoost_USE_STATIC_LIBS=ON" $PYTHON_EXE setup.py bdist_wheel && \
-  popd
-
-done
+echo "Done, please find fat wheels in ${WHEEL_OUTPUT_DIR}."

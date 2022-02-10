@@ -26,7 +26,6 @@ export CIBW_MANYLINUX_X86_64_IMAGE='registry-1.docker.io/tuplex/ci:latest'
 # check whether lambda zip was build and stored in build-lambda
 TUPLEX_LAMBDA_ZIP=${TUPLEX_LAMBDA_ZIP:-build-lambda/tplxlam.zip}
 
-
 echo "work dir is: $(pwd)"
 if [[ -f "${TUPLEX_LAMBDA_ZIP}" ]]; then
 	echo "Found lambda runner ${TUPLEX_LAMBDA_ZIP}, adding to package"

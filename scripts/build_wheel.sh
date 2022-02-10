@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 
-#set -x
+set -ex
 #set -euo pipefail
+
+# cur dir
+CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+TUPLEX_ROOT_DIR=$CWD/..
+WHEEL_OUTPUT_DIR=$TUPLEX_ROOT_DIR/wheelhouse
+# create wheelhouse dir
+mkdir -p $WHEEL_OUTPUT_DIR
+
 
 # detect platform & display message via echo
 achitecture="${HOSTTYPE}"
@@ -25,11 +33,24 @@ case "${OSTYPE}" in
     exit 1
 esac
 
-
-
 # MacOS wheel building
+if [ $platform = 'darwin' ]; then
 
-# !!! make sure llvm from homebrew is NOT on path when running delocate-wheel !!!
+  # !!! make sure llvm from homebrew is NOT on path when running delocate-wheel !!!
+  echo ">>> Building wheel"
+  # build wheel on mac os, add -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON to print out cmake verbosely
+  CMAKE_ARGS="-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DBoost_USE_STATIC_LIBS=ON" python3 setup.py bdist_wheel
 
-# build wheel on mac os
-CMAKE_ARGS="-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DBoost_USE_STATIC_LIBS=ON -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON" python3 setup.py bdist_wheel
+  # fix wheel using delocate
+  echo ">>> Fixing wheel using delocate"
+  for file in `ls ./dist/*macosx*.whl`; do
+    echo " - delocating $file"
+
+    # make sure to remove brewed llvm from path!
+    # /usr/local/opt/llvm/bin
+    PATH==$(echo $PATH | sed -e 's|:[a-zA-z/]*/usr/local/opt/llvm/bin||g') delocate-wheel -w $WHEEL_OUTPUT_DIR/ $file
+  done
+fi
+
+
+echo "Done, please find fat wheels in ${WHEEL_OUTPUT_DIR}."

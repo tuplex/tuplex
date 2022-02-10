@@ -242,5 +242,8 @@ if __name__ == '__main__':
     print('Tuplex job time: {} s'.format(job_time))
 
     # print stats as last line
-    print(json.dumps({"startupTime" : startup_time, "jobTime" : job_time,
-                      'mode' : args.mode, 'mergeExceptionsInOrder': conf['optimizer.mergeExceptionsInOrder']}))
+    print(json.dumps({"startupTime": startup_time,
+                      "jobTime": job_time,
+                      "mergeExceptionsInOrder": conf["optimizer.mergeExceptionsInOrder"],
+                      "incrementalResolution": conf["optimizer.incrementalResolution"],
+                      "multiThreaded": conf["executorCount"] > 0}))

@@ -19,11 +19,8 @@ fi
 NUM_RUNS=11
 TIMEOUT=14400
 
-#DATA_PATH='data/zillow_dirty@10G.csv'
-#RESDIR=results_dirty_zillow@10G
-
-DATA_PATH='data/zillow_dirty.csv'
-RESDIR=results_dirty_zillow
+DATA_PATH='data/zillow_dirty@10G.csv'
+RESDIR=results_dirty_zillow@10G
 
 # does file exist?
 if [[ ! -f "$DATA_PATH" ]]; then
@@ -37,7 +34,7 @@ mkdir -p ${RESDIR}
 # vmtouch -dl <dir> => needs sudo rights I assume...
 
 # create tuplex_config.json
-python3 create_conf.py --executor-memory 1G --executor-count 7 --opt-null --opt-pushdown --opt-filter --opt-llvm > tuplex_config.json
+python3 create_conf.py --opt-null --opt-pushdown --opt-filter --opt-llvm > tuplex_config.json
 #cp tuplex_config.json ${RESDIR}
 
 # Multi-threaded experiments

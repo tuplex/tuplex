@@ -1,0 +1,45 @@
+# Flights experimental hyperspecialization benchmark/experiment
+
+cmake_minimum_required(VERSION 3.15)
+project(hyperflights)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# taken from https://github.com/tunabrain/tungsten/blob/master/cmake/OptimizeForArchitecture.cmake
+# to automatically optimize architecture flags
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+
+# AVX does not do much benefit at the moment, but breaks compilation on some platforms.
+# Disabled for now until AVX becomes important enough to reconsider.
+set(EMBREE_MAX_ISA "SSE4.2" CACHE STRING "Selects highest ISA to support.")
+set(USE_AVX FALSE CACHE BOOL "Use AVX.")
+set(USE_AVX2 FALSE CACHE BOOL "Use AVX2.")
+
+include(OptimizeForArchitecture)
+OptimizeForArchitecture()
+if (USE_AVX)
+    message(STATUS "Compiling with AVX support")
+    set(__AVX__ 1)
+elseif (USE_SSE4_2)
+    message(STATUS "Compiling with SSE4.2 support")
+endif()
+
+
+# g++ -std=c++17 -msse4.2 -mcx16 -Wall -Wextra -O3 -march=native -DNDEBUG -o basic basic.cpp -ldl
+add_executable(runner src/basic.cc)
+
+
+# create shared libraries for the different modes
+# g++ -shared -fPIC -O3 -o process_row_orig.so process_row_orig.cpp
+# g++ -shared -fPIC -O3 -o process_row_constant.so process_row_constant.cpp
+# g++ -shared -fPIC -O3 -o process_row_narrow.so process_row_narrow.cpp
+add_library(process_row_orig SHARED src/process_row/process_row_orig.cc)
+set_target_properties(process_row_orig PROPERTIES SUFFIX ".so")
+set_target_properties(process_row_orig PROPERTIES PREFIX "")
+add_library(process_row_constant SHARED src/process_row/process_row_constant.cc)
+set_target_properties(process_row_constant PROPERTIES SUFFIX ".so")
+set_target_properties(process_row_constant PROPERTIES PREFIX "")
+add_library(process_row_narrow SHARED src/process_row/process_row_narrow.cc)
+set_target_properties(process_row_narrow PROPERTIES SUFFIX ".so")
+set_target_properties(process_row_narrow PROPERTIES PREFIX "")

@@ -10,9 +10,9 @@ mkdir -p ${RESDIR}
 mkdir -p build && pushd build &&
 cmake -DCMAKE_BUILD_TYPE=Release ..
 
-
+mkdir -p process_row && mv *.so process_row
 # run query using runner
-./build/runner --path $INPUT_FILE --output_path $RESDIR
+./runner --path $INPUT_FILE --output_path $RESDIR
 
 
 popd

@@ -7,10 +7,12 @@ mkdir -p ${RESDIR}
 
 
 # build benchmark
-mkdir -p build && cd build &&
-cmake -DCMAKE_BUILD_TYPE=Release .. &&
-cd ..
+mkdir -p build && pushd build &&
+cmake -DCMAKE_BUILD_TYPE=Release ..
 
 
 # run query using runner
-./build/runner --path $INPUT_FILE --
+./build/runner --path $INPUT_FILE --output_path $RESDIR
+
+
+popd

@@ -27,8 +27,17 @@ endif()
 
 
 # g++ -std=c++17 -msse4.2 -mcx16 -Wall -Wextra -O3 -march=native -DNDEBUG -o basic basic.cpp -ldl
-add_executable(runner src/basic.cc)
-target_link_libraries(runner ${CMAKE_DL_LIBS}) # -ldl on linux
+add_executable(runner_orig src/basic.cc)
+target_link_libraries(runner_orig ${CMAKE_DL_LIBS}) # -ldl on linux
+target_compile_definitions(runner_orig PUBLIC PR_VERSION=0)
+
+add_executable(runner_constant src/basic.cc)
+target_link_libraries(runner_constant ${CMAKE_DL_LIBS}) # -ldl on linux
+target_compile_definitions(runner_constant PUBLIC PR_VERSION=1)
+
+add_executable(runner_narrow src/basic.cc)
+target_link_libraries(runner_narrow ${CMAKE_DL_LIBS}) # -ldl on linux
+target_compile_definitions(runner_narrow PUBLIC PR_VERSION=2)
 
 
 # create shared libraries for the different modes

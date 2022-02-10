@@ -12,7 +12,9 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 
 
 # run query using runner
-./build/runner --path $INPUT_FILE --output_path $RESDIR
+./build/runner_orig --path $INPUT_FILE --output_path $RESDIR
+./build/runner_constant --path $INPUT_FILE --output_path $RESDIR
+./build/runner_narrow --path $INPUT_FILE --output_path $RESDIR
 
 
 popd

@@ -3,7 +3,7 @@
 #define PR_ORIG 0
 #define PR_CONSTANT 1
 #define PR_NARROW 2
-#define PR_VERSION PR_NARROW
+//#define PR_VERSION PR_NARROW
 
 #include "./csvmonkey.h"
 

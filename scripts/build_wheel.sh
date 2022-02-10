@@ -5,7 +5,7 @@ set -ex
 
 # cur dir
 CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-TUPLEX_ROOT_DIR=$CWD/..
+TUPLEX_ROOT_DIR=$(realpath $CWD/..)
 WHEEL_OUTPUT_DIR=$TUPLEX_ROOT_DIR/wheelhouse
 # create wheelhouse dir
 mkdir -p $WHEEL_OUTPUT_DIR
@@ -51,6 +51,5 @@ if [ $platform = 'darwin' ]; then
     PATH==$(echo $PATH | sed -e 's|:[a-zA-z/]*/usr/local/opt/llvm/bin||g') delocate-wheel -w $WHEEL_OUTPUT_DIR/ $file
   done
 fi
-
 
 echo "Done, please find fat wheels in ${WHEEL_OUTPUT_DIR}."

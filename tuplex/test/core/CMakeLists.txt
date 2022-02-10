@@ -6,14 +6,17 @@ set(CMAKE_CXX_STANDARD 14)
 file(GLOB SRCS *.cc)
 file(GLOB STDLIB_SRCS stdlib/*.cc)
 
-
 include(GoogleTest)
 
 add_executable(testcore ${SRCS} ${STDLIB_SRCS})
-target_link_libraries(testcore libio
+target_link_libraries(testcore
+        libio
         libcodegen
         libcore
+        libutils
+        libcpythonadapter
         ${GTest_LIBRARIES}
-        ${AWSSDK_LINK_LIBRARIES})
+        ${AWSSDK_LINK_LIBRARIES}
+        ${Python3_LIBRARIES})
 
 gtest_add_tests(TARGET testcore TEST_PREFIX "")

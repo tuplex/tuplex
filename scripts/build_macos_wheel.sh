@@ -1,0 +1,1 @@
+CMAKE_ARGS="-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DBoost_USE_STATIC_LIBS=ON" python3.9 setup.py bdist_wheel

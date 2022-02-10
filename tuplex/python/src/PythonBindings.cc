@@ -18,6 +18,11 @@
 
 // use pybind11 binding
 namespace py = pybind11;
+
+// Note: Cf. https://sceweb.sce.uhcl.edu/helm/WEBPAGE-Python/documentation/python_tutorial/api/refcountDetails.html for refguide
+// and https://pybind11.readthedocs.io/en/stable/advanced/functions.html
+// wrong refcounts easily can lead to segfaults/corruption for tests.
+
 // PYMODULE is defined by cmake as PYBIND11_MODULE(name, m)
 PYMODULE {
     m.doc() = R"pbdoc(

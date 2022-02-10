@@ -23,11 +23,8 @@
 #include <stack>
 
 #include <VirtualFileSystem.h>
-
 #include <Environment.h>
-
-//#include <PythonHelpers.h>
-#include "../../adapters/cpython/include/PythonHelpers.h"
+#include <PythonHelpers.h>
 #include <Utils.h>
 #include <StringUtils.h>
 #include <nlohmann/json.hpp>

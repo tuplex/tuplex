@@ -1069,7 +1069,7 @@ namespace tuplex {
                 ++i;
             }
 
-            auto type = inferType(py::reinterpret_steal<py::list>(listColObj));
+            auto type = inferType(py::reinterpret_borrow<py::list>(listColObj));
             m[c.first] = type;
         }
 
@@ -1586,7 +1586,7 @@ namespace tuplex {
         Logger::instance().logger("filesystem").info("listed " + std::to_string(uris.size()) + " files in " + std::to_string(timer.time()) +"s");
         // Logger::instance().flushAll();
         Logger::instance().flushToPython();
-        return py::reinterpret_steal<py::list>(listObj);
+        return py::reinterpret_borrow<py::list>(listObj);
     }
 
     void PythonContext::cp(const std::string &pattern, const std::string &target) const {

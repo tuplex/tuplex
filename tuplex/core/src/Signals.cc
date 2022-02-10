@@ -12,8 +12,7 @@
 #include <thread>
 #include <atomic>
 #include <Logger.h>
-//#include <PythonHelpers.h>
-#include "../../adapters/cpython/include/PythonHelpers.h"
+#include <PythonHelpers.h>
 
 namespace tuplex {
 

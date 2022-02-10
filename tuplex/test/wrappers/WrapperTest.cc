@@ -116,7 +116,7 @@ TEST_F(WrapperTest, StringTuple) {
     PyList_SetItem(listObj, 3, tupleObj4);
 
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x", "").collect();
         auto resObj = res.ptr();
 
@@ -156,7 +156,7 @@ TEST_F(WrapperTest, MixedSimpleTupleTuple) {
     PyList_SetItem(listObj, 3, tupleObj4);
 
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
         auto resObj = res.ptr();
 
@@ -179,7 +179,7 @@ TEST_F(WrapperTest, StringParallelize) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
         auto resObj = res.ptr();
 
@@ -212,7 +212,7 @@ TEST_F(WrapperTest, DictionaryParallelize) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
         auto resObj = res.ptr();
 
@@ -352,7 +352,7 @@ TEST_F(WrapperTest, GoogleTrace) {
         PyList_SET_ITEM(listObj, 0, PyLong_FromLong(2));
         PyList_SET_ITEM(listObj, 1, PyLong_FromLong(0));
 
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.csv(sampleTraceFile) \
                     .filter("lambda x: x[3] == 0", "") \
                     .selectColumns(list).collect();
@@ -458,7 +458,7 @@ TEST_F(WrapperTest, extractPriceExample) {
             PyList_SET_ITEM(listObj, pos++, tupleObj);
         }
     }
-    auto list = py::reinterpret_steal<py::list>(listObj);
+    auto list = py::reinterpret_borrow<py::list>(listObj);
 
     // parallelize extract Price function & test using both dictionary AND tuple syntax.
     // input data here should be
@@ -484,7 +484,7 @@ TEST_F(WrapperTest, extractPriceExample) {
     PyList_SET_ITEM(colObj, 1, python::PyString_FromString("offer"));
     PyList_SET_ITEM(colObj, 2, python::PyString_FromString("facts and features"));
     PyList_SET_ITEM(colObj, 3, python::PyString_FromString("sqft"));
-    auto cols = py::reinterpret_steal<py::list>(colObj);
+    auto cols = py::reinterpret_borrow<py::list>(colObj);
 
     // RAII, destruct python context!
     PythonContext c("python", "", testOptions());
@@ -607,7 +607,7 @@ TEST_F(WrapperTest, DictListParallelize) {
         PyObject_Print(listObj, stdout, 0);
         std::cout << std::endl;
 
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x['a'] + x['b']", "").collect();
 
         auto resObj = res.ptr();
@@ -637,7 +637,7 @@ TEST_F(WrapperTest, UpcastParallelizeI) {
         PyList_SET_ITEM(listObj, 2, Py_True); // auto upcast bool --> float
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(10)); // auto upcast int --> float
 
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x * x + 1", "").collect();
 
         auto resObj = res.ptr();
@@ -669,7 +669,7 @@ TEST_F(WrapperTest, UpcastParallelizeII) {
         PyList_SET_ITEM(listObj, 2, Py_True); // auto upcast bool --> int
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(2));
 
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x * x - 1", "").collect();
 
         auto resObj = res.ptr();
@@ -705,7 +705,7 @@ TEST_F(WrapperTest, FilterAll) {
         PyList_SET_ITEM(listObj, 2, PyLong_FromLong(3));
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(2));
 
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).filter("lambda x: x > 10", "").collect();
         auto resObj = res.ptr();
 
@@ -739,7 +739,7 @@ TEST_F(WrapperTest, ColumnNames) {
         PyObject_Print(listObj, stdout, 0);
         std::cout << std::endl;
 
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res1 = c.parallelize(list).columns();
 
         ASSERT_EQ(py::len(res1), 2);
@@ -792,7 +792,7 @@ TEST_F(WrapperTest, IntegerTuple) {
         PyList_SET_ITEM(listObj, 0, python::rowToPython(Row(1, 2)));
         PyList_SET_ITEM(listObj, 1, python::rowToPython(Row(3, 2)));
 
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).withColumn("newcol", "lambda a, b: (a + b)/10", "").collect();
 
         auto resObj = res.ptr();
@@ -1066,7 +1066,7 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
                           "            'CrsDepTime', 'Cancelled',\n"
                           "            'Diverted', 'OriginCityName', 'AirTime', 'Origin', 'Dest', 'DestCityName',\n"
                           "            'DivReachedDest', 'TaxiIn', 'DepDelay', 'OpCarrierFlNum']", "time_req_cols");
-        auto time_req_cols = py::reinterpret_steal<py::list>(time_req_cols_obj);
+        auto time_req_cols = py::reinterpret_borrow<py::list>(time_req_cols_obj);
 
         auto df = ctx.csv(bts_path);
         auto cols = extractFromListOfStrings(df.columns().ptr());
@@ -1099,8 +1099,8 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
                                              "                'LatitudeDegrees', 'LatitudeMinutes', 'LatitudeSeconds', 'LatitudeDirection',\n"
                                              "                'LongitudeDegrees', 'LongitudeMinutes', 'LongitudeSeconds',\n"
                                              "                'LongitudeDirection', 'Altitude', 'LatitudeDecimal', 'LongitudeDecimal']", "airport_cols");
-        auto null_values = py::reinterpret_steal<py::list>(null_values_obj);
-        auto airport_cols = py::reinterpret_steal<py::list>(airport_cols_obj);
+        auto null_values = py::reinterpret_borrow<py::list>(null_values_obj);
+        auto airport_cols = py::reinterpret_borrow<py::list>(airport_cols_obj);
         auto df_airports = ctx.csv(airport_path, airport_cols, true, false, ":", "\"", null_values);
         df_airports = df_airports.cache(true);
 
@@ -1177,7 +1177,7 @@ TEST_F(WrapperTest, OptionParallelizeI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
         auto resObj = res.ptr();
 
@@ -1220,7 +1220,7 @@ TEST_F(WrapperTest, OptionParallelizeII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
         auto resObj = res.ptr();
 
@@ -1247,7 +1247,7 @@ TEST_F(WrapperTest, NoneParallelize) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
         auto resObj = res.ptr();
 
@@ -1273,7 +1273,7 @@ TEST_F(WrapperTest, EmptyMapI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: None", "").collect();
         auto resObj = res.ptr();
 
@@ -1301,7 +1301,7 @@ TEST_F(WrapperTest, EmptyMapII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: ()", "").collect();
         auto resObj = res.ptr();
 
@@ -1333,7 +1333,7 @@ TEST_F(WrapperTest, EmptyMapIII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: {}", "").collect();
         auto resObj = res.ptr();
 
@@ -1365,7 +1365,7 @@ TEST_F(WrapperTest, EmptyOptionMapI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: () if x < 3 else None", "").collect();
         auto resObj = res.ptr();
 
@@ -1395,7 +1395,7 @@ TEST_F(WrapperTest, EmptyOptionMapII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: {} if x < 3 else None", "").collect();
         auto resObj = res.ptr();
 
@@ -1437,7 +1437,7 @@ TEST_F(WrapperTest, OptionTupleParallelizeI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
         auto resObj = res.ptr();
 
@@ -1486,7 +1486,7 @@ TEST_F(WrapperTest, OptionTupleParallelizeII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
         auto resObj = res.ptr();
 
@@ -1535,7 +1535,7 @@ TEST_F(WrapperTest, OptionTupleParallelizeIII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
         auto resObj = res.ptr();
 
@@ -1574,7 +1574,7 @@ TEST_F(WrapperTest, parallelizeOptionTypeI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
         auto resObj = res.ptr();
 
@@ -1601,7 +1601,7 @@ TEST_F(WrapperTest, parallelizeNestedSlice) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x[-10:]", "").collect();
         auto resObj = res.ptr();
 
@@ -1625,7 +1625,7 @@ TEST_F(WrapperTest, TPCHQ6) {
 
     {
 
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto init_val = python::pickleObject(python::getMainModule(), PyFloat_FromDouble(0.0));
 
         auto path = "../resources/tpch/lineitem.tbl"; // SF 0.01
@@ -1645,7 +1645,7 @@ TEST_F(WrapperTest, TupleParallelizeI) {
 
     PythonContext c("c", "", testOptions());
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         c.parallelize(list).map("lambda x: ({x[0]: x[3], x[1]: x[4], x[2]: x[5]},)", "").show();
     }
 }
@@ -1657,7 +1657,7 @@ TEST_F(WrapperTest, TupleParallelizeII) {
 
     PythonContext c("c", "", testOptions());
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         c.parallelize(list).map("lambda x, y, z: [x, y, z]", "").show();
     }
 }
@@ -1685,7 +1685,7 @@ TEST_F(WrapperTest, DictParallelizeRefTest) {
         ASSERT_TRUE(floats->ob_refcnt > 0);
 
         // following code screws up python objects!
-        auto list = py::reinterpret_steal<py::list>(L);
+        auto list = py::reinterpret_borrow<py::list>(L);
         ASSERT_EQ(py::len(list), 3);
         ASSERT_EQ(PyList_Size(floats), 3);
         ASSERT_EQ(PyObject_Length(floats), 3);
@@ -1722,7 +1722,7 @@ TEST_F(WrapperTest, BuiltinModule) {
         PyList_SetItem(L, 0, python::PyString_FromString("123"));
         PyList_SetItem(L, 1, python::PyString_FromString("abc"));
         PyList_SetItem(L, 2, python::PyString_FromString("1a2b3c"));
-        auto list = py::reinterpret_steal<py::list>(L);
+        auto list = py::reinterpret_borrow<py::list>(L);
 
         PyObject* closureObject = PyDict_New();
         // import re module
@@ -1758,7 +1758,7 @@ TEST_F(WrapperTest, SwapIII) {
         PyTuple_SetItem(tuple2, 1, PyLong_FromLong(2));
         PyList_SetItem(L, 0, tuple1);
         PyList_SetItem(L, 1, tuple2);
-        auto list = py::reinterpret_steal<py::list>(L);
+        auto list = py::reinterpret_borrow<py::list>(L);
 
         auto v = c.parallelize(list).map(code, "").collect();
         ASSERT_EQ(PyObject_Length(v.ptr()), 2);
@@ -1936,7 +1936,7 @@ namespace tuplex {
            .withColumn("offer", extractOffer_c, "")
            .withColumn("price", extractPrice_c, "")
            .filter("lambda x: 100000 < x['price'] < 2e7", "")
-           .selectColumns(py::reinterpret_steal<py::list>(cols_to_select));
+           .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select));
     }
 
     PythonDataSet zillowDirtyWithResolvers(PythonContext& ctx, const std::string& z_path) {
@@ -1969,7 +1969,7 @@ namespace tuplex {
                 .withColumn("offer", extractOffer_c, "")
                 .withColumn("price", extractPrice_c, "")
                 .filter("lambda x: 100000 < x['price'] < 2e7", "")
-                .selectColumns(py::reinterpret_steal<py::list>(cols_to_select));
+                .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select));
     }
 
     PythonDataSet zillowDirtyCustomLogic(PythonContext& ctx, const std::string& z_path) {
@@ -2065,7 +2065,7 @@ namespace tuplex {
                   .withColumn("offer", extractOffer_c, "", ba_closure)
                   .withColumn("price", extractPrice_c, "", ba_closure)
                   .filter("lambda x: 100000 < x['price'] < 2e7", "")
-                .selectColumns(py::reinterpret_steal<py::list>(cols_to_select));
+                .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select));
     }
 }
 
@@ -2158,7 +2158,7 @@ TEST_F(WrapperTest, BitwiseAnd) {
 
     PythonContext c("c", "", testOptions());
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res_list = c.parallelize(list).map("lambda a, b: a & b", "").collect();
         auto res_obj = res_list.ptr();
         ASSERT_TRUE(res_obj);
@@ -2174,7 +2174,7 @@ TEST_F(WrapperTest, MetricsTest) {
 
     PythonContext c("c", "", testOptions());
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res_list = c.parallelize(list).map("lambda a, b: a & b", "").collect();
         auto res_obj = res_list.ptr();
         ASSERT_TRUE(res_obj);
@@ -2224,7 +2224,7 @@ TEST_F(WrapperTest, LambdaResolveI) {
     auto L = python::runAndGet("L = [0, 1, 2, 3, 4]", "L");
     ASSERT_TRUE(L);
     Py_XINCREF(L);
-    auto object_list = py::reinterpret_steal<py::list>(L);
+    auto object_list = py::reinterpret_borrow<py::list>(L);
 
     {
 //        // first try
@@ -2263,7 +2263,7 @@ TEST_F(WrapperTest, CollectPyObjects) {
     auto L = python::runAndGet("import numpy as np; L = [(1,np.zeros(1)), (4,np.zeros(4))]", "L");
     ASSERT_TRUE(L);
     Py_XINCREF(L);
-    auto object_list = py::reinterpret_steal<py::list>(L);
+    auto object_list = py::reinterpret_borrow<py::list>(L);
 
     {
         // second w. resolve
@@ -2303,7 +2303,7 @@ TEST_F(WrapperTest, SingleCharCSVField) {
     ASSERT_TRUE(L);
     Py_XINCREF(L);
     {
-        auto object_list = py::reinterpret_steal<py::list>(L);
+        auto object_list = py::reinterpret_borrow<py::list>(L);
         // save to csv file
         ctx.parallelize(object_list).tocsv("testdata.csv"); // <-- this is not where the failure happens, happens somewhere else?
 
@@ -2353,7 +2353,7 @@ TEST_F(WrapperTest, NYC311) {
         ctx.csv(service_path,py::object(), true, false, "", "\"",
                 py::object(), py::reinterpret_steal<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
-                .selectColumns(py::reinterpret_steal<py::list>(cols_to_select))
+                .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select))
                 .unique().show();
 
         std::cout<<std::endl;
@@ -2383,7 +2383,7 @@ TEST_F(WrapperTest, MixedTypesIsWithNone) {
     Py_IncRef(listObj);
 
     {
-        auto list = py::reinterpret_steal<py::list>(listObj);
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: (x, x is None)", "").collect();
         auto resObj = res.ptr();
         PyObject_Print(resObj, stdout, 0);
@@ -2448,7 +2448,7 @@ TEST_F(WrapperTest, SelectColumns) {
         auto cols_to_select = PyList_New(1);
         PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Unique Key"));
 
-        auto res = ctx.csv(testURI).selectColumns(py::reinterpret_steal<py::list>(cols_to_select)).columns();
+        auto res = ctx.csv(testURI).selectColumns(py::reinterpret_borrow<py::list>(cols_to_select)).columns();
         auto resObj = res.ptr();
         ASSERT_TRUE(PyList_Check(resObj));
         ASSERT_EQ(PyList_Size(resObj), 1);

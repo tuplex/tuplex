@@ -12,8 +12,10 @@ ADD_EXECUTABLE(testio ${SRCS} main.cc
 
 TARGET_LINK_LIBRARIES(testio
         libio
+        libutils
         libcodegen
         libcore
+        libcpythonadapter
         ${GTest_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES})
 

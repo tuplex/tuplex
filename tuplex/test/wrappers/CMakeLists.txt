@@ -33,6 +33,8 @@ target_include_directories(testwrappers PRIVATE "../../python/include/" ${Boost_
 
 TARGET_LINK_LIBRARIES(testwrappers
         libcore
+        libcodegen
+        libutils
         ${GTest_LIBRARIES}
         libcpythonadapter
         ${Boost_LIBRARIES}

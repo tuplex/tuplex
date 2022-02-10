@@ -24,6 +24,7 @@ TARGET_LINK_LIBRARIES(testcpythonadapter
         ${GTest_LIBRARIES}
         libcore
         libcodegen
+        libutils
         ${Python3_LIBRARIES}
         )
 

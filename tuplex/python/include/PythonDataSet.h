@@ -103,7 +103,7 @@ namespace tuplex {
 
         PythonDataSet aggregate(const std::string& comb, const std::string& comb_pickled,
                                 const std::string& agg, const std::string& agg_pickled,
-                                const std::string& initial_value_pickled, PyObject* combClosureObject=nullptr, PyObject* aggclosureObject=nullptr);
+                                const std::string& initial_value_pickled, const py::object& comb_closure=py::object(), const py::object& agg_closure=py::object());
 
         PythonDataSet aggregateByKey(const std::string& comb, const std::string& comb_pickled,
                                 const std::string& agg, const std::string& agg_pickled,

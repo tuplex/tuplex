@@ -357,7 +357,7 @@ namespace tuplex {
     PythonDataSet PythonDataSet::aggregate(const std::string& comb, const std::string& comb_pickled,
                                            const std::string& agg, const std::string& agg_pickled,
                                            const std::string& initial_value_pickled,
-                                           PyObject* combClosureObject, PyObject* aggClosureObject) {
+                                           const py::object& comb_closure, const py::object& agg_closure) {
         using namespace std;
 
         // @TODO: warning if udfs are wrongly submitted
@@ -369,6 +369,8 @@ namespace tuplex {
             return pds;
         }
 
+        PyObject* combClosureObject = comb_closure.ptr();
+        PyObject* aggClosureObject = agg_closure.ptr();
         auto combCE = closureFromDict(combClosureObject);
         auto aggCE = closureFromDict(aggClosureObject);
 

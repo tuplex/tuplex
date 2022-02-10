@@ -176,7 +176,7 @@ namespace tuplex {
         }
     }
 
-    PythonDataSet PythonDataSet::map(const std::string &lambda_code, const std::string &pickled_code, PyObject* closureObject) {
+    PythonDataSet PythonDataSet::map(const std::string &lambda_code, const std::string &pickled_code, const py::object& closure) {
 
         auto& logger = Logger::instance().logger("python");
         logger.debug("entering map function");
@@ -189,7 +189,7 @@ namespace tuplex {
             pds.wrap(this->_dataset);
             return pds;
         }
-
+        auto closureObject = closure.ptr(); // nullptr if not set!
         // decode closure object
         auto ce = closureFromDict(closureObject);
 
@@ -225,7 +225,7 @@ namespace tuplex {
         return pds;
     }
 
-    PythonDataSet PythonDataSet::filter(const std::string &lambda_code, const std::string &pickled_code, PyObject* closureObject) {
+    PythonDataSet PythonDataSet::filter(const std::string &lambda_code, const std::string &pickled_code, const py::object& closure) {
 
         // make sure a dataset is wrapped
         assert(this->_dataset);
@@ -235,7 +235,7 @@ namespace tuplex {
             pds.wrap(this->_dataset);
             return pds;
         }
-
+        auto closureObject = closure.ptr(); // nullptr if not set!
         auto ce = closureFromDict(closureObject);
 
         PythonDataSet pds;
@@ -270,7 +270,7 @@ namespace tuplex {
     }
 
     PythonDataSet PythonDataSet::resolve(const int64_t exceptionCode, const std::string &lambda_code,
-                                         const std::string &pickled_code, PyObject* closureObject) {
+                                         const std::string &pickled_code, const py::object& closure) {
         assert(this->_dataset);
         // is error dataset? if so return it directly!
         if (this->_dataset->isError()) {
@@ -279,6 +279,7 @@ namespace tuplex {
             return pds;
         }
 
+        auto closureObject = closure.ptr(); // nullptr if not set!
         auto ce = closureFromDict(closureObject);
 
         PythonDataSet pds;
@@ -312,14 +313,14 @@ namespace tuplex {
     }
 
     PythonDataSet PythonDataSet::mapColumn(const std::string &column, const std::string &lambda_code,
-                                           const std::string &pickled_code, PyObject* closureObject) {
+                                           const std::string &pickled_code, const py::object& closure) {
         assert(this->_dataset);
         if (_dataset->isError()) {
             PythonDataSet pds;
             pds.wrap(this->_dataset);
             return pds;
         }
-
+        auto closureObject = closure.ptr(); // nullptr if not set!
         auto ce = closureFromDict(closureObject);
 
         PythonDataSet pds;
@@ -499,14 +500,14 @@ namespace tuplex {
 
 
     PythonDataSet PythonDataSet::withColumn(const std::string &column, const std::string &lambda_code,
-                                            const std::string &pickled_code, PyObject* closureObject) {
+                                            const std::string &pickled_code, const py::object& closure) {
         assert(this->_dataset);
         if (_dataset->isError()) {
             PythonDataSet pds;
             pds.wrap(this->_dataset);
             return pds;
         }
-
+        auto closureObject = closure.ptr(); // nullptr if not set!
         auto ce = closureFromDict(closureObject);
 
         PythonDataSet pds;

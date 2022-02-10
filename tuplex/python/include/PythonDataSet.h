@@ -52,38 +52,38 @@ namespace tuplex {
          * add a map operator to the pipeline
          * @param lambda_code string representation of the code
          * @param pickled_code pickled version of the UDF (fallback mechanism)
-         * @param closureObject holding info about globals
+         * @param closure dictionary, holding info about globals
          * @return Dataset
          */
-        PythonDataSet map(const std::string& lambda_code, const std::string& pickled_code, PyObject* closureObject=nullptr);
+        PythonDataSet map(const std::string& lambda_code, const std::string& pickled_code, const py::object& closure=py::object());
 
         /*!
          * add a filter operator to the pipeline
          * @param lambda_code string representation of the code
          * @param pickled_code pickled version of the supplied UDF (fallback mechanism)
-         * @param closureObject holding info about globals
+         * @param closure dictionary, holding info about globals
          * @return Dataset
          */
-        PythonDataSet filter(const std::string& lambda_code, const std::string& pickled_code, PyObject* closureObject=nullptr);
+        PythonDataSet filter(const std::string& lambda_code, const std::string& pickled_code, const py::object& closure=py::object());
 
         /*!
          * add a resolver operator to the pipeline. Must have same type as the preceding operator
          * @param exceptionCode exeption Code as number
          * @param lambda_code code for function to be executed
          * @param pickled_code pickled code for function for backup
-         * @param closureObject holding info about globals
+         * @param closure dictionary, holding info about globals
          * @return Dataset
          */
-        PythonDataSet resolve(const int64_t exceptionCode, const std::string& lambda_code, const std::string& pickled_code, PyObject* closureObject=nullptr);
+        PythonDataSet resolve(const int64_t exceptionCode, const std::string& lambda_code, const std::string& pickled_code, const py::object& closure=py::object());
 
         py::object collect();
         py::object take(const int64_t numRows);
         void show(const int64_t numRows=-1);
 
         // DataFrame like operations
-        PythonDataSet mapColumn(const std::string& column, const std::string& lambda_code, const std::string& pickled_code, PyObject* closureObject=nullptr);
+        PythonDataSet mapColumn(const std::string& column, const std::string& lambda_code, const std::string& pickled_code, const py::object& closure=py::object());
 
-        PythonDataSet withColumn(const std::string& column, const std::string& lambda_code, const std::string& pickled_code, PyObject* closureObject=nullptr);
+        PythonDataSet withColumn(const std::string& column, const std::string& lambda_code, const std::string& pickled_code, const py::object& closure=py::object());
 
         PythonDataSet selectColumns(py::list L);
 

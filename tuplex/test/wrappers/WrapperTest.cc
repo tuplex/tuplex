@@ -1158,7 +1158,7 @@ TEST_F(WrapperTest, Airport) {
         auto pds = c.csv(sampleFile, STL_to_Python(airport_cols), false, false, ":");
 
 
-        pds = pds.mapColumn("AirportName", "lambda x: string.capwords(x) if x else None", "", closureObject);
+        pds = pds.mapColumn("AirportName", "lambda x: string.capwords(x) if x else None", "", py::reinterpret_steal<py::dict>(closureObject));
         pds.tocsv("airport.csv");
     }
 }
@@ -1728,7 +1728,7 @@ TEST_F(WrapperTest, BuiltinModule) {
         // import re module
         auto re_mod = PyImport_ImportModule("re");
         PyDict_SetItemString(closureObject, "re", re_mod);
-        auto v = c.parallelize(list).map("lambda x: re.search('\\\\d+', x) != None", "", closureObject).collect();
+        auto v = c.parallelize(list).map("lambda x: re.search('\\\\d+', x) != None", "", py::reinterpret_steal<py::dict>(closureObject)).collect();
 
         ASSERT_EQ(PyObject_Length(v.ptr()), 3);
         auto v_str = python::PyString_AsString(v.ptr());
@@ -1931,7 +1931,7 @@ namespace tuplex {
            .filter("lambda x: x['type'] == 'house'", "")
            .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
            .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-           .withColumn("bathrooms", extractBa_c, "", ba_closure)
+           .withColumn("bathrooms", extractBa_c, "", py::reinterpret_steal<py::dict>(ba_closure))
            .withColumn("sqft", extractSqft_c, "")
            .withColumn("offer", extractOffer_c, "")
            .withColumn("price", extractPrice_c, "")
@@ -1962,7 +1962,7 @@ namespace tuplex {
                 .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
                 .ignore(ecToI64(ExceptionCode::TYPEERROR))
                 .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-                .withColumn("bathrooms", extractBa_c, "", ba_closure)
+                .withColumn("bathrooms", extractBa_c, "", py::reinterpret_steal<py::dict>(ba_closure))
                 .ignore(ecToI64(ExceptionCode::VALUEERROR))
                 .withColumn("sqft", extractSqft_c, "")
                 .ignore(ecToI64(ExceptionCode::VALUEERROR)) // why is this showing a single error???
@@ -2047,23 +2047,23 @@ namespace tuplex {
                                  "        return None";
 
         return ctx.csv(z_path)
-                  .withColumn("bedrooms", extractBd_alt_c, "", ba_closure)
+                  .withColumn("bedrooms", extractBd_alt_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: x['bedrooms'] != None and x['bedrooms'] < 10", "")
-                  .withColumn("type", extractType_c, "", ba_closure)
+                  .withColumn("type", extractType_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: x['type'] == 'house'", "")
                   .filter("lambda x: x['postal_code'] != None", "")
                   .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
                   .filter("lambda x: x['zipcode'] != None", "")
                   .mapColumn("zipcode", "lambda x: str(x)", "")
                   .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-                  .withColumn("bathrooms", extractBa_alt_c, "", ba_closure)
+                  .withColumn("bathrooms", extractBa_alt_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: x['bathrooms'] != None", "")
                   .mapColumn("bathrooms", "lambda x: float(x)", "")
-                  .withColumn("sqft", extractSqft_alt_c, "", ba_closure)
+                  .withColumn("sqft", extractSqft_alt_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: x['sqft'] != None", "")
                   .mapColumn("sqft", "lambda x: int(x)", "")
-                  .withColumn("offer", extractOffer_c, "", ba_closure)
-                  .withColumn("price", extractPrice_c, "", ba_closure)
+                  .withColumn("offer", extractOffer_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
+                  .withColumn("price", extractPrice_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: 100000 < x['price'] < 2e7", "")
                 .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select));
     }

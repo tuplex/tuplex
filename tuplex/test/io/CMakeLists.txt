@@ -17,6 +17,8 @@ TARGET_LINK_LIBRARIES(testio
         libcore
         libcpythonadapter
         ${GTest_LIBRARIES}
-        ${AWSSDK_LINK_LIBRARIES})
+        ${AWSSDK_LINK_LIBRARIES}
+        ${Python3_LIBRARIES}
+        )
 
 gtest_add_tests(TARGET testio TEST_PREFIX "")

@@ -1,3 +1,14 @@
+## Tuplex benchmarks
+
+`sigmod21` contains the old SIGMOD'21 benchmarks.
+`nextconf` contains new benchmarks for our next paper.
+
+
+
+old README below.
+
+
+
 ## Benchmarks
 
 measuring IO time:

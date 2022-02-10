@@ -233,17 +233,21 @@ if __name__ == '__main__':
     metrics = []
     for step in range(num_steps):
         print(f'>>> running pipeline with {step} resolver(s) enabled...')
+        jobstart = time.time()
         m = dirty_zillow_pipeline(paths, output_path, step)
-        print(m.as_json())
+        m = m.as_dict()
+        m["numResolvers"] = step
+        m["jobTime"] = time.time() - jobstart
         metrics.append(m)
 
-    run_time = time.time() - tstart
-    job_time = time.time() - tstart
-    print('Tuplex job time: {} s'.format(job_time))
+    runtime = time.time() - tstart
 
     # print stats as last line
     print(json.dumps({"startupTime": startup_time,
-                      "jobTime": job_time,
+                      "totalRunTime": runtime,
                       "mergeExceptionsInOrder": conf["optimizer.mergeExceptionsInOrder"],
                       "incrementalResolution": conf["optimizer.incrementalResolution"],
                       "multiThreaded": conf["executorCount"] > 0}))
+
+    for metric in metrics:
+        print(json.dumps(metric))

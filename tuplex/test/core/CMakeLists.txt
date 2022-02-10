@@ -10,10 +10,10 @@ include(GoogleTest)
 
 add_executable(testcore ${SRCS} ${STDLIB_SRCS})
 target_link_libraries(testcore
+        libutils
         libio
         libcodegen
         libcore
-        libutils
         libcpythonadapter
         ${GTest_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}

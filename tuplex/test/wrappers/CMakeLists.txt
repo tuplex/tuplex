@@ -35,6 +35,7 @@ TARGET_LINK_LIBRARIES(testwrappers
         libcore
         libcodegen
         libutils
+        libio
         ${GTest_LIBRARIES}
         libcpythonadapter
         ${Boost_LIBRARIES}

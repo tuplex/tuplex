@@ -32,7 +32,7 @@ NUMPY_VERSIONS=("1.14.5"
   "1.14.5"
   "1.14.5"
   "1.19.3")
-PY_INSTS=("python-3.6.8-macosx10.6.pkg"
+PY_INSTS=("python-3.6.8-macosx10.9.pkg"
           "python-3.7.9-macosx10.9.pkg"
           "python-3.8.10-macosx10.9.pkg"
           "python-3.9.10-macosx10.9.pkg")

@@ -1558,11 +1558,15 @@ namespace tuplex {
         // cout<<"*** need to compute "<<resolveTasks.size()<<" resolve tasks ***"<<endl;
         auto resolvedTasks = performTasks(resolveTasks);
 
+        auto numGeneral = 0;
+        auto numFallback = 0;
         for (auto task : resolvedTasks) {
             auto rtask = (ResolveTask*) task;
-            logger().info("NUM GENERAL ROWS PROCESSED: " + to_string(rtask->numGeneralProcessed));
-            logger().info("NUM FALLBACK ROWS PROCESSED: " + to_string(rtask->numFallbackProcessed));
+            numGeneral += rtask->numGeneralProcessed;
+            numFallback += rtask->numFallbackProcessed;
         }
+        logger().info("NUM GENERAL ROWS PROCESSED: " + to_string(numGeneral));
+        logger().info("NUM FALLBACK ROWS PROCESSED: " + to_string(numFallback));
 
 
         // cout<<"*** git "<<resolvedTasks.size()<<" resolve tasks ***"<<endl;

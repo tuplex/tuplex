@@ -28,19 +28,19 @@ class DataSet:
     def __init__(self):
         self._dataSet = None
 
-    def getDataLen(self):
+    def getColumnSize(self):
         data = self.collect()
         if len(data) == 0:
             return 0, 0
         else:
-            return len(data), len(data[0])
+            return len(data[0])
 
     def revTake(self, nRows = 5):
         return self.collect()[-nRows:]
 
     def _repr_html_(self):
         rows_list = self.take()
-        total_row_cnt, total_col_cnt = self.getDataLen()
+        total_col_cnt = self.getColumnSize()
         print('rowlist')
         print(rows_list)
         if len(rows_list) == 0:
@@ -74,7 +74,7 @@ class DataSet:
             lastData = self.revTake()
             for i, r in enumerate(lastData):
                 rows += '    <tr>\n'
-                rows += f'      <th>{total_row_cnt - len(lastData) + i}</th>\n'
+                rows += f'      <th>{0 - len(lastData) + i}</th>\n'
                 for data in r:
                     rows += f'      <td>{data}</td>\n'
                 rows += '    </tr>\n'
@@ -104,7 +104,7 @@ class DataSet:
             f'{rows}'
             '  </tbody>\n'
             '</table>\n'
-            f'<p>{total_row_cnt} rows × {total_col_cnt} columns</p>\n'
+            f'<p>{total_col_cnt} columns</p>\n'
             '</div>'
         )
 

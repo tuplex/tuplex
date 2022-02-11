@@ -1558,7 +1558,7 @@ namespace tuplex {
         // cout<<"*** need to compute "<<resolveTasks.size()<<" resolve tasks ***"<<endl;
         auto resolvedTasks = performTasks(resolveTasks);
 
-        for (auto task : resolveTasks) {
+        for (auto task : resolvedTasks) {
             auto rtask = (ResolveTask*) task;
             logger().info("NUM GENERAL ROWS PROCESSED: " + to_string(rtask->numGeneralProcessed));
             logger().info("NUM FALLBACK ROWS PROCESSED: " + to_string(rtask->numFallbackProcessed));

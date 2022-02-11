@@ -56,7 +56,11 @@ if [ $platform = 'darwin' ]; then
 
     # make sure to remove brewed llvm from path!
     # /usr/local/opt/llvm/bin
-    PATH==$(echo $PATH | sed -e 's|:[a-zA-z/]*/usr/local/opt/llvm/bin||g') delocate-wheel -w $WHEEL_OUTPUT_DIR/ $file
+    python3 -m pip install delocate
+    REPAIR_WHEEL=$(which delocate-wheel)
+    echo "- found repair command @ ${REPAIR_WHEEL}"
+
+    PATH==$(echo $PATH | sed -e 's|:[a-zA-z/]*/usr/local/opt/llvm/bin||g') $(REPAIR_WHEEL) -w $WHEEL_OUTPUT_DIR/ $file
   done
 fi
 

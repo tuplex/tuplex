@@ -91,7 +91,7 @@ for ((i=0; i<${#PY_VERSIONS[@]}; ++i)); do
   # support.
   $PIP_CMD install -q numpy=="$NUMPY_VERSION" cython==0.29.26
   # Install wheel to avoid the error "invalid command 'bdist_wheel'".
-  $PIP_CMD install -q wheel cloudpickle
+  $PIP_CMD install -q wheel cloudpickle delocate
 done
 
 # install boost python for this script

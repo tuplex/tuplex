@@ -60,7 +60,7 @@ if [ $platform = 'darwin' ]; then
     REPAIR_WHEEL=$(which delocate-wheel)
     echo "- found repair command @ ${REPAIR_WHEEL}"
 
-    PATH==$(echo $PATH | sed -e 's|:[a-zA-z/]*/usr/local/opt/llvm/bin||g') $(REPAIR_WHEEL) -w $WHEEL_OUTPUT_DIR/ $file
+    PATH==$(echo $PATH | sed -e 's|:[a-zA-z/]*/usr/local/opt/llvm/bin||g') ${REPAIR_WHEEL} -w $WHEEL_OUTPUT_DIR/ $file
   done
 fi
 

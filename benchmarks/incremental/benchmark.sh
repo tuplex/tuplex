@@ -39,7 +39,7 @@ python3 create_conf.py --opt-null --opt-pushdown --opt-filter --opt-llvm > tuple
 
 # Multi-threaded experiments
 # Without order
-echo "running experiments using 16x parallelism"
+echo "running no-merge experiments using 16x parallelism"
 echo "running tuplex without incremental resolution"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-run-plain-$r.txt"
@@ -64,33 +64,4 @@ echo "running tuplex with incremental resolution"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-run-incremental-in-order-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --path $DATA_PATH >$LOG 2>$LOG.stderr
-done
-
-# Single-threaded experiments
-# Without order
-echo "running experiments in single-thread mode"
-echo "running tuplex without incremental resolution"
-for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/tuplex-run-plain-st-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --single-threaded --path $DATA_PATH >$LOG 2>$LOG.stderr
-done
-
-echo "running tuplex with incremental resolution"
-for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/tuplex-run-incremental-st-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --single-threaded --incremental-resolution --path $DATA_PATH >$LOG 2>$LOG.stderr
-done
-
-# With order
-echo "running in-order experiments in single-thread mode"
-echo "running tuplex without incremental resolution"
-for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/tuplex-run-plain--st-in-order-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --single-threaded --resolve-in-order --path $DATA_PATH >$LOG 2>$LOG.stderr
-done
-
-echo "running tuplex with incremental resolution"
-for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/tuplex-run-incremental--st-in-order-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --single-threaded --resolve-in-order --incremental-resolution --path $DATA_PATH >$LOG 2>$LOG.stderr
 done

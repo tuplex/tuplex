@@ -129,23 +129,24 @@ def dirty_zillow_pipeline(paths, output_path, step):
     ds = ds.withColumn("bedrooms", extractBd)
     if step > 0:
         ds = ds.resolve(ValueError, resolveBd)
+    if step > 1:
         ds = ds.ignore(ValueError)
     ds = ds.filter(lambda x: x['bedrooms'] < 10)
     ds = ds.withColumn("type", extractType)
     ds = ds.filter(lambda x: x['type'] == 'condo')
     ds = ds.withColumn("zipcode", lambda x: '%05d' % int(x['postal_code']))
-    if step > 1:
+    if step > 2:
         ds = ds.ignore(TypeError)
     ds = ds.mapColumn("city", lambda x: x[0].upper() + x[1:].lower())
     ds = ds.withColumn("bathrooms", extractBa)
-    if step > 2:
+    if step > 3:
         ds = ds.ignore(ValueError)
     ds = ds.withColumn("sqft", extractSqft)
-    if step > 3:
+    if step > 4:
         ds = ds.ignore(ValueError)
     ds = ds.withColumn("offer", extractOffer)
     ds = ds.withColumn("price", extractPrice)
-    if step > 4:
+    if step > 5:
         ds = ds.resolve(ValueError, lambda x: int(re.sub('[^0-9.]*', '', x['price'])))
     ds = ds.filter(lambda x: 100000 < x['price'] < 2e7 and x['offer'] == 'sale')
     ds = ds.selectColumns(["url", "zipcode", "address", "city", "state",
@@ -161,7 +162,6 @@ if __name__ == '__main__':
                         help='specify path where to save output data files')
     parser.add_argument('--resolve-in-order', dest='resolve_in_order', action="store_true", help="whether to resolve exceptions in order")
     parser.add_argument('--incremental-resolution', dest='incremental_resolution', action="store_true", help="whether to use incremental resolution")
-    parser.add_argument('--single-threaded', dest='single_threaded', action="store_true", help="whether to use a single thread for execution")
     args = parser.parse_args()
 
     assert args.data_path, 'need to set data path!'
@@ -211,13 +211,8 @@ if __name__ == '__main__':
     else:
         conf['optimizer.mergeExceptionsInOrder'] = False
 
-    if args.single_threaded:
-        conf['executorCount'] = 0
-        conf['driverMemory'] = '32G'
-
     # Note: there's a bug in the merge in order mode here -.-
     # force to false version
-    print('>>> bug in generated parser, force to false')
     conf["optimizer.generateParser"] = False
 
     tstart = time.time()
@@ -229,7 +224,7 @@ if __name__ == '__main__':
     tstart = time.time()
 
     # decide which pipeline to run based on argparse arg!
-    num_steps = 6
+    num_steps = 7
     metrics = []
     for step in range(num_steps):
         print(f'>>> running pipeline with {step} resolver(s) enabled...')
@@ -246,8 +241,7 @@ if __name__ == '__main__':
     print(json.dumps({"startupTime": startup_time,
                       "totalRunTime": runtime,
                       "mergeExceptionsInOrder": conf["optimizer.mergeExceptionsInOrder"],
-                      "incrementalResolution": conf["optimizer.incrementalResolution"],
-                      "multiThreaded": conf["executorCount"] > 0}))
+                      "incrementalResolution": conf["optimizer.incrementalResolution"]}))
 
     for metric in metrics:
         print(json.dumps(metric))

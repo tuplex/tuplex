@@ -433,6 +433,7 @@ default:
         // fallback 1: slow, compiled code path
         int resCode = -1;
         if(_functor && ecCode != ecToI32(ExceptionCode::PYTHON_PARALLELIZE)) {
+            numGeneralProcessed++;
             resCode = _functor(this, _rowNumber, ecCode, ebuf, eSize);
             // uncomment to print out details on demand
             // if(resCode != 0) {
@@ -456,7 +457,7 @@ default:
         // fallback 2: interpreter path
         // --> only go there if a non-true exception was recorded. Else, it will be dealt with above
         if(resCode == -1 && _interpreterFunctor) {
-
+            numFallbackProcessed++;
             // acquire GIL
             python::lockGIL();
             PyCallable_Check(_interpreterFunctor);

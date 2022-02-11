@@ -1557,6 +1557,14 @@ namespace tuplex {
         // add all resolved tasks to the result
         // cout<<"*** need to compute "<<resolveTasks.size()<<" resolve tasks ***"<<endl;
         auto resolvedTasks = performTasks(resolveTasks);
+
+        for (auto task : resolveTasks) {
+            auto rtask = (ResolveTask*) task;
+            logger().info("NUM GENERAL ROWS PROCESSED: " + to_string(rtask->numGeneralProcessed));
+            logger().info("NUM FALLBACK ROWS PROCESSED: " + to_string(rtask->numFallbackProcessed));
+        }
+
+
         // cout<<"*** git "<<resolvedTasks.size()<<" resolve tasks ***"<<endl;
         std::copy(resolvedTasks.cbegin(), resolvedTasks.cend(), std::back_inserter(tasks_result));
 

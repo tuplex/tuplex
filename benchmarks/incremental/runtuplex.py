@@ -224,7 +224,7 @@ if __name__ == '__main__':
     print('Tuplex startup time: {}'.format(startup_time))
     tstart = time.time()
 
-    shutil.rmtree(output_path)
+    shutil.rmtree(output_path, ignore_errors=True)
 
     # decide which pipeline to run based on argparse arg!
     num_steps = 7
@@ -240,7 +240,7 @@ if __name__ == '__main__':
 
     runtime = time.time() - tstart
 
-    shutil.rmtree(output_path)
+    shutil.rmtree(output_path, ignore_errors=True)
 
     # print stats as last line
     print(json.dumps({"startupTime": startup_time,

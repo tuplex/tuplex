@@ -11,6 +11,7 @@ import glob
 import argparse
 import math
 import re
+import shutil
 
 # UDFs for pipeline
 def extractBd(x):
@@ -223,6 +224,8 @@ if __name__ == '__main__':
     print('Tuplex startup time: {}'.format(startup_time))
     tstart = time.time()
 
+    shutil.rmtree(output_path)
+
     # decide which pipeline to run based on argparse arg!
     num_steps = 7
     metrics = []
@@ -236,6 +239,8 @@ if __name__ == '__main__':
         metrics.append(m)
 
     runtime = time.time() - tstart
+
+    shutil.rmtree(output_path)
 
     # print stats as last line
     print(json.dumps({"startupTime": startup_time,

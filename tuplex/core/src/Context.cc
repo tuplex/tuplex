@@ -31,6 +31,9 @@ namespace tuplex {
     Context::Context(const ContextOptions& options) : _datasetIDGenerator(0), _compilePolicy(compilePolicyFromOptions(options)), _id(getNextContextID()) {
         // init metrics
         _lastJobMetrics = std::make_unique<JobMetrics>();
+        // init incremental cache
+        _incrementalCache = std::make_shared<IncrementalCache>();
+
         // make sure this is called without holding the GIL
         if(python::isInterpreterRunning())
             assert(!python::holdsGIL());

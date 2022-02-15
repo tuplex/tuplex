@@ -32,6 +32,7 @@
 #include <Defs.h>
 #include <logical/FileOutputOperator.h>
 #include <logical/AggregateOperator.h>
+#include <IncrementalCache.h>
 
 #ifdef BUILD_WITH_AWS
 // include protobuf serialization of TrafoStage for Lambda executor
@@ -130,6 +131,24 @@ namespace tuplex {
          * get partition groups for all sets of partitions
          */
          std::vector<PartitionGroup> partitionGroups() const { return _partitionGroups; }
+
+         /*!
+          * set cache entry of previous execution to be used by the incremental resolution
+          * @param entry
+          */
+         void setIncrementalCacheEntry(IncrementalCacheEntry* entry) { _incrementalCacheEntry = entry; }
+
+         /*!
+          * get cache entry of previous execution
+          * @return
+          */
+         IncrementalCacheEntry* incrementalCacheEntry() const { return _incrementalCacheEntry; }
+
+         /*!
+          * whether or not to use incremental resolution during stage execution
+          * @return
+          */
+         bool incrementalResolution() const { return _incrementalResolution; }
 
         /*!
          * sets maximum number of rows this pipeline will produce
@@ -486,7 +505,10 @@ namespace tuplex {
         std::string _pyCode;
         std::string _pyPipelineName;
         std::string _writerFuncName;
+
         bool _updateInputExceptions;
+        bool _incrementalResolution;
+        IncrementalCacheEntry* _incrementalCacheEntry;
 
         std::shared_ptr<ResultSet> emptyResultSet() const;
 

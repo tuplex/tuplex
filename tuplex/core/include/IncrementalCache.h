@@ -63,10 +63,6 @@ namespace tuplex {
                 IncrementalCacheEntry(pipeline, exceptionPartitions, generalPartitions, fallbackPartitions),
                 _startPartNumber(startPartNumber) {}
 
-        ~IncrementalCSVEntry() {
-            IncrementalCacheEntry::~IncrementalCacheEntry();
-        }
-
         size_t startPartNumber() const { return _startPartNumber; }
     };
 

@@ -25,18 +25,11 @@ namespace tuplex {
         std::vector<Partition*> _exceptionPartitions;
         std::vector<Partition*> _generalPartitions;
         std::vector<Partition*> _fallbackPartitions;
-        std::vector<PartitionGroup> _partitionGroups;
     public:
         IncrementalCacheEntry(LogicalOperator* pipeline,
               const std::vector<Partition*>& exceptionPartitions,
               const std::vector<Partition*>& generalPartitions,
-              const std::vector<Partition*>& fallbackPartitions,
-              const std::vector<PartitionGroup>& partitionGroups):
-              _pipeline(pipeline),
-              _exceptionPartitions(exceptionPartitions),
-              _generalPartitions(generalPartitions),
-              _fallbackPartitions(fallbackPartitions),
-              _partitionGroups(partitionGroups) {}
+              const std::vector<Partition*>& fallbackPartitions);
 
         ~IncrementalCacheEntry();
 
@@ -55,33 +48,26 @@ namespace tuplex {
         std::vector<Partition*> fallbackPartitions() const {
             return _fallbackPartitions;
         }
-
-        std::vector<PartitionGroup> partitionGroups() const {
-            return _partitionGroups;
-        }
     };
 
     class IncrementalCSVEntry : public IncrementalCacheEntry {
         class Metadata;
     private:
-        std::vector<Metadata> _fileMetadata;
+        size_t _startPartNumber;
     public:
         IncrementalCSVEntry(LogicalOperator* pipeline,
                  const std::vector<Partition*>& exceptionPartitions,
                  const std::vector<Partition*>& generalPartitions,
                  const std::vector<Partition*>& fallbackPartitions,
-                 const std::vector<PartitionGroup>& partitionGroups,
-                 const std::vector<Metadata>& fileMetadata):
-                IncrementalCacheEntry(pipeline, exceptionPartitions, generalPartitions, fallbackPartitions, partitionGroups),
-                  _fileMetadata(fileMetadata)  {}
+                 const size_t startPartNumber):
+                IncrementalCacheEntry(pipeline, exceptionPartitions, generalPartitions, fallbackPartitions),
+                _startPartNumber(startPartNumber) {}
 
         ~IncrementalCSVEntry() {
             IncrementalCacheEntry::~IncrementalCacheEntry();
         }
 
-        std::vector<Metadata> fileMetadata() const {
-            return _fileMetadata;
-        }
+        size_t startPartNumber() const { return _startPartNumber; }
     };
 
     class IncrementalCSVEntry::Metadata {

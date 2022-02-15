@@ -12,6 +12,23 @@
 
 namespace tuplex {
 
+    IncrementalCacheEntry::IncrementalCacheEntry(
+            LogicalOperator* pipeline,
+            const std::vector<Partition*>& exceptionPartitions,
+            const std::vector<Partition*>& generalPartitions,
+            const std::vector<Partition*>& fallbackPartitions) {
+        _pipeline = pipeline->clone();
+        for (const auto& p: exceptionPartitions)
+            p->makeImmortal();
+        _exceptionPartitions = exceptionPartitions;
+        for (const auto& p: generalPartitions)
+            p->makeImmortal();
+        _generalPartitions = generalPartitions;
+        for (const auto& p: fallbackPartitions)
+            p->makeImmortal();
+        _fallbackPartitions = fallbackPartitions;
+    }
+
     IncrementalCacheEntry::~IncrementalCacheEntry() {
         delete _pipeline;
         for (auto &p : _exceptionPartitions)

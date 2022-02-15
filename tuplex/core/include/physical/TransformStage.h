@@ -201,6 +201,11 @@ namespace tuplex {
          */
         std::shared_ptr<ResultSet> resultSet() const override { return _rs;}
 
+        void setIncrmentalCacheCSVResult(const std::vector<Partition*>& exceptionPartitions,
+                                         const std::vector<Partition*>& generalPartitions,
+                                         const std::vector<Partition*>& fallbackPartitions,
+                                         const size_t startFileNumber);
+
         void setMemoryResult(const std::vector<Partition*>& normalPartitions=std::vector<Partition*>{},
                              const std::vector<Partition*>& generalPartitions=std::vector<Partition*>{},
                              const std::vector<Partition*>& fallbackPartitions=std::vector<Partition*>{},

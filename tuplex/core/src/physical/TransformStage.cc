@@ -111,6 +111,14 @@ namespace tuplex {
         _inputPartitions = rowsToPartitions(backend()->driver(), dataSetID, context().id(), rows);
     }
 
+    void TransformStage::setIncrmentalCacheCSVResult(const std::vector<Partition*>& exceptionPartitions,
+                                                     const std::vector<Partition*>& generalPartitions,
+                                                     const std::vector<Partition*>& fallbackPartitions,
+                                                     const size_t startFileNumber) {
+        auto pipeline = PhysicalStage::plan()->originalLogicalPlan()->getAction();
+        auto cacheEntry = new IncrementalCSVEntry(pipeline, exceptionPartitions, generalPartitions, fallbackPartitions, startFileNumber);
+        PhysicalStage::plan()->getContext().getIncrementalCache()->addEntry(IncrementalCache::newKey(pipeline), cacheEntry);
+    }
 
     void TransformStage::setFileResult(const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> &ecounts) {
         setExceptionCounts(ecounts);

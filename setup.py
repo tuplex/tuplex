@@ -295,18 +295,12 @@ class CMakeBuild(build_ext):
             if platform.system().lower() == 'darwin':
                 # mac os, use brewed versions!
                 out_py = subprocess.check_output(['brew', 'info', 'python3']).decode()
-                out_boost_py = subprocess.check_output(['brew', 'info', 'boost-python3']).decode()
-
                 print(out_py)
-                print(out_boost_py)
-
                 def find_pkg_path(lines):
                     return list(filter(lambda x: 'usr/local' in x, lines.split('\n')))[0]
 
                 out_py = find_pkg_path(out_py)
-                out_boost_py = find_pkg_path(out_boost_py)
                 print('Found python3 @ {}'.format(out_py))
-                print('Found boost-python3 @ {}'.format(out_boost_py))
 
                 # setups find everything automatically...
                 llvm_root = None

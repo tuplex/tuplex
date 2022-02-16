@@ -31,12 +31,12 @@ namespace tuplex {
 
     IncrementalCacheEntry::~IncrementalCacheEntry() {
         delete _pipeline;
-        for (auto &p : _exceptionPartitions)
-            p->invalidate();
-        for (auto &p : _generalPartitions)
-            p->invalidate();
-        for (auto &p : _fallbackPartitions)
-            p->invalidate();
+//        for (auto &p : _exceptionPartitions)
+//            p->invalidate();
+//        for (auto &p : _generalPartitions)
+//            p->invalidate();
+//        for (auto &p : _fallbackPartitions)
+//            p->invalidate();
     }
 
     std::string IncrementalCache::newKey(LogicalOperator* pipeline) {

@@ -12,7 +12,28 @@
 #include <Context.h>
 #include "TestUtils.h"
 
-class IncrementalTest : public PyTest {};
+class IncrementalTest : public PyTest {
+protected:
+
+    void SetUp() override {
+        PyTest::SetUp();
+
+        using namespace tuplex;
+        auto vfs = VirtualFileSystem::fromURI(".");
+        vfs.remove(testName);
+        auto err = vfs.create_dir(testName);
+        ASSERT_TRUE(err == VirtualFileSystemStatus::VFS_OK);
+    }
+
+    void TearDown() override {
+        PyTest::TearDown();
+
+        using namespace tuplex;
+        auto vfs = VirtualFileSystem::fromURI(".");
+        vfs.remove(testName);
+    }
+};
+
 
 TEST_F(IncrementalTest, FileOutput) {
     using namespace tuplex;
@@ -43,8 +64,8 @@ TEST_F(IncrementalTest, FileOutput) {
         }
     }
 
-    auto fileURI = URI(scratchDir + "/" + testName + ".csv");
-    auto outputFileURI = URI(scratchDir + "/" + testName + ".*.csv");
+    auto fileURI = URI(testName + "/out.csv");
+    auto outputFileURI = URI(testName + "/out.*.csv");
 
     auto &ds_cached = c.parallelize(inputRows).cache();
 

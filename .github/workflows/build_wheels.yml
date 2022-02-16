@@ -13,7 +13,7 @@ jobs:
         #       2. Mac OS not working yet (delocate produces invalid package)
         #          hence, use only ubuntu for now
         #os: [ ubuntu-20.04, macos-10.15 ]
-        os: [ ubuntu-20.04, macos-10.15 ]
+        os: [ macos-10.15 ]
 
 
     steps:
@@ -49,7 +49,7 @@ jobs:
         shell: bash
 
       - name: Build Linux wheels
-        if: runner.os != 'macOS'
+        #if: runner.os != 'macOS'
         uses: pypa/cibuildwheel@v1.11.1.post1
         env:
           # configure cibuildwheel to build native archs ('auto'), and some
@@ -64,6 +64,8 @@ jobs:
           CIBW_BUILD: "cp3{7,8,9}-*"
           CIBW_SKIP: "cp3{5,6,7,8}-macosx* pp* *-musllinux_*"
 
+          CIBW_BEFORE_BUILD_MACOS: brew install coreutils protobuf zstd zlib libmagic llvm@9 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget boost
+
           ## for debugging purposes (only linux build)
           #CIBW_BUILD: "cp38-*"
           #CIBW_SKIP: "cp3{5,6,7,8}-macosx* pp*"
@@ -71,11 +73,13 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
 
           # set this environment variable to include the Lambda zip from the previous build step
-          CIBW_ENVIRONMENT: "TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
-      - name: Build MacOS wheels
-        if: runner.os == 'macOS'
-        run: bash ./scripts/build_wheel_macos.sh && mkdir -p ./wheelhouse && cp ./dist/*.whl ./wheelhouse
-        shell: bash
+          CIBW_ENVIRONMENT_LINUX: "TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
+          CIBW_ENVIRONMENT_MACOS: " CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' "
+
+      # - name: Build MacOS wheels
+      #   if: runner.os == 'macOS'
+      #   run: bash ./scripts/build_wheel_macos.sh && mkdir -p ./wheelhouse && cp ./dist/*.whl ./wheelhouse
+      #   shell: bash
 
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./scripts/test_pypi.sh ./wheelhouse

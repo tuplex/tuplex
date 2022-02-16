@@ -932,7 +932,7 @@ namespace tuplex {
         auto tasks = createIncrementalTasks(tstage, _options, syms);
         auto completedTasks = performTasks(tasks);
 
-// fetch partitions & ecounts
+        // fetch partitions & ecounts
         vector<Partition*> normalPartitions;
         vector<Partition*> generalPartitions;
         vector<Partition*> fallbackPartitions;
@@ -970,9 +970,7 @@ namespace tuplex {
 
         switch (tstage->outputMode()) {
             case EndPointMode::FILE: {
-                auto csvCacheEntry = (IncrementalCSVEntry *) cacheEntry;
-                assert(csvCacheEntry);
-                auto partNo = writeOutput(tstage, completedTasks, csvCacheEntry->startPartNumber());
+                auto partNo = writeOutput(tstage, completedTasks, cacheEntry->startFileNumber());
                 tstage->setIncrmentalCacheCSVResult(exceptionPartitions, generalPartitions, fallbackPartitions, partNo);
                 break;
             }

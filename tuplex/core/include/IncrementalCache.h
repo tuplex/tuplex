@@ -25,11 +25,13 @@ namespace tuplex {
         std::vector<Partition*> _exceptionPartitions;
         std::vector<Partition*> _generalPartitions;
         std::vector<Partition*> _fallbackPartitions;
+        size_t _startFileNumber;
     public:
         IncrementalCacheEntry(LogicalOperator* pipeline,
-              const std::vector<Partition*>& exceptionPartitions,
-              const std::vector<Partition*>& generalPartitions,
-              const std::vector<Partition*>& fallbackPartitions);
+                              std::vector<Partition*> exceptionPartitions,
+                              std::vector<Partition*> generalPartitions,
+                              std::vector<Partition*> fallbackPartitions,
+                              size_t startFileNumber);
 
         ~IncrementalCacheEntry();
 
@@ -48,32 +50,9 @@ namespace tuplex {
         std::vector<Partition*> fallbackPartitions() const {
             return _fallbackPartitions;
         }
-    };
 
-    class IncrementalCSVEntry : public IncrementalCacheEntry {
-        class Metadata;
-    private:
-        size_t _startPartNumber;
-    public:
-        IncrementalCSVEntry(LogicalOperator* pipeline,
-                 const std::vector<Partition*>& exceptionPartitions,
-                 const std::vector<Partition*>& generalPartitions,
-                 const std::vector<Partition*>& fallbackPartitions,
-                 const size_t startPartNumber):
-                IncrementalCacheEntry(pipeline, exceptionPartitions, generalPartitions, fallbackPartitions),
-                _startPartNumber(startPartNumber) {}
-
-        size_t startPartNumber() const { return _startPartNumber; }
-    };
-
-    class IncrementalCSVEntry::Metadata {
-    private:
-        std::vector<size_t> _rowIndices;
-    public:
-        Metadata(const std::vector<size_t>& rowIndices): _rowIndices(rowIndices) {}
-
-        std::vector<size_t> rowIndices() const {
-            return _rowIndices;
+        size_t startFileNumber() const {
+            return _startFileNumber;
         }
     };
 

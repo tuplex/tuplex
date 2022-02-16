@@ -116,7 +116,7 @@ namespace tuplex {
                                                      const std::vector<Partition*>& fallbackPartitions,
                                                      const size_t startFileNumber) {
         auto pipeline = PhysicalStage::plan()->originalLogicalPlan()->getAction();
-        auto cacheEntry = new IncrementalCSVEntry(pipeline, exceptionPartitions, generalPartitions, fallbackPartitions, startFileNumber);
+        auto cacheEntry = new IncrementalCacheEntry(pipeline, exceptionPartitions, generalPartitions, fallbackPartitions, startFileNumber);
         PhysicalStage::plan()->getContext().getIncrementalCache()->addEntry(IncrementalCache::newKey(pipeline), cacheEntry);
     }
 

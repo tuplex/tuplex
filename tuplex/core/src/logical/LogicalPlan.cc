@@ -76,20 +76,20 @@ namespace tuplex {
         while(!currentQ.empty() && !previousQ.empty()) {
             auto curNode = currentQ.front(); currentQ.pop();
             auto prevNode = previousQ.front(); previousQ.pop();
-            if (curNode->type() == LogicalOperatorType::RESOLVE || curNode->type() == LogicalOperatorType::IGNORE) {
-                for (auto parent : curNode->parents()) {
-                    currentQ.push(parent);
-                }
-                previousQ.push(prevNode);
-            } else {
-                assert(curNode->type() == prevNode->type());
-                curNode->setID(prevNode->getID());
-                for (auto parent : curNode->parents()) {
-                    currentQ.push(parent);
-                }
-                for (auto parent : prevNode->parents()) {
-                    previousQ.push(parent);
-                }
+
+            while (curNode->type() == LogicalOperatorType::RESOLVE || curNode->type() == LogicalOperatorType::IGNORE)
+                curNode = curNode->parent();
+
+            while (prevNode->type() == LogicalOperatorType::RESOLVE || prevNode->type() == LogicalOperatorType::IGNORE)
+                prevNode = prevNode->parent();
+
+            assert(curNode->type() == prevNode->type());
+            curNode->setID(prevNode->getID());
+            for (auto parent : curNode->parents()) {
+                currentQ.push(parent);
+            }
+            for (auto parent : prevNode->parents()) {
+                previousQ.push(parent);
             }
         }
     }

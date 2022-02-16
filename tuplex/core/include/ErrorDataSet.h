@@ -90,7 +90,7 @@ namespace tuplex {
         std::shared_ptr<ResultSet> collect(std::ostream& os) override;
 
         // take / collect will print out the error only
-        std::shared_ptr<ResultSet> take(int64_t numElements, std::ostream& os) override;
+        std::shared_ptr<ResultSet> take(int64_t numTop, int64_t numBottom, std::ostream& os) override;
 
         //virtual void show(const int64_t numRows=-1, std::ostream& os=std::cout) override;
         std::vector<Row> collectAsVector(std::ostream& os) override;

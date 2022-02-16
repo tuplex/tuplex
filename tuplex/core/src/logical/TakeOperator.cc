@@ -12,13 +12,13 @@
 #include <cassert>
 
 namespace tuplex {
-    TakeOperator::TakeOperator(LogicalOperator *parent, const int64_t numElements) : LogicalOperator::LogicalOperator(parent), _limit(numElements) {
+    TakeOperator::TakeOperator(LogicalOperator *parent, const int64_t numTop, const int64_t numBottom) : LogicalOperator::LogicalOperator(parent), _limitTop(numTop), _limitBottom(numBottom) {
         // take schema from parent node
         setSchema(this->parent()->getOutputSchema());
     }
 
     bool TakeOperator::good() const {
-            return _limit >= -1;
+            return _limitTop >= -1 && _limitBottom >= -1;
     }
 
     std::vector<Row> TakeOperator::getSample(const size_t num) const {
@@ -33,7 +33,7 @@ namespace tuplex {
 
     LogicalOperator *TakeOperator::clone() {
         // create clone of this operator
-        auto copy = new TakeOperator(parent()->clone(), _limit);
+        auto copy = new TakeOperator(parent()->clone(), _limitTop, _limitBottom);
 
         copy->setDataSet(getDataSet()); // weak ptr to old dataset...
         copy->copyMembers(this);

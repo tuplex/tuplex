@@ -209,7 +209,6 @@ namespace tuplex {
             if(ops.back()->type() == LogicalOperatorType::FILEOUTPUT)
                 outputMode = EndPointMode::FILE;
             else if(ops.back()->type() == LogicalOperatorType::TAKE ||
-                    ops.back()->type() == LogicalOperatorType::TAKELAST || 
                     ops.back()->type() == LogicalOperatorType::CACHE) {
                // memory?
                outputMode = EndPointMode::MEMORY;
@@ -383,9 +382,6 @@ namespace tuplex {
         // set limit if output node has a limit (currently only TakeOperator)
         if(outputNode->type() == LogicalOperatorType::TAKE) {
             auto top = static_cast<TakeOperator*>(outputNode);
-            builder.setOutputLimit(top->limit());
-        } else if (outputNode->type() == LogicalOperatorType::TAKELAST) {
-            auto top = static_cast<TakeLastOperator*>(outputNode);
             builder.setOutputLimit(top->limit());
         }
 

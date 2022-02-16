@@ -107,7 +107,7 @@ namespace tuplex {
         }
     }
 
-    py::object PythonDataSet::take(const int64_t numRows) {
+    py::object PythonDataSet::take(const int64_t numTop, const int64_t numBottom) {
         // make sure a dataset is wrapped
         assert(this->_dataset);
 
@@ -162,7 +162,7 @@ namespace tuplex {
             // new version, directly interact with the interpreter
             Timer timer;
             // build python list object from resultset
-            auto listObj = resultSetToCPython(rs.get(), numRows);
+            auto listObj = resultSetToCPython(rs.get(), numTop);
             Logger::instance().logger("python").info("Data transfer back to python took "
                                                      + std::to_string(timer.time()) + " seconds");
             // Logger::instance().flushAll();
@@ -173,75 +173,6 @@ namespace tuplex {
                 PySys_FormatStdout("%s", ss.str().c_str());
 
             return py::reinterpret_borrow<py::list>(listObj);
-        }
-    }
-
-    boost::python::object PythonDataSet::takeLast(const int64_t numRows) {
-        // make sure a dataset is wrapped
-        assert(this->_dataset);
-
-        // is callee error dataset? if so return list with error string
-        if (this->_dataset->isError()) {
-            ErrorDataSet *eds = static_cast<ErrorDataSet *>(this->_dataset);
-            boost::python::list L;
-            L.append(eds->getError());
-            // Logger::instance().flushAll();
-            Logger::instance().flushToPython();
-            return L;
-        } else {
-            std::stringstream ss;
-
-            // release GIL & hand over everything to Tuplex
-            assert(PyGILState_Check()); // make sure this thread holds the GIL!
-            python::unlockGIL();
-
-            std::shared_ptr<ResultSet> rs;
-            std::string err_message = "";
-            try {
-                rs = _dataset->takeLast(numRows, ss);
-                if(!rs)
-                    throw std::runtime_error("invalid result set");
-                // if there are more than 1 million (100k in debug mode) elements print message...
-                if (rs->rowCount() > LARGE_RESULT_SIZE)
-                    Logger::instance().logger("python").info("transferring "
-                                                             + std::to_string(rs->rowCount()) +
-                                                             " elements back to Python. This might take a while...");
-            } catch(const std::exception& e) {
-                err_message = e.what();
-                Logger::instance().defaultLogger().error(err_message);
-            } catch(...) {
-                err_message = "unknown C++ exception occurred, please change type.";
-                Logger::instance().defaultLogger().error(err_message);
-            }
-
-            // reqacquire GIL
-            python::lockGIL();
-
-            // error? then return list of error string
-            if(!rs || !err_message.empty()) {
-                // Logger::instance().flushAll();
-                Logger::instance().flushToPython();
-                auto listObj = PyList_New(1);
-                PyList_SetItem(listObj, 0, python::PyString_FromString(err_message.c_str()));
-                auto list = boost::python::object(boost::python::borrowed<>(listObj));
-                return list;
-            }
-
-            // collect results & transfer them back to python
-            // new version, directly interact with the interpreter
-            Timer timer;
-            // build python list object from resultset
-            auto listObj = resultSetToCPython(rs.get(), numRows);
-            Logger::instance().logger("python").info("Data transfer back to python took "
-                                                     + std::to_string(timer.time()) + " seconds");
-            // Logger::instance().flushAll();
-            Logger::instance().flushToPython();
-
-            // print errors
-            if (ss.str().length() > 0)
-                PySys_FormatStdout("%s", ss.str().c_str());
-
-            return boost::python::object(boost::python::handle<>(listObj));
         }
     }
 

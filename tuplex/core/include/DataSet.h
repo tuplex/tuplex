@@ -263,13 +263,12 @@ namespace tuplex {
         // these are actions that cause execution
         virtual std::shared_ptr<ResultSet> collect(std::ostream &os = std::cout);
 
-        virtual std::shared_ptr<ResultSet> take(int64_t numElements, std::ostream &os = std::cout);
+        virtual std::shared_ptr<ResultSet> take(int64_t numTop, int64_t numBottom, std::ostream &os = std::cout);
 
         virtual std::vector<Row> collectAsVector(std::ostream &os = std::cout);
 
         virtual std::vector<Row> takeAsVector(int64_t numElements, std::ostream &os = std::cout);
 
-        virtual std::shared_ptr<ResultSet> takeLast(int64_t numElements, std::ostream &os = std::cout);
         
         /*!
          * saves dataset to file. There are multiple options to control the behavior

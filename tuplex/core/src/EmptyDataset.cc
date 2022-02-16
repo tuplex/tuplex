@@ -11,7 +11,7 @@
 #include <EmptyDataset.h>
 
 namespace tuplex {
-    std::shared_ptr<ResultSet> EmptyDataset::take(int64_t numElements, std::ostream &os) {
+    std::shared_ptr<ResultSet> EmptyDataset::take(int64_t numTop, int64_t numBottom, std::ostream &os) {
         return std::make_shared<ResultSet>();
     }
 
@@ -20,7 +20,7 @@ namespace tuplex {
     }
 
     std::shared_ptr<ResultSet> EmptyDataset::collect(std::ostream &os) {
-        return take(0, os);
+        return take(0, false, os);
     }
 
     std::vector<Row> EmptyDataset::collectAsVector(std::ostream &os) {

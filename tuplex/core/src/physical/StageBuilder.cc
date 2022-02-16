@@ -457,7 +457,8 @@ namespace tuplex {
                         break;
                     }
                     case LogicalOperatorType::TAKE: {
-                        opt_ops.push_back(new TakeOperator(lastParent, dynamic_cast<TakeOperator*>(node)->limit()));
+                        auto takeOp = dynamic_cast<TakeOperator*>(node);
+                        opt_ops.push_back(new TakeOperator(lastParent, takeOp->limit(), takeOp->limitBottom()));
                         opt_ops.back()->setID(node->getID());
                         break;
                     }

@@ -12,7 +12,6 @@
 #include <logical/MapOperator.h>
 #include <logical/FilterOperator.h>
 #include <logical/TakeOperator.h>
-#include <logical/TakeLastOperator.h>
 #include <logical/ResolveOperator.h>
 #include <logical/IgnoreOperator.h>
 #include <logical/MapColumnOperator.h>
@@ -39,21 +38,21 @@ namespace tuplex {
     }
 
     std::shared_ptr<ResultSet> DataSet::collect(std::ostream &os) {
-        return take(-1, os);
+        return take(-1, false, os);
     }
 
-    std::shared_ptr<ResultSet> DataSet::take(int64_t numElements, std::ostream &os) {
+    std::shared_ptr<ResultSet> DataSet::take(int64_t numTop, int64_t numBottom, std::ostream &os) {
         // error dataset?
         if (isError())
             throw std::runtime_error("is error dataset!");
 
         // negative numbers mean get all elements!
-        if (numElements < 0)
-            numElements = std::numeric_limits<int64_t>::max();
+        if (numTop < 0)
+            numTop = std::numeric_limits<int64_t>::max();
 
         // create a take node
         assert(_context);
-        LogicalOperator *op = _context->addOperator(new TakeOperator(this->_operator, numElements));
+        LogicalOperator *op = _context->addOperator(new TakeOperator(this->_operator, numTop, numBottom));
         DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
         dsptr->_operator = op;
         op->setDataSet(dsptr);
@@ -72,7 +71,7 @@ namespace tuplex {
 
     // -1 means to retrieve all elements
     std::vector<Row> DataSet::takeAsVector(int64_t numElements, std::ostream &os) {
-        auto rs = take(numElements, os);
+        auto rs = take(numElements, false, os);
         Timer timer;
 
 #warning "limiting should make this hack irrelevant..."
@@ -101,29 +100,6 @@ namespace tuplex {
         }
 
         return v;
-    }
-
-    std::shared_ptr<ResultSet> DataSet::takeLast(int64_t numElements, std::ostream &os) {
-        // error dataset?
-        if (isError())
-            throw std::runtime_error("is error dataset!");
-
-        // negative numbers mean get all elements!
-        if (numElements < 0)
-            numElements = std::numeric_limits<int64_t>::max();
-
-        // create a take node
-        assert(_context);
-        LogicalOperator *op = _context->addOperator(new TakeLastOperator(this->_operator, numElements));
-        DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
-        dsptr->_operator = op;
-        op->setDataSet(dsptr);
-
-        // perform action.
-        assert(this->_context);
-        auto rs = op->compute(*this->_context);
-
-        return rs;
     }
 
     void DataSet::tofile(tuplex::FileFormat fmt, const tuplex::URI &uri, const tuplex::UDF &udf,

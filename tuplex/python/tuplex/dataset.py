@@ -191,7 +191,7 @@ class DataSet:
         assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
         return self._dataSet.collect()
 
-    def take(self, nrows=5):
+    def take(self, nrows=5, nbottom=0):
         """ action that generates a physical plan, processes data and collects the top results then as list of tuples.
 
         Args:
@@ -203,27 +203,12 @@ class DataSet:
 
         assert isinstance(nrows, int), 'num rows must be an integer'
         assert nrows > 0, 'please specify a number greater than zero'
+        assert isinstance(nbottom, int), 'num bottom last must be an integer'
+        assert nbottom >= 0, 'please specify a number greater or equal to zero'
 
         assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
 
-        return self._dataSet.take(nrows)
-
-    def takeLast(self, nrows=5):
-        """ action that generates a physical plan, processes data and collects the last results then as list of tuples.
-
-        Args:
-            nrows (int): number of rows to collect. Per default ``5``.
-        Returns:
-            (list): A list of tuples
-
-        """
-
-        assert isinstance(nrows, int), 'num rows must be an integer'
-        assert nrows > 0, 'please specify a number greater than zero'
-
-        assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
-
-        return self._dataSet.takeLast(nrows)
+        return self._dataSet.take(nrows, nbottom)
 
     def show(self, nrows=None):
         """ action that generates a physical plan, processes data and prints results as nicely formatted

@@ -139,46 +139,21 @@ namespace tuplex {
                 }
 
                 // check output limit, adjust partitions if necessary
-                // TODO: add reverse outputLimit condition here
-                if (true) {
-                    size_t numOutputRows = 0;
-                    for (auto partition : partitions) {
-                        numOutputRows += partition->getNumRows();
-                        if (numOutputRows >= outputLimit()) {
-                            // clip last partition & leave loop
-                            auto clipped = outputLimit() - (numOutputRows - partition->getNumRows());
-                            assert(clipped <= partition->getNumRows());
-                            partition->setNumRows(clipped);
-                            if (clipped > 0)
-                                limitedPartitions.push_back(partition);
-                            break;
-                        } else {
-                            // put full partition to output set
+                size_t numOutputRows = 0;
+                for (auto partition : partitions) {
+                    numOutputRows += partition->getNumRows();
+                    if (numOutputRows >= outputLimit()) {
+                        // clip last partition & leave loop
+                        auto clipped = outputLimit() - (numOutputRows - partition->getNumRows());
+                        assert(clipped <= partition->getNumRows());
+                        partition->setNumRows(clipped);
+                        if (clipped > 0)
                             limitedPartitions.push_back(partition);
-                        }
-                    }   
-                } else {
-                    size_t numOutputRows = 0;
-                    for (auto partitionIt = partitions.rbeing();
-                            partitionIt != partitions.rend(); partitionIt++) {
-                        numOutputRows += partition->getNumRows();
-                        if (numOutputRows >= outputLimit()) {
-                            // clip last partition & leave loop
-                            auto clipped = outputLimit() - (numOutputRows - partition->getNumRows());
-                            assert(clipped <= partition->getNumRows());
-
-                            // TODO: do backward clip here instead
-                            partition->setNumRows(clipped);
-                            if (clipped > 0)
-                                limitedPartitions.push_back(partition);
-                            break;
-                        } else {
-                            // put full partition to output set
-                            limitedPartitions.push_back(partition);
-                        }    
+                        break;
+                    } else {
+                        // put full partition to output set
+                        limitedPartitions.push_back(partition);
                     }
-
-                    std::reverse(limitedPartitions.begin(), limitedPartitions.end());
                 }
             }
 

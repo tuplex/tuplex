@@ -40,7 +40,7 @@ namespace tuplex {
 
         int64_t limit() { return _limitTop; }
 
-        bool limitBottom() { return _limitBottom; }
+        int64_t limitBottom() { return _limitBottom; }
 
         std::vector<Row> getSample(const size_t num) const override;
 

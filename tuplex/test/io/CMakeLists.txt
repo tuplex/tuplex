@@ -9,7 +9,7 @@ include(GoogleTest)
 
 ADD_EXECUTABLE(testio ${SRCS} main.cc
         )
-
+message(STATUS "Py3_libs=${Python3_LIBRARIES}")
 TARGET_LINK_LIBRARIES(testio
         libio
         libutils

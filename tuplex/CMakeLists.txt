@@ -533,9 +533,10 @@ if(Python3_FOUND)
     endif()
 
     # set to empty string to build without .so
-    if(NOT Python3_Embed_FOUND)
-        set(Python3_LIBRARIES "")
-    endif()
+    #if(NOT Python3_Embed_FOUND)
+    #message(STATUS "Setting Python3_LIBRARIES from ${Python3_LIBRARIES} to ''")
+	#set(Python3_LIBRARIES "")
+	#endif()
 
     # use these switches here to specialize Boost behavior
     SET(Boost_USE_STATIC_LIBS OFF)

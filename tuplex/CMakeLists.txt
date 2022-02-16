@@ -443,7 +443,8 @@ if(PYTHON3_EXECUTABLE)
             RESULT_VARIABLE _result
             OUTPUT_VARIABLE Python3_ROOT_DIR
             OUTPUT_STRIP_TRAILING_WHITESPACE)
-    #get_filename_component(Python3_ROOT_DIR ${PYTHON3_EXECUTABLE}/../.. ABSOLUTE)
+    # Pure CMAKE version:
+    # get_filename_component(Python3_ROOT_DIR ${PYTHON3_EXECUTABLE}/../.. ABSOLUTE)
     message(STATUS "Detected Python3 Root dir to be: ${Python3_ROOT_DIR}")
 endif()
 
@@ -531,12 +532,6 @@ if(Python3_FOUND)
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
         message(STATUS "Detected Python3 include dir to be ${Python3_INCLUDE_DIRS}")
     endif()
-
-    # set to empty string to build without .so
-    #if(NOT Python3_Embed_FOUND)
-    #message(STATUS "Setting Python3_LIBRARIES from ${Python3_LIBRARIES} to ''")
-	#set(Python3_LIBRARIES "")
-	#endif()
 
     # use these switches here to specialize Boost behavior
     SET(Boost_USE_STATIC_LIBS OFF)

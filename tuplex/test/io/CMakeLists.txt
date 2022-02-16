@@ -7,9 +7,8 @@ FILE(GLOB SRCS *.cc)
 
 include(GoogleTest)
 
-ADD_EXECUTABLE(testio ${SRCS} main.cc
-        )
-message(STATUS "Py3_libs=${Python3_LIBRARIES}")
+ADD_EXECUTABLE(testio ${SRCS} main.cc)
+
 TARGET_LINK_LIBRARIES(testio
         libio
         libutils

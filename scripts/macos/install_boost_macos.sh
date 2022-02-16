@@ -5,13 +5,6 @@ CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 DEST_PATH=$1
 CPU_CORES=$(sysctl -n hw.physicalcpu)
 
-# PYTHON_VERSION="$(basename -- $PYTHON_EXECUTABLE)"
-# PY_INCLUDE_DIR=`$PYTHON_EXE -c "import sysconfig; print(sysconfig.get_path('include'))"`
-#
-# export C_INCLUDE_PATH=$PY_INCLUDE_DIR:$C_INCLUDE_PATH
-# export CPLUS_INCLUDE_PATH=$PY_INCLUDE_DIR:$CPLUS_INCLUDE_PATH
-
-
 # build incl. boost python
 cd /tmp || exit
 wget https://boostorg.jfrog.io/artifactory/main/release/1.75.0/source/boost_1_75_0.tar.gz

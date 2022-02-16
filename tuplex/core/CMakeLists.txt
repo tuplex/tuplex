@@ -84,6 +84,3 @@ target_link_libraries(libcore
         Boost::system
         Boost::filesystem
         )
-
-# weakly link boost python especially
-#target_link_libraries_with_dynamic_lookup(libcore Boost::python)

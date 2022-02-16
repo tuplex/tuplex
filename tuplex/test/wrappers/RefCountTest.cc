@@ -1,7 +1,12 @@
-//
-// Created by Leonhard Spiegelberg on 2/9/22.
-//
-
+//--------------------------------------------------------------------------------------------------------------------//
+//                                                                                                                    //
+//                                      Tuplex: Blazing Fast Python Data Science                                      //
+//                                                                                                                    //
+//                                                                                                                    //
+//  (c) 2017 - 2021, Tuplex team                                                                                      //
+//  Created by Leonhard Spiegelberg first on 2/9/2022                                                                 //
+//  License: Apache 2.0                                                                                               //
+//--------------------------------------------------------------------------------------------------------------------//
 #include "gtest/gtest.h"
 
 #include <PythonDataSet.h>

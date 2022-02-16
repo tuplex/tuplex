@@ -33,5 +33,5 @@ if __name__ == '__main__':
             'optimizer.generateParser' : args.opt_parser,
             'optimizer.mergeExceptionsInOrder' : False,
             'optimizer.filterPushdown' : args.opt_filter}
-    conf['driverMemory'] = '10G'
+
     print(json.dumps(conf))

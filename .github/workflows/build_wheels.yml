@@ -37,10 +37,10 @@ jobs:
         run: cd ./scripts && pip3 install requests && python3 set_version.py --dev
         shell: bash
 
-      - name: MacOS dependencies
-        if: runner.os == 'macOS'
-        run: ls /Users/runner/work/ && ls /Users/runner/work/tuplex && bash ./scripts/ci/macos/setup-macos.sh
-        shell: bash
+      # - name: MacOS dependencies
+      #   if: runner.os == 'macOS'
+      #   run: ls /Users/runner/work/ && ls /Users/runner/work/tuplex && bash ./scripts/ci/macos/setup-macos.sh
+      #   shell: bash
 
       # need to make this an intermediate step, i.e. build first the different lambda runners on Ubuntu...
       - name: Build Lambda runner

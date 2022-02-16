@@ -930,7 +930,18 @@ namespace tuplex {
         timer.reset();
 
         auto tasks = createIncrementalTasks(tstage, _options, syms);
+        {
+            std::stringstream ss;
+            ss << "Created tasks";
+            Logger::instance().defaultLogger().info(ss.str());
+        }
         auto completedTasks = performTasks(tasks);
+        {
+            std::stringstream ss;
+            ss << "performed tasks";
+            Logger::instance().defaultLogger().info(ss.str());
+        }
+
 
         // fetch partitions & ecounts
         vector<Partition*> normalPartitions;

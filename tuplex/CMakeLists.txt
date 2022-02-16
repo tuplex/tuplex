@@ -1,5 +1,5 @@
 # (c) 2017 Leonhard Spiegelberg
-cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
 # Tuplex build options:
 # =====================
@@ -436,7 +436,14 @@ if(PYTHON3_EXECUTABLE)
             OUTPUT_STRIP_TRAILING_WHITESPACE)
     message(STATUS "Detected version of python executable to be ${PYTHON3_VERSION}")
 
-    get_filename_component(Python3_ROOT_DIR ${PYTHON3_EXECUTABLE}/../.. ABSOLUTE)
+
+    # Python version to get root dir
+    # python3 -c "import sys; from pathlib import Path; print(Path(sys.executable).resolve().parent.parent)"
+    execute_process (COMMAND "${PYTHON3_EXECUTABLE}" -c "import sys; from pathlib import Path; print(Path(sys.executable).resolve().parent.parent)"
+            RESULT_VARIABLE _result
+            OUTPUT_VARIABLE Python3_ROOT_DIR
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+    #get_filename_component(Python3_ROOT_DIR ${PYTHON3_EXECUTABLE}/../.. ABSOLUTE)
     message(STATUS "Detected Python3 Root dir to be: ${Python3_ROOT_DIR}")
 endif()
 
@@ -471,6 +478,11 @@ else()
             message(STATUS "Found full python3-dev installation")
             set(Python3_Embed_FOUND TRUE)
         else()
+
+            set(Python3_FIND_STRATEGY LOCATION)
+            # use more modern approach using findpython3
+            set(Python3_EXECUTABLE "${PYTHON3_EXECUTABLE}")
+            message(STATUS "Using exact python executable ${Python3_EXECUTABLE}")
             find_package(Python3 ${VERSION_STRING} EXACT COMPONENTS Interpreter REQUIRED)
             # python3 -c 'import distutils.sysconfig; print(distutils.sysconfig.get_python_lib(plat_specific=False,standard_lib=True))'
             # try to get get module libs at least

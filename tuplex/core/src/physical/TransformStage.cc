@@ -142,6 +142,8 @@ namespace tuplex {
                 size_t numOutputRows = 0;
                 for (auto partition : partitions) {
                     numOutputRows += partition->getNumRows();
+                    // TODO(march): work here
+                    ...
                     if (numOutputRows >= outputLimit()) {
                         // clip last partition & leave loop
                         auto clipped = outputLimit() - (numOutputRows - partition->getNumRows());

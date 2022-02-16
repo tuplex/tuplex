@@ -86,6 +86,10 @@ namespace tuplex {
         }
 
         void addEntry(const std::string& key, IncrementalCacheEntry* entry) {
+            auto elt = _cache.find(key);
+            if (elt != _cache.end()) {
+                delete elt->second;
+            }
             _cache[key] = entry;
         }
 

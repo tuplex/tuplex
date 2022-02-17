@@ -58,6 +58,8 @@ namespace tuplex {
         // optimize first if desired (context options object)
         // ==> optimize creates a copy if required
 
+        incrementalResolution(context);
+
         auto optimized_plan = optimize(context, !copy_required); // overwrite
 
         double logical_optimization_time = timer.time();
@@ -1335,8 +1337,6 @@ namespace tuplex {
 #ifndef NDEBUG
         assert(verifyLogicalPlan(_action));
 #endif
-
-        incrementalResolution(context);
 
         if(context.getOptions().OPT_FILTER_PUSHDOWN()) {
             emitPartialFilters();

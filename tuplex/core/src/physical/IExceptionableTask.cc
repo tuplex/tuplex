@@ -23,11 +23,6 @@ namespace tuplex {
         auto owner = this->owner();
         assert(owner);
         auto desc = _exceptionRowSchema.getRowType().desc();
-        {
-            std::stringstream ss;
-            ss << "Making space for " << std::to_string(totalSize);
-            Logger::instance().defaultLogger().info(ss.str());
-        }
         makeSpace(owner, _exceptionRowSchema, totalSize);
 
         size_t out_size = 0;

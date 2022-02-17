@@ -930,18 +930,7 @@ namespace tuplex {
         timer.reset();
 
         auto tasks = createIncrementalTasks(tstage, _options, syms);
-        {
-            std::stringstream ss;
-            ss << "Created tasks";
-            Logger::instance().defaultLogger().info(ss.str());
-        }
         auto completedTasks = performTasks(tasks);
-        {
-            std::stringstream ss;
-            ss << "performed tasks";
-            Logger::instance().defaultLogger().info(ss.str());
-        }
-
 
         // fetch partitions & ecounts
         vector<Partition*> normalPartitions;
@@ -983,6 +972,7 @@ namespace tuplex {
             case EndPointMode::FILE: {
                 auto partNo = writeOutput(tstage, completedTasks, cacheEntry->startFileNumber());
                 tstage->setIncrmentalCacheCSVResult(exceptionPartitions, generalPartitions, fallbackPartitions, partNo);
+                tstage->setFileResult(exceptionCounts);
                 break;
             }
             default:
@@ -2254,6 +2244,10 @@ namespace tuplex {
             numTotalOutputRows += task->getNumOutputRows();
             auto partitions = task->getOutputPartitions();
             outputs.insert(outputs.end(), partitions.begin(), partitions.end());
+        }
+
+        if (outputs.empty()) {
+            return startFileNumber;
         }
 
         auto ecounts = calcExceptionCounts(tasks);

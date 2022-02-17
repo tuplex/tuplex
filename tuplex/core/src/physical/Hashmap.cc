@@ -184,5 +184,4 @@ namespace tuplex {
             throw std::bad_alloc();
         file->read(*bucket, bucket_size);
     }
-
 }

@@ -23,6 +23,9 @@ namespace tuplex {
         HT_INTMAP = 2
     };
 
+
+    // perhaps use interface design, i.e. common IHashmap -> then derive specialized versions from it!
+
     class Hashmap {
     public:
 
@@ -39,8 +42,9 @@ namespace tuplex {
         size_t size() const;
         size_t capacity() const;
 
-        void* underlying() const;
-        PyObject* underlyingHybrid() const;
+        void* nullBucket() const { return _nullBucket; }
+        void* underlying() const { return _underlying; }
+        PyObject* underlyingHybrid() const { return _underlyingHybrid; }
 
         bool hasNullBucket() const { return _nullBucket; }
         bool hasHybrid() const { return _underlyingHybrid; }

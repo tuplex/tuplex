@@ -276,11 +276,21 @@ if(BUILD_WITH_ORC)
             ${LZ4_LIBRARIES})
     endif()
 
+    # if supported, set no-poioson-system-directories. Requires Clang > 10.0
+    if(CMAKE_CXX_COMPILED_ID STREQUAL "Clang")
+      # set if CLANG version > 10
+      if(CMAKE_CXX_COMPILER_VERSION_GREATER_EQUAL 10.0)
+          ucm_add_flags("-Wno-poison-system-directories")
+      endif()
+    elseif(CMAKE_CXX_COMPILED_ID STREQUAL "GNU")
+        ucm_add_flags("-Wno-poison-system-directories")
+    endif()
+    message(STATUS "Configuring ORC to run with flags: ${CMAKE_CXX_FLAGS}")
     ExternalProject_Add(orc
             GIT_REPOSITORY https://github.com/apache/orc.git
-            GIT_TAG rel/release-1.7.0
+            GIT_TAG rel/release-1.7.3
             TIMEOUT 5
-            CMAKE_ARGS -DBUILD_LIBHDFSPP=OFF -DSNAPPY_HOME=${SNAPPY_HOME} -DLZ4_HOME=${LZ4_HOME} -DZSTD_HOME=${ZSTD_HOME} -DZLIB_HOME=${ZLIB_HOME} -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories" -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DBUILD_JAVA=OFF -DBUILD_TOOLS=OFF -DBUILD_CPP_TESTS=OFF -DBUILD_POSITION_INDEPENDENT_LIB=ON -DPROTOBUF_HOME=${Protobuf_HOME}
+            CMAKE_ARGS -DBUILD_LIBHDFSPP=OFF -DSNAPPY_HOME=${SNAPPY_HOME} -DLZ4_HOME=${LZ4_HOME} -DZSTD_HOME=${ZSTD_HOME} -DZLIB_HOME=${ZLIB_HOME} -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DSTOP_BUILD_ON_WARNING=OFF -DBUILD_JAVA=OFF -DBUILD_TOOLS=OFF -DBUILD_CPP_TESTS=OFF -DBUILD_POSITION_INDEPENDENT_LIB=ON -DPROTOBUF_HOME=${Protobuf_HOME}
             PREFIX "${EXTERNAL_INSTALL_LOCATION}"
             UPDATE_COMMAND "" # Disable update step: clones the project only once
             BUILD_BYPRODUCTS ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a ${ORC_THIRD_PARTY_LIBS}
@@ -304,7 +314,7 @@ if(BUILD_WITH_ORC)
             liborc)
 endif()
 
-add_library(libio STATIC
+add_library(libio OBJECT
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 set_target_properties(libio PROPERTIES PREFIX "")
 

@@ -1,5 +1,5 @@
 # (c) 2017 Leonhard Spiegelberg
-cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
 # Tuplex build options:
 # =====================
@@ -60,6 +60,7 @@ message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
 include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate compiler flags
 # for debug mode export all symbols
 set(CMAKE_ENABLE_EXPORTS true)
+include(targetLinkLibrariesWithDynamicLookup)
 
 # this here will enable LTO (link-time optimization) globally
 include(CheckIPOSupported)
@@ -167,26 +168,6 @@ endif()
 
 # add to debug/gcc stack protector
 # -fstack-protector-strong
-
-
-# fix for Mac OS X/ brew, find openSSL (required by some dependencies)
-## check for ICU
-IF(BREW_FOUND)
-    IF(APPLE)
-        # MESSAGE("brew on Mac found")
-        EXECUTE_PROCESS(COMMAND brew --prefix openssl OUTPUT_VARIABLE OSSL_ROOT_DIR ERROR_VARIABLE BREW_OPENSSL_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
-        IF(BREW_OPENSSL_NOTFOUND)
-            MESSAGE("did not find brewed openssl, you might install it via brew install openssl")
-        ELSE()
-            set(ENV{OPENSSL_ROOT_DIR} /usr/local/opt/openssl)
-            MESSAGE(STATUS "found brewed openssl under: ${OSSL_ROOT_DIR}")
-        ENDIF()
-
-    ELSEIF(UNIX)
-        #MESSAGE("brew on Unix found")
-    ENDIF()
-ENDIF()
-
 
 # Options:
 # build for CI (disable some tests)
@@ -479,7 +460,15 @@ if(PYTHON3_EXECUTABLE)
             OUTPUT_STRIP_TRAILING_WHITESPACE)
     message(STATUS "Detected version of python executable to be ${PYTHON3_VERSION}")
 
-    get_filename_component(Python3_ROOT_DIR ${PYTHON3_EXECUTABLE}/../.. ABSOLUTE)
+
+    # Python version to get root dir
+    # python3 -c "import sys; from pathlib import Path; print(Path(sys.executable).resolve().parent.parent)"
+    execute_process (COMMAND "${PYTHON3_EXECUTABLE}" -c "import sys; from pathlib import Path; print(Path(sys.executable).resolve().parent.parent)"
+            RESULT_VARIABLE _result
+            OUTPUT_VARIABLE Python3_ROOT_DIR
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+    # Pure CMAKE version:
+    # get_filename_component(Python3_ROOT_DIR ${PYTHON3_EXECUTABLE}/../.. ABSOLUTE)
     message(STATUS "Detected Python3 Root dir to be: ${Python3_ROOT_DIR}")
 endif()
 
@@ -514,6 +503,11 @@ else()
             message(STATUS "Found full python3-dev installation")
             set(Python3_Embed_FOUND TRUE)
         else()
+
+            set(Python3_FIND_STRATEGY LOCATION)
+            # use more modern approach using findpython3
+            set(Python3_EXECUTABLE "${PYTHON3_EXECUTABLE}")
+            message(STATUS "Using exact python executable ${Python3_EXECUTABLE}")
             find_package(Python3 ${VERSION_STRING} EXACT COMPONENTS Interpreter REQUIRED)
             # python3 -c 'import distutils.sysconfig; print(distutils.sysconfig.get_python_lib(plat_specific=False,standard_lib=True))'
             # try to get get module libs at least
@@ -549,7 +543,7 @@ if(Python3_FOUND)
     if(APPLE AND BREW_FOUND) # i.e. boost-python via brew? --> check maybe better in the future...
         set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE) # gets rid off annoying boost warning.
     endif()
-    find_package(Boost 1.70 COMPONENTS python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR} ${BOOST_COMPONENTS} REQUIRED)
+    find_package(Boost 1.70 COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
 
     # check if headers/libs are set.
     # at least set headers!
@@ -561,11 +555,6 @@ if(Python3_FOUND)
                 ERROR_QUIET
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
         message(STATUS "Detected Python3 include dir to be ${Python3_INCLUDE_DIRS}")
-    endif()
-
-    # set to empty string to build without .so
-    if(NOT Python3_Embed_FOUND)
-        set(Python3_LIBRARIES "")
     endif()
 
     # use these switches here to specialize Boost behavior

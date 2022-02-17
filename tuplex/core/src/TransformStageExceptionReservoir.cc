@@ -429,6 +429,9 @@ namespace tuplex {
 
                         break;
                     }
+                    default:
+                        // others ops have no cols?
+                        break;
                 }
             }
         }

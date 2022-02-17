@@ -12,46 +12,46 @@
 
 namespace tuplex {
 
-    boost::python::object PyObj_FromCJSONKey(const char* serializedKey) {
+    py::object PyObj_FromCJSONKey(const char* serializedKey) {
         assert(serializedKey);
         assert(strlen(serializedKey) >= 2);
         const char *keyString = serializedKey + 2;
         switch(serializedKey[0]) {
             case 's':
-                return boost::python::object(std::string(keyString));
+                return py::cast(std::string(keyString));
             case 'b':
                 if(strcmp(keyString, "True") == 0)
-                    return boost::python::object(true);
+                    return py::cast(true);
                 if(strcmp(keyString, "False") == 0)
-                    return boost::python::object(false);
+                    return py::cast(false);
                 Logger::instance().defaultLogger().error("invalid boolean key: " + std::string(keyString) + ", returning Py_None");
-                return boost::python::object();
+                return py::none();
             case 'i':
-                return boost::python::object(strtoll(keyString, nullptr, 10));
+                return py::cast(strtoll(keyString, nullptr, 10));
             case 'f':
-                return boost::python::object(strtod(keyString, nullptr));
+                return py::cast(strtod(keyString, nullptr));
             default:
-                return boost::python::object();
+                return py::none();
         }
     }
 
-    boost::python::object PyObj_FromCJSONVal(const cJSON* obj, const char type) {
+    py::object PyObj_FromCJSONVal(const cJSON* obj, const char type) {
         switch(type) {
             case 's':
-                return boost::python::object(std::string(obj->valuestring));
+                return py::cast(std::string(obj->valuestring));
             case 'b':
-                return boost::python::object(static_cast<bool>(cJSON_IsTrue(obj)));
+                return py::cast(static_cast<bool>(cJSON_IsTrue(obj)));
             case 'i':
-                return boost::python::object(static_cast<int64_t>(obj->valuedouble));
+                return py::cast(static_cast<int64_t>(obj->valuedouble));
             case 'f':
-                return boost::python::object(obj->valuedouble);
+                return py::cast(obj->valuedouble);
             default:
-                return boost::python::object();
+                return py::none();
         }
     }
 
-    boost::python::object PyDict_FromCJSON(const cJSON* dict) {
-        auto dictObj = boost::python::dict();
+    py::object PyDict_FromCJSON(const cJSON* dict) {
+        auto dictObj = py::dict();
         cJSON* cur_item = dict->child;
         while(cur_item) {
             char *key = cur_item->string;
@@ -63,20 +63,20 @@ namespace tuplex {
         return dictObj;
     }
 
-    boost::python::object fieldToPython(const tuplex::Field& f) {
+    py::object fieldToPython(const tuplex::Field& f) {
         if(python::Type::BOOLEAN == f.getType())
-            return boost::python::object(static_cast<bool>(f.getInt()));
+            return py::cast(static_cast<bool>(f.getInt()));
         else if(python::Type::I64 == f.getType())
-            return boost::python::object(f.getInt());
+            return py::cast(f.getInt());
         else if(python::Type::F64 == f.getType())
-            return boost::python::object(f.getDouble());
+            return py::cast(f.getDouble());
         else if(python::Type::STRING == f.getType())
-            return boost::python::object(std::string((char*)f.getPtr()));
+            return py::cast(std::string((char*)f.getPtr()));
         else if(python::Type::GENERICDICT == f.getType() || f.getType().isDictionaryType()) {
             cJSON* dptr = cJSON_Parse((char*)f.getPtr());
             return PyDict_FromCJSON(dptr);
         } else if(f.getType().isListType()) {
-            boost::python::list L;
+            py::list L;
             auto list = *((tuplex::List*)f.getPtr());
             for(int i=0; i<list.numElements(); ++i) {
                 L.append(fieldToPython(list.getField(i)));
@@ -85,29 +85,28 @@ namespace tuplex {
         }
         else {
             if(f.getType().isTupleType()) {
-                boost::python::list L;
+                py::list L;
                 auto tuple = *((tuplex::Tuple*)f.getPtr());
                 for(int i = 0; i < tuple.numElements(); ++i) {
                     L.append(fieldToPython(tuple.getField(i)));
                 }
-                return boost::python::tuple(L);
+                return py::tuple(L);
             } else
-                return boost::python::object();
-
+                return py::none();
         }
     }
 
-    boost::python::object tupleToPython(const tuplex::Tuple& tuple) {
-        boost::python::list L;
+    py::object tupleToPython(const tuplex::Tuple& tuple) {
+        py::list L;
         for(int i = 0; i < tuple.numElements(); ++i) {
             L.append(fieldToPython(tuple.getField(i)));
         }
-        return boost::python::tuple(L);
+        return py::tuple(L);
     }
 
-    boost::python::object rowToPython(const tuplex::Row& row) {
+    py::object rowToPython(const tuplex::Row& row) {
         //return tuple with stuff in it (or if schema is simple, directly the elements...
-        boost::python::list L;
+        py::list L;
         for(int col = 0; col < row.getNumColumns(); ++col) {
             if(python::Type::BOOLEAN == row.getType(col))
             L.append<bool>(row.getBoolean(col));
@@ -127,12 +126,12 @@ namespace tuplex {
 
         // special case: zero or one element
         if(0 == row.getNumColumns())
-            return boost::python::make_tuple();
+            return py::make_tuple();
         if(1 == row.getNumColumns())
             return L[0];
 
         // convert list to tuple
-        return boost::python::tuple(L);
+        return py::tuple(L);
     }
 
 

@@ -33,7 +33,6 @@ namespace tuplex {
 
         ~Hashmap();
 
-
         void serialize(const URI& uri);
         static Hashmap deserialize(const URI& uri);
 
@@ -68,6 +67,18 @@ namespace tuplex {
             uint64_t bucket_size = bucket_info & 0xFFFFFFFF;
             return bucket_size;
         }
+    };
+
+    class FixedKeySizeMap : public Hashmap {
+    public:
+        FixedKeySizeMap(size_t keySizeInBytes) : _keySize(keySizeInBytes) {}
+
+        template<typename T> void put(const T& key, const uint8_t* value, size_t value_size, bool copy_value=true);
+        template<typename T> const uint8_t* get(const T& key, size_t *value_size=nullptr);
+    private:
+        size_t _keySize;
+
+
     };
 }
 

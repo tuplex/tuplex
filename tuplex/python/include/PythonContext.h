@@ -11,12 +11,12 @@
 #ifndef TUPLEX_PYTHONCONTEXT_H
 #define TUPLEX_PYTHONCONTEXT_H
 
+#include "PythonCommon.h"
 #include "PythonWrappers.h"
 #include "PythonException.h"
 #include "PythonDataSet.h"
 #include "PythonMetrics.h"
 #include "JobMetrics.h"
-
 
 namespace tuplex {
 
@@ -86,10 +86,10 @@ namespace tuplex {
         // maybe also for mixed tuple elements if they are all primitives...
 
 
-        DataSet &parallelizeAnyType(boost::python::list &L, const python::Type &majType,
+        DataSet &parallelizeAnyType(const py::list &L, const python::Type &majType,
                                     const std::vector<std::string> &columns);
 
-        python::Type inferType(const boost::python::list &L) const;
+        python::Type inferType(const py::list &L) const;
 
         /*!
          * infer what are the columns in a probabilistic fashion
@@ -98,13 +98,13 @@ namespace tuplex {
          * @return map of column name and most likely type for each
          */
         std::unordered_map<std::string, python::Type>
-        inferColumnsFromDictObjects(const boost::python::list &L, double normalThreshold);
+        inferColumnsFromDictObjects(const py::list &L, double normalThreshold);
 
-        inline size_t sampleSize(const boost::python::list &L) const {
+        inline size_t sampleSize(const py::list &L) const {
             // sample size to determine how many entries should be scanned to get python types
             static const size_t DEFAULT_SAMPLE_SIZE = 16;
             // todo: get from options
-            size_t numElements = boost::python::len(L);
+            size_t numElements = py::len(L);
             auto numSample = numElements < DEFAULT_SAMPLE_SIZE ? numElements : DEFAULT_SAMPLE_SIZE;
             return numSample;
         }
@@ -152,8 +152,8 @@ namespace tuplex {
          * @param schema python object to define a schema
          * @return PythonDataSet wrapper around internal DataSet class
          */
-        PythonDataSet parallelize(boost::python::list L, boost::python::object cols = boost::python::object(),
-                                  boost::python::object schema = boost::python::object(), bool autoUnpack = true);
+        PythonDataSet parallelize(py::list L, py::object cols = py::none(),
+                                  py::object schema = py::none(), bool autoUnpack = true);
 
         /*!
          * reads one (or multiple) csv files into memory
@@ -168,13 +168,13 @@ namespace tuplex {
          * @return PythonDataSet wrapper around internal DataSet class corresponding to a csv read call
          */
         PythonDataSet csv(const std::string &pattern,
-                          boost::python::object cols = boost::python::object(),
+                          py::object cols = py::none(),
                           bool autodetect_header = true,
                           bool header = false,
                           const std::string &delimiter = "",
                           const std::string &quotechar = "\"",
-                          boost::python::object null_values = boost::python::object(),
-                          boost::python::object type_hints = boost::python::object());
+                          py::object null_values = py::none(),
+                          py::object type_hints = py::none());
 
         /*!
          * reads one (or multiple) text files into memory
@@ -182,7 +182,7 @@ namespace tuplex {
          * @param null_values list of null values
          * @return PythonDataSet wrapper around internal DataSet class corresponding to a text read call
          */
-        PythonDataSet text(const std::string &pattern, boost::python::object null_values = boost::python::object());
+        PythonDataSet text(const std::string &pattern, py::object null_values = py::none());
 
         /*!
          * reads one (or multiple) orc files into memory
@@ -191,13 +191,13 @@ namespace tuplex {
          * @return PythonDataSet wrapper around internal DataSet class corresponding to a orc read call
          */
         PythonDataSet orc(const std::string &pattern,
-                          boost::python::object cols = boost::python::object());
+                          py::object cols = py::none());
 
         /*!
          * retrieves options as flattened dictionary.
          * @return dictionary with all options.
          */
-        boost::python::dict options() const;
+        py::dict options() const;
 
 
 
@@ -207,7 +207,7 @@ namespace tuplex {
          * @param pattern a standard UNIX wildcard pattern with a prefix like file:// or s3://
          * @return list of strings
          */
-        boost::python::object ls(const std::string& pattern) const;
+        py::object ls(const std::string& pattern) const;
 
         /*!
          * copies all files matching pattern to a target destination

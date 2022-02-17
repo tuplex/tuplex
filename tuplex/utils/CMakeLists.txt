@@ -64,7 +64,7 @@ else()
     # Note: alternative is to use CJSON_HIDE_SYMBOLS IWTH AWS SDK.
 endif()
 
-add_library(libutils STATIC
+add_library(libutils OBJECT
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 set_target_properties(libutils PROPERTIES PREFIX "")
 

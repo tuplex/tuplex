@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <boost/python.hpp>
+#include <pybind11/pybind11.h>
 #include "../../core/include/Context.h"
 #include <PythonWrappers.h>
 #include <PythonException.h>
@@ -16,29 +16,30 @@
 #include <PythonMetrics.h>
 #include <PythonCommon.h>
 
-using namespace boost::python;
+// use pybind11 binding
+namespace py = pybind11;
 
-// PYMODULE is defined by cmake as BOOST_PYTHON_MODULE(name)
+// Note: Cf. https://sceweb.sce.uhcl.edu/helm/WEBPAGE-Python/documentation/python_tutorial/api/refcountDetails.html for refguide
+// and https://pybind11.readthedocs.io/en/stable/advanced/functions.html
+// wrong refcounts easily can lead to segfaults/corruption for tests.
+
+// PYMODULE is defined by cmake as PYBIND11_MODULE(name, m)
 PYMODULE {
+    m.doc() = R"pbdoc(
+            TUPLEX C-extension
+            ------------------
+            .. currentmodule:: tuplex
+            .. autosummary::
+               :toctree: _generate
+        )pbdoc";
 
-
-    // important to prevent weird errors in jupyter?
-#if (PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION < 7)
-    PyEval_InitThreads();
+#ifdef VERSION_INFO
+    m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
+#else
+    m.attr("__version__") = "dev";
 #endif
 
-    // // debug output when issues arise whether the extension module was correctly initialized or not.
-    // std::cout<<"initializing interpreter by acquiring gil state/thread state"<<std::endl;
-    // PyEval_InitThreads();
-    // PyThreadState *mainstate = PyThreadState_Get();
-    // std::cout<<"main thread state is: "<<mainstate<<std::endl;
-    // std::cout<<"Status of PyEval_ThreadsInitialized threads: "<<PyEval_ThreadsInitialized()<<std::endl;
-    // std::cout<<"init done"<<std::endl;
-
-    // deactivated C++ -> python exception translation, because it's buggy for some reason.
-    // register_exception_translator<tuplex::PythonException>(&tuplex::translateCCException);
-
-    class_<tuplex::PythonDataSet>("_DataSet")
+    py::class_<tuplex::PythonDataSet>(m, "_DataSet")
             .def("show", &tuplex::PythonDataSet::show)
             .def("collect", &tuplex::PythonDataSet::collect)
             .def("take", &tuplex::PythonDataSet::take)
@@ -63,8 +64,9 @@ PYMODULE {
             .def("types", &tuplex::PythonDataSet::types)
             .def("exception_counts", &tuplex::PythonDataSet::exception_counts);
 
-    class_<tuplex::PythonContext>("_Context", init<std::string, std::string, std::string>())
-            .def(init<std::string>()) // default C++ ctor
+    py::class_<tuplex::PythonContext>(m, "_Context")
+            .def(py::init<std::string, std::string, std::string>()) // other constructor
+            .def(py::init<std::string>()) // default C++ ctor
             .def("csv", &tuplex::PythonContext::csv)
             .def("text", &tuplex::PythonContext::text)
             .def("orc", &tuplex::PythonContext::orc)
@@ -75,7 +77,7 @@ PYMODULE {
             .def("cp", &tuplex::PythonContext::cp)
             .def("rm", &tuplex::PythonContext::rm);
 
-    class_<tuplex::PythonMetrics>("_Metrics")
+    py::class_<tuplex::PythonMetrics>(m, "_Metrics")
             .def("getLogicalOptimizationTime", &tuplex::PythonMetrics::getLogicalOptimizationTime)
             .def("getLLVMOptimizationTime", &tuplex::PythonMetrics::getLLVMOptimizationTime)
             .def("getLLVMCompilationTime", &tuplex::PythonMetrics::getLLVMCompilationTime)
@@ -83,10 +85,9 @@ PYMODULE {
             .def("getTotalExceptionCount", &tuplex::PythonMetrics::getTotalExceptionCount)
             .def("getJSONString", &tuplex::PythonMetrics::getJSONString);
 
-
     // global method to access default options as json
-    def("getDefaultOptionsAsJSON", &tuplex::getDefaultOptionsAsJSON);
+    m.def("getDefaultOptionsAsJSON", &tuplex::getDefaultOptionsAsJSON);
 
     // global method to register a new logging function
-    def("registerLoggingCallback", &tuplex::registerPythonLoggingCallback);
+    m.def("registerLoggingCallback", &tuplex::registerPythonLoggingCallback);
 }

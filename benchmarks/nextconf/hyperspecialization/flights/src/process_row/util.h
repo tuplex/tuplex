@@ -25,7 +25,7 @@ static inline const char *DivertedCode(bool diverted, const std::string &cancell
   else if (!cancellation_code.empty())
     return cancellation_code.c_str();
   else
-    return "None";
+    return "";
 }
 
 static inline std::string FillInTimes(const std::string& actual_elapsed_time, const std::string &div_reached_dest,

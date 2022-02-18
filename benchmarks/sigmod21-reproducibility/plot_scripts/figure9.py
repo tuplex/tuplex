@@ -4,6 +4,7 @@
 # ## Combined TPC-H Q6 and Q19 Plot
 
 # In[96]:
+import os.path
 import warnings
 warnings.filterwarnings("ignore")
 import logging
@@ -66,26 +67,32 @@ def figure9(tpch_path='r5d.8xlarge/tpch', output_folder='plots'):
     # ### Clean Q19/Q6 files
 
     def load_paths(paths, sf=1):
+        if not paths:
+            return pd.DataFrame()
+
         rows = []
         for path in paths:
-            if 'tuplex' in path:
-                text = open(path, 'r').read()
-                name = os.path.basename(path)
-                fw = name[:name.find('-run')]
-                subtext = text[text.find('framework,version,load,query'):]
-                lines = subtext.split()
-                D = dict(zip(lines[0].split(','), lines[1].split(',')))
-                D['sf'] = sf
-                D['framework'] = fw
-                rows.append(D)
-            else:
-                text = open(path, 'r').readlines()
-                D = dict(zip(text[-2].strip().split(','), text[-1].strip().split(',')))
-                name = os.path.basename(path)
-                fw = name[:name.find('-run')]
-                D['framework'] = fw.replace('-preprocessed', '') # fix for hyper??
-                D['sf'] = sf
-                rows.append(D)
+            try:
+                if 'tuplex' in os.path.basename(path):
+                    text = open(path, 'r').read()
+                    name = os.path.basename(path)
+                    fw = name[:name.find('-run')]
+                    subtext = text[text.find('framework,version,load,query'):]
+                    lines = subtext.split()
+                    D = dict(zip(lines[0].split(','), lines[1].split(',')))
+                    D['sf'] = sf
+                    D['framework'] = fw
+                    rows.append(D)
+                else:
+                    text = open(path, 'r').readlines()
+                    D = dict(zip(text[-2].strip().split(','), text[-1].strip().split(',')))
+                    name = os.path.basename(path)
+                    fw = name[:name.find('-run')]
+                    D['framework'] = fw.replace('-preprocessed', '') # fix for hyper??
+                    D['sf'] = sf
+                    rows.append(D)
+            except Exception as e:
+                logging.warning('Path {}, couldn\'t extract information. Run failed? Skipping for now.'.format(path))
         df = pd.DataFrame(rows)
         df['load'] = df['load'].astype(float)
         df['query'] = df['query'].astype(float)
@@ -99,9 +106,9 @@ def figure9(tpch_path='r5d.8xlarge/tpch', output_folder='plots'):
         df = df.sort_values(by='total').reset_index(drop=True)
         return df
 
-    df = load_paths(glob.glob(tpch_path + 'q6/data/*.txt'), sf=10)
+    df = load_paths(glob.glob(tpch_path + 'q6/*.txt'), sf=10)
     df.to_csv('q6.csv', index=None)
-    df = load_paths(glob.glob(tpch_path + 'q19/data/*.txt'), sf=10)
+    df = load_paths(glob.glob(tpch_path + 'q19/*.txt'), sf=10)
     df.to_csv('q19.csv', index=None)
 
 

@@ -28,11 +28,11 @@ static inline const char *DivertedCode(bool diverted, const std::string &cancell
     return "None";
 }
 
-static inline std::string FillInTimes(const std::string& actual_elapsed_time, const std::string &div_reached_dest,
+static inline double FillInTimes(double actual_elapsed_time, const std::string &div_reached_dest,
                                  const std::string &div_actual_elapsed_time) {
   if (!div_reached_dest.empty()) {
     if (std::stod(div_reached_dest) > 0)
-      return div_actual_elapsed_time;
+      return std::stod(div_actual_elapsed_time);
     else
       return actual_elapsed_time;
   } else {
@@ -66,13 +66,11 @@ static inline std::string ExtractCity(const std::string &city_and_state) {
   trim(ret);
   return ret;
 }
-
 static inline std::string ExtractState(const std::string &city_and_state) {
   auto ret = city_and_state.substr(1 + city_and_state.rfind(','));
   trim(ret);
   return ret;
 }
-
 static inline std::string FormatTime(int64_t time) {
   return fmt::format("{:02}:{:02}", time / 100, time % 100);
 }

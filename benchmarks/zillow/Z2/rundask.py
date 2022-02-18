@@ -130,7 +130,9 @@ def runDask(paths, output_path):
 
     tstart = time.time()
 
-    client = Client(n_workers=16, threads_per_worker=1, processes=True, memory_limit='8GB')
+    # because PyPy needs a ton of memory, give it 14G
+    # client = Client(n_workers=16, threads_per_worker=1, processes=True, memory_limit='8GB')
+    client = Client(n_workers=16, threads_per_worker=1, processes=True, memory_limit='14GB')
     print(client)
 
     # correct for PyPy internal error

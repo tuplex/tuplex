@@ -135,7 +135,7 @@ def load_311_to_df(paths):
                 row = {}
 
                 # tuplex decode
-                if 'tuplex' in file:
+                if 'tuplex' in name:
 #                     d = {}
 #                     if 'tuplex' in name:
                     d = json.loads(list(filter(lambda x: 'startupTime' in x, lines))[0])

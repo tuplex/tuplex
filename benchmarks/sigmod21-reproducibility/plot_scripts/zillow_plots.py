@@ -5,7 +5,7 @@
 # this notebook produces all plots necessary for Figure 3 in the final number + numbers for the accompanying text.
 # Figure 3, 7 and table3
 # In[24]:
-
+import os.path
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -47,7 +47,9 @@ def load_zillow_to_df(data_root):
     for file in files:
         path = os.path.join(data_root, file)
         name = file[:file.find('-run')]
-        
+
+        basename = os.path.basename(path)
+
         # skip compile runs, they should be loaded separately...
         if 'compile-run' in file:
             continue
@@ -68,7 +70,7 @@ def load_zillow_to_df(data_root):
                     run_no = int(path[path.rfind('run-')+4:path.rfind('.txt')])
                     
                     # CC baseline decode
-                    if 'cc-' in path or 'cpp_' in path:
+                    if 'cc-' in basename or 'cpp_' in basename:
                         d = json.loads(lines[-1])
                         row = {}
                         row['write'] = d['output'] / 10**9
@@ -93,7 +95,7 @@ def load_zillow_to_df(data_root):
                         # override if compute is available
                         if 'compute_time' in d.keys():
                             row['compute'] = d['compute_time']
-                    elif 'scala' in path: # Scala
+                    elif 'scala' in basename: # Scala
                         
                         row['framework'] = 'scala'
                         row['type'] = 'single-threaded'
@@ -108,7 +110,7 @@ def load_zillow_to_df(data_root):
                         row['startup_time'] = float(re.sub('[^0-9.]*', '', lines[0]))
                         
                     # tuplex decode
-                    elif 'tuplex' in path:
+                    elif 'tuplex' in basename:
                         try:
                             d = {}
                             if 'tuplex' in name:
@@ -218,6 +220,7 @@ def load_zillow_to_df(data_root):
             # print('file: {}'.format(file))
             # print(type(e))
             # print(e)
+            logging.warning("Could not parse experimental result file {}, did run complete? Skipping for now.".format(basename))
             pass
     return pd.DataFrame(rows)
 
@@ -744,6 +747,14 @@ def figure7(df_Z1, output_folder):
     pp_mt_mu = pp_mt.groupby(['framework', 'type', 'mode']).mean().reset_index()
     pp_mt_std = pp_mt.groupby(['framework', 'type', 'mode']).std().reset_index()
 
+
+    # select Tuplex with single-threaded-no-nvo!
+    # df_st_rest, df_st_rest_std affected!
+    df_st_rest = df_st_rest[~((df_st_rest['type'] == 'multi-threaded-no-nvo') & (df_st_rest['framework'] == 'tuplex'))]
+    df_st_rest = df_st_rest[~((df_st_rest['type'] == 'single-threaded') & (df_st_rest['framework'] == 'tuplex'))]
+    df_st_rest_std = df_st_rest_std[~((df_st_rest_std['type'] == 'multi-threaded-no-nvo') & (df_st_rest_std['framework'] == 'tuplex'))]
+    df_st_rest_std = df_st_rest_std[~((df_st_rest_std['type'] == 'single-threaded') & (df_st_rest_std['framework'] == 'tuplex'))]
+
     # links: https://stackoverflow.com/questions/14852821/aligning-rotated-xticklabels-with-their-respective-xticks
     sf = 1.1
     fig, axs = plt.subplots(figsize=(sf * column_width, sf *column_width / rho * .6),
@@ -874,7 +885,7 @@ def figure7(df_Z1, output_folder):
     dask_pypy_err = np.array([pp_mt_std[df_mt_std['framework'] == 'dask']['job_time']])
 
     plt_bar(ax, 3-w4, df_mt_mu[df_mt_mu['framework'] == 'dask']['job_time'], w2, dask_col_g,'Dask', yerr=dask_py_err)
-    plt_bar(ax, 3+w4, pp_mt_mu[df_mt_mu['framework'] == 'dask']['job_time'], w2, dask_col,'Dask', yerr=dask_pypy_err)
+    plt_bar(ax, 3+w4, pp_mt_mu[pp_mt_mu['framework'] == 'dask']['job_time'], w2, dask_col,'Dask', yerr=dask_pypy_err)
 
 
     tplx_err = np.array([df_mt_std[df_mt_std['framework'] == 'tuplex']['job_time']])

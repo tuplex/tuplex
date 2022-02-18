@@ -1,0 +1,5 @@
+PySpark startup took: 1.4599099159240723s
+Result::
+[Row(revenue=None)]
+framework,version,load,query,result
+pyspark-sql,2.4.7,0,10.983398675918579,[Row(revenue=None)]

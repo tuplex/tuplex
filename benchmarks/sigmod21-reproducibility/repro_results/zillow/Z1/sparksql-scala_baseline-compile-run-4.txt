@@ -1,0 +1,11 @@
+[info] welcome to sbt 1.5.6 (Private Build Java 1.8.0_312)
+[info] loading project definition from /code/benchmarks/zillow/Z1/sparksql-scala/project
+[info] loading settings for project sparksql-scala from build.sbt ...
+[info] set current project to ZillowScala (in build file:/code/benchmarks/zillow/Z1/sparksql-scala/)
+[info] compiling 1 Scala source to /code/benchmarks/zillow/Z1/sparksql-scala/target/scala-2.11/classes ...
+[info] done compiling
+[success] Total time: 6 s, completed Feb 10, 2022 6:36:36 AM
+
+real	0m9.158s
+user	0m37.191s
+sys	0m1.378s

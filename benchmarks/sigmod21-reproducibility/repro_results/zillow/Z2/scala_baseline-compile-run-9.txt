@@ -1,0 +1,12 @@
+[info] welcome to sbt 1.5.6 (Private Build Java 1.8.0_312)
+[info] loading settings for project scala-build from plugins.sbt ...
+[info] loading project definition from /code/benchmarks/zillow/Z2/scala/project
+[info] loading settings for project scala from build.sbt ...
+[info] set current project to ZillowScala (in build file:/code/benchmarks/zillow/Z2/scala/)
+[info] compiling 1 Scala source to /code/benchmarks/zillow/Z2/scala/target/scala-2.11/classes ...
+[info] done compiling
+[success] Total time: 3 s, completed Feb 10, 2022 11:30:06 PM
+
+real	0m6.965s
+user	0m28.367s
+sys	0m1.223s

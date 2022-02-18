@@ -1,0 +1,396 @@
+[2022-02-09 14:03:02.184] [local ee] [info] loaded runtime library from/usr/local/lib/python3.6/site-packages/Tuplex-0.3.1-py3.6.egg/tuplex/libexec/tuplex_runtime.so
+[2022-02-09 14:03:02.184] [local ee] [info] initializing LLVM backend
+[2022-02-09 14:03:02.184] [local ee] [warning] init JIT compiler also only in local mode
+[2022-02-09 14:03:02.184] [LLVM] [info] compiling code for znver1
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.185] [local execution engine] [info] started local executor E/1 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.185] [E/1] [info] starting detached process queue
+[2022-02-09 14:03:02.185] [local execution engine] [info] started local executor E/2 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.185] [E/1] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.185] [local execution engine] [info] started local executor E/3 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.185] [local execution engine] [info] started local executor E/4 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.185] [E/2] [info] starting detached process queue
+[2022-02-09 14:03:02.185] [E/3] [info] starting detached process queue
+[2022-02-09 14:03:02.185] [local execution engine] [info] started local executor E/5 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.185] [E/4] [info] starting detached process queue
+[2022-02-09 14:03:02.185] [E/5] [info] starting detached process queue
+[2022-02-09 14:03:02.185] [E/2] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.185] [E/3] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.185] [E/4] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.185] [E/5] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.185] [E/6] [info] starting detached process queue
+[2022-02-09 14:03:02.185] [local execution engine] [info] started local executor E/6 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.185] [E/6] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.185] [local execution engine] [info] started local executor E/7 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.185] [local execution engine] [info] started local executor E/8 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.185] [E/7] [info] starting detached process queue
+[2022-02-09 14:03:02.185] [local execution engine] [info] started local executor E/9 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.185] [E/8] [info] starting detached process queue
+[2022-02-09 14:03:02.185] [E/9] [info] starting detached process queue
+[2022-02-09 14:03:02.185] [E/10] [info] starting detached process queue
+[2022-02-09 14:03:02.186] [E/9] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.185] [E/8] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.186] [E/10] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.185] [E/7] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.185] [local execution engine] [info] started local executor E/10 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.186] [local execution engine] [info] started local executor E/11 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.186] [local execution engine] [info] started local executor E/12 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.186] [local execution engine] [info] started local executor E/13 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.186] [E/11] [info] starting detached process queue
+[2022-02-09 14:03:02.186] [local execution engine] [info] started local executor E/14 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.186] [E/12] [info] starting detached process queue
+[2022-02-09 14:03:02.186] [E/13] [info] starting detached process queue
+[2022-02-09 14:03:02.186] [local execution engine] [info] started local executor E/15 (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.186] [E/11] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.186] [E/13] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.186] [E/12] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.186] [E/15] [info] starting detached process queue
+[2022-02-09 14:03:02.186] [memory] [info] allocated bitmap managed memory region (15.00 GB, 32.00 MB block size)
+[2022-02-09 14:03:02.186] [E/15] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.186] [E/14] [info] starting detached process queue
+[2022-02-09 14:03:02.186] [local execution engine] [info] started driver (15.00 GB, 32.00 MB default partition size)
+[2022-02-09 14:03:02.186] [E/14] [info] initialized runtime memory (4.00 MB)
+[2022-02-09 14:03:02.186] [fileinputoperator] [info] found 1 file (1.10 GB) to process.
+[2022-02-09 14:03:02.187] [global] [info] sampled file:///data/311/311_preprocessed.csv on 256.00 KB
+[2022-02-09 14:03:02.291] [logical planner] [info] logical optimization took 0.005993ms
+[2022-02-09 14:03:02.291] [codegen] [info] generating pipeline for (Option[str]) -> (Option[str]) (1 operator pipelined)
+[2022-02-09 14:03:02.301] [global] [info] retrieved metrics object
+[2022-02-09 14:03:02.310] [global] [info] Optimization via LLVM passes took 0.008962 ms
+[2022-02-09 14:03:02.310] [global] [info] starting code compilation
+[2022-02-09 14:03:02.310] [global] [info] first compile done
+[2022-02-09 14:03:02.315] [global] [info] functor Stage_0 retrieved from llvm
+[2022-02-09 14:03:02.315] [global] [info] retrieving init/release stage functors
+[2022-02-09 14:03:02.315] [global] [info] Compiled code paths for stage 0 in 0.01 ms
+[2022-02-09 14:03:02.315] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.0144674s
+[2022-02-09 14:03:02.315] [local ee] [info] split /data/311/311_preprocessed.csv into 17 tasks
+[2022-02-09 14:03:02.994] [E/8] [info] [Task Finished] Transform to mem in 0.678471s (11184144 normal rows, 0 exceptions)
+[2022-02-09 14:03:02.994] [E/13] [info] [Task Finished] Transform to mem in 0.678608s (11183810 normal rows, 0 exceptions)
+[2022-02-09 14:03:02.994] [E/11] [info] [Task Finished] Transform to mem in 0.679390s (11183144 normal rows, 0 exceptions)
+[2022-02-09 14:03:02.997] [E/10] [info] [Task Finished] Transform to mem in 0.682103s (11184478 normal rows, 0 exceptions)
+[2022-02-09 14:03:03.001] [E/12] [info] [Task Finished] Transform to mem in 0.685899s (11184811 normal rows, 0 exceptions)
+[2022-02-09 14:03:03.002] [E/6] [info] [Task Finished] Transform to mem in 0.686875s (11183144 normal rows, 0 exceptions)
+[2022-02-09 14:03:03.004] [E/3] [info] [Task Finished] Transform to mem in 0.689342s (11185477 normal rows, 0 exceptions)
+[2022-02-09 14:03:03.006] [driver] [info] [Task Finished] Transform to mem in 0.690496s (11184811 normal rows, 0 exceptions)
+[2022-02-09 14:03:03.010] [E/1] [info] [Task Finished] Transform to mem in 0.694880s (11184809 normal rows, 0 exceptions)
+[2022-02-09 14:03:03.351] [E/14] [info] [Task Finished] Transform to mem in 1.035624s (11187144 normal rows, 0 exceptions)
+[2022-02-09 14:03:03.356] [E/4] [info] [Task Finished] Transform to mem in 1.041209s (11183144 normal rows, 0 exceptions)
+[2022-02-09 14:03:03.357] [E/5] [info] [Task Finished] Transform to mem in 1.041908s (11184811 normal rows, 0 exceptions)
+[2022-02-09 14:03:03.358] [E/2] [info] [Task Finished] Transform to mem in 1.042546s (11185477 normal rows, 0 exceptions)
+[2022-02-09 14:03:03.362] [E/9] [info] [Task Finished] Transform to mem in 1.047115s (11184810 normal rows, 0 exceptions)
+[2022-02-09 14:03:03.363] [E/15] [info] [Task Finished] Transform to mem in 1.048179s (11183811 normal rows, 0 exceptions)
+[2022-02-09 14:03:03.365] [E/7] [info] [Task Finished] Transform to mem in 1.050185s (11184811 normal rows, 0 exceptions)
+[2022-02-09 14:03:04.153] [E/8] [info] [Task Finished] Transform to mem in 1.159699s (18675364 normal rows, 0 exceptions)
+[2022-02-09 14:03:04.153] [global] [info] [Transform Stage] Stage 0 completed 17 load&transform tasks in 1.83833s
+[2022-02-09 14:03:04.153] [global] [info] [Transform Stage] Stage 0 total wall clock time: 14.6325s, 197628000 input rows, time to process 1 row via fast path: 7.40408e-05ms
+[2022-02-09 14:03:04.153] [global] [info] [Transform Stage] Stage 0 completed 17 sink tasks in 8.0211e-05s
+[2022-02-09 14:03:04.153] [global] [info] [Transform Stage] Stage 0 took 1.85293s
+[2022-02-09 14:03:04.153] [global] [info] Query Execution took 1.87132s. (planning: 0.0183775s, execution: 1.85295s)
+[2022-02-09 14:03:04.155] [global] [info] Cached 197628000 common rows (0 general rows), memory usage: 5.52 GB/5.81 GB (0.00 B/0.00 B)
+[2022-02-09 14:03:04.173] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2022-02-09 14:03:04.176] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2022-02-09 14:03:04.179] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2022-02-09 14:03:04.182] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2022-02-09 14:03:04.182] [logical planner] [info] logical optimization took 0.006221ms
+[2022-02-09 14:03:04.182] [codegen] [info] generating pipeline for (Option[str]) -> (Option[str]) (3 operators pipelined)
+[2022-02-09 14:03:04.182] [codegen] [info] generating function fix_zip_codes for (Option[str]) -> Option[str]
+[2022-02-09 14:03:04.183] [codegen] [info] generating pipeline for (Option[str]) -> (Option[str]) (1 operator pipelined)
+[2022-02-09 14:03:04.184] [global] [info] provided option to explicitly merge bad rows in order back, however rows will be hashed. Disabling option. To silence this warning, set
+tuplex.optimizer.mergeExceptionsInOrder=false
+[2022-02-09 14:03:04.184] [global] [info] retrieved metrics object
+[2022-02-09 14:03:04.201] [global] [info] Optimization via LLVM passes took 0.016583 ms
+[2022-02-09 14:03:04.201] [global] [info] starting code compilation
+[2022-02-09 14:03:04.201] [global] [info] first compile done
+[2022-02-09 14:03:04.206] [global] [info] functor Stage_0 retrieved from llvm
+[2022-02-09 14:03:04.206] [global] [info] retrieving init/release stage functors
+[2022-02-09 14:03:04.206] [global] [info] Compiled code paths for stage 0 in 0.01 ms
+[2022-02-09 14:03:04.206] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.0226481s
+[2022-02-09 14:03:04.206] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.000047s (0 normal rows, 0 exceptions, 1 bucket)
+[2022-02-09 14:03:04.244] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.038096s (0 normal rows, 0 exceptions, 121 buckets)
+[2022-02-09 14:03:04.245] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.038915s (0 normal rows, 0 exceptions, 148 buckets)
+[2022-02-09 14:03:04.245] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.038933s (0 normal rows, 0 exceptions, 149 buckets)
+[2022-02-09 14:03:04.245] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.038947s (0 normal rows, 0 exceptions, 116 buckets)
+[2022-02-09 14:03:04.245] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.038963s (0 normal rows, 0 exceptions, 149 buckets)
+[2022-02-09 14:03:04.245] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.000032s (0 normal rows, 0 exceptions, 2 buckets)
+[2022-02-09 14:03:04.245] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.039024s (0 normal rows, 0 exceptions, 116 buckets)
+[2022-02-09 14:03:04.246] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.039106s (0 normal rows, 0 exceptions, 146 buckets)
+[2022-02-09 14:03:04.246] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039278s (0 normal rows, 0 exceptions, 149 buckets)
+[2022-02-09 14:03:04.246] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.039501s (0 normal rows, 0 exceptions, 143 buckets)
+[2022-02-09 14:03:04.263] [E/2] [info] [Task Finished] Transform to in-memory hash table in 0.056712s (0 normal rows, 0 exceptions, 151 buckets)
+[2022-02-09 14:03:04.263] [E/14] [info] [Task Finished] Transform to in-memory hash table in 0.056791s (0 normal rows, 0 exceptions, 156 buckets)
+[2022-02-09 14:03:04.263] [E/15] [info] [Task Finished] Transform to in-memory hash table in 0.056807s (0 normal rows, 0 exceptions, 124 buckets)
+[2022-02-09 14:03:04.263] [E/5] [info] [Task Finished] Transform to in-memory hash table in 0.056848s (0 normal rows, 0 exceptions, 144 buckets)
+[2022-02-09 14:03:04.264] [E/7] [info] [Task Finished] Transform to in-memory hash table in 0.057814s (0 normal rows, 0 exceptions, 115 buckets)
+[2022-02-09 14:03:04.264] [E/9] [info] [Task Finished] Transform to in-memory hash table in 0.057839s (0 normal rows, 0 exceptions, 111 buckets)
+[2022-02-09 14:03:04.264] [E/9] [info] [Task Finished] Transform to in-memory hash table in 0.000037s (0 normal rows, 0 exceptions, 1 bucket)
+[2022-02-09 14:03:04.265] [E/4] [info] [Task Finished] Transform to in-memory hash table in 0.058451s (0 normal rows, 0 exceptions, 152 buckets)
+[2022-02-09 14:03:04.283] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.038511s (0 normal rows, 0 exceptions, 112 buckets)
+[2022-02-09 14:03:04.285] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.039519s (0 normal rows, 0 exceptions, 134 buckets)
+[2022-02-09 14:03:04.285] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.039636s (0 normal rows, 0 exceptions, 148 buckets)
+[2022-02-09 14:03:04.285] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.039797s (0 normal rows, 0 exceptions, 147 buckets)
+[2022-02-09 14:03:04.285] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.039730s (0 normal rows, 0 exceptions, 147 buckets)
+[2022-02-09 14:03:04.285] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.039773s (0 normal rows, 0 exceptions, 136 buckets)
+[2022-02-09 14:03:04.286] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039812s (0 normal rows, 0 exceptions, 115 buckets)
+[2022-02-09 14:03:04.286] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.040469s (0 normal rows, 0 exceptions, 152 buckets)
+[2022-02-09 14:03:04.288] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.042486s (0 normal rows, 0 exceptions, 115 buckets)
+[2022-02-09 14:03:04.288] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.000052s (0 normal rows, 0 exceptions, 1 bucket)
+[2022-02-09 14:03:04.321] [E/14] [info] [Task Finished] Transform to in-memory hash table in 0.057412s (0 normal rows, 0 exceptions, 147 buckets)
+[2022-02-09 14:03:04.321] [E/2] [info] [Task Finished] Transform to in-memory hash table in 0.057653s (0 normal rows, 0 exceptions, 118 buckets)
+[2022-02-09 14:03:04.321] [E/5] [info] [Task Finished] Transform to in-memory hash table in 0.057527s (0 normal rows, 0 exceptions, 134 buckets)
+[2022-02-09 14:03:04.321] [E/15] [info] [Task Finished] Transform to in-memory hash table in 0.057722s (0 normal rows, 0 exceptions, 153 buckets)
+[2022-02-09 14:03:04.322] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.038580s (0 normal rows, 0 exceptions, 147 buckets)
+[2022-02-09 14:03:04.323] [E/7] [info] [Task Finished] Transform to in-memory hash table in 0.058297s (0 normal rows, 0 exceptions, 117 buckets)
+[2022-02-09 14:03:04.323] [E/9] [info] [Task Finished] Transform to in-memory hash table in 0.058463s (0 normal rows, 0 exceptions, 139 buckets)
+[2022-02-09 14:03:04.324] [E/4] [info] [Task Finished] Transform to in-memory hash table in 0.059055s (0 normal rows, 0 exceptions, 147 buckets)
+[2022-02-09 14:03:04.325] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.039637s (0 normal rows, 0 exceptions, 111 buckets)
+[2022-02-09 14:03:04.325] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039632s (0 normal rows, 0 exceptions, 154 buckets)
+[2022-02-09 14:03:04.325] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.040047s (0 normal rows, 0 exceptions, 148 buckets)
+[2022-02-09 14:03:04.326] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.040247s (0 normal rows, 0 exceptions, 143 buckets)
+[2022-02-09 14:03:04.326] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.039757s (0 normal rows, 0 exceptions, 155 buckets)
+[2022-02-09 14:03:04.326] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.041291s (0 normal rows, 0 exceptions, 126 buckets)
+[2022-02-09 14:03:04.326] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.041222s (0 normal rows, 0 exceptions, 112 buckets)
+[2022-02-09 14:03:04.329] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.040633s (0 normal rows, 0 exceptions, 152 buckets)
+[2022-02-09 14:03:04.360] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.038420s (0 normal rows, 0 exceptions, 121 buckets)
+[2022-02-09 14:03:04.365] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.039239s (0 normal rows, 0 exceptions, 122 buckets)
+[2022-02-09 14:03:04.365] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039461s (0 normal rows, 0 exceptions, 156 buckets)
+[2022-02-09 14:03:04.365] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.039495s (0 normal rows, 0 exceptions, 123 buckets)
+[2022-02-09 14:03:04.365] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.040392s (0 normal rows, 0 exceptions, 154 buckets)
+[2022-02-09 14:03:04.365] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.039094s (0 normal rows, 0 exceptions, 110 buckets)
+[2022-02-09 14:03:04.367] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.041351s (0 normal rows, 0 exceptions, 122 buckets)
+[2022-02-09 14:03:04.367] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.041206s (0 normal rows, 0 exceptions, 118 buckets)
+[2022-02-09 14:03:04.368] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.039249s (0 normal rows, 0 exceptions, 125 buckets)
+[2022-02-09 14:03:04.378] [E/14] [info] [Task Finished] Transform to in-memory hash table in 0.057569s (0 normal rows, 0 exceptions, 118 buckets)
+[2022-02-09 14:03:04.378] [E/2] [info] [Task Finished] Transform to in-memory hash table in 0.057434s (0 normal rows, 0 exceptions, 124 buckets)
+[2022-02-09 14:03:04.378] [E/15] [info] [Task Finished] Transform to in-memory hash table in 0.057464s (0 normal rows, 0 exceptions, 123 buckets)
+[2022-02-09 14:03:04.379] [E/5] [info] [Task Finished] Transform to in-memory hash table in 0.057773s (0 normal rows, 0 exceptions, 122 buckets)
+[2022-02-09 14:03:04.381] [E/9] [info] [Task Finished] Transform to in-memory hash table in 0.058322s (0 normal rows, 0 exceptions, 148 buckets)
+[2022-02-09 14:03:04.386] [E/7] [info] [Task Finished] Transform to in-memory hash table in 0.063748s (0 normal rows, 0 exceptions, 135 buckets)
+[2022-02-09 14:03:04.386] [E/4] [info] [Task Finished] Transform to in-memory hash table in 0.062369s (0 normal rows, 0 exceptions, 153 buckets)
+[2022-02-09 14:03:04.399] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.038563s (0 normal rows, 0 exceptions, 134 buckets)
+[2022-02-09 14:03:04.405] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.039903s (0 normal rows, 0 exceptions, 149 buckets)
+[2022-02-09 14:03:04.405] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039899s (0 normal rows, 0 exceptions, 149 buckets)
+[2022-02-09 14:03:04.405] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.039642s (0 normal rows, 0 exceptions, 144 buckets)
+[2022-02-09 14:03:04.405] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.040333s (0 normal rows, 0 exceptions, 151 buckets)
+[2022-02-09 14:03:04.407] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.041439s (0 normal rows, 0 exceptions, 152 buckets)
+[2022-02-09 14:03:04.407] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.040032s (0 normal rows, 0 exceptions, 117 buckets)
+[2022-02-09 14:03:04.407] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.039571s (0 normal rows, 0 exceptions, 119 buckets)
+[2022-02-09 14:03:04.410] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.041283s (0 normal rows, 0 exceptions, 119 buckets)
+[2022-02-09 14:03:04.436] [E/2] [info] [Task Finished] Transform to in-memory hash table in 0.057442s (0 normal rows, 0 exceptions, 140 buckets)
+[2022-02-09 14:03:04.436] [E/14] [info] [Task Finished] Transform to in-memory hash table in 0.057466s (0 normal rows, 0 exceptions, 118 buckets)
+[2022-02-09 14:03:04.436] [E/15] [info] [Task Finished] Transform to in-memory hash table in 0.057405s (0 normal rows, 0 exceptions, 147 buckets)
+[2022-02-09 14:03:04.436] [E/5] [info] [Task Finished] Transform to in-memory hash table in 0.057454s (0 normal rows, 0 exceptions, 152 buckets)
+[2022-02-09 14:03:04.437] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.038705s (0 normal rows, 0 exceptions, 113 buckets)
+[2022-02-09 14:03:04.440] [E/9] [info] [Task Finished] Transform to in-memory hash table in 0.058392s (0 normal rows, 0 exceptions, 157 buckets)
+[2022-02-09 14:03:04.444] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039707s (0 normal rows, 0 exceptions, 147 buckets)
+[2022-02-09 14:03:04.444] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.039849s (0 normal rows, 0 exceptions, 116 buckets)
+[2022-02-09 14:03:04.445] [E/7] [info] [Task Finished] Transform to in-memory hash table in 0.058689s (0 normal rows, 0 exceptions, 151 buckets)
+[2022-02-09 14:03:04.445] [E/7] [info] [Task Finished] Transform to in-memory hash table in 0.000035s (0 normal rows, 0 exceptions, 1 bucket)
+[2022-02-09 14:03:04.445] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.039652s (0 normal rows, 0 exceptions, 152 buckets)
+[2022-02-09 14:03:04.446] [E/4] [info] [Task Finished] Transform to in-memory hash table in 0.059289s (0 normal rows, 0 exceptions, 120 buckets)
+[2022-02-09 14:03:04.446] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.039330s (0 normal rows, 0 exceptions, 144 buckets)
+[2022-02-09 14:03:04.446] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.041442s (0 normal rows, 0 exceptions, 151 buckets)
+[2022-02-09 14:03:04.447] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.039494s (0 normal rows, 0 exceptions, 127 buckets)
+[2022-02-09 14:03:04.447] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.039938s (0 normal rows, 0 exceptions, 161 buckets)
+[2022-02-09 14:03:04.451] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.040935s (0 normal rows, 0 exceptions, 106 buckets)
+[2022-02-09 14:03:04.476] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.039075s (0 normal rows, 0 exceptions, 125 buckets)
+[2022-02-09 14:03:04.484] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039555s (0 normal rows, 0 exceptions, 151 buckets)
+[2022-02-09 14:03:04.484] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.039786s (0 normal rows, 0 exceptions, 152 buckets)
+[2022-02-09 14:03:04.484] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.000011s (0 normal rows, 0 exceptions, 1 bucket)
+[2022-02-09 14:03:04.485] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.039898s (0 normal rows, 0 exceptions, 145 buckets)
+[2022-02-09 14:03:04.486] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.039565s (0 normal rows, 0 exceptions, 135 buckets)
+[2022-02-09 14:03:04.487] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.040140s (0 normal rows, 0 exceptions, 157 buckets)
+[2022-02-09 14:03:04.487] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.041126s (0 normal rows, 0 exceptions, 156 buckets)
+[2022-02-09 14:03:04.488] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.041454s (0 normal rows, 0 exceptions, 101 buckets)
+[2022-02-09 14:03:04.490] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.039443s (0 normal rows, 0 exceptions, 127 buckets)
+[2022-02-09 14:03:04.494] [E/5] [info] [Task Finished] Transform to in-memory hash table in 0.057632s (0 normal rows, 0 exceptions, 127 buckets)
+[2022-02-09 14:03:04.494] [E/15] [info] [Task Finished] Transform to in-memory hash table in 0.057850s (0 normal rows, 0 exceptions, 145 buckets)
+[2022-02-09 14:03:04.494] [E/2] [info] [Task Finished] Transform to in-memory hash table in 0.058207s (0 normal rows, 0 exceptions, 119 buckets)
+[2022-02-09 14:03:04.498] [E/9] [info] [Task Finished] Transform to in-memory hash table in 0.058472s (0 normal rows, 0 exceptions, 153 buckets)
+[2022-02-09 14:03:04.498] [E/9] [info] [Task Finished] Transform to in-memory hash table in 0.000026s (0 normal rows, 0 exceptions, 1 bucket)
+[2022-02-09 14:03:04.498] [E/14] [info] [Task Finished] Transform to in-memory hash table in 0.062587s (0 normal rows, 0 exceptions, 148 buckets)
+[2022-02-09 14:03:04.504] [E/7] [info] [Task Finished] Transform to in-memory hash table in 0.058741s (0 normal rows, 0 exceptions, 103 buckets)
+[2022-02-09 14:03:04.505] [E/4] [info] [Task Finished] Transform to in-memory hash table in 0.058954s (0 normal rows, 0 exceptions, 157 buckets)
+[2022-02-09 14:03:04.515] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.038673s (0 normal rows, 0 exceptions, 151 buckets)
+[2022-02-09 14:03:04.524] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039670s (0 normal rows, 0 exceptions, 157 buckets)
+[2022-02-09 14:03:04.526] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.041579s (0 normal rows, 0 exceptions, 159 buckets)
+[2022-02-09 14:03:04.526] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.041143s (0 normal rows, 0 exceptions, 155 buckets)
+[2022-02-09 14:03:04.526] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.039790s (0 normal rows, 0 exceptions, 103 buckets)
+[2022-02-09 14:03:04.527] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.039425s (0 normal rows, 0 exceptions, 126 buckets)
+[2022-02-09 14:03:04.527] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.040958s (0 normal rows, 0 exceptions, 120 buckets)
+[2022-02-09 14:03:04.528] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.040166s (0 normal rows, 0 exceptions, 150 buckets)
+[2022-02-09 14:03:04.530] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.039861s (0 normal rows, 0 exceptions, 153 buckets)
+[2022-02-09 14:03:04.553] [E/15] [info] [Task Finished] Transform to in-memory hash table in 0.057465s (0 normal rows, 0 exceptions, 150 buckets)
+[2022-02-09 14:03:04.553] [E/2] [info] [Task Finished] Transform to in-memory hash table in 0.057573s (0 normal rows, 0 exceptions, 112 buckets)
+[2022-02-09 14:03:04.553] [E/5] [info] [Task Finished] Transform to in-memory hash table in 0.057821s (0 normal rows, 0 exceptions, 157 buckets)
+[2022-02-09 14:03:04.554] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.038936s (0 normal rows, 0 exceptions, 154 buckets)
+[2022-02-09 14:03:04.556] [E/14] [info] [Task Finished] Transform to in-memory hash table in 0.057488s (0 normal rows, 0 exceptions, 105 buckets)
+[2022-02-09 14:03:04.557] [E/9] [info] [Task Finished] Transform to in-memory hash table in 0.058484s (0 normal rows, 0 exceptions, 108 buckets)
+[2022-02-09 14:03:04.562] [E/7] [info] [Task Finished] Transform to in-memory hash table in 0.058629s (0 normal rows, 0 exceptions, 152 buckets)
+[2022-02-09 14:03:04.563] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039868s (0 normal rows, 0 exceptions, 151 buckets)
+[2022-02-09 14:03:04.564] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.000109s (0 normal rows, 0 exceptions, 2 buckets)
+[2022-02-09 14:03:04.564] [E/4] [info] [Task Finished] Transform to in-memory hash table in 0.059228s (0 normal rows, 0 exceptions, 157 buckets)
+[2022-02-09 14:03:04.566] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.039959s (0 normal rows, 0 exceptions, 124 buckets)
+[2022-02-09 14:03:04.566] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.040158s (0 normal rows, 0 exceptions, 113 buckets)
+[2022-02-09 14:03:04.567] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.040261s (0 normal rows, 0 exceptions, 104 buckets)
+[2022-02-09 14:03:04.567] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.039966s (0 normal rows, 0 exceptions, 164 buckets)
+[2022-02-09 14:03:04.568] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.040699s (0 normal rows, 0 exceptions, 154 buckets)
+[2022-02-09 14:03:04.568] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.039885s (0 normal rows, 0 exceptions, 153 buckets)
+[2022-02-09 14:03:04.570] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.040406s (0 normal rows, 0 exceptions, 136 buckets)
+[2022-02-09 14:03:04.593] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.038973s (0 normal rows, 0 exceptions, 132 buckets)
+[2022-02-09 14:03:04.603] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039829s (0 normal rows, 0 exceptions, 147 buckets)
+[2022-02-09 14:03:04.606] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.039364s (0 normal rows, 0 exceptions, 141 buckets)
+[2022-02-09 14:03:04.607] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.040909s (0 normal rows, 0 exceptions, 149 buckets)
+[2022-02-09 14:03:04.607] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.039339s (0 normal rows, 0 exceptions, 159 buckets)
+[2022-02-09 14:03:04.607] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.040892s (0 normal rows, 0 exceptions, 99 buckets)
+[2022-02-09 14:03:04.608] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.041092s (0 normal rows, 0 exceptions, 94 buckets)
+[2022-02-09 14:03:04.608] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.039970s (0 normal rows, 0 exceptions, 153 buckets)
+[2022-02-09 14:03:04.610] [E/15] [info] [Task Finished] Transform to in-memory hash table in 0.057645s (0 normal rows, 0 exceptions, 109 buckets)
+[2022-02-09 14:03:04.611] [E/2] [info] [Task Finished] Transform to in-memory hash table in 0.057589s (0 normal rows, 0 exceptions, 142 buckets)
+[2022-02-09 14:03:04.611] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.040258s (0 normal rows, 0 exceptions, 154 buckets)
+[2022-02-09 14:03:04.611] [E/5] [info] [Task Finished] Transform to in-memory hash table in 0.057903s (0 normal rows, 0 exceptions, 156 buckets)
+[2022-02-09 14:03:04.615] [E/9] [info] [Task Finished] Transform to in-memory hash table in 0.058616s (0 normal rows, 0 exceptions, 152 buckets)
+[2022-02-09 14:03:04.615] [E/14] [info] [Task Finished] Transform to in-memory hash table in 0.059656s (0 normal rows, 0 exceptions, 147 buckets)
+[2022-02-09 14:03:04.621] [E/7] [info] [Task Finished] Transform to in-memory hash table in 0.058387s (0 normal rows, 0 exceptions, 129 buckets)
+[2022-02-09 14:03:04.623] [E/4] [info] [Task Finished] Transform to in-memory hash table in 0.059217s (0 normal rows, 0 exceptions, 152 buckets)
+[2022-02-09 14:03:04.632] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.038523s (0 normal rows, 0 exceptions, 125 buckets)
+[2022-02-09 14:03:04.643] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039483s (0 normal rows, 0 exceptions, 108 buckets)
+[2022-02-09 14:03:04.647] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.039791s (0 normal rows, 0 exceptions, 149 buckets)
+[2022-02-09 14:03:04.647] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.039583s (0 normal rows, 0 exceptions, 154 buckets)
+[2022-02-09 14:03:04.647] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.040328s (0 normal rows, 0 exceptions, 101 buckets)
+[2022-02-09 14:03:04.647] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.039823s (0 normal rows, 0 exceptions, 152 buckets)
+[2022-02-09 14:03:04.647] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.000026s (0 normal rows, 0 exceptions, 1 bucket)
+[2022-02-09 14:03:04.648] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.039791s (0 normal rows, 0 exceptions, 160 buckets)
+[2022-02-09 14:03:04.648] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.039452s (0 normal rows, 0 exceptions, 139 buckets)
+[2022-02-09 14:03:04.650] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.039465s (0 normal rows, 0 exceptions, 145 buckets)
+[2022-02-09 14:03:04.668] [E/2] [info] [Task Finished] Transform to in-memory hash table in 0.057490s (0 normal rows, 0 exceptions, 107 buckets)
+[2022-02-09 14:03:04.668] [E/15] [info] [Task Finished] Transform to in-memory hash table in 0.057674s (0 normal rows, 0 exceptions, 96 buckets)
+[2022-02-09 14:03:04.669] [E/5] [info] [Task Finished] Transform to in-memory hash table in 0.057561s (0 normal rows, 0 exceptions, 145 buckets)
+[2022-02-09 14:03:04.670] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.038749s (0 normal rows, 0 exceptions, 108 buckets)
+[2022-02-09 14:03:04.673] [E/14] [info] [Task Finished] Transform to in-memory hash table in 0.057465s (0 normal rows, 0 exceptions, 163 buckets)
+[2022-02-09 14:03:04.674] [E/9] [info] [Task Finished] Transform to in-memory hash table in 0.058408s (0 normal rows, 0 exceptions, 147 buckets)
+[2022-02-09 14:03:04.679] [E/7] [info] [Task Finished] Transform to in-memory hash table in 0.058151s (0 normal rows, 0 exceptions, 159 buckets)
+[2022-02-09 14:03:04.682] [E/4] [info] [Task Finished] Transform to in-memory hash table in 0.058936s (0 normal rows, 0 exceptions, 109 buckets)
+[2022-02-09 14:03:04.683] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039719s (0 normal rows, 0 exceptions, 126 buckets)
+[2022-02-09 14:03:04.686] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.039623s (0 normal rows, 0 exceptions, 155 buckets)
+[2022-02-09 14:03:04.686] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.039788s (0 normal rows, 0 exceptions, 159 buckets)
+[2022-02-09 14:03:04.687] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.039757s (0 normal rows, 0 exceptions, 101 buckets)
+[2022-02-09 14:03:04.689] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.042006s (0 normal rows, 0 exceptions, 150 buckets)
+[2022-02-09 14:03:04.689] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.041709s (0 normal rows, 0 exceptions, 151 buckets)
+[2022-02-09 14:03:04.689] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.041462s (0 normal rows, 0 exceptions, 140 buckets)
+[2022-02-09 14:03:04.690] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.039867s (0 normal rows, 0 exceptions, 111 buckets)
+[2022-02-09 14:03:04.709] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.038462s (0 normal rows, 0 exceptions, 117 buckets)
+[2022-02-09 14:03:04.716] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.027632s (0 normal rows, 0 exceptions, 123 buckets)
+[2022-02-09 14:03:04.722] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.039582s (0 normal rows, 0 exceptions, 147 buckets)
+[2022-02-09 14:03:04.725] [E/2] [info] [Task Finished] Transform to in-memory hash table in 0.057198s (0 normal rows, 0 exceptions, 143 buckets)
+[2022-02-09 14:03:04.725] [E/15] [info] [Task Finished] Transform to in-memory hash table in 0.057221s (0 normal rows, 0 exceptions, 147 buckets)
+[2022-02-09 14:03:04.726] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.039202s (0 normal rows, 0 exceptions, 142 buckets)
+[2022-02-09 14:03:04.726] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.039442s (0 normal rows, 0 exceptions, 151 buckets)
+[2022-02-09 14:03:04.726] [E/5] [info] [Task Finished] Transform to in-memory hash table in 0.057220s (0 normal rows, 0 exceptions, 151 buckets)
+[2022-02-09 14:03:04.727] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.039051s (0 normal rows, 0 exceptions, 144 buckets)
+[2022-02-09 14:03:04.730] [E/14] [info] [Task Finished] Transform to in-memory hash table in 0.056939s (0 normal rows, 0 exceptions, 145 buckets)
+[2022-02-09 14:03:04.732] [E/9] [info] [Task Finished] Transform to in-memory hash table in 0.058293s (0 normal rows, 0 exceptions, 150 buckets)
+[2022-02-09 14:03:04.737] [E/7] [info] [Task Finished] Transform to in-memory hash table in 0.057867s (0 normal rows, 0 exceptions, 145 buckets)
+[2022-02-09 14:03:04.740] [E/4] [info] [Task Finished] Transform to in-memory hash table in 0.058460s (0 normal rows, 0 exceptions, 118 buckets)
+[2022-02-09 14:03:04.741] [global] [info] [Transform Stage] Stage 0 completed 186 load&transform tasks in 0.534303s
+[2022-02-09 14:03:04.741] [global] [info] [Transform Stage] Stage 0 total wall clock time: 8.19913s, 197628000 input rows, time to process 1 row via fast path: 4.14877e-05ms
+[2022-02-09 14:03:04.744] [global] [info] [Transform Stage] Stage 0 completed 186 sink tasks in 0.00393452s
+[2022-02-09 14:03:04.745] [global] [info] [Transform Stage] Stage 0 took 0.560991s
+[2022-02-09 14:03:04.754] [global] [info] retrieved metrics object
+[2022-02-09 14:03:04.764] [global] [info] Optimization via LLVM passes took 0.009835 ms
+[2022-02-09 14:03:04.764] [global] [info] starting code compilation
+[2022-02-09 14:03:04.764] [global] [info] first compile done
+[2022-02-09 14:03:04.768] [global] [info] functor Stage_1 retrieved from llvm
+[2022-02-09 14:03:04.768] [global] [info] retrieving init/release stage functors
+[2022-02-09 14:03:04.768] [global] [info] Compiled code paths for stage 1 in 0.00 ms
+[2022-02-09 14:03:04.768] [global] [info] [Transform Stage] Stage 1 compiled to x86 in 0.0141367s
+[2022-02-09 14:03:04.768] [E/1] [info] [Task Finished] Transform to mem in 0.000029s (246 normal rows, 0 exceptions)
+[2022-02-09 14:03:04.768] [global] [info] [Transform Stage] Stage 1 completed 1 load&transform tasks in 5.0214e-05s
+[2022-02-09 14:03:04.768] [global] [info] [Transform Stage] Stage 1 total wall clock time: 2.9275e-05s, 246 input rows, time to process 1 row via fast path: 0.000119004ms
+[2022-02-09 14:03:04.768] [global] [info] [Transform Stage] Stage 1 completed 1 sink tasks in 4.889e-06s
+[2022-02-09 14:03:04.768] [global] [info] [Transform Stage] Stage 1 took 0.0142066s
+[2022-02-09 14:03:04.768] [global] [info] Query Execution took 0.594681s. (planning: 0.0104698s, execution: 0.584211s)
+[2022-02-09 14:03:04.769] [global] [info] Cached 246 common rows (0 general rows), memory usage: 7.20 KB/32.00 MB (0.00 B/0.00 B)
+[2022-02-09 14:03:04.772] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2022-02-09 14:03:04.775] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2022-02-09 14:03:04.779] [physical planner] [warning] sampling mapColumn operator lead to 100 exceptions
+[2022-02-09 14:03:04.779] [logical planner] [info] logical optimization took 0.006703ms
+[2022-02-09 14:03:04.779] [codegen] [info] generating pipeline for (Option[str]) -> (str) (1 operator pipelined)
+outSchema is different than last operator's schema:
+outSchema: (str)
+last Op: (Option[str])
+[2022-02-09 14:03:04.780] [global] [info] retrieved metrics object
+[2022-02-09 14:03:04.790] [global] [info] Optimization via LLVM passes took 0.010119 ms
+[2022-02-09 14:03:04.790] [global] [info] starting code compilation
+[2022-02-09 14:03:04.790] [global] [info] first compile done
+[2022-02-09 14:03:04.793] [global] [info] functor Stage_0 retrieved from llvm
+[2022-02-09 14:03:04.793] [global] [info] retrieving init/release stage functors
+[2022-02-09 14:03:04.793] [global] [info] Compiled code paths for stage 0 in 0.00 ms
+[2022-02-09 14:03:04.793] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.0141875s
+[2022-02-09 14:03:04.793] [E/1] [info] [Task Finished] Transform to mem in 0.000016s (246 normal rows, 0 exceptions)
+[2022-02-09 14:03:04.793] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 3.3403e-05s
+[2022-02-09 14:03:04.793] [global] [info] [Transform Stage] Stage 0 total wall clock time: 1.559e-05s, 246 input rows, time to process 1 row via fast path: 6.3374e-05ms
+
+[2022-02-09 14:03:04.793] [global] [info] Writing 246 rows as output to file (1.44 KB)
+[2022-02-09 14:03:04.794] [E/1] [info] [Task Finished] write to file in 0.000124s (246 rows, 1.44 KB)
+[2022-02-09 14:03:04.794] [global] [info] writing output took 0.000267s
+[2022-02-09 14:03:04.794] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.000277343s
+[2022-02-09 14:03:04.794] [global] [info] [Transform Stage] Stage 0 took 0.0145123s
+[2022-02-09 14:03:04.794] [global] [info] Query Execution took 0.0240519s. (planning: 0.00953296s, execution: 0.0145189s)
+Welcome to
+
+  _____            _
+ |_   _|   _ _ __ | | _____  __
+   | || | | | '_ \| |/ _ \ \/ /
+   | || |_| | |_) | |  __/>  <
+   |_| \__,_| .__/|_|\___/_/\_\ 0.3.1
+            |_|
+    
+using Python 3.6.9 (default, Feb  8 2022, 16:30:43) 
+[GCC 9.3.0] on linux
+Tuplex startup time: 0.10732412338256836
+{"startupTime": 0.10732412338256836, "readTime": 1.9691290855407715, "jobTime": 0.6143996715545654, "writeTime": 0.02580094337463379}
+[GLOBAL] releasing 12 active partitions
+[2022-02-09 14:03:04.806] [local execution engine] [info] Stopped local executor E/1
+[GLOBAL] releasing 11 active partitions
+[2022-02-09 14:03:04.821] [local execution engine] [info] Stopped local executor E/2
+[GLOBAL] releasing 11 active partitions
+[2022-02-09 14:03:04.836] [local execution engine] [info] Stopped local executor E/3
+[GLOBAL] releasing 10 active partitions
+[2022-02-09 14:03:04.851] [local execution engine] [info] Stopped local executor E/4
+[GLOBAL] releasing 11 active partitions
+[2022-02-09 14:03:04.866] [local execution engine] [info] Stopped local executor E/5
+[GLOBAL] releasing 10 active partitions
+[2022-02-09 14:03:04.881] [local execution engine] [info] Stopped local executor E/6
+[GLOBAL] releasing 11 active partitions
+[2022-02-09 14:03:04.897] [local execution engine] [info] Stopped local executor E/7
+[GLOBAL] releasing 27 active partitions
+[2022-02-09 14:03:04.912] [local execution engine] [info] Stopped local executor E/8
+[GLOBAL] releasing 11 active partitions
+[2022-02-09 14:03:04.951] [local execution engine] [info] Stopped local executor E/9
+[GLOBAL] releasing 10 active partitions
+[2022-02-09 14:03:04.966] [local execution engine] [info] Stopped local executor E/10
+[GLOBAL] releasing 10 active partitions
+[2022-02-09 14:03:04.980] [local execution engine] [info] Stopped local executor E/11
+[GLOBAL] releasing 11 active partitions
+[2022-02-09 14:03:04.994] [local execution engine] [info] Stopped local executor E/12
+[GLOBAL] releasing 10 active partitions
+[2022-02-09 14:03:05.007] [local execution engine] [info] Stopped local executor E/13
+[GLOBAL] releasing 11 active partitions
+[2022-02-09 14:03:05.021] [local execution engine] [info] Stopped local executor E/14
+[GLOBAL] releasing 10 active partitions
+[2022-02-09 14:03:05.035] [local execution engine] [info] Stopped local executor E/15
+[GLOBAL] Local engine terminated.
+[GLOBAL] releasing 12 active partitions

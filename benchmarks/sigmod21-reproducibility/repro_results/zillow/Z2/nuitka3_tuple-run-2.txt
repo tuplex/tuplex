@@ -1,0 +1,4 @@
+compilation via nuitka took: 7.269744634628296s
+>>> running python3.6 on ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv']
+>>> data mode: tuple
+{'type': 'tuple', 'framework': 'python3', 'py_executable': '/usr/local/bin/python3.6', 'input_files': ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv'], 'load_time': 104.52763748168945, 'run_time': 189.43815732002258, 'write_time': 84.91050124168396, 'job_time': 189.4381594657898, 'compile_time': 7.269744634628296, 'version': '0.6.13', 'program': 'nuitka (/usr/local/bin/python3.6)'}

@@ -1,0 +1,3 @@
+>>> running pyspark on ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv']
+>>> data mode: sql
+{'type': 'DataFrame', 'framework': 'Spark 2.4.7 local[16]', 'run_time': 49.035605669021606, 'pipeline_time': 48.235331773757935, 'startup_time': 0.8002738952636719, 'job_time': 49.0358772277832}

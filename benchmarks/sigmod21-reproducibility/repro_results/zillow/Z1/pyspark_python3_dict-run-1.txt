@@ -1,0 +1,3 @@
+>>> running pyspark on ['/data/zillow/Z1_preprocessed/zillow_Z1_10G.csv']
+>>> data mode: rdd_dict
+{'type': 'RDD dict', 'framework': 'Spark 2.4.7 local[16]', 'run_time': 42.37709021568298, 'pipeline_time': 41.16221809387207, 'startup_time': 1.214872121810913, 'job_time': 42.37709307670593}

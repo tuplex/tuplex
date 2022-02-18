@@ -1,0 +1,4 @@
+usage: runtuplex.py [-h] [--lineitem_path LINEITEM_PATH]
+                    [--part_path PART_PATH] [--cache] [--preprocessed]
+                    [--mode {tuplex,pysparksql,optimal}] [--weld] [--bitwise]
+runtuplex.py: error: unrecognized arguments: ---lineitem_path /data/tpch/q19_preprocessed/lineitem-sf-10.tbl

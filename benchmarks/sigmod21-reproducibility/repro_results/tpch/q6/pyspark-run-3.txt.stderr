@@ -1,0 +1,339 @@
+22/02/09 18:42:18 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Using Spark's default log4j profile: org/apache/spark/log4j-defaults.properties
+22/02/09 18:42:19 INFO SparkContext: Running Spark version 2.4.7
+22/02/09 18:42:19 INFO SparkContext: Submitted application: TPC-H Q06
+22/02/09 18:42:19 INFO SecurityManager: Changing view acls to: root
+22/02/09 18:42:19 INFO SecurityManager: Changing modify acls to: root
+22/02/09 18:42:19 INFO SecurityManager: Changing view acls groups to: 
+22/02/09 18:42:19 INFO SecurityManager: Changing modify acls groups to: 
+22/02/09 18:42:19 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users  with view permissions: Set(root); groups with view permissions: Set(); users  with modify permissions: Set(root); groups with modify permissions: Set()
+22/02/09 18:42:19 INFO Utils: Successfully started service 'sparkDriver' on port 34169.
+22/02/09 18:42:19 INFO SparkEnv: Registering MapOutputTracker
+22/02/09 18:42:19 INFO SparkEnv: Registering BlockManagerMaster
+22/02/09 18:42:19 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+22/02/09 18:42:19 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+22/02/09 18:42:19 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-5e0836a2-42f8-47b4-80c8-a0e9d2e591c9
+22/02/09 18:42:19 INFO MemoryStore: MemoryStore started with capacity 53.2 GB
+22/02/09 18:42:19 INFO SparkEnv: Registering OutputCommitCoordinator
+22/02/09 18:42:19 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+22/02/09 18:42:19 INFO SparkUI: Bound SparkUI to 0.0.0.0, and started at http://9a38888d99c4:4040
+22/02/09 18:42:19 INFO Executor: Starting executor ID driver on host localhost
+22/02/09 18:42:19 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 35193.
+22/02/09 18:42:19 INFO NettyBlockTransferService: Server created on 9a38888d99c4:35193
+22/02/09 18:42:19 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+22/02/09 18:42:19 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, 9a38888d99c4, 35193, None)
+22/02/09 18:42:19 INFO BlockManagerMasterEndpoint: Registering block manager 9a38888d99c4:35193 with 53.2 GB RAM, BlockManagerId(driver, 9a38888d99c4, 35193, None)
+22/02/09 18:42:19 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, 9a38888d99c4, 35193, None)
+22/02/09 18:42:19 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, 9a38888d99c4, 35193, None)
+22/02/09 18:42:20 INFO SharedState: Setting hive.metastore.warehouse.dir ('null') to the value of spark.sql.warehouse.dir ('file:/code/benchmarks/tpch/Q06/spark-warehouse/').
+22/02/09 18:42:20 INFO SharedState: Warehouse path is 'file:/code/benchmarks/tpch/Q06/spark-warehouse/'.
+22/02/09 18:42:20 INFO StateStoreCoordinatorRef: Registered StateStoreCoordinator endpoint
+22/02/09 18:42:20 INFO MemoryStore: Block broadcast_0 stored as values in memory (estimated size 302.8 KB, free 53.2 GB)
+22/02/09 18:42:20 INFO MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 23.0 KB, free 53.2 GB)
+22/02/09 18:42:20 INFO BlockManagerInfo: Added broadcast_0_piece0 in memory on 9a38888d99c4:35193 (size: 23.0 KB, free: 53.2 GB)
+22/02/09 18:42:20 INFO SparkContext: Created broadcast 0 from textFile at NativeMethodAccessorImpl.java:0
+22/02/09 18:42:20 INFO FileInputFormat: Total input paths to process : 1
+22/02/09 18:42:20 INFO SparkContext: Starting job: sum at /code/benchmarks/tpch/Q06/runpyspark.py:182
+22/02/09 18:42:20 INFO DAGScheduler: Got job 0 (sum at /code/benchmarks/tpch/Q06/runpyspark.py:182) with 46 output partitions
+22/02/09 18:42:20 INFO DAGScheduler: Final stage: ResultStage 0 (sum at /code/benchmarks/tpch/Q06/runpyspark.py:182)
+22/02/09 18:42:20 INFO DAGScheduler: Parents of final stage: List()
+22/02/09 18:42:20 INFO DAGScheduler: Missing parents: List()
+22/02/09 18:42:20 INFO DAGScheduler: Submitting ResultStage 0 (PythonRDD[2] at sum at /code/benchmarks/tpch/Q06/runpyspark.py:182), which has no missing parents
+22/02/09 18:42:20 INFO MemoryStore: Block broadcast_1 stored as values in memory (estimated size 8.7 KB, free 53.2 GB)
+22/02/09 18:42:20 INFO MemoryStore: Block broadcast_1_piece0 stored as bytes in memory (estimated size 5.6 KB, free 53.2 GB)
+22/02/09 18:42:20 INFO BlockManagerInfo: Added broadcast_1_piece0 in memory on 9a38888d99c4:35193 (size: 5.6 KB, free: 53.2 GB)
+22/02/09 18:42:20 INFO SparkContext: Created broadcast 1 from broadcast at DAGScheduler.scala:1184
+22/02/09 18:42:20 INFO DAGScheduler: Submitting 46 missing tasks from ResultStage 0 (PythonRDD[2] at sum at /code/benchmarks/tpch/Q06/runpyspark.py:182) (first 15 tasks are for partitions Vector(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+22/02/09 18:42:20 INFO TaskSchedulerImpl: Adding task set 0.0 with 46 tasks
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 0.0 in stage 0.0 (TID 0, localhost, executor driver, partition 0, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 1.0 in stage 0.0 (TID 1, localhost, executor driver, partition 1, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 2.0 in stage 0.0 (TID 2, localhost, executor driver, partition 2, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 3.0 in stage 0.0 (TID 3, localhost, executor driver, partition 3, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 4.0 in stage 0.0 (TID 4, localhost, executor driver, partition 4, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 5.0 in stage 0.0 (TID 5, localhost, executor driver, partition 5, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 6.0 in stage 0.0 (TID 6, localhost, executor driver, partition 6, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 7.0 in stage 0.0 (TID 7, localhost, executor driver, partition 7, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 8.0 in stage 0.0 (TID 8, localhost, executor driver, partition 8, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 9.0 in stage 0.0 (TID 9, localhost, executor driver, partition 9, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 10.0 in stage 0.0 (TID 10, localhost, executor driver, partition 10, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 11.0 in stage 0.0 (TID 11, localhost, executor driver, partition 11, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 12.0 in stage 0.0 (TID 12, localhost, executor driver, partition 12, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 13.0 in stage 0.0 (TID 13, localhost, executor driver, partition 13, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 14.0 in stage 0.0 (TID 14, localhost, executor driver, partition 14, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO TaskSetManager: Starting task 15.0 in stage 0.0 (TID 15, localhost, executor driver, partition 15, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:20 INFO Executor: Running task 15.0 in stage 0.0 (TID 15)
+22/02/09 18:42:20 INFO Executor: Running task 14.0 in stage 0.0 (TID 14)
+22/02/09 18:42:20 INFO Executor: Running task 9.0 in stage 0.0 (TID 9)
+22/02/09 18:42:20 INFO Executor: Running task 1.0 in stage 0.0 (TID 1)
+22/02/09 18:42:20 INFO Executor: Running task 4.0 in stage 0.0 (TID 4)
+22/02/09 18:42:20 INFO Executor: Running task 13.0 in stage 0.0 (TID 13)
+22/02/09 18:42:20 INFO Executor: Running task 8.0 in stage 0.0 (TID 8)
+22/02/09 18:42:20 INFO Executor: Running task 2.0 in stage 0.0 (TID 2)
+22/02/09 18:42:20 INFO Executor: Running task 10.0 in stage 0.0 (TID 10)
+22/02/09 18:42:20 INFO Executor: Running task 0.0 in stage 0.0 (TID 0)
+22/02/09 18:42:20 INFO Executor: Running task 11.0 in stage 0.0 (TID 11)
+22/02/09 18:42:20 INFO Executor: Running task 12.0 in stage 0.0 (TID 12)
+22/02/09 18:42:20 INFO Executor: Running task 3.0 in stage 0.0 (TID 3)
+22/02/09 18:42:20 INFO Executor: Running task 5.0 in stage 0.0 (TID 5)
+22/02/09 18:42:20 INFO Executor: Running task 7.0 in stage 0.0 (TID 7)
+22/02/09 18:42:20 INFO Executor: Running task 6.0 in stage 0.0 (TID 6)
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:301989888+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:167772160+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:503316480+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:201326592+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:67108864+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:335544320+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:0+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:100663296+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:402653184+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:134217728+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:268435456+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:33554432+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:369098752+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:234881024+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:469762048+33554432
+22/02/09 18:42:21 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:436207616+33554432
+22/02/09 18:42:24 INFO PythonRunner: Times: total = 3155, boot = 333, init = 78, finish = 2744
+22/02/09 18:42:24 INFO Executor: Finished task 1.0 in stage 0.0 (TID 1). 1597 bytes result sent to driver
+22/02/09 18:42:24 INFO TaskSetManager: Starting task 16.0 in stage 0.0 (TID 16, localhost, executor driver, partition 16, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:24 INFO Executor: Running task 16.0 in stage 0.0 (TID 16)
+22/02/09 18:42:24 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:536870912+33554432
+22/02/09 18:42:24 INFO TaskSetManager: Finished task 1.0 in stage 0.0 (TID 1) in 3277 ms on localhost (executor driver) (1/46)
+22/02/09 18:42:24 INFO PythonAccumulatorV2: Connected to AccumulatorServer at host: 127.0.0.1 port: 43855
+22/02/09 18:42:24 INFO PythonRunner: Times: total = 3419, boot = 330, init = 70, finish = 3019
+22/02/09 18:42:24 INFO Executor: Finished task 0.0 in stage 0.0 (TID 0). 1554 bytes result sent to driver
+22/02/09 18:42:24 INFO TaskSetManager: Starting task 17.0 in stage 0.0 (TID 17, localhost, executor driver, partition 17, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:24 INFO Executor: Running task 17.0 in stage 0.0 (TID 17)
+22/02/09 18:42:24 INFO TaskSetManager: Finished task 0.0 in stage 0.0 (TID 0) in 3567 ms on localhost (executor driver) (2/46)
+22/02/09 18:42:24 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:570425344+33554432
+22/02/09 18:42:24 INFO PythonRunner: Times: total = 3713, boot = 332, init = 37, finish = 3344
+22/02/09 18:42:24 INFO Executor: Finished task 10.0 in stage 0.0 (TID 10). 1554 bytes result sent to driver
+22/02/09 18:42:24 INFO TaskSetManager: Starting task 18.0 in stage 0.0 (TID 18, localhost, executor driver, partition 18, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:24 INFO Executor: Running task 18.0 in stage 0.0 (TID 18)
+22/02/09 18:42:24 INFO TaskSetManager: Finished task 10.0 in stage 0.0 (TID 10) in 3817 ms on localhost (executor driver) (3/46)
+22/02/09 18:42:24 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:603979776+33554432
+22/02/09 18:42:24 INFO PythonRunner: Times: total = 3750, boot = 311, init = 70, finish = 3369
+22/02/09 18:42:24 INFO Executor: Finished task 14.0 in stage 0.0 (TID 14). 1554 bytes result sent to driver
+22/02/09 18:42:24 INFO PythonRunner: Times: total = 3802, boot = 323, init = 79, finish = 3400
+22/02/09 18:42:24 INFO TaskSetManager: Starting task 19.0 in stage 0.0 (TID 19, localhost, executor driver, partition 19, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:24 INFO Executor: Finished task 15.0 in stage 0.0 (TID 15). 1554 bytes result sent to driver
+22/02/09 18:42:24 INFO Executor: Running task 19.0 in stage 0.0 (TID 19)
+22/02/09 18:42:24 INFO TaskSetManager: Finished task 14.0 in stage 0.0 (TID 14) in 3894 ms on localhost (executor driver) (4/46)
+22/02/09 18:42:24 INFO TaskSetManager: Starting task 20.0 in stage 0.0 (TID 20, localhost, executor driver, partition 20, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:24 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:637534208+33554432
+22/02/09 18:42:24 INFO TaskSetManager: Finished task 15.0 in stage 0.0 (TID 15) in 3898 ms on localhost (executor driver) (5/46)
+22/02/09 18:42:24 INFO Executor: Running task 20.0 in stage 0.0 (TID 20)
+22/02/09 18:42:24 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:671088640+33554432
+22/02/09 18:42:24 INFO PythonRunner: Times: total = 3918, boot = 352, init = 21, finish = 3545
+22/02/09 18:42:24 INFO Executor: Finished task 7.0 in stage 0.0 (TID 7). 1554 bytes result sent to driver
+22/02/09 18:42:24 INFO TaskSetManager: Starting task 21.0 in stage 0.0 (TID 21, localhost, executor driver, partition 21, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:24 INFO TaskSetManager: Finished task 7.0 in stage 0.0 (TID 7) in 4007 ms on localhost (executor driver) (6/46)
+22/02/09 18:42:24 INFO Executor: Running task 21.0 in stage 0.0 (TID 21)
+22/02/09 18:42:24 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:704643072+33554432
+22/02/09 18:42:25 INFO PythonRunner: Times: total = 4225, boot = 313, init = 74, finish = 3838
+22/02/09 18:42:25 INFO Executor: Finished task 6.0 in stage 0.0 (TID 6). 1554 bytes result sent to driver
+22/02/09 18:42:25 INFO TaskSetManager: Starting task 22.0 in stage 0.0 (TID 22, localhost, executor driver, partition 22, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:25 INFO Executor: Running task 22.0 in stage 0.0 (TID 22)
+22/02/09 18:42:25 INFO TaskSetManager: Finished task 6.0 in stage 0.0 (TID 6) in 4317 ms on localhost (executor driver) (7/46)
+22/02/09 18:42:25 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:738197504+33554432
+22/02/09 18:42:25 INFO PythonRunner: Times: total = 4350, boot = 309, init = 71, finish = 3970
+22/02/09 18:42:25 INFO Executor: Finished task 12.0 in stage 0.0 (TID 12). 1554 bytes result sent to driver
+22/02/09 18:42:25 INFO TaskSetManager: Starting task 23.0 in stage 0.0 (TID 23, localhost, executor driver, partition 23, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:25 INFO Executor: Running task 23.0 in stage 0.0 (TID 23)
+22/02/09 18:42:25 INFO TaskSetManager: Finished task 12.0 in stage 0.0 (TID 12) in 4439 ms on localhost (executor driver) (8/46)
+22/02/09 18:42:25 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:771751936+33554432
+22/02/09 18:42:25 INFO PythonRunner: Times: total = 4464, boot = 344, init = 53, finish = 4067
+22/02/09 18:42:25 INFO Executor: Finished task 3.0 in stage 0.0 (TID 3). 1554 bytes result sent to driver
+22/02/09 18:42:25 INFO TaskSetManager: Starting task 24.0 in stage 0.0 (TID 24, localhost, executor driver, partition 24, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:25 INFO Executor: Running task 24.0 in stage 0.0 (TID 24)
+22/02/09 18:42:25 INFO TaskSetManager: Finished task 3.0 in stage 0.0 (TID 3) in 4554 ms on localhost (executor driver) (9/46)
+22/02/09 18:42:25 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:805306368+33554432
+22/02/09 18:42:25 INFO PythonRunner: Times: total = 4553, boot = 320, init = 74, finish = 4159
+22/02/09 18:42:25 INFO Executor: Finished task 8.0 in stage 0.0 (TID 8). 1554 bytes result sent to driver
+22/02/09 18:42:25 INFO TaskSetManager: Starting task 25.0 in stage 0.0 (TID 25, localhost, executor driver, partition 25, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:25 INFO Executor: Running task 25.0 in stage 0.0 (TID 25)
+22/02/09 18:42:25 INFO TaskSetManager: Finished task 8.0 in stage 0.0 (TID 8) in 4642 ms on localhost (executor driver) (10/46)
+22/02/09 18:42:25 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:838860800+33554432
+22/02/09 18:42:25 INFO PythonRunner: Times: total = 4845, boot = 306, init = 204, finish = 4335
+22/02/09 18:42:25 INFO Executor: Finished task 4.0 in stage 0.0 (TID 4). 1554 bytes result sent to driver
+22/02/09 18:42:25 INFO TaskSetManager: Starting task 26.0 in stage 0.0 (TID 26, localhost, executor driver, partition 26, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:25 INFO Executor: Running task 26.0 in stage 0.0 (TID 26)
+22/02/09 18:42:25 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:872415232+33554432
+22/02/09 18:42:25 INFO TaskSetManager: Finished task 4.0 in stage 0.0 (TID 4) in 4934 ms on localhost (executor driver) (11/46)
+22/02/09 18:42:25 INFO PythonRunner: Times: total = 4923, boot = 317, init = 76, finish = 4530
+22/02/09 18:42:25 INFO Executor: Finished task 11.0 in stage 0.0 (TID 11). 1554 bytes result sent to driver
+22/02/09 18:42:25 INFO TaskSetManager: Starting task 27.0 in stage 0.0 (TID 27, localhost, executor driver, partition 27, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:25 INFO Executor: Running task 27.0 in stage 0.0 (TID 27)
+22/02/09 18:42:25 INFO TaskSetManager: Finished task 11.0 in stage 0.0 (TID 11) in 5012 ms on localhost (executor driver) (12/46)
+22/02/09 18:42:25 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:905969664+33554432
+22/02/09 18:42:26 INFO PythonRunner: Times: total = 4955, boot = 328, init = 100, finish = 4527
+22/02/09 18:42:26 INFO Executor: Finished task 2.0 in stage 0.0 (TID 2). 1554 bytes result sent to driver
+22/02/09 18:42:26 INFO TaskSetManager: Starting task 28.0 in stage 0.0 (TID 28, localhost, executor driver, partition 28, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:26 INFO TaskSetManager: Finished task 2.0 in stage 0.0 (TID 2) in 5052 ms on localhost (executor driver) (13/46)
+22/02/09 18:42:26 INFO Executor: Running task 28.0 in stage 0.0 (TID 28)
+22/02/09 18:42:26 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:939524096+33554432
+22/02/09 18:42:26 INFO PythonRunner: Times: total = 5042, boot = 348, init = 23, finish = 4671
+22/02/09 18:42:26 INFO Executor: Finished task 5.0 in stage 0.0 (TID 5). 1554 bytes result sent to driver
+22/02/09 18:42:26 INFO TaskSetManager: Starting task 29.0 in stage 0.0 (TID 29, localhost, executor driver, partition 29, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:26 INFO TaskSetManager: Finished task 5.0 in stage 0.0 (TID 5) in 5139 ms on localhost (executor driver) (14/46)
+22/02/09 18:42:26 INFO Executor: Running task 29.0 in stage 0.0 (TID 29)
+22/02/09 18:42:26 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:973078528+33554432
+22/02/09 18:42:26 INFO PythonRunner: Times: total = 5094, boot = 306, init = 83, finish = 4705
+22/02/09 18:42:26 INFO Executor: Finished task 13.0 in stage 0.0 (TID 13). 1554 bytes result sent to driver
+22/02/09 18:42:26 INFO TaskSetManager: Starting task 30.0 in stage 0.0 (TID 30, localhost, executor driver, partition 30, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:26 INFO Executor: Running task 30.0 in stage 0.0 (TID 30)
+22/02/09 18:42:26 INFO TaskSetManager: Finished task 13.0 in stage 0.0 (TID 13) in 5193 ms on localhost (executor driver) (15/46)
+22/02/09 18:42:26 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1006632960+33554432
+22/02/09 18:42:26 INFO PythonRunner: Times: total = 5219, boot = 319, init = 77, finish = 4823
+22/02/09 18:42:26 INFO Executor: Finished task 9.0 in stage 0.0 (TID 9). 1554 bytes result sent to driver
+22/02/09 18:42:26 INFO TaskSetManager: Starting task 31.0 in stage 0.0 (TID 31, localhost, executor driver, partition 31, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:26 INFO Executor: Running task 31.0 in stage 0.0 (TID 31)
+22/02/09 18:42:26 INFO TaskSetManager: Finished task 9.0 in stage 0.0 (TID 9) in 5344 ms on localhost (executor driver) (16/46)
+22/02/09 18:42:26 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1040187392+33554432
+22/02/09 18:42:27 INFO PythonRunner: Times: total = 3204, boot = -60, init = 78, finish = 3186
+22/02/09 18:42:27 INFO Executor: Finished task 16.0 in stage 0.0 (TID 16). 1554 bytes result sent to driver
+22/02/09 18:42:27 INFO TaskSetManager: Starting task 32.0 in stage 0.0 (TID 32, localhost, executor driver, partition 32, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:27 INFO Executor: Running task 32.0 in stage 0.0 (TID 32)
+22/02/09 18:42:27 INFO TaskSetManager: Finished task 16.0 in stage 0.0 (TID 16) in 3265 ms on localhost (executor driver) (17/46)
+22/02/09 18:42:27 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1073741824+33554432
+22/02/09 18:42:27 INFO PythonRunner: Times: total = 2897, boot = -11, init = 52, finish = 2856
+22/02/09 18:42:27 INFO Executor: Finished task 20.0 in stage 0.0 (TID 20). 1554 bytes result sent to driver
+22/02/09 18:42:27 INFO TaskSetManager: Starting task 33.0 in stage 0.0 (TID 33, localhost, executor driver, partition 33, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:27 INFO Executor: Running task 33.0 in stage 0.0 (TID 33)
+22/02/09 18:42:27 INFO TaskSetManager: Finished task 20.0 in stage 0.0 (TID 20) in 2910 ms on localhost (executor driver) (18/46)
+22/02/09 18:42:27 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1107296256+33554432
+22/02/09 18:42:27 INFO PythonRunner: Times: total = 2922, boot = -55, init = 59, finish = 2918
+22/02/09 18:42:27 INFO Executor: Finished task 19.0 in stage 0.0 (TID 19). 1554 bytes result sent to driver
+22/02/09 18:42:27 INFO TaskSetManager: Starting task 34.0 in stage 0.0 (TID 34, localhost, executor driver, partition 34, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:27 INFO Executor: Running task 34.0 in stage 0.0 (TID 34)
+22/02/09 18:42:27 INFO TaskSetManager: Finished task 19.0 in stage 0.0 (TID 19) in 3023 ms on localhost (executor driver) (19/46)
+22/02/09 18:42:27 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1140850688+33554432
+22/02/09 18:42:28 INFO PythonRunner: Times: total = 3292, boot = -9, init = 28, finish = 3273
+22/02/09 18:42:28 INFO Executor: Finished task 18.0 in stage 0.0 (TID 18). 1554 bytes result sent to driver
+22/02/09 18:42:28 INFO TaskSetManager: Starting task 35.0 in stage 0.0 (TID 35, localhost, executor driver, partition 35, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:28 INFO TaskSetManager: Finished task 18.0 in stage 0.0 (TID 18) in 3317 ms on localhost (executor driver) (20/46)
+22/02/09 18:42:28 INFO Executor: Running task 35.0 in stage 0.0 (TID 35)
+22/02/09 18:42:28 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1174405120+33554432
+22/02/09 18:42:28 INFO PythonRunner: Times: total = 2889, boot = 4, init = 17, finish = 2868
+22/02/09 18:42:28 INFO Executor: Finished task 24.0 in stage 0.0 (TID 24). 1554 bytes result sent to driver
+22/02/09 18:42:28 INFO TaskSetManager: Starting task 36.0 in stage 0.0 (TID 36, localhost, executor driver, partition 36, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:28 INFO Executor: Running task 36.0 in stage 0.0 (TID 36)
+22/02/09 18:42:28 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1207959552+33554432
+22/02/09 18:42:28 INFO TaskSetManager: Finished task 24.0 in stage 0.0 (TID 24) in 2908 ms on localhost (executor driver) (21/46)
+22/02/09 18:42:28 INFO PythonRunner: Times: total = 4123, boot = -31, init = 54, finish = 4100
+22/02/09 18:42:28 INFO Executor: Finished task 17.0 in stage 0.0 (TID 17). 1554 bytes result sent to driver
+22/02/09 18:42:28 INFO TaskSetManager: Starting task 37.0 in stage 0.0 (TID 37, localhost, executor driver, partition 37, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:28 INFO TaskSetManager: Finished task 17.0 in stage 0.0 (TID 17) in 4139 ms on localhost (executor driver) (22/46)
+22/02/09 18:42:28 INFO Executor: Running task 37.0 in stage 0.0 (TID 37)
+22/02/09 18:42:28 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1241513984+33554432
+22/02/09 18:42:28 INFO PythonRunner: Times: total = 3790, boot = 4, init = 21, finish = 3765
+22/02/09 18:42:28 INFO Executor: Finished task 21.0 in stage 0.0 (TID 21). 1554 bytes result sent to driver
+22/02/09 18:42:28 INFO TaskSetManager: Starting task 38.0 in stage 0.0 (TID 38, localhost, executor driver, partition 38, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:28 INFO TaskSetManager: Finished task 21.0 in stage 0.0 (TID 21) in 3866 ms on localhost (executor driver) (23/46)
+22/02/09 18:42:28 INFO Executor: Running task 38.0 in stage 0.0 (TID 38)
+22/02/09 18:42:28 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1275068416+33554432
+22/02/09 18:42:29 INFO PythonRunner: Times: total = 3478, boot = 6, init = 6, finish = 3466
+22/02/09 18:42:29 INFO Executor: Finished task 25.0 in stage 0.0 (TID 25). 1554 bytes result sent to driver
+22/02/09 18:42:29 INFO TaskSetManager: Starting task 39.0 in stage 0.0 (TID 39, localhost, executor driver, partition 39, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:29 INFO Executor: Running task 39.0 in stage 0.0 (TID 39)
+22/02/09 18:42:29 INFO TaskSetManager: Finished task 25.0 in stage 0.0 (TID 25) in 3498 ms on localhost (executor driver) (24/46)
+22/02/09 18:42:29 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1308622848+33554432
+22/02/09 18:42:29 INFO PythonRunner: Times: total = 3896, boot = 6, init = 11, finish = 3879
+22/02/09 18:42:29 INFO Executor: Finished task 23.0 in stage 0.0 (TID 23). 1554 bytes result sent to driver
+22/02/09 18:42:29 INFO TaskSetManager: Starting task 40.0 in stage 0.0 (TID 40, localhost, executor driver, partition 40, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:29 INFO Executor: Running task 40.0 in stage 0.0 (TID 40)
+22/02/09 18:42:29 INFO TaskSetManager: Finished task 23.0 in stage 0.0 (TID 23) in 3933 ms on localhost (executor driver) (25/46)
+22/02/09 18:42:29 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1342177280+33554432
+22/02/09 18:42:29 INFO PythonRunner: Times: total = 3537, boot = 2, init = 16, finish = 3519
+22/02/09 18:42:29 INFO Executor: Finished task 28.0 in stage 0.0 (TID 28). 1554 bytes result sent to driver
+22/02/09 18:42:29 INFO TaskSetManager: Starting task 41.0 in stage 0.0 (TID 41, localhost, executor driver, partition 41, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:29 INFO Executor: Running task 41.0 in stage 0.0 (TID 41)
+22/02/09 18:42:29 INFO TaskSetManager: Finished task 28.0 in stage 0.0 (TID 28) in 3545 ms on localhost (executor driver) (26/46)
+22/02/09 18:42:29 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1375731712+33554432
+22/02/09 18:42:29 INFO PythonRunner: Times: total = 3688, boot = -9, init = 54, finish = 3643
+22/02/09 18:42:29 INFO Executor: Finished task 27.0 in stage 0.0 (TID 27). 1554 bytes result sent to driver
+22/02/09 18:42:29 INFO TaskSetManager: Starting task 42.0 in stage 0.0 (TID 42, localhost, executor driver, partition 42, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:29 INFO TaskSetManager: Finished task 27.0 in stage 0.0 (TID 27) in 3716 ms on localhost (executor driver) (27/46)
+22/02/09 18:42:29 INFO Executor: Running task 42.0 in stage 0.0 (TID 42)
+22/02/09 18:42:29 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1409286144+33554432
+22/02/09 18:42:29 INFO PythonRunner: Times: total = 4450, boot = 2, init = 2, finish = 4446
+22/02/09 18:42:29 INFO Executor: Finished task 22.0 in stage 0.0 (TID 22). 1511 bytes result sent to driver
+22/02/09 18:42:29 INFO TaskSetManager: Starting task 43.0 in stage 0.0 (TID 43, localhost, executor driver, partition 43, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:29 INFO TaskSetManager: Finished task 22.0 in stage 0.0 (TID 22) in 4474 ms on localhost (executor driver) (28/46)
+22/02/09 18:42:29 INFO Executor: Running task 43.0 in stage 0.0 (TID 43)
+22/02/09 18:42:29 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1442840576+33554432
+22/02/09 18:42:29 INFO PythonRunner: Times: total = 3539, boot = -33, init = 50, finish = 3522
+22/02/09 18:42:29 INFO Executor: Finished task 31.0 in stage 0.0 (TID 31). 1554 bytes result sent to driver
+22/02/09 18:42:29 INFO TaskSetManager: Starting task 44.0 in stage 0.0 (TID 44, localhost, executor driver, partition 44, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:29 INFO TaskSetManager: Finished task 31.0 in stage 0.0 (TID 31) in 3602 ms on localhost (executor driver) (29/46)
+22/02/09 18:42:29 INFO Executor: Running task 44.0 in stage 0.0 (TID 44)
+22/02/09 18:42:29 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1476395008+33554432
+22/02/09 18:42:29 INFO PythonRunner: Times: total = 4017, boot = 17, init = 10, finish = 3990
+22/02/09 18:42:30 INFO Executor: Finished task 26.0 in stage 0.0 (TID 26). 1554 bytes result sent to driver
+22/02/09 18:42:30 INFO TaskSetManager: Starting task 45.0 in stage 0.0 (TID 45, localhost, executor driver, partition 45, PROCESS_LOCAL, 7910 bytes)
+22/02/09 18:42:30 INFO Executor: Running task 45.0 in stage 0.0 (TID 45)
+22/02/09 18:42:30 INFO TaskSetManager: Finished task 26.0 in stage 0.0 (TID 26) in 4090 ms on localhost (executor driver) (30/46)
+22/02/09 18:42:30 INFO HadoopRDD: Input split: file:/data/tpch/q6_preprocessed/lineitem-sf-10.tbl:1509949440+31152286
+22/02/09 18:42:30 INFO PythonRunner: Times: total = 4054, boot = -5, init = 60, finish = 3999
+22/02/09 18:42:30 INFO Executor: Finished task 30.0 in stage 0.0 (TID 30). 1554 bytes result sent to driver
+22/02/09 18:42:30 INFO TaskSetManager: Finished task 30.0 in stage 0.0 (TID 30) in 4069 ms on localhost (executor driver) (31/46)
+22/02/09 18:42:30 INFO PythonRunner: Times: total = 4152, boot = -4, init = 35, finish = 4121
+22/02/09 18:42:30 INFO Executor: Finished task 29.0 in stage 0.0 (TID 29). 1554 bytes result sent to driver
+22/02/09 18:42:30 INFO TaskSetManager: Finished task 29.0 in stage 0.0 (TID 29) in 4158 ms on localhost (executor driver) (32/46)
+22/02/09 18:42:30 INFO PythonRunner: Times: total = 2852, boot = 13, init = 0, finish = 2839
+22/02/09 18:42:30 INFO Executor: Finished task 33.0 in stage 0.0 (TID 33). 1511 bytes result sent to driver
+22/02/09 18:42:30 INFO TaskSetManager: Finished task 33.0 in stage 0.0 (TID 33) in 2868 ms on localhost (executor driver) (33/46)
+22/02/09 18:42:31 INFO PythonRunner: Times: total = 3163, boot = -91, init = 105, finish = 3149
+22/02/09 18:42:31 INFO Executor: Finished task 34.0 in stage 0.0 (TID 34). 1554 bytes result sent to driver
+22/02/09 18:42:31 INFO TaskSetManager: Finished task 34.0 in stage 0.0 (TID 34) in 3198 ms on localhost (executor driver) (34/46)
+22/02/09 18:42:31 INFO PythonRunner: Times: total = 3721, boot = -9, init = 28, finish = 3702
+22/02/09 18:42:31 INFO Executor: Finished task 32.0 in stage 0.0 (TID 32). 1511 bytes result sent to driver
+22/02/09 18:42:31 INFO TaskSetManager: Finished task 32.0 in stage 0.0 (TID 32) in 3743 ms on localhost (executor driver) (35/46)
+22/02/09 18:42:31 INFO PythonRunner: Times: total = 2651, boot = -21, init = 47, finish = 2625
+22/02/09 18:42:31 INFO Executor: Finished task 39.0 in stage 0.0 (TID 39). 1597 bytes result sent to driver
+22/02/09 18:42:31 INFO TaskSetManager: Finished task 39.0 in stage 0.0 (TID 39) in 2688 ms on localhost (executor driver) (36/46)
+22/02/09 18:42:31 INFO PythonRunner: Times: total = 2955, boot = -88, init = 126, finish = 2917
+22/02/09 18:42:31 INFO Executor: Finished task 38.0 in stage 0.0 (TID 38). 1554 bytes result sent to driver
+22/02/09 18:42:31 INFO TaskSetManager: Finished task 38.0 in stage 0.0 (TID 38) in 2981 ms on localhost (executor driver) (37/46)
+22/02/09 18:42:31 INFO PythonRunner: Times: total = 3797, boot = -18, init = 29, finish = 3786
+22/02/09 18:42:31 INFO Executor: Finished task 35.0 in stage 0.0 (TID 35). 1554 bytes result sent to driver
+22/02/09 18:42:31 INFO TaskSetManager: Finished task 35.0 in stage 0.0 (TID 35) in 3805 ms on localhost (executor driver) (38/46)
+22/02/09 18:42:32 INFO PythonRunner: Times: total = 3731, boot = -7, init = 24, finish = 3714
+22/02/09 18:42:32 INFO Executor: Finished task 36.0 in stage 0.0 (TID 36). 1554 bytes result sent to driver
+22/02/09 18:42:32 INFO TaskSetManager: Finished task 36.0 in stage 0.0 (TID 36) in 3736 ms on localhost (executor driver) (39/46)
+22/02/09 18:42:32 INFO PythonRunner: Times: total = 3811, boot = 3, init = 2, finish = 3806
+22/02/09 18:42:32 INFO Executor: Finished task 37.0 in stage 0.0 (TID 37). 1554 bytes result sent to driver
+22/02/09 18:42:32 INFO TaskSetManager: Finished task 37.0 in stage 0.0 (TID 37) in 3822 ms on localhost (executor driver) (40/46)
+22/02/09 18:42:32 INFO PythonRunner: Times: total = 3053, boot = -8, init = 10, finish = 3051
+22/02/09 18:42:32 INFO Executor: Finished task 42.0 in stage 0.0 (TID 42). 1554 bytes result sent to driver
+22/02/09 18:42:32 INFO TaskSetManager: Finished task 42.0 in stage 0.0 (TID 42) in 3059 ms on localhost (executor driver) (41/46)
+22/02/09 18:42:32 INFO PythonRunner: Times: total = 2871, boot = -20, init = 69, finish = 2822
+22/02/09 18:42:32 INFO Executor: Finished task 44.0 in stage 0.0 (TID 44). 1554 bytes result sent to driver
+22/02/09 18:42:32 INFO TaskSetManager: Finished task 44.0 in stage 0.0 (TID 44) in 2878 ms on localhost (executor driver) (42/46)
+22/02/09 18:42:33 INFO PythonRunner: Times: total = 3446, boot = 4, init = 7, finish = 3435
+22/02/09 18:42:33 INFO Executor: Finished task 41.0 in stage 0.0 (TID 41). 1554 bytes result sent to driver
+22/02/09 18:42:33 INFO TaskSetManager: Finished task 41.0 in stage 0.0 (TID 41) in 3454 ms on localhost (executor driver) (43/46)
+22/02/09 18:42:33 INFO PythonRunner: Times: total = 3031, boot = -65, init = 84, finish = 3012
+22/02/09 18:42:33 INFO Executor: Finished task 45.0 in stage 0.0 (TID 45). 1554 bytes result sent to driver
+22/02/09 18:42:33 INFO TaskSetManager: Finished task 45.0 in stage 0.0 (TID 45) in 3038 ms on localhost (executor driver) (44/46)
+22/02/09 18:42:33 INFO PythonRunner: Times: total = 3780, boot = -29, init = 46, finish = 3763
+22/02/09 18:42:33 INFO Executor: Finished task 40.0 in stage 0.0 (TID 40). 1554 bytes result sent to driver
+22/02/09 18:42:33 INFO TaskSetManager: Finished task 40.0 in stage 0.0 (TID 40) in 3786 ms on localhost (executor driver) (45/46)
+22/02/09 18:42:33 INFO PythonRunner: Times: total = 3904, boot = -14, init = 31, finish = 3887
+22/02/09 18:42:33 INFO Executor: Finished task 43.0 in stage 0.0 (TID 43). 1554 bytes result sent to driver
+22/02/09 18:42:33 INFO TaskSetManager: Finished task 43.0 in stage 0.0 (TID 43) in 3910 ms on localhost (executor driver) (46/46)
+22/02/09 18:42:33 INFO TaskSchedulerImpl: Removed TaskSet 0.0, whose tasks have all completed, from pool 
+22/02/09 18:42:33 INFO DAGScheduler: ResultStage 0 (sum at /code/benchmarks/tpch/Q06/runpyspark.py:182) finished in 12.752 s
+22/02/09 18:42:33 INFO DAGScheduler: Job 0 finished: sum at /code/benchmarks/tpch/Q06/runpyspark.py:182, took 12.793045 s
+22/02/09 18:42:33 INFO SparkContext: Invoking stop() from shutdown hook
+22/02/09 18:42:33 INFO SparkUI: Stopped Spark web UI at http://9a38888d99c4:4040
+22/02/09 18:42:33 INFO MapOutputTrackerMasterEndpoint: MapOutputTrackerMasterEndpoint stopped!
+22/02/09 18:42:33 INFO MemoryStore: MemoryStore cleared
+22/02/09 18:42:33 INFO BlockManager: BlockManager stopped
+22/02/09 18:42:33 INFO BlockManagerMaster: BlockManagerMaster stopped
+22/02/09 18:42:33 INFO OutputCommitCoordinator$OutputCommitCoordinatorEndpoint: OutputCommitCoordinator stopped!
+22/02/09 18:42:33 INFO SparkContext: Successfully stopped SparkContext
+22/02/09 18:42:33 INFO ShutdownHookManager: Shutdown hook called
+22/02/09 18:42:33 INFO ShutdownHookManager: Deleting directory /tmp/spark-af5c8add-321b-481f-a64b-e34d2b8490aa
+22/02/09 18:42:33 INFO ShutdownHookManager: Deleting directory /tmp/spark-1d5b0a43-31e6-446c-ab5c-3c9277b2b28a/pyspark-944e20ad-3a4c-458d-b4ca-bf2782a8631f
+22/02/09 18:42:33 INFO ShutdownHookManager: Deleting directory /tmp/spark-1d5b0a43-31e6-446c-ab5c-3c9277b2b28a

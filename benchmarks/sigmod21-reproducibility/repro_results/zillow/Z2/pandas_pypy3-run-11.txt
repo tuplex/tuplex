@@ -1,0 +1,2 @@
+>>> running pandas on ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv']
+{'type': 'pandas', 'framework': 'pandas 1.1.5', 'input_files': ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv'], 'load_time': 208.2013967037201, 'run_time': 847.22168135643, 'write_time': 45.36785674095154, 'job_time': 847.22168135643}

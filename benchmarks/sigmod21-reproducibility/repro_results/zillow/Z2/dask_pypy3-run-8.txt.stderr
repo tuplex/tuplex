@@ -1,0 +1,438 @@
+/opt/pypy3/site-packages/distributed/node.py:155: UserWarning: Port 8787 is already in use.
+Perhaps you already have a cluster running?
+Hosting the HTTP server on port 43503 instead
+  http_address["port"], self.http_server.port
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+distributed.nanny - WARNING - Restarting worker
+distributed.worker - ERROR - Worker stream died during communication: tcp://127.0.0.1:40461
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 263, in write
+    raise StreamClosedError()
+tornado.iostream.StreamClosedError: Stream is closed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/comm/core.py", line 320, in connect
+    await asyncio.wait_for(comm.write(local_info), time_left())
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 358, in wait_for
+    return fut.result()
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 243, in result
+    raise self._exception
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 180, in _step
+    result = coro.send(None)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 279, in write
+    convert_stream_closed_error(self, e)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 128, in convert_stream_closed_error
+    raise CommClosedError("in %s: %s" % (obj, exc)) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: Stream is closed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 2064, in gather_dep
+    self.rpc, deps, worker, who=self.address
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 3333, in get_data_from_worker
+    return await retry_operation(_get_data, operation="get_data_from_worker")
+  File "/opt/pypy3/site-packages/distributed/utils_comm.py", line 389, in retry_operation
+    operation=operation,
+  File "/opt/pypy3/site-packages/distributed/utils_comm.py", line 369, in retry
+    return await coro()
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 3310, in _get_data
+    comm = await rpc.connect(worker)
+  File "/opt/pypy3/site-packages/distributed/core.py", line 1013, in connect
+    **self.connection_args,
+  File "/opt/pypy3/site-packages/distributed/comm/core.py", line 326, in connect
+    ) from exc
+OSError: Timed out during handshake while connecting to tcp://127.0.0.1:40461 after 10 s
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+distributed.nanny - WARNING - Restarting worker
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+distributed.nanny - WARNING - Restarting worker
+distributed.worker - ERROR - Worker stream died during communication: tcp://127.0.0.1:42657
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 195, in read
+    frames_nbytes = await stream.read_bytes(fmt_size)
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 327, in __iter__
+    yield self  # This tells Task to wait for completion.
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 250, in _wakeup
+    future.result()
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 243, in result
+    raise self._exception
+tornado.iostream.StreamClosedError: Stream is closed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 2064, in gather_dep
+    self.rpc, deps, worker, who=self.address
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 3333, in get_data_from_worker
+    return await retry_operation(_get_data, operation="get_data_from_worker")
+  File "/opt/pypy3/site-packages/distributed/utils_comm.py", line 389, in retry_operation
+    operation=operation,
+  File "/opt/pypy3/site-packages/distributed/utils_comm.py", line 369, in retry
+    return await coro()
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 3320, in _get_data
+    max_connections=max_connections,
+  File "/opt/pypy3/site-packages/distributed/core.py", line 644, in send_recv
+    response = await comm.read(deserializers=deserializers)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 128, in convert_stream_closed_error
+    raise CommClosedError("in %s: %s" % (obj, exc)) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: Stream is closed
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+distributed.worker - ERROR - failed during get data with tcp://127.0.0.1:37817 -> tcp://127.0.0.1:36515
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/tornado/iostream.py", line 867, in _read_to_buffer
+    bytes_read = self.read_from_fd(buf)
+  File "/opt/pypy3/site-packages/tornado/iostream.py", line 1140, in read_from_fd
+    return self.socket.recv_into(buf, len(buf))
+ConnectionResetError: [Errno 104] Connection reset by peer
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 1360, in get_data
+    response = await comm.read(deserializers=serializers)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 126, in convert_stream_closed_error
+    ) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: ConnectionResetError: [Errno 104] Connection reset by peer
+distributed.nanny - WARNING - Restarting worker
+distributed.worker - ERROR - failed during get data with tcp://127.0.0.1:36115 -> tcp://127.0.0.1:36515
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 195, in read
+    frames_nbytes = await stream.read_bytes(fmt_size)
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 327, in __iter__
+    yield self  # This tells Task to wait for completion.
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 250, in _wakeup
+    future.result()
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 243, in result
+    raise self._exception
+tornado.iostream.StreamClosedError: Stream is closed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 1360, in get_data
+    response = await comm.read(deserializers=serializers)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 128, in convert_stream_closed_error
+    raise CommClosedError("in %s: %s" % (obj, exc)) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: Stream is closed
+distributed.worker - ERROR - failed during get data with tcp://127.0.0.1:35657 -> tcp://127.0.0.1:36515
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/tornado/iostream.py", line 971, in _handle_write
+    num_bytes = self.write_to_fd(self._write_buffer.peek(size))
+  File "/opt/pypy3/site-packages/tornado/iostream.py", line 1148, in write_to_fd
+    return self.socket.send(data)  # type: ignore
+BrokenPipeError: [Errno 32] Broken pipe
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 1360, in get_data
+    response = await comm.read(deserializers=serializers)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 126, in convert_stream_closed_error
+    ) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: BrokenPipeError: [Errno 32] Broken pipe
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 22541, in BlackholeInterpreter__resume_mainloop
+  File "rpython_jit_metainterp.c", line 40172, in BlackholeInterpreter_handle_exception_in_frame
+Exception ignored in: weakref callback <finalize object at 0x7efda0ffad08; dead>
+Traceback (most recent call last):
+  File "/opt/pypy3/lib-python/3/weakref.py", line 582, in __call__
+    return info.func(*info.args, **(info.kwargs or {}))
+  File "/opt/pypy3/site-packages/distributed/process.py", line 339, in _asyncprocess_finalizer
+    if proc.is_alive():
+  File "/opt/pypy3/lib-python/3/multiprocessing/process.py", line 134, in is_alive
+    assert self._parent_pid == os.getpid(), 'can only test a child process'
+AssertionError: can only test a child process
+Exception ignored in: weakref callback <finalize object at 0x7efda1095d00; dead>
+Traceback (most recent call last):
+  File "/opt/pypy3/lib-python/3/weakref.py", line 582, in __call__
+    return info.func(*info.args, **(info.kwargs or {}))
+  File "/opt/pypy3/site-packages/distributed/process.py", line 339, in _asyncprocess_finalizer
+    if proc.is_alive():
+  File "/opt/pypy3/lib-python/3/multiprocessing/process.py", line 134, in is_alive
+    assert self._parent_pid == os.getpid(), 'can only test a child process'
+AssertionError: can only test a child process
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+Exception in thread Profile:
+Traceback (most recent call last):
+  File "/opt/pypy3/lib-python/3/threading.py", line 916, in _bootstrap_inner
+    self.run()
+  File "/opt/pypy3/lib-python/3/threading.py", line 864, in run
+    self._target(*self._args, **self._kwargs)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 268, in _watch
+    process(frame, None, recent, omit=omit)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 103, in process
+    state = process(prev, frame, state, stop=stop)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 103, in process
+    state = process(prev, frame, state, stop=stop)
+  File "/opt/pypy3/site-packages/distributed/profile.py", line 99, in process
+    prev = frame.f_back
+SystemError: unexpected internal exception (please report a bug): <InvalidVirtualRef object at 0x7efdaf69f168>; internal traceback was dumped to stderr
+
+distributed.nanny - WARNING - Restarting worker
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+distributed.nanny - WARNING - Restarting worker
+distributed.worker - ERROR - Worker stream died during communication: tcp://127.0.0.1:35657
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 263, in write
+    raise StreamClosedError()
+tornado.iostream.StreamClosedError: Stream is closed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/comm/core.py", line 320, in connect
+    await asyncio.wait_for(comm.write(local_info), time_left())
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 358, in wait_for
+    return fut.result()
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 243, in result
+    raise self._exception
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 180, in _step
+    result = coro.send(None)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 279, in write
+    convert_stream_closed_error(self, e)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 128, in convert_stream_closed_error
+    raise CommClosedError("in %s: %s" % (obj, exc)) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: Stream is closed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 2064, in gather_dep
+    self.rpc, deps, worker, who=self.address
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 3333, in get_data_from_worker
+    return await retry_operation(_get_data, operation="get_data_from_worker")
+  File "/opt/pypy3/site-packages/distributed/utils_comm.py", line 389, in retry_operation
+    operation=operation,
+  File "/opt/pypy3/site-packages/distributed/utils_comm.py", line 369, in retry
+    return await coro()
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 3310, in _get_data
+    comm = await rpc.connect(worker)
+  File "/opt/pypy3/site-packages/distributed/core.py", line 1013, in connect
+    **self.connection_args,
+  File "/opt/pypy3/site-packages/distributed/comm/core.py", line 326, in connect
+    ) from exc
+OSError: Timed out during handshake while connecting to tcp://127.0.0.1:35657 after 10 s
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+distributed.worker - ERROR - failed during get data with tcp://127.0.0.1:36455 -> tcp://127.0.0.1:37817
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 195, in read
+    frames_nbytes = await stream.read_bytes(fmt_size)
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 327, in __iter__
+    yield self  # This tells Task to wait for completion.
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 250, in _wakeup
+    future.result()
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 243, in result
+    raise self._exception
+tornado.iostream.StreamClosedError: Stream is closed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 1360, in get_data
+    response = await comm.read(deserializers=serializers)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/opt/pypy3/site-packages/distributed/comm/tcp.py", line 128, in convert_stream_closed_error
+    raise CommClosedError("in %s: %s" % (obj, exc)) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: Stream is closed
+distributed.nanny - WARNING - Restarting worker
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+Traceback (most recent call last):
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 250, in _wakeup
+    future.result()
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 243, in result
+    raise self._exception
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 180, in _step
+    result = coro.send(None)
+  File "/opt/pypy3/site-packages/distributed/client.py", line 1802, in wait
+    raise AllExit()
+distributed.client.AllExit
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "rundask.py", line 388, in <module>
+    runDask(paths, output_path)
+  File "rundask.py", line 167, in runDask
+    df.to_csv(output_path, index=None)
+  File "/opt/pypy3/site-packages/dask/dataframe/core.py", line 1465, in to_csv
+    return to_csv(self, filename, **kwargs)
+  File "/opt/pypy3/site-packages/dask/dataframe/io/csv.py", line 865, in to_csv
+    delayed(values).compute(**compute_kwargs)
+  File "/opt/pypy3/site-packages/dask/base.py", line 283, in compute
+    (result,) = compute(self, traverse=False, **kwargs)
+  File "/opt/pypy3/site-packages/dask/base.py", line 565, in compute
+    results = schedule(dsk, keys, **kwargs)
+  File "/opt/pypy3/site-packages/distributed/client.py", line 2654, in get
+    results = self.gather(packed, asynchronous=asynchronous, direct=direct)
+  File "/opt/pypy3/site-packages/distributed/client.py", line 1969, in gather
+    asynchronous=asynchronous,
+  File "/opt/pypy3/site-packages/distributed/client.py", line 838, in sync
+    self.loop, func, *args, callback_timeout=callback_timeout, **kwargs
+  File "/opt/pypy3/site-packages/distributed/utils.py", line 351, in sync
+    raise exc.with_traceback(tb)
+  File "/opt/pypy3/site-packages/distributed/utils.py", line 334, in f
+    result[0] = yield future
+  File "/opt/pypy3/site-packages/tornado/gen.py", line 762, in run
+    value = future.result()
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 243, in result
+    raise self._exception
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 182, in _step
+    result = coro.throw(exc)
+  File "/opt/pypy3/site-packages/distributed/client.py", line 1828, in _gather
+    raise exception.with_traceback(traceback)
+distributed.scheduler.KilledWorker: ("('read-csv-getitem-75f6305c7c929dcce624f4fcf52ddce3', 94)", <Worker 'tcp://127.0.0.1:37285', name: 0, memory: 0, processing: 15>)
+distributed.nanny - WARNING - Restarting worker
+distributed.core - ERROR - Exception while handling op heartbeat_worker
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/core.py", line 496, in handle_comm
+    result = handler(comm, **msg)
+  File "/opt/pypy3/site-packages/distributed/scheduler.py", line 3654, in heartbeat_worker
+    parent._tasks[key]: duration for key, duration in executing.items()
+  File "/opt/pypy3/site-packages/distributed/scheduler.py", line 3654, in <dictcomp>
+    parent._tasks[key]: duration for key, duration in executing.items()
+KeyError: "('read-csv-getitem-75f6305c7c929dcce624f4fcf52ddce3', 105)"
+tornado.application - ERROR - Exception in callback functools.partial(<bound method IOLoop._discard_future_result of <tornado.platform.asyncio.AsyncIOLoop object at 0x00007efda10ac560>>, <Task finished coro=<Worker.heartbeat() done, defined at /opt/pypy3/site-packages/distributed/worker.py:936> exception=KeyError("('read-csv-getitem-75f6305c7c929dcce624f4fcf52ddce3', 105)",)>)
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/tornado/ioloop.py", line 741, in _run_callback
+    ret = callback()
+  File "/opt/pypy3/lib_pypy/_functools.py", line 80, in __call__
+    return self._func(*(self._args + fargs), **fkeywords)
+  File "/opt/pypy3/site-packages/tornado/ioloop.py", line 765, in _discard_future_result
+    future.result()
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 243, in result
+    raise self._exception
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 180, in _step
+    result = coro.send(None)
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 949, in heartbeat
+    for key in self.active_threads.values()
+  File "/opt/pypy3/site-packages/distributed/utils_comm.py", line 389, in retry_operation
+    operation=operation,
+  File "/opt/pypy3/site-packages/distributed/utils_comm.py", line 369, in retry
+    return await coro()
+  File "/opt/pypy3/site-packages/distributed/core.py", line 861, in send_recv_from_rpc
+    result = await send_recv(comm=comm, op=key, **kwargs)
+  File "/opt/pypy3/site-packages/distributed/core.py", line 660, in send_recv
+    raise exc.with_traceback(tb)
+  File "/opt/pypy3/site-packages/distributed/core.py", line 496, in handle_comm
+    result = handler(comm, **msg)
+  File "/opt/pypy3/site-packages/distributed/scheduler.py", line 3654, in heartbeat_worker
+    parent._tasks[key]: duration for key, duration in executing.items()
+  File "/opt/pypy3/site-packages/distributed/scheduler.py", line 3654, in <dictcomp>
+    parent._tasks[key]: duration for key, duration in executing.items()
+KeyError: "('read-csv-getitem-75f6305c7c929dcce624f4fcf52ddce3', 105)"
+distributed.core - ERROR - Exception while handling op heartbeat_worker
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/distributed/core.py", line 496, in handle_comm
+    result = handler(comm, **msg)
+  File "/opt/pypy3/site-packages/distributed/scheduler.py", line 3654, in heartbeat_worker
+    parent._tasks[key]: duration for key, duration in executing.items()
+  File "/opt/pypy3/site-packages/distributed/scheduler.py", line 3654, in <dictcomp>
+    parent._tasks[key]: duration for key, duration in executing.items()
+KeyError: "('read-csv-getitem-75f6305c7c929dcce624f4fcf52ddce3', 134)"
+tornado.application - ERROR - Exception in callback functools.partial(<bound method IOLoop._discard_future_result of <tornado.platform.asyncio.AsyncIOLoop object at 0x00007efda13e95c8>>, <Task finished coro=<Worker.heartbeat() done, defined at /opt/pypy3/site-packages/distributed/worker.py:936> exception=KeyError("('read-csv-getitem-75f6305c7c929dcce624f4fcf52ddce3', 134)",)>)
+Traceback (most recent call last):
+  File "/opt/pypy3/site-packages/tornado/ioloop.py", line 741, in _run_callback
+    ret = callback()
+  File "/opt/pypy3/lib_pypy/_functools.py", line 80, in __call__
+    return self._func(*(self._args + fargs), **fkeywords)
+  File "/opt/pypy3/site-packages/tornado/ioloop.py", line 765, in _discard_future_result
+    future.result()
+  File "/opt/pypy3/lib-python/3/asyncio/futures.py", line 243, in result
+    raise self._exception
+  File "/opt/pypy3/lib-python/3/asyncio/tasks.py", line 180, in _step
+    result = coro.send(None)
+  File "/opt/pypy3/site-packages/distributed/worker.py", line 949, in heartbeat
+    for key in self.active_threads.values()
+  File "/opt/pypy3/site-packages/distributed/utils_comm.py", line 389, in retry_operation
+    operation=operation,
+  File "/opt/pypy3/site-packages/distributed/utils_comm.py", line 369, in retry
+    return await coro()
+  File "/opt/pypy3/site-packages/distributed/core.py", line 861, in send_recv_from_rpc
+    result = await send_recv(comm=comm, op=key, **kwargs)
+  File "/opt/pypy3/site-packages/distributed/core.py", line 660, in send_recv
+    raise exc.with_traceback(tb)
+  File "/opt/pypy3/site-packages/distributed/core.py", line 496, in handle_comm
+    result = handler(comm, **msg)
+  File "/opt/pypy3/site-packages/distributed/scheduler.py", line 3654, in heartbeat_worker
+    parent._tasks[key]: duration for key, duration in executing.items()
+  File "/opt/pypy3/site-packages/distributed/scheduler.py", line 3654, in <dictcomp>
+    parent._tasks[key]: duration for key, duration in executing.items()
+KeyError: "('read-csv-getitem-75f6305c7c929dcce624f4fcf52ddce3', 134)"
+distributed.nanny - WARNING - Worker process still alive after 3 seconds, killing
+distributed.nanny - WARNING - Worker process still alive after 3 seconds, killing

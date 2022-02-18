@@ -1,0 +1,876 @@
+22/02/09 15:55:37 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Using Spark's default log4j profile: org/apache/spark/log4j-defaults.properties
+22/02/09 15:55:38 INFO SparkContext: Running Spark version 2.4.7
+22/02/09 15:55:38 INFO SparkContext: Submitted application: flights
+22/02/09 15:55:38 INFO SecurityManager: Changing view acls to: root
+22/02/09 15:55:38 INFO SecurityManager: Changing modify acls to: root
+22/02/09 15:55:38 INFO SecurityManager: Changing view acls groups to: 
+22/02/09 15:55:38 INFO SecurityManager: Changing modify acls groups to: 
+22/02/09 15:55:38 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users  with view permissions: Set(root); groups with view permissions: Set(); users  with modify permissions: Set(root); groups with modify permissions: Set()
+22/02/09 15:55:38 INFO Utils: Successfully started service 'sparkDriver' on port 40297.
+22/02/09 15:55:38 INFO SparkEnv: Registering MapOutputTracker
+22/02/09 15:55:38 INFO SparkEnv: Registering BlockManagerMaster
+22/02/09 15:55:38 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+22/02/09 15:55:38 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+22/02/09 15:55:38 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-e4ef7cd4-dfe5-4817-b03b-8980c1405374
+22/02/09 15:55:38 INFO MemoryStore: MemoryStore started with capacity 53.2 GB
+22/02/09 15:55:38 INFO SparkEnv: Registering OutputCommitCoordinator
+22/02/09 15:55:38 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+22/02/09 15:55:38 INFO SparkUI: Bound SparkUI to 0.0.0.0, and started at http://9a38888d99c4:4040
+22/02/09 15:55:38 INFO Executor: Starting executor ID driver on host localhost
+22/02/09 15:55:38 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 33589.
+22/02/09 15:55:38 INFO NettyBlockTransferService: Server created on 9a38888d99c4:33589
+22/02/09 15:55:38 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+22/02/09 15:55:38 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, 9a38888d99c4, 33589, None)
+22/02/09 15:55:38 INFO BlockManagerMasterEndpoint: Registering block manager 9a38888d99c4:33589 with 53.2 GB RAM, BlockManagerId(driver, 9a38888d99c4, 33589, None)
+22/02/09 15:55:38 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, 9a38888d99c4, 33589, None)
+22/02/09 15:55:38 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, 9a38888d99c4, 33589, None)
+22/02/09 15:55:39 INFO SharedState: Setting hive.metastore.warehouse.dir ('null') to the value of spark.sql.warehouse.dir ('file:/code/benchmarks/flights/spark-warehouse').
+22/02/09 15:55:39 INFO SharedState: Warehouse path is 'file:/code/benchmarks/flights/spark-warehouse'.
+22/02/09 15:55:39 INFO StateStoreCoordinatorRef: Registered StateStoreCoordinator endpoint
+22/02/09 15:55:39 INFO InMemoryFileIndex: It took 35 ms to list leaf files for 23 paths.
+22/02/09 15:55:39 INFO MemoryStore: Block broadcast_0 stored as values in memory (estimated size 370.4 KB, free 53.2 GB)
+22/02/09 15:55:39 INFO MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 23.8 KB, free 53.2 GB)
+22/02/09 15:55:39 INFO BlockManagerInfo: Added broadcast_0_piece0 in memory on 9a38888d99c4:33589 (size: 23.8 KB, free: 53.2 GB)
+22/02/09 15:55:39 INFO SparkContext: Created broadcast 0 from csv at NativeMethodAccessorImpl.java:0
+22/02/09 15:55:39 INFO FileInputFormat: Total input paths to process : 23
+22/02/09 15:55:39 INFO FileInputFormat: Total input paths to process : 23
+22/02/09 15:55:39 INFO CombineFileInputFormat: DEBUG: Terminated node allocation with : CompletedNodes: 1, size left: 0
+22/02/09 15:55:40 INFO SparkContext: Starting job: csv at NativeMethodAccessorImpl.java:0
+22/02/09 15:55:40 INFO DAGScheduler: Got job 0 (csv at NativeMethodAccessorImpl.java:0) with 1 output partitions
+22/02/09 15:55:40 INFO DAGScheduler: Final stage: ResultStage 0 (csv at NativeMethodAccessorImpl.java:0)
+22/02/09 15:55:40 INFO DAGScheduler: Parents of final stage: List()
+22/02/09 15:55:40 INFO DAGScheduler: Missing parents: List()
+22/02/09 15:55:40 INFO DAGScheduler: Submitting ResultStage 0 (MapPartitionsRDD[2] at csv at NativeMethodAccessorImpl.java:0), which has no missing parents
+22/02/09 15:55:40 INFO MemoryStore: Block broadcast_1 stored as values in memory (estimated size 5.8 KB, free 53.2 GB)
+22/02/09 15:55:40 INFO MemoryStore: Block broadcast_1_piece0 stored as bytes in memory (estimated size 3.5 KB, free 53.2 GB)
+22/02/09 15:55:40 INFO BlockManagerInfo: Added broadcast_1_piece0 in memory on 9a38888d99c4:33589 (size: 3.5 KB, free: 53.2 GB)
+22/02/09 15:55:40 INFO SparkContext: Created broadcast 1 from broadcast at DAGScheduler.scala:1184
+22/02/09 15:55:40 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 0 (MapPartitionsRDD[2] at csv at NativeMethodAccessorImpl.java:0) (first 15 tasks are for partitions Vector(0))
+22/02/09 15:55:40 INFO TaskSchedulerImpl: Adding task set 0.0 with 1 tasks
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 0.0 in stage 0.0 (TID 0, localhost, executor driver, partition 0, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO Executor: Running task 0.0 in stage 0.0 (TID 0)
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2019_11.csv:0+272302654
+22/02/09 15:55:40 INFO Executor: Finished task 0.0 in stage 0.0 (TID 0). 2699 bytes result sent to driver
+22/02/09 15:55:40 INFO TaskSetManager: Finished task 0.0 in stage 0.0 (TID 0) in 120 ms on localhost (executor driver) (1/1)
+22/02/09 15:55:40 INFO TaskSchedulerImpl: Removed TaskSet 0.0, whose tasks have all completed, from pool 
+22/02/09 15:55:40 INFO DAGScheduler: ResultStage 0 (csv at NativeMethodAccessorImpl.java:0) finished in 0.163 s
+22/02/09 15:55:40 INFO DAGScheduler: Job 0 finished: csv at NativeMethodAccessorImpl.java:0, took 0.199045 s
+22/02/09 15:55:40 INFO SparkContext: Starting job: csv at NativeMethodAccessorImpl.java:0
+22/02/09 15:55:40 INFO DAGScheduler: Got job 1 (csv at NativeMethodAccessorImpl.java:0) with 23 output partitions
+22/02/09 15:55:40 INFO DAGScheduler: Final stage: ResultStage 1 (csv at NativeMethodAccessorImpl.java:0)
+22/02/09 15:55:40 INFO DAGScheduler: Parents of final stage: List()
+22/02/09 15:55:40 INFO DAGScheduler: Missing parents: List()
+22/02/09 15:55:40 INFO DAGScheduler: Submitting ResultStage 1 (MapPartitionsRDD[3] at csv at NativeMethodAccessorImpl.java:0), which has no missing parents
+22/02/09 15:55:40 INFO MemoryStore: Block broadcast_2 stored as values in memory (estimated size 6.7 KB, free 53.2 GB)
+22/02/09 15:55:40 INFO MemoryStore: Block broadcast_2_piece0 stored as bytes in memory (estimated size 3.7 KB, free 53.2 GB)
+22/02/09 15:55:40 INFO BlockManagerInfo: Added broadcast_2_piece0 in memory on 9a38888d99c4:33589 (size: 3.7 KB, free: 53.2 GB)
+22/02/09 15:55:40 INFO SparkContext: Created broadcast 2 from broadcast at DAGScheduler.scala:1184
+22/02/09 15:55:40 INFO DAGScheduler: Submitting 23 missing tasks from ResultStage 1 (MapPartitionsRDD[3] at csv at NativeMethodAccessorImpl.java:0) (first 15 tasks are for partitions Vector(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+22/02/09 15:55:40 INFO TaskSchedulerImpl: Adding task set 1.0 with 23 tasks
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 0.0 in stage 1.0 (TID 1, localhost, executor driver, partition 0, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 1.0 in stage 1.0 (TID 2, localhost, executor driver, partition 1, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 2.0 in stage 1.0 (TID 3, localhost, executor driver, partition 2, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 3.0 in stage 1.0 (TID 4, localhost, executor driver, partition 3, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 4.0 in stage 1.0 (TID 5, localhost, executor driver, partition 4, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 5.0 in stage 1.0 (TID 6, localhost, executor driver, partition 5, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 6.0 in stage 1.0 (TID 7, localhost, executor driver, partition 6, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 7.0 in stage 1.0 (TID 8, localhost, executor driver, partition 7, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 8.0 in stage 1.0 (TID 9, localhost, executor driver, partition 8, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 9.0 in stage 1.0 (TID 10, localhost, executor driver, partition 9, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 10.0 in stage 1.0 (TID 11, localhost, executor driver, partition 10, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 11.0 in stage 1.0 (TID 12, localhost, executor driver, partition 11, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 12.0 in stage 1.0 (TID 13, localhost, executor driver, partition 12, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 13.0 in stage 1.0 (TID 14, localhost, executor driver, partition 13, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 14.0 in stage 1.0 (TID 15, localhost, executor driver, partition 14, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO TaskSetManager: Starting task 15.0 in stage 1.0 (TID 16, localhost, executor driver, partition 15, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:40 INFO Executor: Running task 0.0 in stage 1.0 (TID 1)
+22/02/09 15:55:40 INFO Executor: Running task 1.0 in stage 1.0 (TID 2)
+22/02/09 15:55:40 INFO Executor: Running task 2.0 in stage 1.0 (TID 3)
+22/02/09 15:55:40 INFO Executor: Running task 3.0 in stage 1.0 (TID 4)
+22/02/09 15:55:40 INFO Executor: Running task 4.0 in stage 1.0 (TID 5)
+22/02/09 15:55:40 INFO Executor: Running task 5.0 in stage 1.0 (TID 6)
+22/02/09 15:55:40 INFO Executor: Running task 6.0 in stage 1.0 (TID 7)
+22/02/09 15:55:40 INFO Executor: Running task 7.0 in stage 1.0 (TID 8)
+22/02/09 15:55:40 INFO Executor: Running task 8.0 in stage 1.0 (TID 9)
+22/02/09 15:55:40 INFO Executor: Running task 10.0 in stage 1.0 (TID 11)
+22/02/09 15:55:40 INFO Executor: Running task 9.0 in stage 1.0 (TID 10)
+22/02/09 15:55:40 INFO Executor: Running task 12.0 in stage 1.0 (TID 13)
+22/02/09 15:55:40 INFO Executor: Running task 11.0 in stage 1.0 (TID 12)
+22/02/09 15:55:40 INFO Executor: Running task 13.0 in stage 1.0 (TID 14)
+22/02/09 15:55:40 INFO Executor: Running task 14.0 in stage 1.0 (TID 15)
+22/02/09 15:55:40 INFO Executor: Running task 15.0 in stage 1.0 (TID 16)
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2019_11.csv:0+272302654
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2019_05.csv:0+287247610
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2018_11.csv:0+265297289
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2019_06.csv:0+287981068
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2019_01.csv:0+263023879
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2019_10.csv:0+287692735
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2018_08.csv:0+291340773
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2019_04.csv:0+275835876
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2018_10.csv:0+278620315
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2019_09.csv:0+272857070
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2018_09.csv:0+264138531
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2019_02.csv:0+240655212
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2019_07.csv:0+297678113
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2019_08.csv:0+297461396
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2019_03.csv:0+284797008
+22/02/09 15:55:40 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2018_12.csv:0+268702605
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 10
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 17
+22/02/09 15:55:40 INFO BlockManagerInfo: Removed broadcast_1_piece0 on 9a38888d99c4:33589 in memory (size: 3.5 KB, free: 53.2 GB)
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 8
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 7
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 3
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 16
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 15
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 12
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 19
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 21
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 25
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 14
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 11
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 20
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 6
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 1
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 24
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 13
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 4
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 22
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 18
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 2
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 9
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 23
+22/02/09 15:55:40 INFO ContextCleaner: Cleaned accumulator 5
+22/02/09 15:55:46 INFO Executor: Finished task 4.0 in stage 1.0 (TID 5). 1704 bytes result sent to driver
+22/02/09 15:55:46 INFO TaskSetManager: Starting task 16.0 in stage 1.0 (TID 17, localhost, executor driver, partition 16, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:46 INFO Executor: Running task 16.0 in stage 1.0 (TID 17)
+22/02/09 15:55:46 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2018_07.csv:0+291687259
+22/02/09 15:55:46 INFO TaskSetManager: Finished task 4.0 in stage 1.0 (TID 5) in 6379 ms on localhost (executor driver) (1/23)
+22/02/09 15:55:46 INFO Executor: Finished task 7.0 in stage 1.0 (TID 8). 1661 bytes result sent to driver
+22/02/09 15:55:46 INFO TaskSetManager: Starting task 17.0 in stage 1.0 (TID 18, localhost, executor driver, partition 17, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:46 INFO Executor: Running task 17.0 in stage 1.0 (TID 18)
+22/02/09 15:55:46 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2018_06.csv:0+282919458
+22/02/09 15:55:46 INFO TaskSetManager: Finished task 7.0 in stage 1.0 (TID 8) in 6595 ms on localhost (executor driver) (2/23)
+22/02/09 15:55:47 INFO Executor: Finished task 10.0 in stage 1.0 (TID 11). 1661 bytes result sent to driver
+22/02/09 15:55:47 INFO TaskSetManager: Starting task 18.0 in stage 1.0 (TID 19, localhost, executor driver, partition 18, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:47 INFO Executor: Running task 18.0 in stage 1.0 (TID 19)
+22/02/09 15:55:47 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2018_05.csv:0+278462836
+22/02/09 15:55:47 INFO TaskSetManager: Finished task 10.0 in stage 1.0 (TID 11) in 7485 ms on localhost (executor driver) (3/23)
+22/02/09 15:55:48 INFO Executor: Finished task 9.0 in stage 1.0 (TID 10). 1661 bytes result sent to driver
+22/02/09 15:55:48 INFO TaskSetManager: Starting task 19.0 in stage 1.0 (TID 20, localhost, executor driver, partition 19, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:48 INFO Executor: Running task 19.0 in stage 1.0 (TID 20)
+22/02/09 15:55:48 INFO TaskSetManager: Finished task 9.0 in stage 1.0 (TID 10) in 7863 ms on localhost (executor driver) (4/23)
+22/02/09 15:55:48 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2018_04.csv:0+268991580
+22/02/09 15:55:48 INFO Executor: Finished task 2.0 in stage 1.0 (TID 3). 1661 bytes result sent to driver
+22/02/09 15:55:48 INFO TaskSetManager: Starting task 20.0 in stage 1.0 (TID 21, localhost, executor driver, partition 20, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:48 INFO Executor: Running task 20.0 in stage 1.0 (TID 21)
+22/02/09 15:55:48 INFO TaskSetManager: Finished task 2.0 in stage 1.0 (TID 3) in 8132 ms on localhost (executor driver) (5/23)
+22/02/09 15:55:48 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2018_03.csv:0+275222127
+22/02/09 15:55:48 INFO Executor: Finished task 0.0 in stage 1.0 (TID 1). 1661 bytes result sent to driver
+22/02/09 15:55:48 INFO TaskSetManager: Starting task 21.0 in stage 1.0 (TID 22, localhost, executor driver, partition 21, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:48 INFO Executor: Running task 21.0 in stage 1.0 (TID 22)
+22/02/09 15:55:48 INFO TaskSetManager: Finished task 0.0 in stage 1.0 (TID 1) in 8759 ms on localhost (executor driver) (6/23)
+22/02/09 15:55:48 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2018_02.csv:0+234936833
+22/02/09 15:55:49 INFO Executor: Finished task 11.0 in stage 1.0 (TID 12). 1661 bytes result sent to driver
+22/02/09 15:55:49 INFO TaskSetManager: Starting task 22.0 in stage 1.0 (TID 23, localhost, executor driver, partition 22, PROCESS_LOCAL, 8000 bytes)
+22/02/09 15:55:49 INFO TaskSetManager: Finished task 11.0 in stage 1.0 (TID 12) in 8932 ms on localhost (executor driver) (7/23)
+22/02/09 15:55:49 INFO Executor: Running task 22.0 in stage 1.0 (TID 23)
+22/02/09 15:55:49 INFO BinaryFileRDD: Input split: Paths:/data/flights_small/flights_on_time_performance_2018_01.csv:0+256548547
+22/02/09 15:55:49 INFO Executor: Finished task 1.0 in stage 1.0 (TID 2). 1661 bytes result sent to driver
+22/02/09 15:55:49 INFO TaskSetManager: Finished task 1.0 in stage 1.0 (TID 2) in 9150 ms on localhost (executor driver) (8/23)
+22/02/09 15:55:49 INFO Executor: Finished task 12.0 in stage 1.0 (TID 13). 1661 bytes result sent to driver
+22/02/09 15:55:49 INFO TaskSetManager: Finished task 12.0 in stage 1.0 (TID 13) in 9280 ms on localhost (executor driver) (9/23)
+22/02/09 15:55:49 INFO Executor: Finished task 3.0 in stage 1.0 (TID 4). 1704 bytes result sent to driver
+22/02/09 15:55:49 INFO TaskSetManager: Finished task 3.0 in stage 1.0 (TID 4) in 9374 ms on localhost (executor driver) (10/23)
+22/02/09 15:55:49 INFO Executor: Finished task 13.0 in stage 1.0 (TID 14). 1661 bytes result sent to driver
+22/02/09 15:55:49 INFO TaskSetManager: Finished task 13.0 in stage 1.0 (TID 14) in 9435 ms on localhost (executor driver) (11/23)
+22/02/09 15:55:49 INFO Executor: Finished task 8.0 in stage 1.0 (TID 9). 1661 bytes result sent to driver
+22/02/09 15:55:49 INFO TaskSetManager: Finished task 8.0 in stage 1.0 (TID 9) in 9725 ms on localhost (executor driver) (12/23)
+22/02/09 15:55:50 INFO Executor: Finished task 15.0 in stage 1.0 (TID 16). 1661 bytes result sent to driver
+22/02/09 15:55:50 INFO TaskSetManager: Finished task 15.0 in stage 1.0 (TID 16) in 9938 ms on localhost (executor driver) (13/23)
+22/02/09 15:55:50 INFO Executor: Finished task 14.0 in stage 1.0 (TID 15). 1661 bytes result sent to driver
+22/02/09 15:55:50 INFO TaskSetManager: Finished task 14.0 in stage 1.0 (TID 15) in 10036 ms on localhost (executor driver) (14/23)
+22/02/09 15:55:50 INFO Executor: Finished task 6.0 in stage 1.0 (TID 7). 1661 bytes result sent to driver
+22/02/09 15:55:50 INFO TaskSetManager: Finished task 6.0 in stage 1.0 (TID 7) in 10487 ms on localhost (executor driver) (15/23)
+22/02/09 15:55:51 INFO Executor: Finished task 5.0 in stage 1.0 (TID 6). 1661 bytes result sent to driver
+22/02/09 15:55:51 INFO TaskSetManager: Finished task 5.0 in stage 1.0 (TID 6) in 10996 ms on localhost (executor driver) (16/23)
+22/02/09 15:55:55 INFO Executor: Finished task 17.0 in stage 1.0 (TID 18). 1661 bytes result sent to driver
+22/02/09 15:55:55 INFO TaskSetManager: Finished task 17.0 in stage 1.0 (TID 18) in 8381 ms on localhost (executor driver) (17/23)
+22/02/09 15:55:55 INFO Executor: Finished task 19.0 in stage 1.0 (TID 20). 1661 bytes result sent to driver
+22/02/09 15:55:55 INFO TaskSetManager: Finished task 19.0 in stage 1.0 (TID 20) in 7309 ms on localhost (executor driver) (18/23)
+22/02/09 15:55:55 INFO Executor: Finished task 16.0 in stage 1.0 (TID 17). 1661 bytes result sent to driver
+22/02/09 15:55:55 INFO TaskSetManager: Finished task 16.0 in stage 1.0 (TID 17) in 8891 ms on localhost (executor driver) (19/23)
+22/02/09 15:55:56 INFO Executor: Finished task 18.0 in stage 1.0 (TID 19). 1661 bytes result sent to driver
+22/02/09 15:55:56 INFO TaskSetManager: Finished task 18.0 in stage 1.0 (TID 19) in 8389 ms on localhost (executor driver) (20/23)
+22/02/09 15:55:56 INFO Executor: Finished task 21.0 in stage 1.0 (TID 22). 1704 bytes result sent to driver
+22/02/09 15:55:56 INFO TaskSetManager: Finished task 21.0 in stage 1.0 (TID 22) in 7120 ms on localhost (executor driver) (21/23)
+22/02/09 15:55:56 INFO Executor: Finished task 22.0 in stage 1.0 (TID 23). 1661 bytes result sent to driver
+22/02/09 15:55:56 INFO TaskSetManager: Finished task 22.0 in stage 1.0 (TID 23) in 7151 ms on localhost (executor driver) (22/23)
+22/02/09 15:55:56 INFO Executor: Finished task 20.0 in stage 1.0 (TID 21). 1661 bytes result sent to driver
+22/02/09 15:55:56 INFO TaskSetManager: Finished task 20.0 in stage 1.0 (TID 21) in 8513 ms on localhost (executor driver) (23/23)
+22/02/09 15:55:56 INFO TaskSchedulerImpl: Removed TaskSet 1.0, whose tasks have all completed, from pool 
+22/02/09 15:55:56 INFO DAGScheduler: ResultStage 1 (csv at NativeMethodAccessorImpl.java:0) finished in 16.654 s
+22/02/09 15:55:56 INFO DAGScheduler: Job 1 finished: csv at NativeMethodAccessorImpl.java:0, took 16.658055 s
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 38
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 37
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 49
+22/02/09 15:55:57 INFO BlockManagerInfo: Removed broadcast_0_piece0 on 9a38888d99c4:33589 in memory (size: 23.8 KB, free: 53.2 GB)
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 32
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 29
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 41
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 34
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 43
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 40
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 42
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 36
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 50
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 35
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 46
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 30
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 48
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 28
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 47
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 39
+22/02/09 15:55:57 INFO BlockManagerInfo: Removed broadcast_2_piece0 on 9a38888d99c4:33589 in memory (size: 3.7 KB, free: 53.2 GB)
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 33
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 44
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 26
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 45
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 31
+22/02/09 15:55:57 INFO ContextCleaner: Cleaned accumulator 27
+22/02/09 15:55:58 INFO InMemoryFileIndex: It took 0 ms to list leaf files for 1 paths.
+22/02/09 15:55:58 INFO InMemoryFileIndex: It took 0 ms to list leaf files for 1 paths.
+22/02/09 15:55:58 INFO FileSourceStrategy: Pruning directories with: 
+22/02/09 15:55:58 INFO FileSourceStrategy: Post-Scan Filters: (length(trim(value#13702, None)) > 0)
+22/02/09 15:55:58 INFO FileSourceStrategy: Output Data Schema: struct<value: string>
+22/02/09 15:55:58 INFO FileSourceScanExec: Pushed Filters: 
+22/02/09 15:55:58 INFO CodeGenerator: Code generated in 111.472591 ms
+22/02/09 15:55:58 INFO CodeGenerator: Code generated in 11.750964 ms
+22/02/09 15:55:58 INFO MemoryStore: Block broadcast_3 stored as values in memory (estimated size 360.5 KB, free 53.2 GB)
+22/02/09 15:55:58 INFO MemoryStore: Block broadcast_3_piece0 stored as bytes in memory (estimated size 23.4 KB, free 53.2 GB)
+22/02/09 15:55:58 INFO BlockManagerInfo: Added broadcast_3_piece0 in memory on 9a38888d99c4:33589 (size: 23.4 KB, free: 53.2 GB)
+22/02/09 15:55:58 INFO SparkContext: Created broadcast 3 from csv at NativeMethodAccessorImpl.java:0
+22/02/09 15:55:58 INFO FileSourceScanExec: Planning scan with bin packing, max size: 4194304 bytes, open cost is considered as scanning 4194304 bytes.
+22/02/09 15:55:58 INFO SparkContext: Starting job: csv at NativeMethodAccessorImpl.java:0
+22/02/09 15:55:58 INFO DAGScheduler: Got job 2 (csv at NativeMethodAccessorImpl.java:0) with 1 output partitions
+22/02/09 15:55:58 INFO DAGScheduler: Final stage: ResultStage 2 (csv at NativeMethodAccessorImpl.java:0)
+22/02/09 15:55:58 INFO DAGScheduler: Parents of final stage: List()
+22/02/09 15:55:58 INFO DAGScheduler: Missing parents: List()
+22/02/09 15:55:58 INFO DAGScheduler: Submitting ResultStage 2 (MapPartitionsRDD[7] at csv at NativeMethodAccessorImpl.java:0), which has no missing parents
+22/02/09 15:55:58 INFO MemoryStore: Block broadcast_4 stored as values in memory (estimated size 8.9 KB, free 53.2 GB)
+22/02/09 15:55:58 INFO MemoryStore: Block broadcast_4_piece0 stored as bytes in memory (estimated size 4.6 KB, free 53.2 GB)
+22/02/09 15:55:58 INFO BlockManagerInfo: Added broadcast_4_piece0 in memory on 9a38888d99c4:33589 (size: 4.6 KB, free: 53.2 GB)
+22/02/09 15:55:58 INFO SparkContext: Created broadcast 4 from broadcast at DAGScheduler.scala:1184
+22/02/09 15:55:58 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 2 (MapPartitionsRDD[7] at csv at NativeMethodAccessorImpl.java:0) (first 15 tasks are for partitions Vector(0))
+22/02/09 15:55:58 INFO TaskSchedulerImpl: Adding task set 2.0 with 1 tasks
+22/02/09 15:55:58 INFO TaskSetManager: Starting task 0.0 in stage 2.0 (TID 24, localhost, executor driver, partition 0, PROCESS_LOCAL, 8274 bytes)
+22/02/09 15:55:58 INFO Executor: Running task 0.0 in stage 2.0 (TID 24)
+22/02/09 15:55:58 INFO FileScanRDD: Reading File path: file:///code/benchmarks/flights/data/L_CARRIER_HISTORY.csv, range: 0-83497, partition values: [empty row]
+22/02/09 15:55:58 INFO CodeGenerator: Code generated in 16.387606 ms
+22/02/09 15:55:58 INFO Executor: Finished task 0.0 in stage 2.0 (TID 24). 1271 bytes result sent to driver
+22/02/09 15:55:58 INFO TaskSetManager: Finished task 0.0 in stage 2.0 (TID 24) in 45 ms on localhost (executor driver) (1/1)
+22/02/09 15:55:58 INFO TaskSchedulerImpl: Removed TaskSet 2.0, whose tasks have all completed, from pool 
+22/02/09 15:55:58 INFO DAGScheduler: ResultStage 2 (csv at NativeMethodAccessorImpl.java:0) finished in 0.061 s
+22/02/09 15:55:58 INFO DAGScheduler: Job 2 finished: csv at NativeMethodAccessorImpl.java:0, took 0.065265 s
+22/02/09 15:55:58 INFO FileSourceStrategy: Pruning directories with: 
+22/02/09 15:55:58 INFO FileSourceStrategy: Post-Scan Filters: 
+22/02/09 15:55:58 INFO FileSourceStrategy: Output Data Schema: struct<value: string>
+22/02/09 15:55:58 INFO FileSourceScanExec: Pushed Filters: 
+22/02/09 15:55:58 INFO CodeGenerator: Code generated in 10.667814 ms
+22/02/09 15:55:58 INFO MemoryStore: Block broadcast_5 stored as values in memory (estimated size 360.5 KB, free 53.2 GB)
+22/02/09 15:55:58 INFO MemoryStore: Block broadcast_5_piece0 stored as bytes in memory (estimated size 23.4 KB, free 53.2 GB)
+22/02/09 15:55:58 INFO BlockManagerInfo: Added broadcast_5_piece0 in memory on 9a38888d99c4:33589 (size: 23.4 KB, free: 53.2 GB)
+22/02/09 15:55:58 INFO SparkContext: Created broadcast 5 from csv at NativeMethodAccessorImpl.java:0
+22/02/09 15:55:58 INFO FileSourceScanExec: Planning scan with bin packing, max size: 4194304 bytes, open cost is considered as scanning 4194304 bytes.
+22/02/09 15:55:59 INFO SparkContext: Starting job: csv at NativeMethodAccessorImpl.java:0
+22/02/09 15:55:59 INFO DAGScheduler: Got job 3 (csv at NativeMethodAccessorImpl.java:0) with 1 output partitions
+22/02/09 15:55:59 INFO DAGScheduler: Final stage: ResultStage 3 (csv at NativeMethodAccessorImpl.java:0)
+22/02/09 15:55:59 INFO DAGScheduler: Parents of final stage: List()
+22/02/09 15:55:59 INFO DAGScheduler: Missing parents: List()
+22/02/09 15:55:59 INFO DAGScheduler: Submitting ResultStage 3 (MapPartitionsRDD[13] at csv at NativeMethodAccessorImpl.java:0), which has no missing parents
+22/02/09 15:55:59 INFO MemoryStore: Block broadcast_6 stored as values in memory (estimated size 13.9 KB, free 53.2 GB)
+22/02/09 15:55:59 INFO MemoryStore: Block broadcast_6_piece0 stored as bytes in memory (estimated size 7.5 KB, free 53.2 GB)
+22/02/09 15:55:59 INFO BlockManagerInfo: Added broadcast_6_piece0 in memory on 9a38888d99c4:33589 (size: 7.5 KB, free: 53.2 GB)
+22/02/09 15:55:59 INFO SparkContext: Created broadcast 6 from broadcast at DAGScheduler.scala:1184
+22/02/09 15:55:59 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 3 (MapPartitionsRDD[13] at csv at NativeMethodAccessorImpl.java:0) (first 15 tasks are for partitions Vector(0))
+22/02/09 15:55:59 INFO TaskSchedulerImpl: Adding task set 3.0 with 1 tasks
+22/02/09 15:55:59 INFO TaskSetManager: Starting task 0.0 in stage 3.0 (TID 25, localhost, executor driver, partition 0, PROCESS_LOCAL, 8274 bytes)
+22/02/09 15:55:59 INFO Executor: Running task 0.0 in stage 3.0 (TID 25)
+22/02/09 15:55:59 INFO FileScanRDD: Reading File path: file:///code/benchmarks/flights/data/L_CARRIER_HISTORY.csv, range: 0-83497, partition values: [empty row]
+22/02/09 15:55:59 INFO Executor: Finished task 0.0 in stage 3.0 (TID 25). 1473 bytes result sent to driver
+22/02/09 15:55:59 INFO TaskSetManager: Finished task 0.0 in stage 3.0 (TID 25) in 27 ms on localhost (executor driver) (1/1)
+22/02/09 15:55:59 INFO TaskSchedulerImpl: Removed TaskSet 3.0, whose tasks have all completed, from pool 
+22/02/09 15:55:59 INFO DAGScheduler: ResultStage 3 (csv at NativeMethodAccessorImpl.java:0) finished in 0.030 s
+22/02/09 15:55:59 INFO DAGScheduler: Job 3 finished: csv at NativeMethodAccessorImpl.java:0, took 0.032527 s
+22/02/09 15:55:59 INFO InMemoryFileIndex: It took 0 ms to list leaf files for 1 paths.
+22/02/09 15:55:59 WARN Utils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.debug.maxToStringFields' in SparkEnv.conf.
+22/02/09 15:56:00 INFO FileSourceStrategy: Pruning directories with: 
+22/02/09 15:56:00 INFO FileSourceStrategy: Post-Scan Filters: isnotnull(OP_UNIQUE_CARRIER#6)
+22/02/09 15:56:00 INFO FileSourceStrategy: Output Data Schema: struct<YEAR: int, MONTH: int, DAY_OF_MONTH: int, DAY_OF_WEEK: int, OP_UNIQUE_CARRIER: string ... 28 more fields>
+22/02/09 15:56:00 INFO FileSourceScanExec: Pushed Filters: IsNotNull(OP_UNIQUE_CARRIER)
+22/02/09 15:56:00 INFO FileSourceStrategy: Pruning directories with: 
+22/02/09 15:56:00 INFO FileSourceStrategy: Post-Scan Filters: isnotnull(Code#13712)
+22/02/09 15:56:00 INFO FileSourceStrategy: Output Data Schema: struct<Code: string, Description: string>
+22/02/09 15:56:00 INFO FileSourceScanExec: Pushed Filters: IsNotNull(Code)
+22/02/09 15:56:00 INFO FileSourceStrategy: Pruning directories with: 
+22/02/09 15:56:00 INFO FileSourceStrategy: Post-Scan Filters: isnotnull(IATACode#13735)
+22/02/09 15:56:00 INFO FileSourceStrategy: Output Data Schema: struct<IATACode: string, Altitude: int, LatitudeDecimal: double, LongitudeDecimal: double ... 2 more fields>
+22/02/09 15:56:00 INFO FileSourceScanExec: Pushed Filters: IsNotNull(IATACode)
+22/02/09 15:56:00 INFO FileSourceStrategy: Pruning directories with: 
+22/02/09 15:56:00 INFO FileSourceStrategy: Post-Scan Filters: isnotnull(IATACode#13735)
+22/02/09 15:56:00 INFO FileSourceStrategy: Output Data Schema: struct<IATACode: string, Altitude: int, LatitudeDecimal: double, LongitudeDecimal: double ... 2 more fields>
+22/02/09 15:56:00 INFO FileSourceScanExec: Pushed Filters: IsNotNull(IATACode)
+22/02/09 15:56:00 INFO FileSourceScanExec: Pushed Filters: IsNotNull(none)
+22/02/09 15:56:00 INFO FileSourceScanExec: Pushed Filters: IsNotNull(none)
+22/02/09 15:56:00 INFO CodeGenerator: Code generated in 12.395197 ms
+22/02/09 15:56:00 INFO CodeGenerator: Code generated in 13.268331 ms
+22/02/09 15:56:00 INFO MemoryStore: Block broadcast_7 stored as values in memory (estimated size 360.3 KB, free 53.2 GB)
+22/02/09 15:56:00 INFO MemoryStore: Block broadcast_7_piece0 stored as bytes in memory (estimated size 23.5 KB, free 53.2 GB)
+22/02/09 15:56:00 INFO BlockManagerInfo: Added broadcast_7_piece0 in memory on 9a38888d99c4:33589 (size: 23.5 KB, free: 53.2 GB)
+22/02/09 15:56:00 INFO SparkContext: Created broadcast 7 from run at ThreadPoolExecutor.java:1149
+22/02/09 15:56:00 INFO CodeGenerator: Code generated in 8.067585 ms
+22/02/09 15:56:00 INFO FileSourceScanExec: Planning scan with bin packing, max size: 4194304 bytes, open cost is considered as scanning 4194304 bytes.
+22/02/09 15:56:00 INFO MemoryStore: Block broadcast_8 stored as values in memory (estimated size 360.3 KB, free 53.2 GB)
+22/02/09 15:56:00 INFO MemoryStore: Block broadcast_8_piece0 stored as bytes in memory (estimated size 23.5 KB, free 53.2 GB)
+22/02/09 15:56:00 INFO BlockManagerInfo: Added broadcast_8_piece0 in memory on 9a38888d99c4:33589 (size: 23.5 KB, free: 53.2 GB)
+22/02/09 15:56:00 INFO SparkContext: Created broadcast 8 from run at ThreadPoolExecutor.java:1149
+22/02/09 15:56:00 INFO FileSourceScanExec: Planning scan with bin packing, max size: 4194304 bytes, open cost is considered as scanning 4194304 bytes.
+22/02/09 15:56:00 INFO SparkContext: Starting job: run at ThreadPoolExecutor.java:1149
+22/02/09 15:56:00 INFO DAGScheduler: Got job 4 (run at ThreadPoolExecutor.java:1149) with 1 output partitions
+22/02/09 15:56:00 INFO DAGScheduler: Final stage: ResultStage 4 (run at ThreadPoolExecutor.java:1149)
+22/02/09 15:56:00 INFO DAGScheduler: Parents of final stage: List()
+22/02/09 15:56:00 INFO DAGScheduler: Missing parents: List()
+22/02/09 15:56:00 INFO DAGScheduler: Submitting ResultStage 4 (MapPartitionsRDD[16] at run at ThreadPoolExecutor.java:1149), which has no missing parents
+22/02/09 15:56:00 INFO MemoryStore: Block broadcast_9 stored as values in memory (estimated size 12.5 KB, free 53.2 GB)
+22/02/09 15:56:00 INFO MemoryStore: Block broadcast_9_piece0 stored as bytes in memory (estimated size 6.4 KB, free 53.2 GB)
+22/02/09 15:56:00 INFO BlockManagerInfo: Added broadcast_9_piece0 in memory on 9a38888d99c4:33589 (size: 6.4 KB, free: 53.2 GB)
+22/02/09 15:56:00 INFO SparkContext: Created broadcast 9 from broadcast at DAGScheduler.scala:1184
+22/02/09 15:56:00 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 4 (MapPartitionsRDD[16] at run at ThreadPoolExecutor.java:1149) (first 15 tasks are for partitions Vector(0))
+22/02/09 15:56:00 INFO TaskSchedulerImpl: Adding task set 4.0 with 1 tasks
+22/02/09 15:56:00 INFO TaskSetManager: Starting task 0.0 in stage 4.0 (TID 26, localhost, executor driver, partition 0, PROCESS_LOCAL, 8278 bytes)
+22/02/09 15:56:00 INFO Executor: Running task 0.0 in stage 4.0 (TID 26)
+22/02/09 15:56:00 INFO FileScanRDD: Reading File path: file:///code/benchmarks/flights/data/GlobalAirportDatabase.txt, range: 0-760437, partition values: [empty row]
+22/02/09 15:56:00 INFO CodeGenerator: Code generated in 11.359285 ms
+22/02/09 15:56:00 INFO SparkContext: Starting job: run at ThreadPoolExecutor.java:1149
+22/02/09 15:56:00 INFO DAGScheduler: Got job 5 (run at ThreadPoolExecutor.java:1149) with 1 output partitions
+22/02/09 15:56:00 INFO DAGScheduler: Final stage: ResultStage 5 (run at ThreadPoolExecutor.java:1149)
+22/02/09 15:56:00 INFO DAGScheduler: Parents of final stage: List()
+22/02/09 15:56:00 INFO DAGScheduler: Missing parents: List()
+22/02/09 15:56:00 INFO DAGScheduler: Submitting ResultStage 5 (MapPartitionsRDD[22] at run at ThreadPoolExecutor.java:1149), which has no missing parents
+22/02/09 15:56:00 INFO MemoryStore: Block broadcast_10 stored as values in memory (estimated size 21.3 KB, free 53.2 GB)
+22/02/09 15:56:00 INFO MemoryStore: Block broadcast_10_piece0 stored as bytes in memory (estimated size 9.9 KB, free 53.2 GB)
+22/02/09 15:56:00 INFO BlockManagerInfo: Added broadcast_10_piece0 in memory on 9a38888d99c4:33589 (size: 9.9 KB, free: 53.2 GB)
+22/02/09 15:56:00 INFO SparkContext: Created broadcast 10 from broadcast at DAGScheduler.scala:1184
+22/02/09 15:56:00 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 5 (MapPartitionsRDD[22] at run at ThreadPoolExecutor.java:1149) (first 15 tasks are for partitions Vector(0))
+22/02/09 15:56:00 INFO TaskSchedulerImpl: Adding task set 5.0 with 1 tasks
+22/02/09 15:56:00 INFO TaskSetManager: Starting task 0.0 in stage 5.0 (TID 27, localhost, executor driver, partition 0, PROCESS_LOCAL, 8274 bytes)
+22/02/09 15:56:00 INFO Executor: Running task 0.0 in stage 5.0 (TID 27)
+22/02/09 15:56:00 INFO CodeGenerator: Code generated in 7.657163 ms
+22/02/09 15:56:00 INFO Executor: Finished task 0.0 in stage 4.0 (TID 26). 107718 bytes result sent to driver
+22/02/09 15:56:00 INFO TaskSetManager: Finished task 0.0 in stage 4.0 (TID 26) in 108 ms on localhost (executor driver) (1/1)
+22/02/09 15:56:00 INFO TaskSchedulerImpl: Removed TaskSet 4.0, whose tasks have all completed, from pool 
+22/02/09 15:56:00 INFO DAGScheduler: ResultStage 4 (run at ThreadPoolExecutor.java:1149) finished in 0.111 s
+22/02/09 15:56:00 INFO DAGScheduler: Job 4 finished: run at ThreadPoolExecutor.java:1149, took 0.112991 s
+22/02/09 15:56:00 INFO MemoryStore: Block broadcast_11 stored as values in memory (estimated size 64.3 MB, free 53.1 GB)
+22/02/09 15:56:00 INFO MemoryStore: Block broadcast_11_piece0 stored as bytes in memory (estimated size 150.8 KB, free 53.1 GB)
+22/02/09 15:56:00 INFO BlockManagerInfo: Added broadcast_11_piece0 in memory on 9a38888d99c4:33589 (size: 150.8 KB, free: 53.2 GB)
+22/02/09 15:56:00 INFO SparkContext: Created broadcast 11 from run at ThreadPoolExecutor.java:1149
+22/02/09 15:56:00 INFO FileScanRDD: Reading File path: file:///code/benchmarks/flights/data/L_CARRIER_HISTORY.csv, range: 0-83497, partition values: [empty row]
+22/02/09 15:56:00 INFO CodeGenerator: Code generated in 5.343284 ms
+22/02/09 15:56:00 INFO CodeGenerator: Code generated in 7.267188 ms
+22/02/09 15:56:00 INFO PythonUDFRunner: Times: total = 361, boot = 307, init = 46, finish = 8
+22/02/09 15:56:00 INFO Executor: Finished task 0.0 in stage 5.0 (TID 27). 68773 bytes result sent to driver
+22/02/09 15:56:00 INFO TaskSetManager: Finished task 0.0 in stage 5.0 (TID 27) in 417 ms on localhost (executor driver) (1/1)
+22/02/09 15:56:00 INFO TaskSchedulerImpl: Removed TaskSet 5.0, whose tasks have all completed, from pool 
+22/02/09 15:56:00 INFO PythonAccumulatorV2: Connected to AccumulatorServer at host: 127.0.0.1 port: 35465
+22/02/09 15:56:00 INFO DAGScheduler: ResultStage 5 (run at ThreadPoolExecutor.java:1149) finished in 0.424 s
+22/02/09 15:56:00 INFO DAGScheduler: Job 5 finished: run at ThreadPoolExecutor.java:1149, took 0.425674 s
+22/02/09 15:56:00 INFO MemoryStore: Block broadcast_12 stored as values in memory (estimated size 64.1 MB, free 53.0 GB)
+22/02/09 15:56:00 INFO MemoryStore: Block broadcast_12_piece0 stored as bytes in memory (estimated size 85.9 KB, free 53.0 GB)
+22/02/09 15:56:00 INFO BlockManagerInfo: Added broadcast_12_piece0 in memory on 9a38888d99c4:33589 (size: 85.9 KB, free: 53.2 GB)
+22/02/09 15:56:00 INFO SparkContext: Created broadcast 12 from run at ThreadPoolExecutor.java:1149
+22/02/09 15:56:01 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:01 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:01 INFO CodeGenerator: Code generated in 40.807322 ms
+22/02/09 15:56:01 INFO CodeGenerator: Code generated in 16.318106 ms
+22/02/09 15:56:01 INFO CodeGenerator: Code generated in 12.593349 ms
+22/02/09 15:56:01 INFO CodeGenerator: Code generated in 7.798218 ms
+22/02/09 15:56:01 INFO CodeGenerator: Code generated in 7.797917 ms
+22/02/09 15:56:01 INFO MemoryStore: Block broadcast_13 stored as values in memory (estimated size 360.5 KB, free 53.0 GB)
+22/02/09 15:56:01 INFO MemoryStore: Block broadcast_13_piece0 stored as bytes in memory (estimated size 23.5 KB, free 53.0 GB)
+22/02/09 15:56:01 INFO BlockManagerInfo: Added broadcast_13_piece0 in memory on 9a38888d99c4:33589 (size: 23.5 KB, free: 53.2 GB)
+22/02/09 15:56:01 INFO SparkContext: Created broadcast 13 from csv at NativeMethodAccessorImpl.java:0
+22/02/09 15:56:01 INFO FileSourceScanExec: Planning scan with bin packing, max size: 134217728 bytes, open cost is considered as scanning 4194304 bytes.
+22/02/09 15:56:01 INFO SparkContext: Starting job: csv at NativeMethodAccessorImpl.java:0
+22/02/09 15:56:01 INFO DAGScheduler: Got job 6 (csv at NativeMethodAccessorImpl.java:0) with 23 output partitions
+22/02/09 15:56:01 INFO DAGScheduler: Final stage: ResultStage 6 (csv at NativeMethodAccessorImpl.java:0)
+22/02/09 15:56:01 INFO DAGScheduler: Parents of final stage: List()
+22/02/09 15:56:01 INFO DAGScheduler: Missing parents: List()
+22/02/09 15:56:01 INFO DAGScheduler: Submitting ResultStage 6 (MapPartitionsRDD[36] at csv at NativeMethodAccessorImpl.java:0), which has no missing parents
+22/02/09 15:56:01 INFO MemoryStore: Block broadcast_14 stored as values in memory (estimated size 256.3 KB, free 53.0 GB)
+22/02/09 15:56:01 INFO MemoryStore: Block broadcast_14_piece0 stored as bytes in memory (estimated size 82.9 KB, free 53.0 GB)
+22/02/09 15:56:01 INFO BlockManagerInfo: Added broadcast_14_piece0 in memory on 9a38888d99c4:33589 (size: 82.9 KB, free: 53.2 GB)
+22/02/09 15:56:01 INFO SparkContext: Created broadcast 14 from broadcast at DAGScheduler.scala:1184
+22/02/09 15:56:01 INFO DAGScheduler: Submitting 23 missing tasks from ResultStage 6 (MapPartitionsRDD[36] at csv at NativeMethodAccessorImpl.java:0) (first 15 tasks are for partitions Vector(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+22/02/09 15:56:01 INFO TaskSchedulerImpl: Adding task set 6.0 with 23 tasks
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 0.0 in stage 6.0 (TID 28, localhost, executor driver, partition 0, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 1.0 in stage 6.0 (TID 29, localhost, executor driver, partition 1, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 2.0 in stage 6.0 (TID 30, localhost, executor driver, partition 2, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 3.0 in stage 6.0 (TID 31, localhost, executor driver, partition 3, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 4.0 in stage 6.0 (TID 32, localhost, executor driver, partition 4, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 5.0 in stage 6.0 (TID 33, localhost, executor driver, partition 5, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 6.0 in stage 6.0 (TID 34, localhost, executor driver, partition 6, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 7.0 in stage 6.0 (TID 35, localhost, executor driver, partition 7, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 8.0 in stage 6.0 (TID 36, localhost, executor driver, partition 8, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 9.0 in stage 6.0 (TID 37, localhost, executor driver, partition 9, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 10.0 in stage 6.0 (TID 38, localhost, executor driver, partition 10, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 11.0 in stage 6.0 (TID 39, localhost, executor driver, partition 11, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 12.0 in stage 6.0 (TID 40, localhost, executor driver, partition 12, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 13.0 in stage 6.0 (TID 41, localhost, executor driver, partition 13, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 14.0 in stage 6.0 (TID 42, localhost, executor driver, partition 14, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO TaskSetManager: Starting task 15.0 in stage 6.0 (TID 43, localhost, executor driver, partition 15, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:01 INFO Executor: Running task 4.0 in stage 6.0 (TID 32)
+22/02/09 15:56:01 INFO Executor: Running task 3.0 in stage 6.0 (TID 31)
+22/02/09 15:56:01 INFO Executor: Running task 1.0 in stage 6.0 (TID 29)
+22/02/09 15:56:01 INFO Executor: Running task 0.0 in stage 6.0 (TID 28)
+22/02/09 15:56:01 INFO Executor: Running task 2.0 in stage 6.0 (TID 30)
+22/02/09 15:56:01 INFO Executor: Running task 6.0 in stage 6.0 (TID 34)
+22/02/09 15:56:01 INFO Executor: Running task 5.0 in stage 6.0 (TID 33)
+22/02/09 15:56:01 INFO Executor: Running task 14.0 in stage 6.0 (TID 42)
+22/02/09 15:56:01 INFO Executor: Running task 15.0 in stage 6.0 (TID 43)
+22/02/09 15:56:01 INFO Executor: Running task 12.0 in stage 6.0 (TID 40)
+22/02/09 15:56:01 INFO Executor: Running task 8.0 in stage 6.0 (TID 36)
+22/02/09 15:56:01 INFO Executor: Running task 10.0 in stage 6.0 (TID 38)
+22/02/09 15:56:01 INFO Executor: Running task 13.0 in stage 6.0 (TID 41)
+22/02/09 15:56:01 INFO Executor: Running task 11.0 in stage 6.0 (TID 39)
+22/02/09 15:56:01 INFO Executor: Running task 9.0 in stage 6.0 (TID 37)
+22/02/09 15:56:01 INFO Executor: Running task 7.0 in stage 6.0 (TID 35)
+22/02/09 15:56:01 INFO CodeGenerator: Code generated in 31.62141 ms
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2019_05.csv, range: 0-287247610, partition values: [empty row]
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2018_03.csv, range: 0-275222127, partition values: [empty row]
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2019_04.csv, range: 0-275835876, partition values: [empty row]
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2019_09.csv, range: 0-272857070, partition values: [empty row]
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2019_03.csv, range: 0-284797008, partition values: [empty row]
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2018_08.csv, range: 0-291340773, partition values: [empty row]
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2018_04.csv, range: 0-268991580, partition values: [empty row]
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2019_10.csv, range: 0-287692735, partition values: [empty row]
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2018_07.csv, range: 0-291687259, partition values: [empty row]
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2019_11.csv, range: 0-272302654, partition values: [empty row]
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2019_07.csv, range: 0-297678113, partition values: [empty row]
+22/02/09 15:56:01 INFO CodeGenerator: Code generated in 32.511066 ms
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2018_05.csv, range: 0-278462836, partition values: [empty row]
+22/02/09 15:56:01 INFO CodeGenerator: Code generated in 36.72892 ms
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2018_10.csv, range: 0-278620315, partition values: [empty row]
+22/02/09 15:56:01 INFO CodeGenerator: Code generated in 16.237654 ms
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2019_08.csv, range: 0-297461396, partition values: [empty row]
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2018_06.csv, range: 0-282919458, partition values: [empty row]
+22/02/09 15:56:01 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2019_06.csv, range: 0-287981068, partition values: [empty row]
+22/02/09 15:56:01 INFO CodeGenerator: Code generated in 22.245711 ms
+22/02/09 15:56:01 INFO CodeGenerator: Code generated in 5.083886 ms
+22/02/09 15:56:02 INFO CodeGenerator: Code generated in 45.65925 ms
+22/02/09 15:56:02 INFO CodeGenerator: Code generated in 89.708478 ms
+22/02/09 15:56:02 INFO CodeGenerator: Code generated in 65.951922 ms
+22/02/09 15:56:02 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:02 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:02 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:02 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:02 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:02 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:02 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:02 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:02 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:02 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:02 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:02 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:02 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:02 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:02 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:02 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:03 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:03 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:03 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:03 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:03 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:03 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:03 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:03 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:03 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:03 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:03 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:03 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:03 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:03 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:05 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 190
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 191
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 110
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 87
+22/02/09 15:56:05 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:05 INFO BlockManagerInfo: Removed broadcast_9_piece0 on 9a38888d99c4:33589 in memory (size: 6.4 KB, free: 53.2 GB)
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 103
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 175
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 171
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 179
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 187
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 65
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 151
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 54
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 64
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 158
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 78
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 104
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 77
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 155
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 165
+22/02/09 15:56:05 INFO BlockManagerInfo: Removed broadcast_5_piece0 on 9a38888d99c4:33589 in memory (size: 23.4 KB, free: 53.2 GB)
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 159
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 93
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 173
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 72
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 178
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 90
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 162
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 169
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 108
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 68
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 102
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 69
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 163
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 61
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 91
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 177
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 185
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 164
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 184
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 89
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 99
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 58
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 98
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 63
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 172
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 176
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 109
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 62
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 105
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 166
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 153
+22/02/09 15:56:05 INFO ContextCleaner: Cleaned accumulator 195
+22/02/09 15:56:06 INFO BlockManagerInfo: Removed broadcast_6_piece0 on 9a38888d99c4:33589 in memory (size: 7.5 KB, free: 53.2 GB)
+22/02/09 15:56:06 INFO ContextCleaner: Cleaned accumulator 56
+22/02/09 15:56:06 INFO ContextCleaner: Cleaned accumulator 199
+22/02/09 15:56:06 INFO ContextCleaner: Cleaned accumulator 66
+22/02/09 15:56:07 INFO BlockManagerInfo: Removed broadcast_3_piece0 on 9a38888d99c4:33589 in memory (size: 23.4 KB, free: 53.2 GB)
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 83
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 57
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 174
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 71
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 193
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 106
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 85
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 97
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 180
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 70
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 161
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 197
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 67
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 95
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 152
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 182
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 198
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 194
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 154
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 170
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 74
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 160
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 81
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 92
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 94
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 188
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 88
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 60
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 52
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 79
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 168
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 167
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 59
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 200
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 189
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 76
+22/02/09 15:56:07 INFO ContextCleaner: Cleaned accumulator 55
+22/02/09 15:56:08 INFO BlockManagerInfo: Removed broadcast_10_piece0 on 9a38888d99c4:33589 in memory (size: 9.9 KB, free: 53.2 GB)
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 82
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 107
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 51
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 186
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 192
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 80
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 157
+22/02/09 15:56:08 INFO BlockManagerInfo: Removed broadcast_4_piece0 on 9a38888d99c4:33589 in memory (size: 4.6 KB, free: 53.2 GB)
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 96
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 73
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 86
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 53
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 181
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 101
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 156
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 100
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 196
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 75
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 111
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 84
+22/02/09 15:56:08 INFO ContextCleaner: Cleaned accumulator 183
+22/02/09 15:56:24 INFO PythonUDFRunner: Times: total = 22266, boot = 14, init = 315, finish = 21937
+22/02/09 15:56:24 INFO PythonUDFRunner: Times: total = 22505, boot = 119, init = 842, finish = 21544
+22/02/09 15:56:24 INFO PythonUDFRunner: Times: total = 22421, boot = 24, init = 3197, finish = 19200
+22/02/09 15:56:24 INFO PythonUDFRunner: Times: total = 23018, boot = 11, init = 312, finish = 22695
+22/02/09 15:56:25 INFO PythonUDFRunner: Times: total = 23126, boot = 13, init = 905, finish = 22208
+22/02/09 15:56:25 INFO PythonUDFRunner: Times: total = 23681, boot = 261, init = 3110, finish = 20310
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24356, boot = 3, init = 325, finish = 24028
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24341, boot = 117, init = 778, finish = 23446
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24378, boot = 42, init = 274, finish = 24062
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24439, boot = 121, init = 834, finish = 23484
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24681, boot = 8, init = 331, finish = 24342
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24619, boot = 115, init = 826, finish = 23678
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24301, boot = 223, init = 3042, finish = 21036
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24862, boot = 54, init = 294, finish = 24514
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24937, boot = -1130, init = 1465, finish = 24602
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24832, boot = 49, init = 868, finish = 23915
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24871, boot = 74, init = 855, finish = 23942
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 22323, boot = 119, init = 3176, finish = 19028
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24479, boot = 48, init = 3248, finish = 21183
+22/02/09 15:56:26 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000015_43' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000015
+22/02/09 15:56:26 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000015_43: Committed
+22/02/09 15:56:26 INFO PythonUDFRunner: Times: total = 24807, boot = 349, init = 2924, finish = 21534
+22/02/09 15:56:26 INFO Executor: Finished task 15.0 in stage 6.0 (TID 43). 4700 bytes result sent to driver
+22/02/09 15:56:27 INFO PythonUDFRunner: Times: total = 24772, boot = 96, init = 3180, finish = 21496
+22/02/09 15:56:27 INFO PythonUDFRunner: Times: total = 24473, boot = 194, init = 3069, finish = 21210
+22/02/09 15:56:27 INFO TaskSetManager: Starting task 16.0 in stage 6.0 (TID 44, localhost, executor driver, partition 16, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:27 INFO TaskSetManager: Finished task 15.0 in stage 6.0 (TID 43) in 25493 ms on localhost (executor driver) (1/23)
+22/02/09 15:56:27 INFO Executor: Running task 16.0 in stage 6.0 (TID 44)
+22/02/09 15:56:27 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2018_12.csv, range: 0-268702605, partition values: [empty row]
+22/02/09 15:56:27 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:27 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:27 INFO PythonUDFRunner: Times: total = 25836, boot = 18, init = 319, finish = 25499
+22/02/09 15:56:27 INFO PythonUDFRunner: Times: total = 25813, boot = 113, init = 824, finish = 24876
+22/02/09 15:56:27 INFO PythonUDFRunner: Times: total = 25940, boot = 3, init = 340, finish = 25597
+22/02/09 15:56:27 INFO PythonUDFRunner: Times: total = 25875, boot = 37, init = 875, finish = 24963
+22/02/09 15:56:27 INFO PythonUDFRunner: Times: total = 25721, boot = 187, init = 3076, finish = 22458
+22/02/09 15:56:27 INFO PythonUDFRunner: Times: total = 24379, boot = 103, init = 3377, finish = 20899
+22/02/09 15:56:27 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000013_41' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000013
+22/02/09 15:56:27 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000013_41: Committed
+22/02/09 15:56:27 INFO PythonUDFRunner: Times: total = 23264, boot = 230, init = 3380, finish = 19654
+22/02/09 15:56:27 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000007_35' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000007
+22/02/09 15:56:27 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000007_35: Committed
+22/02/09 15:56:27 INFO PythonUDFRunner: Times: total = 24119, boot = 74, init = 3745, finish = 20300
+22/02/09 15:56:28 INFO Executor: Finished task 7.0 in stage 6.0 (TID 35). 4657 bytes result sent to driver
+22/02/09 15:56:28 INFO TaskSetManager: Starting task 17.0 in stage 6.0 (TID 45, localhost, executor driver, partition 17, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:28 INFO Executor: Running task 17.0 in stage 6.0 (TID 45)
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 25749, boot = 108, init = 3205, finish = 22436
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26254, boot = 29, init = 302, finish = 25923
+22/02/09 15:56:28 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000011_39' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000011
+22/02/09 15:56:28 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000011_39: Committed
+22/02/09 15:56:28 INFO Executor: Finished task 11.0 in stage 6.0 (TID 39). 4657 bytes result sent to driver
+22/02/09 15:56:28 INFO TaskSetManager: Starting task 18.0 in stage 6.0 (TID 46, localhost, executor driver, partition 18, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:28 INFO Executor: Running task 18.0 in stage 6.0 (TID 46)
+22/02/09 15:56:28 INFO TaskSetManager: Finished task 11.0 in stage 6.0 (TID 39) in 26479 ms on localhost (executor driver) (2/23)
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 24697, boot = 50, init = 3698, finish = 20949
+22/02/09 15:56:28 INFO Executor: Finished task 13.0 in stage 6.0 (TID 41). 4657 bytes result sent to driver
+22/02/09 15:56:28 INFO TaskSetManager: Finished task 7.0 in stage 6.0 (TID 35) in 26514 ms on localhost (executor driver) (3/23)
+22/02/09 15:56:28 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2018_11.csv, range: 0-265297289, partition values: [empty row]
+22/02/09 15:56:28 INFO TaskSetManager: Starting task 19.0 in stage 6.0 (TID 47, localhost, executor driver, partition 19, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:28 INFO TaskSetManager: Finished task 13.0 in stage 6.0 (TID 41) in 26541 ms on localhost (executor driver) (4/23)
+22/02/09 15:56:28 INFO Executor: Running task 19.0 in stage 6.0 (TID 47)
+22/02/09 15:56:28 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000009_37' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000009
+22/02/09 15:56:28 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000009_37: Committed
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26301, boot = 5, init = 953, finish = 25343
+22/02/09 15:56:28 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2018_09.csv, range: 0-264138531, partition values: [empty row]
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 24685, boot = 91, init = 3423, finish = 21171
+22/02/09 15:56:28 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000006_34' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000006
+22/02/09 15:56:28 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000006_34: Committed
+22/02/09 15:56:28 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2019_01.csv, range: 0-263023879, partition values: [empty row]
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26336, boot = 292, init = 2832, finish = 23212
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26658, boot = 36, init = 283, finish = 26339
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 24183, boot = 57, init = 3587, finish = 20539
+22/02/09 15:56:28 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000004_32' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000004
+22/02/09 15:56:28 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000004_32: Committed
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26573, boot = 16, init = 320, finish = 26237
+22/02/09 15:56:28 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:28 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26606, boot = 153, init = 789, finish = 25664
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26630, boot = 47, init = 902, finish = 25681
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 25356, boot = 216, init = 3058, finish = 22082
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26726, boot = 27, init = 306, finish = 26393
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26727, boot = 72, init = 830, finish = 25825
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 25688, boot = 30, init = 3442, finish = 22216
+22/02/09 15:56:28 INFO Executor: Finished task 9.0 in stage 6.0 (TID 37). 4657 bytes result sent to driver
+22/02/09 15:56:28 INFO TaskSetManager: Starting task 20.0 in stage 6.0 (TID 48, localhost, executor driver, partition 20, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:28 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000005_33' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000005
+22/02/09 15:56:28 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000005_33: Committed
+22/02/09 15:56:28 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000012_40' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000012
+22/02/09 15:56:28 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000012_40: Committed
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26521, boot = 146, init = 3054, finish = 23321
+22/02/09 15:56:28 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:28 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:28 INFO TaskSetManager: Finished task 9.0 in stage 6.0 (TID 37) in 27015 ms on localhost (executor driver) (5/23)
+22/02/09 15:56:28 INFO Executor: Running task 20.0 in stage 6.0 (TID 48)
+22/02/09 15:56:28 INFO Executor: Finished task 5.0 in stage 6.0 (TID 33). 4657 bytes result sent to driver
+22/02/09 15:56:28 INFO Executor: Finished task 4.0 in stage 6.0 (TID 32). 4657 bytes result sent to driver
+22/02/09 15:56:28 INFO Executor: Finished task 12.0 in stage 6.0 (TID 40). 4657 bytes result sent to driver
+22/02/09 15:56:28 INFO Executor: Finished task 6.0 in stage 6.0 (TID 34). 4657 bytes result sent to driver
+22/02/09 15:56:28 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:28 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:28 INFO TaskSetManager: Starting task 21.0 in stage 6.0 (TID 49, localhost, executor driver, partition 21, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:28 INFO Executor: Running task 21.0 in stage 6.0 (TID 49)
+22/02/09 15:56:28 INFO TaskSetManager: Starting task 22.0 in stage 6.0 (TID 50, localhost, executor driver, partition 22, PROCESS_LOCAL, 8282 bytes)
+22/02/09 15:56:28 INFO Executor: Running task 22.0 in stage 6.0 (TID 50)
+22/02/09 15:56:28 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2018_01.csv, range: 0-256548547, partition values: [empty row]
+22/02/09 15:56:28 INFO TaskSetManager: Finished task 12.0 in stage 6.0 (TID 40) in 27115 ms on localhost (executor driver) (6/23)
+22/02/09 15:56:28 INFO TaskSetManager: Finished task 4.0 in stage 6.0 (TID 32) in 27118 ms on localhost (executor driver) (7/23)
+22/02/09 15:56:28 INFO TaskSetManager: Finished task 5.0 in stage 6.0 (TID 33) in 27122 ms on localhost (executor driver) (8/23)
+22/02/09 15:56:28 INFO TaskSetManager: Finished task 6.0 in stage 6.0 (TID 34) in 27122 ms on localhost (executor driver) (9/23)
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26994, boot = 24, init = 293, finish = 26677
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26467, boot = 287, init = 2900, finish = 23280
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 27082, boot = 50, init = 284, finish = 26748
+22/02/09 15:56:28 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2018_02.csv, range: 0-234936833, partition values: [empty row]
+22/02/09 15:56:28 INFO FileScanRDD: Reading File path: file:///data/flights_small/flights_on_time_performance_2019_02.csv, range: 0-240655212, partition values: [empty row]
+22/02/09 15:56:28 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:28 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26582, boot = 295, init = 2985, finish = 23302
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26970, boot = 171, init = 787, finish = 26012
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 27020, boot = 24, init = 898, finish = 26098
+22/02/09 15:56:28 INFO PythonUDFRunner: Times: total = 26023, boot = 255, init = 3106, finish = 22662
+22/02/09 15:56:28 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000014_42' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000014
+22/02/09 15:56:28 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000014_42: Committed
+22/02/09 15:56:28 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:28 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:29 INFO FileOutputCommitter: File Output Committer Algorithm version is 1
+22/02/09 15:56:29 INFO SQLHadoopMapReduceCommitProtocol: Using output committer class org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter
+22/02/09 15:56:29 INFO Executor: Finished task 14.0 in stage 6.0 (TID 42). 4657 bytes result sent to driver
+22/02/09 15:56:29 INFO TaskSetManager: Finished task 14.0 in stage 6.0 (TID 42) in 27442 ms on localhost (executor driver) (10/23)
+22/02/09 15:56:29 INFO PythonUDFRunner: Times: total = 26795, boot = 215, init = 1019, finish = 25561
+22/02/09 15:56:29 INFO PythonUDFRunner: Times: total = 27008, boot = 331, init = 3040, finish = 23637
+22/02/09 15:56:29 INFO PythonUDFRunner: Times: total = 26329, boot = 240, init = 4454, finish = 21635
+22/02/09 15:56:29 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000010_38' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000010
+22/02/09 15:56:29 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000010_38: Committed
+22/02/09 15:56:29 INFO Executor: Finished task 10.0 in stage 6.0 (TID 38). 4657 bytes result sent to driver
+22/02/09 15:56:29 INFO TaskSetManager: Finished task 10.0 in stage 6.0 (TID 38) in 27661 ms on localhost (executor driver) (11/23)
+22/02/09 15:56:29 INFO PythonUDFRunner: Times: total = 26300, boot = 117, init = 3367, finish = 22816
+22/02/09 15:56:29 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000000_28' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000000
+22/02/09 15:56:29 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000000_28: Committed
+22/02/09 15:56:29 INFO Executor: Finished task 0.0 in stage 6.0 (TID 28). 4657 bytes result sent to driver
+22/02/09 15:56:29 INFO TaskSetManager: Finished task 0.0 in stage 6.0 (TID 28) in 27848 ms on localhost (executor driver) (12/23)
+22/02/09 15:56:29 INFO PythonUDFRunner: Times: total = 26208, boot = 3, init = 3263, finish = 22942
+22/02/09 15:56:29 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000003_31' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000003
+22/02/09 15:56:29 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000003_31: Committed
+22/02/09 15:56:29 INFO Executor: Finished task 3.0 in stage 6.0 (TID 31). 4657 bytes result sent to driver
+22/02/09 15:56:29 INFO TaskSetManager: Finished task 3.0 in stage 6.0 (TID 31) in 27927 ms on localhost (executor driver) (13/23)
+22/02/09 15:56:29 INFO PythonUDFRunner: Times: total = 26678, boot = 425, init = 3123, finish = 23130
+22/02/09 15:56:29 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000001_29' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000001
+22/02/09 15:56:29 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000001_29: Committed
+22/02/09 15:56:29 INFO Executor: Finished task 1.0 in stage 6.0 (TID 29). 4657 bytes result sent to driver
+22/02/09 15:56:29 INFO TaskSetManager: Finished task 1.0 in stage 6.0 (TID 29) in 28081 ms on localhost (executor driver) (14/23)
+22/02/09 15:56:29 INFO PythonUDFRunner: Times: total = 26637, boot = 147, init = 3245, finish = 23245
+22/02/09 15:56:29 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000002_30' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000002
+22/02/09 15:56:29 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000002_30: Committed
+22/02/09 15:56:29 INFO Executor: Finished task 2.0 in stage 6.0 (TID 30). 4657 bytes result sent to driver
+22/02/09 15:56:29 INFO TaskSetManager: Finished task 2.0 in stage 6.0 (TID 30) in 28303 ms on localhost (executor driver) (15/23)
+22/02/09 15:56:32 INFO PythonUDFRunner: Times: total = 31155, boot = 52, init = 304, finish = 30799
+22/02/09 15:56:32 INFO PythonUDFRunner: Times: total = 31083, boot = 433, init = 511, finish = 30139
+22/02/09 15:56:33 INFO PythonUDFRunner: Times: total = 30504, boot = 283, init = 2511, finish = 27710
+22/02/09 15:56:34 INFO PythonUDFRunner: Times: total = 30359, boot = 51, init = 2651, finish = 27657
+22/02/09 15:56:34 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000008_36' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000008
+22/02/09 15:56:34 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000008_36: Committed
+22/02/09 15:56:34 INFO Executor: Finished task 8.0 in stage 6.0 (TID 36). 4657 bytes result sent to driver
+22/02/09 15:56:34 INFO TaskSetManager: Finished task 8.0 in stage 6.0 (TID 36) in 32549 ms on localhost (executor driver) (16/23)
+22/02/09 15:56:37 INFO PythonUDFRunner: Times: total = 8601, boot = -2265, init = 2448, finish = 8418
+22/02/09 15:56:37 INFO PythonUDFRunner: Times: total = 8480, boot = -1296, init = 1468, finish = 8308
+22/02/09 15:56:37 INFO PythonUDFRunner: Times: total = 8467, boot = -1265, init = 1735, finish = 7997
+22/02/09 15:56:37 INFO PythonUDFRunner: Times: total = 9674, boot = -3214, init = 3454, finish = 9434
+22/02/09 15:56:37 INFO PythonUDFRunner: Times: total = 9652, boot = -2596, init = 2965, finish = 9283
+22/02/09 15:56:37 INFO PythonUDFRunner: Times: total = 9701, boot = -2102, init = 2540, finish = 9263
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 8627, boot = -1279, init = 2829, finish = 7077
+22/02/09 15:56:38 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000022_50' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000022
+22/02/09 15:56:38 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000022_50: Committed
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 9348, boot = -1965, init = 2072, finish = 9241
+22/02/09 15:56:38 INFO Executor: Finished task 22.0 in stage 6.0 (TID 50). 4657 bytes result sent to driver
+22/02/09 15:56:38 INFO TaskSetManager: Finished task 22.0 in stage 6.0 (TID 50) in 9326 ms on localhost (executor driver) (17/23)
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 9318, boot = -3982, init = 4198, finish = 9102
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 9350, boot = -2030, init = 2546, finish = 8834
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 11028, boot = -3184, init = 3352, finish = 10860
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 10909, boot = -3002, init = 3202, finish = 10709
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 10070, boot = -2088, init = 2407, finish = 9751
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 9884, boot = -1791, init = 2054, finish = 9621
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 9570, boot = -2059, init = 2139, finish = 9490
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 10916, boot = -2948, init = 3431, finish = 10433
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 9535, boot = -1214, init = 1427, finish = 9322
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 9679, boot = -1960, init = 2094, finish = 9545
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 9391, boot = -1282, init = 1836, finish = 8837
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 9604, boot = -1981, init = 2881, finish = 8704
+22/02/09 15:56:38 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000017_45' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000017
+22/02/09 15:56:38 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000017_45: Committed
+22/02/09 15:56:38 INFO Executor: Finished task 17.0 in stage 6.0 (TID 45). 4657 bytes result sent to driver
+22/02/09 15:56:38 INFO TaskSetManager: Finished task 17.0 in stage 6.0 (TID 45) in 10419 ms on localhost (executor driver) (18/23)
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 9395, boot = -2393, init = 3666, finish = 8122
+22/02/09 15:56:38 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000020_48' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000020
+22/02/09 15:56:38 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000020_48: Committed
+22/02/09 15:56:38 INFO Executor: Finished task 20.0 in stage 6.0 (TID 48). 4657 bytes result sent to driver
+22/02/09 15:56:38 INFO TaskSetManager: Finished task 20.0 in stage 6.0 (TID 48) in 9979 ms on localhost (executor driver) (19/23)
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 10984, boot = -2617, init = 4072, finish = 9529
+22/02/09 15:56:38 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000016_44' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000016
+22/02/09 15:56:38 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000016_44: Committed
+22/02/09 15:56:38 INFO Executor: Finished task 16.0 in stage 6.0 (TID 44). 4657 bytes result sent to driver
+22/02/09 15:56:38 INFO TaskSetManager: Finished task 16.0 in stage 6.0 (TID 44) in 11586 ms on localhost (executor driver) (20/23)
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 9737, boot = -1991, init = 3088, finish = 8640
+22/02/09 15:56:38 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000019_47' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000019
+22/02/09 15:56:38 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000019_47: Committed
+22/02/09 15:56:38 INFO Executor: Finished task 19.0 in stage 6.0 (TID 47). 4657 bytes result sent to driver
+22/02/09 15:56:38 INFO TaskSetManager: Finished task 19.0 in stage 6.0 (TID 47) in 10484 ms on localhost (executor driver) (21/23)
+22/02/09 15:56:38 INFO PythonUDFRunner: Times: total = 9471, boot = -2189, init = 3369, finish = 8291
+22/02/09 15:56:38 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000021_49' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000021
+22/02/09 15:56:38 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000021_49: Committed
+22/02/09 15:56:38 INFO Executor: Finished task 21.0 in stage 6.0 (TID 49). 4657 bytes result sent to driver
+22/02/09 15:56:38 INFO TaskSetManager: Finished task 21.0 in stage 6.0 (TID 49) in 9991 ms on localhost (executor driver) (22/23)
+22/02/09 15:56:39 INFO PythonUDFRunner: Times: total = 11061, boot = -2043, init = 2241, finish = 10863
+22/02/09 15:56:39 INFO PythonUDFRunner: Times: total = 11024, boot = -1992, init = 2398, finish = 10618
+22/02/09 15:56:39 INFO PythonUDFRunner: Times: total = 11019, boot = -1822, init = 2703, finish = 10138
+22/02/09 15:56:39 INFO PythonUDFRunner: Times: total = 11037, boot = -2172, init = 3341, finish = 9868
+22/02/09 15:56:39 INFO FileOutputCommitter: Saved output of task 'attempt_20220209155601_0006_m_000018_46' to file:/results/output/flights_output/spark/_temporary/0/task_20220209155601_0006_m_000018
+22/02/09 15:56:39 INFO SparkHadoopMapRedUtil: attempt_20220209155601_0006_m_000018_46: Committed
+22/02/09 15:56:39 INFO Executor: Finished task 18.0 in stage 6.0 (TID 46). 4657 bytes result sent to driver
+22/02/09 15:56:39 INFO TaskSetManager: Finished task 18.0 in stage 6.0 (TID 46) in 11644 ms on localhost (executor driver) (23/23)
+22/02/09 15:56:39 INFO TaskSchedulerImpl: Removed TaskSet 6.0, whose tasks have all completed, from pool 
+22/02/09 15:56:39 INFO DAGScheduler: ResultStage 6 (csv at NativeMethodAccessorImpl.java:0) finished in 38.139 s
+22/02/09 15:56:39 INFO DAGScheduler: Job 6 finished: csv at NativeMethodAccessorImpl.java:0, took 38.143415 s
+22/02/09 15:56:39 INFO FileFormatWriter: Write Job e4d509fa-fdbc-47d9-a20c-af73fc1767c2 committed.
+22/02/09 15:56:39 INFO FileFormatWriter: Finished processing stats for write job e4d509fa-fdbc-47d9-a20c-af73fc1767c2.
+22/02/09 15:56:40 INFO FileSourceStrategy: Pruning directories with: 
+22/02/09 15:56:40 INFO FileSourceStrategy: Post-Scan Filters: isnotnull(OP_UNIQUE_CARRIER#6)
+22/02/09 15:56:40 INFO FileSourceStrategy: Output Data Schema: struct<YEAR: int, QUARTER: int, MONTH: int, DAY_OF_MONTH: int, DAY_OF_WEEK: int ... 108 more fields>
+22/02/09 15:56:40 INFO FileSourceScanExec: Pushed Filters: IsNotNull(OP_UNIQUE_CARRIER)
+22/02/09 15:56:40 INFO FileSourceStrategy: Pruning directories with: 
+22/02/09 15:56:40 INFO FileSourceStrategy: Post-Scan Filters: isnotnull(Code#13712)
+22/02/09 15:56:40 INFO FileSourceStrategy: Output Data Schema: struct<Code: string, Description: string>
+22/02/09 15:56:40 INFO FileSourceScanExec: Pushed Filters: IsNotNull(Code)
+22/02/09 15:56:40 INFO FileSourceStrategy: Pruning directories with: 
+22/02/09 15:56:40 INFO FileSourceStrategy: Post-Scan Filters: isnotnull(IATACode#13735)
+22/02/09 15:56:40 INFO FileSourceStrategy: Output Data Schema: struct<ICAOCode: string, IATACode: string, AirportName: string, AirportCity: string, AirportCountry: string ... 14 more fields>
+22/02/09 15:56:40 INFO FileSourceScanExec: Pushed Filters: IsNotNull(IATACode)
+22/02/09 15:56:40 INFO FileSourceStrategy: Pruning directories with: 
+22/02/09 15:56:40 INFO FileSourceStrategy: Post-Scan Filters: isnotnull(IATACode#13735)
+22/02/09 15:56:40 INFO FileSourceStrategy: Output Data Schema: struct<ICAOCode: string, IATACode: string, AirportName: string, AirportCity: string, AirportCountry: string ... 14 more fields>
+22/02/09 15:56:40 INFO FileSourceScanExec: Pushed Filters: IsNotNull(IATACode)
+22/02/09 15:56:40 INFO FileSourceScanExec: Pushed Filters: IsNotNull(none)
+22/02/09 15:56:40 INFO FileSourceScanExec: Pushed Filters: IsNotNull(none)
+22/02/09 15:56:40 INFO SparkContext: Invoking stop() from shutdown hook
+22/02/09 15:56:40 INFO SparkUI: Stopped Spark web UI at http://9a38888d99c4:4040
+22/02/09 15:56:40 INFO MapOutputTrackerMasterEndpoint: MapOutputTrackerMasterEndpoint stopped!
+22/02/09 15:56:40 INFO MemoryStore: MemoryStore cleared
+22/02/09 15:56:40 INFO BlockManager: BlockManager stopped
+22/02/09 15:56:40 INFO BlockManagerMaster: BlockManagerMaster stopped
+22/02/09 15:56:40 INFO OutputCommitCoordinator$OutputCommitCoordinatorEndpoint: OutputCommitCoordinator stopped!
+22/02/09 15:56:40 INFO SparkContext: Successfully stopped SparkContext
+22/02/09 15:56:40 INFO ShutdownHookManager: Shutdown hook called
+22/02/09 15:56:40 INFO ShutdownHookManager: Deleting directory /tmp/spark-30496354-7ab6-4edf-a36e-e02f6627ef27
+22/02/09 15:56:40 INFO ShutdownHookManager: Deleting directory /tmp/spark-8745e50f-e33f-4af3-9e3a-362790739fd0/pyspark-f377ccce-3339-4a84-a6b3-143e12d6de0d
+22/02/09 15:56:40 INFO ShutdownHookManager: Deleting directory /tmp/spark-8745e50f-e33f-4af3-9e3a-362790739fd0

@@ -1,0 +1,4 @@
+compilation via nuitka took: 6.986540079116821s
+>>> running python3.6 on ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv']
+>>> data mode: dict
+{'type': 'dict', 'framework': 'python3', 'py_executable': '/usr/local/bin/python3.6', 'input_files': ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv'], 'load_time': 321.86782670021057, 'run_time': 481.0618751049042, 'write_time': 159.1940357685089, 'job_time': 481.06187748908997, 'compile_time': 6.986540079116821, 'version': '0.6.13', 'program': 'nuitka (/usr/local/bin/python3.6)'}

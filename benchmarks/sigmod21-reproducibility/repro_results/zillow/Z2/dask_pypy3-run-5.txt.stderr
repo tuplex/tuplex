@@ -1,0 +1,44 @@
+/opt/pypy3/site-packages/distributed/node.py:155: UserWarning: Port 8787 is already in use.
+Perhaps you already have a cluster running?
+Hosting the HTTP server on port 37321 instead
+  http_address["port"], self.http_server.port
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+distributed.nanny - WARNING - Restarting worker
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+distributed.nanny - WARNING - Restarting worker
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+distributed.nanny - WARNING - Restarting worker
+RPython traceback:
+  File "rpython_jit_metainterp.c", line 21500, in handle_jitexception_7
+  File "rpython_jit_metainterp_1.c", line 1639, in execute_assembler__star_2_2
+  File "rpython_jit_metainterp.c", line 2424, in ResumeGuardForcedDescr_handle_fail
+  File "rpython_jit_metainterp.c", line 4382, in resume_in_blackhole
+  File "rpython_jit_metainterp.c", line 9005, in blackhole_from_resumedata
+  File "rpython_jit_codewriter.c", line 123, in enumerate_vars__unique_id
+  File "rpython_jit_metainterp.c", line 10854, in ResumeDataDirectReader_getvirtual_ptr
+Fatal RPython error: AssertionError
+distributed.nanny - WARNING - Restarting worker

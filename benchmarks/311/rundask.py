@@ -1,3 +1,4 @@
+import shutil
 import time
 import argparse
 import json
@@ -44,6 +45,11 @@ def fix_zip_codes(zips):
 output_path = args.output_path
 
 # if dir exists, remove
+if os.path.exists(output_path):
+    shutil.rmtree(output_path)
+os.makedirs(output_path, exist_ok=True)
+
+# remove all files within
 
 # dask will fail if it is a directory else
 output_path = os.path.join(output_path, 'export-*.csv')

@@ -4327,25 +4327,52 @@ def plot(target, output_path, input_path):
 
     # go through list and plot whatever was selected
     if 'table3' == target.lower() or PLOT_ALL:
-        plot_table3(DEFAULT_ZILLOW_PATH, output_path)
+        try:
+            plot_table3(DEFAULT_ZILLOW_PATH, output_path)
+        except Exception as e:
+            logging.error("Failed to compute table3")
     if 'figure3' == target.lower() or PLOT_ALL:
-        plot_figure3(DEFAULT_ZILLOW_PATH, output_path)
+        try:
+            plot_figure3(DEFAULT_ZILLOW_PATH, output_path)
+        except Exception as e:
+            logging.error("Failed to plot figure3")
     if 'figure4' == target.lower() or PLOT_ALL:
-        plot_figure4(DEFAULT_FLIGHTS_PATH, output_path)
+        try:
+            plot_figure4(DEFAULT_FLIGHTS_PATH, output_path)
+        except Exception as e:
+            logging.error("Failed to plot figure4")
     if 'figure5' == target.lower() or PLOT_ALL:
-        if not os.path.isdir(DEFAULT_LOGS_PATH):
-            DEFAULT_LOGS_PATH = input_path + '/weblogs'
-        plot_figure5(DEFAULT_LOGS_PATH, output_path)
+        try:
+            if not os.path.isdir(DEFAULT_LOGS_PATH):
+                DEFAULT_LOGS_PATH = input_path + '/weblogs'
+            plot_figure5(DEFAULT_LOGS_PATH, output_path)
+        except Exception as e:
+            logging.error("Failed to plot figure5")
     if 'figure6' == target.lower() or PLOT_ALL:
-        plot_figure6(DEFAULT_ZILLOW_PATH, output_path)
+        try:
+            plot_figure6(DEFAULT_ZILLOW_PATH, output_path)
+        except Exception as e:
+            logging.error("Failed to plot figure6")
     if 'figure7' == target.lower() or PLOT_ALL:
-        plot_figure7(DEFAULT_ZILLOW_PATH, output_path)
+        try:
+            plot_figure7(DEFAULT_ZILLOW_PATH, output_path)
+        except Exception as e:
+            logging.error("Failed to plot figure7")
     if 'figure8' == target.lower() or PLOT_ALL:
-        plot_figure8(DEFAULT_311_PATH, output_path)
+        try:
+            plot_figure8(DEFAULT_311_PATH, output_path)
+        except Exception as e:
+            logging.error("Failed to plot figure8")
     if 'figure9' == target.lower() or PLOT_ALL:
-        plot_figure9(DEFAULT_TPCH_PATH, output_path)
+        try:
+            plot_figure9(DEFAULT_TPCH_PATH, output_path)
+        except Exception as e:
+            logging.error("Failed to plot figure9")
     if 'figure10' == target.lower() or PLOT_ALL:
-        plot_figure10(DEFAULT_FLIGHTS_BREAKDOWN_PATH, output_path)
+        try:
+            plot_figure10(DEFAULT_FLIGHTS_BREAKDOWN_PATH, output_path)
+        except Exception as e:
+            logging.error("Failed to plot figure10")
     logging.info('Plotting done.')
 
 

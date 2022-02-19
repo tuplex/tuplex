@@ -1,0 +1,77 @@
+[2022-02-18 23:43:11.804] [local ee] [info] loaded runtime library from/usr/local/lib/python3.6/site-packages/Tuplex-0.3.1-py3.6.egg/tuplex/libexec/tuplex_runtime.so
+[2022-02-18 23:43:11.804] [local ee] [info] initializing LLVM backend
+[2022-02-18 23:43:11.804] [local ee] [warning] init JIT compiler also only in local mode
+[2022-02-18 23:43:11.804] [LLVM] [info] compiling code for skylake-avx512
+[2022-02-18 23:43:11.805] [memory] [info] allocated bitmap managed memory region (100.00 GB, 32.00 MB block size)
+[2022-02-18 23:43:11.805] [local execution engine] [info] started driver (100.00 GB, 32.00 MB default partition size)
+[2022-02-18 23:43:11.805] [fileinputoperator] [info] found 1 file (1.10 GB) to process.
+[2022-02-18 23:43:11.806] [global] [info] sampled file:///data/311/311_preprocessed.csv on 256.00 KB
+[2022-02-18 23:43:11.975] [logical planner] [info] logical optimization took 0.008803ms
+[2022-02-18 23:43:11.975] [codegen] [info] generating pipeline for (Option[str]) -> (Option[str]) (2 operators pipelined)
+[2022-02-18 23:43:11.976] [codegen] [info] generating function fix_zip_codes for (Option[str]) -> Option[str]
+[2022-02-18 23:43:11.996] [codegen] [info] generating pipeline for (Option[str]) -> (str) (0 operators pipelined)
+[2022-02-18 23:43:11.997] [global] [info] provided option to explicitly merge bad rows in order back, however rows will be hashed. Disabling option. To silence this warning, set
+tuplex.optimizer.mergeExceptionsInOrder=false
+[2022-02-18 23:43:11.998] [global] [info] retrieved metrics object
+[2022-02-18 23:43:12.016] [global] [info] Optimization via LLVM passes took 0.019100 ms
+[2022-02-18 23:43:12.016] [global] [info] starting code compilation
+[2022-02-18 23:43:12.016] [global] [info] first compile done
+[2022-02-18 23:43:12.024] [global] [info] functor Stage_0 retrieved from llvm
+[2022-02-18 23:43:12.024] [global] [info] retrieving init/release stage functors
+[2022-02-18 23:43:12.024] [global] [info] Compiled code paths for stage 0 in 0.01 ms
+[2022-02-18 23:43:12.024] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.0276273s
+[2022-02-18 23:43:12.024] [local ee] [info] split /data/311/311_preprocessed.csv into 17 tasks
+[2022-02-18 23:43:13.113] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.088235s (0 normal rows, 0 exceptions, 184 buckets)
+[2022-02-18 23:43:14.199] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.086423s (0 normal rows, 0 exceptions, 180 buckets)
+[2022-02-18 23:43:15.284] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.085236s (0 normal rows, 0 exceptions, 184 buckets)
+[2022-02-18 23:43:16.373] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.088938s (0 normal rows, 0 exceptions, 179 buckets)
+[2022-02-18 23:43:17.457] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.083337s (0 normal rows, 0 exceptions, 181 buckets)
+[2022-02-18 23:43:18.543] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.086595s (0 normal rows, 0 exceptions, 183 buckets)
+[2022-02-18 23:43:19.628] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.084514s (0 normal rows, 0 exceptions, 178 buckets)
+[2022-02-18 23:43:20.724] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.096583s (0 normal rows, 0 exceptions, 186 buckets)
+[2022-02-18 23:43:21.806] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.081896s (0 normal rows, 0 exceptions, 183 buckets)
+[2022-02-18 23:43:22.885] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.078870s (0 normal rows, 0 exceptions, 186 buckets)
+[2022-02-18 23:43:23.967] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.081613s (0 normal rows, 0 exceptions, 183 buckets)
+[2022-02-18 23:43:25.054] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.086972s (0 normal rows, 0 exceptions, 185 buckets)
+[2022-02-18 23:43:26.144] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.089797s (0 normal rows, 0 exceptions, 191 buckets)
+[2022-02-18 23:43:27.226] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.081838s (0 normal rows, 0 exceptions, 186 buckets)
+[2022-02-18 23:43:28.312] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.086389s (0 normal rows, 0 exceptions, 188 buckets)
+[2022-02-18 23:43:29.400] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.088201s (0 normal rows, 0 exceptions, 188 buckets)
+[2022-02-18 23:43:31.267] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.866572s (0 normal rows, 0 exceptions, 188 buckets)
+[2022-02-18 23:43:31.267] [global] [info] [Transform Stage] Stage 0 completed 17 load&transform tasks in 19.2426s
+[2022-02-18 23:43:31.267] [global] [info] [Transform Stage] Stage 0 total wall clock time: 19.242s, 197628000 input rows, time to process 1 row via fast path: 9.73648e-05ms
+[2022-02-18 23:43:31.267] [global] [info] [Transform Stage] Stage 0 completed 17 sink tasks in 0.000386187s
+[2022-02-18 23:43:31.267] [global] [info] [Transform Stage] Stage 0 took 19.2706s
+[2022-02-18 23:43:31.288] [global] [info] retrieved metrics object
+[2022-02-18 23:43:31.301] [global] [info] Optimization via LLVM passes took 0.012785 ms
+[2022-02-18 23:43:31.301] [global] [info] starting code compilation
+[2022-02-18 23:43:31.301] [global] [info] first compile done
+[2022-02-18 23:43:31.306] [global] [info] functor Stage_1 retrieved from llvm
+[2022-02-18 23:43:31.306] [global] [info] retrieving init/release stage functors
+[2022-02-18 23:43:31.306] [global] [info] Compiled code paths for stage 1 in 0.01 ms
+[2022-02-18 23:43:31.306] [global] [info] [Transform Stage] Stage 1 compiled to x86 in 0.0184974s
+[2022-02-18 23:43:31.306] [driver] [info] [Task Finished] Transform to mem in 0.000033s (246 normal rows, 0 exceptions)
+[2022-02-18 23:43:31.306] [global] [info] [Transform Stage] Stage 1 completed 1 load&transform tasks in 5.4992e-05s
+[2022-02-18 23:43:31.306] [global] [info] [Transform Stage] Stage 1 total wall clock time: 3.2685e-05s, 246 input rows, time to process 1 row via fast path: 0.000132866ms
+
+[2022-02-18 23:43:31.306] [global] [info] Writing 246 rows as output to file (1.44 KB)
+[2022-02-18 23:43:31.306] [driver] [info] [Task Finished] write to file in 0.000081s (246 rows, 1.44 KB)
+[2022-02-18 23:43:31.306] [global] [info] writing output took 0.000261s
+[2022-02-18 23:43:31.306] [global] [info] [Transform Stage] Stage 1 completed 1 sink tasks in 0.000272137s
+[2022-02-18 23:43:31.306] [global] [info] [Transform Stage] Stage 1 took 0.0188451s
+[2022-02-18 23:43:31.306] [global] [info] Query Execution took 19.3435s. (planning: 0.0336914s, execution: 19.3098s)
+Welcome to
+
+  _____            _
+ |_   _|   _ _ __ | | _____  __
+   | || | | | '_ \| |/ _ \ \/ /
+   | || |_| | |_) | |  __/>  <
+   |_| \__,_| .__/|_|\___/_/\_\ 0.3.1
+            |_|
+    
+using Python 3.6.9 (default, Feb  8 2022, 16:30:43) 
+[GCC 9.3.0] on linux
+Tuplex startup time: 0.14079737663269043
+{"startupTime": 0.14079737663269043, "jobTime": 19.503223180770874}
+[GLOBAL] Local engine terminated.
+[GLOBAL] releasing 1 active partitions

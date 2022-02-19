@@ -33,171 +33,91 @@ from .paper import *
 
 adjust_settings()
 
-
-# In[91]:
-
-
 def load_311_to_df(paths):
     rows = []
 
     for path in sorted(paths):
-        file = os.path.basename(path)
-        name = file[:file.find('-run')]
-        if file.endswith('.txt'):
-            # print(path)
-            with open(path, 'r') as fp:
-                lines = fp.readlines()
 
-                # skip empty files (means timeout)
-                if len(lines) == 0:
-                    continue
+        try:
+            file = os.path.basename(path)
+            name = file[:file.find('-run')]
+            if file.endswith('.txt'):
+                # print(path)
+                with open(path, 'r') as fp:
+                    lines = fp.readlines()
 
-                row = {}
-                # get run number
-                run_no = int(path[path.rfind('-')+1:path.rfind('.txt')])
+                    # skip empty files (means timeout)
+                    if len(lines) == 0:
+                        continue
 
-                # tuplex decode
-                if 'tuplex' in file:
-                    d = json.loads(list(filter(lambda x: 'startupTime' in x, lines))[0])
+                    row = {}
 
-                    #breakdown time extract for tuplex
-                    c = '\n'.join(lines)
+                    # tuplex decode
+                    if 'tuplex' in name:
+    #                     d = {}
+    #                     if 'tuplex' in name:
+                        d = json.loads(list(filter(lambda x: 'startupTime' in x, lines))[0])
+    #                     else:
+    #                         d = json.loads(lines[-1].replace("'", '"'))
 
-                    pattern = re.compile('load&transform tasks in (\d+.\d+)s')
-                    lt_times = np.array(list(map(float, pattern.findall(c))))
+                        #breakdown time extract for tuplex
+                        c = '\n'.join(lines)
 
-                    pattern = re.compile('compiled to x86 in (\d+.\d+)s')
-                    cp_times = np.array(list(map(float, pattern.findall(c))))
+                        pattern = re.compile('load&transform tasks in (\d+.\d+)s')
+                        lt_times = np.array(list(map(float, pattern.findall(c))))
 
-                    m = re.search('writing output took (\d+.\d+)s', c)
-                    if m:    
-                        w_time = float(m[1])
-                        row['write'] = w_time
-                    lt_time = lt_times.sum()
-                    cp_time = cp_times.sum()
-                    row['compute'] = lt_time
-                    row['compile'] = cp_time
-                elif 'weld-run' in file:
-                    keys = lines[-2].strip().split(',')
-                    vals = lines[-1].strip().split(',')
-                    d = dict(zip(keys, vals))
-                else:
-                    d = json.loads(lines[-1].replace("'", '"'))
+                        pattern = re.compile('compiled to x86 in (\d+.\d+)s')
+                        cp_times = np.array(list(map(float, pattern.findall(c))))
 
-                readTime = d['readTime'] if 'readTime' in d else 0.
-                writeTime = d['writeTime'] if 'writeTime' in d else 0.
-                startupTime = d['startupTime'] if 'startupTime' in d else 0.
-                row = {'startup_time' : startupTime, "load":readTime, "write": writeTime}
-                if 'weld' in file:
-                    row['compute'] = d['query'] if 'query' in d else d['jobTime']
-                    row['job_time'] = 0
-                    if 'weld-run' in file:
-                        row['job_time'] = d['query']
-                        row['load'] = d['pandas_load'] + d['load']
+                        m = re.search('writing output took (\d+.\d+)s', c)
+                        if m:
+                            w_time = float(m[1])
+                            row['write'] = w_time
+                        lt_time = lt_times.sum()
+                        cp_time = cp_times.sum()
+                        row['compute'] = lt_time
+                        row['compile'] = cp_time
                     else:
+                        d = json.loads(lines[-1].replace("'", '"'))
+
+    #                     # clean keys
+    #                     row = {'startup_time': d['startupTime'], 'job_time': d['jobTime'], }
+    #                     if 'load_time' in d.keys():
+    #                         row['load'] = d['load_time']
+    #                     if 'run_time' in d.keys():
+    #                         row['compute'] = d['run_time']
+    #                     if 'write_time' in d.keys():
+    #                         row['write'] = d['write_time']
+    #                     if 'jobTime' in d.keys():
+    #                         row['job_time'] = d['jobTime']
+    #                     else:
+    #                         row['job_time'] = d['job_time']
+
+    #                     if 'startup_time' in d.keys():
+    #                         row['startup_time'] = d['startup_time']
+
+                    readTime = d['readTime'] if 'readTime' in d else 0.
+                    writeTime = d['writeTime'] if 'writeTime' in d else 0.
+                    row = {'startup_time' : d['startupTime'], "load":readTime, "write": writeTime}
+                    if 'weld' in file:
+                        row['compute'] = d['jobTime']
+                        row['job_time'] = 0
+                        row['mode'] = 'weld'
+                    else:
+                        assert 'e2e' in file
+                        row['compute'] = 0
                         row['job_time'] = d['jobTime']
-                    row['mode'] = 'weld'
-                else:
-                    assert 'e2e' in file
-                    row['compute'] = 0
-                    row['job_time'] = d['jobTime']
-                    row['mode'] = 'e2e'
-                row['framework'] = name
-                if name == 'sttuplex':
-                    row['framework'] = 'tuplex'
-                    row['mode'] += '-st'
-                if len(row) > 0:
-                    row['run'] = run_no
-                    rows.append(row)
-                else:
-                    print(file)
-    return pd.DataFrame(rows)
-
-
-# In[121]:
-
-
-def load_311_to_df(paths):
-    rows = []
-
-    for path in sorted(paths):
-        file = os.path.basename(path)
-        name = file[:file.find('-run')]
-        if file.endswith('.txt'):
-            # print(path)
-            with open(path, 'r') as fp:
-                lines = fp.readlines()
-
-                # skip empty files (means timeout)
-                if len(lines) == 0:
-                    continue
-
-                row = {}
-
-                # tuplex decode
-                if 'tuplex' in name:
-#                     d = {}
-#                     if 'tuplex' in name:
-                    d = json.loads(list(filter(lambda x: 'startupTime' in x, lines))[0])
-#                     else:
-#                         d = json.loads(lines[-1].replace("'", '"'))
-
-                    #breakdown time extract for tuplex
-                    c = '\n'.join(lines)
-
-                    pattern = re.compile('load&transform tasks in (\d+.\d+)s')
-                    lt_times = np.array(list(map(float, pattern.findall(c))))
-
-                    pattern = re.compile('compiled to x86 in (\d+.\d+)s')
-                    cp_times = np.array(list(map(float, pattern.findall(c))))
-
-                    m = re.search('writing output took (\d+.\d+)s', c)
-                    if m:    
-                        w_time = float(m[1])
-                        row['write'] = w_time
-                    lt_time = lt_times.sum()
-                    cp_time = cp_times.sum()
-                    row['compute'] = lt_time
-                    row['compile'] = cp_time
-                else:
-                    d = json.loads(lines[-1].replace("'", '"'))
-
-#                     # clean keys
-#                     row = {'startup_time': d['startupTime'], 'job_time': d['jobTime'], }
-#                     if 'load_time' in d.keys():
-#                         row['load'] = d['load_time']
-#                     if 'run_time' in d.keys():
-#                         row['compute'] = d['run_time']
-#                     if 'write_time' in d.keys():
-#                         row['write'] = d['write_time']
-#                     if 'jobTime' in d.keys():
-#                         row['job_time'] = d['jobTime']
-#                     else:
-#                         row['job_time'] = d['job_time']
-                    
-#                     if 'startup_time' in d.keys():
-#                         row['startup_time'] = d['startup_time']
-
-                readTime = d['readTime'] if 'readTime' in d else 0.
-                writeTime = d['writeTime'] if 'writeTime' in d else 0.
-                row = {'startup_time' : d['startupTime'], "load":readTime, "write": writeTime}
-                if 'weld' in file:
-                    row['compute'] = d['jobTime']
-                    row['job_time'] = 0
-                    row['mode'] = 'weld'
-                else:
-                    assert 'e2e' in file
-                    row['compute'] = 0
-                    row['job_time'] = d['jobTime']
-                    row['mode'] = 'e2e'
-                row['framework'] = name
-                if name == 'sttuplex':
-                    row['framework'] = 'tuplex'
-                    row['mode'] += '-st'
-                if len(row) > 0:
-                    rows.append(row)
-                else:
-                    print(file)
+                        row['mode'] = 'e2e'
+                    row['framework'] = name
+                    if name == 'sttuplex':
+                        row['framework'] = 'tuplex'
+                        row['mode'] += '-st'
+                    if len(row) > 0:
+                        rows.append(row)
+                    else:
+                        print(file)
+        except Exception as e:
+            logging.warning("Could not extract data for path {}, details: {}".format(path, e))
     return pd.DataFrame(rows)[['startup_time', 'job_time', 'load', 'compute', 'write', 'framework', 'mode']]
 
 

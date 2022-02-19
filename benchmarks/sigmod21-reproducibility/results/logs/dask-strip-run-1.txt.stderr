@@ -1,0 +1,256 @@
+distributed.worker - ERROR - Worker stream died during communication: tcp://127.0.0.1:46573
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/core.py", line 319, in connect
+    handshake = await asyncio.wait_for(comm.read(), time_left())
+  File "/usr/local/lib/python3.6/asyncio/tasks.py", line 362, in wait_for
+    raise futures.TimeoutError()
+concurrent.futures._base.TimeoutError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 2064, in gather_dep
+    self.rpc, deps, worker, who=self.address
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 3333, in get_data_from_worker
+    return await retry_operation(_get_data, operation="get_data_from_worker")
+  File "/usr/local/lib/python3.6/site-packages/distributed/utils_comm.py", line 389, in retry_operation
+    operation=operation,
+  File "/usr/local/lib/python3.6/site-packages/distributed/utils_comm.py", line 369, in retry
+    return await coro()
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 3310, in _get_data
+    comm = await rpc.connect(worker)
+  File "/usr/local/lib/python3.6/site-packages/distributed/core.py", line 1013, in connect
+    **self.connection_args,
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/core.py", line 326, in connect
+    ) from exc
+OSError: Timed out during handshake while connecting to tcp://127.0.0.1:46573 after 10 s
+distributed.worker - ERROR - failed during get data with tcp://127.0.0.1:41431 -> tcp://127.0.0.1:39575
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 867, in _read_to_buffer
+    bytes_read = self.read_from_fd(buf)
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 1140, in read_from_fd
+    return self.socket.recv_into(buf, len(buf))
+TimeoutError: [Errno 110] Connection timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 1360, in get_data
+    response = await comm.read(deserializers=serializers)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 126, in convert_stream_closed_error
+    ) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: TimeoutError: [Errno 110] Connection timed out
+distributed.worker - ERROR - failed during get data with tcp://127.0.0.1:36937 -> tcp://127.0.0.1:39575
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 867, in _read_to_buffer
+    bytes_read = self.read_from_fd(buf)
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 1140, in read_from_fd
+    return self.socket.recv_into(buf, len(buf))
+TimeoutError: [Errno 110] Connection timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 1360, in get_data
+    response = await comm.read(deserializers=serializers)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 126, in convert_stream_closed_error
+    ) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: TimeoutError: [Errno 110] Connection timed out
+distributed.worker - ERROR - failed during get data with tcp://127.0.0.1:43645 -> tcp://127.0.0.1:39575
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 867, in _read_to_buffer
+    bytes_read = self.read_from_fd(buf)
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 1140, in read_from_fd
+    return self.socket.recv_into(buf, len(buf))
+TimeoutError: [Errno 110] Connection timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 1360, in get_data
+    response = await comm.read(deserializers=serializers)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 126, in convert_stream_closed_error
+    ) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: TimeoutError: [Errno 110] Connection timed out
+distributed.worker - ERROR - failed during get data with tcp://127.0.0.1:42711 -> tcp://127.0.0.1:39575
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 867, in _read_to_buffer
+    bytes_read = self.read_from_fd(buf)
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 1140, in read_from_fd
+    return self.socket.recv_into(buf, len(buf))
+TimeoutError: [Errno 110] Connection timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 1360, in get_data
+    response = await comm.read(deserializers=serializers)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 126, in convert_stream_closed_error
+    ) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: TimeoutError: [Errno 110] Connection timed out
+distributed.worker - ERROR - failed during get data with tcp://127.0.0.1:43595 -> tcp://127.0.0.1:39575
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 867, in _read_to_buffer
+    bytes_read = self.read_from_fd(buf)
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 1140, in read_from_fd
+    return self.socket.recv_into(buf, len(buf))
+TimeoutError: [Errno 110] Connection timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 1360, in get_data
+    response = await comm.read(deserializers=serializers)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 126, in convert_stream_closed_error
+    ) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: TimeoutError: [Errno 110] Connection timed out
+distributed.worker - ERROR - Worker stream died during communication: tcp://127.0.0.1:36937
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 867, in _read_to_buffer
+    bytes_read = self.read_from_fd(buf)
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 1140, in read_from_fd
+    return self.socket.recv_into(buf, len(buf))
+ConnectionResetError: [Errno 104] Connection reset by peer
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 2064, in gather_dep
+    self.rpc, deps, worker, who=self.address
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 3333, in get_data_from_worker
+    return await retry_operation(_get_data, operation="get_data_from_worker")
+  File "/usr/local/lib/python3.6/site-packages/distributed/utils_comm.py", line 389, in retry_operation
+    operation=operation,
+  File "/usr/local/lib/python3.6/site-packages/distributed/utils_comm.py", line 369, in retry
+    return await coro()
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 3320, in _get_data
+    max_connections=max_connections,
+  File "/usr/local/lib/python3.6/site-packages/distributed/core.py", line 644, in send_recv
+    response = await comm.read(deserializers=deserializers)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 126, in convert_stream_closed_error
+    ) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: ConnectionResetError: [Errno 104] Connection reset by peer
+distributed.worker - ERROR - Worker stream died during communication: tcp://127.0.0.1:41431
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 867, in _read_to_buffer
+    bytes_read = self.read_from_fd(buf)
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 1140, in read_from_fd
+    return self.socket.recv_into(buf, len(buf))
+ConnectionResetError: [Errno 104] Connection reset by peer
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 2064, in gather_dep
+    self.rpc, deps, worker, who=self.address
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 3333, in get_data_from_worker
+    return await retry_operation(_get_data, operation="get_data_from_worker")
+  File "/usr/local/lib/python3.6/site-packages/distributed/utils_comm.py", line 389, in retry_operation
+    operation=operation,
+  File "/usr/local/lib/python3.6/site-packages/distributed/utils_comm.py", line 369, in retry
+    return await coro()
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 3320, in _get_data
+    max_connections=max_connections,
+  File "/usr/local/lib/python3.6/site-packages/distributed/core.py", line 644, in send_recv
+    response = await comm.read(deserializers=deserializers)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 126, in convert_stream_closed_error
+    ) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: ConnectionResetError: [Errno 104] Connection reset by peer
+distributed.worker - ERROR - Worker stream died during communication: tcp://127.0.0.1:43595
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 867, in _read_to_buffer
+    bytes_read = self.read_from_fd(buf)
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 1140, in read_from_fd
+    return self.socket.recv_into(buf, len(buf))
+ConnectionResetError: [Errno 104] Connection reset by peer
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 2064, in gather_dep
+    self.rpc, deps, worker, who=self.address
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 3333, in get_data_from_worker
+    return await retry_operation(_get_data, operation="get_data_from_worker")
+  File "/usr/local/lib/python3.6/site-packages/distributed/utils_comm.py", line 389, in retry_operation
+    operation=operation,
+  File "/usr/local/lib/python3.6/site-packages/distributed/utils_comm.py", line 369, in retry
+    return await coro()
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 3320, in _get_data
+    max_connections=max_connections,
+  File "/usr/local/lib/python3.6/site-packages/distributed/core.py", line 644, in send_recv
+    response = await comm.read(deserializers=deserializers)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 126, in convert_stream_closed_error
+    ) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: ConnectionResetError: [Errno 104] Connection reset by peer
+distributed.worker - ERROR - Worker stream died during communication: tcp://127.0.0.1:43645
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 867, in _read_to_buffer
+    bytes_read = self.read_from_fd(buf)
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 1140, in read_from_fd
+    return self.socket.recv_into(buf, len(buf))
+ConnectionResetError: [Errno 104] Connection reset by peer
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 2064, in gather_dep
+    self.rpc, deps, worker, who=self.address
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 3333, in get_data_from_worker
+    return await retry_operation(_get_data, operation="get_data_from_worker")
+  File "/usr/local/lib/python3.6/site-packages/distributed/utils_comm.py", line 389, in retry_operation
+    operation=operation,
+  File "/usr/local/lib/python3.6/site-packages/distributed/utils_comm.py", line 369, in retry
+    return await coro()
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 3320, in _get_data
+    max_connections=max_connections,
+  File "/usr/local/lib/python3.6/site-packages/distributed/core.py", line 644, in send_recv
+    response = await comm.read(deserializers=deserializers)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 126, in convert_stream_closed_error
+    ) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: ConnectionResetError: [Errno 104] Connection reset by peer
+distributed.worker - ERROR - Worker stream died during communication: tcp://127.0.0.1:42711
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 867, in _read_to_buffer
+    bytes_read = self.read_from_fd(buf)
+  File "/usr/local/lib/python3.6/site-packages/tornado/iostream.py", line 1140, in read_from_fd
+    return self.socket.recv_into(buf, len(buf))
+ConnectionResetError: [Errno 104] Connection reset by peer
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 2064, in gather_dep
+    self.rpc, deps, worker, who=self.address
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 3333, in get_data_from_worker
+    return await retry_operation(_get_data, operation="get_data_from_worker")
+  File "/usr/local/lib/python3.6/site-packages/distributed/utils_comm.py", line 389, in retry_operation
+    operation=operation,
+  File "/usr/local/lib/python3.6/site-packages/distributed/utils_comm.py", line 369, in retry
+    return await coro()
+  File "/usr/local/lib/python3.6/site-packages/distributed/worker.py", line 3320, in _get_data
+    max_connections=max_connections,
+  File "/usr/local/lib/python3.6/site-packages/distributed/core.py", line 644, in send_recv
+    response = await comm.read(deserializers=deserializers)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 205, in read
+    convert_stream_closed_error(self, e)
+  File "/usr/local/lib/python3.6/site-packages/distributed/comm/tcp.py", line 126, in convert_stream_closed_error
+    ) from exc
+distributed.comm.core.CommClosedError: in <closed TCP>: ConnectionResetError: [Errno 104] Connection reset by peer

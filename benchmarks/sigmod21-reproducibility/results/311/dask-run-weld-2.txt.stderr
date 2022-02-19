@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "rundask.py", line 102, in <module>
+    df.to_csv(output_path, index=None)
+  File "/usr/local/lib/python3.6/site-packages/pandas/core/generic.py", line 3170, in to_csv
+    formatter.save()
+  File "/usr/local/lib/python3.6/site-packages/pandas/io/formats/csvs.py", line 190, in save
+    compression=dict(self.compression_args, method=self.compression),
+  File "/usr/local/lib/python3.6/site-packages/pandas/io/common.py", line 493, in get_handle
+    f = open(path_or_buf, mode, encoding=encoding, errors=errors, newline="")
+FileNotFoundError: [Errno 2] No such file or directory: '/results/output/311/dask_cached/export-*.csv'

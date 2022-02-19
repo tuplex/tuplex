@@ -1,0 +1,158 @@
+[2022-02-19 15:47:53.261] [local ee] [info] loaded runtime library from/usr/local/lib/python3.6/site-packages/Tuplex-0.3.1-py3.6.egg/tuplex/libexec/tuplex_runtime.so
+[2022-02-19 15:47:53.261] [local ee] [info] initializing LLVM backend
+[2022-02-19 15:47:53.261] [local ee] [warning] init JIT compiler also only in local mode
+[2022-02-19 15:47:53.261] [LLVM] [info] compiling code for skylake-avx512
+[2022-02-19 15:47:53.261] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.262] [local execution engine] [info] started local executor E/1 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.262] [E/1] [info] starting detached process queue
+[2022-02-19 15:47:53.262] [local execution engine] [info] started local executor E/2 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.262] [E/2] [info] starting detached process queue
+[2022-02-19 15:47:53.262] [E/1] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.262] [local execution engine] [info] started local executor E/3 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.262] [E/2] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.262] [E/3] [info] starting detached process queue
+[2022-02-19 15:47:53.262] [local execution engine] [info] started local executor E/4 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.262] [E/3] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.262] [E/4] [info] starting detached process queue
+[2022-02-19 15:47:53.262] [local execution engine] [info] started local executor E/5 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.262] [E/4] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.262] [E/5] [info] starting detached process queue
+[2022-02-19 15:47:53.262] [local execution engine] [info] started local executor E/6 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.262] [E/6] [info] starting detached process queue
+[2022-02-19 15:47:53.262] [E/5] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.262] [local execution engine] [info] started local executor E/7 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.262] [E/6] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.262] [E/7] [info] starting detached process queue
+[2022-02-19 15:47:53.262] [local execution engine] [info] started local executor E/8 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.262] [E/7] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.262] [E/8] [info] starting detached process queue
+[2022-02-19 15:47:53.262] [local execution engine] [info] started local executor E/9 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.262] [E/8] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.262] [E/9] [info] starting detached process queue
+[2022-02-19 15:47:53.262] [local execution engine] [info] started local executor E/10 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.262] [E/9] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.262] [E/10] [info] starting detached process queue
+[2022-02-19 15:47:53.262] [local execution engine] [info] started local executor E/11 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.263] [E/11] [info] starting detached process queue
+[2022-02-19 15:47:53.263] [E/10] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.263] [local execution engine] [info] started local executor E/12 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.263] [E/11] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.263] [E/12] [info] starting detached process queue
+[2022-02-19 15:47:53.263] [local execution engine] [info] started local executor E/13 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.263] [E/13] [info] starting detached process queue
+[2022-02-19 15:47:53.263] [E/12] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.263] [local execution engine] [info] started local executor E/14 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.263] [E/13] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.263] [E/14] [info] starting detached process queue
+[2022-02-19 15:47:53.263] [local execution engine] [info] started local executor E/15 (6.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.263] [E/15] [info] starting detached process queue
+[2022-02-19 15:47:53.263] [E/14] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.263] [memory] [info] allocated bitmap managed memory region (10.00 GB, 32.00 MB block size)
+[2022-02-19 15:47:53.263] [E/15] [info] initialized runtime memory (4.00 MB)
+[2022-02-19 15:47:53.263] [local execution engine] [info] started driver (10.00 GB, 32.00 MB default partition size)
+[2022-02-19 15:47:53.263] [fileinputoperator] [info] found 1 file (1.43 GB) to process.
+[2022-02-19 15:47:53.263] [global] [info] sampled file:///data/tpch/q6_preprocessed/lineitem-sf-10.tbl on 256.00 KB
+[2022-02-19 15:47:53.461] [global] [info] combiner output-schema is: (f64)
+[2022-02-19 15:47:53.462] [global] [info] aggregator output-schema is: (f64)
+[2022-02-19 15:47:53.462] [global] [info] aggregate operator yields: (f64)
+[2022-02-19 15:47:53.465] [global] [info] combiner output-schema is: (f64)
+[2022-02-19 15:47:53.465] [global] [info] aggregator output-schema is: (f64)
+[2022-02-19 15:47:53.465] [global] [info] aggregate operator yields: (f64)
+[2022-02-19 15:47:53.469] [global] [info] combiner output-schema is: (f64)
+[2022-02-19 15:47:53.469] [global] [info] aggregator output-schema is: (f64)
+[2022-02-19 15:47:53.469] [global] [info] aggregate operator yields: (f64)
+[2022-02-19 15:47:53.472] [global] [info] combiner output-schema is: (f64)
+[2022-02-19 15:47:53.472] [global] [info] aggregator output-schema is: (f64)
+[2022-02-19 15:47:53.472] [global] [info] aggregate operator yields: (f64)
+[2022-02-19 15:47:53.488] [logical planner] [info] logical optimization took 0.023584ms
+[2022-02-19 15:47:53.489] [codegen] [info] generating pipeline for (Option[i64],Option[f64],Option[f64],Option[i64]) -> (f64) (4 operators pipelined)
+[2022-02-19 15:47:53.489] [codegen] [info] generating lambda function for ((Option[i64],Option[f64],Option[f64],Option[i64])) -> boolean
+[2022-02-19 15:47:53.490] [codegen] [info] generating lambda function for ((Option[i64],Option[f64],Option[f64],Option[i64])) -> boolean
+[2022-02-19 15:47:53.490] [codegen] [info] generating lambda function for ((Option[i64],Option[f64],Option[f64],Option[i64])) -> boolean
+[2022-02-19 15:47:53.491] [codegen] [info] generating lambda function for (f64,f64) -> f64
+[2022-02-19 15:47:53.491] [codegen] [info] generating lambda function for (f64,(Option[i64],Option[f64],Option[f64],Option[i64])) -> f64
+[2022-02-19 15:47:53.516] [global] [info] retrieved metrics object
+[2022-02-19 15:47:53.576] [global] [info] Optimization via LLVM passes took 0.061391 ms
+[2022-02-19 15:47:53.576] [global] [info] starting code compilation
+[2022-02-19 15:47:53.576] [global] [info] first compile done
+[2022-02-19 15:47:53.607] [global] [info] functor Stage_0 retrieved from llvm
+[2022-02-19 15:47:53.607] [global] [info] retrieving init/release stage functors
+[2022-02-19 15:47:53.607] [global] [info] Compiled code paths for stage 0 in 0.03 ms
+[2022-02-19 15:47:53.607] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.0945212s
+[2022-02-19 15:47:53.607] [local ee] [info] split /data/tpch/q6_preprocessed/lineitem-sf-10.tbl into 22 tasks
+[2022-02-19 15:47:54.036] [driver] [info] [Task Finished] Transform to mem in 0.429096s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.037] [E/10] [info] [Task Finished] Transform to mem in 0.429396s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.037] [E/2] [info] [Task Finished] Transform to mem in 0.429610s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.037] [E/5] [info] [Task Finished] Transform to mem in 0.429624s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.037] [E/7] [info] [Task Finished] Transform to mem in 0.429736s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.037] [E/3] [info] [Task Finished] Transform to mem in 0.429748s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.037] [E/6] [info] [Task Finished] Transform to mem in 0.429829s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.037] [E/4] [info] [Task Finished] Transform to mem in 0.429921s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.037] [E/9] [info] [Task Finished] Transform to mem in 0.429991s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.037] [E/8] [info] [Task Finished] Transform to mem in 0.430120s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.038] [E/12] [info] [Task Finished] Transform to mem in 0.430235s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.038] [E/13] [info] [Task Finished] Transform to mem in 0.430282s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.038] [E/14] [info] [Task Finished] Transform to mem in 0.430391s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.038] [E/15] [info] [Task Finished] Transform to mem in 0.430467s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.038] [E/1] [info] [Task Finished] Transform to mem in 0.430723s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.043] [E/11] [info] [Task Finished] Transform to mem in 0.435877s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.463] [driver] [info] [Task Finished] Transform to mem in 0.426450s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.463] [E/10] [info] [Task Finished] Transform to mem in 0.426654s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.463] [E/5] [info] [Task Finished] Transform to mem in 0.426475s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.464] [E/2] [info] [Task Finished] Transform to mem in 0.426996s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.464] [E/7] [info] [Task Finished] Transform to mem in 0.426945s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.875] [E/3] [info] [Task Finished] Transform to mem in 0.837707s (0 normal rows, 0 exceptions)
+[2022-02-19 15:47:54.875] [global] [info] [Transform Stage] Stage 0 completed 22 load&transform tasks in 1.26763s
+[2022-02-19 15:47:54.875] [global] [info] [Transform Stage] Stage 0 total wall clock time: 9.85627s, 59986052 input rows, time to process 1 row via fast path: 0.000164309ms
+[2022-02-19 15:47:54.875] [global] [info] [Transform Stage] Stage 0 completed 22 sink tasks in 3.1537e-05s
+[2022-02-19 15:47:54.875] [global] [info] [Transform Stage] Stage 0 took 1.36223s
+[2022-02-19 15:47:54.875] [global] [info] [Transform Stage] skipped stage 1 because there is nothing todo here.
+[2022-02-19 15:47:54.875] [global] [info] Query Execution took 1.41312s. (planning: 0.0508567s, execution: 1.36226s)
+[2022-02-19 15:47:54.877] [python] [info] Data transfer back to Python took 0.000021 seconds
+Welcome to
+
+  _____            _
+ |_   _|   _ _ __ | | _____  __
+   | || | | | '_ \| |/ _ \ \/ /
+   | || |_| | |_) | |  __/>  <
+   |_| \__,_| .__/|_|\___/_/\_\ 0.3.1
+            |_|
+    
+using Python 3.6.9 (default, Feb  8 2022, 16:30:43) 
+[GCC 9.3.0] on linux
+end-to-end took: 1.6233086585998535s
+Result::
+[1230113636.0101]
+framework,version,load,query,result
+tuplex,0.1.6,0,1.6233086585998535,[1230113636.0101]
+[2022-02-19 15:47:54.888] [local execution engine] [info] Stopped local executor E/1
+[2022-02-19 15:47:54.889] [local execution engine] [info] Stopped local executor E/2
+[2022-02-19 15:47:54.889] [local execution engine] [info] Stopped local executor E/3
+[2022-02-19 15:47:54.890] [local execution engine] [info] Stopped local executor E/4
+[2022-02-19 15:47:54.890] [local execution engine] [info] Stopped local executor E/5
+[2022-02-19 15:47:54.890] [local execution engine] [info] Stopped local executor E/6
+[2022-02-19 15:47:54.891] [local execution engine] [info] Stopped local executor E/7
+[2022-02-19 15:47:54.891] [local execution engine] [info] Stopped local executor E/8
+[2022-02-19 15:47:54.891] [local execution engine] [info] Stopped local executor E/9
+[2022-02-19 15:47:54.892] [local execution engine] [info] Stopped local executor E/10
+[2022-02-19 15:47:54.892] [local execution engine] [info] Stopped local executor E/11
+[2022-02-19 15:47:54.893] [local execution engine] [info] Stopped local executor E/12
+[2022-02-19 15:47:54.893] [local execution engine] [info] Stopped local executor E/13
+[2022-02-19 15:47:54.893] [local execution engine] [info] Stopped local executor E/14
+[2022-02-19 15:47:54.893] [local execution engine] [info] Stopped local executor E/15
+[GLOBAL] Local engine terminated.
+[GLOBAL] releasing 1 active partitions

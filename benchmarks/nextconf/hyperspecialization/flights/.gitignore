@@ -1,1 +1,9 @@
 build/
+pgo-test-output/
+test.csv/
+pgo-experiment-results/
+*.profraw
+*.profdata
+*.stdout
+*.stderr
+runner

@@ -365,3 +365,150 @@ last Op: (Option[str],str,Option[str],str,Option[str],i64,f64,i64,str,str,i64)
 [2022-02-19 21:06:34.825] [E/15] [info] [Task Finished] Resolve in 94.163827s
 [2022-02-19 21:06:39.338] [E/3] [info] [Task Finished] Resolve in 87.365597s
 [2022-02-19 21:06:42.531] [E/1] [info] [Task Finished] Resolve in 80.814495s
+[2022-02-19 21:06:43.631] [E/12] [info] [Task Finished] Resolve in 48.138485s
+[2022-02-19 21:06:44.835] [E/14] [info] [Task Finished] Resolve in 79.697497s
+[2022-02-19 21:06:50.271] [E/6] [info] [Task Finished] Resolve in 75.157570s
+[2022-02-19 21:07:04.728] [driver] [info] [Task Finished] Resolve in 72.439247s
+[2022-02-19 21:07:08.760] [E/5] [info] [Task Finished] Resolve in 92.683742s
+[2022-02-19 21:07:11.346] [E/9] [info] [Task Finished] Resolve in 64.620863s
+[2022-02-19 21:07:15.636] [E/13] [info] [Task Finished] Resolve in 97.475497s
+[2022-02-19 21:07:18.162] [E/10] [info] [Task Finished] Resolve in 98.463890s
+[2022-02-19 21:07:22.794] [E/8] [info] [Task Finished] Resolve in 58.255542s
+[2022-02-19 21:07:32.139] [E/2] [info] [Task Finished] Resolve in 73.939112s
+[2022-02-19 21:07:42.472] [E/15] [info] [Task Finished] Resolve in 67.647841s
+[2022-02-19 21:07:47.075] [E/1] [info] [Task Finished] Resolve in 64.543636s
+[2022-02-19 21:07:48.873] [E/4] [info] [Task Finished] Resolve in 105.952132s
+[2022-02-19 21:07:50.965] [E/7] [info] [Task Finished] Resolve in 101.228318s
+[2022-02-19 21:07:52.022] [E/14] [info] [Task Finished] Resolve in 67.187554s
+[2022-02-19 21:07:56.155] [E/11] [info] [Task Finished] Resolve in 84.704416s
+[2022-02-19 21:08:04.190] [driver] [info] [Task Finished] Resolve in 59.462053s
+[2022-02-19 21:08:04.451] [E/3] [info] [Task Finished] Resolve in 85.113435s
+[2022-02-19 21:08:06.405] [E/12] [info] [Task Finished] Resolve in 82.773252s
+[2022-02-19 21:08:16.098] [E/6] [info] [Task Finished] Resolve in 85.826175s
+[2022-02-19 21:08:21.628] [E/8] [info] [Task Finished] Resolve in 58.833275s
+[2022-02-19 21:08:33.055] [E/13] [info] [Task Finished] Resolve in 77.418705s
+[2022-02-19 21:08:33.916] [E/2] [info] [Task Finished] Resolve in 61.776896s
+[2022-02-19 21:08:40.425] [E/10] [info] [Task Finished] Resolve in 82.262949s
+[2022-02-19 21:08:41.070] [E/15] [info] [Task Finished] Resolve in 58.597251s
+[2022-02-19 21:08:41.960] [E/5] [info] [Task Finished] Resolve in 93.200005s
+[2022-02-19 21:08:52.750] [E/1] [info] [Task Finished] Resolve in 65.674783s
+[2022-02-19 21:08:52.975] [driver] [info] [Task Finished] Resolve in 48.784611s
+[2022-02-19 21:09:10.506] [E/8] [info] [Task Finished] Resolve in 48.877793s
+[2022-02-19 21:09:13.515] [E/9] [info] [Task Finished] Resolve in 122.168542s
+[2022-02-19 21:09:17.894] [E/11] [info] [Task Finished] Resolve in 81.738594s
+[2022-02-19 21:09:19.493] [E/4] [info] [Task Finished] Resolve in 90.620504s
+[2022-02-19 21:09:22.575] [E/14] [info] [Task Finished] Resolve in 90.553173s
+[2022-02-19 21:09:32.668] [E/12] [info] [Task Finished] Resolve in 86.263404s
+[2022-02-19 21:09:37.161] [E/7] [info] [Task Finished] Resolve in 106.195686s
+[2022-02-19 21:09:39.318] [E/5] [info] [Task Finished] Resolve in 57.358624s
+[2022-02-19 21:09:47.032] [E/3] [info] [Task Finished] Resolve in 102.580111s
+[2022-02-19 21:09:48.541] [E/15] [info] [Task Finished] Resolve in 67.471337s
+[2022-02-19 21:09:50.105] [E/6] [info] [Task Finished] Resolve in 94.007427s
+[2022-02-19 21:09:50.587] [driver] [info] [Task Finished] Resolve in 57.612082s
+[2022-02-19 21:09:58.112] [E/10] [info] [Task Finished] Resolve in 77.687419s
+[2022-02-19 21:10:02.916] [E/8] [info] [Task Finished] Resolve in 52.410528s
+[2022-02-19 21:10:13.108] [E/13] [info] [Task Finished] Resolve in 100.053204s
+[2022-02-19 21:10:18.029] [E/11] [info] [Task Finished] Resolve in 60.135194s
+[2022-02-19 21:10:18.971] [E/4] [info] [Task Finished] Resolve in 59.477978s
+[2022-02-19 21:10:19.379] [E/2] [info] [Task Finished] Resolve in 105.462538s
+[2022-02-19 21:10:28.498] [E/1] [info] [Task Finished] Resolve in 95.748107s
+[2022-02-19 21:10:41.372] [E/7] [info] [Task Finished] Resolve in 64.210825s
+[2022-02-19 21:10:41.782] [E/12] [info] [Task Finished] Resolve in 69.113977s
+[2022-02-19 21:10:46.952] [E/5] [info] [Task Finished] Resolve in 67.633804s
+[2022-02-19 21:10:49.689] [E/15] [info] [Task Finished] Resolve in 61.148115s
+[2022-02-19 21:10:50.977] [E/3] [info] [Task Finished] Resolve in 63.945696s
+[2022-02-19 21:10:56.652] [E/10] [info] [Task Finished] Resolve in 58.540358s
+[2022-02-19 21:10:59.979] [E/8] [info] [Task Finished] Resolve in 57.062654s
+[2022-02-19 21:11:08.069] [E/9] [info] [Task Finished] Resolve in 114.554289s
+[2022-02-19 21:11:11.595] [E/13] [info] [Task Finished] Resolve in 58.486572s
+[2022-02-19 21:11:12.704] [E/14] [info] [Task Finished] Resolve in 110.129005s
+[2022-02-19 21:11:23.701] [E/2] [info] [Task Finished] Resolve in 64.322847s
+[2022-02-19 21:11:29.577] [E/11] [info] [Task Finished] Resolve in 71.548144s
+[2022-02-19 21:11:37.924] [E/4] [info] [Task Finished] Resolve in 78.952777s
+[2022-02-19 21:11:38.157] [driver] [info] [Task Finished] Resolve in 107.570370s
+[2022-02-19 21:11:46.611] [E/5] [info] [Task Finished] Resolve in 59.659011s
+[2022-02-19 21:11:55.332] [E/15] [info] [Task Finished] Resolve in 65.642597s
+[2022-02-19 21:12:02.108] [E/3] [info] [Task Finished] Resolve in 71.130566s
+[2022-02-19 21:12:03.467] [E/8] [info] [Task Finished] Resolve in 63.488270s
+[2022-02-19 21:12:08.895] [E/6] [info] [Task Finished] Resolve in 138.790299s
+[2022-02-19 21:12:21.355] [E/9] [info] [Task Finished] Resolve in 73.286298s
+[2022-02-19 21:12:27.738] [E/7] [info] [Task Finished] Resolve in 106.366084s
+[2022-02-19 21:12:29.346] [E/14] [info] [Task Finished] Resolve in 76.641523s
+[2022-02-19 21:12:31.088] [E/12] [info] [Task Finished] Resolve in 109.306335s
+[2022-02-19 21:12:32.467] [E/11] [info] [Task Finished] Resolve in 62.889449s
+[2022-02-19 21:12:33.228] [E/2] [info] [Task Finished] Resolve in 69.526415s
+[2022-02-19 21:12:33.890] [driver] [info] [Task Finished] Resolve in 55.732765s
+[2022-02-19 21:12:33.890] [E/13] [info] [Task Finished] Resolve in 82.295314s
+[2022-02-19 21:12:39.875] [E/1] [info] [Task Finished] Resolve in 131.377380s
+[2022-02-19 21:12:41.676] [E/5] [info] [Task Finished] Resolve in 55.064599s
+[2022-02-19 21:12:42.883] [E/15] [info] [Task Finished] Resolve in 47.551041s
+[2022-02-19 21:12:43.893] [E/4] [info] [Task Finished] Resolve in 65.969357s
+[2022-02-19 21:12:44.377] [E/10] [info] [Task Finished] Resolve in 107.724520s
+[2022-02-19 21:12:46.650] [E/3] [info] [Task Finished] Resolve in 44.541667s
+[2022-02-19 21:12:48.544] [E/8] [info] [Task Finished] Resolve in 45.076395s
+[2022-02-19 21:12:51.093] [E/9] [info] [Task Finished] Resolve in 29.737184s
+[2022-02-19 21:12:53.891] [E/6] [info] [Task Finished] Resolve in 44.995834s
+[2022-02-19 21:13:00.632] [E/14] [info] [Task Finished] Resolve in 31.285691s
+[2022-02-19 21:13:01.411] [E/7] [info] [Task Finished] Resolve in 33.672645s
+[2022-02-19 21:13:01.411] [local ee] [info] slow path resolved 6895920/6895920 exceptions in 782.206s
+[2022-02-19 21:13:01.411] [local ee] [info] slow path for Stage 0: total wall clock time: 12232.1s, time to process 1 row via slow path: 1.77382ms
+[2022-02-19 21:13:01.411] [global] [info] [Transform Stage] Stage 0 completed 160 resolve tasks in 782.206s
+
+[2022-02-19 21:13:01.411] [global] [info] Writing 1798491 rows as output to file (273.61 MB)
+[2022-02-19 21:13:01.423] [driver] [info] [Task Finished] write to file in 0.011247s (46082 rows, 7.01 MB)
+[2022-02-19 21:13:01.437] [E/10] [info] [Task Finished] write to file in 0.025529s (112438 rows, 17.10 MB)
+[2022-02-19 21:13:01.437] [E/5] [info] [Task Finished] write to file in 0.025535s (112467 rows, 17.11 MB)
+[2022-02-19 21:13:01.437] [E/9] [info] [Task Finished] write to file in 0.025987s (112583 rows, 17.13 MB)
+[2022-02-19 21:13:01.438] [E/14] [info] [Task Finished] write to file in 0.026630s (112421 rows, 17.10 MB)
+[2022-02-19 21:13:01.438] [E/11] [info] [Task Finished] write to file in 0.026818s (112573 rows, 17.12 MB)
+[2022-02-19 21:13:01.438] [E/3] [info] [Task Finished] write to file in 0.026854s (112459 rows, 17.11 MB)
+[2022-02-19 21:13:01.438] [E/12] [info] [Task Finished] write to file in 0.026876s (112425 rows, 17.10 MB)
+[2022-02-19 21:13:01.439] [E/7] [info] [Task Finished] write to file in 0.027072s (112482 rows, 17.11 MB)
+[2022-02-19 21:13:01.439] [E/15] [info] [Task Finished] write to file in 0.027342s (123377 rows, 18.77 MB)
+[2022-02-19 21:13:01.440] [E/4] [info] [Task Finished] write to file in 0.028062s (123389 rows, 18.77 MB)
+[2022-02-19 21:13:01.440] [E/2] [info] [Task Finished] write to file in 0.028286s (123410 rows, 18.78 MB)
+[2022-02-19 21:13:01.440] [E/8] [info] [Task Finished] write to file in 0.028411s (123251 rows, 18.75 MB)
+[2022-02-19 21:13:01.440] [E/6] [info] [Task Finished] write to file in 0.028445s (123424 rows, 18.78 MB)
+[2022-02-19 21:13:01.440] [E/13] [info] [Task Finished] write to file in 0.028538s (123299 rows, 18.76 MB)
+[2022-02-19 21:13:01.444] [E/1] [info] [Task Finished] write to file in 0.032798s (112411 rows, 17.10 MB)
+[2022-02-19 21:13:01.444] [global] [info] writing output took 0.033385s
+[2022-02-19 21:13:01.444] [global] [info] [Transform Stage] Stage 0 completed 160 sink tasks in 0.0334888s
+[2022-02-19 21:13:01.445] [global] [info] [Transform Stage] Stage 0 took 785.611s
+[2022-02-19 21:13:01.445] [global] [info] Query Execution took 785.692s. (planning: 0.0810728s, execution: 785.611s)
+Welcome to
+
+  _____            _
+ |_   _|   _ _ __ | | _____  __
+   | || | | | '_ \| |/ _ \ \/ /
+   | || |_| | |_) | |  __/>  <
+   |_| \__,_| .__/|_|\___/_/\_\ 0.3.1
+            |_|
+    
+using Python 3.6.9 (default, Feb  8 2022, 16:30:43) 
+[GCC 9.3.0] on linux
+>>> running tuplex on ['/data/zillow/Zdirty/zillow_dirty@10G.csv']
+>>> bug in generated parser, force to false
+Tuplex startup time: 0.009326457977294922
+>>> running pipeline with Tuplex resolvers...
+Tuplex job time: 786.1242880821228 s
+{'tuplex.useLLVMOptimizer': True, 'tuplex.autoUpcast': False, 'tuplex.allowUndefinedBehavior': False, 'tuplex.optimizer.codeStats': False, 'tuplex.optimizer.generateParser': False, 'tuplex.optimizer.nullValueOptimization': False, 'tuplex.optimizer.filterPushdown': True, 'tuplex.optimizer.sharedObjectPropagation': True, 'tuplex.optimizer.mergeExceptionsInOrder': False, 'tuplex.optimizer.operatorReordering': False, 'tuplex.interleaveIO': True, 'tuplex.resolveWithInterpreterOnly': True, 'tuplex.network.verifySSL': False, 'tuplex.redirectToPythonLogging': False, 'tuplex.csv.selectionPushdown': True, 'tuplex.webui.enable': False, 'tuplex.executorCount': 15, 'tuplex.csv.maxDetectionRows': 10000, 'tuplex.webui.port': 5000, 'tuplex.webui.mongodb.port': 27017, 'tuplex.webui.exceptionDisplayLimit': 5, 'tuplex.normalcaseThreshold': 0.9, 'tuplex.optionalThreshold': 0.7, 'tuplex.aws.connectTimeout': '1', 'tuplex.aws.httpThreadCount': '32', 'tuplex.aws.lambdaMemory': '1536', 'tuplex.aws.lambdaTimeout': '600', 'tuplex.aws.maxConcurrency': '100', 'tuplex.aws.region': 'us-east-1', 'tuplex.aws.requestTimeout': '600', 'tuplex.aws.requesterPay': 'false', 'tuplex.aws.scratchDir': '', 'tuplex.backend': 'local', 'tuplex.csv.comments': ['#', '~'], 'tuplex.csv.maxDetectionMemory': '256KB', 'tuplex.csv.quotechar': '"', 'tuplex.csv.separators': [',', ';', '|', '\t'], 'tuplex.driverMemory': '10G', 'tuplex.env.hostname': 'cc956b40c9fa', 'tuplex.env.mode': 'file', 'tuplex.env.user': 'root', 'tuplex.executorMemory': '6G', 'tuplex.inputSplitSize': '64MB', 'tuplex.logDir': '.', 'tuplex.network.caFile': '', 'tuplex.network.caPath': '', 'tuplex.partitionSize': '32MB', 'tuplex.readBufferSize': '128KB', 'tuplex.runTimeLibrary': '/usr/local/lib/python3.6/site-packages/Tuplex-0.3.1-py3.6.egg/tuplex/libexec/tuplex_runtime.so', 'tuplex.runTimeMemory': '64MB', 'tuplex.runTimeMemoryBlockSize': '4MB', 'tuplex.scratchDir': '/tmp/tuplex-cache-tuplex', 'tuplex.webui.mongodb.path': '/tmp/tuplex-cache-tuplex/mongodb', 'tuplex.webui.mongodb.url': 'localhost', 'tuplex.webui.url': 'localhost'}
+{"logical_optimization_time_s":0.0231661,"llvm_optimization_time_s":0.336857,"llvm_compilation_time_s":0.15463,"total_compilation_time_s":0.508787,"sampling_time_s":0.114433,"stages":[{"stage_no":0,"fast_path_wall_time_s":45.0092,"fast_path_time_s":2.86279,"fast_path_per_row_time_ns":798.733,"slow_path_wall_time_s":12232.1,"slow_path_time_s":782.206,"slow_path_per_row_time_ns":1.77382e+06,"partitions_swapin_count":0,"partitions_swapout_count":0,"partitions_bytes_swapped_in":0,"partitions_bytes_swapped_out":0}]}
+{"webui.enable": false, "executorMemory": "6G", "executorCount": 15, "driverMemory": "10G", "partitionSize": "32MB", "runTimeMemory": "64MB", "inputSplitSize": "64MB", "useLLVMOptimizer": true, "optimizer.nullValueOptimization": false, "csv.selectionPushdown": true, "optimizer.generateParser": false, "optimizer.mergeExceptionsInOrder": false, "optimizer.filterPushdown": true, "resolveWithInterpreterOnly": true}
+{"startupTime": 0.009326457977294922, "jobTime": 786.1242880821228, "mode": "resolve", "mergeExceptionsInOrder": false}
+[2022-02-19 21:13:09.783] [local execution engine] [info] Stopped local executor E/1
+[2022-02-19 21:13:09.789] [local execution engine] [info] Stopped local executor E/2
+[2022-02-19 21:13:09.795] [local execution engine] [info] Stopped local executor E/3
+[2022-02-19 21:13:09.801] [local execution engine] [info] Stopped local executor E/4
+[2022-02-19 21:13:09.807] [local execution engine] [info] Stopped local executor E/5
+[2022-02-19 21:13:09.812] [local execution engine] [info] Stopped local executor E/6
+[2022-02-19 21:13:09.818] [local execution engine] [info] Stopped local executor E/7
+[2022-02-19 21:13:09.824] [local execution engine] [info] Stopped local executor E/8
+[2022-02-19 21:13:09.829] [local execution engine] [info] Stopped local executor E/9
+[2022-02-19 21:13:09.835] [local execution engine] [info] Stopped local executor E/10
+[2022-02-19 21:13:09.841] [local execution engine] [info] Stopped local executor E/11
+[2022-02-19 21:13:09.846] [local execution engine] [info] Stopped local executor E/12
+[2022-02-19 21:13:09.852] [local execution engine] [info] Stopped local executor E/13
+[2022-02-19 21:13:09.857] [local execution engine] [info] Stopped local executor E/14
+[2022-02-19 21:13:09.863] [local execution engine] [info] Stopped local executor E/15
+[GLOBAL] Local engine terminated.
+[GLOBAL] releasing 1 active partitions

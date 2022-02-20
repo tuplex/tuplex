@@ -1,0 +1,2 @@
+Scala startup took: 6.1E-8s
+Zillow job took: 61.235368151s

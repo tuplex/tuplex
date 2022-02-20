@@ -1,0 +1,3 @@
+>>> running python3.6 on ['/data/zillow/Z1_preprocessed/zillow_Z1_10G.csv']
+>>> data mode: dict
+{'type': 'dict', 'framework': 'python3', 'py_executable': '/usr/local/bin/python3.6', 'input_files': ['/data/zillow/Z1_preprocessed/zillow_Z1_10G.csv'], 'load_time': 390.59282398223877, 'run_time': 509.786908864975, 'write_time': 119.19406723976135, 'job_time': 509.78691148757935}

@@ -227,6 +227,14 @@ def load_zillow_to_df(data_root):
 
 # In[76]:
 
+def find_idx(arr, f):
+    idx = 0
+    for a in arr:
+        if f(a):
+            return idx
+        idx += 1
+    return None
+
 def load_data(zillow_folder='r5d.8xlarge/zillow'):
     df_Z1 = load_zillow_to_df(os.path.join(zillow_folder, 'Z1/'))
     df_Z1 = df_Z1[sorted(df_Z1.columns)]
@@ -244,7 +252,7 @@ def load_data(zillow_folder='r5d.8xlarge/zillow'):
     subdf = df[df['type'].isin(['single-threaded-preload', 'preload'])]
     subdf = subdf.groupby(['framework', 'mode', 'type']).mean().sort_values(by='compute').reset_index()
     recs = subdf.to_dict('records')
-    tuplex_time = recs[1]['job_time'] #note the switch due to how times are measured
+    tuplex_time = recs[find_idx(recs, lambda x: x['framework'] == 'tuplex')]['job_time'] #note the switch due to how times are measured
     cc_time = recs[0]['compute']
 
     logging.info('Zillow Z1:: Tuplex takes {:.2f}s vs. C++ {:.2f}s, i.e. comes within {:.2f}%'.format(tuplex_time, cc_time,
@@ -254,7 +262,7 @@ def load_data(zillow_folder='r5d.8xlarge/zillow'):
     subdf = df[df['type'].isin(['single-threaded-preload', 'preload'])]
     subdf = subdf.groupby(['framework', 'mode', 'type']).mean().sort_values(by='compute').reset_index()
     recs = subdf.to_dict('records')
-    tuplex_time = recs[1]['job_time'] #note the switch due to how times are measured
+    tuplex_time = recs[find_idx(recs, lambda x: x['framework'] == 'tuplex')]['job_time'] #note the switch due to how times are measured
     cc_time = recs[0]['compute']
 
     logging.info('Zillow Z2:: Tuplex takes {:.2f}s vs. C++ {:.2f}s, i.e. comes within {:.2f}%'.format(tuplex_time, cc_time,

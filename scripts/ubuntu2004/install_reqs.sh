@@ -96,12 +96,31 @@ mkdir -p /root/.ssh/ &&
 # install them all into /opt
 mkdir -p /opt && chmod 0755 /opt
 
-# update python links
-  cd /tmp &&
-  curl -OL https://gist.githubusercontent.com/LeonhardFS/a5cd056b5fe30ffb0b806f0383c880b3/raw/dfccad970434818f4c261c3bf1eed9daea5a9007/install_boost.py &&
-  python2 install_boost.py --directory /tmp --prefix /opt --toolset gcc --address-model 64 --boost-version 1.70.0 --python thread iostreams regex system filesystem python stacktrace atomic chrono date_time &&
-  rm install_boost.py &&
-  cd -
+# # update python links
+#   cd /tmp &&
+#   curl -OL https://gist.githubusercontent.com/LeonhardFS/a5cd056b5fe30ffb0b806f0383c880b3/raw/dfccad970434818f4c261c3bf1eed9daea5a9007/install_boost.py &&
+#   python2 install_boost.py --directory /tmp --prefix /opt --toolset gcc --address-model 64 --boost-version 1.70.0 --python thread iostreams regex system filesystem python stacktrace atomic chrono date_time &&
+#   rm install_boost.py &&
+#   cd -
+
+# Install recent boost
+function install_boost() {
+  DEST_PATH=$1
+  mkdir -p $DEST_PATH
+
+  # build incl. boost python
+  cd /tmp || exit
+  wget https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.gz
+  tar xf boost_1_78_0.tar.gz
+  cd /tmp/boost_1_78_0 || exit
+
+  ./bootstrap.sh --with-python=${PYTHON_VERSION} --prefix=${DEST_PATH} --with-libraries="thread,iostreams,regex,system,filesystem,stacktrace,atomic,chrono,date_time"
+  ./b2 cxxflags="-fPIC" link=static -j "$(nproc)"
+  ./b2 cxxflags="-fPIC" link=static install
+}
+
+install_boost /opt
+
 
 # Yaml CPP (to read/write yaml option files)
 mkdir -p /tmp/yaml-cpp-0.6.3 &&

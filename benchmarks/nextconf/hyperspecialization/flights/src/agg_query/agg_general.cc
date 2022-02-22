@@ -20,7 +20,10 @@
 // online aggregate for both mean and std
 
 // days are in range 0...32 for sure, years in range 1988 - 2022, so less than 255.
-// use 256 * 32 = 8192 entries
+// months are in range 1-12
+// use 256 * 32 = 8192 entries when aggregating after year/month.
+// yet, use here more interesting aggregate over month/day!
+// 16 * 512 -> 8192
 #define MAP_ENTRIES 8192
 
 struct AggregateEntry {
@@ -34,27 +37,35 @@ struct AggregateEntry {
 
 static AggregateEntry *agg_map = nullptr;
 
-extern "C" int64_t initAggregate() {
+extern "C" int64_t init_aggregate(void* userData) {
     agg_map = new AggregateEntry[MAP_ENTRIES]; // this nulls everything
     return 0;
 }
 
+#define WEATHER_DELAY_COLUMN_INDEX 57
 
-#define WEATHER_DELAY_COLUMN_INDEX 0
-#define AIRPORT_CODE_INDEX 0
+// dest airport ID
+#define AIRPORT_CODE_INDEX 20
 
-#define MONTH_COLUMN_INDEX 0
-#define YEAR_COLUMN_INDEX 0
+#define MONTH_COLUMN_INDEX 2
+#define DAY_COLUMN_INDEX 3
+
+// could also make the query even more interesting wrt to filter condition
+// if it's international vs. domestic flights leaving from JFK?
+
+// JFK entry:
+// "12478","New York, NY: John F. Kennedy International"
 
 extern "C" int64_t process_cells(void *userData, char **cells, int64_t *cell_sizes) {
 
     // only care about the WEATHER_DELAY cell, yet filter based on JFK airport code!
-    auto s_year = cells[YEAR_COLUMN_INDEX];
+    auto s_day = cells[DAY_COLUMN_INDEX];
     auto s_month = cells[MONTH_COLUMN_INDEX];
     auto s_weather_delay = cells[WEATHER_DELAY_COLUMN_INDEX];
     auto s_airport_code = cells[AIRPORT_CODE_INDEX];
 
-    if(0 == strcmp(s_airport_code, "JFK")) {
+    // parsing avoided here...
+    if(0 == strcmp(s_airport_code, "12478")) {
         // compute aggregate for current airport
         double weather_delay;
 
@@ -66,11 +77,11 @@ extern "C" int64_t process_cells(void *userData, char **cells, int64_t *cell_siz
         }
 
         // Note: could hash using string directly, i.e. delayed parsing?
-        auto year = atoi(s_year);
+        auto day = atoi(s_day);
         auto month = atoi(s_month);
 
         // put into aggregate
-        int key = month + 32 * (year - 1950);
+        int key = month + 16 * day;
 
 
         // using https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
@@ -113,7 +124,7 @@ extern "C" int64_t process_cells(void *userData, char **cells, int64_t *cell_siz
     return 0;
 }
 
-extern "C" int64_t fetchAggregate(uint8_t** buf, size_t* buf_size) {
+extern "C" int64_t fetch_aggregate(void *userData, uint8_t** buf, size_t* buf_size) {
     // reconstruct year, month from key.
     // --> can specialize the hashmap based on input data!
 
@@ -133,18 +144,18 @@ extern "C" int64_t fetchAggregate(uint8_t** buf, size_t* buf_size) {
     for(unsigned i = 0; i < MAP_ENTRIES; ++i) {
         if(agg_map[i].in_use) {
             // output!
-            int month = i % 32;
-            int year = (i / 32) + 1950;
+            int month = i % 16;
+            int day = (i / 16);
 
             auto mean = agg_map[i].mean;
             auto variance = agg_map[i].m2 / agg_map[i].count;
             auto std = sqrt(variance);
 
             // write out as beautiful string
-            num_bytes = sprintf(work_buffer, "%s\n%d,%d,%f,%f", work_buffer, year, month, mean, std);
+            num_bytes = sprintf(work_buffer, "%s%d,%d,%f,%f\n", work_buffer, day, month, mean, std);
             if(strlen(work_buffer) < num_bytes) {
                 work_buffer = (char*)realloc(work_buffer, num_bytes + 4096);
-                num_bytes = sprintf(work_buffer, "%s\n%d,%d,%f,%f", work_buffer, year, month, mean, std);
+                num_bytes = sprintf(work_buffer, "%s%d,%d,%f,%f\n", work_buffer, day, month, mean, std);
             }
         }
     }

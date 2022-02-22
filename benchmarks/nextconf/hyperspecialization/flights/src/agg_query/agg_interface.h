@@ -14,8 +14,8 @@
 #include <cmath>
 
 // define interfaces to export
-extern "C" int64_t initAggregate();
+extern "C" int64_t init_aggregate(void* userData);
 extern "C" int64_t process_cells(void *userData, char **cells, int64_t *cell_sizes);
-extern "C" int64_t fetchAggregate(uint8_t** buf, size_t* buf_size);
+extern "C" int64_t fetch_aggregate(void* userData, uint8_t** buf, size_t* buf_size);
 
 #endif //HYPERFLIGHTS_AGG_H

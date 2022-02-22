@@ -34,6 +34,11 @@ add_library(process_row_orig SHARED src/process_row/process_row_orig.cc)
 set_target_properties(process_row_orig PROPERTIES SUFFIX ".so")
 set_target_properties(process_row_orig PROPERTIES PREFIX "")
 
+# aggregate weather query
+add_library(agg_weather_general SHARED src/agg_query/agg_general.cc)
+set_target_properties(agg_weather_general PROPERTIES SUFFIX ".so")
+set_target_properties(agg_weather_general PROPERTIES PREFIX "")
+
 #target_link_libraries(runner_orig ${CMAKE_DL_LIBS}) # -ldl on linux
 #target_compile_definitions(runner_orig PUBLIC PR_VERSION=0)
 #

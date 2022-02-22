@@ -24,9 +24,16 @@ auto pr_narrow = "./process_row/process_row_narrow.so";
 //// typedef the process row function
 //int64_t (*write_callback)(void *userData, uint8_t *buf, size_t buf_size);
 
-
+// functors, set to nullptr
+// extern "C" int64_t init_aggregate();
+// extern "C" int64_t process_cells(void *userData, char **cells, int64_t *cell_sizes);
+// extern "C" int64_t fetch_aggregate(uint8_t** buf, size_t* buf_size);
 int64_t
-(*cell_functor_f)(void *userData, char **cells, int64_t *cell_sizes); // number of cells is known upfront! It's 110.
+(*cell_functor_f)(void *userData, char **cells, int64_t *cell_sizes) = nullptr; // number of cells is known upfront! It's 110.
+
+int64_t (*init_agg_f)(void *userData) = nullptr;
+int64_t (*fetch_agg_f)(void *userData, uint8_t** buf, size_t* buf_size) = nullptr;
+
 
 static std::vector<std::string> input_files;
 std::string input_path;
@@ -191,15 +198,22 @@ int main(int argc, char **argv) {
     }
     dlerror();
 
-    // retrieve func pointer from executable
-
+    // retrieve func pointers from shared object
     *(void **) (&cell_functor_f) = dlsym(handle, "process_cells");
     if ((error = dlerror()) != nullptr) {
         fprintf(stderr, "%s\n", error);
         exit(1);
     }
+    *(void **) (&init_agg_f) = dlsym(handle, "init_aggregate");
+    *(void **) (&fetch_agg_f) = dlsym(handle, "fetch_aggregate");
+
+
 
     auto start_transform = std::chrono::high_resolution_clock::now();
+
+    if(init_agg_f)
+        init_agg_f(nullptr);
+
     InitializeHeader();
     for (const auto &input_file: input_files) {
         auto fd = open(input_file.c_str(), O_RDONLY);
@@ -269,6 +283,16 @@ int main(int argc, char **argv) {
         close(fd);
     }
     auto end_transform = std::chrono::high_resolution_clock::now();
+
+    // fetch aggregate?
+    if(fetch_agg_f) {
+        uint8_t *buf = nullptr;
+        size_t buf_size = 0;
+        fetch_agg_f(nullptr, &buf, &buf_size);
+        write_callback(nullptr, buf, buf_size);
+        free(buf);
+    }
+
     Timestamp("transform", start_transform, end_transform);
     // unload lib
     dlclose(handle);

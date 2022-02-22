@@ -136,11 +136,19 @@ static int ParseArguments(int argc, char **argv) {
 }
 
 static inline void InitializeHeader() {
-    output_size =
-            snprintf(output_data, 201,
-                     "Year,Quarter,Month,DayOfMonth,DayOfWeek,FlDate,OpUniqueCarrier,OriginCity,"
-                     "OriginState,DestCity,DestState,CrsArrTime,CrsDepTime,Cancelled,CancellationCode,"
-                     "Diverted,CancellationReason,ActualElapsedTime\n");
+    if(!init_agg_f) {
+        output_size =
+                snprintf(output_data, 201,
+                         "Year,Quarter,Month,DayOfMonth,DayOfWeek,FlDate,OpUniqueCarrier,OriginCity,"
+                         "OriginState,DestCity,DestState,CrsArrTime,CrsDepTime,Cancelled,CancellationCode,"
+                         "Diverted,CancellationReason,ActualElapsedTime\n");
+    }
+    else {
+        output_size =
+                snprintf(output_data, 512,
+                         "day,month,avg_weather_delay,std_weather_delay\n");
+    }
+
 }
 
 int main(int argc, char **argv) {

@@ -46,20 +46,46 @@ wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh &&
 # upgrade pip
 python3 -m pip install --upgrade pip
 
-# fetch recent cmake & install
-CMAKE_VER_MAJOR=3
-CMAKE_VER_MINOR=19
-CMAKE_VER_PATCH=7
-CMAKE_VER="${CMAKE_VER_MAJOR}.${CMAKE_VER_MINOR}"
-CMAKE_VERSION="${CMAKE_VER}.${CMAKE_VER_PATCH}"
-mkdir -p /tmp/build && cd /tmp/build &&
-  curl -sSL https://cmake.org/files/v${CMAKE_VER}/cmake-${CMAKE_VERSION}-Linux-x86_64.tar.gz >cmake-${CMAKE_VERSION}-Linux-x86_64.tar.gz &&
-  tar -v -zxf cmake-${CMAKE_VERSION}-Linux-x86_64.tar.gz &&
-  rm -f cmake-${CMAKE_VERSION}-Linux-x86_64.tar.gz &&
-  cd cmake-${CMAKE_VERSION}-Linux-x86_64 &&
-  cp -rp bin/* /usr/local/bin/ &&
-  cp -rp share/* /usr/local/share/ &&
-  cd / && rm -rf /tmp/build
+# helper
+function version {
+   echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }';
+}
+
+# check whether cmake is installed, if not check version
+function install_recent_cmake() {
+  DETECTED_CMAKE_VERSION=""
+  if ! command -v cmake &> /dev/null
+  then
+      echo "cmake not found, installing..."
+  else
+    # fetch cmake version from ubuntu
+    DETECTED_CMAKE_VERSION=$(cmake --version | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
+    echo "Found cmake version ${DETECTED_CMAKE_VERSION}"
+  fi
+
+  # fetch recent cmake & install
+  CMAKE_VER_MAJOR=3
+  CMAKE_VER_MINOR=19
+  CMAKE_VER_PATCH=7
+  CMAKE_VER="${CMAKE_VER_MAJOR}.${CMAKE_VER_MINOR}"
+  CMAKE_VERSION="${CMAKE_VER}.${CMAKE_VER_PATCH}"
+
+  # compare versions, install more recent CMake if necessary
+  if [ $(version $DETECTED_CMAKE_VERSION) -lt $(version $CMAKE_VERSION) ]; then
+    echo "Installing more recent CMake version $CMAKE_VERSION"
+
+    mkdir -p /tmp/build && cd /tmp/build &&
+      curl -sSL https://cmake.org/files/v${CMAKE_VER}/cmake-${CMAKE_VERSION}-Linux-x86_64.tar.gz >cmake-${CMAKE_VERSION}-Linux-x86_64.tar.gz &&
+      tar -v -zxf cmake-${CMAKE_VERSION}-Linux-x86_64.tar.gz &&
+      rm -f cmake-${CMAKE_VERSION}-Linux-x86_64.tar.gz &&
+      cd cmake-${CMAKE_VERSION}-Linux-x86_64 &&
+      cp -rp bin/* /usr/local/bin/ &&
+      cp -rp share/* /usr/local/share/ &&
+      cd / && rm -rf /tmp/build
+  fi
+}
+
+install_recent_cmake
 
 # add github to known hosts
 mkdir -p /root/.ssh/ &&
@@ -73,7 +99,7 @@ mkdir -p /opt && chmod 0755 /opt
 # update python links
   cd /tmp &&
   curl -OL https://gist.githubusercontent.com/LeonhardFS/a5cd056b5fe30ffb0b806f0383c880b3/raw/dfccad970434818f4c261c3bf1eed9daea5a9007/install_boost.py &&
-  python2 install_boost.py --directory /tmp --prefix /opt --toolset gcc --address-model 64 --boost-version 1.70.0 --python python3 thread iostreams regex system filesystem python stacktrace atomic chrono date_time &&
+  python2 install_boost.py --directory /tmp --prefix /opt --toolset gcc --address-model 64 --boost-version 1.70.0 --python thread iostreams regex system filesystem python stacktrace atomic chrono date_time &&
   rm install_boost.py &&
   cd -
 

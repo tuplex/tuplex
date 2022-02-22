@@ -4095,6 +4095,9 @@ def run(target, num_runs, detach):
                      'flights/flights': '/code/benchmarks/flights/',
                      'flights/breakdown': '/code/benchmarks/flights/'}
 
+        # lowercase
+        target = target.lower()
+
         benchmark_path = path_dict[target]
         benchmark_script = 'runbenchmark.sh'
 

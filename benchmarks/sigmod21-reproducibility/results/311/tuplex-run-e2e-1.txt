@@ -1,125 +1,157 @@
-[2022-02-18 23:42:57.780] [local ee] [info] loaded runtime library from/usr/local/lib/python3.6/site-packages/Tuplex-0.3.1-py3.6.egg/tuplex/libexec/tuplex_runtime.so
-[2022-02-18 23:42:57.780] [local ee] [info] initializing LLVM backend
-[2022-02-18 23:42:57.780] [local ee] [warning] init JIT compiler also only in local mode
-[2022-02-18 23:42:57.780] [LLVM] [info] compiling code for skylake-avx512
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.781] [local execution engine] [info] started local executor E/1 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.781] [E/1] [info] starting detached process queue
-[2022-02-18 23:42:57.781] [local execution engine] [info] started local executor E/2 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.781] [E/2] [info] starting detached process queue
-[2022-02-18 23:42:57.781] [E/1] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.781] [local execution engine] [info] started local executor E/3 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.781] [E/2] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.781] [E/3] [info] starting detached process queue
-[2022-02-18 23:42:57.781] [local execution engine] [info] started local executor E/4 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.781] [E/3] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.781] [E/4] [info] starting detached process queue
-[2022-02-18 23:42:57.781] [local execution engine] [info] started local executor E/5 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.781] [E/5] [info] starting detached process queue
-[2022-02-18 23:42:57.781] [E/4] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.781] [local execution engine] [info] started local executor E/6 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.781] [E/5] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.781] [E/6] [info] starting detached process queue
-[2022-02-18 23:42:57.781] [local execution engine] [info] started local executor E/7 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.781] [E/7] [info] starting detached process queue
-[2022-02-18 23:42:57.781] [E/6] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.781] [local execution engine] [info] started local executor E/8 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.781] [E/7] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.782] [E/8] [info] starting detached process queue
-[2022-02-18 23:42:57.782] [local execution engine] [info] started local executor E/9 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.782] [E/8] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.782] [E/9] [info] starting detached process queue
-[2022-02-18 23:42:57.782] [local execution engine] [info] started local executor E/10 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.782] [E/10] [info] starting detached process queue
-[2022-02-18 23:42:57.782] [local execution engine] [info] started local executor E/11 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.782] [E/10] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.782] [E/9] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.782] [local execution engine] [info] started local executor E/12 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.782] [E/11] [info] starting detached process queue
-[2022-02-18 23:42:57.782] [local execution engine] [info] started local executor E/13 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.782] [E/12] [info] starting detached process queue
-[2022-02-18 23:42:57.782] [E/13] [info] starting detached process queue
-[2022-02-18 23:42:57.782] [local execution engine] [info] started local executor E/14 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.782] [E/12] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.782] [E/11] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.782] [E/13] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.782] [E/14] [info] starting detached process queue
-[2022-02-18 23:42:57.782] [local execution engine] [info] started local executor E/15 (6.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.782] [E/14] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.782] [memory] [info] allocated bitmap managed memory region (10.00 GB, 32.00 MB block size)
-[2022-02-18 23:42:57.782] [E/15] [info] starting detached process queue
-[2022-02-18 23:42:57.782] [local execution engine] [info] started driver (10.00 GB, 32.00 MB default partition size)
-[2022-02-18 23:42:57.782] [E/15] [info] initialized runtime memory (4.00 MB)
-[2022-02-18 23:42:57.782] [fileinputoperator] [info] found 1 file (1.10 GB) to process.
-[2022-02-18 23:42:57.783] [global] [info] sampled file:///data/311/311_preprocessed.csv on 256.00 KB
-[2022-02-18 23:42:57.957] [logical planner] [info] logical optimization took 0.009485ms
-[2022-02-18 23:42:57.957] [codegen] [info] generating pipeline for (Option[str]) -> (Option[str]) (2 operators pipelined)
-[2022-02-18 23:42:57.957] [codegen] [info] generating function fix_zip_codes for (Option[str]) -> Option[str]
-[2022-02-18 23:42:57.978] [codegen] [info] generating pipeline for (Option[str]) -> (str) (0 operators pipelined)
-[2022-02-18 23:42:57.979] [global] [info] provided option to explicitly merge bad rows in order back, however rows will be hashed. Disabling option. To silence this warning, set
+[2022-02-21 06:21:40.929] [local ee] [info] loaded runtime library from/usr/local/lib/python3.6/site-packages/Tuplex-0.3.1-py3.6.egg/tuplex/libexec/tuplex_runtime.so
+[2022-02-21 06:21:40.929] [local ee] [info] initializing LLVM backend
+[2022-02-21 06:21:40.929] [local ee] [warning] init JIT compiler also only in local mode
+[2022-02-21 06:21:40.929] [LLVM] [info] compiling code for znver1
+[2022-02-21 06:21:40.930] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.930] [E/1] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E1 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.930] [E/1] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E1
+[2022-02-21 06:21:40.930] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.930] [E/2] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E2 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.930] [E/2] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E2
+[2022-02-21 06:21:40.930] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.930] [E/3] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E3 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.930] [E/3] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E3
+[2022-02-21 06:21:40.930] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.930] [E/4] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E4 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.930] [E/4] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E4
+[2022-02-21 06:21:40.930] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.930] [E/5] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E5 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.930] [E/5] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E5
+[2022-02-21 06:21:40.930] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.930] [E/6] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E6 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.930] [E/6] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E6
+[2022-02-21 06:21:40.930] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.930] [E/7] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E7 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.930] [E/7] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E7
+[2022-02-21 06:21:40.930] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.930] [E/8] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E8 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.930] [E/8] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E8
+[2022-02-21 06:21:40.930] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.930] [E/9] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E9 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.930] [E/9] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E9
+[2022-02-21 06:21:40.930] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.930] [E/10] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E10 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.930] [E/10] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E10
+[2022-02-21 06:21:40.930] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.930] [E/11] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E11 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.930] [E/11] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E11
+[2022-02-21 06:21:40.962] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.962] [E/12] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E12 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.962] [E/12] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E12
+[2022-02-21 06:21:40.962] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.962] [E/13] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E13 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.962] [E/13] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E13
+[2022-02-21 06:21:40.962] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.962] [E/14] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E14 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.962] [E/14] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E14
+[2022-02-21 06:21:40.962] [memory] [info] allocated bitmap managed memory region (6.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.962] [E/15] [info] provided cache path file:///tmp/tuplex-cache-tuplex/E15 does not exist. Attempting to create it.
+[2022-02-21 06:21:40.962] [E/15] [info] created cache directory file:///tmp/tuplex-cache-tuplex/E15
+[2022-02-21 06:21:40.962] [local execution engine] [info] started local executor E/1 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.962] [local execution engine] [info] started local executor E/2 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.962] [local execution engine] [info] started local executor E/3 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.962] [E/1] [info] starting detached process queue
+[2022-02-21 06:21:40.962] [E/3] [info] starting detached process queue
+[2022-02-21 06:21:40.962] [local execution engine] [info] started local executor E/4 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.962] [E/3] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.962] [E/2] [info] starting detached process queue
+[2022-02-21 06:21:40.962] [E/4] [info] starting detached process queue
+[2022-02-21 06:21:40.962] [E/1] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.963] [E/2] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.962] [local execution engine] [info] started local executor E/5 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.963] [E/5] [info] starting detached process queue
+[2022-02-21 06:21:40.963] [local execution engine] [info] started local executor E/6 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.963] [E/5] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.963] [E/4] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.963] [E/6] [info] starting detached process queue
+[2022-02-21 06:21:40.963] [E/7] [info] starting detached process queue
+[2022-02-21 06:21:40.963] [E/6] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.963] [local execution engine] [info] started local executor E/7 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.963] [E/7] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.963] [local execution engine] [info] started local executor E/8 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.963] [local execution engine] [info] started local executor E/9 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.963] [local execution engine] [info] started local executor E/10 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.963] [local execution engine] [info] started local executor E/11 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.963] [E/8] [info] starting detached process queue
+[2022-02-21 06:21:40.963] [local execution engine] [info] started local executor E/12 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.963] [E/8] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.963] [local execution engine] [info] started local executor E/13 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.963] [local execution engine] [info] started local executor E/14 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.963] [local execution engine] [info] started local executor E/15 (6.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.963] [memory] [info] allocated bitmap managed memory region (10.00 GB, 32.00 MB block size)
+[2022-02-21 06:21:40.963] [driver] [info] provided cache path file:///tmp/tuplex-cache-tuplex/driver does not exist. Attempting to create it.
+[2022-02-21 06:21:40.963] [driver] [info] created cache directory file:///tmp/tuplex-cache-tuplex/driver
+[2022-02-21 06:21:40.963] [local execution engine] [info] started driver (10.00 GB, 32.00 MB default partition size)
+[2022-02-21 06:21:40.963] [E/9] [info] starting detached process queue
+[2022-02-21 06:21:40.963] [E/9] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.964] [E/15] [info] starting detached process queue
+[2022-02-21 06:21:40.964] [E/12] [info] starting detached process queue
+[2022-02-21 06:21:40.964] [E/13] [info] starting detached process queue
+[2022-02-21 06:21:40.964] [E/11] [info] starting detached process queue
+[2022-02-21 06:21:40.964] [E/12] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.964] [E/14] [info] starting detached process queue
+[2022-02-21 06:21:40.964] [E/13] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.964] [E/10] [info] starting detached process queue
+[2022-02-21 06:21:40.964] [E/14] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.964] [E/10] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.964] [E/15] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.964] [E/11] [info] initialized runtime memory (4.00 MB)
+[2022-02-21 06:21:40.964] [fileinputoperator] [info] found 1 file (1.10 GB) to process.
+[2022-02-21 06:21:40.965] [global] [info] sampled file:///data/311/311_preprocessed.csv on 256.00 KB
+[2022-02-21 06:21:41.088] [logical planner] [info] logical optimization took 0.006135ms
+[2022-02-21 06:21:41.089] [codegen] [info] generating pipeline for (Option[str]) -> (Option[str]) (2 operators pipelined)
+[2022-02-21 06:21:41.089] [codegen] [info] generating function fix_zip_codes for (Option[str]) -> Option[str]
+[2022-02-21 06:21:41.099] [codegen] [info] generating pipeline for (Option[str]) -> (str) (0 operators pipelined)
+[2022-02-21 06:21:41.100] [global] [info] provided option to explicitly merge bad rows in order back, however rows will be hashed. Disabling option. To silence this warning, set
 tuplex.optimizer.mergeExceptionsInOrder=false
-[2022-02-18 23:42:57.979] [global] [info] retrieved metrics object
-[2022-02-18 23:42:57.998] [global] [info] Optimization via LLVM passes took 0.019192 ms
-[2022-02-18 23:42:57.998] [global] [info] starting code compilation
-[2022-02-18 23:42:57.998] [global] [info] first compile done
-[2022-02-18 23:42:58.006] [global] [info] functor Stage_0 retrieved from llvm
-[2022-02-18 23:42:58.006] [global] [info] retrieving init/release stage functors
-[2022-02-18 23:42:58.006] [global] [info] Compiled code paths for stage 0 in 0.01 ms
-[2022-02-18 23:42:58.006] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.0278562s
-[2022-02-18 23:42:58.006] [local ee] [info] split /data/311/311_preprocessed.csv into 17 tasks
-[2022-02-18 23:42:59.071] [E/8] [info] [Task Finished] Transform to in-memory hash table in 1.064411s (0 normal rows, 0 exceptions, 181 buckets)
-[2022-02-18 23:42:59.074] [E/15] [info] [Task Finished] Transform to in-memory hash table in 1.067187s (0 normal rows, 0 exceptions, 188 buckets)
-[2022-02-18 23:42:59.074] [E/6] [info] [Task Finished] Transform to in-memory hash table in 1.067874s (0 normal rows, 0 exceptions, 180 buckets)
-[2022-02-18 23:42:59.075] [E/5] [info] [Task Finished] Transform to in-memory hash table in 1.068314s (0 normal rows, 0 exceptions, 178 buckets)
-[2022-02-18 23:42:59.075] [E/9] [info] [Task Finished] Transform to in-memory hash table in 1.068864s (0 normal rows, 0 exceptions, 183 buckets)
-[2022-02-18 23:42:59.076] [E/11] [info] [Task Finished] Transform to in-memory hash table in 1.069450s (0 normal rows, 0 exceptions, 183 buckets)
-[2022-02-18 23:42:59.076] [E/2] [info] [Task Finished] Transform to in-memory hash table in 1.069503s (0 normal rows, 0 exceptions, 179 buckets)
-[2022-02-18 23:42:59.076] [E/12] [info] [Task Finished] Transform to in-memory hash table in 1.069749s (0 normal rows, 0 exceptions, 185 buckets)
-[2022-02-18 23:42:59.077] [E/4] [info] [Task Finished] Transform to in-memory hash table in 1.070269s (0 normal rows, 0 exceptions, 191 buckets)
-[2022-02-18 23:42:59.077] [E/10] [info] [Task Finished] Transform to in-memory hash table in 1.070716s (0 normal rows, 0 exceptions, 186 buckets)
-[2022-02-18 23:42:59.077] [E/14] [info] [Task Finished] Transform to in-memory hash table in 1.070805s (0 normal rows, 0 exceptions, 186 buckets)
-[2022-02-18 23:42:59.078] [E/3] [info] [Task Finished] Transform to in-memory hash table in 1.071950s (0 normal rows, 0 exceptions, 186 buckets)
-[2022-02-18 23:42:59.079] [E/7] [info] [Task Finished] Transform to in-memory hash table in 1.072240s (0 normal rows, 0 exceptions, 184 buckets)
-[2022-02-18 23:42:59.079] [E/1] [info] [Task Finished] Transform to in-memory hash table in 1.072297s (0 normal rows, 0 exceptions, 184 buckets)
-[2022-02-18 23:42:59.080] [E/13] [info] [Task Finished] Transform to in-memory hash table in 1.073852s (0 normal rows, 0 exceptions, 183 buckets)
-[2022-02-18 23:42:59.205] [driver] [info] [Task Finished] Transform to in-memory hash table in 1.198658s (0 normal rows, 0 exceptions, 188 buckets)
-[2022-02-18 23:43:00.858] [E/8] [info] [Task Finished] Transform to in-memory hash table in 1.787326s (0 normal rows, 0 exceptions, 188 buckets)
-[2022-02-18 23:43:00.858] [global] [info] [Transform Stage] Stage 0 completed 17 load&transform tasks in 2.85195s
-[2022-02-18 23:43:00.858] [global] [info] [Transform Stage] Stage 0 total wall clock time: 19.0335s, 197628000 input rows, time to process 1 row via fast path: 9.63096e-05ms
-[2022-02-18 23:43:00.859] [global] [info] [Transform Stage] Stage 0 completed 17 sink tasks in 0.00044347s
-[2022-02-18 23:43:00.859] [global] [info] [Transform Stage] Stage 0 took 2.88031s
-[2022-02-18 23:43:00.879] [global] [info] retrieved metrics object
-[2022-02-18 23:43:00.892] [global] [info] Optimization via LLVM passes took 0.013148 ms
-[2022-02-18 23:43:00.892] [global] [info] starting code compilation
-[2022-02-18 23:43:00.892] [global] [info] first compile done
-[2022-02-18 23:43:00.897] [global] [info] functor Stage_1 retrieved from llvm
-[2022-02-18 23:43:00.897] [global] [info] retrieving init/release stage functors
-[2022-02-18 23:43:00.897] [global] [info] Compiled code paths for stage 1 in 0.01 ms
-[2022-02-18 23:43:00.897] [global] [info] [Transform Stage] Stage 1 compiled to x86 in 0.0190696s
-[2022-02-18 23:43:00.898] [E/3] [info] [Task Finished] Transform to mem in 0.000038s (246 normal rows, 0 exceptions)
-[2022-02-18 23:43:00.898] [global] [info] [Transform Stage] Stage 1 completed 1 load&transform tasks in 6.6025e-05s
-[2022-02-18 23:43:00.898] [global] [info] [Transform Stage] Stage 1 total wall clock time: 3.7564e-05s, 246 input rows, time to process 1 row via fast path: 0.000152699ms
+[2022-02-21 06:21:41.100] [global] [info] retrieved metrics object
+[2022-02-21 06:21:41.115] [global] [info] Optimization via LLVM passes took 0.015310 ms
+[2022-02-21 06:21:41.115] [global] [info] starting code compilation
+[2022-02-21 06:21:41.115] [global] [info] first compile done
+[2022-02-21 06:21:41.122] [global] [info] functor Stage_0 retrieved from llvm
+[2022-02-21 06:21:41.122] [global] [info] retrieving init/release stage functors
+[2022-02-21 06:21:41.122] [global] [info] Compiled code paths for stage 0 in 0.01 ms
+[2022-02-21 06:21:41.122] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.0225828s
+[2022-02-21 06:21:41.122] [local ee] [info] split /data/311/311_preprocessed.csv into 17 tasks
+[2022-02-21 06:21:41.930] [E/6] [info] [Task Finished] Transform to in-memory hash table in 0.807732s (0 normal rows, 0 exceptions, 185 buckets)
+[2022-02-21 06:21:41.930] [E/11] [info] [Task Finished] Transform to in-memory hash table in 0.808116s (0 normal rows, 0 exceptions, 179 buckets)
+[2022-02-21 06:21:41.931] [driver] [info] [Task Finished] Transform to in-memory hash table in 0.808426s (0 normal rows, 0 exceptions, 188 buckets)
+[2022-02-21 06:21:41.931] [E/1] [info] [Task Finished] Transform to in-memory hash table in 0.808668s (0 normal rows, 0 exceptions, 186 buckets)
+[2022-02-21 06:21:41.933] [E/9] [info] [Task Finished] Transform to in-memory hash table in 0.810634s (0 normal rows, 0 exceptions, 180 buckets)
+[2022-02-21 06:21:41.934] [E/12] [info] [Task Finished] Transform to in-memory hash table in 0.811353s (0 normal rows, 0 exceptions, 183 buckets)
+[2022-02-21 06:21:41.935] [E/8] [info] [Task Finished] Transform to in-memory hash table in 0.812683s (0 normal rows, 0 exceptions, 178 buckets)
+[2022-02-21 06:21:41.935] [E/7] [info] [Task Finished] Transform to in-memory hash table in 0.812984s (0 normal rows, 0 exceptions, 186 buckets)
+[2022-02-21 06:21:41.936] [E/13] [info] [Task Finished] Transform to in-memory hash table in 0.813398s (0 normal rows, 0 exceptions, 191 buckets)
+[2022-02-21 06:21:41.938] [E/15] [info] [Task Finished] Transform to in-memory hash table in 0.815831s (0 normal rows, 0 exceptions, 188 buckets)
+[2022-02-21 06:21:41.938] [E/14] [info] [Task Finished] Transform to in-memory hash table in 0.815988s (0 normal rows, 0 exceptions, 186 buckets)
+[2022-02-21 06:21:41.939] [E/10] [info] [Task Finished] Transform to in-memory hash table in 0.816789s (0 normal rows, 0 exceptions, 184 buckets)
+[2022-02-21 06:21:41.944] [E/2] [info] [Task Finished] Transform to in-memory hash table in 0.821580s (0 normal rows, 0 exceptions, 181 buckets)
+[2022-02-21 06:21:41.946] [E/3] [info] [Task Finished] Transform to in-memory hash table in 0.823436s (0 normal rows, 0 exceptions, 184 buckets)
+[2022-02-21 06:21:41.956] [E/4] [info] [Task Finished] Transform to in-memory hash table in 0.833912s (0 normal rows, 0 exceptions, 183 buckets)
+[2022-02-21 06:21:41.998] [E/5] [info] [Task Finished] Transform to in-memory hash table in 0.875528s (0 normal rows, 0 exceptions, 183 buckets)
+[2022-02-21 06:21:43.275] [E/6] [info] [Task Finished] Transform to in-memory hash table in 1.345430s (0 normal rows, 0 exceptions, 188 buckets)
+[2022-02-21 06:21:43.275] [global] [info] [Transform Stage] Stage 0 completed 17 load&transform tasks in 2.1534s
+[2022-02-21 06:21:43.275] [global] [info] [Transform Stage] Stage 0 total wall clock time: 14.4425s, 197628000 input rows, time to process 1 row via fast path: 7.30792e-05ms
+[2022-02-21 06:21:43.276] [global] [info] [Transform Stage] Stage 0 completed 17 sink tasks in 0.000462385s
+[2022-02-21 06:21:43.276] [global] [info] [Transform Stage] Stage 0 took 2.17653s
+[2022-02-21 06:21:43.286] [global] [info] retrieved metrics object
+[2022-02-21 06:21:43.297] [global] [info] Optimization via LLVM passes took 0.010767 ms
+[2022-02-21 06:21:43.297] [global] [info] starting code compilation
+[2022-02-21 06:21:43.297] [global] [info] first compile done
+[2022-02-21 06:21:43.302] [global] [info] functor Stage_1 retrieved from llvm
+[2022-02-21 06:21:43.302] [global] [info] retrieving init/release stage functors
+[2022-02-21 06:21:43.302] [global] [info] Compiled code paths for stage 1 in 0.00 ms
+[2022-02-21 06:21:43.302] [global] [info] [Transform Stage] Stage 1 compiled to x86 in 0.0158032s
+[2022-02-21 06:21:43.302] [E/1] [info] [Task Finished] Transform to mem in 0.000048s (246 normal rows, 0 exceptions)
+[2022-02-21 06:21:43.302] [global] [info] [Transform Stage] Stage 1 completed 1 load&transform tasks in 8.5462e-05s
+[2022-02-21 06:21:43.302] [global] [info] [Transform Stage] Stage 1 total wall clock time: 4.7931e-05s, 246 input rows, time to process 1 row via fast path: 0.000194841ms
 
-[2022-02-18 23:43:00.898] [global] [info] Writing 246 rows as output to file (1.44 KB)
-[2022-02-18 23:43:00.898] [E/1] [info] [Task Finished] write to file in 0.000119s (246 rows, 1.44 KB)
-[2022-02-18 23:43:00.898] [global] [info] writing output took 0.000313s
-[2022-02-18 23:43:00.898] [global] [info] [Transform Stage] Stage 1 completed 1 sink tasks in 0.00032759s
-[2022-02-18 23:43:00.898] [global] [info] [Transform Stage] Stage 1 took 0.0194929s
-[2022-02-18 23:43:00.898] [global] [info] Query Execution took 2.95439s. (planning: 0.0347766s, execution: 2.91961s)
+[2022-02-21 06:21:43.302] [global] [info] Writing 246 rows as output to file (1.44 KB)
+[2022-02-21 06:21:43.302] [E/1] [info] [Task Finished] write to file in 0.000162s (246 rows, 1.44 KB)
+[2022-02-21 06:21:43.302] [global] [info] writing output took 0.000333s
+[2022-02-21 06:21:43.302] [global] [info] [Transform Stage] Stage 1 completed 1 sink tasks in 0.000347858s
+[2022-02-21 06:21:43.302] [global] [info] [Transform Stage] Stage 1 took 0.0162551s
+[2022-02-21 06:21:43.302] [global] [info] Query Execution took 2.22231s. (planning: 0.0197377s, execution: 2.20258s)
 Welcome to
 
   _____            _
@@ -131,22 +163,22 @@ Welcome to
     
 using Python 3.6.9 (default, Feb  8 2022, 16:30:43) 
 [GCC 9.3.0] on linux
-Tuplex startup time: 0.14282822608947754
-{"startupTime": 0.14282822608947754, "jobTime": 3.1182634830474854}
-[2022-02-18 23:43:00.913] [local execution engine] [info] Stopped local executor E/1
-[2022-02-18 23:43:00.914] [local execution engine] [info] Stopped local executor E/2
-[2022-02-18 23:43:00.914] [local execution engine] [info] Stopped local executor E/3
-[2022-02-18 23:43:00.914] [local execution engine] [info] Stopped local executor E/4
-[2022-02-18 23:43:00.915] [local execution engine] [info] Stopped local executor E/5
-[2022-02-18 23:43:00.915] [local execution engine] [info] Stopped local executor E/6
-[2022-02-18 23:43:00.915] [local execution engine] [info] Stopped local executor E/7
-[2022-02-18 23:43:00.916] [local execution engine] [info] Stopped local executor E/8
-[2022-02-18 23:43:00.916] [local execution engine] [info] Stopped local executor E/9
-[2022-02-18 23:43:00.916] [local execution engine] [info] Stopped local executor E/10
-[2022-02-18 23:43:00.917] [local execution engine] [info] Stopped local executor E/11
-[2022-02-18 23:43:00.917] [local execution engine] [info] Stopped local executor E/12
-[2022-02-18 23:43:00.917] [local execution engine] [info] Stopped local executor E/13
-[2022-02-18 23:43:00.918] [local execution engine] [info] Stopped local executor E/14
-[2022-02-18 23:43:00.918] [local execution engine] [info] Stopped local executor E/15
+Tuplex startup time: 0.14139509201049805
+{"startupTime": 0.14139509201049805, "jobTime": 2.3402419090270996}
+[2022-02-21 06:21:43.313] [local execution engine] [info] Stopped local executor E/1
+[2022-02-21 06:21:43.313] [local execution engine] [info] Stopped local executor E/2
+[2022-02-21 06:21:43.314] [local execution engine] [info] Stopped local executor E/3
+[2022-02-21 06:21:43.314] [local execution engine] [info] Stopped local executor E/4
+[2022-02-21 06:21:43.314] [local execution engine] [info] Stopped local executor E/5
+[2022-02-21 06:21:43.315] [local execution engine] [info] Stopped local executor E/6
+[2022-02-21 06:21:43.315] [local execution engine] [info] Stopped local executor E/7
+[2022-02-21 06:21:43.315] [local execution engine] [info] Stopped local executor E/8
+[2022-02-21 06:21:43.315] [local execution engine] [info] Stopped local executor E/9
+[2022-02-21 06:21:43.316] [local execution engine] [info] Stopped local executor E/10
+[2022-02-21 06:21:43.316] [local execution engine] [info] Stopped local executor E/11
+[2022-02-21 06:21:43.316] [local execution engine] [info] Stopped local executor E/12
+[2022-02-21 06:21:43.317] [local execution engine] [info] Stopped local executor E/13
+[2022-02-21 06:21:43.317] [local execution engine] [info] Stopped local executor E/14
+[2022-02-21 06:21:43.317] [local execution engine] [info] Stopped local executor E/15
 [GLOBAL] Local engine terminated.
 [GLOBAL] releasing 1 active partitions

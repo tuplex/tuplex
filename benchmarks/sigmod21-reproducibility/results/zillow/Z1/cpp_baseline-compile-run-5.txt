@@ -8,6 +8,6 @@ zillow.cpp:364:8: warning: ignoring return value of ‘ssize_t write(int, const 
   364 |   write(ofile, output_data, output_size);
       |   ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-real	0m4.619s
-user	0m4.400s
-sys	0m0.218s
+real	0m3.488s
+user	0m3.341s
+sys	0m0.126s

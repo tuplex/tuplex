@@ -54,3 +54,6 @@ To provide an explicit output types or to silence this message, please provide t
   After:  .apply(func, meta=('AirlineName', 'object'))
 
   warnings.warn(meta_warning(meta))
+distributed.worker - WARNING - Heartbeat to scheduler failed
+distributed.worker - WARNING - Heartbeat to scheduler failed
+distributed.worker - WARNING - Heartbeat to scheduler failed

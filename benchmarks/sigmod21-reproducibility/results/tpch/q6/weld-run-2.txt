@@ -1,9 +1,9 @@
 data path is: /data/tpch/q6_preprocessed/lineitem-sf-10.tbl
-Loading CSV took: 20.0013s
-Compiling the Weld module took: 0.025416s
+Loading CSV took: 10.6318s
+Compiling the Weld module took: 0.0166455s
 Result::
 1230113636.010108
-Weld query took: 0.223605s
+Weld query took: 0.115352s
 
 framework,load,compile,query,total,result
-weld,20.001303,0.025416,0.223605,20.250324,1230113636.010108
+weld,10.631771,0.016646,0.115352,10.763768,1230113636.010108

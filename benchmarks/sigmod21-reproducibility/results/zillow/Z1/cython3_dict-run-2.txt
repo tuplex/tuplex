@@ -1,4 +1,4 @@
-compilation via cython took: 6.085626840591431s
+compilation via cython took: 4.53388237953186s
 >>> running python3.6 on ['/data/zillow/Z1_preprocessed/zillow_Z1_10G.csv']
 >>> data mode: dict
-{'type': 'dict', 'framework': 'python3', 'py_executable': '/usr/local/bin/python3.6', 'input_files': ['/data/zillow/Z1_preprocessed/zillow_Z1_10G.csv'], 'load_time': 385.764066696167, 'run_time': 467.23056840896606, 'write_time': 81.4664843082428, 'job_time': 467.2305724620819}
+{'type': 'dict', 'framework': 'python3', 'py_executable': '/usr/local/bin/python3.6', 'input_files': ['/data/zillow/Z1_preprocessed/zillow_Z1_10G.csv'], 'load_time': 289.9632787704468, 'run_time': 357.8292660713196, 'write_time': 67.865962266922, 'job_time': 357.8292679786682}

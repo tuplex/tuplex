@@ -239,9 +239,9 @@ def figure8(path_311='r5d.8xlarge/311/', output_folder='plots'):
             precision=precision, above_offset=aoff,
            yerr=subdf_std[(subdf_std['framework'] == 'tuplex') & (subdf_std['threads'] == 16)][key])
 
-        plt_bar(ax, 4, dask_row_mu[key], w, dask_col, 'Dask', number_positions[3],
+        plt_bar(ax, 4, subdf_mu[subdf_mu['framework'] == 'dask'][key], w, dask_col, 'Dask', number_positions[3],
                 precision=precision, above_offset=aoff,
-               yerr=dask_row_std[key])
+               yerr=subdf_std[subdf_std['framework'] == 'dask'][key])
 
         mu = subdf_mu[subdf_mu['framework'] == 'pysparksql'][key]
         sig = subdf_std[subdf_std['framework'] == 'pysparksql'][key]

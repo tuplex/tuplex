@@ -1,5 +1,5 @@
-PySpark startup time: 1.8114607334136963
-Pyspark job time: 730.6254825592041 s
+PySpark startup time: 1.3017587661743164
+Pyspark job time: 83.97813940048218 s
 == Parsed Logical Plan ==
 Join Inner, (ip#5 = BadIPs#189)
 :- Project [value#0, ip#5, client_id#9, user_id#14, date#41, method#56, endpoint#153, protocol#83, response_code#93, content_size#127, randomstr#140]
@@ -72,4 +72,4 @@ Join Inner, (ip#5 = BadIPs#189)
    +- *(2) Project [BadIPs#189]
       +- *(2) Filter isnotnull(BadIPs#189)
          +- *(2) FileScan csv [BadIPs#189] Batched: false, Format: CSV, Location: InMemoryFileIndex[file:/data/logs/ip_blacklist.csv], PartitionFilters: [], PushedFilters: [IsNotNull(BadIPs)], ReadSchema: struct<BadIPs:string>
-{"startupTime": 1.8114607334136963, "jobTime": 730.6254825592041}
+{"startupTime": 1.3017587661743164, "jobTime": 83.97813940048218}

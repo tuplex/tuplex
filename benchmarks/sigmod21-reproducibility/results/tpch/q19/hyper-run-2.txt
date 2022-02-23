@@ -1,11 +1,11 @@
 running on 5 + 4 columns
 The number of rows in table "Lineitem" is 59986052.
 The number of rows in table "Part" is 2000000.
-Loading CSV to Hyper took 14.606653690338135s
-Query took 0.10196757316589355s
+Loading CSV to Hyper took 10.152872085571289s
+Query took 0.09721660614013672s
 Result::
 [[30104438.0911]]
 The connection to the Hyper file has been closed.
 The Hyper process has been shut down.
 framework,version,load,query,result
-hyper,0.0.12366,14.606653690338135,0.10196757316589355,30104438.0911
+hyper,0.0.12366,10.152872085571289,0.09721660614013672,30104438.0911

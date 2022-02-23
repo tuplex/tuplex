@@ -1,390 +1,390 @@
-[2022-02-20 01:29:53.308] [local ee] [info] loaded runtime library from/usr/local/lib/python3.6/site-packages/Tuplex-0.3.1-py3.6.egg/tuplex/libexec/tuplex_runtime.so
-[2022-02-20 01:29:53.308] [local ee] [info] initializing LLVM backend
-[2022-02-20 01:29:53.308] [local ee] [warning] init JIT compiler also only in local mode
-[2022-02-20 01:29:53.308] [LLVM] [info] compiling code for skylake-avx512
-[2022-02-20 01:29:53.309] [memory] [info] allocated bitmap managed memory region (32.00 GB, 32.00 MB block size)
-[2022-02-20 01:29:53.309] [local execution engine] [info] started driver (32.00 GB, 32.00 MB default partition size)
-[2022-02-20 01:29:53.309] [fileinputoperator] [info] found 1 file (10.01 GB) to process.
-[2022-02-20 01:29:53.309] [global] [info] sampled file:///data/zillow/Z2_preprocessed/zillow_Z2_10G.csv on 256.00 KB
-[2022-02-20 01:29:53.733] [logical planner] [info] logical optimization took 0.019962ms
-[2022-02-20 01:29:53.760] [codegen] [info] generating pipeline for (str,str,str,str,f64,Option[str],str,str) -> (str,str,str,str,str,i64,f64,i64,str,str,i64) (13 operators pipelined)
-[2022-02-20 01:29:53.761] [codegen] [info] generating function extractBd for ((str,str,str,str,f64,Option[str],str,str)) -> i64
-[2022-02-20 01:29:53.762] [codegen] [info] generating lambda function for ((str,str,str,str,f64,Option[str],str,str,i64)) -> boolean
-[2022-02-20 01:29:53.762] [codegen] [info] generating function extractType for ((str,str,str,str,f64,Option[str],str,str,i64)) -> str
-[2022-02-20 01:29:53.763] [codegen] [info] generating lambda function for ((str,str,str,str,f64,Option[str],str,str,i64,str)) -> boolean
-[2022-02-20 01:29:53.763] [codegen] [info] generating lambda function for ((str,str,str,str,f64,Option[str],str,str,i64,str)) -> str
-[2022-02-20 01:29:53.764] [codegen] [info] generating lambda function for (str) -> str
-[2022-02-20 01:29:53.765] [codegen] [info] generating function extractBa for ((str,str,str,str,f64,Option[str],str,str,i64,str,str)) -> f64
-[2022-02-20 01:29:53.766] [codegen] [info] generating function extractSqft for ((str,str,str,str,f64,Option[str],str,str,i64,str,str,f64)) -> i64
-[2022-02-20 01:29:53.766] [codegen] [info] generating function extractOffer for ((str,str,str,str,f64,Option[str],str,str,i64,str,str,f64,i64)) -> str
-[2022-02-20 01:29:53.767] [codegen] [info] generating function extractPrice for ((str,str,str,str,f64,Option[str],str,str,i64,str,str,f64,i64,str)) -> i64
-[2022-02-20 01:29:53.768] [codegen] [info] generating lambda function for ((str,str,str,str,f64,i64,str,str,i64,str,str,f64,i64,str)) -> boolean
-[2022-02-20 01:29:53.769] [codegen] [info] generating lambda function for ((str,str,str,str,f64,i64,str,str,i64,str,str,f64,i64,str)) -> boolean
-[2022-02-20 01:29:53.769] [codegen] [info] generating lambda function for ((str,str,str,str,f64,i64,str,str,i64,str,str,f64,i64,str)) -> (str,str,str,str,str,i64,f64,i64,str,str,i64)
-[2022-02-20 01:29:53.771] [codegen] [info] generating function extractBd for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str])) -> i64
-[2022-02-20 01:29:53.772] [codegen] [info] generating lambda function for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str],i64)) -> boolean
-[2022-02-20 01:29:53.772] [codegen] [info] generating function extractType for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str],i64)) -> str
-[2022-02-20 01:29:53.773] [codegen] [info] generating lambda function for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str)) -> boolean
-[2022-02-20 01:29:53.773] [codegen] [info] generating lambda function for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str)) -> str
-[2022-02-20 01:29:53.774] [codegen] [info] generating lambda function for (Option[str]) -> str
-[2022-02-20 01:29:53.775] [codegen] [info] generating function extractBa for ((Option[str],Option[str],str,Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str,str)) -> f64
-[2022-02-20 01:29:53.776] [codegen] [info] generating function extractSqft for ((Option[str],Option[str],str,Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str,str,f64)) -> i64
-[2022-02-20 01:29:53.776] [codegen] [info] generating function extractOffer for ((Option[str],Option[str],str,Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str,str,f64,i64)) -> str
-[2022-02-20 01:29:53.777] [codegen] [info] generating function extractPrice for ((Option[str],Option[str],str,Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str,str,f64,i64,str)) -> i64
-[2022-02-20 01:29:53.778] [codegen] [info] generating lambda function for ((Option[str],Option[str],str,Option[str],Option[f64],i64,Option[str],Option[str],i64,str,str,f64,i64,str)) -> boolean
-[2022-02-20 01:29:53.779] [codegen] [info] generating lambda function for ((Option[str],Option[str],str,Option[str],Option[f64],i64,Option[str],Option[str],i64,str,str,f64,i64,str)) -> boolean
-[2022-02-20 01:29:53.780] [codegen] [info] generating lambda function for ((Option[str],Option[str],str,Option[str],Option[f64],i64,Option[str],Option[str],i64,str,str,f64,i64,str)) -> (Option[str],str,Option[str],str,Option[str],i64,f64,i64,str,str,i64)
-[2022-02-20 01:29:53.831] [global] [info] retrieved metrics object
-[2022-02-20 01:29:54.125] [global] [info] Optimization via LLVM passes took 0.299760 ms
-[2022-02-20 01:29:54.125] [global] [info] starting code compilation
-[2022-02-20 01:29:54.125] [global] [info] first compile done
-[2022-02-20 01:29:54.262] [global] [info] functor Stage_0 retrieved from llvm
-[2022-02-20 01:29:54.262] [global] [info] retrieving init/release stage functors
-[2022-02-20 01:29:54.262] [global] [info] Compiled code paths for stage 0 in 0.14 ms
-[2022-02-20 01:29:54.262] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.451555s
-[2022-02-20 01:29:54.262] [local ee] [info] split /data/zillow/Z2_preprocessed/zillow_Z2_10G.csv into 160 tasks
-[2022-02-20 01:29:54.520] [driver] [info] [Task Finished] Transform to mem in 0.257352s (14226 normal rows, 10080 exceptions)
-[2022-02-20 01:29:54.776] [driver] [info] [Task Finished] Transform to mem in 0.255695s (14206 normal rows, 10014 exceptions)
-[2022-02-20 01:29:55.030] [driver] [info] [Task Finished] Transform to mem in 0.254051s (13970 normal rows, 9902 exceptions)
-[2022-02-20 01:29:55.285] [driver] [info] [Task Finished] Transform to mem in 0.255764s (14253 normal rows, 10088 exceptions)
-[2022-02-20 01:29:55.540] [driver] [info] [Task Finished] Transform to mem in 0.254726s (14217 normal rows, 10015 exceptions)
-[2022-02-20 01:29:55.793] [driver] [info] [Task Finished] Transform to mem in 0.253246s (13920 normal rows, 9892 exceptions)
-[2022-02-20 01:29:56.048] [driver] [info] [Task Finished] Transform to mem in 0.254305s (14267 normal rows, 10106 exceptions)
-[2022-02-20 01:29:56.307] [driver] [info] [Task Finished] Transform to mem in 0.258800s (14248 normal rows, 10023 exceptions)
-[2022-02-20 01:29:56.561] [driver] [info] [Task Finished] Transform to mem in 0.254168s (13953 normal rows, 9885 exceptions)
-[2022-02-20 01:29:56.815] [driver] [info] [Task Finished] Transform to mem in 0.254510s (14207 normal rows, 10091 exceptions)
-[2022-02-20 01:29:57.069] [driver] [info] [Task Finished] Transform to mem in 0.254185s (14237 normal rows, 10021 exceptions)
-[2022-02-20 01:29:57.327] [driver] [info] [Task Finished] Transform to mem in 0.258021s (13988 normal rows, 9938 exceptions)
-[2022-02-20 01:29:57.581] [driver] [info] [Task Finished] Transform to mem in 0.253861s (14177 normal rows, 10036 exceptions)
-[2022-02-20 01:29:57.836] [driver] [info] [Task Finished] Transform to mem in 0.254544s (14242 normal rows, 10080 exceptions)
-[2022-02-20 01:29:58.090] [driver] [info] [Task Finished] Transform to mem in 0.254488s (14020 normal rows, 9982 exceptions)
-[2022-02-20 01:29:58.345] [driver] [info] [Task Finished] Transform to mem in 0.254232s (14162 normal rows, 9952 exceptions)
-[2022-02-20 01:29:58.597] [driver] [info] [Task Finished] Transform to mem in 0.252466s (14241 normal rows, 10100 exceptions)
-[2022-02-20 01:29:58.850] [driver] [info] [Task Finished] Transform to mem in 0.252413s (14059 normal rows, 9985 exceptions)
-[2022-02-20 01:29:59.102] [driver] [info] [Task Finished] Transform to mem in 0.252489s (14114 normal rows, 10004 exceptions)
-[2022-02-20 01:29:59.355] [driver] [info] [Task Finished] Transform to mem in 0.253146s (14238 normal rows, 10030 exceptions)
-[2022-02-20 01:29:59.608] [driver] [info] [Task Finished] Transform to mem in 0.252938s (14081 normal rows, 9995 exceptions)
-[2022-02-20 01:29:59.861] [driver] [info] [Task Finished] Transform to mem in 0.252731s (14095 normal rows, 10009 exceptions)
-[2022-02-20 01:30:00.113] [driver] [info] [Task Finished] Transform to mem in 0.252330s (14221 normal rows, 10009 exceptions)
-[2022-02-20 01:30:00.366] [driver] [info] [Task Finished] Transform to mem in 0.252655s (14086 normal rows, 9989 exceptions)
-[2022-02-20 01:30:00.618] [driver] [info] [Task Finished] Transform to mem in 0.252467s (14097 normal rows, 10002 exceptions)
-[2022-02-20 01:30:00.874] [driver] [info] [Task Finished] Transform to mem in 0.255841s (14212 normal rows, 10017 exceptions)
-[2022-02-20 01:30:01.127] [driver] [info] [Task Finished] Transform to mem in 0.252380s (14108 normal rows, 10027 exceptions)
-[2022-02-20 01:30:01.379] [driver] [info] [Task Finished] Transform to mem in 0.252436s (14100 normal rows, 9955 exceptions)
-[2022-02-20 01:30:01.632] [driver] [info] [Task Finished] Transform to mem in 0.252740s (14212 normal rows, 10032 exceptions)
-[2022-02-20 01:30:01.884] [driver] [info] [Task Finished] Transform to mem in 0.252482s (14099 normal rows, 10008 exceptions)
-[2022-02-20 01:30:02.137] [driver] [info] [Task Finished] Transform to mem in 0.252427s (14094 normal rows, 9965 exceptions)
-[2022-02-20 01:30:02.390] [driver] [info] [Task Finished] Transform to mem in 0.252749s (14223 normal rows, 10035 exceptions)
-[2022-02-20 01:30:02.642] [driver] [info] [Task Finished] Transform to mem in 0.251907s (14089 normal rows, 10008 exceptions)
-[2022-02-20 01:30:02.893] [driver] [info] [Task Finished] Transform to mem in 0.251576s (14083 normal rows, 9953 exceptions)
-[2022-02-20 01:30:03.146] [driver] [info] [Task Finished] Transform to mem in 0.252878s (14235 normal rows, 10062 exceptions)
-[2022-02-20 01:30:03.398] [driver] [info] [Task Finished] Transform to mem in 0.252078s (14170 normal rows, 9994 exceptions)
-[2022-02-20 01:30:03.650] [driver] [info] [Task Finished] Transform to mem in 0.251600s (14002 normal rows, 9940 exceptions)
-[2022-02-20 01:30:03.902] [driver] [info] [Task Finished] Transform to mem in 0.252428s (14226 normal rows, 10080 exceptions)
-[2022-02-20 01:30:04.154] [driver] [info] [Task Finished] Transform to mem in 0.251666s (14206 normal rows, 9991 exceptions)
-[2022-02-20 01:30:04.410] [driver] [info] [Task Finished] Transform to mem in 0.256055s (13961 normal rows, 9925 exceptions)
-[2022-02-20 01:30:04.665] [driver] [info] [Task Finished] Transform to mem in 0.255514s (14246 normal rows, 10084 exceptions)
-[2022-02-20 01:30:04.917] [driver] [info] [Task Finished] Transform to mem in 0.251615s (14233 normal rows, 10011 exceptions)
-[2022-02-20 01:30:05.169] [driver] [info] [Task Finished] Transform to mem in 0.251505s (13915 normal rows, 9900 exceptions)
-[2022-02-20 01:30:05.421] [driver] [info] [Task Finished] Transform to mem in 0.252188s (14253 normal rows, 10088 exceptions)
-[2022-02-20 01:30:05.673] [driver] [info] [Task Finished] Transform to mem in 0.251812s (14267 normal rows, 10030 exceptions)
-[2022-02-20 01:30:05.924] [driver] [info] [Task Finished] Transform to mem in 0.251032s (13892 normal rows, 9882 exceptions)
-[2022-02-20 01:30:06.177] [driver] [info] [Task Finished] Transform to mem in 0.253141s (14245 normal rows, 10101 exceptions)
-[2022-02-20 01:30:06.429] [driver] [info] [Task Finished] Transform to mem in 0.252505s (14260 normal rows, 10025 exceptions)
-[2022-02-20 01:30:06.680] [driver] [info] [Task Finished] Transform to mem in 0.250961s (13978 normal rows, 9907 exceptions)
-[2022-02-20 01:30:06.933] [driver] [info] [Task Finished] Transform to mem in 0.252283s (14181 normal rows, 10067 exceptions)
-[2022-02-20 01:30:07.185] [driver] [info] [Task Finished] Transform to mem in 0.252222s (14234 normal rows, 10024 exceptions)
-[2022-02-20 01:30:07.437] [driver] [info] [Task Finished] Transform to mem in 0.251663s (14015 normal rows, 9982 exceptions)
-[2022-02-20 01:30:07.690] [driver] [info] [Task Finished] Transform to mem in 0.252912s (14142 normal rows, 9989 exceptions)
-[2022-02-20 01:30:07.945] [driver] [info] [Task Finished] Transform to mem in 0.255120s (14280 normal rows, 10094 exceptions)
-[2022-02-20 01:30:08.199] [driver] [info] [Task Finished] Transform to mem in 0.254210s (13982 normal rows, 9975 exceptions)
-[2022-02-20 01:30:08.452] [driver] [info] [Task Finished] Transform to mem in 0.253234s (14173 normal rows, 10006 exceptions)
-[2022-02-20 01:30:08.704] [driver] [info] [Task Finished] Transform to mem in 0.251947s (14235 normal rows, 10040 exceptions)
-[2022-02-20 01:30:08.956] [driver] [info] [Task Finished] Transform to mem in 0.252164s (14054 normal rows, 9984 exceptions)
-[2022-02-20 01:30:09.208] [driver] [info] [Task Finished] Transform to mem in 0.251885s (14129 normal rows, 10004 exceptions)
-[2022-02-20 01:30:09.461] [driver] [info] [Task Finished] Transform to mem in 0.252896s (14223 normal rows, 10033 exceptions)
-[2022-02-20 01:30:09.713] [driver] [info] [Task Finished] Transform to mem in 0.252097s (14081 normal rows, 9992 exceptions)
-[2022-02-20 01:30:09.965] [driver] [info] [Task Finished] Transform to mem in 0.252058s (14108 normal rows, 10010 exceptions)
-[2022-02-20 01:30:10.218] [driver] [info] [Task Finished] Transform to mem in 0.252622s (14208 normal rows, 10008 exceptions)
-[2022-02-20 01:30:10.470] [driver] [info] [Task Finished] Transform to mem in 0.251928s (14089 normal rows, 10031 exceptions)
-[2022-02-20 01:30:10.723] [driver] [info] [Task Finished] Transform to mem in 0.252959s (14094 normal rows, 9960 exceptions)
-[2022-02-20 01:30:10.975] [driver] [info] [Task Finished] Transform to mem in 0.251664s (14232 normal rows, 10017 exceptions)
-[2022-02-20 01:30:11.226] [driver] [info] [Task Finished] Transform to mem in 0.251084s (14088 normal rows, 10027 exceptions)
-[2022-02-20 01:30:11.477] [driver] [info] [Task Finished] Transform to mem in 0.251499s (14106 normal rows, 9955 exceptions)
-[2022-02-20 01:30:11.733] [driver] [info] [Task Finished] Transform to mem in 0.256111s (14211 normal rows, 10043 exceptions)
-[2022-02-20 01:30:11.988] [driver] [info] [Task Finished] Transform to mem in 0.254859s (14113 normal rows, 9997 exceptions)
-[2022-02-20 01:30:12.240] [driver] [info] [Task Finished] Transform to mem in 0.251813s (14075 normal rows, 9965 exceptions)
-[2022-02-20 01:30:12.493] [driver] [info] [Task Finished] Transform to mem in 0.252537s (14223 normal rows, 10049 exceptions)
-[2022-02-20 01:30:12.744] [driver] [info] [Task Finished] Transform to mem in 0.251546s (14095 normal rows, 9995 exceptions)
-[2022-02-20 01:30:12.996] [driver] [info] [Task Finished] Transform to mem in 0.251857s (14086 normal rows, 9952 exceptions)
-[2022-02-20 01:30:13.248] [driver] [info] [Task Finished] Transform to mem in 0.252068s (14226 normal rows, 10069 exceptions)
-[2022-02-20 01:30:13.500] [driver] [info] [Task Finished] Transform to mem in 0.251835s (14170 normal rows, 9996 exceptions)
-[2022-02-20 01:30:13.752] [driver] [info] [Task Finished] Transform to mem in 0.251765s (14002 normal rows, 9931 exceptions)
-[2022-02-20 01:30:14.004] [driver] [info] [Task Finished] Transform to mem in 0.252280s (14226 normal rows, 10080 exceptions)
-[2022-02-20 01:30:14.256] [driver] [info] [Task Finished] Transform to mem in 0.252412s (14206 normal rows, 10014 exceptions)
-[2022-02-20 01:30:14.508] [driver] [info] [Task Finished] Transform to mem in 0.252076s (13970 normal rows, 9902 exceptions)
-[2022-02-20 01:30:14.761] [driver] [info] [Task Finished] Transform to mem in 0.252439s (14237 normal rows, 10084 exceptions)
-[2022-02-20 01:30:15.013] [driver] [info] [Task Finished] Transform to mem in 0.252409s (14233 normal rows, 10019 exceptions)
-[2022-02-20 01:30:15.268] [driver] [info] [Task Finished] Transform to mem in 0.254259s (13920 normal rows, 9892 exceptions)
-[2022-02-20 01:30:15.520] [driver] [info] [Task Finished] Transform to mem in 0.252412s (14267 normal rows, 10099 exceptions)
-[2022-02-20 01:30:15.775] [driver] [info] [Task Finished] Transform to mem in 0.255015s (14248 normal rows, 10030 exceptions)
-[2022-02-20 01:30:16.026] [driver] [info] [Task Finished] Transform to mem in 0.251330s (13912 normal rows, 9882 exceptions)
-[2022-02-20 01:30:16.279] [driver] [info] [Task Finished] Transform to mem in 0.252465s (14248 normal rows, 10094 exceptions)
-[2022-02-20 01:30:16.530] [driver] [info] [Task Finished] Transform to mem in 0.251489s (14237 normal rows, 10021 exceptions)
-[2022-02-20 01:30:16.782] [driver] [info] [Task Finished] Transform to mem in 0.251472s (13988 normal rows, 9922 exceptions)
-[2022-02-20 01:30:17.035] [driver] [info] [Task Finished] Transform to mem in 0.252727s (14171 normal rows, 10052 exceptions)
-[2022-02-20 01:30:17.287] [driver] [info] [Task Finished] Transform to mem in 0.252585s (14234 normal rows, 10024 exceptions)
-[2022-02-20 01:30:17.540] [driver] [info] [Task Finished] Transform to mem in 0.252723s (14015 normal rows, 9985 exceptions)
-[2022-02-20 01:30:17.793] [driver] [info] [Task Finished] Transform to mem in 0.253124s (14176 normal rows, 9997 exceptions)
-[2022-02-20 01:30:18.046] [driver] [info] [Task Finished] Transform to mem in 0.252541s (14246 normal rows, 10108 exceptions)
-[2022-02-20 01:30:18.298] [driver] [info] [Task Finished] Transform to mem in 0.252558s (14059 normal rows, 9978 exceptions)
-[2022-02-20 01:30:18.551] [driver] [info] [Task Finished] Transform to mem in 0.252263s (14114 normal rows, 10011 exceptions)
-[2022-02-20 01:30:18.802] [driver] [info] [Task Finished] Transform to mem in 0.251875s (14238 normal rows, 10007 exceptions)
-[2022-02-20 01:30:19.057] [driver] [info] [Task Finished] Transform to mem in 0.254857s (14081 normal rows, 10003 exceptions)
-[2022-02-20 01:30:19.312] [driver] [info] [Task Finished] Transform to mem in 0.255093s (14095 normal rows, 10024 exceptions)
-[2022-02-20 01:30:19.564] [driver] [info] [Task Finished] Transform to mem in 0.251300s (14221 normal rows, 9998 exceptions)
-[2022-02-20 01:30:19.815] [driver] [info] [Task Finished] Transform to mem in 0.251611s (14086 normal rows, 9998 exceptions)
-[2022-02-20 01:30:20.067] [driver] [info] [Task Finished] Transform to mem in 0.251504s (14091 normal rows, 10001 exceptions)
-[2022-02-20 01:30:20.319] [driver] [info] [Task Finished] Transform to mem in 0.252224s (14218 normal rows, 10016 exceptions)
-[2022-02-20 01:30:20.571] [driver] [info] [Task Finished] Transform to mem in 0.251923s (14095 normal rows, 10026 exceptions)
-[2022-02-20 01:30:20.823] [driver] [info] [Task Finished] Transform to mem in 0.252052s (14113 normal rows, 9960 exceptions)
-[2022-02-20 01:30:21.075] [driver] [info] [Task Finished] Transform to mem in 0.252060s (14197 normal rows, 10028 exceptions)
-[2022-02-20 01:30:21.327] [driver] [info] [Task Finished] Transform to mem in 0.251638s (14114 normal rows, 10012 exceptions)
-[2022-02-20 01:30:21.579] [driver] [info] [Task Finished] Transform to mem in 0.251640s (14094 normal rows, 9965 exceptions)
-[2022-02-20 01:30:21.831] [driver] [info] [Task Finished] Transform to mem in 0.252035s (14197 normal rows, 10033 exceptions)
-[2022-02-20 01:30:22.082] [driver] [info] [Task Finished] Transform to mem in 0.250979s (14115 normal rows, 10010 exceptions)
-[2022-02-20 01:30:22.333] [driver] [info] [Task Finished] Transform to mem in 0.251080s (14083 normal rows, 9953 exceptions)
-[2022-02-20 01:30:22.587] [driver] [info] [Task Finished] Transform to mem in 0.253970s (14235 normal rows, 10048 exceptions)
-[2022-02-20 01:30:22.838] [driver] [info] [Task Finished] Transform to mem in 0.251793s (14144 normal rows, 9995 exceptions)
-[2022-02-20 01:30:23.093] [driver] [info] [Task Finished] Transform to mem in 0.254953s (14015 normal rows, 9952 exceptions)
-[2022-02-20 01:30:23.346] [driver] [info] [Task Finished] Transform to mem in 0.252639s (14237 normal rows, 10069 exceptions)
-[2022-02-20 01:30:23.597] [driver] [info] [Task Finished] Transform to mem in 0.251131s (14159 normal rows, 9996 exceptions)
-[2022-02-20 01:30:23.848] [driver] [info] [Task Finished] Transform to mem in 0.251117s (14010 normal rows, 9932 exceptions)
-[2022-02-20 01:30:24.101] [driver] [info] [Task Finished] Transform to mem in 0.252605s (14246 normal rows, 10084 exceptions)
-[2022-02-20 01:30:24.354] [driver] [info] [Task Finished] Transform to mem in 0.252721s (14178 normal rows, 10009 exceptions)
-[2022-02-20 01:30:24.605] [driver] [info] [Task Finished] Transform to mem in 0.250874s (13970 normal rows, 9902 exceptions)
-[2022-02-20 01:30:24.856] [driver] [info] [Task Finished] Transform to mem in 0.251589s (14253 normal rows, 10088 exceptions)
-[2022-02-20 01:30:25.108] [driver] [info] [Task Finished] Transform to mem in 0.251330s (14236 normal rows, 10015 exceptions)
-[2022-02-20 01:30:25.359] [driver] [info] [Task Finished] Transform to mem in 0.250985s (13901 normal rows, 9892 exceptions)
-[2022-02-20 01:30:25.611] [driver] [info] [Task Finished] Transform to mem in 0.251927s (14267 normal rows, 10106 exceptions)
-[2022-02-20 01:30:25.862] [driver] [info] [Task Finished] Transform to mem in 0.251087s (14248 normal rows, 10023 exceptions)
-[2022-02-20 01:30:26.112] [driver] [info] [Task Finished] Transform to mem in 0.250487s (13953 normal rows, 9885 exceptions)
-[2022-02-20 01:30:26.367] [driver] [info] [Task Finished] Transform to mem in 0.254760s (14207 normal rows, 10091 exceptions)
-[2022-02-20 01:30:26.622] [driver] [info] [Task Finished] Transform to mem in 0.254673s (14245 normal rows, 10024 exceptions)
-[2022-02-20 01:30:26.872] [driver] [info] [Task Finished] Transform to mem in 0.250695s (13999 normal rows, 9935 exceptions)
-[2022-02-20 01:30:27.124] [driver] [info] [Task Finished] Transform to mem in 0.251486s (14158 normal rows, 10036 exceptions)
-[2022-02-20 01:30:27.375] [driver] [info] [Task Finished] Transform to mem in 0.251356s (14242 normal rows, 10080 exceptions)
-[2022-02-20 01:30:27.627] [driver] [info] [Task Finished] Transform to mem in 0.252021s (14020 normal rows, 9989 exceptions)
-[2022-02-20 01:30:27.879] [driver] [info] [Task Finished] Transform to mem in 0.251847s (14173 normal rows, 10004 exceptions)
-[2022-02-20 01:30:28.132] [driver] [info] [Task Finished] Transform to mem in 0.252811s (14235 normal rows, 10041 exceptions)
-[2022-02-20 01:30:28.384] [driver] [info] [Task Finished] Transform to mem in 0.252004s (14054 normal rows, 9985 exceptions)
-[2022-02-20 01:30:28.635] [driver] [info] [Task Finished] Transform to mem in 0.251328s (14114 normal rows, 10004 exceptions)
-[2022-02-20 01:30:28.887] [driver] [info] [Task Finished] Transform to mem in 0.251816s (14238 normal rows, 10033 exceptions)
-[2022-02-20 01:30:29.139] [driver] [info] [Task Finished] Transform to mem in 0.251984s (14081 normal rows, 9992 exceptions)
-[2022-02-20 01:30:29.391] [driver] [info] [Task Finished] Transform to mem in 0.251861s (14095 normal rows, 10009 exceptions)
-[2022-02-20 01:30:29.642] [driver] [info] [Task Finished] Transform to mem in 0.251284s (14221 normal rows, 10009 exceptions)
-[2022-02-20 01:30:29.893] [driver] [info] [Task Finished] Transform to mem in 0.251045s (14089 normal rows, 9995 exceptions)
-[2022-02-20 01:30:30.149] [driver] [info] [Task Finished] Transform to mem in 0.255560s (14094 normal rows, 9996 exceptions)
-[2022-02-20 01:30:30.403] [driver] [info] [Task Finished] Transform to mem in 0.254507s (14212 normal rows, 10017 exceptions)
-[2022-02-20 01:30:30.655] [driver] [info] [Task Finished] Transform to mem in 0.251878s (14108 normal rows, 10027 exceptions)
-[2022-02-20 01:30:30.908] [driver] [info] [Task Finished] Transform to mem in 0.252264s (14100 normal rows, 9955 exceptions)
-[2022-02-20 01:30:31.160] [driver] [info] [Task Finished] Transform to mem in 0.252194s (14217 normal rows, 10042 exceptions)
-[2022-02-20 01:30:31.411] [driver] [info] [Task Finished] Transform to mem in 0.251587s (14094 normal rows, 9998 exceptions)
-[2022-02-20 01:30:31.662] [driver] [info] [Task Finished] Transform to mem in 0.250976s (14094 normal rows, 9965 exceptions)
-[2022-02-20 01:30:31.914] [driver] [info] [Task Finished] Transform to mem in 0.251919s (14223 normal rows, 10048 exceptions)
-[2022-02-20 01:30:32.165] [driver] [info] [Task Finished] Transform to mem in 0.250809s (14089 normal rows, 9995 exceptions)
-[2022-02-20 01:30:32.416] [driver] [info] [Task Finished] Transform to mem in 0.250814s (14086 normal rows, 9953 exceptions)
-[2022-02-20 01:30:32.668] [driver] [info] [Task Finished] Transform to mem in 0.251586s (14232 normal rows, 10069 exceptions)
-[2022-02-20 01:30:32.919] [driver] [info] [Task Finished] Transform to mem in 0.251319s (14170 normal rows, 9995 exceptions)
-[2022-02-20 01:30:33.170] [driver] [info] [Task Finished] Transform to mem in 0.250616s (14002 normal rows, 9932 exceptions)
-[2022-02-20 01:30:33.421] [driver] [info] [Task Finished] Transform to mem in 0.251340s (14226 normal rows, 10080 exceptions)
-[2022-02-20 01:30:33.676] [driver] [info] [Task Finished] Transform to mem in 0.254887s (14206 normal rows, 10009 exceptions)
-[2022-02-20 01:30:33.927] [driver] [info] [Task Finished] Transform to mem in 0.250790s (13961 normal rows, 9907 exceptions)
-[2022-02-20 01:30:34.181] [driver] [info] [Task Finished] Transform to mem in 0.254617s (14246 normal rows, 10084 exceptions)
-[2022-02-20 01:30:34.433] [driver] [info] [Task Finished] Transform to mem in 0.251160s (14233 normal rows, 10019 exceptions)
-[2022-02-20 01:30:34.725] [driver] [info] [Task Finished] Transform to mem in 0.292265s (16320 normal rows, 11605 exceptions)
-[2022-02-20 01:30:34.725] [global] [info] [Transform Stage] Stage 0 completed 160 load&transform tasks in 40.4629s
-[2022-02-20 01:30:34.725] [global] [info] [Transform Stage] Stage 0 total wall clock time: 40.4597s, 54108450 input rows, time to process 1 row via fast path: 0.000747751ms
-[2022-02-20 01:30:34.725] [global] [info] Exception details: 
+[2022-02-21 20:19:05.704] [local ee] [info] loaded runtime library from/usr/local/lib/python3.6/site-packages/Tuplex-0.3.1-py3.6.egg/tuplex/libexec/tuplex_runtime.so
+[2022-02-21 20:19:05.704] [local ee] [info] initializing LLVM backend
+[2022-02-21 20:19:05.704] [local ee] [warning] init JIT compiler also only in local mode
+[2022-02-21 20:19:05.704] [LLVM] [info] compiling code for znver1
+[2022-02-21 20:19:05.705] [memory] [info] allocated bitmap managed memory region (32.00 GB, 32.00 MB block size)
+[2022-02-21 20:19:05.705] [local execution engine] [info] started driver (32.00 GB, 32.00 MB default partition size)
+[2022-02-21 20:19:05.705] [fileinputoperator] [info] found 1 file (10.01 GB) to process.
+[2022-02-21 20:19:05.707] [global] [info] sampled file:///data/zillow/Z2_preprocessed/zillow_Z2_10G.csv on 256.00 KB
+[2022-02-21 20:19:05.979] [logical planner] [info] logical optimization took 0.013012ms
+[2022-02-21 20:19:05.997] [codegen] [info] generating pipeline for (str,str,str,str,f64,Option[str],str,str) -> (str,str,str,str,str,i64,f64,i64,str,str,i64) (13 operators pipelined)
+[2022-02-21 20:19:05.998] [codegen] [info] generating function extractBd for ((str,str,str,str,f64,Option[str],str,str)) -> i64
+[2022-02-21 20:19:05.998] [codegen] [info] generating lambda function for ((str,str,str,str,f64,Option[str],str,str,i64)) -> boolean
+[2022-02-21 20:19:05.999] [codegen] [info] generating function extractType for ((str,str,str,str,f64,Option[str],str,str,i64)) -> str
+[2022-02-21 20:19:05.999] [codegen] [info] generating lambda function for ((str,str,str,str,f64,Option[str],str,str,i64,str)) -> boolean
+[2022-02-21 20:19:06.000] [codegen] [info] generating lambda function for ((str,str,str,str,f64,Option[str],str,str,i64,str)) -> str
+[2022-02-21 20:19:06.000] [codegen] [info] generating lambda function for (str) -> str
+[2022-02-21 20:19:06.001] [codegen] [info] generating function extractBa for ((str,str,str,str,f64,Option[str],str,str,i64,str,str)) -> f64
+[2022-02-21 20:19:06.001] [codegen] [info] generating function extractSqft for ((str,str,str,str,f64,Option[str],str,str,i64,str,str,f64)) -> i64
+[2022-02-21 20:19:06.002] [codegen] [info] generating function extractOffer for ((str,str,str,str,f64,Option[str],str,str,i64,str,str,f64,i64)) -> str
+[2022-02-21 20:19:06.002] [codegen] [info] generating function extractPrice for ((str,str,str,str,f64,Option[str],str,str,i64,str,str,f64,i64,str)) -> i64
+[2022-02-21 20:19:06.003] [codegen] [info] generating lambda function for ((str,str,str,str,f64,i64,str,str,i64,str,str,f64,i64,str)) -> boolean
+[2022-02-21 20:19:06.004] [codegen] [info] generating lambda function for ((str,str,str,str,f64,i64,str,str,i64,str,str,f64,i64,str)) -> boolean
+[2022-02-21 20:19:06.004] [codegen] [info] generating lambda function for ((str,str,str,str,f64,i64,str,str,i64,str,str,f64,i64,str)) -> (str,str,str,str,str,i64,f64,i64,str,str,i64)
+[2022-02-21 20:19:06.005] [codegen] [info] generating function extractBd for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str])) -> i64
+[2022-02-21 20:19:06.006] [codegen] [info] generating lambda function for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str],i64)) -> boolean
+[2022-02-21 20:19:06.006] [codegen] [info] generating function extractType for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str],i64)) -> str
+[2022-02-21 20:19:06.007] [codegen] [info] generating lambda function for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str)) -> boolean
+[2022-02-21 20:19:06.007] [codegen] [info] generating lambda function for ((Option[str],Option[str],Option[str],Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str)) -> str
+[2022-02-21 20:19:06.007] [codegen] [info] generating lambda function for (Option[str]) -> str
+[2022-02-21 20:19:06.008] [codegen] [info] generating function extractBa for ((Option[str],Option[str],str,Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str,str)) -> f64
+[2022-02-21 20:19:06.009] [codegen] [info] generating function extractSqft for ((Option[str],Option[str],str,Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str,str,f64)) -> i64
+[2022-02-21 20:19:06.009] [codegen] [info] generating function extractOffer for ((Option[str],Option[str],str,Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str,str,f64,i64)) -> str
+[2022-02-21 20:19:06.010] [codegen] [info] generating function extractPrice for ((Option[str],Option[str],str,Option[str],Option[f64],Option[str],Option[str],Option[str],i64,str,str,f64,i64,str)) -> i64
+[2022-02-21 20:19:06.011] [codegen] [info] generating lambda function for ((Option[str],Option[str],str,Option[str],Option[f64],i64,Option[str],Option[str],i64,str,str,f64,i64,str)) -> boolean
+[2022-02-21 20:19:06.011] [codegen] [info] generating lambda function for ((Option[str],Option[str],str,Option[str],Option[f64],i64,Option[str],Option[str],i64,str,str,f64,i64,str)) -> boolean
+[2022-02-21 20:19:06.012] [codegen] [info] generating lambda function for ((Option[str],Option[str],str,Option[str],Option[f64],i64,Option[str],Option[str],i64,str,str,f64,i64,str)) -> (Option[str],str,Option[str],str,Option[str],i64,f64,i64,str,str,i64)
+[2022-02-21 20:19:06.043] [global] [info] retrieved metrics object
+[2022-02-21 20:19:06.272] [global] [info] Optimization via LLVM passes took 0.232994 ms
+[2022-02-21 20:19:06.272] [global] [info] starting code compilation
+[2022-02-21 20:19:06.272] [global] [info] first compile done
+[2022-02-21 20:19:06.384] [global] [info] functor Stage_0 retrieved from llvm
+[2022-02-21 20:19:06.384] [global] [info] retrieving init/release stage functors
+[2022-02-21 20:19:06.384] [global] [info] Compiled code paths for stage 0 in 0.11 ms
+[2022-02-21 20:19:06.384] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.356119s
+[2022-02-21 20:19:06.385] [local ee] [info] split /data/zillow/Z2_preprocessed/zillow_Z2_10G.csv into 160 tasks
+[2022-02-21 20:19:06.593] [driver] [info] [Task Finished] Transform to mem in 0.207433s (14226 normal rows, 10080 exceptions)
+[2022-02-21 20:19:06.796] [driver] [info] [Task Finished] Transform to mem in 0.203592s (14206 normal rows, 10014 exceptions)
+[2022-02-21 20:19:07.000] [driver] [info] [Task Finished] Transform to mem in 0.204145s (13970 normal rows, 9902 exceptions)
+[2022-02-21 20:19:07.204] [driver] [info] [Task Finished] Transform to mem in 0.203163s (14253 normal rows, 10088 exceptions)
+[2022-02-21 20:19:07.406] [driver] [info] [Task Finished] Transform to mem in 0.202592s (14217 normal rows, 10015 exceptions)
+[2022-02-21 20:19:07.608] [driver] [info] [Task Finished] Transform to mem in 0.202256s (13920 normal rows, 9892 exceptions)
+[2022-02-21 20:19:07.813] [driver] [info] [Task Finished] Transform to mem in 0.202683s (14267 normal rows, 10106 exceptions)
+[2022-02-21 20:19:08.017] [driver] [info] [Task Finished] Transform to mem in 0.203537s (14248 normal rows, 10023 exceptions)
+[2022-02-21 20:19:08.217] [driver] [info] [Task Finished] Transform to mem in 0.200778s (13953 normal rows, 9885 exceptions)
+[2022-02-21 20:19:08.420] [driver] [info] [Task Finished] Transform to mem in 0.202176s (14207 normal rows, 10091 exceptions)
+[2022-02-21 20:19:08.623] [driver] [info] [Task Finished] Transform to mem in 0.203048s (14237 normal rows, 10021 exceptions)
+[2022-02-21 20:19:08.824] [driver] [info] [Task Finished] Transform to mem in 0.201195s (13988 normal rows, 9938 exceptions)
+[2022-02-21 20:19:09.026] [driver] [info] [Task Finished] Transform to mem in 0.202144s (14177 normal rows, 10036 exceptions)
+[2022-02-21 20:19:09.230] [driver] [info] [Task Finished] Transform to mem in 0.203821s (14242 normal rows, 10080 exceptions)
+[2022-02-21 20:19:09.434] [driver] [info] [Task Finished] Transform to mem in 0.203695s (14020 normal rows, 9982 exceptions)
+[2022-02-21 20:19:09.637] [driver] [info] [Task Finished] Transform to mem in 0.203704s (14162 normal rows, 9952 exceptions)
+[2022-02-21 20:19:09.839] [driver] [info] [Task Finished] Transform to mem in 0.201379s (14241 normal rows, 10100 exceptions)
+[2022-02-21 20:19:10.042] [driver] [info] [Task Finished] Transform to mem in 0.202929s (14059 normal rows, 9985 exceptions)
+[2022-02-21 20:19:10.244] [driver] [info] [Task Finished] Transform to mem in 0.201813s (14114 normal rows, 10004 exceptions)
+[2022-02-21 20:19:10.444] [driver] [info] [Task Finished] Transform to mem in 0.200814s (14238 normal rows, 10030 exceptions)
+[2022-02-21 20:19:10.647] [driver] [info] [Task Finished] Transform to mem in 0.202156s (14081 normal rows, 9995 exceptions)
+[2022-02-21 20:19:10.848] [driver] [info] [Task Finished] Transform to mem in 0.201713s (14095 normal rows, 10009 exceptions)
+[2022-02-21 20:19:11.050] [driver] [info] [Task Finished] Transform to mem in 0.201872s (14221 normal rows, 10009 exceptions)
+[2022-02-21 20:19:11.252] [driver] [info] [Task Finished] Transform to mem in 0.201503s (14086 normal rows, 9989 exceptions)
+[2022-02-21 20:19:11.454] [driver] [info] [Task Finished] Transform to mem in 0.201963s (14097 normal rows, 10002 exceptions)
+[2022-02-21 20:19:11.656] [driver] [info] [Task Finished] Transform to mem in 0.202207s (14212 normal rows, 10017 exceptions)
+[2022-02-21 20:19:11.858] [driver] [info] [Task Finished] Transform to mem in 0.202075s (14108 normal rows, 10027 exceptions)
+[2022-02-21 20:19:12.061] [driver] [info] [Task Finished] Transform to mem in 0.202764s (14100 normal rows, 9955 exceptions)
+[2022-02-21 20:19:12.265] [driver] [info] [Task Finished] Transform to mem in 0.204010s (14212 normal rows, 10032 exceptions)
+[2022-02-21 20:19:12.468] [driver] [info] [Task Finished] Transform to mem in 0.202870s (14099 normal rows, 10008 exceptions)
+[2022-02-21 20:19:12.670] [driver] [info] [Task Finished] Transform to mem in 0.202457s (14094 normal rows, 9965 exceptions)
+[2022-02-21 20:19:12.875] [driver] [info] [Task Finished] Transform to mem in 0.203152s (14223 normal rows, 10035 exceptions)
+[2022-02-21 20:19:13.077] [driver] [info] [Task Finished] Transform to mem in 0.202029s (14089 normal rows, 10008 exceptions)
+[2022-02-21 20:19:13.279] [driver] [info] [Task Finished] Transform to mem in 0.201944s (14083 normal rows, 9953 exceptions)
+[2022-02-21 20:19:13.480] [driver] [info] [Task Finished] Transform to mem in 0.201592s (14235 normal rows, 10062 exceptions)
+[2022-02-21 20:19:13.682] [driver] [info] [Task Finished] Transform to mem in 0.201521s (14170 normal rows, 9994 exceptions)
+[2022-02-21 20:19:13.883] [driver] [info] [Task Finished] Transform to mem in 0.200894s (14002 normal rows, 9940 exceptions)
+[2022-02-21 20:19:14.085] [driver] [info] [Task Finished] Transform to mem in 0.202025s (14226 normal rows, 10080 exceptions)
+[2022-02-21 20:19:14.286] [driver] [info] [Task Finished] Transform to mem in 0.201454s (14206 normal rows, 9991 exceptions)
+[2022-02-21 20:19:14.488] [driver] [info] [Task Finished] Transform to mem in 0.201607s (13961 normal rows, 9925 exceptions)
+[2022-02-21 20:19:14.690] [driver] [info] [Task Finished] Transform to mem in 0.202077s (14246 normal rows, 10084 exceptions)
+[2022-02-21 20:19:14.892] [driver] [info] [Task Finished] Transform to mem in 0.201944s (14233 normal rows, 10011 exceptions)
+[2022-02-21 20:19:15.093] [driver] [info] [Task Finished] Transform to mem in 0.200957s (13915 normal rows, 9900 exceptions)
+[2022-02-21 20:19:15.295] [driver] [info] [Task Finished] Transform to mem in 0.202285s (14253 normal rows, 10088 exceptions)
+[2022-02-21 20:19:15.497] [driver] [info] [Task Finished] Transform to mem in 0.201772s (14267 normal rows, 10030 exceptions)
+[2022-02-21 20:19:15.697] [driver] [info] [Task Finished] Transform to mem in 0.199485s (13892 normal rows, 9882 exceptions)
+[2022-02-21 20:19:15.899] [driver] [info] [Task Finished] Transform to mem in 0.202050s (14245 normal rows, 10101 exceptions)
+[2022-02-21 20:19:16.102] [driver] [info] [Task Finished] Transform to mem in 0.202769s (14260 normal rows, 10025 exceptions)
+[2022-02-21 20:19:16.302] [driver] [info] [Task Finished] Transform to mem in 0.200196s (13978 normal rows, 9907 exceptions)
+[2022-02-21 20:19:16.503] [driver] [info] [Task Finished] Transform to mem in 0.201536s (14181 normal rows, 10067 exceptions)
+[2022-02-21 20:19:16.705] [driver] [info] [Task Finished] Transform to mem in 0.201752s (14234 normal rows, 10024 exceptions)
+[2022-02-21 20:19:16.905] [driver] [info] [Task Finished] Transform to mem in 0.199410s (14015 normal rows, 9982 exceptions)
+[2022-02-21 20:19:17.106] [driver] [info] [Task Finished] Transform to mem in 0.200909s (14142 normal rows, 9989 exceptions)
+[2022-02-21 20:19:17.307] [driver] [info] [Task Finished] Transform to mem in 0.201665s (14280 normal rows, 10094 exceptions)
+[2022-02-21 20:19:17.508] [driver] [info] [Task Finished] Transform to mem in 0.200688s (13982 normal rows, 9975 exceptions)
+[2022-02-21 20:19:17.710] [driver] [info] [Task Finished] Transform to mem in 0.201807s (14173 normal rows, 10006 exceptions)
+[2022-02-21 20:19:17.912] [driver] [info] [Task Finished] Transform to mem in 0.200975s (14235 normal rows, 10040 exceptions)
+[2022-02-21 20:19:18.113] [driver] [info] [Task Finished] Transform to mem in 0.200874s (14054 normal rows, 9984 exceptions)
+[2022-02-21 20:19:18.313] [driver] [info] [Task Finished] Transform to mem in 0.200201s (14129 normal rows, 10004 exceptions)
+[2022-02-21 20:19:18.513] [driver] [info] [Task Finished] Transform to mem in 0.199990s (14223 normal rows, 10033 exceptions)
+[2022-02-21 20:19:18.714] [driver] [info] [Task Finished] Transform to mem in 0.201166s (14081 normal rows, 9992 exceptions)
+[2022-02-21 20:19:18.914] [driver] [info] [Task Finished] Transform to mem in 0.200173s (14108 normal rows, 10010 exceptions)
+[2022-02-21 20:19:19.114] [driver] [info] [Task Finished] Transform to mem in 0.200161s (14208 normal rows, 10008 exceptions)
+[2022-02-21 20:19:19.315] [driver] [info] [Task Finished] Transform to mem in 0.200316s (14089 normal rows, 10031 exceptions)
+[2022-02-21 20:19:19.516] [driver] [info] [Task Finished] Transform to mem in 0.200729s (14094 normal rows, 9960 exceptions)
+[2022-02-21 20:19:19.717] [driver] [info] [Task Finished] Transform to mem in 0.201541s (14232 normal rows, 10017 exceptions)
+[2022-02-21 20:19:19.917] [driver] [info] [Task Finished] Transform to mem in 0.199974s (14088 normal rows, 10027 exceptions)
+[2022-02-21 20:19:20.116] [driver] [info] [Task Finished] Transform to mem in 0.199039s (14106 normal rows, 9955 exceptions)
+[2022-02-21 20:19:20.316] [driver] [info] [Task Finished] Transform to mem in 0.199309s (14211 normal rows, 10043 exceptions)
+[2022-02-21 20:19:20.515] [driver] [info] [Task Finished] Transform to mem in 0.199543s (14113 normal rows, 9997 exceptions)
+[2022-02-21 20:19:20.715] [driver] [info] [Task Finished] Transform to mem in 0.200256s (14075 normal rows, 9965 exceptions)
+[2022-02-21 20:19:20.916] [driver] [info] [Task Finished] Transform to mem in 0.200268s (14223 normal rows, 10049 exceptions)
+[2022-02-21 20:19:21.115] [driver] [info] [Task Finished] Transform to mem in 0.199681s (14095 normal rows, 9995 exceptions)
+[2022-02-21 20:19:21.315] [driver] [info] [Task Finished] Transform to mem in 0.199744s (14086 normal rows, 9952 exceptions)
+[2022-02-21 20:19:21.515] [driver] [info] [Task Finished] Transform to mem in 0.199758s (14226 normal rows, 10069 exceptions)
+[2022-02-21 20:19:21.714] [driver] [info] [Task Finished] Transform to mem in 0.198787s (14170 normal rows, 9996 exceptions)
+[2022-02-21 20:19:21.913] [driver] [info] [Task Finished] Transform to mem in 0.198935s (14002 normal rows, 9931 exceptions)
+[2022-02-21 20:19:22.112] [driver] [info] [Task Finished] Transform to mem in 0.199386s (14226 normal rows, 10080 exceptions)
+[2022-02-21 20:19:22.312] [driver] [info] [Task Finished] Transform to mem in 0.199760s (14206 normal rows, 10014 exceptions)
+[2022-02-21 20:19:22.512] [driver] [info] [Task Finished] Transform to mem in 0.200052s (13970 normal rows, 9902 exceptions)
+[2022-02-21 20:19:22.712] [driver] [info] [Task Finished] Transform to mem in 0.199444s (14237 normal rows, 10084 exceptions)
+[2022-02-21 20:19:22.912] [driver] [info] [Task Finished] Transform to mem in 0.199629s (14233 normal rows, 10019 exceptions)
+[2022-02-21 20:19:23.110] [driver] [info] [Task Finished] Transform to mem in 0.198127s (13920 normal rows, 9892 exceptions)
+[2022-02-21 20:19:23.312] [driver] [info] [Task Finished] Transform to mem in 0.201612s (14267 normal rows, 10099 exceptions)
+[2022-02-21 20:19:23.511] [driver] [info] [Task Finished] Transform to mem in 0.199166s (14248 normal rows, 10030 exceptions)
+[2022-02-21 20:19:23.709] [driver] [info] [Task Finished] Transform to mem in 0.198381s (13912 normal rows, 9882 exceptions)
+[2022-02-21 20:19:23.909] [driver] [info] [Task Finished] Transform to mem in 0.199229s (14248 normal rows, 10094 exceptions)
+[2022-02-21 20:19:24.107] [driver] [info] [Task Finished] Transform to mem in 0.198726s (14237 normal rows, 10021 exceptions)
+[2022-02-21 20:19:24.305] [driver] [info] [Task Finished] Transform to mem in 0.197618s (13988 normal rows, 9922 exceptions)
+[2022-02-21 20:19:24.505] [driver] [info] [Task Finished] Transform to mem in 0.199571s (14171 normal rows, 10052 exceptions)
+[2022-02-21 20:19:24.703] [driver] [info] [Task Finished] Transform to mem in 0.197865s (14234 normal rows, 10024 exceptions)
+[2022-02-21 20:19:24.901] [driver] [info] [Task Finished] Transform to mem in 0.198742s (14015 normal rows, 9985 exceptions)
+[2022-02-21 20:19:25.101] [driver] [info] [Task Finished] Transform to mem in 0.199769s (14176 normal rows, 9997 exceptions)
+[2022-02-21 20:19:25.301] [driver] [info] [Task Finished] Transform to mem in 0.199332s (14246 normal rows, 10108 exceptions)
+[2022-02-21 20:19:25.500] [driver] [info] [Task Finished] Transform to mem in 0.199526s (14059 normal rows, 9978 exceptions)
+[2022-02-21 20:19:25.700] [driver] [info] [Task Finished] Transform to mem in 0.200219s (14114 normal rows, 10011 exceptions)
+[2022-02-21 20:19:25.898] [driver] [info] [Task Finished] Transform to mem in 0.197800s (14238 normal rows, 10007 exceptions)
+[2022-02-21 20:19:26.098] [driver] [info] [Task Finished] Transform to mem in 0.199411s (14081 normal rows, 10003 exceptions)
+[2022-02-21 20:19:26.296] [driver] [info] [Task Finished] Transform to mem in 0.198640s (14095 normal rows, 10024 exceptions)
+[2022-02-21 20:19:26.495] [driver] [info] [Task Finished] Transform to mem in 0.198903s (14221 normal rows, 9998 exceptions)
+[2022-02-21 20:19:26.693] [driver] [info] [Task Finished] Transform to mem in 0.197670s (14086 normal rows, 9998 exceptions)
+[2022-02-21 20:19:26.891] [driver] [info] [Task Finished] Transform to mem in 0.197847s (14091 normal rows, 10001 exceptions)
+[2022-02-21 20:19:27.089] [driver] [info] [Task Finished] Transform to mem in 0.198622s (14218 normal rows, 10016 exceptions)
+[2022-02-21 20:19:27.288] [driver] [info] [Task Finished] Transform to mem in 0.198050s (14095 normal rows, 10026 exceptions)
+[2022-02-21 20:19:27.486] [driver] [info] [Task Finished] Transform to mem in 0.198522s (14113 normal rows, 9960 exceptions)
+[2022-02-21 20:19:27.685] [driver] [info] [Task Finished] Transform to mem in 0.198889s (14197 normal rows, 10028 exceptions)
+[2022-02-21 20:19:27.883] [driver] [info] [Task Finished] Transform to mem in 0.197553s (14114 normal rows, 10012 exceptions)
+[2022-02-21 20:19:28.082] [driver] [info] [Task Finished] Transform to mem in 0.198283s (14094 normal rows, 9965 exceptions)
+[2022-02-21 20:19:28.281] [driver] [info] [Task Finished] Transform to mem in 0.199422s (14197 normal rows, 10033 exceptions)
+[2022-02-21 20:19:28.480] [driver] [info] [Task Finished] Transform to mem in 0.198675s (14115 normal rows, 10010 exceptions)
+[2022-02-21 20:19:28.678] [driver] [info] [Task Finished] Transform to mem in 0.198282s (14083 normal rows, 9953 exceptions)
+[2022-02-21 20:19:28.877] [driver] [info] [Task Finished] Transform to mem in 0.198757s (14235 normal rows, 10048 exceptions)
+[2022-02-21 20:19:29.076] [driver] [info] [Task Finished] Transform to mem in 0.198722s (14144 normal rows, 9995 exceptions)
+[2022-02-21 20:19:29.275] [driver] [info] [Task Finished] Transform to mem in 0.199317s (14015 normal rows, 9952 exceptions)
+[2022-02-21 20:19:29.474] [driver] [info] [Task Finished] Transform to mem in 0.198961s (14237 normal rows, 10069 exceptions)
+[2022-02-21 20:19:29.674] [driver] [info] [Task Finished] Transform to mem in 0.199474s (14159 normal rows, 9996 exceptions)
+[2022-02-21 20:19:29.873] [driver] [info] [Task Finished] Transform to mem in 0.198786s (14010 normal rows, 9932 exceptions)
+[2022-02-21 20:19:30.072] [driver] [info] [Task Finished] Transform to mem in 0.199623s (14246 normal rows, 10084 exceptions)
+[2022-02-21 20:19:30.272] [driver] [info] [Task Finished] Transform to mem in 0.199481s (14178 normal rows, 10009 exceptions)
+[2022-02-21 20:19:30.472] [driver] [info] [Task Finished] Transform to mem in 0.199849s (13970 normal rows, 9902 exceptions)
+[2022-02-21 20:19:30.672] [driver] [info] [Task Finished] Transform to mem in 0.200080s (14253 normal rows, 10088 exceptions)
+[2022-02-21 20:19:30.871] [driver] [info] [Task Finished] Transform to mem in 0.199042s (14236 normal rows, 10015 exceptions)
+[2022-02-21 20:19:31.070] [driver] [info] [Task Finished] Transform to mem in 0.198801s (13901 normal rows, 9892 exceptions)
+[2022-02-21 20:19:31.269] [driver] [info] [Task Finished] Transform to mem in 0.199114s (14267 normal rows, 10106 exceptions)
+[2022-02-21 20:19:31.469] [driver] [info] [Task Finished] Transform to mem in 0.199744s (14248 normal rows, 10023 exceptions)
+[2022-02-21 20:19:31.667] [driver] [info] [Task Finished] Transform to mem in 0.198837s (13953 normal rows, 9885 exceptions)
+[2022-02-21 20:19:31.867] [driver] [info] [Task Finished] Transform to mem in 0.199441s (14207 normal rows, 10091 exceptions)
+[2022-02-21 20:19:32.066] [driver] [info] [Task Finished] Transform to mem in 0.198903s (14245 normal rows, 10024 exceptions)
+[2022-02-21 20:19:32.264] [driver] [info] [Task Finished] Transform to mem in 0.198489s (13999 normal rows, 9935 exceptions)
+[2022-02-21 20:19:32.464] [driver] [info] [Task Finished] Transform to mem in 0.200089s (14158 normal rows, 10036 exceptions)
+[2022-02-21 20:19:32.664] [driver] [info] [Task Finished] Transform to mem in 0.199205s (14242 normal rows, 10080 exceptions)
+[2022-02-21 20:19:32.863] [driver] [info] [Task Finished] Transform to mem in 0.198967s (14020 normal rows, 9989 exceptions)
+[2022-02-21 20:19:33.062] [driver] [info] [Task Finished] Transform to mem in 0.199060s (14173 normal rows, 10004 exceptions)
+[2022-02-21 20:19:33.262] [driver] [info] [Task Finished] Transform to mem in 0.199359s (14235 normal rows, 10041 exceptions)
+[2022-02-21 20:19:33.461] [driver] [info] [Task Finished] Transform to mem in 0.199042s (14054 normal rows, 9985 exceptions)
+[2022-02-21 20:19:33.661] [driver] [info] [Task Finished] Transform to mem in 0.199683s (14114 normal rows, 10004 exceptions)
+[2022-02-21 20:19:33.860] [driver] [info] [Task Finished] Transform to mem in 0.199114s (14238 normal rows, 10033 exceptions)
+[2022-02-21 20:19:34.059] [driver] [info] [Task Finished] Transform to mem in 0.198987s (14081 normal rows, 9992 exceptions)
+[2022-02-21 20:19:34.258] [driver] [info] [Task Finished] Transform to mem in 0.199631s (14095 normal rows, 10009 exceptions)
+[2022-02-21 20:19:34.460] [driver] [info] [Task Finished] Transform to mem in 0.201498s (14221 normal rows, 10009 exceptions)
+[2022-02-21 20:19:34.658] [driver] [info] [Task Finished] Transform to mem in 0.198259s (14089 normal rows, 9995 exceptions)
+[2022-02-21 20:19:34.857] [driver] [info] [Task Finished] Transform to mem in 0.199084s (14094 normal rows, 9996 exceptions)
+[2022-02-21 20:19:35.056] [driver] [info] [Task Finished] Transform to mem in 0.198635s (14212 normal rows, 10017 exceptions)
+[2022-02-21 20:19:35.254] [driver] [info] [Task Finished] Transform to mem in 0.197977s (14108 normal rows, 10027 exceptions)
+[2022-02-21 20:19:35.451] [driver] [info] [Task Finished] Transform to mem in 0.197534s (14100 normal rows, 9955 exceptions)
+[2022-02-21 20:19:35.649] [driver] [info] [Task Finished] Transform to mem in 0.197662s (14217 normal rows, 10042 exceptions)
+[2022-02-21 20:19:35.845] [driver] [info] [Task Finished] Transform to mem in 0.196257s (14094 normal rows, 9998 exceptions)
+[2022-02-21 20:19:36.045] [driver] [info] [Task Finished] Transform to mem in 0.199624s (14094 normal rows, 9965 exceptions)
+[2022-02-21 20:19:36.241] [driver] [info] [Task Finished] Transform to mem in 0.196302s (14223 normal rows, 10048 exceptions)
+[2022-02-21 20:19:36.440] [driver] [info] [Task Finished] Transform to mem in 0.198526s (14089 normal rows, 9995 exceptions)
+[2022-02-21 20:19:36.638] [driver] [info] [Task Finished] Transform to mem in 0.198014s (14086 normal rows, 9953 exceptions)
+[2022-02-21 20:19:36.837] [driver] [info] [Task Finished] Transform to mem in 0.198455s (14232 normal rows, 10069 exceptions)
+[2022-02-21 20:19:37.035] [driver] [info] [Task Finished] Transform to mem in 0.198255s (14170 normal rows, 9995 exceptions)
+[2022-02-21 20:19:37.233] [driver] [info] [Task Finished] Transform to mem in 0.197907s (14002 normal rows, 9932 exceptions)
+[2022-02-21 20:19:37.431] [driver] [info] [Task Finished] Transform to mem in 0.198013s (14226 normal rows, 10080 exceptions)
+[2022-02-21 20:19:37.630] [driver] [info] [Task Finished] Transform to mem in 0.199111s (14206 normal rows, 10009 exceptions)
+[2022-02-21 20:19:37.828] [driver] [info] [Task Finished] Transform to mem in 0.198479s (13961 normal rows, 9907 exceptions)
+[2022-02-21 20:19:38.027] [driver] [info] [Task Finished] Transform to mem in 0.198330s (14246 normal rows, 10084 exceptions)
+[2022-02-21 20:19:38.225] [driver] [info] [Task Finished] Transform to mem in 0.198381s (14233 normal rows, 10019 exceptions)
+[2022-02-21 20:19:38.458] [driver] [info] [Task Finished] Transform to mem in 0.231038s (16320 normal rows, 11605 exceptions)
+[2022-02-21 20:19:38.458] [global] [info] [Transform Stage] Stage 0 completed 160 load&transform tasks in 32.0733s
+[2022-02-21 20:19:38.458] [global] [info] [Transform Stage] Stage 0 total wall clock time: 32.0601s, 54108450 input rows, time to process 1 row via fast path: 0.000592515ms
+[2022-02-21 20:19:38.458] [global] [info] Exception details: 
 +------------+-------------------------------------+---------+
 | OperatorID | Exception                           | Count   |
 +------------+-------------------------------------+---------+
 | 100000     | tuplex.internal.BadParseStringInput | 1602590 |
 +------------+-------------------------------------+---------+
-[2022-02-20 01:30:34.729] [local ee] [info] compiled pure python pipeline in 0.003853s
-[2022-02-20 01:30:34.729] [local ee] [info] creating hybrid intermediates took 0.000004s
-[2022-02-20 01:30:34.730] [local ee] [info] Created 160 resolve tasks in 0.001205s
-[2022-02-20 01:30:34.730] [local ee] [info] 160/160 tasks require executing the slow path.
-[2022-02-20 01:30:34.737] [driver] [info] [Task Finished] Resolve in 0.006384s
-[2022-02-20 01:30:34.743] [driver] [info] [Task Finished] Resolve in 0.006629s
-[2022-02-20 01:30:34.750] [driver] [info] [Task Finished] Resolve in 0.006388s
-[2022-02-20 01:30:34.756] [driver] [info] [Task Finished] Resolve in 0.006543s
-[2022-02-20 01:30:34.763] [driver] [info] [Task Finished] Resolve in 0.006640s
-[2022-02-20 01:30:34.769] [driver] [info] [Task Finished] Resolve in 0.006371s
-[2022-02-20 01:30:34.776] [driver] [info] [Task Finished] Resolve in 0.006459s
-[2022-02-20 01:30:34.782] [driver] [info] [Task Finished] Resolve in 0.006525s
-[2022-02-20 01:30:34.789] [driver] [info] [Task Finished] Resolve in 0.006384s
-[2022-02-20 01:30:34.795] [driver] [info] [Task Finished] Resolve in 0.006479s
-[2022-02-20 01:30:34.802] [driver] [info] [Task Finished] Resolve in 0.006478s
-[2022-02-20 01:30:34.808] [driver] [info] [Task Finished] Resolve in 0.006378s
-[2022-02-20 01:30:34.814] [driver] [info] [Task Finished] Resolve in 0.006513s
-[2022-02-20 01:30:34.821] [driver] [info] [Task Finished] Resolve in 0.006484s
-[2022-02-20 01:30:34.827] [driver] [info] [Task Finished] Resolve in 0.006360s
-[2022-02-20 01:30:34.834] [driver] [info] [Task Finished] Resolve in 0.006574s
-[2022-02-20 01:30:34.840] [driver] [info] [Task Finished] Resolve in 0.006521s
-[2022-02-20 01:30:34.847] [driver] [info] [Task Finished] Resolve in 0.006375s
-[2022-02-20 01:30:34.853] [driver] [info] [Task Finished] Resolve in 0.006574s
-[2022-02-20 01:30:34.860] [driver] [info] [Task Finished] Resolve in 0.006535s
-[2022-02-20 01:30:34.866] [driver] [info] [Task Finished] Resolve in 0.006514s
-[2022-02-20 01:30:34.873] [driver] [info] [Task Finished] Resolve in 0.006566s
-[2022-02-20 01:30:34.880] [driver] [info] [Task Finished] Resolve in 0.006502s
-[2022-02-20 01:30:34.886] [driver] [info] [Task Finished] Resolve in 0.006358s
-[2022-02-20 01:30:34.893] [driver] [info] [Task Finished] Resolve in 0.006564s
-[2022-02-20 01:30:34.899] [driver] [info] [Task Finished] Resolve in 0.006499s
-[2022-02-20 01:30:34.905] [driver] [info] [Task Finished] Resolve in 0.006367s
-[2022-02-20 01:30:34.912] [driver] [info] [Task Finished] Resolve in 0.006485s
-[2022-02-20 01:30:34.918] [driver] [info] [Task Finished] Resolve in 0.006450s
-[2022-02-20 01:30:34.925] [driver] [info] [Task Finished] Resolve in 0.006424s
-[2022-02-20 01:30:34.931] [driver] [info] [Task Finished] Resolve in 0.006455s
-[2022-02-20 01:30:34.938] [driver] [info] [Task Finished] Resolve in 0.006428s
-[2022-02-20 01:30:34.944] [driver] [info] [Task Finished] Resolve in 0.006529s
-[2022-02-20 01:30:34.951] [driver] [info] [Task Finished] Resolve in 0.006434s
-[2022-02-20 01:30:34.957] [driver] [info] [Task Finished] Resolve in 0.006426s
-[2022-02-20 01:30:34.964] [driver] [info] [Task Finished] Resolve in 0.006613s
-[2022-02-20 01:30:34.970] [driver] [info] [Task Finished] Resolve in 0.006399s
-[2022-02-20 01:30:34.977] [driver] [info] [Task Finished] Resolve in 0.006584s
-[2022-02-20 01:30:34.983] [driver] [info] [Task Finished] Resolve in 0.006629s
-[2022-02-20 01:30:34.990] [driver] [info] [Task Finished] Resolve in 0.006380s
-[2022-02-20 01:30:34.996] [driver] [info] [Task Finished] Resolve in 0.006450s
-[2022-02-20 01:30:35.003] [driver] [info] [Task Finished] Resolve in 0.006627s
-[2022-02-20 01:30:35.009] [driver] [info] [Task Finished] Resolve in 0.006363s
-[2022-02-20 01:30:35.016] [driver] [info] [Task Finished] Resolve in 0.006444s
-[2022-02-20 01:30:35.022] [driver] [info] [Task Finished] Resolve in 0.006566s
-[2022-02-20 01:30:35.029] [driver] [info] [Task Finished] Resolve in 0.006354s
-[2022-02-20 01:30:35.035] [driver] [info] [Task Finished] Resolve in 0.006493s
-[2022-02-20 01:30:35.042] [driver] [info] [Task Finished] Resolve in 0.006625s
-[2022-02-20 01:30:35.048] [driver] [info] [Task Finished] Resolve in 0.006389s
-[2022-02-20 01:30:35.055] [driver] [info] [Task Finished] Resolve in 0.006481s
-[2022-02-20 01:30:35.061] [driver] [info] [Task Finished] Resolve in 0.006488s
-[2022-02-20 01:30:35.068] [driver] [info] [Task Finished] Resolve in 0.006393s
-[2022-02-20 01:30:35.074] [driver] [info] [Task Finished] Resolve in 0.006534s
-[2022-02-20 01:30:35.081] [driver] [info] [Task Finished] Resolve in 0.006542s
-[2022-02-20 01:30:35.087] [driver] [info] [Task Finished] Resolve in 0.006473s
-[2022-02-20 01:30:35.094] [driver] [info] [Task Finished] Resolve in 0.006590s
-[2022-02-20 01:30:35.100] [driver] [info] [Task Finished] Resolve in 0.006499s
-[2022-02-20 01:30:35.107] [driver] [info] [Task Finished] Resolve in 0.006361s
-[2022-02-20 01:30:35.113] [driver] [info] [Task Finished] Resolve in 0.006575s
-[2022-02-20 01:30:35.120] [driver] [info] [Task Finished] Resolve in 0.006496s
-[2022-02-20 01:30:35.126] [driver] [info] [Task Finished] Resolve in 0.006391s
-[2022-02-20 01:30:35.133] [driver] [info] [Task Finished] Resolve in 0.006608s
-[2022-02-20 01:30:35.139] [driver] [info] [Task Finished] Resolve in 0.006503s
-[2022-02-20 01:30:35.146] [driver] [info] [Task Finished] Resolve in 0.006415s
-[2022-02-20 01:30:35.152] [driver] [info] [Task Finished] Resolve in 0.006538s
-[2022-02-20 01:30:35.159] [driver] [info] [Task Finished] Resolve in 0.006476s
-[2022-02-20 01:30:35.165] [driver] [info] [Task Finished] Resolve in 0.006368s
-[2022-02-20 01:30:35.172] [driver] [info] [Task Finished] Resolve in 0.006467s
-[2022-02-20 01:30:35.178] [driver] [info] [Task Finished] Resolve in 0.006455s
-[2022-02-20 01:30:35.185] [driver] [info] [Task Finished] Resolve in 0.006471s
-[2022-02-20 01:30:35.191] [driver] [info] [Task Finished] Resolve in 0.006445s
-[2022-02-20 01:30:35.198] [driver] [info] [Task Finished] Resolve in 0.006516s
-[2022-02-20 01:30:35.204] [driver] [info] [Task Finished] Resolve in 0.006536s
-[2022-02-20 01:30:35.211] [driver] [info] [Task Finished] Resolve in 0.006434s
-[2022-02-20 01:30:35.217] [driver] [info] [Task Finished] Resolve in 0.006408s
-[2022-02-20 01:30:35.224] [driver] [info] [Task Finished] Resolve in 0.006610s
-[2022-02-20 01:30:35.230] [driver] [info] [Task Finished] Resolve in 0.006385s
-[2022-02-20 01:30:35.237] [driver] [info] [Task Finished] Resolve in 0.006454s
-[2022-02-20 01:30:35.243] [driver] [info] [Task Finished] Resolve in 0.006613s
-[2022-02-20 01:30:35.250] [driver] [info] [Task Finished] Resolve in 0.006417s
-[2022-02-20 01:30:35.256] [driver] [info] [Task Finished] Resolve in 0.006443s
-[2022-02-20 01:30:35.263] [driver] [info] [Task Finished] Resolve in 0.006608s
-[2022-02-20 01:30:35.269] [driver] [info] [Task Finished] Resolve in 0.006366s
-[2022-02-20 01:30:35.276] [driver] [info] [Task Finished] Resolve in 0.006457s
-[2022-02-20 01:30:35.282] [driver] [info] [Task Finished] Resolve in 0.006517s
-[2022-02-20 01:30:35.288] [driver] [info] [Task Finished] Resolve in 0.006365s
-[2022-02-20 01:30:35.295] [driver] [info] [Task Finished] Resolve in 0.006489s
-[2022-02-20 01:30:35.301] [driver] [info] [Task Finished] Resolve in 0.006472s
-[2022-02-20 01:30:35.308] [driver] [info] [Task Finished] Resolve in 0.006451s
-[2022-02-20 01:30:35.314] [driver] [info] [Task Finished] Resolve in 0.006502s
-[2022-02-20 01:30:35.321] [driver] [info] [Task Finished] Resolve in 0.006496s
-[2022-02-20 01:30:35.327] [driver] [info] [Task Finished] Resolve in 0.006367s
-[2022-02-20 01:30:35.334] [driver] [info] [Task Finished] Resolve in 0.006591s
-[2022-02-20 01:30:35.340] [driver] [info] [Task Finished] Resolve in 0.006525s
-[2022-02-20 01:30:35.347] [driver] [info] [Task Finished] Resolve in 0.006363s
-[2022-02-20 01:30:35.353] [driver] [info] [Task Finished] Resolve in 0.006565s
-[2022-02-20 01:30:35.360] [driver] [info] [Task Finished] Resolve in 0.006558s
-[2022-02-20 01:30:35.366] [driver] [info] [Task Finished] Resolve in 0.006356s
-[2022-02-20 01:30:35.373] [driver] [info] [Task Finished] Resolve in 0.006581s
-[2022-02-20 01:30:35.379] [driver] [info] [Task Finished] Resolve in 0.006536s
-[2022-02-20 01:30:35.386] [driver] [info] [Task Finished] Resolve in 0.006462s
-[2022-02-20 01:30:35.392] [driver] [info] [Task Finished] Resolve in 0.006564s
-[2022-02-20 01:30:35.399] [driver] [info] [Task Finished] Resolve in 0.006502s
-[2022-02-20 01:30:35.405] [driver] [info] [Task Finished] Resolve in 0.006376s
-[2022-02-20 01:30:35.412] [driver] [info] [Task Finished] Resolve in 0.006496s
-[2022-02-20 01:30:35.418] [driver] [info] [Task Finished] Resolve in 0.006455s
-[2022-02-20 01:30:35.425] [driver] [info] [Task Finished] Resolve in 0.006445s
-[2022-02-20 01:30:35.431] [driver] [info] [Task Finished] Resolve in 0.006463s
-[2022-02-20 01:30:35.438] [driver] [info] [Task Finished] Resolve in 0.006428s
-[2022-02-20 01:30:35.444] [driver] [info] [Task Finished] Resolve in 0.006530s
-[2022-02-20 01:30:35.451] [driver] [info] [Task Finished] Resolve in 0.006437s
-[2022-02-20 01:30:35.457] [driver] [info] [Task Finished] Resolve in 0.006434s
-[2022-02-20 01:30:35.464] [driver] [info] [Task Finished] Resolve in 0.006625s
-[2022-02-20 01:30:35.470] [driver] [info] [Task Finished] Resolve in 0.006535s
-[2022-02-20 01:30:35.477] [driver] [info] [Task Finished] Resolve in 0.006440s
-[2022-02-20 01:30:35.483] [driver] [info] [Task Finished] Resolve in 0.006613s
-[2022-02-20 01:30:35.490] [driver] [info] [Task Finished] Resolve in 0.006399s
-[2022-02-20 01:30:35.496] [driver] [info] [Task Finished] Resolve in 0.006455s
-[2022-02-20 01:30:35.503] [driver] [info] [Task Finished] Resolve in 0.006609s
-[2022-02-20 01:30:35.509] [driver] [info] [Task Finished] Resolve in 0.006383s
-[2022-02-20 01:30:35.516] [driver] [info] [Task Finished] Resolve in 0.006463s
-[2022-02-20 01:30:35.522] [driver] [info] [Task Finished] Resolve in 0.006567s
-[2022-02-20 01:30:35.529] [driver] [info] [Task Finished] Resolve in 0.006362s
-[2022-02-20 01:30:35.535] [driver] [info] [Task Finished] Resolve in 0.006459s
-[2022-02-20 01:30:35.542] [driver] [info] [Task Finished] Resolve in 0.006496s
-[2022-02-20 01:30:35.548] [driver] [info] [Task Finished] Resolve in 0.006368s
-[2022-02-20 01:30:35.555] [driver] [info] [Task Finished] Resolve in 0.006525s
-[2022-02-20 01:30:35.561] [driver] [info] [Task Finished] Resolve in 0.006483s
-[2022-02-20 01:30:35.568] [driver] [info] [Task Finished] Resolve in 0.006362s
-[2022-02-20 01:30:35.574] [driver] [info] [Task Finished] Resolve in 0.006551s
-[2022-02-20 01:30:35.581] [driver] [info] [Task Finished] Resolve in 0.006658s
-[2022-02-20 01:30:35.587] [driver] [info] [Task Finished] Resolve in 0.006376s
-[2022-02-20 01:30:35.594] [driver] [info] [Task Finished] Resolve in 0.006583s
-[2022-02-20 01:30:35.600] [driver] [info] [Task Finished] Resolve in 0.006504s
-[2022-02-20 01:30:35.607] [driver] [info] [Task Finished] Resolve in 0.006401s
-[2022-02-20 01:30:35.613] [driver] [info] [Task Finished] Resolve in 0.006571s
-[2022-02-20 01:30:35.620] [driver] [info] [Task Finished] Resolve in 0.006510s
-[2022-02-20 01:30:35.626] [driver] [info] [Task Finished] Resolve in 0.006362s
-[2022-02-20 01:30:35.633] [driver] [info] [Task Finished] Resolve in 0.006585s
-[2022-02-20 01:30:35.639] [driver] [info] [Task Finished] Resolve in 0.006503s
-[2022-02-20 01:30:35.646] [driver] [info] [Task Finished] Resolve in 0.006369s
-[2022-02-20 01:30:35.652] [driver] [info] [Task Finished] Resolve in 0.006514s
-[2022-02-20 01:30:35.659] [driver] [info] [Task Finished] Resolve in 0.006465s
-[2022-02-20 01:30:35.665] [driver] [info] [Task Finished] Resolve in 0.006436s
-[2022-02-20 01:30:35.672] [driver] [info] [Task Finished] Resolve in 0.006474s
-[2022-02-20 01:30:35.678] [driver] [info] [Task Finished] Resolve in 0.006443s
-[2022-02-20 01:30:35.685] [driver] [info] [Task Finished] Resolve in 0.006477s
-[2022-02-20 01:30:35.691] [driver] [info] [Task Finished] Resolve in 0.006605s
-[2022-02-20 01:30:35.698] [driver] [info] [Task Finished] Resolve in 0.006427s
-[2022-02-20 01:30:35.704] [driver] [info] [Task Finished] Resolve in 0.006568s
-[2022-02-20 01:30:35.711] [driver] [info] [Task Finished] Resolve in 0.006432s
-[2022-02-20 01:30:35.717] [driver] [info] [Task Finished] Resolve in 0.006412s
-[2022-02-20 01:30:35.724] [driver] [info] [Task Finished] Resolve in 0.006610s
-[2022-02-20 01:30:35.730] [driver] [info] [Task Finished] Resolve in 0.006383s
-[2022-02-20 01:30:35.737] [driver] [info] [Task Finished] Resolve in 0.006441s
-[2022-02-20 01:30:35.743] [driver] [info] [Task Finished] Resolve in 0.006615s
-[2022-02-20 01:30:35.750] [driver] [info] [Task Finished] Resolve in 0.006375s
-[2022-02-20 01:30:35.756] [driver] [info] [Task Finished] Resolve in 0.006449s
-[2022-02-20 01:30:35.763] [driver] [info] [Task Finished] Resolve in 0.006609s
-[2022-02-20 01:30:35.770] [driver] [info] [Task Finished] Resolve in 0.007427s
-[2022-02-20 01:30:35.770] [local ee] [info] slow path resolved 1602590/1602590 exceptions in 1.04531s
-[2022-02-20 01:30:35.770] [local ee] [info] slow path for Stage 0: total wall clock time: 1.03793s, time to process 1 row via slow path: 0.000647661ms
-[2022-02-20 01:30:35.770] [global] [info] [Transform Stage] Stage 0 completed 160 resolve tasks in 1.04534s
+[2022-02-21 20:19:38.461] [local ee] [info] compiled pure python pipeline in 0.002812s
+[2022-02-21 20:19:38.461] [local ee] [info] creating hybrid intermediates took 0.000003s
+[2022-02-21 20:19:38.462] [local ee] [info] Created 160 resolve tasks in 0.000907s
+[2022-02-21 20:19:38.462] [local ee] [info] 160/160 tasks require executing the slow path.
+[2022-02-21 20:19:38.466] [driver] [info] [Task Finished] Resolve in 0.004225s
+[2022-02-21 20:19:38.470] [driver] [info] [Task Finished] Resolve in 0.004263s
+[2022-02-21 20:19:38.474] [driver] [info] [Task Finished] Resolve in 0.004294s
+[2022-02-21 20:19:38.479] [driver] [info] [Task Finished] Resolve in 0.004217s
+[2022-02-21 20:19:38.483] [driver] [info] [Task Finished] Resolve in 0.004386s
+[2022-02-21 20:19:38.487] [driver] [info] [Task Finished] Resolve in 0.004090s
+[2022-02-21 20:19:38.491] [driver] [info] [Task Finished] Resolve in 0.004126s
+[2022-02-21 20:19:38.496] [driver] [info] [Task Finished] Resolve in 0.004289s
+[2022-02-21 20:19:38.500] [driver] [info] [Task Finished] Resolve in 0.004270s
+[2022-02-21 20:19:38.504] [driver] [info] [Task Finished] Resolve in 0.004173s
+[2022-02-21 20:19:38.508] [driver] [info] [Task Finished] Resolve in 0.004173s
+[2022-02-21 20:19:38.512] [driver] [info] [Task Finished] Resolve in 0.004143s
+[2022-02-21 20:19:38.516] [driver] [info] [Task Finished] Resolve in 0.004110s
+[2022-02-21 20:19:38.521] [driver] [info] [Task Finished] Resolve in 0.004197s
+[2022-02-21 20:19:38.525] [driver] [info] [Task Finished] Resolve in 0.004062s
+[2022-02-21 20:19:38.529] [driver] [info] [Task Finished] Resolve in 0.004263s
+[2022-02-21 20:19:38.533] [driver] [info] [Task Finished] Resolve in 0.004286s
+[2022-02-21 20:19:38.537] [driver] [info] [Task Finished] Resolve in 0.004128s
+[2022-02-21 20:19:38.542] [driver] [info] [Task Finished] Resolve in 0.004212s
+[2022-02-21 20:19:38.546] [driver] [info] [Task Finished] Resolve in 0.004184s
+[2022-02-21 20:19:38.550] [driver] [info] [Task Finished] Resolve in 0.004101s
+[2022-02-21 20:19:38.554] [driver] [info] [Task Finished] Resolve in 0.004068s
+[2022-02-21 20:19:38.558] [driver] [info] [Task Finished] Resolve in 0.004079s
+[2022-02-21 20:19:38.562] [driver] [info] [Task Finished] Resolve in 0.004071s
+[2022-02-21 20:19:38.566] [driver] [info] [Task Finished] Resolve in 0.004179s
+[2022-02-21 20:19:38.570] [driver] [info] [Task Finished] Resolve in 0.004085s
+[2022-02-21 20:19:38.575] [driver] [info] [Task Finished] Resolve in 0.004110s
+[2022-02-21 20:19:38.579] [driver] [info] [Task Finished] Resolve in 0.004136s
+[2022-02-21 20:19:38.583] [driver] [info] [Task Finished] Resolve in 0.004357s
+[2022-02-21 20:19:38.587] [driver] [info] [Task Finished] Resolve in 0.004140s
+[2022-02-21 20:19:38.591] [driver] [info] [Task Finished] Resolve in 0.004190s
+[2022-02-21 20:19:38.596] [driver] [info] [Task Finished] Resolve in 0.004165s
+[2022-02-21 20:19:38.600] [driver] [info] [Task Finished] Resolve in 0.004089s
+[2022-02-21 20:19:38.604] [driver] [info] [Task Finished] Resolve in 0.004138s
+[2022-02-21 20:19:38.608] [driver] [info] [Task Finished] Resolve in 0.004177s
+[2022-02-21 20:19:38.612] [driver] [info] [Task Finished] Resolve in 0.004216s
+[2022-02-21 20:19:38.616] [driver] [info] [Task Finished] Resolve in 0.004102s
+[2022-02-21 20:19:38.621] [driver] [info] [Task Finished] Resolve in 0.004165s
+[2022-02-21 20:19:38.625] [driver] [info] [Task Finished] Resolve in 0.004198s
+[2022-02-21 20:19:38.629] [driver] [info] [Task Finished] Resolve in 0.004193s
+[2022-02-21 20:19:38.633] [driver] [info] [Task Finished] Resolve in 0.004246s
+[2022-02-21 20:19:38.637] [driver] [info] [Task Finished] Resolve in 0.004287s
+[2022-02-21 20:19:38.642] [driver] [info] [Task Finished] Resolve in 0.004128s
+[2022-02-21 20:19:38.646] [driver] [info] [Task Finished] Resolve in 0.004134s
+[2022-02-21 20:19:38.650] [driver] [info] [Task Finished] Resolve in 0.004242s
+[2022-02-21 20:19:38.654] [driver] [info] [Task Finished] Resolve in 0.004073s
+[2022-02-21 20:19:38.658] [driver] [info] [Task Finished] Resolve in 0.004231s
+[2022-02-21 20:19:38.663] [driver] [info] [Task Finished] Resolve in 0.004205s
+[2022-02-21 20:19:38.667] [driver] [info] [Task Finished] Resolve in 0.004171s
+[2022-02-21 20:19:38.671] [driver] [info] [Task Finished] Resolve in 0.004151s
+[2022-02-21 20:19:38.675] [driver] [info] [Task Finished] Resolve in 0.004170s
+[2022-02-21 20:19:38.679] [driver] [info] [Task Finished] Resolve in 0.004090s
+[2022-02-21 20:19:38.683] [driver] [info] [Task Finished] Resolve in 0.004107s
+[2022-02-21 20:19:38.687] [driver] [info] [Task Finished] Resolve in 0.004212s
+[2022-02-21 20:19:38.692] [driver] [info] [Task Finished] Resolve in 0.004105s
+[2022-02-21 20:19:38.696] [driver] [info] [Task Finished] Resolve in 0.004192s
+[2022-02-21 20:19:38.700] [driver] [info] [Task Finished] Resolve in 0.004240s
+[2022-02-21 20:19:38.704] [driver] [info] [Task Finished] Resolve in 0.004163s
+[2022-02-21 20:19:38.708] [driver] [info] [Task Finished] Resolve in 0.004257s
+[2022-02-21 20:19:38.713] [driver] [info] [Task Finished] Resolve in 0.004130s
+[2022-02-21 20:19:38.717] [driver] [info] [Task Finished] Resolve in 0.004092s
+[2022-02-21 20:19:38.721] [driver] [info] [Task Finished] Resolve in 0.004145s
+[2022-02-21 20:19:38.725] [driver] [info] [Task Finished] Resolve in 0.004204s
+[2022-02-21 20:19:38.729] [driver] [info] [Task Finished] Resolve in 0.004168s
+[2022-02-21 20:19:38.733] [driver] [info] [Task Finished] Resolve in 0.004224s
+[2022-02-21 20:19:38.738] [driver] [info] [Task Finished] Resolve in 0.004106s
+[2022-02-21 20:19:38.742] [driver] [info] [Task Finished] Resolve in 0.004134s
+[2022-02-21 20:19:38.746] [driver] [info] [Task Finished] Resolve in 0.004152s
+[2022-02-21 20:19:38.750] [driver] [info] [Task Finished] Resolve in 0.004169s
+[2022-02-21 20:19:38.754] [driver] [info] [Task Finished] Resolve in 0.004109s
+[2022-02-21 20:19:38.758] [driver] [info] [Task Finished] Resolve in 0.004121s
+[2022-02-21 20:19:38.762] [driver] [info] [Task Finished] Resolve in 0.004142s
+[2022-02-21 20:19:38.767] [driver] [info] [Task Finished] Resolve in 0.004241s
+[2022-02-21 20:19:38.771] [driver] [info] [Task Finished] Resolve in 0.004115s
+[2022-02-21 20:19:38.775] [driver] [info] [Task Finished] Resolve in 0.004178s
+[2022-02-21 20:19:38.779] [driver] [info] [Task Finished] Resolve in 0.004082s
+[2022-02-21 20:19:38.783] [driver] [info] [Task Finished] Resolve in 0.004060s
+[2022-02-21 20:19:38.787] [driver] [info] [Task Finished] Resolve in 0.004206s
+[2022-02-21 20:19:38.792] [driver] [info] [Task Finished] Resolve in 0.004146s
+[2022-02-21 20:19:38.796] [driver] [info] [Task Finished] Resolve in 0.004071s
+[2022-02-21 20:19:38.800] [driver] [info] [Task Finished] Resolve in 0.004364s
+[2022-02-21 20:19:38.804] [driver] [info] [Task Finished] Resolve in 0.004213s
+[2022-02-21 20:19:38.809] [driver] [info] [Task Finished] Resolve in 0.004364s
+[2022-02-21 20:19:38.813] [driver] [info] [Task Finished] Resolve in 0.004213s
+[2022-02-21 20:19:38.817] [driver] [info] [Task Finished] Resolve in 0.004234s
+[2022-02-21 20:19:38.821] [driver] [info] [Task Finished] Resolve in 0.004138s
+[2022-02-21 20:19:38.825] [driver] [info] [Task Finished] Resolve in 0.004229s
+[2022-02-21 20:19:38.830] [driver] [info] [Task Finished] Resolve in 0.004164s
+[2022-02-21 20:19:38.834] [driver] [info] [Task Finished] Resolve in 0.004211s
+[2022-02-21 20:19:38.838] [driver] [info] [Task Finished] Resolve in 0.004157s
+[2022-02-21 20:19:38.842] [driver] [info] [Task Finished] Resolve in 0.004230s
+[2022-02-21 20:19:38.846] [driver] [info] [Task Finished] Resolve in 0.004193s
+[2022-02-21 20:19:38.851] [driver] [info] [Task Finished] Resolve in 0.004216s
+[2022-02-21 20:19:38.855] [driver] [info] [Task Finished] Resolve in 0.004211s
+[2022-02-21 20:19:38.859] [driver] [info] [Task Finished] Resolve in 0.004128s
+[2022-02-21 20:19:38.863] [driver] [info] [Task Finished] Resolve in 0.004282s
+[2022-02-21 20:19:38.868] [driver] [info] [Task Finished] Resolve in 0.004338s
+[2022-02-21 20:19:38.872] [driver] [info] [Task Finished] Resolve in 0.004225s
+[2022-02-21 20:19:38.876] [driver] [info] [Task Finished] Resolve in 0.004180s
+[2022-02-21 20:19:38.880] [driver] [info] [Task Finished] Resolve in 0.004185s
+[2022-02-21 20:19:38.885] [driver] [info] [Task Finished] Resolve in 0.004289s
+[2022-02-21 20:19:38.889] [driver] [info] [Task Finished] Resolve in 0.004112s
+[2022-02-21 20:19:38.893] [driver] [info] [Task Finished] Resolve in 0.004244s
+[2022-02-21 20:19:38.897] [driver] [info] [Task Finished] Resolve in 0.004363s
+[2022-02-21 20:19:38.902] [driver] [info] [Task Finished] Resolve in 0.004347s
+[2022-02-21 20:19:38.906] [driver] [info] [Task Finished] Resolve in 0.004233s
+[2022-02-21 20:19:38.910] [driver] [info] [Task Finished] Resolve in 0.004215s
+[2022-02-21 20:19:38.914] [driver] [info] [Task Finished] Resolve in 0.004190s
+[2022-02-21 20:19:38.918] [driver] [info] [Task Finished] Resolve in 0.004190s
+[2022-02-21 20:19:38.923] [driver] [info] [Task Finished] Resolve in 0.004172s
+[2022-02-21 20:19:38.927] [driver] [info] [Task Finished] Resolve in 0.004194s
+[2022-02-21 20:19:38.931] [driver] [info] [Task Finished] Resolve in 0.004206s
+[2022-02-21 20:19:38.935] [driver] [info] [Task Finished] Resolve in 0.004189s
+[2022-02-21 20:19:38.939] [driver] [info] [Task Finished] Resolve in 0.004126s
+[2022-02-21 20:19:38.944] [driver] [info] [Task Finished] Resolve in 0.004233s
+[2022-02-21 20:19:38.948] [driver] [info] [Task Finished] Resolve in 0.004180s
+[2022-02-21 20:19:38.952] [driver] [info] [Task Finished] Resolve in 0.004158s
+[2022-02-21 20:19:38.956] [driver] [info] [Task Finished] Resolve in 0.004206s
+[2022-02-21 20:19:38.960] [driver] [info] [Task Finished] Resolve in 0.004205s
+[2022-02-21 20:19:38.965] [driver] [info] [Task Finished] Resolve in 0.004171s
+[2022-02-21 20:19:38.969] [driver] [info] [Task Finished] Resolve in 0.004307s
+[2022-02-21 20:19:38.973] [driver] [info] [Task Finished] Resolve in 0.004280s
+[2022-02-21 20:19:38.977] [driver] [info] [Task Finished] Resolve in 0.004076s
+[2022-02-21 20:19:38.981] [driver] [info] [Task Finished] Resolve in 0.004215s
+[2022-02-21 20:19:38.986] [driver] [info] [Task Finished] Resolve in 0.004225s
+[2022-02-21 20:19:38.990] [driver] [info] [Task Finished] Resolve in 0.004303s
+[2022-02-21 20:19:38.994] [driver] [info] [Task Finished] Resolve in 0.004124s
+[2022-02-21 20:19:38.998] [driver] [info] [Task Finished] Resolve in 0.004195s
+[2022-02-21 20:19:39.003] [driver] [info] [Task Finished] Resolve in 0.004249s
+[2022-02-21 20:19:39.007] [driver] [info] [Task Finished] Resolve in 0.004125s
+[2022-02-21 20:19:39.011] [driver] [info] [Task Finished] Resolve in 0.004110s
+[2022-02-21 20:19:39.015] [driver] [info] [Task Finished] Resolve in 0.004053s
+[2022-02-21 20:19:39.019] [driver] [info] [Task Finished] Resolve in 0.004187s
+[2022-02-21 20:19:39.023] [driver] [info] [Task Finished] Resolve in 0.004226s
+[2022-02-21 20:19:39.028] [driver] [info] [Task Finished] Resolve in 0.004174s
+[2022-02-21 20:19:39.032] [driver] [info] [Task Finished] Resolve in 0.004137s
+[2022-02-21 20:19:39.036] [driver] [info] [Task Finished] Resolve in 0.004234s
+[2022-02-21 20:19:39.040] [driver] [info] [Task Finished] Resolve in 0.004136s
+[2022-02-21 20:19:39.044] [driver] [info] [Task Finished] Resolve in 0.004107s
+[2022-02-21 20:19:39.048] [driver] [info] [Task Finished] Resolve in 0.004142s
+[2022-02-21 20:19:39.053] [driver] [info] [Task Finished] Resolve in 0.004182s
+[2022-02-21 20:19:39.057] [driver] [info] [Task Finished] Resolve in 0.004148s
+[2022-02-21 20:19:39.061] [driver] [info] [Task Finished] Resolve in 0.004279s
+[2022-02-21 20:19:39.065] [driver] [info] [Task Finished] Resolve in 0.004102s
+[2022-02-21 20:19:39.069] [driver] [info] [Task Finished] Resolve in 0.004325s
+[2022-02-21 20:19:39.074] [driver] [info] [Task Finished] Resolve in 0.004103s
+[2022-02-21 20:19:39.078] [driver] [info] [Task Finished] Resolve in 0.004191s
+[2022-02-21 20:19:39.082] [driver] [info] [Task Finished] Resolve in 0.004182s
+[2022-02-21 20:19:39.086] [driver] [info] [Task Finished] Resolve in 0.004403s
+[2022-02-21 20:19:39.090] [driver] [info] [Task Finished] Resolve in 0.004098s
+[2022-02-21 20:19:39.095] [driver] [info] [Task Finished] Resolve in 0.004181s
+[2022-02-21 20:19:39.099] [driver] [info] [Task Finished] Resolve in 0.004245s
+[2022-02-21 20:19:39.103] [driver] [info] [Task Finished] Resolve in 0.004233s
+[2022-02-21 20:19:39.107] [driver] [info] [Task Finished] Resolve in 0.004201s
+[2022-02-21 20:19:39.112] [driver] [info] [Task Finished] Resolve in 0.004255s
+[2022-02-21 20:19:39.116] [driver] [info] [Task Finished] Resolve in 0.004236s
+[2022-02-21 20:19:39.120] [driver] [info] [Task Finished] Resolve in 0.004151s
+[2022-02-21 20:19:39.124] [driver] [info] [Task Finished] Resolve in 0.004166s
+[2022-02-21 20:19:39.128] [driver] [info] [Task Finished] Resolve in 0.004258s
+[2022-02-21 20:19:39.133] [driver] [info] [Task Finished] Resolve in 0.004813s
+[2022-02-21 20:19:39.133] [local ee] [info] slow path resolved 1602590/1602590 exceptions in 0.675622s
+[2022-02-21 20:19:39.133] [local ee] [info] slow path for Stage 0: total wall clock time: 0.670506s, time to process 1 row via slow path: 0.000418389ms
+[2022-02-21 20:19:39.133] [global] [info] [Transform Stage] Stage 0 completed 160 resolve tasks in 0.675652s
 
-[2022-02-20 01:30:35.771] [global] [info] Writing 2264570 rows as output to file (344.74 MB)
-[2022-02-20 01:30:36.169] [driver] [info] [Task Finished] write to file in 0.398636s (2264570 rows, 344.74 MB)
-[2022-02-20 01:30:36.169] [global] [info] writing output took 0.399007s
-[2022-02-20 01:30:36.169] [global] [info] [Transform Stage] Stage 0 completed 160 sink tasks in 0.399116s
-[2022-02-20 01:30:36.170] [global] [info] [Transform Stage] Stage 0 took 42.3592s
-[2022-02-20 01:30:36.170] [global] [info] Query Execution took 42.4592s. (planning: 0.0999063s, execution: 42.3592s)
+[2022-02-21 20:19:39.134] [global] [info] Writing 2264570 rows as output to file (344.74 MB)
+[2022-02-21 20:19:39.735] [driver] [info] [Task Finished] write to file in 0.600819s (2264570 rows, 344.74 MB)
+[2022-02-21 20:19:39.735] [global] [info] writing output took 0.601175s
+[2022-02-21 20:19:39.735] [global] [info] [Transform Stage] Stage 0 completed 160 sink tasks in 0.601256s
+[2022-02-21 20:19:39.735] [global] [info] [Transform Stage] Stage 0 took 33.7065s
+[2022-02-21 20:19:39.735] [global] [info] Query Execution took 33.7702s. (planning: 0.0635921s, execution: 33.7066s)
 Welcome to
 
   _____            _
@@ -397,10 +397,10 @@ Welcome to
 using Python 3.6.9 (default, Feb  8 2022, 16:30:43) 
 [GCC 9.3.0] on linux
 >>> running tuplex on ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv']
-Tuplex startup time: 0.007967948913574219
-Tuplex job time: 42.86182641983032 s
-{'tuplex.useLLVMOptimizer': True, 'tuplex.autoUpcast': False, 'tuplex.allowUndefinedBehavior': False, 'tuplex.optimizer.codeStats': False, 'tuplex.optimizer.generateParser': False, 'tuplex.optimizer.nullValueOptimization': True, 'tuplex.optimizer.filterPushdown': True, 'tuplex.optimizer.sharedObjectPropagation': True, 'tuplex.optimizer.mergeExceptionsInOrder': True, 'tuplex.optimizer.operatorReordering': False, 'tuplex.interleaveIO': True, 'tuplex.resolveWithInterpreterOnly': False, 'tuplex.network.verifySSL': False, 'tuplex.redirectToPythonLogging': False, 'tuplex.csv.selectionPushdown': True, 'tuplex.webui.enable': False, 'tuplex.executorCount': 0, 'tuplex.csv.maxDetectionRows': 10000, 'tuplex.webui.port': 5000, 'tuplex.webui.mongodb.port': 27017, 'tuplex.webui.exceptionDisplayLimit': 5, 'tuplex.normalcaseThreshold': 0.9, 'tuplex.optionalThreshold': 0.7, 'tuplex.aws.connectTimeout': '1', 'tuplex.aws.httpThreadCount': '32', 'tuplex.aws.lambdaMemory': '1536', 'tuplex.aws.lambdaTimeout': '600', 'tuplex.aws.maxConcurrency': '100', 'tuplex.aws.region': 'us-east-1', 'tuplex.aws.requestTimeout': '600', 'tuplex.aws.requesterPay': 'false', 'tuplex.aws.scratchDir': '', 'tuplex.backend': 'local', 'tuplex.csv.comments': ['#', '~'], 'tuplex.csv.maxDetectionMemory': '256KB', 'tuplex.csv.quotechar': '"', 'tuplex.csv.separators': [',', ';', '|', '\t'], 'tuplex.driverMemory': '32G', 'tuplex.env.hostname': 'cc956b40c9fa', 'tuplex.env.mode': 'file', 'tuplex.env.user': 'root', 'tuplex.executorMemory': '6G', 'tuplex.inputSplitSize': '64MB', 'tuplex.logDir': '.', 'tuplex.network.caFile': '', 'tuplex.network.caPath': '', 'tuplex.partitionSize': '32MB', 'tuplex.readBufferSize': '128KB', 'tuplex.runTimeLibrary': '/usr/local/lib/python3.6/site-packages/Tuplex-0.3.1-py3.6.egg/tuplex/libexec/tuplex_runtime.so', 'tuplex.runTimeMemory': '8MB', 'tuplex.runTimeMemoryBlockSize': '4MB', 'tuplex.scratchDir': '/tmp/tuplex-cache-tuplex', 'tuplex.webui.mongodb.path': '/tmp/tuplex-cache-tuplex/mongodb', 'tuplex.webui.mongodb.url': 'localhost', 'tuplex.webui.url': 'localhost'}
-{"logical_optimization_time_s":0.0199618,"llvm_optimization_time_s":0.29976,"llvm_compilation_time_s":0.136778,"total_compilation_time_s":0.451553,"sampling_time_s":0.115072,"stages":[{"stage_no":0,"fast_path_wall_time_s":40.4597,"fast_path_time_s":40.4629,"fast_path_per_row_time_ns":747.751,"slow_path_wall_time_s":1.03793,"slow_path_time_s":1.04531,"slow_path_per_row_time_ns":647.661,"partitions_swapin_count":0,"partitions_swapout_count":0,"partitions_bytes_swapped_in":0,"partitions_bytes_swapped_out":0}]}
-{"startupTime": 0.007967948913574219, "jobTime": 42.86182641983032}
+Tuplex startup time: 0.006479740142822266
+Tuplex job time: 34.03066444396973 s
+{'tuplex.useLLVMOptimizer': True, 'tuplex.autoUpcast': False, 'tuplex.allowUndefinedBehavior': False, 'tuplex.optimizer.codeStats': False, 'tuplex.optimizer.generateParser': False, 'tuplex.optimizer.nullValueOptimization': True, 'tuplex.optimizer.filterPushdown': True, 'tuplex.optimizer.sharedObjectPropagation': True, 'tuplex.optimizer.mergeExceptionsInOrder': True, 'tuplex.optimizer.operatorReordering': False, 'tuplex.interleaveIO': True, 'tuplex.resolveWithInterpreterOnly': False, 'tuplex.network.verifySSL': False, 'tuplex.redirectToPythonLogging': False, 'tuplex.csv.selectionPushdown': True, 'tuplex.webui.enable': False, 'tuplex.executorCount': 0, 'tuplex.csv.maxDetectionRows': 10000, 'tuplex.webui.port': 5000, 'tuplex.webui.mongodb.port': 27017, 'tuplex.webui.exceptionDisplayLimit': 5, 'tuplex.normalcaseThreshold': 0.9, 'tuplex.optionalThreshold': 0.7, 'tuplex.aws.connectTimeout': '1', 'tuplex.aws.httpThreadCount': '16', 'tuplex.aws.lambdaMemory': '1536', 'tuplex.aws.lambdaTimeout': '600', 'tuplex.aws.maxConcurrency': '100', 'tuplex.aws.region': 'us-east-1', 'tuplex.aws.requestTimeout': '600', 'tuplex.aws.requesterPay': 'false', 'tuplex.aws.scratchDir': '', 'tuplex.backend': 'local', 'tuplex.csv.comments': ['#', '~'], 'tuplex.csv.maxDetectionMemory': '256KB', 'tuplex.csv.quotechar': '"', 'tuplex.csv.separators': [',', ';', '|', '\t'], 'tuplex.driverMemory': '32G', 'tuplex.env.hostname': '7a4f9080f3a3', 'tuplex.env.mode': 'file', 'tuplex.env.user': 'root', 'tuplex.executorMemory': '6G', 'tuplex.inputSplitSize': '64MB', 'tuplex.logDir': '.', 'tuplex.network.caFile': '', 'tuplex.network.caPath': '', 'tuplex.partitionSize': '32MB', 'tuplex.readBufferSize': '128KB', 'tuplex.runTimeLibrary': '/usr/local/lib/python3.6/site-packages/Tuplex-0.3.1-py3.6.egg/tuplex/libexec/tuplex_runtime.so', 'tuplex.runTimeMemory': '8MB', 'tuplex.runTimeMemoryBlockSize': '4MB', 'tuplex.scratchDir': '/tmp/tuplex-cache-tuplex', 'tuplex.webui.mongodb.path': '/tmp/tuplex-cache-tuplex/mongodb', 'tuplex.webui.mongodb.url': 'localhost', 'tuplex.webui.url': 'localhost'}
+{"logical_optimization_time_s":0.0130117,"llvm_optimization_time_s":0.232994,"llvm_compilation_time_s":0.112518,"total_compilation_time_s":0.356115,"sampling_time_s":0.0797625,"stages":[{"stage_no":0,"fast_path_wall_time_s":32.0601,"fast_path_time_s":32.0733,"fast_path_per_row_time_ns":592.515,"slow_path_wall_time_s":0.670506,"slow_path_time_s":0.675622,"slow_path_per_row_time_ns":418.389,"partitions_swapin_count":0,"partitions_swapout_count":0,"partitions_bytes_swapped_in":0,"partitions_bytes_swapped_out":0}]}
+{"startupTime": 0.006479740142822266, "jobTime": 34.03066444396973}
 [GLOBAL] Local engine terminated.
 [GLOBAL] releasing 321 active partitions

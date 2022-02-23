@@ -61,6 +61,6 @@ Done reading input file...
 244    10001
 245    10026
 Length: 246, dtype: object
-Total end-to-end time, including compilation: 5.56
+Total end-to-end time, including compilation: 3.75
 framework,pandas_load,load,query
-weld-grizzly,22.4770619869,35.79037714,5.55906105042
+weld-grizzly,20.8319821358,31.1317300797,3.74889397621

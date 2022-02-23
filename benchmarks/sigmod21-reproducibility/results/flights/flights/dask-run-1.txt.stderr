@@ -1,6 +1,3 @@
-distributed.worker - WARNING - Memory use is high but worker has no data to store to disk.  Perhaps some other process is leaking memory?  Process memory: 9.03 GB -- Worker memory limit: 12.00 GB
-distributed.worker - WARNING - Memory use is high but worker has no data to store to disk.  Perhaps some other process is leaking memory?  Process memory: 9.03 GB -- Worker memory limit: 12.00 GB
-distributed.worker - WARNING - Memory use is high but worker has no data to store to disk.  Perhaps some other process is leaking memory?  Process memory: 8.88 GB -- Worker memory limit: 12.00 GB
 /usr/local/lib/python3.6/site-packages/dask/dataframe/core.py:4503: UserWarning: 
 You did not provide metadata, so Dask is running your function on a small dataset to guess output types. It is possible that Dask will guess incorrectly.
 To provide an explicit output types or to silence this message, please provide the `meta=` keyword, as described in the map or apply function that you are using.

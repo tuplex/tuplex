@@ -416,9 +416,10 @@ default:
         // not all codes qualify for reprocessing => only internals should get reprocessed!
         // => other error codes are "true" exceptions
         // => if it's a true exception, simply save it again as exception.
-        bool potentiallyHasResolverOnSlowPath = !_operatorIDsAffectedByResolvers.empty() &&
-                                                std::binary_search(_operatorIDsAffectedByResolvers.begin(),
-                                                                   _operatorIDsAffectedByResolvers.end(), operatorID);
+//        bool potentiallyHasResolverOnSlowPath = !_operatorIDsAffectedByResolvers.empty() &&
+//                                                std::binary_search(_operatorIDsAffectedByResolvers.begin(),
+//                                                                   _operatorIDsAffectedByResolvers.end(), operatorID);
+        bool potentiallyHasResolverOnSlowPath = true;
         if(!requiresInterpreterReprocessing(i64ToEC(ecCode)) && !potentiallyHasResolverOnSlowPath) {
             // TODO: check with resolvers!
             // i.e., we can directly save this as exception IF code is not an interpreter code

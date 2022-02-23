@@ -972,7 +972,7 @@ namespace tuplex {
             case EndPointMode::FILE: {
                 auto partNo = writeOutput(tstage, completedTasks, cacheEntry->startFileNumber());
                 tstage->setIncrmentalCacheCSVResult(exceptionPartitions, generalPartitions, fallbackPartitions, partNo);
-                tstage->setFileResult(exceptionCounts);
+//                tstage->setFileResult(exceptionCounts);
                 break;
             }
             default:
@@ -2246,11 +2246,12 @@ namespace tuplex {
             outputs.insert(outputs.end(), partitions.begin(), partitions.end());
         }
 
+        auto ecounts = calcExceptionCounts(tasks);
+
         if (outputs.empty()) {
+            tstage->setFileResult(ecounts);
             return startFileNumber;
         }
-
-        auto ecounts = calcExceptionCounts(tasks);
 
         // write to one file
         int partNo = startFileNumber;

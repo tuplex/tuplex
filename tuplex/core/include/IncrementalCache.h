@@ -28,16 +28,18 @@ namespace tuplex {
         size_t _startFileNumber;
     public:
         IncrementalCacheEntry(LogicalOperator* pipeline,
-                              std::vector<Partition*> exceptionPartitions,
-                              std::vector<Partition*> generalPartitions,
-                              std::vector<Partition*> fallbackPartitions,
+                              const std::vector<Partition*>& exceptionPartitions,
+                              const std::vector<Partition*>& generalPartitions,
+                              const std::vector<Partition*>& fallbackPartitions,
                               size_t startFileNumber);
 
-        ~IncrementalCacheEntry();
+//        ~IncrementalCacheEntry();
 
         LogicalOperator* pipeline() const {
             return _pipeline;
         }
+
+        void setExceptionPartitions(const std::vector<Partition*>& exceptionPartitions) { _exceptionPartitions = exceptionPartitions; }
 
         std::vector<Partition*> exceptionPartitions() const {
             return _exceptionPartitions;
@@ -64,13 +66,7 @@ namespace tuplex {
             clear();
         }
 
-        void addEntry(const std::string& key, IncrementalCacheEntry* entry) {
-            auto elt = _cache.find(key);
-            if (elt != _cache.end()) {
-                delete elt->second;
-            }
-            _cache[key] = entry;
-        }
+        void addEntry(const std::string& key, IncrementalCacheEntry* entry);
 
         IncrementalCacheEntry* getEntry(const std::string& key) const {
             auto elt = _cache.find(key);

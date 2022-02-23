@@ -16,29 +16,28 @@ namespace tuplex {
 
     IncrementalCacheEntry::IncrementalCacheEntry(
             LogicalOperator* pipeline,
-            std::vector<Partition*> exceptionPartitions,
-            std::vector<Partition*> generalPartitions,
-            std::vector<Partition*> fallbackPartitions,
+            const std::vector<Partition*>& exceptionPartitions,
+            const std::vector<Partition*>& generalPartitions,
+            const std::vector<Partition*>& fallbackPartitions,
             size_t startFileNumber) {
         _pipeline = pipeline->clone();
-        _exceptionPartitions = std::move(exceptionPartitions);
-        _generalPartitions = std::move(generalPartitions);
-        _fallbackPartitions = std::move(fallbackPartitions);
+        _exceptionPartitions = exceptionPartitions;
+        _generalPartitions = generalPartitions;
+        _fallbackPartitions = fallbackPartitions;
         _startFileNumber = startFileNumber;
     }
 
-    IncrementalCacheEntry::~IncrementalCacheEntry() {
-        delete _pipeline;
-//        for (auto &p : _exceptionPartitions)
-//            p->invalidate();
-//        _exceptionPartitions.clear();
-//        for (auto &p : _generalPartitions)
-//            p->invalidate();
-//        _generalPartitions.clear();
-//        for (auto &p : _fallbackPartitions)
-//            p->invalidate();
-//        _fallbackPartitions.clear();
+    void IncrementalCache::addEntry(const std::string& key, IncrementalCacheEntry* entry) {
+        auto elt = _cache.find(key);
+        if (elt != _cache.end())
+            _cache.erase(key);
+
+        _cache[key] = entry;
     }
+//
+//    IncrementalCacheEntry::~IncrementalCacheEntry() {
+//        delete _pipeline;
+//    }
 
     std::string IncrementalCache::newKey(LogicalOperator* pipeline) {
         assert(pipeline);

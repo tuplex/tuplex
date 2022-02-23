@@ -227,7 +227,7 @@ if __name__ == '__main__':
     shutil.rmtree(output_path, ignore_errors=True)
 
     # decide which pipeline to run based on argparse arg!
-    num_steps = 6
+    num_steps = 7
     metrics = []
     for step in range(num_steps):
         print(f'>>> running pipeline with {step} resolver(s) enabled...')

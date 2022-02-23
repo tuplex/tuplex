@@ -57,7 +57,7 @@ for file in $(ls $ROOT_PATH); do
 
         # mimick specilaized by copying, no difference.
         cp $LOG ${BENCHDIR}/flights-specialized-run-$r-date-${yearmonth}.txt
-        cp $OUTPUT $RESULT_DIR/out-specialized-${yearmonth}.csv
+        cp -r $OUTPUT $RESULT_DIR/out-specialized-${yearmonth}.csv
     done
   fi
 done

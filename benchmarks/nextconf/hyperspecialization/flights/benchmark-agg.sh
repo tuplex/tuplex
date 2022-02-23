@@ -16,7 +16,20 @@ clang++ -std=c++17 -msse4.2 -mcx16 -Wall -Wextra -O3 -march=native -DNDEBUG -o r
 
 ROOT_PATH="/hot/data/flights_all/flights*.csv"
 
+NUM_RUNS="${NUM_RUNS:-11}"
+
+RESULT_DIR=results-agg-experiment/
+mkdir -p $RESULT_DIR
+
+for ((r=1; r <= NUM_RUNS; r++)); do
+  LOG=${BENCHDIR}/flights-orig-run-$r.txt
+done
+
+# perform optimized/sampled query (assuming ideal sampling!)
 # shellcheck disable=SC2045
+
+
+
 for file in $(ls $ROOT_PATH); do
   name=$(basename file)
   year=$(echo $file | egrep -o "[0-9]{4}")
@@ -30,3 +43,5 @@ for file in $(ls $ROOT_PATH); do
     echo "$name is general case"
   fi
 done
+
+# perform general case query!

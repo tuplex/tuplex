@@ -75,12 +75,14 @@ namespace tuplex {
         std::queue<LogicalOperator*> previousQ;
         currentQ.push(current);
         previousQ.push(previous);
+        bool updated = false;
         while(!currentQ.empty() && !previousQ.empty()) {
             auto curNode = currentQ.front(); currentQ.pop();
             auto prevNode = previousQ.front(); previousQ.pop();
 
-            if (curNode->type() != prevNode->type()) {
+            if (!updated && (curNode->type() == LogicalOperatorType::RESOLVE || curNode->type() == LogicalOperatorType::IGNORE)) {
                 curNode = curNode->parent();
+                updated = true;
             }
 
             curNode->setID(prevNode->getID());

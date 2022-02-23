@@ -223,6 +223,8 @@ int main(int argc, char **argv) {
         init_agg_f(nullptr);
 
     InitializeHeader();
+
+    int64_t row_number = 0;
     for (const auto &input_file: input_files) {
         auto fd = open(input_file.c_str(), O_RDONLY);
         csvmonkey::FdStreamCursor stream(fd);
@@ -246,10 +248,8 @@ int main(int argc, char **argv) {
         }
 
         // immediately process the row
-        int64_t row_number = 1;
         while (reader.read_row()) {
             auto &row = reader.row();
-
             // use processCells Functor which gets specialized to whatever works for the file.
             if (NUM_COLUMNS == row.count) {
                 // generate cells array by pointing to memory and head it over to cells functor
@@ -296,7 +296,10 @@ int main(int argc, char **argv) {
     if(fetch_agg_f) {
         uint8_t *buf = nullptr;
         size_t buf_size = 0;
-        fetch_agg_f(nullptr, &buf, &buf_size);
+
+        uint64_t num_specialized_rows = 0;
+        num_specialized_rows = row_number;
+        fetch_agg_f(&num_specialized_rows, &buf, &buf_size);
         write_callback(nullptr, buf, buf_size);
         free(buf);
     }

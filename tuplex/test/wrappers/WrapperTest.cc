@@ -2265,7 +2265,12 @@ TEST_F(WrapperTest, IncrementalZillow) {
     opts.set("tuplex.executorCount", "0");
     opts.set("tuplex.optimizer.incrementalResolution", "true");
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+//    opts.set("tuplex.allowUndefinedBehavior", "false");
+//    opts.set("tuplex.autoUpcast", "false");
+//    opts.set("tuplex.executorMemory", "512MB");
+//    opts.set("tuplex.inputSplitSize", "16MB");
     PythonContext incrementalContext("incremental", "", opts.asJSON());
+    std::cout << opts.asJSON();
     opts.set("tuplex.optimizer.incrementalResolution", "false");
     PythonContext plainContext("plain", "", opts.asJSON());
 

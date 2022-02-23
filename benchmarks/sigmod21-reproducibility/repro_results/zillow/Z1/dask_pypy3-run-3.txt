@@ -1,2 +1,0 @@
->>> running dask on ['/data/zillow/Z1_preprocessed/zillow_Z1_10G.csv']
-<Client: 'tcp://127.0.0.1:38735' processes=16 threads=16, memory=128.00 GB>

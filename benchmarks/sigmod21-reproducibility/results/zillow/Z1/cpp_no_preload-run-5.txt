@@ -1,4 +1,0 @@
-1 input files found
-transform stage: 15610990379 ns
-output stage: 268487174 ns
-{"output":268487174,"transform":15610990379,"total":15879477553}

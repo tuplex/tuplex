@@ -1,6 +1,0 @@
-<Client: 'tcp://127.0.0.1:39355' processes=16 threads=16, memory=224.00 GB>
-Dask startup time: 1.7302052974700928
-*Dask Start Time: 1645435821.8968139
-Dask job time: 224.51668524742126 s
-{"startupTime": 1.7302052974700928, "jobTime": 224.51668524742126}
-*Dask End Time: 1645436048.6378468

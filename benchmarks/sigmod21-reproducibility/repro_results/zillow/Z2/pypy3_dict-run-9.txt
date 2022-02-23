@@ -1,3 +1,0 @@
->>> running pypy3 on ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv']
->>> data mode: dict
-{'type': 'dict', 'framework': 'python3', 'py_executable': '/opt/pypy3/bin/pypy3', 'input_files': ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv'], 'load_time': 700.762127161026, 'run_time': 927.567610502243, 'write_time': 226.80543971061707, 'job_time': 927.5676159858704, 'program': '/opt/pypy3/bin/pypy3'}

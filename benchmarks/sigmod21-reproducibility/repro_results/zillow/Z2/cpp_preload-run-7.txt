@@ -1,5 +1,0 @@
-1 input files found
-load stage: 15312354883 ns
-compute stage: 17837522850 ns
-output stage: 1274519079 ns
-{"compute":17837522850,"load":15312354883,"output":1274519079,"total":34424396812}

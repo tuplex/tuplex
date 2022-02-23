@@ -1,3 +1,0 @@
-PySpark startup time: 1.3077547550201416
-PySpark job time: 146.70408868789673 s
-{"startupTime": 1.3077547550201416, "jobTime": 146.70408868789673}

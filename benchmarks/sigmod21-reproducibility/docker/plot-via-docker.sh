@@ -29,10 +29,7 @@ OUTPUT_PATH="$(realpath $OUTPUT_PATH)"
 echo "-- Plotting using input data from $INPUT_PATH, storing results in $OUTPUT_PATH"
 
 echo "-- Docker command: docker run -v \"$INPUT_PATH\":/work/results -v \"$OUTPUT_PATH\":/work/plots sigmod21/plot python3 /scripts/tuplex.py plot all --input-path /work/results --output-path /work/plots"
-#docker run -v "$INPUT_PATH":/work/results -v "$OUTPUT_PATH":/work/plots sigmod21/plot python3 /scripts/tuplex.py plot all --input-path /work/results --output-path /work/plots
-
-docker run -v "$INPUT_PATH":/work/results -v "$OUTPUT_PATH":/work/plots sigmod21/plot python3 /scripts/tuplex.py plot figure6 --input-path /work/results --output-path /work/plots
-
+docker run -v "$INPUT_PATH":/work/results -v "$OUTPUT_PATH":/work/plots sigmod21/plot python3 /scripts/tuplex.py plot all --input-path /work/results --output-path /work/plots
 
 echo "Done."
 echo " -- please find all plots in $OUTPUT_PATH"

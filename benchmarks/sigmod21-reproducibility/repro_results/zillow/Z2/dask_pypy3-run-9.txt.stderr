@@ -1,5 +1,0 @@
-/opt/pypy3/site-packages/distributed/node.py:155: UserWarning: Port 8787 is already in use.
-Perhaps you already have a cluster running?
-Hosting the HTTP server on port 38743 instead
-  http_address["port"], self.http_server.port
-timeout: the monitored command dumped core

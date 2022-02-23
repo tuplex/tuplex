@@ -1,4 +1,0 @@
-compilation via cython took: 5.1558451652526855s
->>> running python3.6 on ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv']
->>> data mode: tuple
-{'type': 'tuple', 'framework': 'python3', 'py_executable': '/usr/local/bin/python3.6', 'input_files': ['/data/zillow/Z2_preprocessed/zillow_Z2_10G.csv'], 'load_time': 108.25543665885925, 'run_time': 206.68617296218872, 'write_time': 98.43069195747375, 'job_time': 206.6861743927002, 'compile_time': 5.1558451652526855, 'version': '0.29.22', 'program': 'cython (/usr/local/bin/python3.6)'}

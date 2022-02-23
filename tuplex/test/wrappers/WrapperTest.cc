@@ -2265,6 +2265,10 @@ TEST_F(WrapperTest, IncrementalZillow) {
     opts.set("tuplex.executorCount", "0");
     opts.set("tuplex.optimizer.incrementalResolution", "true");
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+//    opts.set("tuplex.inputSplitSize", "16MB");
+//    opts.set("tuplex.optimizer.codeStats", "true");
+//    opts.set("tuplex.readBufferSize", "4KB");
+    opts.set("tuplex.resolveWithInterpreterOnly", "true");
 //    opts.set("tuplex.allowUndefinedBehavior", "false");
 //    opts.set("tuplex.autoUpcast", "false");
 //    opts.set("tuplex.executorMemory", "512MB");

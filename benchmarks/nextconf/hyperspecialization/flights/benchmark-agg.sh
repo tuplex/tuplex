@@ -7,11 +7,11 @@
 
 export PATH=/opt/llvm@6/bin:$PATH
 echo "Building shared object"
-clang++ -shared -fPIC -O3 -msse4.2 -mcx16 -march=native -DNDEBUG -o agg_weather_general.so src/agg_query/agg_general.cc
-clang++ -shared -fPIC -O3 -msse4.2 -mcx16 -march=native -DNDEBUG -o agg_weather_specialized.so src/agg_query/agg_specialized.cc
+#clang++ -shared -fPIC -O3 -msse4.2 -mcx16 -march=native -DNDEBUG -o agg_weather_general.so src/agg_query/agg_general.cc
+#clang++ -shared -fPIC -O3 -msse4.2 -mcx16 -march=native -DNDEBUG -o agg_weather_specialized.so src/agg_query/agg_specialized.cc
 
 echo "FINAL EXE"
-clang++ -std=c++17 -msse4.2 -mcx16 -Wall -Wextra -O3 -march=native -DNDEBUG -o runner src/runner.cc -ldl
+#clang++ -std=c++17 -msse4.2 -mcx16 -Wall -Wextra -O3 -march=native -DNDEBUG -o runner src/runner.cc -ldl
 
 
 ROOT_PATH="/hot/data/flights_all/flights*.csv"
@@ -25,8 +25,10 @@ for file in $(ls $ROOT_PATH); do
   if (( yearmonth < 200306 )); then
     # special case
     echo "$name is special case"
+    ./runner -i ${file} -o test.csv -d agg_weather_specialized.so
   else
     # general case
     echo "$name is general case"
+    ./runner -i ${file} -o test.csv -d agg_weather_general.so
   fi
 done

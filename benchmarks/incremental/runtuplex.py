@@ -130,21 +130,21 @@ def dirty_zillow_pipeline(paths, output_path, step):
     ds = ds.withColumn("bedrooms", extractBd)
     if step > 0:
         ds = ds.resolve(ValueError, resolveBd)
-    if step > 1:
-        ds = ds.ignore(ValueError)
+    # if step > 1:
+    #     ds = ds.ignore(ValueError)
     ds = ds.filter(lambda x: x['bedrooms'] < 10)
     ds = ds.withColumn("type", extractType)
     ds = ds.filter(lambda x: x['type'] == 'condo')
     ds = ds.withColumn("zipcode", lambda x: '%05d' % int(x['postal_code']))
-    if step > 2:
-        ds = ds.ignore(TypeError)
+    # if step > 2:
+    #     ds = ds.ignore(TypeError)
     ds = ds.mapColumn("city", lambda x: x[0].upper() + x[1:].lower())
     ds = ds.withColumn("bathrooms", extractBa)
-    if step > 3:
-        ds = ds.ignore(ValueError)
+    # if step > 3:
+    #     ds = ds.ignore(ValueError)
     ds = ds.withColumn("sqft", extractSqft)
-    if step > 4:
-        ds = ds.ignore(ValueError)
+    # if step > 4:
+    #     ds = ds.ignore(ValueError)
     ds = ds.withColumn("offer", extractOffer)
     ds = ds.withColumn("price", extractPrice)
     if step > 5:
@@ -227,7 +227,7 @@ if __name__ == '__main__':
     shutil.rmtree(output_path, ignore_errors=True)
 
     # decide which pipeline to run based on argparse arg!
-    num_steps = 7
+    num_steps = 3
     metrics = []
     for step in range(num_steps):
         print(f'>>> running pipeline with {step} resolver(s) enabled...')

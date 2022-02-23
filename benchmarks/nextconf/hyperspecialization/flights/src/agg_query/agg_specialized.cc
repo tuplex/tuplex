@@ -4,6 +4,8 @@
 // SPECIALIZED VERSION...!
 #include "./agg_interface.h"
 
+#include <chrono>
+
 #define NUM_COLUMNS 110
 
 // this query implements the aggregate query
@@ -121,6 +123,7 @@ extern "C" int64_t fetch_aggregate(void *userData, uint8_t** buf, size_t* buf_si
     // if all inputs to perform update are constant, can do quick update...
     // --> it's another optimization basically.
 
+    Timer timer;
     // reconstruct year, month from key.
     // --> can specialize the hashmap based on input data!
     // compute fast aggregate
@@ -144,6 +147,8 @@ extern "C" int64_t fetch_aggregate(void *userData, uint8_t** buf, size_t* buf_si
             agg_map[i].m2 = m2;
         }
     }
+
+    std::cout<<"aggregate quick compute took: "<<timer.time()<<"s"<<std::endl;
 
     // # Retrieve the mean, variance and sample variance from an aggregate
     //def finalize(existingAggregate):

@@ -8,3 +8,5 @@ pgo-experiment-results/
 *.stderr
 runner
 results-agg-experiment/
+results-*/
+github_stats/

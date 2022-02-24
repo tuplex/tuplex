@@ -215,6 +215,7 @@ if __name__ == '__main__':
     # Note: there's a bug in the merge in order mode here -.-
     # force to false version
     conf["optimizer.generateParser"] = False
+    conf["tuplex.optimizer.codeStats"] = True
 
     tstart = time.time()
     import tuplex

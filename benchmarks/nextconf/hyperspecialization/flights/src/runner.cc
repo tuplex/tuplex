@@ -45,7 +45,7 @@ std::string dl_path;
 static size_t output_size = 0;
 static const size_t OUTPUT_DATA_SIZE = 4'000'000'000;
 static char *output_data = nullptr;  // [OUTPUT_DATA_SIZE];  // 4 GB
-static bool preload;
+static bool preload = false;
 
 int64_t write_callback(void *userData, uint8_t *buf, size_t buf_size) {
     if(!output_data) {
@@ -99,7 +99,7 @@ static int ParseArguments(int argc, char **argv) {
             lyra::opt(output_path, "output_path").name("--output-path").name("-o").help("path where to store output"));
     cli.add_argument(lyra::opt(dl_path, "dl_path").name("--dl-path").name("-d").help(
             "path to shared lib holding process functor"));
-
+    cli.add_argument(lyra::opt(preload).name("--preload").help("whether to preload CSV cells, and then operate on that array"));
 
     auto result = cli.parse({argc, argv});
     if (!result) {
@@ -112,15 +112,12 @@ static int ParseArguments(int argc, char **argv) {
         return 0;
     }
 
-    // set preload flag
-    preload = argc == 6;
-
     // glob input files
     glob_t glob_result;
     memset(&glob_result, 0, sizeof(glob_result));
 
     int r;
-    if ((r = glob(argv[2], GLOB_TILDE, nullptr, &glob_result)) != 0) {
+    if ((r = glob(input_path.c_str(), GLOB_TILDE, nullptr, &glob_result)) != 0) {
         globfree(&glob_result);
         throw std::runtime_error("glob() failed with return: " + std::to_string(r));
     }
@@ -149,6 +146,102 @@ static inline void InitializeHeader() {
                          "day,month,avg_weather_delay,std_weather_delay\n");
     }
 
+}
+
+
+// function to preload the data (i.e., parse all cells and then hand them off)
+std::vector<std::tuple<char**,int64_t*>> preloadCells(const std::string& path) {
+    std::vector<std::tuple<char**,int64_t*>> v;
+
+    int64_t row_number = 0;
+    for (const auto &input_file: input_files) {
+        auto fd = open(input_file.c_str(), O_RDONLY);
+        csvmonkey::FdStreamCursor stream(fd);
+        csvmonkey::CsvReader<csvmonkey::FdStreamCursor> reader(stream);
+
+        // get the relevant columns
+        // csvmonkey::CsvCursor &row = reader.row();
+        if (!reader.read_row()) throw std::runtime_error("Cannot read header row");
+        csvmonkey::CsvCell *year, *quarter, *month, *day_of_month, *day_of_week, *fl_date,
+                *op_unique_carrier, *origin_city_name, *dest_city_name, *crs_dep_time, *crs_arr_time,
+                *cancelled, *cancellation_code, *diverted, *actual_elapsed_time, *div_reached_dest,
+                *div_actual_elapsed_time;
+        std::vector<csvmonkey::FieldPair> fields = {
+                {"YEAR",                    &year},
+                {"QUARTER",                 &quarter},
+                {"MONTH",                   &month},
+                {"DAY_OF_MONTH",            &day_of_month},
+                {"DAY_OF_WEEK",             &day_of_week},
+                {"FL_DATE",                 &fl_date},
+                {"OP_UNIQUE_CARRIER",       &op_unique_carrier},
+                {"ORIGIN_CITY_NAME",        &origin_city_name},
+                {"DEST_CITY_NAME",          &dest_city_name},
+                {"CRS_DEP_TIME",            &crs_dep_time},
+                {"CRS_ARR_TIME",            &crs_arr_time},
+                {"CANCELLED",               &cancelled},
+                {"CANCELLATION_CODE",       &cancellation_code},
+                {"DIVERTED",                &diverted},
+                {"ACTUAL_ELAPSED_TIME",     &actual_elapsed_time},
+                {"DIV_REACHED_DEST",        &div_reached_dest},
+                {"DIV_ACTUAL_ELAPSED_TIME", &div_actual_elapsed_time}};
+        reader.extract_fields(fields);
+
+        // immediately process the row
+        while (reader.read_row()) {
+            auto &row = reader.row();
+            // use processCells Functor which gets specialized to whatever works for the file.
+            if (NUM_COLUMNS == row.count) {
+                char **cells = new char*[NUM_COLUMNS];
+                int64_t *cell_sizes = new int64_t[NUM_COLUMNS];
+
+                // generate cells array by pointing to memory and head it over to cells functor
+                for (unsigned i = 0; i < 110; ++i) {
+                    if (row.cells[i].ptr) {
+                        auto cell = row.cells[i].as_str();
+                        auto cell_size = cell.length() + 1;
+                        cells[i] = (char*)malloc(cell_size);
+                        memcpy(cells[i], cell.c_str(), cell_size);
+                        cell_sizes[i] = cell_size;
+                    } else {
+                        cells[i] = (char*)malloc(1);
+                        cells[i][0] = '\0';
+                        cell_sizes[i] = 1;
+                    }
+                }
+
+                // add to result vector
+                v.emplace_back(cells, cell_sizes);
+            } else {
+                // failure...
+                std::cerr << "row with wrong number of columns found" << std::endl;
+            }
+            row_number++;
+        }
+
+        close(fd);
+    }
+
+    std::cout<<"Preloaded "<<row_number<<" rows"<<std::endl;
+    return v;
+}
+
+void freeCells(std::vector<std::tuple<char**,int64_t*>>& v) {
+    for(auto& cell_infos : v) {
+        for(unsigned i = 0; i < NUM_COLUMNS; ++i) {
+            auto& cells = std::get<0>(cell_infos);
+            auto& cell_sizes = std::get<1>(cell_infos);
+
+            if(cells && cells[i]) {
+                free(cells[i]);
+                cells[i] = nullptr;
+            }
+            delete [] cells;
+            cells = nullptr;
+            delete [] cell_sizes;
+            cell_sizes = nullptr;
+        }
+    }
+    v.clear();
 }
 
 int main(int argc, char **argv) {
@@ -224,73 +317,113 @@ int main(int argc, char **argv) {
 
     InitializeHeader();
 
-    int64_t row_number = 0;
-    for (const auto &input_file: input_files) {
-        auto fd = open(input_file.c_str(), O_RDONLY);
-        csvmonkey::FdStreamCursor stream(fd);
-        csvmonkey::CsvReader<csvmonkey::FdStreamCursor> reader(stream);
-
-        // get the relevant columns
-        // csvmonkey::CsvCursor &row = reader.row();
-        if (!reader.read_row()) throw std::runtime_error("Cannot read header row");
-        reader.extract_fields(fields);
-
-        const char *empty_str = "";
-        char **cells = new char *[NUM_COLUMNS];
-        char **cell_mem = new char *[NUM_COLUMNS];
-        size_t* cell_mem_size = new size_t[NUM_COLUMNS];
-        int64_t cell_sizes[NUM_COLUMNS];
-        for (unsigned i = 0; i < 110; ++i) {
-            cells[i] = nullptr;
-            cell_sizes[i] = 0;
-            cell_mem[i] = (char*)malloc(1024);
-            cell_mem_size[i] = 1024;
+    std::vector<std::tuple<char**,int64_t*>> preloadedCells;
+    size_t num_parsed_rows = 0;
+    // preload, or not?
+    if(preload) {
+        std::cout<<"Preloading data..."<<std::endl;
+        if(input_files.size() == 1) {
+            preloadedCells = preloadCells(input_files.front());
+        } else {
+            for (const auto &input_file: input_files) {
+                auto vp = preloadCells(input_file);
+                std::copy(vp.begin(), vp.end(), std::back_inserter(preloadedCells));
+                vp.clear();
+            }
         }
+        num_parsed_rows = preloadedCells.size();
+        Timestamp("preload", start_transform, std::chrono::high_resolution_clock::now());
 
-        // immediately process the row
-        while (reader.read_row()) {
-            auto &row = reader.row();
-            // use processCells Functor which gets specialized to whatever works for the file.
-            if (NUM_COLUMNS == row.count) {
-                // generate cells array by pointing to memory and head it over to cells functor
-                for (unsigned i = 0; i < 110; ++i) {
-                    if (row.cells[i].ptr) {
-                        auto cell = row.cells[i].as_str();
-                        cell_sizes[i] = cell.length() + 1;
+        // transform
+        start_transform = std::chrono::high_resolution_clock::now();
 
-                        // alloc cells! => free then again.
-                        // note the +1 for the zero-terminate character.
-                        if(cell_mem_size[i] < cell.length() + 1) {
-                            cell_mem_size[i] = cell.length() + 1;
-                            cell_mem[i] = static_cast<char *>(realloc(cell_mem[i], cell_mem_size[i]));
-                        }
+        // basically call cell-functor on each element!
+        int64_t row_number = 0;
+        for(auto cell_infos : preloadedCells) {
+            auto& cells = std::get<0>(cell_infos);
+            auto& cell_sizes = std::get<1>(cell_infos);
 
-                        cells[i] = cell_mem[i];
-                        memcpy(cells[i], cell.c_str(), cell.length() + 1);
-                    } else {
-                        cells[i] = const_cast<char *>(empty_str);
-                    }
-                }
+            rc = cell_functor_f(reinterpret_cast<void*>(write_callback), cells, cell_sizes);
 
-                // call functor
-                rc = cell_functor_f(reinterpret_cast<void*>(write_callback), cells, cell_sizes);
-
-                if (0 != rc)
-                    std::cerr << "processing row " << row_number << " failed." << std::endl;
-            } else {
-                // failure...
-                std::cerr << "row with wrong number of columns found" << std::endl;
+            if (0 != rc) {
+                std::cerr << "processing row " << row_number << " failed." << std::endl;
+                break;
             }
             row_number++;
         }
 
-        // free cells
-        for (unsigned i = 0; i < NUM_COLUMNS; ++i)
-            free(cell_mem[i]);
+        // free cells... --> done after parse!
 
-        close(fd);
+    } else {
+        int64_t row_number = 0;
+        for (const auto &input_file: input_files) {
+            auto fd = open(input_file.c_str(), O_RDONLY);
+            csvmonkey::FdStreamCursor stream(fd);
+            csvmonkey::CsvReader<csvmonkey::FdStreamCursor> reader(stream);
+
+            // get the relevant columns
+            // csvmonkey::CsvCursor &row = reader.row();
+            if (!reader.read_row()) throw std::runtime_error("Cannot read header row");
+            reader.extract_fields(fields);
+
+            const char *empty_str = "";
+            char **cells = new char *[NUM_COLUMNS];
+            char **cell_mem = new char *[NUM_COLUMNS];
+            size_t* cell_mem_size = new size_t[NUM_COLUMNS];
+            int64_t cell_sizes[NUM_COLUMNS];
+            for (unsigned i = 0; i < 110; ++i) {
+                cells[i] = nullptr;
+                cell_sizes[i] = 0;
+                cell_mem[i] = (char*)malloc(1024);
+                cell_mem_size[i] = 1024;
+            }
+
+            // immediately process the row
+            while (reader.read_row()) {
+                auto &row = reader.row();
+                // use processCells Functor which gets specialized to whatever works for the file.
+                if (NUM_COLUMNS == row.count) {
+                    // generate cells array by pointing to memory and head it over to cells functor
+                    for (unsigned i = 0; i < 110; ++i) {
+                        if (row.cells[i].ptr) {
+                            auto cell = row.cells[i].as_str();
+                            cell_sizes[i] = cell.length() + 1;
+
+                            // alloc cells! => free then again.
+                            // note the +1 for the zero-terminate character.
+                            if(cell_mem_size[i] < cell.length() + 1) {
+                                cell_mem_size[i] = cell.length() + 1;
+                                cell_mem[i] = static_cast<char *>(realloc(cell_mem[i], cell_mem_size[i]));
+                            }
+
+                            cells[i] = cell_mem[i];
+                            memcpy(cells[i], cell.c_str(), cell.length() + 1);
+                        } else {
+                            cells[i] = const_cast<char *>(empty_str);
+                        }
+                    }
+
+                    // call functor
+                    rc = cell_functor_f(reinterpret_cast<void*>(write_callback), cells, cell_sizes);
+
+                    if (0 != rc)
+                        std::cerr << "processing row " << row_number << " failed." << std::endl;
+                } else {
+                    // failure...
+                    std::cerr << "row with wrong number of columns found" << std::endl;
+                }
+                row_number++;
+            }
+
+            // free cells
+            for (unsigned i = 0; i < NUM_COLUMNS; ++i)
+                free(cell_mem[i]);
+
+            close(fd);
+
+            num_parsed_rows += row_number;
+        }
     }
-    auto end_transform = std::chrono::high_resolution_clock::now();
 
     // fetch aggregate?
     if(fetch_agg_f) {
@@ -298,12 +431,14 @@ int main(int argc, char **argv) {
         size_t buf_size = 0;
 
         uint64_t num_specialized_rows = 0;
-        num_specialized_rows = row_number;
+        num_specialized_rows = num_parsed_rows;
         fetch_agg_f(&num_specialized_rows, &buf, &buf_size);
         write_callback(nullptr, buf, buf_size);
         free(buf);
     }
 
+    auto end_transform = std::chrono::high_resolution_clock::now();
+    freeCells(preloadedCells);
     Timestamp("transform", start_transform, end_transform);
     // unload lib
     dlclose(handle);

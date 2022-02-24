@@ -216,6 +216,8 @@ if __name__ == '__main__':
     # force to false version
     conf["optimizer.generateParser"] = False
 
+    print(json.dumps(conf))
+
     tstart = time.time()
     import tuplex
     ctx = tuplex.Context(conf)
@@ -241,8 +243,6 @@ if __name__ == '__main__':
     runtime = time.time() - tstart
 
     shutil.rmtree(output_path, ignore_errors=True)
-
-    print(json.dumps(conf))
 
     # print stats as last line
     print(json.dumps({"startupTime": startup_time,

@@ -18,9 +18,12 @@ TARGET_LINK_LIBRARIES(testruntime
         libio
         libcodegen
         libcore
+        libutils
+        libcpythonadapter
         runtime
         ${GTest_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
+        ${Python3_LIBRARIES}
 )
 
 gtest_add_tests(TARGET testruntime TEST_PREFIX "")

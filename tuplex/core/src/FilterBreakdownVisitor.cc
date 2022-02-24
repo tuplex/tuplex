@@ -159,6 +159,9 @@ namespace tuplex {
                     }
                     break;
                 }
+                default:
+                    // no other ops can be broken down.
+                    break;
             }
         }
 
@@ -187,6 +190,9 @@ namespace tuplex {
                         Interval(str->value(), false)
                     });
                 }
+                default:
+                    // others are not relevant, handled below.
+                    break;
             }
         }
 

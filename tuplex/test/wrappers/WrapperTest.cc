@@ -125,10 +125,8 @@ TEST_F(WrapperTest, StringTuple) {
     PyList_SetItem(listObj, 3, tupleObj4);
 
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -167,10 +165,8 @@ TEST_F(WrapperTest, MixedSimpleTupleTuple) {
     PyList_SetItem(listObj, 3, tupleObj4);
 
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -192,10 +188,8 @@ TEST_F(WrapperTest, StringParallelize) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -227,10 +221,8 @@ TEST_F(WrapperTest, DictionaryParallelize) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -298,7 +290,7 @@ TEST_F(WrapperTest, GetOptions) {
         auto d = c.options();
 
         ContextOptions co = ContextOptions::defaults();
-        auto length = boost::python::len(c.options());
+        auto length = py::len(c.options());
         EXPECT_GE(co.store().size(), length);
     }
 
@@ -369,7 +361,7 @@ TEST_F(WrapperTest, GoogleTrace) {
         PyList_SET_ITEM(listObj, 0, PyLong_FromLong(2));
         PyList_SET_ITEM(listObj, 1, PyLong_FromLong(0));
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.csv(sampleTraceFile) \
                     .filter("lambda x: x[3] == 0", "") \
                     .selectColumns(list).collect();
@@ -475,7 +467,7 @@ TEST_F(WrapperTest, extractPriceExample) {
             PyList_SET_ITEM(listObj, pos++, tupleObj);
         }
     }
-    auto list = boost::python::list(boost::python::handle<>(listObj));
+    auto list = py::reinterpret_borrow<py::list>(listObj);
 
     // parallelize extract Price function & test using both dictionary AND tuple syntax.
     // input data here should be
@@ -494,14 +486,14 @@ TEST_F(WrapperTest, extractPriceExample) {
 //    PyTuple_SET_ITEM(tupleObj, 2, python::PyString_FromString("3 bds , 1 ba , 1,560 sqft"));
 //    PyTuple_SET_ITEM(tupleObj, 3, PyLong_FromLong(1560));
 //    PyList_SET_ITEM(listObj, 1, tupleObj);
-//    auto list = boost::python::list(boost::python::handle<>(listObj));
+//    auto list = py::list(py::handle<>(listObj));
 
     PyObject* colObj = PyList_New(4);
     PyList_SET_ITEM(colObj, 0, python::PyString_FromString("price"));
     PyList_SET_ITEM(colObj, 1, python::PyString_FromString("offer"));
     PyList_SET_ITEM(colObj, 2, python::PyString_FromString("facts and features"));
     PyList_SET_ITEM(colObj, 3, python::PyString_FromString("sqft"));
-    auto cols = boost::python::list(boost::python::handle<>(colObj));
+    auto cols = py::reinterpret_borrow<py::list>(colObj);
 
     // RAII, destruct python context!
     PythonContext c("python", "", testOptions().asJSON());
@@ -624,7 +616,7 @@ TEST_F(WrapperTest, DictListParallelize) {
         PyObject_Print(listObj, stdout, 0);
         std::cout << std::endl;
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x['a'] + x['b']", "").collect();
 
         auto resObj = res.ptr();
@@ -654,7 +646,7 @@ TEST_F(WrapperTest, UpcastParallelizeI) {
         PyList_SET_ITEM(listObj, 2, Py_True); // auto upcast bool --> float
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(10)); // auto upcast int --> float
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x * x + 1", "").collect();
 
         auto resObj = res.ptr();
@@ -686,7 +678,7 @@ TEST_F(WrapperTest, UpcastParallelizeII) {
         PyList_SET_ITEM(listObj, 2, Py_True); // auto upcast bool --> int
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(2));
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x * x - 1", "").collect();
 
         auto resObj = res.ptr();
@@ -722,9 +714,8 @@ TEST_F(WrapperTest, FilterAll) {
         PyList_SET_ITEM(listObj, 2, PyLong_FromLong(3));
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(2));
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).filter("lambda x: x > 10", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -757,13 +748,13 @@ TEST_F(WrapperTest, ColumnNames) {
         PyObject_Print(listObj, stdout, 0);
         std::cout << std::endl;
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res1 = c.parallelize(list).columns();
 
-        ASSERT_EQ(boost::python::len(res1), 2);
+        ASSERT_EQ(py::len(res1), 2);
         std::vector<std::string> ref1{"a", "b"};
-        for (int i = 0; i < boost::python::len(res1); ++i) {
-            std::string col = boost::python::extract<std::string>(res1[i]);
+        for (int i = 0; i < py::len(res1); ++i) {
+            std::string col = py::cast<std::string>(res1[i]);
             EXPECT_EQ(col, ref1[i]);
         }
 
@@ -776,10 +767,10 @@ TEST_F(WrapperTest, ColumnNames) {
         fclose(f);
 
         auto res2 = c.csv(testName + ".csv").columns();
-        ASSERT_EQ(boost::python::len(res2), 4);
+        ASSERT_EQ(py::len(res2), 4);
         std::vector<std::string> ref2{"a", "b", "c", "d"};
-        for (int i = 0; i < boost::python::len(res1); ++i) {
-            std::string col = boost::python::extract<std::string>(res2[i]);
+        for (int i = 0; i < py::len(res1); ++i) {
+            std::string col = py::cast<std::string>(res2[i]);
             EXPECT_EQ(col, ref2[i]);
         }
     }
@@ -810,7 +801,7 @@ TEST_F(WrapperTest, IntegerTuple) {
         PyList_SET_ITEM(listObj, 0, python::rowToPython(Row(1, 2)));
         PyList_SET_ITEM(listObj, 1, python::rowToPython(Row(3, 2)));
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).withColumn("newcol", "lambda a, b: (a + b)/10", "").collect();
 
         auto resObj = res.ptr();
@@ -1086,7 +1077,7 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
                           "            'CrsDepTime', 'Cancelled',\n"
                           "            'Diverted', 'OriginCityName', 'AirTime', 'Origin', 'Dest', 'DestCityName',\n"
                           "            'DivReachedDest', 'TaxiIn', 'DepDelay', 'OpCarrierFlNum']", "time_req_cols");
-        auto time_req_cols = boost::python::list(boost::python::handle<>(time_req_cols_obj));
+        auto time_req_cols = py::reinterpret_borrow<py::list>(time_req_cols_obj);
 
         auto df = ctx.csv(bts_path);
         auto cols = extractFromListOfStrings(df.columns().ptr());
@@ -1119,8 +1110,8 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
                                              "                'LatitudeDegrees', 'LatitudeMinutes', 'LatitudeSeconds', 'LatitudeDirection',\n"
                                              "                'LongitudeDegrees', 'LongitudeMinutes', 'LongitudeSeconds',\n"
                                              "                'LongitudeDirection', 'Altitude', 'LatitudeDecimal', 'LongitudeDecimal']", "airport_cols");
-        auto null_values = boost::python::list(boost::python::borrowed<>(null_values_obj));
-        auto airport_cols = boost::python::list(boost::python::borrowed<>(airport_cols_obj));
+        auto null_values = py::reinterpret_borrow<py::list>(null_values_obj);
+        auto airport_cols = py::reinterpret_borrow<py::list>(airport_cols_obj);
         auto df_airports = ctx.csv(airport_path, airport_cols, true, false, ":", "\"", null_values);
         df_airports = df_airports.cache(true);
 
@@ -1178,7 +1169,7 @@ TEST_F(WrapperTest, Airport) {
         auto pds = c.csv(sampleFile, STL_to_Python(airport_cols), false, false, ":");
 
 
-        pds = pds.mapColumn("AirportName", "lambda x: string.capwords(x) if x else None", "", closureObject);
+        pds = pds.mapColumn("AirportName", "lambda x: string.capwords(x) if x else None", "", py::reinterpret_steal<py::dict>(closureObject));
         pds.tocsv("airport.csv");
     }
 }
@@ -1197,10 +1188,8 @@ TEST_F(WrapperTest, OptionParallelizeI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1242,10 +1231,8 @@ TEST_F(WrapperTest, OptionParallelizeII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1271,10 +1258,8 @@ TEST_F(WrapperTest, NoneParallelize) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1299,10 +1284,8 @@ TEST_F(WrapperTest, EmptyMapI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: None", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1329,10 +1312,8 @@ TEST_F(WrapperTest, EmptyMapII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: ()", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1363,10 +1344,8 @@ TEST_F(WrapperTest, EmptyMapIII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: {}", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1397,10 +1376,8 @@ TEST_F(WrapperTest, EmptyOptionMapI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: () if x < 3 else None", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1429,10 +1406,8 @@ TEST_F(WrapperTest, EmptyOptionMapII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: {} if x < 3 else None", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1473,10 +1448,8 @@ TEST_F(WrapperTest, OptionTupleParallelizeI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1524,10 +1497,8 @@ TEST_F(WrapperTest, OptionTupleParallelizeII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1575,8 +1546,7 @@ TEST_F(WrapperTest, OptionTupleParallelizeIII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
         auto resObj = res.ptr();
 
@@ -1615,10 +1585,8 @@ TEST_F(WrapperTest, parallelizeOptionTypeI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         // simplest is string compare
@@ -1644,10 +1612,8 @@ TEST_F(WrapperTest, parallelizeNestedSlice) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x[-10:]", "").collect();
-
         auto resObj = res.ptr();
 
         // simplest is string compare
@@ -1670,8 +1636,7 @@ TEST_F(WrapperTest, TPCHQ6) {
 
     {
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto init_val = python::pickleObject(python::getMainModule(), PyFloat_FromDouble(0.0));
 
         auto path = "../resources/tpch/lineitem.tbl"; // SF 0.01
@@ -1691,7 +1656,7 @@ TEST_F(WrapperTest, TupleParallelizeI) {
 
     PythonContext c("c", "", microTestOptions().asJSON());
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         c.parallelize(list).map("lambda x: ({x[0]: x[3], x[1]: x[4], x[2]: x[5]},)", "").show();
     }
 }
@@ -1703,7 +1668,7 @@ TEST_F(WrapperTest, TupleParallelizeII) {
 
     PythonContext c("c", "", microTestOptions().asJSON());
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         c.parallelize(list).map("lambda x, y, z: [x, y, z]", "").show();
     }
 }
@@ -1731,8 +1696,8 @@ TEST_F(WrapperTest, DictParallelizeRefTest) {
         ASSERT_TRUE(floats->ob_refcnt > 0);
 
         // following code screws up python objects!
-        auto list = boost::python::list(boost::python::borrowed(L)); // <-- this is buggy!
-        ASSERT_EQ(boost::python::len(list), 3);
+        auto list = py::reinterpret_borrow<py::list>(L);
+        ASSERT_EQ(py::len(list), 3);
         ASSERT_EQ(PyList_Size(floats), 3);
         ASSERT_EQ(PyObject_Length(floats), 3);
         auto ds = c.parallelize(list).map("lambda x: (x['a'], x['b'], x['c'])", "");
@@ -1753,7 +1718,7 @@ TEST_F(WrapperTest, DictParallelizeRefTest) {
         auto vlen = PyObject_Length(v.ptr());
 
         // compare
-        ASSERT_EQ(boost::python::len(v), PyList_Size(floats));
+        ASSERT_EQ(py::len(v), PyList_Size(floats));
     }
 }
 
@@ -1768,13 +1733,13 @@ TEST_F(WrapperTest, BuiltinModule) {
         PyList_SetItem(L, 0, python::PyString_FromString("123"));
         PyList_SetItem(L, 1, python::PyString_FromString("abc"));
         PyList_SetItem(L, 2, python::PyString_FromString("1a2b3c"));
-        auto list = boost::python::list(boost::python::borrowed(L)); // <-- this is buggy!
+        auto list = py::reinterpret_borrow<py::list>(L);
 
         PyObject* closureObject = PyDict_New();
         // import re module
         auto re_mod = PyImport_ImportModule("re");
         PyDict_SetItemString(closureObject, "re", re_mod);
-        auto v = c.parallelize(list).map("lambda x: re.search('\\\\d+', x) != None", "", closureObject).collect();
+        auto v = c.parallelize(list).map("lambda x: re.search('\\\\d+', x) != None", "", py::reinterpret_steal<py::dict>(closureObject)).collect();
 
         ASSERT_EQ(PyObject_Length(v.ptr()), 3);
         auto v_str = python::PyString_AsString(v.ptr());
@@ -1804,7 +1769,7 @@ TEST_F(WrapperTest, SwapIII) {
         PyTuple_SetItem(tuple2, 1, PyLong_FromLong(2));
         PyList_SetItem(L, 0, tuple1);
         PyList_SetItem(L, 1, tuple2);
-        auto list = boost::python::list(boost::python::borrowed(L));
+        auto list = py::reinterpret_borrow<py::list>(L);
 
         auto v = c.parallelize(list).map(code, "").collect();
         ASSERT_EQ(PyObject_Length(v.ptr()), 2);
@@ -1977,12 +1942,12 @@ namespace tuplex {
            .filter("lambda x: x['type'] == 'house'", "")
            .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
            .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-           .withColumn("bathrooms", extractBa_c, "", ba_closure)
+           .withColumn("bathrooms", extractBa_c, "", py::reinterpret_steal<py::dict>(ba_closure))
            .withColumn("sqft", extractSqft_c, "")
            .withColumn("offer", extractOffer_c, "")
            .withColumn("price", extractPrice_c, "")
            .filter("lambda x: 100000 < x['price'] < 2e7", "")
-           .selectColumns(boost::python::list(boost::python::borrowed<>(cols_to_select)));
+           .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select));
     }
 
     PythonDataSet zillowDirtyWithResolvers(PythonContext& ctx, const std::string& z_path) {
@@ -2008,14 +1973,14 @@ namespace tuplex {
                 .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
                 .ignore(ecToI64(ExceptionCode::TYPEERROR))
                 .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-                .withColumn("bathrooms", extractBa_c, "", ba_closure)
+                .withColumn("bathrooms", extractBa_c, "", py::reinterpret_steal<py::dict>(ba_closure))
                 .ignore(ecToI64(ExceptionCode::VALUEERROR))
                 .withColumn("sqft", extractSqft_c, "")
                 .ignore(ecToI64(ExceptionCode::VALUEERROR)) // why is this showing a single error???
                 .withColumn("offer", extractOffer_c, "")
                 .withColumn("price", extractPrice_c, "")
                 .filter("lambda x: 100000 < x['price'] < 2e7", "")
-                .selectColumns(boost::python::list(boost::python::borrowed<>(cols_to_select)));
+                .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select));
     }
 
     PythonDataSet zillowDirtyCustomLogic(PythonContext& ctx, const std::string& z_path) {
@@ -2093,25 +2058,25 @@ namespace tuplex {
                                  "        return None";
 
         return ctx.csv(z_path)
-                  .withColumn("bedrooms", extractBd_alt_c, "", ba_closure)
+                  .withColumn("bedrooms", extractBd_alt_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: x['bedrooms'] != None and x['bedrooms'] < 10", "")
-                  .withColumn("type", extractType_c, "", ba_closure)
+                  .withColumn("type", extractType_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: x['type'] == 'house'", "")
                   .filter("lambda x: x['postal_code'] != None", "")
                   .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
                   .filter("lambda x: x['zipcode'] != None", "")
                   .mapColumn("zipcode", "lambda x: str(x)", "")
                   .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-                  .withColumn("bathrooms", extractBa_alt_c, "", ba_closure)
+                  .withColumn("bathrooms", extractBa_alt_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: x['bathrooms'] != None", "")
                   .mapColumn("bathrooms", "lambda x: float(x)", "")
-                  .withColumn("sqft", extractSqft_alt_c, "", ba_closure)
+                  .withColumn("sqft", extractSqft_alt_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: x['sqft'] != None", "")
                   .mapColumn("sqft", "lambda x: int(x)", "")
-                  .withColumn("offer", extractOffer_c, "", ba_closure)
-                  .withColumn("price", extractPrice_c, "", ba_closure)
+                  .withColumn("offer", extractOffer_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
+                  .withColumn("price", extractPrice_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: 100000 < x['price'] < 2e7", "")
-                .selectColumns(boost::python::list(boost::python::borrowed<>(cols_to_select)));
+                .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select));
     }
 }
 
@@ -2378,7 +2343,7 @@ TEST_F(WrapperTest, BitwiseAnd) {
 
     PythonContext c("c", "", microTestOptions().asJSON());
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res_list = c.parallelize(list).map("lambda a, b: a & b", "").collect();
         auto res_obj = res_list.ptr();
         ASSERT_TRUE(res_obj);
@@ -2394,7 +2359,7 @@ TEST_F(WrapperTest, MetricsTest) {
 
     PythonContext c("c", "", microTestOptions().asJSON());
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res_list = c.parallelize(list).map("lambda a, b: a & b", "").collect();
         auto res_obj = res_list.ptr();
         ASSERT_TRUE(res_obj);
@@ -2403,7 +2368,7 @@ TEST_F(WrapperTest, MetricsTest) {
     }
 
     // optimization time in LLVM depends on whether optimizer is activated or not.
-    auto optimizer_enabled = boost::python::extract<bool>(c.options().get("tuplex.useLLVMOptimizer"))();
+    auto optimizer_enabled = py::cast<bool>(c.options()["tuplex.useLLVMOptimizer"]);
     PythonMetrics pythMet = c.getMetrics();
     auto pt1 = pythMet.getTotalCompilationTime();
     auto pt2 = pythMet.getLogicalOptimizationTime();
@@ -2444,7 +2409,7 @@ TEST_F(WrapperTest, LambdaResolveI) {
     auto L = python::runAndGet("L = [0, 1, 2, 3, 4]", "L");
     ASSERT_TRUE(L);
     Py_XINCREF(L);
-    auto object_list = boost::python::list(boost::python::borrowed(L));
+    auto object_list = py::reinterpret_borrow<py::list>(L);
 
     {
 //        // first try
@@ -2483,7 +2448,7 @@ TEST_F(WrapperTest, CollectPyObjects) {
     auto L = python::runAndGet("import numpy as np; L = [(1,np.zeros(1)), (4,np.zeros(4))]", "L");
     ASSERT_TRUE(L);
     Py_XINCREF(L);
-    auto object_list = boost::python::list(boost::python::borrowed(L));
+    auto object_list = py::reinterpret_borrow<py::list>(L);
 
     {
         // second w. resolve
@@ -2523,7 +2488,7 @@ TEST_F(WrapperTest, SingleCharCSVField) {
     ASSERT_TRUE(L);
     Py_XINCREF(L);
     {
-        auto object_list = boost::python::list(boost::python::handle<>(L));
+        auto object_list = py::reinterpret_borrow<py::list>(L);
         // save to csv file
         ctx.parallelize(object_list).tocsv("testdata.csv"); // <-- this is not where the failure happens, happens somewhere else?
 
@@ -2531,7 +2496,9 @@ TEST_F(WrapperTest, SingleCharCSVField) {
         PyDict_SetItem(typehints, PyLong_FromLong(0), python::PyString_FromString("str"));
 
         // read from file incl. type hints
-        auto ds = ctx.csv("testdata.part0.csv",boost::python::object(), true, false, "", "\"", boost::python::object(), boost::python::object(boost::python::borrowed(typehints)));
+        auto ds = ctx.csv("testdata.part0.csv",py::none(), true, false, "", "\"",
+                          py::none(),
+                          py::reinterpret_steal<py::dict>(typehints));
     }
 }
 
@@ -2568,10 +2535,10 @@ TEST_F(WrapperTest, NYC311) {
         PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
         // type hints:
         // vector<string>{"Unspecified", "NO CLUE", "NA", "N/A", "0", ""}
-        ctx.csv(service_path,boost::python::object(), true, false, "", "\"",
-                boost::python::object(), boost::python::object(boost::python::handle<>(type_dict)))
+        ctx.csv(service_path,py::none(), true, false, "", "\"",
+                py::none(), py::reinterpret_steal<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
-                .selectColumns(boost::python::list(boost::python::handle<>(cols_to_select)))
+                .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select))
                 .unique().show();
 
         std::cout<<std::endl;
@@ -2601,7 +2568,7 @@ TEST_F(WrapperTest, MixedTypesIsWithNone) {
     Py_IncRef(listObj);
 
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: (x, x is None)", "").collect();
         auto resObj = res.ptr();
         PyObject_Print(resObj, stdout, 0);
@@ -2666,7 +2633,7 @@ TEST_F(WrapperTest, SelectColumns) {
         auto cols_to_select = PyList_New(1);
         PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Unique Key"));
 
-        auto res = ctx.csv(testURI).selectColumns(boost::python::list(boost::python::handle<>(cols_to_select))).columns();
+        auto res = ctx.csv(testURI).selectColumns(py::reinterpret_borrow<py::list>(cols_to_select)).columns();
         auto resObj = res.ptr();
         ASSERT_TRUE(PyList_Check(resObj));
         ASSERT_EQ(PyList_Size(resObj), 1);
@@ -2712,10 +2679,10 @@ TEST_F(WrapperTest, PartitionRelease) {
         PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
         // type hints:
         // vector<string>{"Unspecified", "NO CLUE", "NA", "N/A", "0", ""}
-        ctx->csv(service_path,boost::python::object(), true, false, "", "\"",
-                boost::python::object(), boost::python::object(boost::python::handle<>(type_dict)))
+        ctx->csv(service_path,py::none(), true, false, "", "\"",
+                py::none(), py::reinterpret_steal<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
-                .selectColumns(boost::python::list(boost::python::handle<>(cols_to_select)))
+                .selectColumns(py::reinterpret_steal<py::dict>(cols_to_select))
                 .unique().show();
 
         std::cout<<std::endl;
@@ -2729,10 +2696,10 @@ TEST_F(WrapperTest, PartitionRelease) {
         cols_to_select = PyList_New(1);
         PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
 
-        ctx2.csv(service_path,boost::python::object(), true, false, "", "\"",
-                 boost::python::object(), boost::python::object(boost::python::handle<>(type_dict)))
+        ctx2.csv(service_path,py::none(), true, false, "", "\"",
+                 py::none(), py::reinterpret_steal<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
-                .selectColumns(boost::python::list(boost::python::handle<>(cols_to_select)))
+                .selectColumns(py::reinterpret_steal<py::dict>(cols_to_select))
                 .unique().show();
     }
 

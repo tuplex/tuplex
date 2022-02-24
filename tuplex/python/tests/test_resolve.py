@@ -16,7 +16,8 @@ import time
 class TestResolveMechanism(TestCase):
 
     def setUp(self):
-        self.conf = {"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"}
+        self.conf = {"webui.enable": False, "driverMemory": "8MB",
+                     "partitionSize": "256KB", "optimizer.mergeExceptionsInOrder": True}
         self.c = tuplex.Context(self.conf)
 
     def test_LambdaResolveI(self):

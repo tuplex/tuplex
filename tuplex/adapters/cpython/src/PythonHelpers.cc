@@ -19,7 +19,6 @@
 #include <regex>
 
 #include <unordered_map>
-#include <boost/python.hpp>
 
 // module specific vars
 static std::unordered_map<std::string, PyObject*> cached_functions;
@@ -92,8 +91,6 @@ namespace python {
     }
 
     void handle_and_throw_py_error() {
-        using namespace boost::python;
-
         if(PyErr_Occurred()) {
             PyObject *ptype = NULL, *pvalue = NULL, *ptraceback = NULL;
             PyErr_Fetch(&ptype,&pvalue,&ptraceback);
@@ -101,21 +98,52 @@ namespace python {
 
             std::stringstream ss;
 
-            PyObject * extype, * value, * traceback;
+            PyObject *extype = nullptr, * value=nullptr, * traceback=nullptr;
             PyErr_Fetch(&extype, &value, &traceback);
             if (!extype)
                 throw std::runtime_error("could not obtain error");
+            if (!value)
+                throw std::runtime_error("could not obtain value");
+            if (!traceback)
+                throw std::runtime_error("could not obtain traceback");
+            // value and traceback may be nullptr (?)
 
-            object o_extype(handle<>(borrowed(extype)));
-            object o_value(handle<>(borrowed(value)));
-            object o_traceback(handle<>(borrowed(traceback)));
+            auto mod_traceback = PyImport_ImportModule("traceback");
+            if(!mod_traceback) {
+                PyErr_Clear();
+                throw std::runtime_error("failed to import internal traceback module");
+            }
 
-            object mod_traceback = import("traceback");
-            object lines = mod_traceback.attr("format_exception")(
-                    o_extype, o_value, o_traceback);
+            auto mod_traceback_dict = PyModule_GetDict(mod_traceback);
+            if(!mod_traceback_dict) {
+                PyErr_Clear();
+                throw std::runtime_error("failed to retrieve namespace dict from internal traceback module");
+            }
 
-            for (int i = 0; i < len(lines); ++i)
-                ss << extract<std::string>(lines[i])();
+            auto format_exception_func = PyObject_GetAttrString(mod_traceback_dict, "format_exception");
+            assert(PyCallable_Check(format_exception_func));
+
+            // call function, set all args
+            auto args = PyTuple_New(3);
+            PyTuple_SET_ITEM(args, 0, extype);
+            PyTuple_SET_ITEM(args, 1, value);
+            PyTuple_SET_ITEM(args, 2, traceback);
+
+            // get list object & convert to strings
+            auto lines_obj = PyObject_Call(format_exception_func, args, nullptr);
+            if(!mod_traceback_dict) {
+                PyErr_Clear();
+                throw std::runtime_error("failed to call format_exception from internal traceback module");
+            }
+            assert(PyList_Check(lines_obj));
+            auto line_count = PyList_Size(lines_obj);
+            for (unsigned i = 0; i < line_count; ++i) {
+                auto item = PyList_GET_ITEM(lines_obj, i);
+                Py_XINCREF(item);
+                auto line = PyString_AsString(item);
+                ss << line;
+            }
+            Py_XDECREF(lines_obj);
 
             throw std::runtime_error(ss.str());
         }

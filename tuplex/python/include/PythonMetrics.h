@@ -11,7 +11,7 @@
 #ifndef TUPLEX_PYTHONMETRICS_H
 #define TUPLEX_PYTHONMETRICS_H
 
-# include <JobMetrics.h>
+#include <JobMetrics.h>
 
 namespace tuplex {
 

@@ -11,7 +11,8 @@
 #ifndef TUPLEX_PYTHONEXCEPTION_H
 #define TUPLEX_PYTHONEXCEPTION_H
 
-#include <boost/python.hpp>
+#include "PythonCommon.h"
+
 #include <cassert>
 #include <iostream>
 

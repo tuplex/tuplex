@@ -23,8 +23,8 @@
 
 // General notes:
 // Interacting with boost python/PyObjects
-// ==> boost::python::handle transfers ownership to boost python. Use with caution! Use on newly constructed objects
-// ==> boost::python::borrowed is a borrowed reference, safer to use.
+// ==> py::handle transfers ownership to boost python. Use with caution! Use on newly constructed objects
+// ==> py::borrowed is a borrowed reference, safer to use.
 
 namespace tuplex {
 
@@ -570,7 +570,7 @@ namespace tuplex {
         return false;
     }
 
-    DataSet & PythonContext::parallelizeAnyType(boost::python::list &L, const python::Type &majType, const std::vector<std::string>& columns) {
+    DataSet & PythonContext::parallelizeAnyType(const py::list &L, const python::Type &majType, const std::vector<std::string>& columns) {
 
         auto& logger = Logger::instance().logger("python");
         logger.info("using slow transfer to backend");
@@ -776,9 +776,9 @@ namespace tuplex {
         return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns);
     }
 
-    PythonDataSet PythonContext::parallelize(boost::python::list L,
-                                             boost::python::object cols,
-                                             boost::python::object schema,
+    PythonDataSet PythonContext::parallelize(py::list L,
+                                             py::object cols,
+                                             py::object schema,
                                              bool autoUnpack) {
 
         assert(_context);
@@ -791,7 +791,7 @@ namespace tuplex {
         auto autoUpcast = _context->getOptions().AUTO_UPCAST_NUMBERS();
 
         Timer timer;
-        auto numElements = boost::python::len(L);
+        auto numElements = py::len(L);
         std::stringstream ss;
         ss<<"transferring "<<numElements<<" elements to tuplex";
         logger.info(ss.str());
@@ -1006,7 +1006,7 @@ namespace tuplex {
         return majType;
     }
     
-    python::Type PythonContext::inferType(const boost::python::list &L) const {
+    python::Type PythonContext::inferType(const py::list &L) const {
         // elements must be either simple objects, i.e. str/int/float
         // or tuples of simple objects
         // ==> no support for lists yet!!!
@@ -1017,7 +1017,7 @@ namespace tuplex {
         // new thing about tuplex is, that we allow for erroneous data => i.e. determine from sampling normal case
         std::map<python::Type, int> mTypes; // count for each type how often it was seen in the sample
         for(unsigned i = 0; i < numSample; ++i) {
-            boost::python::object o = L[i];
+            py::object o = L[i];
 
             // describe using internal types
             python::Type t = python::mapPythonClassToTuplexType(o.ptr());
@@ -1035,7 +1035,7 @@ namespace tuplex {
         return buildRowTypeFromSamples(mTypes, numSample, _context->getOptions().OPTIONAL_THRESHOLD());
     }
 
-    std::unordered_map<std::string, python::Type> PythonContext::inferColumnsFromDictObjects(const boost::python::list &L, double normalThreshold) {
+    std::unordered_map<std::string, python::Type> PythonContext::inferColumnsFromDictObjects(const py::list &L, double normalThreshold) {
         using namespace std;
 
         auto& logger = Logger::instance().logger("python");
@@ -1080,7 +1080,8 @@ namespace tuplex {
                 PyList_SET_ITEM(listColObj, i, Py_None);
                 ++i;
             }
-            auto type = inferType(boost::python::list(boost::python::handle<>(listColObj)));
+
+            auto type = inferType(py::reinterpret_borrow<py::list>(listColObj));
             m[c.first] = type;
         }
 
@@ -1135,13 +1136,13 @@ namespace tuplex {
     }
 
     PythonDataSet PythonContext::csv(const std::string &pattern,
-                                     boost::python::object cols,
+                                     py::object cols,
                                      bool autodetect_header,
                                      bool header,
                                      const std::string& delimiter,
                                      const std::string& quotechar,
-                                     boost::python::object null_values,
-                                     boost::python::object type_hints) {
+                                     py::object null_values,
+                                     py::object type_hints) {
         assert(_context);
 
         // reset signals
@@ -1199,7 +1200,7 @@ namespace tuplex {
         return pds;
     }
 
-    PythonDataSet PythonContext::text(const std::string &pattern, boost::python::object null_values ) {
+    PythonDataSet PythonContext::text(const std::string &pattern, py::object null_values ) {
         assert(_context);
 
         // reset signals
@@ -1238,7 +1239,7 @@ namespace tuplex {
     }
 
     PythonDataSet PythonContext::orc(const std::string &pattern,
-                                     boost::python::object cols) {
+                                     py::object cols) {
         assert(_context);
 
         // reset signals
@@ -1452,7 +1453,7 @@ namespace tuplex {
         python::lockGIL();
     }
 
-    boost::python::dict PythonContext::options() const {
+    py::dict PythonContext::options() const {
         assert(_context);
         ContextOptions co = _context->getOptions();
 
@@ -1626,10 +1627,10 @@ namespace tuplex {
         Logger::instance().flushToPython();
 
         // first manual fetch
-       return boost::python::dict(boost::python::handle<>(dictObject));
+       return py::reinterpret_steal<py::dict>(dictObject);
     }
 
-    boost::python::object PythonContext::ls(const std::string &pattern) const {
+    py::object PythonContext::ls(const std::string &pattern) const {
         Timer timer;
         python::unlockGIL();
         std::vector<URI> uris;
@@ -1645,7 +1646,7 @@ namespace tuplex {
         Logger::instance().logger("filesystem").info("listed " + std::to_string(uris.size()) + " files in " + std::to_string(timer.time()) +"s");
         // Logger::instance().flushAll();
         Logger::instance().flushToPython();
-        return boost::python::list(boost::python::handle<>(listObj));
+        return py::reinterpret_borrow<py::list>(listObj);
     }
 
     void PythonContext::cp(const std::string &pattern, const std::string &target) const {

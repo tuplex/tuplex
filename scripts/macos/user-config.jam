@@ -1,0 +1,4 @@
+using python : 3.6 : /Library/Frameworks/Python.framework/Versions/3.6/bin/python3.6 : /Library/Frameworks/Python.framework/Versions/3.6/include/python3.6m/ : /Library/Frameworks/Python.framework/Versions/3.6/lib ;
+using python : 3.7 : /Library/Frameworks/Python.framework/Versions/3.7/bin/python3.7 : /Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m/ : /Library/Frameworks/Python.framework/Versions/3.7/lib ;
+using python : 3.8 : /Library/Frameworks/Python.framework/Versions/3.8/bin/python3.8 : /Library/Frameworks/Python.framework/Versions/3.8/include/python3.8/ : /Library/Frameworks/Python.framework/Versions/3.8/lib ;
+using python : 3.9 : /Library/Frameworks/Python.framework/Versions/3.9/bin/python3.9 : /Library/Frameworks/Python.framework/Versions/3.9/include/python3.9/ : /Library/Frameworks/Python.framework/Versions/3.9/lib ;

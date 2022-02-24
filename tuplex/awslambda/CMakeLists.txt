@@ -41,8 +41,9 @@ add_executable(${LAMBDA_NAME} "src/main.cc" "src/lambda_main.cc" "src/sighandler
 # enable export symbols in debug for backtrace
 set_target_properties(${LAMBDA_NAME} PROPERTIES ENABLE_EXPORTS 1)
 
+# note: for the Lambda, the interpreter gets actually embedded. Therefore link to it!
 target_link_libraries(${LAMBDA_NAME} PRIVATE AWS::aws-lambda-runtime ${AWSSDK_LINK_LIBRARIES}
-        libio libutils libcore ${Boost_LIBRARIES} ${LibMagic_LIBRARIES})
+        libio libutils libcore libcodegen libcpythonadapter ${Boost_LIBRARIES} ${LibMagic_LIBRARIES} ${Python3_LIBRARIES})
 target_compile_features(${LAMBDA_NAME} PRIVATE "cxx_std_11")
 
 

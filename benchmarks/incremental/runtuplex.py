@@ -242,6 +242,8 @@ if __name__ == '__main__':
 
     shutil.rmtree(output_path, ignore_errors=True)
 
+    print(json.dumps(conf))
+
     # print stats as last line
     print(json.dumps({"startupTime": startup_time,
                       "totalRunTime": runtime,

@@ -1,0 +1,36 @@
+## This is an experiment to spin up automatically an EC2 instnace and run everything
+
+# Invoke via ansible-playbook --connection=local --inventory 127.0.0.1, ec2experiment.yml
+# or specify hosts file
+# you might want to do a dry run first using --check
+
+- hosts: all
+  remote_user: root
+  vars:
+    region: us-east-1
+    key_name: vitonexp
+  # specify what tasks to execute
+  tasks:
+  - name: This is just a placeholder
+    ansible.builtin.command: /bin/echo foo
+  - name: Run ls.sh and output "ls /"
+    script: ls.sh
+    register: out
+  - debug: var=out.stdout_lines
+
+# hosts: all
+#   # remote_user: root
+#   vars:
+#     # define here user defined vars, change vars here if you want to run in a different region e.g.
+#     region: us-east-1
+#     key_name: vitonexp
+#
+# tasks:
+#   - name: "Create new EC2 key {{ key_name }}"
+#     ec2_key:
+#       name: "{{ key_name }}"
+#       region: "{{ region }}"
+#     register: ec2_key_result
+#   - name: "Save private key"
+#     copy: content="{{ ec2_key_result.key.private_key }}" dest="./{{ key_name }}.pem " mode=0600
+#     when: ec2_key_result.changed

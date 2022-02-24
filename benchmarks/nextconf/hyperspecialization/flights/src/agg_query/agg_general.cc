@@ -64,8 +64,8 @@ extern "C" int64_t process_cells(void *userData, char **cells, int64_t *cell_siz
     auto s_weather_delay = cells[WEATHER_DELAY_COLUMN_INDEX];
     auto s_airport_code = cells[AIRPORT_CODE_INDEX];
 
-    // parsing avoided here...
-    if(0 == strcmp(s_airport_code, "12478")) {
+    //// parsing avoided here...
+    //if(0 == strcmp(s_airport_code, "12478")) {
         // compute aggregate for current airport
         double weather_delay;
 
@@ -119,7 +119,7 @@ extern "C" int64_t process_cells(void *userData, char **cells, int64_t *cell_siz
         agg_map[key].count = count;
         agg_map[key].mean = mean;
         agg_map[key].m2 = m2;
-    }
+    //}
 
     return 0;
 }

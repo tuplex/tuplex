@@ -72,7 +72,8 @@ extern "C" int64_t process_cells(void *userData, char **cells, int64_t *cell_siz
     auto s_airport_code = cells[AIRPORT_CODE_INDEX];
 
     // parsing avoided here...
-    if(0 == strcmp(s_airport_code, "12478")) {
+    //if(0 == strcmp(s_airport_code, "12478")) {
+
         // compute aggregate for current airport
         double weather_delay;
 
@@ -108,7 +109,7 @@ extern "C" int64_t process_cells(void *userData, char **cells, int64_t *cell_siz
         } else {
             entry.count++; // this is NOT the actual count, but rather a count of how many constant inputs were encountered...
         }
-    }
+   // }
 
     return 0;
 }

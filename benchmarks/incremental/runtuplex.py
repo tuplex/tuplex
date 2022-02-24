@@ -216,11 +216,11 @@ if __name__ == '__main__':
     # force to false version
     conf["optimizer.generateParser"] = False
 
-    print(json.dumps(conf))
-
     tstart = time.time()
     import tuplex
     ctx = tuplex.Context(conf)
+
+    print(json.dumps(ctx.options()))
 
     startup_time = time.time() - tstart
     print('Tuplex startup time: {}'.format(startup_time))

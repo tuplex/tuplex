@@ -28,6 +28,13 @@
       when: ec2_key_result.changed
 
 
+    - name: "Create new VPC"
+      ec2_vpc:
+        state: present
+        resource_tags: { "Environment" : "Experiment" }
+        region: "{{ region }}"
+      register: vpc
+
     # cf. https://www.ansible.com/blog/ansible-for-aws-introduction-to-spot-instance-automation
     # and https://www.infinitypp.com/ansible/create-aws-resources-using-ansible/
     - name: "Create EC2 security group {{ sg_name }}"
@@ -73,6 +80,7 @@
         keypair: "{{ key_name }}"
         group_id: "{{ security_group.group_id }}"
         assign_public_ip: yes
+        vpc_subnet_id: ""
         wait: yes
           # launch_specification:
           #

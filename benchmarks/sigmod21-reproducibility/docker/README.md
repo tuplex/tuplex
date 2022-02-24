@@ -18,3 +18,5 @@ Another option is to use the convenience script provided in this folder and plot
 (Replace `/data/results` with a path to your results folder)
 
 ---
+
+(c) 2017-2022 Tuplex authors

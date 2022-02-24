@@ -11,6 +11,10 @@
     region: us-east-1
     key_name: vitonexp
     sg_name: vitonsg
+    # this here is Ubuntu Server 20.04 LTS (HVM), SSD Volume Type
+    ami: ami-04505e74c0741db8d
+    instance_type: t2.medium
+    spot_price: 0.20
   # specify what tasks to execute
   tasks:
     # EC2 credentials create for this experiment
@@ -41,23 +45,78 @@
             cidr_ip: 0.0.0.0/0
       register: security_group
 
-    - name: "Removing EC2 security group {{ sg_name }}"
-      ec2_group:
+
+    - name: "Requesting spot instance"
+      amazon.aws.ec2_spot_instance:
+        launch_specification:
+          image_id: "{{ ami }}"
+          key_name: "{{ key_name }}"
+          instance_type: "{{ instance_type }}"
+          block_device_mappings:
+            - device_name: /dev/sdc
+              ebs:
+                delete_on_termination: True
+                volume_type: io2
+                volume_size: 30
+                iops: 5000
+          network_interfaces:
+            - associate_public_ip_address: True
+              delete_on_termination: True
+              device_index: 0
+        spot_price: "{{ spot_price }}"
+      register: spot_instance
+
+    - name: "Add new instance to host group"
+      add_host:
+        hostname: "{{ spot_instance.public_ip }}"
+        groupname: launched
+
+    # cf. https://runebook.dev/en/docs/ansible/collections/amazon/aws/ec2_module
+    - name: "Wait for SSH to come up"
+      delegate_to: "{{ spot_instance.public_ip }}"
+      wait_for_connection:
+        delay: 60
+        timeout: 320
+
+    # # configure instance & do whatever is necessary
+    # - name: "Configure instance"
+    #   hosts: launched
+    #   become: True
+    #   gather_facts: True
+
+
+    - name: "Shutdown spot instance"
+      amazon.aws.ec2_spot_instance:
+        spot_instance_request_id: "{{ spot_instance.spot_instance_request_id }}"
         state: absent
-        name: "{{ sg_name }}"
-        region: "{{ region }}"
-    # EC2 credentials cleanup
-    - name: "Removing EC2 key {{ key_name }}"
-      ec2_key:
-          name: "{{ key_name }}"
-          region: "{{ region }}"
-          #  absent means delete keypair
-          state: absent
-    - name: "Deleting local key file {{ key_name }}.pem"
-      file:
-        path: "./{{ key_name }}.pem"
-        state: absent
-      #delegate_to: localhost
+      when: spot_instance.changed
+
+  #  - name: "Deleting spot instances"
+    # - name: Spot Instance Request Termination
+  # amazon.aws.ec2_spot_instance:
+  #   spot_instance_request_ids: ['sir-12345678', 'sir-abcdefgh']
+  #   state: absent
+
+
+
+
+    # - name: "Removing EC2 security group {{ sg_name }}"
+    #   ec2_group:
+    #     state: absent
+    #     name: "{{ sg_name }}"
+    #     region: "{{ region }}"
+    # # EC2 credentials cleanup
+    # - name: "Removing EC2 key {{ key_name }}"
+    #   ec2_key:
+    #       name: "{{ key_name }}"
+    #       region: "{{ region }}"
+    #       #  absent means delete keypair
+    #       state: absent
+    # - name: "Deleting local key file {{ key_name }}.pem"
+    #   file:
+    #     path: "./{{ key_name }}.pem"
+    #     state: absent
+
 
 
 # hosts: all

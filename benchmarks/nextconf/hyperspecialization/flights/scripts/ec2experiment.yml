@@ -45,25 +45,50 @@
             cidr_ip: 0.0.0.0/0
       register: security_group
 
+# - name: "Requesting spot instance"
+#   amazon.aws.ec2_spot_instance:
+#     launch_specification:
+#       image_id: "{{ ami }}"
+#       key_name: "{{ key_name }}"
+#       instance_type: "{{ instance_type }}"
+#       block_device_mappings:
+#         - device_name: /dev/sdc
+#           ebs:
+#             delete_on_termination: True
+#             volume_type: io2
+#             volume_size: 30
+#             iops: 5000
+#       network_interfaces:
+#         - associate_public_ip_address: True
+#           delete_on_termination: True
+#           device_index: 0
+#     spot_price: "{{ spot_price }}"
+#   register: spot_instance
 
     - name: "Requesting spot instance"
-      amazon.aws.ec2_spot_instance:
-        launch_specification:
-          image_id: "{{ ami }}"
-          key_name: "{{ key_name }}"
-          instance_type: "{{ instance_type }}"
-          block_device_mappings:
-            - device_name: /dev/sdc
-              ebs:
-                delete_on_termination: True
-                volume_type: io2
-                volume_size: 30
-                iops: 5000
-          network_interfaces:
-            - associate_public_ip_address: True
-              delete_on_termination: True
-              device_index: 0
+      ec2:
         spot_price: "{{ spot_price }}"
+        spot_wait_timeout: 600
+        image: "{{ ami }}"
+        keypair: "{{ key_name }}"
+        group_id: "{{ security_group.group_id }}"
+        assign_public_ip: yes
+        wait: yes
+          # launch_specification:
+          #
+          #   instance_type: "{{ instance_type }}"
+          #   block_device_mappings:
+          #     - device_name: /dev/sdc
+          #       ebs:
+          #         delete_on_termination: True
+          #         volume_type: io2
+          #         volume_size: 30
+          #         iops: 5000
+          #   network_interfaces:
+          #     - associate_public_ip_address: True
+          #       delete_on_termination: True
+          #       device_index: 0
+
       register: spot_instance
 
     - name: "Add new instance to host group"

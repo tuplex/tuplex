@@ -4,10 +4,10 @@
 
 # use only year 2013 to save time
 ROOT_PATH="/data/flights*2013*.csv"
-RES_ROOT_DIR=results-agg-experiment-nosse
+RES_ROOT_DIR=results-agg-experiment-noavx
 NUM_RUNS="${NUM_RUNS:-11}"
-SO_SPECIALIZED=agg_weather_specialized-nosse.so
-SO_GENERAL=agg_weather_general-nosse.so
+SO_SPECIALIZED=agg_weather_specialized-noavx.so
+SO_GENERAL=agg_weather_general-noavx.so
 
 #export PATH=/opt/llvm@6/bin:$PATH
 echo "Building shared object..."

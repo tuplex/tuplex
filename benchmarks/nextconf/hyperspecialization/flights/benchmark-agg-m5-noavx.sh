@@ -3,7 +3,7 @@
 # configure variables here
 
 # use only year 2013 to save time
-ROOT_PATH="/data/flights*2013*.csv"
+ROOT_PATH="/data/flights*2003*.csv"
 RES_ROOT_DIR=results-agg-experiment-noavx
 NUM_RUNS="${NUM_RUNS:-11}"
 SO_SPECIALIZED=agg_weather_specialized-noavx.so

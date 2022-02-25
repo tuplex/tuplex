@@ -34,7 +34,8 @@ mkdir -p ${RESDIR}
 # vmtouch -dl <dir> => needs sudo rights I assume...
 
 # create tuplex_config.json
-python3 create_conf.py --opt-null --opt-pushdown --opt-filter --opt-llvm > tuplex_config.json
+#python3 create_conf.py --opt-null --opt-pushdown --opt-filter --opt-llvm > tuplex_config.json
+python3 create_conf.py --opt-pushdown --opt-filter --opt-llvm > tuplex_config.json
 #cp tuplex_config.json ${RESDIR}
 
 # Multi-threaded experiments

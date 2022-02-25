@@ -125,3 +125,24 @@ TEST_F(SamplingTest, BasicAccessChecks) {
 // Experiment: what we want to do is check for each flights file, how many delayed parsing optimizations we should apply.
 // i.e., let's do that via rule of how often the access is ok.
 // this helps with serializing etc.!
+
+TEST_F(SamplingTest, FlightsTracing) {
+    using namespace std;
+    using namespace tuplex;
+
+    string f_path = "../resources/flights_on_time_performance_2019_01.sample.csv";
+    auto content = fileToString(f_path);
+    // parse into rows
+    auto rows = parseRows(content.c_str(), content.c_str() + content.length(), {""});
+
+    // drop the first row because it's the header...
+    auto header = rows.front();
+    rows = std::vector<Row>(rows.begin() + 1, rows.end());
+
+    cout<<"parsed "<<rows.size()<<" rows"<<endl;
+    for(auto row : rows) {
+        cout<<row.getRowType().desc()<<endl;
+    }
+    // trace some stage of the pipeline now!
+
+}

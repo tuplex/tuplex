@@ -48,7 +48,8 @@ namespace tuplex {
                                    int64_t number,
                                    bool allowUndefinedBehavior) : PhysicalStage::PhysicalStage(plan, backend, number),
                                                                   _inputLimit(std::numeric_limits<size_t>::max()),
-                                                                  _outputLimit(std::numeric_limits<size_t>::max()),
+                                                                  _outputTopLimit(std::numeric_limits<size_t>::max()),
+                                                                  _outputBottomLimit(0),
                                                                   _aggMode(AggregateType::AGG_NONE) {
 
         // TODO: is this code out of date? + is allowUndefinedBehavior needed here?
@@ -129,7 +130,7 @@ namespace tuplex {
         if (partitions.empty() && interpreterRows.empty() && generalCase.empty())
             _rs = emptyResultSet();
         else {
-            std::vector<Partition *> limitedPartitions;
+            std::vector<Partition *> limitedPartitions, limitedTailPartitions;
             auto schema = Schema::UNKNOWN;
 
             if(!partitions.empty()) {
@@ -138,31 +139,91 @@ namespace tuplex {
                     assert(schema == partition->schema());
                 }
 
-                // check output limit, adjust partitions if necessary
-                size_t numOutputRows = 0;
+                // check top output limit, adjust partitions if necessary
+                size_t numTopOutputRows = 0;
+                Partition* lastTopPart = nullptr;
+                size_t clippedTop = 0;
                 for (auto partition : partitions) {
-                    numOutputRows += partition->getNumRows();
-                    // TODO(march): work here
-                    ...
-                    if (numOutputRows >= outputLimit()) {
+                    numTopOutputRows += partition->getNumRows();
+                    lastTopPart = partition;
+                    if (numTopOutputRows >= outputTopLimit()) {
                         // clip last partition & leave loop
-                        auto clipped = outputLimit() - (numOutputRows - partition->getNumRows());
-                        assert(clipped <= partition->getNumRows());
-                        partition->setNumRows(clipped);
-                        if (clipped > 0)
-                            limitedPartitions.push_back(partition);
+                        clippedTop = outputTopLimit() - (numTopOutputRows - partition->getNumRows());
+                        assert(clippedTop <= partition->getNumRows());
+                        break;
+                    } else if (partition == *partitions.end()) {
+                        // last partition, mark full row, but don't put to output set yet to avoid double put
+                        clippedTop = partition->getNumRows();
                         break;
                     } else {
                         // put full partition to output set
                         limitedPartitions.push_back(partition);
                     }
                 }
+
+                // check the bottom output limit, adjust partitions if necessary
+                size_t numBottomOutputRows = 0;
+                size_t clippedBottom = 0;
+                for (auto it = partitions.rbegin(); it != partitions.rend(); it++) {
+                    auto partition = *it;
+                    numBottomOutputRows += partition->getNumRows();
+
+                    if (partition == lastTopPart) {
+                        // the bottom and the top partitions are overlapping
+                        clippedBottom = outputBottomLimit() - (numBottomOutputRows - partition->getNumRows());
+                        if (clippedTop + clippedBottom >= partition->getNumRows()) {
+                            // if top and bottom range intersect, use full partitions
+                            clippedTop = partition->getNumRows();
+                            clippedBottom = 0;
+                        }
+                        break;
+                    } else if (numBottomOutputRows >= outputBottomLimit()) {
+                        // clip last partition & leave loop
+                        auto clipped = outputBottomLimit() - (numTopOutputRows - partition->getNumRows());
+                        assert(clipped <= partition->getNumRows());
+                        partition->setNumSkip(partition->getNumRows() - clippedBottom);
+                        partition->setNumRows(clipped);
+                        if (clipped > 0)
+                            limitedTailPartitions.push_back(partition);
+                        break;
+                    } else {
+                        // put full partition to output set
+                        limitedTailPartitions.push_back(partition);
+                    }
+                }
+
+                // push the middle partition
+                if (lastTopPart != nullptr && (clippedTop > 0 || clippedBottom > 0)) {
+                    assert(clippedTop + clippedBottom <= lastTopPart->getNumRows());
+
+                    // TODO(march): to work on this (split into two partitions)
+                    // split into two partitions with both top and bottom are in the same partition
+                    Partition* lastBottomPart = nullptr;
+                    if (clippedBottom != 0) {
+                        lastBottomPart = new Partition(lastTopPart);
+                        lastBottomPart->setNumSkip(lastBottomPart->getNumRows() - clippedBottom);
+                        lastBottomPart->setNumRows(clippedBottom);
+                    }
+
+                    lastTopPart->setNumRows(clippedTop);
+
+                    limitedPartitions.push_back(lastTopPart);
+
+                    if (lastBottomPart != nullptr) {
+                        limitedPartitions.push_back(lastBottomPart);
+                    }
+                }
+
+                // merge the head and tail partitions
+                std::reverse(limitedTailPartitions.begin(), limitedTailPartitions.end());
+                limitedPartitions.insert(limitedPartitions.end(), limitedTailPartitions.begin(), limitedTailPartitions.end());
             }
 
             // put ALL partitions to result set
+            // TODO(march): handle overlapping case
             _rs = std::make_shared<ResultSet>(schema, limitedPartitions,
                                               generalCase, partitionToExceptionsMap, interpreterRows,
-                                              outputLimit());
+                                              outputTopLimit() + outputBottomLimit());
         }
     }
 

@@ -486,6 +486,7 @@ namespace tuplex {
 
         // check what type of input the pipeline has (memory or files)
         if(tstage->fileInputMode()) {
+            // TODO(march): deal with file input
             // files
             // input is multiple files, use split file strategy here.
             // and issue tasks to executor workqueue!
@@ -550,7 +551,7 @@ namespace tuplex {
 
                         task->sinkExceptionsToMemory(inputSchema);
                         task->setStageID(tstage->getID());
-                        task->setOutputLimit(tstage->outputLimit());
+                        task->setOutputLimit(tstage->outputTopLimit());
                         // add to tasks
                         tasks.emplace_back(std::move(task));
                     } else {
@@ -584,7 +585,7 @@ namespace tuplex {
                             }
                             task->sinkExceptionsToMemory(inputSchema);
                             task->setStageID(tstage->getID());
-                            task->setOutputLimit(tstage->outputLimit());
+                            task->setOutputLimit(tstage->outputTopLimit());
                             // add to tasks
                             tasks.emplace_back(std::move(task));
                             num_parts++;
@@ -621,7 +622,7 @@ namespace tuplex {
                                 }
                                 task->sinkExceptionsToMemory(inputSchema);
                                 task->setStageID(tstage->getID());
-                                task->setOutputLimit(tstage->outputLimit());
+                                task->setOutputLimit(tstage->outputTopLimit());
                                 // add to tasks
                                 tasks.emplace_back(std::move(task));
 
@@ -683,7 +684,11 @@ namespace tuplex {
                 task->setInputExceptions(tstage->inputExceptions());
                 task->sinkExceptionsToMemory(inputSchema);
                 task->setStageID(tstage->getID());
-                task->setOutputLimit(tstage->outputLimit());
+                task->setOutputLimit(tstage->outputTopLimit());
+                if (tstage->outputBottomLimit()) {
+                    // TODO(march): work here
+                    task->setOutputBottomLimit(tstage->outputBottomLimit());
+                }
                 tasks.emplace_back(std::move(task));
                 numInputRows += partition->getNumRows();
 
@@ -837,6 +842,7 @@ namespace tuplex {
     }
 
     void LocalBackend::executeTransformStage(tuplex::TransformStage *tstage) {
+        // TODO(march): work here
 
         Timer stageTimer;
         Timer timer; // for detailed measurements.
@@ -1529,6 +1535,7 @@ namespace tuplex {
 #endif
 
         // add all tasks to queue
+        // TODO(march): question here
         for(auto& task : tasks) wq.addTask(task);
         // clear
         tasks.clear();
@@ -1955,7 +1962,7 @@ namespace tuplex {
 
         // now simply go over the partitions and write the full buffers out
         // check all the params from TrafoStage
-        size_t limit = tstage->outputLimit();
+        size_t limit = tstage->outputTopLimit();
         size_t splitSize = tstage->splitSize();
         size_t numOutputFiles = tstage->numOutputFiles();
         URI uri = tstage->outputURI();

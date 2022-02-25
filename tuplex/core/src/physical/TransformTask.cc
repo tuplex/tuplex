@@ -514,6 +514,7 @@ namespace tuplex {
         _outFile.reset(nullptr);
         _outPrefix.reset();
         _outLimit = std::numeric_limits<size_t>::max(); // write all rows
+        _outBottomLimit = 0;
         _outSkipRows = 0; // skip no rows
 
         // reset memory sink
@@ -619,6 +620,7 @@ namespace tuplex {
 
         auto functor = reinterpret_cast<codegen::read_block_f>(_functor);
 
+        // TODO(march): question here?
         // go over all input partitions.
         for(const auto &inputPartition : _inputPartitions) {
             // lock ptr, extract number of rows ==> store them

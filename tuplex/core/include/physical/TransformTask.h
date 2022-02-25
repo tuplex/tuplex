@@ -183,6 +183,7 @@ namespace tuplex {
         HashTableSink hashTableSink() const { return _htable; } // needs to be freed manually!
 
         void setOutputLimit(size_t limit) { _outLimit = limit; resetOutputLimitCounter(); }
+        void setOutputBottomLimit(size_t limit) { _outBottomLimit = limit; resetOutputLimitCounter(); }
         void setOutputSkip(size_t numRowsToSkip) { _outSkipRows = numRowsToSkip; }
         void execute() override;
 
@@ -250,6 +251,8 @@ namespace tuplex {
 
         size_t output_rows_written() const { return _numOutputRowsWritten; }
         size_t output_limit() const { return _outLimit; }
+        size_t output_bottom_limit() const { return _outBottomLimit; }
+
     private:
         void resetSinks();
         void resetSources();
@@ -277,6 +280,7 @@ namespace tuplex {
         std::unordered_map<std::string, std::string> _outOptions;
 
         size_t _outLimit; // limits how many rows to write at max
+        size_t _outBottomLimit; // limits how many last rows to write at max
         size_t _outSkipRows; // how many rows at start to skip
 
         // memory source variables

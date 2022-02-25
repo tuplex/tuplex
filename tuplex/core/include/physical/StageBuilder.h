@@ -76,8 +76,9 @@ namespace tuplex {
             void addFileInput(FileInputOperator* csvop);
             void addFileOutput(FileOutputOperator* fop);
 
-            inline void setOutputLimit(size_t limit) {
-                _outputLimit = limit;
+            inline void  setOutputLimit(size_t topLimit, size_t bottomLimit) {
+                _outputTopLimit = topLimit;
+                _outputBottomLimit = bottomLimit;
             }
 
             TransformStage* build(PhysicalPlan* plan, IBackend* backend);
@@ -134,7 +135,8 @@ namespace tuplex {
             FileFormat _outputFileFormat;
             int64_t _outputNodeID;
             int64_t _inputNodeID;
-            size_t _outputLimit;
+            size_t _outputTopLimit;
+            size_t _outputBottomLimit;
 
             LogicalOperator* _inputNode;
             std::vector<bool> _columnsToRead;
@@ -157,7 +159,7 @@ namespace tuplex {
             int64_t outputDataSetID() const;
 
             inline bool hasOutputLimit() const {
-                return _outputLimit < std::numeric_limits<size_t>::max();
+                return _outputTopLimit < std::numeric_limits<size_t>::max() || _outputBottomLimit > 0;
             }
 
             inline char csvOutputDelimiter() const {

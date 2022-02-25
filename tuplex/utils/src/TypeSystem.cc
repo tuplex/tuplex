@@ -276,10 +276,10 @@ namespace python {
 
         return _typeMap.at(_hash)._desc;
     }
+
     TypeFactory::~TypeFactory() {
 
     }
-
 
     bool isLiteralType(const Type& type) {
         if(type == Type::I64)

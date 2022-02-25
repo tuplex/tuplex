@@ -108,6 +108,12 @@ namespace tuplex {
         assert(types.size() == stats.size());
         for (int i = 0; i < types.size(); ++i) {
             auto stat = stats[i];
+
+            // check if viable candidate for delayed parsing optimization...
+            if(stat.maxDequotedCellSize <= SMALL_CELL_MAX_SIZE)
+                _smallCellIndices.push_back(i);
+
+            // detect type
             auto type = mapCSVTypeToPythonType(types[i]);
             pySuperTypes.push_back(python::Type::makeOptionType(type)); // always use the larger option type.
 

@@ -994,7 +994,7 @@ unquoted_field:
             _counts[row + col * _rowCount] = cnt;
         }
 
-        size_t get(size_t row, size_t col) const {
+        inline size_t get(size_t row, size_t col) const {
             return _counts[row + col * _rowCount];
         }
 
@@ -1030,6 +1030,21 @@ unquoted_field:
                 *fraction = max_support / (1.0 * _rowCount);
             }
             return res;
+        }
+
+        /*!
+         * retrieve maximum value across all rows
+         * @param col for which column to retrieve the value
+         * @return maximum value or 0 for empty stat
+         */
+        size_t rowMaximum(size_t col) {
+            size_t m = 0;
+            for(size_t i = 0; i < _rowCount; ++i) {
+                auto val = get(i, col);
+                if(val > m)
+                    m = val;
+            }
+            return m;
         }
 
 
@@ -1197,6 +1212,7 @@ unquoted_field:
 
             stat.rowCount = rowCount;
             stat.bufSize = estimationBufferSize;
+            stat.maxDequotedCellSize = length_stats.rowMaximum(i);
             stats.push_back(stat);
         }
 

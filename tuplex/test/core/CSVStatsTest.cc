@@ -155,3 +155,22 @@ TEST(CSVStats, RareValueManyNulls) {
     Logger::instance().defaultLogger().info("type is: " + csvstat.type().desc());
     EXPECT_TRUE(csvstat.type() == expected_type);
 }
+
+
+TEST(CSVStats, FlightDetect) {
+    using namespace tuplex;
+    using namespace std;
+
+    string f_path = "../resources/flights_on_time_performance_2019_01.sample.csv";
+
+    auto csvstat = getFileCSVStat(f_path, {"", "NULL"});
+
+    std::cout<<"specialized type: "<<csvstat.type().desc()<<std::endl;
+    std::cout<<"general type: "<<csvstat.superType().desc()<<std::endl;
+
+    // get small cell candidates...
+    std::cout<<csvstat.smallCellCandidates().size()<<" cells are candidates for delayed parsing optimization: "<<std::endl;
+    for(auto c : csvstat.smallCellCandidates()) {
+        std::cout<<" - "<<c<<std::endl;
+    }
+}

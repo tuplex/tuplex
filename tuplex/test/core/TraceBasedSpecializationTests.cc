@@ -28,6 +28,7 @@ class SamplingTest : public PyTest {};
 
 TEST_F(SamplingTest, BasicAccessChecks) {
     using namespace std;
+    using namespace tuplex;
 
     const std::string code = "lambda x: x + 1";
 
@@ -38,3 +39,7 @@ TEST_F(SamplingTest, BasicAccessChecks) {
     tv.recordTrace(ast, PyLong_FromLong(10));
     python::unlockGIL();
 }
+
+// Experiment: what we want to do is check for each flights file, how many delayed parsing optimizations we should apply.
+// i.e., let's do that via rule of how often the access is ok.
+// this helps with serializing etc.!

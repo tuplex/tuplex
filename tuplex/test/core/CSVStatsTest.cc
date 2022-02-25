@@ -170,11 +170,9 @@ TEST(CSVStats, FlightDetect) {
 
     // get small cell candidates...
     std::cout<<csvstat.smallCellCandidates().size()<<"/110 cells are candidates for delayed parsing optimization: "<<std::endl;
-    // do not print, because most, i.e. 102/110 of all flights cells are actually candidates for delayed parsing.
+    // most, i.e. 102/110 of all flights cells are actually candidates for delayed parsing.
     // Yet, is the optimization worth it according to the pipeline?
-    //    for(auto c : csvstat.smallCellCandidates()) {
-    //        std::cout<<" - "<<c<<std::endl;
-    //    }
+    std::cout<<csvstat.smallCellCandidates()<<std::endl;
 
     EXPECT_NE(csvstat.smallCellCandidates().size(), csvstat.columns().size());
 }

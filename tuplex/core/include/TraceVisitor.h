@@ -20,6 +20,9 @@
 #include <ClosureEnvironment.h>
 #include <ASTHelpers.h>
 
+#define TI_FLAGS_NONE 0x0
+#define TI_FLAGS_INPUT_PARAMETER 0x1
+
 // a tracing visitor to determine optimizations within functions!
 namespace tuplex {
     class TraceVisitor : public ApatheticVisitor, public IFailable {
@@ -30,9 +33,16 @@ namespace tuplex {
         struct TraceItem {
             PyObject* value;
             std::string name;
+            size_t flags;
 
-            TraceItem(PyObject* obj) : value(obj)   {}
-            TraceItem(PyObject* obj, const std::string n) : value(obj), name(n) {}
+            TraceItem(PyObject* obj) : value(obj), flags(0)   {}
+            TraceItem(PyObject* obj, const std::string n) : value(obj), name(n), flags(0) {}
+
+            static TraceItem param(PyObject* obj, const std::string n="") {
+                TraceItem ti(obj, n);
+                ti.flags = TI_FLAGS_INPUT_PARAMETER;
+                return ti;
+            }
         };
 
         // evaluation stack
@@ -42,6 +52,18 @@ namespace tuplex {
 
         // symbols
         std::vector<TraceItem> _symbols;
+
+        // access paths to input parameters, encoded via strings...
+        // works for now only via x, or x[0] or so
+        // future: more complex stuff like x[0][2] or so!
+        std::unordered_map<std::string, size_t> _inputAccessPaths;
+        std::vector<std::string> _columnNames;
+        inline void inc_access_path(const std::string& path) {
+            auto it = _inputAccessPaths.find(path);
+            if(it == _inputAccessPaths.end())
+                _inputAccessPaths[path] = 0;
+            _inputAccessPaths[path]++;
+        }
 
         MessageHandler& logger() { return Logger::instance().logger("tracer"); }
 
@@ -76,6 +98,8 @@ namespace tuplex {
 
         void errCheck();
 
+        // need to record access paths for params -> multiple levels?
+
         /*!
          * internal class thrown when errors occur to leave control flow
          */
@@ -97,6 +121,21 @@ namespace tuplex {
         python::Type majorityInputType() const;
         python::Type majorityOutputType() const;
 
+        size_t columnCount() const {
+            auto input_type = majorityInputType();
+            assert(input_type.isTupleType());
+
+            // unpack if it's format ((a, b, c))
+            if(input_type.parameters().size() == 1 && input_type.parameters().front().isTupleType())
+                input_type = input_type.parameters().front();
+            return input_type.parameters().size();
+        }
+
+        /*!
+         * this function returns a vector counting how often each column was accessed.
+         * @return vector with n columns counting the accesses
+         */
+        std::vector<size_t> columnAccesses() const;
 
         /*!
          * set global constants, variables, imports etc. from closure environment

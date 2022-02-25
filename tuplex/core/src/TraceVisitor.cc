@@ -106,10 +106,15 @@ namespace tuplex {
 
         auto it = std::find_if(_symbols.begin(), _symbols.end(), [&](const TraceItem& ti) { return ti.name == node->_name; });
 
-        if(it != _symbols.end())
+        if(it != _symbols.end()) {
+            // a symbol was accessed. Is this symbol by chance an input parameter?
+            if(it->flags & TI_FLAGS_INPUT_PARAMETER) {
+                inc_access_path(it->name);
+            }
+
             // push value of symbol onto eval stack!
             addTraceResult(node, *it);
-        else {
+        } else {
             // check module
             auto mainMod = python::getMainModule(); assert(mainMod);
             auto mainDict = PyModule_GetDict(mainMod); assert(mainDict);
@@ -302,13 +307,16 @@ namespace tuplex {
             std::vector<PyObject*> extractedArgs;
 
             // push arguments on stack
+            _columnNames.clear();
             for(int i = 0; i < astArgs.size(); ++i) {
                 assert(astArgs[i]->type() == ASTNodeType::Parameter);
+                auto id = dynamic_cast<NIdentifier*>(dynamic_cast<NParameter*>(astArgs[i])->_identifier);
+                _columnNames.push_back(id->_name);
             }
 
             if(astArgs.size() == 1) {
                 auto id = dynamic_cast<NIdentifier*>(dynamic_cast<NParameter*>(astArgs.front())->_identifier);
-                _symbols.emplace_back(_args, id->_name);
+                _symbols.emplace_back(TraceItem::param(_args, id->_name));
                 extractedArgs.push_back(_args);
             } else {
                 assert(PyTuple_Check(_args));
@@ -317,7 +325,7 @@ namespace tuplex {
                 for(int i = 0; i < std::min(numProvidedArgs, astArgs.size()); ++i) {
                     auto id = dynamic_cast<NIdentifier*>(dynamic_cast<NParameter*>(astArgs[i])->_identifier);
                     auto arg = PyTuple_GetItem(_args, i);
-                    _symbols.emplace_back(arg, id->_name);
+                    _symbols.emplace_back(TraceItem::param(arg, id->_name));
                     extractedArgs.push_back(arg);
                 }
             }
@@ -527,6 +535,14 @@ namespace tuplex {
         // cout<<"value: "; PyObject_Print(ti_value.value, stdout, 0);
         // cout<<endl;
 #endif
+
+        // special case: ti_value is input parameter! mark access path.
+        if(ti_value.flags & TI_FLAGS_INPUT_PARAMETER) {
+            assert(!ti_value.name.empty());
+            Py_XINCREF(ti_index.value);
+            auto key = python::PyString_AsString(ti_index.value);
+            inc_access_path(ti_value.name + "[" + key + "]");
+        }
 
         PyObject *res = nullptr;
 
@@ -1250,5 +1266,35 @@ namespace tuplex {
         }
 
         addTraceResult(node, TraceItem(list));
+    }
+
+    std::vector<size_t> TraceVisitor::columnAccesses() const {
+        // how many columns are there?
+        std::vector<size_t> counts(columnCount(), 0);
+
+        // now, let's get the column names
+        if(_columnNames.size() == 1 && columnCount() != 1) {
+            // special case: tuple access! decode x[0] etc.
+
+            // hack here, could do more elaborate at some point...
+            auto param_name = _columnNames.front();
+            for(unsigned i = 0; i < columnCount(); ++i) {
+                auto key = param_name + "[" + std::to_string(i) + "]";
+                auto it = _inputAccessPaths.find(key);
+                if(it != _inputAccessPaths.end()) {
+                    counts[i] = it->second;
+                }
+            }
+        } else {
+            assert(_columnNames.size() == columnCount()); //! important !!!
+            // simply go through column names and set result!
+            for(unsigned i = 0; i < _columnNames.size(); ++i) {
+                auto it = _inputAccessPaths.find(_columnNames[i]);
+                if(it != _inputAccessPaths.end()) {
+                    counts[i] = it->second;
+                }
+            }
+        }
+        return counts;
     }
 }

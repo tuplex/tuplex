@@ -52,6 +52,16 @@ add_library(agg_weather_specialized_stl SHARED src/agg_query_stlmap/agg_speciali
 set_target_properties(agg_weather_specialized_stl PROPERTIES SUFFIX ".so")
 set_target_properties(agg_weather_specialized_stl PROPERTIES PREFIX "")
 
+
+# aggregate weather query specialized for April / STL map version
+add_library(agg_weather_general_month SHARED src/agg_query_month/agg_general.cc)
+set_target_properties(agg_weather_general_month PROPERTIES SUFFIX ".so")
+set_target_properties(agg_weather_general_month PROPERTIES PREFIX "")
+
+add_library(agg_weather_specialized_month SHARED src/agg_query_month/agg_specialized.cc)
+set_target_properties(agg_weather_specialized_month PROPERTIES SUFFIX ".so")
+set_target_properties(agg_weather_specialized_month PROPERTIES PREFIX "")
+
 #target_link_libraries(runner_orig ${CMAKE_DL_LIBS}) # -ldl on linux
 #target_compile_definitions(runner_orig PUBLIC PR_VERSION=0)
 #

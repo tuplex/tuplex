@@ -382,9 +382,7 @@ namespace tuplex {
         // set limit if output node has a limit (currently only TakeOperator)
         if(outputNode->type() == LogicalOperatorType::TAKE) {
             auto top = static_cast<TakeOperator*>(outputNode);
-            builder.setOutputLimit(top->limit());
-            // TODO: work here
-            ...
+            builder.setOutputLimit(top->limit(), top->limitBottom());
         }
 
         // @TODO: add slowPip builder to this process...

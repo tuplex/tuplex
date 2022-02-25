@@ -111,14 +111,15 @@ namespace tuplex {
          * @param outputLimit
          */
         void setOutputLimit(size_t outputLimit) {
-            _outputLimit = outputLimit;
+            _outputTopLimit = outputLimit;
 
             // @TODO: move this logic to physical plan!
             // pushdown limit
             //pushDownOutputLimit();
         }
 
-        size_t outputLimit() const { return _outputLimit; }
+        size_t outputTopLimit() const { return _outputTopLimit; }
+        size_t outputBottomLimit() const { return _outputBottomLimit; }
         size_t inputLimit() const { return _inputLimit; }
 
         /*!
@@ -442,7 +443,8 @@ namespace tuplex {
 
         std::vector<Partition*> _inputPartitions; //! memory input partitions for this task.
         size_t                  _inputLimit; //! limit number of input rows (inf per default)
-        size_t                  _outputLimit; //! output limit, set e.g. by take, to_csv etc. (inf per default)
+        size_t                  _outputTopLimit; //! output limit, set e.g. by take, to_csv etc. (inf per default)
+        size_t                  _outputBottomLimit; //! output limit, set e.g. by take, to_csv etc. (0 per default)
 
         std::shared_ptr<ResultSet> _rs; //! result set
 
@@ -479,7 +481,7 @@ namespace tuplex {
         python::Type _hashOutputBucketType;
 
         bool hasOutputLimit() const {
-            return _outputLimit < std::numeric_limits<size_t>::max();
+            return _outputTopLimit < std::numeric_limits<size_t>::max();
         }
     };
 }

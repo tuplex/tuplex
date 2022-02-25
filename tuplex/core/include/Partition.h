@@ -69,6 +69,7 @@ namespace tuplex {
         void loadFromFile(const URI& uri);
 
         int64_t                 _numRows;
+        int64_t                 _numSkip; // number of rows to skip, currently only used at the output (Result set)
         uint64_t                _bytesWritten;
 
         Schema _schema; //! Schema of the partition. May be optimized away later.
@@ -157,7 +158,7 @@ namespace tuplex {
          * return how much capacity is left, i.e. how many bytes can be actually written
          * @return
          */
-        size_t capacity() { return _size - sizeof(int64_t); }
+        size_t capacity() const { return _size - sizeof(int64_t); }
 
         uniqueid_t uuid() const { return _uuid; }
 
@@ -248,21 +249,19 @@ namespace tuplex {
             _mutex.unlock();
         }
 
-        void setNumLastRows(const size_t numRows) {
-            // TODO: set another value instead
+        size_t getNumSkip() {
+            size_t res = 0;
             _mutex.lock();
-
-            _numRows = numRows;
-
-            // save to memptr
-            if(_arena) {
-                *((int64_t*)_arena) = numRows;
-            }
-
+            res = num_skip;
             _mutex.unlock();
+            return res;
         }
 
-
+        void setNumSkip(const size_t numSkip) {
+            _mutex.lock();
+            _numSkip = numSkip;
+            _mutex.unlock();
+        }
 
         int64_t getDataSetID() const { return _dataSetID; }
 

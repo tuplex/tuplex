@@ -19,10 +19,12 @@
 
 namespace tuplex {
     // atomic var to count output rows!
-    static std::atomic_int64_t g_totalOutputRows;
+    static std::atomic_int64_t g_totalTopOutputRows;
+    static std::atomic_int64_t g_totalBottomOutputRows;
 
     void TransformTask::resetOutputLimitCounter() {
-        g_totalOutputRows = 0;
+        g_totalTopOutputRows = 0;
+        g_totalBottomOutputRows = 0;
     }
 }
 
@@ -41,7 +43,8 @@ extern "C" {
 
     static int64_t limited_w2mCallback(tuplex::TransformTask* task, uint8_t* buf, int64_t bufSize) {
         // i.e. check here how many output rows, if already limit reached - jump to goto!
-        if(tuplex::g_totalOutputRows >= task->output_limit()) {
+        // TODO(march): comment this out
+        if(tuplex::g_totalTopOutputRows >= task->output_top_limit()) {
             return tuplex::ecToI64(tuplex::ExceptionCode::OUTPUT_LIMIT_REACHED);
         }
 
@@ -49,10 +52,10 @@ extern "C" {
         assert(dynamic_cast<tuplex::TransformTask*>(task));
         auto rc = task->writeRowToMemory(buf, bufSize);
         if(0 == rc)
-            tuplex::g_totalOutputRows++;
+            tuplex::g_totalTopOutputRows++;
 
         // i.e. check here how many output rows, if already limit reached - jump to goto!
-        if(tuplex::g_totalOutputRows >= task->output_limit()) {
+        if(tuplex::g_totalTopOutputRows >= task->output_top_limit()) {
             return tuplex::ecToI64(tuplex::ExceptionCode::OUTPUT_LIMIT_REACHED);
         }
         return rc;
@@ -513,7 +516,8 @@ namespace tuplex {
         _outputFilePath = URI::INVALID;
         _outFile.reset(nullptr);
         _outPrefix.reset();
-        _outLimit = std::numeric_limits<size_t>::max(); // write all rows
+        _outTopLimit = std::numeric_limits<size_t>::max(); // write all rows
+        _outBottomLimit = 0;
         _outSkipRows = 0; // skip no rows
 
         // reset memory sink
@@ -619,6 +623,7 @@ namespace tuplex {
 
         auto functor = reinterpret_cast<codegen::read_block_f>(_functor);
 
+        // TODO(march): question here?
         // go over all input partitions.
         for(const auto &inputPartition : _inputPartitions) {
             // lock ptr, extract number of rows ==> store them
@@ -678,7 +683,7 @@ namespace tuplex {
 
         // skip rows? limit rows??
 
-        if(_numOutputRowsWritten >= _outSkipRows && _numOutputRowsWritten < (_outLimit - _outSkipRows)) {
+        if(_numOutputRowsWritten >= _outSkipRows && _numOutputRowsWritten < (_outTopLimit - _outSkipRows)) {
             if(_outFile->write(buf, bufSize) != VirtualFileSystemStatus::VFS_OK)
                 return ecToI32(ExceptionCode::IOERROR);
         }

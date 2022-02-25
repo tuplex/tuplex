@@ -33,6 +33,7 @@ for file in $(ls $ROOT_PATH); do
   year=$(echo $file | egrep -o "[0-9]{4}")
   month=$(echo $file | egrep -o "_[0-9]{2}\." | tr -d "_.")
   yearmonth="${year}${month}"
+  echo $yearmonth
   if (( yearmonth < 200306 )); then
     # special case
     echo "$name is special case"

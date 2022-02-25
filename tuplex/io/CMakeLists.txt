@@ -307,6 +307,7 @@ target_include_directories(libio PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 target_link_libraries(libio libutils
         ${AWSSDK_LINK_LIBRARIES}
         ${LibMagic_LIBRARIES}
+        ${Protobuf_LIBRARIES}
         ${ORC_LIBRARIES})
 
 install(TARGETS libio DESTINATION bin)

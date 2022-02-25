@@ -15,6 +15,7 @@ target_link_libraries(testcore
         libcodegen
         libcore
         libcpythonadapter
+        ${ORC_LIBRARIES}
         ${GTest_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
         ${Python3_LIBRARIES})

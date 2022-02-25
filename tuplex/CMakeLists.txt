@@ -200,26 +200,23 @@ else()
     message(WARNING "You are using an unsupported compiler! ${CMAKE_CXX_COMPILER_ID} Compilation has only been tested with Clang and GCC.")
 endif()
 
-#GCC fixes (why does this compiler suck so much???)
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    # set AR and RANLIB to gcc-ar and gcc-ranglib if found
-    find_program(GCC_AR "gcc-ar")
-    find_program(GCC_RANLIB "gcc-ranlib")
-    if(GCC_AR AND GCC_RANLIB)
-        # important to set like this
-        # i.e. this is required on Linux to enable link-time-optimization
-        SET(CMAKE_AR "gcc-ar")
-        SET(CMAKE_RANLIB "gcc-ranlib")
-    else()
-        message(FATAL_ERROR "could not find gcc-ar or gcc-ranlib. Make sure they are installed and symlinked. Leaving them at their defaults (ar: ${CMAKE_AR}, ranlib: ${CMAKE_RANLIB}) will produce lto errors in Release build.")
-    endif ()
-
-    # add flags so link order does not matter...
-    add_link_options("-Wl,--start-group")
-endif()
-
-
-
+##GCC fixes (why does this compiler suck so much???)
+#if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+#    # set AR and RANLIB to gcc-ar and gcc-ranglib if found
+#    find_program(GCC_AR "gcc-ar")
+#    find_program(GCC_RANLIB "gcc-ranlib")
+#    if(GCC_AR AND GCC_RANLIB)
+#        # important to set like this
+#        # i.e. this is required on Linux to enable link-time-optimization
+#        SET(CMAKE_AR "gcc-ar")
+#        SET(CMAKE_RANLIB "gcc-ranlib")
+#    else()
+#        message(FATAL_ERROR "could not find gcc-ar or gcc-ranlib. Make sure they are installed and symlinked. Leaving them at their defaults (ar: ${CMAKE_AR}, ranlib: ${CMAKE_RANLIB}) will produce lto errors in Release build.")
+#    endif ()
+#
+#    # add flags so link order does not matter...
+#    add_link_options("-Wl,--start-group")
+#endif()
 
 ###########################################################################
 # (2) global flags

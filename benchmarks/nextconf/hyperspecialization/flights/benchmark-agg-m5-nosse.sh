@@ -11,8 +11,10 @@ SO_GENERAL=agg_weather_general-nosse.so
 
 #export PATH=/opt/llvm@6/bin:$PATH
 echo "Building shared object..."
-clang++ -shared -fPIC -O3 -msse4.2 -mcx16 -fno-vectorize -mno-sse -DNDEBUG -o $SO_GENERAL src/agg_query/agg_general.cc
-clang++ -shared -fPIC -O3 -msse4.2 -mcx16 -fno-vectorize -mno-sse -DNDEBUG -o $SO_SPECIALIZED src/agg_query/agg_specialized.cc
+# Note: clang fails with -no-sse ==> SSE1 + SSE2 are REQUIRED by x86_64 ABI.
+#       can't compile source code without them.
+clang++ -shared -fPIC -O3 -march=haswell -msse4.2 -mcx16 -fno-vectorize -mno-avx -DNDEBUG -o $SO_GENERAL src/agg_query/agg_general.cc
+clang++ -shared -fPIC -O3 -march=haswell -msse4.2 -mcx16 -fno-vectorize -mno-avx -DNDEBUG -o $SO_SPECIALIZED src/agg_query/agg_specialized.cc
 
 echo "FINAL EXE"
 # use here vectorized instructions to make things fast...

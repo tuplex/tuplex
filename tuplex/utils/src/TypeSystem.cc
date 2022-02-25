@@ -73,7 +73,10 @@ namespace python {
                                         const std::vector<Type>& params,
                                         const python::Type& retval,
                                         const std::vector<Type>& baseClasses,
-                                        bool isVarLen) {
+                                        bool isVarLen,
+                                        int64_t lower_bound,
+                                        int64_t upper_bound,
+                                        const std::string& constant) {
         auto it = std::find_if(_typeMap.begin(),
                                _typeMap.end(),
                                [name](const std::pair<const int, TypeEntry>& p) {
@@ -216,6 +219,55 @@ namespace python {
         name += "]";
 
         return registerOrGetType(name, AbstractType::ITERATOR, {yieldType});
+    }
+
+    Type TypeFactory::createOrGetDelayedParsingType(const Type& underlying) {
+
+        // check that it is a primitive type
+        assert(underlying.isPrimitiveType());
+
+        std::string name;
+        name += "_Delayed[";
+        name += TypeFactory::instance().getDesc(underlying._hash);
+        name += "]";
+
+        return registerOrGetType(name, AbstractType::OPTIMIZED_DELAYEDPARSING, {underlying});
+    }
+
+    Type TypeFactory::createOrGetRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound) {
+
+        // optimization: if lower_bound == upper_bound, use a constant!
+        if(lower_bound == upper_bound)
+            return createOrGetConstantValuedType(python::Type::I64, std::to_string(lower_bound));
+
+        std::string name;
+        name += "_Compressed[";
+        name += "low=" + std::to_string(lower_bound);
+        name += ",high=" + std::to_string(upper_bound);
+        name += "]";
+
+        return registerOrGetType(name, AbstractType::OPTIMIZED_RANGECOMPRESSION, {python::Type::I64},
+                                 python::Type::VOID,
+                                 {},
+                                 false,
+                                 lower_bound,
+                                 upper_bound);
+    }
+
+    Type TypeFactory::createOrGetConstantValuedType(const Type& underlying, const std::string& constant) {
+        std::string name;
+        name += "_Constant[";
+        name += TypeFactory::instance().getDesc(underlying._hash);
+        name += ",value=" + constant;
+        name += "]";
+
+        return registerOrGetType(name, AbstractType::OPTIMIZED_CONSTANT, {underlying},
+                                 python::Type::VOID,
+                                 {},
+                                 false,
+                                 std::numeric_limits<int64_t>::min(),
+                                 std::numeric_limits<int64_t>::max(),
+                                 constant);
     }
 
     std::string TypeFactory::getDesc(const int _hash) const {
@@ -536,6 +588,18 @@ namespace python {
 
     Type Type::makeIteratorType(const python::Type &yieldType) {
         return python::TypeFactory::instance().createOrGetIteratorType(yieldType);
+    }
+
+    Type makeDelayedParsingType(const python::Type& underlying) {
+        return python::TypeFactory::instance().createOrGetDelayedParsingType(underlying);
+    }
+
+    Type makeRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound) {
+        return python::TypeFactory::instance().createOrGetRangeCompressedIntegerType(lower_bound, upper_bound);
+    }
+
+    Type makeConstantValuedType(const python::Type& underlying, const std::string& value) {
+        return python::TypeFactory::instance().createOrGetConstantValuedType(underlying, value);
     }
 
     std::string TypeFactory::TypeEntry::desc() {

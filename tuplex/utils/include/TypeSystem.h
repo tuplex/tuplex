@@ -17,6 +17,7 @@
 #include <map>
 #include <algorithm>
 #include <TTuple.h>
+#include <limits>
 
 namespace python {
 
@@ -216,6 +217,35 @@ namespace python {
 
         static Type makeListType(const python::Type &elementType);
 
+        // optimizing types (delayed parsing, range compression, ...)
+        /*!
+         * create a delayed parsing type, i.e. this helpful for small strings, integers having a small ASCII representation or
+         * @param underlying which type the data actually represents (should be a primitive like bool, int, float, str)
+         * @return the dummy type created.
+         */
+        static Type makeDelayedParsingType(const python::Type& underlying);
+
+        /*!
+         * create a range compressed integer type using lower & upper bound exclusively
+         * @param lower_bound integer lower bound (inclusive!)
+         * @param upper_bound integer upper bound (inclusive!)
+         * @return the dummy type created.
+         */
+        static Type makeRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound);
+
+        /*!
+         * create a constant valued type, i.e. this type can get folded via constant folding!
+         * @param underlying what actual type this is representing.
+         * @param value the constant value. Note: this needs to be decodable...
+         * @return the dummy type created.
+         */
+        static Type makeConstantValuedType(const python::Type& underlying, const std::string& value);
+
+        // TODO: could create dict compressed type as well..
+        // static Type makeDictCompressedType()
+
+        // TODO: could create delta-encoded type or so as well...
+
         /*!
          * create iterator type from yieldType.
          * @param yieldType
@@ -281,7 +311,10 @@ namespace python {
             LIST,
             CLASS,
             OPTION, // for nullable
-            ITERATOR
+            ITERATOR,
+            OPTIMIZED_CONSTANT, // constant value
+            OPTIMIZED_DELAYEDPARSING, // dummy types to allow for certain optimizations
+            OPTIMIZED_RANGECOMPRESSION // range compression
         };
 
         struct TypeEntry {
@@ -292,14 +325,28 @@ namespace python {
             Type _ret; //! return value
             std::vector<Type> _baseClasses; //! base classes from left to right
 
+            // opt properties
+            int64_t _lower_bound;
+            int64_t _upper_bound;
+            std::string _constant_value; // everything once was a string...
+
             TypeEntry()     {}
             TypeEntry(const std::string& desc,
                       const AbstractType at,
                         const std::vector<Type>& params,
                         const Type& ret,
                         const std::vector<Type>& baseClasses=std::vector<Type>{},
-                        bool isVarLen=false) : _desc(desc), _type(at), _params(params), _ret(ret), _baseClasses(baseClasses), _isVarLen(isVarLen) {}
-            TypeEntry(const TypeEntry& other) : _desc(other._desc), _type(other._type), _params(other._params), _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen) {}
+                        bool isVarLen=false,
+                        int64_t lower_bound=std::numeric_limits<int64_t>::min(),
+                        int64_t upper_bound=std::numeric_limits<int64_t>::max(),
+                        const std::string& constant="") : _desc(desc), _type(at), _params(params),
+                        _ret(ret), _baseClasses(baseClasses), _isVarLen(isVarLen),
+                        _lower_bound(lower_bound),
+                        _upper_bound(upper_bound),
+                        _constant_value(constant) {}
+            TypeEntry(const TypeEntry& other) : _desc(other._desc), _type(other._type), _params(other._params),
+            _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen),
+            _lower_bound(other._lower_bound), _upper_bound(other._upper_bound), _constant_value(other._constant_value) {}
 
             std::string desc();
         };
@@ -317,7 +364,10 @@ namespace python {
                                const std::vector<Type>& params = std::vector<Type>(),
                                const python::Type& retval=python::Type::VOID,
                                const std::vector<Type>& baseClasses = std::vector<Type>(),
-                               bool isVarLen=false);
+                               bool isVarLen=false,
+                               int64_t lower_bound=std::numeric_limits<int64_t>::min(),
+                               int64_t upper_bound=std::numeric_limits<int64_t>::max(),
+                               const std::string& constant="");
 
         bool isFunctionType(const Type& t) const;
         bool isDictionaryType(const Type& t) const;
@@ -351,6 +401,10 @@ namespace python {
         Type createOrGetTupleType(const std::vector<Type>& args);
         Type createOrGetOptionType(const Type& type);
         Type createOrGetIteratorType(const Type& yieldType);
+
+        Type createOrGetConstantValuedType(const Type& underlying, const std::string& constant);
+        Type createOrGetDelayedParsingType(const Type& underlying);
+        Type createOrGetRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound);
 
 
         Type getByName(const std::string& name);

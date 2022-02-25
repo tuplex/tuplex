@@ -159,6 +159,26 @@ namespace tuplex {
         };
 
         /*!
+         * retrieves the underlying type of an optimized type
+         * @param optType
+         * @return the unoptimized, underlying type. E.g., an integer for a range-compressed integer.
+         */
+        extern python::Type deoptimizedType(const python::Type& optType);
+
+        /*!
+         * generates code to get a compatible underlying value from an optimized value.
+         * @param builder LLVM IR Builder
+         * @param value codegen value representing the optimized value
+         * @param optType type the codegen value has
+         * @param underlyingType pointer, if not null will output the deoptmizedType to that var. Same as if deoptimizedType was called on optType.
+         * @return codegen value representing deoptimized value, i.e. having type underlyingType.
+         */
+        extern SerializableValue deoptimizeValue(llvm::IRBuilder<>& builder,
+                                                 const SerializableValue& value,
+                                                 const python::Type& optType,
+                                                 python::Type* underlyingType=nullptr);
+
+        /*!
          * retrieves IR stored in LLVM module as string
          * @param mod llvm Module
          * @return string
@@ -238,6 +258,7 @@ namespace tuplex {
         extern SerializableValue
         dictionaryKeyCast(llvm::LLVMContext &ctx, llvm::Module* mod,
                           llvm::IRBuilder<> &builder, llvm::Value *val, python::Type keyType);
+
         /*!
          * for debug purposes convert llvm type to string
          * @param type llvm type, if nullptr "null" is returned

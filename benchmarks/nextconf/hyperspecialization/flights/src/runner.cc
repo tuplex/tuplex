@@ -244,6 +244,23 @@ void freeCells(std::vector<std::tuple<char**,int64_t*>>& v) {
     v.clear();
 }
 
+size_t processCells(const std::vector<std::tuple<char**,int64_t*>>& preloadedCells) {
+    int64_t row_number = 0;
+    for(auto cell_infos : preloadedCells) {
+        auto& cells = std::get<0>(cell_infos);
+        auto& cell_sizes = std::get<1>(cell_infos);
+
+        auto rc = cell_functor_f(reinterpret_cast<void*>(write_callback), cells, cell_sizes);
+
+        if (0 != rc) {
+            std::cerr << "processing row " << row_number << " failed." << std::endl;
+            break;
+        }
+        row_number++;
+    }
+    return row_number;
+}
+
 int main(int argc, char **argv) {
     // allocate output space
     output_data = new char[OUTPUT_DATA_SIZE];  // 4 GB
@@ -338,19 +355,7 @@ int main(int argc, char **argv) {
         start_transform = std::chrono::high_resolution_clock::now();
 
         // basically call cell-functor on each element!
-        int64_t row_number = 0;
-        for(auto cell_infos : preloadedCells) {
-            auto& cells = std::get<0>(cell_infos);
-            auto& cell_sizes = std::get<1>(cell_infos);
-
-            rc = cell_functor_f(reinterpret_cast<void*>(write_callback), cells, cell_sizes);
-
-            if (0 != rc) {
-                std::cerr << "processing row " << row_number << " failed." << std::endl;
-                break;
-            }
-            row_number++;
-        }
+        auto num_parsed_rows = processCells(preloadedCells);
 
         // free cells... --> done after parse!
 

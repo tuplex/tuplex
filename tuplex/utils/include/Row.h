@@ -17,7 +17,8 @@
 
 namespace tuplex {
     /*!
-     * expensive wrapper for a single column. For the actual computation, serialized versions are used.
+     * expensive wrapper for a single column
+     * . For the actual computation, serialized versions are used.
      * This is merely a result type to be passed to the frontend.
      */
     class Row {
@@ -45,7 +46,7 @@ namespace tuplex {
             _serializedLength = getSerializedLength();
         }
 
-        int             getNumColumns() const { return _values.size(); }
+        inline size_t          getNumColumns() const { return _values.size(); }
         inline Field    get(const int col) const {
             assert(!_values.empty());
             assert(0 <= col && col < _values.size());

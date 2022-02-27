@@ -126,14 +126,74 @@ TEST_F(SamplingTest, BasicAccessChecks) {
 // i.e., let's do that via rule of how often the access is ok.
 // this helps with serializing etc.!
 
+namespace tuplex {
+    struct DetectionStats {
+        size_t num_rows;
+        size_t num_columns_min;
+        size_t num_columns_max;
+        std::vector<bool> is_column_constant;
+        Row constant_row;
+
+        DetectionStats() : num_rows(0),
+                           num_columns_min(std::numeric_limits<size_t>::max()),
+                           num_columns_max(std::numeric_limits<size_t>::min()) {}
+        std::vector<size_t> constant_column_indices() const {
+            std::vector<size_t> v;
+            for(unsigned i = 0; i < is_column_constant.size(); ++i) {
+                if(is_column_constant[i])
+                    v.push_back(i);
+            }
+            return v;
+        }
+
+        void detect(const std::vector<Row>& rows) {
+            if(rows.empty())
+                return;
+
+            // init?
+            if(0 == num_rows) {
+                constant_row = rows.front();
+                // mark everything as constant!
+                is_column_constant = std::vector<bool>(constant_row.getNumColumns(), true);
+            }
+
+            for(auto row : rows) {
+
+                // compare current row with constant row.
+                for(unsigned i = 0; i < std::min(constant_row.getNumColumns(), row.getNumColumns()); ++i) {
+                    // field comparisons might be expensive, so compare only if not marked yet as false...
+                    // field different? replace!
+                    if(is_column_constant[i] && constant_row.get(i) != row.get(i))
+                        is_column_constant[i] = false;
+                }
+
+                // cur row larger? replace!
+
+                num_columns_min = std::min(num_columns_min, row.getNumColumns());
+                num_columns_max = std::max(num_columns_max, row.getNumColumns());
+            }
+
+            num_rows += rows.size();
+        }
+    };
+}
+
 TEST_F(SamplingTest, FlightsTracing) {
     using namespace std;
     using namespace tuplex;
 
     string f_path = "../resources/flights_on_time_performance_2019_01.sample.csv";
+
+    // check for larger files
+    // sample with start AND end?
+    f_path = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv";
+
     auto content = fileToString(f_path);
     // parse into rows
-    auto rows = parseRows(content.c_str(), content.c_str() + content.length(), {""});
+
+    auto sample_size = std::min(content.length(), 1024 * 1024 * 2ul);
+
+    auto rows = parseRows(content.c_str(), content.c_str() + sample_size, {""});
 
     // drop the first row because it's the header...
     auto header = rows.front();
@@ -144,5 +204,24 @@ TEST_F(SamplingTest, FlightsTracing) {
         cout<<row.getRowType().desc()<<endl;
     }
     // trace some stage of the pipeline now!
+    DetectionStats ds;
+    ds.detect(rows);
+
+    cout<<"Following columns detected to be constant: "<<ds.constant_column_indices()<<endl;
+}
+
+TEST_F(SamplingTest, FlightsSpecializedVsGeneralValueImputation) {
+    using namespace std;
+    using namespace tuplex;
+    ContextOptions opt = ContextOptions::defaults();
+    Context ctx(opt);
+
+    // specialize access with columns vs. non-columns
+    // --> need to figure this automatically out.
+
+    // i.e. turn off null-value optimization for files or not?
+
+    auto null_based_file = "flights_on_time_performance_2013_01.csv";
+    auto non_null_based_file = "flights_on_time_performance_2013_09.csv"; // do not need to set values...
 
 }

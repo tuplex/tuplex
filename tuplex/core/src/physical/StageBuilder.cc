@@ -295,7 +295,9 @@ namespace tuplex {
                 assert(t != python::Type::UNKNOWN);
         }
 
-        std::vector<LogicalOperator*> specializePipeline(bool nullValueOptimization, LogicalOperator* inputNode, const std::vector<LogicalOperator*>& operators) {
+        std::vector<LogicalOperator*> specializePipeline(bool nullValueOptimization,
+                                                         LogicalOperator* inputNode,
+                                                         const std::vector<LogicalOperator*>& operators) {
 
             using namespace std;
             auto& logger = Logger::instance().defaultLogger();

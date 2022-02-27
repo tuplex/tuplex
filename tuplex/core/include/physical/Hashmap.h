@@ -42,9 +42,9 @@ namespace tuplex {
         size_t size() const;
         size_t capacity() const;
 
-        void* nullBucket() const { return _nullBucket; }
-        void* underlying() const { return _underlying; }
-        PyObject* underlyingHybrid() const { return _underlyingHybrid; }
+        inline void* nullBucket() const { return _nullBucket; }
+        inline void* underlying() const { return _underlying; }
+        inline PyObject* underlyingHybrid() const { return _underlyingHybrid; }
 
         bool hasNullBucket() const { return _nullBucket; }
         bool hasHybrid() const { return _underlyingHybrid; }

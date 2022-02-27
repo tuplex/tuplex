@@ -706,7 +706,7 @@ namespace tuplex {
                            tstage->outputMode() == EndPointMode::MEMORY);
                     task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID(), tstage->context().id());
                 }
-                task->sinkExceptionsToMemory(tstage->inputSchema());
+                task->sinkExceptionsToMemory(tstage->normalCaseInputSchema());
                 task->setStageID(tstage->getID());
                 task->setOutputLimit(tstage->outputLimit());
                 tasks.emplace_back(std::move(task));
@@ -785,11 +785,13 @@ namespace tuplex {
         auto cachedExceptionPartitions = cacheEntry->exceptionPartitions();
         auto cachedGeneralPartitions = cacheEntry->generalPartitions();
         auto cachedFallbackPartitions = cacheEntry->fallbackPartitions();
+        auto cachedPartitionGroups = cacheEntry->partitionGroups();
+        auto cachedNormalPartitions = cacheEntry->normalPartitions();
 
         auto stageID = tstage->getID();
         auto contextID = tstage->context().id();
         auto operatorIDsWithResolvers = tstage->operatorIDsWithResolvers();
-        auto normalCaseInputSchema = tstage->normalCaseInputSchema();
+        auto exceptionInputSchema = tstage->inputSchema();
         auto outputSchema = tstage->outputSchema();
         auto normalCaseOutputSchema = tstage->normalCaseOutputSchema();
         auto mergeExceptionsInOrder = options.OPT_MERGE_EXCEPTIONS_INORDER();
@@ -799,8 +801,6 @@ namespace tuplex {
         auto csvOutputQuotechar = tstage->csvOutputQuotechar();
         auto resolveFunctor = options.RESOLVE_WITH_INTERPRETER_ONLY() ? nullptr : syms->resolveFunctor;
 
-        // TODO: Add support for merge exceptions in order
-        assert(!mergeExceptionsInOrder);
 
         // compile & prep python pipeline for this stage
         Timer timer;
@@ -812,72 +812,106 @@ namespace tuplex {
         logger().info("compiled pure python pipeline in " + std::to_string(timer.time()) + "s");
         timer.reset();
 
-        for (const auto &p : cachedExceptionPartitions) {
-            tasks.push_back(new ResolveTask(
-                    stageID,
-                    contextID,
-                    vector<Partition*>{},
-                    vector<Partition*>{p},
-                    vector<Partition*>{},
-                    vector<Partition*>{},
-                    operatorIDsWithResolvers,
-                    normalCaseInputSchema,
-                    outputSchema,
-                    normalCaseOutputSchema,
-                    outputSchema,
-                    mergeExceptionsInOrder,
-                    autoUpcastNumbers,
-                    outputFormat,
-                    csvOutputDelimiter,
-                    csvOutputQuotechar,
-                    resolveFunctor,
-                    pipObject));
-        }
+        if (mergeExceptionsInOrder) {
+            for (const auto &partitionGroup : cachedPartitionGroups) {
+                std::vector<Partition*> taskNormalPartitions;
+                for (int i = partitionGroup.normalPartitionStartInd; i < partitionGroup.normalPartitionStartInd + partitionGroup.numNormalPartitions; ++i)
+                    taskNormalPartitions.push_back(cachedNormalPartitions[i]);
+                std::vector<Partition*> taskExceptionPartitions;
+                for (int i = partitionGroup.exceptionPartitionStartInd; i < partitionGroup.exceptionPartitionStartInd + partitionGroup.numExceptionPartitions; ++i)
+                    taskExceptionPartitions.push_back(cachedExceptionPartitions[i]);
 
-        for (const auto &p : cachedGeneralPartitions) {
-            tasks.push_back(new ResolveTask(
-                    stageID,
-                    contextID,
-                    vector<Partition*>{},
-                    vector<Partition*>{},
-                    vector<Partition*>{p},
-                    vector<Partition*>{},
-                    operatorIDsWithResolvers,
-                    normalCaseInputSchema,
-                    outputSchema,
-                    normalCaseOutputSchema,
-                    outputSchema,
-                    mergeExceptionsInOrder,
-                    autoUpcastNumbers,
-                    outputFormat,
-                    csvOutputDelimiter,
-                    csvOutputQuotechar,
-                    resolveFunctor,
-                    pipObject));
-        }
+                tasks.push_back(new ResolveTask(
+                        stageID,
+                        contextID,
+                        taskNormalPartitions,
+                        taskExceptionPartitions,
+                        vector<Partition*>{},
+                        vector<Partition*>{},
+                        operatorIDsWithResolvers,
+                        exceptionInputSchema,
+                        outputSchema,
+                        normalCaseOutputSchema,
+                        outputSchema,
+                        mergeExceptionsInOrder,
+                        autoUpcastNumbers,
+                        outputFormat,
+                        csvOutputDelimiter,
+                        csvOutputQuotechar,
+                        resolveFunctor,
+                        pipObject,
+                        true));
+            }
+        } else {
+            for (const auto &p : cachedExceptionPartitions) {
+                tasks.push_back(new ResolveTask(
+                        stageID,
+                        contextID,
+                        vector<Partition*>{},
+                        vector<Partition*>{p},
+                        vector<Partition*>{},
+                        vector<Partition*>{},
+                        operatorIDsWithResolvers,
+                        exceptionInputSchema,
+                        outputSchema,
+                        normalCaseOutputSchema,
+                        outputSchema,
+                        mergeExceptionsInOrder,
+                        autoUpcastNumbers,
+                        outputFormat,
+                        csvOutputDelimiter,
+                        csvOutputQuotechar,
+                        resolveFunctor,
+                        pipObject,
+                        true));
+            }
 
-        for (const auto &p : cachedFallbackPartitions) {
-            tasks.push_back(new ResolveTask(
-                    stageID,
-                    contextID,
-                    vector<Partition*>{},
-                    vector<Partition*>{},
-                    vector<Partition*>{},
-                    vector<Partition*>{p},
-                    operatorIDsWithResolvers,
-                    normalCaseInputSchema,
-                    outputSchema,
-                    normalCaseOutputSchema,
-                    outputSchema,
-                    mergeExceptionsInOrder,
-                    autoUpcastNumbers,
-                    outputFormat,
-                    csvOutputDelimiter,
-                    csvOutputQuotechar,
-                    resolveFunctor,
-                    pipObject));
-        }
+            for (const auto &p : cachedGeneralPartitions) {
+                tasks.push_back(new ResolveTask(
+                        stageID,
+                        contextID,
+                        vector<Partition*>{},
+                        vector<Partition*>{},
+                        vector<Partition*>{p},
+                        vector<Partition*>{},
+                        operatorIDsWithResolvers,
+                        exceptionInputSchema,
+                        outputSchema,
+                        normalCaseOutputSchema,
+                        outputSchema,
+                        mergeExceptionsInOrder,
+                        autoUpcastNumbers,
+                        outputFormat,
+                        csvOutputDelimiter,
+                        csvOutputQuotechar,
+                        resolveFunctor,
+                        pipObject,
+                        true));
+            }
 
+            for (const auto &p : cachedFallbackPartitions) {
+                tasks.push_back(new ResolveTask(
+                        stageID,
+                        contextID,
+                        vector<Partition*>{},
+                        vector<Partition*>{},
+                        vector<Partition*>{},
+                        vector<Partition*>{p},
+                        operatorIDsWithResolvers,
+                        exceptionInputSchema,
+                        outputSchema,
+                        normalCaseOutputSchema,
+                        outputSchema,
+                        mergeExceptionsInOrder,
+                        autoUpcastNumbers,
+                        outputFormat,
+                        csvOutputDelimiter,
+                        csvOutputQuotechar,
+                        resolveFunctor,
+                        pipObject,
+                        true));
+            }
+        }
         return tasks;
     }
 
@@ -909,9 +943,6 @@ namespace tuplex {
             Logger::instance().defaultLogger().info("[Transform Stage] skipped stage " + std::to_string(tstage->number()) + " because there is nothing todo here.");
             return;
         }
-
-        // TODO: Support merge in order
-        assert(!_options.OPT_MERGE_EXCEPTIONS_INORDER());
 
         // Compile the pipeline
         LLVMOptimizer optimizer;
@@ -958,10 +989,13 @@ namespace tuplex {
             if(task->type() == TaskType::RESOLVE)
                 task_name = "resolve";
 
-            partitionGroups.push_back(PartitionGroup(
+            auto pGroup = PartitionGroup(
                     taskNormalPartitions.size(), normalPartitions.size(),
                     taskGeneralPartitions.size(), generalPartitions.size(),
-                    taskFallbackPartitions.size(), fallbackPartitions.size()));
+            taskFallbackPartitions.size(), fallbackPartitions.size());
+            pGroup.numExceptionPartitions = taskExceptionPartitions.size();
+            pGroup.exceptionPartitionStartInd = exceptionPartitions.size();
+            partitionGroups.push_back(pGroup);
             std::copy(taskNormalPartitions.begin(), taskNormalPartitions.end(), std::back_inserter(normalPartitions));
             std::copy(taskGeneralPartitions.begin(), taskGeneralPartitions.end(), std::back_inserter(generalPartitions));
             std::copy(taskFallbackPartitions.begin(), taskFallbackPartitions.end(), std::back_inserter(fallbackPartitions));
@@ -970,9 +1004,14 @@ namespace tuplex {
 
         switch (tstage->outputMode()) {
             case EndPointMode::FILE: {
-                auto partNo = writeOutput(tstage, completedTasks, cacheEntry->startFileNumber());
-                tstage->setIncrmentalCacheCSVResult(exceptionPartitions, generalPartitions, fallbackPartitions, partNo);
-//                tstage->setFileResult(exceptionCounts);
+                if (_options.OPT_MERGE_EXCEPTIONS_INORDER()) {
+                    tstage->setIncrementalResult(normalPartitions, exceptionPartitions, partitionGroups);
+                    writeOutput(tstage, completedTasks);
+                } else {
+                    auto partNo = writeOutput(tstage, completedTasks, cacheEntry->startFileNumber());
+                    tstage->setIncrmentalCacheCSVResult(exceptionPartitions, generalPartitions, fallbackPartitions,
+                                                        partNo);
+                }
                 break;
             }
             default:
@@ -1296,10 +1335,13 @@ namespace tuplex {
             if(task->type() == TaskType::RESOLVE)
                 task_name = "resolve";
 
-            partitionGroups.push_back(PartitionGroup(
+            auto pGroup = PartitionGroup(
                     taskNormalPartitions.size(), normalPartitions.size(),
                     taskGeneralPartitions.size(), generalPartitions.size(),
-                    taskFallbackPartitions.size(), fallbackPartitions.size()));
+                    taskFallbackPartitions.size(), fallbackPartitions.size());
+            pGroup.numExceptionPartitions = taskExceptionPartitions.size();
+            pGroup.exceptionPartitionStartInd = exceptionPartitions.size();
+            partitionGroups.push_back(pGroup);
             std::copy(taskNormalPartitions.begin(), taskNormalPartitions.end(), std::back_inserter(normalPartitions));
             std::copy(taskGeneralPartitions.begin(), taskGeneralPartitions.end(), std::back_inserter(generalPartitions));
             std::copy(taskFallbackPartitions.begin(), taskFallbackPartitions.end(), std::back_inserter(fallbackPartitions));
@@ -1311,8 +1353,14 @@ namespace tuplex {
             case EndPointMode::FILE: {
                 // i.e. if output format is tuplex, then attach special writer!
                 // ==> could maybe codegen avro as output format, and then write to whatever??
-                auto partNo = writeOutput(tstage, completedTasks);
-                tstage->setIncrmentalCacheCSVResult(exceptionPartitions, generalPartitions, fallbackPartitions, partNo);
+                if (_options.OPT_MERGE_EXCEPTIONS_INORDER()) {
+                    tstage->setIncrementalResult(normalPartitions, exceptionPartitions, partitionGroups);
+                    writeOutput(tstage, completedTasks);
+                } else {
+                    auto partNo = writeOutput(tstage, completedTasks);
+                    tstage->setIncrmentalCacheCSVResult(exceptionPartitions, generalPartitions, fallbackPartitions,
+                                                        partNo);
+                }
                 break;
             }
             case EndPointMode::MEMORY: {
@@ -2351,7 +2399,6 @@ namespace tuplex {
         // run using queue!
         // execute tasks using work queue.
         auto completedTasks = performTasks(wtasks);
-
         if(header) {
             delete [] header;
             header = nullptr;

@@ -36,7 +36,8 @@ namespace tuplex {
         */
         PartitionGroup() :
             numNormalPartitions(0), numGeneralPartitions(0), numFallbackPartitions(0),
-            normalPartitionStartInd(0), generalPartitionStartInd(0), fallbackPartitionStartInd(0) {}
+            normalPartitionStartInd(0), generalPartitionStartInd(0), fallbackPartitionStartInd(0),
+            numExceptionPartitions(0), exceptionPartitionStartInd(0) {}
 
         size_t numNormalPartitions;
         size_t normalPartitionStartInd;
@@ -44,6 +45,8 @@ namespace tuplex {
         size_t generalPartitionStartInd;
         size_t numFallbackPartitions;
         size_t fallbackPartitionStartInd;
+        size_t numExceptionPartitions;
+        size_t exceptionPartitionStartInd;
     };
 }
 

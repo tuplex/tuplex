@@ -110,6 +110,13 @@ namespace tuplex {
         int64_t dataSetID = 0; // no ID here
         _inputPartitions = rowsToPartitions(backend()->driver(), dataSetID, context().id(), rows);
     }
+    void TransformStage::setIncrementalResult(const std::vector<Partition*>& normalPartitions,
+                              const std::vector<Partition*>& exceptionPartitions,
+                              const std::vector<PartitionGroup>& partitionGroups) {
+        auto pipeline = PhysicalStage::plan()->originalLogicalPlan()->getAction();
+        auto cacheEntry = new IncrementalCacheEntry(pipeline, normalPartitions, exceptionPartitions, partitionGroups);
+        PhysicalStage::plan()->getContext().getIncrementalCache()->addEntry(IncrementalCache::newKey(pipeline), cacheEntry);
+    }
 
     void TransformStage::setIncrmentalCacheCSVResult(const std::vector<Partition*>& exceptionPartitions,
                                                      const std::vector<Partition*>& generalPartitions,

@@ -27,6 +27,18 @@ namespace tuplex {
         _startFileNumber = startFileNumber;
     }
 
+    IncrementalCacheEntry::IncrementalCacheEntry(LogicalOperator *pipeline,
+        const std::vector<Partition*>& normalPartitions,
+        const std::vector<Partition*>& exceptionPartitions,
+        const std::vector<PartitionGroup>& partitionGroups) {
+        _pipeline = pipeline->clone();
+        _normalPartitions = normalPartitions;
+        for (auto &p : _normalPartitions)
+            p->makeImmortal();
+        _exceptionPartitions = exceptionPartitions;
+        _partitionGroups = partitionGroups;
+    }
+
     void IncrementalCache::addEntry(const std::string& key, IncrementalCacheEntry* entry) {
         auto elt = _cache.find(key);
         if (elt != _cache.end())
@@ -35,9 +47,10 @@ namespace tuplex {
         _cache[key] = entry;
     }
 //
-//    IncrementalCacheEntry::~IncrementalCacheEntry() {
-//        delete _pipeline;
-//    }
+    IncrementalCacheEntry::~IncrementalCacheEntry() {
+        delete _pipeline;
+//        for (auto &p : _normalPartitions
+    }
 
     std::string IncrementalCache::newKey(LogicalOperator* pipeline) {
         assert(pipeline);

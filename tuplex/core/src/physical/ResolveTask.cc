@@ -416,18 +416,18 @@ default:
         // not all codes qualify for reprocessing => only internals should get reprocessed!
         // => other error codes are "true" exceptions
         // => if it's a true exception, simply save it again as exception.
-//        bool potentiallyHasResolverOnSlowPath = !_operatorIDsAffectedByResolvers.empty() &&
-//                                                std::binary_search(_operatorIDsAffectedByResolvers.begin(),
-//                                                                   _operatorIDsAffectedByResolvers.end(), operatorID);
-        bool potentiallyHasResolverOnSlowPath = true;
-        if(!requiresInterpreterReprocessing(i64ToEC(ecCode)) && !potentiallyHasResolverOnSlowPath) {
+        bool potentiallyHasResolverOnSlowPath = !_operatorIDsAffectedByResolvers.empty() &&
+                                                std::binary_search(_operatorIDsAffectedByResolvers.begin(),
+                                                                   _operatorIDsAffectedByResolvers.end(), operatorID);
+//        bool potentiallyHasResolverOnSlowPath = true;
+        if(!_isIncremental && !requiresInterpreterReprocessing(i64ToEC(ecCode)) && !potentiallyHasResolverOnSlowPath) {
             // TODO: check with resolvers!
             // i.e., we can directly save this as exception IF code is not an interpreter code
             // and true exception, i.e. no resolvers available.
             // => need a list of for which opIds/codes resolvers are available...
             ///....
             _numUnresolved++;
-            exceptionCallback(ecCode, operatorID, _currentRowNumber, ebuf, eSize);
+            exceptionCallback(ecCode, operatorID, _currentRowNumber + _numResolved, ebuf, eSize);
             return;
         }
 
@@ -645,6 +645,7 @@ default:
                                     // --> merge row distinguishes between those two cases. Distinction has to be done there
                                     //     because of compiled functor who calls mergeRow in the write function...
                                     mergeRow(buf, serialized_length, BUF_FORMAT_NORMAL_OUTPUT);
+                                    _numResolved++;
                                     delete [] buf;
                                 } else if(outputAsGeneralRow) {
                                     Row resRow = python::pythonToRow(rowObj).upcastedRow(commonCaseOutputSchema().getRowType());
@@ -693,7 +694,7 @@ default:
         // fallback 3: still exception? save...
         if(resCode == -1) {
             _numUnresolved++;
-            exceptionCallback(ecCode, operatorID, _currentRowNumber, ebuf, eSize);
+            exceptionCallback(ecCode, operatorID, _currentRowNumber + _numResolved, ebuf, eSize);
         }
     }
 

@@ -153,3 +153,9 @@ TEST(Row, NullValue) {
     Row r3(12, Tuple(Field::null()), Field::null(), Tuple(1, Field::null()), Tuple(Field::null(), 2));
     EXPECT_EQ(r3.toPythonString(), "(12,(None,),None,(1,None),(None,2))");
 }
+
+TEST(Row, OptionField) {
+    Field f("test field");
+    f = f.makeOptional();
+    EXPECT_EQ(f.getType().desc(), python::Type::makeOptionType(python::Type::STRING).desc());
+}

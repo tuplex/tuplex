@@ -166,9 +166,8 @@ namespace tuplex {
                 else
                     delete [] _ptrValue;
             }
-
-            _ptrValue = nullptr;
         }
+        _ptrValue = nullptr;
     }
 
     Field::~Field() {

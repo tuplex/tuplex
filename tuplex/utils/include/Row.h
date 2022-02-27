@@ -53,6 +53,25 @@ namespace tuplex {
             return _values[col];
         }
 
+        inline void set(const unsigned col, const Field& f) {
+#ifndef NDEBUG
+            if(col >= _values.size())
+                throw std::runtime_error("invalid column index in get specified");
+#endif
+            _values[col] = f;
+
+            // need to update type of row!
+            auto old_type = _schema.getRowType();
+            auto types = old_type.parameters();
+            if(types[col] != f.getType()) {
+                types[col] = f.getType();
+                _schema = Schema(_schema.getMemoryLayout(), python::Type::makeTupleType(types));
+            }
+
+            // update length, may change!
+            _serializedLength = getSerializedLength();
+        }
+
         bool            getBoolean(const int col) const;
         int64_t         getInt(const int col) const;
         double          getDouble(const int col) const;
@@ -111,13 +130,16 @@ namespace tuplex {
         size_t serializeToMemory(uint8_t* buffer, const size_t capacity) const;
 
         /*!
-         * creates valid python source representation of values as tuple.
+         * creates valid python source represe
+         * ntation of values as tuple.
          * @return string with pythonic data representation
          */
         std::string toPythonString() const;
 
         /*!
-         * returns for each column a string representing its contents. Can be used for display.
+         * returns for each column a string represe
+         *
+         * nting its contents. Can be used for display.
          * @return vector of strings of the row contents.
          */
         inline std::vector<std::string> getAsStrings() const {

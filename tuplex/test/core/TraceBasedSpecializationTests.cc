@@ -127,6 +127,7 @@ TEST_F(SamplingTest, BasicAccessChecks) {
 // this helps with serializing etc.!
 
 namespace tuplex {
+
     struct DetectionStats {
         size_t num_rows;
         size_t num_columns_min;
@@ -156,16 +157,28 @@ namespace tuplex {
                 // mark everything as constant!
                 is_column_constant = std::vector<bool>(constant_row.getNumColumns(), true);
             }
-
-            for(auto row : rows) {
-
+            size_t row_number = 0;
+            for(const auto& row : rows) {
                 // compare current row with constant row.
                 for(unsigned i = 0; i < std::min(constant_row.getNumColumns(), row.getNumColumns()); ++i) {
                     // field comparisons might be expensive, so compare only if not marked yet as false...
                     // field different? replace!
-                    if(is_column_constant[i] && constant_row.get(i) != row.get(i))
-                        is_column_constant[i] = false;
+                    if(is_column_constant[i] && constant_row.get(i).withoutOption() != row.get(i).withoutOption()) {
+                        // allow option types to be constant!
+                        if(constant_row.get(i).isNull() && !row.get(i).isNull()) {
+                            // saved row value is null -> replace with constant!
+                            constant_row.set(i, row.get(i).makeOptional());
+                        } else if(row.get(i).isNull()) {
+                            // update to make optional to indicate null
+                            if(!constant_row.get(i).getType().isOptionType()) {
+                                constant_row.set(i, constant_row.get(i).makeOptional());
+                            }
+                        } else  {
+                            is_column_constant[i] = false;
+                        }
+                    }
                 }
+                row_number++;
 
                 // cur row larger? replace!
 
@@ -193,21 +206,38 @@ TEST_F(SamplingTest, FlightsTracing) {
 
     auto sample_size = std::min(content.length(), 1024 * 1024 * 2ul);
 
+    // sample first 2MB and last 2MB?
     auto rows = parseRows(content.c_str(), content.c_str() + sample_size, {""});
+
+    if(content.length() > 1024 * 1024 * 2ul + 2) {
+        auto offset = content.length() - sample_size - 2;
+        auto lastPtr = content.c_str() + offset;
+        auto info = findLineStart(lastPtr, sample_size, 2, 110);
+        offset += info.offset;
+        auto last_rows = parseRows(content.c_str() + offset, content.c_str() + content.length(), {""});
+        cout<<"found "<<pluralize(last_rows.size(), "last row")<<endl;
+
+        std::copy(last_rows.begin(), last_rows.end(), std::back_inserter(rows));
+    }
+
 
     // drop the first row because it's the header...
     auto header = rows.front();
     rows = std::vector<Row>(rows.begin() + 1, rows.end());
 
     cout<<"parsed "<<rows.size()<<" rows"<<endl;
-    for(auto row : rows) {
-        cout<<row.getRowType().desc()<<endl;
-    }
+//    for(auto row : rows) {
+//        cout<<row.getRowType().desc()<<endl;
+//    }
     // trace some stage of the pipeline now!
     DetectionStats ds;
     ds.detect(rows);
 
     cout<<"Following columns detected to be constant: "<<ds.constant_column_indices()<<endl;
+    // print out which rows are considered constant (and with which values!)
+    for(auto idx : ds.constant_column_indices()) {
+        cout<<" - "<<header.get(idx).desc()<<": "<<ds.constant_row.get(idx).desc()<<" : "<<ds.constant_row.get(idx).getType().desc()<<endl;
+    }
 }
 
 TEST_F(SamplingTest, FlightsSpecializedVsGeneralValueImputation) {

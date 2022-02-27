@@ -49,9 +49,15 @@ namespace tuplex {
         void releaseMemory();
 
         inline bool hasPtrData() const {
-            return python::Type::STRING == _type ||
-            _type.isTupleType() || _type.isDictionaryType() ||
-            python::Type::GENERICDICT == _type || _type.isListType() || _type == python::Type::PYOBJECT;
+
+            // option type may have data
+            auto type = _type;
+            if(type.isOptionType())
+                type = type.getReturnType();
+
+            return python::Type::STRING == type ||
+            type.isTupleType() || type.isDictionaryType() ||
+            python::Type::GENERICDICT == type || type.isListType() || type == python::Type::PYOBJECT;
         }
 
         std::string extractDesc(const python::Type& type) const; /// helper function to extract data
@@ -173,14 +179,16 @@ namespace tuplex {
          * enforces internal representation to be of option type,
          * sets null indicator
          */
-        inline void makeOptional() {
+        inline Field& makeOptional() {
             if(_type == python::Type::PYOBJECT)
-                return; // do not change type
+                return *this; // do not change type
 
             if(_type.isOptionType())
-                return;
+                return *this;
             _type = python::Type::makeOptionType(_type);
             _isNull = false;
+
+            return *this;
         }
 
         void* getPtr() const { return _ptrValue; }
@@ -194,7 +202,8 @@ namespace tuplex {
            else {
                Field f(*this);
                f._isNull = false;
-               f._type = f._type.getReturnType();
+               // only get rid off top-level option.
+               f._type = f._type.isOptionType() ? f._type.getReturnType() : f._type;
                return f;
            }
         }
@@ -243,6 +252,5 @@ namespace tuplex {
         v.push_back(Field(value));
         vec_build(v, Fargs...);
     }
-
 }
 #endif //TUPLEX_FIELD_H

@@ -125,4 +125,4 @@ series = {SIGMOD/PODS '21}
 ```
 
 ---
-(c) 2017-2021 Tuplex contributors
+(c) 2017-2022 Tuplex contributors

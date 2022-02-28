@@ -12,6 +12,11 @@
 #include <logical/AggregateOperator.h>
 #include <iostream>
 #include <sstream>
+#include <algorithm>
+#include <iostream>
+#include <iterator>
+#include <string_view>
+#include <vector>
 
 namespace tuplex {
     namespace codegen {
@@ -120,6 +125,8 @@ namespace tuplex {
                            // @TODO: can skip THIS optimization, continue with the next one!
                        }
 
+                       auto accColsBeforeOpt = mop->getUDF().getAccessedColumns();
+
                        mop->retype({specialized_type});
 
                        // now check again what columns are required from input, if different count -> push down!
@@ -134,8 +141,22 @@ namespace tuplex {
                         cout<<"num input columns required after opt: "<<accCols.size()<<endl;
 
                         // which columns where eliminated?
-                        //forinput_cols
-
+                        //     const std::vector<int> v1 {1, 2, 5, 5, 5, 9};
+                        //    const std::vector<int> v2 {2, 5, 7};
+                        //    std::vector<int> diff; // { 1 2 5 5 5 9 } ∖ { 2 5 7 } = { 1 5 5 9 }
+                        //
+                        //    std::set_difference(v1.begin(), v1.end(), v2.begin(), v2.end(),
+                        //                        std::inserter(diff, diff.begin()));
+                        std::sort(accColsBeforeOpt.begin(), accColsBeforeOpt.end());
+                        std::sort(accCols.begin(), accCols.end());
+                        std::vector<size_t> diff;
+                        std::set_difference(accColsBeforeOpt.begin(), accColsBeforeOpt.end(),
+                                            accCols.begin(), accCols.end(), std::inserter(diff, diff.begin()));
+                        cout<<"There were "<<pluralize(diff.size(), "column")<<" optimized away:"<<endl;
+                        vector<string> opt_away_names;
+                        for(auto idx : diff)
+                            opt_away_names.push_back(mop->inputColumns()[idx]);
+                        cout<<"-> "<<opt_away_names<<endl;
                     }
 
                 }

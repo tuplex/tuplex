@@ -730,7 +730,7 @@ namespace tuplex {
 
     std::vector<size_t> LambdaAccessedColumnVisitor::getAccessedIndices() const {
 
-        std::vector<size_t> idxs;
+        std::set<size_t> idxs;
 
         // first check what type it is
         if(_tupleArgument) {
@@ -738,19 +738,20 @@ namespace tuplex {
             std::string argName = _argNames.front();
             if(_argFullyUsed.at(argName)) {
                 for(unsigned i = 0; i < _numColumns; ++i)
-                    idxs.push_back(i);
+                    idxs.insert(i);
             } else {
-                return _argSubscriptIndices.at(argName);
+                auto v_idxs = _argSubscriptIndices.at(argName);
+                idxs = std::set<size_t>(v_idxs.begin(), v_idxs.end());
             }
         } else {
             // simple, see which params are fully used.
             for(unsigned i = 0; i < _argNames.size(); ++i) {
                 if(_argFullyUsed.at(_argNames[i]))
-                    idxs.push_back(i);
+                    idxs.insert(i);
             }
         }
 
-        return idxs;
+        return std::vector<size_t>(idxs.begin(), idxs.end());
     }
 
     void LambdaAccessedColumnVisitor::preOrder(ASTNode *node) {

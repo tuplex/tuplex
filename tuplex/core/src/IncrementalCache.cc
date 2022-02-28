@@ -49,9 +49,9 @@ namespace tuplex {
 
     IncrementalCacheEntry::~IncrementalCacheEntry() {
         delete _pipeline;
-        for (auto &p : _normalPartitions) {
-            p->freeAlways();
-        }
+//        for (auto &p : _normalPartitions) {
+//            p->freeAlways();
+//        }
     }
 
     std::string IncrementalCache::newKey(LogicalOperator* pipeline) {

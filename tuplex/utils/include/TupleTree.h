@@ -79,7 +79,8 @@ namespace tuplex {
             } else {
                 // primitive type?
                 // ==> add index!
-                if(type.isPrimitiveType() || type.isDictionaryType() || type.isListType() || type == python::Type::PYOBJECT) {
+                if(type.isPrimitiveType() || type.isDictionaryType() || type.isListType() ||
+                   type == python::Type::PYOBJECT || type.isConstantValued()) {
                     assert(!type.isTupleType());
                     // end recursive descent, just return the root
                     root->type = type;

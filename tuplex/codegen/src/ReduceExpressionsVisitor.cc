@@ -112,11 +112,11 @@ namespace tuplex {
 
     ASTNode* ReduceExpressionsVisitor::cmp_replace(NCompare *op) {
         // check that all operands are literals, if not no reduction is possible
-        if(!python::isLiteralType(op->_left->getInferredType()))
+        if(!isLiteralASTNode(op->_left))
             return op;
 
         for(auto operand: op->_comps)
-            if(!python::isLiteralType(operand->getInferredType()))
+            if(!isLiteralASTNode(operand))
                 return op;
 
         // all operands are literals, can reduce!
@@ -212,8 +212,8 @@ namespace tuplex {
     ASTNode* ReduceExpressionsVisitor::binop_replace(NBinaryOp *op) {
 
         // check that both are literals, if not replace nothing
-        if(!python::isLiteralType(op->_left->getInferredType()) ||
-           !python::isLiteralType(op->_right->getInferredType()))
+        if(!isLiteralASTNode(op->_left) ||
+           !isLiteralASTNode(op->_right))
             return op;
 
         // so far only a subset of binary operations is supported...
@@ -590,10 +590,10 @@ namespace tuplex {
                     return res;
                 } else {
                     // check if all of the expressions are literals, if so reduction is possible
-                    bool areAllLiterals = python::isLiteralType(cmp->_left->getInferredType());
+                    bool areAllLiterals = isLiteralASTNode(cmp->_left);
                     int pos = 0;
                     while(areAllLiterals && pos < cmp->_comps.size() > 0) {
-                        areAllLiterals = python::isLiteralType(cmp->_comps[pos++]->getInferredType());
+                        areAllLiterals = isLiteralASTNode(cmp->_comps[pos++]);
                     }
 
                     if(areAllLiterals)
@@ -616,7 +616,7 @@ namespace tuplex {
             case ASTNodeType::UnaryOp: {
                 NUnaryOp *op = static_cast<NUnaryOp*>(node);
 
-                if(python::isLiteralType(op->_operand->getInferredType())) {
+                if(isLiteralASTNode(op->_operand)) {
                     // reduction possible here
 
                     // only available for bool, i64, f64

@@ -141,6 +141,9 @@ namespace tuplex {
             if(python::Type::PYOBJECT == type)
                 return env.i8ptrType();
 
+            if(type.isConstantValued())
+                return pythonToLLVMType(env, type.underlying());
+
             Logger::instance().defaultLogger().warn("python type could not be converted to llvm type");
 
             return nullptr;
@@ -152,7 +155,8 @@ namespace tuplex {
 
             // iterate over all fields & return mapped types
             for(auto type : _tree.fieldTypes()) {
-                types.push_back(pythonToLLVMType(*_env, type.withoutOptions()));
+                auto deoptimized_type = type.isConstantValued() ? type.underlying() : type;
+                types.push_back(pythonToLLVMType(*_env, deoptimized_type.withoutOptions()));
             }
 
             return types;

@@ -294,8 +294,6 @@ namespace python {
 
     };
 
-    extern bool isLiteralType(const Type& type);
-
     inline bool operator < (const Type& lhs, const Type& rhs) { return lhs._hash < rhs._hash; }
     inline bool operator == (const Type& lhs, const Type& rhs) { return lhs._hash == rhs._hash; }
     inline bool operator != (const Type& lhs, const Type& rhs) { return lhs._hash != rhs._hash; }

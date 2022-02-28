@@ -47,6 +47,8 @@ namespace tuplex {
             // create function + load arguments. Necessary instructions for this are added at the start of the basic body block.
             auto paramType = parameterTypes();
 
+            // check whether constants are in parameterTypes, they need to get treated separately!
+
 
             // create LLVM function for one tuple type in, one tuple type out
             auto &ctx = _env->getContext();

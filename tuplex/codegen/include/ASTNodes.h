@@ -72,6 +72,18 @@ namespace tuplex {
         Continue
     };
 
+    inline bool isLiteralASTNode(ASTNode* node) {
+        switch(node->type()) {
+            case ASTNodeType::Boolean:
+            case ASTNodeType::Number:
+            case ASTNodeType::String:
+            case ASTNodeType::None:
+                return true;
+            default:
+                return false;
+        }
+    }
+
 //@TODO: Make sure that cloning also copies over protected attributes!
 
 // base class used to store any node in the AST tree

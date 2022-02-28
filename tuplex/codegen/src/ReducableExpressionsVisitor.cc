@@ -25,8 +25,8 @@ namespace tuplex {
 // if for unary or binary operations two literals are encountered, then a reduction can be done!
     void ReducableExpressionsVisitor::visit(NBinaryOp *op) {
         // check if both operands are literals
-        if(python::isLiteralType(op->_left->getInferredType()) &&
-           python::isLiteralType(op->_right->getInferredType()))
+        if(isLiteralASTNode(op->_left) &&
+           isLiteralASTNode(op->_right))
             _result = true;
         else {
             // continue visit
@@ -35,7 +35,7 @@ namespace tuplex {
     }
 
     void ReducableExpressionsVisitor::visit(NUnaryOp *op) {
-        if(python::isLiteralType(op->_operand->getInferredType()))
+        if(isLiteralASTNode(op->_operand))
             _result = true;
         else {
             ApatheticVisitor::visit(op);
@@ -47,10 +47,10 @@ namespace tuplex {
         // two cases: only left hand => reduction easily possible!!!
         // left hand + ops => reduction if all are literals
         if(cmp->_comps.size() > 0) {
-            bool areAllLiterals = python::isLiteralType(cmp->_left->getInferredType());
+            bool areAllLiterals = isLiteralASTNode(cmp->_left);
             int pos = 0;
             while(areAllLiterals && pos < cmp->_comps.size() > 0) {
-                areAllLiterals = python::isLiteralType(cmp->_comps[pos++]->getInferredType());
+                areAllLiterals = isLiteralASTNode(cmp->_comps[pos++]);
             }
 
             if(areAllLiterals)
@@ -58,7 +58,7 @@ namespace tuplex {
             else
                 ApatheticVisitor::visit(cmp);
         } else {
-            if(python::isLiteralType(cmp->_left->getInferredType()))
+            if(isLiteralASTNode(cmp->_left))
                 _result = true;
             else
                 ApatheticVisitor::visit(cmp);

@@ -119,6 +119,8 @@ namespace tuplex {
 
             // helper functions
             std::vector<Row> fetchInputSample();
+
+            std::vector<LogicalOperator*> nulLValueOptimization();
         };
     }
 }

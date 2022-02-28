@@ -89,7 +89,8 @@ namespace python {
         } else {
             // add new type to hashmap
             hash = _hash_generator++;
-            _typeMap[hash] = TypeEntry(name, at, params, retval, baseClasses, isVarLen);
+            _typeMap[hash] = TypeEntry(name, at, params, retval, baseClasses,
+                                       isVarLen, lower_bound, upper_bound, constant);
         }
 
         Type t = Type();
@@ -301,6 +302,10 @@ namespace python {
         return TypeFactory::instance().isOptionType(*this);
     }
 
+    bool Type::isConstantValued() const {
+        return TypeFactory::instance().isConstantValued(*this);
+    }
+
     bool Type::isExceptionType() const {
         auto classes = baseClasses();
         if(classes.empty())
@@ -446,6 +451,25 @@ namespace python {
             assert(isOptionType());
             return getReturnType();
         }
+    }
+
+    Type Type::underlying() const {
+        // should be optimizing type...
+
+        auto& factory = TypeFactory::instance();
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        assert(it->second._params.size() == 1);
+        return it->second._params[0];
+    }
+
+    std::string Type::constant() const {
+        assert(isConstantValued());
+        auto& factory = TypeFactory::instance();
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        assert(it->second._params.size() == 1);
+        return it->second._constant_value;
     }
 
     Type Type::yieldType() const {
@@ -646,6 +670,14 @@ namespace python {
         }
 
         return res;
+    }
+
+    bool TypeFactory::isConstantValued(const Type &t) const {
+        auto it = _typeMap.find(t._hash);
+        if(it == _typeMap.end())
+            return false;
+
+        return it->second._type == AbstractType::OPTIMIZED_CONSTANT;
     }
 
     Type Type::propagateToTupleType(const python::Type &type) {

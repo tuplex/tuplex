@@ -14,6 +14,20 @@ namespace tuplex {
 
     static const size_t typeDetectionSampleSize = 5; // use 5 as default for now
 
+    inline bool containsConstantType(const python::Type& type) {
+        if(type.isConstantValued())
+            return true;
+        if(type.isTupleType()) {
+            for(auto param : type.parameters())
+                if(containsConstantType(param))
+                    return true;
+            return false;
+        } else {
+            // unsupported types...
+            // @TODO....
+            return false;
+        }
+    }
 
     UDFOperator::UDFOperator(LogicalOperator* parent, const UDF& udf,
     const std::vector<std::string>& columnNames) : LogicalOperator::LogicalOperator(parent), _udf(udf), _columnNames(columnNames) {
@@ -94,6 +108,12 @@ namespace tuplex {
             }
 
             if(_udf.getCompileErrors().empty() || _udf.getReturnError() != CompileError::COMPILE_ERROR_NONE) {
+
+                // @TODO: add the constant folding for the other scenarios as well!
+                if(containsConstantType(parentSchema.getRowType())) {
+                    _udf.optimizeConstants();
+                }
+
                 // if unsupported types presented, use sample to determine type and use fallback mode (except for list return type error, only print error messages for now)
                 return _udf.getOutputSchema();
             }

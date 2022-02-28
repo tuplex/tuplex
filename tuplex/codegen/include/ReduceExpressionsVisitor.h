@@ -19,7 +19,7 @@ namespace tuplex {
  * reduces expressions with literals only as far as possible...
  */
     class ReduceExpressionsVisitor : public IReplaceVisitor {
-    private:
+    protected:
         // for globals, simply replace their identifiers!
         const tuplex::ClosureEnvironment &_closure;
         std::set<std::string> _currentFunctionLocals; // all locally declared vars in this function
@@ -28,7 +28,7 @@ namespace tuplex {
         // contains return values
         int _numReductions;
 
-        ASTNode *replace(ASTNode *parent, ASTNode *node);
+        ASTNode *replace(ASTNode *parent, ASTNode *node) override;
 
         int _numErrors;
         int _numWarnings;

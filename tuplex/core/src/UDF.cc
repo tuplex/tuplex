@@ -1414,4 +1414,9 @@ namespace tuplex {
         // else, create new UDF based on whatever is already here
         return UDF(_code, _pickledCode, _ast.globals(), policy);
     }
+
+    void UDF::optimizeConstants() {
+        // run reduce expressions visitor to fold whatever is possible...
+        _ast.reduceConstantTypes();
+    }
 }

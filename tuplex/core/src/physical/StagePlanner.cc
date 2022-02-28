@@ -99,10 +99,17 @@ namespace tuplex {
                        }
 
                        mop->retype({specialized_type});
+
+                       // now check again what columns are required from input, if different count -> push down!
+                       // @TODO: this could get difficult for general graphs...
+                       auto accCols = mop->getUDF().getAccessedColumns();
+                        // Note: this works ONLY for now, because no other op after this...
+
+
                        // check again
                         cout<<"input type after: "<<mop->getInputSchema().getRowType().desc()<<endl;
                         cout<<"output type after: "<<mop->getOutputSchema().getRowType().desc()<<endl;
-                        cout<<"num input columns required after opt: "<<mop->inputColumns().size()<<endl;
+                        cout<<"num input columns required after opt: "<<accCols.size()<<endl;
                     }
 
                 }

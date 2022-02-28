@@ -199,6 +199,8 @@ namespace tuplex {
              * @return
              */
             std::vector<std::string> typingErrMessages() const { return _typingErrMessages; }
+
+            void reduceConstantTypes();
         };
     }
 }

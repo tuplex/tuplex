@@ -20,6 +20,7 @@
 #include <ReducableExpressionsVisitor.h>
 #include <ReduceExpressionsVisitor.h>
 #include <RemoveDeadBranchesVisitor.h>
+#include <ReplaceConstantTypesVisitor.h>
 #include <TypeSystem.h>
 #include <Pipe.h>
 #include <parser/Parser.h>
@@ -607,6 +608,32 @@ namespace tuplex {
             } else {
                 Logger::instance().defaultLogger().error("unknown ast node of find func returned: " + std::to_string((int)funcRoot->type()));
             }
+        }
+
+
+        void AnnotatedAST::reduceConstantTypes() {
+            if(!_root)
+                return;
+
+            // ast is valid, now go over it AND replace everything that's constant typed with a simplified version...
+
+            // steps:
+            // 1. run a visitor that replaces any node which has a constant node with the value
+            ReplaceConstantTypesVisitor rctv;
+            _root->accept(rctv);
+
+            // 2. run reduce expressions to further trim the tree
+            ReduceExpressionsVisitor rev(_globals);
+            _root->accept(rev);
+            RemoveDeadBranchesVisitor rdb(false); // do not use annotations here, remove full subtrees!
+            _root->accept(rdb);
+
+#ifdef GENERATE_PDFS
+            writeGraphToPDF("post_constant_folding.pdf");
+#else
+            //...
+#endif
+
         }
     }
 }

@@ -101,6 +101,7 @@ namespace python {
         bool hasVariablePositionalArgs() const;
         bool isExceptionType() const;
         bool isIteratorType() const;
+        bool isConstantValued() const;
 
         inline bool isGeneric() const {
             if(_hash == python::Type::PYOBJECT._hash ||
@@ -151,6 +152,8 @@ namespace python {
         Type valueType() const;
         // returns the element type in a list or within an option
         Type elementType() const;
+        Type underlying() const;
+        std::string constant() const; // returns the underlying constant of the type (opt. HACK)
 
         /*!
          * return yield type of an iterator
@@ -276,7 +279,6 @@ namespace python {
          */
         static Type superType(const Type &A, const Type &B);
 
-
         /*!
          * construct type from hash
          * @param hash
@@ -375,6 +377,7 @@ namespace python {
         bool isOptionType(const Type& t) const;
         bool isListType(const Type& t) const;
         bool isIteratorType(const Type& t) const;
+        bool isConstantValued(const Type& t) const;
 
         std::vector<Type> parameters(const Type& t) const;
         Type returnType(const Type& t) const;

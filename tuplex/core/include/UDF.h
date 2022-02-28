@@ -128,6 +128,12 @@ namespace tuplex {
                                   const python::Type& inputRowType=python::Type::UNKNOWN,
                                   bool acquireGIL=false);
 
+        /*!
+         * HACK: this function optimizes constants -
+         * > constant folding! hooray!
+         */
+        void optimizeConstants();
+
         std::string getCode() const { return _code; }
 
         const codegen::AnnotatedAST& getAnnotatedAST() const { return _ast; }

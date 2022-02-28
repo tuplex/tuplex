@@ -44,19 +44,12 @@ namespace tuplex {
         ") to process.");
     }
 
-    aligned_string FileInputOperator::loadSample(size_t sampleSize) {
+    aligned_string FileInputOperator::loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode) {
         auto &logger = Logger::instance().logger("fileinputoperator");
 
-        if(_fileURIs.empty())
+        if(0 == file_size || uri == URI::INVALID)
             return "";
 
-        // load from first file (?)
-
-        // @TODO: estimate across multiple files/different file positions
-        // ==> how to do this better??
-
-        auto uri = _fileURIs.front();
-        size_t size = _sizes.front();
         auto vfs = VirtualFileSystem::fromURI(uri);
         auto vf = vfs.open_file(uri, VirtualFileMode::VFS_READ);
         if (!vf) {
@@ -65,10 +58,27 @@ namespace tuplex {
         }
 
         // determine sample size
-        if (size > sampleSize)
-            sampleSize = core::floorToMultiple(std::min(sampleSize, size), 16ul);
+        if (file_size > sampleSize)
+            sampleSize = core::floorToMultiple(std::min(sampleSize, file_size), 16ul);
         else {
-            sampleSize = core::ceilToMultiple(std::min(sampleSize, size), 16ul);
+            sampleSize = core::ceilToMultiple(std::min(sampleSize, file_size), 16ul);
+        }
+
+        // depending on sampling mode seek in file!
+        switch(mode) {
+            case SamplingMode::SAMPLE_LAST_ROWS: {
+                vf->seek(file_size - sampleSize);
+                break;
+            }
+            case SamplingMode::SAMPLE_RANDOM: {
+                // random seek between 0 and file_size - sampleSize
+                auto randomSeekOffset = randi(0ul, file_size - sampleSize);
+                vf->seek(randomSeekOffset);
+                break;
+            }
+            default:
+                // nothing todo (i.e. first rows mode!)
+                break;
         }
 
         assert(sampleSize % 16 == 0); // needs to be divisible by 16...
@@ -120,7 +130,15 @@ namespace tuplex {
         detectFiles(pattern);
 
         // estimate row count
-        auto sample = loadSample(co.CSV_MAX_DETECTION_MEMORY());
+        // sample using first rows from first file. @TODO: sample across files to provoke better result for general case!
+        // auto uri = _fileURIs.front();
+        // size_t size = _sizes.front();
+
+        aligned_string sample;
+        if(!_fileURIs.empty()) {
+            sample = loadSample(co.CSV_MAX_DETECTION_MEMORY(), _fileURIs.front(), _sizes.front(),
+                                SamplingMode::SAMPLE_FIRST_ROWS);
+        }
 
         // split into lines, compute average length & scale row estimate up
         auto lines = splitToLines(sample.c_str());
@@ -134,12 +152,12 @@ namespace tuplex {
         _estimatedRowCount = static_cast<size_t>(std::ceil(estimatedRowCount));
 
         // store as internal sample
-        _sample.clear();
+        _firstRowsSample.clear();
         for(auto line : lines) {
-            _sample.push_back(Row(line));
+            _firstRowsSample.push_back(Row(line));
         }
-        if(_header && !_sample.empty())
-            _sample.erase(_sample.begin());
+        if(_header && !_firstRowsSample.empty())
+            _firstRowsSample.erase(_firstRowsSample.begin());
 
         // when no null-values are given, simply set to string always
         // else, it's an option type...
@@ -194,10 +212,16 @@ namespace tuplex {
         Timer timer;
         detectFiles(pattern);
 
+        auto SAMPLE_SIZE = co.CSV_MAX_DETECTION_MEMORY();
+
         // infer schema using first file only
         if (!_fileURIs.empty()) {
 
-            auto sample = loadSample(co.CSV_MAX_DETECTION_MEMORY());
+            aligned_string sample;
+            if(!_fileURIs.empty()) {
+                sample = loadSample(SAMPLE_SIZE, _fileURIs.front(), _sizes.front(),
+                                    SamplingMode::SAMPLE_FIRST_ROWS);
+            }
 
             CSVStatistic csvstat(co.CSV_SEPARATORS(), co.CSV_COMMENTS(),
                                  co.CSV_QUOTECHAR(), co.CSV_MAX_DETECTION_MEMORY(),
@@ -311,12 +335,33 @@ namespace tuplex {
             // now parse from the allocated buffer all rows and store as internal sample.
             // there should be at least one 3 rows!
             // store as internal sample
-            // => use here strlen because _sample is zero terminated!
+            // => use here strlen because _firstRowsSample is zero terminated!
             assert(sample.back() == '\0');
-            _sample = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())), _null_values, _delimiter, _quotechar);
+            _firstRowsSample = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())), _null_values, _delimiter, _quotechar);
             // header? ignore first row!
-            if(_header && !_sample.empty())
-                _sample.erase(_sample.begin());
+            if(_header && !_firstRowsSample.empty())
+                _firstRowsSample.erase(_firstRowsSample.begin());
+
+            // draw last rows sample from last file & append.
+            if(!_fileURIs.empty()) {
+                // only draw sample IF > 1 file or file_size > 2 * sample size
+                bool draw_sample = _fileURIs.size() >= 2 || _sizes.back() >= 2 * SAMPLE_SIZE;
+                if(draw_sample) {
+                    auto last_sample = loadSample(SAMPLE_SIZE, _fileURIs.back(), _sizes.back(), SamplingMode::SAMPLE_LAST_ROWS);
+                    // search CSV beginning
+                    auto column_count = inputColumnCount();
+                    auto offset = csvFindLineStart(last_sample.c_str(), SAMPLE_SIZE, column_count, csvstat.delimiter(), csvstat.quotechar());
+                    if(offset >= 0) {
+                        // parse into last rows
+                        _lastRowsSample = parseRows(last_sample.c_str(), last_sample.c_str() + std::min(last_sample.size() - 1, strlen(last_sample.c_str())), _null_values, _delimiter, _quotechar);
+                    } else {
+                        logger.warn("could not find CSV line start in last rows sample.");
+                    }
+                }
+            }
+
+            // @TODO: could draw also additional random sample from data!
+
         } else {
             logger.warn("no input files found, can't infer type from given path: " + pattern);
             setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
@@ -397,16 +442,23 @@ namespace tuplex {
     }
 
     std::vector<Row> FileInputOperator::getSample(const size_t num) const {
-
-        if(num > _sample.size()) {
+        auto totalSampleCount = _firstRowsSample.size() + _lastRowsSample.size();
+        if(num > totalSampleCount) {
+#ifndef NEDEBUG
             Logger::instance().defaultLogger().warn("requested " + std::to_string(num)
                                                     + " rows for sampling, but only "
-                                                    + std::to_string(_sample.size())
+                                                    + std::to_string(totalSampleCount)
                                                     + " stored. Consider decreasing sample size.");
+#endif
         }
 
-        // retrieve as many rows as necessary from the first file
-        return std::vector<Row>(_sample.begin(), _sample.begin() + std::min(_sample.size(), num));
+        // retrieve full sample from first and last rows
+        auto sample = _firstRowsSample;
+        for(auto row : _lastRowsSample)
+            sample.push_back(row);
+
+        // retrieve as many rows as necessary from the combined sample
+        return std::vector<Row>(sample.begin(), sample.begin() + std::min(sample.size(), num));
     }
 
     void FileInputOperator::selectColumns(const std::vector<size_t> &columnsToSerialize) {
@@ -504,7 +556,8 @@ namespace tuplex {
                                                                              _estimatedRowCount(other._estimatedRowCount),
                                                                              _normalCaseRowType(other._normalCaseRowType),
                                                                              _optimizedNormalCaseRowType(other._optimizedNormalCaseRowType),
-                                                                             _sample(other._sample),
+                                                                             _firstRowsSample(other._firstRowsSample),
+                                                                             _lastRowsSample(other._lastRowsSample),
                                                                              _sampling_time_s(other._sampling_time_s),
                                                                              _indexBasedHints(other._indexBasedHints) {
         // copy members for logical operator

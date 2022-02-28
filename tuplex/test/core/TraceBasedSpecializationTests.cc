@@ -20,6 +20,10 @@
 #include <parser/Parser.h>
 #include <TraceVisitor.h>
 
+#include "FullPipelines.h"
+
+#include <physical/StagePlanner.h>
+
 class SamplingTest : public PyTest {};
 
 
@@ -128,77 +132,13 @@ TEST_F(SamplingTest, BasicAccessChecks) {
 
 namespace tuplex {
 
-    struct DetectionStats {
-        size_t num_rows;
-        size_t num_columns_min;
-        size_t num_columns_max;
-        std::vector<bool> is_column_constant;
-        Row constant_row;
 
-        DetectionStats() : num_rows(0),
-                           num_columns_min(std::numeric_limits<size_t>::max()),
-                           num_columns_max(std::numeric_limits<size_t>::min()) {}
-        std::vector<size_t> constant_column_indices() const {
-            std::vector<size_t> v;
-            for(unsigned i = 0; i < is_column_constant.size(); ++i) {
-                if(is_column_constant[i])
-                    v.push_back(i);
-            }
-            return v;
-        }
-
-        void detect(const std::vector<Row>& rows) {
-            if(rows.empty())
-                return;
-
-            // init?
-            if(0 == num_rows) {
-                constant_row = rows.front();
-                // mark everything as constant!
-                is_column_constant = std::vector<bool>(constant_row.getNumColumns(), true);
-            }
-            size_t row_number = 0;
-            for(const auto& row : rows) {
-
-                // ignore small rows
-                if(row.getNumColumns() < constant_row.getNumColumns())
-                    continue;
-
-                // compare current row with constant row.
-                for(unsigned i = 0; i < std::min(constant_row.getNumColumns(), row.getNumColumns()); ++i) {
-                    // field comparisons might be expensive, so compare only if not marked yet as false...
-                    // field different? replace!
-                    if(is_column_constant[i] && constant_row.get(i).withoutOption() != row.get(i).withoutOption()) {
-                        // allow option types to be constant!
-                        if(constant_row.get(i).isNull() && !row.get(i).isNull()) {
-                            // saved row value is null -> replace with constant!
-                            constant_row.set(i, row.get(i).makeOptional());
-                        } else if(row.get(i).isNull()) {
-                            // update to make optional to indicate null
-                            if(!constant_row.get(i).getType().isOptionType()) {
-                                constant_row.set(i, constant_row.get(i).makeOptional());
-                            }
-                        } else  {
-                            is_column_constant[i] = false;
-                        }
-                    }
-                }
-                row_number++;
-
-                // cur row larger? replace!
-
-                num_columns_min = std::min(num_columns_min, row.getNumColumns());
-                num_columns_max = std::max(num_columns_max, row.getNumColumns());
-            }
-
-            num_rows += rows.size();
-        }
-    };
 }
 
 TEST_F(SamplingTest, FlightsTracing) {
     using namespace std;
     using namespace tuplex;
+    using namespace tuplex::codegen;
 
     string f_path = "../resources/flights_on_time_performance_2019_01.sample.csv";
 
@@ -249,6 +189,7 @@ TEST_F(SamplingTest, FlightsSpecializedVsGeneralValueImputation) {
     using namespace std;
     using namespace tuplex;
     ContextOptions opt = ContextOptions::defaults();
+    opt.set("tuplex.executorCount", "0");
     Context ctx(opt);
 
     // specialize access with columns vs. non-columns
@@ -256,7 +197,12 @@ TEST_F(SamplingTest, FlightsSpecializedVsGeneralValueImputation) {
 
     // i.e. turn off null-value optimization for files or not?
 
-    auto null_based_file = "flights_on_time_performance_2013_01.csv";
-    auto non_null_based_file = "flights_on_time_performance_2013_09.csv"; // do not need to set values...
+    auto null_based_file = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_01.csv";
+    auto non_null_based_file = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2013_09.csv"; // do not need to set values...
 
+
+    // test with specialization
+    auto& ds = flightPipeline(ctx, null_based_file);
+    cout<<"columns: "<<ds.columns()<<endl;
+    auto v = ds.takeAsVector(5);
 }

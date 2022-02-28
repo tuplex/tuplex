@@ -25,6 +25,10 @@
 
 #include <limits.h>
 
+// New: Stage Specialization, maybe rename?
+#include <physical/StagePlanner.h>
+#include "physical/StagePlanner.h"
+
 // @TODO: code gen needs to be lazily done
 // i.e. codegen stages then execute
 // => if normal case passes, then codegen the big pipeline!
@@ -301,6 +305,12 @@ namespace tuplex {
 
             using namespace std;
             auto& logger = Logger::instance().defaultLogger();
+
+            // use StagePlanner to create specialized pipeline
+            StagePlanner planner(inputNode, operators);
+            planner.enableAll();
+            return planner.optimize();
+
 
             // only null-value opt yet supported
             if(!nullValueOptimization)

@@ -14,6 +14,7 @@
 // standard message strings
 #define MISSING_ORC_MESSAGE ("Tuplex was not built with ORC support. To build Tuplex with ORC, set BUILD_WITH_ORC=ON.")
 
+#include <random>
 #include <ctime>
 #include "Base.h"
 #include "StringUtils.h"
@@ -180,6 +181,16 @@ struct hash<std::tuple<TT...>>
 // #define TUPLEX_DEBUG
 
 namespace tuplex {
+
+    // random uniform integer
+    template<typename T> T randi(const T& low, const T& high) {
+        std::random_device rd;
+        std::mt19937 rng(rd());
+        std::uniform_int_distribution<int> uni(low, high);
+
+        auto random_integer = uni(rng);
+        return random_integer;
+    }
 
     // current system timestamp
     inline int64_t currentTimestamp() {

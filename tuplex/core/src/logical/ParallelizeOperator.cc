@@ -77,7 +77,7 @@ namespace tuplex {
         return std::vector<Row>(_sample.begin(), _sample.begin() + std::min(num, _sample.size()));
 
         // // go through partitions and retrieve additional samples if stored sample is not enough.
-        // if(num <= _sample.size()) {
+        // if(num <= _firstRowsSample.size()) {
         //
         // } else {
         //     throw std::runtime_error("not yet implemented, please chose smaller sample size");

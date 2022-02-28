@@ -20,6 +20,11 @@ namespace tuplex {
     // because processing happens with 16byte alignment, need to use aligned 16byte strings!
     using aligned_string=std::basic_string<char, std::char_traits<char>, boost::alignment::aligned_allocator<char, 16>>;
 
+    enum class SamplingMode {
+        SAMPLE_FIRST_ROWS,
+        SAMPLE_LAST_ROWS,
+        SAMPLE_RANDOM
+    };
 
     /*!
      * CSV operator will immediately load data into memory when added
@@ -52,7 +57,8 @@ namespace tuplex {
         python::Type _optimizedNormalCaseRowType;
 
         // internal sample, used for tracing & Co.
-        std::vector<Row> _sample;
+        std::vector<Row> _firstRowsSample;
+        std::vector<Row> _lastRowsSample;
 
         void detectFiles(const std::string& pattern);
 
@@ -80,7 +86,7 @@ namespace tuplex {
 
         FileInputOperator(FileInputOperator& other); // specialized copy constructor!
 
-        aligned_string loadSample(size_t sampleSize);
+        aligned_string loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode);
 
         double _sampling_time_s;
 

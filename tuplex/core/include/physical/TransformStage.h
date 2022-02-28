@@ -471,6 +471,8 @@ namespace tuplex {
             std::string aggregateCombineFuncName; //! to combine two aggregates (allocates & frees via C-malloc).
             std::string aggregateAggregateFuncName; //! to combine aggregate and result (allocates & frees via C-malloc).
 
+            StageCodePath() = default;
+
             inline bool empty() const {
                 return irBitCode.empty();
             }
@@ -484,7 +486,7 @@ namespace tuplex {
             writeMemoryCallbackName(p.writememorycallbackname()), writeHashCallbackName(p.writehashcallbackname()),
             writeExceptionCallbackName(p.writeexceptioncallbackname()), writeAggregateCallbackName(p.writeaggregatecallbackname()),
             aggregateInitFuncName(p.aggregateinitfuncname()), aggregateCombineFuncName(p.aggregatecombinefuncname()),
-            aggregagteAggregateFuncName(p.aggregateaggregatefuncname()) {}
+            aggregateAggregateFuncName(p.aggregateaggregatefuncname()) {}
 
             inline void fill(messages::CodePath* c) const {
                 if(!c)
@@ -494,17 +496,17 @@ namespace tuplex {
                 c->set_releasestagefuncname(releaseStageFuncName.c_str());
 
                 c->set_funcstagename(funcStageName.c_str());
-                c->set_funcprocessname(funcProcessRowName.c_str());
+                c->set_funcprocessrowname(funcProcessRowName.c_str());
 
                 c->set_writefilecallbackname(writeFileCallbackName.c_str());
                 c->set_writememorycallbackname(writeMemoryCallbackName.c_str());
                 c->set_writehashcallbackname(writeHashCallbackName.c_str());
-                c->set_exceptioncallbackname(writeExceptionCallbackName.c_str());
-                c->set_aggregatecallbackname(writeAggregateCallbackName.c_str());
+                c->set_writeexceptioncallbackname(writeExceptionCallbackName.c_str());
+                c->set_writeaggregatecallbackname(writeAggregateCallbackName.c_str());
 
                 c->set_aggregateinitfuncname(aggregateInitFuncName.c_str());
-                c->set_aggregagtecombinefuncname(aggregateCombineFuncName.c_str());
-                c->set_aggregatefuncname(aggregateAggregateFuncName.c_str());
+                c->set_aggregatecombinefuncname(aggregateCombineFuncName.c_str());
+                c->set_aggregateaggregatefuncname(aggregateAggregateFuncName.c_str());
             }
 
             inline messages::CodePath* to_protobuf() const {

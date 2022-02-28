@@ -234,7 +234,8 @@ namespace codegen {
                 r.name = name;
                 r.type = slot.type;
                 r.defined = builder.CreateLoad(slot.definedPtr);
-                r.val = slot.var.load(builder);
+                // load only if type is valid.
+                r.val = r.type != python::Type::UNKNOWN ? slot.var.load(builder) : SerializableValue();
 
                 r.original_ptr = SerializableValue(slot.var.ptr, slot.var.sizePtr, slot.var.nullPtr);
                 r.original_defined_ptr = slot.definedPtr;
@@ -276,8 +277,9 @@ namespace codegen {
                     _variableSlots[name].var = Variable(*_env, builder, _variableSlots[name].type, name);
                 }
 
-                // load realization to var
-                _variableSlots[name].var.store(builder, keyval.second.val);
+                // load realization to var (only if not type == unknown)
+                if(keyval.second.type != python::Type::UNKNOWN)
+                    _variableSlots[name].var.store(builder, keyval.second.val);
             }
         }
 

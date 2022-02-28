@@ -34,6 +34,11 @@ namespace tuplex {
 
             }
 
+            // check accesses -> i.e. need to check for all funcs till first map or end of stage is reached.
+            // why? b.c. map destroys structure. The other require analysis though...!
+            // i.e. trace using sample... (this could get expensive!)
+
+
 
             return _operators;
         }

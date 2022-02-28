@@ -27,15 +27,16 @@ message CodePath {
     string initStageFuncName = 2;
     string releaseStageFuncName = 3;
     string funcStageName = 4;
-    string funcProcessName = 5;
+    string funcProcessRowName = 5;
     string writeFileCallbackName = 6;
-    string writeHashCallbackName = 7;
-    string writeExceptionCallbackName = 8;
-    string writeAggregateCallbackName = 9;
+    string writeMemoryCallbackName = 7;
+    string writeHashCallbackName = 8;
+    string writeExceptionCallbackName = 9;
+    string writeAggregateCallbackName = 10;
 
-    string aggregateInitFuncName = 10;
-    string aggregateCombineFuncName = 11;
-    string aggregateAggregateFuncName = 12;
+    string aggregateInitFuncName = 11;
+    string aggregateCombineFuncName = 12;
+    string aggregateAggregateFuncName = 13;
 }
 
 message TransformStage {

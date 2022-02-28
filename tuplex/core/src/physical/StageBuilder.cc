@@ -683,7 +683,8 @@ namespace tuplex {
                                         "type upgrade from " + fastLocalVariables.fastOutSchema.desc() + " to " +
                                         fastLocalVariables.outputSchema.getRowType().desc() + "failed.");
                             // set normal case output type to general case
-                            _normalCaseOutputSchema = _outputSchema;
+                            logger.warn("using const cast here, it's a code smell. need to fix...");
+                            const_cast<StageBuilder*>(this)->_normalCaseOutputSchema = _outputSchema;
                         }
                     }
                     pip->buildWithHashmapWriter(ret.writeHashCallbackName,

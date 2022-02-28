@@ -1007,17 +1007,25 @@ namespace tuplex {
 
         msg->set_persistseparatecases(_persistSeparateCases);
         msg->set_updateinputexceptions(_updateInputExceptions);
-        msg->set_funcstagename(_funcStageName);
-        msg->set_funcmemorywritecallbackname(_funcMemoryWriteCallbackName);
-        msg->set_funcfilewritecallbackname(_funcFileWriteCallbackName);
-        msg->set_funchashwritecallbackname(_funcHashWriteCallbackName);
-        msg->set_funcexceptioncallback(_funcExceptionCallback);
-        msg->set_funcinitstagename(_initStageFuncName);
-        msg->set_funcreleasestagename(_releaseStageFuncName);
-        msg->set_resolverowfunctionname(_resolveRowFunctionName);
-        msg->set_resolverowwritecallbackname(_resolveRowWriteCallbackName);
-        msg->set_resolverowexceptioncallbackname(_resolveRowExceptionCallbackName);
-        msg->set_resolvehashcallbackname(_resolveHashCallbackName);
+
+        // serialize fast/slow path IF non empty
+        if(!_fastCodePath.empty())
+            msg->set_allocated_fastpath(_fastCodePath.to_protobuf());
+        if(!_slowCodePath.empty())
+            msg->set_allocated_slowpath(_slowCodePath.to_protobuf());
+
+//        msg->set_funcstagename(_funcStageName);
+//        msg->set_funcmemorywritecallbackname(_funcMemoryWriteCallbackName);
+//        msg->set_funcfilewritecallbackname(_funcFileWriteCallbackName);
+//        msg->set_funchashwritecallbackname(_funcHashWriteCallbackName);
+//        msg->set_funcexceptioncallback(_funcExceptionCallback);
+//        msg->set_funcinitstagename(_initStageFuncName);
+//        msg->set_funcreleasestagename(_releaseStageFuncName);
+//        msg->set_resolverowfunctionname(_resolveRowFunctionName);
+//        msg->set_resolverowwritecallbackname(_resolveRowWriteCallbackName);
+//        msg->set_resolverowexceptioncallbackname(_resolveRowExceptionCallbackName);
+//        msg->set_resolvehashcallbackname(_resolveHashCallbackName);
+
         msg->set_stagenumber(number());
 
         // file params

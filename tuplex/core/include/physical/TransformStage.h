@@ -470,6 +470,49 @@ namespace tuplex {
             std::string aggregateInitFuncName; //! to initiate aggregate (allocates via C-malloc)
             std::string aggregateCombineFuncName; //! to combine two aggregates (allocates & frees via C-malloc).
             std::string aggregateAggregateFuncName; //! to combine aggregate and result (allocates & frees via C-malloc).
+
+            inline bool empty() const {
+                return irBitCode.empty();
+            }
+
+            // protobuf serialization
+#ifdef BUILD_WITH_AWS
+
+            StageCodePath(const messages::CodePath& p) : irBitCode(p.irbitcode()), initStageFuncName(p.initstagefuncname()),
+            releaseStageFuncName(p.releasestagefuncname()), funcStageName(p.funcstagename()),
+            funcProcessRowName(p.funcprocessrowname()), writeFileCallbackName(p.writefilecallbackname()),
+            writeMemoryCallbackName(p.writememorycallbackname()), writeHashCallbackName(p.writehashcallbackname()),
+            writeExceptionCallbackName(p.writeexceptioncallbackname()), writeAggregateCallbackName(p.writeaggregatecallbackname()),
+            aggregateInitFuncName(p.aggregateinitfuncname()), aggregateCombineFuncName(p.aggregatecombinefuncname()),
+            aggregagteAggregateFuncName(p.aggregateaggregatefuncname()) {}
+
+            inline void fill(messages::CodePath* c) const {
+                if(!c)
+                    return;
+                c->set_irbitcode(irBitCode.c_str());
+                c->set_initstagefuncname(initStageFuncName.c_str());
+                c->set_releasestagefuncname(releaseStageFuncName.c_str());
+
+                c->set_funcstagename(funcStageName.c_str());
+                c->set_funcprocessname(funcProcessRowName.c_str());
+
+                c->set_writefilecallbackname(writeFileCallbackName.c_str());
+                c->set_writememorycallbackname(writeMemoryCallbackName.c_str());
+                c->set_writehashcallbackname(writeHashCallbackName.c_str());
+                c->set_exceptioncallbackname(writeExceptionCallbackName.c_str());
+                c->set_aggregatecallbackname(writeAggregateCallbackName.c_str());
+
+                c->set_aggregateinitfuncname(aggregateInitFuncName.c_str());
+                c->set_aggregagtecombinefuncname(aggregateCombineFuncName.c_str());
+                c->set_aggregatefuncname(aggregateAggregateFuncName.c_str());
+            }
+
+            inline messages::CodePath* to_protobuf() const {
+                auto c = new messages::CodePath();
+                fill(c);
+                return c;
+            }
+#endif
         };
 
 

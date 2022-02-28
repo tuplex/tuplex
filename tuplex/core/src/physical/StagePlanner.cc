@@ -6,6 +6,7 @@
 #include <physical/AggregateFunctions.h>
 #include <logical/CacheOperator.h>
 #include <logical/JoinOperator.h>
+#include <logical/FileInputOperator.h>
 #include <JSONUtils.h>
 #include <CSVUtils.h>
 #include <Utils.h>
@@ -157,6 +158,54 @@ namespace tuplex {
                         for(auto idx : diff)
                             opt_away_names.push_back(mop->inputColumns()[idx]);
                         cout<<"-> "<<opt_away_names<<endl;
+
+                        // rewrite which columns to access in input node
+                        if(_inputNode->type() != LogicalOperatorType::FILEINPUT) {
+                            logger.debug("stopping here, should get support for ops...");
+                            return _operators;
+                        }
+                        auto fop = dynamic_cast<FileInputOperator*>(_inputNode);
+                        auto colsToSerialize = fop->columnsToSerialize();
+                        vector<size_t> colsToSerializeIndices;
+                        for(unsigned i = 0; i < colsToSerialize.size(); ++i)
+                            if(colsToSerialize[i])
+                                colsToSerializeIndices.push_back(i);
+                        cout<<"reading columns: "<<colsToSerializeIndices<<endl;
+
+                        cout<<"Column indices to read before opt: "<<accColsBeforeOpt<<endl;
+                        cout<<"After opt only need to read: "<<accCols<<endl;
+
+                        // TODO: need to also rewrite access in mop again
+                        // mop->rewriteParametersInAST(rewriteMap);
+
+                        // gets a bit more difficult now:
+                        // num input columns required after opt: 13
+                        //There were 4 columns optimized away:
+                        //-> [YEAR, MONTH, CRS_DEP_TIME, CRS_ELAPSED_TIME]
+                        //reading columns: [0, 2, 3, 6, 10, 11, 20, 29, 31, 42, 50, 54, 56, 57, 58, 59, 60]
+                        //Column indices to read before opt: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+                        //After opt only need to read: [2, 3, 4, 5, 6, 8, 9, 11, 12, 13, 14, 15, 16]
+
+                        // so accCols should be sorted, now map to columns. Then check the position in accColsBefore
+                        // => look up what the original cols were!
+                        // => then push that down to reader/input node!
+                        unordered_map<size_t, size_t> rewriteMap;
+                        vector<size_t> indices_to_read_from_previous_op;
+                        for(unsigned i = 0; i < accCols.size(); ++i) {
+                            rewriteMap[accCols[i]] = i;
+                            int j = 0;
+                            while(j < accColsBeforeOpt.size() && accCols[i] != accColsBeforeOpt[j])
+                                ++j;
+                            indices_to_read_from_previous_op.push_back(colsToSerializeIndices[j]);
+                        }
+
+                        // this is quite hacky...
+                        fop->selectColumns(indices_to_read_from_previous_op);
+                        cout<<"file input now only reading: "<<indices_to_read_from_previous_op<<endl;
+                        mop->rewriteParametersInAST(rewriteMap);
+                        cout<<"mop updated: \ninput type: "<<mop->getInputSchema().getRowType().desc()
+                            <<"\noutput type: "<<mop->getOutputSchema().getRowType().desc()<<endl;
+
                     }
 
                 }

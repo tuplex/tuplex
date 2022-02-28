@@ -353,6 +353,10 @@ namespace tuplex {
                     _normalCaseInputSchema = dynamic_cast<FileInputOperator*>(_inputNode)->getOptimizedOutputSchema();
                     inSchema = _normalCaseInputSchema.getRowType();
                     _normalCaseOutputSchema = _normalCaseInputSchema;
+
+                    // New: update columnsToRead! --> specialization may change this!
+                    _columnsToRead = dynamic_cast<FileInputOperator*>(_inputNode)->columnsToSerialize();
+
                 } else if(_inputMode == EndPointMode::MEMORY && _inputNode && _inputNode->type() == LogicalOperatorType::CACHE) {
                     _normalCaseInputSchema = dynamic_cast<CacheOperator*>(_inputNode)->getOptimizedOutputSchema();
                     inSchema = _normalCaseInputSchema.getRowType();
@@ -1038,6 +1042,13 @@ namespace tuplex {
             auto null_values =
                     _inputMode == EndPointMode::FILE ? jsonToStringArray(_fileInputParameters.at("null_values"))
                                                      : std::vector<std::string>{"None"};
+
+            // @Todo: HACK -> skip generation slow code path.
+            // this requires putting the constants into place for the compiled fallback!
+            // => one easy way is to simply force interpreter fallback...
+            return true;
+
+
             auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip, funcResolveRowName,
                                                                             normalCaseType, null_values);
 

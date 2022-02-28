@@ -298,6 +298,9 @@ auto code = "def fill_in_delays(row):\n"
 
     // value imputing pipeline (super simple!)
 //    auto& ds = ctx.csv(null_based_file).map(UDF(code));
+
+    // this file here should get folded!
+    // => i.e. no expensive code is required!
     auto& ds = ctx.csv(non_null_based_file).map(UDF(code));
     ds.show(5);
 }

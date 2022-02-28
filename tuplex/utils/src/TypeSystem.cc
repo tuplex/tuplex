@@ -1112,4 +1112,16 @@ namespace python {
         }
         return python::Type::UNKNOWN;
     }
+
+    Type Type::makeConstantValuedType(const Type &underlying, const std::string &value) {
+        return TypeFactory::instance().createOrGetConstantValuedType(underlying, value);
+    }
+
+    Type Type::makeRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound) {
+        return TypeFactory::instance().createOrGetRangeCompressedIntegerType(lower_bound, upper_bound);
+    }
+
+    Type Type::makeDelayedParsingType(const Type &underlying) {
+        return TypeFactory::instance().createOrGetDelayedParsingType(underlying);
+    }
 }

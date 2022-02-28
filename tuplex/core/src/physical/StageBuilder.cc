@@ -391,7 +391,7 @@ namespace tuplex {
                         }
 
                         checkRowType(last_rowtype);
-                        // set FIRST the parent. Why? because operators like ingore depend on parent schema
+                        // set FIRST the parent. Why? because operators like ignore depend on parent schema
                         // therefore, this needs to get updated first.
                         op->setParent(lastParent);
                         if(!op->retype({last_rowtype}))

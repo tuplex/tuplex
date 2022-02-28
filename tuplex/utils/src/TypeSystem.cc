@@ -77,6 +77,7 @@ namespace python {
                                         int64_t lower_bound,
                                         int64_t upper_bound,
                                         const std::string& constant) {
+        const std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = std::find_if(_typeMap.begin(),
                                _typeMap.end(),
                                [name](const std::pair<const int, TypeEntry>& p) {
@@ -394,6 +395,7 @@ namespace python {
     }
 
     Type TypeFactory::returnType(const python::Type &t) const {
+        const std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         assert(it != _typeMap.end());
         return it->second._ret;
@@ -401,6 +403,7 @@ namespace python {
 
 
     std::vector<Type> TypeFactory::parameters(const Type& t) const {
+        const std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         assert(it != _typeMap.end());
         // exclude dictionary here, but internal reuse.

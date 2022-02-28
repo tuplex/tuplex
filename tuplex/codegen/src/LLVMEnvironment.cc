@@ -146,9 +146,10 @@ namespace tuplex {
 
         // this function itself is super-slow, so cache its results
         static std::unordered_map<int, std::vector<std::tuple<unsigned, unsigned, unsigned>>> _tupleIndexCache;
+        static std::mutex tupleIndexCacheMutex;
 
         std::tuple<size_t, size_t, size_t> getTupleIndices(const python::Type &tupleType, size_t index) {
-
+            std::lock_guard<std::mutex> lock(tupleIndexCacheMutex);
             // find cache
             auto it = _tupleIndexCache.find(tupleType.hash());
             if (it == _tupleIndexCache.end()) {

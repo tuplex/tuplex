@@ -609,12 +609,12 @@ namespace tuplex {
             Timer timer;
             llvm::LLVMContext ctx;
             LLVMOptimizer opt;
-            auto mod = codegen::bitCodeToModule(ctx, tstage->bitCode());
+            auto mod = codegen::bitCodeToModule(ctx, tstage->fastPathBitCode());
             opt.optimizeModule(*mod);
             optimizedBitcode = codegen::moduleToBitCodeString(*mod);
             logger().info("client-side LLVM IR optimization took " + std::to_string(timer.time()) + "s");
         } else {
-            optimizedBitcode = tstage->bitCode();
+            optimizedBitcode = tstage->fastPathBitCode();
         }
 
         if(stage->outputMode() == EndPointMode::MEMORY) {

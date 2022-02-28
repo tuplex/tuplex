@@ -193,11 +193,11 @@ namespace tuplex {
         }
 
         std::string fastPathBitCode() const {
-            return _fastCodePath._fastPathIRBitCode;
+            return _fastCodePath.irBitCode;//_fastPathIRBitCode;
         }
 
         std::string slowPathBitCode() const {
-            return _slowCodePath._slowPathIRBitCode;
+            return _slowCodePath.irBitCode;//_slowPathIRBitCode;
         }
 
         // Retrieve fast path IR code
@@ -226,18 +226,18 @@ namespace tuplex {
             return codegen::moduleToString(*mod.get());
         }
 
-        std::string funcName() const { return _fastCodePath._funcStageName; }
-        std::string writerFuncName() const { return _fastCodePath._writerFuncName; }
-        std::string writeMemoryCallbackName() const { return _fastCodePath._funcMemoryWriteCallbackName; }
-        std::string writeFileCallbackName() const { return _fastCodePath._funcFileWriteCallbackName; }
-        std::string exceptionCallbackName() const { return _fastCodePath._funcExceptionCallback; }
-        std::string aggCombineCallbackName() const { return _fastCodePath._aggregateCallbackName; }
+        std::string funcName() const { return _fastCodePath.funcStageName; }
+        std::string writerFuncName() const { throw std::runtime_error("is writer func actually used?"); return ""; } //return _fastCodePath._writerFuncName; }
+        std::string writeMemoryCallbackName() const { return _fastCodePath.writeMemoryCallbackName; }
+        std::string writeFileCallbackName() const { return _fastCodePath.writeFileCallbackName; }
+        std::string exceptionCallbackName() const { return _fastCodePath.writeExceptionCallbackName; }
+        std::string aggCombineCallbackName() const { return _fastCodePath.writeAggregateCallbackName; }
 
         // std::string resolveCode() const { return _irResolveCode; }
-        std::string resolveRowName() const { return _slowCodePath._resolveRowFunctionName; }
-        std::string resolveWriteCallbackName() const { return _slowCodePath._resolveRowWriteCallbackName; }
-        std::string resolveHashCallbackName() const { return _slowCodePath._resolveHashCallbackName; }
-        std::string resolveExceptionCallbackName() const { return _slowCodePath._resolveRowExceptionCallbackName; }
+        std::string resolveRowName() const { return _slowCodePath.funcStageName; } //@TODO rename???
+        std::string resolveWriteCallbackName() const { return _slowCodePath.writeMemoryCallbackName; }
+        std::string resolveHashCallbackName() const { return _slowCodePath.writeHashCallbackName; }
+        std::string resolveExceptionCallbackName() const { return _slowCodePath.writeExceptionCallbackName; }
 
         std::string purePythonCode() const { return _pyCode; }
         std::string pythonPipelineName() const { return _pyPipelineName; }
@@ -447,16 +447,29 @@ namespace tuplex {
 
         // restructuring code-paths
         struct StageCodePath {
+            enum class Type {
+                UNKNOWN_PATH,
+                FAST_PATH,
+                SLOW_PATH
+            };
+
+            Type type;
             std::string irBitCode; //! llvm IR bitcode for fast/slow path
             std::string initStageFuncName;  //! init function for a stage (sets up globals & Co) fast/slow path
             std::string releaseStageFuncName; //! release function for a stage (releases globals & Co) fast/slow path
 
             std::string funcStageName; //! llvm function name of the stage function fast/slow path
+            std::string funcProcessRowName; //! llvm function to process single row fast? slow path
 
+            std::string writeFileCallbackName;
+            std::string writeMemoryCallbackName;
+            std::string writeHashCallbackName;
+            std::string writeExceptionCallbackName;
+            std::string writeAggregateCallbackName;
 
-            std::string _aggregateInitFuncName; //! to initiate aggregate (allocates via C-malloc)
-            std::string _aggregateCombineFuncName; //! to combine two aggregates (allocates & frees via C-malloc).
-            std::string _aggregateAggregateFuncName; //! to combine aggregate and result (allocates & frees via C-malloc).
+            std::string aggregateInitFuncName; //! to initiate aggregate (allocates via C-malloc)
+            std::string aggregateCombineFuncName; //! to combine two aggregates (allocates & frees via C-malloc).
+            std::string aggregateAggregateFuncName; //! to combine aggregate and result (allocates & frees via C-malloc).
         };
 
 

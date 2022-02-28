@@ -305,21 +305,49 @@ namespace tuplex {
             return planner.optimize();
         }
 
-        TransformStage::TransformStageCodePath StageBuilder::generateFastCodePath(const CodeGenerationContext& fastLocalVariables) const {
+        void StageBuilder::fillInCallbackNames(const std::string& func_prefix, size_t stageNo, TransformStage::StageCodePath& cp) {
+            using namespace std;
+            // the two main functions
+            cp.funcStageName = func_prefix + "Stage_" + to_string(stageNo);
+            cp.funcProcessRowName = func_prefix + "processRow_Stage_" + to_string(stageNo);
+
+            // callbacks (per row)
+            cp.writeFileCallbackName = func_prefix + "writeOut_Stage_" + to_string(stageNo);
+            cp.writeMemoryCallbackName = func_prefix + "memOut_Stage_" + to_string(stageNo);
+            cp.writeHashCallbackName = func_prefix + "hashOut_Stage_" + to_string(stageNo);
+            cp.writeExceptionCallbackName = func_prefix + "except_Stage_" + to_string(stageNo);
+            cp.writeAggregateCallbackName = func_prefix + "aggregate_stage" + std::to_string(stageNo);
+
+            // aggregate functions
+            cp.aggregateInitFuncName = func_prefix + "init_aggregate_stage" + std::to_string(stageNo);
+            cp.aggregateCombineFuncName = "combine_aggregate_stage" + std::to_string(stageNo);
+            cp.aggregateAggregateFuncName = "aggregate_aggregate_stage" + std::to_string(stageNo);
+
+            // init stage funcs
+            cp.initStageFuncName = func_prefix + "init_Stage_" + to_string(stageNo);
+            cp.releaseStageFuncName = func_prefix + "release_Stage_" + to_string(stageNo);
+
+        }
+
+        TransformStage::StageCodePath StageBuilder::generateFastCodePath(const CodeGenerationContext& fastLocalVariables) const {
             using namespace std;
 
-            TransformStage::TransformStageCodePath ret;
+            TransformStage::StageCodePath ret;
 
             string env_name = "tuplex_fastCodePath";
+
+            fillInCallbackNames("fast_", number(), ret);
+            ret.type = TransformStage::StageCodePath::Type::FAST_PATH;
+
             string func_prefix = "";
             // name for function processing a row (include stage number)
-            string funcStageName = func_prefix + "Stage_" + to_string(number());
-            string funcProcessRowName = func_prefix + "processRow_Stage_" + to_string(number());
-            ret._funcFileWriteCallbackName = func_prefix + "writeOut_Stage_" + to_string(number());
-            ret._funcMemoryWriteCallbackName = func_prefix + "memOut_Stage_" + to_string(number());
-            ret._funcHashWriteCallbackName = func_prefix + "hashOut_Stage_" + to_string(number());
-            ret._funcExceptionCallback = func_prefix + "except_Stage_" + to_string(number());
-            ret._writerFuncName = _writerFuncName;
+            string funcStageName = ret.funcStageName;//func_prefix + "Stage_" + to_string(number());
+            string funcProcessRowName = ret.funcProcessRowName;//func_prefix + "processRow_Stage_" + to_string(number());
+//            ret._funcFileWriteCallbackName = func_prefix + "writeOut_Stage_" + to_string(number());
+//            ret._funcMemoryWriteCallbackName = func_prefix + "memOut_Stage_" + to_string(number());
+//            ret._funcHashWriteCallbackName = func_prefix + "hashOut_Stage_" + to_string(number());
+//            ret._funcExceptionCallback = func_prefix + "except_Stage_" + to_string(number());
+//            ret._writerFuncName = _writerFuncName;
 
             auto &logger = Logger::instance().logger("codegen");
             auto env = make_shared<codegen::LLVMEnvironment>(env_name);
@@ -371,8 +399,8 @@ namespace tuplex {
 
             // create initstage/release stage functions (LLVM)
             using namespace llvm;
-            ret._fastPathInitStageFuncName = func_prefix + "fastPathInitStage" + to_string(number());
-            ret._fastPathReleaseStageFuncName = func_prefix + "fastPathReleaseStage" + to_string(number());
+//            ret._fastPathInitStageFuncName = func_prefix + "fastPathInitStage" + to_string(number());
+//            ret._fastPathReleaseStageFuncName = func_prefix + "fastPathReleaseStage" + to_string(number());
             auto fastPathInitStageFuncType = FunctionType::get(env->i64Type(),
                                                        {env->i64Type(), env->i8ptrType()->getPointerTo(),
                                                         env->i8ptrType()->getPointerTo()}, false);
@@ -380,9 +408,9 @@ namespace tuplex {
 
             // create functions + builders
             auto fastPathInitStageFunc = cast<Function>(
-                    env->getModule()->getOrInsertFunction(ret._fastPathInitStageFuncName, fastPathInitStageFuncType).getCallee());
+                    env->getModule()->getOrInsertFunction(ret.initStageFuncName, fastPathInitStageFuncType).getCallee());
             auto fastPathReleaseStageFunc = cast<Function>(
-                    env->getModule()->getOrInsertFunction(ret._fastPathReleaseStageFuncName, fastPathReleaseStageFuncType).getCallee());
+                    env->getModule()->getOrInsertFunction(ret.releaseStageFuncName, fastPathReleaseStageFuncType).getCallee());
 
             BasicBlock *bbISBody = BasicBlock::Create(env->getContext(), "", fastPathInitStageFunc);
             BasicBlock *bbRSBody = BasicBlock::Create(env->getContext(), "", fastPathReleaseStageFunc);
@@ -529,17 +557,17 @@ namespace tuplex {
 
                             // NOTE: these functions need to be generated only once for the general case type!
                             auto aggType = aop->aggregateOutputType();
-                            ret._aggregateInitFuncName = "init_aggregate_stage" + std::to_string(number());
-                            ret._aggregateCombineFuncName = "combine_aggregate_stage" + std::to_string(number());
-                            if(aop->aggType() == AggregateType::AGG_BYKEY)
-                                ret._aggregateAggregateFuncName = "aggregate_aggregate_stage" + std::to_string(number());
-                            ret._aggregateCallbackName = "aggregate_callback_stage" + std::to_string(number());
+//                            ret._aggregateInitFuncName = "init_aggregate_stage" + std::to_string(number());
+//                            ret._aggregateCombineFuncName = "combine_aggregate_stage" + std::to_string(number());
+//                            if(aop->aggType() == AggregateType::AGG_BYKEY)
+//                                ret._aggregateAggregateFuncName = "aggregate_aggregate_stage" + std::to_string(number());
+                            //ret._aggregateCallbackName = "aggregate_callback_stage" + std::to_string(number());
                             auto aggregateInitFunc = codegen::createAggregateInitFunction(env.get(),
-                                                                                          ret._aggregateInitFuncName,
+                                                                                          ret.aggregateInitFuncName,
                                                                                           aop->initialValue(),
                                                                                           aggType); // use c-malloc!
                             auto combFunc = codegen::createAggregateCombineFunction(env.get(),
-                                                                                    ret._aggregateCombineFuncName,
+                                                                                    ret.aggregateCombineFuncName,
                                                                                     aop->combinerUDF(),
                                                                                     aggType,
                                                                                     malloc);
@@ -548,18 +576,18 @@ namespace tuplex {
                             if(!combFunc)
                                 throw std::runtime_error("error compiling combiner function for aggregate");
                             // update func names, to avoid duplicates
-                            ret._aggregateInitFuncName = aggregateInitFunc->getName().str();
-                            ret._aggregateCombineFuncName = combFunc->getName().str();
+                            ret.aggregateInitFuncName = aggregateInitFunc->getName().str();
+                            ret.aggregateCombineFuncName = combFunc->getName().str();
 
                             if(aop->aggType() == AggregateType::AGG_BYKEY) { // need to make the aggregate functor
                                 auto aggregateFunc = codegen::createAggregateFunction(env.get(),
-                                                                                      ret._aggregateAggregateFuncName,
+                                                                                      ret.aggregateAggregateFuncName,
                                                                                       aop->aggregatorUDF(), aggType,
                                                                                       aop->parent()->getOutputSchema().getRowType(),
                                                                                       malloc);
                                 if(!aggregateFunc)
                                     throw std::runtime_error("error compiling aggregate function");
-                                ret._aggregateAggregateFuncName = aggregateFunc->getName().str();
+                                ret.aggregateAggregateFuncName = aggregateFunc->getName().str();
                             } else {
                                 // init intermediate within Stage process function.
                                 intermediateInitialValue = aop->initialValue();
@@ -616,7 +644,7 @@ namespace tuplex {
                     switch (fastLocalVariables.outputFileFormat) {
                         case FileFormat::OUTFMT_CSV: {
                             // i.e. write to memory writer!
-                            pip->buildWithCSVRowWriter(ret._funcMemoryWriteCallbackName,
+                            pip->buildWithCSVRowWriter(ret.writeMemoryCallbackName,
                                                        fastLocalVariables.outputNodeID,
                                                        hasOutputLimit(),
                                                        fastLocalVariables.fileOutputParameters.at("null_value"),
@@ -624,7 +652,9 @@ namespace tuplex {
                             break;
                         }
                         case FileFormat::OUTFMT_ORC: {
-                            pip->buildWithTuplexWriter(ret._funcMemoryWriteCallbackName, fastLocalVariables.outputNodeID, hasOutputLimit());
+                            pip->buildWithTuplexWriter(ret.writeMemoryCallbackName,
+                                                       fastLocalVariables.outputNodeID,
+                                                       hasOutputLimit());
                             break;
                         }
                         default:
@@ -656,7 +686,11 @@ namespace tuplex {
                             _normalCaseOutputSchema = _outputSchema;
                         }
                     }
-                    pip->buildWithHashmapWriter(ret._funcHashWriteCallbackName, fastLocalVariables.hashColKeys, hashtableKeyWidth(fastLocalVariables.hashKeyType), fastLocalVariables.hashSaveOthers, fastLocalVariables.hashAggregate);
+                    pip->buildWithHashmapWriter(ret.writeHashCallbackName,
+                                                fastLocalVariables.hashColKeys,
+                                                hashtableKeyWidth(fastLocalVariables.hashKeyType),
+                                                fastLocalVariables.hashSaveOthers,
+                                                fastLocalVariables.hashAggregate);
                     break;
                 }
                 case EndPointMode::MEMORY: {
@@ -684,7 +718,9 @@ namespace tuplex {
                                 // _normalCaseOutputSchema = _outputSchema;
                             }
                         }
-                        pip->buildWithTuplexWriter(ret._funcMemoryWriteCallbackName, fastLocalVariables.outputNodeID, hasOutputLimit());
+                        pip->buildWithTuplexWriter(ret.writeMemoryCallbackName,
+                                                   fastLocalVariables.outputNodeID,
+                                                   hasOutputLimit());
                     } else {
                         // build w/o writer
                         pip->build();
@@ -725,7 +761,9 @@ namespace tuplex {
                                                                                delimiter,
                                                                                quotechar);
                         } else {
-                            tb = make_shared<codegen::CellSourceTaskBuilder>(env, fastLocalVariables.fastReadSchema, fastLocalVariables.columnsToRead,
+                            tb = make_shared<codegen::CellSourceTaskBuilder>(env,
+                                                                             fastLocalVariables.fastReadSchema,
+                                                                             fastLocalVariables.columnsToRead,
                                                                              funcStageName,
                                                                              fastLocalVariables.inputNodeID, null_values);
                         }
@@ -748,14 +786,14 @@ namespace tuplex {
 
             // set pipeline and
             // add ignore codes & exception handler
-            tb->setExceptionHandler(ret._funcExceptionCallback);
+            tb->setExceptionHandler(ret.writeExceptionCallbackName);
             tb->setIgnoreCodes(ignoreCodes);
             tb->setPipeline(pip);
 
             // special case: intermediate
             if(intermediateType(fastLocalVariables.fastOperators) != python::Type::UNKNOWN) {
                 tb->setIntermediateInitialValueByRow(intermediateType(fastLocalVariables.fastOperators), intermediateInitialValue);
-                tb->setIntermediateWriteCallback(ret._aggregateCallbackName);
+                tb->setIntermediateWriteCallback(ret.writeAggregateCallbackName);
             }
 
             // create code for "wrap-around" function
@@ -778,26 +816,27 @@ namespace tuplex {
 
             // save into variables (allows to serialize stage etc.)
             // IR is generated. Save into stage.
-            ret._funcStageName = func->getName();
-            ret._fastPathIRBitCode = codegen::moduleToBitCodeString(*env->getModule()); // trafo stage takes ownership of module
+            ret.funcStageName = func->getName();
+            ret.irBitCode = codegen::moduleToBitCodeString(*env->getModule()); // trafo stage takes ownership of module
 
             // @TODO: lazy & fast codegen of the different paths + lowering of them
             // generate interpreter fallback path (always) --> probably do that lazily or parallelize it...
             return ret;
         }
 
-        TransformStage::TransformStageCodePath StageBuilder::generateResolveCodePath(const CodeGenerationContext& resolveLocalVariables) const {
+        TransformStage::StageCodePath StageBuilder::generateResolveCodePath(const CodeGenerationContext& resolveLocalVariables) const {
             using namespace std;
             using namespace llvm;
 
-            TransformStage::TransformStageCodePath ret;
+            TransformStage::StageCodePath ret;
 
             // Compile if resolve function is present or if null-value optimization is present
             auto numResolveOperators = resolveOperatorCount();
             bool requireSlowPath = resolveLocalVariables.nullValueOptimization; // per default, slow path is always required when null-value opt is enabled.
 
             // special case: input source is cached and no exceptions happened => no resolve path necessary if there are no resolvers!
-            if(resolveLocalVariables.inputNode->type() == LogicalOperatorType::CACHE && dynamic_cast<CacheOperator*>(resolveLocalVariables.inputNode)->cachedExceptions().empty())
+            if(resolveLocalVariables.inputNode->type() == LogicalOperatorType::CACHE &&
+               dynamic_cast<CacheOperator*>(resolveLocalVariables.inputNode)->cachedExceptions().empty())
                 requireSlowPath = false;
 
             if (numResolveOperators == 0 && !requireSlowPath) {
@@ -806,7 +845,8 @@ namespace tuplex {
 
             // when there are no operators present, there is no way to generate a resolve path
             // => skip
-            if(resolveLocalVariables.resolveOperators.empty() && !resolveLocalVariables.nullValueOptimization) // when null value optimization is done, need to always generate resolve path.
+            if(resolveLocalVariables.resolveOperators.empty() &&
+               !resolveLocalVariables.nullValueOptimization) // when null value optimization is done, need to always generate resolve path.
                 return ret;
 
             // @TODO: one needs to add here somewhere an option where bad input rows/data get resolved when they do not fit the initial schema!
@@ -816,6 +856,10 @@ namespace tuplex {
             // ==> i.e. the larger, unspecialized type!
 
             auto &logger = Logger::instance().logger("codegen");
+
+            // fill in names
+            fillInCallbackNames("slow_", number(), ret);
+            ret.type = TransformStage::StageCodePath::Type::SLOW_PATH;
 
             // Create environment
             string env_name = "tuplex_slowCodePath";
@@ -828,8 +872,8 @@ namespace tuplex {
 
             auto env = make_shared<codegen::LLVMEnvironment>(env_name);
 
-            ret._slowPathInitStageFuncName = func_prefix + "slowPathInitStage" + to_string(number());
-            ret._slowPathReleaseStageFuncName = func_prefix + "slowPathReleaseStage" + to_string(number());
+//            ret._slowPathInitStageFuncName = func_prefix + "slowPathInitStage" + to_string(number());
+//            ret._slowPathReleaseStageFuncName = func_prefix + "slowPathReleaseStage" + to_string(number());
             auto slowPathInitStageFuncType = FunctionType::get(env->i64Type(),
                                                        {env->i64Type(), env->i8ptrType()->getPointerTo(),
                                                         env->i8ptrType()->getPointerTo()}, false);
@@ -837,29 +881,30 @@ namespace tuplex {
 
             // create functions + builders
             auto slowPathInitStageFunc = cast<Function>(
-                    env->getModule()->getOrInsertFunction(ret._slowPathInitStageFuncName, slowPathInitStageFuncType).getCallee());
+                    env->getModule()->getOrInsertFunction(ret.initStageFuncName, slowPathInitStageFuncType).getCallee());
             auto slowPathReleaseStageFunc = cast<Function>(
-                    env->getModule()->getOrInsertFunction(ret._slowPathReleaseStageFuncName, slowPathReleaseStageFuncType).getCallee());
+                    env->getModule()->getOrInsertFunction(ret.releaseStageFuncName, slowPathReleaseStageFuncType).getCallee());
 
             BasicBlock *bbISBody = BasicBlock::Create(env->getContext(), "", slowPathInitStageFunc);
             BasicBlock *bbRSBody = BasicBlock::Create(env->getContext(), "", slowPathReleaseStageFunc);
             IRBuilder<> isBuilder(bbISBody);
             IRBuilder<> rsBuilder(bbRSBody);
-            auto isArgs = codegen::mapLLVMFunctionArgs(slowPathInitStageFunc, {"num_args", "hashmaps", "null_buckets"});
+            auto isArgs = codegen::mapLLVMFunctionArgs(slowPathInitStageFunc,
+                                                                 {"num_args", "hashmaps", "null_buckets"});
 
             // Note: this here is quite confusing, because for map operator when tuples are needed, this will return not the row schema but the UDF input schema =? fix that
             // @TODO: fix getInputSchema for MapOperator!!!
-            auto inSchema = _inputSchema.getRowType(); // old: _operators.front()->getInputSchema().getRowType();
-            string funcSlowPathName = "processViaSlowPath_Stage_" + to_string(number());
-            string funcResolveRowName = "resolveSingleRow_Stage_" + to_string(number());
-            string slowPathMemoryWriteCallback = "memOutViaSlowPath_Stage_" + to_string(number());
-            string slowPathHashWriteCallback = "hashOutViaSlowPath_Stage_" + to_string(number());
-            string slowPathExceptionCallback = "exceptionOutViaSlowPath_Stage_" + to_string(number());
+            inSchema = _inputSchema.getRowType(); // old: _operators.front()->getInputSchema().getRowType();
+//            string funcSlowPathName = "processViaSlowPath_Stage_" + to_string(number());
+//            string funcResolveRowName = "resolveSingleRow_Stage_" + to_string(number());
+//            string slowPathMemoryWriteCallback = "memOutViaSlowPath_Stage_" + to_string(number());
+//            string slowPathHashWriteCallback = "hashOutViaSlowPath_Stage_" + to_string(number());
+//            string slowPathExceptionCallback = "exceptionOutViaSlowPath_Stage_" + to_string(number());
 
             logger.debug("input schema for general case is: " + resolveInSchema.desc());
             logger.debug("intermediate type for general case is: " + intermediateType(resolveLocalVariables.resolveOperators).desc());
 
-            auto slowPip = std::make_shared<codegen::PipelineBuilder>(env, resolveInSchema, intermediateType(resolveLocalVariables.resolveOperators), funcSlowPathName);
+            auto slowPip = std::make_shared<codegen::PipelineBuilder>(env, resolveInSchema, intermediateType(resolveLocalVariables.resolveOperators), ret.funcStageName/*funcSlowPathName*/);
             int global_var_cnt = 0;
             auto num_operators = resolveLocalVariables.resolveOperators.size();
             for (int i = 0; i < num_operators; ++i) {
@@ -974,17 +1019,17 @@ namespace tuplex {
 
                             // NOTE: these functions need to be generated only once for the general case type!
                             auto aggType = aop->aggregateOutputType();
-                            ret._aggregateInitFuncName = "init_aggregate_stage" + std::to_string(number());
-                            ret._aggregateCombineFuncName = "combine_aggregate_stage" + std::to_string(number());
-                            if(aop->aggType() == AggregateType::AGG_BYKEY)
-                                ret._aggregateAggregateFuncName = "aggregate_aggregate_stage" + std::to_string(number());
-                            ret._aggregateCallbackName = "aggregate_callback_stage" + std::to_string(number());
+//                            ret._aggregateInitFuncName = "init_aggregate_stage" + std::to_string(number());
+//                            ret._aggregateCombineFuncName = "combine_aggregate_stage" + std::to_string(number());
+//                            if(aop->aggType() == AggregateType::AGG_BYKEY)
+//                                ret._aggregateAggregateFuncName = "aggregate_aggregate_stage" + std::to_string(number());
+//                            ret._aggregateCallbackName = "aggregate_callback_stage" + std::to_string(number());
                             auto aggregateInitFunc = codegen::createAggregateInitFunction(env.get(),
-                                                                                          ret._aggregateInitFuncName,
+                                                                                          ret.aggregateInitFuncName/*ret._aggregateInitFuncName*/,
                                                                                           aop->initialValue(),
                                                                                           aggType); // use c-malloc!
                             auto combFunc = codegen::createAggregateCombineFunction(env.get(),
-                                                                                    ret._aggregateCombineFuncName,
+                                                                                    ret.aggregateCombineFuncName/*ret._aggregateCombineFuncName*/,
                                                                                     aop->combinerUDF(),
                                                                                     aggType,
                                                                                     malloc,
@@ -995,8 +1040,8 @@ namespace tuplex {
                             if(!combFunc)
                                 throw std::runtime_error("error compiling combiner function for aggregate");
                             // update func names, to avoid duplicates
-                            ret._aggregateInitFuncName = aggregateInitFunc->getName().str();
-                            ret._aggregateCombineFuncName = combFunc->getName().str();
+                            ret.aggregateInitFuncName = aggregateInitFunc->getName().str();
+                            ret.aggregateCombineFuncName = combFunc->getName().str();
 
                             if(aop->aggType() == AggregateType::AGG_BYKEY) { // need to make the aggregate functor
                                 auto aggregateFunc = codegen::createAggregateFunction(env.get(),
@@ -1036,7 +1081,7 @@ namespace tuplex {
             }
 
             // add exception callback (required when resolvers throw exceptions themselves!)
-            slowPip->addExceptionHandler(slowPathExceptionCallback);
+            slowPip->addExceptionHandler(ret.writeExceptionCallbackName/*slowPathExceptionCallback*/);
 
             // @TODO: when supporting text output, need to include check that no newline occurs within string!
             // => else, error!
@@ -1046,16 +1091,16 @@ namespace tuplex {
             // build slow path with mem writer or to CSV
             llvm::Function* slowPathFunc = nullptr;
             if(useRawOutput) {
-                slowPathFunc = slowPip->buildWithCSVRowWriter(slowPathMemoryWriteCallback, resolveLocalVariables.outputNodeID,
+                slowPathFunc = slowPip->buildWithCSVRowWriter(ret.writeMemoryCallbackName/*slowPathMemoryWriteCallback*/, resolveLocalVariables.outputNodeID,
                                                               hasOutputLimit(),
                                                               resolveLocalVariables.fileOutputParameters.at("null_value"), true,
                                                               resolveLocalVariables.fileOutputParameters.at("delimiter")[0], resolveLocalVariables.fileOutputParameters.at("quotechar")[0]);
             } else {
                 // @TODO: hashwriter if hash output desired
                 if(resolveLocalVariables.outputMode == EndPointMode::HASHTABLE) {
-                    slowPathFunc = slowPip->buildWithHashmapWriter(slowPathHashWriteCallback, resolveLocalVariables.hashColKeys, hashtableKeyWidth(resolveLocalVariables.hashKeyType), resolveLocalVariables.hashSaveOthers, resolveLocalVariables.hashAggregate);
+                    slowPathFunc = slowPip->buildWithHashmapWriter(ret.writeHashCallbackName/*slowPathHashWriteCallback*/, resolveLocalVariables.hashColKeys, hashtableKeyWidth(resolveLocalVariables.hashKeyType), resolveLocalVariables.hashSaveOthers, resolveLocalVariables.hashAggregate);
                 } else {
-                    slowPathFunc = slowPip->buildWithTuplexWriter(slowPathMemoryWriteCallback, resolveLocalVariables.outputNodeID, hasOutputLimit());
+                    slowPathFunc = slowPip->buildWithTuplexWriter(ret.writeMemoryCallbackName/*slowPathMemoryWriteCallback*/, resolveLocalVariables.outputNodeID, hasOutputLimit());
                 }
             }
 
@@ -1064,20 +1109,21 @@ namespace tuplex {
             auto null_values =
                     resolveLocalVariables.inputMode == EndPointMode::FILE ? jsonToStringArray(resolveLocalVariables.fileInputParameters.at("null_values"))
                                                      : std::vector<std::string>{"None"};
-            auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip, funcResolveRowName,
+            auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip, ret.funcStageName/*funcResolveRowName*/,
                                                                             normalCaseType, null_values);
 
-            ret._resolveRowFunctionName = rowProcessFunc->getName();
-            ret._resolveRowWriteCallbackName = slowPathMemoryWriteCallback;
-            ret._resolveRowExceptionCallbackName = slowPathExceptionCallback;
-            ret._resolveHashCallbackName = slowPathHashWriteCallback;
+            ret.funcStageName = rowProcessFunc->getName();
+//            ret._resolveRowFunctionName = rowProcessFunc->getName();
+//            ret._resolveRowWriteCallbackName = slowPathMemoryWriteCallback;
+//            ret._resolveRowExceptionCallbackName = slowPathExceptionCallback;
+//            ret._resolveHashCallbackName = slowPathHashWriteCallback;
 
             // close initStage/releaseStage functions
             // => call global init function of llvm env
             isBuilder.CreateRet(env->callGlobalsInit(isBuilder));
             rsBuilder.CreateRet(env->callGlobalsRelease(rsBuilder));
 
-            ret._slowPathIRBitCode = codegen::moduleToBitCodeString(*env->getModule()); // transform stage takes ownership of module
+            ret.irBitCode = codegen::moduleToBitCodeString(*env->getModule()); // transform stage takes ownership of module
 
             return ret;
         }

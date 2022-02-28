@@ -21,6 +21,23 @@ enum MessageType {
     MT_TRANSFORM = 2;
 }
 
+
+message CodePath {
+    string irBitCode = 1;
+    string initStageFuncName = 2;
+    string releaseStageFuncName = 3;
+    string funcStageName = 4;
+    string funcProcessName = 5;
+    string writeFileCallbackName = 6;
+    string writeHashCallbackName = 7;
+    string writeExceptionCallbackName = 8;
+    string writeAggregateCallbackName = 9;
+
+    string aggregateInitFuncName = 10;
+    string aggregateCombineFuncName = 11;
+    string aggregateAggregateFuncName = 12;
+}
+
 message TransformStage {
     bytes bitcode = 1;
     repeated string inputColumns = 2;
@@ -41,29 +58,23 @@ message TransformStage {
     FileFormat outputFormat = 16;
     bool persistSeparateCases = 17;
     bool updateInputExceptions = 18;
-    string funcStageName = 19;
-    string funcMemoryWriteCallbackName = 20;
-    string funcFileWriteCallbackName = 21;
-    string funcHashWriteCallbackName = 22;
-    string funcExceptionCallback = 23;
-    string funcInitStageName = 24;
-    string funcReleaseStageName = 25;
-    string resolveRowFunctionName = 26;
-    string resolveRowWriteCallbackName = 27;
-    string resolveRowExceptionCallbackName = 28;
-    string resolveHashCallbackName = 29;
-    uint32 stageNumber = 30;
-    uint32 numColumns = 31;
-    string pyCode = 32;
-    string pyPipelineName = 33;
+
+    // the code paths (fast / slow)
+    optional CodePath fastPath = 19;
+    optional CodePath slowPath = 20;
+
+    uint32 stageNumber = 21;
+    uint32 numColumns = 22;
+    string pyCode = 23;
+    string pyPipelineName = 24;
 
     // file input + output params as dict
-    map<string, string> inputParameters = 34;
-    map<string, string> outputParameters = 35;
+    map<string, string> inputParameters = 25;
+    map<string, string> outputParameters = 26;
 
     // how many lambdas should each Lambda invoke? Recursive, i.e. {1, 1, 1} means the first Lambda invokes another
     // lambda, that again another etc. The total wait time thereby is baseDelay * depth
-    repeated uint32 invocationCount = 36;
+    repeated uint32 invocationCount = 27;
 }
 
 message WorkerSettings {

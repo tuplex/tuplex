@@ -752,12 +752,15 @@ namespace tuplex {
 
         if(registerSymbols && outputMode() == EndPointMode::HASHTABLE && !resolveExceptionCallbackName().empty()) {
             if(hashtableKeyByteWidth() == 8) {
-                if(_slowCodePath._aggregateAggregateFuncName.empty())
+                // this logic is HIGHLY questionable and should be checked...
+                logger.debug("change problematic logic here...");
+                if(_slowCodePath.aggregateAggregateFuncName.empty())
                     jit.registerSymbol(resolveHashCallbackName(), ResolveTask::writeInt64HashTableCallback());
                 else jit.registerSymbol(resolveHashCallbackName(), ResolveTask::writeInt64HashTableAggregateCallback());
             }
             else {
-                if(_slowCodePath._aggregateAggregateFuncName.empty())
+                logger.debug("change problematic logic here...");
+                if(_slowCodePath.aggregateAggregateFuncName.empty())
                     jit.registerSymbol(resolveHashCallbackName(), ResolveTask::writeStringHashTableCallback());
                 else jit.registerSymbol(resolveHashCallbackName(), ResolveTask::writeStringHashTableAggregateCallback());
             }
@@ -771,12 +774,12 @@ namespace tuplex {
             _syms->resolveFunctor = !resolveWriteCallbackName().empty() ? reinterpret_cast<codegen::resolve_f>(jit.getAddrOfSymbol(resolveRowName())) : nullptr;
 
         if(!_syms->_slowCodePath.initStageFunctor)
-            _syms->_slowCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_slowCodePath._slowPathInitStageFuncName));
+            _syms->_slowCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_slowCodePath.initStageFuncName));
         if(!_syms->_slowCodePath.releaseStageFunctor)
-            _syms->_slowCodePath.releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_slowCodePath._slowPathReleaseStageFuncName));
+            _syms->_slowCodePath.releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_slowCodePath.releaseStageFuncName));
     }
 
-    void TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer) {
+    void TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {
         Timer timer;
         JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
         auto& logger = Logger::instance().defaultLogger();
@@ -809,20 +812,21 @@ namespace tuplex {
             jit.registerSymbol(exceptionCallbackName(), TransformTask::exceptionCallback(false));
         if(!writeFileCallbackName().empty())
             jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(true));
-        if(outputMode() == EndPointMode::HASHTABLE && !_fastCodePath._funcHashWriteCallbackName.empty()) {
+        if(outputMode() == EndPointMode::HASHTABLE && !_fastCodePath.writeHashCallbackName.empty()) {
+            logger.debug("change problematic logic here...");
             if (hashtableKeyByteWidth() == 8) {
-                if(_fastCodePath._aggregateAggregateFuncName.empty())
-                    jit.registerSymbol(_fastCodePath._funcHashWriteCallbackName, TransformTask::writeInt64HashTableCallback());
-                else jit.registerSymbol(_fastCodePath._funcHashWriteCallbackName, TransformTask::writeInt64HashTableAggregateCallback());
+                if(_fastCodePath.aggregateAggregateFuncName.empty())
+                    jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeInt64HashTableCallback());
+                else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeInt64HashTableAggregateCallback());
             }
             else {
-                if(_fastCodePath._aggregateAggregateFuncName.empty())
-                    jit.registerSymbol(_fastCodePath._funcHashWriteCallbackName, TransformTask::writeStringHashTableCallback());
-                else jit.registerSymbol(_fastCodePath._funcHashWriteCallbackName, TransformTask::writeStringHashTableAggregateCallback());
+                if(_fastCodePath.aggregateAggregateFuncName.empty())
+                    jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeStringHashTableCallback());
+                else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeStringHashTableAggregateCallback());
             }
         }
-        assert(!_fastCodePath._fastPathInitStageFuncName.empty() && !_fastCodePath._fastPathReleaseStageFuncName.empty());
-        if(!_fastCodePath._aggregateCombineFuncName.empty())
+        assert(!_fastCodePath.initStageFuncName.empty() && !_fastCodePath.releaseStageFuncName.empty());
+        if(!_fastCodePath.aggregateCombineFuncName.empty())
             jit.registerSymbol(aggCombineCallbackName(), TransformTask::aggCombineCallback());
 
         // 3. compile code
@@ -842,17 +846,17 @@ namespace tuplex {
         if(_outputMode == EndPointMode::FILE && !_syms->writeFunctor)
             _syms->writeFunctor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(writerFuncName()));
         if(!_syms->_fastCodePath.initStageFunctor)
-            _syms->_fastCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_fastCodePath._fastPathInitStageFuncName));
+            _syms->_fastCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_fastCodePath.initStageFuncName));
         if(!_syms->_fastCodePath.releaseStageFunctor)
-            _syms->_fastCodePath.releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_fastCodePath._fastPathReleaseStageFuncName));
+            _syms->_fastCodePath.releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_fastCodePath.releaseStageFuncName));
 
         // get aggregate functors
-        if(!_fastCodePath._aggregateInitFuncName.empty())
-            _syms->aggInitFunctor = reinterpret_cast<codegen::agg_init_f>(jit.getAddrOfSymbol(_fastCodePath._aggregateInitFuncName));
-        if(!_fastCodePath._aggregateCombineFuncName.empty())
-            _syms->aggCombineFunctor = reinterpret_cast<codegen::agg_combine_f>(jit.getAddrOfSymbol(_fastCodePath._aggregateCombineFuncName));
-        if(!_fastCodePath._aggregateAggregateFuncName.empty())
-            _syms->aggAggregateFunctor = reinterpret_cast<codegen::agg_agg_f>(jit.getAddrOfSymbol(_fastCodePath._aggregateAggregateFuncName));
+        if(!_fastCodePath.aggregateInitFuncName.empty())
+            _syms->aggInitFunctor = reinterpret_cast<codegen::agg_init_f>(jit.getAddrOfSymbol(_fastCodePath.aggregateInitFuncName));
+        if(!_fastCodePath.aggregateCombineFuncName.empty())
+            _syms->aggCombineFunctor = reinterpret_cast<codegen::agg_combine_f>(jit.getAddrOfSymbol(_fastCodePath.aggregateCombineFuncName));
+        if(!_fastCodePath.aggregateAggregateFuncName.empty())
+            _syms->aggAggregateFunctor = reinterpret_cast<codegen::agg_agg_f>(jit.getAddrOfSymbol(_fastCodePath.aggregateAggregateFuncName));
 
         // check symbols are valid...
         bool hasValidFunctor = true;

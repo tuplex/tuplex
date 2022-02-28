@@ -212,7 +212,7 @@ namespace tuplex {
              * @param fastCodePath whether to generate for fastCodePath or not. When false, always generates mem2mem.
              * @return
              */
-            TransformStage::TransformStageCodePath generateFastCodePath(const CodeGenerationContext& fastLocalVariables) const; // file2mem always
+            TransformStage::StageCodePath generateFastCodePath(const CodeGenerationContext& fastLocalVariables) const; // file2mem always
 
             size_t resolveOperatorCount() const {
                 return std::count_if(_operators.begin(), _operators.end(), [](const LogicalOperator* op) {
@@ -220,13 +220,15 @@ namespace tuplex {
                 });
             }
 
+
+            static void fillInCallbackNames(const std::string& func_prefix, size_t stageNo, TransformStage::StageCodePath& cp);
             // holds values of hashmap globals
             std::unordered_map<int64_t, std::tuple<llvm::Value*, llvm::Value*>> _hashmap_vars;
 
             /*!
              * code path for mem2mem exception resolution => sh
              */
-            TransformStage::TransformStageCodePath generateResolveCodePath(const CodeGenerationContext& resolveLocalVariables) const; //! generates mix of LLVM / python code for slow code path including resolvers
+            TransformStage::StageCodePath generateResolveCodePath(const CodeGenerationContext& resolveLocalVariables) const; //! generates mix of LLVM / python code for slow code path including resolvers
 
             void generatePythonCode(); //! generates fallback pipeline in pure python. => i.e. special case here...
 

@@ -824,6 +824,16 @@ namespace tuplex {
                 set(builder, {iElement}, load, _env->i64Const(sizeof(int64_t)), _env->i1Const(false));
             } else if(elementType == python::Type::NULLVALUE) {
                 set(builder, {iElement}, nullptr, nullptr, _env->i1Const(true));
+            } else if(elementType.isConstantValued()) {
+                // check what the underlying is and then set accordingly with constant!
+                auto t = elementType.underlying();
+                if(python::Type::I64 == t) {
+                    int64_t ival = std::stoll(elementType.constant());
+                    set(builder, {iElement}, _env->i64Const(ival), _env->i64Const(sizeof(int64_t)), _env->i1Const(false));
+                } else {
+                    // @TODO: use here the deoptimize func from codegen!
+                    throw std::runtime_error("other constant values not yet supported!!!");
+                }
             } else {
                 Logger::instance().logger("codegen").error("unknown type encountered while trying to set flattened tuple structure");
                 return;

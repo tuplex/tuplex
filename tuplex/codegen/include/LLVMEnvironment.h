@@ -187,16 +187,38 @@ namespace tuplex {
                                                     const std::string &twine = "tuple") {
                 assert(tupleType.isTupleType());
 
+                // @TODO: Hack
+                // normalize type, i.e. get rid off whatever optimizing types are. Later treat them separately.
+                // for now it causes issues in the codegen
                 // check if already generated
-                auto it = _generatedTupleTypes.find(tupleType);
+                auto params = tupleType.parameters();
+                for(unsigned i = 0; i < params.size(); ++i) {
+                    if(params[i].isConstantValued())
+                        params[i] = params[i].underlying();
+                }
+                auto type = python::Type::makeTupleType(params);
+
+                auto it = _generatedTupleTypes.find(type);
                 if (_generatedTupleTypes.end() != it)
                     return it->second;
                 else {
-                    llvm::Type *t = createTupleStructType(tupleType, twine);
+                    llvm::Type *t = createTupleStructType(type, twine);
                     std::string name = t->getStructName();
-                    _generatedTupleTypes[tupleType] = t;
+                    _generatedTupleTypes[type] = t;
                     return t;
                 }
+
+
+//                // check if already generated
+//                auto it = _generatedTupleTypes.find(tupleType);
+//                if (_generatedTupleTypes.end() != it)
+//                    return it->second;
+//                else {
+//                    llvm::Type *t = createTupleStructType(tupleType, twine);
+//                    std::string name = t->getStructName();
+//                    _generatedTupleTypes[tupleType] = t;
+//                    return t;
+//                }
             }
 
             llvm::Type *getOrCreateTuplePtrType(const python::Type &tupleType, const std::string &twine = "tuple") {

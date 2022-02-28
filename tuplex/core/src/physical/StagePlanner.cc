@@ -132,6 +132,10 @@ namespace tuplex {
                         cout<<"input type after: "<<mop->getInputSchema().getRowType().desc()<<endl;
                         cout<<"output type after: "<<mop->getOutputSchema().getRowType().desc()<<endl;
                         cout<<"num input columns required after opt: "<<accCols.size()<<endl;
+
+                        // which columns where eliminated?
+                        //forinput_cols
+
                     }
 
                 }

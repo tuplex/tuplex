@@ -253,7 +253,13 @@ namespace tuplex {
 
             // define bitmap on the fly
             for (const auto &el: T.parameters()) {
-                auto t = el.isOptionType() ? el.getReturnType() : el; // get rid of most outer options
+
+                // optimizing types -> use the actual, underlying type here
+                auto t = el.isConstantValued() ? el.underlying() : el;
+
+                // option
+                t = t.isOptionType() ? t.getReturnType() : t; // get rid of most outer options
+
 
                 // @TODO: special case empty tuple! also doesn't need to be represented
 

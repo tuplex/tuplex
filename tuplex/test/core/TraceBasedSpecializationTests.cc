@@ -190,6 +190,7 @@ TEST_F(SamplingTest, FlightsSpecializedVsGeneralValueImputation) {
     using namespace tuplex;
     ContextOptions opt = ContextOptions::defaults();
     opt.set("tuplex.executorCount", "0");
+    opt.set("tuplex.optimizer.nullValueOptimization", "true");
     Context ctx(opt);
 
     // specialize access with columns vs. non-columns

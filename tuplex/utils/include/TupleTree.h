@@ -310,7 +310,7 @@ namespace tuplex {
                 ret->type.getReturnType().isListType());
             else
                 assert(ret->type.isPrimitiveType() || ret->type == python::Type::EMPTYTUPLE ||
-                ret->type.isDictionaryType() || ret->type.isListType() || ret->type == python::Type::PYOBJECT);
+                ret->type.isDictionaryType() || ret->type.isListType() || ret->type.isConstantValued() || ret->type == python::Type::PYOBJECT);
             assert(ret->isLeaf());
             return ret->type;
         }

@@ -434,10 +434,7 @@ default:
         // fallback 1: slow, compiled code path
         int resCode = -1;
         if(_functor && ecCode != ecToI32(ExceptionCode::PYTHON_PARALLELIZE)) {
-            auto curRowNumber = _rowNumber;
             resCode = _functor(this, _rowNumber, ecCode, ebuf, eSize);
-            if (_rowNumber == curRowNumber)
-                _numUnresolved++;
             // uncomment to print out details on demand
             // if(resCode != 0) {
             //     std::cout<<"functor delivered resCode "<<resCode<<std::endl;

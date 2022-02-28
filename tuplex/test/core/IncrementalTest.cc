@@ -135,7 +135,7 @@ void executeZillow(tuplex::Context &context, const tuplex::URI& outputURI, int s
 
         std::vector<std::string> columnNames({"url", "zipcode", "address", "city", "state", "bedrooms", "bathrooms", "sqft", "offer", "type", "price"});
 
-        auto &ds = context.csv("../resources/zillow_dirty.csv");
+        auto &ds = context.csv("../../../../benchmarks/incremental/data/zillow_dirty@10G.csv");
         ds = ds.withColumn("bedrooms", UDF(extractBd));
         if (step > 0)
             ds = ds.resolve(ExceptionCode::VALUEERROR, UDF(resolveBd));
@@ -168,8 +168,12 @@ TEST_F(IncrementalTest, DirtyZilow) {
     using namespace std;
 
     auto opts = testOptions();
+    opts.set("tuplex.executorCount", "15");
+    opts.set("tuplex.executorMemory", "1G");
+    opts.set("tuplex.driverMemory", "1G");
+    opts.set("tuplex.resolveWithInterpreterOnly", "false");
     opts.set("tuplex.optimizer.incrementalResolution", "true");
-    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
     Context incrementalContext(opts);
     opts.set("tuplex.optimizer.incrementalResolution", "false");
     Context plainContext(opts);
@@ -178,19 +182,19 @@ TEST_F(IncrementalTest, DirtyZilow) {
         executeZillow(incrementalContext, testName + "/incremental.csv", step);
         executeZillow(plainContext, testName + "/plain.csv", step);
 
-        std::multiset<std::string> incrementalRows;
+        std::vector<std::string> incrementalRows;
         auto incrementalResult = plainContext.csv(testName + "/incremental.*.csv").collect();
         while (incrementalResult->hasNextRow())
-            incrementalRows.insert(incrementalResult->getNextRow().toPythonString());
+            incrementalRows.push_back(incrementalResult->getNextRow().toPythonString());
 
+        std::vector<std::string> plainRows;
         auto plainResult = plainContext.csv(testName + "/plain.*.csv").collect();
+        while (plainResult->hasNextRow())
+            plainRows.push_back(plainResult->getNextRow().toPythonString());
 
-        auto numPlainRows = 0;
-        while (plainResult->hasNextRow()) {
-            numPlainRows++;
-            ASSERT_TRUE(incrementalRows.find(plainResult->getNextRow().toPythonString()) != incrementalRows.end());
-        }
-        ASSERT_EQ(numPlainRows, incrementalRows.size());
+        ASSERT_EQ(incrementalRows.size(), plainRows.size());
+        for (int i = 0; i < plainRows.size(); ++i)
+            ASSERT_EQ(incrementalRows[i], plainRows[i]);
     }
 }
 
@@ -199,7 +203,6 @@ TEST_F(IncrementalTest, FileOutput) {
     using namespace std;
 
     auto opts = microTestOptions();
-    opts.set("tuplex.driverMemory", "300B");
     opts.set("tuplex.executorCount", "0");
     opts.set("tuplex.optimizer.incrementalResolution", "true");
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
@@ -246,6 +249,57 @@ TEST_F(IncrementalTest, FileOutput) {
     }
 }
 
+TEST_F(IncrementalTest, FileOutputInOrder) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = microTestOptions();
+    opts.set("tuplex.executorCount", "0");
+    opts.set("tuplex.optimizer.incrementalResolution", "true");
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
+    Context c(opts);
+
+    auto numRows = 50;
+    auto amountExps = 0.25;
+    std::vector<Row> inputRows;
+    inputRows.reserve(numRows);
+    std::vector<std::string> expectedOutput1;
+    expectedOutput1.reserve((int) (numRows * amountExps));
+    std::vector<std::string> expectedOutput2;
+    expectedOutput2.reserve(numRows);
+
+    auto inputFileURI = URI(testName + "/in.csv");
+    auto fileURI = URI(testName + "/out.csv");
+    auto outputFileURI = URI(testName + "/out.*.csv");
+
+    std::stringstream ss;
+    for (int i = 0; i < numRows; ++i) {
+        if (i % (int) (1 / amountExps) == 0) {
+            ss << "0\n";
+            expectedOutput2.push_back(Row(-1).toPythonString());
+        } else {
+            ss << to_string(i) << "\n";
+            expectedOutput1.push_back(Row(i).toPythonString());
+            expectedOutput2.push_back(Row(i).toPythonString());
+        }
+    }
+    stringToFile(inputFileURI, ss.str());
+
+    c.csv(inputFileURI.toPath()).map(UDF("lambda x: 1 // x if x == 0 else x")).tocsv(fileURI.toPath());
+    auto output1 = c.csv(outputFileURI.toPath()).collectAsVector();
+    ASSERT_EQ(output1.size(), expectedOutput1.size());
+    for (int i = 0; i < expectedOutput1.size(); ++i) {
+        ASSERT_EQ(expectedOutput1[i], output1[i].toPythonString());
+    }
+
+    c.csv(inputFileURI.toPath()).map(UDF("lambda x: 1 // x if x == 0 else x")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: -1")).tocsv(fileURI.toPath());
+    auto output2 = c.csv(outputFileURI.toPath()).collectAsVector();
+    ASSERT_EQ(output2.size(), expectedOutput2.size());
+    for (int i = 0; i < expectedOutput2.size(); ++i) {
+        ASSERT_EQ(expectedOutput2[i], output2[i].toPythonString());
+    }
+}
+
 TEST_F(IncrementalTest, DebugResolver) {
     using namespace tuplex;
     using namespace std;
@@ -271,13 +325,73 @@ TEST_F(IncrementalTest, DebugResolver) {
             .tocsv(testName + "/out.csv");
 }
 
+TEST_F(IncrementalTest, Filter) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = microTestOptions();
+    opts.set("tuplex.executorCount", "2");
+    opts.set("tuplex.optimizer.incrementalResolution", "true");
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
+    opts.set("tuplex.resolveWithInterpreterOnly", "false");
+    Context c(opts);
+
+    auto inputFileURI = URI(testName + "/in.csv");
+    auto fileURI = URI(testName + "/out.csv");
+    auto outputFileURI = URI(testName + "/out.*.csv");
+
+    std::vector<Row> expectedOutput1;
+    std::vector<Row> expectedOutput2;
+    std::stringstream ss;
+    for (int i = 0; i < 100000; ++i) {
+        auto num = rand()%4;
+        switch (num) {
+            case 0: {
+                ss << to_string(i) << "\n";
+                expectedOutput1.push_back(Row(i));
+                expectedOutput2.push_back(Row(i));
+                break;
+            }
+            case 1: {
+                ss << "-1\n";
+                break;
+            }
+            case 2: {
+                ss << "-2\n";
+                expectedOutput2.push_back(Row(-2));
+                break;
+            }
+            case 3: {
+                ss << "0\n";
+                break;
+            }
+        }
+    }
+    stringToFile(inputFileURI, ss.str());
+
+    c.csv(inputFileURI.toPath()).map(UDF("lambda x: 1 // (x - x) if x < 0 else x")).filter(UDF("lambda x: x != 0")).tocsv(fileURI.toPath());
+    auto output1 = c.csv(outputFileURI.toPath()).collectAsVector();
+    ASSERT_EQ(output1.size(), expectedOutput1.size());
+    for (int i = 0; i < expectedOutput1.size(); ++i) {
+        ASSERT_EQ(expectedOutput1[i].toPythonString(), output1[i].toPythonString());
+    }
+
+    c.csv(inputFileURI.toPath()).map(UDF("lambda x: 1 // (x - x) if x < 0 else x")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: 1 // (x - x) if x == -1 else x")).filter(UDF("lambda x: x != 0")).tocsv(fileURI.toPath());
+    auto output2 = c.csv(outputFileURI.toPath()).collectAsVector();
+    ASSERT_EQ(output2.size(), expectedOutput2.size());
+    for (int i = 0; i < expectedOutput2.size(); ++i) {
+        ASSERT_EQ(expectedOutput2[i].toPythonString(), output2[i].toPythonString());
+    }
+}
+
 TEST_F(IncrementalTest, FileOutput2) {
     using namespace tuplex;
     using namespace std;
 
     auto opts = microTestOptions();
+    opts.set("tuplex.resolverWithInterpreterOnly", "false");
     opts.set("tuplex.optimizer.incrementalResolution", "true");
-    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
     Context c(opts);
 
     auto numRows = 10000;

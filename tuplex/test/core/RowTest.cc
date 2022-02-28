@@ -155,6 +155,10 @@ TEST(Row, NullValue) {
 }
 
 TEST(Row, OptionField) {
+
+    std::cout<<"hello world"<<std::endl;
+
+
     Field f("test field");
     f = f.makeOptional();
     EXPECT_EQ(f.getType().desc(), python::Type::makeOptionType(python::Type::STRING).desc());

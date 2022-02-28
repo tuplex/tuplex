@@ -159,6 +159,11 @@ namespace tuplex {
             }
             size_t row_number = 0;
             for(const auto& row : rows) {
+
+                // ignore small rows
+                if(row.getNumColumns() < constant_row.getNumColumns())
+                    continue;
+
                 // compare current row with constant row.
                 for(unsigned i = 0; i < std::min(constant_row.getNumColumns(), row.getNumColumns()); ++i) {
                     // field comparisons might be expensive, so compare only if not marked yet as false...

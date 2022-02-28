@@ -4161,7 +4161,10 @@ namespace tuplex {
             auto expression_type = ret->_expression ? ret->_expression->getInferredType() : python::Type::NULLVALUE; // return is None!
             auto target_type = ret->getInferredType();
 
-            if(target_type == funcReturnType) {
+            // deoptimized types!
+            auto deopt_func_return_type = deoptimizedType(funcReturnType);
+
+            if(target_type == deopt_func_return_type/*funcReturnType*/) {
                 // ok, fits the globally agreed function return type!
 
                 // the retval popped could need extension to an option type!
@@ -4172,6 +4175,7 @@ namespace tuplex {
             } else {
 
                 _logger.debug("added normalcase speculation on return type " + target_type.desc() + ".");
+                _logger.debug("Actual oberserved funcReturnType is: " + funcReturnType.desc());
 
                 // normal case violation.
                 _lfb->exitNormalCase(); // NOTE: this only works in a statement, not on an expression.

@@ -228,7 +228,7 @@ namespace tuplex {
 
             // projection: which columns to read.
             _columnsToRead = csvop->columnsToSerialize();
-            _inputNodeID = csvop->getID();
+             _inputNodeID = csvop->getID();
             _readSchema = csvop->getInputSchema(); // schema before projection pushdown...
             _inputSchema = csvop->getOutputSchema(); // input schema for CSV yields original schema,
             _normalCaseInputSchema = csvop->getOptimizedOutputSchema();

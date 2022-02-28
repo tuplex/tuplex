@@ -191,20 +191,42 @@ namespace tuplex {
                         // => then push that down to reader/input node!
                         unordered_map<size_t, size_t> rewriteMap;
                         vector<size_t> indices_to_read_from_previous_op;
+                        vector<string> rewriteInfo; // for printing info!
+                        vector<string> col_names_to_read_before;
+                        vector<string> col_names_to_read_after;
+
                         for(unsigned i = 0; i < accCols.size(); ++i) {
                             rewriteMap[accCols[i]] = i;
+
+                            rewriteInfo.push_back(to_string(accCols[i]) + " -> " + to_string(i));
+
                             int j = 0;
                             while(j < accColsBeforeOpt.size() && accCols[i] != accColsBeforeOpt[j])
                                 ++j;
                             indices_to_read_from_previous_op.push_back(colsToSerializeIndices[j]);
                         }
 
+                        for(auto idx : colsToSerializeIndices)
+                            col_names_to_read_before.push_back(fop->inputColumns()[idx]);
+                        for(auto idx : indices_to_read_from_previous_op)
+                            col_names_to_read_after.push_back(fop->inputColumns()[idx]);
+                        cout<<"Rewriting indices: "<<rewriteInfo<<endl;
+
                         // this is quite hacky...
                         fop->selectColumns(indices_to_read_from_previous_op);
                         cout<<"file input now only reading: "<<indices_to_read_from_previous_op<<endl;
+                        cout<<"I.e., read before: "<<col_names_to_read_before<<endl;
+                        cout<<"now: "<<col_names_to_read_after<<endl;
+
                         mop->rewriteParametersInAST(rewriteMap);
                         cout<<"mop updated: \ninput type: "<<mop->getInputSchema().getRowType().desc()
                             <<"\noutput type: "<<mop->getOutputSchema().getRowType().desc()<<endl;
+
+//#ifdef GENERATE_PDFS
+                        mop->getUDF().getAnnotatedAST().writeGraphToPDF("final_mop_udf.pdf");
+//#endif
+                        // @TODO: should clone operators etc. here INCL. input oprator else issue.
+                        // input operator needs additional check... => put this check into parser...
 
                     }
 

@@ -843,8 +843,8 @@ namespace tuplex {
         if(!_syms->functorWithExp && _updateInputExceptions)
             _syms->functorWithExp = reinterpret_cast<codegen::read_block_exp_f>(jit.getAddrOfSymbol(funcName()));
         logger.info("functor " + funcName() + " retrieved from llvm");
-        if(_outputMode == EndPointMode::FILE && !_syms->writeFunctor)
-            _syms->writeFunctor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(writerFuncName()));
+//        if(_outputMode == EndPointMode::FILE && !_syms->writeFunctor)
+//            _syms->writeFunctor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(writerFuncName()));
         if(!_syms->_fastCodePath.initStageFunctor)
             _syms->_fastCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_fastCodePath.initStageFuncName));
         if(!_syms->_fastCodePath.releaseStageFunctor)
@@ -942,26 +942,32 @@ namespace tuplex {
         stage->_inputMode = static_cast<EndPointMode>(msg.inputmode());
         stage->_outputMode = static_cast<EndPointMode>(msg.outputmode());
 
-        stage->_irBitCode = msg.bitcode();
+
         stage->_pyCode = msg.pycode();
         stage->_pyPipelineName = msg.pypipelinename();
 
         stage->_persistSeparateCases = msg.persistseparatecases();
         stage->_updateInputExceptions = msg.updateinputexceptions();
 
-        stage->_funcStageName = msg.funcstagename();
-        stage->_funcMemoryWriteCallbackName = msg.funcmemorywritecallbackname();
-        stage->_funcExceptionCallback = msg.funcexceptioncallback();
-        stage->_funcFileWriteCallbackName = msg.funcfilewritecallbackname();
-        stage->_funcHashWriteCallbackName = msg.funchashwritecallbackname();
-        stage->_writerFuncName = "";
+        // deserialize fast code path/slow code path from message!
+        if(msg.has_fastpath())
+            stage->_fastCodePath = msg.fastpath();
+        if(msg.has_slowpath())
+            stage->_slowCodePath = msg.slowpath();
 
-        stage->_initStageFuncName = msg.funcinitstagename();
-        stage->_releaseStageFuncName = msg.funcreleasestagename();
-        stage->_resolveRowFunctionName = msg.resolverowfunctionname();
-        stage->_resolveRowWriteCallbackName = msg.resolverowwritecallbackname();
-        stage->_resolveRowExceptionCallbackName = msg.resolverowexceptioncallbackname();
-        stage->_resolveHashCallbackName = msg.resolvehashcallbackname();
+//        stage->_irBitCode = msg.bitcode();
+//        stage->_funcStageName = msg.funcstagename();
+//        stage->_funcMemoryWriteCallbackName = msg.funcmemorywritecallbackname();
+//        stage->_funcExceptionCallback = msg.funcexceptioncallback();
+//        stage->_funcFileWriteCallbackName = msg.funcfilewritecallbackname();
+//        stage->_funcHashWriteCallbackName = msg.funchashwritecallbackname();
+//        stage->_writerFuncName = "";
+//        stage->_initStageFuncName = msg.funcinitstagename();
+//        stage->_releaseStageFuncName = msg.funcreleasestagename();
+//        stage->_resolveRowFunctionName = msg.resolverowfunctionname();
+//        stage->_resolveRowWriteCallbackName = msg.resolverowwritecallbackname();
+//        stage->_resolveRowExceptionCallbackName = msg.resolverowexceptioncallbackname();
+//        stage->_resolveHashCallbackName = msg.resolvehashcallbackname();
 
         // decode input/output params
         for(const auto& keyval : msg.inputparameters())
@@ -976,7 +982,6 @@ namespace tuplex {
     std::unique_ptr<messages::TransformStage> TransformStage::to_protobuf() const {
         auto msg = std::make_unique<messages::TransformStage>();
 
-        msg->set_bitcode(_irBitCode);
         msg->set_pycode(_pyCode);
         msg->set_pypipelinename(_pyPipelineName);
 

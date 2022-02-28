@@ -401,7 +401,8 @@ namespace tuplex {
              * @param sharedObjectPropagation
              * @return true if it succeeded
              */
-            bool addAggregate(const int64_t operatorID, const UDF& aggUDF,
+            bool addAggregate(const int64_t operatorID,
+                              const UDF& aggUDF,
                               const python::Type& aggType,
                               double normalCaseThreshold,
                               bool allowUndefinedBehavior,

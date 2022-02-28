@@ -227,7 +227,7 @@ namespace tuplex {
         }
 
         std::string funcName() const { return _fastCodePath.funcStageName; }
-        std::string writerFuncName() const { throw std::runtime_error("is writer func actually used?"); return ""; } //return _fastCodePath._writerFuncName; }
+        //std::string writerFuncName() const { throw std::runtime_error("is writer func actually used?"); return ""; } //return _fastCodePath._writerFuncName; }
         std::string writeMemoryCallbackName() const { return _fastCodePath.writeMemoryCallbackName; }
         std::string writeFileCallbackName() const { return _fastCodePath.writeFileCallbackName; }
         std::string exceptionCallbackName() const { return _fastCodePath.writeExceptionCallbackName; }
@@ -518,36 +518,36 @@ namespace tuplex {
         };
 
 
-        struct TransformStageCodePath {
-            // Fast path variables
-//            std::string _fastPathIRBitCode; //! llvm IR bitcode for fast path
-//            std::string _fastPathInitStageFuncName; //! init function for a stage (sets up globals & Co)
-//            std::string _fastPathReleaseStageFuncName; //! release function for a stage (releases globals & Co)
-
-//            std::string _funcStageName; //! llvm function name of the stage function
-            std::string _funcMemoryWriteCallbackName; //! llvm function name of the write callback
-            std::string _funcFileWriteCallbackName; //! llvm function name of the write callback used for file output.
-            std::string _funcExceptionCallback; //! llvm function of the exception callback function
-            std::string _funcHashWriteCallbackName; //! the function to call when saving to hash table
-//            std::string _aggregateInitFuncName; //! to initiate aggregate (allocates via C-malloc)
-//            std::string _aggregateCombineFuncName; //! to combine two aggregates (allocates & frees via C-malloc).
-
-            std::string _writerFuncName;
-            std::string _aggregateCallbackName; //! the callback to call with an aggregate
-
-            // Slow path variables
-//            std::string _slowPathIRBitCode; //! llvm IR bitcode for slow path
-//            std::string _slowPathInitStageFuncName; //! init function for a stage (sets up globals & Co)
-//            std::string _slowPathReleaseStageFuncName; //! release function for a stage (releases globals & Co)
-
-//            std::string _resolveRowFunctionName;
-            std::string _resolveRowWriteCallbackName;
-            std::string _resolveRowExceptionCallbackName;
-            std::string _resolveHashCallbackName;
-
-//            // Common variables
-//            std::string _aggregateAggregateFuncName; //! to combine aggregate and result (allocates & frees via C-malloc).
-        };
+//        struct TransformStageCodePath {
+//            // Fast path variables
+////            std::string _fastPathIRBitCode; //! llvm IR bitcode for fast path
+////            std::string _fastPathInitStageFuncName; //! init function for a stage (sets up globals & Co)
+////            std::string _fastPathReleaseStageFuncName; //! release function for a stage (releases globals & Co)
+//
+////            std::string _funcStageName; //! llvm function name of the stage function
+//            std::string _funcMemoryWriteCallbackName; //! llvm function name of the write callback
+//            std::string _funcFileWriteCallbackName; //! llvm function name of the write callback used for file output.
+//            std::string _funcExceptionCallback; //! llvm function of the exception callback function
+//            std::string _funcHashWriteCallbackName; //! the function to call when saving to hash table
+////            std::string _aggregateInitFuncName; //! to initiate aggregate (allocates via C-malloc)
+////            std::string _aggregateCombineFuncName; //! to combine two aggregates (allocates & frees via C-malloc).
+//
+//            std::string _writerFuncName;
+//            std::string _aggregateCallbackName; //! the callback to call with an aggregate
+//
+//            // Slow path variables
+////            std::string _slowPathIRBitCode; //! llvm IR bitcode for slow path
+////            std::string _slowPathInitStageFuncName; //! init function for a stage (sets up globals & Co)
+////            std::string _slowPathReleaseStageFuncName; //! release function for a stage (releases globals & Co)
+//
+////            std::string _resolveRowFunctionName;
+//            std::string _resolveRowWriteCallbackName;
+//            std::string _resolveRowExceptionCallbackName;
+//            std::string _resolveHashCallbackName;
+//
+////            // Common variables
+////            std::string _aggregateAggregateFuncName; //! to combine aggregate and result (allocates & frees via C-malloc).
+//        };
 
 //        TransformStageCodePath _fastCodePath;
 //        TransformStageCodePath _slowCodePath;
@@ -590,7 +590,6 @@ namespace tuplex {
         // pure python pipeline code & names
         std::string _pyCode;
         std::string _pyPipelineName;
-        std::string _writerFuncName;
         bool _updateInputExceptions;
 
         std::shared_ptr<ResultSet> emptyResultSet() const;

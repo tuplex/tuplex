@@ -1033,9 +1033,7 @@ namespace tuplex {
                                                                                     ret.aggregateCombineFuncName/*ret._aggregateCombineFuncName*/,
                                                                                     aop->combinerUDF(),
                                                                                     aggType,
-                                                                                    malloc,
-                                                                                    _allowUndefinedBehavior,
-                                                                                    _sharedObjectPropagation);
+                                                                                    malloc);
                             if(!aggregateInitFunc)
                                 throw std::runtime_error("error compiling aggregate initialize function");
                             if(!combFunc)
@@ -1046,20 +1044,22 @@ namespace tuplex {
 
                             if(aop->aggType() == AggregateType::AGG_BYKEY) { // need to make the aggregate functor
                                 auto aggregateFunc = codegen::createAggregateFunction(env.get(),
-                                                                                      ret._aggregateAggregateFuncName,
+                                                                                      ret.aggregateAggregateFuncName,
                                                                                       aop->aggregatorUDF(), aggType,
                                                                                       aop->parent()->getOutputSchema().getRowType(),
-                                                                                      malloc, _allowUndefinedBehavior,
-                                                                                      _sharedObjectPropagation);
+                                                                                      malloc);
                                 if(!aggregateFunc)
                                     throw std::runtime_error("error compiling aggregate function");
-                                ret._aggregateAggregateFuncName = aggregateFunc->getName().str();
+                                ret.aggregateAggregateFuncName = aggregateFunc->getName().str();
                             } else {
                                 // init intermediate within Stage process function.
 //                                intermediateInitialValue = aop->initialValue();
-                                if (!slowPip->addAggregate(aop->getID(), aop->aggregatorUDF(),
+                                if (!slowPip->addAggregate(aop->getID(),
+                                                           aop->aggregatorUDF(),
                                                        aop->getOutputSchema().getRowType(),
-                                                       _allowUndefinedBehavior, _sharedObjectPropagation)) {
+                                                       this->_normalCaseThreshold,
+                                                       _allowUndefinedBehavior,
+                                                       _sharedObjectPropagation)) {
                                     logger.error(formatBadAggNode(aop));
                                     return ret;
                                 }
@@ -1254,8 +1254,8 @@ namespace tuplex {
             if (_operators.empty() && mem2mem) {
                 _pyCode = "";
 
-                TransformStage::TransformStageCodePath slow;
-                TransformStage::TransformStageCodePath fast;
+                TransformStage::StageCodePath slow;
+                TransformStage::StageCodePath fast;
                 stage->_slowCodePath = slow;
                 stage->_fastCodePath = fast;
             } else {
@@ -1326,7 +1326,7 @@ namespace tuplex {
                 };
 
 
-                std::shared_future<TransformStage::TransformStageCodePath> slowCodePath_f = std::async(std::launch::async, [this, &codeGenerationContext]() {
+                std::shared_future<TransformStage::StageCodePath> slowCodePath_f = std::async(std::launch::async, [this, &codeGenerationContext]() {
                     return generateResolveCodePath(codeGenerationContext);
                 });
 

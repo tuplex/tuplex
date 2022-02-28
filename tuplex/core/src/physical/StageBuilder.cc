@@ -1046,6 +1046,9 @@ namespace tuplex {
             // @Todo: HACK -> skip generation slow code path.
             // this requires putting the constants into place for the compiled fallback!
             // => one easy way is to simply force interpreter fallback...
+            _resolveRowWriteCallbackName = slowPathMemoryWriteCallback;
+            _resolveRowExceptionCallbackName = slowPathExceptionCallback;
+            _resolveHashCallbackName = slowPathHashWriteCallback;
             return true;
 
 

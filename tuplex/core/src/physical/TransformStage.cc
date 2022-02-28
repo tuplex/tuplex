@@ -723,7 +723,8 @@ namespace tuplex {
         return fields;
     }
 
-    std::shared_ptr<TransformStage::JITSymbols> TransformStage::compile(JITCompiler &jit, LLVMOptimizer *optimizer, bool excludeSlowPath, bool registerSymbols) {
+    std::shared_ptr<TransformStage::JITSymbols> TransformStage::compile(JITCompiler &jit, LLVMOptimizer *optimizer,
+                                                                        bool excludeSlowPath, bool registerSymbols) {
         auto& logger = Logger::instance().defaultLogger();
 
         // lazy compile

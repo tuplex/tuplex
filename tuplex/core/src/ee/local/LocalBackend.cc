@@ -907,7 +907,10 @@ namespace tuplex {
         // 1.) COMPILATION
         // compile code & link functions to tasks
         LLVMOptimizer optimizer;
-        auto syms = tstage->compile(*_compiler, _options.USE_LLVM_OPTIMIZER() ? &optimizer : nullptr, false); // @TODO: do not compile slow path yet, do it later in parallel when other threads are already working!
+        // @TODO: do not compile slow path yet, do it later in parallel when other threads are already working!
+        // deactivate slow path symbols when using interpreter only for resolve...
+        auto syms = tstage->compile(*_compiler, _options.USE_LLVM_OPTIMIZER() ? &optimizer : nullptr,
+                                    _options.RESOLVE_WITH_INTERPRETER_ONLY());
         bool combineOutputHashmaps = syms->aggInitFunctor && syms->aggCombineFunctor && syms->aggAggregateFunctor;
         JobMetrics& metrics = tstage->PhysicalStage::plan()->getContext().metrics();
         double total_compilation_time = metrics.getTotalCompilationTime() + timer.time();

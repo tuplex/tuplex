@@ -227,6 +227,10 @@ namespace tuplex {
         _mutex.unlock();
     }
 
+    void Partition::freeAlways() {
+        _owner->freePartition(this);
+    }
+
     void Partition::invalidate() {
 
         // also make sure this partition does not live forever.

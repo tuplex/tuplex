@@ -214,6 +214,8 @@ namespace tuplex {
 
         void free(BitmapAllocator& allocator);
 
+        void freeAlways();
+
         /*!
          * THIS IS NOT THREADSAFE
          * an executor can call this on the partition to signal the memory manager, that this partition is no longer

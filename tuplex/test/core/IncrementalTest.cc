@@ -181,21 +181,21 @@ TEST_F(IncrementalTest, DirtyZilow) {
     for (int step = 0; step < 7; ++step) {
         executeZillow(incrementalContext, testName + "/incremental.csv", step);
         executeZillow(plainContext, testName + "/plain.csv", step);
-
-        std::vector<std::string> incrementalRows;
-        auto incrementalResult = plainContext.csv(testName + "/incremental.*.csv").collect();
-        while (incrementalResult->hasNextRow())
-            incrementalRows.push_back(incrementalResult->getNextRow().toPythonString());
-
-        std::vector<std::string> plainRows;
-        auto plainResult = plainContext.csv(testName + "/plain.*.csv").collect();
-        while (plainResult->hasNextRow())
-            plainRows.push_back(plainResult->getNextRow().toPythonString());
-
-        ASSERT_EQ(incrementalRows.size(), plainRows.size());
-        for (int i = 0; i < plainRows.size(); ++i)
-            ASSERT_EQ(incrementalRows[i], plainRows[i]);
     }
+
+    std::vector<std::string> incrementalRows;
+    auto incrementalResult = plainContext.csv(testName + "/incremental.*.csv").collect();
+    while (incrementalResult->hasNextRow())
+        incrementalRows.push_back(incrementalResult->getNextRow().toPythonString());
+
+    std::vector<std::string> plainRows;
+    auto plainResult = plainContext.csv(testName + "/plain.*.csv").collect();
+    while (plainResult->hasNextRow())
+        plainRows.push_back(plainResult->getNextRow().toPythonString());
+
+    ASSERT_EQ(incrementalRows.size(), plainRows.size());
+    for (int i = 0; i < plainRows.size(); ++i)
+        ASSERT_EQ(incrementalRows[i], plainRows[i]);
 }
 
 TEST_F(IncrementalTest, FileOutput) {

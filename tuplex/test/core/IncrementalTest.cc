@@ -169,8 +169,9 @@ TEST_F(IncrementalTest, DirtyZilow) {
 
     auto opts = testOptions();
     opts.set("tuplex.executorCount", "15");
-    opts.set("tuplex.executorMemory", "1G");
-    opts.set("tuplex.driverMemory", "1G");
+    opts.set("tuplex.executorMemory", "2G");
+    opts.set("tuplex.driverMemory", "2G");
+    opts.set("tuplex.partitionSize", "32MB");
     opts.set("tuplex.resolveWithInterpreterOnly", "false");
     opts.set("tuplex.optimizer.incrementalResolution", "true");
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "true");

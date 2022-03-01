@@ -29,6 +29,8 @@
 #include <HybridHashTable.h>
 #include <int_hashmap.h>
 
+#include <physical/StagePlanner.h>
+
 namespace tuplex {
 
 
@@ -855,6 +857,15 @@ namespace tuplex {
             tstage->setEmptyResult();
             return;
         }
+
+        // HACK (for testing, perform hyper specialization on stage)
+        if(_options.USE_EXPERIMENTAL_HYPERSPECIALIZATION() && !tstage->input_files().empty()) {
+            auto files = tstage->input_files();
+            auto uri_str = std::get<0>(files.front());
+            auto uri_size = std::get<1>(files.front());
+            hyperspecialize(tstage, uri_str, uri_size);
+        }
+
 
         // special case: skip stage, i.e. empty code and mem2mem
         if(tstage->fastPathCode().empty() &&  !tstage->fileInputMode() && !tstage->fileOutputMode()) {

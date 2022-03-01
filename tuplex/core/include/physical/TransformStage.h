@@ -82,6 +82,7 @@ namespace tuplex {
         ~TransformStage() override = default;
 
         friend class ::tuplex::codegen::StageBuilder;
+        friend void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size);
 
         std::vector<Partition*> inputPartitions() const { return _inputPartitions; }
 
@@ -163,6 +164,36 @@ namespace tuplex {
         std::vector<int64_t> operatorIDsWithResolvers() const { return _operatorIDsWithResolvers; }
 
         URI outputURI() const { return _outputURI; }
+
+
+        // HACK:
+        inline std::vector<std::tuple<std::string, size_t>> input_files() const {
+            if(_inputMode != EndPointMode::FILE)
+                return {};
+
+            auto fileSchema = Schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::STRING, python::Type::I64}));
+
+            std::vector<std::tuple<std::string, size_t>> v;
+            for(auto partition : inputPartitions()) {
+                // get num
+                auto numFiles = partition->getNumRows();
+                const uint8_t *ptr = partition->lock();
+                size_t bytesRead = 0;
+                // found
+                for (int i = 0; i < numFiles; ++i) {
+                    // found file -> create task / split into multiple tasks
+                    Row row = Row::fromMemory(fileSchema, ptr, partition->capacity() - bytesRead);
+                    URI uri(row.getString(0));
+                    size_t file_size = row.getInt(1);
+                    v.emplace_back(uri.toString(), file_size);
+                }
+                partition->unlock();
+            }
+
+
+            return v;
+        }
+
 
         /*!
          * fetch data into resultset

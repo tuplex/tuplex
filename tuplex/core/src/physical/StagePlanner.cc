@@ -486,4 +486,18 @@ namespace tuplex {
             return _inputNode->getSample(1000);
         }
     }
+
+
+    // HACK: magical experiment function!!!
+    // HACK!
+    void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size) {
+        // run hyperspecialization using planner, yay!
+        assert(stage);
+
+        // need to decode CodeGenerationCOntext from stage
+        if(stage->_encodedData.empty())
+            return;
+
+    }
+
 }

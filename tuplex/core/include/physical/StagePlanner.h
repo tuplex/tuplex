@@ -123,6 +123,9 @@ namespace tuplex {
             std::vector<LogicalOperator*> nulLValueOptimization();
         };
     }
+
+    // HACK!
+    extern void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size);
 }
 
 #endif

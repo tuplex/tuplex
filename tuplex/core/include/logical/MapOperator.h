@@ -34,13 +34,15 @@ namespace tuplex {
             obj["name"] = "map";
             obj["columnNames"] = UDFOperator::columns();
             obj["outputColumns"] = _outputColumns;
-            obj["schema"] = _schema.getRowType().desc();
-            obj["id"] = _id;
+            obj["schema"] = LogicalOperator::schema().getRowType().desc();
+            obj["id"] = getID();
 
             // no closure env etc.
             nlohmann::json udf;
             udf["code"] = _udf.getCode();
-            udf["pickledCode"] = _udf.getPickledCode();
+
+            // this doesn't work, needs base64 encoding. skip for now HACK
+            //udf["pickledCode"] = _udf.getPickledCode();
 
             obj["udf"] = udf;
 

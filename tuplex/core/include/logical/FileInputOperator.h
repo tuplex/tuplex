@@ -261,13 +261,13 @@ namespace tuplex {
         // HACK quick n dirty serializatio n (targeting only the CSV case...)
         inline nlohmann::json to_json() const {
             nlohmann::json obj;
-            obj["type"] == name();
+            obj["type"] = "csv"; // hack
             auto uris = nlohmann::json::array();
             for(auto uri : _fileURIs)
                 uris.push_back(uri.toString());
             auto sizes = nlohmann::json::array();
             for(auto s : _sizes)
-                sizes.push_back()
+                sizes.push_back(s);
             obj["uris"] = uris;
             obj["sizes"] = sizes;
             obj["quotechar"] = _quotechar;

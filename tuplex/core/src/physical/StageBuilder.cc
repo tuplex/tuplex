@@ -1579,6 +1579,7 @@ namespace tuplex {
 
                 auto json_str = ctx.toJSON();
                 logger.info("serialized stage as JSON string (TODO: make this better, more efficient, ...");
+                stage->_encodedData = json_str; // hack
             }
 
             return stage;

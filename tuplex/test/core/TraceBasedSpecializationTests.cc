@@ -457,9 +457,13 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // this file here should get folded!
     // => i.e. no expensive code is required!
 //    auto& ds = ctx.csv(non_null_based_file).map(UDF(code));
+
+    // output URI
+    // ==> important!
+    std::string s3_output = "s3://tuplex-leonhard/experiments/flights_hyper";
     auto& ds = ctx.csv(null_based_file).map(UDF(code)); // fix: /aws/lambda/tuplex-lambda-runner?
 
-    ds.tocsv("test_output.csv");
+    ds.tocsv(s3_output);
 
     //ds.show(5);
 }

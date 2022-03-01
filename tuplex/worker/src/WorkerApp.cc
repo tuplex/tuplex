@@ -609,6 +609,9 @@ namespace tuplex {
         auto mode = VirtualFileMode::VFS_OVERWRITE | VirtualFileMode::VFS_WRITE;
         if(fmt == FileFormat::OUTFMT_CSV || fmt == FileFormat::OUTFMT_TEXT)
             mode |= VirtualFileMode::VFS_TEXTMODE;
+
+        std::cout<<"outputURI is: "<<outputURI.toString()<<std::endl;
+
         auto file = tuplex::VirtualFileSystem::open_file(outputURI, mode);
         if(!file)
             throw std::runtime_error("could not open " + outputURI.toPath() + " to write output");
@@ -638,16 +641,21 @@ namespace tuplex {
 
                 file->write(header, header_length);
                 delete [] header; // delete temp buffer.
+
+                std::cout<<"wrote header to: "<<outputURI.toString()<<std::endl;
             }
         }
 
         // use multi-threading for S3!!! --> that makes faster upload! I.e., multi-part-upload.
-        for(auto part_info : parts) {
+        for(const auto& part_info : parts) {
             // is it buf or file?
             if(part_info.use_buf) {
                 // write the buffer...
                 // -> directly to file!
                 assert(part_info.buf);
+
+                std::cout<<"wrote buf of size "<<part_info.buf_size<<" to "<<outputURI.toString()<<std::endl;
+
                 file->write(part_info.buf, part_info.buf_size);
             } else {
                 // read & copy back the file contents of the spill file!
@@ -674,6 +682,9 @@ namespace tuplex {
                 logger().debug("read from parts file " + sizeToMemString(bytes_read));
 
                 part_file->close();
+
+                std::cout<<"write (part) buf of size "<<part_buffer_size<<" to "<<outputURI.toString()<<std::endl;
+
                 // copy part buffer to output file!
                 file->write(part_buffer, part_buffer_size);
                 delete [] part_buffer;

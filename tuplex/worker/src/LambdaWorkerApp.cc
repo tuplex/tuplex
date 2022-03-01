@@ -743,7 +743,9 @@ namespace tuplex {
                 auto syms = compileTransformStage(*tstage);
                 logger().info("fast path compiled");
 
-                // HACK!!!
+                tstage->setInitData();
+
+                // HACK!!! --> disable the init functors because they're somehow screwed up.
                 syms->initStageFunctor = nullptr;
                 syms->releaseStageFunctor = nullptr;
 

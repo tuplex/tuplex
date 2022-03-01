@@ -1792,6 +1792,9 @@ namespace tuplex {
 
         bool parse_cells = false;
 
+        std::cout<<"ecCode: "<<ecCode<<std::endl;
+
+
         // there are different data reps for certain error codes.
         // => decode the correct object from memory & then feed it into the pipeline...
         if(ecCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)) {

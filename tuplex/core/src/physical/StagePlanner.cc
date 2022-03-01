@@ -18,6 +18,7 @@
 #include <iterator>
 #include <string_view>
 #include <vector>
+#include <physical/StageBuilder.h>
 
 namespace tuplex {
     namespace codegen {
@@ -488,9 +489,11 @@ namespace tuplex {
     }
 
 
+
     // HACK: magical experiment function!!!
     // HACK!
     void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size) {
+        auto& logger = Logger::instance().logger("hyper specializer");
         // run hyperspecialization using planner, yay!
         assert(stage);
 
@@ -498,6 +501,30 @@ namespace tuplex {
         if(stage->_encodedData.empty())
             return;
 
-    }
 
+        logger.info("specializing code to file " + uri.toString());
+        // fetch codeGenerationContext & restore logical operator tree!
+        auto ctx = codegen::CodeGenerationContext::fromJSON(stage->_encodedData);
+
+        assert(ctx.slowPathContext.valid());
+        // decoded, now specialize
+        auto path_ctx = ctx.slowPathContext;
+        //specializePipeline(fastPath, uri, file_size);
+        auto inputNode = path_ctx.inputNode;
+        auto operators = path_ctx.operators;
+        codegen::StagePlanner planner(inputNode, operators);
+        planner.enableAll();
+        path_ctx.operators = planner.optimize();
+        path_ctx.outputSchema = path_ctx.operators.back()->getOutputSchema();
+        path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();
+        logger.info("specialized to input:  " + path_ctx.inputSchema.getRowType().desc());
+        logger.info("specialized to output: " + path_ctx.outputSchema.getRowType().desc());
+        ctx.fastPathContext = path_ctx;
+
+        // generate code! Add to stage, can then compile this. Yay!
+        Timer timer;
+        stage->_fastCodePath = codegen::StageBuilder::generateFastCodePath(ctx, ctx.fastPathContext, ctx.slowPathContext.outputSchema.getRowType(), stage->number());
+        logger.info("generated code in " + std::to_string(timer.time()) + "s");
+        // can then compile everything, hooray!
+    }
 }

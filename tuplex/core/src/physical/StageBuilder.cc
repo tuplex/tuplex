@@ -262,7 +262,7 @@ namespace tuplex {
             _inputNode = csvop;
         }
 
-        std::string StageBuilder::formatBadUDFNode(tuplex::UDFOperator *udfop) const {
+        std::string StageBuilder::formatBadUDFNode(tuplex::UDFOperator *udfop) {
             assert(udfop);
             assert(hasUDF(udfop));
 
@@ -353,11 +353,12 @@ namespace tuplex {
         TransformStage::StageCodePath StageBuilder::generateFastCodePath(const CodeGenerationContext& ctx,
                                                                          const CodeGenerationContext::CodePathContext& pathContext,
                                                                          const python::Type& generalCaseOutputRowType,
-                                                                         const std::string& env_name) const {
+                                                                         int stageNo,
+                                                                         const std::string& env_name) {
             using namespace std;
 
             TransformStage::StageCodePath ret;
-            fillInCallbackNames("fast_", number(), ret);
+            fillInCallbackNames("fast_", stageNo, ret);
             ret.type = TransformStage::StageCodePath::Type::FAST_PATH;
 
             string func_prefix = "";
@@ -378,12 +379,12 @@ namespace tuplex {
 #ifdef VERBOSE_BUILD
             {
                 stringstream ss;
-                ss<<FLINESTR<<endl;
-                ss<<"Stage"<<this->_stageNumber<<" schemas:"<<endl;
-                ss<<"\tnormal case input: "<<_normalCaseInputSchema.getRowType().desc()<<endl;
-                ss<<"\tnormal case output: "<<_normalCaseOutputSchema.getRowType().desc()<<endl;
-                ss<<"\tgeneral case input: "<<_inputSchema.getRowType().desc()<<endl;
-                ss<<"\tgeneral case output: "<<_outputSchema.getRowType().desc()<<endl;
+//                ss<<FLINESTR<<endl;
+//                ss<<"Stage"<<stageNo<<" schemas:"<<endl;
+//                ss<<"\tnormal case input: "<<_normalCaseInputSchema.getRowType().desc()<<endl;
+//                ss<<"\tnormal case output: "<<_normalCaseOutputSchema.getRowType().desc()<<endl;
+//                ss<<"\tgeneral case input: "<<_inputSchema.getRowType().desc()<<endl;
+//                ss<<"\tgeneral case output: "<<_outputSchema.getRowType().desc()<<endl;
 
                 logger.debug(ss.str());
             }
@@ -411,7 +412,7 @@ namespace tuplex {
 
             // go through nodes & add operation
             logger.info("generating pipeline for " + pathContext.inputSchema.getRowType().desc() + " -> "
-                        + pathContext.outputSchema.getRowType().desc() + " (" + pluralize(_operators.size(), "operator") + " pipelined)");
+                        + pathContext.outputSchema.getRowType().desc() + " (" + pluralize(pathContext.operators.size(), "operator") + " pipelined)");
 
             // first node determines the data source
 
@@ -461,7 +462,7 @@ namespace tuplex {
                 UDFOperator *udfop = dynamic_cast<UDFOperator *>(node);
                 switch (node->type()) {
                     case LogicalOperatorType::MAP: {
-                        if (!pip->mapOperation(node->getID(), udfop->getUDF(), _normalCaseThreshold, ctx.allowUndefinedBehavior,
+                        if (!pip->mapOperation(node->getID(), udfop->getUDF(), ctx.normalCaseThreshold, ctx.allowUndefinedBehavior,
                                                ctx.sharedObjectPropagation)) {
                             logger.error(formatBadUDFNode(udfop));
                             return ret;
@@ -470,7 +471,7 @@ namespace tuplex {
                     }
                     case LogicalOperatorType::FILTER: {
                         if (!pip->filterOperation(node->getID(), udfop->getUDF(),
-                                                  _normalCaseThreshold,
+                                                  ctx.normalCaseThreshold,
                                                   ctx.allowUndefinedBehavior,
                                                   ctx.sharedObjectPropagation)) {
                             logger.error(formatBadUDFNode(udfop));
@@ -481,7 +482,7 @@ namespace tuplex {
                     case LogicalOperatorType::MAPCOLUMN: {
                         auto mop = dynamic_cast<MapColumnOperator *>(node);
                         if (!pip->mapColumnOperation(node->getID(), mop->getColumnIndex(), udfop->getUDF(),
-                                                     _normalCaseThreshold,
+                                                     ctx.normalCaseThreshold,
                                                      ctx.allowUndefinedBehavior,
                                                      ctx.sharedObjectPropagation)) {
                             logger.error(formatBadUDFNode(udfop));
@@ -492,7 +493,7 @@ namespace tuplex {
                     case LogicalOperatorType::WITHCOLUMN: {
                         auto wop = dynamic_cast<WithColumnOperator *>(node);
                         if (!pip->withColumnOperation(node->getID(), wop->getColumnIndex(), udfop->getUDF(),
-                                                      _normalCaseThreshold,
+                                                      ctx.normalCaseThreshold,
                                                       ctx.allowUndefinedBehavior,
                                                       ctx.sharedObjectPropagation)) {
                             logger.error(formatBadUDFNode(udfop));
@@ -527,9 +528,9 @@ namespace tuplex {
                         assert(jop);
 
                         string hashmap_global_name =
-                                func_prefix + "hash_map_" + to_string(global_var_cnt) + "_stage" + to_string(number());
+                                func_prefix + "hash_map_" + to_string(global_var_cnt) + "_stage" + to_string(stageNo);
                         string null_bucket_global_name =
-                                func_prefix + "null_bucket_" + to_string(global_var_cnt) + "_stage" + to_string(number());
+                                func_prefix + "null_bucket_" + to_string(global_var_cnt) + "_stage" + to_string(stageNo);
 
                         // add two new globals + init code to init/release func
                         auto hash_map_global = env->createNullInitializedGlobal(hashmap_global_name, env->i8ptrType());
@@ -620,7 +621,7 @@ namespace tuplex {
                                 intermediateInitialValue = aop->initialValue();
                                 if (!pip->addAggregate(aop->getID(), aop->aggregatorUDF(),
                                                        aop->getOutputSchema().getRowType(),
-                                                       _normalCaseThreshold,
+                                                       ctx.normalCaseThreshold,
                                                        ctx.allowUndefinedBehavior,
                                                        ctx.sharedObjectPropagation)) {
                                     logger.error(formatBadAggNode(aop));
@@ -673,15 +674,15 @@ namespace tuplex {
                             // i.e. write to memory writer!
                             pip->buildWithCSVRowWriter(ret.writeMemoryCallbackName,
                                                        ctx.outputNodeID,
-                                                       hasOutputLimit(),
+                                                       ctx.hasOutputLimit(),
                                                        ctx.fileOutputParameters.at("null_value"),
-                                                       true, csvOutputDelimiter(), csvOutputQuotechar());
+                                                       true, ctx.csvOutputDelimiter(), ctx.csvOutputQuotechar());
                             break;
                         }
                         case FileFormat::OUTFMT_ORC: {
                             pip->buildWithTuplexWriter(ret.writeMemoryCallbackName,
                                                        ctx.outputNodeID,
-                                                       hasOutputLimit());
+                                                       ctx.hasOutputLimit());
                             break;
                         }
                         default:
@@ -711,7 +712,9 @@ namespace tuplex {
                                                 generalCaseOutputRowType.desc() + "failed.");
                             // set normal case output type to general case
                             logger.warn("using const cast here, it's a code smell. need to fix...");
-                            const_cast<StageBuilder*>(this)->_normalCaseOutputSchema = _outputSchema;
+
+                            // HACK: uncommented... need to fix.
+                            //const_cast<StageBuilder*>(this)->_normalCaseOutputSchema = _outputSchema;
                         }
                     }
                     pip->buildWithHashmapWriter(ret.writeHashCallbackName,
@@ -748,7 +751,7 @@ namespace tuplex {
                         }
                         pip->buildWithTuplexWriter(ret.writeMemoryCallbackName,
                                                    ctx.outputNodeID,
-                                                   hasOutputLimit());
+                                                   ctx.hasOutputLimit());
                     } else {
                         // build w/o writer
                         pip->build();
@@ -776,7 +779,7 @@ namespace tuplex {
                 // note: null_values may be empty!
                 auto null_values = jsonToStringArray(ctx.fileInputParameters.at("null_values"));
 
-                switch (_inputFileFormat) {
+                switch (ctx.inputFileFormat) {
                     case FileFormat::OUTFMT_CSV:
                     case FileFormat::OUTFMT_TEXT: {
                         if (ctx.generateParser) {
@@ -807,10 +810,11 @@ namespace tuplex {
                         throw std::runtime_error("file input format not yet supported!");
                 }
             } else {
-                // tuplex (in-memory) reader
-               if (_updateInputExceptions)
-                    tb = make_shared<codegen::ExceptionSourceTaskBuilder>(env, pathContext.inputSchema.getRowType(), funcStageName);
-                else
+                // HACK: fix this later...!
+//                // tuplex (in-memory) reader
+//               if (ctx.updateInputExceptions)
+//                    tb = make_shared<codegen::ExceptionSourceTaskBuilder>(env, pathContext.inputSchema.getRowType(), funcStageName);
+//                else
                     tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, pathContext.inputSchema.getRowType(), funcStageName);
             }
 
@@ -830,7 +834,7 @@ namespace tuplex {
             }
 
             // create code for "wrap-around" function
-            auto func = tb->build(hasOutputLimit());
+            auto func = tb->build(ctx.hasOutputLimit());
             if (!func)
                 throw std::runtime_error("could not build codegen csv parser");
 
@@ -1388,7 +1392,8 @@ namespace tuplex {
                 // wait for threads to finish generating the two paths...!
                 stage->_fastCodePath = generateFastCodePath(codeGenerationContext,
                                                             codeGenerationContext.fastPathContext,
-                                                            codeGenerationContext.slowPathContext.outputSchema.getRowType());
+                                                            codeGenerationContext.slowPathContext.outputSchema.getRowType(),
+                                                            number());
                 stage->_slowCodePath = slowCodePath_f.get();
             }
 
@@ -1451,7 +1456,7 @@ namespace tuplex {
         }
 
         //@TODO: refactor this design AFTER paper deadline.
-        StageBuilder::CodeGenerationContext StageBuilder::createCodeGenerationContext() const {
+        CodeGenerationContext StageBuilder::createCodeGenerationContext() const {
             CodeGenerationContext ctx;
             // copy common attributes first
             ctx.allowUndefinedBehavior = _allowUndefinedBehavior;
@@ -1459,6 +1464,7 @@ namespace tuplex {
             ctx.nullValueOptimization = _nullValueOptimization;
             ctx.isRootStage = _isRootStage;
             ctx.generateParser = _generateParser;
+            ctx.normalCaseThreshold = _normalCaseThreshold;
 
             // output params
             ctx.outputMode = _outputMode;
@@ -1466,6 +1472,7 @@ namespace tuplex {
             ctx.outputNodeID = _outputNodeID;
             ctx.outputSchema = _outputSchema; //! final output schema of stage
             ctx.fileOutputParameters = _fileOutputParameters; // parameters specific for a file output format
+            ctx.outputLimit = _outputLimit;
 
             // hash output parameters
             ctx.hashColKeys = _hashColKeys;
@@ -1483,7 +1490,7 @@ namespace tuplex {
             return ctx;
         }
 
-        StageBuilder::CodeGenerationContext::CodePathContext StageBuilder::getGeneralPathContext() const {
+        CodeGenerationContext::CodePathContext StageBuilder::getGeneralPathContext() const {
             CodeGenerationContext::CodePathContext cp;
 
             // simply use the schemas from the operators as given
@@ -1564,6 +1571,9 @@ namespace tuplex {
 
             TransformStage *stage = new TransformStage(plan, backend, _stageNumber, _allowUndefinedBehavior);
             bool mem2mem = _inputMode == EndPointMode::MEMORY && _outputMode == EndPointMode::MEMORY;
+
+            fillStageParameters(stage);
+
             if (_operators.empty() && mem2mem) {
                 stage->_pyCode = "";
                 TransformStage::StageCodePath slow;
@@ -1577,6 +1587,8 @@ namespace tuplex {
                 auto ctx = createCodeGenerationContext();
                 ctx.slowPathContext = getGeneralPathContext();
 
+
+
                 auto json_str = ctx.toJSON();
                 logger.info("serialized stage as JSON string (TODO: make this better, more efficient, ...");
                 stage->_encodedData = json_str; // hack
@@ -1585,7 +1597,7 @@ namespace tuplex {
             return stage;
         }
 
-        std::string StageBuilder::CodeGenerationContext::toJSON() const {
+        std::string CodeGenerationContext::toJSON() const {
             using namespace nlohmann;
             auto &logger = Logger::instance().logger("codegen");
 
@@ -1598,11 +1610,13 @@ namespace tuplex {
                 root["nullValueOptimization"] = nullValueOptimization;
                 root["isRootStage"] = isRootStage;
                 root["generateParser"] = generateParser;
+                root["normalCaseThreshold"] = normalCaseThreshold;
                 root["outputMode"] = outputMode;
                 root["outputFileFormat"] = outputFileFormat;
                 root["outputNodeID"] = outputNodeID;
                 root["outputSchema"] = outputSchema.getRowType().desc();
                 root["fileOutputParameters"] = fileOutputParameters;
+                root["outputLimit"] = outputLimit;
                 root["hashColKeys"] = hashColKeys;
                 if(python::Type::UNKNOWN != hashKeyType && hashKeyType.hash() > 0) // HACK
                     root["hashKeyType"] = hashKeyType.desc();
@@ -1649,7 +1663,7 @@ namespace tuplex {
             return obj;
         }
 
-        nlohmann::json StageBuilder::CodeGenerationContext::CodePathContext::to_json() const {
+        nlohmann::json CodeGenerationContext::CodePathContext::to_json() const {
             nlohmann::json obj;
             obj["read"] = readSchema.getRowType().desc();
             obj["input"] = inputSchema.getRowType().desc();

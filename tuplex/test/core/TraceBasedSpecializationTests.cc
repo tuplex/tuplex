@@ -509,7 +509,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv";
 
     // 2003 test pattern:
-    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv";
+    //input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv";
 
     // Lambda settings (i.e. 10G and 2 threads?)
     size_t numLambdaThreads = 2;
@@ -519,8 +519,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 //
 //    // test:
 //    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_10.csv";
-    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_*.csv";
-    bool use_lambda = false;
+    bool use_lambda = true;
+    if(!use_lambda)
+        input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_*.csv";
 
     std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;
     Timer timer;
@@ -571,8 +572,8 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
         opt_general.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));
         opt_general.set("tuplex.aws.lambdaThreads", std::to_string(numLambdaThreads));
         opt_general.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp-general");
-        opt_general.set("tuplex.experimental.hyperspecialization", "false"); // turn off !!!
     }
+    opt_general.set("tuplex.experimental.hyperspecialization", "false"); // turn off !!!
     Context ctx_general(opt_general);
 
     // run same query too

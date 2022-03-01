@@ -226,9 +226,9 @@ namespace tuplex {
                         cout<<"mop updated: \ninput type: "<<mop->getInputSchema().getRowType().desc()
                             <<"\noutput type: "<<mop->getOutputSchema().getRowType().desc()<<endl;
 
-//#ifdef GENERATE_PDFS
+#ifdef GENERATE_PDFS
                         mop->getUDF().getAnnotatedAST().writeGraphToPDF("final_mop_udf.pdf");
-//#endif
+#endif
                         // @TODO: should clone operators etc. here INCL. input oprator else issue.
                         // input operator needs additional check... => put this check into parser...
 

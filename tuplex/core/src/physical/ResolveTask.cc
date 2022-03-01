@@ -543,10 +543,10 @@ default:
                 } else {
 
 #ifndef NDEBUG
-                    // // uncomment to print res obj
-                    // Py_XINCREF(pcr.res);
-                    // PyObject_Print(pcr.res, stdout, 0);
-                    // std::cout<<std::endl;
+//                     // uncomment to print res obj
+//                     Py_XINCREF(pcr.res);
+//                     PyObject_Print(pcr.res, stdout, 0);
+//                     std::cout<<std::endl;
 #endif
                     auto exceptionObject = PyDict_GetItemString(pcr.res, "exception");
                     if(exceptionObject) {

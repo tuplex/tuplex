@@ -700,7 +700,7 @@ namespace tuplex {
             }
 
             // @TODO: what about remaining time? Partial completion?
-            cout<<"fallback would be called here, is there hyper specialization?"
+            cout<<"fallback would be called here, is there hyper specialization?"<<endl;
             // HACK! Hyper-specialization
             if(req.stage().has_serializedstage() && req.inputuris_size() > 0) {
                 logger().info("HYPERSPECIALIZATION ACTIVE");

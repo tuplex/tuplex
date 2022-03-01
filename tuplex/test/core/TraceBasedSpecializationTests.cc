@@ -509,6 +509,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv";
     std::string s3_output = "s3://tuplex-leonhard/experiments/flights_hyper";
 
+    // test:
+    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_10.csv";
+
 
     std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;
     Timer timer;

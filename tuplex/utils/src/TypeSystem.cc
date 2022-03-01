@@ -544,9 +544,7 @@ namespace python {
     }
 
     bool Type::isSingleValued() const {
-        return *this == Type::NULLVALUE || *this == Type::EMPTYTUPLE
-            || *this == Type::EMPTYDICT || *this == Type::EMPTYLIST
-            || isConstantValued();
+        return *this == Type::NULLVALUE || *this == Type::EMPTYTUPLE || *this == Type::EMPTYDICT || *this == Type::EMPTYLIST;
     }
 
     bool Type::isIllDefined() const {

@@ -1896,6 +1896,8 @@ namespace tuplex {
                                           llvm::Value *isnull);
 
 
+        extern SerializableValue constantValuedTypeToLLVM(llvm::IRBuilder<>& builder, const python::Type& elementType);
+
     }
 }
 

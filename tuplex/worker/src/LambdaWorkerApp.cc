@@ -11,6 +11,10 @@
 
 #include <LambdaWorkerApp.h>
 
+// HACK
+#include <physical/StagePlanner.h>
+// planning
+
 // AWS specific includes
 #include <aws/core/Aws.h>
 #include <aws/core/auth/AWSCredentialsProviderChain.h>
@@ -603,6 +607,17 @@ namespace tuplex {
 
                 // only transform stage yet supported, in the future support other stages as well!
                 auto tstage = TransformStage::from_protobuf(req.stage());
+
+                // HACK! Hyper-specialization
+                if(req.stage().has_serializedstage() && req.inputuris_size() > 0) {
+                    logger().info("HYPERSPECIALIZATION ACTIVE");
+                    Timer timer;
+                    // use first input file
+                    std::string uri = req.inputuris(0);
+                    size_t file_size = req.inputsizes(0);
+                    hyperspecialize(tstage, uri, file_size);
+                    logger().info("HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()));
+                }
 
                 // pure Python Mode? ==> process in python only!
                 int64_t rc = WORKER_OK;

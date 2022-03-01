@@ -823,6 +823,10 @@ namespace tuplex {
             if (elementType.isSingleValued())
                 return;
 
+            // special case, constant valued - do not need to store
+            if(elementType.isConstantValued()) // @TODO: unify with single-valued???
+                return;
+
             // ndebug: safety check, right llvm type!
             //assert(tuplePtr->getType() == createStructType(ctx, tupleType, "tuple")->getPointerTo()); ??
 

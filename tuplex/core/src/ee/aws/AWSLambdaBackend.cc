@@ -976,7 +976,12 @@ namespace tuplex {
                 backend->invokeAsync(invoke_req);
                 backend->_numPendingRequests.fetch_add(-1, std::memory_order_release);
 
-                backend->logger().info("LAMBDA task failed with [" + std::to_string(statusCode) + "], invoking again.");
+                std::string input_desc = "no files";
+                if(invoke_req.inputuris_size() > 0)
+                    input_desc = invoke_req.inputuris(0);
+
+                backend->logger().info("LAMBDA task failed (" + input_desc + ") with [" + std::to_string(statusCode) + "], invoking again.");
+
                 return;
             } else {
                 ss << "LAMBDA task failed with ["<<statusCode<<"]" << outcome.GetError().GetExceptionName().c_str()

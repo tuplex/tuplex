@@ -519,7 +519,8 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 //
 //    // test:
 //    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_10.csv";
-
+    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_*.csv";
+    bool use_lambda = false;
 
     std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;
     Timer timer;
@@ -530,17 +531,30 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
     opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
     // hyperspecialization setting
-    opt.set("tuplex.backend", "lambda");
-    opt.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));
-    opt.set("tuplex.aws.lambdaThreads", std::to_string(numLambdaThreads));
-    opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
+    if(use_lambda) {
+        opt.set("tuplex.backend", "lambda");
+        opt.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));
+        opt.set("tuplex.aws.lambdaThreads", std::to_string(numLambdaThreads));
+        opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
+    }
     opt.set("tuplex.experimental.hyperspecialization", "true");
     Context ctx(opt);
 
     // could also be interesting to have some sort of figure showing different specializations (i.e. column pushdown)
 
     // run same query too
+
+    // check for each file in non-lambda mode
+    if(!use_lambda) {
+        auto vfs = VirtualFileSystem::fromURI("file://");
+        auto files = vfs.glob(input_pattern);
+        for(const auto& path : files) {
+            std::cout<<"checking for file "<<path<<std::endl;
+            ctx.csv(path.toString()).map(UDF(code)).tocsv("test_local.csv");
+        }
+    } else
     ctx.csv(input_pattern).map(UDF(code)).tocsv(s3_output +"_hyper");
+
     double hyperQueryTime = timer.time();
     std::cout<<"Hyper query done in "<<hyperQueryTime<<"s"<<std::endl;
     // -----------------------------------------------------------------------------
@@ -552,11 +566,13 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     opt_general.set("tuplex.executorCount", "0");
     opt_general.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
     opt_general.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
-    opt_general.set("tuplex.backend", "lambda");
-    opt.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));
-    opt.set("tuplex.aws.lambdaThreads", std::to_string(numLambdaThreads));
-    opt_general.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp-general");
-    opt_general.set("tuplex.experimental.hyperspecialization", "false"); // turn off !!!
+    if(use_lambda) {
+        opt_general.set("tuplex.backend", "lambda");
+        opt_general.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));
+        opt_general.set("tuplex.aws.lambdaThreads", std::to_string(numLambdaThreads));
+        opt_general.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp-general");
+        opt_general.set("tuplex.experimental.hyperspecialization", "false"); // turn off !!!
+    }
     Context ctx_general(opt_general);
 
     // run same query too

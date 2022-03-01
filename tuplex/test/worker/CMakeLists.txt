@@ -9,6 +9,7 @@ include(GoogleTest)
 
 ADD_EXECUTABLE(testworker ${SRCS} ../../worker/src/WorkerApp.cc ../../worker/src/LambdaWorkerApp.cc)
 target_include_directories(testworker PUBLIC "../../worker/include")
+# find_package(pybind11 REQUIRED)
 TARGET_LINK_LIBRARIES(testworker
         libutils
         libio
@@ -18,6 +19,7 @@ TARGET_LINK_LIBRARIES(testworker
         ${GTest_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
         ${Python3_LIBRARIES}
+        pybind11::embed
         )
 
 message(STATUS "Building tests for worker ${WORKER_NAME}")

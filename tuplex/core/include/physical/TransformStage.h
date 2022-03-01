@@ -464,6 +464,10 @@ namespace tuplex {
          */
         void setDataAggregationMode(const AggregateType& t) { _aggMode = t; }
 
+        inline std::shared_ptr<JITSymbols> jitsyms() const {
+            return _syms;
+        }
+
     private:
         /*!
          * creates a new TransformStage with generated code

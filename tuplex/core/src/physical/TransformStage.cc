@@ -726,6 +726,11 @@ namespace tuplex {
     void TransformStage::compileSlowPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {
         Timer timer;
         JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
+
+        // lazy compile
+        if(!_syms)
+            _syms = std::make_shared<JITSymbols>();
+
         auto& logger = Logger::instance().defaultLogger();
 
 //        _slowCodePath = _slowCodePath_f.get();
@@ -783,6 +788,10 @@ namespace tuplex {
         Timer timer;
         JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
         auto& logger = Logger::instance().defaultLogger();
+
+        // lazy compile
+        if(!_syms)
+            _syms = std::make_shared<JITSymbols>();
 
         llvm::LLVMContext ctx;
         auto fast_path_bit_code = fastPathBitCode();

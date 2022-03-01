@@ -729,7 +729,13 @@ namespace tuplex {
                     return processTransformStageInPythonMode(tstage, parts, outputURI);
                 }
                 // if not, compile given code & process using both compile code & fallback
-                auto syms = compileTransformStage(*tstage);
+                // compile ONLY fast code path!
+                if(tstage->fastPathBitCode().empty())
+                    logger().warn("Weird, no fastPathBitCode??");
+                logger().info("compiling fast path only");
+                tstage->compileFastPath(*_compiler, nullptr, false);
+                logger().info("fast path compiled");
+                auto syms = tstage->jitsyms();
                 if(!syms)
                     return WORKER_ERROR_COMPILATION_FAILED;
                 return processTransformStage(tstage, syms, parts, outputURI);

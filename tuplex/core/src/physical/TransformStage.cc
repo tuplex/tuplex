@@ -872,6 +872,8 @@ namespace tuplex {
     }
 
     std::shared_ptr<TransformStage::JITSymbols> TransformStage::compile(JITCompiler &jit, LLVMOptimizer *optimizer, bool excludeSlowPath, bool registerSymbols) {
+        auto& logger = Logger::instance().defaultLogger();
+
         // lazy compile
         if(!_syms)
             _syms = std::make_shared<JITSymbols>();
@@ -890,7 +892,7 @@ namespace tuplex {
         std::stringstream ss;
         ss<<"Compiled code paths for stage "<<number()<<" in "<<std::fixed<<std::setprecision(2)<<compilation_time_via_llvm_this_number<<" ms";
 
-        Logger::instance().defaultLogger().info(ss.str());
+        logger.info(ss.str());
 
         return _syms;
     }

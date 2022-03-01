@@ -1310,6 +1310,8 @@ namespace tuplex {
 //            logger().info("module verified.");
 //        }
 //#endif
+            std::cout<<"symbols are all registered"<<std::endl;
+
 
             // perform actual compilation
             // -> do not compile slow path for now.

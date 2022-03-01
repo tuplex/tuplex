@@ -714,10 +714,11 @@ namespace tuplex {
                 size_t file_size = req.inputsizes(0);
                 logger().info("Specializing on input " + uri + " (" + sizeToMemString(file_size) + ")");
                 hyperspecialize(tstage, uri, file_size);
-                logger().info("HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()));
+                logger().info("HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()) + "s");
                 Timer opt_timer;
                 // compile & optimize!
-                logger().info("HYPERSPECIALIAITON LLVM OPT TOOK" + std::to_string(opt_timer.time()));
+                // i.e. invoke LLVM optimizers here...
+                logger().info("HYPERSPECIALIAITON LLVM OPT TOOK " + std::to_string(opt_timer.time()) + "s");
 
                 URI outputURI = outputURIFromReq(req);
                 auto parts = partsFromMessage(req);

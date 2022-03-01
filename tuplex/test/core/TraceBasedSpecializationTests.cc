@@ -518,9 +518,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     opt.set("tuplex.executorCount", "0");
     opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
     opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
-    // hyperspecialization setting
-    opt.set("tuplex.backend", "lambda");
-    opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
+//    // hyperspecialization setting
+//    opt.set("tuplex.backend", "lambda");
+//    opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
     opt.set("tuplex.experimental.hyperspecialization", "true");
     Context ctx(opt);
 
@@ -531,7 +531,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     double hyperQueryTime = timer.time();
     std::cout<<"Hyper query done in "<<hyperQueryTime<<"s"<<std::endl;
     // -----------------------------------------------------------------------------
-    sts:cout<<"**************************************"<<std::endl;
+    std:cout<<"**************************************"<<std::endl;
     std::cout<<"Running query with hyper-opt off"<<std::endl;
     // running query with hyper specializaiton off.
     timer.reset();

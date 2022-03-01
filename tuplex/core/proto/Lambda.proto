@@ -23,7 +23,7 @@ enum MessageType {
 
 
 message CodePath {
-    string irBitCode = 1;
+    bytes irBitCode = 1;
     string initStageFuncName = 2;
     string releaseStageFuncName = 3;
     string funcStageName = 4;

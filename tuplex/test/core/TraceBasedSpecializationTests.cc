@@ -504,14 +504,35 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     ds.tocsv(s3_output);
 
     // BENCHMARK HERE...!
+
+//    string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv";
+    string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv";
     std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;
+    Timer timer;
 
     // running first query with hyper specialization on.
 
+    // could also be interesting to have some sort of figure showing different specializations (i.e. column pushdown)
+
     std::cout<<"Running query with hyper-opt off"<<std::endl;
     // running query with hyper specializaiton off.
+    timer.reset();
+    ContextOptions opt_general = ContextOptions::defaults();
+    opt_general.set("tuplex.executorCount", "0");
+    opt_general.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
+    opt_general.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
+    opt_general.set("tuplex.backend", "lambda");
+    opt_general.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp-general");
+    opt_general.set("tuplex.experimental.hyperspecialization", "false");
+    Context ctx_general(opt_general);
 
+    // run same query too
+    ctx_general.csv(non_null_based_file).map(UDF(code)).tocsv(s3_output +"_general"); // fix: /aws/lambda/tuplex-lambda-runner?
 
+    double generalQueryTime = timer.time();
+    std::cout<<"General query done"<<std::endl;
 
+    // print out results as json
+    std::cout<<"{\"general_total_time\":"<<generalQueryTime<<"}"<<std::endl;
     //ds.show(5);
 }

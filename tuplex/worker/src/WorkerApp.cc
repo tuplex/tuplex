@@ -142,6 +142,11 @@ namespace tuplex {
 
     int64_t WorkerApp::initTransformStage(const TransformStage::InitData& initData,
                                           const std::shared_ptr<TransformStage::JITSymbols> &syms) {
+        if(!syms->initStageFunctor) {
+            std::cout<<"skip init trafo stage, b.c. symbol not found"<<std::endl;
+            return 0;
+        }
+
         // initialize stage
         int64_t init_rc = 0;
         if((init_rc = syms->initStageFunctor(initData.numArgs,
@@ -164,6 +169,11 @@ namespace tuplex {
     }
 
     int64_t WorkerApp::releaseTransformStage(const std::shared_ptr<TransformStage::JITSymbols>& syms) {
+        if(!syms->initStageFunctor || !syms->releaseStageFunctor) {
+            std::cout<<"skip release trafo stage, b.c. symbols not found"<<std::endl;
+            return 0;
+        }
+
         // call release func for stage globals
         if(syms->releaseStageFunctor() != 0) {
             logger().error("releaseStage() failed for stage ");

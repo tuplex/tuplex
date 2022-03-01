@@ -741,8 +741,6 @@ namespace tuplex {
 
 
                 auto syms = compileTransformStage(*tstage);
-                if(!syms)
-                    return WORKER_ERROR_COMPILATION_FAILED;
                 logger().info("fast path compiled");
 
                 if(!syms)

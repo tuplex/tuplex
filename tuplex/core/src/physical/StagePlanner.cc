@@ -214,12 +214,15 @@ namespace tuplex {
                         cout<<"Rewriting indices: "<<rewriteInfo<<endl;
 
                         // this is quite hacky...
+                        // ==> CLONE???
                         fop->selectColumns(indices_to_read_from_previous_op);
                         cout<<"file input now only reading: "<<indices_to_read_from_previous_op<<endl;
                         cout<<"I.e., read before: "<<col_names_to_read_before<<endl;
                         cout<<"now: "<<col_names_to_read_after<<endl;
+                        fop->useNormalCase(); // !!! retype input op. mop already retyped above...
 
                         mop->rewriteParametersInAST(rewriteMap);
+                        // retype!
                         cout<<"mop updated: \ninput type: "<<mop->getInputSchema().getRowType().desc()
                             <<"\noutput type: "<<mop->getOutputSchema().getRowType().desc()<<endl;
 
@@ -512,13 +515,28 @@ namespace tuplex {
         //specializePipeline(fastPath, uri, file_size);
         auto inputNode = path_ctx.inputNode;
         auto operators = path_ctx.operators;
+
+        // force resampling b.c. of thin layer
+        if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
+            auto fop = dynamic_cast<FileInputOperator*>(inputNode); assert(fop);
+            fop->setInputFiles({uri}, {file_size}, true);
+        }
+
+        // node need to find some smart way to QUICKLY detect whether the optimizaiton can be applied or should be rather skipped...
+
         codegen::StagePlanner planner(inputNode, operators);
         planner.enableAll();
         path_ctx.operators = planner.optimize();
         path_ctx.outputSchema = path_ctx.operators.back()->getOutputSchema();
         path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();
+        path_ctx.readSchema = dynamic_cast<FileInputOperator*>(path_ctx.inputNode)->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
+        path_ctx.columnsToRead = dynamic_cast<FileInputOperator*>(path_ctx.inputNode)->columnsToSerialize();
         logger.info("specialized to input:  " + path_ctx.inputSchema.getRowType().desc());
         logger.info("specialized to output: " + path_ctx.outputSchema.getRowType().desc());
+        size_t numToRead = 0;
+        for(auto indicator : path_ctx.columnsToRead)
+            numToRead += indicator;
+        logger.info("specialized code reads: " + pluralize(numToRead, "column"));
         ctx.fastPathContext = path_ctx;
 
         // generate code! Add to stage, can then compile this. Yay!

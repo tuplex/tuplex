@@ -581,4 +581,50 @@ namespace tuplex {
             totalSize += s;
         return totalSize == 0;
     }
+
+    // HACK !!!!
+    void FileInputOperator::setInputFiles(const std::vector<URI> &uris, const std::vector<size_t> &uri_sizes,
+                                          bool resample) {
+        assert(uris.size() == uri_sizes.size());
+        _fileURIs = uris;
+        _sizes = uri_sizes;
+
+        if(resample && !_fileURIs.empty()) {
+            // only CSV supported...
+            if(_fmt != FileFormat::OUTFMT_CSV)
+                throw std::runtime_error("only csv supported");
+
+            size_t SAMPLE_SIZE = 1024 * 256; // use 256KB each
+
+            // @TODO: rework this...
+            aligned_string sample;
+            sample = loadSample(SAMPLE_SIZE, _fileURIs.front(), _sizes.front(),
+                                SamplingMode::SAMPLE_FIRST_ROWS);
+
+            _firstRowsSample = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1,
+                                                                                   strlen(sample.c_str())), _null_values, _delimiter, _quotechar);
+            // header? ignore first row!
+            if(_header && !_firstRowsSample.empty())
+                _firstRowsSample.erase(_firstRowsSample.begin());
+
+            // fetch also last rows sample?
+            // only draw sample IF > 1 file or file_size > 2 * sample size
+            bool draw_sample = _fileURIs.size() >= 2 || _sizes.back() >= 2 * SAMPLE_SIZE;
+            if(draw_sample) {
+                auto last_sample = loadSample(SAMPLE_SIZE, _fileURIs.back(), _sizes.back(), SamplingMode::SAMPLE_LAST_ROWS);
+                // search CSV beginning
+                auto column_count = inputColumnCount();
+                auto offset = csvFindLineStart(last_sample.c_str(), SAMPLE_SIZE, column_count, _delimiter, _quotechar);
+                if(offset >= 0) {
+                    // parse into last rows
+                    _lastRowsSample = parseRows(last_sample.c_str(), last_sample.c_str() + std::min(last_sample.size() - 1, strlen(last_sample.c_str())), _null_values, _delimiter, _quotechar);
+                } else {
+                    //logger.warn("could not find CSV line start in last rows sample.");
+                }
+            }
+
+            // pretty bad but required, else stageplanner/builder will complain
+            _estimatedRowCount = _firstRowsSample.size() * ( 1.0 * _sizes.front() / (1.0 * sample.size()));
+        }
+    }
 }

@@ -279,6 +279,7 @@ namespace tuplex {
             obj["optimizedColumnNames"] = _optimizedColumnNames;
             obj["columnsToSerialize"] = _columnsToSerialize;
 
+            obj["schema"] = schema().getRowType().desc();
             obj["optimizedSchema"] = _optimizedSchema.getRowType().desc();
             obj["normalCaseRowType"] = _normalCaseRowType.desc();
             obj["optimizedNormalCaseRowType"] = _optimizedNormalCaseRowType.desc();
@@ -289,6 +290,9 @@ namespace tuplex {
 
             return obj;
         }
+
+        // HACK !!!
+        void setInputFiles(const std::vector<URI>& uris, const std::vector<size_t>& uri_sizes, bool resample=false);
 
         // HACK !!!
         static FileInputOperator* from_json(nlohmann::json obj) {
@@ -311,7 +315,8 @@ namespace tuplex {
             fop->_optimizedNormalCaseRowType = python::decodeType(obj["optimizedNormalCaseRowType"].get<std::string>());
 
             fop->setID(obj["id"]);
-
+            auto schema = Schema(Schema::MemoryLayout::ROW, python::decodeType(obj["schema"].get<std::string>()));
+            fop->setSchema(schema);
             return fop;
         }
     };

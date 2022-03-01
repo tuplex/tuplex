@@ -190,8 +190,12 @@ TEST_F(SamplingTest, FlightsSpecializedVsGeneralValueImputation) {
     using namespace tuplex;
     ContextOptions opt = ContextOptions::defaults();
     opt.set("tuplex.executorCount", "0");
-    opt.set("tuplex.optimizer.nullValueOptimization", "true");
-    opt.set("tuplex.resolveWithInterpreterOnly", "true");
+
+    opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
+
+    //opt.set("tuplex.optimizer.nullValueOptimization", "false"); // this also doesn't work -.-
+
+    opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
 
     // hyperspecialization setting
 
@@ -309,6 +313,7 @@ auto code = "def fill_in_delays(row):\n"
 
     // this file here should get folded!
     // => i.e. no expensive code is required!
-    auto& ds = ctx.csv(non_null_based_file).map(UDF(code));
+//    auto& ds = ctx.csv(non_null_based_file).map(UDF(code));
+    auto& ds = ctx.csv(null_based_file).map(UDF(code));
     ds.show(5);
 }

@@ -786,17 +786,25 @@ namespace tuplex {
 
     void TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {
         Timer timer;
-        JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
         auto& logger = Logger::instance().defaultLogger();
 
+        // adding a bunch of logging to debug where the failure happens
+        logger.debug("fetching metrics obj");
+        JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
+        logger.info("metrics obj fetched");
+
         // lazy compile
-        if(!_syms)
+        if(!_syms) {
+            logger.info("lazy init syms");
             _syms = std::make_shared<JITSymbols>();
+        }
 
         llvm::LLVMContext ctx;
         auto fast_path_bit_code = fastPathBitCode();
-        if(fast_path_bit_code.empty())
+        if(fast_path_bit_code.empty()) {
+            logger.info("empty bitcode found, skip");
             return;
+        }
 
         auto fast_path_mod = codegen::bitCodeToModule(ctx, fast_path_bit_code);
         if(!fast_path_mod)
@@ -815,13 +823,13 @@ namespace tuplex {
         }
 
         // step 2: register callback functions with compiler
-        if(!writeMemoryCallbackName().empty())
+        if(registerSymbols && !writeMemoryCallbackName().empty())
             jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(false));
-        if(!exceptionCallbackName().empty())
+        if(registerSymbols && !exceptionCallbackName().empty())
             jit.registerSymbol(exceptionCallbackName(), TransformTask::exceptionCallback(false));
-        if(!writeFileCallbackName().empty())
+        if(registerSymbols && !writeFileCallbackName().empty())
             jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(true));
-        if(outputMode() == EndPointMode::HASHTABLE && !_fastCodePath.writeHashCallbackName.empty()) {
+        if(registerSymbols && outputMode() == EndPointMode::HASHTABLE && !_fastCodePath.writeHashCallbackName.empty()) {
             logger.debug("change problematic logic here...");
             if (hashtableKeyByteWidth() == 8) {
                 if(_fastCodePath.aggregateAggregateFuncName.empty())
@@ -835,8 +843,10 @@ namespace tuplex {
             }
         }
         assert(!_fastCodePath.initStageFuncName.empty() && !_fastCodePath.releaseStageFuncName.empty());
-        if(!_fastCodePath.aggregateCombineFuncName.empty())
+        if(registerSymbols && !_fastCodePath.aggregateCombineFuncName.empty())
             jit.registerSymbol(aggCombineCallbackName(), TransformTask::aggCombineCallback());
+
+        logger.info("syms registered (or skipped), compile now")
 
         // 3. compile code
         // @TODO: use bitcode or llvm Module for more efficiency...

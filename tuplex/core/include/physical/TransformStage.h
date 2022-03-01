@@ -577,6 +577,8 @@ namespace tuplex {
         bool _persistSeparateCases;
         AggregateType _aggMode;
 
+        std::string _encodedData; // HACK: encoded bytes to represent stage
+
         std::vector<int64_t> _operatorIDsWithResolvers;
 
         std::vector<Partition*> _inputPartitions; //! memory input partitions for this task.

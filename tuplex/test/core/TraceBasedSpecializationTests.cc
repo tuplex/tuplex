@@ -192,6 +192,11 @@ TEST_F(SamplingTest, FlightsSpecializedVsGeneralValueImputation) {
     opt.set("tuplex.executorCount", "0");
     opt.set("tuplex.optimizer.nullValueOptimization", "true");
     opt.set("tuplex.resolveWithInterpreterOnly", "true");
+
+    // hyperspecialization setting
+
+    // opt.set("tuplex.backend", "lambda");
+    //opt.set("tuplex.experimental.hyperspecialization", "true");
     Context ctx(opt);
 
     // specialize access with columns vs. non-columns

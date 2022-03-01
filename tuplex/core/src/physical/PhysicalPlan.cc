@@ -386,8 +386,16 @@ namespace tuplex {
 
         // @TODO: add slowPip builder to this process...
 
+        // #error "TODO: for Lambda/hyperspecialization experiment -> hack together a super simple solution to serialize the stage in order to specialize it on-the-fly on the Lambda."
+
+
         // generate code for stage and init vars
-        auto stage = builder.build(this, backend());
+        TransformStage *stage = nullptr;
+        if(_context.getOptions().USE_EXPERIMENTAL_HYPERSPECIALIZATION()) {
+            _logger.debug("Using experimental hyperspecialization mode");
+            stage = builder.encodeForSpecialization(this, backend());
+        } else
+            stage = builder.build(this, backend());
         // converting deque of ops to vector of ops and set to stage. Note these are the optimized operators. (correct?)
         stage->setOperators(std::vector<LogicalOperator*>(ops.begin(), ops.end()));
         stage->setDataAggregationMode(hashGroupedDataType);

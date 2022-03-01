@@ -82,6 +82,10 @@ namespace tuplex {
 
             TransformStage* build(PhysicalPlan* plan, IBackend* backend);
             inline TransformStage* build() { return build(nullptr, nullptr); }
+
+            // HACK: experimental function to encode as bytes a TransformStage
+            TransformStage* encodeForSpecialization(PhysicalPlan* plan, IBackend* backend);
+
         private:
 
             // flags to influence code generation
@@ -97,51 +101,83 @@ namespace tuplex {
             int64_t _stageNumber;
             int64_t _outputDataSetID;
 
+            /*!
+             * helper struct to give code-gen context for a single Stage
+             */
             struct CodeGenerationContext {
-                // Common variables
-                bool allowUndefinedBehavior;
-                bool sharedObjectPropagation;
-                bool nullValueOptimization;
+                // Common variables, i.e. config settings for global code-gen
+                bool                                            allowUndefinedBehavior;
+                bool                                            sharedObjectPropagation;
+                bool                                            nullValueOptimization;
+                bool                                            isRootStage;
+                bool                                            generateParser;
 
-                EndPointMode outputMode;
-                FileFormat outputFileFormat;
-                int64_t outputNodeID;
+                // outputMode & format are shared between the different code-paths (normal & general & fallback)
+                EndPointMode                                    outputMode;
+                FileFormat                                      outputFileFormat;
+                int64_t                                         outputNodeID;
+                Schema                                          outputSchema; //! output schema of stage
+                std::unordered_map<std::string, std::string>    fileOutputParameters; // parameters specific for a file output format
 
-                std::unordered_map<std::string, std::string> fileOutputParameters; // parameters specific for a file output format
-                Schema outputSchema; //! output schema of stage
+                std::vector<size_t>                             hashColKeys; // the column to use as hash key
+                python::Type                                    hashKeyType;
+                bool                                            hashSaveOthers; // whether to save other columns than the key or not. => TODO: UDAs, meanByKey etc. all will require similar things...
+                bool                                            hashAggregate; // whether the hashtable is an aggregate
 
-                std::vector<size_t>      hashColKeys; // the column to use as hash key
-                python::Type hashKeyType;
-                bool        hashSaveOthers; // whether to save other columns than the key or not. => TODO: UDAs, meanByKey etc. all will require similar things...
-                bool        hashAggregate; // whether the hashtable is an aggregate
+                // input mode and parameters are also shared between the different codepaths
+                EndPointMode                                    inputMode;
+                FileFormat                                      inputFileFormat;
+                int64_t                                         inputNodeID;
+                std::unordered_map<std::string, std::string>    fileInputParameters; // parameters specific for a file input format
 
-                EndPointMode inputMode;
-                std::unordered_map<std::string, std::string> fileInputParameters; // parameters specific for a file input format
+//                // Resolve variables (they will be only present on slow path!)
+//                std::vector<LogicalOperator*>                   resolveOperators;
+//                // the input node of the general case path. => fast-path may specialize its own input Node!
+//                LogicalOperator*                                inputNode;
 
-                // Resolve variables
-                std::vector<LogicalOperator*> resolveOperators;
-                LogicalOperator* inputNode;
 
-                Schema resolveReadSchema; //! schema for reading input
-                Schema resolveInputSchema; //! schema after applying projection pushdown to input source code
-                Schema resolveOutputSchema; //! output schema of stage
+                struct CodePathContext {
+                    Schema readSchema;
+                    Schema inputSchema;
+                    Schema outputSchema;
 
-                Schema normalCaseInputSchema; //! schema after applying normal case optimizations
+                    LogicalOperator*              inputNode;
+                    std::vector<LogicalOperator*> operators;
+                    std::vector<bool>             columnsToRead;
 
-                python::Type hashBucketType;
+                    // columns to perform checks on (fastPathOnly)
+                    CodePathContext() : inputNode(nullptr) {}
 
-                // Fast Path
-                std::vector<LogicalOperator*> fastOperators;
-                python::Type fastReadSchema;
-                python::Type fastInSchema;
-                python::Type fastOutSchema;
+                    bool valid() const { return inputSchema.getRowType() != python::Type::UNKNOWN && inputNode; }
+                };
 
-                bool isRootStage;
-                bool generateParser;
+                CodePathContext fastPathContext;
+                CodePathContext slowPathContext;
 
-                std::vector<bool> columnsToRead;
-                int64_t inputNodeID;
+                inline char csvOutputDelimiter() const {
+                    return fileOutputParameters.at("delimiter")[0];
+                }
+                inline char csvOutputQuotechar() const {
+                    return fileOutputParameters.at("quotechar")[0];
+                }
+
+//                Schema resolveReadSchema; //! schema for reading input
+//                Schema resolveInputSchema; //! schema after applying projection pushdown to input source code
+//                Schema resolveOutputSchema; //! output schema of stage
+//
+//                Schema normalCaseInputSchema; //! schema after applying normal case optimizations
+
+               // python::Type hashBucketType;
+
+//                // Fast Path
+//                std::vector<LogicalOperator*> fastOperators;
+//                python::Type fastReadSchema;
+//                python::Type fastInSchema;
+//                python::Type fastOutSchema;
             };
+
+            CodeGenerationContext createCodeGenerationContext() const;
+            CodeGenerationContext::CodePathContext getGeneralPathContext() const;
 
             std::string _aggregateCallbackName;
 
@@ -181,6 +217,9 @@ namespace tuplex {
             Schema _normalCaseInputSchema; //! schema after applying normal case optimizations
             Schema _normalCaseOutputSchema; //! schema after applying normal case optimizations
 
+
+            void fillStageParameters(TransformStage* stage);
+
             size_t number() const { return _stageNumber; }
             int64_t outputDataSetID() const;
 
@@ -195,11 +234,6 @@ namespace tuplex {
                 return _fileOutputParameters.at("quotechar")[0];
             }
 
-            inline std::string next_hashmap_name() {
-                static int counter = 0;
-                return "hashmap" + fmt::format("{:02d}", counter++);
-            }
-
             /*!
              * returns a nicely formatted overview of a bad UDF operator node
              * @param udfop
@@ -212,7 +246,10 @@ namespace tuplex {
              * @param fastCodePath whether to generate for fastCodePath or not. When false, always generates mem2mem.
              * @return
              */
-            TransformStage::StageCodePath generateFastCodePath(const CodeGenerationContext& fastLocalVariables) const; // file2mem always
+            TransformStage::StageCodePath generateFastCodePath(const CodeGenerationContext& ctx,
+                                                               const CodeGenerationContext::CodePathContext& pathContext,
+                                                               const python::Type& generalCaseOutputRowType,
+                                                               const std::string& env_name="tuplex_fastCodePath") const; // file2mem always
 
             size_t resolveOperatorCount() const {
                 return std::count_if(_operators.begin(), _operators.end(), [](const LogicalOperator* op) {
@@ -221,16 +258,26 @@ namespace tuplex {
             }
 
 
+            void determineSchema();
+
             static void fillInCallbackNames(const std::string& func_prefix, size_t stageNo, TransformStage::StageCodePath& cp);
             // holds values of hashmap globals
             std::unordered_map<int64_t, std::tuple<llvm::Value*, llvm::Value*>> _hashmap_vars;
 
             /*!
              * code path for mem2mem exception resolution => sh
+             * @praam normalCaseType: the inputSchema row type of the specialized, normal case!
              */
-            TransformStage::StageCodePath generateResolveCodePath(const CodeGenerationContext& resolveLocalVariables) const; //! generates mix of LLVM / python code for slow code path including resolvers
+            TransformStage::StageCodePath generateResolveCodePath(const CodeGenerationContext& ctx,
+                                                                  const CodeGenerationContext::CodePathContext& pathContext,
+                                                                  const python::Type& normalCaseType) const; //! generates mix of LLVM / python code for slow code path including resolvers
 
-            void generatePythonCode(); //! generates fallback pipeline in pure python. => i.e. special case here...
+            struct PythonCodePath {
+                std::string pyCode;
+                std::string pyPipelineName;
+            };
+
+            static PythonCodePath generatePythonCode(const CodeGenerationContext& ctx, int stageNo); //! generates fallback pipeline in pure python. => i.e. special case here...
 
             std::vector<int64_t> getOperatorIDsAffectedByResolvers(const std::vector<LogicalOperator *> &operators);
         };

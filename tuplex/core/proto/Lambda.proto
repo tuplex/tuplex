@@ -64,18 +64,21 @@ message TransformStage {
     optional CodePath fastPath = 19;
     optional CodePath slowPath = 20;
 
-    uint32 stageNumber = 21;
-    uint32 numColumns = 22;
-    string pyCode = 23;
-    string pyPipelineName = 24;
+    // bytes holding serialized stage, ready for hyper-specialization.
+    optional bytes serializedStage = 21;
+
+    uint32 stageNumber = 22;
+    uint32 numColumns = 23;
+    string pyCode = 24;
+    string pyPipelineName = 25;
 
     // file input + output params as dict
-    map<string, string> inputParameters = 25;
-    map<string, string> outputParameters = 26;
+    map<string, string> inputParameters = 26;
+    map<string, string> outputParameters = 27;
 
     // how many lambdas should each Lambda invoke? Recursive, i.e. {1, 1, 1} means the first Lambda invokes another
     // lambda, that again another etc. The total wait time thereby is baseDelay * depth
-    repeated uint32 invocationCount = 27;
+    repeated uint32 invocationCount = 28;
 }
 
 message WorkerSettings {

@@ -1018,7 +1018,8 @@ namespace tuplex {
             msg->set_allocated_fastpath(_fastCodePath.to_protobuf());
         if(!_slowCodePath.empty())
             msg->set_allocated_slowpath(_slowCodePath.to_protobuf());
-
+//        if(_encodedData.size() > 0)
+//            msg->set_serialized_stage()
 //        msg->set_funcstagename(_funcStageName);
 //        msg->set_funcmemorywritecallbackname(_funcMemoryWriteCallbackName);
 //        msg->set_funcfilewritecallbackname(_funcFileWriteCallbackName);

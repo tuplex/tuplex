@@ -72,6 +72,8 @@ namespace tuplex {
         bool AWS_REQUESTER_PAY() const { return stringToBool(_store.at("tuplex.aws.requesterPay")); }
         bool PURE_PYTHON_MODE() const { return stringToBool(_store.at("tuplex.useInterpreterOnly")); } // if set to true, then everything will be processed using the generated py-code only!
 
+        bool USE_EXPERIMENTAL_HYPERSPECIALIZATION() const { return stringToBool(_store.at("tuplex.experimental.hyperspecialization")); }
+
         std::string AWS_LAMBDA_INVOCATION_STRATEGY() const { return _store.at("tuplex.aws.lambdaInvocationStrategy"); }
 
         // access parameters via their getter functions

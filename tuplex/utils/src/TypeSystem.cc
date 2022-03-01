@@ -816,7 +816,7 @@ namespace python {
                 else
                     expressionStack.top().push_back(t);
                 pos += 4;
-            } else if(s.substr(pos, 4).compare("None") == 0) {
+            } else if(s.substr(pos, 4).compare("None") == 0 || s.substr(pos, 4).compare("null") == 0) {
                 Type t = Type::NULLVALUE;
                 if(expressionStack.empty())
                     expressionStack.push(std::vector<python::Type>({t}));

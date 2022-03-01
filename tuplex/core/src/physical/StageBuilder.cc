@@ -1678,7 +1678,7 @@ namespace tuplex {
                 ops.push_back(encodeOperator(op));
 
             obj["operators"] = ops;
-            return obj;
+            return std::move(obj);
         }
 
         // decode now everything...
@@ -1719,7 +1719,7 @@ namespace tuplex {
 
                 if(root.find("fastPathContext") != root.end()) {
                     // won't be true, skip
-                    logger.warn("skipping fast code path decode, bc.");
+                    ctx.fastPathContext = CodeGenerationContext::CodePathContext::from_json(root["fastPathContext"]);
                 }
                 if(root.find("slowPathContext") != root.end()) {
                     ctx.slowPathContext = CodeGenerationContext::CodePathContext::from_json(root["slowPathContext"]);
@@ -1744,12 +1744,12 @@ namespace tuplex {
             std::vector<LogicalOperator*> operators;
             for(auto json_op : obj["operators"]) {
                 // only map and csv supported
-                auto name = json_op["type"].get<std::string>();
+                auto name = json_op["name"].get<std::string>();
                 if(name == "csv") {
-                    operators.push_back(FileInputOperator::from_json(obj));
+                    operators.push_back(FileInputOperator::from_json(json_op));
                 } else if(name == "map") {
                     // map is easy, simply decode UDF and hook up with parent operator!
-                    assert(!operators.back());
+                    assert(!operators.empty());
                     auto columnNames = json_op["columnNames"].get<std::vector<std::string>>();
                     auto id = json_op["id"].get<int>();
                     auto code = json_op["code"].get<std::string>();

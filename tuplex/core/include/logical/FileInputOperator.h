@@ -276,7 +276,7 @@ namespace tuplex {
             obj["null_values"] = _null_values;
 
             obj["columnNames"] = _columnNames;
-            obj["optimizedColumnsNames"] = _optimizedColumnNames;
+            obj["optimizedColumnNames"] = _optimizedColumnNames;
             obj["columnsToSerialize"] = _columnsToSerialize;
 
             obj["optimizedSchema"] = _optimizedSchema.getRowType().desc();

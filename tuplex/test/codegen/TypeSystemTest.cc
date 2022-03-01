@@ -66,6 +66,13 @@ TEST(TypeSys, StrDecoding) {
     EXPECT_TRUE(even_more_complex == decodeType("([f64], {str, ([i64], bool, [{f64, Option[str]}])}, f64, [Option[str]])"));
 }
 
+TEST(TypeSys, MoreDecoding) {
+    using namespace python;
+
+    auto t = decodeType("(i64,i64,i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])");
+    EXPECT_TRUE(t.isTupleType());
+}
+
 TEST(TypeSys, TupleHaveSameType) {
     using namespace python;
 

@@ -733,9 +733,18 @@ namespace tuplex {
                 if(tstage->fastPathBitCode().empty())
                     logger().warn("Weird, no fastPathBitCode??");
                 logger().info("compiling fast path only");
-                tstage->compileFastPath(*_compiler, nullptr, false);
+
+                // Note: this requires to register symbols!
+                // JIT session error: Symbols not found: { fast_memOut_Stage_0, fast_except_Stage_0 }
+                // tstage->compileFastPath(*_compiler, nullptr, false);
+                // auto syms = tstage->jitsyms();
+
+
+                auto syms = compileTransformStage(*tstage);
+                if(!syms)
+                    return WORKER_ERROR_COMPILATION_FAILED;
                 logger().info("fast path compiled");
-                auto syms = tstage->jitsyms();
+
                 if(!syms)
                     return WORKER_ERROR_COMPILATION_FAILED;
                 return processTransformStage(tstage, syms, parts, outputURI);

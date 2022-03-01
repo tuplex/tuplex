@@ -346,8 +346,12 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 
     // i.e. turn off null-value optimization for files or not?
 
-    auto null_based_file = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_01.csv";
-    auto non_null_based_file = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2013_01.csv"; // do not need to set values...
+    // auto null_based_file = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_01.csv";
+    // auto non_null_based_file = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2013_01.csv"; // do not need to set values...
+
+
+    auto null_based_file = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_01.csv";
+    auto non_null_based_file = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv"; // do not need to set values...
 
 
 //    // test with specialization

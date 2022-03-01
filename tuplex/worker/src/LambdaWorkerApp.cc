@@ -617,6 +617,11 @@ namespace tuplex {
                     size_t file_size = req.inputsizes(0);
                     hyperspecialize(tstage, uri, file_size);
                     logger().info("HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()));
+                    Timer opt_timer;
+                    // compile & optimize!
+                    logger().info("HYPERSPECIALIAITON LLVM OPT TOOK" + std::to_string(opt_timer.time()));
+                } else {
+                    logger().info("no HYPERSPECIALIZATION, old invoke model");
                 }
 
                 // pure Python Mode? ==> process in python only!

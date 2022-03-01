@@ -982,8 +982,12 @@ namespace python {
         if(isOptionType())
             return getReturnType().withoutOptions();
 
+//        // constant valueed? that's a tricky one, b.c. constant plays a role.
+//        if(isConstantValued())
+//            return
         // func not supported...
-        return python::Type::UNKNOWN;
+        // return type as is
+        return *this;
     }
 
 

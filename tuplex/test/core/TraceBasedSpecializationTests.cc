@@ -315,5 +315,8 @@ auto code = "def fill_in_delays(row):\n"
     // => i.e. no expensive code is required!
 //    auto& ds = ctx.csv(non_null_based_file).map(UDF(code));
     auto& ds = ctx.csv(null_based_file).map(UDF(code));
-    ds.show(5);
+
+    ds.tocsv("test_output.csv");
+
+    //ds.show(5);
 }

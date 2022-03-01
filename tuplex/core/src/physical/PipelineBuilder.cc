@@ -1447,6 +1447,19 @@ namespace tuplex {
             Value* varSizeRequired = env.i64Const(0);
             for(unsigned i = 0; i < types.size(); ++i) {
                 auto t = types[i];
+
+                // short circuit constant valued opt
+                if(t.isConstantValued()) {
+                    // TODO: float format, for now ignore
+                    if(t.underlying() == python::Type::F64)
+                        Logger::instance().defaultLogger().debug("should do something with float format here.");
+
+                    // simply use the constant itself!
+                    t = t.underlying();
+
+                    // @TODO can optimize
+                }
+
                 if(t.isOptionType())
                     foundOption = true;
 

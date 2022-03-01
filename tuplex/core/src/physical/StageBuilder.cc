@@ -1587,7 +1587,10 @@ namespace tuplex {
                 auto ctx = createCodeGenerationContext();
                 ctx.slowPathContext = getGeneralPathContext();
 
-
+                // also important to encode into stage python code. Else, nowhere to be found!
+                auto py_path = generatePythonCode(ctx, number());
+                stage->_pyCode = py_path.pyCode;
+                stage->_pyPipelineName = py_path.pyPipelineName;
 
                 auto json_str = ctx.toJSON();
                 logger.info("serialized stage as JSON string (TODO: make this better, more efficient, ...");

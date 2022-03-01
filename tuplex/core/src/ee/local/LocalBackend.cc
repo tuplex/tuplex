@@ -1051,6 +1051,9 @@ namespace tuplex {
 
             // should slow path get executed
             executeSlowPath = syms->resolveFunctor || !tstage->purePythonCode().empty();
+            if(!executeSlowPath) {
+                logger().warn("whether a compiled resolve path nor a python code path was fund. Can't resolve exceptions.");
+            }
 
             // any ops with resolver IDs?
             if(executeSlowPath && !tstage->operatorIDsWithResolvers().empty())

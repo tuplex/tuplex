@@ -725,7 +725,7 @@ namespace tuplex {
 
     void TransformStage::compileSlowPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {
         Timer timer;
-        JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
+        // JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
 
         // lazy compile
         if(!_syms)
@@ -788,10 +788,10 @@ namespace tuplex {
         Timer timer;
         auto& logger = Logger::instance().defaultLogger();
 
-        // adding a bunch of logging to debug where the failure happens
-        logger.debug("fetching metrics obj");
-        JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
-        logger.info("metrics obj fetched");
+//        // adding a bunch of logging to debug where the failure happens
+//        logger.info("fetching metrics obj");
+//        // JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
+//        logger.info("metrics obj fetched");
 
         // lazy compile
         if(!_syms) {
@@ -816,7 +816,7 @@ namespace tuplex {
             optimizer->optimizeModule(*fast_path_mod.get());
 
             double llvm_optimization_time = timer.time();
-            metrics.setLLVMOptimizationTime(llvm_optimization_time);
+            // metrics.setLLVMOptimizationTime(llvm_optimization_time);
             logger.info("TransformStage - Optimization via LLVM passes took " + std::to_string(llvm_optimization_time) + " ms");
 
             timer.reset();
@@ -898,16 +898,17 @@ namespace tuplex {
             _syms = std::make_shared<JITSymbols>();
 
         Timer timer;
-        JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
+        //JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
         if (!excludeSlowPath) {
             compileSlowPath(jit, optimizer);
         }
         compileFastPath(jit, optimizer, registerSymbols);
 
         double compilation_time_via_llvm_this_number = timer.time();
-        double compilation_time_via_llvm_thus_far = compilation_time_via_llvm_this_number +
-                                                    metrics.getLLVMCompilationTime();
-        metrics.setLLVMCompilationTime(compilation_time_via_llvm_thus_far);
+        double compilation_time_via_llvm_thus_far = compilation_time_via_llvm_this_number;
+      //  double compilation_time_via_llvm_thus_far = compilation_time_via_llvm_this_number +
+//                                                    metrics.getLLVMCompilationTime();
+//        metrics.setLLVMCompilationTime(compilation_time_via_llvm_thus_far);
         std::stringstream ss;
         ss<<"Compiled code paths for stage "<<number()<<" in "<<std::fixed<<std::setprecision(2)<<compilation_time_via_llvm_this_number<<" ms";
 

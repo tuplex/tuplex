@@ -396,6 +396,8 @@ namespace tuplex {
     int LambdaWorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
         using namespace std;
 
+        cout<<"enter LambdaWorkerApp::processMessage"<<endl;
+
         // reset results
         resetResult();
 
@@ -445,9 +447,12 @@ namespace tuplex {
             return WORKER_OK;
         } else if(req.type() == messages::MessageType::MT_TRANSFORM) {
 
+            cout<<"got transform message"<<endl;
+
             // extract settings from req & init multi-threading!
             _settings = settingsFromMessage(req);
 
+            cout<<"read settings"<<endl;
 
             bool purePythonMode = req.has_settings() && req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly();
             auto numThreads = purePythonMode ? 1 : _settings.numThreads;
@@ -476,6 +481,7 @@ namespace tuplex {
 
             // check whether self-invocation is used
             if(req.has_stage() && req.stage().invocationcount_size() > 0) {
+
                 std::stringstream ss;
                 ss<<"Invoking ";
                 for(auto count : req.stage().invocationcount())
@@ -694,7 +700,42 @@ namespace tuplex {
             }
 
             // @TODO: what about remaining time? Partial completion?
+            cout<<"fallback would be called here, is there hyper specialization?"
+            // HACK! Hyper-specialization
+            if(req.stage().has_serializedstage() && req.inputuris_size() > 0) {
+                logger().info("HYPERSPECIALIZATION ACTIVE");
 
+                // only transform stage yet supported, in the future support other stages as well!
+                auto tstage = TransformStage::from_protobuf(req.stage());
+
+                Timer timer;
+                // use first input file
+                std::string uri = req.inputuris(0);
+                size_t file_size = req.inputsizes(0);
+                hyperspecialize(tstage, uri, file_size);
+                logger().info("HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()));
+                Timer opt_timer;
+                // compile & optimize!
+                logger().info("HYPERSPECIALIAITON LLVM OPT TOOK" + std::to_string(opt_timer.time()));
+
+                URI outputURI = outputURIFromReq(req);
+                auto parts = partsFromMessage(req);
+
+                // check settings, pure python mode?
+                if(req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly()) {
+                    logger().info("WorkerApp is processing everything in single-threaded python/fallback mode.");
+                    return processTransformStageInPythonMode(tstage, parts, outputURI);
+                }
+                // if not, compile given code & process using both compile code & fallback
+                auto syms = compileTransformStage(*tstage);
+                if(!syms)
+                    return WORKER_ERROR_COMPILATION_FAILED;
+                return processTransformStage(tstage, syms, parts, outputURI);
+            } else {
+                logger().info("no HYPERSPECIALIZATION, old invoke model");
+            }
+
+            // OLD::::::
             // @TODO
             logger().info("Invoking WorkerApp fallback");
             // can reuse here infrastructure from WorkerApp!

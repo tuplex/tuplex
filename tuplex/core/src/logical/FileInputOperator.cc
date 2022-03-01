@@ -594,7 +594,9 @@ namespace tuplex {
             if(_fmt != FileFormat::OUTFMT_CSV)
                 throw std::runtime_error("only csv supported");
 
-            size_t SAMPLE_SIZE = 1024 * 256; // use 256KB each
+            // NOTE: 256 triggers deoptimization ==> need to study this behavior more carefully...!
+
+            size_t SAMPLE_SIZE = 1024 * 512; // use 256KB each
 
             // @TODO: rework this...
             aligned_string sample;

@@ -4162,9 +4162,11 @@ namespace tuplex {
             auto target_type = ret->getInferredType();
 
             // deoptimized types!
+            // HACK: is this even correct???
             auto deopt_func_return_type = deoptimizedType(funcReturnType);
+            auto deopt_target_type = deoptimizedType(target_type);
 
-            if(target_type == deopt_func_return_type/*funcReturnType*/) {
+            if(deopt_target_type == deopt_func_return_type/*funcReturnType*/) {
                 // ok, fits the globally agreed function return type!
 
                 // the retval popped could need extension to an option type!

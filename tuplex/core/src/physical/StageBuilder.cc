@@ -30,6 +30,9 @@
 // New: Stage Specialization, maybe rename?
 #include <physical/StagePlanner.h>
 
+#include <nlohmann/json.hpp>
+#include <google/protobuf/util/json_util.h>
+
 // @TODO: code gen needs to be lazily done
 // i.e. codegen stages then execute
 // => if normal case passes, then codegen the big pipeline!
@@ -1161,6 +1164,8 @@ namespace tuplex {
             isBuilder.CreateRet(env->callGlobalsInit(isBuilder));
             rsBuilder.CreateRet(env->callGlobalsRelease(rsBuilder));
 
+            // @TODO: remove unused symbols, i.e. a simple pass over the module should do.
+
             ret.irBitCode = codegen::moduleToBitCodeString(*env->getModule()); // transform stage takes ownership of module
 
             return ret;
@@ -1568,11 +1573,98 @@ namespace tuplex {
             } else {
                 // normally code & specialization would happen here - yet in hyper-specializaiton mode this is postponed to the executor
 
-                // i.e. determine schemas
+                // basically just need to get general settings & general path and then encode that!
+                auto ctx = createCodeGenerationContext();
+                ctx.slowPathContext = getGeneralPathContext();
 
+                auto json_str = ctx.toJSON();
+                logger.info("serialized stage as JSON string (TODO: make this better, more efficient, ...");
             }
 
             return stage;
         }
+
+        std::string StageBuilder::CodeGenerationContext::toJSON() const {
+            using namespace nlohmann;
+            auto &logger = Logger::instance().logger("codegen");
+
+
+            try {
+                json root;
+
+                // global settings, encode them!
+                root["sharedObjectPropagation"] = sharedObjectPropagation;
+                root["nullValueOptimization"] = nullValueOptimization;
+                root["isRootStage"] = isRootStage;
+                root["generateParser"] = generateParser;
+                root["outputMode"] = outputMode;
+                root["outputFileFormat"] = outputFileFormat;
+                root["outputNodeID"] = outputNodeID;
+                root["outputSchema"] = outputSchema.getRowType().desc();
+                root["fileOutputParameters"] = fileOutputParameters;
+                root["hashColKeys"] = hashColKeys;
+                if(python::Type::UNKNOWN != hashKeyType && hashKeyType.hash() > 0) // HACK
+                    root["hashKeyType"] = hashKeyType.desc();
+                root["hashSaveOthers"] = hashSaveOthers;
+                root["hashAggregate"] = hashAggregate;
+                root["inputMode"] = inputMode;
+                root["inputFileFormat"] = inputFileFormat;
+                root["inputNodeID"] = inputNodeID;
+                root["fileInputParameters"] = fileInputParameters;
+
+                // encode codepath contexts as well!
+                if(fastPathContext.valid())
+                    root["fastPathContext"] = fastPathContext.to_json();
+                if(slowPathContext.valid())
+                    root["slowPathContext"] = slowPathContext.to_json();
+
+//                stageObj["name"] = stageName;
+//                stageObj["unoptimizedIR"] = unoptimizedIR;
+//                stageObj["optimizedIR"] = optimizedIR;
+//                stageObj["assembly"] = assemblyCode;
+//
+//                json obj;
+//                obj["jobid"] = _jobID;
+//                obj["stage"] = stageObj;
+
+                return root.dump();
+            } catch(nlohmann::json::type_error& e) {
+                logger.error(std::string("exception constructing json: ") + e.what());
+                return "{}";
+            }
+        }
+
+        nlohmann::json encodeOperator(LogicalOperator* op) {
+            nlohmann::json obj;
+
+            if(op->type() == LogicalOperatorType::FILEINPUT)
+                return dynamic_cast<FileInputOperator*>(op)->to_json();
+            else if(op->type() == LogicalOperatorType::MAP)
+                return dynamic_cast<MapOperator*>(op)->to_json();
+            else {
+                throw std::runtime_error("unsupported operator " + op->name() + " seen for encoding... HACK");
+            }
+
+            return obj;
+        }
+
+        nlohmann::json StageBuilder::CodeGenerationContext::CodePathContext::to_json() const {
+            nlohmann::json obj;
+            obj["read"] = readSchema.getRowType().desc();
+            obj["input"] = inputSchema.getRowType().desc();
+            obj["output"] = outputSchema.getRowType().desc();
+
+            obj["colsToRead"] = columnsToRead;
+
+            // now the most annoying thing, encoding the operators
+            auto ops = nlohmann::json::array();
+            ops.push_back(encodeOperator(inputNode));
+            for(auto op : operators)
+                ops.push_back(encodeOperator(op));
+
+            obj["operators"] = ops;
+            return obj;
+        }
+
     }
 }

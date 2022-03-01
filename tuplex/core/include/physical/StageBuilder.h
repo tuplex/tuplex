@@ -149,6 +149,9 @@ namespace tuplex {
                     CodePathContext() : inputNode(nullptr) {}
 
                     bool valid() const { return inputSchema.getRowType() != python::Type::UNKNOWN && inputNode; }
+
+                    nlohmann::json to_json() const;
+                    static CodePathContext from_json(nlohmann::json obj);
                 };
 
                 CodePathContext fastPathContext;
@@ -160,6 +163,10 @@ namespace tuplex {
                 inline char csvOutputQuotechar() const {
                     return fileOutputParameters.at("quotechar")[0];
                 }
+
+                // serialization, TODO
+                std::string toJSON() const;
+                static CodeGenerationContext fromJSON(const std::string& json_str);
 
 //                Schema resolveReadSchema; //! schema for reading input
 //                Schema resolveInputSchema; //! schema after applying projection pushdown to input source code

@@ -254,6 +254,34 @@ namespace tuplex {
          * @return true or false
          */
         bool isEmpty() const;
+
+
+
+
+        // HACK quick n dirty serializatio n (targeting only the CSV case...)
+        inline nlohmann::json to_json() const {
+            nlohmann::json obj;
+            obj["type"] == name();
+            auto uris = nlohmann::json::array();
+            for(auto uri : _fileURIs)
+                uris.push_back(uri.toString());
+            auto sizes = nlohmann::json::array();
+            for(auto s : _sizes)
+                sizes.push_back()
+            obj["uris"] = uris;
+            obj["sizes"] = sizes;
+            obj["quotechar"] = _quotechar;
+            obj["delimiter"] = _delimiter;
+            obj["hasHeader"] = _header;
+            obj["null_values"] = _null_values;
+            obj["optimizedSchema"] = _optimizedSchema.getRowType().desc();
+            obj["columnNames"] = _columnNames;
+            obj["optimizedColumnsNames"] = _optimizedColumnNames;
+            obj["columnsToSerialize"] = _columnsToSerialize;
+            obj["normalCaseRowType"] = _normalCaseRowType.desc();
+            obj["optimizedNormalCaseRowType"] = _optimizedNormalCaseRowType.desc();
+            return obj;
+        }
     };
 }
 

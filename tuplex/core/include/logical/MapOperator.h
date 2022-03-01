@@ -27,6 +27,27 @@ namespace tuplex {
                     const std::vector<std::string>& columnNames);
         // needs a parent
 
+        inline nlohmann::json to_json() const {
+            // make it a super simple serialiation!
+            // basically mimick clone
+            nlohmann::json obj;
+            obj["name"] = "map";
+            obj["columnNames"] = UDFOperator::columns();
+            obj["outputColumns"] = _outputColumns;
+            obj["schema"] = _schema.getRowType().desc();
+            obj["id"] = _id;
+
+            // no closure env etc.
+            nlohmann::json udf;
+            udf["code"] = _udf.getCode();
+            udf["pickledCode"] = _udf.getPickledCode();
+
+            obj["udf"] = udf;
+
+            return obj;
+        }
+
+
         /*!
          * set name of operator. Because map Operator is an umbrella for select/rename, use this here to give it more precise meaning.
          */

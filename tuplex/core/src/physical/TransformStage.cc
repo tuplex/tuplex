@@ -955,6 +955,9 @@ namespace tuplex {
         if(msg.has_slowpath())
             stage->_slowCodePath = msg.slowpath();
 
+        if(msg.has_serializedstage())
+            stage->_encodedData = msg.serializedstage();
+
 //        stage->_irBitCode = msg.bitcode();
 //        stage->_funcStageName = msg.funcstagename();
 //        stage->_funcMemoryWriteCallbackName = msg.funcmemorywritecallbackname();

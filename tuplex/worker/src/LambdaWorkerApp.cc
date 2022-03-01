@@ -743,6 +743,10 @@ namespace tuplex {
                 auto syms = compileTransformStage(*tstage);
                 logger().info("fast path compiled");
 
+                // HACK!!!
+                syms->initStageFunctor = nullptr;
+                syms->releaseStageFunctor = nullptr;
+
                 if(!syms)
                     return WORKER_ERROR_COMPILATION_FAILED;
                 return processTransformStage(tstage, syms, parts, outputURI);

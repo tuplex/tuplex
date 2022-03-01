@@ -91,7 +91,7 @@ namespace tuplex {
 
         auto pb_stage = tstage->to_protobuf();
 
-        pb_stage->set_bitcode(tstage->bitCode());
+        pb_stage->set_bitcode(tstage->fastPathBitCode());
         req.set_allocated_stage(pb_stage.release());
 
         // add input file to request

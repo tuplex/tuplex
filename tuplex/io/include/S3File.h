@@ -64,7 +64,7 @@ namespace tuplex {
 
         uint8_t *_buffer; ///! buffers
         size_t _bufferLength; ///! how many valid bytes are stored in buffer
-        static const size_t _bufferSize = 1024 * 1024 * 32; ///! size of the buffer, set here to 32MB buffer
+        static const size_t _bufferSize = 1024 * 1024 * 64; ///! size of the buffer, set here to 64MB buffer
 
 //        static const size_t _bufferSize = 1024 * 1024 * 5 + 100; ///! for debug reasons, set 5MB + 100B buffer
 

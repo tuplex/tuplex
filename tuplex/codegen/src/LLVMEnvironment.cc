@@ -659,6 +659,36 @@ namespace tuplex {
             auto& ctx = builder.getContext();
             auto elementType = tupleType.parameters()[index];
 
+            // quick: constants
+            if(elementType.isConstantValued()) {
+                auto ut = elementType.underlying();
+
+                auto not_null = llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, false));
+                if(ut.isOptionType()) {
+                    // check if null?
+                    if(ut.constant() == "None")
+                        return SerializableValue(nullptr, nullptr, llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, true)));
+                    else {
+                        ut = ut.elementType();
+                    }
+                }
+
+                if(ut == python::Type::I64) {
+                    auto ival = std::stoll(ut.constant());
+                    auto i64const = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(ival, false));
+                    auto i64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(sizeof(int64_t), false));
+                    return SerializableValue(i64const, i64const_size, not_null);
+                } else if(ut == python::Type::F64) {
+                    auto dval = std::stod(ut.constant());
+                    auto f64const = llvm::ConstantFP::get(_context, llvm::APFloat(dval));
+                    auto f64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(sizeof(int64_t), false));
+                    return SerializableValue(f64const, f64const_size, not_null);
+                } else {
+                    std::cerr<<"wrong type found in gettupleelement constant vlaued: "<<elementType.desc()<<std::endl;
+                }
+            }
+
+
             // special types (not serialized in memory, i.e. constants to be constructed from typing)
             if(python::Type::NULLVALUE == elementType)
                 return SerializableValue(nullptr, nullptr, llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, true)));

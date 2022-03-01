@@ -507,15 +507,31 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 
 //    string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv";
     string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv";
+    std::string s3_output = "s3://tuplex-leonhard/experiments/flights_hyper";
+
+
     std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;
     Timer timer;
 
     // running first query with hyper specialization on.
+    ContextOptions opt = ContextOptions::defaults();
+    opt.set("tuplex.executorCount", "0");
+    opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
+    opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
+    // hyperspecialization setting
+    opt.set("tuplex.backend", "lambda");
+    opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
+    opt.set("tuplex.experimental.hyperspecialization", "true");
+    Context ctx(opt);
 
     // could also be interesting to have some sort of figure showing different specializations (i.e. column pushdown)
 
-    std::string s3_output = "s3://tuplex-leonhard/experiments/flights_hyper";
-
+    // run same query too
+    ctx.csv(input_pattern).map(UDF(code)).tocsv(s3_output +"_hyper");
+    double hyperQueryTime = timer.time();
+    std::cout<<"Hyper query done in "<<hyperQueryTime<<"s"<<std::endl;
+    // -----------------------------------------------------------------------------
+    sts:cout<<"**************************************"<<std::endl;
     std::cout<<"Running query with hyper-opt off"<<std::endl;
     // running query with hyper specializaiton off.
     timer.reset();
@@ -532,9 +548,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     ctx_general.csv(input_pattern).map(UDF(code)).tocsv(s3_output +"_general"); // fix: /aws/lambda/tuplex-lambda-runner?
 
     double generalQueryTime = timer.time();
-    std::cout<<"General query done"<<std::endl;
+    std::cout<<"General query done in "<<generalQueryTime<<"s"<<std::endl;
 
     // print out results as json
-    std::cout<<"{\"general_total_time\":"<<generalQueryTime<<"}"<<std::endl;
+    std::cout<<"{\"general_total_time\":"<<generalQueryTime<<",\"hyper_total_time\":"<<hyperQueryTime<<"}"<<std::endl;
     //ds.show(5);
 }

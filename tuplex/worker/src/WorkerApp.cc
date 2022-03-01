@@ -1602,6 +1602,16 @@ namespace tuplex {
         if(0 == env->numExceptionRows)
             return WORKER_OK; // nothing todo
 
+        // !!! HACK !!!
+        if(stage->use_hyper()) {
+            std::cout<<"Stage got "<<env->numExceptionRows<<std::endl;
+
+            std::cout<<"skipping resolution for now, b.c. buggy."<<std::endl;
+            return WORKER_OK;
+        }
+        /// end
+
+
         // if no compiled resolver & no interpreted resolver are present, simply return.
         if(!syms->resolveFunctor && stage->purePythonCode().empty()) {
             logger().info("No resolve code shipped. Nothing can't be resolved here.");
@@ -1792,7 +1802,8 @@ namespace tuplex {
 
         bool parse_cells = false;
 
-        std::cout<<"ecCode: "<<ecCode<<std::endl;
+        // hyper specialization causes some weird NULL errors???
+        // std::cout<<"ecCode: "<<ecCode<<std::endl;
 
 
         // there are different data reps for certain error codes.

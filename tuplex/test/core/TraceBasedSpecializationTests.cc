@@ -338,6 +338,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 
     opt.set("tuplex.backend", "lambda");
     opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
+
     opt.set("tuplex.experimental.hyperspecialization", "true");
     Context ctx(opt);
 
@@ -456,7 +457,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // this file here should get folded!
     // => i.e. no expensive code is required!
 //    auto& ds = ctx.csv(non_null_based_file).map(UDF(code));
-    auto& ds = ctx.csv(null_based_file).map(UDF(code));
+    auto& ds = ctx.csv(null_based_file).map(UDF(code)); // fix: /aws/lambda/tuplex-lambda-runner?
 
     ds.tocsv("test_output.csv");
 

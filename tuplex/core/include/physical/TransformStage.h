@@ -354,6 +354,9 @@ namespace tuplex {
                            aggAggregateFunctor(nullptr) {}
         };
 
+        // HACK!!!
+        bool use_hyper() const { return !_encodedData.empty(); }
+
         /*!
          * compile code of this stage via LLVM JIT
          * @param jit JIT instance

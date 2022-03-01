@@ -303,6 +303,7 @@ namespace tuplex {
     int WorkerApp::processTransformStage(const TransformStage *tstage,
                                          const std::shared_ptr<TransformStage::JITSymbols> &syms,
                                          const std::vector<FilePart> &input_parts, const URI &output_uri) {
+        std::cout<<"entering processTrafoStage"<<std::endl;
 
         size_t minimumPartSize = 1024 * 1024; // 1MB.
 
@@ -313,21 +314,24 @@ namespace tuplex {
         if(rc != WORKER_OK)
             return rc;
 
+        std::cout<<"initTrafoStage done"<<std::endl;
+
         auto numCodes = std::max(1ul, _numThreads);
         auto processCodes = new int[numCodes];
         memset(processCodes, WORKER_OK, sizeof(int) * numCodes);
 
         // process data (single-threaded or via thread pool!)
         if(_numThreads <= 1) {
+            std::cout<<"setting runtime memory"<<std::endl;
             runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
 
             try {
                 // single-threaded
                 for(unsigned i = 0; i < input_parts.size(); ++i) {
                    auto fp = input_parts[i];
-
+                    std::cout<<"start process source"<<std::endl;
                     processCodes[0] = processSource(0, tstage->fileInputOperatorID(), fp, tstage, syms);
-                    logger().debug("processed file " + std::to_string(i + 1) + "/" + std::to_string(input_parts.size()));
+                    logger().info("processed file " + std::to_string(i + 1) + "/" + std::to_string(input_parts.size()));
                     if(processCodes[0] != WORKER_OK)
                         break;
                 }

@@ -1752,7 +1752,7 @@ namespace tuplex {
                     assert(!operators.empty());
                     auto columnNames = json_op["columnNames"].get<std::vector<std::string>>();
                     auto id = json_op["id"].get<int>();
-                    auto code = json_op["code"].get<std::string>();
+                    auto code = json_op["udf"]["code"].get<std::string>();
                     // @TODO: avoid typing call?
                     // i.e. this will draw a sample too?
                     // or ok, because sample anyways need to get drawn??

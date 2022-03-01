@@ -142,6 +142,7 @@ namespace tuplex {
 
     int64_t WorkerApp::initTransformStage(const TransformStage::InitData& initData,
                                           const std::shared_ptr<TransformStage::JITSymbols> &syms) {
+        std::cout<<"init trafo stage"<<std::endl;
         if(!syms->initStageFunctor) {
             std::cout<<"skip init trafo stage, b.c. symbol not found"<<std::endl;
             return 0;
@@ -149,12 +150,15 @@ namespace tuplex {
 
         // initialize stage
         int64_t init_rc = 0;
+        std::cout<<"calling initStageFunctor with "<<initData.numArgs<<" arsg"<<std::endl;
         if((init_rc = syms->initStageFunctor(initData.numArgs,
                                              reinterpret_cast<void**>(initData.hash_maps),
                                              reinterpret_cast<void**>(initData.null_buckets))) != 0) {
             logger().error("initStage() failed for stage with code " + std::to_string(init_rc));
             return WORKER_ERROR_STAGE_INITIALIZATION;
         }
+        std::cout<<"initStageFunctor called,"<<std::endl;
+
 
         // init aggregate by key
         if(syms->aggAggregateFunctor) {

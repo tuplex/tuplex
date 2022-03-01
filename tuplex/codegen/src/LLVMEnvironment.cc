@@ -41,6 +41,44 @@ void _cellPrint(char *start, char *end) {
 namespace tuplex {
     namespace codegen {
 
+
+        // @TODO: refactor codegenHelper???
+        SerializableValue constantValuedTypeToLLVM(llvm::IRBuilder<>& builder, const python::Type& elementType) {
+            auto& ctx = builder.getContext();
+            auto ut = elementType.underlying();
+            auto constant_value = elementType.constant();
+            auto not_null = llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, false));
+            if(ut.isOptionType()) {
+                // check if null?
+                if(constant_value == "None")
+                    return SerializableValue(nullptr, nullptr, llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, true)));
+                else {
+                    ut = ut.elementType();
+                }
+            }
+
+            if(ut == python::Type::I64) {
+                auto ival = std::stoll(constant_value);
+                auto i64const = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(ival, false));
+                auto i64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(sizeof(int64_t), false));
+                return SerializableValue(i64const, i64const_size, not_null);
+            } else if(ut == python::Type::F64) {
+                auto dval = std::stod(constant_value);
+                auto f64const = llvm::ConstantFP::get(ctx, llvm::APFloat(dval));
+                auto f64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(sizeof(int64_t), false));
+                return SerializableValue(f64const, f64const_size, not_null);
+            } else if(ut == python::Type::STRING) {
+                assert(builder.GetInsertBlock()->getParent()); // make sure block has a parent, else pretty bad bugs could happen...
+                auto sconst = builder.CreateGlobalStringPtr(constant_value);
+                auto sval = builder.CreatePointerCast(sconst, llvm::Type::getInt8PtrTy(ctx, 0));
+                auto s64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(constant_value.length() + 1, false));
+                return SerializableValue(sval, s64const_size, not_null);
+            } else {
+                std::cerr<<"wrong type found in gettupleelement constant vlaued: "<<elementType.desc()<<std::endl;
+                throw std::runtime_error("unknown constant valued type");
+            }
+        }
+
         void LLVMEnvironment::init(const std::string &moduleName) {
 
             initLLVM();
@@ -558,6 +596,9 @@ namespace tuplex {
             auto &ctx = builder.getContext();
             auto elementType = tupleType.parameters()[index];
 
+            if(elementType.isConstantValued())
+                return constantValuedTypeToLLVM(builder, elementType);
+
             // special types (not serialized in memory, i.e. constants to be constructed from typing)
             if (python::Type::NULLVALUE == elementType)
                 return SerializableValue(nullptr, nullptr, llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx),
@@ -661,39 +702,8 @@ namespace tuplex {
 
             // quick: constants
             if(elementType.isConstantValued()) {
-                auto ut = elementType.underlying();
-                auto constant_value = elementType.constant();
-                auto not_null = llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, false));
-                if(ut.isOptionType()) {
-                    // check if null?
-                    if(constant_value == "None")
-                        return SerializableValue(nullptr, nullptr, llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, true)));
-                    else {
-                        ut = ut.elementType();
-                    }
-                }
-
-                if(ut == python::Type::I64) {
-                    auto ival = std::stoll(constant_value);
-                    auto i64const = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(ival, false));
-                    auto i64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(sizeof(int64_t), false));
-                    return SerializableValue(i64const, i64const_size, not_null);
-                } else if(ut == python::Type::F64) {
-                    auto dval = std::stod(constant_value);
-                    auto f64const = llvm::ConstantFP::get(_context, llvm::APFloat(dval));
-                    auto f64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(sizeof(int64_t), false));
-                    return SerializableValue(f64const, f64const_size, not_null);
-                } else if(ut == python::Type::STRING) {
-                    assert(builder.GetInsertBlock()->getParent()); // make sure block has a parent, else pretty bad bugs could happen...
-                    auto sconst = builder.CreateGlobalStringPtr(constant_value);
-                    auto sval = builder.CreatePointerCast(sconst, llvm::Type::getInt8PtrTy(_context, 0));
-                    auto s64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(constant_value.length() + 1, false));
-                    return SerializableValue(sval, s64const_size, not_null);
-                } else {
-                    std::cerr<<"wrong type found in gettupleelement constant vlaued: "<<elementType.desc()<<std::endl;
-                }
+                return constantValuedTypeToLLVM(builder, elementType);
             }
-
 
             // special types (not serialized in memory, i.e. constants to be constructed from typing)
             if(python::Type::NULLVALUE == elementType)

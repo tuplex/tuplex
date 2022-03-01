@@ -508,9 +508,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 //    string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv";
     string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv";
     std::string s3_output = "s3://tuplex-leonhard/experiments/flights_hyper";
-
-    // test:
-    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_10.csv";
+//
+//    // test:
+//    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_10.csv";
 
 
     std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;
@@ -521,9 +521,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     opt.set("tuplex.executorCount", "0");
     opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
     opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
-//    // hyperspecialization setting
-//    opt.set("tuplex.backend", "lambda");
-//    opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
+    // hyperspecialization setting
+    opt.set("tuplex.backend", "lambda");
+    opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
     opt.set("tuplex.experimental.hyperspecialization", "true");
     Context ctx(opt);
 

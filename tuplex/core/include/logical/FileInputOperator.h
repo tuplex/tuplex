@@ -64,6 +64,9 @@ namespace tuplex {
 
         // TODO: Refactor constructors
 
+        // make private
+        FileInputOperator() {}
+
         // CSV Constructor
         FileInputOperator(const std::string& pattern,
                           const ContextOptions& co,
@@ -255,13 +258,10 @@ namespace tuplex {
          */
         bool isEmpty() const;
 
-
-
-
         // HACK quick n dirty serializatio n (targeting only the CSV case...)
         inline nlohmann::json to_json() const {
             nlohmann::json obj;
-            obj["type"] = "csv"; // hack
+            obj["name"] = "csv"; // hack
             auto uris = nlohmann::json::array();
             for(auto uri : _fileURIs)
                 uris.push_back(uri.toString());
@@ -274,13 +274,45 @@ namespace tuplex {
             obj["delimiter"] = _delimiter;
             obj["hasHeader"] = _header;
             obj["null_values"] = _null_values;
-            obj["optimizedSchema"] = _optimizedSchema.getRowType().desc();
+
             obj["columnNames"] = _columnNames;
             obj["optimizedColumnsNames"] = _optimizedColumnNames;
             obj["columnsToSerialize"] = _columnsToSerialize;
+
+            obj["optimizedSchema"] = _optimizedSchema.getRowType().desc();
             obj["normalCaseRowType"] = _normalCaseRowType.desc();
             obj["optimizedNormalCaseRowType"] = _optimizedNormalCaseRowType.desc();
+
+            // skip index based hints...
+
+            obj["id"] = getID();
+
             return obj;
+        }
+
+        // HACK !!!
+        static FileInputOperator* from_json(nlohmann::json obj) {
+
+            auto fop = new FileInputOperator();
+            fop->_fmt = FileFormat::OUTFMT_CSV;
+            fop->_quotechar = obj["quotechar"].get<char>();
+            fop->_delimiter = obj["delimiter"].get<char>();
+            fop->_header = obj["hasHeader"].get<bool>();
+            for(auto uri : obj["uris"])
+                fop->_fileURIs.push_back(uri.get<std::string>());
+            fop->_sizes = obj["sizes"].get<std::vector<size_t>>();
+            fop->_null_values = obj["null_values"].get<std::vector<std::string>>();
+            fop->_columnNames = obj["columnNames"].get<std::vector<std::string>>();
+            fop->_optimizedColumnNames = obj["optimizedColumnNames"].get<std::vector<std::string>>();
+            fop->_columnsToSerialize = obj["columnsToSerialize"].get<std::vector<bool>>();
+
+            fop->_optimizedSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(obj["optimizedSchema"].get<std::string>()));
+            fop->_normalCaseRowType = python::decodeType(obj["normalCaseRowType"].get<std::string>());
+            fop->_optimizedNormalCaseRowType = python::decodeType(obj["optimizedNormalCaseRowType"].get<std::string>());
+
+            fop->setID(obj["id"]);
+
+            return fop;
         }
     };
 }

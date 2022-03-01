@@ -1681,5 +1681,111 @@ namespace tuplex {
             return obj;
         }
 
+        // decode now everything...
+        CodeGenerationContext CodeGenerationContext::fromJSON(const std::string &json_str) {
+            CodeGenerationContext ctx;
+            using namespace nlohmann;
+            auto &logger = Logger::instance().logger("codegen");
+
+            try {
+                // try to extract json
+                auto root = json::parse(json_str);
+
+                // global settings, encode them!
+                ctx.sharedObjectPropagation = root["sharedObjectPropagation"].get<bool>();
+                ctx.nullValueOptimization = root["nullValueOptimization"].get<bool>();// = nullValueOptimization;
+                ctx.isRootStage = root["isRootStage"].get<bool>();// = isRootStage;
+                ctx.generateParser = root["generateParser"].get<bool>();// = generateParser;
+                ctx.normalCaseThreshold = root["normalCaseThreshold"].get<double>();// = normalCaseThreshold;
+                ctx.outputMode = static_cast<EndPointMode>(root["outputMode"].get<int>());// = outputMode;
+                ctx.outputFileFormat = static_cast<FileFormat>(root["outputFileFormat"].get<int>());// = outputFileFormat;
+                ctx.outputNodeID = root["outputNodeID"].get<int>();// = outputNodeID;
+                ctx.outputSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(root["outputSchema"].get<std::string>()));// = outputSchema.getRowType().desc();
+                ctx.fileOutputParameters = root["fileOutputParameters"].get<std::unordered_map<std::string, std::string>>();// = fileOutputParameters;
+                ctx.outputLimit = root["outputLimit"].get<size_t>();// = outputLimit;
+                ctx.hashColKeys = root["hashColKeys"].get<std::vector<size_t>>();// = hashColKeys;
+
+                ctx.hashSaveOthers = root["hashSaveOthers"].get<bool>();// = hashSaveOthers;
+                ctx.hashAggregate = root["hashAggregate"].get<bool>();// = hashAggregate;
+                ctx.inputMode = static_cast<EndPointMode>(root["inputMode"].get<int>());// = inputMode;
+                ctx.inputFileFormat = static_cast<FileFormat>(root["inputFileFormat"].get<int>());
+                ctx.inputNodeID = root["inputNodeID"].get<int>();// = inputNodeID;
+                ctx.fileInputParameters = root["fileInputParameters"].get<std::unordered_map<std::string, std::string>>();// = fileInputParameters;
+
+                //                if(python::Type::UNKNOWN != hashKeyType && hashKeyType.hash() > 0) // HACK
+//                    root["hashKeyType"] = hashKeyType.desc();
+
+                // TODO;
+
+                if(root.find("fastPathContext") != root.end()) {
+                    // won't be true, skip
+                    logger.warn("skipping fast code path decode, bc.");
+                }
+                if(root.find("slowPathContext") != root.end()) {
+                    ctx.slowPathContext = CodeGenerationContext::CodePathContext::from_json(root["slowPathContext"]);
+                }
+            } catch(const json::parse_error& jse) {
+                logger.error(std::string("failed to decode: ") + jse.what());
+            }
+
+            return ctx;
+        }
+
+        CodeGenerationContext::CodePathContext CodeGenerationContext::CodePathContext::from_json(nlohmann::json obj) {
+            CodeGenerationContext::CodePathContext ctx;
+
+            // decode schemas
+            ctx.readSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(obj["read"].get<std::string>()));
+            ctx.inputSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(obj["input"].get<std::string>()));
+            ctx.outputSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(obj["output"].get<std::string>()));
+            ctx.columnsToRead = obj["colsToRead"].get<std::vector<bool>>();
+
+            // now the worst, decoding the operators...
+            std::vector<LogicalOperator*> operators;
+            for(auto json_op : obj["operators"]) {
+                // only map and csv supported
+                auto name = json_op["type"].get<std::string>();
+                if(name == "csv") {
+                    operators.push_back(FileInputOperator::from_json(obj));
+                } else if(name == "map") {
+                    // map is easy, simply decode UDF and hook up with parent operator!
+                    assert(!operators.back());
+                    auto columnNames = json_op["columnNames"].get<std::vector<std::string>>();
+                    auto id = json_op["id"].get<int>();
+                    auto code = json_op["code"].get<std::string>();
+                    // @TODO: avoid typing call?
+                    // i.e. this will draw a sample too?
+                    // or ok, because sample anyways need to get drawn??
+                    UDF udf(code);
+
+                    auto mop = new MapOperator(operators.back(), udf, columnNames);
+                    mop->setID(id);
+                    operators.push_back(mop);
+                } else {
+                    throw std::runtime_error("attempting to decode unknown op " + name);
+                }
+            }
+            ctx.inputNode = operators.front();
+            ctx.operators = std::vector<LogicalOperator*>(operators.begin() + 1, operators.end());
+
+
+//            obj["read"] = readSchema.getRowType().desc();
+//            obj["input"] = inputSchema.getRowType().desc();
+//            obj["output"] = outputSchema.getRowType().desc();
+//
+//            obj["colsToRead"] = columnsToRead;
+//
+//            // now the most annoying thing, encoding the operators
+//            auto ops = nlohmann::json::array();
+//            ops.push_back(encodeOperator(inputNode));
+//            for(auto op : operators)
+//                ops.push_back(encodeOperator(op));
+//
+//            obj["operators"] = ops;
+//            return obj;
+
+            return ctx;
+        }
+
     }
 }

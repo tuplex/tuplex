@@ -985,6 +985,8 @@ namespace tuplex {
         msg->set_pycode(_pyCode);
         msg->set_pypipelinename(_pyPipelineName);
 
+        msg->set_serializedstage(_encodedData);
+
         for(const auto& col : _inputColumns)
             msg->add_inputcolumns(col);
         for(const auto& col : _outputColumns)

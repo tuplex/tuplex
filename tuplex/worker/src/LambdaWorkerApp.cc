@@ -712,6 +712,7 @@ namespace tuplex {
                 // use first input file
                 std::string uri = req.inputuris(0);
                 size_t file_size = req.inputsizes(0);
+                logger().info("Specializing on input " + uri + " (" + sizeToMemString(file_size) + ")");
                 hyperspecialize(tstage, uri, file_size);
                 logger().info("HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()));
                 Timer opt_timer;

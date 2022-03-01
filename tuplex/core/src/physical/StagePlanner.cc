@@ -501,9 +501,10 @@ namespace tuplex {
         assert(stage);
 
         // need to decode CodeGenerationCOntext from stage
-        if(stage->_encodedData.empty())
+        if(stage->_encodedData.empty()) {
+            logger.info("did not find encoded codegen context, skipping.");
             return;
-
+        }
 
         logger.info("specializing code to file " + uri.toString());
         // fetch codeGenerationContext & restore logical operator tree!

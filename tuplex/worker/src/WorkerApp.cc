@@ -1254,6 +1254,12 @@ namespace tuplex {
 
         // 1. check fast code path
         auto bitCode = stage.fastPathBitCode() + stage.slowPathBitCode();
+
+        if(bitCode.empty()) {
+            logger().error("no bitcode found, empty stage?");
+            return nullptr;
+        }
+
         // use cache
         auto it = _compileCache.find(bitCode);
         if(it != _compileCache.end()) {

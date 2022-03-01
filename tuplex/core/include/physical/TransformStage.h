@@ -261,6 +261,7 @@ namespace tuplex {
         //std::string writerFuncName() const { throw std::runtime_error("is writer func actually used?"); return ""; } //return _fastCodePath._writerFuncName; }
         std::string writeMemoryCallbackName() const { return _fastCodePath.writeMemoryCallbackName; }
         std::string writeFileCallbackName() const { return _fastCodePath.writeFileCallbackName; }
+        std::string writeHashCallbackName() const { return _fastCodePath.writeHashCallbackName; }
         std::string exceptionCallbackName() const { return _fastCodePath.writeExceptionCallbackName; }
         std::string aggCombineCallbackName() const { return _fastCodePath.writeAggregateCallbackName; }
 

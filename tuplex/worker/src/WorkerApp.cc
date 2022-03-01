@@ -1252,10 +1252,12 @@ namespace tuplex {
 
     std::shared_ptr<TransformStage::JITSymbols> WorkerApp::compileTransformStage(TransformStage &stage) {
 
+        // 1. check fast code path
+        auto bitCode = stage.fastPathBitCode() + stage.slowPathBitCode();
         // use cache
-        auto it = _compileCache.find(stage.bitCode());
+        auto it = _compileCache.find(bitCode);
         if(it != _compileCache.end()) {
-            logger().info("Using cached compiled code");
+            logger().info("Using cached compiled code for fast/slow path");
             return it->second;
         }
 
@@ -1282,26 +1284,26 @@ namespace tuplex {
             // @TODO: hashing callbacks...
 
             // in debug mode, validate module.
-#ifndef NDEBUG
-            llvm::LLVMContext ctx;
-        auto mod = codegen::bitCodeToModule(ctx, stage.bitCode());
-        if(!mod)
-            logger().error("error parsing module");
-        else {
-            logger().info("parsed llvm module from bitcode, " + mod->getName().str());
-
-            // run verify pass on module and print out any errors, before attempting to compile it
-            std::string moduleErrors;
-            llvm::raw_string_ostream os(moduleErrors);
-            if (verifyModule(*mod, &os)) {
-                os.flush();
-                logger().error("could not verify module from bitcode");
-                logger().error(moduleErrors);
-                logger().error(core::withLineNumbers(codegen::moduleToString(*mod)));
-            } else
-            logger().info("module verified.");
-        }
-#endif
+//#ifndef NDEBUG
+//            llvm::LLVMContext ctx;
+//        auto mod = codegen::bitCodeToModule(ctx, stage.bitCode());
+//        if(!mod)
+//            logger().error("error parsing module");
+//        else {
+//            logger().info("parsed llvm module from bitcode, " + mod->getName().str());
+//
+//            // run verify pass on module and print out any errors, before attempting to compile it
+//            std::string moduleErrors;
+//            llvm::raw_string_ostream os(moduleErrors);
+//            if (verifyModule(*mod, &os)) {
+//                os.flush();
+//                logger().error("could not verify module from bitcode");
+//                logger().error(moduleErrors);
+//                logger().error(core::withLineNumbers(codegen::moduleToString(*mod)));
+//            } else
+//            logger().info("module verified.");
+//        }
+//#endif
 
             // perform actual compilation
             // -> do not compile slow path for now.
@@ -1311,7 +1313,7 @@ namespace tuplex {
                                         false);
 
             // cache symbols for reuse.
-            _compileCache[stage.bitCode()] = syms;
+            _compileCache[bitCode] = syms;
 
             return syms;
         } catch(std::runtime_error& e) {

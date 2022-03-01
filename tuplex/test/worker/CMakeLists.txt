@@ -10,11 +10,14 @@ include(GoogleTest)
 ADD_EXECUTABLE(testworker ${SRCS} ../../worker/src/WorkerApp.cc ../../worker/src/LambdaWorkerApp.cc)
 target_include_directories(testworker PUBLIC "../../worker/include")
 TARGET_LINK_LIBRARIES(testworker
+        libutils
         libio
         libcodegen
         libcore
+        libcpythonadapter
         ${GTest_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
+        ${Python3_LIBRARIES}
         )
 
 message(STATUS "Building tests for worker ${WORKER_NAME}")

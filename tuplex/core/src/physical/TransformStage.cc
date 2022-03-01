@@ -846,7 +846,7 @@ namespace tuplex {
         if(registerSymbols && !_fastCodePath.aggregateCombineFuncName.empty())
             jit.registerSymbol(aggCombineCallbackName(), TransformTask::aggCombineCallback());
 
-        logger.info("syms registered (or skipped), compile now")
+        logger.info("syms registered (or skipped), compile now");
 
         // 3. compile code
         // @TODO: use bitcode or llvm Module for more efficiency...

@@ -1000,6 +1000,15 @@ namespace python {
         if(from == to)
             return true;
 
+        // NOTE: optimizing types should come first...
+        // optimizing types -> i.e. deoptimized/optimized version should be interchangeabke
+        // @TODO: hack. should have one set of things for all the opts
+        if(from.isConstantValued())
+            return canUpcastType(from.underlying(), to);
+        if(to.isConstantValued())
+            return canUpcastType(from, to.underlying());
+
+
         // option type?
         if(to.isOptionType()) {
             // from also option type?
@@ -1040,13 +1049,6 @@ namespace python {
             return true;
         if(from == python::Type::EMPTYLIST && to.isListType())
             return true;
-
-        // optimizing types -> i.e. deoptimized/optimized version should be interchangeabke
-        // @TODO: hack. should have one set of things for all the opts
-        if(from.isConstantValued())
-            return canUpcastType(from.underlying(), to);
-        if(to.isConstantValued())
-            return canUpcastType(from, to.underlying());
 
         return false;
     }

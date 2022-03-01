@@ -321,6 +321,43 @@ auto code = "def fill_in_delays(row):\n"
     //ds.show(5);
 }
 
+TEST_F(SamplingTest, S3FileWrite) {
+
+    using namespace std;
+    using namespace tuplex;
+
+    // create a large buffer
+    size_t large_buf_size = 80 * 1024 * 1024;
+    auto large_buf = new uint8_t[large_buf_size];
+    memset(reinterpret_cast<void *>(large_buf_size), 42, large_buf_size);
+
+    // test uri
+    auto test_uri = URI("s3://tuplex-leonhard/experiments/s3write/test.bin");
+    auto outputURI = test_uri;
+    auto vfs = VirtualFileSystem::fromURI(outputURI);
+    auto mode = VirtualFileMode::VFS_OVERWRITE | VirtualFileMode::VFS_WRITE;
+    mode |= VirtualFileMode::VFS_TEXTMODE;
+
+    auto file = tuplex::VirtualFileSystem::open_file(outputURI, mode);
+    if(!file)
+        throw std::runtime_error("could not open " + outputURI.toPath() + " to write output");
+
+    file->write(large_buf, 1024); // write tiny header
+    file->write(large_buf, large_buf_size);
+    file->close();
+
+    delete [] large_buf;
+}
+
+TEST_F(SamplingTest, UpcastFix) {
+    //auto from = "(i64,i64,i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],_Constant[Option[f64],value=0.00000],Option[f64])";
+    //auto to = "(_Constant[i64,value=2003],_Constant[i64,value=10],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+    using namespace tuplex;
+
+    // upcast option?
+    auto f64opt = python::Type::makeOptionType(python::Type::F64);
+    EXPECT_TRUE(python::canUpcastType(python::Type::makeConstantValuedType(f64opt, "0.000"), f64opt));
+}
 
 TEST_F(SamplingTest, FlightsLambdaVersion) {
     using namespace std;
@@ -461,9 +498,20 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // output URI
     // ==> important!
     std::string s3_output = "s3://tuplex-leonhard/experiments/flights_hyper";
-    auto& ds = ctx.csv(null_based_file).map(UDF(code)); // fix: /aws/lambda/tuplex-lambda-runner?
+    //auto& ds = ctx.csv(null_based_file).map(UDF(code)); // fix: /aws/lambda/tuplex-lambda-runner?
+    auto& ds = ctx.csv(non_null_based_file).map(UDF(code)); // fix: /aws/lambda/tuplex-lambda-runner?
 
     ds.tocsv(s3_output);
+
+    // BENCHMARK HERE...!
+    std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;
+
+    // running first query with hyper specialization on.
+
+    std::cout<<"Running query with hyper-opt off"<<std::endl;
+    // running query with hyper specializaiton off.
+
+
 
     //ds.show(5);
 }

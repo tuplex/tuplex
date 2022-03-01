@@ -683,6 +683,12 @@ namespace tuplex {
                     auto f64const = llvm::ConstantFP::get(_context, llvm::APFloat(dval));
                     auto f64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(sizeof(int64_t), false));
                     return SerializableValue(f64const, f64const_size, not_null);
+                } else if(ut == python::Type::STRING) {
+                    assert(builder.GetInsertBlock()->getParent()); // make sure block has a parent, else pretty bad bugs could happen...
+                    auto sconst = builder.CreateGlobalStringPtr(ut.constant());
+                    auto sval = builder.CreatePointerCast(sconst, llvm::Type::getInt8PtrTy(_context, 0));
+                    auto s64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(ut.constant().length() + 1, false));
+                    return SerializableValue(sval, s64const_size, not_null);
                 } else {
                     std::cerr<<"wrong type found in gettupleelement constant vlaued: "<<elementType.desc()<<std::endl;
                 }

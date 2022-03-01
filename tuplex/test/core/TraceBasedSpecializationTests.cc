@@ -362,34 +362,34 @@ TEST_F(SamplingTest, UpcastFix) {
 TEST_F(SamplingTest, FlightsLambdaVersion) {
     using namespace std;
     using namespace tuplex;
-    ContextOptions opt = ContextOptions::defaults();
-    opt.set("tuplex.executorCount", "0");
-
-    opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
-
-    //opt.set("tuplex.optimizer.nullValueOptimization", "false"); // this also doesn't work -.-
-
-    opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
-
-    // hyperspecialization setting
-
-    opt.set("tuplex.backend", "lambda");
-    opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
-
-    opt.set("tuplex.experimental.hyperspecialization", "true");
-    Context ctx(opt);
-
-    // specialize access with columns vs. non-columns
-    // --> need to figure this automatically out.
-
-    // i.e. turn off null-value optimization for files or not?
-
-    // auto null_based_file = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_01.csv";
-    // auto non_null_based_file = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2013_01.csv"; // do not need to set values...
-
-
-    auto null_based_file = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_01.csv";
-    auto non_null_based_file = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv"; // do not need to set values...
+//    ContextOptions opt = ContextOptions::defaults();
+//    opt.set("tuplex.executorCount", "0");
+//
+//    opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
+//
+//    //opt.set("tuplex.optimizer.nullValueOptimization", "false"); // this also doesn't work -.-
+//
+//    opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
+//
+//    // hyperspecialization setting
+//
+//    opt.set("tuplex.backend", "lambda");
+//    opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
+//
+//    opt.set("tuplex.experimental.hyperspecialization", "true");
+//    Context ctx(opt);
+//
+//    // specialize access with columns vs. non-columns
+//    // --> need to figure this automatically out.
+//
+//    // i.e. turn off null-value optimization for files or not?
+//
+//    // auto null_based_file = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_01.csv";
+//    // auto non_null_based_file = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2013_01.csv"; // do not need to set values...
+//
+//
+//    auto null_based_file = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_01.csv";
+//    auto non_null_based_file = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv"; // do not need to set values...
 
 
 //    // test with specialization
@@ -495,13 +495,13 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // => i.e. no expensive code is required!
 //    auto& ds = ctx.csv(non_null_based_file).map(UDF(code));
 
-    // output URI
-    // ==> important!
-    std::string s3_output = "s3://tuplex-leonhard/experiments/flights_hyper";
-    //auto& ds = ctx.csv(null_based_file).map(UDF(code)); // fix: /aws/lambda/tuplex-lambda-runner?
-    auto& ds = ctx.csv(non_null_based_file).map(UDF(code)); // fix: /aws/lambda/tuplex-lambda-runner?
-
-    ds.tocsv(s3_output);
+//    // output URI
+//    // ==> important!
+//    std::string s3_output = "s3://tuplex-leonhard/experiments/flights_hyper";
+//    //auto& ds = ctx.csv(null_based_file).map(UDF(code)); // fix: /aws/lambda/tuplex-lambda-runner?
+//    auto& ds = ctx.csv(non_null_based_file).map(UDF(code)); // fix: /aws/lambda/tuplex-lambda-runner?
+//
+//    ds.tocsv(s3_output);
 
     // BENCHMARK HERE...!
 
@@ -513,6 +513,8 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // running first query with hyper specialization on.
 
     // could also be interesting to have some sort of figure showing different specializations (i.e. column pushdown)
+
+    std::string s3_output = "s3://tuplex-leonhard/experiments/flights_hyper";
 
     std::cout<<"Running query with hyper-opt off"<<std::endl;
     // running query with hyper specializaiton off.
@@ -527,7 +529,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     Context ctx_general(opt_general);
 
     // run same query too
-    ctx_general.csv(non_null_based_file).map(UDF(code)).tocsv(s3_output +"_general"); // fix: /aws/lambda/tuplex-lambda-runner?
+    ctx_general.csv(input_pattern).map(UDF(code)).tocsv(s3_output +"_general"); // fix: /aws/lambda/tuplex-lambda-runner?
 
     double generalQueryTime = timer.time();
     std::cout<<"General query done"<<std::endl;

@@ -530,7 +530,7 @@ namespace tuplex {
             inline void fill(messages::CodePath* c) const {
                 if(!c)
                     return;
-                c->set_irbitcode(irBitCode.c_str());
+                c->set_irbitcode(irBitCode); // DO NOT USE c_str() here!
                 c->set_initstagefuncname(initStageFuncName.c_str());
                 c->set_releasestagefuncname(releaseStageFuncName.c_str());
 

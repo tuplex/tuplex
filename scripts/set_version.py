@@ -7,10 +7,15 @@ import logging
 import sys
 import requests
 import re
-from distutils.version import LooseVersion
+#from distutils.version import LooseVersion
+
+def LooseVersion(v):
+    parts = v.split('.')
+    return parts
+
 
 # to create a testpypi version use X.Y.devN
-version = '0.3.1'
+version = '0.3.2'
 
 # https://pypi.org/simple/tuplex/
 # or https://test.pypi.org/simple/tuplex/

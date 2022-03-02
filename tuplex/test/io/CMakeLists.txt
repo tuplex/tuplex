@@ -7,14 +7,17 @@ FILE(GLOB SRCS *.cc)
 
 include(GoogleTest)
 
-ADD_EXECUTABLE(testio ${SRCS} main.cc
-        )
+ADD_EXECUTABLE(testio ${SRCS} main.cc)
 
 TARGET_LINK_LIBRARIES(testio
         libio
+        libutils
         libcodegen
         libcore
+        libcpythonadapter
         ${GTest_LIBRARIES}
-        ${AWSSDK_LINK_LIBRARIES})
+        ${AWSSDK_LINK_LIBRARIES}
+        ${Python3_LIBRARIES}
+        )
 
 gtest_add_tests(TARGET testio TEST_PREFIX "")

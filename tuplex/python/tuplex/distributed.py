@@ -371,6 +371,11 @@ def setup_aws(aws_access_key=None, aws_secret_key= None,
     if s3_scratch_uri is None:
         s3_scratch_uri = default_scratch_dir()
 
+    if lambda_file is None:
+        raise Exception('Must specify a lambda runner to upload, i.e. set ' \
+        'parameter lambda_file=<path to tplxlam.zip>. Please check the REAMDE.md to ' \
+        ' read about instructions on how to build the lambda runner or visit ' \
+        'the project website to download prebuilt runners.')
 
     assert lambda_file is not None, 'must specify file to upload'
 

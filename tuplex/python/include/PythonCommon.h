@@ -11,7 +11,7 @@
 #define TUPLEX_PYTHONCOMMON_H
 
 #include <Python.h>
-#include <boost/python.hpp>
+#include <pybind11/pybind11.h>
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
@@ -21,6 +21,9 @@
 #include <mutex>
 
 #include <PythonHelpers.h>
+
+// check https://github.com/pybind/pybind11/issues/1201 for cheatsheet
+namespace py = pybind11;
 
 namespace tuplex {
 
@@ -141,6 +144,7 @@ namespace tuplex {
     using no_gil_python3_sink_mt = nogil_python3_sink<std::mutex>;
     using no_gil_python3_sink_st = nogil_python3_sink<spdlog::details::null_mutex>;
 
-    extern boost::python::object registerPythonLoggingCallback(boost::python::object callback_functor);
+    extern py::object registerPythonLoggingCallback(py::object callback_functor);
 }
+
 #endif //TUPLEX_PYTHONCOMMON_H

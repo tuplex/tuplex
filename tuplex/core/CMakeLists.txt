@@ -51,7 +51,7 @@ if(BUILD_WITH_AWS)
     list(APPEND SOURCES ${PROTO_SRCS} ${PROTO_HDRS})
 endif()
 
-add_library(libcore STATIC
+add_library(libcore OBJECT
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES})
 set_target_properties(libcore PROPERTIES PREFIX "")
 
@@ -65,7 +65,10 @@ target_include_directories(libcore PUBLIC
         ${YAMLCPP_INCLUDE_DIR}
         ${date_INCLUDE_DIR}
         ${CURL_INCLUDE_DIR}
+        ${Python3_INCLUDE_DIRS}
         )
+
+message(STATUS "Boost libraries are: ${Boost_LIBRARIES}")
 
 # Declare the library
 target_link_libraries(libcore
@@ -75,6 +78,9 @@ target_link_libraries(libcore
         ${YAMLCPP_LIBRARY}
         ${CURL_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
-        ${Boost_LIBRARIES}
         ${Protobuf_LIBRARIES}
+        Boost::iostreams
+        Boost::thread
+        Boost::system
+        Boost::filesystem
         )

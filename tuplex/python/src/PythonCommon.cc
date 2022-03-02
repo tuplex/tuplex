@@ -11,9 +11,10 @@
 #include <PythonCommon.h>
 
 namespace tuplex {
-    boost::python::object registerPythonLoggingCallback(boost::python::object callback_functor) {
+    py::object registerPythonLoggingCallback(py::object callback_functor) {
         // get object
-        auto functor_obj = boost::python::incref(get_managed_object(callback_functor, boost::python::tag));
+        callback_functor.inc_ref();
+        auto functor_obj = callback_functor.ptr();
 
         if(!functor_obj) {
             std::cerr<<"invalid functor obj passed?"<<std::endl;
@@ -37,6 +38,6 @@ namespace tuplex {
         python::lockGIL();
 
         // return None
-        return boost::python::object();
+        return py::none();
     }
 }

@@ -984,7 +984,14 @@ namespace tuplex {
 
                 return;
             } else {
-                ss << "LAMBDA task failed with ["<<statusCode<<"]" << outcome.GetError().GetExceptionName().c_str()
+
+                // HACK: TODO
+#warning "want to make debugging easier via webui"
+                std::string input_desc = "no files";
+                if(invoke_req.inputuris_size() > 0)
+                    input_desc = invoke_req.inputuris(0);
+
+                ss << "LAMBDA task failed (" + input_desc + ") with ["<<statusCode<<"]" << outcome.GetError().GetExceptionName().c_str()
                    << outcome.GetError().GetMessage().c_str();
             }
         } else {
@@ -1035,7 +1042,11 @@ namespace tuplex {
                 ss<<std::fixed<<price;
             } else {
                 // TODO: maybe still track the response info (e.g. reused, cost, etc.)
-                ss<<"Lambda task failed ["<<statusCode<<"], details: "<<response.errormessage();
+                std::string input_desc = "no files";
+                if(invoke_req.inputuris_size() > 0)
+                    input_desc = invoke_req.inputuris(0);
+
+                ss<<"Lambda task failed (" + input_desc + ") ["<<statusCode<<"], details: "<<response.errormessage();
                 ss<<" RequestId: "<<info.requestId;
                 if(!function_error.empty())
                     ss<<" Function Error: "<<function_error;

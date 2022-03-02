@@ -75,16 +75,11 @@ macro(_LLVM_FAIL _msg)
 endmacro()
 
 
-
 if(NOT LLVM_CONFIG)
-    message(FATAL_ERROR "did not find llvm-config")
     if(NOT LLVM_FIND_QUIETLY)
         _LLVM_FAIL("No LLVM installation (>= ${LLVM_FIND_VERSION}) found. Try manually setting the 'LLVM_ROOT_DIR' or 'LLVM_CONFIG' variables.")
     endif()
 else()
-
-    message(STATUS "Found llvm-config: ${LLVM_CONFIG}")
-
     macro(llvm_set var flag)
         if(LLVM_FIND_QUIETLY)
             set(_quiet_arg ERROR_QUIET)
@@ -130,9 +125,6 @@ else()
     llvm_set(INCLUDE_DIRS includedir true)
     llvm_set(ROOT_DIR prefix true)
     llvm_set(ENABLE_ASSERTIONS assertion-mode)
-
-    message(STATUS "${VERSION_STRING}")
-    message(STATUS "${INCLUDE_DIRS}")
 
     # The LLVM version string _may_ contain a git/svn suffix, so match only the x.y.z part
     string(REGEX MATCH "^[0-9]+[.][0-9]+[.][0-9]+" LLVM_VERSION_BASE_STRING "${LLVM_VERSION_STRING}")

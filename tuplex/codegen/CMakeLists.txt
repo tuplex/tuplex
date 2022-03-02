@@ -82,7 +82,7 @@ ENDIF()
 
 # for brewed llvm, add to cmakemodulepath
 IF(NOT "${LLVM_ROOT_DIR}" STREQUAL "")
-    message(STATUS "root dir: ${LLVM_ROOT_DIR}")
+    message(STATUS "Detected LLVM root dir: ${LLVM_ROOT_DIR}")
     # make cmake find in config mode the right LLVMConfig.cmake file which is located here
     set(LLVM_DIR "${LLVM_ROOT_DIR}/lib/cmake/llvm")
     FIND_PACKAGE(LLVM 6.0 REQUIRED)
@@ -90,8 +90,10 @@ ELSE()
     FIND_PACKAGE(LLVM 6.0 REQUIRED)
 ENDIF()
 
-MESSAGE(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-MESSAGE(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+MESSAGE(STATUS "Found LLVM ${LLVM_VERSION_STRING}")
+if(LLVM_DIR)
+    message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+endif()
 MESSAGE(STATUS "Found llvm include dirs at: " ${LLVM_INCLUDE_DIRS})
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
@@ -139,6 +141,7 @@ set_target_properties(libcodegen PROPERTIES PREFIX "")
 # check: https://github.com/ldc-developers/ldc/blob/master/CMakeLists.txt
 
 # list to reduce size of shared object. Compared to linking against all LLVM components, this saves about ~10MB.
+# from https://github.com/llvm-mirror/llvm/blob/master/cmake/modules/LLVM-Config.cmake#L218?
 llvm_map_components_to_libnames(llvm_libs core orcjit nativecodegen native scalaropts objcarcopts passes)
 
 # for minimum JIT these components are recommended:

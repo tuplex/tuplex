@@ -111,11 +111,11 @@ namespace tuplex {
 
     ASTNode* ReduceExpressionsVisitor::cmp_replace(NCompare *op) {
         // check that all operands are literals, if not no reduction is possible
-        if(!isLiteralASTNode(op->_left))
+        if(!isLiteralASTNode(op->_left.get()))
             return op;
 
         for(const auto &operand: op->_comps)
-            if(!isLiteralASTNode(operand))
+            if(!isLiteralASTNode(operand.get()))
                 return op;
 
         // all operands are literals, can reduce!
@@ -209,8 +209,8 @@ namespace tuplex {
     ASTNode* ReduceExpressionsVisitor::binop_replace(NBinaryOp *op) {
 
         // check that both are literals, if not replace nothing
-        if(!isLiteralASTNode(op->_left) ||
-           !isLiteralASTNode(op->_right))
+        if(!isLiteralASTNode(op->_left.get()) ||
+           !isLiteralASTNode(op->_right.get()))
             return op;
 
         // so far only a subset of binary operations is supported...

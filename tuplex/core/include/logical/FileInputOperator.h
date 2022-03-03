@@ -133,10 +133,11 @@ namespace tuplex {
 
         // cereal serialization functions
         template<class Archive> void serialize(Archive &ar) {
+            // @TODO: should the sample really get archived?
             ar(::cereal::base_class<LogicalOperator>(this), _fileURIs, _sizes, _estimatedRowCount, _fmt, _quotechar,
                _delimiter, _header, _null_values,
                _optimizedSchema, _columnNames, _optimizedColumnNames, _columnsToSerialize, _indexBasedHints,
-               _normalCaseRowType, _optimizedNormalCaseRowType, _sample, _sampling_time_s);
+               _normalCaseRowType, _optimizedNormalCaseRowType, _firstRowsSample, _lastRowsSample, _sampling_time_s);
         }
 
         std::string name() override {

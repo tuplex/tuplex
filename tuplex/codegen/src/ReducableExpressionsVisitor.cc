@@ -25,8 +25,8 @@ namespace tuplex {
 // if for unary or binary operations two literals are encountered, then a reduction can be done!
     void ReducableExpressionsVisitor::visit(NBinaryOp *op) {
         // check if both operands are literals
-        if(isLiteralASTNode(op->_left) &&
-           isLiteralASTNode(op->_right))
+        if(isLiteralASTNode(op->_left.get()) &&
+           isLiteralASTNode(op->_right.get()))
             _result = true;
         else {
             // continue visit
@@ -35,7 +35,7 @@ namespace tuplex {
     }
 
     void ReducableExpressionsVisitor::visit(NUnaryOp *op) {
-        if(isLiteralASTNode(op->_operand))
+        if(isLiteralASTNode(op->_operand.get()))
             _result = true;
         else {
             ApatheticVisitor::visit(op);
@@ -47,10 +47,10 @@ namespace tuplex {
         // two cases: only left hand => reduction easily possible!!!
         // left hand + ops => reduction if all are literals
         if(cmp->_comps.size() > 0) {
-            bool areAllLiterals = isLiteralASTNode(cmp->_left);
+            bool areAllLiterals = isLiteralASTNode(cmp->_left.get());
             int pos = 0;
             while(areAllLiterals && pos < cmp->_comps.size() > 0) {
-                areAllLiterals = isLiteralASTNode(cmp->_comps[pos++]);
+                areAllLiterals = isLiteralASTNode(cmp->_comps[pos++].get());
             }
 
             if(areAllLiterals)
@@ -58,7 +58,7 @@ namespace tuplex {
             else
                 ApatheticVisitor::visit(cmp);
         } else {
-            if(isLiteralASTNode(cmp->_left))
+            if(isLiteralASTNode(cmp->_left.get()))
                 _result = true;
             else
                 ApatheticVisitor::visit(cmp);

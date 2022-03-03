@@ -2002,21 +2002,6 @@ namespace tuplex {
             return *this;
         }
 
-
-        /*!
-         * returns tuple type of args. If one arg is unknown, then returns UNKNOWN as type
-         * @return
-         */
-        python::Type getParametersInferredType() {
-            std::vector<python::Type> v;
-            std::for_each(_positionalArguments.begin(), _positionalArguments.end(), [this, &v](std::unique_ptr<ASTNode> &arg) {
-                v.emplace_back(arg->getInferredType());
-                if(arg->getInferredType() == python::Type::UNKNOWN)
-                    return python::Type::UNKNOWN;
-            });
-            return python::Type::makeTupleType(v);
-        }
-
         virtual ASTNode* clone() const { return new NRange(*this); }
         virtual void accept(class IVisitor& visitor);
         static const ASTNodeType type_ = ASTNodeType::Range;

@@ -57,7 +57,7 @@ namespace tuplex {
     //    }
 
 
-    PhysicalStage* PhysicalPlan::createStage(LogicalOperator* root, LogicalOperator* endNode=nullptr,
+    PhysicalStage* PhysicalPlan::createStage(const std::shared_ptr<LogicalOperator> &root, std::shared_ptr<LogicalOperator> endNode=nullptr,
                                              bool isRootStage=true,
                                              EndPointMode outMode=EndPointMode::UNKNOWN) {
         using namespace std;
@@ -67,8 +67,8 @@ namespace tuplex {
         bool hasInputExceptions = false;
         // step 1: break up pipeline according to cost model
         // go through nodes
-        queue<LogicalOperator*> q; q.push(root);
-        deque<LogicalOperator*> ops;
+        queue<std::shared_ptr<LogicalOperator>> q; q.push(root);
+        deque<std::shared_ptr<LogicalOperator>> ops;
         // add endNode if desired (necessary for aggregates)
         if(endNode)
             ops.emplace_back(endNode);
@@ -86,7 +86,7 @@ namespace tuplex {
 
                     // is the cache operator an action or a source?
                     // => simply check whether it's been cached
-                    auto cop = (CacheOperator*)node;
+                    auto cop = (CacheOperator*)node.get();
                     if(cop->isCached()) {
 #ifndef NDEBUG
                         // stop & get row count (this will refresh partitions as well)
@@ -100,7 +100,7 @@ namespace tuplex {
 
                     // do nothing
                 } else if(node->type() == LogicalOperatorType::AGGREGATE) {
-                    auto aop = dynamic_cast<AggregateOperator*>(node); assert(aop);
+                    auto aop = std::dynamic_pointer_cast<AggregateOperator>(node); assert(aop);
                     if(aop->aggType() == AggregateType::AGG_UNIQUE) {
                         dependents.emplace_back(createStage(aop->parent(), aop, false, EndPointMode::HASHTABLE)); // hashtable because we need to find unique rows
                         continue; // do not push this node to the stage!
@@ -133,7 +133,7 @@ namespace tuplex {
 
                 // cost model necessary here (simple, just use #rows!)
                 // there should be something like build left, build right
-                JoinOperator* jop = dynamic_cast<JoinOperator*>(node); assert(jop);
+                auto jop = std::dynamic_pointer_cast<JoinOperator>(node); assert(jop);
 
                 // HACK here:
                 // right join is not yet implemented, however when build direction is switched for left join,
@@ -189,7 +189,7 @@ namespace tuplex {
         auto hashGroupedDataType = AggregateType::AGG_NONE;
 
         assert(!ops.empty());
-        LogicalOperator* ioNode = nullptr; // needed to reconstruct when IO is separated from rest
+        std::shared_ptr<LogicalOperator> ioNode = nullptr; // needed to reconstruct when IO is separated from rest
         if(ops.front()->isDataSource()) {
             // stream data from source into memory
             inputMode = ops.front()->type() == LogicalOperatorType::FILEINPUT ? EndPointMode::FILE : EndPointMode::MEMORY;
@@ -256,7 +256,7 @@ namespace tuplex {
         switch(inputMode) {
             case EndPointMode::FILE: {
                 assert(inputNode->type() == LogicalOperatorType::FILEINPUT);
-                builder.addFileInput(dynamic_cast<FileInputOperator*>(inputNode));
+                builder.addFileInput(std::dynamic_pointer_cast<FileInputOperator>(inputNode));
                 break;
             }
             case EndPointMode::MEMORY: {
@@ -277,7 +277,7 @@ namespace tuplex {
         }
 
         // add operators
-        for(auto op : ops) {
+        for(const auto &op : ops) {
             switch(op->type()) {
                 case LogicalOperatorType::FILEINPUT:
                 case LogicalOperatorType::PARALLELIZE: {
@@ -318,7 +318,7 @@ namespace tuplex {
         // what is the detected outputMode?
         switch(outputMode) {
             case EndPointMode::FILE: {
-                builder.addFileOutput(dynamic_cast<FileOutputOperator*>(outputNode));
+                builder.addFileOutput(dynamic_cast<FileOutputOperator*>(outputNode.get()));
                 break;
             }
             case EndPointMode::MEMORY: {
@@ -328,7 +328,7 @@ namespace tuplex {
 
                 // is lat node aggregate?
                 if(outputNode->type() == LogicalOperatorType::AGGREGATE) {
-                    auto aop = dynamic_cast<AggregateOperator*>(outputNode); assert(aop);
+                    auto aop = dynamic_cast<AggregateOperator*>(outputNode.get()); assert(aop);
 
                     // save output mode (unique + bykey imply hashtable output)
                     if(aop->aggType() == AggregateType::AGG_GENERAL)
@@ -357,7 +357,7 @@ namespace tuplex {
                     // hash unique?
                     // note: need to hash multiple key cols -> use tuple to string functionality for now, need to improve
                     // TODO: base64 encode maybe if its multiple columns so string can be reused...
-                    auto aop = dynamic_cast<AggregateOperator*>(outputNode); assert(aop);
+                    auto aop = dynamic_cast<AggregateOperator*>(outputNode.get()); assert(aop);
                     auto schema = aop->parent()->getOutputSchema();
                     if(aop->aggType() == AggregateType::AGG_UNIQUE) {
                         // @TODO: maybe do this via intermediates? And then combine everything?
@@ -408,17 +408,17 @@ namespace tuplex {
         // this is the last stage. Check whether it is an input stage & set variables
         // fill in data to start processing from operators.
         if (inputNode->type() == LogicalOperatorType::PARALLELIZE) {
-            auto pop = dynamic_cast<ParallelizeOperator *>(inputNode); assert(inputNode);
+            auto pop = dynamic_cast<ParallelizeOperator *>(inputNode.get()); assert(inputNode);
             stage->setInputPartitions(pop->getPartitions());
             stage->setInputExceptions(pop->getPythonObjects());
             stage->setPartitionToExceptionsMap(pop->getInputPartitionToPythonObjectsMap());
         } else if(inputNode->type() == LogicalOperatorType::CACHE) {
-            auto cop = dynamic_cast<CacheOperator*>(inputNode);  assert(inputNode);
+            auto cop = dynamic_cast<CacheOperator*>(inputNode.get());  assert(inputNode);
             stage->setInputPartitions(cop->cachedPartitions());
             stage->setInputExceptions(cop->cachedExceptions());
             stage->setPartitionToExceptionsMap(cop->partitionToExceptionsMap());
         } else if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
-            auto csvop = dynamic_cast<FileInputOperator*>(inputNode);
+            auto csvop = dynamic_cast<FileInputOperator*>(inputNode.get());
             stage->setInputFiles(csvop->getURIs(), csvop->getURISizes());
         } // else it must be an internal node! => need to set manually based on result
 
@@ -565,15 +565,15 @@ namespace tuplex {
             os<<formatExceptions(ecounts, op, indent + "   ");
         } else if(op->parents().size() == 1) {
             // simple |
-            printErrorTreeHelper(ecounts, op->parent(), indent, last, os);
+            printErrorTreeHelper(ecounts, op->parent().get(), indent, last, os);
             auto prefix = (op->isActionable() ? "+- " : "|- ");
             os<<indent<<prefix<<op->name()<<std::endl;
             os<<formatExceptions(ecounts, op, indent + "   ");
         } else if(op->parents().size() == 2) {
             // call on both parents with indent
             assert(op->type() == LogicalOperatorType::JOIN);
-            printErrorTreeHelper(ecounts, op->parents()[0], indent, last, os);
-            printErrorTreeHelper(ecounts, op->parents()[1], "|  " + indent, last, os);
+            printErrorTreeHelper(ecounts, op->parents()[0].get(), indent, last, os);
+            printErrorTreeHelper(ecounts, op->parents()[1].get(), "|  " + indent, last, os);
             // no exceptions here...
             os<<indent<<"| /"<<std::endl;
             os<<indent<<"|/ "<<op->name()<<std::endl;
@@ -633,7 +633,7 @@ namespace tuplex {
         if(numTotalExceptionsFound > 0) {
             std::stringstream ss;
             ss<<"During execution "<<pluralize(numTotalExceptionsFound, "exception")<<" occurred:\n";
-            printErrorTreeHelper(ecounts, _lpOriginal->getAction(), "", false, ss);
+            printErrorTreeHelper(ecounts, _lpOriginal->getAction().get(), "", false, ss);
             auto message = ss.str();
             trim(message); // remove ending new lines...
             Logger::instance().defaultLogger().info(message);
@@ -650,13 +650,13 @@ namespace tuplex {
         // go through operators, check for fileinput and aggregate
         using namespace std;
         queue<LogicalOperator*> q;
-        q.push(_lpOriginal->getAction());
+        q.push(_lpOriginal->getAction().get());
         double aggregate_time = 0.0;
         while(!q.empty()) {
             auto op = q.front();
             q.pop();
-            for(auto p : op->parents())
-                q.push(p);
+            for(const auto &p : op->parents())
+                q.push(p.get());
             if(op->type() == LogicalOperatorType::FILEINPUT)
                 aggregate_time += ((FileInputOperator*)op)->samplingTime();
         }

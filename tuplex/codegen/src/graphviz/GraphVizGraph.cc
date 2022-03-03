@@ -340,7 +340,7 @@ namespace tuplex {
         _builder->addEdge(id, idName, "op0");
 
         for(int i = 0; i < cmp->_comps.size(); ++i) {
-            auto c = cmp->_comps[i];
+            auto &c = cmp->_comps[i];
             _ids.push(-1);
             c->accept(*this);
             int idParams = _lastId;
@@ -606,7 +606,7 @@ namespace tuplex {
                 it != call->_positionalArguments.end();
                 ++it) {
                 _ids.push(-1);
-                auto arg = *it;
+                const auto &arg = *it;
                 arg->accept(*this);
                 int idArg = _lastId;
                 _builder->addEdge(id, idArg, "args");
@@ -743,7 +743,7 @@ namespace tuplex {
                 it != range->_positionalArguments.end();
                 ++it) {
                 _ids.push(-1);
-                auto arg = *it;
+                const auto &arg = *it;
                 arg->accept(*this);
                 int idArg = _lastId;
                 _builder->addEdge(id, idArg, "args");
@@ -870,9 +870,9 @@ namespace tuplex {
         std::string html = "<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">\n"
                            "   <TR>\n"
                            "    <TD BGCOLOR=\"lightgrey\" COLSPAN=\"2\">raise ";
-        html += typeStr(rs->_expression);
+        html += typeStr(rs->_expression.get());
         if(rs->_fromExpression)
-            html += " from " + typeStr(rs->_fromExpression);
+            html += " from " + typeStr(rs->_fromExpression.get());
         html += "</TD>\n"
                 "   </TR>\n"
                 "   <TR>\n"

@@ -15,7 +15,7 @@
 #include <ColumnReturnRewriteVisitor.h>
 
 namespace tuplex {
-    MapOperator::MapOperator(LogicalOperator *parent, const UDF &udf, const std::vector<std::string> &columnNames)
+    MapOperator::MapOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF &udf, const std::vector<std::string> &columnNames)
             : UDFOperator::UDFOperator(parent, udf, columnNames), _name("map") {
 
         assert(parent);
@@ -135,7 +135,7 @@ namespace tuplex {
         return vRes;
     }
 
-    LogicalOperator *MapOperator::clone() {
+    std::shared_ptr<LogicalOperator> MapOperator::clone() {
         // important to use here input column names, i.e. stored in base class UDFOperator!
         // @TODO: avoid here the costly retyping but making a faster, better clone.
         auto copy = new MapOperator(parent()->clone(),
@@ -146,7 +146,7 @@ namespace tuplex {
         copy->copyMembers(this);
         copy->setName(_name);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     void MapOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {

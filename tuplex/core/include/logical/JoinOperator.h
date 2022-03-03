@@ -26,8 +26,8 @@ namespace tuplex {
 
     class JoinOperator : public LogicalOperator {
     public:
-        JoinOperator(LogicalOperator* left,
-                           LogicalOperator* right,
+        JoinOperator(const std::shared_ptr<LogicalOperator> &left,
+                           const std::shared_ptr<LogicalOperator> &right,
                            option<std::string> leftColumn,
                            option<std::string> rightColumn, const JoinType& jt,
                            const std::string& leftPrefix, const std::string& leftSuffix,
@@ -52,7 +52,7 @@ namespace tuplex {
 
         bool isDataSource() override;
 
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
         Schema getInputSchema() const override;
 
@@ -70,6 +70,11 @@ namespace tuplex {
 
         // overwrite cost (should be estimated better, for now simply multiply)
 
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _leftColumn, _rightColumn, _joinType,
+            _leftPrefix, _leftSuffix, _rightPrefix, _rightSuffix, _columns);
+        }
     private:
         option<std::string> _leftColumn;  // column within left dataset
         option<std::string> _rightColumn;
@@ -82,8 +87,8 @@ namespace tuplex {
     public:
         LogicalOperatorType type() const override;
 
-        LogicalOperator* left() const  { assert(parents().size() == 2); return parents().front(); }
-        LogicalOperator* right() const { assert(parents().size() == 2); return parents()[1]; }
+        std::shared_ptr<LogicalOperator> left() const  { assert(parents().size() == 2); return parents().front(); }
+        std::shared_ptr<LogicalOperator> right() const { assert(parents().size() == 2); return parents()[1]; }
 
         int64_t leftKeyIndex() const;
         int64_t rightKeyIndex() const;
@@ -263,4 +268,5 @@ namespace tuplex {
     }
 }
 
+CEREAL_REGISTER_TYPE(tuplex::JoinOperator);
 #endif //TUPLEX_JOINOPERATOR_H

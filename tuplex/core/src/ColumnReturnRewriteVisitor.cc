@@ -14,7 +14,7 @@ namespace tuplex {
     bool ColumnReturnRewriteVisitor::isLiteralKeyDict(ASTNode* node) {
         assert(node);
         if(node->type() != ASTNodeType::Dictionary) return false;
-        for(auto p: ((NDictionary*)node)->_pairs) { // check that all keys are literal strings
+        for(auto &p: ((NDictionary*)node)->_pairs) { // check that all keys are literal strings
             if(p.first->type() != ASTNodeType::String) {
                 //                error("Return with columns that are not literal string keys: not yet supported."
                 //                      "To return a dictionary, wrap it in a tuple: ({key:val,...},)");
@@ -24,9 +24,10 @@ namespace tuplex {
         return true;
     }
 
+    // NOTE: this will NEVER return [dict] directly, so we don't need to worry about dedup when using!
     ASTNode *ColumnReturnRewriteVisitor::rewriteLiteralKeyDict(NDictionary* dict) {
         std::vector<std::string> newColumnNames;
-        std::vector<ASTNode*> retNodes;
+        std::vector<std::unique_ptr<ASTNode>> retNodes;
         std::vector<python::Type> retTypes;
 
         // special case: If dict is empty dict, result is empty dict.
@@ -34,11 +35,11 @@ namespace tuplex {
             return dict;
 
         // gather column names and rows
-        for(auto p: dict->_pairs) {
+        for(auto &p: dict->_pairs) {
             std::string new_name = "";
-            auto node = p.first;
+            const auto &node = p.first;
             if(node->type() == ASTNodeType::String) {
-                new_name = ((NString*)p.first)->value();
+                new_name = ((NString*)p.first.get())->value();
             } else if(node->type() == ASTNodeType::Identifier) {
                 auto& ann = node->annotation();
                 if(!ann.symbol)
@@ -46,12 +47,12 @@ namespace tuplex {
             } else throw std::runtime_error("unknown ASTNode for rewriting encountered in " + std::string(__FILE_NAME__));
 
             newColumnNames.push_back(new_name);
-            retNodes.push_back(p.second);
             retTypes.push_back(p.second->getInferredType());
+            retNodes.push_back(std::move(p.second)); // take ownership away to give to tuple
         }
 
         // for functions, check if this return statement is inconsistent
-        if(columnNames.size() > 0) {
+        if(!columnNames.empty()) {
             bool sameColumns = true;
             if(columnNames.size() != newColumnNames.size()) sameColumns = false;
             for(int i=0; i<(int)columnNames.size(); i++) {
@@ -69,34 +70,34 @@ namespace tuplex {
         if(retNodes.size() == 1) {
             assert(retTypes.size() == 1);
             _newOutputType = retTypes[0];
-            return retNodes[0];
+            return retNodes[0].release();
         } else {
             // else,
             // construct and return the new tuple object
             auto ret = new NTuple();
-            ret->_elements = retNodes;
+            ret->_elements = std::move(retNodes);
             _newOutputType = python::Type::makeTupleType(retTypes);
             return ret;
         }
     }
 
-    ASTNode *ColumnReturnRewriteVisitor::replace(ASTNode* parent, ASTNode* node) {
+    ASTNode* ColumnReturnRewriteVisitor::replace(ASTNode* parent, ASTNode* node) {
         if(!node)
             return nullptr;
 
         switch(node->type()) {
             case ASTNodeType::Lambda: {
                 auto lambda = ((NLambda*)node);
-                auto retVal = lambda->_expression;
+                auto retVal = lambda->_expression.get();
                 if(isLiteralKeyDict(retVal)) {
                     auto newRetVal = rewriteLiteralKeyDict(((NDictionary*)retVal));
-                    lambda->_expression = newRetVal;
+                    lambda->_expression = std::unique_ptr<ASTNode>(newRetVal);
                 }
 
                 return node;
             }
             case ASTNodeType::Dictionary: {
-                if(parent->type() == ASTNodeType::Lambda && node == ((NLambda*)parent)->_expression) {
+                if(parent->type() == ASTNodeType::Lambda && node == ((NLambda*)parent)->_expression.get()) {
                     if(isLiteralKeyDict(node)) {
                         auto newRetVal = rewriteLiteralKeyDict(((NDictionary*)node));
                         return newRetVal;
@@ -111,10 +112,10 @@ namespace tuplex {
                     auto suite = ((NSuite*)node);
                     for (auto &_statement : suite->_statements) { // iterate over statements
                         if (_statement->type() == ASTNodeType::Return) { // ...and find the return statements
-                            auto retVal = ((NReturn *) _statement)->_expression;
-                            if (isLiteralKeyDict(retVal)) { // check if we need to rewrite the return value
-                                auto newRetVal = rewriteLiteralKeyDict((NDictionary *) retVal);
-                                ((NReturn*)_statement)->_expression = newRetVal;
+                            const auto &retVal = ((NReturn *) _statement.get())->_expression;
+                            if (isLiteralKeyDict(retVal.get())) { // check if we need to rewrite the return value
+                                auto newRetVal = rewriteLiteralKeyDict((NDictionary *) retVal.get());
+                                ((NReturn*)_statement.get())->_expression = std::unique_ptr<ASTNode>(newRetVal);
                             }
                         }
                     }
@@ -124,10 +125,10 @@ namespace tuplex {
             }
 
             case ASTNodeType::Return: {
-                auto retVal = ((NReturn *) node)->_expression;
-                if (isLiteralKeyDict(retVal)) { // check if we need to rewrite the return value
-                    auto newRetVal = rewriteLiteralKeyDict((NDictionary *) retVal);
-                    ((NReturn*)node)->_expression = newRetVal;
+                auto &retVal = ((NReturn *) node)->_expression;
+                if (isLiteralKeyDict(retVal.get())) { // check if we need to rewrite the return value
+                    auto newRetVal = rewriteLiteralKeyDict((NDictionary *) retVal.get());
+                    ((NReturn*)node)->_expression = std::unique_ptr<ASTNode>(newRetVal);
                 }
 
                 return node;

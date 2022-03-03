@@ -30,6 +30,19 @@
 #include <llvm/IR/Verifier.h>
 #include <LLVMEnvironment.h>
 
+// @TODO: maybe make this cleaner (one header? precompiled-headers?)
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/map.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+
+#include "cereal/archives/binary.hpp"
+
 namespace tuplex {
     namespace codegen {
         // support structure to deal with arguments
@@ -40,7 +53,6 @@ namespace tuplex {
         // class holding an abstract syntax tree
         class AnnotatedAST : public IFailable {
         private:
-
             // name of the function/last statement within the IR module
             std::string _irFuncName;
             std::map<std::string, python::Type> _typeHints;
@@ -48,12 +60,11 @@ namespace tuplex {
             std::vector<std::string> _typingErrMessages; // error messages produced by type annotator.
 
             // holds the AST tree after successful parsing
-            ASTNode *_root;
+            std::unique_ptr<ASTNode> _root;
             bool _typesDefined; // lazy check variable whether types are already defined or not
 
             ClosureEnvironment _globals; // global variables + modules
 
-            void release();
 
             // in this function the AST is (pre)processed
             // 1) cleaning/pruning the AST tree
@@ -75,10 +86,6 @@ namespace tuplex {
 
             AnnotatedAST(const AnnotatedAST& other) : _root(nullptr), _typesDefined(other._typesDefined), _globals(other._globals) {
                 cloneFrom(other);
-            }
-
-            ~AnnotatedAST() {
-                release();
             }
 
             AnnotatedAST& operator = (const AnnotatedAST& other) {
@@ -177,7 +184,7 @@ namespace tuplex {
 
             /*!
              * annotates the tree with final types. If this is not possible, returns false
-             * @param pokicy compiler policy
+             * @param policy compiler policy
              * @param silentMode determines whether the type inference should log out problems or not
              * @param removeBranches whether to use RemoveDeadBranchesVisitor to prune AST
              * @return whether types could be successfully annotated/defined for all AST nodes
@@ -192,7 +199,7 @@ namespace tuplex {
              */
             void setUnpacking(bool unpack=false);
 
-            ASTNode* getFunctionAST() const { return findFunction(_root); }
+            ASTNode* getFunctionAST() const { return findFunction(_root.get()); }
 
             /*!
              * returns all stored typing err messages
@@ -201,6 +208,11 @@ namespace tuplex {
             std::vector<std::string> typingErrMessages() const { return _typingErrMessages; }
 
             void reduceConstantTypes();
+
+            // cereal serialization functions
+            template<class Archive> void serialize(Archive &ar) {
+                ar(_irFuncName, _typeHints, _typingErrMessages, _root, _typesDefined, _globals);
+            }
         };
     }
 }

@@ -30,7 +30,7 @@ namespace tuplex {
     public:
         virtual ~AggregateOperator() override = default;
 
-        AggregateOperator(LogicalOperator* parent,
+        AggregateOperator(const std::shared_ptr<LogicalOperator>& parent,
                           const AggregateType& at,
                           const UDF& combiner=UDF("",""),
                           const UDF& aggregator=UDF("",""),
@@ -112,7 +112,7 @@ namespace tuplex {
             return std::vector<std::string>();
         }
 
-        LogicalOperator* clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
         const UDF& aggregatorUDF() const { return _aggregator; }
         const UDF& combinerUDF() const { return _combiner; }
@@ -133,6 +133,11 @@ namespace tuplex {
          */
         std::vector<size_t> keyColsInParent() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyColsInParent; }
         python::Type keyType() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyType; }
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _aggType, _aggregateOutputType, _combiner, _aggregator, _initialValue);
+        }
     private:
         AggregateType _aggType;
 
@@ -150,4 +155,5 @@ namespace tuplex {
     };
 }
 
+CEREAL_REGISTER_TYPE(tuplex::AggregateOperator);
 #endif //TUPLEX_AGGREGATEOPERATOR_H

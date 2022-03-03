@@ -16,6 +16,8 @@
 #include <TSet.h>
 #include <Utils.h>
 
+#include "cereal/archives/binary.hpp"
+
 // types should be like form mypy https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html
 
 
@@ -1172,4 +1174,25 @@ namespace python {
     Type Type::makeDelayedParsingType(const Type &underlying) {
         return TypeFactory::instance().createOrGetDelayedParsingType(underlying);
     }
+
+    template<class Archive>
+    void Type::load(Archive &archive) {
+        TypeFactory::TypeEntry type_entry;
+        archive(_hash, type_entry);
+        // register the type again
+        TypeFactory::instance().registerOrGetType(type_entry._desc, type_entry._type, type_entry._params,
+                                                  type_entry._ret, type_entry._baseClasses, type_entry._isVarLen,
+                                                  type_entry._lower_bound,
+                                                  type_entry._upper_bound,
+                                                  type_entry._constant_value);
+    }
+
+    template<class Archive>
+    void Type::save(Archive &archive) const {
+        archive(_hash, TypeFactory::instance()._typeMap[_hash]);
+    }
+
+    // explicit instantiation
+    template void Type::load(cereal::BinaryInputArchive &archive);
+    template void Type::save(cereal::BinaryOutputArchive &archive) const;
 }

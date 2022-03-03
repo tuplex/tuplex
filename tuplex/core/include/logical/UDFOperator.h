@@ -42,7 +42,7 @@ namespace tuplex {
         std::vector<std::string> _columnNames;
     public:
         UDFOperator() = delete;
-        UDFOperator(LogicalOperator* parent, const UDF& udf,
+        UDFOperator(const std::shared_ptr<LogicalOperator> &parent, const UDF& udf,
                 const std::vector<std::string>& columnNames=std::vector<std::string>());
 
         UDF& getUDF() { return _udf; }
@@ -59,6 +59,11 @@ namespace tuplex {
         virtual std::vector<std::string> columns() const override { return _columnNames; }
 
         void setColumns(const std::vector<std::string>& columns) { assert(_columnNames.empty() || _columnNames.size() == columns.size()); _columnNames = columns; }
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _udf, _columnNames);
+        }
     };
 
     /*!
@@ -66,7 +71,8 @@ namespace tuplex {
      * @param op
      * @return whether op has a UDF or not.
      */
-    extern bool hasUDF(const LogicalOperator* op);
+    extern bool hasUDF(const LogicalOperator *op);
 }
 
+CEREAL_REGISTER_TYPE(tuplex::UDFOperator);
 #endif //TUPLEX_UDFOPERATOR_H

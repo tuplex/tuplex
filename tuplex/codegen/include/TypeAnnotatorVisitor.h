@@ -101,7 +101,7 @@ namespace tuplex {
         python::Type binaryOpInference(ASTNode* left, const python::Type& a,
                                        const TokenType tt, ASTNode* right,
                                        const python::Type& b);
-        void assignHelper(NIdentifier *id, python::Type type);
+        void assignHelper(NIdentifier *id, const python::Type &type);
         void checkRetType(python::Type t);
         /*!
          * Annotate iterator-related NCall with iterator-specific info

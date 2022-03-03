@@ -30,7 +30,7 @@ namespace tuplex {
 
         std::vector<Row> getSample(const size_t num) const override;
 
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
         /*!
          * projection pushdown, update UDF and schema...
@@ -40,9 +40,14 @@ namespace tuplex {
 
         bool retype(const std::vector<python::Type>& rowTypes) override;
 
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _good);
+        }
     private:
         bool _good;
     };
 }
 
+CEREAL_REGISTER_TYPE(tuplex::FilterOperator);
 #endif //TUPLEX_FILTEROPERATOR_H

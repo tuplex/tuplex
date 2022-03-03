@@ -23,17 +23,17 @@ namespace tuplex {
          * return first ancestor node which is not an exception operator
          * @return null if not found
          */
-        LogicalOperator* getNormalParent() const {
+        std::shared_ptr<LogicalOperator> getNormalParent() const {
             const T& underlying = static_cast<const T&>(*this);
 
             // go up till non-resolver is found
-            LogicalOperator *parent = underlying.parent();
+            std::shared_ptr<LogicalOperator> parent = underlying.parent();
             if(!parent)
                 return nullptr;
 
             while(isExceptionOperator(parent->type())) {
                 // debug, runtime assert
-                assert(dynamic_cast<ExceptionOperator*>(parent));
+                assert(dynamic_cast<ExceptionOperator*>(parent.get()));
 
                 parent = parent->parent();
                 if(!parent)
@@ -52,6 +52,11 @@ namespace tuplex {
          * @return
          */
         ExceptionCode ecCode() const { return _ec; }
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_ec);
+        }
     private:
         ExceptionCode _ec;
 

@@ -20,10 +20,8 @@
 #include <Signals.h>
 #ifdef BUILD_WITH_AWS
 #include <ee/aws/AWSLambdaBackend.h>
-#include <Context.h>
-
 #endif
-
+#include <Context.h>
 namespace tuplex {
 
     int Context::_contextIDGenerator = 10000;
@@ -98,10 +96,7 @@ namespace tuplex {
             }
 
         // free logical operators associated with context
-        for(auto& op : _operators) {
-            delete op;
-            op = nullptr;
-        }
+        _operators.clear();
     }
 
     Partition* Context::requestNewPartition(const Schema &schema, const int dataSetID, size_t minBytesRequired) {
@@ -173,16 +168,16 @@ namespace tuplex {
         std::map<LogicalOperator*, bool> visited;
         std::map<LogicalOperator*, int> graphIDs;
         for(const auto& el : _operators)
-            visited[el] = false;
+            visited[el.get()] = false;
 
         for(const auto& node : _operators) {
-            if(!visited[node]) {
+            if(!visited[node.get()]) {
                 int id = -1;
-                if(graphIDs.find(node) == graphIDs.end()) {
-                    id = builder.addHTMLNode(node_descriptor(node));
-                    graphIDs[node] = id;
+                if(graphIDs.find(node.get()) == graphIDs.end()) {
+                    id = builder.addHTMLNode(node_descriptor(node.get()));
+                    graphIDs[node.get()] = id;
                 } else {
-                    id = graphIDs[node];
+                    id = graphIDs[node.get()];
                 }
 
                 // go through children
@@ -192,7 +187,7 @@ namespace tuplex {
                         cid = builder.addHTMLNode(node_descriptor(c));
                         graphIDs[c] = cid;
                     } else {
-                        cid = graphIDs[node];
+                        cid = graphIDs[node.get()];
                     }
 
                     builder.addEdge(id, cid);
@@ -344,7 +339,7 @@ namespace tuplex {
         }
     }
 
-    LogicalOperator* Context::addOperator(LogicalOperator *op) {
+    std::shared_ptr<LogicalOperator> Context::addOperator(const std::shared_ptr<LogicalOperator> &op) {
         _operators.push_back(op);
         return op;
     }
@@ -453,7 +448,7 @@ namespace tuplex {
         op->setInputPartitionToPythonObjectsMap(pythonObjectsMap);
 
         // add new (root) node
-        ds->_operator = addOperator(op);
+        ds->_operator = addOperator(std::shared_ptr<LogicalOperator>(op));
 
         // set dataset
         ds->_operator->setDataSet(ds);
@@ -473,10 +468,10 @@ namespace tuplex {
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
 
-        dsptr->_operator = addOperator(
+        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(
                 FileInputOperator::fromCsv(pattern, this->_options, hasHeader, delimiter, quotechar, null_values, columns,
-                                      index_based_type_hints, column_based_type_hints));
-        auto op = ((FileInputOperator*)dsptr->_operator);
+                                      index_based_type_hints, column_based_type_hints)));
+        auto op = ((FileInputOperator*)dsptr->_operator.get());
 
         // check whether files were found, else return empty dataset!
         if(op->getURIs().empty()) {
@@ -486,7 +481,7 @@ namespace tuplex {
             return ds;
         }
 
-        auto detectedColumns = ((FileInputOperator*)dsptr->_operator)->columns();
+        auto detectedColumns = ((FileInputOperator*)dsptr->_operator.get())->columns();
         dsptr->setColumns(detectedColumns);
 
         // check if columns are given
@@ -508,7 +503,7 @@ namespace tuplex {
             }
 
             dsptr->setColumns(columns);
-            ((FileInputOperator*)dsptr->_operator)->setColumns(columns);
+            ((FileInputOperator*)dsptr->_operator.get())->setColumns(columns);
         }
 
         // set dataset to operator
@@ -532,9 +527,9 @@ namespace tuplex {
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
 
-        dsptr->_operator = addOperator(FileInputOperator::fromText(pattern, this->_options, null_values));
+        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(FileInputOperator::fromText(pattern, this->_options, null_values)));
 
-        auto detectedColumns = ((FileInputOperator*)dsptr->_operator)->columns();
+        auto detectedColumns = ((FileInputOperator*)dsptr->_operator.get())->columns();
         dsptr->setColumns(detectedColumns);
 
         // set dataset to operator
@@ -574,7 +569,7 @@ namespace tuplex {
             return ds;
         }
 
-        auto detectedColumns = ((FileInputOperator*)dsptr->_operator)->columns();
+        auto detectedColumns = ((FileInputOperator*)dsptr->_operator.get())->columns();
         dsptr->setColumns(detectedColumns);
 
         // check if columns are given

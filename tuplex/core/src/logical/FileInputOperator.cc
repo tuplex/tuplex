@@ -535,11 +535,11 @@ namespace tuplex {
         _optimizedColumnNames = _columnNames;
     }
 
-    LogicalOperator *FileInputOperator::clone() {
+    std::shared_ptr<LogicalOperator> FileInputOperator::clone() {
         // make here copy a bit more efficient, i.e. avoid resampling files by using specialized copy constructor (private)
         auto copy = new FileInputOperator(*this); // no children, no parents so all good with this method
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     FileInputOperator::FileInputOperator(tuplex::FileInputOperator &other) : _partitions(other._partitions),

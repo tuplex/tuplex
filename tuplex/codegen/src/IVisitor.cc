@@ -53,7 +53,7 @@ namespace tuplex {
             return std::make_tuple(visit_ifelse, visit_if, visit_else);
         } else {
             // visit everything (check whether else exists)
-            return make_tuple(true, true, ifelse->_else);
+            return make_tuple(true, true, ifelse->_else.get());
         }
     }
 }

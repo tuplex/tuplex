@@ -20,9 +20,9 @@ namespace tuplex {
         std::vector<std::string> _outputColumns;
         std::string _name;
     public:
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
-        MapOperator(LogicalOperator *parent,
+        MapOperator(const std::shared_ptr<LogicalOperator>& parent,
                     const UDF& udf,
                     const std::vector<std::string>& columnNames);
         // needs a parent
@@ -84,6 +84,13 @@ namespace tuplex {
         void rewriteParametersInAST(const std::unordered_map<size_t, size_t>& rewriteMap) override;
 
         bool retype(const std::vector<python::Type>& rowTypes) override;
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _outputColumns, _name);
+        }
     };
 }
+
+CEREAL_REGISTER_TYPE(tuplex::MapOperator);
 #endif //TUPLEX_MAPOPERATOR_H

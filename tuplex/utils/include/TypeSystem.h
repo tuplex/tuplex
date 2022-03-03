@@ -20,6 +20,16 @@
 #include <TTuple.h>
 #include <limits>
 
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+#include "cereal/archives/binary.hpp"
+
 namespace python {
 
     class Type {
@@ -293,6 +303,12 @@ namespace python {
 
         static Type byName(const std::string& name);
 
+        // cereal serialization functions
+        template<class Archive>
+        void load(Archive &archive);
+
+        template<class Archive>
+        void save(Archive &archive) const;
     };
 
     inline bool operator < (const Type& lhs, const Type& rhs) { return lhs._hash < rhs._hash; }
@@ -302,6 +318,7 @@ namespace python {
     class TypeFactory {
         // hide internal interfaces and make them only available to Type
         friend class Type;
+//        friend class cereal::access;
     private:
 
         enum class AbstractType {
@@ -348,6 +365,11 @@ namespace python {
             TypeEntry(const TypeEntry& other) : _desc(other._desc), _type(other._type), _params(other._params),
             _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen),
             _lower_bound(other._lower_bound), _upper_bound(other._upper_bound), _constant_value(other._constant_value) {}
+
+            template <class Archive>
+            void serialize(Archive &ar) {
+                ar(_desc, _type, _params, _isVarLen, _ret, _baseClasses);
+            }
 
             std::string desc();
         };

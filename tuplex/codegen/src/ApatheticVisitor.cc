@@ -86,8 +86,7 @@ namespace tuplex {
     }
 
     void ApatheticVisitor::visit(NParameterList* paramList) {
-
-        for(auto arg: paramList->_args) {
+        for(auto& arg: paramList->_args) {
             _lastParent = paramList;
             arg->accept(*this);
         }
@@ -123,7 +122,7 @@ namespace tuplex {
 
     void ApatheticVisitor::visit(NTuple* tuple) {
         if(!tuple->_elements.empty()) {
-            for(auto& it : tuple->_elements) {
+            for(auto &it : tuple->_elements) {
                 _lastParent = tuple;
                 it->accept(*this);
             }
@@ -182,7 +181,7 @@ namespace tuplex {
         assert(call->_func);
 
         // visit children if they exist first
-        for(auto parg : call->_positionalArguments) {
+        for(auto& parg : call->_positionalArguments) {
             assert(parg);
             parg->accept(*this);
             _lastParent = call;
@@ -230,7 +229,7 @@ namespace tuplex {
         _lastParent = range;
 
         // visit children if they exist first
-        for(auto parg : range->_positionalArguments) {
+        for(auto& parg : range->_positionalArguments) {
             assert(parg);
             parg->accept(*this);
             _lastParent = range;
@@ -247,7 +246,7 @@ namespace tuplex {
         comprehension->target->accept(*this);
         _lastParent = comprehension;
         // visit if statements if they exist
-        for(auto icond : comprehension->if_conditions) {
+        for(auto& icond : comprehension->if_conditions) {
             assert(icond);
             icond->accept(*this);
             _lastParent = comprehension;
@@ -259,7 +258,7 @@ namespace tuplex {
         assert(listComprehension->expression);
 
         // visit generators if they exist first
-        for(auto gen : listComprehension->generators) {
+        for(auto& gen : listComprehension->generators) {
             assert(gen);
             gen->accept(*this);
             _lastParent = listComprehension;

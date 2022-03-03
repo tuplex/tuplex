@@ -31,7 +31,7 @@ namespace tuplex {
      */
     class FileInputOperator : public LogicalOperator {
     private:
-        std::vector<Partition*> _partitions;
+        std::vector<Partition*> _partitions; // TODO: how to cereal this?
 
         std::vector<URI>      _fileURIs;
         std::vector<size_t>   _sizes;
@@ -46,7 +46,6 @@ namespace tuplex {
         std::vector<std::string> _null_values;
 
         Schema _optimizedSchema; // schema after selection pushdown is performed.
-
         std::vector<std::string> _columnNames;
         std::vector<std::string> _optimizedColumnNames;
         std::vector<bool> _columnsToSerialize; // which columns to serialize
@@ -131,6 +130,14 @@ namespace tuplex {
         */
         static FileInputOperator *fromOrc(const std::string& pattern,
                                          const ContextOptions& co);
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _fileURIs, _sizes, _estimatedRowCount, _fmt, _quotechar,
+               _delimiter, _header, _null_values,
+               _optimizedSchema, _columnNames, _optimizedColumnNames, _columnsToSerialize, _indexBasedHints,
+               _normalCaseRowType, _optimizedNormalCaseRowType, _sample, _sampling_time_s);
+        }
 
         std::string name() override {
             switch (_fmt) {
@@ -246,7 +253,7 @@ namespace tuplex {
         std::unordered_map<int, int> projectionMap() const;
 
         FileFormat fileFormat() const { return _fmt; }
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
         void setProjectionDefaults();
 
@@ -321,5 +328,7 @@ namespace tuplex {
         }
     };
 }
+
+CEREAL_REGISTER_TYPE(tuplex::FileInputOperator);
 
 #endif //TUPLEX_CSVOPERATOR_H

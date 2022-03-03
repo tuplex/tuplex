@@ -120,7 +120,7 @@ namespace tuplex {
             auto retType = lambda->getInferredType().getReturnType();
             _logger.info("generating lambda function for " + argType.desc() + " -> " + retType.desc());
 
-            createLLVMFunction(func_name, argType, lambda->isFirstArgTuple(), lambda->_arguments, retType);
+            createLLVMFunction(func_name, argType, lambda->isFirstArgTuple(), lambda->_arguments.get(), retType);
 
             return *this;
         }
@@ -135,7 +135,7 @@ namespace tuplex {
             auto retType = func->getInferredType().getReturnType();
             _logger.info("generating function " + func_name + " for " + argType.desc() + " -> " + retType.desc());
 
-            createLLVMFunction(func_name, argType, func->isFirstArgTuple(), func->_parameters, retType);
+            createLLVMFunction(func_name, argType, func->isFirstArgTuple(), func->_parameters.get(), retType);
             return *this;
         }
 
@@ -159,7 +159,7 @@ namespace tuplex {
                     // create ftarg from llvm struct val (i.e. the pointer)
                     assert(args.back()->getName() == "inRow");
                     auto ftarg = FlattenedTuple::fromLLVMStructVal(_env, builder, args.back(), pyArgType);
-                    auto argname = static_cast<NParameter *>(params->_args[0])->_identifier->_name;
+                    auto argname = static_cast<NParameter *>(params->_args[0].get())->_identifier->_name;
                     _paramLookup[argname] = SerializableValue(args.back(), nullptr, nullptr); // use the pointer as tuple var!
 
                 } else {
@@ -168,7 +168,7 @@ namespace tuplex {
                     assert(ftarg.numElements() == 1);
 
                     // simple name lookup
-                    auto argname = static_cast<NParameter *>(params->_args[0])->_identifier->_name;
+                    auto argname = static_cast<NParameter *>(params->_args[0].get())->_identifier->_name;
                     _paramLookup[argname] = SerializableValue(ftarg.get(0), ftarg.getSize(0), ftarg.getIsNull(0));
                 }
             } else {
@@ -180,7 +180,7 @@ namespace tuplex {
 
                 // create loads for subtrees...
                 for (int i = 0; i < pyargs.size(); ++i) {
-                    auto argname = static_cast<NParameter *>(params->_args[i])->_identifier->_name;
+                    auto argname = static_cast<NParameter *>(params->_args[i].get())->_identifier->_name;
                     _paramLookup[argname] = ftarg.getLoad(builder, {i});
                 }
             }

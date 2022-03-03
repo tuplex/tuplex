@@ -29,7 +29,7 @@ namespace tuplex {
         }
     }
 
-    UDFOperator::UDFOperator(LogicalOperator* parent, const UDF& udf,
+    UDFOperator::UDFOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF& udf,
     const std::vector<std::string>& columnNames) : LogicalOperator::LogicalOperator(parent), _udf(udf), _columnNames(columnNames) {
         assert(parent);
     }
@@ -148,7 +148,7 @@ namespace tuplex {
         return schema;
     }
 
-    bool hasUDF(const LogicalOperator* op) {
+    bool hasUDF(const LogicalOperator *op) {
         if(!op)
             return false;
 

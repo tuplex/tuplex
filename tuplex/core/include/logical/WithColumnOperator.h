@@ -25,12 +25,16 @@ namespace tuplex {
         int calcColumnToMapIndex(const std::vector<std::string> &columnNames,
                              const std::string &columnName);
     public:
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _newColumn, _columnToMapIndex);
+        }
     protected:
         Schema inferSchema(Schema parentSchema) override;
     public:
-        WithColumnOperator(LogicalOperator *parent,
+        WithColumnOperator(const std::shared_ptr<LogicalOperator>& parent,
         const std::vector<std::string>& columnNames,
         const std::string& columnName,
         const UDF& udf);
@@ -65,4 +69,5 @@ namespace tuplex {
     };
 }
 
+CEREAL_REGISTER_TYPE(tuplex::WithColumnOperator);
 #endif //TUPLEX_WITHCOLUMNOPERATOR_H

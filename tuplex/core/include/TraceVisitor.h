@@ -13,6 +13,7 @@
 
 #include <ApatheticVisitor.h>
 #include <Python.h>
+#include <utility>
 #include <vector>
 #include <PythonHelpers.h>
 #include <IFailable.h>
@@ -35,8 +36,8 @@ namespace tuplex {
             std::string name;
             size_t flags;
 
-            TraceItem(PyObject* obj) : value(obj), flags(0)   {}
-            TraceItem(PyObject* obj, const std::string n) : value(obj), name(n), flags(0) {}
+            explicit TraceItem(PyObject* obj) : value(obj)   {}
+            TraceItem(PyObject* obj, std::string n) : value(obj), name(std::move(n)), flags(0) {}
 
             static TraceItem param(PyObject* obj, const std::string n="") {
                 TraceItem ti(obj, n);
@@ -106,7 +107,7 @@ namespace tuplex {
         class TraceException : public std::exception {
         };
     public:
-        TraceVisitor(const python::Type& inputRowType=python::Type::UNKNOWN) : _args(nullptr),
+        explicit TraceVisitor(const python::Type& inputRowType=python::Type::UNKNOWN) : _args(nullptr),
                     _functionSeen(false),
                     _retValue(nullptr), _inputRowType(inputRowType), _numSamplesProcessed(0) {
         }

@@ -14,6 +14,19 @@
 #include <string>
 #include <vector>
 
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/map.hpp"
+#include "cereal/types/unordered_map.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+
+#include "cereal/archives/binary.hpp"
+
 namespace tuplex {
 
     /*!
@@ -170,6 +183,11 @@ namespace tuplex {
 
         static URI fromS3(const std::string& bucket, const std::string& key);
 #endif
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_uri, _type);
+        }
     private:
         std::string _uri;
         URIType _type;

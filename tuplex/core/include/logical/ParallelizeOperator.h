@@ -17,6 +17,7 @@
 namespace tuplex {
     class ParallelizeOperator : public LogicalOperator {
 
+        // TODO: how to do partitions?
         std::vector<Partition*> _partitions; // data, conforming to majority type
         std::vector<Partition*> _pythonObjects; // schema violations stored for interpreter processing as python objects
         // maps partitions to their corresponding python objects
@@ -27,7 +28,7 @@ namespace tuplex {
 
         void initSample(); // helper to fill sample with a certain amount of rows.
     public:
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
         // this a root node
         ParallelizeOperator(const Schema& schema,
@@ -64,6 +65,13 @@ namespace tuplex {
         std::vector<std::string> inputColumns() const override { return _columnNames; }
 
         int64_t cost() const override;
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _columnNames, _sample);
+        }
     };
 }
+
+CEREAL_REGISTER_TYPE(tuplex::ParallelizeOperator);
 #endif //TUPLEX_PARALLELIZEOPERATOR_H

@@ -68,13 +68,13 @@ namespace tuplex {
                     // pop from stack
                     assert(nodes.size() >= num_elements);
 
-                    std::vector<ASTNode *> v;
+                    std::vector<std::unique_ptr<ASTNode>> v;
                     v.reserve(num_elements);
                     for (unsigned i = 0; i < num_elements; ++i)
-                        v.emplace_back(popNode());
+                        v.emplace_back(std::unique_ptr<ASTNode>(popNode()));
                     std::reverse(v.begin(), v.end());
                     auto tuple = new NTuple();
-                    tuple->_elements = v;
+                    tuple->_elements = std::move(v);
 
                     pushNode(tuple);
                 } else {
@@ -103,16 +103,16 @@ namespace tuplex {
                     assert(num_elements % 2 == 0);
                     assert(nodes.size() >= num_elements);
 
-                    std::vector<pair<ASTNode *, ASTNode *> > pairs;
+                    std::vector<pair<std::unique_ptr<ASTNode>, std::unique_ptr<ASTNode> > > pairs;
                     pairs.reserve(num_elements/2);
                     for (unsigned i = 0; i < num_elements/2; ++i) {
                         auto val = popNode();
                         auto key = popNode();
-                        pairs.emplace_back(key, val);
+                        pairs.emplace_back(std::unique_ptr<ASTNode>(key), std::unique_ptr<ASTNode>(val));
                     }
                     auto dict = new NDictionary();
                     std::reverse(pairs.begin(), pairs.end());
-                    dict->_pairs = pairs;
+                    dict->_pairs = std::move(pairs);
 
                     pushNode(dict);
                 } else {
@@ -135,7 +135,7 @@ namespace tuplex {
                     auto generator = dynamic_cast<NComprehension*>(popNode());
                     auto expr = popNode();
                     auto lComp = new NListComprehension(expr);
-                    lComp->generators.push_back(generator);
+                    lComp->generators.push_back(std::unique_ptr<NComprehension>(generator));
 
                     pushNode(lComp);
                 } else {
@@ -147,13 +147,13 @@ namespace tuplex {
                     // pop from stack
                     assert(nodes.size() >= num_elements);
 
-                    std::vector<ASTNode *> v;
+                    std::vector<std::unique_ptr<ASTNode>> v;
                     v.reserve(num_elements);
                     for (unsigned i = 0; i < num_elements; ++i)
-                        v.emplace_back(popNode());
+                        v.emplace_back(std::unique_ptr<ASTNode>(popNode()));
                     std::reverse(v.begin(), v.end());
                     auto list = new NList();
-                    list->_elements = v;
+                    list->_elements = std::move(v);
 
                     pushNode(list);
                 }
@@ -361,7 +361,7 @@ namespace tuplex {
                             auto range = new NRange();
                             for(unsigned i = 0; i < num_args; ++i) {
                                 assert(!v.empty());
-                                range->_positionalArguments.emplace_back(v.back());
+                                range->_positionalArguments.push_back(std::unique_ptr<ASTNode>(v.back()));
                                 v.pop_back();
                             }
                             atom = range;
@@ -369,7 +369,7 @@ namespace tuplex {
                             auto call = new NCall(atom);
                             for (unsigned i = 0; i < num_args; ++i) {
                                 assert(!v.empty());
-                                call->_positionalArguments.emplace_back(v.back());
+                                call->_positionalArguments.push_back(std::unique_ptr<ASTNode>(v.back()));
                                 v.pop_back();
                             }
                             atom = call;
@@ -934,7 +934,7 @@ namespace tuplex {
                 tuple._elements.resize(tupleSize);
 
                 for (auto i = 0; i < tupleSize; i++) {
-                    tuple._elements[tupleSize-i-1] = popNode();
+                    tuple._elements[tupleSize-i-1] = std::unique_ptr<ASTNode>(popNode());
                 }
                 pushNode(new NReturn(&tuple));
             }
@@ -959,7 +959,7 @@ namespace tuplex {
         expr._elements.resize(size);
 
         for (auto i = 0; i < size; i++) {
-            expr._elements[size-i-1] = popNode();
+            expr._elements[size-i-1] = std::unique_ptr<ASTNode>(popNode());
         }
         pushNode(new NTuple(expr));
 
@@ -1130,17 +1130,17 @@ namespace tuplex {
         // create expr list form test list
         int num_targets = context->expr().size();
         assert(nodes.size() >= num_targets);
-        std::vector<ASTNode*> targets;
+        std::vector<std::unique_ptr<ASTNode>> targets;
         for(int i = 0; i < num_targets; ++i)
-            targets.push_back(popNode());
+            targets.push_back(std::unique_ptr<ASTNode>(popNode()));
         std::reverse(targets.begin(), targets.end());
 
         // push tuple of identifiers or single identifier
         if(1 == num_targets) {
-            pushNode(targets.front());
+            pushNode(targets.front().release());
         } else {
             auto t = new NTuple();
-            t->_elements = targets;
+            t->_elements = std::move(targets);
             pushNode(t);
         }
 
@@ -1215,18 +1215,18 @@ namespace tuplex {
         // if multiple tests in testlist, wrap them in a tuple
         auto testlist_size = ctx->testlist()->test().size();
         assert(nodes.size() >= testlist_size+1);
-        std::vector<ASTNode*> testlist(testlist_size);
+        std::vector<std::unique_ptr<ASTNode>> testlist(testlist_size);
         for (auto i = 0; i < testlist_size; ++i) {
-            testlist[testlist_size-1-i] = popNode();
+            testlist[testlist_size-1-i] = std::unique_ptr<ASTNode>(popNode());
         }
         auto exprlist = popNode(); // handled in visitExprlist
 
         if(testlist_size > 1) {
             auto tuple = new NTuple;
-            tuple->_elements = testlist;
+            tuple->_elements = std::move(testlist);
             pushNode(new NFor(exprlist, tuple, suite_body, suite_else));
         } else {
-            pushNode(new NFor(exprlist, testlist.front(), suite_body, suite_else));
+            pushNode(new NFor(exprlist, testlist.front().release(), suite_body, suite_else));
         }
         return nullptr;
     }

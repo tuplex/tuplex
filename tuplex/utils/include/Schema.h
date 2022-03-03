@@ -15,6 +15,17 @@
 #include "Logger.h"
 #include "Base.h"
 
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+
+#include "cereal/archives/binary.hpp"
+
 namespace tuplex {
 
 
@@ -64,6 +75,11 @@ namespace tuplex {
 
         friend bool operator == (const Schema& rhs, const Schema& lhs);
         friend bool operator != (const Schema& rhs, const Schema& lhs);
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_rowType, _memLayout);
+        }
     private:
         // type to describe the a row
         python::Type _rowType;

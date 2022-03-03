@@ -137,7 +137,7 @@ namespace tuplex {
                          bool updateInputExceptions);
 
             // builder functions
-            void addMemoryInput(const Schema& schema, LogicalOperator* node);
+            void addMemoryInput(const Schema& schema, std::shared_ptr<LogicalOperator> node);
             /*!
              * add memory output writer
              * @param schema
@@ -160,12 +160,12 @@ namespace tuplex {
                                     const python::Type& keyType,
                                     const python::Type& bucketType);
 
-            void addOperator(LogicalOperator* op) {
+            void addOperator(const std::shared_ptr<LogicalOperator>& op) {
                 _operators.push_back(op);
             }
 
-            void addFileInput(FileInputOperator* csvop);
-            void addFileOutput(FileOutputOperator* fop);
+            void addFileInput(const std::shared_ptr<FileInputOperator> &csvop);
+            void addFileOutput(const std::shared_ptr<FileOutputOperator>& fop);
 
             inline void setOutputLimit(size_t limit) {
                 _outputLimit = limit;
@@ -201,7 +201,8 @@ namespace tuplex {
             bool _sharedObjectPropagation;
             bool _nullValueOptimization;
             bool _updateInputExceptions;
-            std::vector<LogicalOperator*> _operators;
+
+            std::vector<std::shared_ptr<LogicalOperator>> _operators;
 
             int64_t _stageNumber;
             int64_t _outputDataSetID;
@@ -231,7 +232,7 @@ namespace tuplex {
             int64_t _inputNodeID;
             size_t _outputLimit;
 
-            LogicalOperator* _inputNode;
+            std::shared_ptr<LogicalOperator> _inputNode;
             std::vector<bool> _columnsToRead;
 
             std::vector<size_t>      _hashColKeys; // the column to use as hash key
@@ -271,10 +272,8 @@ namespace tuplex {
              */
             static std::string formatBadUDFNode(UDFOperator* udfop);
 
-
-
             size_t resolveOperatorCount() const {
-                return std::count_if(_operators.begin(), _operators.end(), [](const LogicalOperator* op) {
+                return std::count_if(_operators.begin(), _operators.end(), [](const std::shared_ptr<LogicalOperator> &op) {
                     return op && op->type() == LogicalOperatorType::RESOLVE;
                 });
             }
@@ -301,7 +300,7 @@ namespace tuplex {
 
             static PythonCodePath generatePythonCode(const CodeGenerationContext& ctx, int stageNo); //! generates fallback pipeline in pure python. => i.e. special case here...
 
-            std::vector<int64_t> getOperatorIDsAffectedByResolvers(const std::vector<LogicalOperator *> &operators);
+            std::vector<int64_t> getOperatorIDsAffectedByResolvers(const std::vector<std::shared_ptr<LogicalOperator>> &operators);
         };
 
         /*

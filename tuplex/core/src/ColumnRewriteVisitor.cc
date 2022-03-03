@@ -23,14 +23,14 @@ namespace tuplex {
     }
 
 
-    ASTNode * ColumnRewriteVisitor::replace(ASTNode *parent, ASTNode *node) {
+    ASTNode* ColumnRewriteVisitor::replace(ASTNode *parent, ASTNode* node) {
         if(!node)
             return nullptr;
 
         switch(node->type()) {
             case ASTNodeType::Subscription: {
 
-                NSubscription* sub = (NSubscription*)node;
+                auto sub = (NSubscription*)node;
 
                 // @TODO: there might be issues when variable is redefined!
                 // i.e.
@@ -52,8 +52,8 @@ namespace tuplex {
 
                 if(sub->_value->type() == ASTNodeType::Identifier &&
                    sub->_expression->type() == ASTNodeType::String) {
-                    auto id = (NIdentifier*)sub->_value;
-                    auto str = (NString*)sub->_expression;
+                    auto id = (NIdentifier*)sub->_value.get();
+                    auto str = (NString*)sub->_expression.get();
 
                     // rewrite if matches param
                     if(id->_name == _parameter) {

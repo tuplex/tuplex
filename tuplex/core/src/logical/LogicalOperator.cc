@@ -82,14 +82,13 @@ namespace tuplex {
 
     void LogicalOperator::freeParents() {
         // recurse
-        for(auto parent : parents()) {
+        for(const auto &parent : parents()) {
             parent->freeParents();
-            delete parent;
         }
         _parents.clear();
     }
 
-    void LogicalOperator::setParents(const std::vector<LogicalOperator *> &parents) {
+    void LogicalOperator::setParents(const std::vector<std::shared_ptr<LogicalOperator>> &parents) {
         _parents.clear();
         _parents = parents;
     }

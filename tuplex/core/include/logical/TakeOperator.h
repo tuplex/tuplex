@@ -19,10 +19,10 @@ namespace tuplex {
     private:
         int64_t _limit;
     public:
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
     public:
-        TakeOperator(LogicalOperator *parent, const int64_t numElements);
+        TakeOperator(const std::shared_ptr<LogicalOperator>& parent, const int64_t numElements);
 
         std::string name() override {
             if(_limit < 0 || std::numeric_limits<int64_t>::max() == _limit)
@@ -45,7 +45,13 @@ namespace tuplex {
         Schema getInputSchema() const override { return getOutputSchema(); }
 
         std::vector<std::string> columns() const override;
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _limit);
+        }
     };
 }
 
+CEREAL_REGISTER_TYPE(tuplex::TakeOperator);
 #endif //TUPLEX_TAKEOPERATOR_H

@@ -18,6 +18,16 @@
 #include <TypeSystem.h>
 #include <Field.h>
 
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+#include "cereal/archives/binary.hpp"
+
 enum class SymbolType {
     TYPE,
     VARIABLE,
@@ -228,6 +238,8 @@ public:
     symbolType(_symbolType),
     functionTyper([](const python::Type&) { return python::Type::UNKNOWN; }) {}
 
+    template <class Archive>
+    void serialize(Archive &ar) { ar(name, qualifiedName, types, symbolType, parent, constantData); }
 private:
     ///! i.e. to store something like re.search. re is then of module type. search will have a concrete function type.
     std::vector<std::shared_ptr<Symbol>> _attributes;
@@ -434,14 +446,14 @@ public:
             return python::Type::UNKNOWN;
 
         std::unordered_map<python::Type, int> counts;
-        for(auto t : types) {
+        for(const auto &t : types) {
             if(counts.find(t) == counts.end())
                 counts[t] = 0;
             counts[t]++;
         }
         int count = 0;
         python::Type t = types.front();
-        for(auto kv : counts) {
+        for(const auto &kv : counts) {
             if(kv.second >= count) {
                 count = kv.second;
                 t = kv.first;
@@ -449,6 +461,9 @@ public:
         }
         return t;
     }
+
+    template <class Archive>
+    void serialize(Archive &ar) { ar(numTimesVisited, iMin, iMax, negativeValueCount, positiveValueCount, symbol, types); }
 };
 
 #endif //TUPLEX_ASTANNOTATION_H

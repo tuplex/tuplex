@@ -255,7 +255,7 @@ namespace tuplex {
                     foundPyObject = true;
 
                 // check pos args are not of pyobject, if they're default to fallback compilation...
-                for(auto arg : call->_positionalArguments) {
+                for(const auto &arg : call->_positionalArguments) {
                     if(arg->getInferredType() == python::Type::PYOBJECT)
                         foundPyObject = true;
                 }
@@ -771,9 +771,9 @@ namespace tuplex {
                 _numColumns = _tupleArgument ? itype.parameters().front().parameters().size() : itype.parameters().size();
 
                 // fetch identifiers for args
-                for(auto argNode : lambda->_arguments->_args) {
+                for(const auto &argNode : lambda->_arguments->_args) {
                     assert(argNode->type() == ASTNodeType::Parameter);
-                    NIdentifier* id = ((NParameter*)argNode)->_identifier;
+                    NIdentifier* id = ((NParameter*)argNode.get())->_identifier.get();
                     _argNames.push_back(id->_name);
                     _argFullyUsed[id->_name] = false;
                     _argSubscriptIndices[id->_name] = std::vector<size_t>();
@@ -797,9 +797,9 @@ namespace tuplex {
                 _numColumns = _tupleArgument ? itype.parameters().front().parameters().size() : itype.parameters().size();
 
                 // fetch identifiers for args
-                for(auto argNode : func->_parameters->_args) {
+                for(const auto &argNode : func->_parameters->_args) {
                     assert(argNode->type() == ASTNodeType::Parameter);
-                    NIdentifier* id = ((NParameter*)argNode)->_identifier;
+                    NIdentifier* id = ((NParameter*)argNode.get())->_identifier.get();
                     _argNames.push_back(id->_name);
                     _argFullyUsed[id->_name] = false;
                     _argSubscriptIndices[id->_name] = std::vector<size_t>();
@@ -830,14 +830,14 @@ namespace tuplex {
                 // just simple stuff yet.
                 if (sub->_value->type() == ASTNodeType::Identifier &&
                     (val_type.isTupleType() || val_type.isDictionaryType())) {
-                    NIdentifier* id = (NIdentifier*)sub->_value;
+                    NIdentifier* id = (NIdentifier*)sub->_value.get();
 
                     // first check whether this identifier is in args,
                     // if not ignore.
                     if(std::find(_argNames.begin(), _argNames.end(), id->_name) != _argNames.end()) {
                         // no nested paths yet, i.e. x[0][2]
                         if(sub->_expression->type() == ASTNodeType::Number) {
-                            NNumber* num = (NNumber*)sub->_expression;
+                            NNumber* num = (NNumber*)sub->_expression.get();
 
                             // should be I64 or bool
                             assert(num->getInferredType() == python::Type::BOOLEAN ||
@@ -937,7 +937,7 @@ namespace tuplex {
         }
     };
 
-    ASTNode* RewriteVisitor::replace(ASTNode *parent, ASTNode *node) {
+    ASTNode* RewriteVisitor::replace(ASTNode *parent, ASTNode* node) {
 
         if(!node)
             return nullptr;
@@ -962,9 +962,9 @@ namespace tuplex {
                                          : itype.parameters().size();
 
             // fetch identifiers for args
-            for (auto argNode : lambda->_arguments->_args) {
+            for (const auto &argNode : lambda->_arguments->_args) {
                 assert(argNode->type() == ASTNodeType::Parameter);
-                NIdentifier *id = ((NParameter *) argNode)->_identifier;
+                NIdentifier *id = ((NParameter *) argNode.get())->_identifier.get();
                 _argNames.push_back(id->_name);
             }
 
@@ -988,9 +988,9 @@ namespace tuplex {
                                          : itype.parameters().size();
 
             // fetch identifiers for args
-            for (auto argNode : func->_parameters->_args) {
+            for (const auto &argNode : func->_parameters->_args) {
                 assert(argNode->type() == ASTNodeType::Parameter);
-                NIdentifier *id = ((NParameter *) argNode)->_identifier;
+                NIdentifier *id = ((NParameter *) argNode.get())->_identifier.get();
                 _argNames.push_back(id->_name);
             }
 
@@ -1056,17 +1056,15 @@ namespace tuplex {
 
                         // need to replace paramlist with params to rewrite
                         // reduce
-                        std::vector<ASTNode*> keepNodes;
+                        std::vector<std::unique_ptr<ASTNode>> keepNodes;
 
                         for(unsigned i = 0; i < _numColumns; ++i) {
                             if(_rewriteMap.find(i) != _rewriteMap.end()) {
-                                keepNodes.push_back(paramList->_args[i]);
+                                keepNodes.push_back(std::move(paramList->_args[i]));
                                 reducedArgTypes.push_back(ptype.parameters()[i]);
-                            } else {
-                                delete paramList->_args[i];
                             }
                         }
-                        paramList->_args = keepNodes;
+                        paramList->_args = std::move(keepNodes);
 
                         // update type
                         ptype = python::Type::makeTupleType(reducedArgTypes);
@@ -1095,7 +1093,7 @@ namespace tuplex {
                     if(sub->_value->type() == ASTNodeType::Identifier &&
                     sub->_expression->type() == ASTNodeType::Number) {
                         // matches argname?
-                        NIdentifier* id = (NIdentifier*)sub->_value;
+                        NIdentifier* id = (NIdentifier*)sub->_value.get();
 
                         if(id->_name == _argNames.front()) {
                             assert(sub->_expression->getInferredType() == python::Type::I64 ||
@@ -1104,7 +1102,7 @@ namespace tuplex {
                             // there are two options:
                             // opt1: expression is a simple number
                             if(sub->_expression->type() == ASTNodeType::Number) {
-                                auto old_idx = ((NNumber*)sub->_expression)->getI64();
+                                auto old_idx = ((NNumber*)sub->_expression.get())->getI64();
                                 // correct for negative indices
                                 if(old_idx < 0)
                                     old_idx += _numColumns;
@@ -1128,8 +1126,7 @@ namespace tuplex {
                                 // replace
                                 NNumber* num_new = new NNumber(std::to_string(new_idx));
 
-                                delete sub->_expression;
-                                sub->_expression = num_new;
+                                sub->_expression = std::unique_ptr<ASTNode>(num_new);
                             } else {
                                 // opt2: it is something else
                                 // trick is to add a NBinaryOp to remap the index
@@ -1196,7 +1193,7 @@ namespace tuplex {
 
         // need to update type hints too. Else, everything gets overwritten from the code generator.
         auto hints = rv.getTypeHints();
-        for(auto el : hints)
+        for(const auto &el : hints)
             getAnnotatedAST().addTypeHint(el.first, el.second);
 
         // call define types then again

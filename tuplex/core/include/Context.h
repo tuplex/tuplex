@@ -55,7 +55,7 @@ namespace tuplex {
         // a context is associated with a number of logical operators
         // the context object does the memory management of these operators.
         // a dataset is the result of applying the DAG of operations.
-        std::vector<LogicalOperator*> _operators;
+        std::vector<std::shared_ptr<LogicalOperator>> _operators;
 
         // needed because of C++ template issues
         void addPartition(DataSet* ds, Partition *partition);
@@ -227,7 +227,7 @@ namespace tuplex {
 
         IBackend* backend() const { assert(_ee); return _ee.get(); }
 
-        LogicalOperator* addOperator(LogicalOperator* op);
+        std::shared_ptr<LogicalOperator> addOperator(const std::shared_ptr<LogicalOperator> &op);
 
         void visualizeOperationGraph(GraphVizBuilder& builder);
 

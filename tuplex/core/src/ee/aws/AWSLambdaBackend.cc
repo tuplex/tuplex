@@ -607,12 +607,20 @@ namespace tuplex {
         // optimize at client @TODO: optimize for target triple?
         if(_options.USE_LLVM_OPTIMIZER()) {
             Timer timer;
-            llvm::LLVMContext ctx;
-            LLVMOptimizer opt;
-            auto mod = codegen::bitCodeToModule(ctx, tstage->fastPathBitCode());
-            opt.optimizeModule(*mod);
-            optimizedBitcode = codegen::moduleToBitCodeString(*mod);
-            logger().info("client-side LLVM IR optimization took " + std::to_string(timer.time()) + "s");
+            bool optimized_ir = false;
+            // optimize in parallel???
+            if(!tstage->fastPathBitCode().empty()) {
+                llvm::LLVMContext ctx;
+                LLVMOptimizer opt;
+                auto mod = codegen::bitCodeToModule(ctx, tstage->fastPathBitCode());
+                opt.optimizeModule(*mod);
+                optimizedBitcode = codegen::moduleToBitCodeString(*mod);
+                optimized_ir = true;
+            } else if(!tstage->slowPathBitCode().empty()) {
+                // todo...
+            }
+            if(optimized_ir)
+                logger().info("client-side LLVM IR optimization of took " + std::to_string(timer.time()) + "s");
         } else {
             optimizedBitcode = tstage->fastPathBitCode();
         }

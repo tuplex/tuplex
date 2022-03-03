@@ -557,9 +557,8 @@ namespace tuplex {
         Schema schema;
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
-        dsptr->_operator = addOperator(
-                FileInputOperator::fromOrc(pattern, this->_options));
-        auto op = ((FileInputOperator*)dsptr->_operator);
+        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(FileInputOperator::fromOrc(pattern, this->_options)));
+        auto op = ((FileInputOperator*)dsptr->_operator.get());
 
         // check whether files were found, else return empty dataset!
         if(op->getURIs().empty()) {
@@ -591,7 +590,7 @@ namespace tuplex {
             }
 
             dsptr->setColumns(columns);
-            ((FileInputOperator*)dsptr->_operator)->setColumns(columns);
+            ((FileInputOperator*)dsptr->_operator.get())->setColumns(columns);
         }
 
         // set dataset to operator

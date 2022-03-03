@@ -199,9 +199,9 @@ namespace tuplex {
                 auto t = ops.front()->type();
                 assert(t == LogicalOperatorType::PARALLELIZE || t == LogicalOperatorType::CACHE);
                 if (t == LogicalOperatorType::PARALLELIZE)
-                    hasInputExceptions = !((ParallelizeOperator *)ops.front())->getPythonObjects().empty();
+                    hasInputExceptions = !((ParallelizeOperator *)ops.front().get())->getPythonObjects().empty();
                 if (t == LogicalOperatorType::CACHE)
-                    hasInputExceptions = !((CacheOperator *)ops.front())->cachedExceptions().empty();
+                    hasInputExceptions = !((CacheOperator *)ops.front().get())->cachedExceptions().empty();
             }
         }
 
@@ -318,7 +318,7 @@ namespace tuplex {
         // what is the detected outputMode?
         switch(outputMode) {
             case EndPointMode::FILE: {
-                builder.addFileOutput(dynamic_cast<FileOutputOperator*>(outputNode.get()));
+                builder.addFileOutput(std::dynamic_pointer_cast<FileOutputOperator>(outputNode));
                 break;
             }
             case EndPointMode::MEMORY: {

@@ -797,12 +797,12 @@ namespace tuplex {
 
             // set up parent/child relationship
             assert(left->numChildren() == 2); // only new fop, jop
-            left->setChild(new_fop_left.get());
+            left->setChild(new_fop_left);
             assert(right->numChildren() == 2); // only new fop, jop
-            right->setChild(new_fop_right.get());
+            right->setChild(new_fop_right);
             jop->setParents({new_fop_left, new_fop_right});
-            new_fop_left->setChild(jop.get());
-            new_fop_right->setChild(jop.get());
+            new_fop_left->setChild(jop);
+            new_fop_right->setChild(jop);
 
             // link children, i.e. remove filter
             for(auto& c : children) {

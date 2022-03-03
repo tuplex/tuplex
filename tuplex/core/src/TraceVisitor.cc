@@ -315,7 +315,7 @@ namespace tuplex {
             _columnNames.clear();
             for(int i = 0; i < astArgs.size(); ++i) {
                 assert(astArgs[i]->type() == ASTNodeType::Parameter);
-                auto id = dynamic_cast<NIdentifier*>(dynamic_cast<NParameter*>(astArgs[i])->_identifier);
+                auto id = dynamic_cast<NIdentifier*>(dynamic_cast<NParameter*>(astArgs[i])->_identifier.get());
                 _columnNames.push_back(id->_name);
             }
 
@@ -1019,10 +1019,10 @@ namespace tuplex {
         auto targetASTType = node->target->type();
         std::vector<NIdentifier *> loopVariables;
         if (targetASTType == ASTNodeType::Identifier) {
-            auto id = static_cast<NIdentifier *>(node->target);
+            auto id = static_cast<NIdentifier *>(node->target.get());
             loopVariables.push_back(id);
         } else if (targetASTType == ASTNodeType::Tuple || targetASTType == ASTNodeType::List) {
-            auto idTuple = getForLoopMultiTarget(node->target);
+            auto idTuple = getForLoopMultiTarget(node->target.get());
             loopVariables.resize(idTuple.size());
             std::transform(idTuple.begin(), idTuple.end(), loopVariables.begin(),
                            [](ASTNode *x) {return static_cast<NIdentifier *>(x); });

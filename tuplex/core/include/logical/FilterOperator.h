@@ -17,7 +17,7 @@
 namespace tuplex {
     class FilterOperator : public UDFOperator {
     public:
-        FilterOperator(LogicalOperator *parent, const UDF& udf, const std::vector<std::string>& columnNames);
+        FilterOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF& udf, const std::vector<std::string>& columnNames);
 
         std::string name() override { return "filter"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::FILTER; }

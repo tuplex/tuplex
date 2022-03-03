@@ -13,6 +13,9 @@
 
 #include <logical/LogicalOperatorType.h>
 #include <vector>
+#include <utility>
+#include <functional>
+#include <memory>
 #include <physical/ResultSet.h>
 #include <DataSet.h>
 #include "graphviz/GraphVizBuilder.h"
@@ -42,11 +45,11 @@ namespace tuplex {
     class DataSet;
     class Context;
 
-    class LogicalOperator {
+    class LogicalOperator : public std::enable_shared_from_this<Symbol> {
     private:
         int buildGraph(GraphVizBuilder& builder);
         int64_t _id;
-        std::vector<LogicalOperator*> _children;
+        std::vector<std::shared_ptr<LogicalOperator>> _children;
         std::vector<std::shared_ptr<LogicalOperator>> _parents;
         Schema _schema;
         DataSet *_dataSet; // TODO: figure out dataset serialization!
@@ -58,7 +61,7 @@ namespace tuplex {
                 if(parent.get() == this)
                     throw std::runtime_error("cycle encountered! invalid for operator graph.");
 
-                parent->_children.push_back(this);
+                parent->_children.push_back(shared_from_this());
             }
         }
 
@@ -92,7 +95,7 @@ namespace tuplex {
          */
         virtual bool good() const = 0;
 
-        std::vector<LogicalOperator*> getChildren() const { return _children; }
+        std::vector<std::shared_ptr<LogicalOperator>> getChildren() const { return _children; }
         std::shared_ptr<LogicalOperator> parent() const { if(_parents.empty())return nullptr; assert(_parents.size() == 1); return _parents.front(); }
         std::vector<std::shared_ptr<LogicalOperator>> parents() const { return _parents; }
         size_t numParents() const { return _parents.size(); }
@@ -102,10 +105,10 @@ namespace tuplex {
         // manipulating functions for the tree (i.e. used in logical optimizer)
         // Note: this functions DO NOT free memory.
         void setParents(const std::vector<std::shared_ptr<LogicalOperator>>& parents);
-        void setChildren(const std::vector<LogicalOperator*>& children);
+        void setChildren(const std::vector<std::shared_ptr<LogicalOperator>>& children);
 
-        void setParent(std::shared_ptr<LogicalOperator> parent) { setParents({parent}); }
-        void setChild(LogicalOperator* child) { setChildren({child}); }
+        void setParent(const std::shared_ptr<LogicalOperator>& parent) { setParents({parent}); }
+        void setChild(const std::shared_ptr<LogicalOperator>& child) { setChildren({child}); }
 
         /*!
          * swap pointers out

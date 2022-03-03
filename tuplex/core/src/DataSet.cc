@@ -249,7 +249,7 @@ namespace tuplex {
         auto op = _context->addOperator(std::shared_ptr<LogicalOperator>(new MapColumnOperator(this->_operator,
                                                                                                columnName,
                                                                                                columns(),
-                                                                                               udf.withCompilePolicy(_context->compilePolicy())));
+                                                                                               udf.withCompilePolicy(_context->compilePolicy()))));
         if (!op->good()) {
             Logger::instance().defaultLogger().error("failed to create mapColumn operator");
             return _context->makeError("failed to add mapColumn operator to logical plan");
@@ -288,7 +288,7 @@ namespace tuplex {
                 std::shared_ptr<LogicalOperator>(new WithColumnOperator(this->_operator,
                                        _columnNames,
                                        columnName,
-                                       udf.withCompilePolicy(_context->compilePolicy())));
+                                       udf.withCompilePolicy(_context->compilePolicy()))));
 
         if (!op->good()) {
             Logger::instance().defaultLogger().error("failed to create withColumn operator");

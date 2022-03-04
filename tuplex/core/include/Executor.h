@@ -44,12 +44,19 @@ namespace tuplex {
      */
     class WorkQueue {
     private:
-        std::atomic_bool _done; // protects against data races
+        std::atomic_bool _done{}; // protects against data races
         ExecutorTaskQueueType _queue;
         std::mutex _completedTasksMutex;
         std::vector<IExecutorTask*> _completedTasks;
-        std::atomic_int _numPendingTasks;
-        std::atomic_int _numCompletedTasks;
+        std::atomic_int _numPendingTasks{};
+        std::atomic_int _numCompletedTasks{};
+
+        // mapping from order number -> row count if the task is finished
+        std::mutex _rowsDoneMutex;
+        std::map<size_t, size_t> _rowsDone;
+
+        std::atomic_int _frontRowsLimit{};
+        std::atomic_int _bottomRowsLimit{};
     public:
 
         WorkQueue();
@@ -73,6 +80,14 @@ namespace tuplex {
         }
 
         size_t numCompletedTasks() const { return _numCompletedTasks; }
+
+        size_t frontRowsLimit() const {
+            return _frontRowsLimit;
+        };
+
+        size_t bottomRowsLimit() const {
+            return _bottomRowsLimit;
+        };
 
         /*!
          * stop working on this queue & dump all tasks

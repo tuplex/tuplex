@@ -551,7 +551,7 @@ namespace tuplex {
 
                         task->sinkExceptionsToMemory(inputSchema);
                         task->setStageID(tstage->getID());
-                        task->setOutputLimit(tstage->outputTopLimit());
+                        task->setOutputTopLimit(tstage->outputTopLimit());
                         // add to tasks
                         tasks.emplace_back(std::move(task));
                     } else {
@@ -585,7 +585,7 @@ namespace tuplex {
                             }
                             task->sinkExceptionsToMemory(inputSchema);
                             task->setStageID(tstage->getID());
-                            task->setOutputLimit(tstage->outputTopLimit());
+                            task->setOutputTopLimit(tstage->outputTopLimit());
                             // add to tasks
                             tasks.emplace_back(std::move(task));
                             num_parts++;
@@ -622,7 +622,7 @@ namespace tuplex {
                                 }
                                 task->sinkExceptionsToMemory(inputSchema);
                                 task->setStageID(tstage->getID());
-                                task->setOutputLimit(tstage->outputTopLimit());
+                                task->setOutputTopLimit(tstage->outputTopLimit());
                                 // add to tasks
                                 tasks.emplace_back(std::move(task));
 
@@ -684,10 +684,10 @@ namespace tuplex {
                 task->setInputExceptions(tstage->inputExceptions());
                 task->sinkExceptionsToMemory(inputSchema);
                 task->setStageID(tstage->getID());
-                task->setOutputLimit(tstage->outputTopLimit());
+                task->setOutputTopLimit(tstage->outputTopLimit());
+                task->setOutputBottomLimit(tstage->outputBottomLimit());
                 if (tstage->outputBottomLimit()) {
-                    // TODO(march): work here
-                    task->setOutputBottomLimit(tstage->outputBottomLimit());
+                    // TODO(march): work here (task output limit generation)
                 }
                 tasks.emplace_back(std::move(task));
                 numInputRows += partition->getNumRows();
@@ -842,8 +842,6 @@ namespace tuplex {
     }
 
     void LocalBackend::executeTransformStage(tuplex::TransformStage *tstage) {
-        // TODO(march): work here
-
         Timer stageTimer;
         Timer timer; // for detailed measurements.
 
@@ -943,6 +941,7 @@ namespace tuplex {
             }
         }
 
+        // TODO(march): work here (transform stage)
         auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms);
         auto completedTasks = performTasks(tasks);
 
@@ -1519,24 +1518,21 @@ namespace tuplex {
         WorkQueue& wq = LocalEngine::instance().getQueue();
         wq.clear();
 
-        // check if ord is set, if not issue warning & add
-        bool orderlessTaskFound = false;
+        // assign the order for all tasks
         for(int i = 0; i < tasks.size(); ++i) {
-            if(tasks[i]->getOrder().size() == 0) {
-                tasks[i]->setOrder(i);
-                orderlessTaskFound = true;
+            tasks[i]->setOrder(i);
+        }
+
+        // add all tasks to queue
+        // TODO(march): add task stage (to do striping)
+        for(size_t i = 0; i <= tasks.size() - i - 1; i++) {
+            const size_t revI = tasks.size()- i - 1
+            wq.addTask(&tasks[i]);
+            if (revI > i) {
+                wq.addTask(&tasks[revI]);
             }
         }
 
-#ifndef NDEBUG
-        if(orderlessTaskFound) {
-            logger().debug("task without order found, please fix in code.");
-        }
-#endif
-
-        // add all tasks to queue
-        // TODO(march): question here
-        for(auto& task : tasks) wq.addTask(task);
         // clear
         tasks.clear();
 

@@ -29,7 +29,7 @@ namespace tuplex {
         std::thread::id _id; //! the id of the thread that executed the task. Used to specifically execute a task on a specific thread.
 //! Per default object is constructed that does not represent a thread
 
-        std::vector<size_t> _orderNumbers; //! for sorting tasks when doing async processing, allows for multiple stages
+        size_t _orderNumbers; //! for sorting tasks when doing async processing, allows for multiple stages
 
     public:
         ITask() {};
@@ -51,15 +51,12 @@ namespace tuplex {
             _id = id;
         }
 
-        void setOrder(size_t order) { _orderNumbers = std::vector<size_t>{order}; }
-
-//        size_t getOrder(const size_t nth = 0) const {
-//            return _orderNumbers[nth];
-//        }
-        std::vector<size_t> getOrder() const { return _orderNumbers; }
-
-        void setOrder(const std::vector<size_t>& order) {
+        void setOrder(size_t order) {
             _orderNumbers = order;
+        }
+
+        size_t getOrder() const {
+            return _orderNumbers;
         }
 
         /*!
@@ -68,16 +65,7 @@ namespace tuplex {
          * @return
          */
         bool compareAscOrder(const ITask& other) const {
-            // make sure they have the same length
-            assert(_orderNumbers.size() == other._orderNumbers.size());
-
-            // this < other?
-            // compare one by one
-            for(int i = 0; i < other._orderNumbers.size(); ++i) {
-                if(_orderNumbers[i] >= other._orderNumbers[i])
-                    return false;
-            }
-            return true;
+            return _orderNumbers[i] < other._orderNumbers[i];
         }
     };
 }

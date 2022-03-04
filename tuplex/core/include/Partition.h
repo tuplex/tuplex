@@ -111,24 +111,6 @@ namespace tuplex {
             setNumRows(0);
         }
 
-        explicit Partition(Partition* part) :
-            _owner(part->_owner),
-            _arena(part->_arena),
-            _size(part->_size),
-            _uuid(part->_uuid),
-            _active(false),
-            _immortal(false),
-            _locked(false),
-            _numRows(part->_numRows),
-            _bytesWritten(part->_bytesWritten),
-            _schema(part->_schema),
-            _dataSetID(part->_dataSetID),
-            _contextID(part->_contextID),
-            _swappedToFile(part->_swappedToFile) {
-
-            // TODO(march): to actually allocate memory here?
-        }
-
         ~Partition() {
             assert(!_locked);
         }

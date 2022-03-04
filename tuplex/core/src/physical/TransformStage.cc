@@ -221,6 +221,7 @@ namespace tuplex {
 
             // put ALL partitions to result set
             // TODO(march): handle overlapping case
+            // TODO(march): maybe do top/bottom limit at the level instead?
             _rs = std::make_shared<ResultSet>(schema, limitedPartitions,
                                               generalCase, partitionToExceptionsMap, interpreterRows,
                                               outputTopLimit() + outputBottomLimit());

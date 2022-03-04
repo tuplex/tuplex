@@ -144,6 +144,9 @@ else()
     endif()
 
     llvm_set(LIBRARY_DIRS libdir true)
+    if(LLVM_FIND_COMPONENTS)
+        message(STATUS "LLVM components to search for are: ${LLVM_FIND_COMPONENTS}")
+    endif()
     llvm_set_libs(LIBRARIES libs "${LLVM_FIND_COMPONENTS}")
     # LLVM bug: llvm-config --libs tablegen returns -lLLVM-3.8.0
     # but code for it is not in shared library

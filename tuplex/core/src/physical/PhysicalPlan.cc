@@ -346,7 +346,7 @@ namespace tuplex {
                 // 1.) Join (b.c. build!)
                 // 2.) Aggregate => i.e. unique aggregate
                 if(child->type() == LogicalOperatorType::JOIN) {
-                    auto jop = dynamic_cast<JoinOperator*>(child); assert(jop);
+                    auto jop = std::dynamic_pointer_cast<JoinOperator>(child); assert(jop);
                     // build left or right?
                     size_t keyCol = jop->buildRight() ? jop->rightKeyIndex() : jop->leftKeyIndex();
                     auto schema = jop->buildRight() ? jop->right()->getOutputSchema() : jop->left()->getOutputSchema();

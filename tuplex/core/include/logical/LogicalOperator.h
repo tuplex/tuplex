@@ -45,7 +45,7 @@ namespace tuplex {
     class DataSet;
     class Context;
 
-    class LogicalOperator : public std::enable_shared_from_this<Symbol> {
+    class LogicalOperator : public std::enable_shared_from_this<LogicalOperator> {
     private:
         int buildGraph(GraphVizBuilder& builder);
         int64_t _id;
@@ -116,7 +116,8 @@ namespace tuplex {
          * @param newParent
          * @return true if oldParent found, false else
          */
-        bool replaceParent(std::shared_ptr<LogicalOperator> oldParent, std::shared_ptr<LogicalOperator> newParent) {
+        inline bool replaceParent(const std::shared_ptr<LogicalOperator>& oldParent,
+                                  const std::shared_ptr<LogicalOperator>& newParent) {
             auto it = std::find(_parents.begin(), _parents.end(), oldParent);
             if(it == _parents.end())
                 return false;
@@ -130,7 +131,8 @@ namespace tuplex {
          * @param newChild
          * @return true if oldChild found, false else
          */
-        bool replaceChild(LogicalOperator* oldChild, LogicalOperator* newChild) {
+        inline bool replaceChild(const std::shared_ptr<LogicalOperator>& oldChild,
+                                 const std::shared_ptr<LogicalOperator>& newChild) {
             auto it = std::find(_children.begin(), _children.end(), oldChild);
             if(it == _children.end())
                 return false;

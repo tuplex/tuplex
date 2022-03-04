@@ -167,13 +167,15 @@ else()
     set(LLVM_NATIVE_ARCH ${CMAKE_MATCH_1})
     message(STATUS "LLVM_NATIVE_ARCH: ${LLVM_NATIVE_ARCH}")
 
-    # On CMake builds of LLVM, the output of llvm-config --cxxflags does not
-    # include -fno-rtti, leading to linker errors. Be sure to add it.
-    if(NOT MSVC AND (CMAKE_COMPILER_IS_GNUCXX OR (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")))
-        if(NOT ${LLVM_CXXFLAGS} MATCHES "-fno-rtti")
-            set(LLVM_CXXFLAGS "${LLVM_CXXFLAGS} -fno-rtti")
-        endif()
-    endif()
+
+    # Tuplex edit: This is cleaner, yet won't work because tuplex uses rtti.
+     # On CMake builds of LLVM, the output of llvm-config --cxxflags does not
+     # include -fno-rtti, leading to linker errors. Be sure to add it.
+     if(NOT MSVC AND (CMAKE_COMPILER_IS_GNUCXX OR (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")))
+         if(NOT ${LLVM_CXXFLAGS} MATCHES "-fno-rtti")
+             set(LLVM_CXXFLAGS "${LLVM_CXXFLAGS} -fno-rtti")
+         endif()
+     endif()
 
     # Remove some clang-specific flags for gcc.
     if(CMAKE_COMPILER_IS_GNUCXX)
@@ -195,6 +197,9 @@ else()
     if (${LLVM_VERSION_STRING} VERSION_LESS ${LLVM_FIND_VERSION})
         _LLVM_FAIL("Unsupported LLVM version ${LLVM_VERSION_STRING} found (${LLVM_CONFIG}). At least version ${LLVM_FIND_VERSION} is required. You can also set variables 'LLVM_ROOT_DIR' or 'LLVM_CONFIG' to use a different LLVM installation.")
     endif()
+
+    message(STATUS "LLVM CXX FLAGS: ${LLVM_CXXFLAGS}")
+#    message(STATUS "LLVM LD FLags: ${LLVM_})
 endif()
 
 # Use the default CMake facilities for handling QUIET/REQUIRED.

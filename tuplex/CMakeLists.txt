@@ -620,5 +620,8 @@ if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     endif()
 endif()
 
+# enable rtti and exceptions
+ucm_add_flags("-fexceptions -frtti")
+
 # print flags
 ucm_print_flags()

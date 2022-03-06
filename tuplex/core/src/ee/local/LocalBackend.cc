@@ -812,6 +812,7 @@ namespace tuplex {
         logger().info("compiled pure python pipeline in " + std::to_string(timer.time()) + "s");
         timer.reset();
 
+        auto order = 0;
         if (mergeExceptionsInOrder) {
             for (const auto &partitionGroup : cachedPartitionGroups) {
                 std::vector<Partition*> taskNormalPartitions;
@@ -821,7 +822,8 @@ namespace tuplex {
                 for (int i = partitionGroup.exceptionPartitionStartInd; i < partitionGroup.exceptionPartitionStartInd + partitionGroup.numExceptionPartitions; ++i)
                     taskExceptionPartitions.push_back(cachedExceptionPartitions[i]);
 
-                tasks.push_back(new ResolveTask(
+
+                auto rtask = new ResolveTask(
                         stageID,
                         contextID,
                         taskNormalPartitions,
@@ -840,7 +842,11 @@ namespace tuplex {
                         csvOutputQuotechar,
                         resolveFunctor,
                         pipObject,
-                        true));
+                        true);
+
+                rtask->setOrder(order);
+                order++;
+                tasks.push_back(rtask);
             }
         } else {
             for (const auto &p : cachedExceptionPartitions) {
@@ -962,6 +968,8 @@ namespace tuplex {
 
         auto tasks = createIncrementalTasks(tstage, _options, syms);
         auto completedTasks = performTasks(tasks);
+
+        sortTasks(completedTasks);
 
         // fetch partitions & ecounts
         vector<Partition*> normalPartitions;

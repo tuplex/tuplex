@@ -156,13 +156,13 @@ namespace tuplex {
                 val["id"] = "op" + std::to_string(op->getID());
                 val["columns"] = std::vector<std::string>();
                 val["stageid"] = stage->getID();
-                if(hasUDF(op)) {
-                    UDFOperator *udfop = (UDFOperator*)op;
+                if(hasUDF(op.get())) {
+                    UDFOperator *udfop = (UDFOperator*)op.get();
                     assert(udfop);
 
                     val["udf"] = udfop->getUDF().getCode();
                 } else if (op->type() == LogicalOperatorType::AGGREGATE) {
-                    AggregateOperator *udfop = (AggregateOperator*)op;
+                    AggregateOperator *udfop = (AggregateOperator*)op.get();
                     val["combiner_udf"] = udfop->combinerUDF().getCode();
                     val["aggregator_udf"] = udfop->aggregatorUDF().getCode();
                 }
@@ -637,7 +637,7 @@ namespace tuplex {
         ri.postJSON(base_uri(_conn.host, _conn.port) + "/api/stage/result", msg.dump());
     }
 
-    LogicalOperator* HistoryServerConnector::getOperator(int64_t opID) {
+    std::shared_ptr<LogicalOperator> HistoryServerConnector::getOperator(int64_t opID) {
 
         if(_reservoirLookup.end() == _reservoirLookup.find(opID))
             return nullptr;

@@ -30,7 +30,7 @@ namespace tuplex {
                 assert(t != python::Type::UNKNOWN);
         }
 
-        std::vector<LogicalOperator*> StagePlanner::optimize() {
+        std::vector<std::shared_ptr<LogicalOperator>> StagePlanner::optimize() {
             using namespace std;
 
             auto& logger = Logger::instance().logger("specializing stage optimizer");
@@ -68,7 +68,7 @@ namespace tuplex {
                     // works now only for map operator
                     auto op = _operators.front();
                     if(op->type() == LogicalOperatorType::MAP) {
-                        auto mop = dynamic_cast<MapOperator*>(op);
+                        auto mop = std::dynamic_pointer_cast<MapOperator>(op);
                         assert(mop);
 
                         // do opt only if input cols are valid...!
@@ -165,7 +165,7 @@ namespace tuplex {
                             logger.debug("stopping here, should get support for ops...");
                             return _operators;
                         }
-                        auto fop = dynamic_cast<FileInputOperator*>(_inputNode);
+                        auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
                         auto colsToSerialize = fop->columnsToSerialize();
                         vector<size_t> colsToSerializeIndices;
                         for(unsigned i = 0; i < colsToSerialize.size(); ++i)
@@ -249,7 +249,7 @@ namespace tuplex {
             return _operators;
         }
 
-        std::vector<LogicalOperator *> StagePlanner::nulLValueOptimization() {
+        std::vector<std::shared_ptr<LogicalOperator>> StagePlanner::nulLValueOptimization() {
             using namespace std;
 
             auto& logger = Logger::instance().logger("specializing stage optimizer");
@@ -274,9 +274,9 @@ namespace tuplex {
             // fetch optimized schema from input operator
             Schema opt_input_schema;
             if(_inputNode->type() == LogicalOperatorType::FILEINPUT)
-                opt_input_schema = dynamic_cast<FileInputOperator*>(_inputNode)->getOptimizedOutputSchema();
+                opt_input_schema = std::dynamic_pointer_cast<FileInputOperator>(_inputNode)->getOptimizedOutputSchema();
             else if(_inputNode->type() == LogicalOperatorType::CACHE)
-                opt_input_schema = dynamic_cast<CacheOperator*>(_inputNode)->getOptimizedOutputSchema();
+                opt_input_schema = std::dynamic_pointer_cast<CacheOperator>(_inputNode)->getOptimizedOutputSchema();
             else
                 throw std::runtime_error("internal error in specializing for the normal case");
             auto opt_input_rowtype = opt_input_schema.getRowType();
@@ -296,8 +296,8 @@ namespace tuplex {
             checkRowType(last_rowtype);
 
             // go through ops & specialize (leave jop as is)
-            vector<LogicalOperator*> opt_ops;
-            LogicalOperator* lastNode = nullptr;
+            vector<std::shared_ptr<LogicalOperator>> opt_ops;
+            std::shared_ptr<LogicalOperator> lastNode = nullptr;
             for(auto node : _operators) {
                 auto lastParent = opt_ops.empty() ? _inputNode : opt_ops.back();
                 if(!lastNode)
@@ -310,7 +310,7 @@ namespace tuplex {
                     }
                     case LogicalOperatorType::FILEINPUT: {
                         // create here copy using normalcase!
-                        auto op = dynamic_cast<FileInputOperator*>(node->clone());
+                        auto op = std::dynamic_pointer_cast<FileInputOperator>(node->clone());
                         op->useNormalCase();
                         opt_ops.push_back(op);
                         break;
@@ -326,7 +326,7 @@ namespace tuplex {
                         auto oldOutputType = op->getInputSchema().getRowType();
 
                         if(node->type() == LogicalOperatorType::WITHCOLUMN) {
-                            auto wop = (WithColumnOperator*)node;
+                            auto wop = std::dynamic_pointer_cast<WithColumnOperator>(node);
                             if(wop->columnToMap() == "ActualElapsedTime") {
                                 std::cout<<"start checking retyping here!!!"<<std::endl;
                             }
@@ -358,7 +358,7 @@ namespace tuplex {
                     }
 
                     case LogicalOperatorType::JOIN: {
-                        auto jop = dynamic_cast<JoinOperator *>(node);
+                        auto jop = std::dynamic_pointer_cast<JoinOperator>(node);
                         assert(lastNode);
 
 //#error "bug is here: basically if lastParent is cache, then it hasn't been cloned and thus getOutputSchema gives the general case"
@@ -366,7 +366,7 @@ namespace tuplex {
 
                         // this here is a bit more involved.
                         // I.e., is it left side or right side?
-                        vector<LogicalOperator*> parents;
+                        vector<std::shared_ptr<LogicalOperator>> parents;
                         if(lastNode == jop->left()) {
                             // left side is pipeline
                             //cout<<"pipeline is left side"<<endl;
@@ -384,9 +384,9 @@ namespace tuplex {
                             parents.push_back(lastParent); // --> normal case on right side
                         }
 
-                        opt_ops.push_back(new JoinOperator(parents[0], parents[1], jop->leftColumn(), jop->rightColumn(),
+                        opt_ops.push_back(std::shared_ptr<LogicalOperator>(new JoinOperator(parents[0], parents[1], jop->leftColumn(), jop->rightColumn(),
                                                            jop->joinType(), jop->leftPrefix(), jop->leftSuffix(), jop->rightPrefix(),
-                                                           jop->rightSuffix()));
+                                                           jop->rightSuffix())));
                         opt_ops.back()->setID(node->getID()); // so lookup map works!
 
 //#error "need a retype operator for the join operation..."
@@ -411,22 +411,22 @@ namespace tuplex {
                         break;
                     }
                     case LogicalOperatorType::TAKE: {
-                        opt_ops.push_back(new TakeOperator(lastParent, dynamic_cast<TakeOperator*>(node)->limit()));
+                        opt_ops.push_back(std::shared_ptr<LogicalOperator>(new TakeOperator(lastParent, std::dynamic_pointer_cast<TakeOperator>(node)->limit())));
                         opt_ops.back()->setID(node->getID());
                         break;
                     }
                     case LogicalOperatorType::FILEOUTPUT: {
-                        auto fop = dynamic_cast<FileOutputOperator *>(node);
+                        auto fop = std::dynamic_pointer_cast<FileOutputOperator>(node);
 
-                        opt_ops.push_back(new FileOutputOperator(lastParent, fop->uri(), fop->udf(), fop->name(),
+                        opt_ops.push_back(std::shared_ptr<LogicalOperator>(new FileOutputOperator(lastParent, fop->uri(), fop->udf(), fop->name(),
                                                                  fop->fileFormat(), fop->options(), fop->numParts(), fop->splitSize(),
-                                                                 fop->limit()));
+                                                                 fop->limit())));
                         break;
                     }
                     case LogicalOperatorType::CACHE: {
                         // two options here: Either cache is used as last node or as source!
                         // source?
-                        auto cop = (CacheOperator*)node;
+                        auto cop = std::dynamic_pointer_cast<CacheOperator>(node);
                         if(!cop->getChildren().empty()) {
                             // => cache is a source, i.e. fetch optimized schema from it!
                             last_rowtype = cop->getOptimizedOutputSchema().getRowType();
@@ -435,7 +435,7 @@ namespace tuplex {
 
                             // use normal case & clone WITHOUT parents
                             // clone, set normal case & push back
-                            cop = dynamic_cast<CacheOperator*>(cop->cloneWithoutParents());
+                            cop = std::dynamic_pointer_cast<CacheOperator>(cop->cloneWithoutParents());
                             cop->setOptimizedOutputType(last_rowtype);
                             cop->useNormalCase();
                         } else {
@@ -519,7 +519,7 @@ namespace tuplex {
 
         // force resampling b.c. of thin layer
         if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
-            auto fop = dynamic_cast<FileInputOperator*>(inputNode); assert(fop);
+            auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode); assert(fop);
             fop->setInputFiles({uri}, {file_size}, true);
         }
 
@@ -530,8 +530,8 @@ namespace tuplex {
         path_ctx.operators = planner.optimize();
         path_ctx.outputSchema = path_ctx.operators.back()->getOutputSchema();
         path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();
-        path_ctx.readSchema = dynamic_cast<FileInputOperator*>(path_ctx.inputNode)->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
-        path_ctx.columnsToRead = dynamic_cast<FileInputOperator*>(path_ctx.inputNode)->columnsToSerialize();
+        path_ctx.readSchema = std::dynamic_pointer_cast<FileInputOperator>(path_ctx.inputNode)->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
+        path_ctx.columnsToRead = std::dynamic_pointer_cast<FileInputOperator>(path_ctx.inputNode)->columnsToSerialize();
         logger.info("specialized to input:  " + path_ctx.inputSchema.getRowType().desc());
         logger.info("specialized to output: " + path_ctx.outputSchema.getRowType().desc());
         size_t numToRead = 0;

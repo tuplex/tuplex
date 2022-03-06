@@ -38,7 +38,7 @@ namespace tuplex {
             TraceResult() : ec(ExceptionCode::UNKNOWN), lastOperatorID(-1) {}
         };
 
-        std::vector<LogicalOperator*> _operators; // weak references to operators
+        std::vector<std::shared_ptr<LogicalOperator>> _operators; // weak references to operators
 
 
         // deserialized python functions for each operator
@@ -67,7 +67,7 @@ namespace tuplex {
             releasePythonObjects();
         }
 
-        explicit SampleProcessor(const std::vector<LogicalOperator*>& operators) : _operators(operators), _udfsCached(false) {
+        explicit SampleProcessor(const std::vector<std::shared_ptr<LogicalOperator>>& operators) : _operators(operators), _udfsCached(false) {
             for(auto op : operators)
                 assert(op);
 
@@ -90,7 +90,7 @@ namespace tuplex {
 
         std::vector<std::string> getColumnNames(int64_t operatorID);
 
-        LogicalOperator* getOperator(int64_t operatorID);
+        std::shared_ptr<LogicalOperator> getOperator(int64_t operatorID);
 
 
         /*!

@@ -82,7 +82,7 @@ namespace tuplex {
 
             // check what input type of Stage is
             if(ctx.inputMode == EndPointMode::FILE) {
-                auto fop = dynamic_cast<FileInputOperator*>(ctx.slowPathContext.inputNode); assert(fop);
+                auto fop = std::dynamic_pointer_cast<FileInputOperator>(ctx.slowPathContext.inputNode); assert(fop);
                 switch (ctx.inputFileFormat) {
                     case FileFormat::OUTFMT_CSV: {
                         ppb.cellInput(ctx.slowPathContext.inputNode->getID(),
@@ -112,7 +112,7 @@ namespace tuplex {
                         break;
                     }
                     case LogicalOperatorType::FILEINPUT: {
-                        auto fileop = dynamic_cast<FileInputOperator *>(op.get());
+                        auto fileop = std::dynamic_pointer_cast<FileInputOperator>(op);
                         if (fileop->fileFormat() == FileFormat::OUTFMT_CSV) {
                             // use cells, b.c. parser already has string contents.
                             ppb.cellInput(op->getID(), op->columns(), fileop->null_values(), fileop->typeHints(),
@@ -313,9 +313,9 @@ namespace tuplex {
             return ss.str();
         }
 
-        std::vector<LogicalOperator*> specializePipeline(bool nullValueOptimization,
-                                                         LogicalOperator* inputNode,
-                                                         const std::vector<LogicalOperator*>& operators) {
+        std::vector<std::shared_ptr<LogicalOperator>> specializePipeline(bool nullValueOptimization,
+                                                         const std::shared_ptr<LogicalOperator>& inputNode,
+                                                         const std::vector<std::shared_ptr<LogicalOperator>>& operators) {
 
             using namespace std;
             auto& logger = Logger::instance().defaultLogger();
@@ -882,7 +882,7 @@ namespace tuplex {
 
             // special case: input source is cached and no exceptions happened => no resolve path necessary if there are no resolvers!
             if(pathContext.inputNode->type() == LogicalOperatorType::CACHE &&
-               dynamic_cast<CacheOperator*>(pathContext.inputNode)->cachedExceptions().empty())
+               std::dynamic_pointer_cast<CacheOperator>(pathContext.inputNode)->cachedExceptions().empty())
                 requireSlowPath = false;
 
             // nothing todo, return empty code-path - i.e., normal
@@ -989,7 +989,7 @@ namespace tuplex {
 
                     case LogicalOperatorType::RESOLVE: {
                         // ==> this means slow code path needs to be generated as well!
-                        auto rop = dynamic_cast<ResolveOperator *>(node);
+                        auto rop = std::dynamic_pointer_cast<ResolveOperator>(node);
                         slowPip->addResolver(rop->ecCode(), rop->getID(), rop->getUDF(), _normalCaseThreshold, ctx.allowUndefinedBehavior,
                                              ctx.sharedObjectPropagation);
                         break;
@@ -997,7 +997,7 @@ namespace tuplex {
                     case LogicalOperatorType::IGNORE: {
 
                         // do not skip, if one of the ancestors is a resolver (skip ignores)
-                        auto iop = dynamic_cast<IgnoreOperator*>(node.get());
+                        auto iop = std::dynamic_pointer_cast<IgnoreOperator>(node.get());
                         assert(iop);
 
                         // always add ignore on slowpath, because else special cases (i.e. exception resolved, throws again etc.)
@@ -1410,12 +1410,12 @@ namespace tuplex {
             return stage;
         }
 
-        python::Type intermediateType(const std::vector<LogicalOperator*>& operators) {
+        python::Type intermediateType(const std::vector<std::shared_ptr<LogicalOperator>>& operators) {
             // output node aggregate? --> save intermediate schema!
             if(!operators.empty() && operators.back()) {
                 auto output_node = operators.back();
                 if(output_node->type() == LogicalOperatorType::AGGREGATE) {
-                    auto aop = dynamic_cast<AggregateOperator*>(output_node.get());
+                    auto aop = std::dynamic_pointer_cast<AggregateOperator>(output_node);
                     if(aop->aggType() == AggregateType::AGG_GENERAL) {
                         return aop->getOutputSchema().getRowType();
                     }

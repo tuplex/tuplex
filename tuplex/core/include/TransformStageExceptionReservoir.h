@@ -25,7 +25,7 @@ namespace tuplex {
     /// class to hold exception samples for WebUI, obtained via stageprocessor
     class TransformStageExceptionReservoir {
     public:
-        TransformStageExceptionReservoir(const TransformStage* stage, std::vector<LogicalOperator*>& operators, size_t limit=5);
+        TransformStageExceptionReservoir(const TransformStage* stage, const std::vector<std::shared_ptr<LogicalOperator>>& operators, size_t limit=5);
 
         bool resolverExists(int64_t opID, ExceptionCode ec) const;
 
@@ -33,7 +33,7 @@ namespace tuplex {
                            const std::vector<Partition*> &exceptions,
                            bool excludeAvailableResolvers);
 
-        LogicalOperator* getOperator(int64_t opID);
+        std::shared_ptr<LogicalOperator> getOperator(int64_t opID);
         int64_t getOperatorIndex(int64_t opID);
 
         /*!

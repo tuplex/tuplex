@@ -46,8 +46,8 @@ namespace tuplex {
 
 
             for(auto op : _operators) {
-                if(hasUDF(op)) {
-                    UDFOperator *udfop = dynamic_cast<UDFOperator*>(op);
+                if(hasUDF(op.get())) {
+                    auto udfop = std::dynamic_pointer_cast<UDFOperator>(op);
                     assert(udfop);
 
                     auto pickled_code = udfop->getUDF().getPickledCode(); // this has internal python locks
@@ -332,9 +332,9 @@ namespace tuplex {
             PyObject *TUPLEX = nullptr;
             bool dictMode = false;
             std::vector<std::string> columns;
-            if(hasUDF(op)) {
+            if(hasUDF(op.get())) {
                 TUPLEX = _TUPLEXs.at(op->getID());
-                UDFOperator* udfop = dynamic_cast<UDFOperator*>(op);
+                auto udfop = std::dynamic_pointer_cast<UDFOperator>(op);
                 assert(udfop);
 
                 dictMode = udfop->getUDF().dictMode();
@@ -372,7 +372,7 @@ namespace tuplex {
 
                 case LogicalOperatorType::MAPCOLUMN: {
 
-                    auto idx = dynamic_cast<MapColumnOperator*>(op)->getColumnIndex();
+                    auto idx = std::dynamic_pointer_cast<MapColumnOperator>(op)->getColumnIndex();
                     auto pcr = applyMapColumn(dictMode, TUPLEX, rowObj, idx);
 
                     // check what result is
@@ -394,7 +394,7 @@ namespace tuplex {
                 }
 
                 case LogicalOperatorType::WITHCOLUMN: {
-                    auto idx = dynamic_cast<WithColumnOperator*>(op)->getColumnIndex();
+                    auto idx = std::dynamic_pointer_cast<WithColumnOperator>(op)->getColumnIndex();
                     auto pcr = applyWithColumn(dictMode, TUPLEX, rowObj, columns, idx);
 
                     // check what result is
@@ -490,7 +490,7 @@ namespace tuplex {
 
             // now check if resolver is present, if so try to resolve or find the one which causes the exception!
             while(index + 1 < _operators.size() && _operators[index + 1]->type() == LogicalOperatorType::RESOLVE) {
-                auto op = dynamic_cast<ResolveOperator*>(_operators[index + 1]);
+                auto op = std::dynamic_pointer_cast<ResolveOperator>(_operators[index + 1]);
                 assert(op && op->type() == LogicalOperatorType::RESOLVE);
 
 #warning " for some reason in the resolve t"
@@ -733,7 +733,7 @@ namespace tuplex {
 
     std::vector<std::string> SampleProcessor::getColumnNames(int64_t operatorID) {
         // find operator & return column names
-        auto it = std::find_if(_operators.begin(), _operators.end(), [operatorID](LogicalOperator* op) {
+        auto it = std::find_if(_operators.begin(), _operators.end(), [operatorID](const std::shared_ptr<LogicalOperator>& op) {
             return op->getID() == operatorID;
         });
 
@@ -746,9 +746,9 @@ namespace tuplex {
         return std::vector<std::string>();
     }
 
-    LogicalOperator* SampleProcessor::getOperator(int64_t operatorID) {
+    std::shared_ptr<LogicalOperator> SampleProcessor::getOperator(int64_t operatorID) {
         // find operator & return column names
-        auto it = std::find_if(_operators.begin(), _operators.end(), [operatorID](LogicalOperator* op) {
+        auto it = std::find_if(_operators.begin(), _operators.end(), [operatorID](const std::shared_ptr<LogicalOperator>& op) {
             return op->getID() == operatorID;
         });
 
@@ -762,7 +762,7 @@ namespace tuplex {
 
     int SampleProcessor::getOperatorIndex(int64_t operatorID) {
         // find operator & return column names
-        auto it = std::find_if(_operators.begin(), _operators.end(), [operatorID](LogicalOperator* op) {
+        auto it = std::find_if(_operators.begin(), _operators.end(), [operatorID](const std::shared_ptr<LogicalOperator>& op) {
             return op->getID() == operatorID;
         });
 

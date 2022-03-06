@@ -380,7 +380,7 @@ namespace tuplex {
 
         // set limit if output node has a limit (currently only TakeOperator)
         if(outputNode->type() == LogicalOperatorType::TAKE) {
-            auto top = static_cast<TakeOperator*>(outputNode);
+            auto top = static_cast<TakeOperator*>(outputNode.get());
             builder.setOutputLimit(top->limit());
         }
 
@@ -397,7 +397,7 @@ namespace tuplex {
         } else
             stage = builder.build(this, backend());
         // converting deque of ops to vector of ops and set to stage. Note these are the optimized operators. (correct?)
-        stage->setOperators(std::vector<LogicalOperator*>(ops.begin(), ops.end()));
+        stage->setOperators(std::vector<std::shared_ptr<LogicalOperator>>(ops.begin(), ops.end()));
         stage->setDataAggregationMode(hashGroupedDataType);
         // fill in physical plan data
         // b.c. the stages were constructed top-down, need to reverse the stages

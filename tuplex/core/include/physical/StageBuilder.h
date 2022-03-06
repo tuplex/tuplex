@@ -63,8 +63,8 @@ namespace tuplex {
                 Schema inputSchema;
                 Schema outputSchema;
 
-                LogicalOperator*              inputNode;
-                std::vector<LogicalOperator*> operators;
+                std::shared_ptr<LogicalOperator>              inputNode;
+                std::vector<std::shared_ptr<LogicalOperator>> operators;
                 std::vector<bool>             columnsToRead;
 
                 // columns to perform checks on (fastPathOnly)
@@ -307,7 +307,7 @@ namespace tuplex {
          * Returns the intermediate schema if the output node of the list of operators is an aggregate.
          * @param operators
          */
-        python::Type intermediateType(const std::vector<LogicalOperator*>& operators);
+        extern python::Type intermediateType(const std::vector<std::shared_ptr<LogicalOperator>>& operators);
     }
 }
 

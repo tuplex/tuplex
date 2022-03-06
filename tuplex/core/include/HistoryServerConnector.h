@@ -81,7 +81,7 @@ namespace tuplex {
          */
         bool resolverExists(int64_t opID, ExceptionCode ec);
 
-        LogicalOperator* getOperator(int64_t opID);
+        std::shared_ptr<LogicalOperator> getOperator(int64_t opID);
         int64_t getOperatorIndex(int64_t opID); // get index within stage of operator
     public:
 

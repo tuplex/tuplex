@@ -87,7 +87,9 @@ namespace tuplex {
 
         class StagePlanner {
         public:
-            StagePlanner(LogicalOperator* inputNode, const std::vector<LogicalOperator*>& operators) : _inputNode(inputNode), _operators(operators), _useNVO(false), _useConstantFolding(false), _useDelayedParsing(false) {
+            StagePlanner(const std::shared_ptr<LogicalOperator>& inputNode,
+                         const std::vector<std::shared_ptr<LogicalOperator>>& operators) : _inputNode(inputNode),
+                         _operators(operators), _useNVO(false), _useConstantFolding(false), _useDelayedParsing(false) {
                 assert(inputNode);
                 for(auto op : operators)
                     assert(op);
@@ -97,7 +99,7 @@ namespace tuplex {
             /*!
              * create optimized, specialized pipeline
              */
-            std::vector<LogicalOperator*> optimize();
+            std::vector<std::shared_ptr<LogicalOperator>> optimize();
 
             void enableAll() {
                 enableNullValueOptimization();
@@ -110,8 +112,8 @@ namespace tuplex {
             void enableDelayedParsingOptimization() { _useDelayedParsing = true; }
 
         private:
-            LogicalOperator* _inputNode;
-            std::vector<LogicalOperator*> _operators;
+            std::shared_ptr<LogicalOperator> _inputNode;
+            std::vector<std::shared_ptr<LogicalOperator>> _operators;
 
             bool _useNVO;
             bool _useConstantFolding;
@@ -120,7 +122,7 @@ namespace tuplex {
             // helper functions
             std::vector<Row> fetchInputSample();
 
-            std::vector<LogicalOperator*> nulLValueOptimization();
+            std::vector<std::shared_ptr<LogicalOperator>> nulLValueOptimization();
         };
     }
 

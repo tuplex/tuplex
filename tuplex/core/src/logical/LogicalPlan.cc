@@ -68,33 +68,47 @@ namespace tuplex {
     }
 
 
-    void rewriteAllFollowingResolvers(LogicalOperator* op, const std::unordered_map<size_t, size_t>& rewriteMap) {
+    void rewriteAllFollowingResolvers(std::shared_ptr<LogicalOperator> op, const std::unordered_map<size_t, size_t>& rewriteMap) {
         // go over children (single!)
         if(!op)
             return;
+
         while(op && op->getChildren().size() == 1) {
             auto cur_op = op->getChildren().front();
 
             // ignore? => continue
             if(cur_op->type() == LogicalOperatorType::RESOLVE) {
                 // rewrite!
-                auto rop = dynamic_cast<ResolveOperator*>(cur_op); assert(rop);
+                auto rop = std::dynamic_pointer_cast<ResolveOperator>(cur_op); assert(rop);
                 rop->rewriteParametersInAST(rewriteMap);
             } else if(cur_op->type() == LogicalOperatorType::IGNORE) {
-                auto iop = dynamic_cast<IgnoreOperator*>(cur_op); assert(iop);
+                auto iop = std::dynamic_pointer_cast<IgnoreOperator>(cur_op); assert(iop);
                 iop->updateSchema();
                 // nothing todo...
             } else {
                 // quit loop & function
                 return;
             }
-
             op = cur_op;
         }
     }
 
     // can also convert to use shared_ptr, but seems like unnecessary overhead
-    std::vector<size_t> projectionPushdown(LogicalOperator* op, LogicalOperator* child = nullptr, std::vector<size_t> requiredCols=std::vector<size_t>(), bool dropOperators=false) {
+    /*!
+     * this function performs on projection pushdown on operator tree, i.e. restricting which input
+     * columns to parse. This will change internal UDFs, types etc. but not add any new nodes.
+     * If dropOperators is specified though, map/WithColumn operators that do not need execution
+     * anymore due to pushdown are removed from the tree.
+     * @param op the operator
+     * @param child
+     * @param requiredCols
+     * @param dropOperators if true, will drop operators?
+     * @return which columns are required.
+     */
+    std::vector<size_t> projectionPushdown(const std::shared_ptr<LogicalOperator>& op,
+                                           const std::shared_ptr<LogicalOperator>& child = nullptr,
+                                           std::vector<size_t> requiredCols=std::vector<size_t>(),
+                                           bool dropOperators=false) {
         using namespace std;
 
         if(!op)
@@ -110,8 +124,8 @@ namespace tuplex {
         vector<size_t> accCols; // indices of accessed columns from input row type!
 
         // udf operator? ==> selection possible!
-        if(hasUDF(op)) {
-            UDFOperator *udfop = dynamic_cast<UDFOperator*>(op);
+        if(hasUDF(op.get())) {
+            auto udfop = std::dynamic_pointer_cast<UDFOperator>(op);
             assert(udfop);
 
             switch(op->type()) {
@@ -124,13 +138,13 @@ namespace tuplex {
                 }
                 case LogicalOperatorType::MAPCOLUMN: {
                     // special case: mapColumn! ==> because it takes single column as input arg!
-                    accCols = vector<size_t>{static_cast<unsigned long>(dynamic_cast<MapColumnOperator*>(op)->getColumnIndex())};
+                    accCols = vector<size_t>{static_cast<unsigned long>(std::dynamic_pointer_cast<MapColumnOperator>(op)->getColumnIndex())};
                     break;
                 }
                 case LogicalOperatorType::RESOLVE: {
                     // special case: resolve!
                     // if normalParent is mapColumn, not necessary to ask for cols (because index already in accCols!)
-                    auto rop = dynamic_cast<ResolveOperator*>(op); assert(rop);
+                    auto rop = std::dynamic_pointer_cast<ResolveOperator>(op); assert(rop);
                     auto np = rop->getNormalParent(); assert(np);
 
                     if(np->type() != LogicalOperatorType::MAPCOLUMN) {
@@ -165,7 +179,7 @@ namespace tuplex {
                     if(op->getChildren().size() == 1) {
                         auto cur_op = op->getChildren().front();
                         while(cur_op->type() == LogicalOperatorType::RESOLVE) {
-                            auto rop = dynamic_cast<ResolveOperator*>(cur_op); assert(rop);
+                            auto rop = std::dynamic_pointer_cast<ResolveOperator>(cur_op); assert(rop);
                             accCols = rop->getUDF().getAccessedColumns();
                             for(auto c : accCols)
                                 cols.insert(c);
@@ -202,7 +216,7 @@ namespace tuplex {
         }
 
         if(op->type() == LogicalOperatorType::AGGREGATE) {
-            auto aop = dynamic_cast<AggregateOperator*>(op); assert(aop);
+            auto aop = std::dynamic_pointer_cast<AggregateOperator>(op); assert(aop);
 
 #warning "@TODO: implement proper analysis of the aggregate function to deduct which columns are required!"
 
@@ -241,7 +255,7 @@ namespace tuplex {
         // traverse
         if(op->type() == LogicalOperatorType::JOIN) {
 
-            auto jop = dynamic_cast<JoinOperator*>(op); assert(jop);
+            auto jop = std::dynamic_pointer_cast<JoinOperator>(op); assert(jop);
             vector<size_t> leftRet;
             vector<size_t> rightRet;
 
@@ -249,8 +263,8 @@ namespace tuplex {
             auto numLeftColumnsBeforePushdown = jop->left()->columns().size();
 
             if(requiredCols.empty()) {
-                leftRet = projectionPushdown(jop->left().get(), jop, requiredCols);
-                rightRet = projectionPushdown(jop->right().get(), jop, requiredCols);
+                leftRet = projectionPushdown(jop->left(), jop, requiredCols);
+                rightRet = projectionPushdown(jop->right(), jop, requiredCols);
             } else {
                 // need to split traversal up
                 set<size_t> reqLeft;
@@ -298,8 +312,8 @@ namespace tuplex {
                 auto requiredLeftCols = vector<size_t>(reqLeft.begin(), reqLeft.end());
                 auto requiredRightCols = vector<size_t>(reqRight.begin(), reqRight.end());
 
-                leftRet = projectionPushdown(jop->left().get(), jop, requiredLeftCols);
-                rightRet = projectionPushdown(jop->right().get(), jop, requiredRightCols);
+                leftRet = projectionPushdown(jop->left(), jop, requiredLeftCols);
+                rightRet = projectionPushdown(jop->right(), jop, requiredRightCols);
             }
 
 
@@ -357,7 +371,7 @@ namespace tuplex {
             // special case CacheOperator, exec with parent nullptr if child is not null
             auto ret = op->type() == LogicalOperatorType::CACHE && child ?
                     projectionPushdown(nullptr, op, requiredCols) :
-                       projectionPushdown(op->parent().get(), op, requiredCols);
+                       projectionPushdown(op->parent(), op, requiredCols);
 
 #ifdef TRACE_LOGICAL_OPTIMIZATION
             cout<<"traverse done on "<<op->name();
@@ -372,7 +386,7 @@ namespace tuplex {
             // ==> because it's a source node, use requiredCols!
             if(op->type() == LogicalOperatorType::FILEINPUT) {
                 // rewrite csv here
-                auto csvop = dynamic_cast<FileInputOperator *>(op);
+                auto csvop = std::dynamic_pointer_cast<FileInputOperator>(op);
                 assert(csvop);
                 auto inputRowType = csvop->getInputSchema().getRowType();
                 vector<size_t> colsToSerialize;
@@ -414,10 +428,10 @@ namespace tuplex {
                 // => no pushdown implemented here yet. Therefore, require all columns
                 python::Type rowtype;
                 if(op->type() == LogicalOperatorType::PARALLELIZE) {
-                    auto pop = dynamic_cast<ParallelizeOperator*>(op); assert(pop);
+                    auto pop = std::dynamic_pointer_cast<ParallelizeOperator>(op); assert(pop);
                     rowtype = pop->getOutputSchema().getRowType();
                 } else {
-                    auto cop = dynamic_cast<CacheOperator*>(op); assert(cop);
+                    auto cop = std::dynamic_pointer_cast<CacheOperator>(op); assert(cop);
                     rowtype = cop->getOutputSchema().getRowType();
                 }
 
@@ -458,7 +472,7 @@ namespace tuplex {
             // map stops rewrite, so rewrite map and then do not return anything!
             if(op->type() == LogicalOperatorType::MAP) {
                 // NOTE: rename ops continue rewrite mission!
-                auto mop = dynamic_cast<MapOperator*>(op); assert(mop);
+                auto mop = std::dynamic_pointer_cast<MapOperator>(op); assert(mop);
 
                 if(!mop->getUDF().empty()) {
 
@@ -504,13 +518,13 @@ namespace tuplex {
             }
 
             // UDF and NOT map?
-            else if(hasUDF(op) && op->type() != LogicalOperatorType::RESOLVE) {
-                auto udfop = dynamic_cast<UDFOperator*>(op); assert(udfop);
+            else if(hasUDF(op.get()) && op->type() != LogicalOperatorType::RESOLVE) {
+                auto udfop = std::dynamic_pointer_cast<UDFOperator>(op); assert(udfop);
 
 
                 // special case withColumn: I.e. a new column is added, need to append to rewrite Map and reqCols!
                 if(op->type() == LogicalOperatorType::WITHCOLUMN) {
-                    auto wop = dynamic_cast<WithColumnOperator*>(op);
+                    auto wop = std::dynamic_pointer_cast<WithColumnOperator>(op);
                     assert(wop);
 
                     size_t colIdx = wop->getColumnIndex();
@@ -873,18 +887,18 @@ namespace tuplex {
             jop->setChildren(children);
 
             // join -> filter
-            jop->setParents(jop_parents); new_fop->setChild(jop.get()); // (right should have jop as child)
+            jop->setParents(jop_parents); new_fop->setChild(jop); // (right should have jop as child)
 
             // link of jop_parents to jop
             assert(jop_parents.size() == 2);
             // TODO: do these do anything?
-            jop_parents[0]->replaceChild(fop.get(), jop.get());
-            jop_parents[1]->replaceChild(fop.get(), jop.get());
+            jop_parents[0]->replaceChild(fop, jop);
+            jop_parents[1]->replaceChild(fop, jop);
 
             // filter -> child
             new_fop->setParent(child);
             assert(child->numChildren() == 2); // new fop, jop
-            child->setChild(new_fop.get());
+            child->setChild(new_fop);
 
             assert(verifyLogicalPlan(jop.get()));
 
@@ -906,10 +920,10 @@ namespace tuplex {
         return std::to_string(t);
     }
 
-    void filterBreakup(LogicalOperator *op) {
+    void filterBreakup(const std::shared_ptr<LogicalOperator>& op) {
         if(!op) return;
         if(op->type() == LogicalOperatorType::FILTER) {
-            auto fop = dynamic_cast<FilterOperator*>(op);
+            auto fop = std::dynamic_pointer_cast<FilterOperator>(op);
             auto root = fop->getUDF().getAnnotatedAST().getFunctionAST();
             // @TODO: what about floats? etc?
 
@@ -994,8 +1008,8 @@ namespace tuplex {
                     // @TODO: this here is rather slow because the whole compilation pipeline gets kicked off
                     // could optimize by remapping indices... => s
                     // create copy of filter ==> need to reparse UDF & Co because of column access!
-                    auto code = dynamic_cast<FilterOperator*>(op)->getUDF().getCode();
-                    auto pickled_code = dynamic_cast<FilterOperator*>(op.get())->getUDF().getPickledCode();
+                    auto code = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().getCode();
+                    auto pickled_code = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().getPickledCode();
                     auto fop = std::shared_ptr<LogicalOperator>(new FilterOperator(grandparent, UDF(code, pickled_code), grandparent->columns()));
                     fop->setID(op->getID()); // clone with ID, important for exception tracking!
 #ifdef TRACE_LOGICAL_OPTIMIZATION
@@ -1013,15 +1027,15 @@ namespace tuplex {
                         //child->setParent(parent);
                         bool found = child->replaceParent(op, parent);
                         assert(found);
-                        found = parent->replaceChild(op.get(), child);
+                        found = parent->replaceChild(op, child);
                         assert(found);
                     }
 
                     // parent -> filter (and vice versa)
-                    parent->setParent(fop); fop->setChild(parent.get());
+                    parent->setParent(fop); fop->setChild(parent);
 
                     // filter->grandparent (and vice versa)
-                    fop->setParent(grandparent); grandparent->setChild(fop.get());
+                    fop->setParent(grandparent); grandparent->setChild(fop);
 
                     // call filter pushdown on filter again
 
@@ -1065,17 +1079,17 @@ namespace tuplex {
         // optimize: break up filters
 
         // first step: find all filter operators. Easy with ApplyVisitor!
-        std::vector<LogicalOperator*> v_filters;
+        std::vector<std::shared_ptr<LogicalOperator>> v_filters;
         // @TODO: maybe define a logical tree visitor class because they're so convenient
-        std::queue<LogicalOperator*> q; // BFS
-        q.push(_action.get());
+        std::queue<std::shared_ptr<LogicalOperator>> q; // BFS
+        q.push(_action);
         while(!q.empty()) {
             auto node = q.front(); q.pop();
             if(node->type() == LogicalOperatorType::FILTER)
                 v_filters.push_back(node);
             // add all parents to queue
             for(const auto &p : node->parents())
-                q.push(p.get());
+                q.push(p);
         }
         if(!v_filters.empty()) {
 #ifdef TRACE_LOGICAL_OPTIMIZATION
@@ -1190,12 +1204,12 @@ namespace tuplex {
                         c->setParent(new_mop);
                     }
                     new_mop->setChildren(children);
-                    jop->setChild(new_mop.get());
+                    jop->setChild(new_mop);
                     new_mop->setParent(jop);
 
                     auto newParent = mop->parent();
                     jop->replaceParent(mop, newParent);
-                    newParent->replaceChild(mop.get(), jop.get());
+                    newParent->replaceChild(mop, jop);
 
                     // remove old map column operator
                     mop->setChildren({}); mop->setParents({}); // no dependencies
@@ -1331,7 +1345,7 @@ namespace tuplex {
              auto num_cols = _action->getInputSchema().getRowType().parameters().size();
              for(unsigned i = 0; i < num_cols; ++i)
                  cols.emplace_back(i);
-             projectionPushdown(_action.get(), nullptr, cols);
+             projectionPushdown(_action, nullptr, cols);
 
             // note: could remove identity functions...
             // i.e. lambda x: x or lambda x: (x[0], x[1], ..., x[len(x) - 1]) same for def...

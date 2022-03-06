@@ -19,10 +19,12 @@
 #include <nlohmann/json.hpp>
 #include <HistoryServerConnector.h>
 #include <logical/LogicalOperator.h>
+#include <memory>
+#include <utility>
 
 namespace tuplex {
 
-    class IBackend;\
+    class IBackend;
     class PhysicalStage;
     class PhysicalPlan;
     class LogicalPlan;
@@ -48,7 +50,7 @@ namespace tuplex {
         std::vector<PhysicalStage*> _predecessors;
         int64_t _number;
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> _ecounts; //! exception counts for this stage.
-        std::vector<LogicalOperator*> _operators; //! operators belonging to stage.
+        std::vector<std::shared_ptr<LogicalOperator>> _operators; //! operators belonging to stage.
     protected:
         IBackend* _backend;
         std::shared_ptr<HistoryServerConnector> _historyServer;
@@ -61,9 +63,8 @@ namespace tuplex {
 
         virtual ~PhysicalStage();
 
-        std::vector<LogicalOperator*> operators() const { return _operators; }
-
-        void setOperators(std::vector<LogicalOperator*> operators) { _operators  = operators; }
+        inline std::vector<std::shared_ptr<LogicalOperator>> operators() const { return _operators; }
+        inline void setOperators(const std::vector<std::shared_ptr<LogicalOperator>>& operators) {_operators  = operators;}
 
         std::vector<PhysicalStage*> predecessors() const { return _predecessors; }
 

@@ -37,7 +37,7 @@ nlohmann::json rowsToJSONSample(const std::vector<tuplex::Row>& rows) {
 
 
 namespace tuplex {
-    TransformStageExceptionReservoir::TransformStageExceptionReservoir(const TransformStage *stage, std::vector<LogicalOperator*>& operators, size_t limit) : _limit(limit) {
+    TransformStageExceptionReservoir::TransformStageExceptionReservoir(const TransformStage *stage, const std::vector<std::shared_ptr<LogicalOperator>>& operators, size_t limit) : _limit(limit) {
         assert(stage);
         assert(_limit >= 1);
 
@@ -53,7 +53,7 @@ namespace tuplex {
             if(op->type() == LogicalOperatorType::RESOLVE) {
                 // add to resolve map & add current ID to operators
                 for(auto id : lastOperatorIDs) {
-                    ResolveOperator* rop = (ResolveOperator*)op;
+                    ResolveOperator* rop = (ResolveOperator*)op.get();
                     assert(rop);
                     _resolverExists.emplace(std::make_tuple(id, rop->ecCode()));
                 }
@@ -234,7 +234,7 @@ namespace tuplex {
         }
     }
 
-    LogicalOperator* TransformStageExceptionReservoir::getOperator(int64_t opID) {
+    std::shared_ptr<LogicalOperator> TransformStageExceptionReservoir::getOperator(int64_t opID) {
         auto op = _processor->getOperator(opID);
         assert(op);
         return op;
@@ -281,10 +281,10 @@ namespace tuplex {
                     int singleColumnIndex = -1;
                     if(op->type() == LogicalOperatorType::MAPCOLUMN) {
                         singleArg = true;
-                        singleColumnIndex = ((MapColumnOperator*)op)->getColumnIndex();
+                        singleColumnIndex = ((MapColumnOperator*)op.get())->getColumnIndex();
                     }
                     if(op->type() == LogicalOperatorType::RESOLVE) {
-                        auto parent = ((ResolveOperator*)op)->getNormalParent();
+                        auto parent = ((ResolveOperator*)op.get())->getNormalParent();
                         if(parent->type() == LogicalOperatorType::MAPCOLUMN) {
                             singleArg = true;
                             singleColumnIndex = ((MapColumnOperator*)parent.get())->getColumnIndex();
@@ -411,7 +411,7 @@ namespace tuplex {
                     case LogicalOperatorType::WITHCOLUMN: {
                         // these ops all take a column.
                         // ==> check whether single arg or multi arg
-                        auto udfop = dynamic_cast<UDFOperator*>(op); assert(udfop);
+                        auto udfop = std::dynamic_pointer_cast<UDFOperator>(op); assert(udfop);
                         auto params = udfop->getUDF().getInputParameters();
                         if(params.size() == 1) {
                             // tuple? or single arg?

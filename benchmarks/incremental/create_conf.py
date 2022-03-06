@@ -31,7 +31,6 @@ if __name__ == '__main__':
             'optimizer.nullValueOptimization' : args.opt_null,
             'csv.selectionPushdown' : args.opt_pushdown,
             'optimizer.generateParser' : args.opt_parser,
-            'optimizer.mergeExceptionsInOrder' : False,
             'optimizer.filterPushdown' : args.opt_filter}
 
     print(json.dumps(conf))

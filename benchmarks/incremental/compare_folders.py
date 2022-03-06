@@ -39,6 +39,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("folderA")
     parser.add_argument("folderB")
+    parser.add_argument("--in-order", help='whether to compare in order', action='store_true')
     args = parser.parse_args()
 
     print('== Dirty Zillow experiment validation ==')
@@ -53,12 +54,14 @@ def main():
         sys.exit(1)
 
     # sort lines and compare them
-    print('-- sorting rows from {}'.format(args.folderA))
-    rowsA = sorted(rowsA)
-    print('-- sorting rows from {}'.format(args.folderB))
-    rowsB = sorted(rowsB)
+    if not args.in_order:
+        print('-- sorting rows from {}'.format(args.folderA))
+        rowsA = sorted(rowsA)
+        print('-- sorting rows from {}'.format(args.folderB))
+        rowsB = sorted(rowsB)
+
     print('-- computing comparison of rows...')
-    non_matching_indices = [i for i, j in zip(rowsA, rowsB) if i != j]
+    non_matching_indices = [ind for ind, (i, j) in enumerate(zip(rowsA, rowsB)) if i != j]
 
     if len(non_matching_indices) > 0:
         print('>>> rows do not match up, details:')

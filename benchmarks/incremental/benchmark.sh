@@ -16,11 +16,13 @@ if [ $# -eq 1 ]; then # check if hwloc
 fi
 
 # use 10 runs (3 for very long jobs) and a timeout after 180min/3h
-NUM_RUNS=11
+NUM_RUNS=3
 TIMEOUT=14400
 
 DATA_PATH='data/zillow_dirty@10G.csv'
-RESDIR=results_dirty_zillow@10G
+RESDIR='results_dirty_zillow@10G'
+INCREMENTAL_OUT_PATH='incremental_output'
+PLAIN_OUT_PATH='plain_output'
 
 # does file exist?
 if [[ ! -f "$DATA_PATH" ]]; then
@@ -34,35 +36,34 @@ mkdir -p ${RESDIR}
 # vmtouch -dl <dir> => needs sudo rights I assume...
 
 # create tuplex_config.json
-#python3 create_conf.py --opt-null --opt-pushdown --opt-filter --opt-llvm > tuplex_config.json
 python3 create_conf.py --opt-pushdown --opt-filter --opt-llvm > tuplex_config.json
-#cp tuplex_config.json ${RESDIR}
 
 # Multi-threaded experiments
 # Without order
 echo "running no-merge experiments using 16x parallelism"
-echo "running tuplex without incremental resolution"
 for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/tuplex-run-plain-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --path $DATA_PATH >$LOG 2>$LOG.stderr
-done
+  LOG="${RESDIR}/tuplex-plain-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --path $DATA_PATH --output-path $PLAIN_OUT_PATH >$LOG 2>$LOG.stderr
 
-echo "running tuplex with incremental resolution"
-for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/tuplex-run-incremental-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --incremental-resolution --path $DATA_PATH >$LOG 2>$LOG.stderr
+  LOG="${RESDIR}/tuplex-incremental-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --incremental-resolution --path $DATA_PATH --output-path $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
+
+  LOG="${RESDIR}/tuplex-compare-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py $PLAIN_OUT_PATH $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
 done
 
 # With order
 echo "running in-order experiments using 16x parallelism"
-echo "running tuplex without incremental resolution"
 for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/tuplex-run-plain-in-order-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --path $DATA_PATH >$LOG 2>$LOG.stderr
+  LOG="${RESDIR}/tuplex-plain-in-order-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --path $DATA_PATH --output-path $PLAIN_OUT_PATH >$LOG 2>$LOG.stderr
+
+  LOG="${RESDIR}/tuplex-incremental-in-order-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --path $DATA_PATH --output-path $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
+
+  LOG="${RESDIR}/tuplex-compare-in-order-$r.txt"
+    timeout $TIMEOUT ${HWLOC} python3 compare_folders.py $PLAIN_OUT_PATH $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
 done
 
-echo "running tuplex with incremental resolution"
-for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/tuplex-run-incremental-in-order-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --path $DATA_PATH >$LOG 2>$LOG.stderr
-done
+rm -rf $INCREMENTAL_OUT_PATH
+rm -rf $PLAIN_OUT_PATH

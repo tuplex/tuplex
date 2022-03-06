@@ -215,7 +215,7 @@ if __name__ == '__main__':
     # Note: there's a bug in the merge in order mode here -.-
     # force to false version
     conf["optimizer.generateParser"] = False
-    conf["tuplex.resolveWithInterpreterOnly"] = True
+    conf["tuplex.optimizer.sharedObjectPropagation"] = False
 
     tstart = time.time()
     import tuplex
@@ -242,8 +242,6 @@ if __name__ == '__main__':
         metrics.append(m)
 
     runtime = time.time() - tstart
-
-    shutil.rmtree(output_path, ignore_errors=True)
 
     # print stats as last line
     print(json.dumps({"startupTime": startup_time,

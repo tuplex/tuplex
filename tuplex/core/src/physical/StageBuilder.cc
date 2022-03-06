@@ -1592,6 +1592,18 @@ namespace tuplex {
                 stage->_pyCode = py_path.pyCode;
                 stage->_pyPipelineName = py_path.pyPipelineName;
 
+
+                // use test-wise cereal to encode the context (i.e., the stage) to send
+                // over to individual executors for specialization.
+                std::ostringstream oss;
+                {
+                    cereal::BinaryOutputArchive ar(oss);
+                    ar(ctx);
+                    // ar going out of scope flushes everything
+                }
+                auto bytes_str = oss.str();
+                logger.info("Serialized CodeGeneration Context to " + sizeToMemString(bytes_str.size()));
+
                 auto json_str = ctx.toJSON();
                 logger.info("serialized stage as JSON string (TODO: make this better, more efficient, ...");
                 stage->_encodedData = json_str; // hack

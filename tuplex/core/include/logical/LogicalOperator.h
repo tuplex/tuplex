@@ -50,18 +50,18 @@ namespace tuplex {
         int buildGraph(GraphVizBuilder& builder);
         int64_t _id;
         std::vector<std::shared_ptr<LogicalOperator>> _children;
-        std::vector<std::shared_ptr<LogicalOperator>> _parents;
+        std::vector<std::weak_ptr<LogicalOperator>> _parents;
         Schema _schema;
         DataSet *_dataSet; // TODO: figure out dataset serialization!
         void addThisToParents() {
             for(const auto &parent : _parents) {
-                if(!parent)
+                if(!parent.lock())
                     continue;
 
-                if(parent.get() == this)
+                if(parent.lock().get() == this)
                     throw std::runtime_error("cycle encountered! invalid for operator graph.");
 
-                parent->_children.push_back(shared_from_this());
+                parent.lock()->_children.push_back(shared_from_this());
             }
         }
 
@@ -71,7 +71,7 @@ namespace tuplex {
         void setSchema(const Schema& schema) { _schema = schema; }
         virtual void copyMembers(const LogicalOperator* other);
     public:
-        explicit LogicalOperator(const std::vector<std::shared_ptr<LogicalOperator>>& parents) : _id(logicalOperatorIDGenerator++), _parents(parents), _dataSet(nullptr) { addThisToParents(); }
+        explicit LogicalOperator(const std::vector<std::shared_ptr<LogicalOperator>>& parents) : _id(logicalOperatorIDGenerator++), _parents(parents.begin(), parents.end()), _dataSet(nullptr) { addThisToParents(); }
         explicit LogicalOperator(std::shared_ptr<LogicalOperator> parent) : _id(logicalOperatorIDGenerator++), _parents({parent}), _dataSet(nullptr) {
             if(!parent)
                 throw std::runtime_error(name() + " can't have nullptr as parent");
@@ -96,8 +96,13 @@ namespace tuplex {
         virtual bool good() const = 0;
 
         std::vector<std::shared_ptr<LogicalOperator>> getChildren() const { return _children; }
-        std::shared_ptr<LogicalOperator> parent() const { if(_parents.empty())return nullptr; assert(_parents.size() == 1); return _parents.front(); }
-        std::vector<std::shared_ptr<LogicalOperator>> parents() const { return _parents; }
+        std::shared_ptr<LogicalOperator> parent() const { if(_parents.empty())return nullptr; assert(_parents.size() == 1); return _parents.front().lock(); }
+        std::vector<std::shared_ptr<LogicalOperator>> parents() const {
+            std::vector<std::shared_ptr<LogicalOperator>> v;
+            for(auto parent : _parents)
+                v.emplace_back(parent.lock());
+            return v;
+        }
         size_t numParents() const { return _parents.size(); }
         size_t numChildren() const { return _children.size(); }
 
@@ -118,7 +123,9 @@ namespace tuplex {
          */
         inline bool replaceParent(const std::shared_ptr<LogicalOperator>& oldParent,
                                   const std::shared_ptr<LogicalOperator>& newParent) {
-            auto it = std::find(_parents.begin(), _parents.end(), oldParent);
+            auto it = std::find_if(_parents.begin(), _parents.end(), [&oldParent](const std::weak_ptr<LogicalOperator>& parent) {
+                return parent.lock().get() == oldParent.get();
+            });
             if(it == _parents.end())
                 return false;
             *it = newParent;

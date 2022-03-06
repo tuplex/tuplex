@@ -997,7 +997,7 @@ namespace tuplex {
                     case LogicalOperatorType::IGNORE: {
 
                         // do not skip, if one of the ancestors is a resolver (skip ignores)
-                        auto iop = std::dynamic_pointer_cast<IgnoreOperator>(node.get());
+                        auto iop = std::dynamic_pointer_cast<IgnoreOperator>(node);
                         assert(iop);
 
                         // always add ignore on slowpath, because else special cases (i.e. exception resolved, throws again etc.)
@@ -1056,7 +1056,7 @@ namespace tuplex {
 
                     case LogicalOperatorType::AGGREGATE: {
                         //  @TODO: needs more support for full aggregate fallback code
-                        auto aop = dynamic_cast<AggregateOperator*>(node); assert(aop);
+                        auto aop = std::dynamic_pointer_cast<AggregateOperator>(node); assert(aop);
                         if(aop->aggType() == AggregateType::AGG_GENERAL || aop->aggType() == AggregateType::AGG_BYKEY) {
 
                             // right now aggregation is done using a global variable.
@@ -1106,7 +1106,7 @@ namespace tuplex {
                                                        this->_normalCaseThreshold,
                                                        _allowUndefinedBehavior,
                                                        _sharedObjectPropagation)) {
-                                    logger.error(formatBadAggNode(aop));
+                                    logger.error(formatBadAggNode(aop.get()));
                                     return ret;
                                 }
                             }
@@ -1175,7 +1175,7 @@ namespace tuplex {
             return ret;
         }
 
-        void StageBuilder::addFileOutput(FileOutputOperator *fop) {
+        void StageBuilder::addFileOutput(const std::shared_ptr<FileOutputOperator>& fop) {
             _fileOutputParameters["splitSize"] = std::to_string(fop->splitSize());
             _fileOutputParameters["numParts"] = std::to_string(fop->numParts());
             _fileOutputParameters["udf"] = fop->udf().getCode();
@@ -1435,7 +1435,7 @@ namespace tuplex {
                     // get normal parent!
                     // => then search from there until resolve node is found.
                     auto np = ((ResolveOperator*)op.get())->getNormalParent();
-                    std::queue<LogicalOperator*> q; q.push(np.get());
+                    std::queue<std::shared_ptr<LogicalOperator>> q; q.push(np);
                     while(!q.empty() && q.front() && q.front()->getID() != op->getID()) {
                         auto node = q.front(); q.pop();
                         if(node) {
@@ -1676,9 +1676,9 @@ namespace tuplex {
 
             // now the most annoying thing, encoding the operators
             auto ops = nlohmann::json::array();
-            ops.push_back(encodeOperator(inputNode));
+            ops.push_back(encodeOperator(inputNode.get()));
             for(auto op : operators)
-                ops.push_back(encodeOperator(op));
+                ops.push_back(encodeOperator(op.get()));
 
             obj["operators"] = ops;
             return std::move(obj);
@@ -1744,12 +1744,12 @@ namespace tuplex {
             ctx.columnsToRead = obj["colsToRead"].get<std::vector<bool>>();
 
             // now the worst, decoding the operators...
-            std::vector<LogicalOperator*> operators;
+            std::vector<std::shared_ptr<LogicalOperator>> operators;
             for(auto json_op : obj["operators"]) {
                 // only map and csv supported
                 auto name = json_op["name"].get<std::string>();
                 if(name == "csv") {
-                    operators.push_back(FileInputOperator::from_json(json_op));
+                    operators.push_back(std::shared_ptr<LogicalOperator>(FileInputOperator::from_json(json_op)));
                 } else if(name == "map") {
                     // map is easy, simply decode UDF and hook up with parent operator!
                     assert(!operators.empty());
@@ -1761,15 +1761,15 @@ namespace tuplex {
                     // or ok, because sample anyways need to get drawn??
                     UDF udf(code);
 
-                    auto mop = new MapOperator(operators.back(), udf, columnNames);
+                    auto mop = new MapOperator(operators.back().get(), udf, columnNames);
                     mop->setID(id);
-                    operators.push_back(mop);
+                    operators.push_back(std::shared_ptr<LogicalOperator>(mop));
                 } else {
                     throw std::runtime_error("attempting to decode unknown op " + name);
                 }
             }
             ctx.inputNode = operators.front();
-            ctx.operators = std::vector<LogicalOperator*>(operators.begin() + 1, operators.end());
+            ctx.operators = std::vector<std::shared_ptr<LogicalOperator>>(operators.begin() + 1, operators.end());
 
 
 //            obj["read"] = readSchema.getRowType().desc();

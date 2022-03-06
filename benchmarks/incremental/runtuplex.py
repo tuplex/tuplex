@@ -30,6 +30,22 @@ def extractBd(x):
     r = s[split_idx:]
     return int(r)
 
+def resolveBa(x):
+    val = x['facts and features']
+    max_idx = val.find(' ba')
+    if max_idx < 0:
+        max_idx = len(val)
+    s = val[:max_idx]
+
+    # find comma before
+    split_idx = s.rfind(',')
+    if split_idx < 0:
+        split_idx = 0
+    else:
+        split_idx += 2
+    r = s[split_idx:]
+    return math.ceil(float(r))
+
 def extractBa(x):
     val = x['facts and features']
     max_idx = val.find(' ba')
@@ -109,22 +125,6 @@ def resolveBd(x):
         return 1
     raise ValueError
 
-def resolveBa(x):
-    val = x['facts and features']
-    max_idx = val.find(' ba')
-    if max_idx < 0:
-        max_idx = len(val)
-    s = val[:max_idx]
-
-    # find comma before
-    split_idx = s.rfind(',')
-    if split_idx < 0:
-        split_idx = 0
-    else:
-        split_idx += 2
-    r = s[split_idx:]
-    return math.ceil(float(r))
-
 def dirty_zillow_pipeline(paths, output_path, step):
     ds = ctx.csv(','.join(paths))
     ds = ds.withColumn("bedrooms", extractBd)
@@ -141,7 +141,7 @@ def dirty_zillow_pipeline(paths, output_path, step):
     ds = ds.mapColumn("city", lambda x: x[0].upper() + x[1:].lower())
     ds = ds.withColumn("bathrooms", extractBa)
     if step > 3:
-        ds = ds.resolve(ValueError, resolveBa)
+        ds = ds.resolve(ValueError, lambda x: int(re.sub('[^0-9.]*', '', x['bathrooms'])))
     ds = ds.withColumn("sqft", extractSqft)
     if step > 4:
         ds = ds.ignore(ValueError)

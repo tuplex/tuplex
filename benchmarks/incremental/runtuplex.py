@@ -141,7 +141,7 @@ def dirty_zillow_pipeline(paths, output_path, step):
     ds = ds.mapColumn("city", lambda x: x[0].upper() + x[1:].lower())
     ds = ds.withColumn("bathrooms", extractBa)
     if step > 3:
-        ds = ds.ignore(ValueError)
+        ds = ds.resolve(ValueError, resolveBa)
     ds = ds.withColumn("sqft", extractSqft)
     if step > 4:
         ds = ds.ignore(ValueError)

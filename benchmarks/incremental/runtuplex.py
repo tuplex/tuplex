@@ -243,7 +243,6 @@ if __name__ == '__main__':
 
     runtime = time.time() - tstart
 
-    # print stats as last line
     print(json.dumps({"startupTime": startup_time,
                       "totalRunTime": runtime,
                       "mergeExceptionsInOrder": conf["optimizer.mergeExceptionsInOrder"],
@@ -251,3 +250,6 @@ if __name__ == '__main__':
 
     for metric in metrics:
         print(json.dumps(metric))
+
+    for metric in metrics:
+        print(metric["jobTime"])

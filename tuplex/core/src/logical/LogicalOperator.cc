@@ -90,7 +90,7 @@ namespace tuplex {
 
     void LogicalOperator::setParents(const std::vector<std::shared_ptr<LogicalOperator>> &parents) {
         _parents.clear();
-        _parents = parents;
+        _parents = std::vector<std::weak_ptr<LogicalOperator>>{parents.begin(), parents.end()};
     }
 
     void LogicalOperator::setChildren(const std::vector<std::shared_ptr<LogicalOperator>> &children) {

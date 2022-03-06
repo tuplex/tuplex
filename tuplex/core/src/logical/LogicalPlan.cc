@@ -562,14 +562,14 @@ namespace tuplex {
         return vector<size_t>();
     }
 
-    bool verifyLogicalPlan(LogicalOperator* root) {
+    bool verifyLogicalPlan(const std::shared_ptr<LogicalOperator>& root) {
         using namespace std;
 
         stringstream ss;
         if(!root)
             return false;
 
-        std::queue<LogicalOperator*> q; // BFS
+        std::queue<std::shared_ptr<LogicalOperator>> q; // BFS
         q.push(root);
         bool success = true;
         while(!q.empty()) {
@@ -584,7 +584,7 @@ namespace tuplex {
             // check that node is parent of children
             for(auto child : children) {
                 auto cp = child->parents();
-                auto it = std::find_if(cp.begin(), cp.end(), [&](const std::shared_ptr<LogicalOperator> &c) { return c.get() == node; });
+                auto it = std::find_if(cp.begin(), cp.end(), [&](const std::shared_ptr<LogicalOperator> &c) { return c == node; });
                 if(it == cp.end()) {
                     success = false;
                     ss<<node_name<<": not in "<<child->name()<<"(" + std::to_string(child->getID()) + ")'s parents\n";
@@ -603,7 +603,7 @@ namespace tuplex {
 
             // add all parents to queue
             for(const auto &p : node->parents())
-                q.push(p.get());
+                q.push(p);
         }
 
         if(!success)
@@ -900,7 +900,7 @@ namespace tuplex {
             assert(child->numChildren() == 2); // new fop, jop
             child->setChild(new_fop);
 
-            assert(verifyLogicalPlan(jop.get()));
+            assert(verifyLogicalPlan(jop));
 
             filterPushdown(new_fop);
         }
@@ -1199,7 +1199,7 @@ namespace tuplex {
 
                     // set up parent/child relationships
                     auto children = jop->getChildren(); // children of join
-                    children.erase(std::remove(children.begin(), children.end(), new_mop.get()), children.end()); // need to remove new_mop because it was constructed with jop as parent
+                    children.erase(std::remove(children.begin(), children.end(), new_mop), children.end()); // need to remove new_mop because it was constructed with jop as parent
                     for(auto& c : children) {
                         c->setParent(new_mop);
                     }
@@ -1314,7 +1314,7 @@ namespace tuplex {
 #endif
 
 #ifndef NDEBUG
-        assert(verifyLogicalPlan(_action.get()));
+        assert(verifyLogicalPlan(_action));
 #endif
 
         if(context.getOptions().OPT_FILTER_PUSHDOWN()) {
@@ -1323,14 +1323,14 @@ namespace tuplex {
         }
 
 #ifndef NDEBUG
-        assert(verifyLogicalPlan(_action.get()));
+        assert(verifyLogicalPlan(_action));
 #endif
 
         if(context.getOptions().OPT_OPERATOR_REORDERING())
             reorderDataProcessingOperators();
 
 #ifndef NDEBUG
-        assert(verifyLogicalPlan(_action.get()));
+        assert(verifyLogicalPlan(_action));
 #endif
 
         // projectionPushdown (to csv parser etc. if possible)
@@ -1356,7 +1356,7 @@ namespace tuplex {
 #endif
 
 #ifndef NDEBUG
-            assert(verifyLogicalPlan(_action.get()));
+            assert(verifyLogicalPlan(_action));
 #endif
         }
 

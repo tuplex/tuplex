@@ -1761,7 +1761,7 @@ namespace tuplex {
                     // or ok, because sample anyways need to get drawn??
                     UDF udf(code);
 
-                    auto mop = new MapOperator(operators.back().get(), udf, columnNames);
+                    auto mop = new MapOperator(operators.back(), udf, columnNames);
                     mop->setID(id);
                     operators.push_back(std::shared_ptr<LogicalOperator>(mop));
                 } else {

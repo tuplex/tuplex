@@ -116,6 +116,20 @@ namespace tuplex {
         return Aws::Region::US_EAST_1;
     }
 
+    Aws::Auth::AWSCredentials awsFromEnvironment() {
+        // check via C functions whether typical AWS vars are set
+        // e.g. $ export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+        //      $ export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+        //      $ export AWS_DEFAULT_REGION=us-west-2
+        //      AWS_SESSION_TOKEN
+
+        auto access_key = getEnv("AWS_ACCESS_KEY_ID");
+        auto secret_key = getEnv("AWS_SECRET_ACCESS_KEY");
+        auto token = getEnv("AWS_SESSION_TOKEN");
+
+        return Aws::Auth::AWSCredentials(access_key.c_str(), secret_key.c_str(), token.c_str());
+    }
+
     AWSCredentials AWSCredentials::get() {
 
         // lazy init AWS SDK
@@ -123,9 +137,13 @@ namespace tuplex {
 
         AWSCredentials credentials;
 
-        // AWS default chain issues a bunch of HTTP request, avoid to make Tuplex more responsive.
-        auto env_provider =  Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>("tuplex");
-        auto aws_cred = env_provider->GetAWSCredentials();
+        // note: there's a bug in the environmentAWSCredentialsProvider, don't use it.
+        //       Instead, directly check environment variables
+
+        auto aws_cred = awsFromEnvironment();
+        //        // AWS default chain issues a bunch of HTTP request, avoid to make Tuplex more responsive.
+        //        auto env_provider =  Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>("tuplex");
+        //        auto aws_cred = env_provider->GetAWSCredentials();
 
         // empty?
         if(aws_cred.IsEmpty()) {

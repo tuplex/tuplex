@@ -49,10 +49,16 @@ namespace tuplex {
     private:
         int buildGraph(GraphVizBuilder& builder);
         int64_t _id;
-        std::vector<std::shared_ptr<LogicalOperator>> _children;
+        // tree structure here is a bit different then what is usually being done.
+        // I.e., because an action represents a leaf node it has to own its parents
+        // since we construct the object in the c'tor, we can't use weak ptrs to establish
+        // the two way connection but need to use raw pointers.
+        // the destructor thereby maintains the invariance.
+        std::vector<LogicalOperator*> _children;
         std::vector<std::shared_ptr<LogicalOperator>> _parents;
         Schema _schema;
         DataSet *_dataSet; // TODO: figure out dataset serialization!
+
         void addThisToParents() {
             for(const auto &parent : _parents) {
                 if(!parent)
@@ -60,8 +66,7 @@ namespace tuplex {
 
                 if(parent.get() == this)
                     throw std::runtime_error("cycle encountered! invalid for operator graph.");
-
-                parent->_children.push_back(shared_from_this());
+                parent->_children.push_back(this);
             }
         }
 
@@ -71,8 +76,9 @@ namespace tuplex {
         void setSchema(const Schema& schema) { _schema = schema; }
         virtual void copyMembers(const LogicalOperator* other);
     public:
-        explicit LogicalOperator(const std::vector<std::shared_ptr<LogicalOperator>>& parents) : _id(logicalOperatorIDGenerator++), _parents(parents), _dataSet(nullptr) { addThisToParents(); }
-        explicit LogicalOperator(std::shared_ptr<LogicalOperator> parent) : _id(logicalOperatorIDGenerator++), _parents({parent}), _dataSet(nullptr) {
+        explicit LogicalOperator(const std::vector<std::shared_ptr<LogicalOperator>>& parents) : _id(logicalOperatorIDGenerator++), _parents(parents.begin(), parents.end()), _dataSet(nullptr) { addThisToParents(); }
+        explicit LogicalOperator(const std::shared_ptr<LogicalOperator>& parent) : _id(logicalOperatorIDGenerator++),
+        _parents({parent}), _dataSet(nullptr) {
             if(!parent)
                 throw std::runtime_error(name() + " can't have nullptr as parent");
             addThisToParents();
@@ -95,7 +101,7 @@ namespace tuplex {
          */
         virtual bool good() const = 0;
 
-        std::vector<std::shared_ptr<LogicalOperator>> getChildren() const { return _children; }
+        std::vector<std::shared_ptr<LogicalOperator>> children() const;
         std::shared_ptr<LogicalOperator> parent() const { if(_parents.empty())return nullptr; assert(_parents.size() == 1); return _parents.front(); }
         std::vector<std::shared_ptr<LogicalOperator>> parents() const { return _parents; }
         size_t numParents() const { return _parents.size(); }
@@ -122,6 +128,10 @@ namespace tuplex {
             if(it == _parents.end())
                 return false;
             *it = newParent;
+
+            // need to maintain invariance...!
+            // newParent has this as child
+            newParent->_children = {this};
             return true;
         }
 
@@ -133,10 +143,18 @@ namespace tuplex {
          */
         inline bool replaceChild(const std::shared_ptr<LogicalOperator>& oldChild,
                                  const std::shared_ptr<LogicalOperator>& newChild) {
-            auto it = std::find(_children.begin(), _children.end(), oldChild);
+            // this is more tricky, need to maintain invariance in tree.
+
+            auto it = std::find_if(_children.begin(), _children.end(), [&oldChild](LogicalOperator* child) {
+                return child == oldChild.get();
+            });
             if(it == _children.end())
                 return false;
-            *it = newChild;
+
+            // now swap pointers
+            // -> it is the pointer to the child, add smart ptr to parents etc.
+            *it = newChild.get(); // raw pointer
+            newChild->setParent(shared_from_this()); // make newChild's parent this (i.e. this now owns the child)
             return true;
         }
 

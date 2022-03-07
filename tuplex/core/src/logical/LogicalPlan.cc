@@ -73,8 +73,8 @@ namespace tuplex {
         if(!op)
             return;
 
-        while(op && op->getChildren().size() == 1) {
-            auto cur_op = op->getChildren().front();
+        while(op && op->children().size() == 1) {
+            auto cur_op = op->children().front();
 
             // ignore? => continue
             if(cur_op->type() == LogicalOperatorType::RESOLVE) {
@@ -176,18 +176,18 @@ namespace tuplex {
 
 
                     // go over all resolvers following map and combine required columns with this map operator
-                    if(op->getChildren().size() == 1) {
-                        auto cur_op = op->getChildren().front();
+                    if(op->children().size() == 1) {
+                        auto cur_op = op->children().front();
                         while(cur_op->type() == LogicalOperatorType::RESOLVE) {
                             auto rop = std::dynamic_pointer_cast<ResolveOperator>(cur_op); assert(rop);
                             accCols = rop->getUDF().getAccessedColumns();
                             for(auto c : accCols)
                                 cols.insert(c);
 
-                            if(cur_op->getChildren().size() != 1)
+                            if(cur_op->children().size() != 1)
                                 break;
 
-                            cur_op = cur_op->getChildren().front();
+                            cur_op = cur_op->children().front();
                         }
                     }
 
@@ -576,7 +576,7 @@ namespace tuplex {
             auto node = q.front(); q.pop();
 
             // check whether children and parents are set up properly for this node
-            auto children = node->getChildren();
+            auto children = node->children();
             auto parents = node->parents();
 
             auto node_name = node->name() + "(" + std::to_string(node->getID()) + ")";
@@ -593,7 +593,7 @@ namespace tuplex {
 
             // check that node is child of all parents
             for(const auto &p : parents) {
-                auto pc = p->getChildren();
+                auto pc = p->children();
                 auto it = std::find(pc.begin(), pc.end(), node);
                 if(it == pc.end()) {
                     success = false;
@@ -772,7 +772,7 @@ namespace tuplex {
             // join +--> filter -> left
             //       \-> filter -> right
 
-            auto children = fop->getChildren(); // children of filter
+            auto children = fop->children(); // children of filter
             auto left = jop->left();
             auto right = jop->right();
 
@@ -872,7 +872,7 @@ namespace tuplex {
             auto new_fop = std::shared_ptr<LogicalOperator>(new FilterOperator(child, udf, child->columns()));
             new_fop->setID(fop->getID());
 
-            auto children = fop->getChildren(); // children of filter
+            auto children = fop->children(); // children of filter
             auto left = jop->left();
             auto right = jop->right();
             auto jop_parents =
@@ -996,7 +996,7 @@ namespace tuplex {
                     // should become
                     // children -> parent -> filter -> grandparent
                     // & call on filter again!
-                    auto children = op->getChildren();
+                    auto children = op->children();
                     auto parent = op->parent(); assert(parent);
                     auto grandparent = parent->parent(); assert(grandparent);
 
@@ -1198,7 +1198,7 @@ namespace tuplex {
                     new_mop->setID(mop->getID());
 
                     // set up parent/child relationships
-                    auto children = jop->getChildren(); // children of join
+                    auto children = jop->children(); // children of join
                     children.erase(std::remove(children.begin(), children.end(), new_mop), children.end()); // need to remove new_mop because it was constructed with jop as parent
                     for(auto& c : children) {
                         c->setParent(new_mop);

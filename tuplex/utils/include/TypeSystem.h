@@ -339,9 +339,9 @@ namespace python {
             std::string _desc;
             AbstractType _type;
             std::vector<Type> _params; //! parameters, i.e. tuple entries
-            bool _isVarLen; // params.empty && _isVarlen => GENERICTUPLE
             Type _ret; //! return value
             std::vector<Type> _baseClasses; //! base classes from left to right
+            bool _isVarLen; // params.empty && _isVarlen => GENERICTUPLE
 
             // opt properties
             int64_t _lower_bound;
@@ -366,11 +366,53 @@ namespace python {
             _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen),
             _lower_bound(other._lower_bound), _upper_bound(other._upper_bound), _constant_value(other._constant_value) {}
 
-            template <class Archive>
-            void serialize(Archive &ar) {
-                ar(_desc, _type, _params, _isVarLen, _ret, _baseClasses);
+//            template <class Archive>
+//            void serialize(Archive &ar) {
+//
+////                ar(_desc, _type, _params, _isVarLen, _ret, _baseClasses, _lower_bound, _upper_bound, _constant_value);
+//            }
+
+            // use specialized load/save functions here!
+            template<class Archive>
+            void save(Archive & archive) const {
+                using namespace std;
+
+                // need to use for recursive types hash values
+                vector<int> paramHashes;
+                vector<int> baseClassHashes;
+                for(auto t : _params)
+                    paramHashes.emplace_back(t._hash);
+                auto retHash = _ret._hash;
+                for(auto t : _baseClasses)
+                    baseClassHashes.emplace_back(t._hash);
+                archive(_desc, _type, paramHashes, retHash, baseClassHashes, _isVarLen, _lower_bound, _upper_bound, _constant_value);
             }
 
+            template<class Archive>
+            void load(Archive & archive) {
+                using namespace std;
+
+                // need to use for recursive types hash values
+                vector<int> paramHashes;
+                vector<int> baseClassHashes;
+                int retHash = 0;
+                archive(_desc, _type, paramHashes, retHash, baseClassHashes, _isVarLen, _lower_bound, _upper_bound, _constant_value);
+
+                // fill in Type class
+                for(auto hash : paramHashes) {
+                    Type t;
+                    t._hash = hash;
+                    _params.emplace_back(t);
+                }
+                for(auto hash : baseClassHashes) {
+                    Type t;
+                    t._hash = hash;
+                    _baseClasses.emplace_back(t);
+                }
+                Type t;
+                t._hash = retHash;
+                _ret = t;
+            }
             std::string desc();
         };
 

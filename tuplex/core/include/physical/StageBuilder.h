@@ -74,6 +74,10 @@ namespace tuplex {
 
                 nlohmann::json to_json() const;
                 static CodePathContext from_json(nlohmann::json obj);
+
+                template<class Archive> void serialize(Archive & ar) {
+                    ar(readSchema, inputSchema, outputSchema, inputNode, operators, columnsToRead);
+                }
             };
 
             CodePathContext fastPathContext;
@@ -107,6 +111,33 @@ namespace tuplex {
 //                python::Type fastReadSchema;
 //                python::Type fastInSchema;
 //                python::Type fastOutSchema;
+
+
+            // serialize using Cereal
+            template<class Archive> void serialize(Archive & ar) {
+                ar(allowUndefinedBehavior,
+                sharedObjectPropagation,
+                nullValueOptimization,
+                isRootStage,
+                generateParser,
+                normalCaseThreshold,
+                outputMode,
+                outputFileFormat,
+                outputNodeID,
+                outputSchema,
+                fileOutputParameters,
+                outputLimit,
+                hashColKeys,
+                hashKeyType,
+                hashSaveOthers,
+                hashAggregate,
+                inputMode,
+                inputFileFormat,
+                inputNodeID,
+                fileInputParameters,
+                fastPathContext,
+                slowPathContext);
+            }
         };
 
         /*!

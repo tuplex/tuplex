@@ -38,9 +38,12 @@ namespace tuplex {
 
 
     LogicalOperator::~LogicalOperator() {
-#warning "memory management of op graph??"
+        // remove this from parents
+        // b.c. need to maintain invariance manually, i.e. remove from pointers when being deconstructed!
+        for(auto& p:  _parents) {
+            p->_children.erase(std::find(p->_children.begin(), p->_children.end(), this));
+        }
     }
-
 
     std::shared_ptr<ResultSet> LogicalOperator::compute(const Context& context) {
 
@@ -81,6 +84,7 @@ namespace tuplex {
     }
 
     void LogicalOperator::freeParents() {
+        // TODO: this function is redundant with smart pointers...
         // recurse
         for(const auto &parent : parents()) {
             parent->freeParents();
@@ -89,13 +93,36 @@ namespace tuplex {
     }
 
     void LogicalOperator::setParents(const std::vector<std::shared_ptr<LogicalOperator>> &parents) {
-        _parents.clear();
-        _parents = parents;
+        _parents.clear(); // this removes all the smart pointers owned by this tree.
+        _parents = parents; // now own all the parents!
+
+        // each parent has this as child
+        for(auto& parent : _parents) {
+            parent->_children = {this};
+        }
+    }
+
+    std::vector<std::shared_ptr<LogicalOperator>> LogicalOperator::children() const {
+        // trick, use here the shared ptrs which represent the children!
+        // i.e. this is the parent of each child.
+        std::vector<std::shared_ptr<LogicalOperator>> v;
+        for(auto child : _children)
+            v.emplace_back(child->shared_from_this());
+        return v;
     }
 
     void LogicalOperator::setChildren(const std::vector<std::shared_ptr<LogicalOperator>> &children) {
+        // each child gets owned by this
+
+        // remove this from children parents
+        for(auto child : _children) {
+            child->_parents.erase(std::find(child->_parents.begin(), child->_parents.end(), shared_from_this()));
+        }
         _children.clear();
-        _children = children;
+
+        for(auto child : children) {
+            child->setParent(shared_from_this()); // this becomes parent, thus child becomes owner of this
+        }
     }
 
     std::vector<PyObject*> LogicalOperator::getPythonicSample(size_t num) {

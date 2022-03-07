@@ -1443,7 +1443,7 @@ namespace tuplex {
                                 break;
                             unique_ids.insert(node->getID());
 
-                            for(auto c : node->getChildren())
+                            for(auto c : node->children())
                                 q.push(c);
                         }
                     }

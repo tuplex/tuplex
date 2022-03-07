@@ -181,7 +181,7 @@ namespace tuplex {
                 }
 
                 // go through children
-                for(const auto& c : node->getChildren()) {
+                for(const auto& c : node->children()) {
                     int cid = -1;
                     if(graphIDs.find(c.get()) == graphIDs.end()) {
                         cid = builder.addHTMLNode(node_descriptor(c.get()));

@@ -427,7 +427,7 @@ namespace tuplex {
                         // two options here: Either cache is used as last node or as source!
                         // source?
                         auto cop = std::dynamic_pointer_cast<CacheOperator>(node);
-                        if(!cop->getChildren().empty()) {
+                        if(!cop->children().empty()) {
                             // => cache is a source, i.e. fetch optimized schema from it!
                             last_rowtype = cop->getOptimizedOutputSchema().getRowType();
                             checkRowType(last_rowtype);
@@ -440,7 +440,7 @@ namespace tuplex {
                             cop->useNormalCase();
                         } else {
                             // cache should not have any children
-                            assert(cop->getChildren().empty());
+                            assert(cop->children().empty());
                             // => i.e. first time cache is seen, it's processed as action!
                             cout<<"cache is action, optimized schema: "<<endl;
                             cout<<"cache normal case will be: "<<last_rowtype.desc()<<endl;

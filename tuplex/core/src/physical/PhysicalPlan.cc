@@ -220,8 +220,8 @@ namespace tuplex {
             auto lastOp = ops.back();
 
             // make sure only one child!
-            assert(lastOp->getChildren().size() == 1);
-            auto child = lastOp->getChildren().front();
+            assert(lastOp->children().size() == 1);
+            auto child = lastOp->children().front();
 
             // join op? => then hash table, else memory
             if(child->type() == LogicalOperatorType::JOIN || child->type() == LogicalOperatorType::AGGREGATE)
@@ -339,8 +339,8 @@ namespace tuplex {
             }
             case EndPointMode::HASHTABLE: {
                 // get child node
-                assert(outputNode->getChildren().size() == 1);
-                auto child = outputNode->getChildren().front(); assert(child);
+                assert(outputNode->children().size() == 1);
+                auto child = outputNode->children().front(); assert(child);
                 // two options:
 
                 // 1.) Join (b.c. build!)

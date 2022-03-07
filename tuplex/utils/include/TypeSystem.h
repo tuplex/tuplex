@@ -368,7 +368,7 @@ namespace python {
 
             template <class Archive>
             void serialize(Archive &ar) {
-                ar(_desc, _type, _params, _isVarLen, _ret, _baseClasses);
+                ar(_desc, _type, _params, _isVarLen, _ret, _baseClasses, _lower_bound, _upper_bound, _constant_value);
             }
 
             std::string desc();

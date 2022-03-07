@@ -169,3 +169,15 @@ TEST(TypeSys, flattenWithPyObject) {
     auto num_params = tuplex::flattenedType(row_type).parameters().size();
     EXPECT_EQ(num_params, 3);
 }
+
+TEST(TypeSys, Cerealization) {
+    auto row_type = python::Type::makeTupleType({python::Type::I64, python::Type::I64, python::Type::PYOBJECT});
+    std::ostringstream oss; {
+        cereal::BinaryOutputArchive ar(oss);
+        ar(row_type);
+    }
+
+    EXPECT_TRUE(oss.str().size() > 0);
+
+    // @TODO: deserialization test.
+}

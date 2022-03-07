@@ -183,9 +183,9 @@ namespace tuplex {
                 // go through children
                 for(const auto& c : node->children()) {
                     int cid = -1;
-                    if(graphIDs.find(c) == graphIDs.end()) {
-                        cid = builder.addHTMLNode(node_descriptor(c));
-                        graphIDs[c] = cid;
+                    if(graphIDs.find(c.get()) == graphIDs.end()) {
+                        cid = builder.addHTMLNode(node_descriptor(c.get()));
+                        graphIDs[c.get()] = cid;
                     } else {
                         cid = graphIDs[node.get()];
                     }
@@ -194,7 +194,6 @@ namespace tuplex {
                 }
             }
         }
-
     }
 
     DataSet& Context::fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<std::string>& columns, const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects, const std::vector<size_t> &numExceptionsInPartition) {

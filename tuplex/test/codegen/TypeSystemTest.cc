@@ -170,6 +170,17 @@ TEST(TypeSys, flattenWithPyObject) {
     EXPECT_EQ(num_params, 3);
 }
 
+
+class TuplexBinaryArchive : public cereal::BinaryOutputArchive {
+public:
+    TuplexBinaryArchive(std::ostream& os) : cereal::BinaryOutputArchive(os) {
+
+    }
+    ~TuplexBinaryArchive() {}
+private:
+
+};
+
 TEST(TypeSys, Cerealization) {
     auto row_type = python::Type::makeTupleType({python::Type::I64, python::Type::I64, python::Type::PYOBJECT});
     std::ostringstream oss; {
@@ -180,4 +191,8 @@ TEST(TypeSys, Cerealization) {
     EXPECT_TRUE(oss.str().size() > 0);
 
     // @TODO: deserialization test.
+
+    // ==> note: this requires some fancier lookup! b.c. the typemaps of the two systems may be out of sync...
+    // @TODO: correct this...!
+    // => better: semantic encoding of types and decoding from there...?
 }

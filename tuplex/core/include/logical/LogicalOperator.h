@@ -101,7 +101,7 @@ namespace tuplex {
          */
         virtual bool good() const = 0;
 
-        std::vector<LogicalOperator*> children() const { return _children; }
+        std::vector<std::shared_ptr<LogicalOperator>> children() const;
         std::shared_ptr<LogicalOperator> parent() const { if(_parents.empty())return nullptr; assert(_parents.size() == 1); return _parents.front(); }
         std::vector<std::shared_ptr<LogicalOperator>> parents() const { return _parents; }
         size_t numParents() const { return _parents.size(); }
@@ -146,7 +146,7 @@ namespace tuplex {
             // this is more tricky, need to maintain invariance in tree.
 
             auto it = std::find_if(_children.begin(), _children.end(), [&oldChild](LogicalOperator* child) {
-                return child == oldChild;
+                return child == oldChild.get();
             });
             if(it == _children.end())
                 return false;

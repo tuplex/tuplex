@@ -509,7 +509,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv";
 
     // 2003 test pattern:
-    //input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv";
+    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv";
 
     // Lambda settings (i.e. 10G and 2 threads?)
     size_t numLambdaThreads = 2;

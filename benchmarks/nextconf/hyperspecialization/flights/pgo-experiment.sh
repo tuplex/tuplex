@@ -3,7 +3,7 @@
 # invoke i.e. via nohup bash pgo-experiment.sh 2> pgo.stderr 1> pgo.stdout &
 echo "Starting flights PGO specialization experiment"
 
-INPUT_ROOT='/hot/data/flights_all/*.csv'
+INPUT_ROOT='/hot/data/flights_all/*2003*.csv'
 
 # test
 #INPUT_ROOT='/hot/data/flights_all/*lights_on_time_performance_1999_01.csv'

@@ -33,6 +33,9 @@
 
 namespace python {
 
+    class Type;
+    class TypeFactory;
+
     class Type {
         friend class TypeFactory;
         friend bool operator < (const Type& lhs, const Type& rhs);

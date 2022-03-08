@@ -26,7 +26,7 @@
 // Potentially necessary if no explicit reference
 // to objects in myclasses.cpp will take place
 // from other translation units
-#include "cereal/types/polymorphic.hpp"
-CEREAL_FORCE_DYNAMIC_INIT(Operators)
+//#include "cereal/types/polymorphic.hpp"
+//CEREAL_FORCE_DYNAMIC_INIT(Operators)
 
 #endif //TUPLEX_OPERATORS_H

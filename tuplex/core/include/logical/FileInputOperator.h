@@ -352,5 +352,7 @@ namespace tuplex {
     };
 }
 
+CEREAL_REGISTER_TYPE(tuplex::FileInputOperator)
+
 #endif
 //TUPLEX_FILEINPUTOPERATOR_H

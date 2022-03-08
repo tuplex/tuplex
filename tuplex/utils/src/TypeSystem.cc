@@ -16,6 +16,8 @@
 #include <TSet.h>
 #include <Utils.h>
 
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/archives/portable_binary.hpp"
 #include "cereal/archives/binary.hpp"
 
 // types should be like form mypy https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html

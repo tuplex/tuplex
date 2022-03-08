@@ -15,7 +15,8 @@
 #include <Partition.h>
 #include <boost/align/aligned_allocator.hpp>
 
-#include "cereal/tupes/base_class.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
 
 namespace tuplex {
 

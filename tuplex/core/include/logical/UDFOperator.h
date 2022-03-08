@@ -74,5 +74,4 @@ namespace tuplex {
     extern bool hasUDF(const LogicalOperator *op);
 }
 
-CEREAL_REGISTER_TYPE(tuplex::UDFOperator);
 #endif //TUPLEX_UDFOPERATOR_H

@@ -13,6 +13,9 @@
 
 #include "TransformStage.h"
 
+// include all logical ops here
+#include <logical/FileInputOperator.h>
+
 // class to create TransformStages (Stagefusion!)
 
 namespace tuplex {

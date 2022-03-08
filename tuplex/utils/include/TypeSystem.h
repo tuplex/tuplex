@@ -28,6 +28,7 @@
 #include "cereal/types/utility.hpp"
 #include "cereal/types/string.hpp"
 #include "cereal/types/common.hpp"
+#include "cereal/archives/portable_binary.hpp"
 #include "cereal/archives/binary.hpp"
 
 namespace python {
@@ -492,7 +493,7 @@ namespace python {
      * i64, f64, str, bool supported as primitive types
      * also () for tuples
      * @param s string to be used for type decoding
-     * @return decoded type or unknown if decoding error occured
+     * @return decoded type or unknown if decoding error occurred
      */
     extern Type decodeType(const std::string& s);
 

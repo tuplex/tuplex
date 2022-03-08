@@ -36,6 +36,8 @@
 
 #include "cereal/archives/binary.hpp"
 
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/archives/portable_binary.hpp"
 
 static const size_t MAX_TYPE_SAMPLING_ROWS=100; // make this configurable? i.e. defines how much to trace...
 
@@ -273,4 +275,8 @@ namespace tuplex {
         }
     };
 }
+
+// not required according to cereal doc, yet register despite
+CEREAL_REGISTER_TYPE(tuplex::LogicalOperator)
+
 #endif //TUPLEX_LOGICALOPERATOR_H

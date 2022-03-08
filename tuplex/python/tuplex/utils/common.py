@@ -837,7 +837,7 @@ def ensure_webui(options):
         logging.debug('WebUI services found or started!')
 
         # check that version of WebUI and Tuplex version match
-        assert __version__ == 'dev' or version_info['version'] == __version__, 'Version of Tuplex WebUI and Tuplex do not match'
+        #assert __version__ == 'dev' or version_info['version'] == __version__, 'Version of Tuplex WebUI and Tuplex do not match'
 
         # all good, print out link so user can access WebUI easily
         webui_uri = webui_url + ':' + str(webui_port)

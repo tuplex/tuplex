@@ -275,6 +275,6 @@ namespace tuplex {
     };
 }
 
-CEREAL_REGISTER_TYPE(tuplex::LogicalOperator)
+//CEREAL_REGISTER_TYPE(tuplex::LogicalOperator)
 
 #endif //TUPLEX_LOGICALOPERATOR_H

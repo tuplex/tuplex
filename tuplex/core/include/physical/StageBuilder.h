@@ -17,7 +17,10 @@
 #include <logical/Operators.h>
 
 // class to create TransformStages (Stagefusion!)
-#include
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/archives/binary.hpp"
+#include "cereal/archives/portable_binary.hpp"
+
 CEREAL_REGISTER_TYPE(tuplex::LogicalOperator);
 CEREAL_REGISTER_TYPE(tuplex::FileInputOperator);
 

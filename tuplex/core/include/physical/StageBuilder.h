@@ -14,7 +14,7 @@
 #include "TransformStage.h"
 
 // include all logical ops here
-#include <logical/FileInputOperator.h>
+#include <logical/Operators.h>
 
 // class to create TransformStages (Stagefusion!)
 

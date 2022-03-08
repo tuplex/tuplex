@@ -104,10 +104,10 @@ namespace tuplex {
             LambdaFunctionBuilder& create(NLambda *lambda, std::string func_name);
             LambdaFunctionBuilder& create(NFunction* func);
 
-            llvm::IRBuilder<> getLLVMBuilder() { assert(_body); return llvm::IRBuilder<>(_body); }
+            codegen::IRBuilder getIRBuilder() { assert(_body); return codegen::IRBuilder(_body); }
 
-            llvm::IRBuilder<> addException(llvm::IRBuilder<>& builder, ExceptionCode ec, llvm::Value *condition);
-            llvm::IRBuilder<> addException(llvm::IRBuilder<>& builder, llvm::Value* ecCode, llvm::Value *condition);
+            codegen::IRBuilder addException(llvm::IRBuilder<>& builder, ExceptionCode ec, llvm::Value *condition);
+            codegen::IRBuilder addException(llvm::IRBuilder<>& builder, llvm::Value* ecCode, llvm::Value *condition);
 
             /*!
              * the original python return type of the function.
@@ -141,10 +141,10 @@ namespace tuplex {
              */
             LambdaFunction exitWithException(const ExceptionCode& ec);
 
-            inline llvm::IRBuilder<> setLastBlock(llvm::BasicBlock* bb) {
+            inline codegen::IRBuilder setLastBlock(llvm::BasicBlock* bb) {
                 assert(bb);
                 _body = bb;
-               return getLLVMBuilder();
+               return getIRBuilder();
             }
 
             inline llvm::BasicBlock* getLastBlock() const { return _body; }
@@ -172,7 +172,7 @@ namespace tuplex {
 
             std::string funcName() const {
                 assert(_func._func);
-                return _func._func->getName();
+                return _func._func->getName().str();
             }
         };
 

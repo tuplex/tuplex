@@ -37,6 +37,136 @@
 namespace tuplex {
     namespace codegen {
 
+        /*!
+         * helper class to build LLVM IR. Added because IRBuilder was made non-copyable in llvm source base
+         */
+         class IRBuilder {
+         public:
+             IRBuilder();
+
+             IRBuilder(llvm::IRBuilder<>& llvm_builder);
+             IRBuilder(const llvm::IRBuilder<>& llvm_builder);
+             IRBuilder(llvm::BasicBlock* bb);
+
+             // copy
+             IRBuilder(const IRBuilder& other);
+
+             /*!
+              * creates a new builder returning a builder for the first block.
+              * @return
+              */
+            IRBuilder firstBlockBuilder() const;
+            // CreateAlloca (Type *Ty, unsigned AddrSpace, Value *ArraySize=nullptr, const Twine &Name=""
+            inline llvm::Value* CreateAlloca(llvm::Type *type, const std::string& name="") {
+                return get_or_throw().CreateAlloca(type, 0, nullptr, name);
+            }
+
+             inline llvm::Value* CreateAlloca(llvm::Type *type, unsigned AddrSpace, llvm::Value* ArraySize=nullptr, const std::string& name="") const {
+                 return get_or_throw().CreateAlloca(type, AddrSpace, ArraySize, name);
+             }
+
+            // StoreInst * 	CreateStore (Value *Val, Value *Ptr, bool isVolatile=false)
+            inline llvm::Value* CreateStore(llvm::Value* Val, llvm::Value* Ptr, bool isVolatile=false) const {
+                return get_or_throw().CreateStore(Val, Ptr, isVolatile);
+            }
+
+            inline llvm::BasicBlock* GetInsertBlock() const {
+                return get_or_throw().GetInsertBlock();
+            }
+
+             inline llvm::Type* getInt1Ty() const {
+                 return get_or_throw().getInt1Ty();
+             }
+             inline llvm::Type* getInt8Ty() const {
+                 return get_or_throw().getInt8Ty();
+             }
+            inline llvm::Type* getInt32Ty() const {
+                return get_or_throw().getInt32Ty();
+            }
+             inline llvm::Type* getInt64Ty() const {
+                 return get_or_throw().getInt64Ty();
+             }
+
+            inline llvm::Value* CreateICmp(llvm::CmpInst::Predicate P, llvm::Value *LHS, llvm::Value *RHS,
+                                           const std::string& name="") const {
+                return get_or_throw().CreateICmp(P, LHS, RHS, name);
+            }
+
+            inline llvm::Value *CreateICmpEQ(llvm::Value *LHS, llvm::Value *RHS, const std::string &name = "") const {
+                return CreateICmp(llvm::ICmpInst::ICMP_EQ, LHS, RHS, name);
+            }
+
+            inline llvm::Value* CreateOr(llvm::Value *LHS, llvm::Value *RHS, const std::string &name = "") const {
+                return get_or_throw().CreateOr(LHS, RHS, name);
+            }
+
+            inline llvm::Value* CreateCondBr(llvm::Value *Cond,
+                                             llvm::BasicBlock *True,
+                                             llvm::BasicBlock *False,
+                                             llvm::MDNode *BranchWeights = nullptr,
+                                             llvm::MDNode *Unpredictable = nullptr) const {
+                return get_or_throw().CreateCondBr(Cond, True, False, BranchWeights, Unpredictable);
+            }
+
+            inline llvm::Value* CreateBr(llvm::BasicBlock *Dest) const {
+                return get_or_throw().CreateBr(Dest);
+            }
+
+            inline void SetInsertPoint(llvm::BasicBlock *TheBB) const {
+                assert(TheBB);
+                get_or_throw().SetInsertPoint(TheBB);
+            }
+             inline llvm::Value* CreateAdd(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
+                                           bool HasNUW = false, bool HasNSW = false) const {
+                 return get_or_throw().CreateAdd(LHS, RHS, Name, HasNUW, HasNSW);
+             }
+            inline llvm::Value* CreateSub(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
+                                          bool HasNUW = false, bool HasNSW = false) const {
+                return get_or_throw().CreateSub(LHS, RHS, Name, HasNUW, HasNSW);
+            }
+
+            inline llvm::Value *CreateMul(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
+                              bool HasNUW = false, bool HasNSW = false) const {
+                return get_or_throw().CreateMul(LHS, RHS, Name, HasNUW, HasNSW);
+            }
+
+            inline llvm::Value *CreateGEP(llvm::Type *Ty, llvm::Value *Ptr, llvm::ArrayRef<llvm::Value *> IdxList,
+                              const std::string &Name = "") const {
+                return get_or_throw().CreateGEP(Ty, Ptr, IdxList, Name);
+            }
+             inline llvm::LoadInst *CreateLoad(llvm::Type *Ty, llvm::Value *Ptr, const char *Name) const {
+                 return get_or_throw().CreateAlignedLoad(Ty, Ptr, llvm::MaybeAlign(), Name);
+             }
+
+             inline llvm::LoadInst *CreateLoad(llvm::Type *Ty, llvm::Value *Ptr, const std::string &Name = "") const {
+                 return get_or_throw().CreateAlignedLoad(Ty, Ptr, llvm::MaybeAlign(), Name);
+             }
+
+             inline llvm::LoadInst *CreateLoad(llvm::Value *Ptr, const std::string& Name ="") const {
+                return CreateLoad(Ptr->getType()->getPointerElementType(), Ptr, Name);
+            }
+
+            inline llvm::Value *CreateGEP(llvm::Value *Ptr, llvm::ArrayRef<llvm::Value *> IdxList,
+                     const std::string &Name = "") const {
+                // this is deprecated
+                return CreateGEP(Ptr->getType()->getScalarType()->getPointerElementType(),
+                                 Ptr, IdxList, Name);
+            }
+
+          //  inline llvm::Value* CreateMemCpy(destPtr, 0, srcPtr, 0, srcSize, true);
+
+
+            //inline llvm::Value* CreateLoad()
+         private:
+             // original LLVM builder
+             std::unique_ptr<llvm::IRBuilder<>> _llvm_builder;
+            llvm::IRBuilder<>& get_or_throw() const {
+                if(!_llvm_builder)
+                    throw std::runtime_error("no builder specified");
+                return *_llvm_builder;
+            }
+         };
+
         // various switches to influence compiler behavior
         struct CompilePolicy {
             bool allowUndefinedBehavior;
@@ -115,7 +245,7 @@ namespace tuplex {
          * @param builder
          * @return
          */
-        inline llvm::IRBuilder<> getFirstBlockBuilder(llvm::IRBuilder<>& builder) {
+        inline llvm::IRBuilder<>&& getFirstBlockBuilder(llvm::IRBuilder<>& builder) {
             assert(builder.GetInsertBlock());
             assert(builder.GetInsertBlock()->getParent());
 
@@ -131,7 +261,7 @@ namespace tuplex {
                 llvm::Instruction& inst = *firstBlock.getFirstInsertionPt();
                 ctorBuilder.SetInsertPoint(&inst);
             }
-            return ctorBuilder;
+            return std::move(ctorBuilder);
         }
 
         // in order to serialize/deserialize data properly and deal with

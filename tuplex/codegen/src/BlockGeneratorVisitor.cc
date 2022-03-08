@@ -107,7 +107,7 @@ namespace tuplex {
             addInstruction(_env->boolConst(boolean->_value));
         }
 
-        llvm::Value *BlockGeneratorVisitor::upCast(IRBuilder<> &builder, llvm::Value *val, llvm::Type *type) {
+        llvm::Value *BlockGeneratorVisitor::upCast(llvm::IRBuilder<> &builder, llvm::Value *val, llvm::Type *type) {
             // check if types are the same, then just return val
             if (val->getType() == type)
                 return val;
@@ -154,7 +154,7 @@ namespace tuplex {
             using namespace python;
 
             assert(_lfb);
-            auto builder = _lfb->getLLVMBuilder();
+            auto builder = _lfb->getIRBuilder();
 
             python::Type ltype = op->_left->getInferredType().withoutOptions();
             python::Type rtype = op->_right->getInferredType().withoutOptions();

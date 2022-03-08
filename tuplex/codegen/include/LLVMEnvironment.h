@@ -35,6 +35,10 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
+// llvm 13
+#if LLVM_VERSION_MAJOR >= 10
+#include "llvm/Analysis/TargetTransformInfo.h"
+#endif
 
 #include <ASTNodes.h>
 #include <CodegenHelper.h>
@@ -193,7 +197,7 @@ namespace tuplex {
                     return it->second;
                 else {
                     llvm::Type *t = createTupleStructType(tupleType, twine);
-                    std::string name = t->getStructName();
+                    std::string name = t->getStructName().str();
                     _generatedTupleTypes[tupleType] = t;
                     return t;
                 }
@@ -630,10 +634,11 @@ namespace tuplex {
             static inline llvm::Value* CreateFirstBlockAlloca(llvm::IRBuilder<>& builder,
                                                               llvm::Type* llvmType,
                                                               const std::string& name="") {
-                auto ctorBuilder = getFirstBlockBuilder(builder);
 
-                auto res = ctorBuilder.CreateAlloca(llvmType, 0, nullptr, name);
-                assert(res);
+                auto ctor_builder = IRBuilder(builder).firstBlockBuilder();
+//                llvm::IRBuilder<> ctorBuilder(std::move(getFirstBlockBuilder(builder)));
+
+                auto res = ctor_builder.CreateAlloca(llvmType, name); assert(res);
                 return res;
             }
 
@@ -646,7 +651,12 @@ namespace tuplex {
 
                 if(!eps)
                     eps = defaultEpsilon();
-                return builder.CreateFCmpOLT(builder.CreateUnaryIntrinsic(llvm::Intrinsic::ID::fabs, value), eps);
+#if LLVM_VERSION_MAJOR >= 10
+                auto fabs_id = llvm::Intrinsic::fabs;
+#else
+                auto fabs_id = llvm::Intrinsic::ID::fabs;
+#endif
+                return builder.CreateFCmpOLT(builder.CreateUnaryIntrinsic(fabs_id, value), eps);
             }
 
             /*!
@@ -661,10 +671,10 @@ namespace tuplex {
                                                               const std::string& name="") {
                 assert(initialValue);
 
-                auto ctorBuilder = getFirstBlockBuilder(builder);
+                auto ctor_builder = IRBuilder(builder).firstBlockBuilder();
                 auto llvmType = initialValue->getType();
-                auto res = ctorBuilder.CreateAlloca(llvmType, 0, nullptr, name);
-                ctorBuilder.CreateStore(initialValue, res);
+                auto res = ctor_builder.CreateAlloca(llvmType, name);
+                ctor_builder.CreateStore(initialValue, res);
                 assert(res);
                 return res;
             }

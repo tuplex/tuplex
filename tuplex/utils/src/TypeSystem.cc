@@ -1177,51 +1177,9 @@ namespace python {
         return TypeFactory::instance().createOrGetDelayedParsingType(underlying);
     }
 
-    template<class Archive>
-    void Type::load(Archive &archive) {
-        TypeFactory::TypeEntry type_entry;
-        archive(_hash, type_entry);
-
-        // @TODO: this here is dangerous!
-        // => i.e. leads to TypeSystem out of sync!
-        // imagine a type system being out of sync with the one on a host machine. Now, any type needs to
-        // remap etc. -> difficult.
-        // better idea: simply overwrite map here
-
-        // Type registerOrGetType(const std::string& name,
-        //                               const AbstractType at,
-        //                               const std::vector<Type>& params = std::vector<Type>(),
-        //                               const python::Type& retval=python::Type::VOID,
-        //                               const std::vector<Type>& baseClasses = std::vector<Type>(),
-        //                               bool isVarLen=false,
-        //                               int64_t lower_bound=std::numeric_limits<int64_t>::min(),
-        //                               int64_t upper_bound=std::numeric_limits<int64_t>::max(),
-        //                               const std::string& constant="");
-        // !!! warning !!!
-         TypeFactory::instance()._typeMap[_hash] = TypeFactory::TypeEntry(type_entry._desc, type_entry._type, type_entry._params,
-                                                  type_entry._ret, type_entry._baseClasses, type_entry._isVarLen,
-                                                  type_entry._lower_bound,
-                                                  type_entry._upper_bound,
-                                                  type_entry._constant_value);
-
-//        // register the type again
-//        TypeFactory::instance().registerOrGetType(type_entry._desc, type_entry._type, type_entry._params,
-//                                                  type_entry._ret, type_entry._baseClasses, type_entry._isVarLen,
-//                                                  type_entry._lower_bound,
-//                                                  type_entry._upper_bound,
-//                                                  type_entry._constant_value);
-    }
-
-    template<class Archive>
-    void Type::save(Archive &archive) const {
-        // @TODO: this seems wrong, better: need to encode type as string and THEN decode!
-        // that would avoid the remapping problem...!
-        archive(_hash, TypeFactory::instance()._typeMap[_hash]);
-    }
-
-    // explicit instantiation
-    template void Type::load(cereal::BinaryInputArchive &archive);
-    template void Type::save(cereal::BinaryOutputArchive &archive) const;
-    template void Type::load(cereal::PortableBinaryInputArchive &archive);
-    template void Type::save(cereal::PortableBinaryOutputArchive &archive) const;
+//    // explicit instantiation
+//    template void Type::load(cereal::BinaryInputArchive &archive);
+//    template void Type::save(cereal::BinaryOutputArchive &archive) const;
+//    template void Type::load(cereal::PortableBinaryInputArchive &archive);
+//    template void Type::save(cereal::PortableBinaryOutputArchive &archive) const;
 }

@@ -7,15 +7,12 @@
 //  Created by Leonhard Spiegelberg first on 3/2/20                                                                   //
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
-
-#include <utility>
-
-//
-// Created by Leonhard Spiegelberg on 3/2/20.
-//
-
 #ifndef TUPLEX_AGGREGATEOPERATOR_H
 #define TUPLEX_AGGREGATEOPERATOR_H
+
+#include <utility>
+#include <logical/LogicalOperator.h>
+#include <logical/UDFOperator.h>
 
 namespace tuplex {
 

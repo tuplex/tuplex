@@ -332,7 +332,7 @@ namespace tuplex {
 
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
-            ar(cereal::virtual_base_class<LogicalOperator>(this),
+            ar(cereal::base_class<LogicalOperator>(this),
                     _fileURIs, _sizes, _estimatedRowCount, _fmt, _quotechar, _delimiter, _header, _null_values, _optimizedSchema,
                     _columnNames, _optimizedColumnNames,
                     _columnsToSerialize, _indexBasedHints,
@@ -341,7 +341,7 @@ namespace tuplex {
         }
 
         template<class Archive> void load(Archive &ar) {
-            ar(cereal::virtual_base_class<LogicalOperator>(this),
+            ar(cereal::base_class<LogicalOperator>(this),
                _fileURIs, _sizes, _estimatedRowCount, _fmt, _quotechar, _delimiter, _header, _null_values, _optimizedSchema,
                _columnNames, _optimizedColumnNames,
                _columnsToSerialize, _indexBasedHints,

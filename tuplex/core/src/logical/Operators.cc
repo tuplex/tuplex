@@ -23,4 +23,4 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(tuplex::UDFOperator, tuplex::MapOperator)
 // Potentially necessary if no explicit reference
 // to objects in myclasses.cpp will take place
 // from other translation units
-CEREAL_REGISTER_DYNAMIC_INIT(tuplex_classes)
+CEREAL_REGISTER_DYNAMIC_INIT(Operators)

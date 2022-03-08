@@ -307,47 +307,59 @@ namespace python {
 
         static Type byName(const std::string& name);
 
+        static Type decode(const std::string& s);
+        std::string encode() const;
+
         // cereal serialization functions
         template<class Archive>
         inline void load(Archive &archive) {
-            TypeFactory::TypeEntry type_entry;
-            archive(_hash, type_entry);
 
-            // @TODO: this here is dangerous!
-            // => i.e. leads to TypeSystem out of sync!
-            // imagine a type system being out of sync with the one on a host machine. Now, any type needs to
-            // remap etc. -> difficult.
-            // better idea: simply overwrite map here
+            // simply encode/decode type
+            std::string encoded_str = "";
+            archive(encoded_str);
+            auto t = Type::decode(encoded_str);
+            _hash = t._hash; // using hash works...
 
-            // Type registerOrGetType(const std::string& name,
-            //                               const AbstractType at,
-            //                               const std::vector<Type>& params = std::vector<Type>(),
-            //                               const python::Type& retval=python::Type::VOID,
-            //                               const std::vector<Type>& baseClasses = std::vector<Type>(),
-            //                               bool isVarLen=false,
-            //                               int64_t lower_bound=std::numeric_limits<int64_t>::min(),
-            //                               int64_t upper_bound=std::numeric_limits<int64_t>::max(),
-            //                               const std::string& constant="");
-            // !!! warning !!!
-            TypeFactory::instance()._typeMap[_hash] = TypeFactory::TypeEntry(type_entry._desc, type_entry._type, type_entry._params,
-                                                                             type_entry._ret, type_entry._baseClasses, type_entry._isVarLen,
-                                                                             type_entry._lower_bound,
-                                                                             type_entry._upper_bound,
-                                                                             type_entry._constant_value);
-
-//        // register the type again
-//        TypeFactory::instance().registerOrGetType(type_entry._desc, type_entry._type, type_entry._params,
-//                                                  type_entry._ret, type_entry._baseClasses, type_entry._isVarLen,
-//                                                  type_entry._lower_bound,
-//                                                  type_entry._upper_bound,
-//                                                  type_entry._constant_value);
+//            TypeFactory::TypeEntry type_entry;
+//            archive(_hash, type_entry);
+//
+//            // @TODO: this here is dangerous!
+//            // => i.e. leads to TypeSystem out of sync!
+//            // imagine a type system being out of sync with the one on a host machine. Now, any type needs to
+//            // remap etc. -> difficult.
+//            // better idea: simply overwrite map here
+//
+//            // Type registerOrGetType(const std::string& name,
+//            //                               const AbstractType at,
+//            //                               const std::vector<Type>& params = std::vector<Type>(),
+//            //                               const python::Type& retval=python::Type::VOID,
+//            //                               const std::vector<Type>& baseClasses = std::vector<Type>(),
+//            //                               bool isVarLen=false,
+//            //                               int64_t lower_bound=std::numeric_limits<int64_t>::min(),
+//            //                               int64_t upper_bound=std::numeric_limits<int64_t>::max(),
+//            //                               const std::string& constant="");
+//            // !!! warning !!!
+//            TypeFactory::instance()._typeMap[_hash] = TypeFactory::TypeEntry(type_entry._desc, type_entry._type, type_entry._params,
+//                                                                             type_entry._ret, type_entry._baseClasses, type_entry._isVarLen,
+//                                                                             type_entry._lower_bound,
+//                                                                             type_entry._upper_bound,
+//                                                                             type_entry._constant_value);
+//
+////        // register the type again
+////        TypeFactory::instance().registerOrGetType(type_entry._desc, type_entry._type, type_entry._params,
+////                                                  type_entry._ret, type_entry._baseClasses, type_entry._isVarLen,
+////                                                  type_entry._lower_bound,
+////                                                  type_entry._upper_bound,
+////                                                  type_entry._constant_value);
         }
 
         template<class Archive>
         inline void save(Archive &archive) const {
-            // @TODO: this seems wrong, better: need to encode type as string and THEN decode!
-            // that would avoid the remapping problem...!
-            archive(_hash, TypeFactory::instance()._typeMap[_hash]);
+//            // @TODO: this seems wrong, better: need to encode type as string and THEN decode!
+//            // that would avoid the remapping problem...!
+//            archive(_hash, TypeFactory::instance()._typeMap[_hash]);
+            auto encoded_str = encode();
+            archive(encoded_str);
         }
     };
 

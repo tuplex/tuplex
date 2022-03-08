@@ -1177,6 +1177,13 @@ namespace python {
         return TypeFactory::instance().createOrGetDelayedParsingType(underlying);
     }
 
+    Type Type::decode(const std::string& s) {
+        return decodeType(s);
+    }
+    std::string Type::encode() const {
+        return desc(); // desc should have all info stored?? => could do more efficient encoding/decoding...
+    }
+
 //    // explicit instantiation
 //    template void Type::load(cereal::BinaryInputArchive &archive);
 //    template void Type::save(cereal::BinaryOutputArchive &archive) const;

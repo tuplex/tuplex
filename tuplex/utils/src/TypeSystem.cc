@@ -1178,10 +1178,20 @@ namespace python {
     }
 
     Type Type::decode(const std::string& s) {
+        if(s == "uninitialized") {
+            Type t;
+            t._hash = -1;
+            return t;
+        }
         return decodeType(s);
     }
+
+    // TODO: more efficient encoding using binary representation?
     std::string Type::encode() const {
-        return desc(); // desc should have all info stored?? => could do more efficient encoding/decoding...
+        if(_hash >= 0)
+            return desc(); // desc should have all info stored?? => could do more efficient encoding/decoding...
+        else
+            return "uninitialized";
     }
 
 //    // explicit instantiation

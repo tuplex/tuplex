@@ -8,8 +8,8 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#ifndef TUPLEX_CSVOPERATOR_H
-#define TUPLEX_CSVOPERATOR_H
+#ifndef TUPLEX_FILEINPUTOPERATOR_H
+#define TUPLEX_FILEINPUTOPERATOR_H
 
 #include "LogicalOperator.h"
 #include <Partition.h>
@@ -330,6 +330,8 @@ namespace tuplex {
     };
 }
 
-CEREAL_REGISTER_TYPE(tuplex::FileInputOperator);
+CEREAL_REGISTER_TYPE(tuplex::FileInputOperator)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(tuplex::LogicalOperator, tuplex::FileInputOperator);
 
-#endif //TUPLEX_CSVOPERATOR_H
+#endif
+//TUPLEX_FILEINPUTOPERATOR_H

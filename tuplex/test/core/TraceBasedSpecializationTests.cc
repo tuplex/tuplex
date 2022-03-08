@@ -585,4 +585,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // print out results as json
     std::cout<<"{\"general_total_time\":"<<generalQueryTime<<",\"hyper_total_time\":"<<hyperQueryTime<<"}"<<std::endl;
     //ds.show(5);
+
+
+    // cmake -DCMAKE_BUILD_TYPE=Release -DPYTHON3_VERSION=3.6 -DLLVM_ROOT_DIR=/usr/lib/llvm-9 .. && make -j 128 testcore && ./dist/bin/testcore --gtest_filter=SamplingTest.FlightsLambdaVersion
 }

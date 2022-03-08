@@ -267,6 +267,7 @@ namespace tuplex {
         template<class Archive> void save(Archive &ar) const {
             ar(_id, _parents, _schema);
         }
+
         template<class Archive> void load(Archive &ar) {
             ar(_id, _parents, _schema);
             addThisToParents(); // build children of parents

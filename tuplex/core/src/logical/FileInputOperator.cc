@@ -18,10 +18,6 @@
 
 namespace tuplex {
 
-    std::vector<tuplex::Partition*> FileInputOperator::getPartitions() {
-        return _partitions;
-    }
-
     void FileInputOperator::detectFiles(const std::string& pattern) {
         auto &logger = Logger::instance().logger("fileinputoperator");
 
@@ -542,8 +538,7 @@ namespace tuplex {
         return std::shared_ptr<LogicalOperator>(copy);
     }
 
-    FileInputOperator::FileInputOperator(tuplex::FileInputOperator &other) : _partitions(other._partitions),
-                                                                             _fileURIs(other._fileURIs),
+    FileInputOperator::FileInputOperator(tuplex::FileInputOperator &other) : _fileURIs(other._fileURIs),
                                                                              _sizes(other._sizes),
                                                                              _quotechar(other._quotechar), _delimiter(other._delimiter),
                                                                              _header(other._header),

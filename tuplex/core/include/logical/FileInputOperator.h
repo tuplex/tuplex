@@ -15,6 +15,8 @@
 #include <Partition.h>
 #include <boost/align/aligned_allocator.hpp>
 
+#include "cereal/tupes/base_class.hpp"
+
 namespace tuplex {
 
     // because processing happens with 16byte alignment, need to use aligned 16byte strings!
@@ -31,8 +33,6 @@ namespace tuplex {
      */
     class FileInputOperator : public LogicalOperator {
     private:
-        std::vector<Partition*> _partitions; // TODO: how to cereal this?
-
         std::vector<URI>      _fileURIs;
         std::vector<size_t>   _sizes;
         size_t _estimatedRowCount; // number of rows estimated for these files...
@@ -327,6 +327,27 @@ namespace tuplex {
             fop->setSchema(schema);
             return fop;
         }
+
+
+        // cereal serialization functions
+        template<class Archive> void save(Archive &ar) const {
+            ar(cereal::virtual_base_class<LogicalOperator>(this),
+                    _fileURIs, _sizes, _estimatedRowCount, _fmt, _quotechar, _delimiter, _header, _null_values, _optimizedSchema,
+                    _columnNames, _optimizedColumnNames,
+                    _columnsToSerialize, _indexBasedHints,
+                    _normalCaseRowType, _optimizedNormalCaseRowType,
+                    _sampling_time_s); // do NOT serialize samples!
+        }
+
+        template<class Archive> void load(Archive &ar) {
+            ar(cereal::virtual_base_class<LogicalOperator>(this),
+               _fileURIs, _sizes, _estimatedRowCount, _fmt, _quotechar, _delimiter, _header, _null_values, _optimizedSchema,
+               _columnNames, _optimizedColumnNames,
+               _columnsToSerialize, _indexBasedHints,
+               _normalCaseRowType, _optimizedNormalCaseRowType,
+               _sampling_time_s); // do NOT serialize samples!
+        }
+
     };
 }
 

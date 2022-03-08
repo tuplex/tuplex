@@ -1222,4 +1222,6 @@ namespace python {
     // explicit instantiation
     template void Type::load(cereal::BinaryInputArchive &archive);
     template void Type::save(cereal::BinaryOutputArchive &archive) const;
+    template void Type::load(cereal::PortableBinaryInputArchive &archive);
+    template void Type::save(cereal::PortableBinaryOutputArchive &archive) const;
 }

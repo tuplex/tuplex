@@ -1612,7 +1612,7 @@ namespace tuplex {
                 #ifndef NDEBUG
                     // validate result
                     auto decompressed_str = decompress_string(compressed_cg_str);
-                    if(decompressed_str != compressed_cg_str)
+                    if(decompressed_str != bytes_str)
                         logger.error("decompressed string doesn't match compressed one.");
                 #endif
 

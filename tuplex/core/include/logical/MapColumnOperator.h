@@ -24,12 +24,17 @@ namespace tuplex {
         std::shared_ptr<LogicalOperator> clone() override;
 
         // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
+        template<class Archive> void save(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _columnToMap, _columnToMapIndex);
+        }
+        template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<UDFOperator>(this), _columnToMap, _columnToMapIndex);
         }
     protected:
         Schema inferSchema(Schema parentSchema) override;
     public:
+        // required by cereal
+        MapColumnOperator() = default;
 
         MapColumnOperator(const std::shared_ptr<LogicalOperator>& parent,
                           const std::string& columnName,

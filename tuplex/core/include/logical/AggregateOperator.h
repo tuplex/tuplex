@@ -25,6 +25,9 @@ namespace tuplex {
 
     class AggregateOperator : public LogicalOperator {
     public:
+        // required by Cereal
+        AggregateOperator() = default;
+
         virtual ~AggregateOperator() override = default;
 
         AggregateOperator(const std::shared_ptr<LogicalOperator>& parent,
@@ -132,9 +135,14 @@ namespace tuplex {
         python::Type keyType() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyType; }
 
         // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
+        template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<LogicalOperator>(this), _aggType, _aggregateOutputType, _combiner, _aggregator, _initialValue);
         }
+
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _aggType, _aggregateOutputType, _combiner, _aggregator, _initialValue);
+        }
+
     private:
         AggregateType _aggType;
 
@@ -153,4 +161,5 @@ namespace tuplex {
 }
 
 CEREAL_REGISTER_TYPE(tuplex::AggregateOperator);
+
 #endif //TUPLEX_AGGREGATEOPERATOR_H

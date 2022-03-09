@@ -26,6 +26,9 @@ namespace tuplex {
 
     class JoinOperator : public LogicalOperator {
     public:
+        // required by cereal
+        JoinOperator() = default;
+
         JoinOperator(const std::shared_ptr<LogicalOperator> &left,
                            const std::shared_ptr<LogicalOperator> &right,
                            option<std::string> leftColumn,
@@ -175,6 +178,14 @@ namespace tuplex {
          * @param rewriteMap
          */
         virtual void projectionPushdown();
+
+        // cereal serialization functions
+        template<class Archive> void save(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _leftColumn, _rightColumn, _joinType, _leftPrefix, _leftSuffix, _rightPrefix, _rightSuffix);
+        }
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _leftColumn, _rightColumn, _joinType, _leftPrefix, _leftSuffix, _rightPrefix, _rightSuffix);
+        }
 
     private:
         // column within right dataset

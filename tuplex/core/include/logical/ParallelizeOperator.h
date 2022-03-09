@@ -30,6 +30,9 @@ namespace tuplex {
     public:
         std::shared_ptr<LogicalOperator> clone() override;
 
+        // required by cereal
+        ParallelizeOperator() = default;
+
         // this a root node
         ParallelizeOperator(const Schema& schema,
                             const std::vector<Partition*>& partitions,
@@ -67,8 +70,12 @@ namespace tuplex {
         int64_t cost() const override;
 
         // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
-            ar(::cereal::base_class<LogicalOperator>(this), _columnNames, _sample);
+        template<class Archive> void save(Archive &ar) {
+            // DO NOT INCLUDE sample here.
+            ar(::cereal::base_class<LogicalOperator>(this), _columnNames);
+        }
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _columnNames);
         }
     };
 }

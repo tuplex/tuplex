@@ -32,6 +32,10 @@ namespace tuplex {
 
         std::unordered_map<std::string, std::string> _options; // output format specific options
     public:
+
+        // required by cereal
+        FileOutputOperator() = default;
+
         FileOutputOperator(const std::shared_ptr<LogicalOperator> &parent,
                 const URI& uri,
                 const UDF& udf,
@@ -99,6 +103,15 @@ namespace tuplex {
 
         UDF& udf() { return _outputPathUDF; }
         const UDF& udf() const { return _outputPathUDF; }
+
+        // cereal serialization pair
+        template<class Archive> void save(Archive &ar) const {
+            ar(::cereal::base_class<LogicalOperator>(this), _splitSize, _numParts, _limit, _uri, _fmt, _name, _outputPathUDF, _options);
+        }
+
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _splitSize, _numParts, _limit, _uri, _fmt, _name, _outputPathUDF, _options);
+        }
     };
 }
 

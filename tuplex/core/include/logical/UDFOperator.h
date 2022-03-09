@@ -41,7 +41,7 @@ namespace tuplex {
     private:
         std::vector<std::string> _columnNames;
     public:
-        UDFOperator() = delete;
+        UDFOperator() = default; // required by cereal
         UDFOperator(const std::shared_ptr<LogicalOperator> &parent, const UDF& udf,
                 const std::vector<std::string>& columnNames=std::vector<std::string>());
 
@@ -61,7 +61,10 @@ namespace tuplex {
         void setColumns(const std::vector<std::string>& columns) { assert(_columnNames.empty() || _columnNames.size() == columns.size()); _columnNames = columns; }
 
         // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
+        template<class Archive> void save(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _udf, _columnNames);
+        }
+        template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<LogicalOperator>(this), _udf, _columnNames);
         }
     };

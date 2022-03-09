@@ -17,6 +17,10 @@
 namespace tuplex {
     class FilterOperator : public UDFOperator {
     public:
+
+        // required by cereal
+        FilterOperator() = default;
+
         FilterOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF& udf, const std::vector<std::string>& columnNames);
 
         std::string name() override { return "filter"; }
@@ -41,9 +45,13 @@ namespace tuplex {
         bool retype(const std::vector<python::Type>& rowTypes) override;
 
         // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
+        template<class Archive> void save(Archive &ar) {
             ar(::cereal::base_class<UDFOperator>(this), _good);
         }
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _good);
+        }
+
     private:
         bool _good;
     };

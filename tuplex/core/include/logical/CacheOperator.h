@@ -21,6 +21,9 @@ namespace tuplex {
      */
     class CacheOperator : public LogicalOperator {
     public:
+        // required by cereal
+        CacheOperator() : _memoryLayout(Schema::MemoryLayout::ROW), _cached(false) {}
+
         virtual ~CacheOperator() override = default;
 
         CacheOperator(const std::shared_ptr<LogicalOperator> &parent, bool storeSpecialized,
@@ -95,14 +98,18 @@ namespace tuplex {
         bool storeSpecialized() const { return _storeSpecialized; }
 
         // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
+        template<class Archive> void save(Archive &ar) {
+            // Do not serialize cached stuff.
             ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalCaseRowCount, _generalCaseRowCount);
         }
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalCaseRowCount, _generalCaseRowCount);
+        }
+
+
     protected:
         void copyMembers(const LogicalOperator* other) override;
     private:
-
-        CacheOperator() : _memoryLayout(Schema::MemoryLayout::ROW), _cached(false) {}
 
         Schema::MemoryLayout _memoryLayout;
         Schema _optimizedSchema;
@@ -140,4 +147,5 @@ namespace tuplex {
 }
 
 CEREAL_REGISTER_TYPE(tuplex::CacheOperator);
+
 #endif //TUPLEX_CACHEOPERATOR_H

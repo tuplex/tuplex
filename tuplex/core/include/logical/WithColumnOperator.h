@@ -34,6 +34,9 @@ namespace tuplex {
     protected:
         Schema inferSchema(Schema parentSchema) override;
     public:
+        // required by cereal
+        WithColumnOperator() = default;
+
         WithColumnOperator(const std::shared_ptr<LogicalOperator>& parent,
         const std::vector<std::string>& columnNames,
         const std::string& columnName,
@@ -66,6 +69,14 @@ namespace tuplex {
         }
 
         bool retype(const std::vector<python::Type>& rowTypes=std::vector<python::Type>()) override;
+
+        template<class Archive> void save(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _newColumn, _columnToMapIndex);
+        }
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _newColumn, _columnToMapIndex);
+        }
+
     };
 }
 

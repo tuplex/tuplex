@@ -22,6 +22,10 @@ namespace tuplex {
         std::shared_ptr<LogicalOperator> clone() override;
 
     public:
+
+        // required by cereal
+        TakeOperator() = default;
+
         TakeOperator(const std::shared_ptr<LogicalOperator>& parent, const int64_t numElements);
 
         std::string name() override {
@@ -47,7 +51,10 @@ namespace tuplex {
         std::vector<std::string> columns() const override;
 
         // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
+        template<class Archive> void save(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _limit);
+        }
+        template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<LogicalOperator>(this), _limit);
         }
     };

@@ -18,7 +18,7 @@
 namespace tuplex {
     class IgnoreOperator : public LogicalOperator, public ExceptionOperator<IgnoreOperator> {
     public:
-        //IgnoreOperator() = delete;
+        IgnoreOperator() = default;
         virtual ~IgnoreOperator() override = default;
 
         IgnoreOperator(const std::shared_ptr<LogicalOperator>& parent, const ExceptionCode& ec) : LogicalOperator(parent) {
@@ -57,7 +57,11 @@ namespace tuplex {
         std::vector<std::string> columns() const override { return parent()->columns(); }
 
         // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
+        template<class Archive> void save(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), ::cereal::base_class<ExceptionOperator<IgnoreOperator>>(this));
+        }
+
+        template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<LogicalOperator>(this), ::cereal::base_class<ExceptionOperator<IgnoreOperator>>(this));
         }
     };

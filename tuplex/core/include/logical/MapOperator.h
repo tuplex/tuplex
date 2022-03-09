@@ -22,6 +22,9 @@ namespace tuplex {
     public:
         std::shared_ptr<LogicalOperator> clone() override;
 
+        // required by cereal
+        MapOperator() = default;
+
         MapOperator(const std::shared_ptr<LogicalOperator>& parent,
                     const UDF& udf,
                     const std::vector<std::string>& columnNames);
@@ -86,9 +89,13 @@ namespace tuplex {
         bool retype(const std::vector<python::Type>& rowTypes) override;
 
         // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
+        template<class Archive> void save(Archive &ar) {
             ar(::cereal::base_class<UDFOperator>(this), _outputColumns, _name);
         }
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _outputColumns, _name);
+        }
+
     };
 }
 

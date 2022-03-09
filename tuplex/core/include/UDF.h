@@ -66,10 +66,14 @@ namespace tuplex {
          */
         bool hasPythonObjectTyping() const;
     public:
+
         UDF(const std::string& pythonLambdaStr,
             const std::string& pickledCode="",
             const ClosureEnvironment& globals=ClosureEnvironment(),
             const codegen::CompilePolicy& policy=codegen::DEFAULT_COMPILE_POLICY);
+
+        // required by cereal
+        UDF() : UDF("") {}
 
         UDF(const UDF &other) : _ast(other._ast),
                                 _isCompiled(other._isCompiled),

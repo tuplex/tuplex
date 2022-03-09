@@ -694,6 +694,22 @@ namespace python {
             return makeTupleType(std::vector<python::Type>{type});
     }
 
+    std::unordered_map<std::string, Type> TypeFactory::get_primitive_keywords() const {
+        std::unordered_map<std::string, Type> keywords;
+        for(auto keyval : _typeMap) {
+            Type t;
+            t._hash = keyval.first;
+            if(keyval.second._type == AbstractType::PRIMITIVE)
+                keywords[keyval.second._desc] = t;
+        }
+
+        // add both None and null as NULLVALUE
+        keywords["None"] = Type::NULLVALUE;
+        keywords["null"] = Type::NULLVALUE;
+
+        return keywords;
+    }
+
     Type decodeType(const std::string& s) {
 
         if(s.length() == 0)
@@ -710,10 +726,12 @@ namespace python {
         std::stack<bool> sqBracketIsListStack;
         std::stack<std::vector<python::Type> > expressionStack;
 
+        bool funcTypeSeen = false;
+
         while(pos < s.length()) {
 
-            // parentheses
-            if(s[pos] == '(') {
+            // check parentheses
+           if(s[pos] == '(') {
                 numOpenParentheses++;
                 expressionStack.push(std::vector<python::Type>());
                 pos++;
@@ -834,11 +852,22 @@ namespace python {
                 else
                     expressionStack.top().push_back(t);
                 pos += 8;
+            } else if(s.substr(pos, 7).compare("unknown") == 0) {
+                Type t = Type::UNKNOWN;
+                if(expressionStack.empty())
+                    expressionStack.push(std::vector<python::Type>({t}));
+                else
+                    expressionStack.top().push_back(t);
+                pos += 7;
             } else if (s.substr(pos, 7).compare("Option[") == 0) {
                 expressionStack.push(std::vector<python::Type>());
                 sqBracketIsListStack.push(false);
                 numOpenSqBrackets++;
                 pos += 7;
+            } else if(s.substr(pos, 2).compare("->") == 0) {
+                // this means a function type was encountered! Always exists of 2
+                funcTypeSeen = true;
+                pos += 2;
             } else if(s[pos] == ',' || s[pos] == ' ' || s[pos] == '\t' || s[pos] == '\n') {
                 // skip ,
                 pos++;
@@ -855,6 +884,8 @@ namespace python {
         assert(expressionStack.top().size() > 0);
         return expressionStack.top().front();
     }
+
+
 
     bool tupleElementsHaveSameType(const python::Type& tupleType) {
         assert(tupleType.isTupleType());
@@ -1177,20 +1208,178 @@ namespace python {
         return TypeFactory::instance().createOrGetDelayedParsingType(underlying);
     }
 
+
     Type Type::decode(const std::string& s) {
         if(s == "uninitialized") {
             Type t;
             t._hash = -1;
             return t;
         }
-        return decodeType(s);
+
+        // decoder fitting encode function below, super simple.
+        if(s.length() == 0)
+            return Type::UNKNOWN;
+
+        // fetch primitive keywords for decoding
+        size_t min_keyword_length = s.length();
+        size_t max_keyword_length = 0;
+        std::unordered_map<std::string, Type> keywords = TypeFactory::instance().get_primitive_keywords();
+        for(const auto& kv : keywords) {
+            min_keyword_length = std::max(min_keyword_length, kv.first.length());
+            max_keyword_length = std::min(max_keyword_length, kv.first.length());
+        }
+
+        // go through string
+        int numOpenParentheses = 0;
+        int numOpenBrackets = 0;
+        int numClosedParentheses = 0;
+        int numClosedBrackets = 0;
+        int numOpenSqBrackets = 0;
+        int numClosedSqBrackets = 0;
+        int pos = 0;
+        std::stack<std::vector<python::Type> > expressionStack;
+        std::stack<std::string> compoundStack;
+
+        while(pos < s.length()) {
+
+            // check against all keywords
+            bool keyword_found = false;
+            Type keyword_type = Type::UNKNOWN;
+            std::string keyword = "";
+            for(unsigned i = min_keyword_length; i <= max_keyword_length && i < s.length() - pos + 1; ++i) {
+                auto it = keywords.find(s.substr(pos, i));
+                if(it != keywords.end()) {
+                    // found keyword, append
+                    keyword_type = it->second;
+                    keyword = it->first;
+                    keyword_found = true;
+                    break;
+                }
+            }
+
+            // check first for keyword, then for parentheses
+            if(keyword_found) {
+                if(expressionStack.empty()) {
+                    expressionStack.push(std::vector<python::Type>({keyword_type}));
+                    compoundStack.push("primitive");
+                }
+                else
+                    expressionStack.top().push_back(keyword_type);
+                pos += keyword.size(); // should be 3 for i64 e.g.
+            } else if(s[pos] == '[') {
+                // should never get entered??
+                numOpenSqBrackets++;
+                expressionStack.push(std::vector<python::Type>());
+                pos++;
+            } else if(s[pos] == ']') {
+              numClosedSqBrackets++;
+              if(numOpenSqBrackets < numClosedSqBrackets) {
+                  Logger::instance().defaultLogger().error("square brackets [...] mismatch in encoded typestr '" + s + "'");
+                  return Type::UNKNOWN;
+              }
+                auto topVec = expressionStack.top();
+                auto compound_type = compoundStack.top();
+                Type t;
+                if("List" == compound_type) {
+                    t = TypeFactory::instance().createOrGetListType(topVec[0]);
+                } else if("Tuple" == compound_type) {
+                    t = TypeFactory::instance().createOrGetTupleType(topVec);
+                } else if ("Option" == compound_type) {
+                    t = TypeFactory::instance().createOrGetOptionType(topVec[0]); // order?? --> might need reverse...
+                } else if("Function" == compound_type) {
+                    t = TypeFactory::instance().createOrGetFunctionType(topVec[0], topVec[1]); // order?? --> might need revser?
+                } else if("Dict" == compound_type) {
+                    t = TypeFactory::instance().createOrGetDictionaryType(topVec[0], topVec[1]); // order?? --> might need revser?
+                } else {
+                    Logger::instance().defaultLogger().error("Unknown compound type '" + compound_type + "' encountered, can't create compound type. Returning unknown.");
+                    return Type::UNKNOWN;
+                }
+                compoundStack.pop();
+                expressionStack.pop();
+
+                if(expressionStack.empty()) {
+                    expressionStack.push({t});
+                    compoundStack.push("primitive");
+                }
+                else
+                    expressionStack.top().push_back(t);
+                pos++;
+            } else if (s.substr(pos, 7).compare("Option[") == 0) {
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Option");
+                numOpenSqBrackets++;
+                pos += 7;
+            }else if (s.substr(pos, 5).compare("Tuple[") == 0) {
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Tuple");
+                numOpenSqBrackets++;
+                pos += 5;
+            } else if (s.substr(pos, 4).compare("Dict[") == 0) {
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Dict");
+                numOpenSqBrackets++;
+                pos += 4;
+            } else if (s.substr(pos, 8).compare("Function[") == 0) {
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Function");
+                numOpenSqBrackets++;
+                pos += 8;
+            } else if (s.substr(pos, 4).compare("List[") == 0) {
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("List");
+                numOpenSqBrackets++;
+                pos += 4;
+            } else if(s[pos] == ',' || s[pos] == ' ' || s[pos] == '\t' || s[pos] == '\n') {
+                // skip ,
+                pos++;
+            } else {
+                std::stringstream ss;
+                ss<<"unknown token '"<<s[pos]<<"' in encoded type str '"<<s<<"' encountered.";
+                Logger::instance().defaultLogger().error(ss.str());
+                return Type::UNKNOWN;
+            }
+        }
+
+        assert(expressionStack.size() > 0);
+        assert(expressionStack.top().size() > 0);
+        return expressionStack.top().front();
     }
 
     // TODO: more efficient encoding using binary representation?
     std::string Type::encode() const {
-        if(_hash >= 0)
-            return desc(); // desc should have all info stored?? => could do more efficient encoding/decoding...
-        else
+        if(_hash >= 0) {
+            // use super simple encoding scheme here.
+            // -> i.e. primitives use desc
+            // else, create compound type using <Name>[...]
+            // this allows for easy & quick decoding.
+            // => could even use quicker names for encoding the types
+            if(isPrimitiveType())
+                return desc();
+            else {
+                if(isOptionType())
+                    return "Option[" + elementType().encode() + "]";
+                else if(isTupleType()) {
+                    std::stringstream ss;
+                    ss<<"Tuple[";
+                    for(unsigned i = 0; i < parameters().size(); ++i) {
+                        ss<<parameters()[i].encode();
+                        if(i != parameters().size() - 1)
+                            ss<<",";
+                    }
+                    ss<<"]";
+                    return ss.str();
+                } else if(isListType()) {
+                    return "List[" + elementType().encode() + "]";
+                } else if(isDictionaryType()) {
+                    return "Dict[" + keyType().encode() + "," + valueType().encode() + "]";
+                } else if(isFunctionType()) {
+                    return "Function[" + getParamsType().encode() + "," + getReturnType().encode() + "]";
+                } else {
+                    Logger::instance().defaultLogger().error("Unknown type " + desc() + " encountered, can't encode. Using unknown.");
+                    return Type::UNKNOWN.encode();
+                }
+            }
+        } else
             return "uninitialized";
     }
 

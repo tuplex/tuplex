@@ -508,6 +508,12 @@ namespace python {
             return theoneandonly;
         }
 
+        /*!
+         * returns a lookup map of all registered primitive type keywords (they can be created dynamically...)
+         * @return map of keywords -> type.
+         */
+        std::unordered_map<std::string, Type> get_primitive_keywords() const;
+
         Type createOrGetPrimitiveType(const std::string& name, const std::vector<Type>& baseClasses=std::vector<Type>{});
 
         // right now, no tuples or other weird types...

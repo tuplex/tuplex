@@ -519,7 +519,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 //
 //    // test:
 //    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_10.csv";
-    bool use_lambda = true;
+    bool use_lambda = false;
     if(!use_lambda)
         input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_*.csv";
 

@@ -70,7 +70,7 @@ namespace tuplex {
         int64_t cost() const override;
 
         // cereal serialization functions
-        template<class Archive> void save(Archive &ar) {
+        template<class Archive> void save(Archive &ar) const {
             // DO NOT INCLUDE sample here.
             ar(::cereal::base_class<LogicalOperator>(this), _columnNames);
         }

@@ -24,7 +24,7 @@ namespace tuplex {
         std::shared_ptr<LogicalOperator> clone() override;
 
         // cereal serialization functions
-        template<class Archive> void save(Archive &ar) {
+        template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<UDFOperator>(this), _columnToMap, _columnToMapIndex);
         }
         template<class Archive> void load(Archive &ar) {

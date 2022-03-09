@@ -89,7 +89,7 @@ namespace tuplex {
         bool retype(const std::vector<python::Type>& rowTypes) override;
 
         // cereal serialization functions
-        template<class Archive> void save(Archive &ar) {
+        template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<UDFOperator>(this), _outputColumns, _name);
         }
         template<class Archive> void load(Archive &ar) {

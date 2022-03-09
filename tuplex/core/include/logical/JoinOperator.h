@@ -73,11 +73,6 @@ namespace tuplex {
 
         // overwrite cost (should be estimated better, for now simply multiply)
 
-        // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
-            ar(::cereal::base_class<LogicalOperator>(this), _leftColumn, _rightColumn, _joinType,
-            _leftPrefix, _leftSuffix, _rightPrefix, _rightSuffix, _columns);
-        }
     private:
         option<std::string> _leftColumn;  // column within left dataset
         option<std::string> _rightColumn;
@@ -180,7 +175,7 @@ namespace tuplex {
         virtual void projectionPushdown();
 
         // cereal serialization functions
-        template<class Archive> void save(Archive &ar) {
+        template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<LogicalOperator>(this), _leftColumn, _rightColumn, _joinType, _leftPrefix, _leftSuffix, _rightPrefix, _rightSuffix);
         }
         template<class Archive> void load(Archive &ar) {

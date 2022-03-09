@@ -98,7 +98,7 @@ namespace tuplex {
         bool storeSpecialized() const { return _storeSpecialized; }
 
         // cereal serialization functions
-        template<class Archive> void save(Archive &ar) {
+        template<class Archive> void save(Archive &ar) const {
             // Do not serialize cached stuff.
             ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalCaseRowCount, _generalCaseRowCount);
         }

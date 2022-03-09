@@ -51,7 +51,7 @@ namespace tuplex {
         std::vector<std::string> columns() const override;
 
         // cereal serialization functions
-        template<class Archive> void save(Archive &ar) {
+        template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<LogicalOperator>(this), _limit);
         }
         template<class Archive> void load(Archive &ar) {

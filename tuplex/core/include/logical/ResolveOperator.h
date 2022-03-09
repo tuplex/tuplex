@@ -31,6 +31,10 @@ namespace tuplex {
         // instead of taking the output of the parent, it takes its input!
         Schema inferSchema(Schema parentSchema) override;
     public:
+
+        // required by cereal
+        ResolveOperator() = default;
+
         ResolveOperator(const std::shared_ptr<LogicalOperator>& parent,
                 const ExceptionCode& ecToResolve,
                 const UDF& udf,
@@ -48,7 +52,10 @@ namespace tuplex {
         void rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) override;
 
         // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
+        template<class Archive> void save(Archive &ar) const {
+            ar(::cereal::base_class<UDFOperator>(this), ::cereal::base_class<ExceptionOperator<ResolveOperator>>(this));
+        }
+        template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<UDFOperator>(this), ::cereal::base_class<ExceptionOperator<ResolveOperator>>(this));
         }
     };

@@ -21,6 +21,8 @@
 #include "StatUtils.h"
 #include "optional.h"
 
+#include "compression.h"
+
 #include <Logger.h>
 
 #include <boost/uuid/uuid.hpp>

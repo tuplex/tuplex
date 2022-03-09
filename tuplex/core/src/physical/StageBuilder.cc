@@ -1595,7 +1595,7 @@ namespace tuplex {
 
                 // use test-wise cereal to encode the context (i.e., the stage) to send
                 // over to individual executors for specialization.
-                std::ostringstream oss;
+                std::ostringstream oss(std::stringstream::binary000);
                 {
                     cereal::BinaryOutputArchive ar(oss);
                     ar(ctx);
@@ -1603,7 +1603,10 @@ namespace tuplex {
                 }
                 auto bytes_str = oss.str();
                 logger.info("Serialized CodeGeneration Context to " + sizeToMemString(bytes_str.size()));
-
+                // compress this now using zip or so...
+                // https://gist.github.com/gomons/9d446024fbb7ccb6536ab984e29e154a
+                auto compressed_cg_str = compress_string(bytes_str);
+                logger.info("ZLIB compressed CodeGeneration Context is: " + sizeToMemString(compressed_cg_str.size()));
                 auto json_str = ctx.toJSON();
                 logger.info("serialized stage as JSON string (TODO: make this better, more efficient, ...");
                 stage->_encodedData = json_str; // hack

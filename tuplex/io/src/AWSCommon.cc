@@ -50,39 +50,39 @@ private:
 
 };
 
-bool initAWSSDK() {
-    if(!isAWSInitialized) {
-	      std::cout<<"AWS SDK not yet initialized, initializing..."<<std::endl;
-        Aws::SDKOptions options;
+namespace tuplex {
+
+    bool initAWSSDK() {
+        if(!isAWSInitialized) {
+            std::cout<<"AWS SDK not yet initialized, initializing..."<<std::endl;
+            Aws::SDKOptions options;
 
 //        // hookup to Tuplex logger...
 //        // --> https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/logging.html
 //        options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
 
-        // @TODO: add tuplex loggers
-        // => https://sdk.amazonaws.com/cpp/api/LATEST/class_aws_1_1_utils_1_1_logging_1_1_log_system_interface.html
+            // @TODO: add tuplex loggers
+            // => https://sdk.amazonaws.com/cpp/api/LATEST/class_aws_1_1_utils_1_1_logging_1_1_log_system_interface.html
 
-        // note: AWSSDk uses curl by default, can disable curl init here via https://sdk.amazonaws.com/cpp/api/LATEST/struct_aws_1_1_http_options.html
-        Aws::InitAPI(options);
+            // note: AWSSDk uses curl by default, can disable curl init here via https://sdk.amazonaws.com/cpp/api/LATEST/struct_aws_1_1_http_options.html
+            Aws::InitAPI(options);
 
-        // init logging
+            // init logging
 //        Aws::Utils::Logging::InitializeAWSLogging(
 //                Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>(
 //                    "tuplex",
 //                    Aws::Utils::Logging::LogLevel::Trace,
 //                    "aws sdk"));
 #ifndef NDEBUG
-        auto log_system = Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>("tuplex", Aws::Utils::Logging::LogLevel::Trace);
-        Aws::Utils::Logging::InitializeAWSLogging(log_system);
+            auto log_system = Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>("tuplex", Aws::Utils::Logging::LogLevel::Trace);
+            Aws::Utils::Logging::InitializeAWSLogging(log_system);
 #endif
-        isAWSInitialized = true;
+            isAWSInitialized = true;
+        }
+
+        std::cout<<"AWS SDK already initialized, skipping"<<std::endl;
+        return isAWSInitialized;
     }
-
-    std::cout<<"AWS SDK already initialized, skipping"<<std::endl;
-    return isAWSInitialized;
-}
-
-namespace tuplex {
 
     static Aws::String get_default_region() {
 

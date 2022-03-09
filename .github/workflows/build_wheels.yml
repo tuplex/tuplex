@@ -63,47 +63,47 @@ jobs:
             ./wheelhouse/*.version
             ./wheelhouse/test_pypi.sh
 
-  # cf. https://github.com/pypa/cibuildwheel/blob/main/examples/github-deploy.yml
-  # potentially also create a sdist.
-  upload_pypi:
-    needs: [ build_wheels ]
-    runs-on: ubuntu-20.04
-    # remove repository url to publish to default pypi.
-    # upload to PyPI on every tag starting with 'v' ONLY on official tuplex repo.
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') && github.repository == 'tuplex/tuplex'
-    # alternatively, to publish when a GitHub Release is created, use the following rule:
-    # if: github.event_name == 'release' && github.event.action == 'published'
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: artifact
-          path: dist
-
-      - name: remove test files
-        run: rm dist/*.version && rm dist/*.sh
-
-      - uses: pypa/gh-action-pypi-publish@v1.4.2
-        with:
-          user: ${{ secrets.pypi_user }}
-          password: ${{ secrets.pypi_password }}
-
-  upload_testpypi:
-    needs: [ build_wheels ]
-    runs-on: ubuntu-20.04
-    # inverse condition, always create test release, any repo with passwords can work with this.
-    # note, pull requests are not sharing secrets...
-    if: github.event_name != 'pull_request' && (github.event_name != 'push' || startsWith(github.event.ref, 'refs/tags/v') != true)
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: artifact
-          path: dist
-
-      - name: reorganize
-        run: mkdir -p scripts && mv dist/*.sh ./scripts/ && mv dist/*.version ./scripts/ && chmod +x ./scripts/test_pypi.sh
-
-      - uses: pypa/gh-action-pypi-publish@v1.4.2
-        with:
-          user: ${{ secrets.pypi_user }}
-          password: ${{ secrets.pypi_password }}
-          repository_url: https://test.pypi.org/legacy/ # uncomment for test purposes
+  # # cf. https://github.com/pypa/cibuildwheel/blob/main/examples/github-deploy.yml
+  # # potentially also create a sdist.
+  # upload_pypi:
+  #   needs: [ build_wheels ]
+  #   runs-on: ubuntu-20.04
+  #   # remove repository url to publish to default pypi.
+  #   # upload to PyPI on every tag starting with 'v' ONLY on official tuplex repo.
+  #   if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') && github.repository == 'tuplex/tuplex'
+  #   # alternatively, to publish when a GitHub Release is created, use the following rule:
+  #   # if: github.event_name == 'release' && github.event.action == 'published'
+  #   steps:
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: artifact
+  #         path: dist
+  #
+  #     - name: remove test files
+  #       run: rm dist/*.version && rm dist/*.sh
+  #
+  #     - uses: pypa/gh-action-pypi-publish@v1.4.2
+  #       with:
+  #         user: ${{ secrets.pypi_user }}
+  #         password: ${{ secrets.pypi_password }}
+  #
+  # upload_testpypi:
+  #   needs: [ build_wheels ]
+  #   runs-on: ubuntu-20.04
+  #   # inverse condition, always create test release, any repo with passwords can work with this.
+  #   # note, pull requests are not sharing secrets...
+  #   if: github.event_name != 'pull_request' && (github.event_name != 'push' || startsWith(github.event.ref, 'refs/tags/v') != true)
+  #   steps:
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: artifact
+  #         path: dist
+  # 
+  #     - name: reorganize
+  #       run: mkdir -p scripts && mv dist/*.sh ./scripts/ && mv dist/*.version ./scripts/ && chmod +x ./scripts/test_pypi.sh
+  #
+  #     - uses: pypa/gh-action-pypi-publish@v1.4.2
+  #       with:
+  #         user: ${{ secrets.pypi_user }}
+  #         password: ${{ secrets.pypi_password }}
+  #         repository_url: https://test.pypi.org/legacy/ # uncomment for test purposes

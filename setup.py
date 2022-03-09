@@ -464,6 +464,8 @@ class CMakeBuild(build_ext):
         if not os.path.isfile(tuplexso_path):
             print('Could not find file tuplex.so under {}, searching for it...'.format(tuplexso_path))
             paths = find_files("*tuplex*.so", self.build_temp)
+            # filter out runtime
+            paths = list(filter(lambda p: 'runtime' not in os.path.basename(p), paths))
             assert len(paths) > 0, 'did not find any file under {}'.format(self.build_temp)
             print('Found following paths: {}'.format(''.join(paths)))
             print('Using {}'.format(paths[0]))
@@ -594,7 +596,7 @@ def tplx_package_data():
 # logic and declaration, and simpler if you include description/version in a file.
 setup(name="tuplex",
     python_requires='>=3.7.0',
-    version="0.3.2rc3",
+    version="0.3.2",
     author="Leonhard Spiegelberg",
     author_email="tuplex@cs.brown.edu",
     description="Tuplex is a novel big data analytics framework incorporating a Python UDF compiler based on LLVM "

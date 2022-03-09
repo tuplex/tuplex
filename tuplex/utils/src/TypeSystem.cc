@@ -1224,8 +1224,8 @@ namespace python {
         size_t max_keyword_length = 0;
         std::unordered_map<std::string, Type> keywords = TypeFactory::instance().get_primitive_keywords();
         for(const auto& kv : keywords) {
-            min_keyword_length = std::max(min_keyword_length, kv.first.length());
-            max_keyword_length = std::min(max_keyword_length, kv.first.length());
+            min_keyword_length = std::min(min_keyword_length, kv.first.length());
+            max_keyword_length = std::max(max_keyword_length, kv.first.length());
         }
 
         // go through string
@@ -1308,26 +1308,26 @@ namespace python {
                 compoundStack.push("Option");
                 numOpenSqBrackets++;
                 pos += 7;
-            }else if (s.substr(pos, 5).compare("Tuple[") == 0) {
+            } else if (s.substr(pos, 6).compare("Tuple[") == 0) {
                 expressionStack.push(std::vector<python::Type>());
                 compoundStack.push("Tuple");
                 numOpenSqBrackets++;
-                pos += 5;
-            } else if (s.substr(pos, 4).compare("Dict[") == 0) {
+                pos += 6;
+            } else if (s.substr(pos, 5).compare("Dict[") == 0) {
                 expressionStack.push(std::vector<python::Type>());
                 compoundStack.push("Dict");
                 numOpenSqBrackets++;
-                pos += 4;
-            } else if (s.substr(pos, 8).compare("Function[") == 0) {
+                pos += 5;
+            } else if (s.substr(pos, 9).compare("Function[") == 0) {
                 expressionStack.push(std::vector<python::Type>());
                 compoundStack.push("Function");
                 numOpenSqBrackets++;
-                pos += 8;
-            } else if (s.substr(pos, 4).compare("List[") == 0) {
+                pos += 9;
+            } else if (s.substr(pos, 5).compare("List[") == 0) {
                 expressionStack.push(std::vector<python::Type>());
                 compoundStack.push("List");
                 numOpenSqBrackets++;
-                pos += 4;
+                pos += 5;
             } else if(s[pos] == ',' || s[pos] == ' ' || s[pos] == '\t' || s[pos] == '\n') {
                 // skip ,
                 pos++;

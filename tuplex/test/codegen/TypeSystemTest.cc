@@ -205,4 +205,10 @@ TEST(TypeSys, NewTypEncodeDecode) {
     auto encoded_str = row_type.encode();
     auto t = python::Type::decode(encoded_str);
     EXPECT_EQ(t.desc(), row_type.desc());
+
+    // check func has the right order
+    auto func_type = python::Type::makeFunctionType(row_type, python::Type::makeOptionType(python::Type::makeTupleType({python::Type::F64, python::Type::STRING})));
+    encoded_str = func_type.encode();
+    t = python::Type::decode(encoded_str);
+    EXPECT_EQ(t.desc(), func_type.desc());
 }

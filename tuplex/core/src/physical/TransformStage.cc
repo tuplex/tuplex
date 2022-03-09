@@ -130,99 +130,23 @@ namespace tuplex {
         if (partitions.empty() && interpreterRows.empty() && generalCase.empty())
             _rs = emptyResultSet();
         else {
-            std::vector<Partition *> limitedPartitions, limitedTailPartitions;
             auto schema = Schema::UNKNOWN;
 
             if(!partitions.empty()) {
+                size_t totalRowsCount = 0;
                 schema = partitions.front()->schema();
                 for (auto partition : partitions) {
                     assert(schema == partition->schema());
+                    totalRowsCount += partition->getNumRows();
                 }
 
-                // check top output limit, adjust partitions if necessary
-                size_t numTopOutputRows = 0;
-                Partition* lastTopPart = nullptr;
-                size_t clippedTop = 0;
-                for (auto partition : partitions) {
-                    numTopOutputRows += partition->getNumRows();
-                    lastTopPart = partition;
-                    if (numTopOutputRows >= outputTopLimit()) {
-                        // clip last partition & leave loop
-                        clippedTop = outputTopLimit() - (numTopOutputRows - partition->getNumRows());
-                        assert(clippedTop <= partition->getNumRows());
-                        break;
-                    } else if (partition == *partitions.end()) {
-                        // last partition, mark full row, but don't put to output set yet to avoid double put
-                        clippedTop = partition->getNumRows();
-                        break;
-                    } else {
-                        // put full partition to output set
-                        limitedPartitions.push_back(partition);
-                    }
+                if (hasOutputLimit()) {
+                    assert(totalRowsCount == _outputTopLimit + _outputBottomLimit);
                 }
-
-                // check the bottom output limit, adjust partitions if necessary
-                size_t numBottomOutputRows = 0;
-                size_t clippedBottom = 0;
-                for (auto it = partitions.rbegin(); it != partitions.rend(); it++) {
-                    auto partition = *it;
-                    numBottomOutputRows += partition->getNumRows();
-
-                    if (partition == lastTopPart) {
-                        // the bottom and the top partitions are overlapping
-                        clippedBottom = outputBottomLimit() - (numBottomOutputRows - partition->getNumRows());
-                        if (clippedTop + clippedBottom >= partition->getNumRows()) {
-                            // if top and bottom range intersect, use full partitions
-                            clippedTop = partition->getNumRows();
-                            clippedBottom = 0;
-                        }
-                        break;
-                    } else if (numBottomOutputRows >= outputBottomLimit()) {
-                        // clip last partition & leave loop
-                        auto clipped = outputBottomLimit() - (numTopOutputRows - partition->getNumRows());
-                        assert(clipped <= partition->getNumRows());
-                        partition->setNumSkip(partition->getNumRows() - clippedBottom);
-                        partition->setNumRows(clipped);
-                        if (clipped > 0)
-                            limitedTailPartitions.push_back(partition);
-                        break;
-                    } else {
-                        // put full partition to output set
-                        limitedTailPartitions.push_back(partition);
-                    }
-                }
-
-                // push the middle partition
-                if (lastTopPart != nullptr && (clippedTop > 0 || clippedBottom > 0)) {
-                    assert(clippedTop + clippedBottom <= lastTopPart->getNumRows());
-
-                    // TODO(march): to work on this (split into two partitions)
-                    // split into two partitions with both top and bottom are in the same partition
-                    Partition* lastBottomPart = nullptr;
-                    if (clippedBottom != 0) {
-                        lastBottomPart = new Partition(lastTopPart);
-                        lastBottomPart->setNumSkip(lastBottomPart->getNumRows() - clippedBottom);
-                        lastBottomPart->setNumRows(clippedBottom);
-                    }
-
-                    lastTopPart->setNumRows(clippedTop);
-
-                    limitedPartitions.push_back(lastTopPart);
-
-                    if (lastBottomPart != nullptr) {
-                        limitedPartitions.push_back(lastBottomPart);
-                    }
-                }
-
-                // merge the head and tail partitions
-                std::reverse(limitedTailPartitions.begin(), limitedTailPartitions.end());
-                limitedPartitions.insert(limitedPartitions.end(), limitedTailPartitions.begin(), limitedTailPartitions.end());
             }
 
             // put ALL partitions to result set
-            // TODO(march): handle overlapping case
-            // TODO(march): maybe do top/bottom limit at the level instead?
-            _rs = std::make_shared<ResultSet>(schema, limitedPartitions,
+            _rs = std::make_shared<ResultSet>(schema, partitions,
                                               generalCase, partitionToExceptionsMap, interpreterRows,
                                               outputTopLimit() + outputBottomLimit());
         }

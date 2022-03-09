@@ -22,9 +22,14 @@ namespace tuplex {
     static std::atomic_int64_t g_totalTopOutputRows;
     static std::atomic_int64_t g_totalBottomOutputRows;
 
+    // mapping from order number -> row count if the task is finished
+    static std::mutex g_rowsDoneMutex;
+    static std::map<size_t, size_t> g_rowsDone;
+
     void TransformTask::resetOutputLimitCounter() {
         g_totalTopOutputRows = 0;
         g_totalBottomOutputRows = 0;
+        g_rowsDone.clear();
     }
 }
 
@@ -42,23 +47,9 @@ extern "C" {
     }
 
     static int64_t limited_w2mCallback(tuplex::TransformTask* task, uint8_t* buf, int64_t bufSize) {
-        // i.e. check here how many output rows, if already limit reached - jump to goto!
-        // TODO(march): comment this out
-        if(tuplex::g_totalTopOutputRows >= task->output_top_limit()) {
-            return tuplex::ecToI64(tuplex::ExceptionCode::OUTPUT_LIMIT_REACHED);
-        }
-
         assert(task);
         assert(dynamic_cast<tuplex::TransformTask*>(task));
-        auto rc = task->writeRowToMemory(buf, bufSize);
-        if(0 == rc)
-            tuplex::g_totalTopOutputRows++;
-
-        // i.e. check here how many output rows, if already limit reached - jump to goto!
-        if(tuplex::g_totalTopOutputRows >= task->output_top_limit()) {
-            return tuplex::ecToI64(tuplex::ExceptionCode::OUTPUT_LIMIT_REACHED);
-        }
-        return rc;
+        return task->writeRowToMemory(buf, bufSize);
     }
 
     static int64_t limited_w2fCallback(tuplex::TransformTask* task, uint8_t* buf, int64_t bufSize) {
@@ -623,9 +614,36 @@ namespace tuplex {
 
         auto functor = reinterpret_cast<codegen::read_block_f>(_functor);
 
-        // TODO(march): question here?
         // go over all input partitions.
         for(const auto &inputPartition : _inputPartitions) {
+            size_t numTopCompleted = 0;
+            size_t numBottomCompleted = 0;
+            bool isTopLimitReached = false;
+            bool isBottomLimitReached = false;
+
+            tuplex::g_rowsDoneMutex.lock();
+            for (size_t i = 0; tuplex::g_rowsDone.count(i) != 0; i++) {
+                numTopCompleted += tuplex::g_rowsDone[i];
+                if (numTopCompleted >= _outTopLimit) {
+                    isTopLimitReached = true;
+                    break;
+                }
+            }
+            // TODO: what is the max task number here
+            for (size_t i = 100; tuplex::g_rowsDone.count(i) != 0; i--) {
+                numBottomCompleted += tuplex::g_rowsDone[i];
+                if (numBottomCompleted >= _outTopLimit) {
+                    isBottomLimitReached = true;
+                    break;
+                }
+            }
+            tuplex::g_rowsDoneMutex.unlock();
+
+            if (isTopLimitReached && isBottomLimitReached) {
+                // skip the execution, enough is done
+                break;
+            }
+
             // lock ptr, extract number of rows ==> store them
             // lock raw & call functor!
             int64_t inSize = inputPartition->size();
@@ -647,6 +665,10 @@ namespace tuplex {
             // delete partition if desired...
             if(_invalidateSourceAfterUse)
                 inputPartition->invalidate();
+
+            tuplex::g_rowsDoneMutex.lock();
+            tuplex::g_rowsDone[getOrder(0)] += getNumOutputRows();
+            tuplex::g_rowsDoneMutex.unlock();
         }
 
 #ifndef NDEBUG

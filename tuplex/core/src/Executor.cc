@@ -98,24 +98,6 @@ namespace tuplex {
             return false;
         }
 
-        // if reach the top limit already, then don't compute the rest
-        size_t numTopCompleted;
-        TRACE_LOCK("rowsDone");
-        _rowsDoneMutex.lock();
-        size_t frontRowsDone = 0;
-        for (size_t i = 0; _rowsDone.count(i) != 0; i++) {
-            frontRowsDone += _rowsDone[i];
-            if (frontRowsDone >= _queue.frontRowsLimit()) {
-                // skip execution
-                _numPendingTasks.fetch_add(-1, std::memory_order_release);
-                _rowsDoneMutex.unlock();
-                TRACE_UNLOCK("rowsDone");
-                return true;
-            }
-        }
-        _rowsDoneMutex.unlock();
-        TRACE_UNLOCK("rowsDone");
-
         task->setOwner(&executor);
         task->setThreadNumber(executor.threadNumber()); // redundant?
 
@@ -134,12 +116,6 @@ namespace tuplex {
         _completedTasksMutex.unlock();
         _numCompletedTasks.fetch_add(1, std::memory_order_release);
         TRACE_UNLOCK("completedTasks");
-
-        TRACE_LOCK("rowsDone");
-        _rowsDoneMutex.lock();
-        _rowsDone[task->getOrder()] += task->getNumOutputRows();
-        _rowsDoneMutex.unlock();
-        TRACE_UNLOCK("rowsDone");
 
         return true;
     }

@@ -486,7 +486,6 @@ namespace tuplex {
 
         // check what type of input the pipeline has (memory or files)
         if(tstage->fileInputMode()) {
-            // TODO(march): deal with file input
             // files
             // input is multiple files, use split file strategy here.
             // and issue tasks to executor workqueue!
@@ -686,9 +685,6 @@ namespace tuplex {
                 task->setStageID(tstage->getID());
                 task->setOutputTopLimit(tstage->outputTopLimit());
                 task->setOutputBottomLimit(tstage->outputBottomLimit());
-                if (tstage->outputBottomLimit()) {
-                    // TODO(march): work here (task output limit generation)
-                }
                 tasks.emplace_back(std::move(task));
                 numInputRows += partition->getNumRows();
 
@@ -696,6 +692,31 @@ namespace tuplex {
                 if(numInputRows >= tstage->inputLimit())
                     break;
             }
+        }
+
+        // assign the order for all tasks
+        for(size_t i = 0; i < tasks.size(); ++i) {
+            tasks[i]->setOrder(i);
+        }
+
+        if (tstage->hasOutputLimit()) {
+            if (tstage->outputTopLimit() > 0 && tstage->outputBottomLimit() > 0) {
+                // do task striping for output limit on both ends
+                vector<IExecutorTask*> newTasks;
+                for(size_t i = 0; i < tasks.size() - i; i++) {
+                    const size_t rev_i = tasks.size() - 1 - i;
+                    newTasks.push_back(tasks[i]);
+                    if (i < rev_i) {
+                        newTasks.push_back(tasks[rev_i]);
+                    }
+                }
+                assert(tasks.size() == newTasks.size());
+                tasks.swap(newTasks);
+            } else if (tstage->outputBottomLimit() > 0) {
+                // bottom limit only, just reverse the task order
+                std::reverse(tasks.begin(), tasks.end());
+            }
+            // if top limit only, do nothing since the order is already good
         }
 
         return tasks;
@@ -941,8 +962,8 @@ namespace tuplex {
             }
         }
 
-        // TODO(march): work here (transform stage)
         auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms);
+
         auto completedTasks = performTasks(tasks);
 
         // Note: this doesn't work yet because of the globals.
@@ -1173,6 +1194,10 @@ namespace tuplex {
                     for (const auto &p : taskGeneralOutput)
                         rowDelta += p->getNumRows();
                     rowDelta += taskNonConformingRows.size();
+                }
+
+                if (tstage->hasOutputLimit()) {
+                    trimPartitionsToLimit(output, tstage->outputTopLimit(), tstage->outputBottomLimit());
                 }
 
                 tstage->setMemoryResult(output, generalOutput, partitionToExceptionsMap, nonConformingRows, remainingExceptions, ecounts);
@@ -1518,20 +1543,28 @@ namespace tuplex {
         WorkQueue& wq = LocalEngine::instance().getQueue();
         wq.clear();
 
-        // assign the order for all tasks
+        // check if ord is set, if not issue warning & add
+        bool orderlessTaskFound = false;
         for(int i = 0; i < tasks.size(); ++i) {
-            tasks[i]->setOrder(i);
+            if(tasks[i]->getOrder().size() == 0) {
+                tasks[i]->setOrder(i);
+                orderlessTaskFound = true;
+            }
+        }
+
+#ifndef NDEBUG
+        if(orderlessTaskFound) {
+            logger().debug("task without order found, please fix in code.");
+        }
+#endif
+
+        for (int i = 0; i < tasks.size(); i++) {
+            // take limit only work with uniform order
+            assert(task.getOrder(0) == i);
         }
 
         // add all tasks to queue
-        // TODO(march): add task stage (to do striping)
-        for(size_t i = 0; i <= tasks.size() - i - 1; i++) {
-            const size_t revI = tasks.size()- i - 1
-            wq.addTask(&tasks[i]);
-            if (revI > i) {
-                wq.addTask(&tasks[revI]);
-            }
-        }
+        for(auto& task : tasks) wq.addTask(task);
 
         // clear
         tasks.clear();
@@ -2082,5 +2115,124 @@ namespace tuplex {
 
         Logger::instance().defaultLogger().info("writing output took " + std::to_string(timer.time()) + "s");
         tstage->setFileResult(ecounts);
+    }
+
+    void LocalBackend::trimPartitionsToLimit(std::vector<Partition *> &partitions,
+                                             size_t topLimit,
+                                             size_t bottomLimit,
+                                             TransformStage* tstage) {
+        std::vector<Partition *> limitedPartitions, limitedTailPartitions;
+
+        // check top output limit, adjust partitions if necessary
+        size_t numTopOutputRows = 0;
+        Partition* lastTopPart = nullptr;
+        size_t clippedTop = 0;
+        for (auto partition : partitions) {
+            numTopOutputRows += partition->getNumRows();
+            lastTopPart = partition;
+            if (numTopOutputRows >= topLimit) {
+                // clip last partition & leave loop
+                clippedTop = topLimit - (numTopOutputRows - partition->getNumRows());
+                assert(clippedTop <= partition->getNumRows());
+                break;
+            } else if (partition == *partitions.end()) {
+                // last partition, mark full row, but don't put to output set yet to avoid double put
+                clippedTop = partition->getNumRows();
+                break;
+            } else {
+                // put full partition to output set
+                limitedPartitions.push_back(partition);
+            }
+        }
+
+        // check the bottom output limit, adjust partitions if necessary
+        size_t numBottomOutputRows = 0;
+        size_t clippedBottom = 0;
+        for (auto it = partitions.rbegin(); it != partitions.rend(); it++) {
+            auto partition = *it;
+            numBottomOutputRows += partition->getNumRows();
+
+            if (partition == lastTopPart) {
+                // the bottom and the top partitions are overlapping
+                clippedBottom = bottomLimit - (numBottomOutputRows - partition->getNumRows());
+                if (clippedTop + clippedBottom >= partition->getNumRows()) {
+                    // if top and bottom range intersect, use full partitions
+                    clippedTop = partition->getNumRows();
+                    clippedBottom = 0;
+                }
+                break;
+            } else if (numBottomOutputRows >= bottomLimit) {
+                // clip last partition & leave loop
+                auto clipped = bottomLimit - (numTopOutputRows - partition->getNumRows());
+                assert(clipped <= partition->getNumRows());
+                Partition newPart = newPartitionWithSkipRows(partition, partition->getNumRows() - clipped, tstage);
+                partition->invalidate();
+                parition = newPart;
+                assert(partition->getNumRows() == clipped);
+                if (clipped > 0)
+                    limitedTailPartitions.push_back(partition);
+                break;
+            } else {
+                // put full partition to output set
+                limitedTailPartitions.push_back(partition);
+            }
+        }
+
+        // push the middle partition
+        if (lastTopPart != nullptr && (clippedTop > 0 || clippedBottom > 0)) {
+            assert(clippedTop + clippedBottom <= lastTopPart->getNumRows());
+
+            // split into two partitions with both top and bottom are in the same partition
+            Partition* lastBottomPart = nullptr;
+
+            if (clippedBottom != 0) {
+                lastBottomPart = newPartitionWithSkipRows(lastTopPart, lastTopPart->getNumRows() - clippedBottom, tstage);
+            }
+
+            lastTopPart->setNumRows(clippedTop);
+
+            limitedPartitions.push_back(lastTopPart);
+
+            if (lastBottomPart != nullptr) {
+                limitedPartitions.push_back(lastBottomPart);
+            }
+        }
+
+        // merge the head and tail partitions
+        partitions.clear()
+        partitions.insert(partitions.end(), limitedPartitions.begin(), limitedPartitions.end());
+        partitions.insert(partitions.end(), limitedTailPartitions.rbegin(), limitedTailPartitions.rend());
+    }
+
+    Partition* LocalBackend::newPartitionWithSkipRows(Partition *p_in, int numToSkip, TransformStage* tstage) {
+        if(!numToSkip)
+            return nullptr;
+
+        auto ptr = p_in->lockRaw();
+        auto num_rows = *((int64_t*) ptr);
+        assert(numToSkip < num_rows);
+
+        Partition *p_out = _driver->allocWritablePartition(num_rows - numToSkip + sizeof(int64_t),
+                                                           tstage->outputSchema(), tstage->outputDataSetID(),
+                                                           tstage->context().id());
+
+        ptr += sizeof(int64_t);
+        size_t numBytesToSkip = 0;
+
+        for(unsigned i = 0; i < numToSkip; ++i) {
+            Rows r = Row::fromMemory(tstage->outputSchema(), ptr, p_in->capacity() - numBytesToSkip);
+            ptr += r.serializedLength();
+            numBytesToSkip += r.serializedLength();
+        }
+
+        auto ptr_out = p_out->lockRaw();
+        *((int64_t*) ptr_out) = p_in->getNumRows() - numToSkip;
+        ptr_out += sizeof(int64_t);
+        memcpy(ptr_out, ptr, p_in->size() - numBytesToSkip);
+        p_out->unlock();
+
+        p_in->unlock();
+
+        return p_out;
     }
 } // namespace tuplex

@@ -183,7 +183,6 @@ namespace tuplex {
     }
 
     Row ResultSet::getNextRow() {
-        // TODO(march): logic in skip row count here
         // merge rows from objects
         if(!_pyobjects.empty()) {
             auto row_number = std::get<0>(_pyobjects.front());

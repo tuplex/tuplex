@@ -41,7 +41,9 @@ namespace tuplex {
         // remove this from parents
         // b.c. need to maintain invariance manually, i.e. remove from pointers when being deconstructed!
         for(auto& p:  _parents) {
-            p->_children.erase(std::find(p->_children.begin(), p->_children.end(), this));
+            auto it = std::find(p->_children.begin(), p->_children.end(), this);
+            if(it != p->_children.end())
+                p->_children.erase(it);
         }
     }
 

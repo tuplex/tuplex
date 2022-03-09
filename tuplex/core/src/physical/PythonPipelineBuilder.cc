@@ -250,6 +250,22 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
                                          const std::vector<std::string> &na_values,
                                          const std::unordered_map<size_t, python::Type>& typeHints,
                                          size_t numColumns, const std::unordered_map<int, int>& projectionMap) {
+
+    // debug information
+#ifndef NDEBUG
+    using namespace std;
+    cout<<"Columns to read from string:\n";
+    cout<<columns<<endl;
+
+    // check from projection map
+    std::map<int, int> m(projectionMap.begin(), projectionMap.end());
+    cout<<"reading columns:"<<endl;
+    for(auto keyval : m) {
+        cout<<columns[keyval.first]<<"  ("<<keyval.first<<" -> "<<keyval.second<<")"<<endl;
+    }
+#endif
+
+
     std::stringstream code;
     code<<"if not isinstance("<<lastInputRowName()<<", (tuple, list)):\n";
     exceptInnerCode(code, operatorID, "TypeError('cell input must be of string type')", "", 1);
@@ -308,15 +324,28 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
     // projection map defined?
     if(!projectionMap.empty()) {
-        assert(numColumns >= projectionMap.size()); // also should hold for max element in projectionMap!
-        writeLine("projected_row = [None] * " + std::to_string(numColumns) + "\n"); // fill with None as dummy element
+
+        // bug here, need to reverse order:
+        // i.e. projection map is original_idx -> new_idx
+        int min_idx = std::numeric_limits<int>::max();
+        int max_idx = 0;
+        std::map<int, int> m(projectionMap.begin(), projectionMap.end()); // use a map so code looks nicer...
+        for(auto kv : m) {
+            min_idx = std::min(min_idx, kv.second);
+            max_idx = std::max(max_idx, kv.second);
+        }
+        int num_projected_columns = max_idx + 1;
+        assert(num_projected_columns <= numColumns);
+
+        //assert(numColumns >= projectionMap.size()); // also should hold for max element in projectionMap!
+        writeLine("projected_row = [None] * " + std::to_string(num_projected_columns) + "\n"); // fill with None as dummy element
         // project elements & column names
-        for(auto keyval : projectionMap)
-            writeLine("projected_row[" + std::to_string(keyval.first) + "] = parsed_row[" + std::to_string(keyval.second) + "]\n");
+        for(const auto& keyval : m)
+            writeLine("projected_row[" + std::to_string(keyval.second) + "] = parsed_row[" + std::to_string(keyval.first) + "]\n");
         if(!columns.empty()) {
-            std::vector<std::string> projected_columns(numColumns, "");
-            for(auto keyval : projectionMap)
-                projected_columns[keyval.first] = columns[keyval.second];
+            std::vector<std::string> projected_columns(num_projected_columns, "");
+            for(const auto& keyval : projectionMap)
+                projected_columns[keyval.second] = columns[keyval.first];
             columns = projected_columns;
         }
         writeLine("parsed_row = projected_row\n");

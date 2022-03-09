@@ -99,4 +99,6 @@ namespace tuplex {
     };
 }
 
+CEREAL_REGISTER_TYPE(tuplex::MapOperator);
+
 #endif //TUPLEX_MAPOPERATOR_H

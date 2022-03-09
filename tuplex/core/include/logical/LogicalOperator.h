@@ -23,6 +23,7 @@
 // to avoid conflicts with Python3.7
 #include "../Context.h"
 
+// serialization headers
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
 #include "cereal/types/polymorphic.hpp"
@@ -36,6 +37,7 @@
 #include "cereal/types/polymorphic.hpp"
 #include "cereal/archives/binary.hpp"
 #include "cereal/archives/portable_binary.hpp"
+// end
 
 static const size_t MAX_TYPE_SAMPLING_ROWS=100; // make this configurable? i.e. defines how much to trace...
 
@@ -275,6 +277,6 @@ namespace tuplex {
     };
 }
 
-//CEREAL_REGISTER_TYPE(tuplex::LogicalOperator)
+CEREAL_REGISTER_TYPE(tuplex::LogicalOperator)
 
 #endif //TUPLEX_LOGICALOPERATOR_H

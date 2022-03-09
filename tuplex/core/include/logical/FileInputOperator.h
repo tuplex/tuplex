@@ -15,9 +15,6 @@
 #include <Partition.h>
 #include <boost/align/aligned_allocator.hpp>
 
-#include "cereal/types/polymorphic.hpp"
-#include "cereal/types/base_class.hpp"
-
 namespace tuplex {
 
     // because processing happens with 16byte alignment, need to use aligned 16byte strings!
@@ -64,9 +61,6 @@ namespace tuplex {
 
         // TODO: Refactor constructors
 
-        // make private
-        FileInputOperator() {}
-
         // CSV Constructor
         FileInputOperator(const std::string& pattern,
                           const ContextOptions& co,
@@ -94,6 +88,11 @@ namespace tuplex {
         double _sampling_time_s;
 
     public:
+
+        // required by cereal
+        // make private
+        FileInputOperator() = default;
+
         /*!
          * create a new CSV File Input operator
          * @param pattern files to search for
@@ -131,15 +130,6 @@ namespace tuplex {
         */
         static FileInputOperator *fromOrc(const std::string& pattern,
                                          const ContextOptions& co);
-
-        // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
-            // @TODO: should the sample really get archived?
-            ar(::cereal::base_class<LogicalOperator>(this), _fileURIs, _sizes, _estimatedRowCount, _fmt, _quotechar,
-               _delimiter, _header, _null_values,
-               _optimizedSchema, _columnNames, _optimizedColumnNames, _columnsToSerialize, _indexBasedHints,
-               _normalCaseRowType, _optimizedNormalCaseRowType, _firstRowsSample, _lastRowsSample, _sampling_time_s);
-        }
 
         std::string name() override {
             switch (_fmt) {
@@ -329,7 +319,7 @@ namespace tuplex {
             return fop;
         }
 
-
+        // DO NOT MIX load/save with serialize.
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             ar(cereal::base_class<LogicalOperator>(this),
@@ -352,7 +342,7 @@ namespace tuplex {
     };
 }
 
-// CEREAL_REGISTER_TYPE(tuplex::FileInputOperator)
+CEREAL_REGISTER_TYPE(tuplex::FileInputOperator)
 
 #endif
 //TUPLEX_FILEINPUTOPERATOR_H

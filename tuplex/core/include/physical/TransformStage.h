@@ -107,11 +107,13 @@ namespace tuplex {
         std::unordered_map<std::string, ExceptionInfo> partitionToExceptionsMap() { return _partitionToExceptionsMap; }
 
         /*!
-         * sets maximum number of rows this pipeline will produce
-         * @param outputLimit
+         * sets maximum number of top rows this pipeline will produce
+         * @param topLimit
+         * @param bottomLimit
          */
-        void setOutputLimit(size_t outputLimit) {
-            _outputTopLimit = outputLimit;
+        inline void  setOutputLimit(size_t topLimit, size_t bottomLimit) {
+            _outputTopLimit = topLimit;
+            _outputBottomLimit = bottomLimit;
 
             // @TODO: move this logic to physical plan!
             // pushdown limit
@@ -481,7 +483,7 @@ namespace tuplex {
         python::Type _hashOutputBucketType;
 
         bool hasOutputLimit() const {
-            return _outputTopLimit < std::numeric_limits<size_t>::max();
+            return _outputTopLimit < std::numeric_limits<size_t>::max() && _outputBottomLimit != 0;
         }
     };
 }

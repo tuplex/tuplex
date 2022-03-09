@@ -51,12 +51,6 @@ namespace tuplex {
         std::atomic_int _numPendingTasks{};
         std::atomic_int _numCompletedTasks{};
 
-        // mapping from order number -> row count if the task is finished
-        std::mutex _rowsDoneMutex;
-        std::map<size_t, size_t> _rowsDone;
-
-        std::atomic_int _frontRowsLimit{};
-        std::atomic_int _bottomRowsLimit{};
     public:
 
         WorkQueue();

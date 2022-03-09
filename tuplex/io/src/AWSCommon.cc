@@ -50,9 +50,9 @@ private:
 
 };
 
-static bool initAWSSDK() {
+bool initAWSSDK() {
     if(!isAWSInitialized) {
-	std::cout<<"AWS SDK not yet initialized, initializing..."<<std::endl;
+	      std::cout<<"AWS SDK not yet initialized, initializing..."<<std::endl;
         Aws::SDKOptions options;
 
 //        // hookup to Tuplex logger...

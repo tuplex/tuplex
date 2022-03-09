@@ -1595,7 +1595,7 @@ namespace tuplex {
 
                 // use test-wise cereal to encode the context (i.e., the stage) to send
                 // over to individual executors for specialization.
-                std::ostringstream oss(std::stringstream::binary000);
+                std::ostringstream oss(std::stringstream::binary);
                 {
                     cereal::BinaryOutputArchive ar(oss);
                     ar(ctx);

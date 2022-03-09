@@ -507,8 +507,23 @@ namespace tuplex {
         }
 
         logger.info("specializing code to file " + uri.toString());
+
+        // deserialize using Cereal
+
         // fetch codeGenerationContext & restore logical operator tree!
-        auto ctx = codegen::CodeGenerationContext::fromJSON(stage->_encodedData);
+        codegen::CodeGenerationContext ctx;
+        Timer timer;
+        {
+            auto compressed_str = stage->_encodedData;
+            auto decompressed_str = decompress_string(compressed_str);
+            logger.info("Decompressed Code context from " + sizeToMemString(compressed_str.size()) + " to " + sizeToMemString(decompressed_str.size()));
+            std::istringstream iss(decompressed_str);
+            cereal::BinaryInputArchive ar(iss);
+            ar(ctx);
+        }
+        logging.info("Decode took " + std::to_string(timer.time) + "s");
+        // old hacky version
+        // auto ctx = codegen::CodeGenerationContext::fromJSON(stage->_encodedData);
 
         assert(ctx.slowPathContext.valid());
         // decoded, now specialize

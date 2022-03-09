@@ -1607,9 +1607,19 @@ namespace tuplex {
                 // https://gist.github.com/gomons/9d446024fbb7ccb6536ab984e29e154a
                 auto compressed_cg_str = compress_string(bytes_str);
                 logger.info("ZLIB compressed CodeGeneration Context is: " + sizeToMemString(compressed_cg_str.size()));
-                auto json_str = ctx.toJSON();
-                logger.info("serialized stage as JSON string (TODO: make this better, more efficient, ...");
-                stage->_encodedData = json_str; // hack
+                // @TODO: remove the hacky stuff!
+
+                #ifndef NDEBUG
+                    // validate result
+                    auto decompressed_str = decompress_string(compressed_cg_str);
+                    if(decompressed_str != compressed_cg_str)
+                        logger.error("decompressed string doesn't match compressed one.");
+                #endif
+
+//                auto json_str = ctx.toJSON();
+//                logger.info("serialized stage as JSON string (TODO: make this better, more efficient, ...");
+                // stage->_encodedData = json_str; // hack
+                stage->_encodedData = compressed_cg_str; // the codegen context
             }
 
             return stage;

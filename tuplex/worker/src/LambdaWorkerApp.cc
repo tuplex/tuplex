@@ -615,7 +615,7 @@ namespace tuplex {
                 auto tstage = TransformStage::from_protobuf(req.stage());
 
                 // HACK! Hyper-specialization
-                if(req.stage().has_serializedstage() && req.inputuris_size() > 0) {
+                if(req.stage().has_serializedstage() && !req.stage().serializedstage().empty() && req.inputuris_size() > 0) {
                     logger().info("HYPERSPECIALIZATION ACTIVE");
                     Timer timer;
                     // use first input file

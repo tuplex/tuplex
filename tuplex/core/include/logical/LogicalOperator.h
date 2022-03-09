@@ -85,6 +85,7 @@ namespace tuplex {
                 throw std::runtime_error(name() + " can't have nullptr as parent");
             addThisToParents();
         }
+
         LogicalOperator() : _id(logicalOperatorIDGenerator++), _dataSet(nullptr) { addThisToParents(); }
 
         virtual ~LogicalOperator();

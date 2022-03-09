@@ -196,3 +196,13 @@ TEST(TypeSys, Cerealization) {
     // @TODO: correct this...!
     // => better: semantic encoding of types and decoding from there...?
 }
+
+TEST(TypeSys, NewTypEncodeDecode) {
+    using namespace tuplex;
+    auto row_type = python::Type::makeTupleType({python::Type::I64, python::Type::I64, python::Type::PYOBJECT});
+
+    // a couple other test types (mainly compound types)
+    auto encoded_str = row_type.encode();
+    auto t = python::Type::decode(encoded_str);
+    EXPECT_EQ(t.desc(), row_type.desc());
+}

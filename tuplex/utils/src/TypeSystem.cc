@@ -1208,7 +1208,6 @@ namespace python {
         return TypeFactory::instance().createOrGetDelayedParsingType(underlying);
     }
 
-
     Type Type::decode(const std::string& s) {
         if(s == "uninitialized") {
             Type t;
@@ -1347,18 +1346,25 @@ namespace python {
 
     // TODO: more efficient encoding using binary representation?
     std::string Type::encode() const {
-        if(_hash >= 0) {
+        if(_hash > 0) {
             // use super simple encoding scheme here.
             // -> i.e. primitives use desc
             // else, create compound type using <Name>[...]
             // this allows for easy & quick decoding.
             // => could even use quicker names for encoding the types
-            if(isPrimitiveType())
-                return desc();
-            else {
-                if(isOptionType())
+
+            // do not use isPrimitiveType(), ... etc. here
+            // because these functions are for semantics...!
+            const auto& entry = TypeFactory::instance()._typeMap.at(_hash);
+            auto abstract_type = entry._type;
+            switch(abstract_type) {
+                case TypeFactory::AbstractType::PRIMITIVE: {
+                    return entry._desc;
+                }
+                case TypeFactory::AbstractType::OPTION: {
                     return "Option[" + elementType().encode() + "]";
-                else if(isTupleType()) {
+                }
+                case TypeFactory::AbstractType::TUPLE: {
                     std::stringstream ss;
                     ss<<"Tuple[";
                     for(unsigned i = 0; i < parameters().size(); ++i) {
@@ -1368,18 +1374,24 @@ namespace python {
                     }
                     ss<<"]";
                     return ss.str();
-                } else if(isListType()) {
+                }
+                case TypeFactory::AbstractType::LIST: {
                     return "List[" + elementType().encode() + "]";
-                } else if(isDictionaryType()) {
+                }
+                case TypeFactory::AbstractType::DICTIONARY: {
                     return "Dict[" + keyType().encode() + "," + valueType().encode() + "]";
-                } else if(isFunctionType()) {
+                }
+                case TypeFactory::AbstractType::FUNCTION: {
                     return "Function[" + getParamsType().encode() + "," + getReturnType().encode() + "]";
-                } else {
+                }
+                default: {
                     Logger::instance().defaultLogger().error("Unknown type " + desc() + " encountered, can't encode. Using unknown.");
                     return Type::UNKNOWN.encode();
                 }
             }
-        } else
+        } else if (_hash == 0)
+            return "unknown";
+        else
             return "uninitialized";
     }
 

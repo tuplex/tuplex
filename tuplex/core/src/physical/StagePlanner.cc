@@ -521,7 +521,7 @@ namespace tuplex {
             cereal::BinaryInputArchive ar(iss);
             ar(ctx);
         }
-        logging.info("Decode took " + std::to_string(timer.time) + "s");
+        logging.info("Decode took " + std::to_string(timer.time()) + "s");
         // old hacky version
         // auto ctx = codegen::CodeGenerationContext::fromJSON(stage->_encodedData);
 

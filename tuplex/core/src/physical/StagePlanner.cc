@@ -556,7 +556,7 @@ namespace tuplex {
         ctx.fastPathContext = path_ctx;
 
         // generate code! Add to stage, can then compile this. Yay!
-        Timer timer;
+        timer.reset();
         stage->_fastCodePath = codegen::StageBuilder::generateFastCodePath(ctx, ctx.fastPathContext, ctx.slowPathContext.outputSchema.getRowType(), stage->number());
         logger.info("generated code in " + std::to_string(timer.time()) + "s");
         // can then compile everything, hooray!

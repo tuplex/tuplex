@@ -51,7 +51,8 @@ jobs:
           # CIBW_ENVIRONMENT_LINUX: "TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
           # yet, because PyPi limit hasn't been increased yet, do not bundle runner.
           CIBW_ENVIRONMENT_LINUX: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
-          CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' "
+          # requires 10.13 at least for macos!
+          CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -CMAKE_OSX_DEPLOYMENT_TARGET=10.13' "
 
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./scripts/test_pypi.sh ./wheelhouse
@@ -98,7 +99,7 @@ jobs:
   #       with:
   #         name: artifact
   #         path: dist
-  # 
+  #
   #     - name: reorganize
   #       run: mkdir -p scripts && mv dist/*.sh ./scripts/ && mv dist/*.version ./scripts/ && chmod +x ./scripts/test_pypi.sh
   #

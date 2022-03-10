@@ -18,6 +18,7 @@ import tuplex.distributed
 import logging
 from tuplex.distributed import setup_aws
 
+from tuplex.utils.version import __version__ as __version__
 
 # for convenience create a dummy function to return a default-configured Lambda context
 def LambdaContext(conf=None, name=None, s3_scratch_dir=None, **kwargs):

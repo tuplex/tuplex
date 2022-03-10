@@ -338,14 +338,14 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         assert(num_projected_columns <= numColumns);
 
         //assert(numColumns >= projectionMap.size()); // also should hold for max element in projectionMap!
-        writeLine("projected_row = [None] * " + std::to_string(num_projected_columns) + "\n"); // fill with None as dummy element
+        writeLine("projected_row = [None] * " + std::to_string(numColumns) + "\n"); // fill with None as dummy element
         // project elements & column names
-        for(const auto& keyval : m)
-            writeLine("projected_row[" + std::to_string(keyval.second) + "] = parsed_row[" + std::to_string(keyval.first) + "]\n");
+        for(auto keyval : projectionMap)
+            writeLine("projected_row[" + std::to_string(keyval.first) + "] = parsed_row[" + std::to_string(keyval.second) + "]\n");
         if(!columns.empty()) {
-            std::vector<std::string> projected_columns(num_projected_columns, "");
-            for(const auto& keyval : projectionMap)
-                projected_columns[keyval.second] = columns[keyval.first];
+            std::vector<std::string> projected_columns(numColumns, "");
+            for(auto keyval : projectionMap)
+                projected_columns[keyval.first] = columns[keyval.first]; // ?
             columns = projected_columns;
         }
         writeLine("parsed_row = projected_row\n");

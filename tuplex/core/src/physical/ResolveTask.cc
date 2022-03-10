@@ -513,10 +513,11 @@ default:
             }
 
 #ifndef NDEBUG
-            // // to print python object
-            // Py_XINCREF(tuple);
-            // PyObject_Print(tuple, stdout, 0);
-            // std::cout<<std::endl;
+            // get the input row for debugging purposes...
+             // to print python object
+             Py_XINCREF(tuple);
+             PyObject_Print(tuple, stdout, 0);
+             std::cout<<std::endl;
 #endif
 
             // call pipFunctor

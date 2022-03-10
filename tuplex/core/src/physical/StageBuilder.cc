@@ -1592,6 +1592,10 @@ namespace tuplex {
                 stage->_pyCode = py_path.pyCode;
                 stage->_pyPipelineName = py_path.pyPipelineName;
 
+#ifndef NDEBUG
+                stringToFile("python_code_" + stage->_pyPipelineName + ".py", stage->_pyCode);
+#endif
+
 
                 // use test-wise cereal to encode the context (i.e., the stage) to send
                 // over to individual executors for specialization.

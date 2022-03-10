@@ -44,6 +44,8 @@ namespace tuplex {
 
 #ifdef BUILD_WITH_AWS
     VirtualFileSystemStatus VirtualFileSystem::addS3FileSystem(const std::string& access_key, const std::string& secret_key, const std::string& session_token, const std::string& region, const NetworkSettings& ns, bool lambdaMode, bool requesterPay) {
+        initAWSSDK();
+        std::cout<<"adding S3 file system, should have had aws sdk init before."<<std::endl;
         return VirtualFileSystem::registerFileSystem(std::make_shared<S3FileSystemImpl>(access_key, secret_key, session_token, region, ns, lambdaMode, requesterPay), "s3://");
     }
 

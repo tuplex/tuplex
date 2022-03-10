@@ -38,10 +38,11 @@ jobs:
 
           # production version:
           # no musllinux yet, no 3.10 support yet.
-          CIBW_BUILD: "cp3{7,8,9}-*"
+          # CIBW_BUILD: "cp3{7,8,9}-*"
+          CIBW_BUILD: "cp39-*"
           CIBW_SKIP: "cp3{5,6}-macosx* pp* *-musllinux_*"
 
-          CIBW_BEFORE_BUILD_MACOS: brew install coreutils protobuf zstd zlib libmagic llvm@9 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget boost
+          CIBW_BEFORE_BUILD_MACOS: brew install coreutils protobuf zstd zlib libmagic llvm@9 pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget boost && bash ./scripts/macos/install_aws-sdk-cpp.sh
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
 
           # set this environment variable to include the Lambda zip from the previous build step

@@ -163,7 +163,7 @@ from setuptools import Command
 import setuptools.command.install
 import setuptools.command.develop
 
-build_config = {'BUILD_TYPE' : 'Debug'}
+build_config = {'BUILD_TYPE' : 'Release'}
 
 class DevelopCommand(setuptools.command.develop.develop):
 

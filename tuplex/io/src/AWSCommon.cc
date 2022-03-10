@@ -54,7 +54,6 @@ namespace tuplex {
 
     bool initAWSSDK() {
         if(!isAWSInitialized) {
-            std::cout<<"AWS SDK not yet initialized, initializing..."<<std::endl;
             Aws::SDKOptions options;
 
 //        // hookup to Tuplex logger...
@@ -79,8 +78,6 @@ namespace tuplex {
 #endif
             isAWSInitialized = true;
         }
-
-        std::cout<<"AWS SDK already initialized, skipping"<<std::endl;
         return isAWSInitialized;
     }
 

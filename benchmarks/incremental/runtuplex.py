@@ -125,6 +125,7 @@ def resolveBd(x):
         return 1
     raise ValueError
 
+#compare types and contents
 def dirty_zillow_pipeline(paths, output_path, step):
     ds = ctx.csv(','.join(paths))
     ds = ds.withColumn("bedrooms", extractBd)
@@ -141,7 +142,7 @@ def dirty_zillow_pipeline(paths, output_path, step):
     ds = ds.mapColumn("city", lambda x: x[0].upper() + x[1:].lower())
     ds = ds.withColumn("bathrooms", extractBa)
     if step > 3:
-        ds = ds.resolve(ValueError, lambda x: int(re.sub('[^0-9.]*', '', x['bathrooms'])))
+        ds = ds.ignore(ValueError)
     ds = ds.withColumn("sqft", extractSqft)
     if step > 4:
         ds = ds.ignore(ValueError)

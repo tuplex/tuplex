@@ -259,7 +259,7 @@ namespace tuplex {
                 ss<<"\"fast_path_output_row_count\":"<<s.fast_path_output_row_count<<",";
                 ss<<"\"slow_path_input_row_count\":"<<s.slow_path_input_row_count<<",";
                 ss<<"\"slow_path_output_row_count\":"<<s.slow_path_output_row_count<<",";
-                ss<<"\"write_output_wall_time_s\":"<<s.write_output_wall_time_s<<",";
+                ss<<"\"write_output_wall_time_s\":"<<s.write_output_wall_time_s;
                 ss<<"}";
                 if(s.stageNo != _stage_metrics.back().stageNo)
                     ss<<",";

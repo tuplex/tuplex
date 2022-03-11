@@ -64,6 +64,51 @@ namespace tuplex {
 
         static CompilePolicy DEFAULT_COMPILE_POLICY;
 
+        // when using specialization, additional checks/classifications need to be performed on each column
+        // following is a helper struct to describe such a check
+        enum class CheckType {
+            CHECK_UNKNOWN=0,
+            CHECK_NULL=1,
+            CHECK_NOTNULL,
+            CHECK_DELAYEDPARSING,
+            CHECK_INTEGER_RANGE,
+            CHECK_CONSTANT
+        };
+        struct NormalCaseCheck {
+            size_t colNo; ///! the column number to check for
+            CheckType type;
+
+            static NormalCaseCheck NullCheck(size_t colNo) {
+                NormalCaseCheck c;
+                c.colNo = colNo;
+                c.type = CheckType::CHECK_NULL;
+                return c;
+            }
+
+            static NormalCaseCheck NotNullCheck(size_t colNo) {
+                NormalCaseCheck c;
+                c.colNo = colNo;
+                c.type = CheckType::CHECK_NOTNULL;
+                return c;
+            }
+
+            static NormalCaseCheck ConstantCheck(size_t colNo, const python::Type& constType) {
+                assert(constType.isConstantValued());
+
+                NormalCaseCheck c;
+                c.colNo = colNo;
+                c.type = CheckType::CHECK_CONSTANT;
+                c._constantType = constType; // required because of different formattings of types...
+                return c;
+            }
+
+        private:
+            python::Type _constantType;
+            int64_t _iMin;
+            int64_t _iMax;
+        };
+
+
         // helper function to determine number of predecessors
         inline size_t successorCount(llvm::BasicBlock* block) {
             assert(block);

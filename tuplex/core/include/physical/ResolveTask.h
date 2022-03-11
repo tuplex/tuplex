@@ -349,6 +349,16 @@ namespace tuplex {
 
         void sinkRowToHashTable(PyObject *rowObject);
     };
+
+#ifndef NDEBUG
+    // helper functions to quickly build up an exception reservoir
+    extern void resetExceptionReservoir(size_t reservoirLimit);
+    extern void putExceptionSample(uint32_t ecCode, uint32_t opID, PyObject* input_row, bool acquireGIL);
+
+    // debug helper to display exception input rows.
+    // helpful when debugging internal failures...
+    extern void displayExceptions(std::ostream& os, bool acquireGIL);
+#endif
 }
 
 #endif //TUPLEX_RESOLVETASK_H

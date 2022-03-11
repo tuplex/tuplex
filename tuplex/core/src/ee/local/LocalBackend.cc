@@ -849,6 +849,11 @@ namespace tuplex {
         // reset Partition stats
         Partition::resetStatistics();
 
+#ifndef NDEBUG
+        // reset fast exception reservoir for debugging
+        resetExceptionReservoir(_options.WEBUI_EXCEPTION_DISPLAY_LIMIT());
+#endif
+
         // special case: no input, return & set empty result
         // Note: file names & sizes are also saved in input partition!
         if (tstage->inputMode() != EndPointMode::HASHTABLE

@@ -28,7 +28,7 @@ namespace tuplex {
             std::string _functionName; /// name of the LLVM function
 
             std::vector<std::string> _nullValues; /// strings that should be interpreted as null values.
-
+            std::vector<NormalCaseCheck> _checks; ///! normal case checks
             size_t numCells() const { return _fileInputRowType.parameters().size(); }
 
             FlattenedTuple cellsToTuple(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr);
@@ -55,13 +55,15 @@ namespace tuplex {
              * @param name Name of the function to generate
              * @param operatorID ID of the operator for exception handling.
              * @param null_values array of strings that should be interpreted as null values
+             * @param checks array of checks to perform and else issue a normalcaseviolation
              */
             explicit CellSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
                                            const python::Type &rowType,
                                            const std::vector<bool> &columnsToSerialize,
                                            const std::string &name,
                                            int64_t operatorID,
-                                           const std::vector<std::string>& null_values=std::vector<std::string>{""}) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env,
+                                           const std::vector<std::string>& null_values=std::vector<std::string>{""},
+                                           const std::vector<NormalCaseCheck>& checks={}) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env,
                                                                                                               restrictRowType(
                                                                                                                       columnsToSerialize,
                                                                                                                       rowType),
@@ -71,6 +73,7 @@ namespace tuplex {
                                                                  _columnsToSerialize(columnsToSerialize),
                                                                  _functionName(name),
                                                                  _nullValues(null_values),
+                                                                 _checks(checks),
                                                                  _valueErrorBlock(nullptr),
                                                                  _nullErrorBlock(nullptr) {
 

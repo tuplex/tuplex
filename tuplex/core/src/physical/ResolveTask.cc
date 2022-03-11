@@ -15,6 +15,7 @@
 #include <bucket.h>
 #include <TypeAnnotatorVisitor.h>
 #include <CSVUtils.h>
+#include <Serializer.h>
 
 #define BUF_FORMAT_COMPILED_RESOLVE 0
 #define BUF_FORMAT_NORMAL_OUTPUT 1
@@ -22,6 +23,97 @@
 
 // to enable debug tracing of resolution, use TRACE_EXCEPTIONS
 // #define TRACE_EXCEPTIONS
+
+namespace tuplex {
+    // exception reservoir code (thread-safe)
+    struct ExceptionReservoir {
+        size_t limit; // limit per operator/code in rows
+
+        // avoid mutex/contention by simply doubling things. => i.e. trade off memory for speed!
+        //@TODO
+        std::mutex mutex;
+
+        std::unordered_map<std::tuple<uint32_t, uint32_t>, std::vector<std::string>> exceptions; // serialized (pickled) exceptions
+        std::unordered_map<std::tuple<uint32_t, uint32_t>, size_t> exception_counts;
+    };
+
+    std::unique_ptr<ExceptionReservoir> g_reservoir;
+
+    void resetExceptionReservoir(size_t reservoirLimit) {
+        g_reservoir.reset(new ExceptionReservoir{reservoirLimit});
+    }
+// rewrite using threadEnvs?
+    void putExceptionSample(uint32_t ecCode, uint32_t opID, PyObject* input_row, bool acquireGIL) {
+        assert(g_reservoir);
+
+        if(!input_row || g_reservoir->limit == 0)
+            return;
+
+        std::lock_guard<std::mutex> lock(g_reservoir->mutex);
+
+        if(acquireGIL)
+            python::lockGIL();
+
+        // check if limit is not reached, if so => append execeptions!
+        auto key = std::make_tuple(ecCode, opID);
+        auto ct = g_reservoir->exception_counts.find(key);
+        if(ct == g_reservoir->exception_counts.end()) {
+            // first entry
+            Py_XINCREF(input_row);
+            auto serialized_str = python::pickleObject(python::getMainModule(), input_row);
+           g_reservoir->exceptions[key] = {serialized_str};
+           g_reservoir->exception_counts[key] = 1;
+
+        } else if(ct->second < g_reservoir->limit) {
+            // update count, store
+            ct->second++;
+            Py_XINCREF(input_row);
+            auto serialized_str = python::pickleObject(python::getMainModule(), input_row);
+            auto it = g_reservoir->exceptions.find(key);
+            assert(it != g_reservoir->exceptions.end());
+            it->second.push_back(serialized_str);
+        } else {
+            ct->second++;
+        }
+
+        if(acquireGIL)
+            python::unlockGIL();
+    }
+
+    // debug print function:
+    void displayExceptions(std::ostream& os, bool acquireGIL) {
+
+        assert(g_reservoir);
+
+        if(g_reservoir->limit == 0)
+            return;
+
+        std::lock_guard<std::mutex> lock(g_reservoir->mutex);
+
+        if(acquireGIL)
+            python::lockGIL();
+        // display exceptions
+        for(auto kv : g_reservoir->exception_counts) {
+            // get key
+            auto key = kv.first;
+            auto num_total = kv.second;
+
+            // deserialize
+            auto samples = g_reservoir->exceptions.at(key);
+            os<<"operator="<<std::get<1>(key)<<", ec="<<std::get<0>(key)<<"\t"<<samples.size()<<" out of "<<num_total<<std::endl;
+            for(auto sample : samples) {
+                auto obj = python::deserializePickledObject(python::getMainModule(), sample.c_str(), sample.size());
+                // convert to string and print
+                os<<python::PyString_AsString(obj)<<std::endl;
+            }
+        }
+
+        if(acquireGIL)
+            python::unlockGIL();
+
+    }
+}
+
 
 extern "C" {
     static int64_t rRowCallback(tuplex::ResolveTask *task, uint8_t* buf, int64_t bufSize) {
@@ -513,11 +605,14 @@ default:
             }
 
 #ifndef NDEBUG
-            // get the input row for debugging purposes...
-             // to print python object
-             Py_XINCREF(tuple);
-             PyObject_Print(tuple, stdout, 0);
-             std::cout<<std::endl;
+//             // get the input row for debugging purposes...
+//             // to print python object
+//             Py_XINCREF(tuple);
+//             PyObject_Print(tuple, stdout, 0);
+//             std::cout<<std::endl;
+
+             // store in exception reservoir -> for debugging??
+            putExceptionSample(ecCode, operatorID, tuple, false);
 #endif
 
             // call pipFunctor

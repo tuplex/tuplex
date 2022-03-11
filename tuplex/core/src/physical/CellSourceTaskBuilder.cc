@@ -16,6 +16,8 @@ namespace tuplex {
         llvm::Function * CellSourceTaskBuilder::build(bool terminateEarlyOnLimitCode) {
             using namespace llvm;
 
+            auto& logger = Logger::instance().logger("codegen");
+
             FunctionType* FT = FunctionType::get(env().i64Type(), {env().i8ptrType(),
                                                                    env().i64Type(),
                                                                    env().i8ptrType()->getPointerTo(),
@@ -76,6 +78,9 @@ namespace tuplex {
                                                                                builder.GetInsertBlock()->getParent());
                     // add here exception block for pipeline errors, serialize tuple etc...
                     auto serialized_row = ft.serializeToMemory(builder);
+                    // debug print
+                    logger.debug("CellSourceTaskBuilder: input row type in which exceptions from pipeline are stored that are **not** parse-exceptions is " + ft.getTupleType().desc());
+                    logger.debug("I.e., when creating resolve tasks for this pipeline - set exceptionRowType to this type.");
                     auto outputRowNumber = builder.CreateLoad(outputRowNumberVar);
                     llvm::BasicBlock *curBlock = builder.GetInsertBlock();
                     auto bbException = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber,
@@ -138,6 +143,8 @@ namespace tuplex {
                     auto t = rowType.parameters()[rowTypePos];
 
                     llvm::Value* isnull = nullptr;
+
+#warning "add here normal-case checks!"
 
                     // option type? do NULL value interpretation
                     if(t.isOptionType()) {

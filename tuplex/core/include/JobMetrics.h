@@ -254,7 +254,7 @@ namespace tuplex {
                 ss<<"\"partitions_swapin_count\":"<<s.partitions_swapin_count<<",";
                 ss<<"\"partitions_swapout_count\":"<<s.partitions_swapout_count<<",";
                 ss<<"\"partitions_bytes_swapped_in\":"<<s.partitions_bytes_swapped_in<<",";
-                ss<<"\"partitions_bytes_swapped_out\":"<<s.partitions_bytes_swapped_out;
+                ss<<"\"partitions_bytes_swapped_out\":"<<s.partitions_bytes_swapped_out",";
                 ss<<"\"fast_path_input_row_count\":"<<s.fast_path_input_row_count<<",";
                 ss<<"\"fast_path_output_row_count\":"<<s.fast_path_output_row_count<<",";
                 ss<<"\"slow_path_input_row_count\":"<<s.slow_path_input_row_count<<",";

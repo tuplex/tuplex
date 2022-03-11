@@ -25,6 +25,7 @@
 
 #ifdef BUILD_WITH_AWS
 #include <aws/transfer/TransferHandle.h>
+#include <AWSCommon.h>
 #endif
 
 namespace tuplex {

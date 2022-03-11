@@ -969,6 +969,27 @@ namespace tuplex {
         auto tasks = createIncrementalTasks(tstage, _options, syms);
         auto completedTasks = performTasks(tasks);
 
+        size_t numInputRows = 0;
+        size_t numOutputRows = 0;
+        double totalWallTime = 0.0;
+        for(auto task : completedTasks) {
+            numInputRows += task->getNumInputRows();
+            numOutputRows += task->getNumOutputRows();
+            totalWallTime += task->wallTime();
+        }
+        {
+            std::stringstream ss;
+            double time_per_slow_path_row_in_ms = totalWallTime / numInputRows * 1000.0;
+            ss<<"[Transform Stage] Stage "<<tstage->number()<<" total wall clock time: "
+              <<totalWallTime<<"s, "<<pluralize(numInputRows, "input row")
+              <<", time to process 1 row via fast path: "<<time_per_slow_path_row_in_ms<<"ms";
+            Logger::instance().defaultLogger().info(ss.str());
+
+            metrics.setSlowPathRowCount(tstage->number(), numInputRows, numOutputRows);
+            // fast path
+            metrics.setSlowPathTimes(tstage->number(), totalWallTime, timer.time(), time_per_slow_path_row_in_ms * 1000000.0);
+        }
+
         sortTasks(completedTasks);
 
         // fetch partitions & ecounts
@@ -997,13 +1018,11 @@ namespace tuplex {
             if(task->type() == TaskType::RESOLVE)
                 task_name = "resolve";
 
-            auto pGroup = PartitionGroup(
+            partitionGroups.push_back(PartitionGroup(
                     taskNormalPartitions.size(), normalPartitions.size(),
                     taskGeneralPartitions.size(), generalPartitions.size(),
-            taskFallbackPartitions.size(), fallbackPartitions.size());
-            pGroup.numExceptionPartitions = taskExceptionPartitions.size();
-            pGroup.exceptionPartitionStartInd = exceptionPartitions.size();
-            partitionGroups.push_back(pGroup);
+                    taskFallbackPartitions.size(), fallbackPartitions.size(),
+                    taskExceptionPartitions.size(), exceptionPartitions.size()));
             std::copy(taskNormalPartitions.begin(), taskNormalPartitions.end(), std::back_inserter(normalPartitions));
             std::copy(taskGeneralPartitions.begin(), taskGeneralPartitions.end(), std::back_inserter(generalPartitions));
             std::copy(taskFallbackPartitions.begin(), taskFallbackPartitions.end(), std::back_inserter(fallbackPartitions));
@@ -1014,11 +1033,15 @@ namespace tuplex {
             case EndPointMode::FILE: {
                 if (_options.OPT_MERGE_EXCEPTIONS_INORDER()) {
                     tstage->setIncrementalResult(normalPartitions, exceptionPartitions, partitionGroups);
+                    timer.reset();
                     writeOutput(tstage, completedTasks);
+                    metrics.setWriteOutputTimes(tstage->number(), timer.time());
                 } else {
+                    timer.reset();
                     auto partNo = writeOutput(tstage, completedTasks, cacheEntry->startFileNumber());
-                    tstage->setIncrmentalCacheCSVResult(exceptionPartitions, generalPartitions, fallbackPartitions,
-                                                        partNo);
+                    metrics.setWriteOutputTimes(tstage->number(), timer.time());
+                    tstage->setIncrementalResult(exceptionPartitions, generalPartitions, fallbackPartitions,
+                                                 partNo);
                 }
                 break;
             }
@@ -1145,9 +1168,11 @@ namespace tuplex {
 
         // calc number of input rows and total wall clock time
         size_t numInputRows = 0;
+        size_t numOutputRows = 0;
         double totalWallTime = 0.0;
         for(auto task : completedTasks) {
             numInputRows += task->getNumInputRows();
+            numOutputRows += task->getNumOutputRows();
             totalWallTime += task->wallTime();
         }
 
@@ -1165,6 +1190,7 @@ namespace tuplex {
               <<", time to process 1 row via fast path: "<<time_per_fast_path_row_in_ms<<"ms";
             Logger::instance().defaultLogger().info(ss.str());
 
+            metrics.setFastPathRowCount(tstage->number(), numInputRows, numOutputRows);
             // fast path
             metrics.setFastPathTimes(tstage->number(), totalWallTime, timer.time(), time_per_fast_path_row_in_ms * 1000000.0);
         }
@@ -1280,10 +1306,12 @@ namespace tuplex {
 
                 totalWallTime = 0.0;
                 size_t slowPathNumInputRows = 0;
+                size_t slowPathNumOutputRows = 0;
                 for(auto task : completedTasks) {
                     if(task->type() == TaskType::RESOLVE) {
                         totalWallTime += task->wallTime();
                         slowPathNumInputRows += task->getNumInputRows();
+                        slowPathNumOutputRows += task->getNumOutputRows();
                     }
                 }
                 double time_per_row_slow_path_ms = totalWallTime / slowPathNumInputRows * 1000.0;
@@ -1293,6 +1321,7 @@ namespace tuplex {
                 ss<<"slow path for Stage "<<tstage->number()<<": total wall clock time: "<<totalWallTime<<"s, "
                   <<"time to process 1 row via slow path: "<<time_per_row_slow_path_ms<<"ms";
                 logger().info(ss.str());
+                metrics.setSlowPathRowCount(tstage->number(), slowPathNumInputRows, slowPathNumOutputRows);
                 metrics.setSlowPathTimes(tstage->number(), totalWallTime, slow_path_total_time,
                                          time_per_row_slow_path_ms * 1000000.0);
             }
@@ -1363,11 +1392,15 @@ namespace tuplex {
                 // ==> could maybe codegen avro as output format, and then write to whatever??
                 if (_options.OPT_MERGE_EXCEPTIONS_INORDER()) {
                     tstage->setIncrementalResult(normalPartitions, exceptionPartitions, partitionGroups);
+                    timer.reset();
                     writeOutput(tstage, completedTasks);
+                    metrics.setWriteOutputTimes(tstage->number(), timer.time());
                 } else {
+                    timer.reset();
                     auto partNo = writeOutput(tstage, completedTasks);
-                    tstage->setIncrmentalCacheCSVResult(exceptionPartitions, generalPartitions, fallbackPartitions,
-                                                        partNo);
+                    metrics.setWriteOutputTimes(tstage->number(), timer.time());
+                    tstage->setIncrementalResult(exceptionPartitions, generalPartitions, fallbackPartitions,
+                                                 partNo);
                 }
                 break;
             }

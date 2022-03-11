@@ -118,10 +118,10 @@ namespace tuplex {
         PhysicalStage::plan()->getContext().getIncrementalCache()->addEntry(IncrementalCache::newKey(pipeline), cacheEntry);
     }
 
-    void TransformStage::setIncrmentalCacheCSVResult(const std::vector<Partition*>& exceptionPartitions,
-                                                     const std::vector<Partition*>& generalPartitions,
-                                                     const std::vector<Partition*>& fallbackPartitions,
-                                                     const size_t startFileNumber) {
+    void TransformStage::setIncrementalResult(const std::vector<Partition*>& exceptionPartitions,
+                                              const std::vector<Partition*>& generalPartitions,
+                                              const std::vector<Partition*>& fallbackPartitions,
+                                              size_t startFileNumber) {
         auto pipeline = PhysicalStage::plan()->originalLogicalPlan()->getAction();
         auto cacheEntry = new IncrementalCacheEntry(pipeline, exceptionPartitions, generalPartitions, fallbackPartitions, startFileNumber);
         PhysicalStage::plan()->getContext().getIncrementalCache()->addEntry(IncrementalCache::newKey(pipeline), cacheEntry);

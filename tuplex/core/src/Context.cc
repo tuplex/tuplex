@@ -308,7 +308,7 @@ namespace tuplex {
                     numWrittenRowsInPartition++;
                     capacityRemaining -= bytesWritten;
                 } else {
-                    partitionGroups.push_back(PartitionGroup(1, dsptr->getPartitions().size(), 0, 0, 0, 0));
+                    partitionGroups.push_back(PartitionGroup(1, dsptr->getPartitions().size()));
                     // partition is full, request new one.
                     // create new partition...
                     partition->unlock();
@@ -325,7 +325,7 @@ namespace tuplex {
                     base_ptr = (uint8_t*)partition->lock();
                 }
             }
-            partitionGroups.push_back(PartitionGroup(1, dsptr->getPartitions().size(), 0, 0, 0, 0));
+            partitionGroups.push_back(PartitionGroup(1, dsptr->getPartitions().size()));
 
             partition->unlock();
             partition->setNumRows(numWrittenRowsInPartition);
@@ -370,7 +370,7 @@ namespace tuplex {
         if (partitionGroups.empty()) {
             std::vector<PartitionGroup> defaultPartitionGroups;
             for (int i = 0; i < ds->getPartitions().size(); ++i) {
-                defaultPartitionGroups.push_back(PartitionGroup(1, i, 0, 0, 0, 0));
+                defaultPartitionGroups.push_back(PartitionGroup(1, i));
             }
             op->setPartitionGroups(defaultPartitionGroups);
         } else {

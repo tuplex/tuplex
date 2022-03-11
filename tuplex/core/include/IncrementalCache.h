@@ -16,9 +16,6 @@
 
 namespace tuplex {
 
-    class IncrementalCacheEntry;
-    class IncrementalCSVEntry;
-
     class IncrementalCacheEntry {
     private:
         LogicalOperator* _pipeline;

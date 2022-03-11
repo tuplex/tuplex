@@ -205,10 +205,10 @@ namespace tuplex {
                                   const std::vector<Partition*>& exceptionPartitions,
                                   const std::vector<PartitionGroup>& partitionGroups);
 
-        void setIncrmentalCacheCSVResult(const std::vector<Partition*>& exceptionPartitions,
-                                         const std::vector<Partition*>& generalPartitions,
-                                         const std::vector<Partition*>& fallbackPartitions,
-                                         const size_t startFileNumber);
+        void setIncrementalResult(const std::vector<Partition*>& exceptionPartitions,
+                                  const std::vector<Partition*>& generalPartitions,
+                                  const std::vector<Partition*>& fallbackPartitions,
+                                  size_t startFileNumber);
 
         void setMemoryResult(const std::vector<Partition*>& normalPartitions=std::vector<Partition*>{},
                              const std::vector<Partition*>& generalPartitions=std::vector<Partition*>{},

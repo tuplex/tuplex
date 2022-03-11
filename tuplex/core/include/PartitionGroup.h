@@ -25,11 +25,13 @@ namespace tuplex {
          * @param fallbackPartitionStartInd starting index in list of all fallback partitions
          */
         PartitionGroup(size_t numNormalPartitons, size_t normalPartitionStartInd,
-                       size_t numGeneralPartitions, size_t generalPartitionStartInd,
-                       size_t numFallbackPartitions, size_t fallbackPartitionStartInd):
+                       size_t numGeneralPartitions=0, size_t generalPartitionStartInd=0,
+                       size_t numFallbackPartitions=0, size_t fallbackPartitionStartInd=0,
+                       size_t numExceptionPartitions=0, size_t exceptionPartitionStartInd=0):
                        numNormalPartitions(numNormalPartitons), normalPartitionStartInd(normalPartitionStartInd),
                        numGeneralPartitions(numGeneralPartitions), generalPartitionStartInd(generalPartitionStartInd),
-                       numFallbackPartitions(numFallbackPartitions), fallbackPartitionStartInd(fallbackPartitionStartInd) {}
+                       numFallbackPartitions(numFallbackPartitions), fallbackPartitionStartInd(fallbackPartitionStartInd),
+                       numExceptionPartitions(numExceptionPartitions), exceptionPartitionStartInd(exceptionPartitionStartInd) {}
 
        /*!
         * Initialize empty struct with all values set to zero.

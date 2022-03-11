@@ -122,7 +122,7 @@ TEST_F(ResultSetTest, NoPyObjects) {
     std::vector<PartitionGroup> partitionGroups;
     for(int i = 0; i < partitions.size(); ++i) {
         partitions[i]->makeImmortal();
-        partitionGroups.push_back(PartitionGroup(1, i, 0, 0, 0, 0));
+        partitionGroups.push_back(PartitionGroup(1, i));
     }
 
     auto rsA = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, sample_rows.front().getRowType()), partitions, std::vector<Partition*>{}, std::vector<Partition*>{}, partitionGroups);

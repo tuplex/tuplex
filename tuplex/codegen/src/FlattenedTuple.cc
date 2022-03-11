@@ -1127,5 +1127,48 @@ namespace tuplex {
             }
             return ft;
         }
+
+        FlattenedTuple FlattenedTuple::upcastTo(llvm::IRBuilder<>& builder, const python::Type& target_type) const {
+            // create new FlattenedTuple
+            FlattenedTuple ft(_env);
+            ft.init(target_type);
+            auto env = _env;
+
+            // check, make sure they upcastable...
+            if(!python::canUpcastType(getTupleType(), target_type))
+                throw std::runtime_error("Code generation failure, can't upcast type " + getTupleType().desc() + " to type " + target_type.desc());
+
+            // upgrade params
+            auto paramsNew = ft.flattenedTupleType().parameters();
+            auto paramsOld = this->flattenedTupleType().parameters();
+            if(paramsNew.size() != paramsOld.size())
+                throw std::runtime_error("types have different number of elements");
+
+            auto num_params = paramsNew.size();
+            for(int i = 0; i < num_params; ++i) {
+                auto val = this->get(i);
+                auto size = this->getSize(i);
+                auto is_null = this->getIsNull(i);
+
+                // only opt/ non-opt supported yet!
+                assert(paramsNew[i].isOptionType() || paramsNew[i] == paramsOld[i]);
+                if(paramsNew[i] != paramsOld[i]) {
+                    if(python::Type::NULLVALUE == paramsOld[i]) {
+                        assert(paramsNew[i].isOptionType());
+                        // nothing todo, values are good
+                        val = nullptr;
+                        size = nullptr;
+                    } else if(!paramsOld[i].isOptionType() && paramsNew[i].isOptionType()) {
+                        is_null = env->i1Const(false); // not null
+                    } else {
+                        // nothing todo...
+                    }
+                }
+
+                ft.assign(i, val, size, is_null);
+            }
+
+            return ft;
+        }
     }
 }

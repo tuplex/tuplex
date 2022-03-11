@@ -105,6 +105,14 @@ namespace tuplex {
 
 
             /*!
+             * upcast this flattened Tuple to a new flattened tuple.
+             * @param builder IR Builder
+             * @param target_type the target type, needs to be compatible with FlattenedTuple
+             * @return new FlattenedTuple.
+             */
+            FlattenedTuple upcastTo(llvm::IRBuilder<>& builder, const python::Type& target_type) const;
+
+            /*!
              * retrieves an element based on the index. I.e. to access the
              * @param index
              * @return

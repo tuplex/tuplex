@@ -101,6 +101,23 @@ namespace tuplex {
             _intermediateCallbackName = callbackName;
         }
 
+        SerializableValue BlockBasedTaskBuilder::serializedExceptionRow(llvm::IRBuilder<>& builder, const FlattenedTuple& ftIn) const {
+            auto& logger = Logger::instance().logger("codegen");
+            // upcast necessary?
+            assert(ftIn.getTupleType() == _inputRowType); // needs to be the correct flattened tuple!
+            // upcast necessary?
+            FlattenedTuple ft = ftIn;
+            if(_inputRowType != _inputRowTypeGeneralCase) {
+                // upcast flattened tuple!
+                logger.debug("emitting exception upcast on code-path");
+                ft = ftIn.upcastTo(_inputRowTypeGeneralCase);
+            }
+
+            // serialize!
+            auto serialized_row = ft.serializeToMemory(builder);
+            return serialized_row;
+        }
+
         llvm::BasicBlock* BlockBasedTaskBuilder::exceptionBlock(llvm::IRBuilder<>& builder,
                 llvm::Value* userData,
                 llvm::Value *exceptionCode,

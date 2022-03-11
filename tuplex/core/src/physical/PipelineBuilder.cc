@@ -35,44 +35,8 @@ namespace tuplex {
 
         // reusable function b.c. needs to be done in resolver too.
         FlattenedTuple castRow(llvm::IRBuilder<>& builder, const FlattenedTuple& row, const python::Type& target_type) {
-
-            auto env = row.getEnv();
-
-            // create new FlattenedTuple
-            FlattenedTuple ft(env);
-            ft.init(target_type);
-
-            // upgrade params
-            auto paramsNew = ft.flattenedTupleType().parameters();
-            auto paramsOld = row.flattenedTupleType().parameters();
-            if(paramsNew.size() != paramsOld.size())
-                throw std::runtime_error("types have different number of elements");
-
-            auto num_params = paramsNew.size();
-            for(int i = 0; i < num_params; ++i) {
-                auto val = row.get(i);
-                auto size = row.getSize(i);
-                auto is_null = row.getIsNull(i);
-
-                // only opt/ non-opt supported yet!
-                assert(paramsNew[i].isOptionType() || paramsNew[i] == paramsOld[i]);
-                if(paramsNew[i] != paramsOld[i]) {
-                    if(python::Type::NULLVALUE == paramsOld[i]) {
-                        assert(paramsNew[i].isOptionType());
-                        // nothing todo, values are good
-                        val = nullptr;
-                        size = nullptr;
-                    } else if(!paramsOld[i].isOptionType() && paramsNew[i].isOptionType()) {
-                        is_null = env->i1Const(false); // not null
-                    } else {
-                        // nothing todo...
-                    }
-                }
-
-                ft.assign(i, val, size, is_null);
-            }
-
-            return ft;
+            Logger::instance().defaultLogger().warn("using deprecated function, please change in code.");
+            return row.upcastTo(builder, target_type);
         }
 
         void PipelineBuilder::addVariable(llvm::IRBuilder<> &builder, const std::string name, llvm::Type *type,
@@ -1996,7 +1960,7 @@ namespace tuplex {
                 ft.deserializationCode(builder, args["rowBuf"]);
                 // upcast to general type!
                 // castRow(llvm::IRBuilder<>& builder, const FlattenedTuple& row, const python::Type& target_type)
-                auto tuple = castRow(builder, ft, pip.inputRowType());
+                auto tuple = ft.upcastTo(builder, pip.inputRowType());
 
 #ifndef NDEBUG
                 // ft.print(builder);
@@ -2048,7 +2012,7 @@ namespace tuplex {
 
             IRBuilder<> builder(_lastBlock);
             try {
-                _lastRowResult = castRow(builder, _lastRowResult, rowType);
+                _lastRowResult = _lastRowResult.upcastTo(builder, rowType);
             } catch (const std::exception& e) {
                 logger.error("type upcast failed: " + std::string(e.what()));
                 return false;

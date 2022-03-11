@@ -37,7 +37,8 @@ namespace tuplex {
              */
             llvm::Function *createFunctionWithExceptions();
 
-            python::Type _inputRowType; //@TODO: make this private??
+            python::Type _inputRowType;
+            python::Type _inputRowTypeGeneralCase;
 
             std::string _intermediateCallbackName;
             Row _intermediateInitialValue;
@@ -48,6 +49,14 @@ namespace tuplex {
             void writeIntermediate(llvm::IRBuilder<> &builder,
                                    llvm::Value* userData,
                                    const std::string &intermediateCallbackName);
+
+            /*!
+             * serializes the exception row
+             * @param LLVM builder
+             * @param ftIn the flattened tuple representing an input row
+             * @return a rtmalloc'ed representation of the exception row
+             */
+            SerializableValue serializedExceptionRow(llvm::IRBuilder<>& builder, const FlattenedTuple& ftIn) const;
 
             /*!
              * returns argument of function
@@ -91,11 +100,27 @@ namespace tuplex {
         public:
             BlockBasedTaskBuilder() = delete;
 
+            /*!
+             * creates a function to read rows from memory and process them via a pipeline.
+             * @param env LLVM codegen environment where to put everything
+             * @param inputRowType the row type rows are stored in within the memory block
+             * @param generalCaseInputRowType the row type exceptions should be stored in. inputRowType must be upcastable to generalCaseInputRowType.
+             * @param name how to call the function to be generated.
+             */
             BlockBasedTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
-                                  const python::Type &rowType,
-                                  const std::string &name) : _env(env), _inputRowType(rowType), _desiredFuncName(name),
+                                  const python::Type& inputRowType,
+                                  const python::Type& generalCaseInputRowType,
+                                  const std::string &name) : _env(env), _inputRowType(inputRowType),
+                                                             _inputRowTypeGeneralCase(generalCaseInputRowType),
+                                                             _desiredFuncName(name),
                                                              _intermediate(nullptr),
-                                                             _intermediateType(python::Type::UNKNOWN) {}
+                                                             _intermediateType(python::Type::UNKNOWN) {
+                // check that upcasting is true
+                assert(canUpcastToRowType(_inputRowType, _inputRowTypeGeneralCase));
+                if(_inputRowType != _inputRowTypeGeneralCase) {
+                    Logger::instance().logger("codegen").debug("emitting auto-upcast for exceptions");
+                }
+            }
 
             LLVMEnvironment &env() { return *_env; }
 

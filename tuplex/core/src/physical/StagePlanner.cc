@@ -555,9 +555,17 @@ namespace tuplex {
         logger.info("specialized code reads: " + pluralize(numToRead, "column"));
         ctx.fastPathContext = path_ctx;
 
+
+        auto generalCaseInputRowType = ctx.slowPathContext.inputSchema.getRowType();
+        if(ctx.slowPathContext.inputNode->type() == LogicalOperatorType::FILEINPUT)
+            generalCaseInputRowType = ctx.slowPathContext.readSchema.getRowType();
+
         // generate code! Add to stage, can then compile this. Yay!
         timer.reset();
-        stage->_fastCodePath = codegen::StageBuilder::generateFastCodePath(ctx, ctx.fastPathContext, ctx.slowPathContext.outputSchema.getRowType(), stage->number());
+        stage->_fastCodePath = codegen::StageBuilder::generateFastCodePath(ctx, ctx.fastPathContext,
+                                                                           generalCaseInputRowType,
+                                                                           ctx.slowPathContext.outputSchema.getRowType(),
+                                                                           stage->number());
         logger.info("generated code in " + std::to_string(timer.time()) + "s");
         // can then compile everything, hooray!
     }

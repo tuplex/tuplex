@@ -53,7 +53,19 @@ namespace tuplex {
         public:
             ExceptionSourceTaskBuilder() = delete;
 
-            explicit ExceptionSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment>& env, const python::Type& rowType, const std::string& name) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env, rowType, name)   {}
+            /*!
+             * creates a function to read rows from memory and process them via a pipeline.
+             * Used when both input exceptions and filters are present within a pipeline
+             * and exceptions need to be merged in order.
+             * @param env LLVM codegen environment where to put everything
+             * @param inputRowType the row type rows are stored in within the memory block
+             * @param generalCaseInputRowType the row type exceptions should be stored in. inputRowType must be upcastable to generalCaseInputRowType.
+             * @param name how to call the function to be generated.
+             */
+            explicit ExceptionSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment>& env,
+                                                const python::Type& inputRowType,
+                                                const python::Type& generalCaseInputRowType,
+                                                const std::string& name) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env, inputRowType, generalCaseInputRowType, name)   {}
 
             llvm::Function* build(bool terminateEarlyOnFailureCode) override;
         };

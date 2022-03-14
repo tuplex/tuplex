@@ -62,7 +62,8 @@ namespace tuplex {
             /*!
              * construct a new task which parses CSV input (given block wise)
              * @param env CodeEnv where to generate code into
-             * @param rowType the detected row Type of the file
+             * @param fileInputRowType the detected row Type of the file
+             * @param fileGeneralCaseInputRowType the detected general case row type of the file
              * @param columnsToSerialize if empty vector, all rows get serialized. If not, indicates which columns should be serialized. Length must match rowType.
              * @param name Name of the function to generate
              * @param operatorID ID of the operator for exception handling.
@@ -70,7 +71,8 @@ namespace tuplex {
              * @param quotechar CSV quotechar for which to produce a parser
              */
             explicit JITCSVSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
-                                             const python::Type &rowType,
+                                             const python::Type& fileInputRowType,
+                                             const python::Type& fileGeneralCaseInputRowType,
                                              const std::vector<bool> &columnsToSerialize,
                                              const std::string &name,
                                              int64_t operatorID,
@@ -79,14 +81,17 @@ namespace tuplex {
                                              char quotechar) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env,
                                                                                                             restrictRowType(
                                                                                                                     columnsToSerialize,
-                                                                                                                    rowType),
+                                                                                                                    fileInputRowType),
+                                                                                                            restrictRowType(
+                                                                                                                    columnsToSerialize,
+                                                                                                                    fileGeneralCaseInputRowType),
                                                                                                             name),
                                                                _parseRowGen(
                                                                        new CSVParseRowGenerator(_env.get(), null_values,
                                                                                                 quotechar, delimiter)),
                                                                _operatorID(operatorID),
                                                                _columnsToSerialize(columnsToSerialize),
-                                                               _fileInputRowType(rowType) {
+                                                               _fileInputRowType(fileInputRowType) {
             }
 
             virtual llvm::Function *build(bool terminateEarlyOnFailureCode) override;

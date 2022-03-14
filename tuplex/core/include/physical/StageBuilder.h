@@ -217,6 +217,7 @@ namespace tuplex {
              */
             static TransformStage::StageCodePath generateFastCodePath(const CodeGenerationContext& ctx,
                                                                       const CodeGenerationContext::CodePathContext& pathContext,
+                                                                      const python::Type& generalCaseInputRowType,
                                                                       const python::Type& generalCaseOutputRowType,
                                                                       int stageNo,
                                                                       const std::string& env_name="tuplex_fastCodePath"); // file2mem always

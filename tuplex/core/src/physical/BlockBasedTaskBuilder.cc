@@ -110,7 +110,7 @@ namespace tuplex {
             if(_inputRowType != _inputRowTypeGeneralCase) {
                 // upcast flattened tuple!
                 logger.debug("emitting exception upcast on code-path");
-                ft = ftIn.upcastTo(_inputRowTypeGeneralCase);
+                ft = ftIn.upcastTo(builder, _inputRowTypeGeneralCase);
             }
 
             // serialize!

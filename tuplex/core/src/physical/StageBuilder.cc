@@ -352,6 +352,7 @@ namespace tuplex {
 
         TransformStage::StageCodePath StageBuilder::generateFastCodePath(const CodeGenerationContext& ctx,
                                                                          const CodeGenerationContext::CodePathContext& pathContext,
+                                                                         const python::Type& generalCaseInputRowType,
                                                                          const python::Type& generalCaseOutputRowType,
                                                                          int stageNo,
                                                                          const std::string& env_name) {
@@ -782,10 +783,17 @@ namespace tuplex {
                 switch (ctx.inputFileFormat) {
                     case FileFormat::OUTFMT_CSV:
                     case FileFormat::OUTFMT_TEXT: {
+
+                        // check that generalCaseInputRowType and readSchema are compatible
+                        if(!python::canUpcastToRowType(pathContext.readSchema.getRowType(), generalCaseInputRowType)) {
+                            throw std::runtime_error("incompatible normal and general case row type for parsing text data");
+                        }
+
                         if (ctx.generateParser) {
                             //@TODO: optimization/hyperspecialization checks!
                             tb = make_shared<codegen::JITCSVSourceTaskBuilder>(env,
                                                                                pathContext.readSchema.getRowType(),
+                                                                               generalCaseInputRowType,
                                                                                pathContext.columnsToRead,
                                                                                funcStageName,
                                                                                ctx.inputNodeID,
@@ -795,6 +803,7 @@ namespace tuplex {
                         } else {
                             tb = make_shared<codegen::CellSourceTaskBuilder>(env,
                                                                              pathContext.readSchema.getRowType(),
+                                                                             generalCaseInputRowType,
                                                                              pathContext.columnsToRead,
                                                                              funcStageName,
                                                                              ctx.inputNodeID,
@@ -803,7 +812,13 @@ namespace tuplex {
                         break;
                     }
                     case FileFormat::OUTFMT_ORC: {
-                        tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, pathContext.inputSchema.getRowType(), funcStageName);
+
+                        // check that generalCaseInputRowType and readSchema are compatible
+                        if(!python::canUpcastToRowType(pathContext.inputSchema.getRowType(), generalCaseInputRowType)) {
+                            throw std::runtime_error("incompatible normal and general case row type for reading ORC data");
+                        }
+
+                        tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, pathContext.inputSchema.getRowType(), generalCaseInputRowType, funcStageName);
                         break;
                     }
                     default:
@@ -815,7 +830,14 @@ namespace tuplex {
 //               if (ctx.updateInputExceptions)
 //                    tb = make_shared<codegen::ExceptionSourceTaskBuilder>(env, pathContext.inputSchema.getRowType(), funcStageName);
 //                else
-                    tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, pathContext.inputSchema.getRowType(), funcStageName);
+
+
+                // check that generalCaseInputRowType and readSchema are compatible
+                if(!python::canUpcastToRowType(pathContext.inputSchema.getRowType(), generalCaseInputRowType)) {
+                    throw std::runtime_error("incompatible normal and general case row type for reading ORC data");
+                }
+
+                tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, pathContext.inputSchema.getRowType(), generalCaseInputRowType, funcStageName);
             }
 
             // set pipeline and
@@ -1390,8 +1412,15 @@ namespace tuplex {
                 stage->_pyPipelineName = py_path.pyPipelineName;
 
                 // wait for threads to finish generating the two paths...!
+
+                // general case input row type is the input schema, but for files the read schema.
+                auto generalCaseInputRowType = codeGenerationContext.slowPathContext.inputSchema.getRowType();
+                if(codeGenerationContext.slowPathContext.inputNode->type() == LogicalOperatorType::FILEINPUT)
+                    generalCaseInputRowType = codeGenerationContext.slowPathContext.readSchema.getRowType();
+
                 stage->_fastCodePath = generateFastCodePath(codeGenerationContext,
                                                             codeGenerationContext.fastPathContext,
+                                                            generalCaseInputRowType,
                                                             codeGenerationContext.slowPathContext.outputSchema.getRowType(),
                                                             number());
                 stage->_slowCodePath = slowCodePath_f.get();

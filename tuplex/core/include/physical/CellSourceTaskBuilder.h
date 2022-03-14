@@ -50,7 +50,8 @@ namespace tuplex {
             /*!
              * construct a new task which parses CSV input (given block wise)
              * @param env CodeEnv where to generate code into
-             * @param rowType the detected row Type of the file
+             * @param fileInputRowType the detected row Type of the file
+             * @param fileGeneralCaseInputRowType the detected general case row type of the file
              * @param columnsToSerialize if empty vector, all rows get serialized. If not, indicates which columns should be serialized. Length must match rowType.
              * @param name Name of the function to generate
              * @param operatorID ID of the operator for exception handling.
@@ -58,7 +59,8 @@ namespace tuplex {
              * @param checks array of checks to perform and else issue a normalcaseviolation
              */
             explicit CellSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
-                                           const python::Type &rowType,
+                                           const python::Type& fileInputRowType,
+                                           const python::Type& fileGeneralCaseInputRowType,
                                            const std::vector<bool> &columnsToSerialize,
                                            const std::string &name,
                                            int64_t operatorID,
@@ -66,10 +68,13 @@ namespace tuplex {
                                            const std::vector<NormalCaseCheck>& checks={}) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env,
                                                                                                               restrictRowType(
                                                                                                                       columnsToSerialize,
-                                                                                                                      rowType),
+                                                                                                                      fileInputRowType),
+                                                                                                                      restrictRowType(
+                                                                                                                     columnsToSerialize,
+                                                                                                                     fileGeneralCaseInputRowType),
                                                                                                               name),
                                                                  _operatorID(operatorID),
-                                                                 _fileInputRowType(rowType),
+                                                                 _fileInputRowType(fileInputRowType),
                                                                  _columnsToSerialize(columnsToSerialize),
                                                                  _functionName(name),
                                                                  _nullValues(null_values),

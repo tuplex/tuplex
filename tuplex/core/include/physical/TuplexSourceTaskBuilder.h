@@ -49,7 +49,18 @@ namespace tuplex {
         public:
             TuplexSourceTaskBuilder() = delete;
 
-            explicit TuplexSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment>& env, const python::Type& rowType, const std::string& name) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env, rowType, name)   {}
+            /*!
+            * creates a function to read rows from memory and process them via a pipeline.
+             * Memory format is Tuplex's internal storage format.
+            * @param env LLVM codegen environment where to put everything
+            * @param inputRowType the row type rows are stored in within the memory block
+            * @param generalCaseInputRowType the row type exceptions should be stored in. inputRowType must be upcastable to generalCaseInputRowType.
+            * @param name how to call the function to be generated.
+            */
+            explicit TuplexSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment>& env,
+                                             const python::Type& inputRowType,
+                                             const python::Type& generalCaseInputRowType,
+                                             const std::string& name) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env, inputRowType, generalCaseInputRowType, name)   {}
 
             llvm::Function* build(bool terminateEarlyOnLimitCode) override;
         };

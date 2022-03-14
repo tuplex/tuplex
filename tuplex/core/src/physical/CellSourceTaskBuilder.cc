@@ -77,7 +77,7 @@ namespace tuplex {
                                                                                "pipeline_ok",
                                                                                builder.GetInsertBlock()->getParent());
                     // add here exception block for pipeline errors, serialize tuple etc...
-                    auto serialized_row = ft.serializeToMemory(builder);
+                    auto serialized_row = serializedExceptionRow(builder, ft);
                     // debug print
                     logger.debug("CellSourceTaskBuilder: input row type in which exceptions from pipeline are stored that are **not** parse-exceptions is " + ft.getTupleType().desc());
                     logger.debug("I.e., when creating resolve tasks for this pipeline - set exceptionRowType to this type.");

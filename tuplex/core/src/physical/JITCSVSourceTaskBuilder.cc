@@ -174,7 +174,7 @@ namespace tuplex {
 
                 // create exception block, serialize input row depending on result
                 // note: creating exception block automatically sets builder to this block
-                auto serialized_row = ft.serializeToMemory(builder);
+                auto serialized_row = serializedExceptionRow(builder, ft);
                 auto outputRowNumber = builder.CreateLoad(outputRowNumberVar);
                 llvm::BasicBlock* curBlock = builder.GetInsertBlock();
                 llvm::BasicBlock* bbException = exceptionBlock(builder, userData, ecCode, ecOpID,

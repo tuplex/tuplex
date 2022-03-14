@@ -771,6 +771,8 @@ namespace tuplex {
 
         llvm::Function* PipelineBuilder::build() {
 
+            auto& logger = Logger::instance().logger("codegen");
+
             // create ret of void function
             llvm::IRBuilder<> builder(_lastBlock);
 
@@ -816,6 +818,7 @@ namespace tuplex {
 
                     // output original input row
                     // => serialize to runtime memory!
+                    logger.debug("Warning: need to make sure types are here correct when using exception handler directly from PipelineBuilder.cc");
                     auto serialized_row = _argInputRow.serializeToMemory(builder);
 
                     // call handler

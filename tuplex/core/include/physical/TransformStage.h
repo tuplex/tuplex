@@ -146,14 +146,14 @@ namespace tuplex {
             return _outputMode == EndPointMode::FILE;
         }
 
-        Schema outputSchema() const { return _outputSchema; }
-        Schema inputSchema() const { return _inputSchema; }
+        Schema outputSchema() const { return _generalCaseOutputSchema; }
+        Schema inputSchema() const { return _generalCaseInputSchema; }
         Schema normalCaseOutputSchema() const { return _normalCaseOutputSchema; }
         Schema normalCaseInputSchema() const { return _normalCaseInputSchema; }
         int64_t outputDataSetID() const { return _outputDataSetID; }
         std::unordered_map<std::string, std::string> outputOptions() const;
 
-        Schema readSchema() const { return _readSchema; }
+        Schema readSchema() const { return _generalCaseReadSchema; }
         int64_t fileInputOperatorID() const { assert(_inputMode == EndPointMode::FILE); return _inputNodeID; }
 
         /*!
@@ -229,6 +229,10 @@ namespace tuplex {
 
         std::string slowPathBitCode() const {
             return _slowCodePath.irBitCode;//_slowPathIRBitCode;
+        }
+
+        Schema generalCaseInputSchema() const {
+            return this->_generalCaseInputSchema;
         }
 
         // Retrieve fast path IR code
@@ -603,9 +607,9 @@ namespace tuplex {
 
         std::vector<std::string> _inputColumns;
         std::vector<std::string> _outputColumns;
-        Schema _readSchema;
-        Schema _inputSchema;
-        Schema _outputSchema;
+        Schema _generalCaseReadSchema;
+        Schema _generalCaseInputSchema;
+        Schema _generalCaseOutputSchema;
         int64_t _outputDataSetID;
         int64_t _inputNodeID;
         std::vector<bool> _inputColumnsToKeep;

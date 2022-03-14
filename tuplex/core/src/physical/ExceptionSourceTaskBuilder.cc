@@ -71,7 +71,16 @@ namespace tuplex {
             llvm::BasicBlock* bbPipelineFailedUpdate = llvm::BasicBlock::Create(context, "pipeline_failed", builder.GetInsertBlock()->getParent());
             llvm::BasicBlock* bbPipelineOK = llvm::BasicBlock::Create(context, "pipeline_ok", builder.GetInsertBlock()->getParent());
             llvm::BasicBlock* curBlock = builder.GetInsertBlock();
-            llvm::BasicBlock* bbPipelineFailed = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber, inputRowPtr, inputRowSize); // generate exception block (incl. ignore & handler if necessary)
+
+
+            // mini optimization here: If no upcast is necessary, use directly the input/output ptr;
+            SerializableValue bad_row;
+            if(_inputRowType == _inputRowTypeGeneralCase) {
+                bad_row = SerializableValue(inputRowPtr, inputRowSize, nullptr);
+            } else {
+                bad_row = serializedExceptionRow(builder, tuple);
+            }
+            llvm::BasicBlock* bbPipelineFailed = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber, bad_row.val, bad_row.size); // generate exception block (incl. ignore & handler if necessary)
 
 
             llvm::BasicBlock* lastExceptionBlock = builder.GetInsertBlock();

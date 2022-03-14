@@ -350,6 +350,33 @@ namespace tuplex {
 
         }
 
+        // helper function to list all functions within llvm::Module and set names to "", where no symbol is found
+        void resetMissingSymbol(llvm::Module& m, std::string& sym) {
+            using namespace llvm;
+            for(const auto& func : m.functions()) {
+                if(sym == func.getName().str()) {
+                    return;
+                }
+            }
+            // func not found, reset name
+            sym = "";
+        }
+
+        void StageBuilder::removeMissingSymbols(llvm::Module& m, TransformStage::StageCodePath& cp) {
+            resetMissingSymbol(m, cp.initStageFuncName);
+            resetMissingSymbol(m, cp.releaseStageFuncName);
+            resetMissingSymbol(m, cp.funcStageName);
+            resetMissingSymbol(m, cp.funcProcessRowName);
+            resetMissingSymbol(m, cp.writeFileCallbackName);
+            resetMissingSymbol(m, cp.writeMemoryCallbackName);
+            resetMissingSymbol(m, cp.writeHashCallbackName);
+            resetMissingSymbol(m, cp.writeExceptionCallbackName);
+            resetMissingSymbol(m, cp.writeAggregateCallbackName);
+            resetMissingSymbol(m, cp.aggregateInitFuncName);
+            resetMissingSymbol(m, cp.aggregateCombineFuncName);
+            resetMissingSymbol(m, cp.aggregateAggregateFuncName);
+        }
+
         TransformStage::StageCodePath StageBuilder::generateFastCodePath(const CodeGenerationContext& ctx,
                                                                          const CodeGenerationContext::CodePathContext& pathContext,
                                                                          const python::Type& generalCaseInputRowType,
@@ -384,8 +411,8 @@ namespace tuplex {
 //                ss<<"Stage"<<stageNo<<" schemas:"<<endl;
 //                ss<<"\tnormal case input: "<<_normalCaseInputSchema.getRowType().desc()<<endl;
 //                ss<<"\tnormal case output: "<<_normalCaseOutputSchema.getRowType().desc()<<endl;
-//                ss<<"\tgeneral case input: "<<_inputSchema.getRowType().desc()<<endl;
-//                ss<<"\tgeneral case output: "<<_outputSchema.getRowType().desc()<<endl;
+//                ss<<"\tgeneral case input: "<<_generalCaseInputSchema.getRowType().desc()<<endl;
+//                ss<<"\tgeneral case output: "<<_generalCaseOutputSchema.getRowType().desc()<<endl;
 
                 logger.debug(ss.str());
             }
@@ -715,7 +742,7 @@ namespace tuplex {
                             logger.warn("using const cast here, it's a code smell. need to fix...");
 
                             // HACK: uncommented... need to fix.
-                            //const_cast<StageBuilder*>(this)->_normalCaseOutputSchema = _outputSchema;
+                            //const_cast<StageBuilder*>(this)->_normalCaseOutputSchema = _generalCaseOutputSchema;
                         }
                     }
                     pip->buildWithHashmapWriter(ret.writeHashCallbackName,
@@ -747,7 +774,7 @@ namespace tuplex {
                                             "type upgrade from " + pathContext.outputSchema.getRowType().desc() + " to " +
                                             generalCaseOutputRowType.desc() + "failed.");
                                 // set normal case output type to general case
-                                // _normalCaseOutputSchema = _outputSchema;
+                                // _normalCaseOutputSchema = _generalCaseOutputSchema;
                             }
                         }
                         pip->buildWithTuplexWriter(ret.writeMemoryCallbackName,
@@ -876,6 +903,8 @@ namespace tuplex {
             // save into variables (allows to serialize stage etc.)
             // IR is generated. Save into stage.
             ret.funcStageName = func->getName();
+            // remove non-existing symbols
+            removeMissingSymbols(*env->getModule(), ret);
             ret.irBitCode = codegen::moduleToBitCodeString(*env->getModule()); // trafo stage takes ownership of module
 
             // @TODO: lazy & fast codegen of the different paths + lowering of them
@@ -1190,8 +1219,8 @@ namespace tuplex {
             isBuilder.CreateRet(env->callGlobalsInit(isBuilder));
             rsBuilder.CreateRet(env->callGlobalsRelease(rsBuilder));
 
-            // @TODO: remove unused symbols, i.e. a simple pass over the module should do.
-
+            // remove unused symbols, i.e. a simple pass over the module should do.
+            removeMissingSymbols(*env->getModule(), ret);
             ret.irBitCode = codegen::moduleToBitCodeString(*env->getModule()); // transform stage takes ownership of module
 
             return ret;
@@ -1320,14 +1349,14 @@ namespace tuplex {
             stage->_inputColumns = _inputColumns;
             stage->_outputColumns = _outputColumns;
 
-            stage->_readSchema = _readSchema;
-            stage->_inputSchema = _inputSchema;
-            stage->_outputSchema = _outputSchema;
+            stage->_generalCaseReadSchema = _readSchema;
+            stage->_generalCaseInputSchema = _inputSchema;
+            stage->_generalCaseOutputSchema = _outputSchema;
             stage->_normalCaseInputSchema = _normalCaseInputSchema;
             stage->_normalCaseOutputSchema = _normalCaseOutputSchema;
             stage->_outputDataSetID = outputDataSetID();
             stage->_inputNodeID = _inputNodeID;
-            auto numColumns = stage->_readSchema.getRowType().parameters().size();
+            auto numColumns = stage->_generalCaseReadSchema.getRowType().parameters().size();
             if(_inputMode == EndPointMode::FILE && _inputNode) {
                 stage->_inputColumnsToKeep = dynamic_cast<FileInputOperator*>(_inputNode.get())->columnsToSerialize();
                 if(stage->_inputColumnsToKeep.empty())
@@ -1537,15 +1566,15 @@ namespace tuplex {
 //                                            Schema& readSchema,
 //                                            Schema& inSchema,
 //                                            Schema& outSchema) {
-//            auto readSchemaType = _readSchema.getRowType(); // what to read from files (before projection pushdown)
-//            auto inSchemaType = _inputSchema.getRowType(); // with what to start the pipeline (after projection pushdown)
-//            auto outSchemaType = _outputSchema.getRowType(); // what to output from pipeline
+//            auto readSchemaType = _generalCaseReadSchema.getRowType(); // what to read from files (before projection pushdown)
+//            auto inSchemaType = _generalCaseInputSchema.getRowType(); // with what to start the pipeline (after projection pushdown)
+//            auto outSchemaType = _generalCaseOutputSchema.getRowType(); // what to output from pipeline
 //
 //
 //
 //            // per default, set normalcase to output types!
-//            _normalCaseInputSchema = _inputSchema;
-//            _normalCaseOutputSchema = _outputSchema;
+//            _normalCaseInputSchema = _generalCaseInputSchema;
+//            _normalCaseOutputSchema = _generalCaseOutputSchema;
 //
 //            // null-value optimization? => use input schema from operators!
 //            if(_nullValueOptimization) {
@@ -1558,7 +1587,7 @@ namespace tuplex {
 //                    _normalCaseInputSchema = dynamic_cast<CacheOperator*>(_inputNode)->getOptimizedOutputSchema();
 //                    inSchemaType = _normalCaseInputSchema.getRowType();
 //                } else {
-//                    _normalCaseOutputSchema = _outputSchema;
+//                    _normalCaseOutputSchema = _generalCaseOutputSchema;
 //                }
 //
 //                // output schema stays the same unless it's the most outer stage...
@@ -1577,7 +1606,7 @@ namespace tuplex {
 //                }
 //
 //                if (_outputMode == EndPointMode::HASHTABLE) {
-//                    _normalCaseOutputSchema = _outputSchema;
+//                    _normalCaseOutputSchema = _generalCaseOutputSchema;
 //                } else if (_outputMode == EndPointMode::MEMORY && intermediateType(operators) == python::Type::UNKNOWN) {
 //                    bool leaveNormalCase = false;
 //
@@ -1586,7 +1615,7 @@ namespace tuplex {
 //                        leaveNormalCase = operators.back()->type() == LogicalOperatorType::CACHE;
 //
 //                    if (!leaveNormalCase)
-//                        _normalCaseOutputSchema = _outputSchema;
+//                        _normalCaseOutputSchema = _generalCaseOutputSchema;
 //                }
 //            }
 //        }

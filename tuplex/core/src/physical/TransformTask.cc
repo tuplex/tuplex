@@ -897,7 +897,7 @@ namespace tuplex {
 
 #ifdef BUILD_WITH_ORC
                     auto orc = new OrcReader(this, reinterpret_cast<codegen::read_block_f>(_functor),
-                                             operatorID, contextID(), partitionSize, _inputSchema);
+                                             operatorID, contextID(), partitionSize, _generalCaseInputSchema);
                     orc->setRange(rangeStart, rangeSize);
                     _reader.reset(orc);
 #else

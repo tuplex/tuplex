@@ -1304,13 +1304,19 @@ namespace tuplex {
     std::vector<IExecutorTask*> LocalBackend::resolveViaSlowPath(
             std::vector<IExecutorTask*> &tasks,
             bool merge_rows_in_order,
-            codegen::resolve_f functor, tuplex::TransformStage *tstage, bool combineHashmaps) {
+            codegen::resolve_f functor,
+            tuplex::TransformStage *tstage,
+            bool combineHashmaps) {
 
         using namespace std;
         assert(tstage);
 
         HashTableSink hsink;
         bool hasNormalHashSink = false;
+
+        // the schema in which exceptions are stored for this stage
+        auto exceptionInputSchema = tstage->generalCaseInputSchema(); // this could be specialized!
+        logger().debug("Exception schema (general case input schema): " + exceptionInputSchema.getRowType().desc());
 
         // make sure output mode is NOT hash table, not yet supported...
         if(tstage->outputMode() == EndPointMode::HASHTABLE) {
@@ -1441,7 +1447,6 @@ namespace tuplex {
 
                 // this task needs to be resolved, b.c. exceptions occurred...
                 // pretty simple, just create a ResolveTask
-                auto exceptionInputSchema = tt->inputSchema(); // this could be specialized!
                 auto rtask = new ResolveTask(stageID,
                                              tstage->context().id(),
                                              tt->getOutputPartitions(),

@@ -182,7 +182,7 @@ namespace tuplex {
     }
 
     Schema UDF::getInputSchema() const {
-        // assert(_inputSchema.getRowType() != python::Type::UNKNOWN);
+        // assert(_generalCaseInputSchema.getRowType() != python::Type::UNKNOWN);
         return _inputSchema;
     }
 

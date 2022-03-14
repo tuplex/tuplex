@@ -226,6 +226,14 @@ namespace tuplex {
 
             friend void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size);
 
+            /*!
+             * not always are all symbols generated, this here is a helper function to set
+             * all symbols that are not contained within the llvm module to ""
+             * @param m module to search over
+             * @param cp code path to manupulate
+             */
+            static void removeMissingSymbols(llvm::Module& m, TransformStage::StageCodePath& cp);
+
             // flags to influence code generation
             bool _isRootStage;
             bool _allowUndefinedBehavior;

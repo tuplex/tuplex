@@ -944,9 +944,9 @@ namespace tuplex {
             stage->_outputColumns.push_back(msg.outputcolumns(i));
 
         // decode schemas
-        stage->_readSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(msg.readschema()));
-        stage->_inputSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(msg.inputschema()));
-        stage->_outputSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(msg.outputschema()));
+        stage->_generalCaseReadSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(msg.readschema()));
+        stage->_generalCaseInputSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(msg.inputschema()));
+        stage->_generalCaseOutputSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(msg.outputschema()));
         stage->_normalCaseInputSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(msg.normalcaseinputschema()));
         stage->_normalCaseOutputSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(msg.normalcaseoutputschema()));
 
@@ -1016,9 +1016,9 @@ namespace tuplex {
             msg->add_inputcolumns(col);
         for(const auto& col : _outputColumns)
             msg->add_outputcolumns(col);
-        msg->set_readschema(_readSchema.getRowType().desc());
-        msg->set_inputschema(_inputSchema.getRowType().desc());
-        msg->set_outputschema(_outputSchema.getRowType().desc());
+        msg->set_readschema(_generalCaseReadSchema.getRowType().desc());
+        msg->set_inputschema(_generalCaseInputSchema.getRowType().desc());
+        msg->set_outputschema(_generalCaseOutputSchema.getRowType().desc());
         msg->set_normalcaseinputschema(_normalCaseInputSchema.getRowType().desc());
         msg->set_normalcaseoutputschema(_normalCaseOutputSchema.getRowType().desc());
         msg->set_outputdatasetid(_outputDataSetID);

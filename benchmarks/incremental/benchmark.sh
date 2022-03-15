@@ -22,6 +22,7 @@ TIMEOUT=14400
 DATA_PATH='data/zillow_dirty@10G.csv'
 RESDIR='results_dirty_zillow@10G'
 INCREMENTAL_OUT_PATH='incremental_output'
+INCREMENTAL_COMMIT_OUT_PATH='incremental_commit_output'
 PLAIN_OUT_PATH='plain_output'
 
 # does file exist?
@@ -61,8 +62,11 @@ for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-incremental-in-order-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --path $DATA_PATH --output-path $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
 
+  LOG="${RESDIR}/tuplex-incremental-in-order-commit-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --commit --path $DATA_PATH --output-path $INCREMENTAL_COMMIT_OUT_PATH >$LOG 2>$LOG.stderr
+
   LOG="${RESDIR}/tuplex-compare-in-order-$r.txt"
-    timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $PLAIN_OUT_PATH $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $PLAIN_OUT_PATH $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
 done
 
 rm -rf $INCREMENTAL_OUT_PATH

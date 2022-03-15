@@ -108,10 +108,57 @@ namespace tuplex {
             // upcast necessary?
             FlattenedTuple ft = ftIn;
             if(_inputRowType != _inputRowTypeGeneralCase) {
-                // upcast flattened tuple!
+
+                assert(_inputRowType.isTupleType());
+                assert(_inputRowTypeGeneralCase.isTupleType());
+
                 logger.debug("emitting exception upcast on code-path");
-                ft = ftIn.upcastTo(builder, _inputRowTypeGeneralCase);
+
+                // could be the case that fast path/normal case requires less columns than general case
+                // (never the other way round!)
+                if(_inputRowType.parameters().size() != _inputRowTypeGeneralCase.parameters().size()) {
+                    assert(_inputRowType.parameters().size() <= _inputRowTypeGeneralCase.parameters().size());
+                    std::stringstream ss;
+                    ss<<"normal cases uses "<<pluralize(_inputRowType.parameters().size(), "column")<<" vs. general case which uses "<<pluralize(_inputRowTypeGeneralCase.parameters().size(), "column");
+                    logger.debug(ss.str());
+                    // fill in with dummys and then set correct tuple
+                    assert(!_normalToGeneralMapping.empty());
+                    // init FlattenedTuple with general case type
+                    ft = FlattenedTuple(ftIn.getEnv());
+                    ft.init(_inputRowTypeGeneralCase);
+
+                    // upcast flattened tuple to restricted type
+                    std::vector<python::Type> params(_inputRowType.parameters().size(), python::Type::UNKNOWN);
+                    std::map<int, int> generalToNormalMapping;
+                    for(auto kv : _normalToGeneralMapping) {
+                        params[kv.first] = _inputRowTypeGeneralCase.parameters()[kv.second];
+                        generalToNormalMapping[kv.second] = kv.first;
+                    }
+                    auto restrictedRowType = python::Type::makeTupleType(params);
+                    auto ftRestricted = ftIn.upcastTo(builder, restrictedRowType);
+
+                    // go through mapping & indices
+                    auto generalcase_col_count = _inputRowTypeGeneralCase.parameters().size();
+                    for(unsigned i = 0; i <= generalcase_col_count; ++i) {
+                        // need to perform reverse lookup...
+                        auto it = generalToNormalMapping.find(i);
+                        if(it != generalToNormalMapping.end()) {
+                            // found a corresponding normal row entry
+                            auto element = ftRestricted.getLoad(builder, {it->second});
+                            ft.set(builder, {static_cast<int>(i)}, element.val, element.size, element.is_null);
+                        } else {
+                            // set a dummy entry
+                            ft.setDummy(builder, {static_cast<int>(i)});
+                        }
+                    }
+                } else {
+                    // upcast flattened tuple!
+                    ft = ftIn.upcastTo(builder, _inputRowTypeGeneralCase);
+                }
             }
+
+            logger.debug(" normal-case input row type of block-based builder is: " + _inputRowType.desc());
+            logger.debug("general-case input row type of block-based builder is: " + _inputRowTypeGeneralCase.desc());
 
             // serialize!
             auto serialized_row = ft.serializeToMemory(builder);

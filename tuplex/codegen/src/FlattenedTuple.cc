@@ -79,6 +79,36 @@ namespace tuplex {
             return _tree.fieldType(index);
         }
 
+        void FlattenedTuple::setDummy(llvm::IRBuilder<> &builder, const std::vector<int> &index) {
+            // is it a single value or a compound/tuple type?
+            auto field_type = _tree.fieldType(index);
+            if(field_type.isTupleType() && field_type != python::Type::EMPTYTUPLE) {
+                // need to assign a subtree
+                auto subtree = _tree.subTree(index);
+                auto subtree_type = subtree.tupleType();
+
+                // decode into flattened tree as well!
+                FlattenedTuple ft_sub = FlattenedTuple(_env);
+                // assign dummys to subtree
+                assert(subtree_type.isTupleType());
+                for(int i = 0; i < subtree_type.parameters().size(); ++i) {
+                    ft_sub.setDummy(builder, {i});
+                }
+
+                // go over tree & assign values from subtree!
+                _tree.setSubTree(index, ft_sub._tree);
+            } else {
+
+                // generate dummy value from type!
+                auto size = _env->i64Const(0);
+                auto is_null = _env->boolConst(false);
+                auto llvm_type = _env->pythonToLLVMType(field_type);
+                auto value = _env->nullConstant(llvm_type);
+
+                _tree.set(index, codegen::SerializableValue(value, size, is_null));
+            }
+        }
+
         void FlattenedTuple::set(llvm::IRBuilder<> &builder, const std::vector<int>& index, llvm::Value *value, llvm::Value *size, llvm::Value *is_null) {
 
             // is it a single value or a compound/tuple type?

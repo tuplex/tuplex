@@ -381,6 +381,7 @@ namespace tuplex {
                                                                          const CodeGenerationContext::CodePathContext& pathContext,
                                                                          const python::Type& generalCaseInputRowType,
                                                                          const python::Type& generalCaseOutputRowType,
+                                                                         const std::map<int, int>& normalToGeneralMapping,
                                                                          int stageNo,
                                                                          const std::string& env_name) {
             using namespace std;
@@ -822,6 +823,7 @@ namespace tuplex {
                                                                                pathContext.readSchema.getRowType(),
                                                                                generalCaseInputRowType,
                                                                                pathContext.columnsToRead,
+                                                                               normalToGeneralMapping,
                                                                                funcStageName,
                                                                                ctx.inputNodeID,
                                                                                null_values,
@@ -832,6 +834,7 @@ namespace tuplex {
                                                                              pathContext.readSchema.getRowType(),
                                                                              generalCaseInputRowType,
                                                                              pathContext.columnsToRead,
+                                                                             normalToGeneralMapping,
                                                                              funcStageName,
                                                                              ctx.inputNodeID,
                                                                              null_values);
@@ -845,7 +848,11 @@ namespace tuplex {
                             throw std::runtime_error("incompatible normal and general case row type for reading ORC data");
                         }
 
-                        tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, pathContext.inputSchema.getRowType(), generalCaseInputRowType, funcStageName);
+                        tb = make_shared<codegen::TuplexSourceTaskBuilder>(env,
+                                                                           pathContext.inputSchema.getRowType(),
+                                                                           generalCaseInputRowType,
+                                                                           normalToGeneralMapping,
+                                                                           funcStageName);
                         break;
                     }
                     default:
@@ -864,7 +871,11 @@ namespace tuplex {
                     throw std::runtime_error("incompatible normal and general case row type for reading ORC data");
                 }
 
-                tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, pathContext.inputSchema.getRowType(), generalCaseInputRowType, funcStageName);
+                tb = make_shared<codegen::TuplexSourceTaskBuilder>(env,
+                                                                   pathContext.inputSchema.getRowType(),
+                                                                   generalCaseInputRowType,
+                                                                   normalToGeneralMapping,
+                                                                   funcStageName);
             }
 
             // set pipeline and
@@ -1422,6 +1433,8 @@ namespace tuplex {
                 // 1. fetch general code generation context
                 auto codeGenerationContext = createCodeGenerationContext();
 
+                logger.debug("TODO: Need to add specialization/optimization here...");
+                // need to set codeGenerationContext.normalToGeneralMapping here as well!
                 // 2. specialize fast path (if desired)
                 // auto operators = specializePipeline(_nullValueOptimization, _inputNode, _operators);
 
@@ -1451,6 +1464,7 @@ namespace tuplex {
                                                             codeGenerationContext.fastPathContext,
                                                             generalCaseInputRowType,
                                                             codeGenerationContext.slowPathContext.outputSchema.getRowType(),
+                                                            codeGenerationContext.normalToGeneralMapping,
                                                             number());
                 stage->_slowCodePath = slowCodePath_f.get();
             }

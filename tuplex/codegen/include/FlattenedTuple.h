@@ -158,7 +158,6 @@ namespace tuplex {
              */
             void set(llvm::IRBuilder<> &builder, const std::vector<int>& index, llvm::Value *value, llvm::Value *size, llvm::Value *is_null);
 
-
             /*!
              * assign subtree of this flattenedtuple via another flattenedtuple
              * @param builder
@@ -166,6 +165,13 @@ namespace tuplex {
              * @param t
              */
             void set(llvm::IRBuilder<>& builder, const std::vector<int>& index, const FlattenedTuple& t);
+
+            /*!
+             * sets a dummy value at the current index position. I.e., a null-value for the corresponding type
+             * @param builder
+             * @param index
+             */
+            void setDummy(llvm::IRBuilder<>& builder, const std::vector<int>& index);
 
             /*!
              * deserializes i8* pointer

@@ -111,6 +111,8 @@ namespace tuplex {
             void enableConstantFoldingOptimization() { _useConstantFolding = true; }
             void enableDelayedParsingOptimization() { _useDelayedParsing = true; }
 
+            std::map<int, int> normalToGeneralMapping() const { return _normalToGeneralMapping; }
+
         private:
             std::shared_ptr<LogicalOperator> _inputNode;
             std::vector<std::shared_ptr<LogicalOperator>> _operators;
@@ -118,6 +120,9 @@ namespace tuplex {
             bool _useNVO;
             bool _useConstantFolding;
             bool _useDelayedParsing;
+
+            // helper when normal-case is specialized to yield less rows than general case
+            std::map<int, int> _normalToGeneralMapping;
 
             // helper functions
             std::vector<Row> fetchInputSample();

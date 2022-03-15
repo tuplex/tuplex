@@ -97,6 +97,7 @@ namespace tuplex {
             std::unordered_map<std::string, llvm::Value *> _args;
 
             llvm::Value *_intermediate;
+            std::map<int, int> _normalToGeneralMapping;
         public:
             BlockBasedTaskBuilder() = delete;
 
@@ -105,13 +106,16 @@ namespace tuplex {
              * @param env LLVM codegen environment where to put everything
              * @param inputRowType the row type rows are stored in within the memory block
              * @param generalCaseInputRowType the row type exceptions should be stored in. inputRowType must be upcastable to generalCaseInputRowType.
+             * @param normalToGeneralMapping normal to general mapping, i.e. which column index in normal case corresponds to which column index in general case. If empty, means it's a 1:1 trivial mapping.
              * @param name how to call the function to be generated.
              */
             BlockBasedTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
                                   const python::Type& inputRowType,
                                   const python::Type& generalCaseInputRowType,
+                                  const std::map<int, int>& normalToGeneralMapping,
                                   const std::string &name) : _env(env), _inputRowType(inputRowType),
                                                              _inputRowTypeGeneralCase(generalCaseInputRowType),
+                                                             _normalToGeneralMapping(normalToGeneralMapping),
                                                              _desiredFuncName(name),
                                                              _intermediate(nullptr),
                                                              _intermediateType(python::Type::UNKNOWN) {
@@ -119,6 +123,18 @@ namespace tuplex {
                 assert(canUpcastToRowType(_inputRowType, _inputRowTypeGeneralCase));
                 if(_inputRowType != _inputRowTypeGeneralCase) {
                     Logger::instance().logger("codegen").debug("emitting auto-upcast for exceptions");
+                }
+
+                // create trivial mapping if empty.
+                if(_normalToGeneralMapping.empty()) {
+                    // make sure size matches!
+                    assert(inputRowType.isTupleType());
+                    assert(generalCaseInputRowType.isTupleType());
+                    if(inputRowType.parameters().size() != generalCaseInputRowType.parameters().size())
+                        throw std::runtime_error("row type sizes do not match, can't create trivial mapping");
+                    auto num_params = inputRowType.parameters().size();
+                    for(unsigned i = 0; i < num_params; ++i)
+                        _normalToGeneralMapping[i] = i;
                 }
             }
 

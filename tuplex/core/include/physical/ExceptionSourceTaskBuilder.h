@@ -65,7 +65,8 @@ namespace tuplex {
             explicit ExceptionSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment>& env,
                                                 const python::Type& inputRowType,
                                                 const python::Type& generalCaseInputRowType,
-                                                const std::string& name) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env, inputRowType, generalCaseInputRowType, name)   {}
+                                                const std::map<int, int>& normalToGeneralMapping,
+                                                const std::string& name) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env, inputRowType, generalCaseInputRowType, normalToGeneralMapping, name)   {}
 
             llvm::Function* build(bool terminateEarlyOnFailureCode) override;
         };

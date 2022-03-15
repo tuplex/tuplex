@@ -74,6 +74,7 @@ namespace tuplex {
                                              const python::Type& fileInputRowType,
                                              const python::Type& fileGeneralCaseInputRowType,
                                              const std::vector<bool> &columnsToSerialize,
+                                             const std::map<int, int>& normalToGeneralMapping,
                                              const std::string &name,
                                              int64_t operatorID,
                                              const std::vector<std::string> &null_values,
@@ -85,6 +86,7 @@ namespace tuplex {
                                                                                                             restrictRowType(
                                                                                                                     columnsToSerialize,
                                                                                                                     fileGeneralCaseInputRowType),
+                                                                                                            normalToGeneralMapping,
                                                                                                             name),
                                                                _parseRowGen(
                                                                        new CSVParseRowGenerator(_env.get(), null_values,

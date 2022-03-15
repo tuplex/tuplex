@@ -53,6 +53,9 @@ namespace tuplex {
             int64_t                                         inputNodeID;
             std::unordered_map<std::string, std::string>    fileInputParameters; // parameters specific for a file input format
 
+            std::map<int, int> normalToGeneralMapping; // mapping of column indices of normal-case to general-case columns.
+
+
 //                // Resolve variables (they will be only present on slow path!)
 //                std::vector<LogicalOperator*>                   resolveOperators;
 //                // the input node of the general case path. => fast-path may specialize its own input Node!
@@ -136,6 +139,7 @@ namespace tuplex {
                 inputFileFormat,
                 inputNodeID,
                 fileInputParameters,
+                normalToGeneralMapping,
                 fastPathContext,
                 slowPathContext);
             }
@@ -219,6 +223,7 @@ namespace tuplex {
                                                                       const CodeGenerationContext::CodePathContext& pathContext,
                                                                       const python::Type& generalCaseInputRowType,
                                                                       const python::Type& generalCaseOutputRowType,
+                                                                      const std::map<int, int>& normalToGeneralMapping,
                                                                       int stageNo,
                                                                       const std::string& env_name="tuplex_fastCodePath"); // file2mem always
 

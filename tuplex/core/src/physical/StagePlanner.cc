@@ -196,10 +196,15 @@ namespace tuplex {
                         vector<string> col_names_to_read_before;
                         vector<string> col_names_to_read_after;
 
+                        _normalToGeneralMapping.clear();
+
                         for(unsigned i = 0; i < accCols.size(); ++i) {
                             rewriteMap[accCols[i]] = i;
 
                             rewriteInfo.push_back(to_string(accCols[i]) + " -> " + to_string(i));
+
+                            // save normal -> general mapping
+                            _normalToGeneralMapping[i] = accCols[i];
 
                             int j = 0;
                             while(j < accColsBeforeOpt.size() && accCols[i] != accColsBeforeOpt[j])
@@ -567,6 +572,7 @@ namespace tuplex {
         stage->_fastCodePath = codegen::StageBuilder::generateFastCodePath(ctx, ctx.fastPathContext,
                                                                            generalCaseInputRowType,
                                                                            generalCaseOutputRowType,
+                                                                           planner.normalToGeneralMapping(),
                                                                            stage->number());
         logger.info("generated code in " + std::to_string(timer.time()) + "s");
         // can then compile everything, hooray!

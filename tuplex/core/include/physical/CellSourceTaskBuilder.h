@@ -62,6 +62,7 @@ namespace tuplex {
                                            const python::Type& fileInputRowType,
                                            const python::Type& fileGeneralCaseInputRowType,
                                            const std::vector<bool> &columnsToSerialize,
+                                           const std::map<int, int>& normalToGeneralMapping,
                                            const std::string &name,
                                            int64_t operatorID,
                                            const std::vector<std::string>& null_values=std::vector<std::string>{""},
@@ -72,6 +73,7 @@ namespace tuplex {
                                                                                                                       restrictRowType(
                                                                                                                      columnsToSerialize,
                                                                                                                      fileGeneralCaseInputRowType),
+                                                                                                              normalToGeneralMapping,
                                                                                                               name),
                                                                  _operatorID(operatorID),
                                                                  _fileInputRowType(fileInputRowType),

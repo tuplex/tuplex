@@ -123,6 +123,12 @@ if(BREW_FOUND)
 endif()
 enable_testing()
 
+# detect MacOS Version because at least 10.13 is required when building with AWS SDK
+if(APPLE)
+  execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
+  message(STATUS "Detected macOS ${MACOSX_VERSION_STRING} host platform, building for deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
+endif()
+
 # mainly from https://github.com/AdaCore/z3/blob/master/CMakeLists.txt
 message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
 set(available_build_types Debug Release RelWithDebInfo MinSizeRel tsan asan)
@@ -153,6 +159,13 @@ endif()
 
 # build with AWS support
 if(BUILD_WITH_AWS)
+    # requires at least High Sierra (10.13)
+    if(APPLE)
+      if("${CMAKE_OSX_DEPLOYMENT_TARGET}" VERSION_LESS "10.13")
+        message(FATAL_ERROR "Building Tuplex with AWS SDK support on Darwin requires at least macOS 10.13 (High Sierra)")
+      endif()
+    endif()
+
     # special case: if using mac os and a brew installed aws-sdk-cpp, can't use static libs => need to force to shared_libs
     if(APPLE AND BREW_FOUND)
         # check if brewed aws-sdk-cpp -> force shared libs.

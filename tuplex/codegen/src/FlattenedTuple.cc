@@ -108,8 +108,14 @@ namespace tuplex {
                 auto is_null = _env->boolConst(false);
                 auto llvm_type = _env->pythonToLLVMType(dummy_type);
                 auto value = _env->nullConstant(llvm_type);
+                auto dummy = codegen::SerializableValue(value, size, is_null);
 
-                _tree.set(index, codegen::SerializableValue(value, size, is_null));
+                // special case: string, use empty string
+                if(dummy_type == python::Type::STRING) {
+                    dummy = codegen::SerializableValue(_env->strConst(builder, ""), _env->i64Const(1), _env->boolConst(false));
+                }
+
+                _tree.set(index, dummy);
             }
         }
 

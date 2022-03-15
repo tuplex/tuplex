@@ -569,7 +569,12 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     ContextOptions opt = ContextOptions::defaults();
     opt.set("tuplex.executorCount", "0");
     opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
+
+
     opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
+
+    opt.set("tuplex.resolveWithInterpreterOnly", "false"); // -> this doesn't work with hyper-specialization yet.
+
     // hyperspecialization setting
     if(use_lambda) {
         opt.set("tuplex.backend", "lambda");

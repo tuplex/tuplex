@@ -1422,7 +1422,7 @@ namespace tuplex {
             ss<<"\ttarget normal case output schema: "<<tstage->normalCaseOutputSchema().getRowType().desc()<<endl;
             ss<<"\ttarget general case output schema: "<<tstage->outputSchema().getRowType().desc()<<endl;
             ss<<"\tshould cases be persisted separately: "<<std::boolalpha<<tstage->persistSeparateCases()<<endl;
-            ss<<"\tschema the regular exceptions are stored in: "<<tt->inputSchema().getRowType().desc()<<endl;
+            ss<<"\tschema the regular exceptions are stored in: "<<tstage->inputSchema().getRowType().desc()<<endl;
             ss<<"\tschema the compiled slow path outputs: "<<tstage->outputSchema().getRowType().desc()<<endl;
 
             if(tt == tasks.front())

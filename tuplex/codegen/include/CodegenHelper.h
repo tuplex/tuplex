@@ -130,6 +130,11 @@ namespace tuplex {
                 return get_or_throw().CreateMul(LHS, RHS, Name, HasNUW, HasNSW);
             }
 
+             inline llvm::Value *CreateFMul(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
+                                            llvm::MDNode *FPMD = nullptr) const {
+                 return get_or_throw().CreateFMul(LHS, RHS, Name, FPMD);
+             }
+
             inline llvm::Value *CreateGEP(llvm::Type *Ty, llvm::Value *Ptr, llvm::ArrayRef<llvm::Value *> IdxList,
                               const std::string &Name = "") const {
                 return get_or_throw().CreateGEP(Ty, Ptr, IdxList, Name);
@@ -153,8 +158,59 @@ namespace tuplex {
                                  Ptr, IdxList, Name);
             }
 
+             inline llvm::Value* CreateFCmp(llvm::CmpInst::Predicate P, llvm::Value *LHS, llvm::Value *RHS,
+                               const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
+                return get_or_throw().CreateFCmp(P, LHS, RHS, Name, FPMathTag);
+            }
+
+             inline llvm::Value *CreateFPToSI(llvm::Value *V, llvm::Type *DestTy, const std::string &Name = "") const {
+                return get_or_throw().CreateFPToSI(V, DestTy, Name);
+            }
+             inline llvm::Value *CreateSIToFP(llvm::Value *V, llvm::Type *DestTy, const std::string &Name = "") const {
+                return get_or_throw().CreateSIToFP(V, DestTy, Name);
+            }
+             inline llvm::Value *CreateAnd(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") const {
+                return get_or_throw().CreateAnd(LHS, RHS, Name);
+            }
+
+             inline llvm::Value *CreateSelect(llvm::Value *C, llvm::Value *True, llvm::Value *False,
+                                 const std::string &Name = "", llvm::Instruction *MDFrom = nullptr) const {
+                return get_or_throw().CreateSelect(C, True, False, Name, MDFrom);
+            }
+
+            /*!
+             * create runtime malloc (calling rtmalloc function)
+             * @param size
+             * @return allocated pointer
+             */
+            inline llvm::Value* malloc(llvm::Value *size) const {
+                 assert(size);
+
+                 auto& ctx = get_or_throw().getContext();
+                 auto mod = get_or_throw().GetInsertBlock()->getParent()->getParent();
+
+                 // make sure size_t is 64bit
+                 static_assert(sizeof(size_t) == sizeof(int64_t), "sizeof must be 64bit compliant");
+                 static_assert(sizeof(size_t) == 8, "sizeof must be 64bit wide");
+                 assert(size->getType() == llvm::Type::getInt64Ty(ctx));
+
+
+                 // create external call to rtmalloc function
+                 auto func = mod->getOrInsertFunction("rtmalloc", llvm::Type::getInt8PtrTy(ctx, 0),
+                                                                llvm::Type::getInt64Ty(ctx));
+                 return get_or_throw().CreateCall(func, size);
+             }
+
+         inline llvm::Value* malloc(size_t size) const {
+             auto& ctx = get_or_throw().getContext();
+                auto i64_size =  llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, size));
+                return malloc(i64_size);
+            }
           //  inline llvm::Value* CreateMemCpy(destPtr, 0, srcPtr, 0, srcSize, true);
 
+        llvm::IRBuilder<>& get() const {
+                return get_or_throw();
+        }
 
             //inline llvm::Value* CreateLoad()
          private:

@@ -226,7 +226,7 @@ namespace tuplex {
                     auto strlen = builder.CreateMul(origstrlen, num);
                     auto duplen = builder.CreateAdd(strlen, _env->i64Const(1));
                     builder.CreateStore(num, loopvar); // set up loop counter
-                    auto allocmem = _env->malloc(builder, duplen); // allocate memory
+                    auto allocmem = builder.malloc(duplen); //_env->malloc(builder, duplen); // allocate memory
                     builder.CreateBr(loopBlock);
 
                     // Loop Block
@@ -268,7 +268,7 @@ namespace tuplex {
 
                 // Empty String Block
                 builder.SetInsertPoint(emptyBlock);
-                auto emptystr = _env->malloc(builder, _env->i64Const(1)); // make null terminated empty string
+                auto emptystr = builder.malloc(1); //_env->malloc(builder, _env->i64Const(1)); // make null terminated empty string
                 builder.CreateStore(_env->i8Const('\0'), emptystr);
                 builder.CreateStore(emptystr, retval); // save result in ret local vars
                 builder.CreateStore(_env->i64Const(1), retsize);
@@ -301,8 +301,8 @@ namespace tuplex {
             auto type = _env->pythonToLLVMType(superType);
 
             // create casted versions
-            auto uL = upCast(builder, L.val, type);
-            auto uR = upCast(builder, R.val, type);
+            auto uL = upCast(builder.get(), L.val, type);
+            auto uR = upCast(builder.get(), R.val, type);
 
             // choose floating point or integer operation
             if (type->isDoubleTy())
@@ -315,7 +315,7 @@ namespace tuplex {
             using namespace python;
 
             assert(_lfb);
-            auto builder = _lfb->getLLVMBuilder();
+            auto builder = _lfb->getIRBuilder();
 
             python::Type ltype = op->_left->getInferredType().withoutOptions();
             python::Type rtype = op->_right->getInferredType().withoutOptions();
@@ -343,8 +343,8 @@ namespace tuplex {
             auto type = _env->pythonToLLVMType(superType);
 
             // create casted versions
-            auto uL = upCast(builder, L, type);
-            auto uR = upCast(builder, R, type);
+            auto uL = upCast(builder.get(), L, type);
+            auto uR = upCast(builder.get(), R, type);
 
             // exception handling if switched on
             if (!_policy.allowUndefinedBehavior) {
@@ -352,7 +352,7 @@ namespace tuplex {
                 auto iszero = type->isDoubleTy() ? builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR,
                                                                       _env->f64Const(0.0)) :
                               builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, uR, _env->i64Const(0));
-                _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, iszero);
+                _lfb->addException(builder.get(), ExceptionCode::ZERODIVISIONERROR, iszero);
             } // normal code goes on
 
             // choose floating point or integer operation
@@ -360,10 +360,10 @@ namespace tuplex {
                 // first cast to integer, then perform signed integer div and then cast back to floating point
                 auto castL = builder.CreateFPToSI(uL, _env->i64Type());
                 auto castR = builder.CreateFPToSI(uR, _env->i64Type());
-                auto div_res = _env->floorDivision(builder, castL, castR);
+                auto div_res = _env->floorDivision(builder.get(), castL, castR);
                 return builder.CreateSIToFP(div_res, _env->doubleType());
             } else {
-                return _env->floorDivision(builder, uL, uR);
+                return _env->floorDivision(builder.get(), uL, uR);
             }
         }
 
@@ -372,7 +372,7 @@ namespace tuplex {
             using namespace python;
 
             assert(_lfb);
-            auto builder = _lfb->getLLVMBuilder();
+            auto builder = _lfb->getIRBuilder();
 
             python::Type ltype = op->_left->getInferredType().withoutOptions();
             python::Type rtype = op->_right->getInferredType().withoutOptions();
@@ -398,7 +398,7 @@ namespace tuplex {
                 builder.SetInsertPoint(concatBlock);
                 auto llen = builder.CreateSub(L.size, _env->i64Const(1));
                 auto concatsize = builder.CreateAdd(R.size, llen);
-                auto concatval = _env->malloc(builder, concatsize);
+                auto concatval = builder.malloc(concatsize); //_env->malloc(builder, concatsize);
 
 #if LLVM_VERSION_MAJOR < 9
                 builder.CreateMemCpy(builder.CreateGEP(builder.getInt8Ty(), concatval, _env->i64Const(0)), L.val, llen, false);

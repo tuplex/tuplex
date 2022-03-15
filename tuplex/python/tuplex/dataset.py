@@ -425,7 +425,7 @@ class DataSet:
         return ds
 
 
-    def tocsv(self, path, part_size=0, num_rows=max_rows, num_parts=0, part_name_generator=None, null_value=None, header=True):
+    def tocsv(self, path, part_size=0, num_rows=max_rows, num_parts=0, part_name_generator=None, null_value=None, header=True, commit=True):
         """ save dataset to one or more csv files. Triggers execution of pipeline.
         Args:
             path: path where to save files to
@@ -458,7 +458,7 @@ class DataSet:
         if null_value is None:
             null_value = ''
 
-        self._dataSet.tocsv(path, code, code_pickled, num_parts, part_size, num_rows, null_value, header)
+        self._dataSet.tocsv(path, code, code_pickled, num_parts, part_size, num_rows, null_value, header, commit)
 
     def toorc(self, path, part_size=0, num_rows=max_rows, num_parts=0, part_name_generator=None):
         """ save dataset to one or more orc files. Triggers execution of pipeline.

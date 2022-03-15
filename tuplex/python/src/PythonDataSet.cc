@@ -721,7 +721,7 @@ namespace tuplex {
 
     void PythonDataSet::tocsv(const std::string &file_path, const std::string &lambda_code, const std::string &pickled_code,
                          size_t fileCount, size_t shardSize, size_t limit, const std::string &null_value,
-                         py::object header) {
+                         py::object header, const bool commit) {
         // make sure a dataset is wrapped
         assert(this->_dataset);
         // ==> error handled below.
@@ -756,6 +756,8 @@ namespace tuplex {
                     outputOptions["csvHeader"] = csvToHeader(headerNames) + "\n";
                 outputOptions["header"] = "true";
             }
+
+            outputOptions["commit"] = boolToString(commit);
 
             // release GIL & hand over everything to Tuplex
             assert(PyGILState_Check()); // make sure this thread holds the GIL!

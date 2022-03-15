@@ -34,6 +34,116 @@ protected:
     }
 };
 
+TEST_F(IncrementalTest, CommitMode) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = microTestOptions();
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
+    opts.set("tuplex.optimizer.incrementalResolution", "true");
+    Context c(opts);
+
+    auto outputURI = URI(testName + "/" + testName + ".csv");
+
+    auto csvops = defaultCSVOutputOptions();
+    csvops["commit"] = boolToString(false);
+
+    c.parallelize({Row(1), Row(-1), Row(2), Row(-2), Row(3), Row(-3)})
+        .map(UDF("lambda x: 1 // (x - x) if x == -1 else x"))
+        .map(UDF("lambda x: 1 // (x - x) if x == -2 else x"))
+        .map(UDF("lambda x: 1 // (x - x) if x == -3 else x"))
+        .tocsv(outputURI, csvops);
+
+    c.parallelize({Row(1), Row(-1), Row(2), Row(-2), Row(3), Row(-3)})
+            .map(UDF("lambda x: 1 // (x - x) if x == -1 else x"))
+            .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"))
+            .map(UDF("lambda x: 1 // (x - x) if x == -2 else x"))
+            .map(UDF("lambda x: 1 // (x - x) if x == -3 else x"))
+            .tocsv(outputURI, csvops);
+
+    c.parallelize({Row(1), Row(-1), Row(2), Row(-2), Row(3), Row(-3)})
+            .map(UDF("lambda x: 1 // (x - x) if x == -1 else x"))
+            .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"))
+            .map(UDF("lambda x: 1 // (x - x) if x == -2 else x"))
+            .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"))
+            .map(UDF("lambda x: 1 // (x - x) if x == -3 else x"))
+            .tocsv(outputURI, csvops);
+
+    csvops["commit"] = boolToString(true);
+
+    c.parallelize({Row(1), Row(-1), Row(2), Row(-2), Row(3), Row(-3)})
+            .map(UDF("lambda x: 1 // (x - x) if x == -1 else x"))
+            .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"))
+            .map(UDF("lambda x: 1 // (x - x) if x == -2 else x"))
+            .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"))
+            .map(UDF("lambda x: 1 // (x - x) if x == -3 else x"))
+            .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"))
+            .tocsv(outputURI, csvops);
+}
+
+void testIncrementalNoMerge(tuplex::ContextOptions opts, tuplex::URI fileURI, size_t numRows, float general, float fallback, float exception) {
+    using namespace tuplex;
+    using namespace std;
+
+    opts.set("tuplex.executorCount", "4");
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "true");
+    opts.set("tuplex.optimizer.nullValueOptimization", "true");
+    opts.set("tuplex.normalcaseThreshold", "0.6");
+    opts.set("tuplex.resolveWithInterpreterOnly", "true");
+    opts.set("tuplex.useLLVMOptimizer", "true");
+    Context c(opts);
+
+    vector<int> inputRows;
+    vector<int> inputRowInds;
+    inputRows.reserve(numRows);
+    inputRowInds.reserve(numRows);
+    for (int i = 0; i < numRows; ++i) {
+        inputRows.push_back(i + 1);
+        inputRowInds.push_back(i);
+    }
+
+    std::random_shuffle(inputRowInds.begin(), inputRowInds.end());
+    int counter = 0;
+    for (int i = 0; i < (int) (general * numRows); ++i) {
+        inputRows[inputRowInds[counter]] = -1;
+        counter++;
+    }
+    for (int i = 0; i < (int) (fallback * numRows); ++i) {
+        inputRows[inputRowInds[counter]] = -2;
+        counter++;
+    }
+    for (int i = 0; i < (int) (exception * numRows); ++i) {
+        inputRows[inputRowInds[counter]] = -3;
+        counter++;
+    }
+
+    stringstream ss;
+    for (int i = 0; i < numRows; ++i) {
+        ss << "1,";
+        if (inputRows[i] != -1) {
+            ss << to_string(inputRows[i]);
+        }
+        ss << "\n";
+    }
+    stringToFile(fileURI.toPath(), ss.str());
+
+    auto udf = "def udf(x, y):\n"
+               "    if y == -2:\n"
+               "        return y ** 0.5\n"
+               "    elif y == -1:\n"
+               "        raise ValueError\n"
+               "    else:\n"
+               "        return float(y)";
+
+    auto &ds_cached = c.csv(fileURI.toPath()).cache().map(UDF(udf)).cache();
+}
+
+TEST_F(IncrementalTest, NoMergeFallback) {
+    using namespace tuplex;
+    testIncrementalNoMerge(microTestOptions(), URI(testName + ".csv"), 100, 0.25, 0.25, 0.25);
+}
+
 void executeZillow(tuplex::Context &context, const tuplex::URI& outputURI, int step) {
         using namespace tuplex;
 

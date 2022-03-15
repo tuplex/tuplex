@@ -1033,12 +1033,16 @@ namespace tuplex {
             case EndPointMode::FILE: {
                 if (_options.OPT_MERGE_EXCEPTIONS_INORDER()) {
                     tstage->setIncrementalResult(normalPartitions, exceptionPartitions, partitionGroups);
-                    timer.reset();
-                    writeOutput(tstage, completedTasks);
-                    metrics.setWriteOutputTimes(tstage->number(), timer.time());
+                    if (stringToBool(tstage->outputOptions()["commit"])) {
+                        timer.reset();
+                        writeOutput(tstage, completedTasks);
+                        metrics.setWriteOutputTimes(tstage->number(), timer.time());
+                    } else {
+                        tstage->setFileResult(exceptionCounts);
+                    }
                 } else {
                     timer.reset();
-                    auto partNo = writeOutput(tstage, completedTasks, cacheEntry->startFileNumber());
+                    auto partNo = writeOutput(tstage, completedTasks);
                     metrics.setWriteOutputTimes(tstage->number(), timer.time());
                     tstage->setIncrementalResult(exceptionPartitions, generalPartitions, fallbackPartitions,
                                                  partNo);
@@ -1390,17 +1394,27 @@ namespace tuplex {
             case EndPointMode::FILE: {
                 // i.e. if output format is tuplex, then attach special writer!
                 // ==> could maybe codegen avro as output format, and then write to whatever??
-                if (_options.OPT_MERGE_EXCEPTIONS_INORDER()) {
-                    tstage->setIncrementalResult(normalPartitions, exceptionPartitions, partitionGroups);
+                if (_options.OPT_INCREMENTAL_RESOLUTION()) {
+                    if (_options.OPT_MERGE_EXCEPTIONS_INORDER()) {
+                        tstage->setIncrementalResult(normalPartitions, exceptionPartitions, partitionGroups);
+                        if (stringToBool(tstage->outputOptions()["commit"])) {
+                            timer.reset();
+                            writeOutput(tstage, completedTasks);
+                            metrics.setWriteOutputTimes(tstage->number(), timer.time());
+                        } else {
+                            tstage->setFileResult(exceptionCounts);
+                        }
+                    } else {
+                        timer.reset();
+                        auto partNo = writeOutput(tstage, completedTasks);
+                        metrics.setWriteOutputTimes(tstage->number(), timer.time());
+                        tstage->setIncrementalResult(exceptionPartitions, generalPartitions, fallbackPartitions,
+                                                     partNo);
+                    }
+                } else {
                     timer.reset();
                     writeOutput(tstage, completedTasks);
                     metrics.setWriteOutputTimes(tstage->number(), timer.time());
-                } else {
-                    timer.reset();
-                    auto partNo = writeOutput(tstage, completedTasks);
-                    metrics.setWriteOutputTimes(tstage->number(), timer.time());
-                    tstage->setIncrementalResult(exceptionPartitions, generalPartitions, fallbackPartitions,
-                                                 partNo);
                 }
                 break;
             }

@@ -126,7 +126,7 @@ def resolveBd(x):
     raise ValueError
 
 #compare types and contents
-def dirty_zillow_pipeline(paths, output_path, step):
+def dirty_zillow_pipeline(paths, output_path, step, commit):
     ds = ctx.csv(','.join(paths))
     ds = ds.withColumn("bedrooms", extractBd)
     if step > 0:
@@ -153,7 +153,7 @@ def dirty_zillow_pipeline(paths, output_path, step):
     ds = ds.filter(lambda x: 100000 < x['price'] < 2e7 and x['offer'] == 'sale')
     ds = ds.selectColumns(["url", "zipcode", "address", "city", "state",
                             "bedrooms", "bathrooms", "sqft", "offer", "type", "price"])
-    ds.tocsv(output_path)
+    ds.tocsv(output_path, commit=commit)
     return ctx.metrics
 
 if __name__ == '__main__':
@@ -164,6 +164,7 @@ if __name__ == '__main__':
                         help='specify path where to save output data files')
     parser.add_argument('--resolve-in-order', dest='resolve_in_order', action="store_true", help="whether to resolve exceptions in order")
     parser.add_argument('--incremental-resolution', dest='incremental_resolution', action="store_true", help="whether to use incremental resolution")
+    parser.add_argument('--commit', dest='commit', action='store_true', help='whether to use commit mode')
     args = parser.parse_args()
 
     assert args.data_path, 'need to set data path!'
@@ -236,7 +237,7 @@ if __name__ == '__main__':
     for step in range(num_steps):
         print(f'>>> running pipeline with {step} resolver(s) enabled...')
         jobstart = time.time()
-        m = dirty_zillow_pipeline(paths, output_path, step)
+        m = dirty_zillow_pipeline(paths, output_path, step, not args.commit or step == num_steps - 1)
         m = m.as_dict()
         m["numResolvers"] = step
         m["jobTime"] = time.time() - jobstart

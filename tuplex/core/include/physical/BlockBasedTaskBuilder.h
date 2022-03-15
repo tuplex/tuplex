@@ -119,8 +119,10 @@ namespace tuplex {
                                                              _desiredFuncName(name),
                                                              _intermediate(nullptr),
                                                              _intermediateType(python::Type::UNKNOWN) {
-                // check that upcasting is true
-                assert(canUpcastToRowType(_inputRowType, _inputRowTypeGeneralCase));
+                // check that upcasting is true or there is a valid mapping when sizes differ!
+                assert((_inputRowType.parameters().size() != _inputRowTypeGeneralCase.parameters().size()
+                && !_normalToGeneralMapping.empty() && _normalToGeneralMapping.size() == _inputRowType.parameters().size()) ||
+                canUpcastToRowType(_inputRowType, _inputRowTypeGeneralCase));
                 if(_inputRowType != _inputRowTypeGeneralCase) {
                     Logger::instance().logger("codegen").debug("emitting auto-upcast for exceptions");
                 }

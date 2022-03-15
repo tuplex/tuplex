@@ -569,8 +569,10 @@ namespace tuplex {
 
         // generate code! Add to stage, can then compile this. Yay!
         timer.reset();
-        stage->_fastCodePath = codegen::StageBuilder::generateFastCodePath(ctx, ctx.fastPathContext,
+        stage->_fastCodePath = codegen::StageBuilder::generateFastCodePath(ctx,
+                                                                           ctx.fastPathContext,
                                                                            generalCaseInputRowType,
+                                                                           ctx.slowPathContext.columnsToRead,
                                                                            generalCaseOutputRowType,
                                                                            planner.normalToGeneralMapping(),
                                                                            stage->number());

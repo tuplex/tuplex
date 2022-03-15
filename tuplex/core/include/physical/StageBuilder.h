@@ -222,6 +222,7 @@ namespace tuplex {
             static TransformStage::StageCodePath generateFastCodePath(const CodeGenerationContext& ctx,
                                                                       const CodeGenerationContext::CodePathContext& pathContext,
                                                                       const python::Type& generalCaseInputRowType,
+                                                                      const std::vector<bool> &generalCaseColumnsToRead,
                                                                       const python::Type& generalCaseOutputRowType,
                                                                       const std::map<int, int>& normalToGeneralMapping,
                                                                       int stageNo,

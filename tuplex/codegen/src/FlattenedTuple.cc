@@ -100,9 +100,13 @@ namespace tuplex {
             } else {
 
                 // generate dummy value from type!
+                auto& logger = Logger::instance().logger("codegen");
+                logger.debug("generating dummy for type " + field_type.desc());
+
+                auto dummy_type = field_type.isOptionType() ? field_type.elementType() : field_type;
                 auto size = _env->i64Const(0);
                 auto is_null = _env->boolConst(false);
-                auto llvm_type = _env->pythonToLLVMType(field_type);
+                auto llvm_type = _env->pythonToLLVMType(dummy_type);
                 auto value = _env->nullConstant(llvm_type);
 
                 _tree.set(index, codegen::SerializableValue(value, size, is_null));

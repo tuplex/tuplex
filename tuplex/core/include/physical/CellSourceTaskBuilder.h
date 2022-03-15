@@ -25,6 +25,7 @@ namespace tuplex {
             int64_t _operatorID; // operatorID where to put null failures / value errors etc. out
             python::Type _fileInputRowType; /// original file input type, i.e. how many cells + what they should represent
             std::vector<bool> _columnsToSerialize; /// which columns from the file input type to serialize, determines output type. Good for projection pushdown.
+            std::vector<bool> _generalCaseColumnsToSerialize; // same for the general case
             std::string _functionName; /// name of the LLVM function
 
             std::vector<std::string> _nullValues; /// strings that should be interpreted as null values.
@@ -51,17 +52,19 @@ namespace tuplex {
              * construct a new task which parses CSV input (given block wise)
              * @param env CodeEnv where to generate code into
              * @param fileInputRowType the detected row Type of the file
-             * @param fileGeneralCaseInputRowType the detected general case row type of the file
+             * @param restrictedGeneralCaseInputRowType the (restricted) detected general case row type of the file
              * @param columnsToSerialize if empty vector, all rows get serialized. If not, indicates which columns should be serialized. Length must match rowType.
              * @param name Name of the function to generate
              * @param operatorID ID of the operator for exception handling.
              * @param null_values array of strings that should be interpreted as null values
              * @param checks array of checks to perform and else issue a normalcaseviolation
              */
+
             explicit CellSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
                                            const python::Type& fileInputRowType,
-                                           const python::Type& fileGeneralCaseInputRowType,
                                            const std::vector<bool> &columnsToSerialize,
+                                           const python::Type& generalCaseInputRowType,
+                                           const std::vector<bool> &generalCaseColumnsToSerialize,
                                            const std::map<int, int>& normalToGeneralMapping,
                                            const std::string &name,
                                            int64_t operatorID,
@@ -70,9 +73,8 @@ namespace tuplex {
                                                                                                               restrictRowType(
                                                                                                                       columnsToSerialize,
                                                                                                                       fileInputRowType),
-                                                                                                                      restrictRowType(
-                                                                                                                     columnsToSerialize,
-                                                                                                                     fileGeneralCaseInputRowType),
+                                                                                                                      restrictRowType(generalCaseColumnsToSerialize,
+                                                                                                                     generalCaseInputRowType),
                                                                                                               normalToGeneralMapping,
                                                                                                               name),
                                                                  _operatorID(operatorID),
@@ -90,6 +92,19 @@ namespace tuplex {
                     for(int i = 0; i < _fileInputRowType.parameters().size(); ++i)
                         _columnsToSerialize.emplace_back(true);
                 }
+
+                // check that counts hold up
+                // i.e., assert(_columnsToSerialize.size() <= restrictedGeneralCaseInputRowType.parameters().size());
+                int num_normal_cols = 0;
+                int num_general_cols = 0;
+                if(!_columnsToSerialize.empty() && ! _generalCaseColumnsToSerialize.empty()) {
+                    assert(_columnsToSerialize.size() == _generalCaseColumnsToSerialize.size());
+                    for(unsigned i = 0; i < std::min(_columnsToSerialize.size(), _generalCaseColumnsToSerialize.size()); ++i) {
+                        num_normal_cols += _columnsToSerialize[i];
+                        num_general_cols += _generalCaseColumnsToSerialize[i];
+                    }
+                }
+                assert(num_normal_cols <= num_general_cols);
 
                 assert(_columnsToSerialize.size() == _fileInputRowType.parameters().size());
             }

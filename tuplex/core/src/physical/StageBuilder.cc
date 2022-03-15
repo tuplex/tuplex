@@ -380,6 +380,7 @@ namespace tuplex {
         TransformStage::StageCodePath StageBuilder::generateFastCodePath(const CodeGenerationContext& ctx,
                                                                          const CodeGenerationContext::CodePathContext& pathContext,
                                                                          const python::Type& generalCaseInputRowType,
+                                                                         const std::vector<bool> &generalCaseColumnsToRead,
                                                                          const python::Type& generalCaseOutputRowType,
                                                                          const std::map<int, int>& normalToGeneralMapping,
                                                                          int stageNo,
@@ -832,8 +833,9 @@ namespace tuplex {
                         } else {
                             tb = make_shared<codegen::CellSourceTaskBuilder>(env,
                                                                              pathContext.readSchema.getRowType(),
-                                                                             generalCaseInputRowType,
                                                                              pathContext.columnsToRead,
+                                                                             generalCaseInputRowType,
+                                                                             generalCaseColumnsToRead,
                                                                              normalToGeneralMapping,
                                                                              funcStageName,
                                                                              ctx.inputNodeID,
@@ -1460,9 +1462,19 @@ namespace tuplex {
                 if(codeGenerationContext.slowPathContext.inputNode->type() == LogicalOperatorType::FILEINPUT)
                     generalCaseInputRowType = codeGenerationContext.slowPathContext.readSchema.getRowType();
 
+                python::Type restrictedGeneralCaseInputRowType = generalCaseInputRowType;
+                // print out restricted stuff
+                std::stringstream ss;
+                ss<<"general case input row type: "<<codeGenerationContext.slowPathContext.inputSchema.getRowType().desc()<<std::endl;
+                ss<<"has #columns: "<<codeGenerationContext.slowPathContext.inputSchema.getRowType().parameters().size()<<std::endl;
+                ss<<"general case input row type: "<<codeGenerationContext.fastPathContext.inputSchema.getRowType().desc()<<std::endl;
+                ss<<"has #columns: "<<codeGenerationContext.fastPathContext.inputSchema.getRowType().parameters().size()<<std::endl;
+                logger.debug(ss.str());
+
                 stage->_fastCodePath = generateFastCodePath(codeGenerationContext,
                                                             codeGenerationContext.fastPathContext,
                                                             generalCaseInputRowType,
+                                                            codeGenerationContext.slowPathContext.columnsToRead,
                                                             codeGenerationContext.slowPathContext.outputSchema.getRowType(),
                                                             codeGenerationContext.normalToGeneralMapping,
                                                             number());

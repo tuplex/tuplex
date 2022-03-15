@@ -59,6 +59,8 @@ namespace tuplex {
         public:
             JITCSVSourceTaskBuilder() = delete;
 
+#warning "whatever fixes are done in cellsource task builder should apply here too."
+
             /*!
              * construct a new task which parses CSV input (given block wise)
              * @param env CodeEnv where to generate code into

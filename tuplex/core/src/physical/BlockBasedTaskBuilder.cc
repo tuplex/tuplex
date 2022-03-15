@@ -139,7 +139,7 @@ namespace tuplex {
 
                     // go through mapping & indices
                     auto generalcase_col_count = _inputRowTypeGeneralCase.parameters().size();
-                    for(unsigned i = 0; i <= generalcase_col_count; ++i) {
+                    for(unsigned i = 0; i < generalcase_col_count; ++i) {
                         // need to perform reverse lookup...
                         auto it = generalToNormalMapping.find(i);
                         if(it != generalToNormalMapping.end()) {

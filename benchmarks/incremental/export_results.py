@@ -73,6 +73,7 @@ def main():
 
     results_path = args.results_path
     output_path = args.output_path
+    num_trials = args.num_trials
 
     assert os.path.isdir(results_path)
     if os.path.isdir(output_path):
@@ -80,13 +81,13 @@ def main():
     os.makedirs(output_path)
 
     # In-Order SSD
-    export_results(args.results_path, args.output_path, 3, True, False, True)
+    export_results(results_path, output_path, num_trials, True, False, True)
 
     # In-Order Commit SSD
-    export_results(args.results_path, args.output_path, 3, True, True, True)
+    export_results(results_path, output_path, num_trials, True, True, True)
 
     # Out-of-Order SSD
-    export_results(args.results_path, args.output_path, 3, False, False, True)
+    export_results(results_path, output_path, num_trials, False, False, True)
 
 if __name__ == '__main__':
     main()

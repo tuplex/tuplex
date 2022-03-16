@@ -13,7 +13,7 @@ def main():
     args = parser.parse_args()
 
     print(validate_experiment(os.path.join(args.results_path, "tuplex-compare-in-order-ssd-1.txt")))
-    print(validate_experiment(os.path.join(args.results_path, "tuplex-compare-1.txt")))
+    print(validate_experiment(os.path.join(args.results_path, "tuplex-compare-ssd-1.txt")))
 
 if __name__ == '__main__':
     main()

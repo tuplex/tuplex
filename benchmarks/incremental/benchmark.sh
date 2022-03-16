@@ -29,6 +29,13 @@ INCREMENTAL_COMMIT_OUT_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/inc
 PLAIN_OUT_PATH_SSD='/hot/scratch/bgivertz/output/plain_output'
 PLAIN_OUT_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/plain_output'
 
+rm -rf $INCREMENTAL_OUT_PATH_SSD
+rm -rf $PLAIN_OUT_PATH_SSD
+rm -rf $INCREMENTAL_COMMIT_OUT_PATH_SSD
+rm -rf $INCREMENTAL_OUT_PATH_HD
+rm -rf $PLAIN_OUT_PATH_HD
+rm -rf $INCREMENTAL_COMMIT_OUT_PATH_HD
+
 # does file exist?
 if [[ ! -f "$DATA_PATH_SSD" ]]; then
 	echo "file $DATA_PATH_SSD not found, abort."

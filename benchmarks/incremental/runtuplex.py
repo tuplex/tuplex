@@ -164,6 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('--resolve-in-order', dest='resolve_in_order', action="store_true", help="whether to resolve exceptions in order")
     parser.add_argument('--incremental-resolution', dest='incremental_resolution', action="store_true", help="whether to use incremental resolution")
     parser.add_argument('--commit-mode', dest='commit_mode', action='store_true', help='whether to use commit mode')
+    parser.add_argument('--clear-cache', dest='clear_cache', action='store_true', help='whether to clear the cache or not')
     args = parser.parse_args()
 
     assert args.data_path, 'need to set data path!'
@@ -235,7 +236,8 @@ if __name__ == '__main__':
     metrics = []
     for step in range(num_steps):
         print(f'>>> running pipeline with {step} resolver(s) enabled...')
-        subprocess.run(["clearcache"])
+        if args.clear_cache:
+            subprocess.run(["clearcache"])
 
         jobstart = time.time()
         m = dirty_zillow_pipeline(paths, output_path, step, not args.commit_mode or step == num_steps - 1)

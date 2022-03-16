@@ -24,8 +24,9 @@ def experiment_path(trial, incremental, in_order, commit, ssd):
     return f"tuplex-{'incremental' if incremental else 'plain'}-{'in-order' if in_order else 'out-of-order'}{'-commit' if commit else ''}-{'ssd' if ssd else 'hd'}-{trial}.txt"
 
 def export_results(results_path, output_path, num_trials, in_order, commit, ssd):
-    validate_path = os.path.join(results_path, compare_path(i + 1, in_order, commit, ssd))
-    assert validate_experiment(validate_path)
+    for i in range(num_trials):
+        validate_path = os.path.join(results_path, compare_path(i + 1, in_order, commit, ssd))
+        assert validate_experiment(validate_path)
 
     path = os.path.join(output_path, f"experiment-{'in-order' if in_order else 'out-of-order'}{'-commit' if commit else ''}-{'ssd' if ssd else 'hd'}.csv")
     f = open(path, 'w')

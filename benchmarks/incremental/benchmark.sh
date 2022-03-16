@@ -58,10 +58,10 @@ python3 create_conf.py --opt-pushdown --opt-filter --opt-llvm > tuplex_config.js
 echo "running out-of-order ssd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-plain-ssd-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --path $DATA_PATH_SSD --output-path $PLAIN_OUT_PATH_SSD >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --path $DATA_PATH_SSD --output-path $PLAIN_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
   LOG="${RESDIR}/tuplex-incremental-ssd-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --incremental-resolution --path $DATA_PATH_SSD --output-path $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --incremental-resolution --path $DATA_PATH_SSD --output-path $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
   LOG="${RESDIR}/tuplex-compare-ssd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 compare_folders.py $PLAIN_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
@@ -70,13 +70,13 @@ done
 echo "running in-order ssd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-plain-in-order-ssd-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --path $DATA_PATH_SSD --output-path $PLAIN_OUT_PATH_SSD >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --resolve-in-order --path $DATA_PATH_SSD --output-path $PLAIN_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
   LOG="${RESDIR}/tuplex-incremental-in-order-ssd-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --path $DATA_PATH_SSD --output-path $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --resolve-in-order --incremental-resolution --path $DATA_PATH_SSD --output-path $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
   LOG="${RESDIR}/tuplex-incremental-in-order-commit-ssd-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --commit --path $DATA_PATH_SSD --output-path $INCREMENTAL_COMMIT_OUT_PATH_SSD >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --resolve-in-order --incremental-resolution --commit --path $DATA_PATH_SSD --output-path $INCREMENTAL_COMMIT_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
   LOG="${RESDIR}/tuplex-compare-in-order-ssd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $PLAIN_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
@@ -85,10 +85,10 @@ done
 echo "running out-of-order hd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-plain-hd-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --path $DATA_PATH_HD --output-path $PLAIN_OUT_PATH_HD >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --path $DATA_PATH_HD --output-path $PLAIN_OUT_PATH_HD >$LOG 2>$LOG.stderr
 
   LOG="${RESDIR}/tuplex-incremental-hd-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --incremental-resolution --path $DATA_PATH_HD --output-path $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --incremental-resolution --path $DATA_PATH_HD --output-path $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
 
   LOG="${RESDIR}/tuplex-compare-hd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 compare_folders.py $PLAIN_OUT_PATH_HD $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
@@ -97,13 +97,13 @@ done
 echo "running out-of-order hd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-plain-in-order-hd-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --path $DATA_PATH_HD --output-path $PLAIN_OUT_PATH_HD >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --resolve-in-order --path $DATA_PATH_HD --output-path $PLAIN_OUT_PATH_HD >$LOG 2>$LOG.stderr
 
   LOG="${RESDIR}/tuplex-incremental-in-order-hd-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --path $DATA_PATH_HD --output-path $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --resolve-in-order --incremental-resolution --path $DATA_PATH_HD --output-path $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
 
   LOG="${RESDIR}/tuplex-incremental-in-order-commit-hd-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --commit --path $DATA_PATH_HD --output-path $INCREMENTAL_COMMIT_OUT_PATH_HD >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --resolve-in-order --incremental-resolution --commit --path $DATA_PATH_HD --output-path $INCREMENTAL_COMMIT_OUT_PATH_HD >$LOG 2>$LOG.stderr
 
   LOG="${RESDIR}/tuplex-compare-in-order-hd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $PLAIN_OUT_PATH_HD $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr

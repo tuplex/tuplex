@@ -5,7 +5,7 @@ import os
 def validate_experiment(compare_path):
     with open(compare_path) as f:
         lines = f.readlines()
-        return ">>> contents of folders match." in lines
+        return ">>> contents of folders match.\n" in lines
 
 def main():
     parser = argparse.ArgumentParser(description='Parse results of experiment')

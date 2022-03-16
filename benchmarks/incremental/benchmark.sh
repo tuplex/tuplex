@@ -57,13 +57,13 @@ python3 create_conf.py --opt-pushdown --opt-filter --opt-llvm > tuplex_config.js
 
 echo "running out-of-order ssd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/tuplex-plain-ssd-$r.txt"
+  LOG="${RESDIR}/tuplex-plain-out-of-order-ssd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --path $DATA_PATH_SSD --output-path $PLAIN_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
-  LOG="${RESDIR}/tuplex-incremental-ssd-$r.txt"
+  LOG="${RESDIR}/tuplex-incremental-out-of-order-ssd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --incremental-resolution --path $DATA_PATH_SSD --output-path $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
-  LOG="${RESDIR}/tuplex-compare-ssd-$r.txt"
+  LOG="${RESDIR}/tuplex-compare-out-of-order-ssd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 compare_folders.py $PLAIN_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 done
 
@@ -80,17 +80,20 @@ for ((r = 1; r <= NUM_RUNS; r++)); do
 
   LOG="${RESDIR}/tuplex-compare-in-order-ssd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $PLAIN_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
+
+  LOG="${RESDIR}/tuplex-compare-in-order-commit-ssd-$r.txt"
+    timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $INCREMENTAL_COMMIT_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 done
 
 echo "running out-of-order hd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/tuplex-plain-hd-$r.txt"
+  LOG="${RESDIR}/tuplex-plain-out-of-order-hd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --path $DATA_PATH_HD --output-path $PLAIN_OUT_PATH_HD >$LOG 2>$LOG.stderr
 
-  LOG="${RESDIR}/tuplex-incremental-hd-$r.txt"
+  LOG="${RESDIR}/tuplex-incremental-out-of-order-hd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --incremental-resolution --path $DATA_PATH_HD --output-path $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
 
-  LOG="${RESDIR}/tuplex-compare-hd-$r.txt"
+  LOG="${RESDIR}/tuplex-compare-out-of-order-hd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 compare_folders.py $PLAIN_OUT_PATH_HD $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
 done
 
@@ -107,6 +110,9 @@ for ((r = 1; r <= NUM_RUNS; r++)); do
 
   LOG="${RESDIR}/tuplex-compare-in-order-hd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $PLAIN_OUT_PATH_HD $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
+
+  LOG="${RESDIR}/tuplex-compare-in-order-commit-hd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $INCREMENTAL_COMMIT_OUT_PATH_HD $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
 done
 
 rm -rf $INCREMENTAL_OUT_PATH_SSD

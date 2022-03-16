@@ -1042,7 +1042,7 @@ namespace tuplex {
                     }
                 } else {
                     timer.reset();
-                    auto partNo = writeOutput(tstage, completedTasks);
+                    auto partNo = writeOutput(tstage, completedTasks, cacheEntry->startFileNumber());
                     metrics.setWriteOutputTimes(tstage->number(), timer.time());
                     tstage->setIncrementalResult(exceptionPartitions, generalPartitions, fallbackPartitions,
                                                  partNo);

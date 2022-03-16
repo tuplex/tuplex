@@ -68,7 +68,7 @@ def main():
     parser = argparse.ArgumentParser(description='Parse results of experiment')
     parser.add_argument('--results-path', type=str, dest='results_path', default='results_dirty_zillow@10G')
     parser.add_argument('--output-path', type=str, dest='output_path', default='experiment_output')
-    parser.add_argument('--num-trials', type=int, dest='num_trials')
+    parser.add_argument('--num-trials', type=int, dest='num_trials', default=1)
     args = parser.parse_args()
 
     results_path = args.results_path

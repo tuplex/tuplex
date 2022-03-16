@@ -12,6 +12,7 @@ import argparse
 import math
 import re
 import shutil
+import subprocess
 
 # UDFs for pipeline
 def extractBd(x):
@@ -158,9 +159,9 @@ def dirty_zillow_pipeline(paths, output_path, step, commit):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Zillow cleaning')
-    parser.add_argument('--path', type=str, dest='data_path', default='data/zillow_dirty.csv',
+    parser.add_argument('--path', type=str, dest='data_path', default='/hot/scratch/bgivertz/data/zillow_dirty.csv',
                         help='path or pattern to zillow data')
-    parser.add_argument('--output-path', type=str, dest='output_path', default='tuplex_output/',
+    parser.add_argument('--output-path', type=str, dest='output_path', default='/hot/scratch/bgivertz/output/',
                         help='specify path where to save output data files')
     parser.add_argument('--resolve-in-order', dest='resolve_in_order', action="store_true", help="whether to resolve exceptions in order")
     parser.add_argument('--incremental-resolution', dest='incremental_resolution', action="store_true", help="whether to use incremental resolution")
@@ -236,6 +237,8 @@ if __name__ == '__main__':
     metrics = []
     for step in range(num_steps):
         print(f'>>> running pipeline with {step} resolver(s) enabled...')
+        subprocess.run(["clearcache"])
+
         jobstart = time.time()
         m = dirty_zillow_pipeline(paths, output_path, step, not args.commit or step == num_steps - 1)
         m = m.as_dict()

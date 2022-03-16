@@ -19,11 +19,11 @@ fi
 NUM_RUNS=1
 TIMEOUT=14400
 
-DATA_PATH='data/zillow_dirty@10G.csv'
+DATA_PATH='/hot/scratch/bgivertz/data/zillow_dirty@10G.csv'
 RESDIR='results_dirty_zillow@10G'
-INCREMENTAL_OUT_PATH='incremental_output'
-INCREMENTAL_COMMIT_OUT_PATH='incremental_commit_output'
-PLAIN_OUT_PATH='plain_output'
+INCREMENTAL_OUT_PATH='/hot/scratch/bgivertz/output/incremental_output'
+INCREMENTAL_COMMIT_OUT_PATH='/hot/scratch/bgivertz/output/incremental_commit_output'
+PLAIN_OUT_PATH='/hot/scratch/bgivertz/output/plain_output'
 
 # does file exist?
 if [[ ! -f "$DATA_PATH" ]]; then
@@ -71,3 +71,4 @@ done
 
 rm -rf $INCREMENTAL_OUT_PATH
 rm -rf $PLAIN_OUT_PATH
+rm -rf $INCREMENTAL_COMMIT_OUT_PATH

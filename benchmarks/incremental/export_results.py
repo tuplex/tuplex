@@ -76,9 +76,8 @@ def main():
     num_trials = args.num_trials
 
     assert os.path.isdir(results_path)
-    if os.path.isdir(output_path):
-        os.remove(output_path)
-    os.makedirs(output_path)
+    if not os.path.isdir(output_path):
+        os.makedirs(output_path)
 
     # In-Order SSD
     export_results(results_path, output_path, num_trials, True, False, True)

@@ -158,14 +158,12 @@ def dirty_zillow_pipeline(paths, output_path, step, commit):
     return ctx.metrics
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Zillow cleaning')
-    parser.add_argument('--path', type=str, dest='data_path', default='/hot/scratch/bgivertz/data/zillow_dirty.csv',
-                        help='path or pattern to zillow data')
-    parser.add_argument('--output-path', type=str, dest='output_path', default='/hot/scratch/bgivertz/output/',
-                        help='specify path where to save output data files')
+    parser = argparse.ArgumentParser(description='Incremental resolution')
+    parser.add_argument('--path', type=str, dest='data_path', default='/hot/scratch/bgivertz/data/zillow_dirty.csv', help='path or pattern to zillow data')
+    parser.add_argument('--output-path', type=str, dest='output_path', default='/hot/scratch/bgivertz/output/', help='specify path where to save output data files')
     parser.add_argument('--resolve-in-order', dest='resolve_in_order', action="store_true", help="whether to resolve exceptions in order")
     parser.add_argument('--incremental-resolution', dest='incremental_resolution', action="store_true", help="whether to use incremental resolution")
-    parser.add_argument('--commit', dest='commit', action='store_true', help='whether to use commit mode')
+    parser.add_argument('--commit-mode', dest='commit_mode', action='store_true', help='whether to use commit mode')
     args = parser.parse_args()
 
     assert args.data_path, 'need to set data path!'
@@ -240,7 +238,7 @@ if __name__ == '__main__':
         subprocess.run(["clearcache"])
 
         jobstart = time.time()
-        m = dirty_zillow_pipeline(paths, output_path, step, not args.commit or step == num_steps - 1)
+        m = dirty_zillow_pipeline(paths, output_path, step, not args.commit_mode or step == num_steps - 1)
         m = m.as_dict()
         m["numResolvers"] = step
         m["jobTime"] = time.time() - jobstart
@@ -248,6 +246,7 @@ if __name__ == '__main__':
 
     runtime = time.time() - tstart
 
+    print("EXPERIMENTAL RESULTS")
     print(json.dumps({"startupTime": startup_time,
                       "totalRunTime": runtime,
                       "mergeExceptionsInOrder": conf["optimizer.mergeExceptionsInOrder"],
@@ -255,6 +254,3 @@ if __name__ == '__main__':
 
     for metric in metrics:
         print(json.dumps(metric))
-
-    for metric in metrics:
-        print(metric["jobTime"])

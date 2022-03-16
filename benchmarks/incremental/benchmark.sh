@@ -19,11 +19,15 @@ fi
 NUM_RUNS=1
 TIMEOUT=14400
 
-DATA_PATH='/hot/scratch/bgivertz/data/zillow_dirty@10G.csv'
 RESDIR='results_dirty_zillow@10G'
-INCREMENTAL_OUT_PATH='/hot/scratch/bgivertz/output/incremental_output'
-INCREMENTAL_COMMIT_OUT_PATH='/hot/scratch/bgivertz/output/incremental_commit_output'
-PLAIN_OUT_PATH='/hot/scratch/bgivertz/output/plain_output'
+DATA_PATH_SSD='/hot/scratch/bgivertz/data/zillow_dirty@10G.csv'
+DATA_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/data/zillow_dirty@10G.csv'
+INCREMENTAL_OUT_PATH_SSD='/hot/scratch/bgivertz/output/incremental_output'
+INCREMENTAL_OUT_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/incremental_output'
+INCREMENTAL_COMMIT_OUT_PATH_SSD='/hot/scratch/bgivertz/output/incremental_commit_output'
+INCREMENTAL_COMMIT_OUT_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/incremental_commit_output'
+PLAIN_OUT_PATH_SSD='/hot/scratch/bgivertz/output/plain_output'
+PLAIN_OUT_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/plain_output'
 
 # does file exist?
 if [[ ! -f "$DATA_PATH" ]]; then
@@ -39,36 +43,63 @@ mkdir -p ${RESDIR}
 # create tuplex_config.json
 python3 create_conf.py --opt-pushdown --opt-filter --opt-llvm > tuplex_config.json
 
-# Multi-threaded experiments
-# Without order
-echo "running no-merge experiments using 16x parallelism"
+echo "running out-of-order ssd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/tuplex-plain-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --path $DATA_PATH --output-path $PLAIN_OUT_PATH >$LOG 2>$LOG.stderr
+  LOG="${RESDIR}/tuplex-plain-ssd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --path $DATA_PATH_SSD --output-path $PLAIN_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
-  LOG="${RESDIR}/tuplex-incremental-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --incremental-resolution --path $DATA_PATH --output-path $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
+  LOG="${RESDIR}/tuplex-incremental-ssd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --incremental-resolution --path $DATA_PATH_SSD --output-path $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
-  LOG="${RESDIR}/tuplex-compare-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py $PLAIN_OUT_PATH $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
+  LOG="${RESDIR}/tuplex-compare-ssd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py $PLAIN_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 done
 
-# With order
-echo "running in-order experiments using 16x parallelism"
+echo "running in-order ssd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/tuplex-plain-in-order-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --path $DATA_PATH --output-path $PLAIN_OUT_PATH >$LOG 2>$LOG.stderr
+  LOG="${RESDIR}/tuplex-plain-in-order-ssd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --path $DATA_PATH_SSD --output-path $PLAIN_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
-  LOG="${RESDIR}/tuplex-incremental-in-order-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --path $DATA_PATH --output-path $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
+  LOG="${RESDIR}/tuplex-incremental-in-order-ssd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --path $DATA_PATH_SSD --output-path $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
-  LOG="${RESDIR}/tuplex-incremental-in-order-commit-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --commit --path $DATA_PATH --output-path $INCREMENTAL_COMMIT_OUT_PATH >$LOG 2>$LOG.stderr
+  LOG="${RESDIR}/tuplex-incremental-in-order-commit-ssd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --commit --path $DATA_PATH_SSD --output-path $INCREMENTAL_COMMIT_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
-  LOG="${RESDIR}/tuplex-compare-in-order-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $PLAIN_OUT_PATH $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
+  LOG="${RESDIR}/tuplex-compare-in-order-ssd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $PLAIN_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 done
 
-rm -rf $INCREMENTAL_OUT_PATH
-rm -rf $PLAIN_OUT_PATH
-rm -rf $INCREMENTAL_COMMIT_OUT_PATH
+echo "running out-of-order hd experiments"
+for ((r = 1; r <= NUM_RUNS; r++)); do
+  LOG="${RESDIR}/tuplex-plain-hd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --path $DATA_PATH_HD --output-path $PLAIN_OUT_PATH_HD >$LOG 2>$LOG.stderr
+
+  LOG="${RESDIR}/tuplex-incremental-hd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --incremental-resolution --path $DATA_PATH_HD --output-path $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
+
+  LOG="${RESDIR}/tuplex-compare-hd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py $PLAIN_OUT_PATH_HD $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
+done
+
+echo "running out-of-order hd experiments"
+for ((r = 1; r <= NUM_RUNS; r++)); do
+  LOG="${RESDIR}/tuplex-plain-in-order-hd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --path $DATA_PATH_HD --output-path $PLAIN_OUT_PATH_HD >$LOG 2>$LOG.stderr
+
+  LOG="${RESDIR}/tuplex-incremental-in-order-hd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --path $DATA_PATH_HD --output-path $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
+
+  LOG="${RESDIR}/tuplex-incremental-in-order-commit-hd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --resolve-in-order --incremental-resolution --commit --path $DATA_PATH_HD --output-path $INCREMENTAL_COMMIT_OUT_PATH_HD >$LOG 2>$LOG.stderr
+
+  LOG="${RESDIR}/tuplex-compare-in-order-hd-$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $PLAIN_OUT_PATH_HD $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
+done
+
+rm -rf $INCREMENTAL_OUT_PATH_SSD
+rm -rf $PLAIN_OUT_PATH_SSD
+rm -rf $INCREMENTAL_COMMIT_OUT_PATH_SSD
+rm -rf $INCREMENTAL_OUT_PATH_HD
+rm -rf $PLAIN_OUT_PATH_HD
+rm -rf $INCREMENTAL_COMMIT_OUT_PATH_HD

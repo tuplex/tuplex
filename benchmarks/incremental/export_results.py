@@ -81,9 +81,9 @@ def main():
 
     # In-Order SSD
     export_results(results_path, output_path, num_trials, True, False, True)
-
-    # In-Order Commit SSD
-    export_results(results_path, output_path, num_trials, True, True, True)
+    #
+    # # In-Order Commit SSD
+    # export_results(results_path, output_path, num_trials, True, True, True)
 
     # Out-of-Order SSD
     export_results(results_path, output_path, num_trials, False, False, True)

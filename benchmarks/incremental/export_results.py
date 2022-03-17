@@ -18,17 +18,17 @@ def job_times(path):
     return times
 
 def compare_path(trial, in_order, commit, ssd):
-    return f"tuplex-compare-{'in-order' if in_order else 'out-of-order'}{'-commit' if commit else ''}-{'ssd' if ssd else 'hd'}-{trial}.txt"
+    return "tuplex-compare-{}{}-{}-{}.txt".format('in-order' if in_order else 'out-of-order', '-commit' if commit else '', 'ssd' if ssd else 'hd', trial)
 
 def experiment_path(trial, incremental, in_order, commit, ssd):
-    return f"tuplex-{'incremental' if incremental else 'plain'}-{'in-order' if in_order else 'out-of-order'}{'-commit' if commit else ''}-{'ssd' if ssd else 'hd'}-{trial}.txt"
+    return "tuplex-{}-{}{}-{}-{}.txt".format('incremental' if incremental else 'plain', 'in-order' if in_order else 'out-of-order', '-commit' if commit else '', 'ssd' if ssd else 'hd', trial)
 
 def export_results(results_path, output_path, num_trials, in_order, commit, ssd):
     for i in range(num_trials):
         validate_path = os.path.join(results_path, compare_path(i + 1, in_order, commit, ssd))
         assert validate_experiment(validate_path)
 
-    path = os.path.join(output_path, f"experiment-{'in-order' if in_order else 'out-of-order'}{'-commit' if commit else ''}-{'ssd' if ssd else 'hd'}.csv")
+    path = os.path.join(output_path, "experiment-{}{}-{}.csv".format('in-order' if in_order else 'out-of-order', '-commit' if commit else '', 'ssd' if ssd else 'hd'))
     f = open(path, 'w')
 
     header = "Resolvers,"

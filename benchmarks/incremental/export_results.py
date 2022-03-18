@@ -34,7 +34,7 @@ def export_results(results_path, output_path, num_trials, in_order, ssd):
     path = os.path.join(output_path, "experiments.csv")
     f = open(path, 'a')
 
-    header = "{} | {}," + "," * num_trials + "Plain" + "," * num_trials + "Incremental".format('In Order' if in_order else 'Out of Order', 'SSD' if ssd else 'HD')
+    header = "{} | {},".format('In Order' if in_order else 'Out of Order', 'SSD' if ssd else 'HD') + "," * num_trials + "Plain" + "," * num_trials + "Incremental" + ("," * num_trials + "Commit\n" if in_order else "\n")
     f.write(header)
 
     header = "Resolvers,"

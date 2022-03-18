@@ -53,7 +53,7 @@ def export_results(results_path, output_path, num_trials, in_order, ssd):
 
         plain_total = 0
         for trial in range(num_trials):
-            plain_path = os.path.join(results_path, experiment_path(trial + 1, False, in_order, commit, ssd))
+            plain_path = os.path.join(results_path, experiment_path(trial + 1, False, in_order, False, ssd))
             plain_times = job_times(plain_path)
 
             plain_total += plain_times[step]

@@ -27,6 +27,9 @@ def export_results(results_path, output_path, num_trials, in_order, ssd):
     for i in range(num_trials):
         validate_path = os.path.join(results_path, compare_path(i + 1, in_order, False, ssd))
         assert validate_experiment(validate_path)
+        if in_order:
+            validate_path = os.path.join(results_path, compare_path(i + 1, in_order, True, ssd))
+            assert validate_experiment(validate_path)
 
     path = os.path.join(output_path, "experiments.csv")
     f = open(path, 'a')

@@ -43,7 +43,15 @@ def export_results(results_path, output_path, num_trials, in_order, ssd):
     header += "Average,"
     for i in range(num_trials):
         header += f"Trial {i+1},"
-    header += "Average\n"
+    header += "Average"
+    if in_order:
+        header += ","
+        for i in range(num_trials):
+            header += f"Trial {i+1},"
+        header += "Average\n"
+    else:
+        header += "\n"
+
 
     f.write(header)
 
@@ -70,6 +78,7 @@ def export_results(results_path, output_path, num_trials, in_order, ssd):
         line += f"{incremental_total / num_trials}"
 
         if in_order:
+            line += ","
             commit_total = 0
             for trial in range(num_trials):
                 commit_path = os.path.join(results_path, experiment_path(trial + 1, True, in_order, True, ssd))

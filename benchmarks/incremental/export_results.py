@@ -34,7 +34,7 @@ def export_results(results_path, output_path, num_trials, in_order, ssd):
     path = os.path.join(output_path, "experiments.csv")
     f = open(path, 'a')
 
-    header = "{} | {},".format('In Order' if in_order else 'Out of Order', 'SSD' if ssd else 'HD') + "," * num_trials + "Plain" + "," * num_trials + "Incremental" + ("," * num_trials + "Commit\n" if in_order else "\n")
+    header = "{} | {},".format('In Order' if in_order else 'Out of Order', 'SSD' if ssd else 'HD') + "," * num_trials + "Plain," + "," * num_trials + "Incremental" + ("," * (num_trials + 1) + "Commit\n" if in_order else "\n")
     f.write(header)
 
     header = "Resolvers,"
@@ -97,17 +97,17 @@ def main():
     if not os.path.isdir(output_path):
         os.makedirs(output_path)
 
-    # In-Order SSD
-    export_results(results_path, output_path, num_trials, True, True)
-
     # Out-of-Order SSD
     export_results(results_path, output_path, num_trials, False, True)
 
-    # In-Order HD
-    export_results(results_path, output_path, num_trials, True, False)
-
     # Out-of-Order HD
     export_results(results_path, output_path, num_trials, False, False)
+
+    # In-Order SSD
+    export_results(results_path, output_path, num_trials, True, True)
+
+    # In-Order HD
+    export_results(results_path, output_path, num_trials, True, False)
 
 if __name__ == '__main__':
     main()

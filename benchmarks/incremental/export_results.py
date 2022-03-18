@@ -23,13 +23,16 @@ def compare_path(trial, in_order, commit, ssd):
 def experiment_path(trial, incremental, in_order, commit, ssd):
     return "tuplex-{}-{}{}-{}-{}.txt".format('incremental' if incremental else 'plain', 'in-order' if in_order else 'out-of-order', '-commit' if commit else '', 'ssd' if ssd else 'hd', trial)
 
-def export_results(results_path, output_path, num_trials, in_order, commit, ssd):
+def export_results(results_path, output_path, num_trials, in_order, ssd):
     for i in range(num_trials):
-        validate_path = os.path.join(results_path, compare_path(i + 1, in_order, commit, ssd))
+        validate_path = os.path.join(results_path, compare_path(i + 1, in_order, False, ssd))
         assert validate_experiment(validate_path)
 
-    path = os.path.join(output_path, "experiment-{}{}-{}.csv".format('in-order' if in_order else 'out-of-order', '-commit' if commit else '', 'ssd' if ssd else 'hd'))
-    f = open(path, 'w')
+    path = os.path.join(output_path, "experiments.csv")
+    f = open(path, 'a')
+
+    header = "{} | {}," + "," * num_trials + "Plain" + "," * num_trials + "Incremental".format('In Order' if in_order else 'Out of Order', 'SSD' if ssd else 'HD')
+    f.write(header)
 
     header = "Resolvers,"
     for i in range(num_trials):
@@ -56,13 +59,25 @@ def export_results(results_path, output_path, num_trials, in_order, commit, ssd)
 
         incremental_total = 0
         for trial in range(num_trials):
-            incremental_path = os.path.join(results_path, experiment_path(trial + 1, True, in_order, commit, ssd))
+            incremental_path = os.path.join(results_path, experiment_path(trial + 1, True, in_order, False, ssd))
             incremental_times = job_times(incremental_path)
 
             incremental_total += incremental_times[step]
             line += f"{incremental_times[step]},"
         line += f"{incremental_total / num_trials}\n"
+
+        if in_order:
+            commit_total = 0
+            for trial in range(num_trials):
+                commit_path = os.path.join(results_path, experiment_path(trial + 1, True, in_order, True, ssd))
+                commit_times = job_times(commit_path)
+
+                commit_total += commit_times[step]
+                line += f"{commit_times[step]},"
+            line += f"{commit_total/num_trials}\n"
+
         f.write(line)
+    f.write("\n")
 
 def main():
     parser = argparse.ArgumentParser(description='Parse results of experiment')
@@ -80,19 +95,16 @@ def main():
         os.makedirs(output_path)
 
     # In-Order SSD
-    export_results(results_path, output_path, num_trials, True, False, True)
-    #
-    # # In-Order Commit SSD
-    # export_results(results_path, output_path, num_trials, True, True, True)
+    export_results(results_path, output_path, num_trials, True, True)
 
     # Out-of-Order SSD
-    export_results(results_path, output_path, num_trials, False, False, True)
+    export_results(results_path, output_path, num_trials, False, True)
 
     # In-Order HD
-    export_results(results_path, output_path, num_trials, True, False, False)
+    export_results(results_path, output_path, num_trials, True, False)
 
     # Out-of-Order HD
-    export_results(results_path, output_path, num_trials, False, False, False)
+    export_results(results_path, output_path, num_trials, False, False)
 
 if __name__ == '__main__':
     main()

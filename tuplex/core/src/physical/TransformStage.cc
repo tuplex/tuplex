@@ -747,7 +747,7 @@ namespace tuplex {
             }
         }
 
-        logger.debug("Regisreting symbols...");
+        logger.debug("Registering symbols...");
 
         // compile & link with resolve tasks
         if(registerSymbols && !resolveWriteCallbackName().empty())

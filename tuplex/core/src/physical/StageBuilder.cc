@@ -1646,7 +1646,10 @@ namespace tuplex {
 //            }
 //        }
 
-        TransformStage* StageBuilder::encodeForSpecialization(PhysicalPlan* plan, IBackend* backend) {
+        TransformStage* StageBuilder::encodeForSpecialization(PhysicalPlan* plan, IBackend* backend,
+                                                              bool gen_py_code,
+                                                              bool gen_fast_code,
+                                                              bool gen_slow_code) {
             // do not generate code-paths, rather store the info necessary to store stuff.
             // then send this off
             auto &logger = Logger::instance().logger("codegen");
@@ -1672,14 +1675,22 @@ namespace tuplex {
                 ctx.slowPathContext = getGeneralPathContext();
 
                 // also important to encode into stage python code. Else, nowhere to be found!
-                auto py_path = generatePythonCode(ctx, number());
-                stage->_pyCode = py_path.pyCode;
-                stage->_pyPipelineName = py_path.pyPipelineName;
+                if(gen_py_code) {
+                    auto py_path = generatePythonCode(ctx, number());
+                    stage->_pyCode = py_path.pyCode;
+                    stage->_pyPipelineName = py_path.pyPipelineName;
+                }
+
+                if(gen_fast_code) {
+                    stage->_slowCodePath = generateResolveCodePath(ctx, ctx.slowPathContext, normalCaseType);
+                }
+                if(gen_slow_code) {
+
+                }
 
 #ifndef NDEBUG
                 stringToFile("python_code_" + stage->_pyPipelineName + ".py", stage->_pyCode);
 #endif
-
 
                 // use test-wise cereal to encode the context (i.e., the stage) to send
                 // over to individual executors for specialization.

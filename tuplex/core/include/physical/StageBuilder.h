@@ -211,7 +211,21 @@ namespace tuplex {
             inline TransformStage* build() { return build(nullptr, nullptr); }
 
             // HACK: experimental function to encode as bytes a TransformStage
-            TransformStage* encodeForSpecialization(PhysicalPlan* plan, IBackend* backend);
+            /*!
+             * encode all required operators for this stage using Cereal. In addition, depending
+             * on whether desired individual codepaths can get generated (or not)
+             * @param plan the plan to associate with
+             * @param backend which backend to ude
+             * @param gen_py_code whether to generate python code or not
+             * @param gen_fast_code whether to generate fast/normal-case code or not
+             * @param gen_slow_code wheteher to generate slow/general-case code or not
+             * @return TransformStage
+             */
+            TransformStage* encodeForSpecialization(PhysicalPlan* plan,
+                                                    IBackend* backend,
+                                                    bool gen_py_code=true,
+                                                    bool gen_fast_code=false,
+                                                    bool gen_slow_code=false);
 
 
             /*!

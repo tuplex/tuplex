@@ -29,6 +29,7 @@ INCREMENTAL_COMMIT_OUT_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/inc
 PLAIN_OUT_PATH_SSD='/hot/scratch/bgivertz/output/plain_output'
 PLAIN_OUT_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/plain_output'
 
+rm -rf $RESDIR
 rm -rf $INCREMENTAL_OUT_PATH_SSD
 rm -rf $PLAIN_OUT_PATH_SSD
 rm -rf $INCREMENTAL_COMMIT_OUT_PATH_SSD
@@ -97,7 +98,7 @@ for ((r = 1; r <= NUM_RUNS; r++)); do
   timeout $TIMEOUT ${HWLOC} python3 compare_folders.py $PLAIN_OUT_PATH_HD $INCREMENTAL_OUT_PATH_HD >$LOG 2>$LOG.stderr
 done
 
-echo "running out-of-order hd experiments"
+echo "running in-order hd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-plain-in-order-hd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --resolve-in-order --path $DATA_PATH_HD --output-path $PLAIN_OUT_PATH_HD >$LOG 2>$LOG.stderr

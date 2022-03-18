@@ -88,5 +88,11 @@ def main():
     # Out-of-Order SSD
     export_results(results_path, output_path, num_trials, False, False, True)
 
+    # In-Order HD
+    export_results(results_path, output_path, num_trials, True, False, False)
+
+    # Out-of-Order HD
+    export_results(results_path, output_path, num_trials, False, False, True)
+
 if __name__ == '__main__':
     main()

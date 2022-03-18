@@ -92,7 +92,7 @@ def main():
     export_results(results_path, output_path, num_trials, True, False, False)
 
     # Out-of-Order HD
-    export_results(results_path, output_path, num_trials, False, False, True)
+    export_results(results_path, output_path, num_trials, False, False, False)
 
 if __name__ == '__main__':
     main()

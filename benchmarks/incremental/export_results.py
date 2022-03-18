@@ -67,7 +67,7 @@ def export_results(results_path, output_path, num_trials, in_order, ssd):
 
             incremental_total += incremental_times[step]
             line += f"{incremental_times[step]},"
-        line += f"{incremental_total / num_trials}\n"
+        line += f"{incremental_total / num_trials}"
 
         if in_order:
             commit_total = 0
@@ -78,6 +78,8 @@ def export_results(results_path, output_path, num_trials, in_order, ssd):
                 commit_total += commit_times[step]
                 line += f"{commit_times[step]},"
             line += f"{commit_total/num_trials}\n"
+        else:
+            line += "\n"
 
         f.write(line)
     f.write("\n")

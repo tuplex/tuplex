@@ -58,6 +58,7 @@ python3 create_conf.py --opt-pushdown --opt-filter --opt-llvm > tuplex_config.js
 
 echo "running out-of-order ssd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
+  echo "Running trial ($r/$NUM_RUNS)"
   LOG="${RESDIR}/tuplex-plain-out-of-order-ssd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --path $DATA_PATH_SSD --output-path $PLAIN_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
@@ -70,6 +71,7 @@ done
 
 echo "running in-order ssd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
+  echo "Running trial ($r/$NUM_RUNS)"
   LOG="${RESDIR}/tuplex-plain-in-order-ssd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --resolve-in-order --path $DATA_PATH_SSD --output-path $PLAIN_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
@@ -88,6 +90,7 @@ done
 
 echo "running out-of-order hd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
+  echo "Running trial ($r/$NUM_RUNS)"
   LOG="${RESDIR}/tuplex-plain-out-of-order-hd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --path $DATA_PATH_HD --output-path $PLAIN_OUT_PATH_HD >$LOG 2>$LOG.stderr
 
@@ -100,6 +103,7 @@ done
 
 echo "running in-order hd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
+  echo "Running trial ($r/$NUM_RUNS)"
   LOG="${RESDIR}/tuplex-plain-in-order-hd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --resolve-in-order --path $DATA_PATH_HD --output-path $PLAIN_OUT_PATH_HD >$LOG 2>$LOG.stderr
 

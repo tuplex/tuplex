@@ -65,7 +65,7 @@ namespace tuplex {
              */
             std::string name() const {
                 assert(function);
-                return function->getName();
+                return function->getName().str();
             }
 
 

@@ -18,7 +18,7 @@
 #include <TypeSystem.h>
 #include <Field.h>
 
-#if LLVM_VERSION_MAJOR == 9
+#if LLVM_VERSION_MAJOR >= 9
 // LLVM9 fix
 #include <llvm/Target/TargetMachine.h>
 #endif
@@ -96,6 +96,28 @@ namespace tuplex {
                 return CreateICmp(llvm::ICmpInst::ICMP_EQ, LHS, RHS, name);
             }
 
+             inline llvm::Value *CreateICmpSGT(llvm::Value *LHS, llvm::Value *RHS, const std::string& &Name = "") {
+                 return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_SGT, LHS, RHS, Name);
+             }
+             inline llvm::Value *CreateICmpSLT(llvm::Value *LHS, llvm::Value *RHS, const std::string&Name = "") {
+                 return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_SLT, LHS, RHS, Name);
+             }
+             inline llvm::Value *CreateFNeg(llvm::Value *V, const std::string& Name = "",
+                                            llvm::MDNode *FPMathTag = nullptr) {
+                 return get_or_throw().CreateFNeg(V, Name, FPMathTag);
+            }
+            inline llvm::Value *CreateNeg(llvm::Value *V, const std::string& Name = "",
+                                  bool HasNUW = false, bool HasNSW = false) {
+                return get_or_throw().CreateNeg(V, Name, HasNUW, HasNSW);
+            }
+             inline llvm::Value *CreateXor(llvm::Value *LHS, llvm::Value *RHS, const std::string& Name = "") {
+                 return get_or_throw().CreateXor(LHS, RHS, Name);
+             }
+
+             inline llvm::Value *CreateNot(llvm::Value *V, const std::string &Name = "") {
+                 return get_or_throw().CreateNot(V, Name);
+            }
+
             inline llvm::Value* CreateOr(llvm::Value *LHS, llvm::Value *RHS, const std::string &name = "") const {
                 return get_or_throw().CreateOr(LHS, RHS, name);
             }
@@ -130,6 +152,32 @@ namespace tuplex {
                 return get_or_throw().CreateMul(LHS, RHS, Name, HasNUW, HasNSW);
             }
 
+            // integer shift
+            inline llvm::Value *CreateShl(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
+                                    bool HasNUW = false, bool HasNSW = false) const {
+                return get_or_throw().CreateShl(LHS, RHS, Name, HasNUW, HasNSW);
+            }
+
+             inline llvm::Value *CreateAShr(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
+                               bool isExact = false) {
+                return get_or_throw().CreateAShr(LHS, RHS, Name, isExact);
+            }
+
+            // floating point operations
+            // FAdd, FSub, FDiv, FMul
+            inline llvm::Value *CreateFAdd(llvm::Value *L, llvm::Value *R, const std::string &Name = "",
+                              llvm::MDNode *FPMD = nullptr) const {
+                return get_or_throw().CreateFAdd(L, R, Name, FPMD);
+            }
+            inline llvm::Value *CreateFSub(llvm::Value *L, llvm::Value *R, const std::string &Name = "",
+                               llvm::MDNode *FPMD = nullptr) const {
+                return get_or_throw().CreateFSub(L, R, Name, FPMD);
+            }
+            inline llvm::Value *CreateFDiv(llvm::Value *L, llvm::Value *R, const std::string &Name = "",
+                               llvm::MDNode *FPMD = nullptr) const {
+                return get_or_throw().CreateFDiv(L, R, Name, FPMD);
+            }
+
              inline llvm::Value *CreateFMul(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
                                             llvm::MDNode *FPMD = nullptr) const {
                  return get_or_throw().CreateFMul(LHS, RHS, Name, FPMD);
@@ -139,6 +187,19 @@ namespace tuplex {
                               const std::string &Name = "") const {
                 return get_or_throw().CreateGEP(Ty, Ptr, IdxList, Name);
             }
+
+            inline llvm::CallInst *CreateCall(llvm::FunctionType *FTy, llvm::Value *Callee,
+                                        llvm::ArrayRef<llvm::Value *> Args = llvm::None, const std::string &Name = "",
+                                        llvm::MDNode *FPMathTag = nullptr) {
+                return get_or_throw().CreateCall(FTy, Callee, Args, Name, FPMathTag);
+            }
+
+            inline llvm::CallInst *CreateCall(llvm::FunctionCallee Callee, llvm::ArrayRef<llvm::Value *> Args = llvm::None,
+                                        const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) {
+                return CreateCall(Callee.getFunctionType(), Callee.getCallee(), Args, Name,
+                                  FPMathTag);
+            }
+
              inline llvm::LoadInst *CreateLoad(llvm::Type *Ty, llvm::Value *Ptr, const char *Name) const {
                  return get_or_throw().CreateAlignedLoad(Ty, Ptr, llvm::MaybeAlign(), Name);
              }
@@ -169,6 +230,18 @@ namespace tuplex {
              inline llvm::Value *CreateSIToFP(llvm::Value *V, llvm::Type *DestTy, const std::string &Name = "") const {
                 return get_or_throw().CreateSIToFP(V, DestTy, Name);
             }
+
+            //  Shl, AShr, ZExt
+            inline llvm::Value *CreateZExt(llvm::Value *V, llvm::Type *DestTy, const std::string &Name = "") const {
+                return get_or_throw().CreateZExt(V, DestTy, Name);
+            }
+             inline llvm::Value *CreateTrunc(llvm::Value *V, llvm::Type *DestTy, const std::string &Name = "") const {
+                 return get_or_throw().CreateTrunc(V, DestTy, Name);
+             }
+             inline llvm::Value *CreateZExtOrTrunc(llvm::Value *V, llvm::Type *DestTy,
+                                      const std::string &Name = "") const {
+                return get_or_throw().CreateZExtOrTrunc(V, DestTy, Name);
+            }
              inline llvm::Value *CreateAnd(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") const {
                 return get_or_throw().CreateAnd(LHS, RHS, Name);
             }
@@ -176,6 +249,15 @@ namespace tuplex {
              inline llvm::Value *CreateSelect(llvm::Value *C, llvm::Value *True, llvm::Value *False,
                                  const std::string &Name = "", llvm::Instruction *MDFrom = nullptr) const {
                 return get_or_throw().CreateSelect(C, True, False, Name, MDFrom);
+            }
+
+            inline llvm::CallInst *CreateMemCpy(llvm::Value *Dst, unsigned DstAlign, llvm::Value *Src,
+                                            unsigned SrcAlign, llvm::Value *Size,
+                                            bool isVolatile = false, llvm::MDNode *TBAATag = nullptr,
+                                            llvm::MDNode *TBAAStructTag = nullptr,
+                                            llvm::MDNode *ScopeTag = nullptr,
+                                            llvm::MDNode *NoAliasTag = nullptr) const {
+                return get_or_throw().CreateMemCpy(Dst, llvm::MaybeAlign(DstAlign), Src, llvm::MaybeAlign(SrcAlign), Size, isVolatile, TBAATag, TBAAStructTag, ScopeTag, NoAliasTag);
             }
 
             /*!

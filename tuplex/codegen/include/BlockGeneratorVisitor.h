@@ -491,7 +491,7 @@ namespace codegen {
          * @param type desired type
          * @return
          */
-        llvm::Value *upCast(llvm::IRBuilder<> &builder, llvm::Value *val, llvm::Type *type);
+        llvm::Value *upCast(const codegen::IRBuilder &builder, llvm::Value *val, llvm::Type *type);
 
         llvm::Value *i32Const(const int32_t val) {
             return llvm::Constant::getIntegerValue(llvm::Type::getInt32Ty(_env->getContext()), llvm::APInt(32, val));
@@ -652,7 +652,8 @@ namespace codegen {
                                         const std::unordered_map<std::string, VariableRealization> &if_var_realizations,
                                         const std::unordered_map<std::string, VariableRealization> &else_var_realizations);
 
-        llvm::Value *generateConstantIntegerPower(llvm::IRBuilder<>& builder, llvm::Value *base, int64_t exponent);
+        llvm::Value *generateConstantIntegerPower(const codegen::IRBuilder& builder,
+                                                  llvm::Value *base, int64_t exponent);
 
         /*!
          * should get called when targetType is iteratorType

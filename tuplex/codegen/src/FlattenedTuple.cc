@@ -478,7 +478,7 @@ namespace tuplex {
 
             // then block...
             // -------
-            IRBuilder<> bThen(enoughCapacity);
+            codegen::IRBuilder bThen(enoughCapacity);
             serialize(bThen, output);
 
             // set builder to insert on then block

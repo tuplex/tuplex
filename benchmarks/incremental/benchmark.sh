@@ -16,7 +16,7 @@ if [ $# -eq 1 ]; then # check if hwloc
 fi
 
 # use 10 runs (3 for very long jobs) and a timeout after 180min/3h
-NUM_RUNS=1
+NUM_RUNS=3
 TIMEOUT=14400
 
 RESDIR='results_dirty_zillow@50G'
@@ -87,6 +87,8 @@ for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-compare-in-order-commit-ssd-$r.txt"
     timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $INCREMENTAL_COMMIT_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 done
+
+python3 export_results.py --results-path $RESDIR --num-trials $NUM_RUNS
 
 #echo "running out-of-order hd experiments"
 #for ((r = 1; r <= NUM_RUNS; r++)); do

@@ -45,6 +45,8 @@ namespace tuplex {
                 return env().compareToNullValues(builder, ptr, _nullValues, true); // NOTE: ptr must be 0 terminated!
             }
 
+            void generateChecks(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr);
+
         public:
             CellSourceTaskBuilder() = delete;
 

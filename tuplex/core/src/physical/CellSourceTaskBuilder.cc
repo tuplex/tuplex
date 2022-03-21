@@ -121,6 +121,51 @@ namespace tuplex {
             return func;
         }
 
+        void CellSourceTaskBuilder::generateChecks(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
+            using namespace llvm;
+
+            auto& logger = Logger::instance().logger("codegen");
+
+            if(_checks.empty())
+                return;
+
+            // sanity check, emit warning if check was given but col not read?
+            for(const auto& check : _checks) {
+                if(check.colNo >= _columnsToSerialize.size())
+                    logger.warn("check has invalid column number");
+                else {
+                    if(!_columnsToSerialize[check.colNo])
+                        logger.warn("CellSourceTaskBuilder received check for col=" + std::to_string(check.colNo) + ", but column is eliminated in pushdown!");
+                }
+            }
+
+
+            // Interesting questions re. checks: => these checks should be performed first. What is the optimal order of checks to perform?
+            // what to test first for?
+            for(int i = 0; i < _columnsToSerialize.size(); ++i) {
+                // should column be serialized? if so emit type logic!
+                if(_columnsToSerialize[i]) {
+                    // find all checks for that column
+                    for(const auto& check : _checks) {
+                        if(check.colNo == i) {
+                            // emit code for check
+                            auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
+                            auto size = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
+
+                            // what type of check is it?
+                            // only support constant check yet
+                            if(check.type == CheckType::CHECK_CONSTANT) {
+                                // debug:
+                                _env->debugPrint(builder, "performing constant check for col=" + std::to_string(i) + " , " + check.constant_type().desc(), cellsPtr);
+                            } else {
+                                logger.warn("unsupported check type encountered");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         FlattenedTuple CellSourceTaskBuilder::cellsToTuple(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
 
             using namespace llvm;
@@ -128,6 +173,9 @@ namespace tuplex {
             auto rowType = restrictRowType(_columnsToSerialize, _fileInputRowType);
 
             assert(_columnsToSerialize.size() == _fileInputRowType.parameters().size());
+
+            // perform any checks on cells upfront!
+            generateChecks(builder, cellsPtr, sizesPtr);
 
             FlattenedTuple ft(&env());
             ft.init(rowType);

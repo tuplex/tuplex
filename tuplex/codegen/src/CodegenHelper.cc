@@ -34,6 +34,7 @@
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/Bitstream/BitCodes.h>
 #include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/IR/Constant.h>
 
 namespace tuplex {
     namespace codegen {
@@ -588,6 +589,137 @@ namespace tuplex {
 
             throw std::runtime_error("unsupported type " + optType.desc() + " encountered in "
             + std::string(__FILE__) + ":" + std::to_string(__LINE__));
+        }
+
+
+        inline llvm::Type* i8ptrType(llvm::LLVMContext& ctx) {
+            return llvm::Type::getInt8PtrTy(ctx, 0);
+        }
+        inline llvm::Type* i32ptrType(llvm::LLVMContext& ctx) {
+            return llvm::Type::getInt32PtrTy(ctx, 0);
+        }
+        inline llvm::Type* i64ptrType(llvm::LLVMContext& ctx) {
+            return llvm::Type::getInt64PtrTy(ctx, 0);
+        }
+        inline llvm::Value* i1Const(llvm::LLVMContext& ctx, bool value) {
+            return llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, value));
+        }
+        inline llvm::Value* i8Const(llvm::LLVMContext& ctx, int8_t value) {
+            return llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(8, value));
+        }
+        inline llvm::Value* i32Const(llvm::LLVMContext& ctx, int32_t value) {
+            return llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(32, value));
+        }
+        inline llvm::Value* i64Const(llvm::LLVMContext& ctx, int64_t value) {
+            return llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(64, value));
+        }
+
+
+        llvm::Value* fixedSizeStringCompare(llvm::IRBuilder<> &builder, llvm::Value *ptr, const std::string &str,
+                                                bool include_zero=false) {
+
+            auto& ctx = builder.getContext();
+
+            // how many bytes to compare?
+            int numBytes = include_zero ? str.length() + 1 : str.length();
+
+            assert(ptr->getType() == i8ptrType(ctx));
+
+            // compare in 64bit (8 bytes) blocks if possible, else smaller blocks.
+            llvm::Value *cond = i1Const(ctx, true);
+            int pos = 0;
+            while (numBytes >= 8) {
+
+                uint64_t str_const = 0;
+
+                // create str const by extracting string data
+                str_const = *((int64_t *) (str.c_str() + pos));
+
+                auto val = builder.CreateLoad(builder.CreatePointerCast(builder.CreateGEP(ptr, i32Const(ctx, pos)), i64ptrType(ctx)));
+
+                auto comp = builder.CreateICmpEQ(val, i64Const(ctx, str_const));
+                cond = builder.CreateAnd(cond, comp);
+                numBytes -= 8;
+                pos += 8;
+            }
+
+            // 32 bit compare?
+            if(numBytes >= 4) {
+                uint32_t str_const = 0;
+
+                // create str const by extracting string data
+                str_const = *((uint32_t *) (str.c_str() + pos));
+                auto val = builder.CreateLoad(builder.CreatePointerCast(builder.CreateGEP(ptr, i32Const(ctx, pos)), i32ptrType(ctx)));
+                auto comp = builder.CreateICmpEQ(val, i32Const(ctx, str_const));
+                cond = builder.CreateAnd(cond, comp);
+
+                numBytes -= 4;
+                pos += 4;
+            }
+
+            // only 0, 1, 2, 3 bytes left.
+            // do 8 bit compares
+            for (int i = 0; i < numBytes; ++i) {
+                auto val = builder.CreateLoad(builder.CreateGEP(ptr, i32Const(ctx, pos)));
+                auto comp = builder.CreateICmpEQ(val, i8Const(ctx, str.c_str()[pos]));
+                cond = builder.CreateAnd(cond, comp);
+                pos++;
+            }
+
+            return cond;
+        }
+
+        llvm::Value *
+        NormalCaseCheck::codegenForCell(llvm::IRBuilder<> &builder, llvm::Value *cell_value, llvm::Value *cell_size) {
+            auto& ctx = builder.getContext();
+            auto false_const = llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, false));
+            auto& logger = Logger::instance().logger("codegen");
+            switch(type) {
+                case CheckType::CHECK_CONSTANT: {
+                    assert(_constantType.isConstantValued());
+                    auto elementType = _constantType.elementType();
+                    auto value = _constantType.constant();
+                    if(elementType.isOptionType()) {
+                        // is the constant null? None?
+                        if(value == "None" || value == "null")  {
+                            elementType = python::Type::NULLVALUE;
+                        } else
+                            elementType = elementType.elementType();
+                    }
+
+                    // compare stored string value directly
+                    if(elementType == python::Type::STRING) {
+                        // zero terminated cell!
+                        auto size_match = builder.CreateICmpEQ(cell_size, i64Const(ctx, value.length() + 1));
+                        auto content_match = fixedSizeStringCompare(builder, cell_value, value);
+                        //     assert(Cond2->getType()->isIntOrIntVectorTy(1));
+                        //     return CreateSelect(Cond1, Cond2,
+                        //                         ConstantInt::getNullValue(Cond2->getType()), Name);
+                        // return builder.CreateLogicalAnd(size_match, content_match); LLVM11+
+                        return builder.CreateSelect(size_match, content_match, llvm::ConstantInt::getNullValue(content_match->getType()));
+                    } else if(elementType == python::Type::I64) {
+                        // create string match against var...
+
+                        // else, parse check and compare then!
+
+                    } else if(elementType == python::Type::F64) {
+                        // create string match against var...
+
+                        // else, parse check and compare then!
+
+                    } else {
+                        // always tell check is not passed, because not supported.
+                        logger.warn("unsupported constant type " + _constantType.desc() + "/--> " + elementType.desc() + " for normal-case check, always failing check.");
+                        return false_const;
+                    }
+
+                    // then perform parse & compare if necessary
+
+                }
+                default:
+                    throw std::runtime_error("unsupported check encountered, don't know how to generate code for it");
+            }
+            return nullptr;
         }
     }
 }

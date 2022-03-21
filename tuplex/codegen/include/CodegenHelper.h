@@ -102,6 +102,19 @@ namespace tuplex {
                 return c;
             }
 
+            /*!
+             * generates a condition yielding true if check was passed, false else
+             * @param builder
+             * @param cell_value the cell as str
+             * @param cell_size the cell size in bytes
+             * @return true if check was passed (i.e. cell conforms to check!), false otherwise
+             */
+            llvm::Value* codegenForCell(llvm::IRBuilder<>& builder, llvm::Value* cell_value, llvm::Value* cell_size);
+
+            inline python::Type constant_type() const {
+                assert(type == CheckType::CHECK_CONSTANT);
+                return _constantType;
+            }
         private:
             python::Type _constantType;
             int64_t _iMin;
@@ -430,6 +443,18 @@ namespace tuplex {
          * @return string or empty string if extraction failed.
          */
         extern std::string globalVariableToString(llvm::Value* value);
+
+
+        /*!
+         * compare string stored in ptr to constant str
+         * @param builder
+         * @param ptr
+         * @param str
+         * @param include_zero
+         * @return i1 true if strings match, else i1 false
+         */
+        extern llvm::Value* fixedSizeStringCompare(llvm::IRBuilder<> &builder, llvm::Value *ptr, const std::string &str,
+                                                   bool include_zero);
 
         /*!
          * renames function args and returns them as hashmap for easy access. Order of names in vector corresponds to order of args

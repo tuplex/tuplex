@@ -1681,11 +1681,27 @@ namespace tuplex {
                     stage->_pyPipelineName = py_path.pyPipelineName;
                 }
 
-                if(gen_fast_code) {
-                    stage->_slowCodePath = generateResolveCodePath(ctx, ctx.slowPathContext, normalCaseType);
-                }
-                if(gen_slow_code) {
+                // use fast path context
+                ctx.fastPathContext = ctx.slowPathContext;
 
+
+                // general case input row type is the input schema, but for files the read schema.
+                auto generalCaseInputRowType = ctx.slowPathContext.inputSchema.getRowType();
+                if(ctx.slowPathContext.inputNode->type() == LogicalOperatorType::FILEINPUT)
+                    generalCaseInputRowType = ctx.slowPathContext.readSchema.getRowType();
+                python::Type normalCaseInputRowType = ctx.fastPathContext.inputSchema.getRowType(); // if no specific fastPath Context was created, simply use this
+
+                if(gen_slow_code) {
+                    stage->_slowCodePath = generateResolveCodePath(ctx, ctx.slowPathContext, normalCaseInputRowType);
+                }
+                if(gen_fast_code) {
+                    stage->_fastCodePath = generateFastCodePath(ctx,
+                                                                ctx.fastPathContext,
+                                                                generalCaseInputRowType,
+                                                                ctx.slowPathContext.columnsToRead,
+                                                                ctx.slowPathContext.outputSchema.getRowType(),
+                                                                ctx.normalToGeneralMapping,
+                                                                number());
                 }
 
 #ifndef NDEBUG

@@ -393,7 +393,8 @@ namespace tuplex {
         TransformStage *stage = nullptr;
         if(_context.getOptions().USE_EXPERIMENTAL_HYPERSPECIALIZATION()) {
             _logger.debug("Using experimental hyperspecialization mode");
-            stage = builder.encodeForSpecialization(this, backend());
+            // generate python & slow path code...
+            stage = builder.encodeForSpecialization(this, backend(), true, false, true);
         } else
             stage = builder.build(this, backend());
         // converting deque of ops to vector of ops and set to stage. Note these are the optimized operators. (correct?)

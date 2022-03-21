@@ -1428,53 +1428,7 @@ namespace tuplex {
         LLVMEnvironment::fixedSizeStringCompare(llvm::IRBuilder<> &builder, llvm::Value *ptr, const std::string &str,
                                                 bool include_zero) {
 
-            // how many bytes to compare?
-            int numBytes = include_zero ? str.length() + 1 : str.length();
-
-            assert(ptr->getType() == i8ptrType());
-
-            // compare in 64bit (8 bytes) blocks if possible, else smaller blocks.
-            llvm::Value *cond = i1Const(true);
-            int pos = 0;
-            while (numBytes >= 8) {
-
-                uint64_t str_const = 0;
-
-                // create str const by extracting string data
-                str_const = *((int64_t *) (str.c_str() + pos));
-
-                auto val = builder.CreateLoad(builder.CreatePointerCast(builder.CreateGEP(ptr, i32Const(pos)), i64ptrType()));
-
-                auto comp = builder.CreateICmpEQ(val, i64Const(str_const));
-                cond = builder.CreateAnd(cond, comp);
-                numBytes -= 8;
-                pos += 8;
-            }
-
-            // 32 bit compare?
-            if(numBytes >= 4) {
-                uint32_t str_const = 0;
-
-                // create str const by extracting string data
-                str_const = *((uint32_t *) (str.c_str() + pos));
-                auto val = builder.CreateLoad(builder.CreatePointerCast(builder.CreateGEP(ptr, i32Const(pos)), i32ptrType()));
-                auto comp = builder.CreateICmpEQ(val, i32Const(str_const));
-                cond = builder.CreateAnd(cond, comp);
-
-                numBytes -= 4;
-                pos += 4;
-            }
-
-            // only 0, 1, 2, 3 bytes left.
-            // do 8 bit compares
-            for (int i = 0; i < numBytes; ++i) {
-                auto val = builder.CreateLoad(builder.CreateGEP(ptr, i32Const(pos)));
-                auto comp = builder.CreateICmpEQ(val, i8Const(str.c_str()[pos]));
-                cond = builder.CreateAnd(cond, comp);
-                pos++;
-            }
-
-            return cond;
+           return fixedSizeStringCompare(builder, ptr, str, include_zero);
         }
 
 

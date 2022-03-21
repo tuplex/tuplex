@@ -42,11 +42,11 @@ if [[ ! -f "$DATA_PATH_SSD" ]]; then
 	echo "file $DATA_PATH_SSD not found, abort."
 	exit 1
 fi
-
-if [[ ! -f "$DATA_PATH_HD" ]]; then
-	echo "file $DATA_PATH_HD not found, abort."
-	exit 1
-fi
+#
+#if [[ ! -f "$DATA_PATH_HD" ]]; then
+#	echo "file $DATA_PATH_HD not found, abort."
+#	exit 1
+#fi
 
 mkdir -p ${RESDIR}
 

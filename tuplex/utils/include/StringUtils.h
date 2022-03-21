@@ -226,6 +226,16 @@ namespace tuplex {
      */
     extern bool parseBoolString(const std::string& str);
 
+    /*!
+     * parses using tuplex functions
+     */
+    extern int64_t parseI64String(const std::string& str);
+
+    /*!
+     * parses using tuplex functions
+     */
+    extern double parseF64String(const std::string& str);
+
     extern bool isIntegerString(const char* s, bool ignoreWhitespace=true);
     extern bool isFloatString(const char* s, bool ignoreWhitespace=true);
 

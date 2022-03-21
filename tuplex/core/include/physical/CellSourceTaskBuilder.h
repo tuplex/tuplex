@@ -45,6 +45,8 @@ namespace tuplex {
                 return env().compareToNullValues(builder, ptr, _nullValues, true); // NOTE: ptr must be 0 terminated!
             }
 
+            SerializableValue cachedParse(llvm::IRBuilder<>& builder, const python::Type& type, size_t colNo, llvm::Value* cellsPtr, llvm::Value* sizesPtr);
+            std::unordered_map<size_t, SerializableValue> _parseCache; // certain columns may be cached to avoid calling expensive parsing multiple times.
             void generateChecks(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr);
 
         public:

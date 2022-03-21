@@ -121,6 +121,84 @@ namespace tuplex {
             return func;
         }
 
+        SerializableValue CellSourceTaskBuilder::cachedParse(llvm::IRBuilder<>& builder, const python::Type& type, size_t colNo, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
+            using namespace llvm;
+
+            auto it = _parseCache.find(colNo);
+            if(it == _parseCache.end()) {
+                // perform parse
+                 auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
+                 auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));
+
+                SerializableValue ret;
+
+                 llvm::Value* isnull = nullptr;
+                python::Type t = type;
+                    // option type? do NULL value interpretation
+                    if(t.isOptionType()) {
+                        auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
+                        isnull = nullCheck(builder, val);
+                    } else if(t != python::Type::NULLVALUE) {
+                        // null check, i.e. raise NULL value exception!
+                        auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
+                        auto null_check = nullCheck(builder, val);
+
+                        // if positive, exception!
+                        // else continue!
+                        BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(colNo) + "_null_check_passed", builder.GetInsertBlock()->getParent());
+                        builder.CreateCondBr(null_check, nullErrorBlock(builder), bbNullCheckPassed);
+                        builder.SetInsertPoint(bbNullCheckPassed);
+                    }
+
+                    t = t.withoutOptions();
+
+                    // values?
+                    if(python::Type::STRING == t) {
+                        // fill in
+                        auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
+                        auto size = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));
+                        ret = SerializableValue(val, size, isnull);
+                    } else if(python::Type::BOOLEAN == t) {
+                        // conversion code here
+                        auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
+                        auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));
+                        auto val = parseBoolean(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
+                        ret = SerializableValue(val.val, val.size, isnull);
+                    } else if(python::Type::I64 == t) {
+                        // conversion code here
+                         auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
+                        auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));
+                        auto val = parseI64(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
+                        ret = SerializableValue(val.val, val.size, isnull);
+                    } else if(python::Type::F64 == t) {
+                        // conversion code here
+                         auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
+                        auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));
+                        auto val = parseF64(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
+                        ret = SerializableValue(val.val, val.size, isnull);
+                    } else if(python::Type::NULLVALUE == t) {
+                        // perform null check only, & set null element depending on result
+                        auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
+                        isnull = nullCheck(builder, val);
+
+                        // if not null, exception! ==> i.e. ValueError!
+                        BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(colNo) + "_value_check_passed", builder.GetInsertBlock()->getParent());
+                        builder.CreateCondBr(isnull, bbNullCheckPassed, valueErrorBlock(builder));
+                        builder.SetInsertPoint(bbNullCheckPassed);
+                        ret = SerializableValue(nullptr, nullptr, env().i1Const(true)); // set NULL (should be ignored)
+                    } else {
+                        throw std::runtime_error("unsupported type " + t.desc() + " in CSV Parser gen encountered (CellSourceTaskBuilder)");
+                    }
+
+                    // cache & return
+                    _parseCache[colNo] = ret;
+                    return ret;
+            } else {
+                // return entry
+                return it->second;
+            }
+        }
+
         void CellSourceTaskBuilder::generateChecks(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
             using namespace llvm;
 
@@ -142,21 +220,85 @@ namespace tuplex {
 
             // Interesting questions re. checks: => these checks should be performed first. What is the optimal order of checks to perform?
             // what to test first for?
+
+            // Also, need to have some optimization re parsing. Parsing is quite expensive, so only parse if required!
             for(int i = 0; i < _columnsToSerialize.size(); ++i) {
                 // should column be serialized? if so emit type logic!
                 if(_columnsToSerialize[i]) {
+
                     // find all checks for that column
                     for(const auto& check : _checks) {
                         if(check.colNo == i) {
                             // emit code for check
-                            auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
-                            auto size = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
+                            auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
+                            auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
 
                             // what type of check is it?
                             // only support constant check yet
                             if(check.type == CheckType::CHECK_CONSTANT) {
+
+                                auto const_type = check.constant_type();
+                                // performing check against string constant
+                                assert(const_type.isConstantValued());
+                                auto elementType = const_type.elementType();
+
+                                //  auto t = rowType.parameters()[rowTypePos];?
+//                                assert(elementType == )
+
+                                auto value = const_type.constant();
+                                if(elementType.isOptionType()) {
+                                    // is the constant null? None?
+                                    if(value == "None" || value == "null")  {
+                                        elementType = python::Type::NULLVALUE;
+                                    } else
+                                        elementType = elementType.elementType();
+                                }
+
+                                // string type? direct compare
+                                llvm::Value* check_cond = nullptr;
+
+                                if(python::Type::STRING == elementType) {
+                                    // direct compare
+                                    auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
+                                    check_cond = builder.CreateICmpEQ(val.size, _env->i64Const(const_type.constant().size() + 1));
+                                    check_cond = builder.CreateAnd(check_cond, _env->fixedSizeStringCompare(builder, val.val, const_type.constant()));
+                                } if(python::Type::NULLVALUE == elementType) {
+                                    // special case: perform null check against array!
+                                    // null check (??)
+                                    auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
+                                    check_cond =  val.is_null;
+                                } else if(python::Type::BOOLEAN == elementType) {
+                                    auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
+
+                                    // compare value
+                                    auto c_val = parseBoolString(const_type.constant());
+                                    check_cond = builder.CreateICmpEQ(_env->boolConst(c_val), val.val);
+                                } else if(python::Type::I64 == elementType) {
+                                    auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
+
+                                    // compare value
+                                    auto c_val = parseI64String(const_type.constant());
+                                    check_cond = builder.CreateICmpEQ(_env->i64Const(c_val), val.val);
+                                } else if(python::Type::F64 == elementType) {
+                                    auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
+
+                                    // compare value
+                                    auto c_val = parseF64String(const_type.constant());
+                                    // todo: compare maybe a with abs?
+                                    check_cond = builder.CreateFCmpOEQ(_env->f64Const(c_val), val.val);
+                                } else {
+                                    // fail check, because unsupported type
+                                    std::stringstream ss;
+                                    logger.error(ss.str());
+                                    check_cond = _env->i1Const(false);
+                                }
+
+                                // now perform check
+                                // if !check -> normal_case violation!
+                                // else, all good!
+
                                 // debug:
-                                _env->debugPrint(builder, "performing constant check for col=" + std::to_string(i) + " , " + check.constant_type().desc(), cellsPtr);
+                                _env->debugPrint(builder, "performing constant check for col=" + std::to_string(i) + " , " + check.constant_type().desc() + " (1=passed): ", check_cond);
                             } else {
                                 logger.warn("unsupported check type encountered");
                             }
@@ -190,66 +332,8 @@ namespace tuplex {
                     assert(rowTypePos < rowType.parameters().size());
                     auto t = rowType.parameters()[rowTypePos];
 
-                    llvm::Value* isnull = nullptr;
-
-#warning "add here normal-case checks!"
-
-                    // option type? do NULL value interpretation
-                    if(t.isOptionType()) {
-                        auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
-                        isnull = nullCheck(builder, val);
-                    } else if(t != python::Type::NULLVALUE) {
-                        // null check, i.e. raise NULL value exception!
-                        auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
-                        auto null_check = nullCheck(builder, val);
-
-                        // if positive, exception!
-                        // else continue!
-                        BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(i) + "_null_check_passed", builder.GetInsertBlock()->getParent());
-                        builder.CreateCondBr(null_check, nullErrorBlock(builder), bbNullCheckPassed);
-                        builder.SetInsertPoint(bbNullCheckPassed);
-                    }
-
-                    t = t.withoutOptions();
-
-                    // values?
-                    if(python::Type::STRING == t) {
-                        // fill in
-                        auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
-                        auto size = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
-                        ft.setElement(builder, rowTypePos, val, size, isnull);
-                    } else if(python::Type::BOOLEAN == t) {
-                        // conversion code here
-                        auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
-                        auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
-                        auto val = parseBoolean(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
-                        ft.setElement(builder, rowTypePos, val.val, val.size, isnull);
-                    } else if(python::Type::I64 == t) {
-                        // conversion code here
-                        auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
-                        auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
-                        auto val = parseI64(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
-                        ft.setElement(builder, rowTypePos, val.val, val.size, isnull);
-                    } else if(python::Type::F64 == t) {
-                        // conversion code here
-                        auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
-                        auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
-                        auto val = parseF64(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
-                        ft.setElement(builder, rowTypePos, val.val, val.size, isnull);
-                    } else if(python::Type::NULLVALUE == t) {
-                        // perform null check only, & set null element depending on result
-                        auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
-                        isnull = nullCheck(builder, val);
-
-                        // if not null, exception! ==> i.e. ValueError!
-                        BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(i) + "_value_check_passed", builder.GetInsertBlock()->getParent());
-                        builder.CreateCondBr(isnull, bbNullCheckPassed, valueErrorBlock(builder));
-                        builder.SetInsertPoint(bbNullCheckPassed);
-                        ft.setElement(builder, rowTypePos, nullptr, nullptr, env().i1Const(true)); // set NULL (should be ignored)
-                    } else {
-                        throw std::runtime_error("unsupported type " + t.desc() + " in CSV Parser gen encountered (CellSourceTaskBuilder)");
-                    }
-
+                    auto val = cachedParse(t, i, cellsPtr, sizesPtr);
+                    ft.setElement(builder, rowTypePos, val.val, val.size, val.isnull);
                     rowTypePos++;
                 }
             }

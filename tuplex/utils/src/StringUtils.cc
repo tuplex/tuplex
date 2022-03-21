@@ -493,4 +493,26 @@ namespace tuplex {
         ss << std::put_time(gmtime(&itt), "%FT%TZ");
         return ss.str();
     }
+
+      /*!
+     * parses using tuplex functions
+     */
+    int64_t parseI64String(const std::string& str) {
+        int64_t ret = 0;
+        auto ec = fast_atoi64(str.c_str(), str.c_str() + str.size(), &ret);
+        if(ecToI32(ExceptionCode::SUCCESS) != ec)
+            throw std::runtime_error("failed to parse i64 from '" + str + "'");
+        return ret;
+    }
+
+    /*!
+     * parses using tuplex functions
+     */
+    double parseF64String(const std::string& str) {
+        double ret = 0;
+        auto ec = fast_atod(str.c_str(), str.c_str() + str.size(), &ret);
+        if(ecToI32(ExceptionCode::SUCCESS) != ec)
+            throw std::runtime_error("failed to parse f64 from '" + str + "'");
+        return ret;
+    }
 }

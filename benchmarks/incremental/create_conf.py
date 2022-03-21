@@ -7,10 +7,10 @@ import argparse
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--executor-memory', default='10G', help='how much memory each thread gets')
+    parser.add_argument('--executor-memory', default='6G', help='how much memory each thread gets')
     parser.add_argument('--executor-count', default=15, help='how many worker threads')
-    parser.add_argument('--partition-size', default='64MB', help='task size')
-    parser.add_argument('--runtime-memory', default='128MB', help='how much maximum runtime memory to use')
+    parser.add_argument('--partition-size', default='32MB', help='task size')
+    parser.add_argument('--runtime-memory', default='64MB', help='how much maximum runtime memory to use')
     parser.add_argument('--input-split-size', default='64MB', help='chunk size of input files')
     parser.add_argument('--opt-null', help='enable null value optimization', action='store_true')
     parser.add_argument('--opt-pushdown', help='enable projection pushdown', action='store_true')

@@ -112,13 +112,13 @@ def main():
     export_results(results_path, output_path, num_trials, False, True)
 
     # Out-of-Order HD
-    export_results(results_path, output_path, num_trials, False, False)
+    # export_results(results_path, output_path, num_trials, False, False)
 
     # In-Order SSD
     export_results(results_path, output_path, num_trials, True, True)
 
-    # In-Order HD
-    export_results(results_path, output_path, num_trials, True, False)
+    # # In-Order HD
+    # export_results(results_path, output_path, num_trials, True, False)
 
 if __name__ == '__main__':
     main()

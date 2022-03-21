@@ -127,7 +127,7 @@ def resolveBd(x):
     raise ValueError
 
 #compare types and contents
-def dirty_zillow_pipeline(paths, output_path, step, commit):
+def dirty_zillow_pipeline(ctx, paths, output_path, step, commit):
     ds = ctx.csv(','.join(paths))
     ds = ds.withColumn("bedrooms", extractBd)
     if step > 0:
@@ -240,7 +240,7 @@ if __name__ == '__main__':
     for step in range(num_steps):
         print(f'>>> running pipeline with {step} resolver(s) enabled...')
         jobstart = time.time()
-        m = dirty_zillow_pipeline(paths, output_path, step, not args.commit_mode or step == num_steps - 1)
+        m = dirty_zillow_pipeline(ctx, paths, output_path, step, not args.commit_mode or step == num_steps - 1)
         m = m.as_dict()
         m["numResolvers"] = step
         m["jobTime"] = time.time() - jobstart

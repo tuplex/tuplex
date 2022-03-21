@@ -231,14 +231,14 @@ if __name__ == '__main__':
 
     shutil.rmtree(output_path, ignore_errors=True)
 
+    if args.clear_cache:
+        subprocess.run(["clearcache"])
+
     # decide which pipeline to run based on argparse arg!
     num_steps = 7
     metrics = []
     for step in range(num_steps):
         print(f'>>> running pipeline with {step} resolver(s) enabled...')
-        if args.clear_cache:
-            subprocess.run(["clearcache"])
-
         jobstart = time.time()
         m = dirty_zillow_pipeline(paths, output_path, step, not args.commit_mode or step == num_steps - 1)
         m = m.as_dict()

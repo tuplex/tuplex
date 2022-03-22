@@ -168,6 +168,10 @@ namespace codegen {
                     builder.CreateStore(val.is_null, nullPtr);
                 }
             }
+
+            inline void store(const codegen::IRBuilder& builder, const codegen::SerializableValue& val) {
+                store(builder.get(), val);
+            }
         };
 
 

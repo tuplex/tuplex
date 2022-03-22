@@ -95,10 +95,38 @@ namespace tuplex {
             inline llvm::Value *CreateICmpEQ(llvm::Value *LHS, llvm::Value *RHS, const std::string &name = "") const {
                 return CreateICmp(llvm::ICmpInst::ICMP_EQ, LHS, RHS, name);
             }
+             inline llvm::Value *CreateICmpNE(llvm::Value *LHS, llvm::Value *RHS, const std::string &name = "") const {
+                 return CreateICmp(llvm::ICmpInst::ICMP_NE, LHS, RHS, name);
+             }
 
-             inline llvm::Value *CreateICmpSGT(llvm::Value *LHS, llvm::Value *RHS, const std::string& &Name = "") {
+             inline llvm::Value *CreatePointerCast(llvm::Value *V, llvm::Type *DestTy,
+                                      const std::string &Name = "") const {
+                return get_or_throw().CreatePointerCast(V, DestTy, Name);
+            }
+
+            inline llvm::Value *CreateExtractValue(llvm::Value *Agg,
+                                       llvm::ArrayRef<unsigned> Idxs,
+                                       const std::string &Name = "") {
+                return get_or_throw().CreateExtractValue(Agg, Idxs, Name);
+            }
+
+            inline llvm::Value *CreateSRem(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") {
+                return get_or_throw().CreateSRem(LHS, RHS, Name);
+            }
+
+
+            inline llvm::Value *CreateInsertValue(llvm::Value *Agg, llvm::Value *Val,
+                                          llvm::ArrayRef<unsigned> Idxs,
+                                          const std::string &Name = "") {
+                return get_or_throw().CreateInsertValue(Agg, Val, Idxs, Name);
+            }
+             inline llvm::Value *CreateICmpSGT(llvm::Value *LHS, llvm::Value *RHS, const std::string& Name = "") {
                  return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_SGT, LHS, RHS, Name);
              }
+             inline llvm::Value *CreateICmpSGE(llvm::Value *LHS, llvm::Value *RHS, const std::string& Name = "") {
+                 return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_SGE, LHS, RHS, Name);
+             }
+
              inline llvm::Value *CreateICmpSLT(llvm::Value *LHS, llvm::Value *RHS, const std::string&Name = "") {
                  return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_SLT, LHS, RHS, Name);
              }

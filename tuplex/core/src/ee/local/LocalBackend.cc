@@ -788,6 +788,11 @@ namespace tuplex {
         auto cachedPartitionGroups = cacheEntry->partitionGroups();
         auto cachedNormalPartitions = cacheEntry->normalPartitions();
 
+        for (auto &p : cachedNormalPartitions)
+            p->makeMortal();
+        for (auto &p : cachedExceptionPartitions)
+            p->makeMortal();
+
         auto stageID = tstage->getID();
         auto contextID = tstage->context().id();
         auto operatorIDsWithResolvers = tstage->operatorIDsWithResolvers();

@@ -201,6 +201,8 @@ namespace tuplex {
 
         void makeImmortal() { _immortal = true; }
 
+        void makeMortal() { _immortal = false; }
+
         /*!
          * swaps out contents by saving them to a swap file
          * @param allocator allocator on which arena was allocated

@@ -114,7 +114,7 @@ namespace tuplex {
              * @param with_types whether to include type information or not
              * @return true if success, false else (i.e. when dot is not installed)
              */
-            bool writeGraphToPDF(const std::string &path, bool with_types);
+            bool writeGraphToPDF(const std::string &path, bool with_types=false);
 
             /*!
              * specify for the identifier a possible type. This may enable / simplify code generation.

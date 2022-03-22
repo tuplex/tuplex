@@ -227,7 +227,7 @@ namespace tuplex {
             return graph.saveAsDot(path);
         }
 
-        bool AnnotatedAST::writeGraphToPDF(const std::string &path, bool with_types=false) {
+        bool AnnotatedAST::writeGraphToPDF(const std::string &path, bool with_types) {
             if(!_root) return false;
 
             GraphVizGraph graph;

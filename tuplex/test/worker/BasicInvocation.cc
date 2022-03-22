@@ -254,8 +254,8 @@ TEST(BasicInvocation, PurePythonMode) {
                                             option<bool>(true),
                                             option<char>(','), option<char>('"'),
                                             {""}, {}, {}, {});
-    auto mapop = new MapOperator(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
-    auto fop = new FileOutputOperator(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
+    auto mapop = std::make_shared<MapOperator>(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
+    auto fop = std::make_shared<FileOutputOperator>(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
     builder.addFileInput(csvop);
     builder.addOperator(mapop);
     builder.addFileOutput(fop);
@@ -374,12 +374,12 @@ TEST(BasicInvocation, HashOutput) {
     co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
     co.set("tuplex.useInterpreterOnly", "false");
     codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, false);
-    auto csvop = FileInputOperator::fromCsv(test_path.toString(), co,
+    auto csvop = std::shared_ptr<LogicalOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
                                             option<bool>(true),
                                             option<char>(','), option<char>('"'),
-                                            {""}, {}, {}, {});
-    auto mapop = new MapOperator(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
-    auto fop = new FileOutputOperator(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
+                                            {""}, {}, {}, {}));
+    auto mapop = std::make_shared<MapOperator>(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
+    auto fop = std::make_shared<FileOutputOperator>(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
     builder.addFileInput(csvop);
     builder.addOperator(mapop);
 
@@ -388,7 +388,7 @@ TEST(BasicInvocation, HashOutput) {
     builder.addHashTableOutput(mapop->getOutputSchema(), true, false, {0}, key_type, bucket_type);
 
 
-#error "given pipeline is with i64 keys. -> issue. want to specialize stuff properly!"
+#warning "given pipeline is with i64 keys. -> issue. want to specialize stuff properly!"
 
     auto tstage = builder.build();
 
@@ -522,8 +522,8 @@ TEST(BasicInvocation, Worker) {
                                        option<bool>(true),
                                                option<char>(','), option<char>('"'),
             {""}, {}, {}, {});
-    auto mapop = new MapOperator(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
-    auto fop = new FileOutputOperator(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
+    auto mapop = std::make_shared<MapOperator>(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
+    auto fop = std::make_shared<FileOutputOperator>(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
     builder.addFileInput(csvop);
     builder.addOperator(mapop);
     builder.addFileOutput(fop);

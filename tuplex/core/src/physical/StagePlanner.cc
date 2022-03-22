@@ -382,24 +382,28 @@ namespace tuplex {
             // go through ops & specialize (leave jop as is)
             vector<std::shared_ptr<LogicalOperator>> opt_ops;
             std::shared_ptr<LogicalOperator> lastNode = nullptr;
-            opt_ops.push_back(_inputNode->clone());
+            auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode->clone());
+            fop->useNormalCase();
+            opt_ops.push_back(fop);
+            // go over the other ops from the stage...
             for(const auto& node : _operators) {
                 auto lastParent = opt_ops.empty() ? _inputNode : opt_ops.back();
                 if(!lastNode)
                     lastNode = lastParent; // set lastNode to parent to make join on fileop work!
 
                 switch(node->type()) {
-                    case LogicalOperatorType::PARALLELIZE: {
-                        opt_ops.push_back(node);
-                        break;
-                    }
-                    case LogicalOperatorType::FILEINPUT: {
-                        // create here copy using normalcase!
-                        auto op = std::dynamic_pointer_cast<FileInputOperator>(node->clone());
-                        op->useNormalCase();
-                        opt_ops.push_back(op);
-                        break;
-                    }
+                    // handled above...
+                    //  case LogicalOperatorType::PARALLELIZE: {
+                    //      opt_ops.push_back(node);
+                    //      break;
+                    //  }
+                    //  case LogicalOperatorType::FILEINPUT: {
+                    //      // create here copy using normalcase!
+                    //      auto op = std::dynamic_pointer_cast<FileInputOperator>(node->clone());
+                    //      op->useNormalCase();
+                    //      opt_ops.push_back(op);
+                    //      break;
+                    //  }
                         // construct clone with parents & retype
                     case LogicalOperatorType::FILTER:
                     case LogicalOperatorType::MAP:

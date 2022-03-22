@@ -126,3 +126,8 @@ target_include_directories(libutils PUBLIC
 
 # Specify here the libraries this program depends on
 target_link_libraries(libutils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${ZLIB_LIBRARIES} ${AWSSDK_LINK_LIBRARIES})
+
+# create shared lib version of utils -> allows to decrease size of test executables
+add_library(utils SHARED ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
+add_dependencies(utils fmt spdlog json cereal)
+target_link_libraries(utils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${ZLIB_LIBRARIES} ${AWSSDK_LINK_LIBRARIES})

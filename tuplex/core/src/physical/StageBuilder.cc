@@ -1691,9 +1691,6 @@ namespace tuplex {
                     generalCaseInputRowType = ctx.slowPathContext.readSchema.getRowType();
                 python::Type normalCaseInputRowType = ctx.fastPathContext.inputSchema.getRowType(); // if no specific fastPath Context was created, simply use this
 
-                if(gen_slow_code) {
-                    stage->_slowCodePath = generateResolveCodePath(ctx, ctx.slowPathContext, normalCaseInputRowType);
-                }
                 if(gen_fast_code) {
                     stage->_fastCodePath = generateFastCodePath(ctx,
                                                                 ctx.fastPathContext,
@@ -1702,6 +1699,10 @@ namespace tuplex {
                                                                 ctx.slowPathContext.outputSchema.getRowType(),
                                                                 ctx.normalToGeneralMapping,
                                                                 number());
+                }
+
+                if(gen_slow_code) {
+                    stage->_slowCodePath = generateResolveCodePath(ctx, ctx.slowPathContext, normalCaseInputRowType);
                 }
 
 #ifndef NDEBUG

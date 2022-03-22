@@ -215,6 +215,8 @@ namespace tuplex {
             if(_checks.empty())
                 return;
 
+            logger.debug("CellSourceTaskBuilder with " + pluralize(_checks.size(), "check"));
+
             // sanity check, emit warning if check was given but col not read?
             for(const auto& check : _checks) {
                 if(check.colNo >= _columnsToSerialize.size())
@@ -299,6 +301,7 @@ namespace tuplex {
                                 } else {
                                     // fail check, because unsupported type
                                     std::stringstream ss;
+                                    ss<<"unsupported type for check "<<elementType.desc()<<" found, fail normal check for all rows";
                                     logger.error(ss.str());
                                     check_cond = _env->i1Const(false);
                                 }
@@ -332,6 +335,7 @@ namespace tuplex {
             auto serialized_row = serializedExceptionRow(builder, generalcase_row);
 
             // directly generate call to handler -> no ignore checks necessary.
+            _env->debugPrint(builder, "normal checks didn't pass");
             callExceptHandler(builder, userData, _env->i64Const(ecToI64(ExceptionCode::NORMALCASEVIOLATION)),
                                               _env->i64Const(_operatorID), rowNumber, serialized_row.val, serialized_row.size);
 

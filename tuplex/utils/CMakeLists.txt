@@ -131,3 +131,14 @@ target_link_libraries(libutils Boost::filesystem Boost::thread Boost::system Boo
 add_library(utils SHARED ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 add_dependencies(utils fmt spdlog json cereal)
 target_link_libraries(utils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${ZLIB_LIBRARIES} ${AWSSDK_LINK_LIBRARIES})
+target_include_directories(utils PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR}
+        ${fmt_INCLUDE_DIR}
+        ${spdlog_INCLUDE_DIR}
+        ${cjson_SOURCE_DIR}
+        ${json_INCLUDE_DIR}
+        ${cereal_INCLUDE_DIR}
+        ${Boost_INCLUDE_DIR}
+        ${AWSSDK_INCLUDE_DIR}
+        ${ZLIB_INCLUDE_DIRS})

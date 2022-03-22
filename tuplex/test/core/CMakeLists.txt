@@ -10,7 +10,7 @@ include(GoogleTest)
 
 add_executable(testcore ${SRCS} ${STDLIB_SRCS})
 target_link_libraries(testcore
-        libutils
+        utils #libutils
         libio
         libcodegen
         libcore

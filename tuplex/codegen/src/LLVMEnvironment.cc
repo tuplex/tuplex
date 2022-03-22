@@ -1427,10 +1427,8 @@ namespace tuplex {
         llvm::Value *
         LLVMEnvironment::fixedSizeStringCompare(llvm::IRBuilder<> &builder, llvm::Value *ptr, const std::string &str,
                                                 bool include_zero) {
-
-           return fixedSizeStringCompare(builder, ptr, str, include_zero);
+           return ::tuplex::codegen::stringCompare(builder, ptr, str, include_zero);
         }
-
 
         SerializableValue LLVMEnvironment::f64ToString(llvm::IRBuilder<> &builder, llvm::Value *value) {
             using namespace llvm;

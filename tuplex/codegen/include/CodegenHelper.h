@@ -453,7 +453,7 @@ namespace tuplex {
          * @param include_zero
          * @return i1 true if strings match, else i1 false
          */
-        extern llvm::Value* fixedSizeStringCompare(llvm::IRBuilder<> &builder, llvm::Value *ptr, const std::string &str,
+        extern llvm::Value* stringCompare(llvm::IRBuilder<> &builder, llvm::Value *ptr, const std::string &str,
                                                    bool include_zero);
 
         /*!

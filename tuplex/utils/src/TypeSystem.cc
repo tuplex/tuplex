@@ -501,6 +501,13 @@ namespace python {
 
     bool Type::isFixedSizeType() const {
 
+        // constant valued types are fixed-size, i.e. null => they don't require memory per-instance
+        if(isConstantValued())
+            return true;
+
+        // delayed parsing types are also fixed-size (they're 8 bytes each!)
+        // @TODO.
+
         // string is a varlen type but a primitive type.
         if(isPrimitiveType() && *this != python::Type::STRING)
             return true;

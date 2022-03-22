@@ -889,10 +889,11 @@ namespace tuplex {
 
             // ==> calc via num elements * sizeof(int64_t) + add varlen sizes + varlen64bitint + bitmap.
 
-            // calc number of serialized fixed-len fields, exclude null,emptytuple,emptydict
+            // calc number of serialized fixed-len fields, exclude null, emptytuple, emptydict
+            // and all constants b.c. they won't get serialized.
             size_t numSerializedFixedLenFields = 0;
             for(auto& t : _flattenedTupleType.parameters()) {
-                if(!(t.isSingleValued() || (t.isOptionType() && t.getReturnType().isSingleValued()))) {
+                if(!(t.isSingleValued() || t.isConstantValued() || (t.isOptionType() && t.getReturnType().isSingleValued()))) {
                     numSerializedFixedLenFields += 1;
                 }
             }
@@ -906,6 +907,7 @@ namespace tuplex {
             for(int i = 0; i < _tree.elements().size(); ++i) {
                 // should be the same as _tree.fieldType(i).isSingleValued()
                 if (!(_tree.fieldType(i).isSingleValued() ||
+                        _tree.fieldType(i).isConstantValued() ||
                       (_tree.fieldType(i).isOptionType() && _tree.fieldType(i).getReturnType().isSingleValued()))) {
                     numSerializedFixedLenFieldsCheck += 1;
                 }
@@ -921,6 +923,7 @@ namespace tuplex {
                 else continue;
 
                 if(!_tree.fieldType(i).isFixedSizeType()) {
+                    assert(el.size && el.size->getType() == _env->i64Type());
                     s = builder.CreateAdd(s, el.size); // 0 for varlen option!
 
                     // debug

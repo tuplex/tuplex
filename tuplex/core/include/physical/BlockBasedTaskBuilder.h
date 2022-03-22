@@ -71,7 +71,7 @@ namespace tuplex {
             }
 
             /*!
-             * creates a new exception block. Builder will be set to last block (i.e. where to conitnue logic)
+             * creates a new exception block. Builder will be set to last block (i.e. where to continue logic)
              */
             llvm::BasicBlock *exceptionBlock(llvm::IRBuilder<> &builder,
                                              llvm::Value *userData,
@@ -80,6 +80,23 @@ namespace tuplex {
                                              llvm::Value *rowNumber,
                                              llvm::Value *badDataPtr,
                                              llvm::Value *badDataLength);
+
+
+            inline void callExceptHandler(llvm::IRBuilder<> &builder,
+                                             llvm::Value *userData,
+                                             llvm::Value *exceptionCode,
+                                             llvm::Value *exceptionOperatorID,
+                                             llvm::Value *rowNumber,
+                                             llvm::Value *badDataPtr,
+                                             llvm::Value *badDataLength) {
+                if(!_exceptionHandlerName.empty()) {
+                    auto eh_func = codegen::exception_handler_prototype(env().getContext(), env().getModule().get(), _exceptionHandlerName);
+                    // simple call to exception handler...
+                    builder.CreateCall(eh_func, {userData, exceptionCode, exceptionOperatorID, rowNumber, badDataPtr, badDataLength});
+                } else {
+                    Logger::instance().logger("codegen").debug("Calling directly exception handler without being defined. Internal bug?");
+                }
+            }
 
             bool hasExceptionHandler() const { return !_exceptionHandlerName.empty(); }
 

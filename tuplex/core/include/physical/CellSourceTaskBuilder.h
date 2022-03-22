@@ -32,7 +32,11 @@ namespace tuplex {
             std::vector<NormalCaseCheck> _checks; ///! normal case checks
             size_t numCells() const { return _fileInputRowType.parameters().size(); }
 
-            FlattenedTuple cellsToTuple(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr);
+            FlattenedTuple cellsToTuple(llvm::IRBuilder<>& builder,
+                                        const std::vector<bool> columnsToSerialize,
+                                        const python::Type& inputRowType,
+                                        llvm::Value* cellsPtr,
+                                        llvm::Value* sizesPtr);
 
             llvm::BasicBlock* _valueErrorBlock;
             llvm::BasicBlock* _nullErrorBlock;
@@ -46,9 +50,15 @@ namespace tuplex {
             }
 
             SerializableValue cachedParse(llvm::IRBuilder<>& builder, const python::Type& type, size_t colNo, llvm::Value* cellsPtr, llvm::Value* sizesPtr);
-            std::unordered_map<size_t, SerializableValue> _parseCache; // certain columns may be cached to avoid calling expensive parsing multiple times.
-            void generateChecks(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr);
+            std::unordered_map<std::tuple<size_t, python::Type>, SerializableValue> _parseCache; // certain columns may be cached to avoid calling expensive parsing multiple times.
+            void generateChecks(llvm::IRBuilder<>& builder, llvm::Value* userData, llvm::Value* rowNumber, llvm::Value* cellsPtr, llvm::Value* sizesPtr);
 
+            inline FlattenedTuple parseGeneralCaseRow(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
+                return cellsToTuple(builder, _generalCaseColumnsToSerialize, _inputRowTypeGeneralCase, cellsPtr, sizesPtr);
+            }
+            inline FlattenedTuple parseNormalCaseRow(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
+                return cellsToTuple(builder, _columnsToSerialize, _fileInputRowType, cellsPtr, sizesPtr);
+            }
         public:
             CellSourceTaskBuilder() = delete;
 

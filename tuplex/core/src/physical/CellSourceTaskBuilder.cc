@@ -44,8 +44,13 @@ namespace tuplex {
             Value *outputRowNumberVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "outputRowNumberVar");
             builder.CreateStore(args["rowNumber"], outputRowNumberVar);
 
+            // perform any checks on cells upfront!
+            // --> i.e. after normal-case checks are performed, can parse as normal-case row!
+            auto outputRowNumber = builder.CreateLoad(outputRowNumberVar);
+            generateChecks(builder, userData, outputRowNumber, cellsPtr, sizesPtr);
+
             // get FlattenedTuple from deserializing all things + perform value conversions/type checks...
-            auto ft = cellsToTuple(builder, cellsPtr, sizesPtr);
+            auto ft = parseNormalCaseRow(builder, cellsPtr, sizesPtr);
 
             // if pipeline is set, call it!
             if(pipeline()) {
@@ -81,7 +86,7 @@ namespace tuplex {
                     // debug print
                     logger.debug("CellSourceTaskBuilder: input row type in which exceptions from pipeline are stored that are **not** parse-exceptions is " + ft.getTupleType().desc());
                     logger.debug("I.e., when creating resolve tasks for this pipeline - set exceptionRowType to this type.");
-                    auto outputRowNumber = builder.CreateLoad(outputRowNumberVar);
+                    outputRowNumber = builder.CreateLoad(outputRowNumberVar);
                     llvm::BasicBlock *curBlock = builder.GetInsertBlock();
                     auto bbException = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber,
                                                       serialized_row.val, serialized_row.size);
@@ -115,6 +120,7 @@ namespace tuplex {
                     writeIntermediate(builder, userData, _intermediateCallbackName);
                 }
 
+
                 // create success ret
                 builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
             }
@@ -124,7 +130,9 @@ namespace tuplex {
         SerializableValue CellSourceTaskBuilder::cachedParse(llvm::IRBuilder<>& builder, const python::Type& type, size_t colNo, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
             using namespace llvm;
 
-            auto it = _parseCache.find(colNo);
+            auto key = std::make_tuple(colNo, type);
+
+            auto it = _parseCache.find(key);
             if(it == _parseCache.end()) {
                 // perform parse
                  auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
@@ -191,7 +199,7 @@ namespace tuplex {
                     }
 
                     // cache & return
-                    _parseCache[colNo] = ret;
+                    _parseCache[key] = ret;
                     return ret;
             } else {
                 // return entry
@@ -199,7 +207,7 @@ namespace tuplex {
             }
         }
 
-        void CellSourceTaskBuilder::generateChecks(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
+        void CellSourceTaskBuilder::generateChecks(llvm::IRBuilder<>& builder, llvm::Value* userData, llvm::Value* rowNumber, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
             using namespace llvm;
 
             auto& logger = Logger::instance().logger("codegen");
@@ -221,14 +229,19 @@ namespace tuplex {
             // Interesting questions re. checks: => these checks should be performed first. What is the optimal order of checks to perform?
             // what to test first for?
 
+            llvm::Value* allChecksPassed = _env->i1Const(true);
+
             // Also, need to have some optimization re parsing. Parsing is quite expensive, so only parse if required!
             for(int i = 0; i < _columnsToSerialize.size(); ++i) {
                 // should column be serialized? if so emit type logic!
                 if(_columnsToSerialize[i]) {
-
                     // find all checks for that column
                     for(const auto& check : _checks) {
                         if(check.colNo == i) {
+                            // string type? direct compare
+                            llvm::Value* check_cond = nullptr;
+
+
                             // emit code for check
                             auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
                             auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
@@ -253,9 +266,6 @@ namespace tuplex {
                                     } else
                                         elementType = elementType.elementType();
                                 }
-
-                                // string type? direct compare
-                                llvm::Value* check_cond = nullptr;
 
                                 if(python::Type::STRING == elementType) {
                                     // direct compare
@@ -302,22 +312,43 @@ namespace tuplex {
                             } else {
                                 logger.warn("unsupported check type encountered");
                             }
+                            // append to all checks
+                            allChecksPassed = builder.CreateAnd(allChecksPassed, check_cond);
                         }
                     }
                 }
             }
+
+            // generated code for all checks, now parse&emite row if checks did not pass!
+            auto func = builder.GetInsertBlock()->getParent(); assert(func);
+            BasicBlock *bbChecksPassed = BasicBlock::Create(_env->getContext(), "normal_case_checks_passed", func);
+            BasicBlock *bbChecksFailed = BasicBlock::Create(_env->getContext(), "normal_case_checks_failed", func);
+
+            builder.CreateCondBr(allChecksPassed, bbChecksPassed, bbChecksFailed);
+            builder.SetInsertPoint(bbChecksFailed);
+
+            // need to parse full row (with general case types!)
+            auto generalcase_row = parseGeneralCaseRow(builder, cellsPtr, sizesPtr);
+            auto serialized_row = serializedExceptionRow(builder, generalcase_row);
+
+            // directly generate call to handler -> no ignore checks necessary.
+            callExceptHandler(builder, userData, _env->i64Const(ecToI64(ExceptionCode::NORMALCASEVIOLATION)),
+                                              _env->i64Const(_operatorID), rowNumber, serialized_row.val, serialized_row.size);
+
+            builder.SetInsertPoint(bbChecksPassed); // continue generating here...
         }
 
-        FlattenedTuple CellSourceTaskBuilder::cellsToTuple(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
+        FlattenedTuple CellSourceTaskBuilder::cellsToTuple(llvm::IRBuilder<>& builder,
+                                                           const std::vector<bool> columnsToSerialize,
+                                                           const python::Type& inputRowType,
+                                                           llvm::Value* cellsPtr,
+                                                            llvm::Value* sizesPtr) {
 
             using namespace llvm;
 
-            auto rowType = restrictRowType(_columnsToSerialize, _fileInputRowType);
+            auto rowType = restrictRowType(columnsToSerialize, inputRowType);
 
-            assert(_columnsToSerialize.size() == _fileInputRowType.parameters().size());
-
-            // perform any checks on cells upfront!
-            generateChecks(builder, cellsPtr, sizesPtr);
+            assert(columnsToSerialize.size() == inputRowType.parameters().size());
 
             FlattenedTuple ft(&env());
             ft.init(rowType);
@@ -325,22 +356,20 @@ namespace tuplex {
             // create flattened tuple & fill its values.
             // Note: might need to do value conversion first!!!
             int rowTypePos = 0;
-            for(int i = 0; i < _columnsToSerialize.size(); ++i) {
-
+            for(int i = 0; i < columnsToSerialize.size(); ++i) {
                 // should column be serialized? if so emit type logic!
-                if(_columnsToSerialize[i]) {
+                if(columnsToSerialize[i]) {
                     assert(rowTypePos < rowType.parameters().size());
                     auto t = rowType.parameters()[rowTypePos];
 
-                    auto val = cachedParse(t, i, cellsPtr, sizesPtr);
-                    ft.setElement(builder, rowTypePos, val.val, val.size, val.isnull);
+                    auto val = cachedParse(builder, t, i, cellsPtr, sizesPtr);
+                    ft.setElement(builder, rowTypePos, val.val, val.size, val.is_null);
                     rowTypePos++;
                 }
             }
 
             return ft;
         }
-
 
         llvm::BasicBlock* CellSourceTaskBuilder::valueErrorBlock(llvm::IRBuilder<> &builder) {
             using namespace llvm;
@@ -368,6 +397,5 @@ namespace tuplex {
             }
             return _nullErrorBlock;
         }
-
     }
 }

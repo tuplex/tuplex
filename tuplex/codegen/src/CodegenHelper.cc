@@ -614,8 +614,7 @@ namespace tuplex {
             return llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(64, value));
         }
 
-
-        llvm::Value* fixedSizeStringCompare(llvm::IRBuilder<> &builder, llvm::Value *ptr, const std::string &str,
+        llvm::Value* stringCompare(llvm::IRBuilder<> &builder, llvm::Value *ptr, const std::string &str,
                                                 bool include_zero=false) {
 
             auto& ctx = builder.getContext();
@@ -691,7 +690,7 @@ namespace tuplex {
                     if(elementType == python::Type::STRING) {
                         // zero terminated cell!
                         auto size_match = builder.CreateICmpEQ(cell_size, i64Const(ctx, value.length() + 1));
-                        auto content_match = fixedSizeStringCompare(builder, cell_value, value);
+                        auto content_match = stringCompare(builder, cell_value, value);
                         //     assert(Cond2->getType()->isIntOrIntVectorTy(1));
                         //     return CreateSelect(Cond1, Cond2,
                         //                         ConstantInt::getNullValue(Cond2->getType()), Name);

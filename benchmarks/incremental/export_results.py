@@ -31,7 +31,7 @@ def export_results(results_path, output_path, num_trials, in_order, ssd):
             validate_path = os.path.join(results_path, compare_path(i + 1, in_order, True, ssd))
             assert validate_experiment(validate_path)
 
-    path = os.path.join(output_path, "experiments.csv")
+    path = "experiments.csv"
     f = open(path, 'a')
 
     header = "{} | {},".format('In Order' if in_order else 'Out of Order', 'SSD' if ssd else 'HD') + "," * num_trials + "Plain," + "," * num_trials + "Incremental" + ("," * (num_trials + 1) + "Commit\n" if in_order else "\n")
@@ -105,8 +105,8 @@ def main():
     num_trials = args.num_trials
 
     assert os.path.isdir(results_path)
-    if not os.path.isdir(output_path):
-        os.makedirs(output_path)
+    # if not os.path.isdir(output_path):
+    #     os.makedirs(output_path)
 
     # Out-of-Order SSD
     export_results(results_path, output_path, num_trials, False, True)

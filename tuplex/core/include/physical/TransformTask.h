@@ -128,6 +128,8 @@ namespace tuplex {
             _functor = (void*)functor;
         }
 
+        void freePartitions() override;
+
         void setFunctor(codegen::read_block_f functor) {
             _functor = (void*)functor;
            // @TODO: update other vars too...

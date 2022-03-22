@@ -76,6 +76,11 @@ public:
         owner()->info(ss.str());
     }
 
+    void freePartitions() override {
+        for (auto &p : _partitions)
+            p->invalidate();
+    }
+
     TaskType type() const override { return TaskType::SIMPLEFILEWRITE; }
     std::vector<Partition*> getOutputPartitions() const override { return std::vector<Partition*>{}; }
 

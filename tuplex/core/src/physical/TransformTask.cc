@@ -1027,4 +1027,17 @@ namespace tuplex {
         _htableFormat = fmt;
         _outputDataSetID = outputDataSetID;
     }
+
+    void TransformTask::freePartitions() {
+        for (auto &p : _inputPartitions)
+            p->invalidate();
+        for (auto &p : _fallbackPartitions)
+            p->invalidate();
+        for (auto &p : _generalPartitions)
+            p->invalidate();
+        for (auto &p : _output.partitions)
+            p->invalidate();
+        for (auto &p : _exceptions.partitions)
+            p->invalidate();
+    }
 }

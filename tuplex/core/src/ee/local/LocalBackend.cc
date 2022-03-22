@@ -1496,6 +1496,9 @@ namespace tuplex {
             Logger::instance().defaultLogger().info(ss.str());
         }
 
+        for (auto task : completedTasks)
+            task->freePartitions();
+
         freeTasks(completedTasks);
 
         // update metrics

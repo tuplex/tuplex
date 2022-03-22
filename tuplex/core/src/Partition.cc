@@ -220,6 +220,7 @@ namespace tuplex {
         TRACE_LOCK("partition " + uuidToString(_uuid));
         std::this_thread::yield();
         _mutex.lock();
+        _isFree = true;
         if(_arena)
             allocator.free(_arena);
         _arena = nullptr;

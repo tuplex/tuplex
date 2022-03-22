@@ -54,6 +54,8 @@ namespace tuplex {
         std::atomic_bool        _immortal; //! if a partition is immortal, then invalidating it won't free its memory.
         std::atomic_bool        _locked;
 
+        std::atomic_bool _isFree;
+
         std::atomic_int64_t     _lastAccessTime; // timestamp used for access (later used for swapping out partitions
         // to disk, if not enough space is available)
 
@@ -100,6 +102,7 @@ namespace tuplex {
                                          _numRows(0),
                                          _bytesWritten(0),
                                          _schema(schema),
+                                         _isFree(false),
                                          _dataSetID(dataSetID),
                                          _contextID(contextID),
                                          _swappedToFile(false) {

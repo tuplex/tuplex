@@ -36,6 +36,8 @@ namespace tuplex {
 
         }
 
+        void freePartitions() override {};
+
         static codegen::write_row_f writeRowCallback();
 
         std::vector<Partition*> getOutputPartitions() const override { return _output.partitions; }

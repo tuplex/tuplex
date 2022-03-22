@@ -362,8 +362,8 @@ namespace tuplex {
             {
                 stringstream ss;
                 ss<<FLINESTR<<endl;
-                ss<<"specializing pipeline for normal case ("<<pluralize(operators.size(), "operator")<<")"<<endl;
-                ss<<"input node: "<<inputNode->name()<<endl;
+                ss<<"specializing pipeline for normal case ("<<pluralize(_operators.size(), "operator")<<")"<<endl;
+                ss<<"input node: "<<_inputNode->name()<<endl;
                 ss<<"optimized schema of input node: "<<opt_input_rowtype.desc()<<endl;
                 logger.debug(ss.str());
             }
@@ -476,7 +476,7 @@ namespace tuplex {
 //#error "need a retype operator for the join operation..."
 #ifdef VERBOSE_BUILD
                         {
-                            jop = (JoinOperator*)opt_ops.back();
+                            jop = std::dynamic_pointer_cast<JoinOperator>(opt_ops.back());
                             stringstream ss;
                             ss<<FLINESTR<<endl;
                             ss<<"retyped "<<node->name()<<endl;

@@ -21,6 +21,8 @@
 #include <physical/StageBuilder.h>
 #include <graphviz/GraphVizBuilder.h>
 
+#define VERBOSE_BUILD
+
 namespace tuplex {
     namespace codegen {
 

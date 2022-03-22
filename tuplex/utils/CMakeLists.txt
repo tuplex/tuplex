@@ -110,10 +110,9 @@ set(cereal_INCLUDE_DIR ${source_dir}/include)
 # ------
 # dependencies
 
-add_dependencies(libutils fmt spdlog json cereal)
-
-target_include_directories(libutils PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+# set here dependencies, include_targets, link_targets
+set(UTILS_DEPENDENCIES fmt spdlog json cereal)
+set(UTILS_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}
         ${fmt_INCLUDE_DIR}
         ${spdlog_INCLUDE_DIR}
@@ -123,22 +122,15 @@ target_include_directories(libutils PUBLIC
         ${Boost_INCLUDE_DIR}
         ${AWSSDK_INCLUDE_DIR}
         ${ZLIB_INCLUDE_DIRS})
+set(UTILS_LIBRARIES Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${ZLIB_LIBRARIES} ${AWSSDK_LINK_LIBRARIES})
 
-# Specify here the libraries this program depends on
-target_link_libraries(libutils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${ZLIB_LIBRARIES} ${AWSSDK_LINK_LIBRARIES})
+# object library
+add_dependencies(libutils ${UTILS_DEPENDENCIES})
+target_include_directories(libutils PUBLIC ${UTILS_INCLUDE_DIRS})
+target_link_libraries(libutils ${UTILS_LIBRARIES})
 
 # create shared lib version of utils -> allows to decrease size of test executables
 add_library(utils SHARED ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
-add_dependencies(utils fmt spdlog json cereal)
-target_link_libraries(utils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${ZLIB_LIBRARIES} ${AWSSDK_LINK_LIBRARIES})
-target_include_directories(utils PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_BINARY_DIR}
-        ${fmt_INCLUDE_DIR}
-        ${spdlog_INCLUDE_DIR}
-        ${cjson_SOURCE_DIR}
-        ${json_INCLUDE_DIR}
-        ${cereal_INCLUDE_DIR}
-        ${Boost_INCLUDE_DIR}
-        ${AWSSDK_INCLUDE_DIR}
-        ${ZLIB_INCLUDE_DIRS})
+add_dependencies(utils ${UTILS_DEPENDENCIES})
+target_include_directories(utils PUBLIC ${UTILS_INCLUDE_DIRS})
+target_link_libraries(utils ${UTILS_LIBRARIES})

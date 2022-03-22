@@ -318,6 +318,17 @@ add_library(libio OBJECT
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 set_target_properties(libio PROPERTIES PREFIX "")
 
+set(IO_DEPENDENCIES utils)
+set(IO_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR} ${Boost_INCLUDE_DIR}
+        ${LibMagic_INCLUDE_DIR}
+        ${orc_INCLUDE_DIR})
+set(IO_LIBRARIES utils
+        ${AWSSDK_LINK_LIBRARIES}
+        ${LibMagic_LIBRARIES}
+        ${ORC_LIBRARIES})
+
+
 target_include_directories(libio PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR} ${Boost_INCLUDE_DIR}
         ${LibMagic_INCLUDE_DIR}
@@ -331,3 +342,9 @@ target_link_libraries(libio libutils
         ${ORC_LIBRARIES})
 
 install(TARGETS libio DESTINATION bin)
+
+# adding shared lib
+add_library(io SHARED ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
+add_dependencies(io ${IO_DEPENDENCIES})
+target_include_directoreis(io ${IO_INCLUDE_DIRS})
+target_link_libraries(io ${IO_LIBRARIES})

@@ -11,7 +11,7 @@ include(GoogleTest)
 add_executable(testcore ${SRCS} ${STDLIB_SRCS})
 target_link_libraries(testcore
         utils #libutils
-        libio
+        io #libio
         libcodegen
         libcore
         libcpythonadapter

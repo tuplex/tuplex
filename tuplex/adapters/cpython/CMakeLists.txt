@@ -21,4 +21,4 @@ target_include_directories(libcpythonadapter PUBLIC
         )
 
 # Declare the library
-target_link_libraries(libcpythonadapter libutils)
+target_link_libraries(libcpythonadapter libutils ${Python3_LIBRARIES})

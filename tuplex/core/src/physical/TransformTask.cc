@@ -896,8 +896,9 @@ namespace tuplex {
                 case FileFormat::OUTFMT_ORC: {
 
 #ifdef BUILD_WITH_ORC
+                    // input schema corresponds to general case input schema
                     auto orc = new OrcReader(this, reinterpret_cast<codegen::read_block_f>(_functor),
-                                             operatorID, contextID(), partitionSize, _generalCaseInputSchema);
+                                             operatorID, contextID(), partitionSize, _inputSchema);
                     orc->setRange(rangeStart, rangeSize);
                     _reader.reset(orc);
 #else

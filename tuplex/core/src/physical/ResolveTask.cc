@@ -352,6 +352,7 @@ default:
                     // check if there is a partition left
                     if(_currentNormalPartitionIdx + 1 < _partitions.size()) {
                         _partitions[_currentNormalPartitionIdx]->unlock();
+                        _partitions[_currentNormalPartitionIdx]->invalidate();
                         _currentNormalPartitionIdx++;
 
                         _normalPtr = _partitions[_currentNormalPartitionIdx]->lockRaw();
@@ -1215,8 +1216,10 @@ default:
             _normalRowNumber++;
         }
 
-        if (!_partitions.empty())
+        if (!_partitions.empty()) {
             _partitions[_currentNormalPartitionIdx]->unlock();
+            _partitions[_currentNormalPartitionIdx]->invalidate();
+        }
 
         // merging is done, unlock the last partition & copy the others over.
         unlockAll();

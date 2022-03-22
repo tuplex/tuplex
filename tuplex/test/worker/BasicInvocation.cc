@@ -250,10 +250,10 @@ TEST(BasicInvocation, PurePythonMode) {
     co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
     co.set("tuplex.useInterpreterOnly", "true");
     codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, false);
-    auto csvop = FileInputOperator::fromCsv(test_path.toString(), co,
+    auto csvop = std::shared_ptr<LogicalOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
                                             option<bool>(true),
                                             option<char>(','), option<char>('"'),
-                                            {""}, {}, {}, {});
+                                            {""}, {}, {}, {}));
     auto mapop = std::make_shared<MapOperator>(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
     auto fop = std::make_shared<FileOutputOperator>(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
     builder.addFileInput(csvop);
@@ -518,10 +518,10 @@ TEST(BasicInvocation, Worker) {
     auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
     co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
     codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, false);
-    auto csvop = FileInputOperator::fromCsv(test_path.toString(), co,
+    auto csvop = std::shared_ptr<LogicalOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
                                        option<bool>(true),
                                                option<char>(','), option<char>('"'),
-            {""}, {}, {}, {});
+            {""}, {}, {}, {}));
     auto mapop = std::make_shared<MapOperator>(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
     auto fop = std::make_shared<FileOutputOperator>(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
     builder.addFileInput(csvop);

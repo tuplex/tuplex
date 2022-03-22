@@ -1,5 +1,5 @@
 // define to use OS DB
-#define USE_OS_TZDB 1
+//#define USE_OS_TZDB 1
 
 #ifndef DATE_H
 #define DATE_H

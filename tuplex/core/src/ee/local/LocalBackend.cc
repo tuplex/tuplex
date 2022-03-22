@@ -1496,14 +1496,20 @@ namespace tuplex {
             Logger::instance().defaultLogger().info(ss.str());
         }
 
-        if(_driver)
-            _driver->freeAllPartitionsOfContext(&context());
-        for(auto exec : _executors)
-            exec->freeAllPartitionsOfContext(&context());
+//        if(_driver)
+//            _driver->freeAllPartitionsOfContext(&context());
+//        for(auto exec : _executors)
+//            exec->freeAllPartitionsOfContext(&context());
 
 
 //        for (auto task : completedTasks)
 //            task->freePartitions();
+
+        if (!_options.OPT_INCREMENTAL_RESOLUTION()) {
+            for (auto &p : exceptionPartitions) {
+                p->invalidate();
+            }
+        }
 
         freeTasks(completedTasks);
 

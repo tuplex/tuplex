@@ -122,7 +122,7 @@ find_package(ANTLR REQUIRED)
 
 antlr_target(Python3Grammar ${CMAKE_CURRENT_SOURCE_DIR}/grammar/Python3.g4 OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/managed PACKAGE antlr4 LISTENER VISITOR)
 
-add_library(libcodegen OBJECT
+add_library(libcodegen SHARED
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${ANTLR_Python3Grammar_CXX_OUTPUTS})
 set_target_properties(libcodegen PROPERTIES PREFIX "")
 

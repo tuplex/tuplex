@@ -72,7 +72,7 @@ if(NOT BUILD_WITH_AWS)
     list(APPEND SOURCES ${cjson_SOURCE_DIR}/cJSON.c)
 endif()
 
-add_library(libutils OBJECT
+add_library(libutils SHARED
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 set_target_properties(libutils PROPERTIES PREFIX "")
 

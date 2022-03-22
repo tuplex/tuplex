@@ -346,5 +346,5 @@ install(TARGETS libio DESTINATION bin)
 # adding shared lib
 add_library(io SHARED ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 add_dependencies(io ${IO_DEPENDENCIES})
-target_include_directoreis(io ${IO_INCLUDE_DIRS})
+target_include_directories(io PUBLIC ${IO_INCLUDE_DIRS})
 target_link_libraries(io ${IO_LIBRARIES})

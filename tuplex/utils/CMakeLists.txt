@@ -128,9 +128,3 @@ set(UTILS_LIBRARIES Boost::filesystem Boost::thread Boost::system Boost::system 
 add_dependencies(libutils ${UTILS_DEPENDENCIES})
 target_include_directories(libutils PUBLIC ${UTILS_INCLUDE_DIRS})
 target_link_libraries(libutils ${UTILS_LIBRARIES})
-
-# create shared lib version of utils -> allows to decrease size of test executables
-add_library(utils SHARED ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
-add_dependencies(utils ${UTILS_DEPENDENCIES})
-target_include_directories(utils PUBLIC ${UTILS_INCLUDE_DIRS})
-target_link_libraries(utils ${UTILS_LIBRARIES})

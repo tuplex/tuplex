@@ -148,19 +148,19 @@ namespace tuplex {
 
         void freePartitions() override {
             for (auto &p : _partitions)
-                p->invalidate();
+                p ? p->invalidate() : void();
             for (auto &p : _fallbackPartitions)
-                p->invalidate();
+                p ? p->invalidate() : void();
             for (auto &p : _generalPartitions)
-                p->invalidate();
+                p ? p->invalidate() : void();
             for (auto &p : _exceptionPartitions)
-                p->invalidate();
+                p ? p->invalidate() : void();
             for (auto &p : _fallbackSink.partitions)
-                p->invalidate();
+                p ? p->invalidate() : void();
             for (auto &p : _mergedRowsSink.partitions)
-                p->invalidate();
+                p ? p->invalidate() : void();
             for (auto &p : _generalCaseSink.partitions)
-                p->invalidate();
+                p ? p->invalidate() : void();
         }
 
         /*!

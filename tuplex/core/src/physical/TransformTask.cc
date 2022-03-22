@@ -1030,14 +1030,14 @@ namespace tuplex {
 
     void TransformTask::freePartitions() {
         for (auto &p : _inputPartitions)
-            p->invalidate();
+            p ? p->invalidate() : void();
         for (auto &p : _fallbackPartitions)
-            p->invalidate();
+            p ? p->invalidate() : void();
         for (auto &p : _generalPartitions)
-            p->invalidate();
+            p ? p->invalidate() : void();
         for (auto &p : _output.partitions)
-            p->invalidate();
+            p ? p->invalidate() : void();
         for (auto &p : _exceptions.partitions)
-            p->invalidate();
+            p ? p->invalidate() : void();
     }
 }

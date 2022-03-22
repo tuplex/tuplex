@@ -236,7 +236,7 @@ namespace tuplex {
 
         // also make sure this partition does not live forever.
         // these partitions are destroyed when the context is released.
-        if(!isImmortal()) {
+        if(!_isFree && !isImmortal()) {
             // hence only free partition if it is not immortal
             _owner->freePartition(this);
         }

@@ -78,7 +78,7 @@ public:
 
     void freePartitions() override {
         for (auto &p : _partitions)
-            p->invalidate();
+            p ? p->invalidate() : void();
     }
 
     TaskType type() const override { return TaskType::SIMPLEFILEWRITE; }

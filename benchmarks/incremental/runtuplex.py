@@ -233,6 +233,7 @@ if __name__ == '__main__':
 
     if args.clear_cache:
         subprocess.run(["clearcache"])
+        subprocess.run(["vmtouch", "-dl", paths])
 
     # decide which pipeline to run based on argparse arg!
     num_steps = 7

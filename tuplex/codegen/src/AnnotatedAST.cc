@@ -227,11 +227,11 @@ namespace tuplex {
             return graph.saveAsDot(path);
         }
 
-        bool AnnotatedAST::writeGraphToPDF(const std::string &path) {
+        bool AnnotatedAST::writeGraphToPDF(const std::string &path, bool with_types=false) {
             if(!_root) return false;
 
             GraphVizGraph graph;
-            graph.createFromAST(_root.get());
+            graph.createFromAST(_root.get(), with_types);
             return graph.saveAsPDF(path);
         }
 
@@ -502,7 +502,7 @@ namespace tuplex {
 #ifdef GENERATE_PDFS
             // print in debug mode graph
             GraphVizGraph graph;
-            graph.createFromAST(_root, true);
+            graph.createFromAST(_root.get(), true);
             graph.saveAsPDF(std::to_string(g_func_counter++) + "_04_ast_with_types.pdf");
 #else
             Logger::instance().defaultLogger().debug("writing type-annotated Python AST to PDF skipped.");

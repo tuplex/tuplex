@@ -85,8 +85,17 @@ namespace tuplex {
             }
         };
 
+        /*!
+         * this class creates a specialized version of a stage
+         */
         class StagePlanner {
         public:
+
+            /*!
+             * constructor, taking nodes of a stage in
+             * @param inputNode the input node of the stage (parent of first operator)
+             * @param operators operators following the input node.
+             */
             StagePlanner(const std::shared_ptr<LogicalOperator>& inputNode,
                          const std::vector<std::shared_ptr<LogicalOperator>>& operators) : _inputNode(inputNode),
                          _operators(operators), _useNVO(false), _useConstantFolding(false), _useDelayedParsing(false) {
@@ -97,10 +106,15 @@ namespace tuplex {
             }
 
             /*!
-             * create optimized, specialized pipeline
+             * create optimized, specialized pipeline, i.e. first operator returned is the input operator.
+             * The others are (possibly rearranged) operators. Operators are clones/copies of original operators. I.e.
+             * planner is non-destructive.
              */
             std::vector<std::shared_ptr<LogicalOperator>> optimize();
 
+            /*!
+             * shortcut to enable all optimizations
+             */
             void enableAll() {
                 enableNullValueOptimization();
                 enableConstantFoldingOptimization();
@@ -127,7 +141,21 @@ namespace tuplex {
             // helper functions
             std::vector<Row> fetchInputSample();
 
-            std::vector<std::shared_ptr<LogicalOperator>> nulLValueOptimization();
+            /*!
+             * perform null-value optimization & return full pipeline. First op is inputnode
+             * @return vector of operators
+             */
+            std::vector<std::shared_ptr<LogicalOperator>> nullValueOptimization();
+
+            /*!
+             * perform constant folding optimization using sample
+             */
+            std::vector<std::shared_ptr<LogicalOperator>> constantFoldingOptimization(const std::vector<Row>& sample);
+
+            /*!
+             * perform filter-reordering using sample selectivity
+             */
+            std::vector<std::shared_ptr<LogicalOperator>> filterReordering(const std::vector<Row>& sample);
         };
     }
 

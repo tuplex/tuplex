@@ -1275,8 +1275,8 @@ namespace tuplex {
         return true;
     }
 
-    void UDF::saveASTToPDF(const std::string &filePath) {
-        getAnnotatedAST().writeGraphToPDF(filePath);
+    void UDF::saveASTToPDF(const std::string &filePath, bool with_types) {
+        getAnnotatedAST().writeGraphToPDF(filePath, with_types);
     }
 
     bool UDF::dictMode() const {

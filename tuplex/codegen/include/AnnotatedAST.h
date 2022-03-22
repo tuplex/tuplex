@@ -107,7 +107,14 @@ namespace tuplex {
             const ClosureEnvironment& globals() const { return _globals; }
 
             bool writeGraphVizFile(const std::string& path);
-            bool writeGraphToPDF(const std::string &path);
+
+            /*!
+             * invokes graphviz/dot process to create PDF from tree. Per default outputs only nodes, set with_types=true to add types as well.
+             * @param path where to store (locally) the pdf file
+             * @param with_types whether to include type information or not
+             * @return true if success, false else (i.e. when dot is not installed)
+             */
+            bool writeGraphToPDF(const std::string &path, bool with_types);
 
             /*!
              * specify for the identifier a possible type. This may enable / simplify code generation.

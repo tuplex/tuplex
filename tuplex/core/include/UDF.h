@@ -230,8 +230,9 @@ namespace tuplex {
         /*!
          * produces using graphviz a pdf of the AST tree for this function.
          * @param filePath where to save the pdf (only local allowed).
+         * @param with_types whether to include types with the PDF or not (default=false)
          */
-        void saveASTToPDF(const std::string& filePath);
+        void saveASTToPDF(const std::string& filePath, bool with_types=false);
 
         /*!
          * whether input args are expected to be passed as dict

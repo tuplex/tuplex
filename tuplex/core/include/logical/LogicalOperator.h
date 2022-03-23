@@ -36,7 +36,6 @@
 #include "cereal/types/common.hpp"
 #include "cereal/types/polymorphic.hpp"
 #include "cereal/archives/binary.hpp"
-#include "cereal/archives/portable_binary.hpp"
 // end
 
 static const size_t MAX_TYPE_SAMPLING_ROWS=100; // make this configurable? i.e. defines how much to trace...

@@ -15,6 +15,7 @@
 #include <Field.h>
 #include "symbols/SymbolTable.h"
 
+#ifdef BUILD_WITH_CEREAL
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
 #include "cereal/types/polymorphic.hpp"
@@ -24,8 +25,8 @@
 #include "cereal/types/utility.hpp"
 #include "cereal/types/string.hpp"
 #include "cereal/types/common.hpp"
-
 #include "cereal/archives/binary.hpp"
+#endif
 
 namespace tuplex {
 
@@ -48,9 +49,11 @@ namespace tuplex {
             std::string package; // to which package it belongs to
             std::string location; // file location
 
+#ifdef BUILD_WITH_CEREAL
             template<class Archive> void serialize(Archive &ar) {
                 ar(identifier, original_identifier, package, location);
             }
+#endif
         };
 
         struct Constant {
@@ -59,9 +62,11 @@ namespace tuplex {
             //std::string json_value;          // value (pickled)
             Field value;
 
+#ifdef BUILD_WITH_CEREAL
             template<class Archive> void serialize(Archive &ar) {
                 ar(type, identifier, value);
             }
+#endif
         };
 
         struct Function {
@@ -70,15 +75,19 @@ namespace tuplex {
             std::string location; // file location
             std::string qualified_name; // full path, i.e. re.search
 
+#ifdef BUILD_WITH_CEREAL
             template<class Archive> void serialize(Archive &ar) {
                 ar(identifier, package, location, qualified_name);
             }
+#endif
         };
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void serialize(Archive &ar) {
             ar(_imported_modules, _globals, _functions);
         }
+#endif
 
         void addConstant(const Constant& c) { _globals.push_back(c); }
         void addModule(const Module& m) { _imported_modules.push_back(m); }

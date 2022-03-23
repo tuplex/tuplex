@@ -22,6 +22,7 @@
 #include <TSet.h>
 #include "ASTAnnotation.h"
 
+#ifdef BUIld_WITH_CEREAL
 // @TODO: cleaner? precompiled headers?
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
@@ -31,8 +32,8 @@
 #include "cereal/types/utility.hpp"
 #include "cereal/types/string.hpp"
 #include "cereal/types/common.hpp"
-#include "cereal/archives/portable_binary.hpp"
 #include "cereal/archives/binary.hpp"
+#endif
 
 namespace tuplex {
     // @Todo: To avoid writing all these clone functions,
@@ -144,8 +145,10 @@ namespace tuplex {
             return false;
         }
 
+#ifdef BUILD_WITH_CEREAL
         template <class Archive>
         void serialize(Archive &ar) { ar(_inferredType, _scopeID, _annotation); }
+#endif
     };
 
     inline bool isLiteralASTNode(ASTNode* node) {
@@ -224,8 +227,10 @@ namespace tuplex {
             return std::stod(_value);
         }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _value); }
+#endif
     };
 
     class NIdentifier : public ASTNode {
@@ -257,8 +262,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Identifier;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _name); }
+#endif
     };
 
     class NBoolean : public ASTNode {
@@ -300,8 +307,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Boolean;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _value); }
+#endif
     };
 
 // nothing associated to this class
@@ -327,13 +336,16 @@ namespace tuplex {
         virtual void accept(class IVisitor& visitor);
         static const ASTNodeType type_ = ASTNodeType::Ellipsis;
         virtual ASTNodeType type() const { return type_; };
-
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), __MAKE_CEREAL_WORK); }
+#endif
     };
 
     class NNone : public ASTNode {
+#ifdef BUILD_WITH_CEREAL
         bool __MAKE_CEREAL_WORK;
+#endif
     public:
         NNone() {}
 
@@ -356,9 +368,10 @@ namespace tuplex {
 
         // always give NULLVALUE back!
         python::Type getInferredType() { return python::Type::NULLVALUE; }
-
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), __MAKE_CEREAL_WORK); }
+#endif
     };
 
     class NString : public ASTNode {
@@ -399,8 +412,10 @@ namespace tuplex {
             return this;
         }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _raw_value); }
+#endif
 
         // TODO: can't figure out how to incorporate base class into this
 //        template<class Archive>
@@ -461,8 +476,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::BinaryOp;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _op, _left, _right); }
+#endif
     };
 
     class NUnaryOp : public ASTNode {
@@ -503,8 +520,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::UnaryOp;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _op, _operand); }
+#endif
     };
 
 
@@ -552,8 +571,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Subscription;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _value, _expression); }
+#endif
     };
 
 /**********************************************/
@@ -628,8 +649,10 @@ namespace tuplex {
 
         }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _statements, _isUnrolledLoopSuite); }
+#endif
     };
 
     class NModule : public ASTNode {
@@ -670,8 +693,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Module;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _suite); }
+#endif
     };
 
 
@@ -752,8 +777,10 @@ namespace tuplex {
             return this;
         }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _identifier, _annotation, _default); }
+#endif
     };
 
 // helper class for constructing higher level AST Nodes
@@ -824,8 +851,10 @@ namespace tuplex {
             return ret;
         }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _elements); }
+#endif
     };
 
     class NParameterList : public ASTNode {
@@ -901,8 +930,10 @@ namespace tuplex {
             return python::Type::makeTupleType(types);
         }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _args); }
+#endif
     };
 
     class NLambda : public ASTNode {
@@ -979,8 +1010,10 @@ namespace tuplex {
             return names;
         }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _arguments, _expression, _treatFirstArgAsTuple); }
+#endif
     };
 
 
@@ -1024,8 +1057,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Await;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _target); }
+#endif
     };
 
     class NStarExpression : public ASTNode {
@@ -1068,8 +1103,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::StarExpression;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _target); }
+#endif
     };
 
     class NCompare : public ASTNode {
@@ -1136,8 +1173,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Compare;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _left, _ops, _comps); }
+#endif
     };
 
 
@@ -1214,8 +1253,10 @@ namespace tuplex {
             return _isExpression;
         }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _expression, _then, _else, _isExpression); }
+#endif
     };
 
     class NFunction : public ASTNode {
@@ -1318,8 +1359,10 @@ namespace tuplex {
             return names;
         }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _name, _parameters, _annotation, _suite, _treatFirstArgAsTuple); }
+#endif
     };
 
     // holds a tuple
@@ -1396,8 +1439,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Tuple;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _elements); }
+#endif
     };
 
 // represents a dictionary expression ({ ... })
@@ -1444,8 +1489,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Dictionary;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _pairs); }
+#endif
     };
 
 // represents a list expression ([ ... ])
@@ -1492,8 +1539,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::List;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _elements); }
+#endif
     };
 
     class NReturn : public ASTNode {
@@ -1526,8 +1575,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Return;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _expression); }
+#endif
     };
 
 // cf. https://docs.python.org/3/reference/simple_stmts.html#grammar-token-assert-stmt
@@ -1567,8 +1618,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Assert;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _expression, _errorExpression); }
+#endif
     };
 
     class NRaise : public ASTNode {
@@ -1608,8 +1661,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Raise;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _expression, _fromExpression); }
+#endif
     };
 
 // simple assign AST node
@@ -1654,9 +1709,10 @@ namespace tuplex {
 
         static const ASTNodeType type_ = ASTNodeType::Assign;
         virtual ASTNodeType type() const { return type_; }
-
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _target, _value); }
+#endif
     };
 
 
@@ -1746,8 +1802,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Call;
         virtual ASTNodeType type() const { return type_; }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _func, _positionalArguments); }
+#endif
     };
 
 /*!
@@ -1809,8 +1867,10 @@ namespace tuplex {
         void setObjectType(const python::Type& object_type) { _objectType = object_type; }
         python::Type objectType() const { return _objectType; }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _objectType, _value, _attribute); }
+#endif
     };
 
     class NSlice : public ASTNode {
@@ -1887,8 +1947,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Slice;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _value, _slices); }
+#endif
     };
 
 
@@ -1940,8 +2002,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::SliceItem;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _start, _end, _stride); }
+#endif
     };
 
 // @TODO: refactor this into generator object.
@@ -2007,8 +2071,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Range;
         virtual ASTNodeType type() const { return type_; }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), _positionalArguments); }
+#endif
     };
 
     class NComprehension : public ASTNode {
@@ -2070,8 +2136,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::Comprehension;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), target, iter, if_conditions); }
+#endif
     };
 
     class NListComprehension : public ASTNode {
@@ -2125,8 +2193,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::ListComprehension;
         virtual ASTNodeType type() const { return type_; };
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), expression, generators); }
+#endif
     };
 
 // https://docs.python.org/3/reference/compound_stmts.html#the-while-statement
@@ -2183,8 +2253,10 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::While;
         virtual ASTNodeType type() const { return type_; }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), expression, suite_body, suite_else); }
+#endif
     };
 
     class NFor : public ASTNode {
@@ -2251,13 +2323,17 @@ namespace tuplex {
         static const ASTNodeType type_ = ASTNodeType::For;
         virtual ASTNodeType type() const { return type_; }
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), target, expression, suite_body, suite_else); }
+#endif
     };
 
 // https://docs.python.org/3/reference/simple_stmts.html#break
     class NBreak : public ASTNode {
+#ifdef BUILD_WITH_CEREAL
         bool __MAKE_CEREAL_WORK;
+#endif
     public:
         NBreak() = default;
         NBreak(const NBreak& other) = default;
@@ -2265,13 +2341,18 @@ namespace tuplex {
         virtual void accept(class IVisitor& visitor);
         static const ASTNodeType type_ = ASTNodeType::Break;
         virtual ASTNodeType type() const { return type_; }
+
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), __MAKE_CEREAL_WORK); }
+#endif
     };
 
 // https://docs.python.org/3/reference/simple_stmts.html#the-continue-statement
     class NContinue : public ASTNode {
+#ifdef BUILD_WITH_CEREAL
         bool __MAKE_CEREAL_WORK;
+#endif
     public:
         NContinue() = default;
         NContinue(const NContinue& other) = default;
@@ -2279,11 +2360,15 @@ namespace tuplex {
         virtual void accept(class IVisitor& visitor);
         static const ASTNodeType type_ = ASTNodeType::Continue;
         virtual ASTNodeType type() const { return type_; }
+
+#ifdef BUILD_WITH_CEREAL
         template<class Archive>
         void serialize(Archive &ar) { ar(::cereal::base_class<ASTNode>(this), __MAKE_CEREAL_WORK); }
+#endif
     };
 }
 
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::NNumber);
 CEREAL_REGISTER_TYPE(tuplex::NIdentifier);
 CEREAL_REGISTER_TYPE(tuplex::NBoolean);
@@ -2322,5 +2407,6 @@ CEREAL_REGISTER_TYPE(tuplex::NWhile);
 CEREAL_REGISTER_TYPE(tuplex::NFor);
 CEREAL_REGISTER_TYPE(tuplex::NBreak);
 CEREAL_REGISTER_TYPE(tuplex::NContinue);
+#endif
 
 #endif //TUPLEX_ASTNODES_H

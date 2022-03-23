@@ -19,6 +19,8 @@ option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for
 option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
 option(USE_LD_GOLD "Use GNU gold linker" ON)
 option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." ON)
+option(BUILD_WITH_CEREAL "whether to enable cereal based serialization or not. Disabled per default because it results in 4x larger build times" OFF)
+
 # variables:
 # AWS_S3_TEST_BUCKET ==> specifies bucket to run tests on!
 
@@ -117,6 +119,10 @@ endif()
 
 if(BUILD_WITH_ORC)
     add_definitions(-DBUILD_WITH_ORC)
+endif()
+
+if(BUILD_WITH_CEREAL)
+    add_definitions(-DBUILD_WITH_CEREAL)
 endif()
 
 if(NOT AWS_S3_TEST_BUCKET AND ENV{AWS_S3_TEST_BUCKET})

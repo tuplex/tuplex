@@ -18,6 +18,7 @@
 #include <TypeSystem.h>
 #include <Field.h>
 
+#ifdef BUILD_WITH_CEREAL
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
 #include "cereal/types/polymorphic.hpp"
@@ -27,6 +28,7 @@
 #include "cereal/types/string.hpp"
 #include "cereal/types/common.hpp"
 #include "cereal/archives/binary.hpp"
+#endif
 
 enum class SymbolType {
     TYPE,
@@ -238,8 +240,10 @@ public:
     symbolType(_symbolType),
     functionTyper([](const python::Type&) { return python::Type::UNKNOWN; }) {}
 
+#ifdef BUILD_WITH_CEREAL
     template <class Archive>
     void serialize(Archive &ar) { ar(name, qualifiedName, types, symbolType, parent, constantData); }
+#endif
 private:
     ///! i.e. to store something like re.search. re is then of module type. search will have a concrete function type.
     std::vector<std::shared_ptr<Symbol>> _attributes;
@@ -462,8 +466,11 @@ public:
         return t;
     }
 
+#ifdef BUILD_WITH_CEREAL
     template <class Archive>
     void serialize(Archive &ar) { ar(numTimesVisited, iMin, iMax, negativeValueCount, positiveValueCount, symbol, types); }
+#endif
+
 };
 
 #endif //TUPLEX_ASTANNOTATION_H

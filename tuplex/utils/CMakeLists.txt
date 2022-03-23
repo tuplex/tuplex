@@ -93,6 +93,7 @@ ExternalProject_Get_Property(json source_dir)
 set(json_INCLUDE_DIR ${source_dir}/include)
 include_directories(${json_INCLUDE_DIR})
 
+if(BUILD_WITH_CEREAL)
 ExternalProject_Add(cereal
         GIT_REPOSITORY https://github.com/USCiLab/cereal.git
         GIT_TAG v1.3.2
@@ -106,12 +107,18 @@ ExternalProject_Add(cereal
         )
 ExternalProject_Get_Property(cereal source_dir)
 set(cereal_INCLUDE_DIR ${source_dir}/include)
+endif()
 
 # ------
 # dependencies
 
 # set here dependencies, include_targets, link_targets
-set(UTILS_DEPENDENCIES fmt spdlog json cereal)
+if(BUILD_WITH_CEREAL)
+    set(UTILS_DEPENDENCIES fmt spdlog json cereal)
+else()
+    set(UTILS_DEPENDENCIES fmt spdlog json cereal)
+endif()
+
 set(UTILS_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}
         ${fmt_INCLUDE_DIR}

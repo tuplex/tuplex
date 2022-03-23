@@ -11,9 +11,9 @@
 #ifndef TUPLEX_COLUMNREWRITEVISITOR_H
 #define TUPLEX_COLUMNREWRITEVISITOR_H
 
-#include <ASTNodes.h>
+#include <ast/ASTNodes.h>
 #include <visitors/IReplaceVisitor.h>
-#include <IFailable.h>
+#include <codegen/IFailable.h>
 #include <string>
 #include <vector>
 

@@ -10,7 +10,7 @@
 
 #include "Helper.h"
 #include <Logger.h>
-#include <AnnotatedAST.h>
+#include <ast/AnnotatedAST.h>
 #include "gtest/gtest.h"
 
 

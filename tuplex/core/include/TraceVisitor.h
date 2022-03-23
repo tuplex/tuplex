@@ -16,10 +16,10 @@
 #include <utility>
 #include <vector>
 #include <PythonHelpers.h>
-#include <IFailable.h>
+#include <codegen/IFailable.h>
 #include <csetjmp>
-#include <ClosureEnvironment.h>
-#include <ASTHelpers.h>
+#include <symbols/ClosureEnvironment.h>
+#include <ast/ASTHelpers.h>
 
 #define TI_FLAGS_NONE 0x0
 #define TI_FLAGS_INPUT_PARAMETER 0x1

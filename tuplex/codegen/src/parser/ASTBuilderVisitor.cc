@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <parser/ASTBuilderVisitor.h>
-#include <Token.h>
+#include <parser/Token.h>
 
 namespace tuplex {
 

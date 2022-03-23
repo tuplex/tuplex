@@ -12,7 +12,7 @@
 #include <cassert>
 #include <Logger.h>
 #include <cmath>
-#include "ASTHelpers.h"
+#include "ast/ASTHelpers.h"
 
 namespace tuplex {
     // some helper functions

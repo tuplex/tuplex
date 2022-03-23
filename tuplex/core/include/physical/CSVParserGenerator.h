@@ -11,9 +11,9 @@
 #ifndef TUPLEX_CSVPARSERGENERATOR_H
 #define TUPLEX_CSVPARSERGENERATOR_H
 
-#include <LLVMEnvironment.h>
+#include <codegen/LLVMEnvironment.h>
 #include <TypeSystem.h>
-#include <CodegenHelper.h>
+#include <codegen/CodegenHelper.h>
 #include <ExceptionCodes.h>
 #include "CSVParseRowGenerator.h"
 #include "IExceptionableTaskGenerator.h"

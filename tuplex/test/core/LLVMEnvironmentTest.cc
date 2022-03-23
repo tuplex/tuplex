@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include "gtest/gtest.h"
-#include <LLVMEnvironment.h>
+#include <codegen/LLVMEnvironment.h>
 #include <JITCompiler.h>
 #include <string>
 #include <vector>

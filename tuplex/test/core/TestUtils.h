@@ -29,7 +29,7 @@
 #include <LocalEngine.h>
 #include <physical/CodeDefs.h>
 #include <RuntimeInterface.h>
-#include <ClosureEnvironment.h>
+#include <symbols/ClosureEnvironment.h>
 #include <Environment.h>
 
 #ifdef BUILD_WITH_AWS

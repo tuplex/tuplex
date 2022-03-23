@@ -11,7 +11,7 @@
 #ifndef TUPLEX_IREPLACEVISITOR_H
 #define TUPLEX_IREPLACEVISITOR_H
 
-#include <IVisitor.h>
+#include <visitors/IVisitor.h>
 
 namespace tuplex {
     /*!

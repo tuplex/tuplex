@@ -11,7 +11,7 @@
 #ifndef TUPLEX_REDUCABLEEXPRESSIONSVISITOR_H
 #define TUPLEX_REDUCABLEEXPRESSIONSVISITOR_H
 
-#include <IVisitor.h>
+#include <visitors/IVisitor.h>
 #include <visitors/ApatheticVisitor.h>
 #include <stack>
 

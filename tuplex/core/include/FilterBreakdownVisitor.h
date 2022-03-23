@@ -11,9 +11,9 @@
 #ifndef TUPLEX_FILTERBREAKDOWNVISITOR_H
 #define TUPLEX_FILTERBREAKDOWNVISITOR_H
 
-#include <ASTNodes.h>
+#include <ast/ASTNodes.h>
 #include <visitors/IPrePostVisitor.h>
-#include <IFailable.h>
+#include <codegen/IFailable.h>
 #include <string>
 #include <utility>
 #include <vector>

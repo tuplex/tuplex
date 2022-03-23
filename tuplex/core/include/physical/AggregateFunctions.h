@@ -11,10 +11,10 @@
 #ifndef TUPLEX_AGGREGATEFUNCTIONS_H
 #define TUPLEX_AGGREGATEFUNCTIONS_H
 
-#include <LLVMEnvironment.h>
+#include <codegen/LLVMEnvironment.h>
 #include <UDF.h>
-#include <LambdaFunction.h>
-#include <CompiledFunction.h>
+#include <codegen/LambdaFunction.h>
+#include <codegen/CompiledFunction.h>
 #include <Row.h>
 
 // contains code to create compiled functions to aggregate intermediates + initialize them

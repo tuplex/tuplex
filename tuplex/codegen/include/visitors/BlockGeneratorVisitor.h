@@ -13,7 +13,7 @@
 
 
 #include "IVisitor.h"
-#include <IFailable.h>
+#include <codegen/IFailable.h>
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
@@ -31,18 +31,18 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
-#include "ClosureEnvironment.h"
+#include "symbols/ClosureEnvironment.h"
 
 #include <deque>
 #include <visitors/ApatheticVisitor.h>
-#include <LLVMEnvironment.h>
-#include <Token.h>
-#include <LambdaFunction.h>
-#include <FunctionRegistry.h>
+#include <codegen/LLVMEnvironment.h>
+#include <parser/Token.h>
+#include <codegen/LambdaFunction.h>
+#include <codegen/FunctionRegistry.h>
 #include <stack>
-#include <IteratorContextProxy.h>
+#include <codegen/IteratorContextProxy.h>
 
-#include <CodegenHelper.h>
+#include <codegen/CodegenHelper.h>
 
 namespace tuplex {
 

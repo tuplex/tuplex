@@ -12,7 +12,7 @@
 #define TUPLEX_UNROLLLOOPSVISITOR_H
 
 #include "visitors/IReplaceVisitor.h"
-#include <IFailable.h>
+#include <codegen/IFailable.h>
 
 namespace tuplex {
     // handle the mismatch between slot type and identifier type issue in code generation

@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <physical/CellSourceTaskBuilder.h>
-#include <CodegenHelper.h>
+#include <codegen/CodegenHelper.h>
 
 namespace tuplex {
     namespace codegen {

@@ -11,9 +11,9 @@
 #ifndef TUPLEX_PIPELINEBUILDER_H
 #define TUPLEX_PIPELINEBUILDER_H
 
-#include <LLVMEnvironment.h>
-#include <CodegenHelper.h>
-#include <FlattenedTuple.h>
+#include <codegen/LLVMEnvironment.h>
+#include <codegen/CodegenHelper.h>
+#include <codegen/FlattenedTuple.h>
 #include <UDF.h>
 #include <ExceptionCodes.h>
 #include <logical/LogicalOperatorType.h>

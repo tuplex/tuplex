@@ -11,11 +11,11 @@
 #ifndef TUPLEX_IEXCEPTIONABLETASKGENERATOR_H
 #define TUPLEX_IEXCEPTIONABLETASKGENERATOR_H
 
-#include <LLVMEnvironment.h>
+#include <codegen/LLVMEnvironment.h>
 #include <TypeSystem.h>
-#include <CodegenHelper.h>
+#include <codegen/CodegenHelper.h>
 #include <ExceptionCodes.h>
-#include <FlattenedTuple.h>
+#include <codegen/FlattenedTuple.h>
 
 namespace tuplex {
 

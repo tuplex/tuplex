@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <physical/HashJoinStage.h>
-#include <CodegenHelper.h>
+#include <codegen/CodegenHelper.h>
 
 namespace tuplex {
 

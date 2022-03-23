@@ -13,7 +13,7 @@
 
 #include <memory>
 #include <graphviz/GraphVizBuilder.h>
-#include "IVisitor.h"
+#include "visitors/IVisitor.h"
 #include <stack>
 #include <visitors/GraphVizVisitor.h>
 

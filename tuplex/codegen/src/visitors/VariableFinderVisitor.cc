@@ -10,7 +10,7 @@
 
 #include <visitors/BlockGeneratorVisitor.h>
 #include <visitors/IPrePostVisitor.h>
-#include <ASTHelpers.h>
+#include <ast/ASTHelpers.h>
 
 namespace tuplex {
     class VariableFinderVisitor : public IPrePostVisitor {

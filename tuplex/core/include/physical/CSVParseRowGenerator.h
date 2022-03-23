@@ -12,9 +12,9 @@
 #define TUPLEX_CSVPARSEROWGENERATOR_H
 
 
-#include <LLVMEnvironment.h>
+#include <codegen/LLVMEnvironment.h>
 #include <TypeSystem.h>
-#include <CodegenHelper.h>
+#include <codegen/CodegenHelper.h>
 #include <ExceptionCodes.h>
 #include <Base.h>
 #include <Utils.h>

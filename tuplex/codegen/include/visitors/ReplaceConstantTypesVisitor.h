@@ -6,7 +6,7 @@
 #define TUPLEX_REPLACECONSTANTTYPESVISITOR_H
 
 #include <visitors/IReplaceVisitor.h>
-#include <ClosureEnvironment.h>
+#include <symbols/ClosureEnvironment.h>
 
 namespace tuplex {
     // if it encounters a constant valued type, it replaces it with a corresponding literal node

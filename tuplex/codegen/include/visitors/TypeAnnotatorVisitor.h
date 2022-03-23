@@ -12,11 +12,11 @@
 #define TUPLEX_TYPEANNOTATORVISITOR_H
 
 #include "visitors/ApatheticVisitor.h"
-#include "SymbolTable.h"
-#include "CodegenHelper.h"
-#include <IFailable.h>
+#include "symbols/SymbolTable.h"
+#include "codegen/CodegenHelper.h"
+#include <codegen/IFailable.h>
 #include <tuple>
-#include <ASTHelpers.h>
+#include <ast/ASTHelpers.h>
 
 namespace tuplex {
     inline python::Type unifyTypes(const python::Type& a, const python::Type& b, bool allowNumbers) {

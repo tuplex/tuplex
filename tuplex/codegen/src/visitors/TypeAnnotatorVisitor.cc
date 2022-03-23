@@ -10,9 +10,9 @@
 
 #include <visitors/TypeAnnotatorVisitor.h>
 #include <TypeSystem.h>
-#include <TokenType.h>
+#include <parser/TokenType.h>
 #include <visitors/ApplyVisitor.h>
-#include <ASTHelpers.h>
+#include <ast/ASTHelpers.h>
 
 namespace tuplex {
     bool isPythonIntegerType(const python::Type& t ) {

@@ -12,7 +12,7 @@
 #define TUPLEX_REDUCEEXPRESSIONSVISITOR_H
 
 #include <visitors/IReplaceVisitor.h>
-#include <ClosureEnvironment.h>
+#include <symbols/ClosureEnvironment.h>
 
 namespace tuplex {
     /*!

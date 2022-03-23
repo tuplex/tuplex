@@ -13,12 +13,12 @@
 
 #include <Utils.h>
 #include <Schema.h>
-#include <AnnotatedAST.h>
-#include <CompiledFunction.h>
-#include <LLVMEnvironment.h>
+#include <ast/AnnotatedAST.h>
+#include <codegen/CompiledFunction.h>
+#include <codegen/LLVMEnvironment.h>
 #include <Python.h>
-#include <ClosureEnvironment.h>
-#include <IFailable.h>
+#include <symbols/ClosureEnvironment.h>
+#include <codegen/IFailable.h>
 
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"

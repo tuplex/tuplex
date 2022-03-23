@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include "gtest/gtest.h"
-#include <AnnotatedAST.h>
+#include <ast/AnnotatedAST.h>
 #include "Helper.h"
 
 // TODO to be done...

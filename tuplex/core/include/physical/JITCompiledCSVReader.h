@@ -13,7 +13,7 @@
 
 #include "FileInputReader.h"
 #include "CodeDefs.h"
-#include <CodegenHelper.h>
+#include <codegen/CodegenHelper.h>
 #include <Base.h>
 #include <cstdint>
 

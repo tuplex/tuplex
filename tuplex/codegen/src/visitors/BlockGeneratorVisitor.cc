@@ -9,8 +9,8 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <visitors/BlockGeneratorVisitor.h>
-#include <FlattenedTuple.h>
-#include <ASTHelpers.h>
+#include <codegen/FlattenedTuple.h>
+#include <ast/ASTHelpers.h>
 #include <StringUtils.h>
 #include <Base.h>
 #include <visitors/TypeAnnotatorVisitor.h>

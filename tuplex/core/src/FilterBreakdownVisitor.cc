@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <FilterBreakdownVisitor.h>
-#include <ASTHelpers.h>
+#include <ast/ASTHelpers.h>
 
 namespace tuplex {
     void FilterBreakdownVisitor::getVarNames(ASTNode *node) {

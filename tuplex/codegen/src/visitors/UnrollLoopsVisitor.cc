@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <visitors/UnrollLoopsVisitor.h>
-#include <ASTHelpers.h>
+#include <ast/ASTHelpers.h>
 #include <cassert>
 
 namespace tuplex {

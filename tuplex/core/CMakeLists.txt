@@ -71,8 +71,14 @@ target_include_directories(libcore PUBLIC
 
 message(STATUS "Boost libraries are: ${Boost_LIBRARIES}")
 
+message(STATUS "${LLVM_INCLUDE_DIRS}")
+message(STATUS "${LLVM_DEFINITIONS}")
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+
 # core has the runtime llvm libraries
-llvm_map_components_to_libnames(core_llvm_libs orcjit nativecodegen scalaropts objcarcopts passes)
+llvm_map_components_to_libnames(core_llvm_libs nativecodegen scalaropts objcarcopts passes orcJIT orcshared orctargetprocess)
+message(STATUS "${core_llvm_libs}")
 
 # Declare the library
 target_link_libraries(libcore

@@ -14,13 +14,14 @@
 #include <vector>
 #include <Utils.h>
 #include <Context.h>
-#include "TestUtils.h"
+#include "../core/TestUtils.h"
+#include "../core/FullPipelines.h"
 #include <CSVUtils.h>
 #include <CSVStatistic.h>
 #include <parser/Parser.h>
 #include <TraceVisitor.h>
 
-#include "FullPipelines.h"
+
 
 #include <physical/StagePlanner.h>
 

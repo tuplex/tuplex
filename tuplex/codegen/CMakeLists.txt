@@ -133,7 +133,7 @@ set_target_properties(libcodegen PROPERTIES PREFIX "")
 # list to reduce size of shared object. Compared to linking against all LLVM components, this saves about ~10MB.
 #llvm_map_components_to_libnames(llvm_libs core orcjit nativecodegen native scalaropts objcarcopts passes)
 llvm_map_components_to_libnames(llvm_libs core native irreader target)
-
+message(STATUS "${llvm_libs}")
 # for minimum JIT these components are recommended:
 #    core
 #    executionengine

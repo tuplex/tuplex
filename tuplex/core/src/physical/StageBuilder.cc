@@ -29,9 +29,7 @@
 
 // New: Stage Specialization, maybe rename?
 #include <physical/codegen/StagePlanner.h>
-
-#include <nlohmann/json.hpp>
-#include <google/protobuf/util/json_util.h>
+#include <physical/codegen/CodeGenerationContext.h>
 
 // @TODO: code gen needs to be lazily done
 // i.e. codegen stages then execute

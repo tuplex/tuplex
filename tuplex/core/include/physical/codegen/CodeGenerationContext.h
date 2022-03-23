@@ -6,6 +6,8 @@
 #define TUPLEX_CODEGENERATIONCONTEXT_H
 
 #include <logical/Operators.h>
+#include <nlohmann/json.hpp>
+#include <google/protobuf/util/json_util.h>
 
 namespace tuplex {
     namespace codegen {

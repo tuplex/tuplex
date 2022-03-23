@@ -26,7 +26,7 @@
 #include <orc/TupleBatch.h>
 #include <orc/VirtualOutputStream.h>
 
-#include <LLVMEnvironment.h>
+#include <codegen/LLVMEnvironment.h>
 
 namespace tuplex {
 

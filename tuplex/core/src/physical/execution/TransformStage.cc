@@ -12,7 +12,7 @@
 #include <physical/execution/TransformTask.h>
 #include <physical/execution/ResolveTask.h>
 // to avoid conflicts with Python 3.7
-#include "../include/Context.h"
+#include "Context.h"
 #include <jit/LLVMOptimizer.h>
 #include <limits>
 #include <jit/RuntimeInterface.h>

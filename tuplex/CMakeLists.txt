@@ -31,6 +31,13 @@ if (${FORCE_COLORED_OUTPUT})
     endif ()
 endif ()
 
+# set default MacOS target, if not set.
+# cf. https://cmake.org/cmake/help/latest/variable/CMAKE_OSX_DEPLOYMENT_TARGET.html
+if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+    # use high sierra target per default
+    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
+endif()
+
 # via -DVERSION_INFO a string may be passed down. --> include it somehow
 if(VERSION_INFO)
     message(STATUS "Version info supplied to cmake: ${VERSION_INFO}")
@@ -150,7 +157,7 @@ enable_testing()
 # detect MacOS Version because at least 10.13 is required when building with AWS SDK
 if(APPLE)
   execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
-  message(STATUS "Detected macOS ${MACOSX_VERSION_STRING} host platform, building for deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
+  message(STATUS "Detected macOS ${MACOSX_VERSION_STRING} host platform, building for deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}. To use a different deployment target either set CMAKE_OSX_DEPLOYMENT_TARGET or the environment variable MACOSX_DEPLOYMENT_TARGET to the desired version.")
 endif()
 
 # mainly from https://github.com/AdaCore/z3/blob/master/CMakeLists.txt

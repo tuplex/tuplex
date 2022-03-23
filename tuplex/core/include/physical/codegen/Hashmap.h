@@ -8,7 +8,7 @@
 #include <Base.h>
 #include <StringUtils.h>
 #include <VirtualFileSystem.h>
-#include <HybridHashTable.h>
+#include <physical/execution/HybridHashTable.h>
 #include <Python.h>
 
 #include "physical/execution/TransformStage.h"

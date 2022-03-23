@@ -30,7 +30,7 @@
 #include <physical/codegen/CodeDefs.h>
 #include <jit/RuntimeInterface.h>
 #include <symbols/ClosureEnvironment.h>
-#include <Environment.h>
+#include <utils/Environment.h>
 
 #ifdef BUILD_WITH_AWS
 #include <ee/aws/AWSLambdaBackend.h>

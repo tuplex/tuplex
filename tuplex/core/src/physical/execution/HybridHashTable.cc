@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <HybridHashTable.h>
+#include <physical/execution/HybridHashTable.h>
 #include <bucket.h>
 
 namespace tuplex {

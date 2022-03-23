@@ -26,7 +26,7 @@
 #include <physical/memory/PartitionWriter.h>
 #include <physical/execution/HashProbeTask.h>
 #include <jit/LLVMOptimizer.h>
-#include <HybridHashTable.h>
+#include <physical/execution/HybridHashTable.h>
 #include <int_hashmap.h>
 
 #include <physical/codegen/StagePlanner.h>

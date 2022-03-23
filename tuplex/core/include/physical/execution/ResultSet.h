@@ -13,7 +13,7 @@
 
 #include <Row.h>
 #include <physical/memory/Partition.h>
-#include <ExceptionInfo.h>
+#include <utils/ExceptionInfo.h>
 #include <deque>
 #include <limits>
 #include <ExceptionCodes.h>

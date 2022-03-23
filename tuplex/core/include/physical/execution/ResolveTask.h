@@ -11,7 +11,7 @@
 #ifndef TUPLEX_RESOLVETASK_H
 #define TUPLEX_RESOLVETASK_H
 
-#include <HybridHashTable.h>
+#include <physical/execution/HybridHashTable.h>
 #include <logical/AggregateOperator.h>
 #include "physical/codegen/CodeDefs.h"
 #include "physical/codegen/BlockBasedTaskBuilder.h"

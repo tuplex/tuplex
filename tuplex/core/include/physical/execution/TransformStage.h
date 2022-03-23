@@ -13,7 +13,7 @@
 
 #include <Schema.h>
 #include <physical/memory/Partition.h>
-#include <ExceptionInfo.h>
+#include <utils/ExceptionInfo.h>
 #include "physical/PhysicalStage.h"
 #include "jit/LLVMOptimizer.h"
 #include <logical/ParallelizeOperator.h>

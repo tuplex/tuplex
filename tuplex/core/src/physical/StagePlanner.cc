@@ -131,8 +131,8 @@ namespace tuplex {
                         // HACK! do not change column names, else this will fail...!
                         for(auto idx : ds.constant_column_indices()) {
                             string column_name;
-                            if(_inputNode && !_inputNode->inputColumns().empty()) {
-                                column_name = _inputNode->inputColumns()[idx];
+                            if(inputNode && !inputNode->inputColumns().empty()) {
+                                column_name = inputNode->inputColumns()[idx];
                                 constant_types[column_name] = python::Type::makeConstantValuedType(ds.constant_row.get(idx).getType(), ds.constant_row.get(idx).desc()); // HACK
                             }
                         }
@@ -189,11 +189,11 @@ namespace tuplex {
                         cout<<"-> "<<opt_away_names<<endl;
 
                         // rewrite which columns to access in input node
-                        if(_inputNode->type() != LogicalOperatorType::FILEINPUT) {
-                            logger.debug("stopping here, should get support for ops...");
-                            return _operators;
+                        if(inputNode->type() != LogicalOperatorType::FILEINPUT) {
+                            logger.error("stopping here, should get support for ops...");
+                            return opt_ops;
                         }
-                        auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
+                        auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode);
                         auto colsToSerialize = fop->columnsToSerialize();
                         vector<size_t> colsToSerializeIndices;
                         for(unsigned i = 0; i < colsToSerialize.size(); ++i)
@@ -224,8 +224,8 @@ namespace tuplex {
                         vector<string> col_names_to_read_before;
                         vector<string> col_names_to_read_after;
 
+                        // redo normal to general mapping
                         _normalToGeneralMapping.clear();
-
                         for(unsigned i = 0; i < accCols.size(); ++i) {
                             rewriteMap[accCols[i]] = i;
 

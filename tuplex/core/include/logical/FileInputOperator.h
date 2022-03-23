@@ -319,6 +319,7 @@ namespace tuplex {
             return fop;
         }
 
+#ifdef BUILD_WITH_CEREAL
         // DO NOT MIX load/save with serialize.
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
@@ -338,11 +339,13 @@ namespace tuplex {
                _normalCaseRowType, _optimizedNormalCaseRowType,
                _sampling_time_s); // do NOT serialize samples!
         }
-
+#endif
     };
 }
 
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::FileInputOperator)
+#endif
 
 #endif
 //TUPLEX_FILEINPUTOPERATOR_H

@@ -57,10 +57,10 @@ link_directories(${LLVM_LIBRARY_DIRS})
 
 # Specify here the include directories exported
 # by this library
-target_include_directories(libcodegen PUBLIC
+target_include_directories(libcodegen INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/managed
         PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/managed
         ${LLVM_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIR}
         ${ANTLR4Runtime_INCLUDE_DIR}

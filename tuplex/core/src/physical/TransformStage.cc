@@ -902,10 +902,10 @@ namespace tuplex {
 
         Timer timer;
         //JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
-        if (!excludeSlowPath) {
-            compileSlowPath(jit, optimizer);
-        }
         compileFastPath(jit, optimizer, registerSymbols);
+        if (!excludeSlowPath) {
+            compileSlowPath(jit, optimizer, registerSymbols);
+        }
 
         double compilation_time_via_llvm_this_number = timer.time();
         double compilation_time_via_llvm_thus_far = compilation_time_via_llvm_this_number;

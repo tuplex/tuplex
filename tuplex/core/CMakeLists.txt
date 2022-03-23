@@ -51,7 +51,8 @@ if(BUILD_WITH_AWS)
     list(APPEND SOURCES ${PROTO_SRCS} ${PROTO_HDRS})
 endif()
 
-add_library(libcore SHARED
+# can be only static because of llvms
+add_library(libcore STATIC
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES})
 set_target_properties(libcore PROPERTIES PREFIX "")
 

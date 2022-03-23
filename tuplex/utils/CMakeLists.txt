@@ -116,7 +116,7 @@ endif()
 if(BUILD_WITH_CEREAL)
     set(UTILS_DEPENDENCIES fmt spdlog json cereal)
 else()
-    set(UTILS_DEPENDENCIES fmt spdlog json cereal)
+    set(UTILS_DEPENDENCIES fmt spdlog json)
 endif()
 
 set(UTILS_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include

@@ -38,6 +38,7 @@ set_target_properties(libcodegen PROPERTIES PREFIX "")
 # list to reduce size of shared object. Compared to linking against all LLVM components, this saves about ~10MB.
 #llvm_map_components_to_libnames(llvm_libs core orcjit nativecodegen native scalaropts objcarcopts passes)
 llvm_map_components_to_libnames(llvm_libs core native irreader target)
+llvm_config(libcodegen USE_SHARED ${llvm_libs})
 message(STATUS "${llvm_libs}")
 message(STATUS "llvm lib dirs: ${LLVM_LIBRARY_DIRS}")
 link_directories(${LLVM_LIBRARY_DIRS})
@@ -59,7 +60,7 @@ link_directories(${LLVM_LIBRARY_DIRS})
 target_include_directories(libcodegen PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/managed
-        ${CMAKE_CURRENT_BINARY_DIR}
+        PRIVATE
         ${LLVM_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIR}
         ${ANTLR4Runtime_INCLUDE_DIR}
@@ -68,9 +69,12 @@ target_include_directories(libcodegen PUBLIC
 
 # Declare the library
 target_link_libraries(libcodegen
+        PUBLIC
         libutils
-        ${llvm_libs}
+        PRIVATE
         ${FFI_LIBRARIES}
+        ${PCRE2_LIBRARIES}
         ${ANTLR4Runtime_LIB}
-        ${AWSSDK_LINK_LIBRARIES}
-        ${PCRE2_LIBRARIES})
+        INTERFACE
+        ${llvm_libs}
+        )

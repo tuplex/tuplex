@@ -13,7 +13,7 @@
 #include <physical/ResolveTask.h>
 #include <RuntimeInterface.h>
 #include <bucket.h>
-#include <TypeAnnotatorVisitor.h>
+#include <visitors/TypeAnnotatorVisitor.h>
 #include <CSVUtils.h>
 #include <Serializer.h>
 

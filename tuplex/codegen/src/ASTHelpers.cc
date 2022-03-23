@@ -9,9 +9,9 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <ASTHelpers.h>
-#include <ApatheticVisitor.h>
-#include <IPrePostVisitor.h>
-#include "ApplyVisitor.h"
+#include <visitors/ApatheticVisitor.h>
+#include <visitors/IPrePostVisitor.h>
+#include "visitors/ApplyVisitor.h"
 
 namespace tuplex {
     bool isLiteral(ASTNode* root) {

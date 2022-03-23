@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <IReplaceVisitor.h>
+#include <visitors/IReplaceVisitor.h>
 #include <cassert>
 
 namespace tuplex {

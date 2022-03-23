@@ -13,12 +13,12 @@
 
 
 #include <graphviz/GraphVizGraph.h>
-#include <IPrePostVisitor.h>
+#include <visitors/IPrePostVisitor.h>
 #include <unordered_map>
-#include <IReplaceVisitor.h>
+#include <visitors/IReplaceVisitor.h>
 #include <ColumnRewriteVisitor.h>
 #include <TraceVisitor.h>
-#include <ApplyVisitor.h>
+#include <visitors/ApplyVisitor.h>
 
 #ifndef NDEBUG
 static int g_func_counter = 0;

@@ -5,7 +5,7 @@
 #ifndef TUPLEX_REPLACECONSTANTTYPESVISITOR_H
 #define TUPLEX_REPLACECONSTANTTYPESVISITOR_H
 
-#include <IReplaceVisitor.h>
+#include <visitors/IReplaceVisitor.h>
 #include <ClosureEnvironment.h>
 
 namespace tuplex {

@@ -8,8 +8,8 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <BlockGeneratorVisitor.h>
-#include <IPrePostVisitor.h>
+#include <visitors/BlockGeneratorVisitor.h>
+#include <visitors/IPrePostVisitor.h>
 #include <ASTHelpers.h>
 
 namespace tuplex {

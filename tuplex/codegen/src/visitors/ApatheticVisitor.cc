@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <ApatheticVisitor.h>
+#include <visitors/ApatheticVisitor.h>
 
 namespace tuplex {
     void ApatheticVisitor::visit(NModule *module) {

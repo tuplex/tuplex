@@ -11,7 +11,7 @@
 #ifndef TUPLEX_TRACEVISITOR_H
 #define TUPLEX_TRACEVISITOR_H
 
-#include <ApatheticVisitor.h>
+#include <visitors/ApatheticVisitor.h>
 #include <Python.h>
 #include <utility>
 #include <vector>

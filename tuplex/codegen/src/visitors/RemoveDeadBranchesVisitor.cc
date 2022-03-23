@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <RemoveDeadBranchesVisitor.h>
+#include <visitors/RemoveDeadBranchesVisitor.h>
 #include <optional.h>
 
 namespace tuplex {

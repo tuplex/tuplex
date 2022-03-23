@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <UnrollLoopsVisitor.h>
+#include <visitors/UnrollLoopsVisitor.h>
 #include <ASTHelpers.h>
 #include <cassert>
 

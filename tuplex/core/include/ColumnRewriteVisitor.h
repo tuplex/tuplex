@@ -12,7 +12,7 @@
 #define TUPLEX_COLUMNREWRITEVISITOR_H
 
 #include <ASTNodes.h>
-#include <IReplaceVisitor.h>
+#include <visitors/IReplaceVisitor.h>
 #include <IFailable.h>
 #include <string>
 #include <vector>

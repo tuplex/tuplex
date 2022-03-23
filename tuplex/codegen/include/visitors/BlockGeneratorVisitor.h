@@ -34,7 +34,7 @@
 #include "ClosureEnvironment.h"
 
 #include <deque>
-#include <ApatheticVisitor.h>
+#include <visitors/ApatheticVisitor.h>
 #include <LLVMEnvironment.h>
 #include <Token.h>
 #include <LambdaFunction.h>

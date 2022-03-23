@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include "CleanAstVisitor.h"
+#include "visitors/CleanAstVisitor.h"
 #include <cassert>
 
 namespace tuplex {

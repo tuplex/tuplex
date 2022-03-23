@@ -10,7 +10,7 @@
 #include <WorkerApp.h>
 #include <physical/TransformTask.h>
 #include "ee/local/LocalBackend.h"
-#include "TypeAnnotatorVisitor.h"
+#include "visitors/TypeAnnotatorVisitor.h"
 #include "AWSCommon.h"
 #include "bucket.h"
 

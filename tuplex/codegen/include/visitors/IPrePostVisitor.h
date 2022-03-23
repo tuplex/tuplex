@@ -11,7 +11,7 @@
 #ifndef TUPLEX_IPREPOSTVISITOR_H
 #define TUPLEX_IPREPOSTVISITOR_H
 
-#include <ApatheticVisitor.h>
+#include <visitors/ApatheticVisitor.h>
 
 namespace tuplex {
     /*!

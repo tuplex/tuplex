@@ -8,13 +8,13 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <BlockGeneratorVisitor.h>
+#include <visitors/BlockGeneratorVisitor.h>
 #include <FlattenedTuple.h>
 #include <ASTHelpers.h>
 #include <StringUtils.h>
 #include <Base.h>
-#include <TypeAnnotatorVisitor.h>
-#include <ApplyVisitor.h>
+#include <visitors/TypeAnnotatorVisitor.h>
+#include <visitors/ApplyVisitor.h>
 
 using namespace llvm;
 

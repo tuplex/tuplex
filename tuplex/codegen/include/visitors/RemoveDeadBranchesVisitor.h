@@ -11,7 +11,7 @@
 #ifndef TUPLEX_REMOVEDEADBRANCHESVISITOR_H
 #define TUPLEX_REMOVEDEADBRANCHESVISITOR_H
 
-#include "IReplaceVisitor.h"
+#include "visitors/IReplaceVisitor.h"
 
 namespace tuplex {
     // this class removes dead branches as would typically

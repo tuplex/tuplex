@@ -11,7 +11,7 @@
 #ifndef TUPLEX_TYPEANNOTATORVISITOR_H
 #define TUPLEX_TYPEANNOTATORVISITOR_H
 
-#include "ApatheticVisitor.h"
+#include "visitors/ApatheticVisitor.h"
 #include "SymbolTable.h"
 #include "CodegenHelper.h"
 #include <IFailable.h>

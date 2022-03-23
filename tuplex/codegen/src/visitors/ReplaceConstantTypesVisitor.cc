@@ -2,7 +2,7 @@
 // Created by Leonhard Spiegelberg on 2/27/22.
 //
 
-#include <ReplaceConstantTypesVisitor.h>
+#include <visitors/ReplaceConstantTypesVisitor.h>
 
 namespace tuplex {
     ASTNode* ReplaceConstantTypesVisitor::replace(ASTNode *parent, ASTNode *node) {

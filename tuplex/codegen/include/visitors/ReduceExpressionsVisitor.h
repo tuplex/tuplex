@@ -11,7 +11,7 @@
 #ifndef TUPLEX_REDUCEEXPRESSIONSVISITOR_H
 #define TUPLEX_REDUCEEXPRESSIONSVISITOR_H
 
-#include <IReplaceVisitor.h>
+#include <visitors/IReplaceVisitor.h>
 #include <ClosureEnvironment.h>
 
 namespace tuplex {

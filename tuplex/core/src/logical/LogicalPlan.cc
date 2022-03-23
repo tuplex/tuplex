@@ -24,7 +24,7 @@
 #include <set>
 #include <algorithm>
 #include <algorithm>
-#include <ApplyVisitor.h>
+#include <visitors/ApplyVisitor.h>
 #include <logical/AggregateOperator.h>
 #include <FilterBreakdownVisitor.h>
 

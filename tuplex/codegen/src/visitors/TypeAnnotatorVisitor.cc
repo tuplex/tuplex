@@ -8,10 +8,10 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <TypeAnnotatorVisitor.h>
+#include <visitors/TypeAnnotatorVisitor.h>
 #include <TypeSystem.h>
 #include <TokenType.h>
-#include <ApplyVisitor.h>
+#include <visitors/ApplyVisitor.h>
 #include <ASTHelpers.h>
 
 namespace tuplex {

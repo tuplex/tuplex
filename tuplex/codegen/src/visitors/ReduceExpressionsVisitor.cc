@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <ReduceExpressionsVisitor.h>
+#include <visitors/ReduceExpressionsVisitor.h>
 #include <cassert>
 #include <Logger.h>
 #include <cmath>

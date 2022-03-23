@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <ReducableExpressionsVisitor.h>
+#include <visitors/ReducableExpressionsVisitor.h>
 
 namespace tuplex {
     bool containsReducableExpressions(ASTNode *node) {

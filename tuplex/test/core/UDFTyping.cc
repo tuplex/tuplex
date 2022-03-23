@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <UDF.h>
-#include <TypeAnnotatorVisitor.h>
+#include <visitors/TypeAnnotatorVisitor.h>
 #include <gtest/gtest.h>
 #include <parser/Parser.h>
 #include <ColumnRewriteVisitor.h>

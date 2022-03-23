@@ -21,7 +21,6 @@
 
 const std::string GraphVizBuilder::nodePrefix = "n";
 
-
 std::string escapeDotLabel(const std::string& s) {
     std::string res = "";
     res.reserve(s.length());

@@ -12,7 +12,7 @@
 #define TUPLEX_FILTERBREAKDOWNVISITOR_H
 
 #include <ASTNodes.h>
-#include <IPrePostVisitor.h>
+#include <visitors/IPrePostVisitor.h>
 #include <IFailable.h>
 #include <string>
 #include <utility>

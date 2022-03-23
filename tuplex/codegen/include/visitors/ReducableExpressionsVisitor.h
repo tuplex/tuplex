@@ -12,7 +12,7 @@
 #define TUPLEX_REDUCABLEEXPRESSIONSVISITOR_H
 
 #include <IVisitor.h>
-#include <ApatheticVisitor.h>
+#include <visitors/ApatheticVisitor.h>
 #include <stack>
 
 namespace tuplex {

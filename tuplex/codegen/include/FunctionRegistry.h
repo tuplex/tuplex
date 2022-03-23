@@ -29,7 +29,7 @@
 #include "llvm/Transforms/Scalar/GVN.h"
 
 #include <deque>
-#include <ApatheticVisitor.h>
+#include <visitors/ApatheticVisitor.h>
 #include <LLVMEnvironment.h>
 #include <Token.h>
 #include <LambdaFunction.h>

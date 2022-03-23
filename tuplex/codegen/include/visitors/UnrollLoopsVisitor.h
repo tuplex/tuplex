@@ -11,7 +11,7 @@
 #ifndef TUPLEX_UNROLLLOOPSVISITOR_H
 #define TUPLEX_UNROLLLOOPSVISITOR_H
 
-#include "IReplaceVisitor.h"
+#include "visitors/IReplaceVisitor.h"
 #include <IFailable.h>
 
 namespace tuplex {

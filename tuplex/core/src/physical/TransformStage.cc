@@ -810,6 +810,16 @@ namespace tuplex {
         if(!fast_path_mod)
             throw std::runtime_error("invalid fast path bitcode");
 
+#ifndef NDEBUG
+        auto func_names = codegen::extractFunctionNames(fast_path_mod.get());
+        {
+            std::stringstream ss;
+            ss<<pluralize(func_names.size(), "function")<<" in module "<<fast_path_mod->getName().str()<<":\n";
+            ss<<func_names;
+            logger.debug(ss.str());
+        }
+#endif
+
         // step 1: run optimizer if desired
         if(optimizer) {
             Timer pathTimer;

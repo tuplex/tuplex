@@ -485,6 +485,17 @@ namespace tuplex {
             }
             return 0; // strings are strings and anything besides int is just serialized to string right now
         }
+
+        inline std::vector<std::string> extractFunctionNames(llvm::Module* mod) {
+            using namespace std;
+            if(!mod)
+                return {};
+            vector<string> v;
+            for(const auto& func : mod->functions()) {
+                v.push_back(func.getName().str());
+            }
+            return v;
+        }
     }
 }
 

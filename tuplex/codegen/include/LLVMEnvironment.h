@@ -638,7 +638,7 @@ namespace tuplex {
                 auto ctor_builder = IRBuilder(builder).firstBlockBuilder();
 //                llvm::IRBuilder<> ctorBuilder(std::move(getFirstBlockBuilder(builder)));
 
-                auto res = ctor_builder.CreateAlloca(llvmType, name); assert(res);
+                auto res = ctor_builder.CreateAlloca(llvmType, nullptr, name); assert(res);
                 return res;
             }
 
@@ -673,7 +673,7 @@ namespace tuplex {
 
                 auto ctor_builder = IRBuilder(builder).firstBlockBuilder();
                 auto llvmType = initialValue->getType();
-                auto res = ctor_builder.CreateAlloca(llvmType, name);
+                auto res = ctor_builder.CreateAlloca(llvmType, nullptr, name);
                 ctor_builder.CreateStore(initialValue, res);
                 assert(res);
                 return res;

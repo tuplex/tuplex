@@ -186,9 +186,9 @@ namespace tuplex {
                 auto retBlock = BasicBlock::Create(_env->getContext(), "retstr", builder.GetInsertBlock()->getParent());
 
                 // local variables
-                auto retval = builder.CreateAlloca(_env->i8ptrType(), 0, nullptr);
-                auto retsize = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
-                auto loopvar = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
+                auto retval = builder.CreateAlloca(_env->i8ptrType(), 0, nullptr, "");
+                auto retsize = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr, "");
+                auto loopvar = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr, "");
 
                 // conditional break whether to return empty string
                 auto strisempty = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLE, str.size, _env->i64Const(1));
@@ -3381,7 +3381,7 @@ namespace tuplex {
                         tuple_sizes = builder.CreateAlloca(_env->i64Type(), _env->i64Const(numElements));
 
                         // store the elements into the array
-                        FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder, iter.val, iterType);
+                        FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder.get(), iter.val, iterType);
 
                         std::vector<SerializableValue> elements;
                         for (int i = 0; i < numElements; ++i) {

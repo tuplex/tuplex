@@ -57,13 +57,18 @@ namespace tuplex {
               */
             IRBuilder firstBlockBuilder() const;
             // CreateAlloca (Type *Ty, unsigned AddrSpace, Value *ArraySize=nullptr, const Twine &Name=""
-            inline llvm::Value* CreateAlloca(llvm::Type *type, const std::string& name="") {
-                return get_or_throw().CreateAlloca(type, 0, nullptr, name);
-            }
+//            inline llvm::Value* CreateAlloca(llvm::Type *type, const std::string& name="") {
+//                return get_or_throw().CreateAlloca(type, 0, nullptr, name);
+//            }
 
              inline llvm::Value* CreateAlloca(llvm::Type *type, unsigned AddrSpace, llvm::Value* ArraySize=nullptr, const std::string& name="") const {
                  return get_or_throw().CreateAlloca(type, AddrSpace, ArraySize, name);
              }
+
+             inline llvm::AllocaInst *CreateAlloca(llvm::Type *Ty, llvm::Value *ArraySize = nullptr,
+                                      const std::string &Name = "") {
+                return get_or_throw().CreateAlloca(Ty, ArraySize, Name);
+            }
 
             // StoreInst * 	CreateStore (Value *Val, Value *Ptr, bool isVolatile=false)
             inline llvm::Value* CreateStore(llvm::Value* Val, llvm::Value* Ptr, bool isVolatile=false) const {

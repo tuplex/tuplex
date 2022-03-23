@@ -51,6 +51,7 @@ namespace tuplex {
 
         void rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) override;
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<UDFOperator>(this), ::cereal::base_class<ExceptionOperator<ResolveOperator>>(this));
@@ -58,8 +59,12 @@ namespace tuplex {
         template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<UDFOperator>(this), ::cereal::base_class<ExceptionOperator<ResolveOperator>>(this));
         }
+#endif
     };
 }
 
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::ResolveOperator);
+#endif
+
 #endif //TUPLEX_RESOLVEOPERATOR_H

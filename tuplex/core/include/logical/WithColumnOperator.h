@@ -66,15 +66,20 @@ namespace tuplex {
 
         bool retype(const std::vector<python::Type>& rowTypes=std::vector<python::Type>()) override;
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<UDFOperator>(this), _newColumn, _columnToMapIndex);
         }
         template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<UDFOperator>(this), _newColumn, _columnToMapIndex);
         }
+#endif
 
     };
 }
 
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::WithColumnOperator);
+#endif
+
 #endif //TUPLEX_WITHCOLUMNOPERATOR_H

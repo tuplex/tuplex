@@ -11,7 +11,6 @@
 #ifndef TUPLEX_PARALLELIZEOPERATOR_H
 #define TUPLEX_PARALLELIZEOPERATOR_H
 
-
 #include "LogicalOperator.h"
 
 namespace tuplex {
@@ -69,6 +68,7 @@ namespace tuplex {
 
         int64_t cost() const override;
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             // DO NOT INCLUDE sample here.
@@ -77,8 +77,12 @@ namespace tuplex {
         template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<LogicalOperator>(this), _columnNames);
         }
+#endif
     };
 }
 
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::ParallelizeOperator);
+#endif
+
 #endif //TUPLEX_PARALLELIZEOPERATOR_H

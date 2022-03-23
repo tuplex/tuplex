@@ -20,9 +20,9 @@
 #include <StringUtils.h>
 #include <jit/RuntimeInterface.h>
 
-// S3 stuff
-#include <aws/s3/S3Client.h>
-#include <aws/s3/model/Bucket.h>
+//// S3 stuff
+//#include <aws/s3/S3Client.h>
+//#include <aws/s3/model/Bucket.h>
 
 // protobuf
 #include <Lambda.pb.h>

@@ -12,7 +12,7 @@
 #define TUPLEX_FILEINPUTOPERATOR_H
 
 #include "LogicalOperator.h"
-#include <Partition.h>
+#include <physical/memory/Partition.h>
 #include <boost/align/aligned_allocator.hpp>
 
 namespace tuplex {

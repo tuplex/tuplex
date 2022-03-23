@@ -10,8 +10,8 @@
 
 #include <algorithm> // for binary search
 
-#include <physical/ResolveTask.h>
-#include <RuntimeInterface.h>
+#include <physical/execution/ResolveTask.h>
+#include <jit/RuntimeInterface.h>
 #include <bucket.h>
 #include <visitors/TypeAnnotatorVisitor.h>
 #include <CSVUtils.h>

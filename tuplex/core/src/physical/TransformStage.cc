@@ -8,18 +8,18 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/TransformStage.h>
-#include <physical/TransformTask.h>
-#include <physical/ResolveTask.h>
+#include <physical/execution/TransformStage.h>
+#include <physical/execution/TransformTask.h>
+#include <physical/execution/ResolveTask.h>
 // to avoid conflicts with Python 3.7
 #include "../include/Context.h"
-#include <physical/LLVMOptimizer.h>
+#include <jit/LLVMOptimizer.h>
 #include <limits>
-#include <RuntimeInterface.h>
+#include <jit/RuntimeInterface.h>
 #include <functional>
-#include <LocalEngine.h>
-#include <physical/CSVParserGenerator.h>
-#include <PartitionWriter.h>
+#include <ee/local/LocalEngine.h>
+#include <physical/codegen/CSVParserGenerator.h>
+#include <physical/memory/PartitionWriter.h>
 
 #include <thread>
 #include <random>
@@ -27,15 +27,15 @@
 #include <StringUtils.h>
 #include <algorithm>
 #include <string>
-#include <physical/BlockBasedTaskBuilder.h>
-#include <physical/TuplexSourceTaskBuilder.h>
-#include <physical/PipelineBuilder.h>
+#include <physical/codegen/BlockBasedTaskBuilder.h>
+#include <physical/codegen/TuplexSourceTaskBuilder.h>
+#include <physical/codegen/PipelineBuilder.h>
 #include <logical/FileOutputOperator.h>
-#include <physical/PythonPipelineBuilder.h>
-#include <PartitionWriter.h>
+#include <physical/codegen/PythonPipelineBuilder.h>
+#include <physical/memory/PartitionWriter.h>
 #include <limits>
-#include <physical/JITCSVSourceTaskBuilder.h>
-#include <physical/CellSourceTaskBuilder.h>
+#include <physical/codegen/JITCSVSourceTaskBuilder.h>
+#include <physical/codegen/CellSourceTaskBuilder.h>
 #include <logical/JoinOperator.h>
 #include <CSVUtils.h>
 #include <JSONUtils.h>

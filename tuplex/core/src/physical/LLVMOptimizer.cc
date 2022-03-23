@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/LLVMOptimizer.h>
+#include <jit/LLVMOptimizer.h>
 
 #include "llvm/ADT/Triple.h"
 #include "llvm/Analysis/CallGraph.h"

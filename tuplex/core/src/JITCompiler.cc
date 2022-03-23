@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <JITCompiler.h>
+#include <jit/JITCompiler.h>
 #include <Logger.h>
 
 #include <llvm/IR/Verifier.h>
@@ -21,7 +21,7 @@
 #include <Timer.h>
 
 //LLVM9 fixes
-#include <FixedRTDyldObjectLinkingLayer.h>
+#include <jit/FixedRTDyldObjectLinkingLayer.h>
 
 // C functions
 #include <hashmap.h>

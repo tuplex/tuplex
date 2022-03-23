@@ -8,13 +8,13 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/TransformTask.h>
-#include <RuntimeInterface.h>
+#include <physical/execution/TransformTask.h>
+#include <jit/RuntimeInterface.h>
 #include <CSVUtils.h>
-#include <physical/JITCompiledCSVReader.h>
-#include <physical/CSVReader.h>
-#include <physical/TextReader.h>
-#include <physical/OrcReader.h>
+#include <physical/codegen/JITCompiledCSVReader.h>
+#include <physical/execution/CSVReader.h>
+#include <physical/execution/TextReader.h>
+#include <physical/execution/OrcReader.h>
 #include <bucket.h>
 
 namespace tuplex {

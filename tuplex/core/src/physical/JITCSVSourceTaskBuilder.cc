@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/JITCSVSourceTaskBuilder.h>
+#include <physical/codegen/JITCSVSourceTaskBuilder.h>
 
 // #define TRACE_PARSER
 

@@ -12,7 +12,7 @@
 #include <cassert>
 #include <UDF.h>
 #include <PythonHelpers.h>
-#include <ColumnReturnRewriteVisitor.h>
+#include <visitors/ColumnReturnRewriteVisitor.h>
 
 namespace tuplex {
     MapOperator::MapOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF &udf, const std::vector<std::string> &columnNames)

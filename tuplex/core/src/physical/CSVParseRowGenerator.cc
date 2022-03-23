@@ -8,12 +8,12 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include "physical/CSVParseRowGenerator.h"
+#include "physical/codegen/CSVParseRowGenerator.h"
 #include <Logger.h>
 #include <ExceptionCodes.h>
 #include <Base.h>
 #include <StringUtils.h>
-#include <RuntimeInterface.h>
+#include <jit/RuntimeInterface.h>
 
 //#define TRACE_PARSER
 

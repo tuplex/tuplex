@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/IExecutorTask.h>
+#include <physical/execution/IExecutorTask.h>
 
 namespace tuplex {
 

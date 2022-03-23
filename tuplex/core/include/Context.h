@@ -14,19 +14,19 @@
 #include <logical/LogicalOperatorType.h>
 #include <logical/LogicalOperator.h>
 #include <DataSet.h>
-#include "Partition.h"
+#include "physical/memory/Partition.h"
 #include "Row.h"
-#include "HistoryServerClasses.h"
+#include "webui/HistoryServerClasses.h"
 #include <initializer_list>
 #include <iostream>
 #include <vector>
 #include <iterator>
 #include <ContextOptions.h>
-#include <JITCompiler.h>
+#include <jit/JITCompiler.h>
 #include <Utils.h>
 #include <graphviz/GraphVizBuilder.h>
 #include <ee/IBackend.h>
-#include "JobMetrics.h"
+#include "utils/JobMetrics.h"
 
 
 namespace tuplex {

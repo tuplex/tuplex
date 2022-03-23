@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/ResultSet.h>
+#include <physical/execution/ResultSet.h>
 #include <limits>
 
 namespace tuplex {

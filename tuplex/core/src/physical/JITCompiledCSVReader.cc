@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/JITCompiledCSVReader.h>
+#include <physical/codegen/JITCompiledCSVReader.h>
 #include <CSVUtils.h>
 #include <Logger.h>
 #include <iostream>

@@ -12,12 +12,12 @@
 #define TUPLEX_PHYSICALSTAGE_H
 
 #include "Context.h"
-#include <JITCompiler.h>
+#include <jit/JITCompiler.h>
 #include <ee/IBackend.h>
-#include "ResultSet.h"
+#include "physical/execution/ResultSet.h"
 #define EOF (-1)
 #include <nlohmann/json.hpp>
-#include <HistoryServerConnector.h>
+#include <webui/HistoryServerConnector.h>
 #include <logical/LogicalOperator.h>
 #include <memory>
 #include <utility>

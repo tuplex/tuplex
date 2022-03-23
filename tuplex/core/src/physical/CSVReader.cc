@@ -8,11 +8,11 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/CSVReader.h>
+#include <physical/execution/CSVReader.h>
 #include <VirtualFileSystem.h>
-#include <physical/csvmonkey.h>
+#include <physical/execution/csvmonkey.h>
 #include <Logger.h>
-#include <RuntimeInterface.h>
+#include <jit/RuntimeInterface.h>
 #include <StringUtils.h>
 #include <CSVUtils.h>
 #include <Base.h>

@@ -8,8 +8,8 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/HashProbeTask.h>
-#include <RuntimeInterface.h>
+#include <physical/execution/HashProbeTask.h>
+#include <jit/RuntimeInterface.h>
 
 extern "C" {
     static int64_t writeJoinedRow(tuplex::HashProbeTask* task, uint8_t* buf, int64_t bufSize) {

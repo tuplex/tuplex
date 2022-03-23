@@ -16,8 +16,8 @@
 #include <visitors/IPrePostVisitor.h>
 #include <unordered_map>
 #include <visitors/IReplaceVisitor.h>
-#include <ColumnRewriteVisitor.h>
-#include <TraceVisitor.h>
+#include <visitors/ColumnRewriteVisitor.h>
+#include <tracing/TraceVisitor.h>
 #include <visitors/ApplyVisitor.h>
 
 #ifndef NDEBUG

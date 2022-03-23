@@ -16,7 +16,7 @@
 #include "PythonException.h"
 #include "PythonDataSet.h"
 #include "PythonMetrics.h"
-#include "JobMetrics.h"
+#include "utils/JobMetrics.h"
 
 namespace tuplex {
 

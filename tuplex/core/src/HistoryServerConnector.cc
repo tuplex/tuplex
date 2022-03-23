@@ -8,13 +8,13 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <HistoryServerConnector.h>
+#include <webui/HistoryServerConnector.h>
 #include <StringUtils.h>
 #include <logical/UDFOperator.h>
 #include <logical/ResolveOperator.h>
 #include <logical/MapColumnOperator.h>
 #include <physical/PhysicalPlan.h>
-#include <physical/TransformStage.h>
+#include <physical/execution/TransformStage.h>
 
 // fix for EOF (should be defined in cstdio)
 #ifndef EOF

@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/PipelineBuilder.h>
+#include <physical/codegen/PipelineBuilder.h>
 #include <CSVUtils.h>
 
 namespace tuplex {

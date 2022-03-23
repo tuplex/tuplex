@@ -11,7 +11,7 @@
 #ifndef TUPLEX_OUTPUTFILEOPERATOR_H
 #define TUPLEX_OUTPUTFILEOPERATOR_H
 
-#include "../Defs.h"
+#include "Defs.h"
 #include "LogicalOperator.h"
 #include "LogicalOperatorType.h"
 #include <limits>

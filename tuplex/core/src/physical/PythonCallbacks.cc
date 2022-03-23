@@ -8,8 +8,8 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/PythonCallbacks.h>
-#include <RuntimeInterface.h>
+#include <physical/codegen/PythonCallbacks.h>
+#include <jit/RuntimeInterface.h>
 
 #warning "TODO: create versions which allow for a) dictmode b) multiparam syntax... c) both?"
 

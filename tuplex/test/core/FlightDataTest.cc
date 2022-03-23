@@ -11,7 +11,7 @@
 #include <Python.h>
 #include <gtest/gtest.h>
 #include <PythonHelpers.h>
-#include <RuntimeInterface.h>
+#include <jit/RuntimeInterface.h>
 #include <ContextOptions.h>
 #include <vector>
 #include <Utils.h>

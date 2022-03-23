@@ -12,7 +12,7 @@
 #include <visitors/TypeAnnotatorVisitor.h>
 #include <gtest/gtest.h>
 #include <parser/Parser.h>
-#include <ColumnRewriteVisitor.h>
+#include <visitors/ColumnRewriteVisitor.h>
 #include <graphviz/GraphVizGraph.h>
 
 //TEST(UDFTyping, IfStatementsReassign) {

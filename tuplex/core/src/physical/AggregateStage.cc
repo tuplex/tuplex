@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/AggregateStage.h>
+#include <physical/execution/AggregateStage.h>
 
 namespace tuplex {
 

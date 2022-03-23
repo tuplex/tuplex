@@ -18,11 +18,11 @@
 #include <CSVUtils.h>
 #include <CSVStatistic.h>
 #include <parser/Parser.h>
-#include <TraceVisitor.h>
+#include <tracing/TraceVisitor.h>
 
 #include "FullPipelines.h"
 
-#include <physical/StagePlanner.h>
+#include <physical/codegen/StagePlanner.h>
 
 class SamplingTest : public PyTest {};
 

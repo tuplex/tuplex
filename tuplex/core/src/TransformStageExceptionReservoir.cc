@@ -8,9 +8,9 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <TransformStageExceptionReservoir.h>
+#include <tracing/TransformStageExceptionReservoir.h>
 #include <cassert>
-#include <physical/TransformStage.h>
+#include <physical/execution/TransformStage.h>
 #include <logical/ResolveOperator.h>
 
 // TODO: put into separate helper file

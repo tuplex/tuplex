@@ -13,7 +13,7 @@
 
 #include <Python.h>
 #include <hashmap.h>
-#include <physical/TransformTask.h>
+#include <physical/execution/TransformTask.h>
 #include <TypeSystem.h>
 
 namespace tuplex {

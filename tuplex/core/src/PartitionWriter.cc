@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <PartitionWriter.h>
+#include <physical/memory/PartitionWriter.h>
 
 
 static const unsigned scaleFactor = 2;

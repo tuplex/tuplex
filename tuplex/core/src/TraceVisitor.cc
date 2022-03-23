@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <TraceVisitor.h>
+#include <tracing/TraceVisitor.h>
 #include <stdexcept>
 
 namespace tuplex {

@@ -16,9 +16,9 @@
 #include <aws/core/Aws.h>
 #include <aws/core/auth/AWSCredentialsProviderChain.h>
 #include <aws/core/platform/Environment.h>
-#include <JITCompiler.h>
+#include <jit/JITCompiler.h>
 #include <StringUtils.h>
-#include <RuntimeInterface.h>
+#include <jit/RuntimeInterface.h>
 
 // S3 stuff
 #include <aws/s3/S3Client.h>
@@ -26,9 +26,9 @@
 
 // protobuf
 #include <Lambda.pb.h>
-#include <physical/TransformStage.h>
-#include <physical/CSVReader.h>
-#include <physical/TextReader.h>
+#include <physical/execution/TransformStage.h>
+#include <physical/execution/CSVReader.h>
+#include <physical/execution/TextReader.h>
 #include <google/protobuf/util/json_util.h>
 
 

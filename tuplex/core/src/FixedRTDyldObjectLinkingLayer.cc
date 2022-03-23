@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <FixedRTDyldObjectLinkingLayer.h>
+#include <jit/FixedRTDyldObjectLinkingLayer.h>
 
 namespace {
 

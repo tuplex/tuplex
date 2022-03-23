@@ -9,12 +9,12 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <PythonContext.h>
-#include <LocalEngine.h>
+#include <ee/local/LocalEngine.h>
 #include <Row.h>
 #include "python3_sink.h"
 #include <JSONUtils.h>
 #include <limits>
-#include <Signals.h>
+#include <utils/Signals.h>
 
 // possible classes are
 // int, float, str, list, tuple, dict

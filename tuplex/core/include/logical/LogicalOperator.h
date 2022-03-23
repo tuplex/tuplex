@@ -16,7 +16,7 @@
 #include <utility>
 #include <functional>
 #include <memory>
-#include <physical/ResultSet.h>
+#include <physical/execution/ResultSet.h>
 #include <DataSet.h>
 #include "graphviz/GraphVizBuilder.h"
 #include "Schema.h"

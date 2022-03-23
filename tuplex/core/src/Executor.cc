@@ -8,13 +8,13 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include "Executor.h"
+#include "ee/local/Executor.h"
 #include <VirtualFileSystem.h>
-#include <RuntimeInterface.h>
-#include <Partition.h>
+#include <jit/RuntimeInterface.h>
+#include <physical/memory/Partition.h>
 #include <atomic>
 #include <unistd.h>
-#include <Signals.h>
+#include <utils/Signals.h>
 
 
 // Notes on Multithreaded programming:

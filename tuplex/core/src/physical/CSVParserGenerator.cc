@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include "physical/CSVParserGenerator.h"
+#include "physical/codegen/CSVParserGenerator.h"
 #include <Logger.h>
 #include <ExceptionCodes.h>
 #include <Base.h>

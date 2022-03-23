@@ -2,7 +2,7 @@
 // Created by Leonhard Spiegelberg on 2/4/22.
 //
 
-#include <physical/Hashmap.h>
+#include <physical/codegen/Hashmap.h>
 #include <hashmap.h>
 
 namespace tuplex {

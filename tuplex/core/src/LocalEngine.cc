@@ -14,8 +14,8 @@
 // Created by Leonhard Spiegelberg on 9/5/18.
 //
 
-#include <LocalEngine.h>
-#include <Signals.h>
+#include <ee/local/LocalEngine.h>
+#include <utils/Signals.h>
 
 namespace tuplex {
     void LocalEngine::release() {

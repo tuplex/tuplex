@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/TuplexSourceTaskBuilder.h>
+#include <physical/codegen/TuplexSourceTaskBuilder.h>
 
 namespace tuplex {
     namespace codegen {

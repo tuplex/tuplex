@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <RuntimeInterface.h>
+#include <jit/RuntimeInterface.h>
 #include "TestUtils.h"
 
 // test that i64, f64, bool are properly serialized & deserialized

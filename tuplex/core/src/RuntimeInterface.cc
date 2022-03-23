@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <RuntimeInterface.h>
+#include <jit/RuntimeInterface.h>
 #include "llvm/Support/DynamicLibrary.h"
 #include <Logger.h>
 

@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <Partition.h>
+#include <physical/memory/Partition.h>
 #include <Utils.h>
 
 namespace tuplex {

@@ -10,12 +10,12 @@
 
 #include "gtest/gtest.h"
 #include <codegen/LLVMEnvironment.h>
-#include <JITCompiler.h>
+#include <jit/JITCompiler.h>
 #include <string>
 #include <vector>
-#include <physical/AggregateFunctions.h>
+#include <physical/codegen/AggregateFunctions.h>
 #include <ContextOptions.h>
-#include <RuntimeInterface.h>
+#include <jit/RuntimeInterface.h>
 
 // bitmap test
 // simple tests for compiled stuff

@@ -8,10 +8,10 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/TextReader.h>
+#include <physical/execution/TextReader.h>
 #include <VirtualFileSystem.h>
 #include <Logger.h>
-#include <RuntimeInterface.h>
+#include <jit/RuntimeInterface.h>
 #include <ExceptionCodes.h>
 #include <nmmintrin.h>
 

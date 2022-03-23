@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/CellSourceTaskBuilder.h>
+#include <physical/codegen/CellSourceTaskBuilder.h>
 #include <codegen/CodegenHelper.h>
 
 namespace tuplex {

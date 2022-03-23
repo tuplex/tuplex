@@ -8,8 +8,8 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/AggregateFunctions.h>
-#include <RuntimeInterface.h>
+#include <physical/codegen/AggregateFunctions.h>
+#include <jit/RuntimeInterface.h>
 
 namespace tuplex {
     namespace codegen {

@@ -8,16 +8,16 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/StageBuilder.h>
-#include <physical/PythonPipelineBuilder.h>
-#include <physical/PipelineBuilder.h>
+#include <physical/codegen/StageBuilder.h>
+#include <physical/codegen/PythonPipelineBuilder.h>
+#include <physical/codegen/PipelineBuilder.h>
 #include <physical/PhysicalPlan.h>
-#include <physical/BlockBasedTaskBuilder.h>
-#include <physical/CellSourceTaskBuilder.h>
-#include <physical/JITCSVSourceTaskBuilder.h>
-#include <physical/TuplexSourceTaskBuilder.h>
-#include <physical/ExceptionSourceTaskBuilder.h>
-#include <physical/AggregateFunctions.h>
+#include <physical/codegen/BlockBasedTaskBuilder.h>
+#include <physical/codegen/CellSourceTaskBuilder.h>
+#include <physical/codegen/JITCSVSourceTaskBuilder.h>
+#include <physical/codegen/TuplexSourceTaskBuilder.h>
+#include <physical/codegen/ExceptionSourceTaskBuilder.h>
+#include <physical/codegen/AggregateFunctions.h>
 #include <logical/CacheOperator.h>
 #include <JSONUtils.h>
 #include <CSVUtils.h>
@@ -28,7 +28,7 @@
 #include <limits.h>
 
 // New: Stage Specialization, maybe rename?
-#include <physical/StagePlanner.h>
+#include <physical/codegen/StagePlanner.h>
 
 #include <nlohmann/json.hpp>
 #include <google/protobuf/util/json_util.h>

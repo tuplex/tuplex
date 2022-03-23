@@ -23,12 +23,12 @@
 
 #include <Row.h>
 #include <UDF.h>
-#include <Executor.h>
+#include <ee/local/Executor.h>
 #include <ContextOptions.h>
 #include <spdlog/sinks/ostream_sink.h>
-#include <LocalEngine.h>
-#include <physical/CodeDefs.h>
-#include <RuntimeInterface.h>
+#include <ee/local/LocalEngine.h>
+#include <physical/codegen/CodeDefs.h>
+#include <jit/RuntimeInterface.h>
 #include <symbols/ClosureEnvironment.h>
 #include <Environment.h>
 

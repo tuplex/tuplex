@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include "RESTInterface.h"
+#include "webui/RESTInterface.h"
 #include <cassert>
 #include <Logger.h>
 

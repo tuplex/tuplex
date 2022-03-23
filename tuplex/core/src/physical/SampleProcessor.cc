@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/SampleProcessor.h>
+#include <physical/execution/SampleProcessor.h>
 #include <logical/UDFOperator.h>
 #include <logical/MapColumnOperator.h>
 #include <logical/WithColumnOperator.h>

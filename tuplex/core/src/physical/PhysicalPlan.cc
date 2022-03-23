@@ -9,10 +9,10 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <physical/PhysicalPlan.h>
-#include <physical/TransformStage.h>
-#include <physical/HashJoinStage.h>
-#include <physical/AggregateStage.h>
-#include <physical/StageBuilder.h>
+#include <physical/execution/TransformStage.h>
+#include <physical/execution/HashJoinStage.h>
+#include <physical/execution/AggregateStage.h>
+#include <physical/codegen/StageBuilder.h>
 #include <logical/ParallelizeOperator.h>
 #include <logical/FileInputOperator.h>
 #include <logical/MapOperator.h>
@@ -24,8 +24,8 @@
 #include <logical/JoinOperator.h>
 #include <logical/AggregateOperator.h>
 #include <logical/CacheOperator.h>
-#include <RuntimeInterface.h>
-#include <Signals.h>
+#include <jit/RuntimeInterface.h>
+#include <utils/Signals.h>
 
 namespace tuplex {
 

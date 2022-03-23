@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/HashJoinStage.h>
+#include <physical/execution/HashJoinStage.h>
 #include <codegen/CodegenHelper.h>
 
 namespace tuplex {

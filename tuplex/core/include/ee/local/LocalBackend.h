@@ -13,14 +13,14 @@
 
 #include "../IBackend.h"
 #include <vector>
-#include <physical/TransformStage.h>
-#include <physical/HashJoinStage.h>
-#include <physical/AggregateStage.h>
-#include <physical/BlockBasedTaskBuilder.h>
-#include <physical/IExceptionableTask.h>
+#include <physical/execution/TransformStage.h>
+#include <physical/execution/HashJoinStage.h>
+#include <physical/execution/AggregateStage.h>
+#include <physical/codegen/BlockBasedTaskBuilder.h>
+#include <physical/execution/IExceptionableTask.h>
 #include <numeric>
-#include <physical/TransformTask.h>
-#include <physical/ResolveTask.h>
+#include <physical/execution/TransformTask.h>
+#include <physical/execution/ResolveTask.h>
 
 namespace tuplex {
 

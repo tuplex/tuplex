@@ -2,8 +2,8 @@
 // Created by Leonhard Spiegelberg on 2/27/22.
 //
 
-#include <physical/StagePlanner.h>
-#include <physical/AggregateFunctions.h>
+#include <physical/codegen/StagePlanner.h>
+#include <physical/codegen/AggregateFunctions.h>
 #include <logical/CacheOperator.h>
 #include <logical/JoinOperator.h>
 #include <logical/FileInputOperator.h>
@@ -18,7 +18,7 @@
 #include <iterator>
 #include <string_view>
 #include <vector>
-#include <physical/StageBuilder.h>
+#include <physical/codegen/StageBuilder.h>
 #include <graphviz/GraphVizBuilder.h>
 
 #define VERBOSE_BUILD

@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/PythonPipelineBuilder.h>
+#include <physical/codegen/PythonPipelineBuilder.h>
 #include <StringUtils.h>
 #include <PythonHelpers.h>
 

@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <HybridHashTable.h>
-#include <physical/PythonPipelineBuilder.h>
+#include <physical/codegen/PythonPipelineBuilder.h>
 #include <bucket.h>
 #include "TestUtils.h"
 

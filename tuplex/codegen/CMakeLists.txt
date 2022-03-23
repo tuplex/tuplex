@@ -146,6 +146,13 @@ llvm_map_components_to_libnames(llvm_libs core orcjit nativecodegen native scala
 
 #add_dependencies(libcodegen GeneratePython3Parser)
 
+# use precompiled headers for this target to decrease the cereal template instantiation cost
+file(GLOB_RECURSE VISITORS_HEADERS include/visitors/*.h)
+file(GLOB_RECURSE AST_HEADERS include/ast/*.h)
+file(GLOB_RECURSE SYMBOLS_HEADERS include/symbols/*.h)
+set(CODEGEN_HEADERS ${VISITORS_HEADERS} ${AST_HEADERS} ${SYMBOLS_HEADERS})
+message(STATUS "headers to precompile: ${CODEGEN_HEADERS}")
+
 # Specify here the include directories exported
 # by this library
 target_include_directories(libcodegen PUBLIC
@@ -166,3 +173,5 @@ target_link_libraries(libcodegen
         ${ANTLR4Runtime_LIB}
         ${AWSSDK_LINK_LIBRARIES}
         ${PCRE2_LIBRARIES})
+
+target_precompile_headers(libcodegen PUBLIC ${CODEGEN_HEADERS})

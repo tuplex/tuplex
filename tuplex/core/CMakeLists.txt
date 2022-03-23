@@ -78,6 +78,8 @@ add_definitions(${LLVM_DEFINITIONS})
 
 # core has the runtime llvm libraries
 llvm_map_components_to_libnames(core_llvm_libs nativecodegen scalaropts objcarcopts passes orcJIT orcshared orctargetprocess)
+message(STATUS "llvm lib dirs: ${LLVM_LIBRARY_DIRS}")
+link_directories(${LLVM_LIBRARY_DIRS})
 message(STATUS "${core_llvm_libs}")
 
 # Declare the library

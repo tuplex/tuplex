@@ -30,6 +30,7 @@
 #include <llvm/IR/Verifier.h>
 #include <codegen/LLVMEnvironment.h>
 
+#ifdef BUILD_WITH_CEREAL
 // @TODO: maybe make this cleaner (one header? precompiled-headers?)
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
@@ -40,8 +41,8 @@
 #include "cereal/types/utility.hpp"
 #include "cereal/types/string.hpp"
 #include "cereal/types/common.hpp"
-
 #include "cereal/archives/binary.hpp"
+#endif
 
 namespace tuplex {
     namespace codegen {

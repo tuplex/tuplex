@@ -20,6 +20,7 @@
 #include <symbols/ClosureEnvironment.h>
 #include <codegen/IFailable.h>
 
+#ifdef BUILD_WITH_CEREAL
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
 #include "cereal/types/polymorphic.hpp"
@@ -28,8 +29,8 @@
 #include "cereal/types/utility.hpp"
 #include "cereal/types/string.hpp"
 #include "cereal/types/common.hpp"
-
 #include "cereal/archives/binary.hpp"
+#endif
 
 namespace tuplex {
     class UDF : public IFailable {
@@ -106,11 +107,6 @@ namespace tuplex {
          * @return UDF object.
          */
         UDF withCompilePolicy(const codegen::CompilePolicy& policy) const;
-
-        // cereal serialization functions
-        template<class Archive> void serialize(Archive &ar) {
-            ar(_ast, _isCompiled, _failed, _code, _pickledCode, _outputSchema, _inputSchema, _dictAccessFound, _rewriteDictExecuted);
-        }
 
         /*!
          * get closure environment back, i.e. all used modules and globals within this UDF.
@@ -276,6 +272,13 @@ namespace tuplex {
         // maybe this is actually the most elegant solution for cloudpickled code???
         // --> however, this may cause a problem if a user wants to test his/her function.
         // HENCE, best is to use ONE mode exclusively...
+
+#ifdef BUILD_WITH_CEREAL
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_ast, _isCompiled, _failed, _code, _pickledCode, _outputSchema, _inputSchema, _dictAccessFound, _rewriteDictExecuted);
+        }
+#endif
     };
 }
 

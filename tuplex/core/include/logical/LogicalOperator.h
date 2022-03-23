@@ -23,6 +23,7 @@
 // to avoid conflicts with Python3.7
 #include "../Context.h"
 
+#ifdef BUILD_WITH_CEREAL
 // serialization headers
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
@@ -37,6 +38,7 @@
 #include "cereal/types/polymorphic.hpp"
 #include "cereal/archives/binary.hpp"
 // end
+#endif
 
 static const size_t MAX_TYPE_SAMPLING_ROWS=100; // make this configurable? i.e. defines how much to trace...
 
@@ -265,6 +267,7 @@ namespace tuplex {
         */
         virtual std::vector<PyObject*> getPythonicSample(size_t num);
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             ar(_id, _parents, _schema);
@@ -274,9 +277,12 @@ namespace tuplex {
             ar(_id, _parents, _schema);
             addThisToParents(); // build children of parents
         }
+#endif
     };
 }
 
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::LogicalOperator)
+#endif
 
 #endif //TUPLEX_LOGICALOPERATOR_H

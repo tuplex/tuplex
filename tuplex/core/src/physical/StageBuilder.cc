@@ -313,18 +313,18 @@ namespace tuplex {
             return ss.str();
         }
 
-        std::vector<std::shared_ptr<LogicalOperator>> specializePipeline(bool nullValueOptimization,
-                                                         const std::shared_ptr<LogicalOperator>& inputNode,
-                                                         const std::vector<std::shared_ptr<LogicalOperator>>& operators) {
-
-            using namespace std;
-            auto& logger = Logger::instance().defaultLogger();
-
-            // use StagePlanner to create specialized pipeline
-            StagePlanner planner(inputNode, operators);
-            planner.enableAll();
-            return planner.optimize();
-        }
+//        std::vector<std::shared_ptr<LogicalOperator>> specializePipeline(bool nullValueOptimization,
+//                                                         const std::shared_ptr<LogicalOperator>& inputNode,
+//                                                         const std::vector<std::shared_ptr<LogicalOperator>>& operators) {
+//
+//            using namespace std;
+//            auto& logger = Logger::instance().defaultLogger();
+//
+//            // use StagePlanner to create specialized pipeline
+//            StagePlanner planner(inputNode, operators);
+//            planner.enableAll();
+//            return planner.optimize();
+//        }
 
         void StageBuilder::fillInCallbackNames(const std::string& func_prefix, size_t stageNo, TransformStage::StageCodePath& cp) {
             using namespace std;

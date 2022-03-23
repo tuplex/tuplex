@@ -285,7 +285,7 @@ namespace tuplex {
             return opt_ops;
         }
 
-        std::vector<std::shared_ptr<LogicalOperator>> StagePlanner::optimize() {
+        void StagePlanner::optimize() {
             using namespace std;
 
             vector<shared_ptr<LogicalOperator>> optimized_operators = vec_prepend(_inputNode, _operators);
@@ -318,9 +318,6 @@ namespace tuplex {
             }
 
             // can filters get pushed down even further? => check! constant folding may remove code!
-
-
-            return _operators;
         }
 
         std::vector<std::shared_ptr<LogicalOperator>> StagePlanner::nullValueOptimization() {
@@ -626,7 +623,9 @@ namespace tuplex {
 
         codegen::StagePlanner planner(inputNode, operators);
         planner.enableAll();
-        path_ctx.operators = planner.optimize();
+        planner.optimize();
+        path_ctx.inputNode = planner.input_node();
+        path_ctx.operators = planner.optimized_operators();
         path_ctx.outputSchema = path_ctx.operators.back()->getOutputSchema();
         path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();
         path_ctx.readSchema = std::dynamic_pointer_cast<FileInputOperator>(path_ctx.inputNode)->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!

@@ -110,7 +110,15 @@ namespace tuplex {
              * The others are (possibly rearranged) operators. Operators are clones/copies of original operators. I.e.
              * planner is non-destructive.
              */
-            std::vector<std::shared_ptr<LogicalOperator>> optimize();
+            void optimize();
+
+            std::vector<std::shared_ptr<LogicalOperator>> optimized_operators() const {
+                return _operators;
+            }
+
+            std::shared_ptr<LogicalOperator> input_node() const {
+                return _inputNode;
+            }
 
             /*!
              * shortcut to enable all optimizations

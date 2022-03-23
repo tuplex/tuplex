@@ -646,7 +646,6 @@ TEST(BasicInvocation, FileSplitting) {
     ASSERT_EQ(res.size(), 5);
 }
 
-
 TEST(BasicInvocation, SelfInvoke) {
     using namespace tuplex;
 

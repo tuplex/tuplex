@@ -81,10 +81,13 @@ llvm_map_components_to_libnames(core_llvm_libs nativecodegen scalaropts objcarco
 message(STATUS "llvm lib dirs: ${LLVM_LIBRARY_DIRS}")
 link_directories(${LLVM_LIBRARY_DIRS})
 message(STATUS "${core_llvm_libs}")
+
+#target_include_directories(libcore PRIVATE libcodegen)
+
 #llvm_config(libcore USE_SHARED ${core_llvm_libs})
 # Declare the library
 target_link_libraries(libcore
-        INTERFACE
+        PRIVATE
         libcodegen
         libio
         libcpythonadapter

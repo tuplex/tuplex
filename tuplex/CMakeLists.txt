@@ -31,12 +31,25 @@ if (${FORCE_COLORED_OUTPUT})
     endif ()
 endif ()
 
-# set default MacOS target, if not set.
-# cf. https://cmake.org/cmake/help/latest/variable/CMAKE_OSX_DEPLOYMENT_TARGET.html
-if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-    # use high sierra target per default
-    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
+# detect MacOS Version because at least 10.13 is required when building with AWS SDK
+if(APPLE)
+    execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    # set default MacOS target, if not set.
+    # cf. https://cmake.org/cmake/help/latest/variable/CMAKE_OSX_DEPLOYMENT_TARGET.html
+    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+        if(MACOSX_VERSION_STRING VERSION_GREATER_EQUAL 11.0)
+            set(CMAKE_OSX_DEPLOYMENT_TARGET 11.0)
+        else()
+            # use high sierra target per default
+            set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
+        endif()
+    endif()
+
+    message(STATUS "Detected macOS ${MACOSX_VERSION_STRING} host platform, building for deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}. To use a different deployment target either set CMAKE_OSX_DEPLOYMENT_TARGET or the environment variable MACOSX_DEPLOYMENT_TARGET to the desired version.")
 endif()
+
+
 
 # via -DVERSION_INFO a string may be passed down. --> include it somehow
 if(VERSION_INFO)
@@ -153,12 +166,6 @@ if(BREW_FOUND)
     endif()
 endif()
 enable_testing()
-
-# detect MacOS Version because at least 10.13 is required when building with AWS SDK
-if(APPLE)
-  execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
-  message(STATUS "Detected macOS ${MACOSX_VERSION_STRING} host platform, building for deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}. To use a different deployment target either set CMAKE_OSX_DEPLOYMENT_TARGET or the environment variable MACOSX_DEPLOYMENT_TARGET to the desired version.")
-endif()
 
 # mainly from https://github.com/AdaCore/z3/blob/master/CMakeLists.txt
 message(STATUS "CMake generator: ${CMAKE_GENERATOR}")

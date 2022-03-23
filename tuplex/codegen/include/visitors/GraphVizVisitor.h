@@ -8,7 +8,9 @@
 #include <memory>
 #include <stack>
 #include <vector>
+#include <regex>
 #include "IVisitor.h"
+#include <graphviz/GraphVizBuilder.h>
 
 namespace tuplex {
     class GraphVizVisitor : public IVisitor {

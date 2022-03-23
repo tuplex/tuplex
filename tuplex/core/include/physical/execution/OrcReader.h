@@ -13,8 +13,8 @@
 
 #ifdef BUILD_WITH_ORC
 
+#include <physical/memory/PartitionWriter.h>
 #include <orc/OrcFile.hh>
-#include <PartitionWriter.h>
 #include <orc/OrcBatch.h>
 #include <orc/I64Batch.h>
 #include <orc/F64Batch.h>

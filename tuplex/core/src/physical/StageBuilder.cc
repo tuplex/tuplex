@@ -1649,6 +1649,7 @@ namespace tuplex {
                 stringToFile("python_code_" + stage->_pyPipelineName + ".py", stage->_pyCode);
 #endif
 
+#ifdef BUILD_WITH_CEREAL
                 // use test-wise cereal to encode the context (i.e., the stage) to send
                 // over to individual executors for specialization.
                 std::ostringstream oss(std::stringstream::binary);
@@ -1658,6 +1659,10 @@ namespace tuplex {
                     // ar going out of scope flushes everything
                 }
                 auto bytes_str = oss.str();
+#else
+                std::string bytes_str;
+                throw std::runtime_error("require cereal");
+#endif
                 logger.info("Serialized CodeGeneration Context to " + sizeToMemString(bytes_str.size()));
                 // compress this now using zip or so...
                 // https://gist.github.com/gomons/9d446024fbb7ccb6536ab984e29e154a

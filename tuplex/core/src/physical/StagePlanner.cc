@@ -594,6 +594,7 @@ namespace tuplex {
         // fetch codeGenerationContext & restore logical operator tree!
         codegen::CodeGenerationContext ctx;
         Timer timer;
+#ifdef BUILD_WITH_CEREAL
         {
             auto compressed_str = stage->_encodedData;
             auto decompressed_str = decompress_string(compressed_str);
@@ -603,6 +604,9 @@ namespace tuplex {
             ar(ctx);
         }
         logger.info("Decode took " + std::to_string(timer.time()) + "s");
+#else
+        throw std::runtime_error("requires cereal");
+#endif
         // old hacky version
         // auto ctx = codegen::CodeGenerationContext::fromJSON(stage->_encodedData);
 

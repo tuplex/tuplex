@@ -71,11 +71,15 @@ target_include_directories(libcore PUBLIC
 
 message(STATUS "Boost libraries are: ${Boost_LIBRARIES}")
 
+# core has the runtime llvm libraries
+llvm_map_components_to_libnames(core_llvm_libs orcjit nativecodegen scalaropts objcarcopts passes)
+
 # Declare the library
 target_link_libraries(libcore
         libcodegen
         libio
         libcpythonadapter
+        ${core_llvm_libs}
         ${YAMLCPP_LIBRARY}
         ${CURL_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}

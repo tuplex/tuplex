@@ -153,7 +153,7 @@ namespace tuplex {
         // => solution: either update to llvm10 or simply use own linking layer which is fixed.
         // use https://github.com/llvm/llvm-project/blob/dbc601e25b6da8d6dd83c8fa6ac8865bb84394a2/llvm/examples/OrcV2Examples/LLJITWithGDBRegistrationListener/LLJITWithGDBRegistrationListener.cpp as example
         // Bug: https://www.mail-archive.com/llvm-bugs@lists.llvm.org/msg33393.html
-
+        _targetTriple = tmBuilder.get().getTargetTriple();
         auto jitFuture = LLJITBuilder()//.setNumCompileThreads(std::thread::hardware_concurrency())
                 .setJITTargetMachineBuilder(tmBuilder.get())
                 .setObjectLinkingLayerCreator([](ExecutionSession& ES) {
@@ -258,7 +258,7 @@ namespace tuplex {
 
         // change module target triple, data layout etc. to target machine
         tsm->getModule()->setDataLayout(_lljit->getDataLayout());
-
+        tsm->getModule()->setTargetTriple(_targetTriple.str());
         // look into https://github.com/llvm/llvm-project/blob/master/llvm/examples/ModuleMaker/ModuleMaker.cpp on how to ouput bitcode
 
         // create for this module own jitlib

@@ -86,14 +86,15 @@ namespace tuplex {
             // init module
             _module.reset(new llvm::Module(moduleName, _context));
 
-            // fetch for executing process the target machine & set data layout to it
-            llvm::TargetMachine *TM = llvm::EngineBuilder().selectTarget();
-            assert(TM);
-            _module->setDataLayout(TM->createDataLayout());
+            // IR is target independent, set target when explicitly compiling!
+            // // fetch for executing process the target machine & set data layout to it
+            // llvm::TargetMachine *TM = llvm::EngineBuilder().selectTarget();
+            // assert(TM);
+            // _module->setDataLayout(TM->createDataLayout());
 
-            if (TM)
-                delete TM;
-            TM = nullptr;
+            // if (TM)
+            //     delete TM;
+            // TM = nullptr;
 
             // setup defaults in typeMapping (ignore bool)
             _typeMapping[llvm::Type::getDoubleTy(_context)] = python::Type::F64;

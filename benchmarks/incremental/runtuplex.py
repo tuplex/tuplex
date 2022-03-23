@@ -227,7 +227,6 @@ if __name__ == '__main__':
 
     startup_time = time.time() - tstart
     print('Tuplex startup time: {}'.format(startup_time))
-    tstart = time.time()
 
     shutil.rmtree(output_path, ignore_errors=True)
 
@@ -237,6 +236,7 @@ if __name__ == '__main__':
         # Read file into cache
         ctx.csv(','.join(paths)).aggregate(lambda x, y: x + y, lambda a, x: a + 1, 0).collect()
 
+    tstart = time.time()
     # decide which pipeline to run based on argparse arg!
     num_steps = 7
     metrics = []

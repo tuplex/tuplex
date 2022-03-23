@@ -19,8 +19,8 @@ fi
 NUM_RUNS=3
 TIMEOUT=14400
 
-RESDIR='results_dirty_zillow@50G'
-DATA_PATH_SSD='/hot/scratch/bgivertz/data/zillow_dirty@50G.csv'
+RESDIR='results_dirty_zillow@100G'
+DATA_PATH_SSD='/hot/scratch/bgivertz/data/zillow_dirty@100G.csv'
 #DATA_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/data/zillow_dirty@50G.csv'
 INCREMENTAL_OUT_PATH_SSD='/hot/scratch/bgivertz/output/incremental_output'
 #INCREMENTAL_OUT_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/incremental_output'

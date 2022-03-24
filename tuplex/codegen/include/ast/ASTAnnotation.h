@@ -16,6 +16,7 @@
 #include <functional>
 #include <memory>
 #include <TypeSystem.h>
+#include <TypeHelper.h>
 #include <Field.h>
 
 #ifdef BUILD_WITH_CEREAL
@@ -381,6 +382,12 @@ struct IteratorInfo {
     std::string iteratorName; // from which built-in function the iterator was generated, currently can be "iter", "zip", "enumerate".
     python::Type argsType; // concrete type of arguments of the iterator generating function.
     std::vector<std::shared_ptr<IteratorInfo>> argsIteratorInfo; // pointers to IteratorInfo of each argument.
+
+    void deoptimize() {
+        argsType = deoptimizedType(argsType);
+        for(auto& info : argsIteratorInfo)
+            deoptimized
+    }
 };
 
 // simple class used to annotate ast nodes

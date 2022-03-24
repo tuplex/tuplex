@@ -550,6 +550,23 @@ namespace python {
         return desc().find("Option") != std::string::npos; // @TODO: this is a quick and dirty hack, improve.
     }
 
+    bool Type::isOptimizedType() const {
+        // currently know of the following...
+//         OPTIMIZED_CONSTANT, // constant value
+//            OPTIMIZED_DELAYEDPARSING, // dummy types to allow for certain optimizations
+//            OPTIMIZED_RANGECOMPRESSION // range compression
+        const auto& entry = TypeFactory::instance()._typeMap.at(_hash);
+        switch(entry._type) {
+            case AbstractType::OPTIMIZED_CONSTANT:
+            case AbstractType::OPTIMIZED_DELAYEDPARSING:
+            case AbstractType::RANGECOMPRESSION: {
+                return true;
+            }
+            default:
+                return false;
+        }
+    }
+
     bool Type::isSingleValued() const {
         return *this == Type::NULLVALUE || *this == Type::EMPTYTUPLE || *this == Type::EMPTYDICT || *this == Type::EMPTYLIST;
     }

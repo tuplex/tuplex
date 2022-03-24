@@ -13,6 +13,7 @@
 #include <parser/TokenType.h>
 #include <visitors/ApplyVisitor.h>
 #include <ast/ASTHelpers.h>
+#include <visitors/type_deopt.h>
 
 namespace tuplex {
     bool isPythonIntegerType(const python::Type& t ) {
@@ -216,6 +217,13 @@ namespace tuplex {
         // result type of this operation is basically the operand's type
         // except for bool type, then it is int
         auto type = op->_operand->getInferredType();
+
+          // deoptimization routine
+        python::Type optimized_result = python::Type::UNKNOWN;
+        if(!deopt_unary_op(optimized_result, type, op->_op)) {
+            op->setInferredType(optimized_result);
+            return;
+        }
 
         if(op->_op == TokenType::NOT)
             op->setInferredType(python::Type::BOOLEAN);
@@ -535,6 +543,13 @@ namespace tuplex {
         auto right_type = op->_right->getInferredType();
         auto tt = op->_op;
 
+        // deoptimization routine
+        python::Type optimized_result = python::Type::UNKNOWN;
+        if(!deopt_binary_op(optimized_result, left_type, right_type, tt)) {
+            op->setInferredType(optimized_result);
+            return;
+        }
+
         if(left_type.isOptionType() || right_type.isOptionType()) {
             // special check == or != operator?
             if(tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL) {
@@ -571,9 +586,13 @@ namespace tuplex {
         // check if `is` comparison is valid
         std::unordered_set<python::Type> validTypes = {python::Type::NULLVALUE, python::Type::BOOLEAN};
         // one of every two types must be in validTypes.
+        // -> want to compare deoptimized types
 
         if(cmp->_comps.size() >= 1) {
-            if(cmp->_ops[0] == TokenType::IS && !validTypes.count(cmp->_left->getInferredType()) && !validTypes.count(cmp->_comps[0]->getInferredType())) {
+
+            auto left_type = deoptimizedType(cmp->_left->getInferredType());
+            auto right_type = deoptimizedType(cmp->_comps[0]->getInferredType());
+            if(cmp->_ops[0] == TokenType::IS && !validTypes.count(left_type) && !validTypes.count(right_type)) {
                 // invalid types for lhs and rhs to do an `is` comparison.
                 addCompileError(CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON);
                 return;
@@ -583,8 +602,8 @@ namespace tuplex {
         bool lastValid = false;
         // if more that one operand, check if all types would be valid.
         for(int i = 0; i < cmp->_comps.size() - 1; i++) {
-            auto currType = cmp->_comps[i]->getInferredType();
-            auto nextType = cmp->_comps[i+1]->getInferredType();
+            auto currType = deoptimizedType(cmp->_comps[i]->getInferredType());
+            auto nextType = deoptimizedType(cmp->_comps[i+1]->getInferredType());
 
             // type error only if previous comparison is invalid
             if(!validTypes.count(currType) && !validTypes.count(nextType) && cmp->_ops[i] == TokenType::IS) {
@@ -1368,6 +1387,7 @@ namespace tuplex {
                 auto else_type = jt->second;
 
                 if(if_type != else_type) {
+
                     // check if they can be unified
                     auto uni_type = unifyTypes(if_type, else_type, _policy.allowNumericTypeUnification);
                     if(uni_type != python::Type::UNKNOWN) {
@@ -1656,10 +1676,26 @@ namespace tuplex {
         _nameTable = name_backup;
     }
 
+    void TypeAnnotatorVisitor::deopt_tables() {
+        for(auto& keyval : _nameTable) {
+            if(keyval.second.isOptimizedType())
+                keyval.second = deoptimizedType(keyval.second);
+        }
+
+        for(auto& keyval : _iteratorInfoTable) {
+            if(keyval.second)
+                keyval.second.deoptimize();
+        }
+    }
+
     void TypeAnnotatorVisitor::visit(NFor* forelse) {
         assert(forelse->target);
         assert(forelse->expression);
         assert(forelse->suite_body);
+
+        // make sure no optimized types are present -> @TODO: could add support here
+        deopt_tables();
+
         setLastParent(forelse);
 
         forelse->expression->accept(*this);
@@ -1773,6 +1809,10 @@ namespace tuplex {
 
     void TypeAnnotatorVisitor::visit(NWhile* whileStmt) {
         assert(whileStmt && whileStmt->expression && whileStmt->suite_body);
+
+        // make sure no optimized types are present -> @TODO: could add support here
+        deopt_tables();
+
         setLastParent(whileStmt);
         whileStmt->expression->accept(*this);
 

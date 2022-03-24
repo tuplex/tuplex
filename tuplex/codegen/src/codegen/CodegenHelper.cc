@@ -555,43 +555,6 @@ namespace tuplex {
         }
 
 
-        python::Type deoptimizedType(const python::Type& optType) {
-            //@TODO: refactor all these functions/recursive things into something better...
-
-            // only constant folding so far supported.
-            // also perform nested deoptimize...
-            if(optType.isConstantValued()) {
-                return optType.underlying();
-            }
-
-            // compound type?
-            if(optType.isOptionType()) {
-                return python::Type::makeOptionType(deoptimizedType(optType.elementType()));
-            }
-
-            if(optType.isListType()) {
-                return python::Type::makeListType(deoptimizedType(optType.elementType()));
-            }
-
-            if(optType.isDictionaryType()) {
-                return python::Type::makeDictionaryType(deoptimizedType(optType.keyType()), deoptimizedType(optType.valueType()));
-            }
-
-            if(optType.isPrimitiveType())
-                return optType;
-
-            if(optType.isTupleType()) {
-                auto params = optType.parameters();
-                for(auto& param : params)
-                    param = deoptimizedType(param);
-                return python::Type::makeTupleType(params);
-            }
-
-            throw std::runtime_error("unsupported type " + optType.desc() + " encountered in "
-            + std::string(__FILE__) + ":" + std::to_string(__LINE__));
-        }
-
-
         inline llvm::Type* i8ptrType(llvm::LLVMContext& ctx) {
             return llvm::Type::getInt8PtrTy(ctx, 0);
         }

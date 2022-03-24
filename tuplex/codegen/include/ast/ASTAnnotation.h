@@ -384,9 +384,12 @@ struct IteratorInfo {
     std::vector<std::shared_ptr<IteratorInfo>> argsIteratorInfo; // pointers to IteratorInfo of each argument.
 
     void deoptimize() {
-        argsType = deoptimizedType(argsType);
-        for(auto& info : argsIteratorInfo)
-            deoptimized
+        argsType = tuplex::deoptimizedType(argsType);
+        for(auto& info : argsIteratorInfo) {
+            if(info.get() == this)
+                continue;
+            info->deoptimize();
+        }
     }
 };
 

@@ -22,9 +22,23 @@ namespace tuplex {
     // I.e., either a result can be obtained by combining the optimized types -> return true
     // or not, return false. In this case, the types are "deoptimized"
 
-    bool deopt_binary_op(python::Type& optimized_result, python::Type& lhs_type, python::Type& rhs_type, const TokenType& tt);
-    bool deopt_unary_op(python::Type& optimized_result, python::Type& type, const TokenType&& tt);
-    bool deopt_cmp_op(python::Type& optimized_result, std::vector<python::Type>& types);
+    // TODO implement, can reuse functions from ReduceExpressionsVisitor or so...
+    inline bool deopt_binary_op(python::Type& optimized_result, python::Type& lhs_type, python::Type& rhs_type, const TokenType& tt) {
+
+        // alway deopt
+        lhs_type = deoptimizedType(lhs_type);
+        rhs_type = deoptimizedType(rhs_type);
+
+        return false;
+    }
+
+    bool deopt_unary_op(python::Type& optimized_result, python::Type& type, const TokenType&& tt) {
+
+        // always deopt
+        type = deoptimizedType(type);
+
+        return false;
+    }
 
 //    bool deopt_tuple_op(std::vector<python::Type>& types);
 //    bool deopt_list_op(std::vector<python::Type>& types)''

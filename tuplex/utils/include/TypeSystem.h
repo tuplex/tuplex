@@ -667,6 +667,28 @@ namespace python {
     }
 
     /*!
+     * a constant option can be simplified (i.e. remove polymoprhism)
+     * @param underlying
+     * @param constant
+     * @return the simplified underlying type.
+     */
+    inline python::Type simplifyConstantOption(const python::Type& type) {
+        if(!type.isConstantValued())
+            return type;
+
+        auto underlying = type.underlying();
+        auto value = type.constant();
+        if(underlying.isOptionType()) {
+            // is the constant null? None?
+            if(value == "None" || value == "null") {
+                return python::Type::NULLVALUE; // simple, null-value is already a constant!
+            } else
+                return python::Type::makeConstantValuedType(underlying.elementType(), value);
+        }
+        return type;
+    }
+
+    /*!
      * specializes a concrete type to one which could be a generic or is a composite type of generics. For example,
      * assume we have a concrete instance of f64 and a generic version of Option[f64], then the specialized type would be f64.
      * For the general dummy object, i64 and pyobject would return i64.

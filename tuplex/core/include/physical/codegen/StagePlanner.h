@@ -47,6 +47,10 @@ namespace tuplex {
                 for(auto idx : constant_column_indices()) {
                     auto underlying_type = constant_row.getType(idx);
                     auto underlying_constant = constant_row.get(idx).desc();
+
+                    // options can be simplified depending on the constant value
+
+
                     auto constant_type = python::Type::makeConstantValuedType(underlying_type, underlying_constant);
                     colTypes[idx] = constant_type;
                 }

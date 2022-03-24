@@ -676,15 +676,9 @@ namespace tuplex {
             switch(type) {
                 case CheckType::CHECK_CONSTANT: {
                     assert(_constantType.isConstantValued());
-                    auto elementType = _constantType.elementType();
                     auto value = _constantType.constant();
-                    if(elementType.isOptionType()) {
-                        // is the constant null? None?
-                        if(value == "None" || value == "null")  {
-                            elementType = python::Type::NULLVALUE;
-                        } else
-                            elementType = elementType.elementType();
-                    }
+                    auto reduced_type = simplifyConstantOption(_constantType);
+                    auto elementType = reduced_type.isConstantValued() ? reduced_type.underlying() : reduced_type;
 
                     // compare stored string value directly
                     if(elementType == python::Type::STRING) {

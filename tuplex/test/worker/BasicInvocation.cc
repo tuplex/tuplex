@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <Utils.h>
 #include <Timer.h>
-#include <physical/StageBuilder.h>
+#include <physical/codegen/StageBuilder.h>
 #include <logical/FileInputOperator.h>
 #include <logical/FileOutputOperator.h>
 #include <logical/MapOperator.h>

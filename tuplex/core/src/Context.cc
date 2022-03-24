@@ -13,11 +13,11 @@
 #include <logical/FileInputOperator.h>
 #include "ErrorDataSet.h"
 #include "EmptyDataset.h"
-#include <JITCompiler.h>
-#include <RuntimeInterface.h>
+#include <jit/JITCompiler.h>
+#include <jit/RuntimeInterface.h>
 #include <VirtualFileSystem.h>
 #include <ee/local/LocalBackend.h>
-#include <Signals.h>
+#include <utils/Signals.h>
 #ifdef BUILD_WITH_AWS
 #include <ee/aws/AWSLambdaBackend.h>
 #endif

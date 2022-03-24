@@ -8,9 +8,9 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 #include <WorkerApp.h>
-#include <physical/TransformTask.h>
+#include <physical/execution/TransformTask.h>
 #include "ee/local/LocalBackend.h"
-#include "TypeAnnotatorVisitor.h"
+#include "visitors/TypeAnnotatorVisitor.h"
 #include "AWSCommon.h"
 #include "bucket.h"
 

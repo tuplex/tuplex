@@ -56,6 +56,7 @@ namespace tuplex {
         virtual std::vector<Row> getSample(const size_t num) const override { return parent()->getSample(num); }
         std::vector<std::string> columns() const override { return parent()->columns(); }
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<LogicalOperator>(this), ::cereal::base_class<ExceptionOperator<IgnoreOperator>>(this));
@@ -64,8 +65,13 @@ namespace tuplex {
         template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<LogicalOperator>(this), ::cereal::base_class<ExceptionOperator<IgnoreOperator>>(this));
         }
+#endif
+
     };
 }
 
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::IgnoreOperator);
+#endif
+
 #endif //TUPLEX_IGNOREOPERATOR_Hs

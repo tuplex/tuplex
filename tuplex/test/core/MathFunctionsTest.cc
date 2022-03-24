@@ -13,7 +13,7 @@
 #include <Context.h>
 #include "../../utils/include/Utils.h"
 #include "TestUtils.h"
-#include "RuntimeInterface.h"
+#include "jit/RuntimeInterface.h"
 
 class MathFunctionsTest : public TuplexTest {};
 

@@ -24,6 +24,7 @@
 #include <type_traits>
 #include <Utils.h>
 
+#ifdef BUILD_WITH_CEREAL
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
 #include "cereal/types/polymorphic.hpp"
@@ -33,7 +34,7 @@
 #include "cereal/types/string.hpp"
 #include "cereal/types/common.hpp"
 #include "cereal/archives/binary.hpp"
-
+#endif
 
 namespace tuplex {
 
@@ -221,9 +222,11 @@ namespace tuplex {
 
         friend bool operator == (const Field& lhs, const Field& rhs);
 
+#ifdef BUILD_WITH_CEREAL
         template<class Archive> void serialize(Archive &ar) {
             ar(_iValue, _type, _size, _isNull);
         }
+#endif
     };
 
     extern bool operator == (const Field& lhs, const Field& rhs);

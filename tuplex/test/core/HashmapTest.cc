@@ -3,7 +3,7 @@
 //
 
 #include "TestUtils.h"
-#include <physical/Hashmap.h>
+#include <physical/codegen/Hashmap.h>
 
 class HashmapTest : public PyTest {};
 

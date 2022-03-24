@@ -19,6 +19,8 @@ option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for
 option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
 option(USE_LD_GOLD "Use GNU gold linker" ON)
 option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." ON)
+option(BUILD_WITH_CEREAL "whether to enable cereal based serialization or not. Disabled per default because it results in 4x larger build times" OFF)
+
 # variables:
 # AWS_S3_TEST_BUCKET ==> specifies bucket to run tests on!
 
@@ -30,6 +32,26 @@ if (${FORCE_COLORED_OUTPUT})
         add_compile_options (-fcolor-diagnostics)
     endif ()
 endif ()
+
+# detect MacOS Version because at least 10.13 is required when building with AWS SDK
+if(APPLE)
+    execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    # set default MacOS target, if not set.
+    # cf. https://cmake.org/cmake/help/latest/variable/CMAKE_OSX_DEPLOYMENT_TARGET.html
+    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+        if(MACOSX_VERSION_STRING VERSION_GREATER_EQUAL 11.0)
+            set(CMAKE_OSX_DEPLOYMENT_TARGET 11.0)
+        else()
+            # use high sierra target per default
+            set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
+        endif()
+    endif()
+
+    message(STATUS "Detected macOS ${MACOSX_VERSION_STRING} host platform, building for deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}. To use a different deployment target either set CMAKE_OSX_DEPLOYMENT_TARGET or the environment variable MACOSX_DEPLOYMENT_TARGET to the desired version.")
+endif()
+
+
 
 # via -DVERSION_INFO a string may be passed down. --> include it somehow
 if(VERSION_INFO)
@@ -99,6 +121,10 @@ if(BUILD_WITH_ORC)
     add_definitions(-DBUILD_WITH_ORC)
 endif()
 
+if(BUILD_WITH_CEREAL)
+    add_definitions(-DBUILD_WITH_CEREAL)
+endif()
+
 if(NOT AWS_S3_TEST_BUCKET AND ENV{AWS_S3_TEST_BUCKET})
     set(AWS_S3_TEST_BUCKET $ENV{AWS_S3_TEST_BUCKET})
 endif()
@@ -147,12 +173,6 @@ if(BREW_FOUND)
 endif()
 enable_testing()
 
-# detect MacOS Version because at least 10.13 is required when building with AWS SDK
-if(APPLE)
-  execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
-  message(STATUS "Detected macOS ${MACOSX_VERSION_STRING} host platform, building for deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
-endif()
-
 # mainly from https://github.com/AdaCore/z3/blob/master/CMakeLists.txt
 message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
 set(available_build_types Debug Release RelWithDebInfo MinSizeRel tsan asan)
@@ -185,7 +205,7 @@ endif()
 if(BUILD_WITH_AWS)
     # requires at least High Sierra (10.13)
     if(APPLE)
-      if("${CMAKE_OSX_DEPLOYMENT_TARGET}" VERSION_LESS "10.13")
+      if(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS 10.13)
         message(FATAL_ERROR "Building Tuplex with AWS SDK support on Darwin requires at least macOS 10.13 (High Sierra)")
       endif()
     endif()

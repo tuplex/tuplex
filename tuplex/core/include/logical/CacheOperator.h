@@ -97,6 +97,7 @@ namespace tuplex {
          */
         bool storeSpecialized() const { return _storeSpecialized; }
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             // Do not serialize cached stuff.
@@ -105,7 +106,7 @@ namespace tuplex {
         template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalCaseRowCount, _generalCaseRowCount);
         }
-
+#endif
 
     protected:
         void copyMembers(const LogicalOperator* other) override;
@@ -146,6 +147,8 @@ namespace tuplex {
     };
 }
 
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::CacheOperator);
+#endif
 
 #endif //TUPLEX_CACHEOPERATOR_H

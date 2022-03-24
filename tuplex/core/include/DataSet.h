@@ -14,11 +14,11 @@
 #include <memory>
 #include "Schema.h"
 #include "UDF.h"
-#include "Partition.h"
+#include "physical/memory/Partition.h"
 #include "Row.h"
 #include "Context.h"
 #include <ExceptionCodes.h>
-#include "Defs.h"
+#include "logical/Defs.h"
 #include <limits>
 
 namespace tuplex {

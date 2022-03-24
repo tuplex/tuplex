@@ -9,6 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <Context.h>
+#include <fstream>
 #include "TestUtils.h"
 
 class AggregateTest : public PyTest {};

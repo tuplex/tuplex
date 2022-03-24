@@ -170,17 +170,7 @@ TEST(TypeSys, flattenWithPyObject) {
     EXPECT_EQ(num_params, 3);
 }
 
-
-class TuplexBinaryArchive : public cereal::BinaryOutputArchive {
-public:
-    TuplexBinaryArchive(std::ostream& os) : cereal::BinaryOutputArchive(os) {
-
-    }
-    ~TuplexBinaryArchive() {}
-private:
-
-};
-
+#ifdef BUILD_WITH_CEREAL
 TEST(TypeSys, Cerealization) {
     auto row_type = python::Type::makeTupleType({python::Type::I64, python::Type::I64, python::Type::PYOBJECT});
     std::ostringstream oss; {
@@ -196,6 +186,7 @@ TEST(TypeSys, Cerealization) {
     // @TODO: correct this...!
     // => better: semantic encoding of types and decoding from there...?
 }
+#endif
 
 TEST(TypeSys, NewTypEncodeDecode) {
     using namespace tuplex;

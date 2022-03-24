@@ -23,7 +23,7 @@
 #include <stack>
 
 #include <VirtualFileSystem.h>
-#include <Environment.h>
+#include <utils/Environment.h>
 #include <PythonHelpers.h>
 #include <Utils.h>
 #include <StringUtils.h>

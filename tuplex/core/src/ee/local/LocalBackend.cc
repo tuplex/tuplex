@@ -8,13 +8,13 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <LocalEngine.h>
+#include <ee/local/LocalEngine.h>
 #include <ee/local/LocalBackend.h>
-#include <RuntimeInterface.h>
-#include <physical/ResolveTask.h>
-#include <physical/TransformTask.h>
-#include <physical/SimpleFileWriteTask.h>
-#include <physical/SimpleOrcWriteTask.h>
+#include <jit/RuntimeInterface.h>
+#include <physical/execution/ResolveTask.h>
+#include <physical/execution/TransformTask.h>
+#include <physical/execution/SimpleFileWriteTask.h>
+#include <physical/execution/SimpleOrcWriteTask.h>
 
 #include <memory>
 
@@ -23,13 +23,13 @@
 
 #include <hashmap.h>
 #include <int_hashmap.h>
-#include <PartitionWriter.h>
-#include <physical/HashProbeTask.h>
-#include <physical/LLVMOptimizer.h>
-#include <HybridHashTable.h>
+#include <physical/memory/PartitionWriter.h>
+#include <physical/execution/HashProbeTask.h>
+#include <jit/LLVMOptimizer.h>
+#include <physical/execution/HybridHashTable.h>
 #include <int_hashmap.h>
 
-#include <physical/StagePlanner.h>
+#include <physical/codegen/StagePlanner.h>
 
 namespace tuplex {
 

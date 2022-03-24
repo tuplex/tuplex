@@ -37,9 +37,9 @@
 
 // protobuf
 #include <Lambda.pb.h>
-#include <physical/TransformStage.h>
-#include <physical/CSVReader.h>
-#include <physical/TextReader.h>
+#include <physical/execution/TransformStage.h>
+#include <physical/execution/CSVReader.h>
+#include <physical/execution/TextReader.h>
 #include <google/protobuf/util/json_util.h>
 
 #ifdef BUILD_WITH_AWS

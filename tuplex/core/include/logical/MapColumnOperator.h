@@ -23,6 +23,7 @@ namespace tuplex {
     public:
         std::shared_ptr<LogicalOperator> clone() override;
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<UDFOperator>(this), _columnToMap, _columnToMapIndex);
@@ -30,6 +31,7 @@ namespace tuplex {
         template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<UDFOperator>(this), _columnToMap, _columnToMapIndex);
         }
+#endif
     protected:
         Schema inferSchema(Schema parentSchema) override;
     public:
@@ -67,5 +69,9 @@ namespace tuplex {
     };
 
 }
+
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::MapColumnOperator);
+#endif
+
 #endif //TUPLEX_MAPCOLUMNOPERATOR_H

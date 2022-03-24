@@ -60,6 +60,7 @@ namespace tuplex {
 
         void setColumns(const std::vector<std::string>& columns) { assert(_columnNames.empty() || _columnNames.size() == columns.size()); _columnNames = columns; }
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<LogicalOperator>(this), _udf, _columnNames);
@@ -67,6 +68,7 @@ namespace tuplex {
         template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<LogicalOperator>(this), _udf, _columnNames);
         }
+#endif
     };
 
     /*!
@@ -76,6 +78,9 @@ namespace tuplex {
      */
     extern bool hasUDF(const LogicalOperator *op);
 }
+
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::UDFOperator);
+#endif
 
 #endif //TUPLEX_UDFOPERATOR_H

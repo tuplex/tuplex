@@ -16,10 +16,6 @@
 #include <TSet.h>
 #include <Utils.h>
 
-#include "cereal/types/polymorphic.hpp"
-#include "cereal/archives/portable_binary.hpp"
-#include "cereal/archives/binary.hpp"
-
 // types should be like form mypy https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html
 
 
@@ -1401,10 +1397,4 @@ namespace python {
         else
             return "uninitialized";
     }
-
-//    // explicit instantiation
-//    template void Type::load(cereal::BinaryInputArchive &archive);
-//    template void Type::save(cereal::BinaryOutputArchive &archive) const;
-//    template void Type::load(cereal::PortableBinaryInputArchive &archive);
-//    template void Type::save(cereal::PortableBinaryOutputArchive &archive) const;
 }

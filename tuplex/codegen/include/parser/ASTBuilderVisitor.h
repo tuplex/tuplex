@@ -19,7 +19,7 @@
 // generated sources
 #include <Python3Parser.h>
 #include <Python3BaseVisitor.h>
-#include <ASTNodes.h>
+#include <ast/ASTNodes.h>
 
 namespace tuplex {
 

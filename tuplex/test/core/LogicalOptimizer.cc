@@ -12,9 +12,9 @@
 #include <Context.h>
 #include <PythonHelpers.h>
 #include <logical/FilterOperator.h>
-#include <FilterBreakdownVisitor.h>
+#include <visitors/FilterBreakdownVisitor.h>
 #include <parser/Parser.h>
-#include <TypeAnnotatorVisitor.h>
+#include <visitors/TypeAnnotatorVisitor.h>
 
 // need for these tests a running python interpreter, so spin it up
 class LogicalOptimizerTest : public PyTest {};

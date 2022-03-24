@@ -12,7 +12,7 @@
 #include <LambdaWorkerApp.h>
 
 // HACK
-#include <physical/StagePlanner.h>
+#include <physical/codegen/StagePlanner.h>
 // planning
 
 // AWS specific includes

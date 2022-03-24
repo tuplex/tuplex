@@ -88,6 +88,7 @@ namespace tuplex {
 
         bool retype(const std::vector<python::Type>& rowTypes) override;
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<UDFOperator>(this), _outputColumns, _name);
@@ -95,10 +96,13 @@ namespace tuplex {
         template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<UDFOperator>(this), _outputColumns, _name);
         }
+#endif
 
     };
 }
 
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::MapOperator);
+#endif
 
 #endif //TUPLEX_MAPOPERATOR_H

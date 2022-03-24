@@ -15,6 +15,7 @@
 #include <Field.h>
 #include <ExceptionCodes.h>
 
+#ifdef BUILD_WITH_CEREAL
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
 #include "cereal/types/polymorphic.hpp"
@@ -23,8 +24,8 @@
 #include "cereal/types/utility.hpp"
 #include "cereal/types/string.hpp"
 #include "cereal/types/common.hpp"
-
 #include "cereal/archives/binary.hpp"
+#endif
 
 namespace tuplex {
     /*!
@@ -173,10 +174,12 @@ namespace tuplex {
 
         Row upcastedRow(const python::Type& targetType) const;
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization function
         template<class Archive> void serialize(Archive &ar) {
             ar(_schema, _values, _serializedLength);
         }
+#endif
     };
 
     // used for tests

@@ -20,10 +20,10 @@
 #include <logical/JoinOperator.h>
 #include <logical/AggregateOperator.h>
 #include <logical/CacheOperator.h>
-#include <physical/ResultSet.h>
+#include <physical/execution/ResultSet.h>
 #include <Utils.h>
 #include <ErrorDataSet.h>
-#include <Signals.h>
+#include <utils/Signals.h>
 #include "logical/FileInputOperator.h"
 #include "logical/ParallelizeOperator.h"
 

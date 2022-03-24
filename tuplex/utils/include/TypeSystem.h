@@ -19,7 +19,9 @@
 #include <mutex>
 #include <TTuple.h>
 #include <limits>
+#include <unordered_map>
 
+#ifdef BUILD_WITH_CEREAL
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
 #include "cereal/types/polymorphic.hpp"
@@ -28,8 +30,8 @@
 #include "cereal/types/utility.hpp"
 #include "cereal/types/string.hpp"
 #include "cereal/types/common.hpp"
-#include "cereal/archives/portable_binary.hpp"
 #include "cereal/archives/binary.hpp"
+#endif
 
 namespace python {
 
@@ -310,6 +312,7 @@ namespace python {
         static Type decode(const std::string& s);
         std::string encode() const;
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive>
         inline void load(Archive &archive) {
@@ -361,6 +364,7 @@ namespace python {
             auto encoded_str = encode();
             archive(encoded_str);
         }
+#endif
     };
 
     inline bool operator < (const Type& lhs, const Type& rhs) { return lhs._hash < rhs._hash; }
@@ -370,7 +374,6 @@ namespace python {
     class TypeFactory {
         // hide internal interfaces and make them only available to Type
         friend class Type;
-//        friend class cereal::access;
     private:
 
         enum class AbstractType {
@@ -418,12 +421,7 @@ namespace python {
             _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen),
             _lower_bound(other._lower_bound), _upper_bound(other._upper_bound), _constant_value(other._constant_value) {}
 
-//            template <class Archive>
-//            void serialize(Archive &ar) {
-//
-////                ar(_desc, _type, _params, _isVarLen, _ret, _baseClasses, _lower_bound, _upper_bound, _constant_value);
-//            }
-
+#ifdef BUILD_WITH_CEREAL
             // use specialized load/save functions here!
             template<class Archive>
             void save(Archive & archive) const {
@@ -465,6 +463,8 @@ namespace python {
                 t._hash = retHash;
                 _ret = t;
             }
+#endif
+
             std::string desc();
         };
 

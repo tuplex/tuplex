@@ -11,7 +11,7 @@
 #ifndef TUPLEX_OUTPUTFILEOPERATOR_H
 #define TUPLEX_OUTPUTFILEOPERATOR_H
 
-#include "../Defs.h"
+#include "Defs.h"
 #include "LogicalOperator.h"
 #include "LogicalOperatorType.h"
 #include <limits>
@@ -99,6 +99,7 @@ namespace tuplex {
         UDF& udf() { return _outputPathUDF; }
         const UDF& udf() const { return _outputPathUDF; }
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization pair
         template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<LogicalOperator>(this), _splitSize, _numParts, _limit, _uri, _fmt, _name, _outputPathUDF, _options);
@@ -107,9 +108,12 @@ namespace tuplex {
         template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<LogicalOperator>(this), _splitSize, _numParts, _limit, _uri, _fmt, _name, _outputPathUDF, _options);
         }
+#endif
     };
 }
 
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::FileOutputOperator);
+#endif
 
 #endif //TUPLEX_OUTPUTFILEOPERATOR_H

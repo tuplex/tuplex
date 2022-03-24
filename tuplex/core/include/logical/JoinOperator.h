@@ -174,6 +174,7 @@ namespace tuplex {
          */
         virtual void projectionPushdown();
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<LogicalOperator>(this), _leftColumn, _rightColumn, _joinType, _leftPrefix, _leftSuffix, _rightPrefix, _rightSuffix);
@@ -181,6 +182,7 @@ namespace tuplex {
         template<class Archive> void load(Archive &ar) {
             ar(::cereal::base_class<LogicalOperator>(this), _leftColumn, _rightColumn, _joinType, _leftPrefix, _leftSuffix, _rightPrefix, _rightSuffix);
         }
+#endif
 
     private:
         // column within right dataset
@@ -274,5 +276,8 @@ namespace tuplex {
     }
 }
 
+#ifdef BUILD_WITH_CEREAL
 CEREAL_REGISTER_TYPE(tuplex::JoinOperator);
+#endif
+
 #endif //TUPLEX_JOINOPERATOR_H

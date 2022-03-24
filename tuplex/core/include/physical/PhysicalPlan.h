@@ -12,7 +12,7 @@
 #define TUPLEX_PHYSICALPLAN_H
 
 #include <logical/LogicalPlan.h>
-#include "ResultSet.h"
+#include "physical/execution/ResultSet.h"
 #include "PhysicalStage.h"
 
 namespace tuplex {

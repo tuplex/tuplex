@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 
+#ifdef BUILD_WITH_CEREAL
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
 #include "cereal/types/polymorphic.hpp"
@@ -24,8 +25,8 @@
 #include "cereal/types/utility.hpp"
 #include "cereal/types/string.hpp"
 #include "cereal/types/common.hpp"
-
 #include "cereal/archives/binary.hpp"
+#endif
 
 namespace tuplex {
 
@@ -184,10 +185,12 @@ namespace tuplex {
         static URI fromS3(const std::string& bucket, const std::string& key);
 #endif
 
+#ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void serialize(Archive &ar) {
             ar(_uri, _type);
         }
+#endif
     private:
         std::string _uri;
         URIType _type;

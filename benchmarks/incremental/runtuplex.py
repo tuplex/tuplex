@@ -233,9 +233,6 @@ if __name__ == '__main__':
     if args.clear_cache:
         subprocess.run(["clearcache"])
 
-        # Read file into cache
-        ctx.csv(','.join(paths)).aggregate(lambda x, y: x + y, lambda a, x: a + 1, 0).collect()
-
     tstart = time.time()
     # decide which pipeline to run based on argparse arg!
     num_steps = 7

@@ -559,7 +559,7 @@ namespace python {
         switch(entry._type) {
             case TypeFactory::AbstractType::OPTIMIZED_CONSTANT:
             case TypeFactory::AbstractType::OPTIMIZED_DELAYEDPARSING:
-            case TypeFactory::AbstractType::RANGECOMPRESSION: {
+            case TypeFactory::AbstractType::OPTIMIZED_RANGECOMPRESSION: {
                 return true;
             }
             default:

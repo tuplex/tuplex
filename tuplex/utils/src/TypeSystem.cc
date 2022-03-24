@@ -557,9 +557,9 @@ namespace python {
 //            OPTIMIZED_RANGECOMPRESSION // range compression
         const auto& entry = TypeFactory::instance()._typeMap.at(_hash);
         switch(entry._type) {
-            case AbstractType::OPTIMIZED_CONSTANT:
-            case AbstractType::OPTIMIZED_DELAYEDPARSING:
-            case AbstractType::RANGECOMPRESSION: {
+            case TypeFactory::AbstractType::OPTIMIZED_CONSTANT:
+            case TypeFactory::AbstractType::OPTIMIZED_DELAYEDPARSING:
+            case TypeFactory::AbstractType::RANGECOMPRESSION: {
                 return true;
             }
             default:

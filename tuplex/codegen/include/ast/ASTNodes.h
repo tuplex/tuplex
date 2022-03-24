@@ -398,6 +398,7 @@ namespace tuplex {
             return *this;
         }
 
+        std::string raw_value() const { return _raw_value; }
         std::string value() const { return str_value_from_python_raw_value(_raw_value);}
 
         virtual ASTNode* clone() const {return new NString(*this);}

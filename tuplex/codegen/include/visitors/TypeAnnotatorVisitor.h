@@ -118,8 +118,7 @@ namespace tuplex {
         std::set<size_t> _normalCaseViolationSampleIndices;
         // each vector contains symbols that need to be tracked for type stability for the current loop
         size_t _ongoingLoopCount;
-
-
+        bool _annotateWithConstantValues; // optimization to create even more reduced types. If set to true, then literals will emit constantValued types!
     public:
 
         void reset() {
@@ -138,7 +137,8 @@ namespace tuplex {
                                                                          _policy(policy),
                                                                          _loopTypeChange(false),
                                                                          _totalSampleCount(0),
-                                                                         _ongoingLoopCount(0) {
+                                                                         _ongoingLoopCount(0),
+                                                                         _annotateWithConstantValues(true) {
             init();
         }
 
@@ -176,6 +176,13 @@ namespace tuplex {
 
         void visit(NFor*) override;
         void visit(NWhile*) override;
+
+        // literal nodes
+        void visit(NNumber*) override;
+        void visit(NString*) override;
+        void visit(NBoolean*) override;
+        // None is already a constant -> do not bother!
+        // for compound types, check whether there's an option to annotate using constants!
 
         TSet<std::string> getMissingIdentifiers() { return _missingIdentifiers; }
     };

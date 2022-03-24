@@ -73,7 +73,7 @@ namespace tuplex {
                     unsigned pos = 0;
                     for(unsigned i = 0; i < cols_to_serialize.size(); ++i) {
                         // to be serialized or not?
-                        if(cols_to_serialize[i]) {`
+                        if(cols_to_serialize[i]) {
                             assert(pos < input_col_types.size());
                             col_types[i] = input_col_types[pos++];
                         }

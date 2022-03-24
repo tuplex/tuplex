@@ -19,6 +19,26 @@ namespace tuplex {
         return t == python::Type::I64 || t == python::Type::BOOLEAN;
     }
 
+    // literal nodes (visit only relevant when annotating as constants!)
+    void TypeAnnotatorVisitor::visit(NNumber *number) {
+        if(_annotateWithConstantValues && !number->getInferredType().isConstantValued()) {
+            number->setInferredType(python::Type::makeConstantValuedType(number->getInferredType(), number->_value));
+        }
+    }
+
+    void TypeAnnotatorVisitor::visit(NString *str) {
+        if(_annotateWithConstantValues && !str->getInferredType().isConstantValued()) {
+            str->setInferredType(python::Type::makeConstantValuedType(python::Type::STRING, str->raw_value()));
+        }
+    }
+
+    void TypeAnnotatorVisitor::visit(NBoolean *node) {
+        if(_annotateWithConstantValues && !node->getInferredType().isConstantValued()) {
+            node->setInferredType(python::Type::makeConstantValuedType(python::Type::BOOLEAN, boolToString(node->_value)));
+        }
+    }
+
+
     void TypeAnnotatorVisitor::visit(NModule *module) {
         throw std::runtime_error("not yet supported!");
     }
@@ -999,7 +1019,6 @@ namespace tuplex {
         if(index_type.isOptionType())
             index_type = index_type.getReturnType();
 
-
         if(type.isTupleType()) {
             // static check: if it is a constant expression
             // index type must be bool or int
@@ -1031,7 +1050,29 @@ namespace tuplex {
                     } else {
                         sub->setInferredType(type.parameters()[i]);
                     }
+                } else if (sub->_expression->getInferredType().isConstantValued() &&
+                        (sub->_expression->getInferredType().underlying() == python::Type::I64 ||
+                                sub->_expression->getInferredType().underlying() == python::Type::BOOLEAN)) {
+                    // the same works when constant-valued types are used
+                    // get index
+                    int i = INT32_MIN;
+                    static_assert(sizeof(int) == 4, "int must be 32 bit");
+                    if(sub->_expression->getInferredType().underlying() == python::Type::I64)
+                        i = std::stoi(sub->_expression->getInferredType().constant());
+                    else if(sub->_expression->getInferredType().underlying() == python::Type::BOOLEAN)
+                        i = stringToBool(sub->_expression->getInferredType().constant());
 
+                    // correct i for negative indices (only once!)
+                    if(i < 0)
+                        i = type.parameters().size() + i;
+
+                    // now access ith member of the tuple
+                    if(i < 0 || i >= type.parameters().size()) {
+                        sub->setInferredType(python::Type::UNKNOWN);
+                        error("Index error: tried to access element at position" + std::to_string(i));
+                    } else {
+                        sub->setInferredType(type.parameters()[i]);
+                    }
                 } else {
 
                     // indexing is done via a runtime type:

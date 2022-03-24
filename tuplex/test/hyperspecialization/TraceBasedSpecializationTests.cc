@@ -186,6 +186,30 @@ TEST_F(SamplingTest, FlightsTracing) {
     }
 }
 
+
+TEST_F(SamplingTest, TypeAnnotation) {
+    using namespace std;
+    using namespace tuplex;
+
+    // parse a tree
+//    auto code = "lambda row: (row[0], row[1], row[2])";
+    auto code = "def f(row):\n"
+                "\tx = row[0]\n"
+                "\ty = row[1]\n"
+                "\treturn (x, y, 42, row[2])\n";
+    UDF udf(code);
+
+    // make constants!
+    auto row_type = python::Type::makeTupleType({python::Type::makeConstantValuedType(python::Type::I64, "2003"),
+                                                 python::Type::makeConstantValuedType(python::Type::I64, "2003"),
+                                                 python::Type::F64});
+    udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, row_type));
+
+    // fetch output
+
+    cout<<"result is: \n"<<udf.getInputSchema().getRowType().desc()<<" -> "<<udf.getOutputSchema().getRowType().desc()<<endl;
+}
+
 TEST_F(SamplingTest, FlightsSpecializedVsGeneralValueImputation) {
     using namespace std;
     using namespace tuplex;

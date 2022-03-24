@@ -216,6 +216,13 @@ namespace tuplex {
          */
         void setColumns(const std::vector<std::string>& columnNames);
 
+        /*!
+         * specialize input type, e.g. based on sample. checks that type is compatible
+         * @param rowTypes
+         * @return true if successful, false else.
+         */
+        bool retype(const std::vector<python::Type>& rowTypes=std::vector<python::Type>()) override;
+
         std::vector<std::string> columns() const override { return _optimizedColumnNames; }
         std::vector<std::string> inputColumns() const override { return _columnNames; }
         std::vector<bool> columnsToSerialize() const { return _columnsToSerialize; }

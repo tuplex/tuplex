@@ -48,6 +48,57 @@ namespace tuplex {
             return vec_prepend(_inputNode, _operators);
         }
 
+
+        python::Type StagePlanner::get_specialized_row_type(const std::shared_ptr<LogicalOperator>& inputNode, const DetectionStats& ds) const {
+            assert(inputNode);
+
+            auto& logger = Logger::instance().logger("specializing stage optimizer");
+
+            logger.debug("output schema of input node is: " + inputNode->getOutputSchema().getRowType().desc());
+
+            // check if inputNode is FileInput -> i.e. projection scenario!
+            if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
+                auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode);
+
+                auto pushed_down_output_row_type = fop->getOutputSchema().getRowType();
+                std::vector<python::Type> col_types = pushed_down_output_row_type.parameters();
+                auto cols_to_serialize = fop->columnsToSerialize();
+                if(cols_to_serialize.size() != ds.constant_row.getNumColumns()) {
+                    throw std::runtime_error("internal error in constant-folding optimization, original number of columns not matching detection columns");
+                } else {
+
+                    logger.debug("file input operator output type: " + fop->getOutputSchema().getRowType().desc());
+                    col_types = std::vector<python::Type>(cols_to_serialize.size(), python::Type::NULLVALUE); // init as dummy nulls
+                    auto input_col_types = fop->getOutputSchema().getRowType().parameters();
+                    unsigned pos = 0;
+                    for(unsigned i = 0; i < cols_to_serialize.size(); ++i) {
+                        // to be serialized or not?
+                        if(cols_to_serialize[i]) {
+                            assert(pos < input_col_types.size());
+                            col_types[i] = input_col_types[pos++];
+                        }
+                    }
+                }
+                auto reprojected_output_row_type = python::Type::makeTupleType(col_types);
+                auto specialized_row_type = ds.specialize_row_type(reprojected_output_row_type);
+
+                // create projected version
+                col_types.clear();
+                for(unsigned i = 0; i < cols_to_serialize.size(); ++i) {
+                    // to be serialized or not?
+                    if(cols_to_serialize[i]) {
+                        col_types.push_back(specialized_row_type.parameters()[i]);
+                    }
+                }
+
+                auto projected_specialized_row_type = python::Type::makeTupleType(col_types);
+                return projected_specialized_row_type;
+            } else {
+                // simple, no reprojection done. Just specialize type.
+                return ds.specialize_row_type(inputNode->getOutputSchema().getRowType());
+            }
+        }
+
         std::vector<std::shared_ptr<LogicalOperator>> StagePlanner::constantFoldingOptimization(const std::vector<Row>& sample) {
             using namespace std;
             vector<shared_ptr<LogicalOperator>> opt_ops;
@@ -59,7 +110,7 @@ namespace tuplex {
 
             if(!_useConstantFolding || sample.size() < MINIMUM_SAMPLES_REQUIRED) {
                 if(sample.size() < MINIMUM_SAMPLES_REQUIRED)
-                    logger.debug("not enough samples to reliably apply constant folding optimixation, skipping.");
+                    logger.debug("not enough samples to reliably apply constant folding optimization, skipping.");
                 return vec_prepend(_inputNode, _operators);
             }
 
@@ -67,26 +118,107 @@ namespace tuplex {
             // check which columns could be constants and if so propagate that information!
             logger.info("Performing constant folding optimization");
 
+            // detect constants over sample.
+            // note that this sample is WITHOUT any projection pushdown, i.e. full columns
             DetectionStats ds;
             ds.detect(sample);
+
+            {
+                assert(!sample.empty());
+                std::stringstream ss;
+                ss<<"sample has "<<pluralize(sample.size(), "row")<<" rows with "<<pluralize(sample.front().getNumColumns(), "column");
+                logger.debug(ss.str());
+            }
+
+            // no column constants? skip optimization!
+            if(ds.constant_column_indices().empty()) {
+                logger.debug("skipping constant folding optimization, no constants detected.");
+                return vec_prepend(_inputNode, _operators);
+            }
 
             // clone input operator
             auto inputNode = _inputNode ? _inputNode->clone() : nullptr;
             if(inputNode)
                 inputNode->setID(_inputNode->getID());
 
-            // print info
-            cout<<"Following columns detected to be constant: "<<ds.constant_column_indices()<<endl;
-            // print out which rows are considered constant (and with which values!)
-            for(auto idx : ds.constant_column_indices()) {
-                string column_name;
-                if(inputNode && !inputNode->inputColumns().empty())
-                    column_name = inputNode->inputColumns()[idx];
-                cout<<" - "<<column_name<<": "<<ds.constant_row.get(idx).desc()<<" : "<<ds.constant_row.get(idx).getType().desc()<<endl;
+            {
+                // print info
+                std::stringstream ss;
+                ss<<"Identified "<<pluralize(ds.constant_column_indices().size(), "column")<<" to be constant: "<<ds.constant_column_indices()<<endl;
+
+                // print out which rows are considered constant (and with which values!)
+                for(auto idx : ds.constant_column_indices()) {
+                    string column_name;
+                    if(inputNode && !inputNode->inputColumns().empty())
+                        column_name = inputNode->inputColumns()[idx];
+                    ss<<" - "<<column_name<<": "<<ds.constant_row.get(idx).desc()<<" : "<<ds.constant_row.get(idx).getType().desc()<<endl;
+                }
+                logger.debug(ss.str());
             }
 
-            // go over operators
+            // generate checks for all the original column indices that are constant
+            vector<size_t> checks_indices = ds.constant_column_indices();
+            vector<NormalCaseCheck> checks;
+            for(auto idx : checks_indices) {
+                auto underlying_type = ds.constant_row.getType(idx);
+                auto underlying_constant = ds.constant_row.get(idx).desc();
+                auto constant_type = python::Type::makeConstantValuedType(underlying_type, underlying_constant);
+                checks.emplace_back(NormalCaseCheck::ConstantCheck(idx, constant_type));
+            }
+            logger.debug("generated " + pluralize(checks.size(), "check") + " for stage");
+
+            // folding is done now in two steps:
+            // 1. propagate the new input type through the ASTs, i.e. make certain fields constant
+            //    this will help to drop potentially columns!
+
+            // first issue is, stage could have been already equipped with projection pushdown --> need to reflect this
+            // => get mapping from original to pushed down for input types.
+            // i.e. create dummy and fill in
+            auto projected_specialized_row_type = get_specialized_row_type(inputNode, ds);
+
+            logger.debug("specialized output-type of " + inputNode->name() + " from " +
+                         inputNode->getOutputSchema().getRowType().desc() + " to " + projected_specialized_row_type.desc());
+
+            // set input type for input node
+            auto input_type_before = inputNode->getOutputSchema().getRowType();
+            inputNode->retype({projected_specialized_row_type});
             auto lastParent = inputNode;
+            opt_ops.push_back(inputNode);
+            logger.debug("input (before): " + input_type_before.desc() + "\ninput (after): " + inputNode->getOutputSchema().getRowType().desc());
+
+            // retype the other operators.
+            for(const auto& op : _operators) {
+
+                // clone operator & specialize!
+                auto opt_op = op->clone();
+                opt_op->setParent(lastParent);
+                opt_op->setID(op->getID());
+
+                // before row type
+                std::stringstream ss;
+                ss<<op->name()<<" (before): "<<op->getInputSchema().getRowType().desc()<<" -> "<<op->getOutputSchema().getRowType().desc()<<endl;
+                // retype
+                opt_op->retype({lastParent->getOutputSchema().getRowType()});
+                // after retype
+                ss<<op->name()<<" (after): "<<op->getInputSchema().getRowType().desc()<<" -> "<<op->getOutputSchema().getRowType().desc();
+                logger.debug(ss.str());
+                opt_ops.push_back(opt_op);
+                lastParent = opt_op;
+            }
+
+            // 2. because some fields were replaced with constants, less columns might need to get accessed!
+            //    --> perform projection pushdown and then eliminate as many checks as possible
+            std::vector<size_t> accessed_columns;
+            std::vector<NormalCaseCheck> projected_checks;
+            {
+                std::stringstream ss;
+                ss<<"constant folded pipeline requires now only "<<accessed_columns.size();
+                ss<<"reduced checks from "<<checks.size()<<" to "<<projected_checks.size();
+                logger.debug(ss.str());
+            }
+
+            // go over operators and see what can be pushed down!
+            lastParent = inputNode;
             opt_ops.push_back(inputNode);
             for(const auto& op : _operators) {
                 // clone operator & specialize!

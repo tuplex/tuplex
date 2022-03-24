@@ -624,4 +624,40 @@ namespace tuplex {
             _estimatedRowCount = _firstRowsSample.size() * ( 1.0 * _sizes.front() / (1.0 * sample.size()));
         }
     }
+
+    bool FileInputOperator::retype(const std::vector<python::Type>& rowTypes) {
+        assert(rowTypes.size() == 1);
+        assert(rowTypes.front().isTupleType());
+        auto desired_type = rowTypes.front();
+        assert(desired_type.isTupleType());
+        auto col_types = desired_type.parameters();
+        auto old_col_types = _optimizedSchema.getRowType().parameters();
+
+        auto& logger = Logger::instance().logger("codegen");
+
+        // check whether number of columns are compatible
+        if(col_types.size() != old_col_types.size()) {
+            logger.error("Provided incompatible rowtype to retype " + name() +
+            ", provided type has " + pluralize(col_types.size(), "column") + " but optimized schema in operator has "
+            + pluralize(old_col_types.size(), "column"));
+            return false;
+        }
+
+        // go over and check they're compatible!
+        for(unsigned i = 0; i < col_types.size(); ++i) {
+            auto t = col_types[i];
+            if(col_types[i].isConstantValued())
+                t = t.underlying();
+            if(!python::canUpcastType(t, old_col_types[i])) {
+                logger.warn("provided specialized type " + col_types[i].desc() + " can't be upcast to "
+                            + old_col_types[i].desc() + ", ignoring in retype.");
+                col_types[i] = old_col_types[i];
+            }
+        }
+
+        // retype optimized schema!
+        _optimizedSchema = Schema(_optimizedSchema.getMemoryLayout(), python::Type::makeTupleType(col_types));
+
+        return true;
+    }
 }

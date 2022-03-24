@@ -37,6 +37,22 @@ namespace tuplex {
                 return v;
             }
 
+            inline python::Type specialize_row_type(const python::Type& row_type) const {
+                assert(row_type.isTupleType());
+                assert(row_type.parameters().size() == constant_row.getNumColumns());
+
+                std::vector<python::Type> colTypes = row_type.parameters();
+
+                // fill in constant valued types
+                for(auto idx : constant_column_indices()) {
+                    auto underlying_type = constant_row.getType(idx);
+                    auto underlying_constant = constant_row.get(idx).desc();
+                    auto constant_type = python::Type::makeConstantValuedType(underlying_type, underlying_constant);
+                    colTypes[idx] = constant_type;
+                }
+                return python::Type::makeTupleType(colTypes);
+            }
+
             void detect(const std::vector<Row>& rows) {
                 if(rows.empty())
                     return;
@@ -159,6 +175,9 @@ namespace tuplex {
              * perform constant folding optimization using sample
              */
             std::vector<std::shared_ptr<LogicalOperator>> constantFoldingOptimization(const std::vector<Row>& sample);
+
+
+            python::Type get_specialized_row_type(const std::shared_ptr<LogicalOperator>& inputNode, const DetectionStats& ds) const;
 
             /*!
              * perform filter-reordering using sample selectivity

@@ -314,7 +314,7 @@ if(BUILD_WITH_ORC)
             liborc)
 endif()
 
-add_library(libio SHARED
+add_library(libio ${LIBRARY_MODE}
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 set_target_properties(libio PROPERTIES PREFIX "")
 

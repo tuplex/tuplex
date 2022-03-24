@@ -52,7 +52,7 @@ if(BUILD_WITH_AWS)
 endif()
 
 # can be only static because of llvms
-add_library(libcore STATIC
+add_library(libcore ${LIBRARY_MODE}
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES})
 set_target_properties(libcore PROPERTIES PREFIX "")
 
@@ -103,7 +103,9 @@ target_link_libraries(libcore
         )
 
 # precompiled headers, mostly to speed up cerealization of operators
-# mainly operators but also include codegen context
-file(GLOB_RECURSE LOGICAL_OPERATORS_HEADER include/logical/*.h)
-set(CORE_HEADERS ${LOGICAL_OPERATORS_HEADER} include/physical/codegen/CodeGenerationContext.h include/UDF.h)
-target_precompile_headers(libcore PUBLIC ${CORE_HEADERS})
+if(USE_PRECOMPILED_HEADERS)
+    # mainly operators but also include codegen context
+    file(GLOB_RECURSE LOGICAL_OPERATORS_HEADER include/logical/*.h)
+    set(CORE_HEADERS ${LOGICAL_OPERATORS_HEADER} include/physical/codegen/CodeGenerationContext.h include/UDF.h)
+    target_precompile_headers(libcore PUBLIC ${CORE_HEADERS})
+endif()

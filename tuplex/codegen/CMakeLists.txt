@@ -28,7 +28,7 @@ find_package(ANTLR REQUIRED)
 antlr_target(Python3Grammar ${CMAKE_CURRENT_SOURCE_DIR}/grammar/Python3.g4 OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/managed PACKAGE antlr4 LISTENER VISITOR)
 
 # can be only static because of llvms
-add_library(libcodegen STATIC
+add_library(libcodegen ${LIBRARY_MODE}
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${ANTLR_Python3Grammar_CXX_OUTPUTS})
 set_target_properties(libcodegen PROPERTIES PREFIX "")
 
@@ -39,9 +39,9 @@ set_target_properties(libcodegen PROPERTIES PREFIX "")
 # list to reduce size of shared object. Compared to linking against all LLVM components, this saves about ~10MB.
 #llvm_map_components_to_libnames(llvm_libs core orcjit nativecodegen native scalaropts objcarcopts passes)
 llvm_map_components_to_libnames(llvm_libs core native irreader target)
-llvm_config(libcodegen USE_SHARED ${llvm_libs})
-message(STATUS "${llvm_libs}")
-message(STATUS "llvm lib dirs: ${LLVM_LIBRARY_DIRS}")
+#llvm_config(libcodegen USE_SHARED ${llvm_libs})
+#message(STATUS "${llvm_libs}")
+#message(STATUS "llvm lib dirs: ${LLVM_LIBRARY_DIRS}")
 link_directories(${LLVM_LIBRARY_DIRS})
 # for minimum JIT these components are recommended:
 #    core
@@ -57,13 +57,14 @@ link_directories(${LLVM_LIBRARY_DIRS})
 #add_dependencies(libcodegen GeneratePython3Parser)
 
 # use precompiled headers for this target to decrease the cereal template instantiation cost
-file(GLOB_RECURSE VISITORS_HEADERS include/visitors/*.h)
-file(GLOB_RECURSE AST_HEADERS include/ast/*.h)
-file(GLOB_RECURSE SYMBOLS_HEADERS include/symbols/*.h)
-set(CODEGEN_HEADERS ${VISITORS_HEADERS} ${AST_HEADERS} ${SYMBOLS_HEADERS})
-message(STATUS "headers to precompile: ${CODEGEN_HEADERS}")
-target_precompile_headers(libcodegen PUBLIC ${CODEGEN_HEADERS})
-
+if(USE_PRECOMPILED_HEADERS)
+    file(GLOB_RECURSE VISITORS_HEADERS include/visitors/*.h)
+    file(GLOB_RECURSE AST_HEADERS include/ast/*.h)
+    file(GLOB_RECURSE SYMBOLS_HEADERS include/symbols/*.h)
+    set(CODEGEN_HEADERS ${VISITORS_HEADERS} ${AST_HEADERS} ${SYMBOLS_HEADERS})
+    message(STATUS "headers to precompile: ${CODEGEN_HEADERS}")
+    target_precompile_headers(libcodegen PUBLIC ${CODEGEN_HEADERS})
+endif()
 # Specify here the include directories exported
 # by this library
 target_include_directories(libcodegen PUBLIC

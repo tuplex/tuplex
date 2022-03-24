@@ -20,6 +20,18 @@ option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the cod
 option(USE_LD_GOLD "Use GNU gold linker" ON)
 option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." ON)
 option(BUILD_WITH_CEREAL "whether to enable cereal based serialization or not. Disabled per default because it results in 4x larger build times" OFF)
+option(USE_PRECOMPILED_HEADERS "use precompiled headers" OFF)
+
+# set here library mode, depending on OS
+if(APPLE)
+    set(LIBRARY_MODE OBJECT)
+else()
+    if(BUILD_SHARED_LIBS)
+        set(LIBRARY_MODE SHARED)
+    else()
+        set(LIBRARY_MODE STATIC)
+    endif()
+endif()
 
 # variables:
 # AWS_S3_TEST_BUCKET ==> specifies bucket to run tests on!

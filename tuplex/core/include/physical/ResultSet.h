@@ -36,8 +36,6 @@ namespace tuplex {
         size_t _rowsRetrieved;
         size_t _totalRowCounter; // used for merging in rows!
         size_t _maxRows;
-        size_t _maxRowsTop;
-        size_t _maxRowsBottom;
         Schema _schema;
 
         void removeFirstPartition();

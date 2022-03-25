@@ -33,10 +33,6 @@ namespace tuplex {
     std::vector<IExecutorTask*> WorkQueue::popCompletedTasks() {
         TRACE_LOCK("workQueue");
 
-        _taskDoneMutex.lock();
-        _taskDone.clear();
-        _taskDoneMutex.unlock();
-
         std::lock_guard<std::mutex> lock(_completedTasksMutex);
         // move leads to circular dependency in gcc and thus a bug on travis-ci. Therefore, just
         // use the below hack to fool the compiler into actually copying the vectors

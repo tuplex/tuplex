@@ -98,7 +98,7 @@ namespace tuplex {
         Partition *first = _partitions.front();
         assert(_schema == first->schema());
 
-        auto numRows = first->getNumRows() - first->getNumSkip();
+        auto numRows = first->getNumRows();
         _rowsRetrieved += numRows;
 
         _partitions.pop_front();

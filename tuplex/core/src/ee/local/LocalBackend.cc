@@ -551,6 +551,7 @@ namespace tuplex {
                         task->sinkExceptionsToMemory(inputSchema);
                         task->setStageID(tstage->getID());
                         task->setOutputTopLimit(tstage->outputTopLimit());
+                        task->setOutputBottomLimit(tstage->outputBottomLimit());
                         // add to tasks
                         tasks.emplace_back(std::move(task));
                     } else {
@@ -1197,7 +1198,7 @@ namespace tuplex {
                 }
 
                 if (tstage->hasOutputLimit()) {
-                    trimPartitionsToLimit(output, tstage->outputTopLimit(), tstage->outputBottomLimit());
+                    trimPartitionsToLimit(output, tstage->outputTopLimit(), tstage->outputBottomLimit(), tstage);
                 }
 
                 tstage->setMemoryResult(output, generalOutput, partitionToExceptionsMap, nonConformingRows, remainingExceptions, ecounts);
@@ -1560,7 +1561,7 @@ namespace tuplex {
 
         for (int i = 0; i < tasks.size(); i++) {
             // take limit only work with uniform order
-            assert(task.getOrder(0) == i);
+            assert(tasks[i]->getOrder(0) == i);
         }
 
         // add all tasks to queue
@@ -2165,9 +2166,9 @@ namespace tuplex {
                 // clip last partition & leave loop
                 auto clipped = bottomLimit - (numTopOutputRows - partition->getNumRows());
                 assert(clipped <= partition->getNumRows());
-                Partition newPart = newPartitionWithSkipRows(partition, partition->getNumRows() - clipped, tstage);
+                Partition* newPart = newPartitionWithSkipRows(partition, partition->getNumRows() - clipped, tstage);
                 partition->invalidate();
-                parition = newPart;
+                partition = newPart;
                 assert(partition->getNumRows() == clipped);
                 if (clipped > 0)
                     limitedTailPartitions.push_back(partition);
@@ -2199,12 +2200,12 @@ namespace tuplex {
         }
 
         // merge the head and tail partitions
-        partitions.clear()
+        partitions.clear();
         partitions.insert(partitions.end(), limitedPartitions.begin(), limitedPartitions.end());
         partitions.insert(partitions.end(), limitedTailPartitions.rbegin(), limitedTailPartitions.rend());
     }
 
-    Partition* LocalBackend::newPartitionWithSkipRows(Partition *p_in, int numToSkip, TransformStage* tstage) {
+    Partition* LocalBackend::newPartitionWithSkipRows(Partition *p_in, size_t numToSkip, TransformStage* tstage) {
         if(!numToSkip)
             return nullptr;
 
@@ -2220,7 +2221,7 @@ namespace tuplex {
         size_t numBytesToSkip = 0;
 
         for(unsigned i = 0; i < numToSkip; ++i) {
-            Rows r = Row::fromMemory(tstage->outputSchema(), ptr, p_in->capacity() - numBytesToSkip);
+            Row r = Row::fromMemory(tstage->outputSchema(), ptr, p_in->capacity() - numBytesToSkip);
             ptr += r.serializedLength();
             numBytesToSkip += r.serializedLength();
         }
@@ -2228,7 +2229,7 @@ namespace tuplex {
         auto ptr_out = p_out->lockRaw();
         *((int64_t*) ptr_out) = p_in->getNumRows() - numToSkip;
         ptr_out += sizeof(int64_t);
-        memcpy(ptr_out, ptr, p_in->size() - numBytesToSkip);
+        memcpy((void *) ptr_out, ptr, p_in->size() - numBytesToSkip);
         p_out->unlock();
 
         p_in->unlock();

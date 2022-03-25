@@ -884,7 +884,12 @@ namespace tuplex {
         // special case: skip stage, i.e. empty code and mem2mem
         if(tstage->code().empty() &&  !tstage->fileInputMode() && !tstage->fileOutputMode()) {
             auto pyObjects = inputExceptionsToPythonObjects(tstage->inputExceptions(), tstage->normalCaseInputSchema());
-            tstage->setMemoryResult(tstage->inputPartitions(), std::vector<Partition*>{}, std::unordered_map<std::string, ExceptionInfo>(), pyObjects);
+
+            auto output_par = tstage->inputPartitions();
+            if (tstage->hasOutputLimit()) {
+                trimPartitionsToLimit(output_par, tstage->outputTopLimit(), tstage->outputBottomLimit(), tstage);
+            }
+            tstage->setMemoryResult(output_par, std::vector<Partition*>{}, std::unordered_map<std::string, ExceptionInfo>(), pyObjects);
             pyObjects.clear();
             // skip stage
             Logger::instance().defaultLogger().info("[Transform Stage] skipped stage " + std::to_string(tstage->number()) + " because there is nothing todo here.");

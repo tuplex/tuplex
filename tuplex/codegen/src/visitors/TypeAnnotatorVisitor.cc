@@ -1684,7 +1684,7 @@ namespace tuplex {
 
         for(auto& keyval : _iteratorInfoTable) {
             if(keyval.second)
-                keyval.second.deoptimize();
+                keyval.second->deoptimize();
         }
     }
 

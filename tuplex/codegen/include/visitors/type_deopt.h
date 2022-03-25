@@ -32,7 +32,7 @@ namespace tuplex {
         return false;
     }
 
-    bool deopt_unary_op(python::Type& optimized_result, python::Type& type, const TokenType& tt) {
+    inline bool deopt_unary_op(python::Type& optimized_result, python::Type& type, const TokenType& tt) {
 
         // always deopt
         type = deoptimizedType(type);

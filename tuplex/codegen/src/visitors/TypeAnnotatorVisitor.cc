@@ -1030,7 +1030,7 @@ namespace tuplex {
         assert(sub->_expression);
 
         auto type = sub->_value->getInferredType();
-        auto index_type = sub->_expression->getInferredType();
+        auto index_type = deoptimizedType(sub->_expression->getInferredType());
 
         // this is a null check operation. I.e. strip option from either type or index type
         if(type.isOptionType())

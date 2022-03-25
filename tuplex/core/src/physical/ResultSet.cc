@@ -138,8 +138,7 @@ namespace tuplex {
                 auto num_rows = first->getNumRows();
                 // how many left to retrieve?
                 auto num_to_retrieve_from_partition = std::min(limit - i, num_rows - _curRowCounter);
-                if(num_to_retrieve_from_partition <= 0)
-                    break;
+                assert(num_to_retrieve_from_partition >= 0);
 
                 // make sure partition schema matches stored schema
                 assert(_schema == first->schema());

@@ -19,14 +19,14 @@ fi
 NUM_RUNS=1
 TIMEOUT=14400
 
-RESDIR='results_dirty_zillow@100G'
-DATA_PATH_SSD='/hot/scratch/bgivertz/data/zillow_dirty@100G.csv'
+RESDIR='results_dirty_zillow@50G'
+DATA_PATH_SSD='/disk/data/zillow_dirty@50G.csv'
 #DATA_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/data/zillow_dirty@50G.csv'
-INCREMENTAL_OUT_PATH_SSD='/hot/scratch/bgivertz/output/incremental_output'
+INCREMENTAL_OUT_PATH_SSD='/disk/output/incremental_output'
 #INCREMENTAL_OUT_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/incremental_output'
-INCREMENTAL_COMMIT_OUT_PATH_SSD='/hot/scratch/bgivertz/output/incremental_commit_output'
+INCREMENTAL_COMMIT_OUT_PATH_SSD='/disk/output/incremental_commit_output'
 #INCREMENTAL_COMMIT_OUT_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/incremental_commit_output'
-PLAIN_OUT_PATH_SSD='/hot/scratch/bgivertz/output/plain_output'
+PLAIN_OUT_PATH_SSD='/disk/output/plain_output'
 #PLAIN_OUT_PATH_HD='/home/bgivertz/tuplex/benchmarks/incremental/plain_output'
 
 rm -rf $RESDIR

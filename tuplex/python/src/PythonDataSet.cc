@@ -130,7 +130,7 @@ namespace tuplex {
             std::shared_ptr<ResultSet> rs;
             std::string err_message = "";
             try {
-                rs = _dataset->take(numRows, ss);
+                rs = _dataset->take(numTop, numBottom, ss);
                 if(!rs)
                     throw std::runtime_error("invalid result set");
                 // if there are more than 1 million (100k in debug mode) elements print message...

@@ -89,7 +89,7 @@ namespace tuplex {
         MessageHandler& logger() const { return Logger::instance().logger("local ee"); }
 
         void trimPartitionsToLimit(std::vector<Partition *> &partitions, size_t topLimit, size_t bottomLimit, TransformStage* tstage);
-        Partition* newPartitionWithSkipRows(Partition* p_in, int numToSkip, TransformStage* tstage);
+        Partition* newPartitionWithSkipRows(Partition* p_in, size_t numToSkip, TransformStage* tstage);
 
         // write output (may be already in correct format!)
         void writeOutput(TransformStage* tstage, std::vector<IExecutorTask*>& sortedTasks);

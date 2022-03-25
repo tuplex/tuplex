@@ -393,6 +393,10 @@ namespace tuplex {
          */
         void setDataAggregationMode(const AggregateType& t) { _aggMode = t; }
 
+        // default case: both _outputTopLimit and _outputBottomLimit is zero = take everything
+        bool hasOutputLimit() const {
+            return _outputTopLimit != 0 || _outputBottomLimit != 0;
+        }
     private:
         /*!
          * creates a new TransformStage with generated code
@@ -481,10 +485,6 @@ namespace tuplex {
         // for hash output, the key and bucket type
         python::Type _hashOutputKeyType;
         python::Type _hashOutputBucketType;
-
-        bool hasOutputLimit() const {
-            return _outputTopLimit < std::numeric_limits<size_t>::max() && _outputBottomLimit != 0;
-        }
     };
 }
 #endif //TUPLEX_TRANSFORMSTAGE_H

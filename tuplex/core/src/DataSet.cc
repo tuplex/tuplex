@@ -38,21 +38,17 @@ namespace tuplex {
     }
 
     std::shared_ptr<ResultSet> DataSet::collect(std::ostream &os) {
-        return take(-1, false, os);
+        return take(0, 0, os);
     }
 
-    std::shared_ptr<ResultSet> DataSet::take(int64_t numTop, int64_t numBottom, std::ostream &os) {
+    std::shared_ptr<ResultSet> DataSet::take(size_t topLimit, size_t bottomLimit, std::ostream &os) {
         // error dataset?
         if (isError())
             throw std::runtime_error("is error dataset!");
 
-        // negative numbers mean get all elements!
-        if (numTop < 0)
-            numTop = std::numeric_limits<int64_t>::max();
-
         // create a take node
         assert(_context);
-        LogicalOperator *op = _context->addOperator(new TakeOperator(this->_operator, numTop, numBottom));
+        LogicalOperator *op = _context->addOperator(new TakeOperator(this->_operator, topLimit, bottomLimit));
         DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
         dsptr->_operator = op;
         op->setDataSet(dsptr);
@@ -70,7 +66,7 @@ namespace tuplex {
     }
 
     // -1 means to retrieve all elements
-    std::vector<Row> DataSet::takeAsVector(int64_t numElements, std::ostream &os) {
+    std::vector<Row> DataSet::takeAsVector(size_t numElements, std::ostream &os) {
         auto rs = take(numElements, false, os);
         Timer timer;
 

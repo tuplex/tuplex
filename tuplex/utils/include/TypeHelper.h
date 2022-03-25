@@ -14,6 +14,12 @@
 #include "TypeSystem.h"
 
 namespace tuplex {
+
+    /*!
+    * retrieves the underlying type of an optimized type
+    * @param optType
+    * @return the unoptimized, underlying type. E.g., an integer for a range-compressed integer.
+    */
     inline python::Type deoptimizedType(const python::Type& optType) {
             //@TODO: refactor all these functions/recursive things into something better...
 

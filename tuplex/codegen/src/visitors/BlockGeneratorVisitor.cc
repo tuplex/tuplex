@@ -15,6 +15,8 @@
 #include <Base.h>
 #include <visitors/TypeAnnotatorVisitor.h>
 #include <visitors/ApplyVisitor.h>
+#include <TypeHelper.h>
+#include <visitors/type_deopt.h>
 
 using namespace llvm;
 

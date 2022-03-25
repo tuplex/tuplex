@@ -217,13 +217,6 @@ namespace tuplex {
         };
 
         /*!
-         * retrieves the underlying type of an optimized type
-         * @param optType
-         * @return the unoptimized, underlying type. E.g., an integer for a range-compressed integer.
-         */
-        extern python::Type deoptimizedType(const python::Type& optType);
-
-        /*!
          * generates code to get a compatible underlying value from an optimized value.
          * @param builder LLVM IR Builder
          * @param value codegen value representing the optimized value

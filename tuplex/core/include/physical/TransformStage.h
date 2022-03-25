@@ -395,7 +395,7 @@ namespace tuplex {
 
         // default case: both _outputTopLimit and _outputBottomLimit is zero = take everything
         bool hasOutputLimit() const {
-            return _outputTopLimit > 0 || _outputBottomLimit > 0;
+            return _outputTopLimit != 0 || _outputBottomLimit != 0;
         }
     private:
         /*!

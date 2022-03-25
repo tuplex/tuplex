@@ -586,6 +586,7 @@ namespace tuplex {
                             task->sinkExceptionsToMemory(inputSchema);
                             task->setStageID(tstage->getID());
                             task->setOutputTopLimit(tstage->outputTopLimit());
+                            task->setOutputBottomLimit(tstage->outputBottomLimit());
                             // add to tasks
                             tasks.emplace_back(std::move(task));
                             num_parts++;
@@ -623,6 +624,7 @@ namespace tuplex {
                                 task->sinkExceptionsToMemory(inputSchema);
                                 task->setStageID(tstage->getID());
                                 task->setOutputTopLimit(tstage->outputTopLimit());
+                                task->setOutputBottomLimit(tstage->outputBottomLimit());
                                 // add to tasks
                                 tasks.emplace_back(std::move(task));
 

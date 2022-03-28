@@ -25,6 +25,16 @@ namespace tuplex {
     // TODO implement, can reuse functions from ReduceExpressionsVisitor or so...
     inline bool deopt_binary_op(python::Type& optimized_result, python::Type& lhs_type, python::Type& rhs_type, const TokenType& tt) {
 
+        // are both lhs and rhs constant valued integers?
+        if(lhs_type.isConstantValued() && rhs_type.isConstantValued()) {
+            // ok, can merge together!
+            auto& logger = Logger::instance().logger("codegen");
+            // propagate type
+            logger.debug("Optimization opportunity: " + lhs_type.desc() + " " + opToString(tt) + " " + rhs_type.desc());
+            // both int?
+        }
+
+
         // alway deopt
         lhs_type = deoptimizedType(lhs_type);
         rhs_type = deoptimizedType(rhs_type);

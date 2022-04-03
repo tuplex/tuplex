@@ -1,0 +1,135 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.patches as mpatches
+from enum import Enum
+import argparse
+import os
+import json
+
+PLAIN_COLOR = "#4285F4"
+INCREMENTAL_COLOR = '#DB4437'
+COMMIT_COLOR = "#F4B400"
+
+class Mode(Enum):
+    OUT_OF_ORDER = 1
+    IN_ORDER = 2
+    COMMIT = 3
+
+def in_order_total(save_path, plain_times, incremental_times, commit_times):
+    width = 0.7
+    separator = 0.02
+
+    labels = ['0', '1', '2', '3', '4', '5', '6']
+    x = np.arange(len(labels))
+
+    plt.bar(x - width/3 - separator, plain_times, width/3, color=PLAIN_COLOR)
+    plt.bar(x, incremental_times, width/3, color=INCREMENTAL_COLOR)
+    plt.bar(x + width/3 + separator, commit_times, width/3, color=COMMIT_COLOR)
+
+
+    plt.title('In Order | 100GB')
+    plt.xticks(x, labels)
+    plt.ylabel('Time (s)')
+    plt.xlabel('Number of Resolvers in Pipeline')
+    plt.legend(handles=[
+        mpatches.Patch(color=PLAIN_COLOR, label='Plain'),
+        mpatches.Patch(color=INCREMENTAL_COLOR, label='Incremental'),
+        mpatches.Patch(color=COMMIT_COLOR, label='Commit')
+    ], loc='upper right')
+
+    plt.savefig(os.path.join(save_path, 'in-order.png'))
+
+def out_of_order_total(save_path, plain_times, incremental_times):
+    width = 0.35
+    separator = 0.02
+
+    labels = ['0', '1', '2', '3', '4', '5', '6']
+    x = np.arange(len(labels))
+
+    plt.bar(x - width/2 - separator, plain_times, width + separator, color=PLAIN_COLOR)
+    plt.bar(x + width/2 + separator, incremental_times, width + separator, color=INCREMENTAL_COLOR)
+
+    plt.title('Out of Order | 100GB')
+    plt.xticks(x, labels)
+    plt.ylabel('Time (s)')
+    plt.xlabel('Number of Resolvers in Pipeline')
+    plt.legend(handles=[
+        mpatches.Patch(color=PLAIN_COLOR, label='Plain'),
+        mpatches.Patch(color=INCREMENTAL_COLOR, label='Incremental')
+    ], loc='upper right')
+
+    plt.savefig(os.path.join(save_path, 'out-of-order.png'))
+
+def validate_experiment(compare_path):
+    with open(compare_path) as f:
+        lines = f.read().splitlines()
+        return ">>> contents of folders match." in lines
+
+def get_metric(path, metric, step):
+    with open(path) as f:
+        lines = f.read().splitlines()
+        ind = lines.index("EXPERIMENTAL RESULTS") + 2
+        line = lines[ind + step]
+        metrics = json.loads(line)
+        if metric == 'jobTime':
+            return metrics[metric]
+        else:
+            return metrics["stages"][0][metric]
+
+def compare_path(trial, mode):
+    return "tuplex-compare-{}{}-ssd-{}.txt".format('out-of-order' if mode == Mode.OUT_OF_ORDER else 'in-order',
+                                                   '-commit' if mode == Mode.COMMIT else '',
+                                                   trial)
+
+
+def experiment_path(trial, incremental, mode):
+    return "tuplex-{}-{}{}-ssd-{}.txt".format('incremental' if incremental else 'plain',
+                                              'out-of-order' if mode == Mode.OUT_OF_ORDER else 'in-order',
+                                              '-commit' if mode == Mode.COMMIT else '',
+                                              trial)
+
+def get_average_times(results_path, num_trials, num_steps, incremental, mode):
+    times = []
+    for i in range(num_steps):
+        total = 0
+        for j in range(num_trials):
+            total += get_metric(os.path.join(results_path, experiment_path(j + 1, incremental, mode)), 'jobTime', i)
+        total /= num_trials
+        times.append(total)
+    return times
+
+def main():
+    parser = argparse.ArgumentParser(description='Parse results of experiment')
+    parser.add_argument('--results-path', type=str, dest='results_path', default='results_dirty_zillow@10G')
+    parser.add_argument('--num-trials', type=int, dest='num_trials', default=1,)
+    parser.add_argument('--num-steps', type=int, dest='num_steps', default=7)
+    parser.add_argument('--save-path', type=str, dest='save_path', default='graphs')
+    args = parser.parse_args()
+
+    results_path = args.results_path
+    num_trials = args.num_trials
+    num_steps = args.num_steps
+    save_path = args.save_path
+
+    if not os.path.isdir(save_path):
+        os.makedirs(save_path)
+    assert os.path.isdir(results_path)
+
+    for i in range(num_trials):
+        for mode in Mode:
+            validate_path = os.path.join(results_path, compare_path(i + 1, mode))
+            assert validate_experiment(validate_path)
+
+    # Out of Order
+    plain_oo_times = get_average_times(results_path, num_trials, num_steps, False, Mode.OUT_OF_ORDER)
+    inc_oo_times = get_average_times(results_path,num_trials, num_steps, True, Mode.OUT_OF_ORDER)
+    out_of_order_total(save_path, plain_oo_times, inc_oo_times)
+
+    plain_io_times = get_average_times(results_path, num_trials, num_steps, False, Mode.IN_ORDER)
+    inc_io_times = get_average_times(results_path, num_trials, num_steps, True, Mode.IN_ORDER)
+    commit_io_times = get_average_times(results_path, num_trials, num_steps, True, Mode.COMMIT)
+    in_order_total(save_path, plain_io_times, inc_io_times, commit_io_times)
+
+
+if __name__ == '__main__':
+    main()

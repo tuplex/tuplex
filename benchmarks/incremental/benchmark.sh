@@ -39,7 +39,7 @@ fi
 mkdir -p ${RESDIR}
 
 # create tuplex_config.json
-python3 create_conf.py --opt-pushdown --opt-filter --opt-llvm --executor-count 99 --executor-memory "4G" > tuplex_config.json
+python3 create_conf.py --opt-pushdown --opt-filter --opt-llvm --executor-count 63 --executor-memory "6G" > tuplex_config.json
 
 echo "running out-of-order ssd experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do

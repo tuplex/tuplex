@@ -16,7 +16,7 @@ if [ $# -eq 1 ]; then # check if hwloc
 fi
 
 # use 10 runs (3 for very long jobs) and a timeout after 180min/3h
-NUM_RUNS=1
+NUM_RUNS=3
 TIMEOUT=14400
 
 RESDIR='results_dirty_zillow@100G'

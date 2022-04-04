@@ -145,10 +145,10 @@ def main():
         os.makedirs(save_path)
     assert os.path.isdir(results_path)
 
-    for i in range(num_trials):
-        for mode in Mode:
-            validate_path = os.path.join(results_path, compare_path(i + 1, mode))
-            assert validate_experiment(validate_path)
+    # for i in range(num_trials):
+    #     for mode in Mode:
+    #         validate_path = os.path.join(results_path, compare_path(i + 1, mode))
+    #         assert validate_experiment(validate_path)
 
 
     # Total Times

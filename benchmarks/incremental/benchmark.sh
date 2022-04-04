@@ -53,9 +53,9 @@ for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-incremental-out-of-order-ssd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --incremental-resolution --path $DATA_PATH_SSD --output-path $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
-  echo "validating results"
-  LOG="${RESDIR}/tuplex-compare-out-of-order-ssd-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py $PLAIN_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
+#  echo "validating results"
+#  LOG="${RESDIR}/tuplex-compare-out-of-order-ssd-$r.txt"
+#  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py $PLAIN_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 done
 
 echo "running in-order ssd experiments"
@@ -74,16 +74,16 @@ for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-incremental-in-order-commit-ssd-$r.txt"
   timeout $TIMEOUT ${HWLOC} python3 runtuplex.py --clear-cache --resolve-in-order --incremental-resolution --commit --path $DATA_PATH_SSD --output-path $INCREMENTAL_COMMIT_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 
-  echo "validating results"
-  LOG="${RESDIR}/tuplex-compare-in-order-ssd-$r.txt"
-  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $PLAIN_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
-
-  LOG="${RESDIR}/tuplex-compare-in-order-commit-ssd-$r.txt"
-    timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $INCREMENTAL_COMMIT_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
+#  echo "validating results"
+#  LOG="${RESDIR}/tuplex-compare-in-order-ssd-$r.txt"
+#  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $PLAIN_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
+#
+#  LOG="${RESDIR}/tuplex-compare-in-order-commit-ssd-$r.txt"
+#  timeout $TIMEOUT ${HWLOC} python3 compare_folders.py --in-order $INCREMENTAL_COMMIT_OUT_PATH_SSD $INCREMENTAL_OUT_PATH_SSD >$LOG 2>$LOG.stderr
 done
 
 echo "graphing results"
-python3 graph.py --results-path $RESDIR --num-trials $NUM_RUNS --num-steps 7
+python3 graph.py --results-path $RESDIR --num-trials $NUM_RUNS --num-steps 8
 
 rm -rf $INCREMENTAL_OUT_PATH_SSD
 rm -rf $PLAIN_OUT_PATH_SSD

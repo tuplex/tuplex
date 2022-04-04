@@ -19,7 +19,7 @@ def in_order_total(save_path, plain_times, incremental_times, commit_times):
     width = 0.7
     separator = 0.02
 
-    labels = ['0', '1', '2', '3', '4', '5', '6']
+    labels = ['No Resolvers', 'Bedroom Resolve', 'Bedroom Ignore', 'Bathroom Resolve', 'Bathroom Ignore', 'Sqft Ignore', 'Price Resolve', 'Price Ignore']
     x = np.arange(len(labels))
 
     fig = plt.figure()
@@ -44,7 +44,7 @@ def time_breakdown(save_path, save_name, fast_path, slow_path, write):
     width = 0.6
     separator = 0.02
 
-    labels = ['0', '1', '2', '3', '4', '5', '6']
+    labels = ['No Resolvers', 'Bedroom Resolve', 'Bedroom Ignore', 'Bathroom Resolve', 'Bathroom Ignore', 'Sqft Ignore', 'Price Resolve', 'Price Ignore']
     x = np.arange(len(labels))
 
     fig = plt.figure()
@@ -71,7 +71,7 @@ def out_of_order_total(save_path, plain_times, incremental_times):
     width = 0.35
     separator = 0.02
 
-    labels = ['0', '1', '2', '3', '4', '5', '6']
+    labels = ['No Resolvers', 'Bedroom Resolve', 'Bedroom Ignore', 'Bathroom Resolve', 'Bathroom Ignore', 'Sqft Ignore', 'Price Resolve', 'Price Ignore']
     x = np.arange(len(labels))
 
     fig = plt.figure()

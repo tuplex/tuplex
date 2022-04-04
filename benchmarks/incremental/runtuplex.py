@@ -145,17 +145,17 @@ def dirty_zillow_pipeline(ctx, path, output_path, step, commit):
         ds = ds.ignore(ValueError)
 
     ds = ds.withColumn('sqft', extractSqft)
-    if step > 4:
+    if step > 3:
         ds = ds.ignore(ValueError)
 
     ds = ds.withColumn('offer', extractOffer)
     ds = ds.withColumn('price', extractPrice)
-    if step > 5:
+    if step > 4:
         ds = ds.resolve(ValueError, lambda x: int(re.sub('[^0-9.]*', '', x['price'])))
-    if step > 6:
+    if step > 5:
         ds = ds.ignore(TypeError)
         ds = ds.ignore(ValueError)
-    ds = ds.selectColumns(["bedrooms", "bathrooms", "sqft", "price"])
+    ds = ds.selectColumns(["address", "bedrooms", "bathrooms", "sqft", "price"])
 
 # ds = ds.withColumn("bedrooms", extractBd)
     # if step > 0:
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     parser.add_argument('--path', type=str, dest='data_path', default='/hot/scratch/bgivertz/data/zillow_dirty.csv', help='path or pattern to zillow data')
     parser.add_argument('--output-path', type=str, dest='output_path', default='/hot/scratch/bgivertz/output/', help='specify path where to save output data files')
     parser.add_argument('--resolve-in-order', dest='resolve_in_order', action="store_true", help="whether to resolve exceptions in order")
-    parser.add_argument('--num-steps', dest='num_steps', type=int, default=8)
+    parser.add_argument('--num-steps', dest='num_steps', type=int, default=7)
     parser.add_argument('--incremental-resolution', dest='incremental_resolution', action="store_true", help="whether to use incremental resolution")
     parser.add_argument('--commit-mode', dest='commit_mode', action='store_true', help='whether to use commit mode')
     parser.add_argument('--clear-cache', dest='clear_cache', action='store_true', help='whether to clear the cache or not')

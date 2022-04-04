@@ -83,7 +83,7 @@ for ((r = 1; r <= NUM_RUNS; r++)); do
 done
 
 echo "graphing results"
-python3 graph.py --results-path $RESDIR --num-trials $NUM_RUNS --num-steps 8
+python3 graph.py --results-path $RESDIR --num-trials $NUM_RUNS --num-steps 7
 
 rm -rf $INCREMENTAL_OUT_PATH_SSD
 rm -rf $PLAIN_OUT_PATH_SSD

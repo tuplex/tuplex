@@ -992,6 +992,7 @@ namespace tuplex {
 
             metrics.setSlowPathRowCount(tstage->number(), numInputRows, numOutputRows);
             // fast path
+            metrics.setFastPathTimes(tstage->number(), 0, 0, 0);
             metrics.setSlowPathTimes(tstage->number(), totalWallTime, timer.time(), time_per_slow_path_row_in_ms * 1000000.0);
         }
 

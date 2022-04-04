@@ -13,6 +13,7 @@ import math
 import re
 import shutil
 import subprocess
+import random
 
 # UDFs for pipeline
 def extractBd(x):
@@ -47,14 +48,13 @@ def resolveBa(x):
     r = s[split_idx:]
     return math.ceil(float(r))
 
-def extractBa(x):
-    val = x['facts and features']
-    max_idx = val.find(' ba')
+def resolveBa(x):
+    val = x['title']
+    max_idx = val.find(' bath')
     if max_idx < 0:
         max_idx = len(val)
     s = val[:max_idx]
 
-    # find comma before
     split_idx = s.rfind(',')
     if split_idx < 0:
         split_idx = 0
@@ -127,33 +127,56 @@ def resolveBd(x):
     raise ValueError
 
 #compare types and contents
-def dirty_zillow_pipeline(ctx, paths, output_path, step, commit):
-    ds = ctx.csv(','.join(paths))
-    ds = ds.withColumn("bedrooms", extractBd)
+def dirty_zillow_pipeline(ctx, path, output_path, step, commit):
+    ds = ctx.csv(path)
+
+    ds = ds.withColumn('bedrooms', extractBd)
     if step > 0:
         ds = ds.resolve(ValueError, resolveBd)
     if step > 1:
         ds = ds.ignore(ValueError)
-    ds = ds.filter(lambda x: x['bedrooms'] < 10)
-    ds = ds.withColumn("type", extractType)
-    ds = ds.filter(lambda x: x['type'] == 'condo')
-    ds = ds.withColumn("zipcode", lambda x: '%05d' % int(x['postal_code']))
+
+    ds = ds.withColumn('bathrooms', extractBa)
     if step > 2:
-        ds = ds.ignore(TypeError)
-    ds = ds.mapColumn("city", lambda x: x[0].upper() + x[1:].lower())
-    ds = ds.withColumn("bathrooms", extractBa)
+        ds = ds.resolve(ValueError, resolveBa)
     if step > 3:
         ds = ds.ignore(ValueError)
-    ds = ds.withColumn("sqft", extractSqft)
+
+    ds = ds.withColumn('sqft', extractSqft)
     if step > 4:
         ds = ds.ignore(ValueError)
-    ds = ds.withColumn("offer", extractOffer)
-    ds = ds.withColumn("price", extractPrice)
+
+    ds = ds.withColumn('offer', extractOffer)
+    ds = ds.withColumn('price', extractPrice)
     if step > 5:
         ds = ds.resolve(ValueError, lambda x: int(re.sub('[^0-9.]*', '', x['price'])))
-    ds = ds.filter(lambda x: 100000 < x['price'] < 2e7 and x['offer'] == 'sale')
-    ds = ds.selectColumns(["url", "zipcode", "address", "city", "state",
-                            "bedrooms", "bathrooms", "sqft", "offer", "type", "price"])
+    if step > 6:
+        ds = ds.ignore(TypeError)
+        ds = ds.ignore(ValueError)
+
+# ds = ds.withColumn("bedrooms", extractBd)
+    # if step > 0:
+    #     ds = ds.resolve(ValueError, resolveBd)
+    # if step > 1:
+    #     ds = ds.ignore(ValueError)
+    # ds = ds.withColumn("type", extractType)
+    # ds = ds.withColumn("zipcode", lambda x: '%05d' % int(x['postal_code']))
+    # if step > 2:
+    #     ds = ds.ignore(TypeError)
+    # ds = ds.mapColumn("city", lambda x: x[0].upper() + x[1:].lower())
+    # ds = ds.withColumn("bathrooms", extractBa)
+    # if step > 3:
+    #     ds = ds.ignore(ValueError)
+    # ds = ds.withColumn("sqft", extractSqft)
+    # if step > 4:
+    #     ds = ds.ignore(ValueError)
+    # ds = ds.withColumn("offer", extractOffer)
+    # ds = ds.withColumn("price", extractPrice)
+    # if step > 5:
+    #     ds = ds.resolve(ValueError, lambda x: int(re.sub('[^0-9.]*', '', x['price'])))
+    # ds = ds.filter(lambda x: 100000 < x['price'] < 2e7 and x['offer'] == 'sale')
+    # ds = ds.selectColumns(["url", "zipcode", "address", "city", "state",
+    #                         "bedrooms", "bathrooms", "sqft", "offer", "type", "price"])
     ds.tocsv(output_path, commit=commit)
     return ctx.metrics
 
@@ -162,6 +185,7 @@ if __name__ == '__main__':
     parser.add_argument('--path', type=str, dest='data_path', default='/hot/scratch/bgivertz/data/zillow_dirty.csv', help='path or pattern to zillow data')
     parser.add_argument('--output-path', type=str, dest='output_path', default='/hot/scratch/bgivertz/output/', help='specify path where to save output data files')
     parser.add_argument('--resolve-in-order', dest='resolve_in_order', action="store_true", help="whether to resolve exceptions in order")
+    parser.add_argument('--num-steps', dest='num_steps', type=int, default=8)
     parser.add_argument('--incremental-resolution', dest='incremental_resolution', action="store_true", help="whether to use incremental resolution")
     parser.add_argument('--commit-mode', dest='commit_mode', action='store_true', help='whether to use commit mode')
     parser.add_argument('--clear-cache', dest='clear_cache', action='store_true', help='whether to clear the cache or not')
@@ -170,20 +194,14 @@ if __name__ == '__main__':
     assert args.data_path, 'need to set data path!'
 
     # config vars
-    paths = [args.data_path]
+    path = args.data_path
     output_path = args.output_path
 
-    # explicit globbing because dask can't handle patterns well...
-    if not os.path.isfile(args.data_path):
-        paths = sorted(glob.glob(os.path.join(args.data_path, '*.csv')))
-    else:
-        paths = [args.data_path]
-
-    if not paths:
+    if not path:
         print('found no zillow data to process, abort.')
         sys.exit(1)
 
-    print('>>> running {} on {}'.format('tuplex', paths))
+    print('>>> running {} on {}'.format('tuplex', path))
 
     # load data
     tstart = time.time()
@@ -235,12 +253,12 @@ if __name__ == '__main__':
 
     tstart = time.time()
     # decide which pipeline to run based on argparse arg!
-    num_steps = 7
+    num_steps = args.num_steps
     metrics = []
     for step in range(num_steps):
         print(f'>>> running pipeline with {step} resolver(s) enabled...')
         jobstart = time.time()
-        m = dirty_zillow_pipeline(ctx, paths, output_path, step, not args.commit_mode or step == num_steps - 1)
+        m = dirty_zillow_pipeline(ctx, path, output_path, step, not args.commit_mode or step == num_steps - 1)
         m = m.as_dict()
         m["numResolvers"] = step
         m["jobTime"] = time.time() - jobstart

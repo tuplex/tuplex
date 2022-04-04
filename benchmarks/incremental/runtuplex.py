@@ -32,7 +32,7 @@ def extractBd(x):
     r = s[split_idx:]
     return int(r)
 
-def resolveBa(x):
+def extractBa(x):
     val = x['facts and features']
     max_idx = val.find(' ba')
     if max_idx < 0:
@@ -46,7 +46,9 @@ def resolveBa(x):
     else:
         split_idx += 2
     r = s[split_idx:]
-    return math.ceil(float(r))
+
+    ba = math.ceil(2.0 * float(r)) / 2.0
+    return ba
 
 def resolveBa(x):
     val = x['title']

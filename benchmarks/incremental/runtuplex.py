@@ -155,7 +155,7 @@ def dirty_zillow_pipeline(ctx, path, output_path, step, commit):
     if step > 6:
         ds = ds.ignore(TypeError)
         ds = ds.ignore(ValueError)
-    ds = ds.selectColumns(["address", "bedrooms", "bathrooms", "sqft", "price"])
+    ds = ds.selectColumns(["bedrooms", "bathrooms", "sqft", "price"])
 
 # ds = ds.withColumn("bedrooms", extractBd)
     # if step > 0:

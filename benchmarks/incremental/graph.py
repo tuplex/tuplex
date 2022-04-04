@@ -19,19 +19,19 @@ def in_order_total(save_path, plain_times, incremental_times, commit_times):
     width = 0.7
     separator = 0.02
 
-    labels = ['No Resolvers', 'Bedroom Resolve', 'Bedroom Ignore', 'Bathroom Resolve', 'Bathroom Ignore', 'Sqft Ignore', 'Price Resolve', 'Price Ignore']
+    labels = ['No\nResolvers', 'Bedroom\nResolve', 'Bedroom\nIgnore', 'Bathroom\nResolve', 'Bathroom\nIgnore', 'Price\nResolve', 'Price\nIgnore']
     x = np.arange(len(labels))
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10, 6))
 
     plt.bar(x - width/3 - separator, plain_times, width/3, color=PLAIN_COLOR)
     plt.bar(x, incremental_times, width/3, color=INCREMENTAL_COLOR)
     plt.bar(x + width/3 + separator, commit_times, width/3, color=COMMIT_COLOR)
 
-    plt.title('In Order | 100GB')
+    plt.title('In Order')
     plt.xticks(x, labels)
-    plt.ylabel('Time (s)')
-    plt.xlabel('Number of Resolvers in Pipeline')
+    plt.ylabel('Execution Time (s)')
+    plt.xlabel('Pipeline Step')
     plt.legend(handles=[
         mpatches.Patch(color=PLAIN_COLOR, label='Plain'),
         mpatches.Patch(color=INCREMENTAL_COLOR, label='Incremental'),
@@ -40,23 +40,23 @@ def in_order_total(save_path, plain_times, incremental_times, commit_times):
 
     fig.savefig(os.path.join(save_path, 'in-order-total.png'), dpi=400)
 
-def time_breakdown(save_path, save_name, fast_path, slow_path, write):
+def time_breakdown(save_path, title, save_name, fast_path, slow_path, write):
     width = 0.6
     separator = 0.02
 
-    labels = ['No Resolvers', 'Bedroom Resolve', 'Bedroom Ignore', 'Bathroom Resolve', 'Bathroom Ignore', 'Sqft Ignore', 'Price Resolve', 'Price Ignore']
+    labels = ['No\nResolvers', 'Bedroom\nResolve', 'Bedroom\nIgnore', 'Bathroom\nResolve', 'Bathroom\nIgnore', 'Price\nResolve', 'Price\nIgnore']
     x = np.arange(len(labels))
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10, 6))
 
     plt.bar(x, fast_path, width, color=PLAIN_COLOR)
     plt.bar(x, slow_path, width, bottom=fast_path, color=INCREMENTAL_COLOR)
     plt.bar(x, write, width, bottom=fast_path + slow_path, color=COMMIT_COLOR)
 
-    plt.title('Out of Order | 100GB')
+    plt.title(title)
     plt.xticks(x, labels)
-    plt.ylabel('Time (s)')
-    plt.xlabel('Number of Resolvers in Pipeline')
+    plt.ylabel('Execution Time (s)')
+    plt.xlabel('Pipeline Step')
 
     plt.legend(handles=[
         mpatches.Patch(color=PLAIN_COLOR, label='Fast Path'),
@@ -71,18 +71,18 @@ def out_of_order_total(save_path, plain_times, incremental_times):
     width = 0.35
     separator = 0.02
 
-    labels = ['No Resolvers', 'Bedroom Resolve', 'Bedroom Ignore', 'Bathroom Resolve', 'Bathroom Ignore', 'Sqft Ignore', 'Price Resolve', 'Price Ignore']
+    labels = ['No\nResolvers', 'Bedroom\nResolve', 'Bedroom\nIgnore', 'Bathroom\nResolve', 'Bathroom\nIgnore', 'Price\nResolve', 'Price\nIgnore']
     x = np.arange(len(labels))
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10, 6))
 
     plt.bar(x - width/2 - separator, plain_times, width + separator, color=PLAIN_COLOR)
     plt.bar(x + width/2 + separator, incremental_times, width + separator, color=INCREMENTAL_COLOR)
 
-    plt.title('Out of Order | 100GB')
+    plt.title('Out of Order')
     plt.xticks(x, labels)
-    plt.ylabel('Time (s)')
-    plt.xlabel('Number of Resolvers in Pipeline')
+    plt.ylabel('Execution Time (s)')
+    plt.xlabel('Pipeline Step')
     plt.legend(handles=[
         mpatches.Patch(color=PLAIN_COLOR, label='Plain'),
         mpatches.Patch(color=INCREMENTAL_COLOR, label='Incremental')
@@ -165,27 +165,27 @@ def main():
     plain_fast = get_average_times(results_path, 'fast_path_time_s', num_trials, num_steps, False, Mode.OUT_OF_ORDER)
     plain_slow = get_average_times(results_path, 'slow_path_time_s', num_trials, num_steps, False, Mode.OUT_OF_ORDER)
     plain_write = get_average_times(results_path, 'write_output_wall_time_s', num_trials, num_steps, False, Mode.OUT_OF_ORDER)
-    time_breakdown(save_path, 'out-of-order-plain-breakdown.png', plain_fast, plain_slow, plain_write)
+    time_breakdown(save_path, 'Out of Order | Plain', 'out-of-order-plain-breakdown.png', plain_fast, plain_slow, plain_write)
 
     inc_fast = get_average_times(results_path, 'fast_path_time_s', num_trials, num_steps, True, Mode.OUT_OF_ORDER)
     inc_slow = get_average_times(results_path, 'slow_path_time_s', num_trials, num_steps, True, Mode.OUT_OF_ORDER)
     inc_write = get_average_times(results_path, 'write_output_wall_time_s', num_trials, num_steps, True, Mode.OUT_OF_ORDER)
-    time_breakdown(save_path, 'out-of-order-incremental-breakdown.png', inc_fast, inc_slow, inc_write)
+    time_breakdown(save_path, 'Out of Order | Incremental', 'out-of-order-incremental-breakdown.png', inc_fast, inc_slow, inc_write)
 
     plain_fast = get_average_times(results_path, 'fast_path_time_s', num_trials, num_steps, False, Mode.IN_ORDER)
     plain_slow = get_average_times(results_path, 'slow_path_time_s', num_trials, num_steps, False, Mode.IN_ORDER)
     plain_write = get_average_times(results_path, 'write_output_wall_time_s', num_trials, num_steps, False, Mode.IN_ORDER)
-    time_breakdown(save_path, 'in-order-plain-breakdown.png', plain_fast, plain_slow, plain_write)
+    time_breakdown(save_path, 'In Order | Plain', 'in-order-plain-breakdown.png', plain_fast, plain_slow, plain_write)
 
     inc_fast = get_average_times(results_path, 'fast_path_time_s', num_trials, num_steps, True, Mode.IN_ORDER)
     inc_slow = get_average_times(results_path, 'slow_path_time_s', num_trials, num_steps, True, Mode.IN_ORDER)
     inc_write = get_average_times(results_path, 'write_output_wall_time_s', num_trials, num_steps, True, Mode.IN_ORDER)
-    time_breakdown(save_path, 'in-order-incremental-breakdown.png', inc_fast, inc_slow, inc_write)
+    time_breakdown(save_path, 'In Order | Incremental', 'in-order-incremental-breakdown.png', inc_fast, inc_slow, inc_write)
 
     commit_fast = get_average_times(results_path, 'fast_path_time_s', num_trials, num_steps, True, Mode.COMMIT)
     commit_slow = get_average_times(results_path, 'slow_path_time_s', num_trials, num_steps, True, Mode.COMMIT)
     commit_write = get_average_times(results_path, 'write_output_wall_time_s', num_trials, num_steps, True, Mode.COMMIT)
-    time_breakdown(save_path, 'in-order-commit-breakdown.png', commit_fast, commit_slow, commit_write)
+    time_breakdown(save_path, 'In Order | Commit', 'in-order-commit-breakdown.png', commit_fast, commit_slow, commit_write)
 
 
 

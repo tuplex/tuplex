@@ -572,17 +572,7 @@ namespace tuplex {
         op->setInferredType(binaryOpInference(op->_left.get(), left_type, tt, op->_right.get(), right_type));
     }
 
-    void TypeAnnotatorVisitor::visit(NCompare *cmp) {
-        ApatheticVisitor::visit(cmp);
-
-        // first check if this is a simple statement, if so simply use the rhs's result
-        if(cmp->_comps.size() == 0)
-            cmp->setInferredType(cmp->_left->getInferredType());
-        else
-            // else it is a bool (b.c. it is a compare statement)
-            cmp->setInferredType(python::Type::BOOLEAN);
-
-
+    bool TypeAnnotatorVisitor::checkForValidIsComparisons(NCompare* cmp) {
         // check if `is` comparison is valid
         std::unordered_set<python::Type> validTypes = {python::Type::NULLVALUE, python::Type::BOOLEAN};
         // one of every two types must be in validTypes.
@@ -594,8 +584,7 @@ namespace tuplex {
             auto right_type = deoptimizedType(cmp->_comps[0]->getInferredType());
             if(cmp->_ops[0] == TokenType::IS && !validTypes.count(left_type) && !validTypes.count(right_type)) {
                 // invalid types for lhs and rhs to do an `is` comparison.
-                addCompileError(CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON);
-                return;
+                return false;
             }
         }
 
@@ -608,8 +597,25 @@ namespace tuplex {
             // type error only if previous comparison is invalid
             if(!validTypes.count(currType) && !validTypes.count(nextType) && cmp->_ops[i] == TokenType::IS) {
                 // neither type is valid for an is comparison.
-                addCompileError(CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON);
+                return false;
             }
+        }
+        return true;
+    }
+
+    void TypeAnnotatorVisitor::visit(NCompare *cmp) {
+        ApatheticVisitor::visit(cmp);
+
+        // first check if this is a simple statement, if so simply use the rhs's result
+        if(cmp->_comps.size() == 0)
+            cmp->setInferredType(cmp->_left->getInferredType());
+        else
+            // else it is a bool (b.c. it is a compare statement)
+            cmp->setInferredType(python::Type::BOOLEAN);
+
+        if(!checkForValidIsComparisons(cmp)) {
+            addCompileError(CompileError::TYPE_ERROR_INCOMPATIBLE_TYPES_FOR_IS_COMPARISON);
+            return;
         }
     }
 

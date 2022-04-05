@@ -22,6 +22,8 @@ namespace tuplex {
     */
     inline python::Type deoptimizedType(const python::Type& optType) {
             //@TODO: refactor all these functions/recursive things into something better...
+            if(python::Type::UNKNOWN == optType)
+                return python::Type::UNKNOWN;
 
             // only constant folding so far supported.
             // also perform nested deoptimize...

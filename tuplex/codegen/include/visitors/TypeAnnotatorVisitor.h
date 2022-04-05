@@ -75,6 +75,14 @@ namespace tuplex {
         // each vector contains symbols that need to be tracked for type stability for the current loop
         size_t _ongoingLoopCount;
         bool _annotateWithConstantValues; // optimization to create even more reduced types. If set to true, then literals will emit constantValued types!
+
+
+        /*!
+         * checks whether contained is statements are valid re types, return false if not.
+         * @param cmp compare node
+         * @return true if check passed, false else.
+         */
+        bool checkForValidIsComparisons(NCompare* cmp);
     public:
 
         void reset() {

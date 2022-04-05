@@ -221,6 +221,7 @@ namespace tuplex {
           // deoptimization routine
         python::Type optimized_result = python::Type::UNKNOWN;
         if(optimized_unary_op(optimized_result, type, op->_op)) {
+            assert(python::Type::UNKNOWN != optimized_result);
             op->setInferredType(optimized_result);
             return;
         }
@@ -546,6 +547,7 @@ namespace tuplex {
         // deoptimization routine
         python::Type optimized_result = python::Type::UNKNOWN;
         if(optimized_binary_op(optimized_result, left_type, right_type, tt)) {
+            assert(python::Type::UNKNOWN != optimized_result);
             op->setInferredType(optimized_result);
             return;
         }

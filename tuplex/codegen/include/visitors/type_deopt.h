@@ -23,7 +23,16 @@ namespace tuplex {
     // or not, return false. In this case, the types are "deoptimized"
 
     // TODO implement, can reuse functions from ReduceExpressionsVisitor or so...
-    inline bool deopt_binary_op(python::Type& optimized_result, python::Type& lhs_type, python::Type& rhs_type, const TokenType& tt) {
+
+    /*!
+     *
+     * @param optimized_result the optimized result type
+     * @param lhs_type type of lhs (modifying, i.e. will deoptimize if necessary)
+     * @param rhs_type type of rhs (modifying, i.e. will deoptimize if necessary)
+     * @param tt the operation
+     * @return true if can create an optimized type for the specific binary operation
+     */
+    inline bool optimized_binary_op(python::Type& optimized_result, python::Type& lhs_type, python::Type& rhs_type, const TokenType& tt) {
 
         // are both lhs and rhs constant valued integers?
         if(lhs_type.isConstantValued() && rhs_type.isConstantValued()) {
@@ -42,7 +51,14 @@ namespace tuplex {
         return false;
     }
 
-    inline bool deopt_unary_op(python::Type& optimized_result, python::Type& type, const TokenType& tt) {
+    /*!
+     *
+     * @param optimized_result
+     * @param type
+     * @param tt
+     * @return
+     */
+    inline bool optimized_unary_op(python::Type& optimized_result, python::Type& type, const TokenType& tt) {
 
         // always deopt
         type = deoptimizedType(type);

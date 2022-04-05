@@ -220,7 +220,7 @@ namespace tuplex {
 
           // deoptimization routine
         python::Type optimized_result = python::Type::UNKNOWN;
-        if(!deopt_unary_op(optimized_result, type, op->_op)) {
+        if(optimized_unary_op(optimized_result, type, op->_op)) {
             op->setInferredType(optimized_result);
             return;
         }
@@ -545,7 +545,7 @@ namespace tuplex {
 
         // deoptimization routine
         python::Type optimized_result = python::Type::UNKNOWN;
-        if(!deopt_binary_op(optimized_result, left_type, right_type, tt)) {
+        if(optimized_binary_op(optimized_result, left_type, right_type, tt)) {
             op->setInferredType(optimized_result);
             return;
         }

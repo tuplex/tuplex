@@ -9,6 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <TypeSystem.h>
+#include <TypeHelper.h>
 #include <Logger.h>
 #include <stack>
 #include <sstream>
@@ -965,6 +966,15 @@ namespace python {
 
 
     Type Type::superType(const Type &A, const Type &B) {
+        // dealing with optimized types --> always deoptimize, For ranges though special case can be performed...
+        if(A.isOptimizedType() && B.isOptimizedType())
+            return tuplex::unifyOptimizedTypes(A, B);
+        if(A.isOptimizedType())
+            return superType(tuplex::deoptimizedType(A), B);
+        if(B.isOptimizedType())
+            return superType(A, tuplex::deoptimizedType(B));
+
+        // ------ regular super types -------
 
         // null and x => option[x]
         if (A == python::Type::NULLVALUE)

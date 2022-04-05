@@ -86,6 +86,10 @@ namespace tuplex {
                 for(const auto& c : cmp->_comps) ignoreVariable(c.get());
                 break;
             }
+            default: {
+                // nothing todo.
+                break;
+            }
         }
     }
 

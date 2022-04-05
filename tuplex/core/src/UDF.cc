@@ -838,11 +838,12 @@ namespace tuplex {
                         // no nested paths yet, i.e. x[0][2]
                         if(sub->_expression->type() == ASTNodeType::Number) {
                             NNumber* num = (NNumber*)sub->_expression.get();
-
+#ifndef NDEBUG
                             // should be I64 or bool
-                            assert(num->getInferredType() == python::Type::BOOLEAN ||
-                                   num->getInferredType() == python::Type::I64);
-
+                            auto deopt_num_type = deoptimizedType(num->getInferredType());
+                            assert(deopt_num_type == python::Type::BOOLEAN ||
+                                   deopt_num_type == python::Type::I64);
+#endif
 
                             // can save this one!
                             auto idx = num->getI64();
@@ -1096,9 +1097,10 @@ namespace tuplex {
                         NIdentifier* id = (NIdentifier*)sub->_value.get();
 
                         if(id->_name == _argNames.front()) {
-                            assert(sub->_expression->getInferredType() == python::Type::I64 ||
-                            sub->_expression->getInferredType() == python::Type::BOOLEAN);
-
+#ifndef NDEBUG
+                            auto exp_type = deoptimizedType(sub->_expression->getInferredType());
+                            assert(exp_type == python::Type::I64 || exp_type == python::Type::BOOLEAN);
+#endif
                             // there are two options:
                             // opt1: expression is a simple number
                             if(sub->_expression->type() == ASTNodeType::Number) {
@@ -1106,7 +1108,6 @@ namespace tuplex {
                                 // correct for negative indices
                                 if(old_idx < 0)
                                     old_idx += _numColumns;
-
 
                                 // assert(0 <= old_idx && old_idx < _numColumns);
 

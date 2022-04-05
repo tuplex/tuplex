@@ -89,10 +89,22 @@ namespace tuplex {
         void BlockGeneratorVisitor::visit(NNumber *num) {
             if(earlyExit())return;
 
+            auto num_type = num->getInferredType();
+
+            // optimized type? --> handle here
+            if(num->getInferredType().isOptimizedType()) {
+                // make sure it's float or int
+                num_type = deoptimizedType(num->getInferredType());
+                assert(num_type == python::Type::I64 || num_type == python::Type::F64);
+                // only constant yet supported!!!
+                if(!num->getInferredType().isConstantValued())
+                    error("only constant valued type right now supported, got " + num->getInferredType().desc() + " in BlockGeneratorVisitor::visit(NNumber*)");
+            }
+
             // depending on type, generate constant literal & push to stack
-            if (python::Type::I64 == num->getInferredType()) {
+            if (python::Type::I64 == num_type) {
                 addInstruction(ConstantInt::get(_env->getContext(), APInt(64, num->getI64())));
-            } else if (python::Type::F64 == num->getInferredType()) {
+            } else if (python::Type::F64 == num_type) {
                 addInstruction(ConstantFP::get(_env->getContext(), APFloat(num->getF64())));
             } else {
                 error("invalid type '"

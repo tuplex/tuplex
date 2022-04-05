@@ -114,6 +114,24 @@ namespace tuplex {
             }
             return python::Type::UNKNOWN;
         }
+
+
+    /*!
+    * special function to unify to a super type for two optimized types...
+    * @param A
+    * @param B
+    * @return
+    */
+    inline python::Type unifyOptimizedTypes(const python::Type& A, const python::Type& B) {
+        // trivial case
+        if(A == B)
+            return A;
+
+        // i.e. ranges may get combined!
+
+        // fallback - deoptimize
+        return python::Type::superType(deoptimizedType(A), deoptimizedType(B));
+    }
 }
 
 #endif

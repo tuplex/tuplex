@@ -212,8 +212,8 @@ namespace tuplex {
             std::vector<NormalCaseCheck> projected_checks;
             {
                 std::stringstream ss;
-                ss<<"constant folded pipeline requires now only "<<accessed_columns.size();
-                ss<<"reduced checks from "<<checks.size()<<" to "<<projected_checks.size();
+                ss<<"constant folded pipeline requires now only "<<pluralize(accessed_columns.size(), "column");
+                ss<<", reduced checks from "<<checks.size()<<" to "<<projected_checks.size();
                 logger.debug(ss.str());
             }
 
@@ -439,7 +439,7 @@ namespace tuplex {
 
             // perform sample based optimizations
             if(_useConstantFolding) {
-                logger.info("perfoming Constant-Folding specializsation");
+                logger.info("performing Constant-Folding specialization");
                 optimized_operators = constantFoldingOptimization(sample);
 
                 // overwrite internal operators to apply subsequent optimizations
@@ -737,7 +737,11 @@ namespace tuplex {
         }
         logger.info("Decode took " + std::to_string(timer.time()) + "s");
 #else
-        throw std::runtime_error("requires cereal");
+        // use custom JSON encoding
+        auto compressed_str = stage->_encodedData;
+        auto decompressed_str = decompress_string(compressed_str);
+        logger.info("Decompressed Code context from " + sizeToMemString(compressed_str.size()) + " to " + sizeToMemString(decompressed_str.size()));
+        ctx = codegen::CodeGenerationContext::fromJSON(decompressed_str);
 #endif
         // old hacky version
         // auto ctx = codegen::CodeGenerationContext::fromJSON(stage->_encodedData);

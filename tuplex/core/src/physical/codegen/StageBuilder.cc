@@ -1661,7 +1661,9 @@ namespace tuplex {
                 auto bytes_str = oss.str();
 #else
                 std::string bytes_str;
-                throw std::runtime_error("require cereal");
+
+                // use custom written JSON serialization routine
+                bytes_str = ctx.toJSON();
 #endif
                 logger.info("Serialized CodeGeneration Context to " + sizeToMemString(bytes_str.size()));
                 // compress this now using zip or so...

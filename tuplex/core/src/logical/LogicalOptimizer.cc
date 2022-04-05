@@ -29,6 +29,34 @@ namespace tuplex {
         return false;
     }
 
+    std::vector<std::shared_ptr<LogicalOperator>>
+    LogicalOptimizer::optimize(std::vector<std::shared_ptr<LogicalOperator>> &operators, bool inplace) {
+        if(!inplace)
+            throw std::runtime_error("not yet supported!");
+
+        // make sure it's a stage, i.e. no join etc.!
+        for(auto op : operators)
+            if(op->parents().size() > 1) {
+                logger().error("given operators do not form a stage, found operator " + op->name() +
+                " with " + pluralize(op->parents().size(), "parent"));
+                return {};
+            }
+
+        // optimize from the back
+        auto last_op = optimize(operators.back(), true);
+#error "fix this -> i.e. correct pushdown here..."
+        
+        // reconstruct array
+        std::vector<std::shared_ptr<LogicalOperator>> opt_ops;
+        auto cur_op = last_op;
+        while(cur_op) {
+            opt_ops.push_back(cur_op);
+            cur_op = cur_op->parent();
+        }
+        std::reverse(opt_ops.begin(), opt_ops.end());
+        return opt_ops;
+    }
+
     std::shared_ptr<LogicalOperator>
     LogicalOptimizer::optimize(const std::shared_ptr<LogicalOperator> &root, bool inplace) {
         using namespace std;

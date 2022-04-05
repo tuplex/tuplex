@@ -187,6 +187,19 @@ namespace tuplex {
              * perform filter-reordering using sample selectivity
              */
             std::vector<std::shared_ptr<LogicalOperator>> filterReordering(const std::vector<Row>& sample);
+
+            ContextOptions options() const {
+                auto opt = ContextOptions::defaults();
+                // enable all logical optimizations??
+                // @TODO: pass this down somewhow?
+                opt.set("tuplex.optimizer.filterPushdown", "true");
+                opt.set("tuplex.optimizer.operatorReordering", "true");
+                opt.set("tuplex.csv.selectionPushdown", "true");
+
+                return opt;
+            }
+
+            static std::vector<size_t> get_accessed_columns(const std::vector<std::shared_ptr<LogicalOperator>>& ops);
         };
     }
 

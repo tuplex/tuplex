@@ -20,6 +20,7 @@
 #include <vector>
 #include <physical/codegen/StageBuilder.h>
 #include <graphviz/GraphVizBuilder.h>
+#include "logical/LogicalOptimizer.h"
 
 #define VERBOSE_BUILD
 
@@ -210,9 +211,12 @@ namespace tuplex {
             //    --> perform projection pushdown and then eliminate as many checks as possible
 
             // basically use just on this stage the logical optimization pipeline
+            auto logical_opt = std::make_unique<LogicalOptimizer>(options());
 
+            // logically optimize pipeline, this performs reordering/projection pushdown etc.
+            opt_ops = logical_opt->optimize(opt_ops, true); // inplace optimization
 
-            std::vector<size_t> accessed_columns;
+            std::vector<size_t> accessed_columns = get_accessed_columns(opt_ops);
             std::vector<NormalCaseCheck> projected_checks;
             {
                 std::stringstream ss;
@@ -801,4 +805,29 @@ namespace tuplex {
         logger.info("generated code in " + std::to_string(timer.time()) + "s");
         // can then compile everything, hooray!
     }
+
+    std::vector<size_t>
+    codegen::StagePlanner::get_accessed_columns(const std::vector<std::shared_ptr<LogicalOperator>> &ops) {
+        std::vector<size_t> col_idxs;
+
+        if(ops.empty())
+            return col_idxs;
+        if(ops.front()->type() == LogicalOperatorType::FILEINPUT) {
+            auto fop = std::dynamic_pointer_cast<FileInputOperator>(ops.front());
+            auto cols = fop->columnsToSerialize();
+            auto num_columns = cols.size();
+            for(unsigned i = 0; i < num_columns; ++i) {
+                if(cols[i])
+                    col_idxs.emplace_back(i);
+            }
+        } else {
+            // check from type
+            auto num_columns = ops.front()->getOutputSchema().getRowType().parameters().size();
+            for(unsigned i = 0; i < num_columns; ++i)
+                col_idxs.emplace_back(i);
+        }
+
+        return col_idxs;
+    }
+
 }

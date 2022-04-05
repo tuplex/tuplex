@@ -208,6 +208,10 @@ namespace tuplex {
 
             // 2. because some fields were replaced with constants, less columns might need to get accessed!
             //    --> perform projection pushdown and then eliminate as many checks as possible
+
+            // basically use just on this stage the logical optimization pipeline
+
+
             std::vector<size_t> accessed_columns;
             std::vector<NormalCaseCheck> projected_checks;
             {

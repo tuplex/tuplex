@@ -689,6 +689,19 @@ namespace python {
         return type;
     }
 
+    inline python::Type simplifyConstantType(const python::Type& type) {
+        if(!type.isConstantValued())
+            return type;
+
+        auto t = simplifyConstantOption(type);
+
+        // special case: _Constant[null] --> null
+        if(t.isConstantValued() && t.underlying() == python::Type::NULLVALUE)
+            return python::Type::NULLVALUE;
+
+        return t;
+    }
+
     /*!
      * specializes a concrete type to one which could be a generic or is a composite type of generics. For example,
      * assume we have a concrete instance of f64 and a generic version of Option[f64], then the specialized type would be f64.

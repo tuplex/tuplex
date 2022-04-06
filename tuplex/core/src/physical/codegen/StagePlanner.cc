@@ -160,11 +160,30 @@ namespace tuplex {
             // generate checks for all the original column indices that are constant
             vector<size_t> checks_indices = ds.constant_column_indices();
             vector<NormalCaseCheck> checks;
+            auto unprojected_row_type = unprojected_optimized_row_type();
             for(auto idx : checks_indices) {
                 auto underlying_type = ds.constant_row.getType(idx);
                 auto underlying_constant = ds.constant_row.get(idx).desc();
                 auto constant_type = python::Type::makeConstantValuedType(underlying_type, underlying_constant);
-                checks.emplace_back(NormalCaseCheck::ConstantCheck(idx, constant_type));
+
+                constant_type = simplifyConstantType(constant_type);
+
+                // null-checks handled separately, do not add them
+                // if null-value optimization has been already performed.
+                // --> i.e., they're done using the schema (?)
+                assert(idx < unprojected_row_type.parameters().size());
+                auto opt_schema_col_type = unprojected_row_type.parameters()[idx];
+                if(constant_type == python::Type::NULLVALUE && opt_schema_col_type == python::Type::NULLVALUE) {
+                    // skip
+                } else {
+                    if(constant_type.isConstantValued())
+                        checks.emplace_back(NormalCaseCheck::ConstantCheck(idx, constant_type));
+                    else if(constant_type == python::Type::NULLVALUE) {
+                        checks.emplace_back(NormalCaseCheck::NullCheck(idx));
+                    } else {
+                        logger.error("invalid constant type to check for: " + constant_type.desc());
+                    }
+                }
             }
             logger.debug("generated " + pluralize(checks.size(), "check") + " for stage");
 
@@ -240,6 +259,9 @@ namespace tuplex {
                 ss<<", reduced checks from "<<checks.size()<<" to "<<projected_checks.size();
                 logger.debug(ss.str());
             }
+
+            // only keep in projected checks the ones that are needed
+            // ?? how ??
 
             // go over operators and see what can be pushed down!
             lastParent = inputNode;

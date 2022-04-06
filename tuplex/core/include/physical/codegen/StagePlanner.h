@@ -49,9 +49,12 @@ namespace tuplex {
                     auto underlying_constant = constant_row.get(idx).desc();
 
                     // options can be simplified depending on the constant value
-
-
                     auto constant_type = python::Type::makeConstantValuedType(underlying_type, underlying_constant);
+
+                    // _Constant[Null, None] --> null
+                    // _Constant[Option[T], ...] --> null or T
+                    constant_type = simplifyConstantType(constant_type);
+
                     colTypes[idx] = constant_type;
                 }
                 return python::Type::makeTupleType(colTypes);
@@ -123,6 +126,15 @@ namespace tuplex {
                 for(auto op : operators)
                     assert(op);
                 enableAll();
+
+                // no optimizations carried out yet, hence store the original types for later lookup.
+                assert(inputNode);
+                if(LogicalOperatorType::FILEINPUT == inputNode->type()) {
+                    auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode);
+                    _unprojected_unoptimized_row_type = fop->getInputSchema().getRowType();
+                } else {
+                    _unprojected_unoptimized_row_type = inputNode->getOutputSchema().getRowType();
+                }
             }
 
             /*!
@@ -155,9 +167,63 @@ namespace tuplex {
 
             std::map<int, int> normalToGeneralMapping() const { return _normalToGeneralMapping; }
 
+
+            // helper functions regarding row types
+            /*!
+             * @return returns the original, unoptimized input row type
+             */
+            inline python::Type unprojected_unoptimized_row_type() const {
+                return _unprojected_unoptimized_row_type;
+            }
+            python::Type projected_unoptimized_row_type() const {
+                auto unopt = unprojected_unoptimized_row_type();
+
+                // calc via projection matrix (only for fileinput)
+                if(_inputNode && LogicalOperatorType::FILEINPUT == _inputNode->type()) {
+                    auto col_types = unopt.parameters();
+                    auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
+                    auto cols_to_serialize = fop->columnsToSerialize();
+                    assert(cols_to_serialize.size() == fop->inputColumnCount());
+                    assert(cols_to_serialize.size() == col_types.size());
+                    std::vector<python::Type> proj_col_types;
+                    for(unsigned i = 0; i < cols_to_serialize.size(); ++i) {
+                        if(cols_to_serialize[i])
+                            proj_col_types.push_back(col_types[i]);
+                    }
+                    return python::Type::makeTupleType(proj_col_types);
+                } else {
+                    return unopt;
+                }
+            }
+            python::Type unprojected_optimized_row_type() const {
+                assert(_inputNode);
+                if(LogicalOperatorType::FILEINPUT == _inputNode->type()) {
+                    auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
+                    auto t = fop->getOptimizedInputSchema().getRowType();
+                    assert(t.parameters().size() == unprojected_unoptimized_row_type().parameters.size());
+                    return t;
+                } else {
+                    // normal-case is always the propagated schema
+                    return _inputNode->getOutputSchema().getRowType();
+                }
+            }
+
+            python::Type projected_optimized_row_type() const {
+                assert(_inputNode);
+                if(LogicalOperatorType::FILEINPUT == _inputNode->type()) {
+                    auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
+                    return fop->getOptimizedOutputSchema().getRowType();
+                } else {
+                    // normal-case is always the propagated schema
+                    return _inputNode->getOutputSchema().getRowType();
+                }
+            }
+
         private:
             std::shared_ptr<LogicalOperator> _inputNode;
             std::vector<std::shared_ptr<LogicalOperator>> _operators;
+
+            python::Type _unprojected_unoptimized_row_type;
 
             bool _useNVO;
             bool _useConstantFolding;

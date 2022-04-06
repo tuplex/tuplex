@@ -184,6 +184,18 @@ struct hash<std::tuple<TT...>>
 
 namespace tuplex {
 
+    template<typename T> bool isSortedAsc(const std::vector<T>& v) {
+        if(v.empty())
+            return true;
+        const T& last = v.front();
+        for(auto it = v.begin() + 1; it != v.end(); ++it) {
+            if(*it < last)
+                return false;
+            last = *it;
+        }
+        return true;
+    }
+
     // random uniform integer
     template<typename T> T randi(const T& low, const T& high) {
         std::random_device rd;

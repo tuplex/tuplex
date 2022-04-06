@@ -188,7 +188,7 @@ namespace tuplex {
         if(v.empty())
             return true;
         const T& last = v.front();
-        for(auto it = v.begin() + 1; it != v.end(); ++it) {
+        for(const auto& it = v.begin() + 1; it != v.end(); ++it) {
             if(*it < last)
                 return false;
             last = *it;

@@ -180,12 +180,29 @@ namespace tuplex {
             logger.debug("specialized output-type of " + inputNode->name() + " from " +
                          inputNode->getOutputSchema().getRowType().desc() + " to " + projected_specialized_row_type.desc());
 
+            // check which input columns are required and remove checks.
+            // --> this requires pushdown to work before!
+            auto acc_cols = get_accessed_columns({inputNode});
+            std::vector<NormalCaseCheck> projected_checks;
+            for(auto col_idx : acc_cols) {
+               for(auto check : checks) {
+                   if(check.colNo == col_idx)
+                       projected_checks.push_back(checks[col_idx]);
+               }
+            }
+            logger.debug("normal case detection requires "
+                         + pluralize(checks.size(), "check")
+                         + ", given current logical optimizations "
+                         + pluralize(projected_checks.size(), "check")
+                         + " are required to detect normal case.");
+
             // set input type for input node
             auto input_type_before = inputNode->getOutputSchema().getRowType();
             inputNode->retype({projected_specialized_row_type});
             auto lastParent = inputNode;
             opt_ops.push_back(inputNode);
-            logger.debug("input (before): " + input_type_before.desc() + "\ninput (after): " + inputNode->getOutputSchema().getRowType().desc());
+            logger.debug("input (before): " + input_type_before.desc() +
+            "\ninput (after): " + inputNode->getOutputSchema().getRowType().desc());
 
             // retype the other operators.
             for(const auto& op : _operators) {
@@ -217,7 +234,6 @@ namespace tuplex {
             opt_ops = logical_opt->optimize(opt_ops, true); // inplace optimization
 
             std::vector<size_t> accessed_columns = get_accessed_columns(opt_ops);
-            std::vector<NormalCaseCheck> projected_checks;
             {
                 std::stringstream ss;
                 ss<<"constant folded pipeline requires now only "<<pluralize(accessed_columns.size(), "column");

@@ -43,9 +43,24 @@ namespace tuplex {
             }
 
         // optimize from the back
-        auto last_op = optimize(operators.back(), true);
-#error "fix this -> i.e. correct pushdown here..."
-        
+        auto last_op = operators.back();
+
+        // filter breakup and reorder!
+        // @TODO.
+
+        if(_options.CSV_PARSER_SELECTION_PUSHDOWN()) {
+            // pushdown
+            // note: set dropOperators to true to get rid off not computed columns!!!
+            std::vector<size_t> cols;
+            // start with requiring all columns from action node!
+            // there's a subtle difference now b.c. output schema for csv was changed to str
+            // --> use therefore input schema of the operator!
+            auto num_cols = last_op->getInputSchema().getRowType().parameters().size();
+            for(unsigned i = 0; i < num_cols; ++i)
+                cols.emplace_back(i);
+            projectionPushdown(last_op, nullptr, cols);
+        }
+
         // reconstruct array
         std::vector<std::shared_ptr<LogicalOperator>> opt_ops;
         auto cur_op = last_op;
@@ -79,6 +94,8 @@ namespace tuplex {
             emitPartialFilters(node);
             optimizeFilters(node);
         }
+
+        // @TODO: filter reordering!
 
         // this opt makes only sense when joins (or flatmap later) are involved...
         if(properties.hasJoin() && _options.OPT_OPERATOR_REORDERING())

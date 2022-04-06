@@ -200,7 +200,7 @@ namespace tuplex {
                 if(LogicalOperatorType::FILEINPUT == _inputNode->type()) {
                     auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
                     auto t = fop->getOptimizedInputSchema().getRowType();
-                    assert(t.parameters().size() == unprojected_unoptimized_row_type().parameters.size());
+                    assert(t.parameters().size() == unprojected_unoptimized_row_type().parameters().size());
                     return t;
                 } else {
                     // normal-case is always the propagated schema

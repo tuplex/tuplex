@@ -260,201 +260,201 @@ namespace tuplex {
                 logger.debug(ss.str());
             }
 
-            // only keep in projected checks the ones that are needed
-            // ?? how ??
-
-            // go over operators and see what can be pushed down!
-            lastParent = inputNode;
-            opt_ops.push_back(inputNode);
-            for(const auto& op : _operators) {
-                // clone operator & specialize!
-                auto opt_op = op->clone();
-                opt_op->setParent(lastParent);
-                opt_op->setID(op->getID());
-
-                switch(opt_op->type()) {
-                    case LogicalOperatorType::MAP: {
-                        auto mop = std::dynamic_pointer_cast<MapOperator>(opt_op);
-                        assert(mop);
-
-                        // do opt only if input cols are valid...!
-
-                        // retype UDF
-                        cout<<"input type before: "<<mop->getInputSchema().getRowType().desc()<<endl;
-                        cout<<"output type before: "<<mop->getOutputSchema().getRowType().desc()<<endl;
-                        cout<<"num input columns required: "<<mop->inputColumns().size()<<endl;
-                        // retype
-                        auto input_cols = mop->inputColumns(); // HACK! won't work if no input cols are specified.
-                        auto input_type = mop->getInputSchema().getRowType();
-                        if(input_cols.empty()) {
-                            logger.debug("skipping, only for input cols now working...");
-                            return _operators;
-                        }
-                        // for all constants detected, add type there & use that for folding!
-                        // if(input_type.parameters().size() == 1 && input_type.parameters().front().isTupleType())
-                        auto tuple_mode = input_type.parameters().size() == 1 && input_type.parameters().front().isTupleType();
-                        if(!tuple_mode) {
-                            logger.debug("only tuple/dict mode supported! skipping for now");
-                            return _operators;
-                        }
-
-                        auto param_types = input_type.parameters()[0].parameters();
-                        if(param_types.size() != input_cols.size()) {
-                            logger.warn("Something wrong, numbers do not match up.");
-                            return _operators;
-                        }
-
-                        // now update these vars with whatever is possible
-                        std::unordered_map<std::string, python::Type> constant_types;
-                        // HACK! do not change column names, else this will fail...!
-                        for(auto idx : ds.constant_column_indices()) {
-                            string column_name;
-                            if(inputNode && !inputNode->inputColumns().empty()) {
-                                column_name = inputNode->inputColumns()[idx];
-                                constant_types[column_name] = python::Type::makeConstantValuedType(ds.constant_row.get(idx).getType(), ds.constant_row.get(idx).desc()); // HACK
-                            }
-                        }
-                        // lookup column names (NOTE: this should be done using integers & properly propagated through op graph)
-                        for(unsigned i = 0; i < input_cols.size(); ++i) {
-                            auto name = input_cols[i];
-                            auto it = constant_types.find(name);
-                            if(it != constant_types.end())
-                                param_types[i] = it->second;
-                        }
-
-                        // now update specialized type with constant if possible!
-                        auto specialized_type = tuple_mode ? python::Type::makeTupleType({python::Type::makeTupleType(param_types)}) : python::Type::makeTupleType(param_types);
-                        if(specialized_type != input_type) {
-                            cout<<"specialized type "<<input_type.desc()<<endl;
-                            cout<<"  - to - "<<endl;
-                            cout<<specialized_type.desc()<<endl;
-                        } else {
-                            cout<<"no specialization possible, same type";
-                            // @TODO: can skip THIS optimization, continue with the next one!
-                        }
-
-                        auto accColsBeforeOpt = mop->getUDF().getAccessedColumns();
-
-                        mop->retype({specialized_type});
-
-                        // now check again what columns are required from input, if different count -> push down!
-                        // @TODO: this could get difficult for general graphs...
-                        auto accCols = mop->getUDF().getAccessedColumns();
-                        // Note: this works ONLY for now, because no other op after this...
-
-
-                        // check again
-                        cout<<"input type after: "<<mop->getInputSchema().getRowType().desc()<<endl;
-                        cout<<"output type after: "<<mop->getOutputSchema().getRowType().desc()<<endl;
-                        cout<<"num input columns required after opt: "<<accCols.size()<<endl;
-
-                        // which columns where eliminated?
-                        //     const std::vector<int> v1 {1, 2, 5, 5, 5, 9};
-                        //    const std::vector<int> v2 {2, 5, 7};
-                        //    std::vector<int> diff; // { 1 2 5 5 5 9 } ∖ { 2 5 7 } = { 1 5 5 9 }
-                        //
-                        //    std::set_difference(v1.begin(), v1.end(), v2.begin(), v2.end(),
-                        //                        std::inserter(diff, diff.begin()));
-                        std::sort(accColsBeforeOpt.begin(), accColsBeforeOpt.end());
-                        std::sort(accCols.begin(), accCols.end());
-                        std::vector<size_t> diff;
-                        std::set_difference(accColsBeforeOpt.begin(), accColsBeforeOpt.end(),
-                                            accCols.begin(), accCols.end(), std::inserter(diff, diff.begin()));
-                        cout<<"There were "<<pluralize(diff.size(), "column")<<" optimized away:"<<endl;
-                        vector<string> opt_away_names;
-                        for(auto idx : diff)
-                            opt_away_names.push_back(mop->inputColumns()[idx]);
-                        cout<<"-> "<<opt_away_names<<endl;
-
-                        // rewrite which columns to access in input node
-                        if(inputNode->type() != LogicalOperatorType::FILEINPUT) {
-                            logger.error("stopping here, should get support for ops...");
-                            return opt_ops;
-                        }
-                        auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode);
-                        auto colsToSerialize = fop->columnsToSerialize();
-                        vector<size_t> colsToSerializeIndices;
-                        for(unsigned i = 0; i < colsToSerialize.size(); ++i)
-                            if(colsToSerialize[i])
-                                colsToSerializeIndices.push_back(i);
-                        cout<<"reading columns: "<<colsToSerializeIndices<<endl;
-
-                        cout<<"Column indices to read before opt: "<<accColsBeforeOpt<<endl;
-                        cout<<"After opt only need to read: "<<accCols<<endl;
-
-                        // TODO: need to also rewrite access in mop again
-                        // mop->rewriteParametersInAST(rewriteMap);
-
-                        // gets a bit more difficult now:
-                        // num input columns required after opt: 13
-                        //There were 4 columns optimized away:
-                        //-> [YEAR, MONTH, CRS_DEP_TIME, CRS_ELAPSED_TIME]
-                        //reading columns: [0, 2, 3, 6, 10, 11, 20, 29, 31, 42, 50, 54, 56, 57, 58, 59, 60]
-                        //Column indices to read before opt: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-                        //After opt only need to read: [2, 3, 4, 5, 6, 8, 9, 11, 12, 13, 14, 15, 16]
-
-                        // so accCols should be sorted, now map to columns. Then check the position in accColsBefore
-                        // => look up what the original cols were!
-                        // => then push that down to reader/input node!
-                        unordered_map<size_t, size_t> rewriteMap;
-                        vector<size_t> indices_to_read_from_previous_op;
-                        vector<string> rewriteInfo; // for printing info!
-                        vector<string> col_names_to_read_before;
-                        vector<string> col_names_to_read_after;
-
-                        // redo normal to general mapping
-                        _normalToGeneralMapping.clear();
-                        for(unsigned i = 0; i < accCols.size(); ++i) {
-                            rewriteMap[accCols[i]] = i;
-
-                            rewriteInfo.push_back(to_string(accCols[i]) + " -> " + to_string(i));
-
-                            // save normal -> general mapping
-                            _normalToGeneralMapping[i] = accCols[i];
-
-                            int j = 0;
-                            while(j < accColsBeforeOpt.size() && accCols[i] != accColsBeforeOpt[j])
-                                ++j;
-                            indices_to_read_from_previous_op.push_back(colsToSerializeIndices[j]);
-                        }
-
-                        for(auto idx : colsToSerializeIndices)
-                            col_names_to_read_before.push_back(fop->inputColumns()[idx]);
-                        for(auto idx : indices_to_read_from_previous_op)
-                            col_names_to_read_after.push_back(fop->inputColumns()[idx]);
-                        cout<<"Rewriting indices: "<<rewriteInfo<<endl;
-
-                        // this is quite hacky...
-                        // ==> CLONE???
-                        fop->selectColumns(indices_to_read_from_previous_op);
-                        cout<<"file input now only reading: "<<indices_to_read_from_previous_op<<endl;
-                        cout<<"I.e., read before: "<<col_names_to_read_before<<endl;
-                        cout<<"now: "<<col_names_to_read_after<<endl;
-                        fop->useNormalCase(); // !!! retype input op. mop already retyped above...
-
-                        mop->rewriteParametersInAST(rewriteMap);
-                        // retype!
-                        cout<<"mop updated: \ninput type: "<<mop->getInputSchema().getRowType().desc()
-                            <<"\noutput type: "<<mop->getOutputSchema().getRowType().desc()<<endl;
-
-#ifdef GENERATE_PDFS
-                        mop->getUDF().getAnnotatedAST().writeGraphToPDF("final_mop_udf.pdf");
-                        // write typed version as well
-                        mop->getUDF().getAnnotatedAST().writeGraphToPDF("final_mop_udf_wtypes.pdf", true);
-#endif
-                        // @TODO: should clone operators etc. here INCL. input oprator else issue.
-                        // input operator needs additional check... => put this check into parser...
-
-
-                        break;
-                    }
-                    default:
-                        throw std::runtime_error("Unknown operator " + opt_op->name());
-                }
-                lastParent = opt_op;
-
-                opt_ops.push_back(opt_op);
-            }
+//            // only keep in projected checks the ones that are needed
+//            // ?? how ??
+//
+//            // go over operators and see what can be pushed down!
+//            lastParent = inputNode;
+//            opt_ops.push_back(inputNode);
+//            for(const auto& op : _operators) {
+//                // clone operator & specialize!
+//                auto opt_op = op->clone();
+//                opt_op->setParent(lastParent);
+//                opt_op->setID(op->getID());
+//
+//                switch(opt_op->type()) {
+//                    case LogicalOperatorType::MAP: {
+//                        auto mop = std::dynamic_pointer_cast<MapOperator>(opt_op);
+//                        assert(mop);
+//
+//                        // do opt only if input cols are valid...!
+//
+//                        // retype UDF
+//                        cout<<"input type before: "<<mop->getInputSchema().getRowType().desc()<<endl;
+//                        cout<<"output type before: "<<mop->getOutputSchema().getRowType().desc()<<endl;
+//                        cout<<"num input columns required: "<<mop->inputColumns().size()<<endl;
+//                        // retype
+//                        auto input_cols = mop->inputColumns(); // HACK! won't work if no input cols are specified.
+//                        auto input_type = mop->getInputSchema().getRowType();
+//                        if(input_cols.empty()) {
+//                            logger.debug("skipping, only for input cols now working...");
+//                            return _operators;
+//                        }
+//                        // for all constants detected, add type there & use that for folding!
+//                        // if(input_type.parameters().size() == 1 && input_type.parameters().front().isTupleType())
+//                        auto tuple_mode = input_type.parameters().size() == 1 && input_type.parameters().front().isTupleType();
+//                        if(!tuple_mode) {
+//                            logger.debug("only tuple/dict mode supported! skipping for now");
+//                            return _operators;
+//                        }
+//
+//                        auto param_types = input_type.parameters()[0].parameters();
+//                        if(param_types.size() != input_cols.size()) {
+//                            logger.warn("Something wrong, numbers do not match up.");
+//                            return _operators;
+//                        }
+//
+//                        // now update these vars with whatever is possible
+//                        std::unordered_map<std::string, python::Type> constant_types;
+//                        // HACK! do not change column names, else this will fail...!
+//                        for(auto idx : ds.constant_column_indices()) {
+//                            string column_name;
+//                            if(inputNode && !inputNode->inputColumns().empty()) {
+//                                column_name = inputNode->inputColumns()[idx];
+//                                constant_types[column_name] = python::Type::makeConstantValuedType(ds.constant_row.get(idx).getType(), ds.constant_row.get(idx).desc()); // HACK
+//                            }
+//                        }
+//                        // lookup column names (NOTE: this should be done using integers & properly propagated through op graph)
+//                        for(unsigned i = 0; i < input_cols.size(); ++i) {
+//                            auto name = input_cols[i];
+//                            auto it = constant_types.find(name);
+//                            if(it != constant_types.end())
+//                                param_types[i] = it->second;
+//                        }
+//
+//                        // now update specialized type with constant if possible!
+//                        auto specialized_type = tuple_mode ? python::Type::makeTupleType({python::Type::makeTupleType(param_types)}) : python::Type::makeTupleType(param_types);
+//                        if(specialized_type != input_type) {
+//                            cout<<"specialized type "<<input_type.desc()<<endl;
+//                            cout<<"  - to - "<<endl;
+//                            cout<<specialized_type.desc()<<endl;
+//                        } else {
+//                            cout<<"no specialization possible, same type";
+//                            // @TODO: can skip THIS optimization, continue with the next one!
+//                        }
+//
+//                        auto accColsBeforeOpt = mop->getUDF().getAccessedColumns();
+//
+//                        mop->retype({specialized_type});
+//
+//                        // now check again what columns are required from input, if different count -> push down!
+//                        // @TODO: this could get difficult for general graphs...
+//                        auto accCols = mop->getUDF().getAccessedColumns();
+//                        // Note: this works ONLY for now, because no other op after this...
+//
+//
+//                        // check again
+//                        cout<<"input type after: "<<mop->getInputSchema().getRowType().desc()<<endl;
+//                        cout<<"output type after: "<<mop->getOutputSchema().getRowType().desc()<<endl;
+//                        cout<<"num input columns required after opt: "<<accCols.size()<<endl;
+//
+//                        // which columns where eliminated?
+//                        //     const std::vector<int> v1 {1, 2, 5, 5, 5, 9};
+//                        //    const std::vector<int> v2 {2, 5, 7};
+//                        //    std::vector<int> diff; // { 1 2 5 5 5 9 } ∖ { 2 5 7 } = { 1 5 5 9 }
+//                        //
+//                        //    std::set_difference(v1.begin(), v1.end(), v2.begin(), v2.end(),
+//                        //                        std::inserter(diff, diff.begin()));
+//                        std::sort(accColsBeforeOpt.begin(), accColsBeforeOpt.end());
+//                        std::sort(accCols.begin(), accCols.end());
+//                        std::vector<size_t> diff;
+//                        std::set_difference(accColsBeforeOpt.begin(), accColsBeforeOpt.end(),
+//                                            accCols.begin(), accCols.end(), std::inserter(diff, diff.begin()));
+//                        cout<<"There were "<<pluralize(diff.size(), "column")<<" optimized away:"<<endl;
+//                        vector<string> opt_away_names;
+//                        for(auto idx : diff)
+//                            opt_away_names.push_back(mop->inputColumns()[idx]);
+//                        cout<<"-> "<<opt_away_names<<endl;
+//
+//                        // rewrite which columns to access in input node
+//                        if(inputNode->type() != LogicalOperatorType::FILEINPUT) {
+//                            logger.error("stopping here, should get support for ops...");
+//                            return opt_ops;
+//                        }
+//                        auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode);
+//                        auto colsToSerialize = fop->columnsToSerialize();
+//                        vector<size_t> colsToSerializeIndices;
+//                        for(unsigned i = 0; i < colsToSerialize.size(); ++i)
+//                            if(colsToSerialize[i])
+//                                colsToSerializeIndices.push_back(i);
+//                        cout<<"reading columns: "<<colsToSerializeIndices<<endl;
+//
+//                        cout<<"Column indices to read before opt: "<<accColsBeforeOpt<<endl;
+//                        cout<<"After opt only need to read: "<<accCols<<endl;
+//
+//                        // TODO: need to also rewrite access in mop again
+//                        // mop->rewriteParametersInAST(rewriteMap);
+//
+//                        // gets a bit more difficult now:
+//                        // num input columns required after opt: 13
+//                        //There were 4 columns optimized away:
+//                        //-> [YEAR, MONTH, CRS_DEP_TIME, CRS_ELAPSED_TIME]
+//                        //reading columns: [0, 2, 3, 6, 10, 11, 20, 29, 31, 42, 50, 54, 56, 57, 58, 59, 60]
+//                        //Column indices to read before opt: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+//                        //After opt only need to read: [2, 3, 4, 5, 6, 8, 9, 11, 12, 13, 14, 15, 16]
+//
+//                        // so accCols should be sorted, now map to columns. Then check the position in accColsBefore
+//                        // => look up what the original cols were!
+//                        // => then push that down to reader/input node!
+//                        unordered_map<size_t, size_t> rewriteMap;
+//                        vector<size_t> indices_to_read_from_previous_op;
+//                        vector<string> rewriteInfo; // for printing info!
+//                        vector<string> col_names_to_read_before;
+//                        vector<string> col_names_to_read_after;
+//
+//                        // redo normal to general mapping
+//                        _normalToGeneralMapping.clear();
+//                        for(unsigned i = 0; i < accCols.size(); ++i) {
+//                            rewriteMap[accCols[i]] = i;
+//
+//                            rewriteInfo.push_back(to_string(accCols[i]) + " -> " + to_string(i));
+//
+//                            // save normal -> general mapping
+//                            _normalToGeneralMapping[i] = accCols[i];
+//
+//                            int j = 0;
+//                            while(j < accColsBeforeOpt.size() && accCols[i] != accColsBeforeOpt[j])
+//                                ++j;
+//                            indices_to_read_from_previous_op.push_back(colsToSerializeIndices[j]);
+//                        }
+//
+//                        for(auto idx : colsToSerializeIndices)
+//                            col_names_to_read_before.push_back(fop->inputColumns()[idx]);
+//                        for(auto idx : indices_to_read_from_previous_op)
+//                            col_names_to_read_after.push_back(fop->inputColumns()[idx]);
+//                        cout<<"Rewriting indices: "<<rewriteInfo<<endl;
+//
+//                        // this is quite hacky...
+//                        // ==> CLONE???
+//                        fop->selectColumns(indices_to_read_from_previous_op);
+//                        cout<<"file input now only reading: "<<indices_to_read_from_previous_op<<endl;
+//                        cout<<"I.e., read before: "<<col_names_to_read_before<<endl;
+//                        cout<<"now: "<<col_names_to_read_after<<endl;
+//                        fop->useNormalCase(); // !!! retype input op. mop already retyped above...
+//
+//                        mop->rewriteParametersInAST(rewriteMap);
+//                        // retype!
+//                        cout<<"mop updated: \ninput type: "<<mop->getInputSchema().getRowType().desc()
+//                            <<"\noutput type: "<<mop->getOutputSchema().getRowType().desc()<<endl;
+//
+//#ifdef GENERATE_PDFS
+//                        mop->getUDF().getAnnotatedAST().writeGraphToPDF("final_mop_udf.pdf");
+//                        // write typed version as well
+//                        mop->getUDF().getAnnotatedAST().writeGraphToPDF("final_mop_udf_wtypes.pdf", true);
+//#endif
+//                        // @TODO: should clone operators etc. here INCL. input oprator else issue.
+//                        // input operator needs additional check... => put this check into parser...
+//
+//
+//                        break;
+//                    }
+//                    default:
+//                        throw std::runtime_error("Unknown operator " + opt_op->name());
+//                }
+//                lastParent = opt_op;
+//
+//                opt_ops.push_back(opt_op);
+//            }
 
             // check accesses -> i.e. need to check for all funcs till first map or end of stage is reached.
             // why? b.c. map destroys structure. The other require analysis though...!

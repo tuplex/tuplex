@@ -131,6 +131,10 @@ namespace tuplex {
                     std::vector<python::Type> params(_inputRowType.parameters().size(), python::Type::UNKNOWN);
                     std::map<int, int> generalToNormalMapping;
                     for(auto kv : _normalToGeneralMapping) {
+                        // check indices
+                        assert(kv.first < params.size());
+                        assert(kv.second < _inputRowTypeGeneralCase.parameters().size());
+
                         params[kv.first] = _inputRowTypeGeneralCase.parameters()[kv.second];
                         generalToNormalMapping[kv.second] = kv.first;
                     }

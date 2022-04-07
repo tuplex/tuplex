@@ -246,6 +246,8 @@ namespace tuplex {
             // 2. because some fields were replaced with constants, less columns might need to get accessed!
             //    --> perform projection pushdown and then eliminate as many checks as possible
 
+            auto accColsBeforeOpt = get_accessed_columns(opt_ops);
+
             // basically use just on this stage the logical optimization pipeline
             auto logical_opt = std::make_unique<LogicalOptimizer>(options());
 
@@ -253,12 +255,43 @@ namespace tuplex {
             opt_ops = logical_opt->optimize(opt_ops, true); // inplace optimization
 
             std::vector<size_t> accessed_columns = get_accessed_columns(opt_ops);
+
+            // so accCols should be sorted, now map to columns. Then check the position in accColsBefore
+            // => look up what the original cols were!
+            // => then push that down to reader/input node!
+            unordered_map<size_t, size_t> rewriteMap;
+            // redo normal to general mapping
+            _normalToGeneralMapping.clear();
+            auto accCols = accessed_columns;
+            for(unsigned i = 0; i < accCols.size(); ++i) {
+                rewriteMap[accCols[i]] = i;
+
+                // rewriteInfo.push_back(to_string(accCols[i]) + " -> " + to_string(i));
+
+                // save normal -> general mapping
+                _normalToGeneralMapping[i] = accCols[i];
+
+                int j = 0;
+                while(j < accColsBeforeOpt.size() && accCols[i] != accColsBeforeOpt[j])
+                    ++j;
+                // indices_to_read_from_previous_op.push_back(colsToSerializeIndices[j]);
+            }
+
             {
                 std::stringstream ss;
                 ss<<"constant folded pipeline requires now only "<<pluralize(accessed_columns.size(), "column");
                 ss<<", reduced checks from "<<checks.size()<<" to "<<projected_checks.size();
                 logger.debug(ss.str());
+
+                ss.str("normal col to general col mapping:\n");
+                for(auto kv : _normalToGeneralMapping) {
+                    ss<<kv.first<<" -> "<<kv.second<<"\n";
+                }
+                logger.debug(ss.str());
             }
+
+
+
 
 //            // only keep in projected checks the ones that are needed
 //            // ?? how ??

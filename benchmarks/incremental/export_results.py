@@ -89,10 +89,10 @@ def write_metric_to_file(f, results_path, num_trials, num_steps, mode, metric):
 
 def export_experiments(results_path, num_trials, num_steps):
     # Validate all experiments
-    for i in range(num_trials):
-        for mode in Mode:
-            validate_path = os.path.join(results_path, compare_path(i + 1, mode))
-            assert validate_experiment(validate_path)
+    # for i in range(num_trials):
+    #     for mode in Mode:
+    #         validate_path = os.path.join(results_path, compare_path(i + 1, mode))
+    #         assert validate_experiment(validate_path)
 
     metrics = ['jobTime', 'fast_path_time_s', 'slow_path_time_s', 'write_output_wall_time_s']
 

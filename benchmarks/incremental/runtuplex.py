@@ -46,24 +46,6 @@ def extractBa(x):
     else:
         split_idx += 2
     r = s[split_idx:]
-
-    ba = math.ceil(2.0 * float(r)) / 2.0
-    return ba
-
-def resolveBa(x):
-    val = x['title']
-    max_idx = val.find(' bath')
-    if max_idx < 0:
-        max_idx = len(val)
-    s = val[:max_idx]
-
-    split_idx = s.rfind(',')
-    if split_idx < 0:
-        split_idx = 0
-    else:
-        split_idx += 2
-    r = s[split_idx:]
-
     ba = math.ceil(2.0 * float(r)) / 2.0
     return ba
 
@@ -130,34 +112,39 @@ def resolveBd(x):
 
 #compare types and contents
 def dirty_zillow_pipeline(ctx, path, output_path, step, commit):
-    ds = ctx.csv(path)
 
-    ds = ds.withColumn('bedrooms', extractBd)
-    if step > 0:
-        ds = ds.resolve(ValueError, resolveBd)
-    if step > 1:
-        ds = ds.ignore(ValueError)
+    # Increases write times to highlight differences
 
-    ds = ds.withColumn('bathrooms', extractBa)
-    if step > 2:
-        ds = ds.resolve(ValueError, resolveBa)
-    if step > 3:
-        ds = ds.ignore(ValueError)
+    # ds = ctx.csv(path)
+    #
+    # ds = ds.withColumn('bedrooms', extractBd)
+    # if step > 0:
+    #     ds = ds.resolve(ValueError, resolveBd)
+    # if step > 1:
+    #     ds = ds.ignore(ValueError)
+    #
+    # ds = ds.withColumn('bathrooms', extractBa)
+    # if step > 2:
+    #     ds = ds.resolve(ValueError, resolveBa)
+    # if step > 3:
+    #     ds = ds.ignore(ValueError)
+    #
+    # ds = ds.withColumn('sqft', extractSqft)
+    # if step > 3:
+    #     ds = ds.ignore(ValueError)
+    #
+    # ds = ds.withColumn('offer', extractOffer)
+    # ds = ds.withColumn('price', extractPrice)
+    # if step > 4:
+    #     ds = ds.resolve(ValueError, lambda x: int(re.sub('[^0-9.]*', '', x['price'])))
+    # if step > 5:
+    #     ds = ds.ignore(TypeError)
+    #     ds = ds.ignore(ValueError)
+    # ds = ds.selectColumns(["address", "bedrooms", "bathrooms", "sqft", "price"])
 
-    ds = ds.withColumn('sqft', extractSqft)
-    if step > 3:
-        ds = ds.ignore(ValueError)
+# Original pipeline, most realistic, taken from previous paper to run benchmark on
 
-    ds = ds.withColumn('offer', extractOffer)
-    ds = ds.withColumn('price', extractPrice)
-    if step > 4:
-        ds = ds.resolve(ValueError, lambda x: int(re.sub('[^0-9.]*', '', x['price'])))
-    if step > 5:
-        ds = ds.ignore(TypeError)
-        ds = ds.ignore(ValueError)
-    ds = ds.selectColumns(["address", "bedrooms", "bathrooms", "sqft", "price"])
-
-# ds = ds.withColumn("bedrooms", extractBd)
+    # ds = ds.withColumn("bedrooms", extractBd)
     # if step > 0:
     #     ds = ds.resolve(ValueError, resolveBd)
     # if step > 1:
@@ -180,6 +167,34 @@ def dirty_zillow_pipeline(ctx, path, output_path, step, commit):
     # ds = ds.filter(lambda x: 100000 < x['price'] < 2e7 and x['offer'] == 'sale')
     # ds = ds.selectColumns(["url", "zipcode", "address", "city", "state",
     #                         "bedrooms", "bathrooms", "sqft", "offer", "type", "price"])
+    # ds.tocsv(output_path, commit=commit)
+
+    ds = ctx.csv(path)
+    ds = ds.withColumn('bedrooms', extractBd)
+    if step > 0:
+        ds = ds.resolve(ValueError, resolveBd)
+    if step > 1:
+        ds = ds.ignore(ValueError)
+    ds = ds.filter(lambda x: x['bedrooms'] < 10)
+    ds = ds.withColumn('type', extractType)
+    ds = ds.filter(lambda x: x['type'] == 'condo')
+    ds = ds.withColumn('zipcode', lambda x: '%05d' % int(x['postal_code']))
+    if step > 2:
+        ds = ds.ignore(TypeError)
+    ds = ds.mapColumn("city", lambda x: x[0].upper() + x[1:].lower())
+    ds = ds.withColumn("bathrooms", extractBa)
+    if step > 3:
+        ds = ds.ignore(ValueError)
+    ds = ds.withColumn('sqft', extractSqft)
+    if step > 4:
+        ds = ds.ignore(ValueError)
+    ds = ds.withColumn('offer', extractOffer)
+    ds = ds.withColumn('price', extractPrice)
+    if step > 5:
+        ds = ds.resolve(ValueError, lambda x: int(re.sub('[^0-9.]*', '', x['price'])))
+    ds = ds.filter(lambda x: 100000 < x['price'] < 2e7 and x['offer'] == 'sale')
+    ds = ds.selectColumns(["url", "zipcode", "address", "city", "state",
+                           "bedrooms", "bathrooms", "sqft", "offer", "type", "price"])
     ds.tocsv(output_path, commit=commit)
     return ctx.metrics
 

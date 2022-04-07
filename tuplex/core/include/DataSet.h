@@ -128,7 +128,7 @@ namespace tuplex {
          * @param numRows how many rows to print, i.e. top numRows are printed.xs
          * @param os ostream where to print table to
          */
-        virtual void show(const int64_t numRows = -1, std::ostream &os = std::cout);
+        virtual void show(int64_t numRows = -1, std::ostream &os = std::cout);
 
         // named dataset management functions
         /*!

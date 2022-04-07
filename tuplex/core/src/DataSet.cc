@@ -38,7 +38,7 @@ namespace tuplex {
     }
 
     std::shared_ptr<ResultSet> DataSet::collect(std::ostream &os) {
-        return take(0, 0, os);
+        return take(std::numeric_limits<size_t>::max(), 0, os);
     }
 
     std::shared_ptr<ResultSet> DataSet::take(size_t topLimit, size_t bottomLimit, std::ostream &os) {
@@ -62,18 +62,14 @@ namespace tuplex {
 
     // collect functions
     std::vector<Row> DataSet::collectAsVector(std::ostream &os) {
-        return takeAsVector(-1, os);
+        return takeAsVector(std::numeric_limits<size_t>::max(), os);
     }
 
-    // -1 means to retrieve all elements
     std::vector<Row> DataSet::takeAsVector(size_t numElements, std::ostream &os) {
         auto rs = take(numElements, false, os);
         Timer timer;
 
 #warning "limiting should make this hack irrelevant..."
-        if (numElements < 0)
-            numElements = std::numeric_limits<int64_t>::max();
-
         // std::vector<Row> v;
         // while (rs->hasNextRow() && v.size() < numElements) {
         //     v.push_back(rs->getNextRow());
@@ -730,10 +726,14 @@ namespace tuplex {
     }
 
 
-    void DataSet::show(const int64_t numRows, std::ostream &os) {
+    void DataSet::show(int64_t numRows, std::ostream &os) {
         assert(_context);
 
         // get rows
+        if (numRows < 0) {
+            numRows = std::numeric_limits<size_t>::max();
+        }
+
         auto rows = takeAsVector(numRows, os);
         if (rows.empty()) {
             return;

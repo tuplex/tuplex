@@ -184,7 +184,6 @@ namespace tuplex {
 
         void setOutputTopLimit(size_t limit) { _outTopLimit = limit; resetOutputLimitCounter(); }
         void setOutputBottomLimit(size_t limit) { _outBottomLimit = limit; resetOutputLimitCounter(); }
-        void setOutputSkip(size_t numRowsToSkip) { _outSkipRows = numRowsToSkip; }
         void execute() override;
 
         bool hasFileSink() const { return _outputFilePath != URI::INVALID; }
@@ -281,7 +280,6 @@ namespace tuplex {
 
         size_t _outTopLimit; // limits how many rows to write at max
         size_t _outBottomLimit; // limits how many last rows to write at max
-        size_t _outSkipRows; // how many rows at start to skip
 
         // memory source variables
         std::vector<Partition*> _inputPartitions;

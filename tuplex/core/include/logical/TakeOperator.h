@@ -26,7 +26,7 @@ namespace tuplex {
         TakeOperator(LogicalOperator *parent, size_t topLimit, size_t bottomLimit);
 
         std::string name() override {
-            if(_topLimit == 0 && _bottomLimit == 0)
+            if(_topLimit == std::numeric_limits<size_t>::max() || _bottomLimit == std::numeric_limits<size_t>::max())
                 return "collect";
             return "take";
         }

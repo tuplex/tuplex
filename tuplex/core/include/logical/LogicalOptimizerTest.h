@@ -7,8 +7,8 @@
 //  Created by Leonhard Spiegelberg first on 4/5/2022                                                                 //
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
-#ifndef TUPLEX_LOGICALOPTIMIZER_H
-#define TUPLEX_LOGICALOPTIMIZER_H
+#ifndef TUPLEX_LOGICALOPTIMIZERTEST_H
+#define TUPLEX_LOGICALOPTIMIZERTEST_H
 
 #include "Operators.h"
 #include <Context.h>
@@ -79,4 +79,4 @@ namespace tuplex {
     };
 }
 
-#endif //TUPLEX_LOGICALOPTIMIZER_H
+#endif //TUPLEX_LOGICALOPTIMIZERTEST_H

@@ -431,7 +431,7 @@ namespace tuplex {
         // create per default true array, i.e. serialize all columns
         _columnsToSerialize = std::vector<bool>();
 
-        for (int i = 0; i < outputColumnCount(); ++i)
+        for (int i = 0; i < inputColumnCount(); ++i)
             _columnsToSerialize.push_back(true);
 
         _optimizedNormalCaseRowType = _normalCaseRowType;
@@ -457,8 +457,49 @@ namespace tuplex {
         return std::vector<Row>(sample.begin(), sample.begin() + std::min(sample.size(), num));
     }
 
-    void FileInputOperator::selectColumns(const std::vector<size_t> &columnsToSerialize) {
+    std::vector<size_t> FileInputOperator::translateOutputToInputIndices(const std::vector<size_t> &output_indices) {
         using namespace std;
+        vector<size_t> indices;
+
+        // create map
+
+        unordered_map<size_t, size_t> m; // output index -> original index
+        size_t pos = 0;
+        for(unsigned i = 0; i < _columnsToSerialize.size(); ++i) {
+            if(_columnsToSerialize[i]) {
+                m[pos++] = i;
+            }
+        }
+
+        // make sure this works with current output schema!
+        if(m.size() != outputColumnCount()) {
+            throw std::runtime_error("INTERNAL ERROR: invalid pushdown map created.");
+        }
+
+        // go through output indices
+        for(auto idx : output_indices) {
+            auto it = m.find(idx);
+            if(it == m.end()) {
+                // invalid index
+                throw std::runtime_error("INTERNAL ERROR: invalid index to select from given. Index is "
+                + to_string(idx) + " but allowed range is 0-"+ to_string(pos));
+            } else {
+                indices.push_back(it->second); // push back original index
+            }
+        }
+
+        return indices;
+    }
+
+    void FileInputOperator::selectColumns(const std::vector<size_t> &columnsToSerialize, bool original_indices) {
+        using namespace std;
+
+        // are indices relative to original columns or to currently pushed down columns?
+        auto original_col_indices_to_serialize = columnsToSerialize;
+        // if so, translate them!
+        if(!original_indices)
+            original_col_indices_to_serialize = translateOutputToInputIndices(columnsToSerialize);
+
 
         // reset to defaults
         setProjectionDefaults();
@@ -466,16 +507,16 @@ namespace tuplex {
         auto schema = getInputSchema();
         auto rowType = schema.getRowType();
         assert(schema.getRowType().isTupleType());
-        assert(schema.getRowType().parameters().size() == outputColumnCount());
+        assert(schema.getRowType().parameters().size() == inputColumnCount());
 
-        // set internal columns to serialize to false
+        // set internal (original) column indices to serialize to false
         for (int i = 0; i < _columnsToSerialize.size(); ++i)
             _columnsToSerialize[i] = false;
 
         vector<string> cols;
         vector<python::Type> colTypes;
         vector<python::Type> colNormalTypes;
-        for (auto idx : columnsToSerialize) {
+        for (auto idx : original_col_indices_to_serialize) {
             assert(idx < rowType.parameters().size());
             if (!_columnNames.empty()) {
                 assert(idx < _columnNames.size());

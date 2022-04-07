@@ -20,7 +20,7 @@
 #include <vector>
 #include <physical/codegen/StageBuilder.h>
 #include <graphviz/GraphVizBuilder.h>
-#include "logical/LogicalOptimizer.h"
+#include "logical/LogicalOptimizerTest.h"
 
 #define VERBOSE_BUILD
 
@@ -243,6 +243,24 @@ namespace tuplex {
                 opt_ops.push_back(opt_op);
                 lastParent = opt_op;
             }
+
+            {
+                // print out new chain of types
+                std::stringstream ss;
+                ss<<"Pipeline (types/before logical opt):\n";
+
+                for(auto op : opt_ops) {
+                    ss<<op->name()<<":\n";
+                    ss<<"  in: "<<op->getInputSchema().getRowType().desc()<<"\n";
+                    ss<<" out: "<<op->getOutputSchema().getRowType().desc()<<"\n";
+                    ss<<"  in columns: "<<op->inputColumns()<<"\n";
+                    ss<<" out columns: "<<op->columns()<<"\n";
+                    ss<<"----\n";
+                }
+
+                logger.debug(ss.str());
+            }
+
 
             // 2. because some fields were replaced with constants, less columns might need to get accessed!
             //    --> perform projection pushdown and then eliminate as many checks as possible

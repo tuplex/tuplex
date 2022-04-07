@@ -87,6 +87,7 @@ namespace tuplex {
 
         double _sampling_time_s;
 
+        std::vector<size_t> translateOutputToInputIndices(const std::vector<size_t>& output_indices);
     public:
 
         // required by cereal
@@ -206,9 +207,11 @@ namespace tuplex {
 
         /*!
          * calls this function to output only a partial number of columns. I.e. used in optimizer for projectionPushdown
-         * @param columnsToSerialize
+         * @param columnsToSerialize indices of the columns to serialize/keep
+         * @param original_indices flag indicating whether indices are wrt to original input rows, i.e. in the range of
+         *                         [0, ..., inputColumnCount() - 1] or indices relative to the output columns
          */
-        void selectColumns(const std::vector<size_t>& columnsToSerialize);
+        void selectColumns(const std::vector<size_t>& columnsToSerialize, bool original_indices=true);
 
         /*!
          * explicitly define some column names for this operator.
@@ -227,20 +230,28 @@ namespace tuplex {
         std::vector<std::string> inputColumns() const override { return _columnNames; }
         std::vector<bool> columnsToSerialize() const { return _columnsToSerialize; }
 
+        /*!
+         * number of output columns this file input operator yields AFTER projection pushdown.
+         * @return number of output columns.
+         */
         inline size_t outputColumnCount() const {
             // fetch number of columns, either from names or type
             size_t num_cols = 0;
-            if(_columnNames.empty())
+            if(columns().empty())
                 num_cols = _optimizedSchema.getRowType().parameters().size();
             else {
-                if(_columnNames.size() != _optimizedSchema.getRowType().parameters().size()) // important to hold
-                    throw std::runtime_error("size of columns given (" + std::to_string(_columnNames.size()) + ") does not match detected number of columns("
+                if(columns().size() != _optimizedSchema.getRowType().parameters().size()) // important to hold
+                    throw std::runtime_error("size of columns stored (" + std::to_string(columns().size()) + ") does not match actual, projected number of columns("
                                              + std::to_string(_optimizedSchema.getRowType().parameters().size()) + ").");
-                num_cols = _columnNames.size();
+                num_cols = columns().size();
             }
             return num_cols;
         }
 
+        /*!
+         * number of input columns in actual file (i.e. BEFORE/WITHOUT projection pushdown)
+         * @return number of input columns in file
+         */
         inline size_t inputColumnCount() const {
             return getInputSchema().getRowType().parameters().size();
         }

@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <logical/LogicalOptimizer.h>
+#include <logical/LogicalOptimizerTest.h>
 #include <logical/PlanProperties.h>
 
 #include <visitors/ApplyVisitor.h>
@@ -702,7 +702,8 @@ namespace tuplex {
                 cout<<"CSV output type before pushdown: "<<csvop->getOutputSchema().getRowType().desc()<<endl;
 #endif
                 // actual projection pushdown into the parser...
-                csvop->selectColumns(colsToSerialize);
+                // --> use here relative indices!
+                csvop->selectColumns(colsToSerialize, false);
 
 #ifdef TRACE_LOGICAL_OPTIMIZATION
                 cout<<"CSV output type after pushdown: "<<csvop->getOutputSchema().getRowType().desc()<<endl;

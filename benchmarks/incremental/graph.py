@@ -19,7 +19,8 @@ def in_order_total(save_path, plain_times, incremental_times, commit_times):
     width = 0.7
     separator = 0.02
 
-    labels = ['No\nResolvers', 'Bedroom\nResolve', 'Bedroom\nIgnore', 'Bathroom\nResolve', 'Bathroom\nIgnore', 'Price\nResolve', 'Price\nIgnore']
+    # labels = ['No\nResolvers', 'Bedroom\nResolve', 'Bedroom\nIgnore', 'Bathroom\nResolve', 'Bathroom\nIgnore', 'Price\nResolve', 'Price\nIgnore']
+    labels = ['0', '1', '2', '3', '4', '5', '6']
     x = np.arange(len(labels))
 
     fig = plt.figure(figsize=(10, 6))
@@ -31,7 +32,7 @@ def in_order_total(save_path, plain_times, incremental_times, commit_times):
     plt.title('In Order')
     plt.xticks(x, labels)
     plt.ylabel('Execution Time (s)')
-    plt.xlabel('Pipeline Step')
+    plt.xlabel('Exception Resolution Step')
     plt.legend(handles=[
         mpatches.Patch(color=PLAIN_COLOR, label='Plain'),
         mpatches.Patch(color=INCREMENTAL_COLOR, label='Incremental'),
@@ -44,7 +45,8 @@ def time_breakdown(save_path, title, save_name, fast_path, slow_path, write):
     width = 0.6
     separator = 0.02
 
-    labels = ['No\nResolvers', 'Bedroom\nResolve', 'Bedroom\nIgnore', 'Bathroom\nResolve', 'Bathroom\nIgnore', 'Price\nResolve', 'Price\nIgnore']
+    # labels = ['No\nResolvers', 'Bedroom\nResolve', 'Bedroom\nIgnore', 'Bathroom\nResolve', 'Bathroom\nIgnore', 'Price\nResolve', 'Price\nIgnore']
+    labels = ['0', '1', '2', '3', '4', '5', '6']
     x = np.arange(len(labels))
 
     fig = plt.figure(figsize=(10, 6))
@@ -56,7 +58,7 @@ def time_breakdown(save_path, title, save_name, fast_path, slow_path, write):
     plt.title(title)
     plt.xticks(x, labels)
     plt.ylabel('Execution Time (s)')
-    plt.xlabel('Pipeline Step')
+    plt.xlabel('Exception Resolution Step')
 
     plt.legend(handles=[
         mpatches.Patch(color=PLAIN_COLOR, label='Fast Path'),
@@ -71,7 +73,8 @@ def out_of_order_total(save_path, plain_times, incremental_times):
     width = 0.35
     separator = 0.02
 
-    labels = ['No\nResolvers', 'Bedroom\nResolve', 'Bedroom\nIgnore', 'Bathroom\nResolve', 'Bathroom\nIgnore', 'Price\nResolve', 'Price\nIgnore']
+    # labels = ['No\nResolvers', 'Bedroom\nResolve', 'Bedroom\nIgnore', 'Bathroom\nResolve', 'Bathroom\nIgnore', 'Price\nResolve', 'Price\nIgnore']
+    labels = ['0', '1', '2', '3', '4', '5', '6']
     x = np.arange(len(labels))
 
     fig = plt.figure(figsize=(10, 6))
@@ -82,7 +85,7 @@ def out_of_order_total(save_path, plain_times, incremental_times):
     plt.title('Out of Order')
     plt.xticks(x, labels)
     plt.ylabel('Execution Time (s)')
-    plt.xlabel('Pipeline Step')
+    plt.xlabel('Exception Resolution Step')
     plt.legend(handles=[
         mpatches.Patch(color=PLAIN_COLOR, label='Plain'),
         mpatches.Patch(color=INCREMENTAL_COLOR, label='Incremental')

@@ -264,8 +264,7 @@ namespace tuplex {
 
             // 2. because some fields were replaced with constants, less columns might need to get accessed!
             //    --> perform projection pushdown and then eliminate as many checks as possible
-
-            auto accColsBeforeOpt = get_accessed_columns(opt_ops);
+            auto accessed_columns_before_opt = get_accessed_columns(opt_ops);
 
             // basically use just on this stage the logical optimization pipeline
             auto logical_opt = std::make_unique<LogicalOptimizer>(options());
@@ -278,23 +277,7 @@ namespace tuplex {
             // so accCols should be sorted, now map to columns. Then check the position in accColsBefore
             // => look up what the original cols were!
             // => then push that down to reader/input node!
-            unordered_map<size_t, size_t> rewriteMap;
-            // redo normal to general mapping
-            _normalToGeneralMapping.clear();
-            auto accCols = accessed_columns;
-            for(unsigned i = 0; i < accCols.size(); ++i) {
-                rewriteMap[accCols[i]] = i;
-
-                // rewriteInfo.push_back(to_string(accCols[i]) + " -> " + to_string(i));
-
-                // save normal -> general mapping
-                _normalToGeneralMapping[i] = accCols[i];
-
-                int j = 0;
-                while(j < accColsBeforeOpt.size() && accCols[i] != accColsBeforeOpt[j])
-                    ++j;
-                // indices_to_read_from_previous_op.push_back(colsToSerializeIndices[j]);
-            }
+            _normalToGeneralMapping = createNormalToGeneralMapping(accessed_columns, accessed_columns_before_opt);
 
             {
                 // print out new chain of types
@@ -317,7 +300,7 @@ namespace tuplex {
             {
                 std::stringstream ss;
                 ss<<"constant folded pipeline requires now only "<<pluralize(accessed_columns.size(), "column");
-                ss<<" (general: "<<pluralize(accColsBeforeOpt.size(), "column")<<")";
+                ss<<" (general: "<<pluralize(accessed_columns_before_opt.size(), "column")<<")";
                 ss<<", reduced checks from "<<checks.size()<<" to "<<projected_checks.size();
                 logger.debug(ss.str());
 
@@ -939,4 +922,33 @@ namespace tuplex {
         return col_idxs;
     }
 
+    std::map<int, int> codegen::StagePlanner::createNormalToGeneralMapping(const std::vector<size_t>& normalAccessedOriginalIndices,
+                                               const std::vector<size_t>& generalAccessedOriginalIndices) {
+        std::map<int, int> m;
+
+        // normal case should be less than general
+        assert(normalAccessedOriginalIndices.size() <= generalAccessedOriginalIndices.size());
+
+        // create two lookup maps (incl. original columns!)
+        std::unordered_map<size_t, size_t> originalToGeneral;
+        for(unsigned i = 0; i < generalAccessedOriginalIndices.size(); ++i) {
+            originalToGeneral[generalAccessedOriginalIndices[i]] = i;
+        }
+
+        // now lookup from normal
+        for(unsigned i = 0; i < normalAccessedOriginalIndices.size(); ++i) {
+            // this should NOT error
+            m[i] = originalToGeneral[normalAccessedOriginalIndices[i]];
+        }
+
+        // debug check
+#ifndef NDEBUG
+        for(auto kv : m) {
+            // original index should correspond!
+            assert(normalAccessedOriginalIndices[kv.first] == generalAccessedOriginalIndices[kv.second]);
+        }
+#endif
+
+        return m;
+    }
 }

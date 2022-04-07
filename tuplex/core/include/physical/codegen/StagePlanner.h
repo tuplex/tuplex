@@ -250,6 +250,15 @@ namespace tuplex {
             python::Type get_specialized_row_type(const std::shared_ptr<LogicalOperator>& inputNode, const DetectionStats& ds) const;
 
             /*!
+             * creates a mapping between a column index of the normal case to the column index of the general case.
+             * @param normalAccessedOriginalIndices the i-th entry is the original column index AFTER pushdown of the i-th column in the normal case
+             * @param generalAccessedOriginalIndices  the j-th entry is the original column index AFTER pushdown of the j-th column in the general case
+             * @return mapping
+             */
+            std::map<int, int> createNormalToGeneralMapping(const std::vector<size_t>& normalAccessedOriginalIndices,
+                                                            const std::vector<size_t>& generalAccessedOriginalIndices);
+
+            /*!
              * perform filter-reordering using sample selectivity
              */
             std::vector<std::shared_ptr<LogicalOperator>> filterReordering(const std::vector<Row>& sample);

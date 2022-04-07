@@ -8,13 +8,51 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
+#include <random>
+
 #include <Context.h>
 #include "TestUtils.h"
 
+using namespace tuplex;
+using namespace std;
+
 class TakeTest : public PyTest {};
 
+/**
+ * Randomly generate a vector of rows for testing
+ * @param N the size of vector
+ * @return a vector of size N, containing the random data
+ */
+vector<Row> generateTestData(size_t N, uint64_t seed) {
+    mt19937 gen(seed); //Standard mersenne_twister_engine seeded with rd()
+    uniform_int_distribution<> distrib(1, 100000000);
+
+    vector<Row> data;
+    data.reserve(N);
+
+    for (int i = 0; i < N; i++) {
+        data.emplace_back(distrib(gen), distrib(gen), distrib(gen));
+    }
+
+    return data;
+}
+
+vector<Row> generateReferenceData(const vector<Row>& input, size_t topLimit, size_t bottomLimit) {
+    vector<Row> output;
+    for(size_t i = 0; i < topLimit && i < input.size(); i++) {
+        output.push_back(input[i]);
+    }
+    size_t start_bottom = input.size() >= bottomLimit ? input.size() - bottomLimit : 0;
+    start_bottom = max(topLimit, start_bottom);
+
+    for(size_t i = start_bottom; i < input.size(); i++) {
+        output.push_back(input[i]);
+    }
+
+    return output;
+}
+
 TEST_F(TakeTest, takeTopTest) {
-    using namespace tuplex;
     auto opt = testOptions();
     Context context(opt);
 
@@ -51,7 +89,6 @@ TEST_F(TakeTest, takeTopTest) {
 }
 
 TEST_F(TakeTest, takeBottomTest) {
-    using namespace tuplex;
     auto opt = testOptions();
     Context context(opt);
 
@@ -88,7 +125,6 @@ TEST_F(TakeTest, takeBottomTest) {
 }
 
 TEST_F(TakeTest, takeBothTest) {
-    using namespace tuplex;
     auto opt = testOptions();
     Context context(opt);
 
@@ -124,4 +160,47 @@ TEST_F(TakeTest, takeBothTest) {
     EXPECT_EQ(v3[4].getString(0), "!");
 }
 
-// TODO(march): test empty code when reusing partitions. This might not work if user reused dataset
+TEST_F(TakeTest, takeBigTest) {
+    mt19937 data_seed_gen(4242);
+
+    const std::vector<size_t> test_size{1, 10, 100, 1001, 10001};
+    const std::vector<size_t> limit_values{0, 1, 5, 11, 600, 10000};
+    const std::vector<string> partition_sizes{"256B", "512KB", "1MB"};
+
+    for(auto& part_size : partition_sizes) {
+        auto opt = testOptions();
+        opt.set("tuplex.partitionSize", part_size);
+        Context context(opt);
+
+        for(auto data_size : test_size) {
+            for (auto top_limit: limit_values) {
+                for (auto bottom_limit: limit_values) {
+                    std::cout << "testing with partition size:" << part_size << " data size:"
+                              << data_size << " top:" << top_limit << " bottom:" << bottom_limit << std::endl;
+
+                    auto data = generateTestData(data_size, data_seed_gen());
+                    auto ref_data = generateReferenceData(data, top_limit, bottom_limit);
+
+                    auto res = context.parallelize(data).take(top_limit, bottom_limit);
+                    ASSERT_EQ(ref_data.size(), res->rowCount());
+                    for (Row &r: ref_data) {
+                        Row res_row = res->getNextRow();
+                        if (!(res_row == r)) {
+                            ASSERT_EQ(res_row, r);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// TODO(march): with map, filter function
+//TEST_F(TakeTest, takeMapFilterTest) {
+//    srand(4242);
+//}
+
+// TODO(march): with file input
+//    context.csv("../resources/");
+
+// TODO(march): collect operator

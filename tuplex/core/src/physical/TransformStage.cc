@@ -133,15 +133,9 @@ namespace tuplex {
             auto schema = Schema::UNKNOWN;
 
             if(!partitions.empty()) {
-                size_t totalRowsCount = 0;
                 schema = partitions.front()->schema();
                 for (auto partition : partitions) {
                     assert(schema == partition->schema());
-                    totalRowsCount += partition->getNumRows();
-                }
-
-                if (hasOutputLimit()) {
-                    assert(totalRowsCount == _outputTopLimit + _outputBottomLimit);
                 }
             }
 

@@ -2143,7 +2143,7 @@ namespace tuplex {
                 clippedTop = topLimit - (numTopOutputRows - partition->getNumRows());
                 assert(clippedTop <= partition->getNumRows());
                 break;
-            } else if (partition == *partitions.end()) {
+            } else if (partition == partitions.back()) {
                 // last partition, mark full row, but don't put to output set yet to avoid double put
                 clippedTop = partition->getNumRows();
                 break;
@@ -2171,14 +2171,14 @@ namespace tuplex {
                 break;
             } else if (numBottomOutputRows >= bottomLimit) {
                 // clip last partition & leave loop
-                auto clipped = bottomLimit - (numTopOutputRows - partition->getNumRows());
+                auto clipped = bottomLimit - (numBottomOutputRows - partition->getNumRows());
                 assert(clipped <= partition->getNumRows());
-                Partition* newPart = newPartitionWithSkipRows(partition, partition->getNumRows() - clipped, tstage);
+                if (clipped > 0) {
+                    Partition *newPart = newPartitionWithSkipRows(partition, partition->getNumRows() - clipped, tstage);
+                    assert(newPart->getNumRows() == clipped);
+                    limitedTailPartitions.push_back(newPart);
+                }
                 partition->invalidate();
-                partition = newPart;
-                assert(partition->getNumRows() == clipped);
-                if (clipped > 0)
-                    limitedTailPartitions.push_back(partition);
                 break;
             } else {
                 // put full partition to output set
@@ -2197,9 +2197,12 @@ namespace tuplex {
                 lastBottomPart = newPartitionWithSkipRows(lastTopPart, lastTopPart->getNumRows() - clippedBottom, tstage);
             }
 
-            lastTopPart->setNumRows(clippedTop);
-
-            limitedPartitions.push_back(lastTopPart);
+            if (clippedTop != 0) {
+                lastTopPart->setNumRows(clippedTop);
+                limitedPartitions.push_back(lastTopPart);
+            } else {
+                lastTopPart->invalidate();
+            }
 
             if (lastBottomPart != nullptr) {
                 limitedPartitions.push_back(lastBottomPart);
@@ -2213,16 +2216,9 @@ namespace tuplex {
     }
 
     Partition* LocalBackend::newPartitionWithSkipRows(Partition *p_in, size_t numToSkip, TransformStage* tstage) {
-        if(!numToSkip)
-            return nullptr;
-
         auto ptr = p_in->lockRaw();
         auto num_rows = *((int64_t*) ptr);
         assert(numToSkip < num_rows);
-
-        Partition *p_out = _driver->allocWritablePartition(num_rows - numToSkip + sizeof(int64_t),
-                                                           tstage->outputSchema(), tstage->outputDataSetID(),
-                                                           tstage->context().id());
 
         ptr += sizeof(int64_t);
         size_t numBytesToSkip = 0;
@@ -2232,6 +2228,11 @@ namespace tuplex {
             ptr += r.serializedLength();
             numBytesToSkip += r.serializedLength();
         }
+
+        Partition *p_out = _driver->allocWritablePartition(p_in->size() - numBytesToSkip + sizeof(int64_t),
+                                                           tstage->outputSchema(), tstage->outputDataSetID(),
+                                                           tstage->context().id());
+        assert(p_out->capacity() >= p_in->size() - numBytesToSkip);
 
         auto ptr_out = p_out->lockRaw();
         *((int64_t*) ptr_out) = p_in->getNumRows() - numToSkip;

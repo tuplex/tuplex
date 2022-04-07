@@ -235,6 +235,7 @@ namespace tuplex {
                 std::stringstream ss;
                 ss<<op->name()<<" (before): "<<op->getInputSchema().getRowType().desc()<<" -> "<<op->getOutputSchema().getRowType().desc()<<endl;
                 // retype
+                ss<<"retyping with parent's output schema: "<<lastParent->getOutputSchema().getRowType().desc()<<endl;
                 opt_op->retype({lastParent->getOutputSchema().getRowType()});
                 // after retype
                 ss<<op->name()<<" (after): "<<op->getInputSchema().getRowType().desc()<<" -> "<<op->getOutputSchema().getRowType().desc();
@@ -278,8 +279,27 @@ namespace tuplex {
             }
 
             {
+                // print out new chain of types
+                std::stringstream ss;
+                ss<<"Pipeline (types):\n";
+
+                for(auto op : opt_ops) {
+                    ss<<op->name()<<":\n";
+                    ss<<"  in: "<<op->getInputSchema().getRowType().desc()<<"\n";
+                    ss<<" out: "<<op->getOutputSchema().getRowType().desc()<<"\n";
+                    ss<<"  in columns: "<<op->inputColumns()<<"\n";
+                    ss<<" out columns: "<<op->columns()<<"\n";
+                    ss<<"----\n";
+                }
+
+                logger.debug(ss.str());
+            }
+
+
+            {
                 std::stringstream ss;
                 ss<<"constant folded pipeline requires now only "<<pluralize(accessed_columns.size(), "column");
+                ss<<" (general: "<<pluralize(accColsBeforeOpt.size(), "column")<<")";
                 ss<<", reduced checks from "<<checks.size()<<" to "<<projected_checks.size();
                 logger.debug(ss.str());
 

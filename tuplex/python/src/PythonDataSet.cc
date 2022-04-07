@@ -107,7 +107,7 @@ namespace tuplex {
         }
     }
 
-    py::object PythonDataSet::take(const int64_t numTop, const int64_t numBottom) {
+    py::object PythonDataSet::take(const int64_t topLimit, const int64_t bottomLimit) {
         // make sure a dataset is wrapped
         assert(this->_dataset);
 
@@ -129,8 +129,19 @@ namespace tuplex {
 
             std::shared_ptr<ResultSet> rs;
             std::string err_message = "";
+
+            size_t castedTopLimit = 0;
+            if (topLimit < 0) {
+                castedTopLimit = std::numeric_limits<size_t>::max();
+            }
+
+            size_t castedBottomLimit = 0;
+            if (bottomLimit < 0) {
+                castedBottomLimit = std::numeric_limits<size_t>::max();
+            }
+
             try {
-                rs = _dataset->take(numTop, numBottom, ss);
+                rs = _dataset->take(castedTopLimit, castedBottomLimit, ss);
                 if(!rs)
                     throw std::runtime_error("invalid result set");
                 // if there are more than 1 million (100k in debug mode) elements print message...
@@ -162,7 +173,7 @@ namespace tuplex {
             // new version, directly interact with the interpreter
             Timer timer;
             // build python list object from resultset
-            auto listObj = resultSetToCPython(rs.get(), numTop);
+            auto listObj = resultSetToCPython(rs.get(), castedTopLimit);
             Logger::instance().logger("python").info("Data transfer back to python took "
                                                      + std::to_string(timer.time()) + " seconds");
             // Logger::instance().flushAll();

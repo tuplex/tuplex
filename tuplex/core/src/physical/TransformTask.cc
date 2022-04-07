@@ -509,7 +509,6 @@ namespace tuplex {
         _outPrefix.reset();
         _outTopLimit = std::numeric_limits<size_t>::max(); // write all rows
         _outBottomLimit = 0;
-        _outSkipRows = 0; // skip no rows
 
         // reset memory sink
         _output.reset();
@@ -705,7 +704,7 @@ namespace tuplex {
 
         // skip rows? limit rows??
 
-        if(_numOutputRowsWritten >= _outSkipRows && _numOutputRowsWritten < (_outTopLimit - _outSkipRows)) {
+        if(_numOutputRowsWritten < _outTopLimit) {
             if(_outFile->write(buf, bufSize) != VirtualFileSystemStatus::VFS_OK)
                 return ecToI32(ExceptionCode::IOERROR);
         }

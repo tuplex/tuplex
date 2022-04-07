@@ -158,9 +158,8 @@ namespace tuplex {
             size_t number() const { return _stageNumber; }
             int64_t outputDataSetID() const;
 
-            // default case: both _outputTopLimit and _outputBottomLimit is zero = take everything
             inline bool hasOutputLimit() const {
-                return _outputTopLimit != 0 || _outputBottomLimit != 0;
+                return _outputTopLimit != std::numeric_limits<size_t>::max() && _outputBottomLimit != std::numeric_limits<size_t>::max();
             }
 
             inline char csvOutputDelimiter() const {

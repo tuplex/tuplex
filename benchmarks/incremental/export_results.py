@@ -56,7 +56,7 @@ def write_metric_to_file(f, results_path, num_trials, num_steps, mode, metric):
 
         plain_total = 0
         for trial in range(num_trials):
-            plain_path = os.path.join(results_path, experiment_path(trial + 1, False, Mode.OUT_OF_ORDER))
+            plain_path = os.path.join(results_path, experiment_path(trial + 1, False, mode))
             plain_time = get_metric(plain_path, metric, step)
 
             plain_total += plain_time
@@ -65,7 +65,7 @@ def write_metric_to_file(f, results_path, num_trials, num_steps, mode, metric):
 
         incremental_total = 0
         for trial in range(num_trials):
-            incremental_path = os.path.join(results_path, experiment_path(trial + 1, True, Mode.IN_ORDER))
+            incremental_path = os.path.join(results_path, experiment_path(trial + 1, True, mode))
             incremental_time = get_metric(incremental_path, metric, step)
 
             incremental_total += incremental_time

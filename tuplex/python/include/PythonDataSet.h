@@ -79,6 +79,7 @@ namespace tuplex {
         py::object collect();
         py::object take(const int64_t topLimit, const int64_t bottomLimit);
         void show(const int64_t numRows=-1);
+        std::string showHTMLPreview(const int64_t topLimit, const int64_t bottomLimit);
 
         // DataFrame like operations
         PythonDataSet mapColumn(const std::string& column, const std::string& lambda_code, const std::string& pickled_code, const py::object& closure=py::object());

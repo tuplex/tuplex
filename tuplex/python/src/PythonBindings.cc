@@ -41,6 +41,7 @@ PYMODULE {
 
     py::class_<tuplex::PythonDataSet>(m, "_DataSet")
             .def("show", &tuplex::PythonDataSet::show)
+            .def("showHTMLPreview", &tuplex::PythonDataSet::showHTMLPreview)
             .def("collect", &tuplex::PythonDataSet::collect)
             .def("take", &tuplex::PythonDataSet::take)
             .def("map", &tuplex::PythonDataSet::map)

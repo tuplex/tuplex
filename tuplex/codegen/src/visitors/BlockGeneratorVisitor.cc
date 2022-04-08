@@ -1710,6 +1710,10 @@ namespace tuplex {
 
                 // store param into var
                 slot.var.store(builder, param);
+
+                // assign that slot is a parameter -> i.e., we can avoid to generate unbound checks
+                slot.isParameter = true;
+
                 _variableSlots[name] = slot;
             }
 
@@ -1770,7 +1774,7 @@ namespace tuplex {
             _funcNames.push(_lfb->funcName());
 
             // i.e. for each variable, we need to
-            // define a slot, incl. a helper variable isDefined which is an i1 so we
+            // define a slot, incl. a helper variable isDefined which is an i1, so we
             // can throw UnboundLocalErrors
             declareVariables(func);
 

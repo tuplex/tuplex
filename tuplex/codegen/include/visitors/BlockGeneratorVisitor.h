@@ -176,10 +176,16 @@ namespace codegen {
             python::Type type;
             Variable var;
             llvm::Value* definedPtr;
+            bool isParameter;
 
-            VariableSlot():type(python::Type::UNKNOWN), definedPtr(nullptr) {}
+            VariableSlot() : type(python::Type::UNKNOWN), definedPtr(nullptr), isParameter(false) {}
 
             void generateUnboundLocalCheck(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder) {
+
+                // parameters do not need a local check, they're always defined (skips generating a bunch of checks)
+                if(isParameter)
+                    return;
+
                 assert(definedPtr);
                 auto val = builder.CreateLoad(definedPtr);
                 auto c_val = llvm::dyn_cast<llvm::ConstantInt>(val);
@@ -197,6 +203,11 @@ namespace codegen {
             }
 
             bool isDefined(llvm::IRBuilder<>& builder) const {
+
+                // parameters are always defined
+                if(isParameter)
+                    return true;
+
                 // unknown type?
                 if(type == python::Type::UNKNOWN)
                     return false;
@@ -228,8 +239,25 @@ namespace codegen {
             codegen::SerializableValue original_ptr;
             llvm::Value* defined;
             llvm::Value* original_defined_ptr;
+            bool isParameter;
+
+            VariableRealization() : defined(nullptr), original_defined_ptr(nullptr), isParameter(false) {}
 
             static VariableRealization fromSlot(llvm::IRBuilder<>& builder, const std::string& name, const VariableSlot& slot) {
+
+                // parameters are always defined, so quick result here:
+                if(slot.isParameter) {
+                    VariableRealization r;
+                    r.name = name;
+                    r.type = slot.type;
+                    auto& ctx = builder.getContext();
+                    r.defined = llvm::ConstantInt::get(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, true));
+                    r.val = r.type != python::Type::UNKNOWN ? slot.var.load(builder) : SerializableValue();
+                    r.original_ptr = SerializableValue(slot.var.ptr, slot.var.sizePtr, slot.var.nullPtr);
+                    r.original_defined_ptr = slot.definedPtr;
+                    return std::move(r);
+                }
+
                 VariableRealization r;
                 r.name = name;
                 r.type = slot.type;
@@ -275,6 +303,7 @@ namespace codegen {
                 if(keyval.second.type != _variableSlots[name].type) {
                     _variableSlots[name].type = keyval.second.type;
                     _variableSlots[name].var = Variable(*_env, builder, _variableSlots[name].type, name);
+                    _variableSlots[name].isParameter = keyval.second.isParameter;
                 }
 
                 // load realization to var (only if not type == unknown)

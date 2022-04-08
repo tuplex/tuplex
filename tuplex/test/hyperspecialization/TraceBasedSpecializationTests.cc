@@ -586,7 +586,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // this file has issues => i.e., it triggers fallback ALWAYS for hyper-specialization
     input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv";
 
-    input_pattern = "../resources/hyperspecialization/flights_2003_06.sample.csv";
+//    input_pattern = "../resources/hyperspecialization/flights_2003_06.sample.csv";
 
 
     std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;

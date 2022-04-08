@@ -880,6 +880,55 @@ namespace tuplex {
         }
     }
 
+    std::string PythonDataSet::showHTMLPreview(const int64_t topLimit, const int64_t bottomLimit) {
+        // make sure a dataset is wrapped
+        assert(this->_dataset);
+
+        // is callee error dataset? if so return list with error string
+        if (this->_dataset->isError()) {
+            auto errset = dynamic_cast<ErrorDataSet *>(this->_dataset);
+            assert(errset);
+            return "Error: " + errset->getError();
+        } else {
+            // release GIL & hand over everything to Tuplex
+            assert(PyGILState_Check()); // make sure this thread holds the GIL!
+            python::unlockGIL();
+
+            std::stringstream ss;
+            std::string err_message;
+
+            size_t castedTopLimit = 0;
+            if (topLimit < 0) {
+                castedTopLimit = std::numeric_limits<size_t>::max();
+            }
+
+            size_t castedBottomLimit = 0;
+            if (bottomLimit < 0) {
+                castedBottomLimit = std::numeric_limits<size_t>::max();
+            }
+
+            try {
+                this->_dataset->showHTMLPreview(castedTopLimit, castedBottomLimit, ss);
+            } catch (const std::exception &e) {
+                err_message = e.what();
+                Logger::instance().defaultLogger().error(err_message);
+            } catch (...) {
+                err_message = "unknown C++ exception occurred, please change type.";
+                Logger::instance().defaultLogger().error(err_message);
+            }
+
+            // reacquire GIL
+            python::lockGIL();
+            Logger::instance().flushToPython();
+
+            if (!ss.str().empty() && err_message.empty()) {
+                return ss.str();
+            } else {
+                return "Error occurred: " + err_message;
+            }
+        }
+    }
+
     PyObject* PythonDataSet::anyToCPythonWithPyObjects(ResultSet* rs, size_t maxRowCount) {
         assert(rs);
 

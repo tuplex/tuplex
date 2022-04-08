@@ -756,6 +756,115 @@ namespace tuplex {
         printTable(os, headers, rows);
     }
 
+    void printHTMLRow(std::ostream &os, size_t ind, const Row& r) {
+        os << "    <tr>\n";
+        os << fmt::format("      <th>{}</th>\n", ind);
+        for (auto& s : r.getAsStrings()) {
+            os << fmt::format("      <td>{}</td>\n", s);
+        }
+        os << "    </tr>\n";
+    }
+
+    void DataSet::showHTMLPreview(size_t topLimit, size_t bottomLimit, std::ostream &os) {
+        std::string HTML_TEMPLATE =
+                "<div>\n"
+                "<style scoped>\n"
+                "    .dataframe tbody tr th:only-of-type {\n"
+                "        vertical-align: middle;\n"
+                "    }\n"
+                "\n"
+                "    .dataframe tbody tr th {\n"
+                "        vertical-align: top;\n"
+                "    }\n"
+                "\n"
+                "    .dataframe thead th {\n"
+                "        text-align: right;\n"
+                "    }\n"
+                "</style>\n"
+                "<table border=\"1\" class=\"dataframe\">\n"
+                "  <thead>\n"
+                "    <tr style=\"text-align: right;\">\n"
+                "{}"
+                "    </tr>\n"
+                "  </thead>\n"
+                "  <tbody>\n"
+                "{}"
+                "  </tbody>\n"
+                "</table>\n"
+                "<p>{} columns</p>\n"
+                "</div>";
+
+        assert(_context);
+
+        auto rows = take(topLimit, bottomLimit);
+
+        if (rows->rowCount() == 0) {
+            os << fmt::format(HTML_TEMPLATE, "<th></th>\n", "<tr></tr>\n", 0);
+            return;
+        }
+
+        std::stringstream headers_stream, body_stream;
+        size_t numColumns = 0;
+        assert(rows->rowCount() <= topLimit + bottomLimit);
+
+        // construct tables
+        if (rows->rowCount() < topLimit + bottomLimit) {
+            // the data is small so we get everything (no need to render ...)
+            for (size_t i = 0; rows->hasNextRow(); i++) {
+                Row r = rows->getNextRow();
+                if (i == 0) {
+                    // we set num columns based on the first row
+                    numColumns = r.getNumColumns();
+                }
+
+                printHTMLRow(body_stream, i, r);
+            }
+        } else {
+            // some data is not processed because of limiting
+            size_t i;
+            for (i = 0; rows->hasNextRow() && i < topLimit; i++) {
+                Row r = rows->getNextRow();
+                if (i == 0) {
+                    // we set num columns based on the first row
+                    numColumns = r.getNumColumns();
+                }
+
+                printHTMLRow(body_stream, i, r);
+            }
+
+            // add the ...
+            body_stream << "    <tr>\n";
+            body_stream << "      <th>...</th>\n";
+            for(int j = 0; j < numColumns; j++) {
+                body_stream << "      <td>...</td>\n";
+                body_stream << "    </tr>\n";
+            }
+
+            while (rows->hasNextRow()) {
+                Row r = rows->getNextRow();
+                printHTMLRow(body_stream, i, r);
+            }
+        }
+
+        assert(numColumns != 0);
+
+        // construct headers
+        std::vector<std::string> headers(numColumns);
+        if (!_columnNames.empty()) {
+            assert(numColumns == _columnNames.size());
+            for (auto &c_name: _columnNames) {
+                headers_stream << fmt::format("      <th>{}</th>\n", c_name);
+            }
+        } else {
+            // default to generic name if column name doesn't exist
+            for (int i = 0; i < numColumns; ++i) {
+                headers_stream << fmt::format("      <th>Column {}</th>\n", i);
+            }
+        }
+
+        os << fmt::format(HTML_TEMPLATE, headers_stream.str(), body_stream.str(), numColumns);
+    }
+
     Schema DataSet::schema() const {
         if(!_operator)
             return Schema::UNKNOWN;

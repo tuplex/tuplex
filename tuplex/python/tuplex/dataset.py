@@ -28,87 +28,8 @@ class DataSet:
     def __init__(self):
         self._dataSet = None
 
-    def getColumnSize(self):
-        data = self.collect()
-        if len(data) == 0:
-            return 0, 0
-        else:
-            return len(data[0])
-
-    def revTake(self, nRows = 5):
-        return self.collect()[-nRows:]
-
     def _repr_html_(self):
-        rows_list = self.take()
-        total_col_cnt = self.getColumnSize()
-        print('rowlist')
-        print(rows_list)
-        if len(rows_list) == 0:
-            header = '<th></th>\n'
-            rows = '<tr></tr>\n'
-        else:
-            header = '<th></th>\n'
-
-            if self.columns != None:
-                for x in self.columns:
-                    header += f'      <th>{x}</th>\n'
-            else:
-                for i in range(len(rows_list[0])):
-                    header += f'      <th>column {i + 1}</th>\n'
-
-            rows = ''
-            for i, r in enumerate(rows_list):
-                rows += '    <tr>\n'
-                rows += f'      <th>{i}</th>\n'
-                for data in r:
-                    rows += f'      <td>{data}</td>\n'
-                rows += '    </tr>\n'
-
-            # add the ...
-            rows += '    <tr>\n'
-            rows += '      <th>...</th>\n'
-            for i in range(total_col_cnt):
-                rows += '      <td>...</td>\n'
-            rows += '    </tr>\n'
-
-            lastData = self.revTake()
-            for i, r in enumerate(lastData):
-                rows += '    <tr>\n'
-                rows += f'      <th>{0 - len(lastData) + i}</th>\n'
-                for data in r:
-                    rows += f'      <td>{data}</td>\n'
-                rows += '    </tr>\n'
-
-        html_template = (
-            '<div>\n'
-            '<style scoped>\n'
-            '    .dataframe tbody tr th:only-of-type {\n'
-            '        vertical-align: middle;\n'
-            '    }\n'
-            '\n'
-            '    .dataframe tbody tr th {\n'
-            '        vertical-align: top;\n'
-            '    }\n'
-            '\n'
-            '    .dataframe thead th {\n'
-            '        text-align: right;\n'
-            '    }\n'
-            '</style>\n'
-            '<table border="1" class="dataframe">\n'
-            '  <thead>\n'
-            '    <tr style="text-align: right;">\n'
-            f'{header}'
-            '    </tr>\n'
-            '  </thead>\n'
-            '  <tbody>\n'
-            f'{rows}'
-            '  </tbody>\n'
-            '</table>\n'
-            f'<p>{total_col_cnt} columns</p>\n'
-            '</div>'
-        )
-
-        return html_template
+        return self._dataSet.showHTMLPreview()
 
     def unique(self):
         """ removes duplicates from Dataset (out-of-order). Equivalent to a DISTINCT clause in a SQL-statement.
@@ -201,11 +122,14 @@ class DataSet:
             (list): A list of tuples
 
         """
+        assert limitTop is None or isinstance(limitTop, int), 'num rows must be an integer or None'
+        assert limitBottom is None or isinstance(limitBottom, int), 'num bottom last must be an integer or None'
 
-        assert isinstance(limitTop, int), 'num rows must be an integer'
-        assert limitTop > 0, 'please specify a number greater than zero'
-        assert isinstance(limitBottom, int), 'num bottom last must be an integer'
-        assert limitBottom >= 0, 'please specify a number greater or equal to zero'
+        if limitTop is None or limitTop < 0:
+            limitTop = -1
+
+        if limitBottom is None or limitBottom < 0:
+            limitBottom = -1
 
         assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
 
@@ -226,6 +150,26 @@ class DataSet:
             nrows = -1
 
         self._dataSet.show(nrows)
+
+    def showHTMLPreview(self, topLimit=5, bottomLimit=5):
+        """ action that generates a physical plan, processes data and return a subset of results as nicely formatted
+        HTML table to stdout.
+
+        Args:
+            topLimit (int): number of top rows to collect. If ``None`` all rows will be collected
+            bottomLimit (int): number of bottom rows to collect. If ``None`` all rows will be collected
+
+        Returns:
+            string: an HTML table showing a preview of the data
+        """
+        assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
+
+        if topLimit is None or topLimit < 0:
+            topLimit = -1
+        if bottomLimit is None or bottomLimit < 0:
+            bottomLimit = -1
+
+        return self._dataSet.showHTMLPreview(topLimit, bottomLimit)
 
     def resolve(self, eclass, ftor):
         """ Adds a resolver operator to the pipeline. The signature of ftor needs to be identical to the one of the preceding operator.

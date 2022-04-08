@@ -204,3 +204,5 @@ TEST_F(TakeTest, takeBigTest) {
 //    context.csv("../resources/");
 
 // TODO(march): collect operator
+
+// TODO(march): write test for trimPartitionsToLimit

@@ -18,18 +18,14 @@
 #include <bucket.h>
 
 namespace tuplex {
-    // atomic var to count output rows!
-    static std::atomic_int64_t g_totalTopOutputRows;
-    static std::atomic_int64_t g_totalBottomOutputRows;
-
     // mapping from order number -> row count if the task is finished
     static std::mutex g_rowsDoneMutex;
-    static std::map<size_t, size_t> g_rowsDone;
+    static std::unordered_map<size_t, size_t> g_rowsDone;
+    static std::atomic_size_t g_maxOrder;
 
-    void TransformTask::resetOutputLimitCounter() {
-        g_totalTopOutputRows = 0;
-        g_totalBottomOutputRows = 0;
+    void TransformTask::resetLimits(size_t maxOrder) {
         g_rowsDone.clear();
+        g_maxOrder = maxOrder;
     }
 }
 
@@ -602,6 +598,48 @@ namespace tuplex {
 #endif
     }
 
+    bool TransformTask::limitReached() const {
+        size_t numTopCompleted = 0;
+        size_t numBottomCompleted = 0;
+        bool isTopLimitReached = false;
+        bool isBottomLimitReached = false;
+
+        tuplex::g_rowsDoneMutex.lock();
+        if (_outTopLimit == 0) {
+            isTopLimitReached = true;
+        } else {
+            for (size_t i = 0; tuplex::g_rowsDone.count(i) != 0; i++) {
+                numTopCompleted += tuplex::g_rowsDone[i];
+                if (numTopCompleted >= _outTopLimit) {
+                    isTopLimitReached = true;
+                    break;
+                }
+            }
+        }
+
+        // TODO: what is the max task number here
+        if (_outBottomLimit == 0) {
+            isBottomLimitReached = true;
+        } else {
+            for (size_t i = tuplex::g_maxOrder; tuplex::g_rowsDone.count(i) != 0; i--) {
+                numBottomCompleted += tuplex::g_rowsDone[i];
+                if (numBottomCompleted >= _outBottomLimit) {
+                    isBottomLimitReached = true;
+                    break;
+                }
+            }
+        }
+        tuplex::g_rowsDoneMutex.unlock();
+
+        return isTopLimitReached && isBottomLimitReached;
+    }
+
+    void TransformTask::updateLimits() {
+        tuplex::g_rowsDoneMutex.lock();
+        tuplex::g_rowsDone[getOrder(0)] += getNumOutputRows();
+        tuplex::g_rowsDoneMutex.unlock();
+    }
+
     void TransformTask::processMemorySource() {
         assert(!_inputPartitions.empty());
         assert(_functor);
@@ -615,30 +653,7 @@ namespace tuplex {
 
         // go over all input partitions.
         for(const auto &inputPartition : _inputPartitions) {
-            size_t numTopCompleted = 0;
-            size_t numBottomCompleted = 0;
-            bool isTopLimitReached = false;
-            bool isBottomLimitReached = false;
-
-            tuplex::g_rowsDoneMutex.lock();
-            for (size_t i = 0; tuplex::g_rowsDone.count(i) != 0; i++) {
-                numTopCompleted += tuplex::g_rowsDone[i];
-                if (numTopCompleted >= _outTopLimit) {
-                    isTopLimitReached = true;
-                    break;
-                }
-            }
-            // TODO: what is the max task number here
-            for (size_t i = 100; tuplex::g_rowsDone.count(i) != 0; i--) {
-                numBottomCompleted += tuplex::g_rowsDone[i];
-                if (numBottomCompleted >= _outTopLimit) {
-                    isBottomLimitReached = true;
-                    break;
-                }
-            }
-            tuplex::g_rowsDoneMutex.unlock();
-
-            if (isTopLimitReached && isBottomLimitReached) {
+            if (limitReached()) {
                 // skip the execution, enough is done
                 break;
             }
@@ -665,9 +680,7 @@ namespace tuplex {
             if(_invalidateSourceAfterUse)
                 inputPartition->invalidate();
 
-            tuplex::g_rowsDoneMutex.lock();
-            tuplex::g_rowsDone[getOrder(0)] += getNumOutputRows();
-            tuplex::g_rowsDoneMutex.unlock();
+            updateLimits();
         }
 
 #ifndef NDEBUG

@@ -107,9 +107,9 @@ namespace tuplex {
         std::unordered_map<std::string, ExceptionInfo> partitionToExceptionsMap() { return _partitionToExceptionsMap; }
 
         /*!
-         * sets maximum number of top rows this pipeline will produce
-         * @param topLimit
-         * @param bottomLimit
+         * sets maximum number of rows this pipeline will produce
+         * @param topLimit number of top rows to produce, 0 means none, and size_t::max means everything
+         * @param bottomLimit number of bottom rows to produce, 0 means none, and size_t::max means everything
          */
         inline void  setOutputLimit(size_t topLimit, size_t bottomLimit) {
             _outputTopLimit = topLimit;

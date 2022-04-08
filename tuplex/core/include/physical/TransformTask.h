@@ -182,8 +182,19 @@ namespace tuplex {
         void sinkOutputToHashTable(HashTableFormat fmt, int64_t outputDataSetID);
         HashTableSink hashTableSink() const { return _htable; } // needs to be freed manually!
 
-        void setOutputTopLimit(size_t limit) { _outTopLimit = limit; resetOutputLimitCounter(); }
-        void setOutputBottomLimit(size_t limit) { _outBottomLimit = limit; resetOutputLimitCounter(); }
+        void setOutputTopLimit(size_t limit) {
+            _outTopLimit = limit;
+        }
+
+        void setOutputBottomLimit(size_t limit) {
+            _outBottomLimit = limit;
+        }
+
+        // maxOrder of infinity means disregarding the bottomLimit short circuit
+        static void setMaxOrderAndResetLimits(size_t maxOrder = std::numeric_limits<size_t>::max()) {
+            resetLimits(maxOrder);
+        }
+
         void execute() override;
 
         bool hasFileSink() const { return _outputFilePath != URI::INVALID; }
@@ -207,7 +218,7 @@ namespace tuplex {
         static codegen::i64_hash_row_f writeInt64HashTableAggregateCallback();
         static codegen::write_row_f aggCombineCallback();
 
-        static void resetOutputLimitCounter();
+        static void resetLimits(size_t maxOrder);
 
         // most be public because of C++ issues -.-
         int64_t writeRowToMemory(uint8_t* buf, int64_t bufSize);
@@ -313,6 +324,9 @@ namespace tuplex {
            _output.unlock();
            _exceptions.unlock();
         }
+
+        bool limitReached() const;
+        void updateLimits();
 
         void processMemorySourceWithExp();
         void processMemorySource();

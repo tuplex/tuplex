@@ -113,7 +113,8 @@ class DataSet:
         return self._dataSet.collect()
 
     def take(self, limitTop=5, limitBottom=0):
-        """ action that generates a physical plan, processes data and collects the top results then as list of tuples.
+        """ action that generates a physical plan, processes data and collects the top and bottom results
+        then as list of tuples.
 
         Args:
             limitTop (int): number of top rows to collect. Per default ``5``.
@@ -134,6 +135,26 @@ class DataSet:
         assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
 
         return self._dataSet.take(limitTop, limitBottom)
+
+    def head(self, nrows):
+        """ action that generates a physical plan, processes data and collects the top results then as list of tuples.
+
+        Args:
+            nrows (int): number of rows to collect.
+        Returns:
+            (list): A list of tuples
+        """
+        return self.take(nrows, 0)
+
+    def tail(self, nrows):
+        """ action that generates a physical plan, processes data and collects the bottom results then as list of tuples.
+
+        Args:
+            nrows (int): number of rows to collect.
+        Returns:
+            (list): A list of tuples
+        """
+        return self.take(0, nrows)
 
     def show(self, nrows=None):
         """ action that generates a physical plan, processes data and prints results as nicely formatted

@@ -14,7 +14,7 @@
 
 class ResultSetTest : public PyTest {
 protected:
-    tuplex::Executor *driver;
+    std::shared_ptr<tuplex::Executor> driver;
     tuplex::ContextOptions options;
 public:
     // init function
@@ -45,7 +45,8 @@ public:
             EXPECT_EQ(r.getRowType(), first_type);
 
         // now write via partition writer
-        tuplex::PartitionWriter pw(driver, Schema(Schema::MemoryLayout::ROW, first_type), 0, 0, options.PARTITION_SIZE());
+        tuplex::PartitionWriter pw(driver.get(), Schema(Schema::MemoryLayout::ROW, first_type), 0, 0,
+                                   options.PARTITION_SIZE());
         for(const auto& r : rows)
             pw.writeRow(r);
         return pw.getOutputPartitions();

@@ -127,15 +127,19 @@ namespace tuplex {
                 return vector<Row>{};
 
             Deserializer ds(_schema);
-            for(int i = 0; i < limit;) {
+            for (size_t i = 0; i < limit;) {
 
                 // all exhausted
-                if(_partitions.empty())
+                if (_partitions.empty())
                     break;
 
                 // get number of rows in first partition
                 Partition *first = _partitions.front();
                 auto num_rows = first->getNumRows();
+
+                assert(num_rows >= _curRowCounter);
+                assert(limit >= i);
+
                 // how many left to retrieve?
                 auto num_to_retrieve_from_partition = std::min(limit - i, num_rows - _curRowCounter);
                 assert(num_to_retrieve_from_partition >= 0);
@@ -145,8 +149,8 @@ namespace tuplex {
 
                 // thread safe version (slow)
                 // get next element of partition
-                const uint8_t* ptr = first->lock();
-                for(int j = 0; j < num_to_retrieve_from_partition; ++j) {
+                const uint8_t *ptr = first->lock();
+                for (size_t j = 0; j < num_to_retrieve_from_partition; ++j) {
                     auto row = Row::fromMemory(ds, ptr + _byteCounter, first->capacity() - _byteCounter);
                     _byteCounter += row.serializedLength();
                     _curRowCounter++;

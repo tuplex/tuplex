@@ -113,7 +113,8 @@ class DataSet:
         return self._dataSet.collect()
 
     def take(self, limitTop=5, limitBottom=0):
-        """ action that generates a physical plan, processes data and collects the top results then as list of tuples.
+        """ action that generates a physical plan, processes data and collects the top and bottom results
+        then as list of tuples.
 
         Args:
             limitTop (int): number of top rows to collect. Per default ``5``.
@@ -135,6 +136,26 @@ class DataSet:
 
         return self._dataSet.take(limitTop, limitBottom)
 
+    def head(self, nrows):
+        """ action that generates a physical plan, processes data and collects the top results then as list of tuples.
+
+        Args:
+            nrows (int): number of rows to collect.
+        Returns:
+            (list): A list of tuples
+        """
+        return self.take(nrows, 0)
+
+    def tail(self, nrows):
+        """ action that generates a physical plan, processes data and collects the bottom results then as list of tuples.
+
+        Args:
+            nrows (int): number of rows to collect.
+        Returns:
+            (list): A list of tuples
+        """
+        return self.take(0, nrows)
+
     def show(self, nrows=None):
         """ action that generates a physical plan, processes data and prints results as nicely formatted
         ASCII table to stdout.
@@ -151,6 +172,15 @@ class DataSet:
 
         self._dataSet.show(nrows)
 
+    def _getHTMLRow(self, ind, row):
+        row_str = ""
+        row_str += "    <tr>\n"
+        row_str += "      <th>{}</th>\n".format(ind)
+        for col in row:
+            row_str += "      <td>{}</td>\n".format(col)
+        row_str += "    </tr>\n"
+        return row_str
+
     def showHTMLPreview(self, topLimit=5, bottomLimit=5):
         """ action that generates a physical plan, processes data and return a subset of results as nicely formatted
         HTML table to stdout.
@@ -162,14 +192,108 @@ class DataSet:
         Returns:
             string: an HTML table showing a preview of the data
         """
+        HTML_TEMPLATE = (
+            "<div>\n"
+            "<style scoped>\n"
+            "    .dataframe tbody tr th:only-of-type {\n"
+            "        vertical-align: middle;\n"
+            "    }\n"
+            "\n"
+            "    .dataframe tbody tr th {\n"
+            "        vertical-align: top;\n"
+            "    }\n"
+            "\n"
+            "    .dataframe thead th {\n"
+            "        text-align: right;\n"
+            "    }\n"
+            "</style>\n"
+            "<table border=\"1\" class=\"dataframe\">\n"
+            "  <thead>\n"
+            "    <tr style=\"text-align: right;\">\n"
+            "{}"
+            "    </tr>\n"
+            "  </thead>\n"
+            "  <tbody>\n"
+            "{}"
+            "  </tbody>\n"
+            "</table>\n"
+            "<p>{} columns</p>\n"
+            "</div>")
+
         assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
 
+        # TODO(march): edit this top/bottom limit
         if topLimit is None or topLimit < 0:
             topLimit = -1
         if bottomLimit is None or bottomLimit < 0:
             bottomLimit = -1
 
-        return self._dataSet.showHTMLPreview(topLimit, bottomLimit)
+        rows = self.take(topLimit, bottomLimit)
+
+        if len(rows) == 0:
+            return HTML_TEMPLATE.format("<th></th>\n", "<tr></tr>\n")
+
+        assert topLimit == -1 or bottomLimit == -1 or len(rows) <= topLimit + bottomLimit
+
+        headers_str = ""
+        body = ""
+        num_columns = None
+
+        # construct tables
+        if len(rows) < topLimit + bottomLimit:
+            # the data is small so we get everything (no need to render ...)
+            i = 0
+            for r in rows:
+                if i == 0:
+                    # we set num columns based on the first row
+                    num_columns = r.getNumColumns()
+                body += self._getHTMLRow(i, r)
+                i += 1
+        else:
+            # some data is not processed because of limiting
+            i = 0
+            for r in rows:
+                if i >= topLimit:
+                    break
+                if i == 0:
+                    # we set num columns based on the first row
+                    num_columns = r.getNumColumns()
+
+                body += self._getHTMLRow(i, r)
+                i += 1
+
+            # add the ...
+            body += "    <tr>\n"
+            body += "      <th>...</th>\n"
+            for _ in range(num_columns):
+                body += "      <td>...</td>\n"
+                body += "    </tr>\n"
+
+            for j in range(i, len(rows)):
+                body += self._getHTMLRow(i, rows[j])
+
+        assert num_columns is not None
+
+        # construct headers
+        column_names = self._dataSet.columns()
+        if column_names is not None:
+            assert (num_columns == column_names.size())
+            for c_name in column_names:
+                headers_str += "      <th>{}</th>\n".format(c_name)
+        else:
+            # default to generic name if column name doesn't exist
+            for i in range(num_columns):
+                headers_str += "      <th>Column {}</th>\n".format(i)
+
+        return HTML_TEMPLATE.format(headers_str, body, num_columns)
+
+    def _getConsoleRow(self, ind, row):
+        # TODO(march): (work on this)
+        pass
+
+    def showConsolePreview(self, topLimit=5, bottomLimit=5):
+        # TODO(march): (work on this)
+        pass
 
     def resolve(self, eclass, ftor):
         """ Adds a resolver operator to the pipeline. The signature of ftor needs to be identical to the one of the preceding operator.

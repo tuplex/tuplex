@@ -849,7 +849,6 @@ namespace tuplex {
         assert(numColumns != 0);
 
         // construct headers
-        std::vector<std::string> headers(numColumns);
         if (!_columnNames.empty()) {
             assert(numColumns == _columnNames.size());
             for (auto &c_name: _columnNames) {

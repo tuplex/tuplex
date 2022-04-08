@@ -116,14 +116,14 @@ namespace tuplex {
     }
 
     Executor *LocalBackend::driver() {
-      assert(_driver);
-      return _driver;
+        assert(_driver);
+        return _driver.get();
     }
 
     void LocalBackend::execute(tuplex::PhysicalStage *stage) {
         assert(stage);
 
-        if(!stage)
+        if (!stage)
             return;
 
         // history server connection should be established
@@ -651,7 +651,6 @@ namespace tuplex {
             // --> issue for each memory partition a transform task and put it into local workqueue
             assert(tstage->inputMode() == EndPointMode::MEMORY);
 
-
             // restrict after input limit
             size_t numInputRows = 0;
             auto inputPartitions = tstage->inputPartitions();
@@ -702,9 +701,17 @@ namespace tuplex {
             tasks[i]->setOrder(i);
         }
 
+        TransformTask::setMaxOrderAndResetLimits(tasks.size() - 1);
+
         if (tstage->hasOutputLimit()) {
+            // There are 3 possible cases here:
+            // 1. both top and bottom limit
+            // 2. only top limit
+            // 3. only bottom limit
             if (tstage->outputTopLimit() > 0 && tstage->outputBottomLimit() > 0) {
-                // do task striping for output limit on both ends
+                // case 1: do task striping for output limit on both ends
+                // We are executing in the striping order instead of ascending or descending order
+                // This is an optimization in the case where we have small limits to avoid executing all partitions
                 vector<IExecutorTask*> newTasks;
                 for(size_t i = 0; i < tasks.size() - i; i++) {
                     const size_t rev_i = tasks.size() - 1 - i;
@@ -716,10 +723,13 @@ namespace tuplex {
                 assert(tasks.size() == newTasks.size());
                 tasks.swap(newTasks);
             } else if (tstage->outputBottomLimit() > 0) {
-                // bottom limit only, just reverse the task order
+                // case 3: bottom limit only, just reverse the task order
+                // We are executing the last partitions first, since we don't need the top rows.
+                // Thus speeding up the execution time
                 std::reverse(tasks.begin(), tasks.end());
             }
-            // if top limit only, do nothing since the order is already good
+            // case 3: if top limit only, do nothing since the order is already good
+            // (the tasks is generated in ascending order)
         }
 
         return tasks;
@@ -887,7 +897,8 @@ namespace tuplex {
 
             auto output_par = tstage->inputPartitions();
             if (tstage->hasOutputLimit()) {
-                trimPartitionsToLimit(output_par, tstage->outputTopLimit(), tstage->outputBottomLimit(), tstage);
+                trimPartitionsToLimit(output_par, tstage->outputTopLimit(), tstage->outputBottomLimit(), tstage,
+                                      _driver.get());
             }
             tstage->setMemoryResult(output_par, std::vector<Partition*>{}, std::unordered_map<std::string, ExceptionInfo>(), pyObjects);
             pyObjects.clear();
@@ -971,7 +982,6 @@ namespace tuplex {
         }
 
         auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms);
-
         auto completedTasks = performTasks(tasks);
 
         // Note: this doesn't work yet because of the globals.
@@ -1205,7 +1215,9 @@ namespace tuplex {
                 }
 
                 if (tstage->hasOutputLimit()) {
-                    trimPartitionsToLimit(output, tstage->outputTopLimit(), tstage->outputBottomLimit(), tstage);
+                    // the function expect the output to be sorted in ascending order (guaranteed by sortTasks())
+                    trimPartitionsToLimit(output, tstage->outputTopLimit(), tstage->outputBottomLimit(), tstage,
+                                          _driver.get());
                 }
 
                 tstage->setMemoryResult(output, generalOutput, partitionToExceptionsMap, nonConformingRows, remainingExceptions, ecounts);
@@ -1565,12 +1577,6 @@ namespace tuplex {
             logger().debug("task without order found, please fix in code.");
         }
 #endif
-
-        for (int i = 0; i < tasks.size(); i++) {
-            // take limit only work with uniform order
-            assert(tasks[i]->getOrder(0) == i);
-        }
-
         // add all tasks to queue
         for(auto& task : tasks) wq.addTask(task);
 
@@ -2125,17 +2131,18 @@ namespace tuplex {
         tstage->setFileResult(ecounts);
     }
 
-    void LocalBackend::trimPartitionsToLimit(std::vector<Partition *> &partitions,
+    void trimPartitionsToLimit(std::vector<Partition *> &partitions,
                                              size_t topLimit,
                                              size_t bottomLimit,
-                                             TransformStage* tstage) {
+                                             TransformStage* tstage,
+                                             Executor *exec) {
         std::vector<Partition *> limitedPartitions, limitedTailPartitions;
 
         // check top output limit, adjust partitions if necessary
         size_t numTopOutputRows = 0;
-        Partition* lastTopPart = nullptr;
+        Partition *lastTopPart = nullptr;
         size_t clippedTop = 0;
-        for (auto partition : partitions) {
+        for (auto partition: partitions) {
             numTopOutputRows += partition->getNumRows();
             lastTopPart = partition;
             if (numTopOutputRows >= topLimit) {
@@ -2174,7 +2181,8 @@ namespace tuplex {
                 auto clipped = bottomLimit - (numBottomOutputRows - partition->getNumRows());
                 assert(clipped <= partition->getNumRows());
                 if (clipped > 0) {
-                    Partition *newPart = newPartitionWithSkipRows(partition, partition->getNumRows() - clipped, tstage);
+                    Partition *newPart = newPartitionWithSkipRows(partition, partition->getNumRows() - clipped, tstage,
+                                                                  exec);
                     assert(newPart->getNumRows() == clipped);
                     limitedTailPartitions.push_back(newPart);
                 }
@@ -2191,10 +2199,11 @@ namespace tuplex {
             assert(clippedTop + clippedBottom <= lastTopPart->getNumRows());
 
             // split into two partitions with both top and bottom are in the same partition
-            Partition* lastBottomPart = nullptr;
+            Partition *lastBottomPart = nullptr;
 
             if (clippedBottom != 0) {
-                lastBottomPart = newPartitionWithSkipRows(lastTopPart, lastTopPart->getNumRows() - clippedBottom, tstage);
+                lastBottomPart = newPartitionWithSkipRows(lastTopPart, lastTopPart->getNumRows() - clippedBottom,
+                                                          tstage, exec);
             }
 
             if (clippedTop != 0) {
@@ -2215,27 +2224,28 @@ namespace tuplex {
         partitions.insert(partitions.end(), limitedTailPartitions.rbegin(), limitedTailPartitions.rend());
     }
 
-    Partition* LocalBackend::newPartitionWithSkipRows(Partition *p_in, size_t numToSkip, TransformStage* tstage) {
+    Partition *newPartitionWithSkipRows(Partition *p_in, size_t numToSkip, TransformStage *tstage, Executor *exec) {
         auto ptr = p_in->lockRaw();
-        auto num_rows = *((int64_t*) ptr);
+        auto num_rows = *((int64_t *) ptr);
         assert(numToSkip < num_rows);
 
         ptr += sizeof(int64_t);
         size_t numBytesToSkip = 0;
 
-        for(unsigned i = 0; i < numToSkip; ++i) {
-            Row r = Row::fromMemory(tstage->outputSchema(), ptr, p_in->capacity() - numBytesToSkip);
+        Deserializer ds(tstage->outputSchema());
+        for (unsigned i = 0; i < numToSkip; ++i) {
+            Row r = Row::fromMemory(ds, ptr, p_in->capacity() - numBytesToSkip);
             ptr += r.serializedLength();
             numBytesToSkip += r.serializedLength();
         }
 
-        Partition *p_out = _driver->allocWritablePartition(p_in->size() - numBytesToSkip + sizeof(int64_t),
-                                                           tstage->outputSchema(), tstage->outputDataSetID(),
-                                                           tstage->context().id());
+        Partition *p_out = exec->allocWritablePartition(p_in->size() - numBytesToSkip + sizeof(int64_t),
+                                                        tstage->outputSchema(), tstage->outputDataSetID(),
+                                                        tstage->context().id());
         assert(p_out->capacity() >= p_in->size() - numBytesToSkip);
 
         auto ptr_out = p_out->lockRaw();
-        *((int64_t*) ptr_out) = p_in->getNumRows() - numToSkip;
+        *((int64_t *) ptr_out) = p_in->getNumRows() - numToSkip;
         ptr_out += sizeof(int64_t);
         memcpy((void *) ptr_out, ptr, p_in->size() - numBytesToSkip);
         p_out->unlock();

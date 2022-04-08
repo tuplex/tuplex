@@ -180,15 +180,32 @@ namespace tuplex {
         void setOutputPrefix(const char* buf, size_t bufSize); // extra prefix to write first to output.
 
         void sinkOutputToHashTable(HashTableFormat fmt, int64_t outputDataSetID);
+
         HashTableSink hashTableSink() const { return _htable; } // needs to be freed manually!
 
-        void setOutputTopLimit(size_t limit) { _outTopLimit = limit; resetOutputLimitCounter(); }
-        void setOutputBottomLimit(size_t limit) { _outBottomLimit = limit; resetOutputLimitCounter(); }
+        void setOutputTopLimit(size_t limit) {
+            _outTopLimit = limit;
+        }
+
+        void setOutputBottomLimit(size_t limit) {
+            _outBottomLimit = limit;
+        }
+
+        /*!
+         * Set the maximum task order number that the current stage execute and reset the row counter.
+         * This is used to detect and stop the execution when we have reached the rows limit
+         * @param maxOrder maximum task order number in the pipeline, infinity means disregarding the bottomLimit short circuit
+         */
+        static void setMaxOrderAndResetLimits(size_t maxOrder = std::numeric_limits<size_t>::max());
+
         void execute() override;
 
         bool hasFileSink() const { return _outputFilePath != URI::INVALID; }
+
         bool hasFileSource() const { return _inputFilePath != URI::INVALID; }
+
         bool hasMemorySink() const { return _outputSchema != Schema::UNKNOWN; }
+
         bool hasMemorySource() const { return !_inputPartitions.empty(); }
         bool hasHashTableSink() const { return _htableFormat != HashTableFormat::UNKNOWN; }
         HashTableFormat hashTableFormat() const { return _htableFormat; }
@@ -206,8 +223,6 @@ namespace tuplex {
         static codegen::str_hash_row_f writeStringHashTableAggregateCallback();
         static codegen::i64_hash_row_f writeInt64HashTableAggregateCallback();
         static codegen::write_row_f aggCombineCallback();
-
-        static void resetOutputLimitCounter();
 
         // most be public because of C++ issues -.-
         int64_t writeRowToMemory(uint8_t* buf, int64_t bufSize);
@@ -310,12 +325,26 @@ namespace tuplex {
         inline int64_t contextID() const { return _contextID; }
 
         inline void unlockAllMemorySinks() {  // output partition existing? if so unlock
-           _output.unlock();
-           _exceptions.unlock();
+            _output.unlock();
+            _exceptions.unlock();
         }
 
+        /*!
+         * check whether the stage reached both top and bottom limit, to use this one must call
+         * setMaxOrderAndResetLimits before execution and set both top and bottom limit
+         * @return true if limit is reached
+         */
+        bool limitReached() const;
+
+        /*!
+         * Update the global stage limit counter, should only be called once, at the end of task
+         */
+        void updateLimits();
+
         void processMemorySourceWithExp();
+
         void processMemorySource();
+
         void processFileSource();
 
         // exceptions

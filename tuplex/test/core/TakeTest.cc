@@ -16,7 +16,8 @@
 using namespace tuplex;
 using namespace std;
 
-class TakeTest : public PyTest {};
+class TakeTest : public PyTest {
+};
 
 /**
  * Randomly generate a vector of rows for testing
@@ -37,15 +38,15 @@ vector<Row> generateTestData(size_t N, uint64_t seed) {
     return data;
 }
 
-vector<Row> generateReferenceData(const vector<Row>& input, size_t topLimit, size_t bottomLimit) {
+vector<Row> generateReferenceData(const vector<Row> &input, size_t topLimit, size_t bottomLimit) {
     vector<Row> output;
-    for(size_t i = 0; i < topLimit && i < input.size(); i++) {
+    for (size_t i = 0; i < topLimit && i < input.size(); i++) {
         output.push_back(input[i]);
     }
     size_t start_bottom = input.size() >= bottomLimit ? input.size() - bottomLimit : 0;
     start_bottom = max(topLimit, start_bottom);
 
-    for(size_t i = start_bottom; i < input.size(); i++) {
+    for (size_t i = start_bottom; i < input.size(); i++) {
         output.push_back(input[i]);
     }
 
@@ -57,7 +58,7 @@ TEST_F(TakeTest, takeTopTest) {
     Context context(opt);
 
     auto rs = context.parallelize(
-        {Row(1), Row(2), Row(3), Row(4), Row(5), Row(6)}).take(1, 0);
+            {Row(1), Row(2), Row(3), Row(4), Row(5), Row(6)}).take(1, 0);
 
     ASSERT_EQ(rs->rowCount(), 1);
     auto v = rs->getRows(1);
@@ -65,7 +66,7 @@ TEST_F(TakeTest, takeTopTest) {
     EXPECT_EQ(v[0].getInt(0), 1);
 
     auto rs2 = context.parallelize(
-        {Row(1), Row(2), Row(3), Row(4), Row(5), Row(6)}).take(3, 0);
+            {Row(1), Row(2), Row(3), Row(4), Row(5), Row(6)}).take(3, 0);
 
     ASSERT_EQ(rs2->rowCount(), 3);
     auto v2 = rs2->getRows(3);
@@ -75,7 +76,8 @@ TEST_F(TakeTest, takeTopTest) {
     EXPECT_EQ(v2[2].getInt(0), 3);
 
     auto rs3 = context.parallelize(
-        {Row("hello"), Row("world"), Row("! :)"), Row("world"), Row("hello"), Row("!"), Row("! :)"), Row("!")}).take(5, 0);
+            {Row("hello"), Row("world"), Row("! :)"), Row("world"), Row("hello"), Row("!"), Row("! :)"),
+             Row("!")}).take(5, 0);
 
     ASSERT_EQ(rs3->rowCount(), 5);
     auto v3 = rs3->getRows(5);
@@ -93,7 +95,7 @@ TEST_F(TakeTest, takeBottomTest) {
     Context context(opt);
 
     auto rs = context.parallelize(
-        {Row(1), Row(2), Row(3), Row(4), Row(5), Row(6)}).take(0, 1);
+            {Row(1), Row(2), Row(3), Row(4), Row(5), Row(6)}).take(0, 1);
 
     ASSERT_EQ(rs->rowCount(), 1);
     auto v = rs->getRows(1);
@@ -101,7 +103,7 @@ TEST_F(TakeTest, takeBottomTest) {
     EXPECT_EQ(v[0].getInt(0), 6);
 
     auto rs2 = context.parallelize(
-        {Row(1), Row(2), Row(3), Row(4), Row(5), Row(6)}).take(0, 3);
+            {Row(1), Row(2), Row(3), Row(4), Row(5), Row(6)}).take(0, 3);
 
     ASSERT_EQ(rs2->rowCount(), 3);
     auto v2 = rs2->getRows(3);
@@ -111,7 +113,8 @@ TEST_F(TakeTest, takeBottomTest) {
     EXPECT_EQ(v2[2].getInt(0), 6);
 
     auto rs3 = context.parallelize(
-        {Row("hello"), Row("world"), Row("! :)"), Row("world"), Row("hello"), Row("!"), Row("! :)"), Row("!")}).take(0, 5);
+            {Row("hello"), Row("world"), Row("! :)"), Row("world"), Row("hello"), Row("!"), Row("! :)"),
+             Row("!")}).take(0, 5);
 
     ASSERT_EQ(rs3->rowCount(), 5);
     auto v3 = rs3->getRows(5);
@@ -129,7 +132,7 @@ TEST_F(TakeTest, takeBothTest) {
     Context context(opt);
 
     auto rs = context.parallelize(
-        {Row(1), Row(2), Row(3), Row(4), Row(5), Row(6)}).take(1, 1);
+            {Row(1), Row(2), Row(3), Row(4), Row(5), Row(6)}).take(1, 1);
 
     ASSERT_EQ(rs->rowCount(), 2);
     auto v = rs->getRows(2);
@@ -138,7 +141,7 @@ TEST_F(TakeTest, takeBothTest) {
     EXPECT_EQ(v[1].getInt(0), 6);
 
     auto rs2 = context.parallelize(
-        {Row(1), Row(2), Row(3), Row(4), Row(5), Row(6)}).take(2, 1);
+            {Row(1), Row(2), Row(3), Row(4), Row(5), Row(6)}).take(2, 1);
 
     ASSERT_EQ(rs2->rowCount(), 3);
     auto v2 = rs2->getRows(3);
@@ -148,7 +151,8 @@ TEST_F(TakeTest, takeBothTest) {
     EXPECT_EQ(v2[2].getInt(0), 6);
 
     auto rs3 = context.parallelize(
-        {Row("hello"), Row("world"), Row("! :)"), Row("world"), Row("hello"), Row("!"), Row("! :)"), Row("!")}).take(2, 3);
+            {Row("hello"), Row("world"), Row("! :)"), Row("world"), Row("hello"), Row("!"), Row("! :)"),
+             Row("!")}).take(2, 3);
 
     ASSERT_EQ(rs3->rowCount(), 5);
     auto v3 = rs3->getRows(5);
@@ -167,12 +171,12 @@ TEST_F(TakeTest, takeBigTest) {
     const std::vector<size_t> limit_values{0, 1, 5, 11, 600, 10000};
     const std::vector<string> partition_sizes{"256B", "512KB", "1MB"};
 
-    for(auto& part_size : partition_sizes) {
+    for (auto &part_size: partition_sizes) {
         auto opt = testOptions();
         opt.set("tuplex.partitionSize", part_size);
         Context context(opt);
 
-        for(auto data_size : test_size) {
+        for (auto data_size: test_size) {
             for (auto top_limit: limit_values) {
                 for (auto bottom_limit: limit_values) {
                     std::cout << "testing with partition size:" << part_size << " data size:"
@@ -195,14 +199,89 @@ TEST_F(TakeTest, takeBigTest) {
     }
 }
 
-// TODO(march): with map, filter function
-//TEST_F(TakeTest, takeMapFilterTest) {
-//    srand(4242);
-//}
+vector<Row> generateMapFilterReferenceData(const vector<Row> &input, size_t topLimit, size_t bottomLimit) {
+    if (input.empty()) {
+        return {};
+    }
+
+    assert(input[0].getNumColumns() == 3);
+    vector<Row> intermedate;
+    for (const Row &r: input) {
+        int64_t new_a = r.getInt(0) + r.getInt(1);
+
+        if (new_a % 2 == 0) {
+            intermedate.emplace_back(new_a, r.getInt(2));
+        }
+    }
+
+    return generateReferenceData(intermedate, topLimit, bottomLimit);
+}
+
+TEST_F(TakeTest, takeMapFilterTest) {
+    mt19937 data_seed_gen(56120);
+
+    const std::vector<size_t> test_size{1, 10, 100, 1001, 10001};
+    const std::vector<size_t> limit_values{0, 1, 5, 11, 600, 10000};
+    const std::vector<string> partition_sizes{"256B", "512KB", "1MB"};
+
+    UDF map_udf("lambda a, b, c: ((a + b), c)");
+    UDF filter_udf("lambda a, b: a % 2 == 0");
+
+    for (auto &part_size: partition_sizes) {
+        auto opt = testOptions();
+        opt.set("tuplex.partitionSize", part_size);
+        Context context(opt);
+
+        for (auto data_size: test_size) {
+            for (auto top_limit: limit_values) {
+                for (auto bottom_limit: limit_values) {
+                    std::cout << "testing with partition size:" << part_size << " data size:"
+                              << data_size << " top:" << top_limit << " bottom:" << bottom_limit << std::endl;
+
+                    auto data = generateTestData(data_size, data_seed_gen());
+                    auto ref_data = generateMapFilterReferenceData(data, top_limit, bottom_limit);
+
+                    auto ds = context.parallelize(data).map(map_udf).filter(filter_udf);
+                    auto res = ds.take(top_limit, bottom_limit);
+                    ASSERT_EQ(ref_data.size(), res->rowCount());
+                    for (Row &r: ref_data) {
+                        Row res_row = res->getNextRow();
+                        if (!(res_row == r)) {
+                            ASSERT_EQ(res_row, r);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 // TODO(march): with file input
 //    context.csv("../resources/");
 
-// TODO(march): collect operator
+TEST_F(TakeTest, collectIdentityTest) {
+    mt19937 data_seed_gen(123454);
+
+    const std::vector<size_t> test_size{1, 10, 100, 1001, 10001};
+    const std::vector<string> partition_sizes{"256B", "512KB", "1MB"};
+
+    for (auto &part_size: partition_sizes) {
+        auto opt = testOptions();
+        opt.set("tuplex.partitionSize", part_size);
+        Context context(opt);
+
+        for (auto data_size: test_size) {
+            auto data = generateTestData(data_size, data_seed_gen());
+            auto res = context.parallelize(data).collect();
+            ASSERT_EQ(data.size(), res->rowCount());
+            for (Row &r: data) {
+                Row res_row = res->getNextRow();
+                if (!(res_row == r)) {
+                    ASSERT_EQ(res_row, r);
+                }
+            }
+        }
+    }
+}
 
 // TODO(march): write test for trimPartitionsToLimit

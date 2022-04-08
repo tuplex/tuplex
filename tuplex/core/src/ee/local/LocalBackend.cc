@@ -983,14 +983,6 @@ namespace tuplex {
         }
 
         auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms);
-
-        if (tstage->hasOutputLimit()) {
-            for (int i = 0; i < tasks.size(); i++) {
-                // take limit only work with uniform order
-                assert(tasks[i]->getOrder(0) == i);
-            }
-        }
-
         auto completedTasks = performTasks(tasks);
 
         // Note: this doesn't work yet because of the globals.

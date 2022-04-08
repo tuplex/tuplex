@@ -584,7 +584,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 
     // test all files through for issues...!
     // this file has issues => i.e., it triggers fallback ALWAYS for hyper-specialization
-    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv";
+    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_08.csv,/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_09.csv";
 
 //    input_pattern = "../resources/hyperspecialization/flights_2003_06.sample.csv";
 
@@ -619,7 +619,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // check for each file in non-lambda mode
     if(!use_lambda) {
         auto vfs = VirtualFileSystem::fromURI("file://");
-        auto files = vfs.glob(input_pattern);
+        auto files = vfs.globAll(input_pattern);
         for(const auto& path : files) {
             std::cout<<"checking for file "<<path<<std::endl;
             ctx.csv(path.toString()).map(UDF(code)).tocsv("test_local_hyper.csv");
@@ -634,7 +634,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // -----------------------------------------------------------------------------
     std:cout<<"**************************************"<<std::endl;
     std::cout<<"Running query with hyper-opt off"<<std::endl;
-    // running query with hyper specializaiton off.
+    // running query with hyper specialization off.
     timer.reset();
     ContextOptions opt_general = ContextOptions::defaults();
     opt_general.set("tuplex.executorCount", "0");

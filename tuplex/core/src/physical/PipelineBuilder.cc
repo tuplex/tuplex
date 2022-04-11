@@ -105,7 +105,7 @@ namespace tuplex {
 
             // create (internal) llvm function to be inlined with all contents
 #ifndef NDEBUG
-            Logger::instance().defaultLogger().info("DEBUG PRINT: creating func for " + _lastSchemaType.desc());
+            Logger::instance().defaultLogger().debug("DEBUG PRINT: creating func for " + _lastSchemaType.desc());
 #endif
             auto& context = env().getContext();
 
@@ -872,7 +872,8 @@ namespace tuplex {
         }
 
         llvm::Function* PipelineBuilder::buildWithTuplexWriter(const std::string &callbackName,
-                                                               int64_t operatorID) {
+                                                               int64_t operatorID,
+                                                               bool returnCallbackResult) {
             using namespace llvm;
             using namespace std;
 
@@ -905,6 +906,9 @@ namespace tuplex {
             auto callback_func = env().getModule()->getOrInsertFunction(writeCallbackFnName, writeCallback_type);
             auto callbackECVal = builder.CreateCall(callback_func, {userData, serialized_row.val, serialized_row.size});
 
+            if(returnCallbackResult)
+                assignWriteCallbackReturnValue(builder, operatorID, callbackECVal);
+
             // assign output var!
             assignToVariable(builder, "numOutputRows", env().i64Const(1));
 
@@ -914,6 +918,25 @@ namespace tuplex {
 
             // connect blocks together
             return build();
+        }
+
+        void PipelineBuilder::assignWriteCallbackReturnValue(llvm::IRBuilder<> &builder, int64_t operatorID,
+                                                        llvm::CallInst *callbackECVal) {
+            // check result of callback, if not 0 then return exception
+            assert(builder.GetInsertBlock());
+            auto& ctx = builder.GetInsertBlock()->getContext();
+            auto callbackSuccessful = builder.CreateICmpEQ(callbackECVal, env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            auto bbCallbackDone = llvm::BasicBlock::Create(ctx, "callback_done", builder.GetInsertBlock()->getParent());
+            auto bbCallbackFailed = llvm::BasicBlock::Create(ctx, "callback_failed", builder.GetInsertBlock()->getParent());
+            builder.CreateCondBr(callbackSuccessful, bbCallbackDone, bbCallbackFailed);
+            builder.SetInsertPoint(bbCallbackFailed);
+
+            // store exception info
+            assignToVariable(builder, "exceptionCode", callbackECVal);
+            assignToVariable(builder, "exceptionOperatorID", env().i64Const(operatorID));
+
+            builder.CreateBr(bbCallbackDone);
+            builder.SetInsertPoint(bbCallbackDone);
         }
 
         SerializableValue PipelineBuilder::makeKey(llvm::IRBuilder<> &builder,
@@ -1573,6 +1596,7 @@ namespace tuplex {
 
 
         llvm::Function *PipelineBuilder::buildWithCSVRowWriter(const std::string &callbackName, int64_t operatorID,
+                                                               bool returnCallbackResult,
                                                                const std::string &null_value, bool newLineDelimited,
                                                                char delimiter, char quotechar) {
 
@@ -1603,14 +1627,17 @@ namespace tuplex {
             // new: codegen writer with fast itoa, dtoa functions
             auto csv_row = fast_csvwriter(builder, env(), row, null_value, newLineDelimited, delimiter, quotechar);
 
-            // assign output var!
-            assignToVariable(builder, "numOutputRows", env().i64Const(1));
-
             // typedef int64_t(*write_row_f)(void*, uint8_t*, int64_t);
             auto& ctx = env().getContext();
             FunctionType *writeCallback_type = FunctionType::get(ctypeToLLVM<int64_t>(ctx), {ctypeToLLVM<void*>(ctx), ctypeToLLVM<uint8_t*>(ctx), ctypeToLLVM<int64_t>(ctx)}, false);
             auto callback_func = env().getModule()->getOrInsertFunction(writeCallbackFnName, writeCallback_type);
             auto callbackECVal = builder.CreateCall(callback_func, {userData, csv_row.val, csv_row.size});
+
+            if(returnCallbackResult)
+                assignWriteCallbackReturnValue(builder, operatorID, callbackECVal);
+
+            // assign output var!
+            assignToVariable(builder, "numOutputRows", env().i64Const(1));
 
             _lastBlock = builder.GetInsertBlock();
             assert(_lastBlock);

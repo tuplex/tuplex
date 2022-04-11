@@ -35,8 +35,12 @@ namespace tuplex {
         /*!
          * create a new resolve task
          * @param stageID to which task belongs to
+         * @param contextID to which context belongs to
          * @param partitions input rows with normal case
-         * @param exceptions input rows for exceptions, in exception format
+         * @param runtimeExceptions input rows for exceptions, in exception format
+         * @param inputExceptions schema violations that occur during data loading
+         * @param inputExceptionInfo values to map input partitions to their input exceptions
+         * @param operatorIDsAffectedByResolvers operators that are followed by resolvers in the pipeline
          * @param inputSchema input schema of exception rows
          * @param outputSchema output schema which resolution must adhere to
          * @param mergeRows whether to merge rows in order (makes only sense when no hashjoin is involved)
@@ -55,8 +59,11 @@ namespace tuplex {
         // => if data does not adhere to the targetNormalCaseOutputSchema, it should be redone as commoncase violation/python violation exception with the LAST operator ID
         // need to define the schema what the resolve functor returns...
         ResolveTask(int64_t stageID,
+                    int64_t contextID,
                     const std::vector<Partition*>& partitions,
-                    const std::vector<Partition*>& exceptions,
+                    const std::vector<Partition*>& runtimeExceptions,
+                    const std::vector<Partition*>& inputExceptions,
+                    ExceptionInfo inputExceptionInfo,
                     const std::vector<int64_t>& operatorIDsAffectedByResolvers, //! used to identify which exceptions DO require reprocessing because there might be a resolver in the slow path for them.
                     Schema exceptionInputSchema, //! schema of the input rows in which both user exceptions and normal-case violations are stored in. This is also the schema in which rows which on the slow path produce again an exception will be stored in.
                     Schema resolverOutputSchema, //! schema of rows that the resolve function outputs if it doesn't rethrow exceptions
@@ -68,10 +75,15 @@ namespace tuplex {
                     char csvDelimiter,
                     char csvQuotechar,
                     codegen::resolve_f functor=nullptr,
-                    PyObject* interpreterFunctor=nullptr) : IExceptionableTask::IExceptionableTask(exceptionInputSchema),
+                    PyObject* interpreterFunctor=nullptr) : IExceptionableTask::IExceptionableTask(exceptionInputSchema, contextID),
                                                             _stageID(stageID),
                                                             _partitions(partitions),
-                                                            _exceptions(exceptions),
+                                                            _runtimeExceptions(runtimeExceptions),
+                                                            _inputExceptions(inputExceptions),
+                                                            _numInputExceptions(inputExceptionInfo.numExceptions),
+                                                            _inputExceptionIndex(inputExceptionInfo.exceptionIndex),
+                                                            _inputExceptionRowOffset(inputExceptionInfo.exceptionRowOffset),
+                                                            _inputExceptionByteOffset(inputExceptionInfo.exceptionByteOffset),
                                                             _resolverOutputSchema(resolverOutputSchema),
                                                             _targetOutputSchema(targetNormalCaseOutputSchema),
                                                             _mergeRows(mergeRows),
@@ -87,7 +99,8 @@ namespace tuplex {
                                                             _htableFormat(HashTableFormat::UNKNOWN),
                                                             _outputRowNumber(0),
                                                             _wallTime(0.0),
-                                                            _numInputRowsRead(0) {
+                                                            _numInputRowsRead(0),
+                                                            _numUnresolved(0) {
             // copy the IDs and sort them so binary search can be used.
             std::sort(_operatorIDsAffectedByResolvers.begin(), _operatorIDsAffectedByResolvers.end());
             _normalPtrBytesRemaining = 0;
@@ -201,7 +214,12 @@ namespace tuplex {
     private:
         int64_t                 _stageID; /// to which stage does this task belong to.
         std::vector<Partition*> _partitions;
-        std::vector<Partition*> _exceptions;
+        std::vector<Partition*> _runtimeExceptions;
+        std::vector<Partition*> _inputExceptions;
+        size_t _numInputExceptions;
+        size_t _inputExceptionIndex;
+        size_t _inputExceptionRowOffset;
+        size_t _inputExceptionByteOffset;
         inline Schema commonCaseInputSchema() const { return _deserializerGeneralCaseOutput->getSchema(); }
         Schema                  _resolverOutputSchema; //! what the resolve functor produces
         Schema                  _targetOutputSchema; //! which schema the final rows should be in...
@@ -214,6 +232,8 @@ namespace tuplex {
         FileFormat _outputFormat; //! output format of regular rows, required when merging rows in order...
         char _csvDelimiter;
         char _csvQuotechar;
+
+        size_t _numUnresolved;
 
         int64_t                 _currentRowNumber;
         // std::vector<Partition*> _mergedPartitions;

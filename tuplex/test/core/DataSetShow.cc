@@ -14,7 +14,9 @@
 #include <sstream>
 #include "TestUtils.h"
 
-TEST(DataSet, DataSetShow) {
+class DataSetTest : public TuplexTest {};
+
+TEST_F(DataSetTest, DataSetShow) {
     using namespace tuplex;
 
     Context c(testOptions());
@@ -38,7 +40,7 @@ TEST(DataSet, DataSetShow) {
     EXPECT_EQ(output.str(), expectedShow);
 }
 
-TEST(DataSet, DataSetShowII) {
+TEST_F(DataSetTest, DataSetShowII) {
     using namespace tuplex;
 
     Context c(testOptions());
@@ -56,7 +58,7 @@ TEST(DataSet, DataSetShowII) {
     EXPECT_EQ(output.str(), expectedShow);
 }
 
-TEST(DataSet, ErrorDataSetShow) {
+TEST_F(DataSetTest, ErrorDataSetShow) {
     using namespace tuplex;
 
     Context c(testOptions());

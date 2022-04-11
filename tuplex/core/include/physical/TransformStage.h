@@ -13,6 +13,7 @@
 
 #include <Schema.h>
 #include <Partition.h>
+#include <ExceptionInfo.h>
 #include "PhysicalStage.h"
 #include "LLVMOptimizer.h"
 #include <logical/ParallelizeOperator.h>
@@ -94,14 +95,16 @@ namespace tuplex {
         }
 
         /*!
-         * set unresolved exceptions, i.e. rows that could come from e.g. a CSV operator
-         * @param partitions
+         * set input exceptions, i.e. rows that could come from a parallelize or csv operator.
+         * @param pythonObjects
          */
-        void setInputExceptions(const std::vector<Partition*>& partitions) {
-            _unresolved_exceptions = partitions;
-        }
+        void setInputExceptions(const std::vector<Partition *>& inputExceptions) { _inputExceptions = inputExceptions; }
 
-        std::vector<Partition*> inputExceptions() const { return _unresolved_exceptions; }
+        std::vector<Partition *> inputExceptions() { return _inputExceptions; }
+
+        void setPartitionToExceptionsMap(const std::unordered_map<std::string, ExceptionInfo>& partitionToExceptionsMap) { _partitionToExceptionsMap = partitionToExceptionsMap; }
+
+        std::unordered_map<std::string, ExceptionInfo> partitionToExceptionsMap() { return _partitionToExceptionsMap; }
 
         /*!
          * sets maximum number of rows this pipeline will produce
@@ -156,6 +159,7 @@ namespace tuplex {
 
         void setMemoryResult(const std::vector<Partition*>& partitions,
                              const std::vector<Partition*>& generalCase=std::vector<Partition*>{},
+                             const std::unordered_map<std::string, ExceptionInfo>& parttionToExceptionsMap=std::unordered_map<std::string, ExceptionInfo>(),
                              const std::vector<std::tuple<size_t, PyObject*>>& interpreterRows=std::vector<std::tuple<size_t, PyObject*>>{},
                              const std::vector<Partition*>& remainingExceptions=std::vector<Partition*>{},
                              const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>& ecounts=std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>()); // creates local result set?
@@ -169,6 +173,7 @@ namespace tuplex {
                 setMemoryResult(
                         std::vector<Partition*>(),
                         std::vector<Partition*>(),
+                        std::unordered_map<std::string, ExceptionInfo>(),
                         std::vector<std::tuple<size_t, PyObject*>>(),
                         std::vector<Partition*>(),
                         ecounts);
@@ -257,6 +262,7 @@ namespace tuplex {
         // JITSymbols for this stage
         struct JITSymbols {
             codegen::read_block_f functor; // can be memory2memory or file2memory
+            codegen::read_block_exp_f functorWithExp;
             codegen::read_block_f writeFunctor; // memory2file
             codegen::resolve_f resolveFunctor; // always memory2memory
             codegen::init_stage_f initStageFunctor;
@@ -266,7 +272,9 @@ namespace tuplex {
             codegen::agg_agg_f aggAggregateFunctor;
 
 
-            JITSymbols() : functor(nullptr), writeFunctor(nullptr),
+            JITSymbols() : functor(nullptr),
+                           functorWithExp(nullptr),
+                           writeFunctor(nullptr),
                            resolveFunctor(nullptr),
                            initStageFunctor(nullptr),
                            releaseStageFunctor(nullptr),
@@ -363,6 +371,11 @@ namespace tuplex {
         }
 
         /*!
+         * whether to update indices of input exceptions during row processing
+         */
+        bool updateInputExceptions() const { return _updateInputExceptions; }
+
+        /*!
          * @return Returns the type of the hash-grouped data. Hash-grouped data refers to when the operator is a
          *         pipeline breaker that needs the previous stage's hashmap to be converted to partitions
          *         (e.g. unique() and aggregateBy())
@@ -446,6 +459,7 @@ namespace tuplex {
         std::string _pyCode;
         std::string _pyPipelineName;
         std::string _writerFuncName;
+        bool _updateInputExceptions;
 
         std::shared_ptr<ResultSet> emptyResultSet() const;
 
@@ -456,12 +470,17 @@ namespace tuplex {
         //void pushDownOutputLimit(); //! enable optimizations for limited pipeline by restricting input read!
 
         // unresolved exceptions. Important i.e. when no IO interleave is used...
-        std::vector<Partition*> _unresolved_exceptions;
+        std::vector<Partition*> _inputExceptions;
+        std::unordered_map<std::string, ExceptionInfo> _partitionToExceptionsMap;
 
 
         // for hash output, the key and bucket type
         python::Type _hashOutputKeyType;
         python::Type _hashOutputBucketType;
+
+        bool hasOutputLimit() const {
+            return _outputLimit < std::numeric_limits<size_t>::max();
+        }
     };
 }
 #endif //TUPLEX_TRANSFORMSTAGE_H

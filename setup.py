@@ -233,22 +233,26 @@ class CMakeBuild(build_ext):
                 if os.path.isfile(alt_path):
                     logging.info('Found tplxlam.zip under {}, using...'.format(alt_path))
                     lambda_zip = alt_path
+                else:
+                    logging.warn("Tuplex Lambda runner not found, not packaging.")
+                    lambda_zip = None
 
-            logging.info('Packaging Tuplex Lambda runner')
+            if lambda_zip and os.path.isfile(lambda_zip):
+                logging.info('Packaging Tuplex Lambda runner')
 
-            # need to copy / link zip file into temp dir
-            # -> this is the root setup.py file, hence find root
-            logging.info('Root path is: {}'.format(tplx_package_root))
-            zip_target = os.path.join(self.build_temp, 'tuplex', 'other')
-            os.makedirs(zip_target, exist_ok=True)
-            zip_dest = os.path.join(zip_target, 'tplxlam.zip')
-            shutil.copyfile(lambda_zip, zip_dest)
-            logging.info('Copied {} to {}'.format(lambda_zip, zip_dest))
+                # need to copy / link zip file into temp dir
+                # -> this is the root setup.py file, hence find root
+                logging.info('Root path is: {}'.format(tplx_package_root))
+                zip_target = os.path.join(self.build_temp, 'tuplex', 'other')
+                os.makedirs(zip_target, exist_ok=True)
+                zip_dest = os.path.join(zip_target, 'tplxlam.zip')
+                shutil.copyfile(lambda_zip, zip_dest)
+                logging.info('Copied {} to {}'.format(lambda_zip, zip_dest))
 
-            alt_dest = os.path.join(tplx_lib_root, 'other')
-            os.makedirs(alt_dest, exist_ok=True)
-            shutil.copyfile(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip'))
-            logging.info('Copied {} to {} as well'.format(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip')))
+                alt_dest = os.path.join(tplx_lib_root, 'other')
+                os.makedirs(alt_dest, exist_ok=True)
+                shutil.copyfile(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip'))
+                logging.info('Copied {} to {} as well'.format(lambda_zip, os.path.join(alt_dest, 'tplxlam.zip')))
 
         # get from BuildType info
         cfg = build_config['BUILD_TYPE']
@@ -291,18 +295,12 @@ class CMakeBuild(build_ext):
             if platform.system().lower() == 'darwin':
                 # mac os, use brewed versions!
                 out_py = subprocess.check_output(['brew', 'info', 'python3']).decode()
-                out_boost_py = subprocess.check_output(['brew', 'info', 'boost-python3']).decode()
-
                 print(out_py)
-                print(out_boost_py)
-
                 def find_pkg_path(lines):
                     return list(filter(lambda x: 'usr/local' in x, lines.split('\n')))[0]
 
                 out_py = find_pkg_path(out_py)
-                out_boost_py = find_pkg_path(out_boost_py)
                 print('Found python3 @ {}'.format(out_py))
-                print('Found boost-python3 @ {}'.format(out_boost_py))
 
                 # setups find everything automatically...
                 llvm_root = None
@@ -420,8 +418,9 @@ class CMakeBuild(build_ext):
 
         # check environment variable CMAKE_ARGS and overwrite whichever args are passed there
         if len(os.environ.get('CMAKE_ARGS', '')) > 0:
+            logging.info('Found CMAKE_ARGS in environment: {}'.format(os.environ.get('CMAKE_ARGS')))
             extra_args = shlex.split(os.environ['CMAKE_ARGS'])
-
+            logging.info('Args: {}'.format(extra_args))
             print(cmake_args)
             for arg in extra_args:
                 # cmake option in the style of -D/-G=?
@@ -464,7 +463,9 @@ class CMakeBuild(build_ext):
 
         if not os.path.isfile(tuplexso_path):
             print('Could not find file tuplex.so under {}, searching for it...'.format(tuplexso_path))
-            paths = find_files("*tuplex.so", self.build_temp)
+            paths = find_files("*tuplex*.so", self.build_temp)
+            # filter out runtime
+            paths = list(filter(lambda p: 'runtime' not in os.path.basename(p), paths))
             assert len(paths) > 0, 'did not find any file under {}'.format(self.build_temp)
             print('Found following paths: {}'.format(''.join(paths)))
             print('Using {}'.format(paths[0]))
@@ -587,7 +588,7 @@ def tplx_package_data():
 
     # package lambda as well?
     lambda_zip = os.environ.get('TUPLEX_LAMBDA_ZIP', None)
-    if lambda_zip:
+    if lambda_zip and os.path.isfile(lambda_zip):
         package_data['tuplex.other'] = ['*.zip']
     return package_data
 
@@ -595,7 +596,7 @@ def tplx_package_data():
 # logic and declaration, and simpler if you include description/version in a file.
 setup(name="tuplex",
     python_requires='>=3.7.0',
-    version="0.3.1",
+    version="0.3.3rc0",
     author="Leonhard Spiegelberg",
     author_email="tuplex@cs.brown.edu",
     description="Tuplex is a novel big data analytics framework incorporating a Python UDF compiler based on LLVM "

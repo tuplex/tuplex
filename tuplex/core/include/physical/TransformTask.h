@@ -46,7 +46,8 @@ namespace tuplex {
 
     inline int64_t rowToMemorySink(Executor *owner, MemorySink& sink,
                                    const Schema& outputSchema,
-                                   int64_t outputDataSetID, const uint8_t *buf, int64_t size) {
+                                   int64_t outputDataSetID, int64_t contextID,
+                                   const uint8_t *buf, int64_t size) {
         // @TODO: make sure outputDataSetID works... for now ignored
         assert(outputDataSetID >= 0 && outputSchema != Schema::UNKNOWN);
 
@@ -59,7 +60,7 @@ namespace tuplex {
         // empty partition? ==> allocate!
         if(!sink.currentPartition) {
             assert(owner);
-            sink.currentPartition = owner->allocWritablePartition(minRequiredSize, outputSchema, outputDataSetID);
+            sink.currentPartition = owner->allocWritablePartition(minRequiredSize, outputSchema, outputDataSetID, contextID);
             sink.bytesWritten = 0;
             sink.outputPtr = sink.currentPartition->lockWriteRaw();
             *((int64_t*)sink.outputPtr) = 0; // 0 rows written yet
@@ -71,7 +72,7 @@ namespace tuplex {
         if(sink.bytesWritten + size > sink.currentPartition->capacity()) {
             sink.currentPartition->unlockWrite();
             sink.currentPartition->setBytesWritten(sink.bytesWritten); // set bytes written to partition
-            sink.currentPartition = owner->allocWritablePartition(minRequiredSize, outputSchema, outputDataSetID);
+            sink.currentPartition = owner->allocWritablePartition(minRequiredSize, outputSchema, outputDataSetID, contextID);
             sink.bytesWritten = 0;
             sink.outputPtr = sink.currentPartition->lockWriteRaw();
             *((int64_t*)sink.outputPtr) = 0; // 0 rows written yet
@@ -112,7 +113,8 @@ namespace tuplex {
                           _functor(nullptr),
                           _stageID(-1),
                           _htableFormat(HashTableFormat::UNKNOWN),
-                          _wallTime(0.0) {
+                          _wallTime(0.0),
+                          _updateInputExceptions(false) {
             resetSinks();
             resetSources();
         }
@@ -121,6 +123,10 @@ namespace tuplex {
 
         void sinkExceptionsToMemory(const Schema& inputSchema) { _inputSchema = inputSchema; }
         void sinkExceptionsToFile(const Schema& inputSchema, const URI& exceptionOutputURI) { throw std::runtime_error("not yet supported"); }
+
+        void setFunctor(codegen::read_block_exp_f functor) {
+            _functor = (void*)functor;
+        }
 
         void setFunctor(codegen::read_block_f functor) {
             _functor = (void*)functor;
@@ -169,14 +175,14 @@ namespace tuplex {
                                 size_t partitionSize,
                                 FileFormat fmt);
 
-        void sinkOutputToMemory(const Schema& outputSchema, int64_t outputDataSetID);
+        void sinkOutputToMemory(const Schema& outputSchema, int64_t outputDataSetID, int64_t contextID);
         void sinkOutputToFile(const URI& uri, const std::unordered_map<std::string, std::string>& options);
         void setOutputPrefix(const char* buf, size_t bufSize); // extra prefix to write first to output.
 
         void sinkOutputToHashTable(HashTableFormat fmt, int64_t outputDataSetID);
         HashTableSink hashTableSink() const { return _htable; } // needs to be freed manually!
 
-        void setOutputLimit(size_t limit) { _outLimit = limit; }
+        void setOutputLimit(size_t limit) { _outLimit = limit; resetOutputLimitCounter(); }
         void setOutputSkip(size_t numRowsToSkip) { _outSkipRows = numRowsToSkip; }
         void execute() override;
 
@@ -187,13 +193,21 @@ namespace tuplex {
         bool hasHashTableSink() const { return _htableFormat != HashTableFormat::UNKNOWN; }
         HashTableFormat hashTableFormat() const { return _htableFormat; }
 
-        static codegen::write_row_f writeRowCallback(bool fileOutput=false);
+        /*!
+         * get the function which to use for writing output rows.
+         * @param globalOutputLimit if true, then task uses global aggregate limit
+         * @param fileOutput whether to use fileoutput or not
+         * @return writerow function address
+         */
+        static codegen::write_row_f writeRowCallback(bool globalOutputLimit, bool fileOutput=false);
         static codegen::exception_handler_f exceptionCallback(bool fileOutput=false);
         static codegen::str_hash_row_f writeStringHashTableCallback();
         static codegen::i64_hash_row_f writeInt64HashTableCallback();
         static codegen::str_hash_row_f writeStringHashTableAggregateCallback();
         static codegen::i64_hash_row_f writeInt64HashTableAggregateCallback();
         static codegen::write_row_f aggCombineCallback();
+
+        static void resetOutputLimitCounter();
 
         // most be public because of C++ issues -.-
         int64_t writeRowToMemory(uint8_t* buf, int64_t bufSize);
@@ -225,7 +239,17 @@ namespace tuplex {
         */
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> exceptionCounts() const { return _exceptionCounts; }
 
+        ExceptionInfo inputExceptionInfo() { return _inputExceptionInfo; }
+        std::vector<Partition*> inputExceptions() { return _inputExceptions; }
+
+        void setInputExceptionInfo(ExceptionInfo info) { _inputExceptionInfo = info; }
+        void setInputExceptions(const std::vector<Partition*>& inputExceptions) { _inputExceptions = inputExceptions; }
+        void setUpdateInputExceptions(bool updateInputExceptions) { _updateInputExceptions = updateInputExceptions; }
+
         double wallTime() const override { return _wallTime; }
+
+        size_t output_rows_written() const { return _numOutputRowsWritten; }
+        size_t output_limit() const { return _outLimit; }
     private:
         void resetSinks();
         void resetSources();
@@ -261,12 +285,16 @@ namespace tuplex {
         // memory sink variables
         Schema _outputSchema; //! schema of the final output rows.
         int64_t _outputDataSetID; //! datasetID of the final operator.
+        int64_t _contextID; //! contextID where output partitions belong to
         MemorySink _output;
 
         // exception partitions (sunk to memory)
         MemorySink _exceptions;
         Schema _inputSchema;
 
+        ExceptionInfo _inputExceptionInfo;
+        std::vector<Partition*> _inputExceptions;
+        bool _updateInputExceptions;
 
         // hash table sink
         HashTableSink _htable;
@@ -277,11 +305,14 @@ namespace tuplex {
 
         double _wallTime;
 
+        inline int64_t contextID() const { return _contextID; }
+
         inline void unlockAllMemorySinks() {  // output partition existing? if so unlock
            _output.unlock();
            _exceptions.unlock();
         }
 
+        void processMemorySourceWithExp();
         void processMemorySource();
         void processFileSource();
 
@@ -297,6 +328,8 @@ namespace tuplex {
         size_t getNumInputRows() const override {
             return _numInputRowsRead;
         }
+
+
     };
 
     // thread-local helper funcs for aggregates!

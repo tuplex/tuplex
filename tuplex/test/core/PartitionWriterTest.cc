@@ -13,12 +13,14 @@
 #include <PartitionWriter.h>
 #include <Context.h>
 
-TEST(PartitionWriter, BasicRowWrite) {
+class PartitionWriterTest : public TuplexTest {};
+
+TEST_F(PartitionWriterTest, BasicRowWrite) {
     using namespace tuplex;
 
     Context c(microTestOptions());
     Schema schema = Schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::I64, python::Type::I64}));
-    PartitionWriter pw(c.getDriver(), schema, -1, 1024);
+    PartitionWriter pw(c.getDriver(), schema, -1, 0, 1024);
 
     auto outputs = pw.getOutputPartitions(true);
     ASSERT_EQ(outputs.size(), 0);

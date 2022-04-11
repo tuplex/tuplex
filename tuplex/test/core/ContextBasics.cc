@@ -12,7 +12,9 @@
 #include <Context.h>
 #include "TestUtils.h"
 
-TEST(Context, parallelizationI) {
+class ContextBasicsTest : public TuplexTest {};
+
+TEST_F(ContextBasicsTest, parallelizationI) {
     using namespace tuplex;
 
     python::initInterpreter();
@@ -31,7 +33,7 @@ TEST(Context, parallelizationI) {
     python::closeInterpreter();
 }
 
-TEST(Context, multiPartitionResultset) {
+TEST_F(ContextBasicsTest, multiPartitionResultset) {
     using namespace tuplex;
 
     python::initInterpreter();
@@ -64,7 +66,7 @@ TEST(Context, multiPartitionResultset) {
     python::closeInterpreter();
 }
 
-TEST(ResultSet, EmptyResultSetI) {
+TEST_F(ContextBasicsTest, EmptyResultSetI) {
     using namespace tuplex;
 
     python::initInterpreter();
@@ -81,7 +83,7 @@ TEST(ResultSet, EmptyResultSetI) {
     python::closeInterpreter();
 }
 
-TEST(ResultSet, EmptyResultSetII) {
+TEST_F(ContextBasicsTest, EmptyResultSetII) {
     using namespace tuplex;
 
     python::initInterpreter();
@@ -92,8 +94,8 @@ TEST(ResultSet, EmptyResultSetII) {
     auto schema = Schema(Schema::MemoryLayout::ROW, python::Type::I64);
     ResultSet *rs = new ResultSet(schema,
                                   std::vector<Partition*>{
-            exec->allocWritablePartition(1000, schema, 100),
-            exec->allocWritablePartition(1000, schema, 101)
+            exec->allocWritablePartition(1000, schema, 100, 0),
+            exec->allocWritablePartition(1000, schema, 101, 0)
                                   });
 
     EXPECT_TRUE(rs);
@@ -104,7 +106,7 @@ TEST(ResultSet, EmptyResultSetII) {
     python::closeInterpreter();
 }
 
-TEST(ErrorDataset, basic) {
+TEST_F(ContextBasicsTest, basic) {
     using namespace tuplex;
 
     python::initInterpreter();
@@ -129,7 +131,7 @@ TEST(ErrorDataset, basic) {
     python::closeInterpreter();
 }
 
-TEST(ContextOptions, JSON) {
+TEST_F(ContextBasicsTest, JSON) {
     using namespace tuplex;
 
     auto str = ContextOptions::defaults().asJSON();

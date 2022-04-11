@@ -1,2 +1,2 @@
-# (c) L.Spiegelberg 2017 - 2021
-__version__="0.3.1"
+# (c) L.Spiegelberg 2017 - 2022
+__version__="0.3.3rc0"

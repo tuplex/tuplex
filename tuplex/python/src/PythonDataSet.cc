@@ -22,7 +22,7 @@
 #endif
 
 namespace tuplex {
-    boost::python::object PythonDataSet::collect() {
+    py::object PythonDataSet::collect() {
 
         // make sure a dataset is wrapped
         assert(this->_dataset);
@@ -30,7 +30,7 @@ namespace tuplex {
         // is callee error dataset? if so return list with error string
         if (this->_dataset->isError()) {
             ErrorDataSet *eds = static_cast<ErrorDataSet *>(this->_dataset);
-            boost::python::list L;
+            py::list L;
             L.append(eds->getError());
             // Logger::instance().flushAll();
             Logger::instance().flushToPython();
@@ -71,8 +71,7 @@ namespace tuplex {
                 Logger::instance().flushToPython();
                 auto listObj = PyList_New(1);
                 PyList_SetItem(listObj, 0, python::PyString_FromString(err_message.c_str()));
-                auto list = boost::python::object(boost::python::borrowed<>(listObj));
-                return list;
+                return py::reinterpret_borrow<py::list>(listObj);
             }
             // collect results & transfer them back to python
             // new version, directly interact with the interpreter
@@ -96,7 +95,7 @@ namespace tuplex {
             Logger::instance().logger("python").info("Data transfer back to Python took "
                                                      + std::to_string(timer.time()) + " seconds");
 
-            auto list = boost::python::object(boost::python::borrowed<>(listObj));
+            auto list = py::reinterpret_borrow<py::list>(listObj);
             // Logger::instance().flushAll();
             Logger::instance().flushToPython();
 
@@ -108,14 +107,14 @@ namespace tuplex {
         }
     }
 
-    boost::python::object PythonDataSet::take(const int64_t numRows) {
+    py::object PythonDataSet::take(const int64_t numRows) {
         // make sure a dataset is wrapped
         assert(this->_dataset);
 
         // is callee error dataset? if so return list with error string
         if (this->_dataset->isError()) {
             ErrorDataSet *eds = static_cast<ErrorDataSet *>(this->_dataset);
-            boost::python::list L;
+            py::list L;
             L.append(eds->getError());
             // Logger::instance().flushAll();
             Logger::instance().flushToPython();
@@ -156,8 +155,7 @@ namespace tuplex {
                 Logger::instance().flushToPython();
                 auto listObj = PyList_New(1);
                 PyList_SetItem(listObj, 0, python::PyString_FromString(err_message.c_str()));
-                auto list = boost::python::object(boost::python::borrowed<>(listObj));
-                return list;
+                return py::reinterpret_borrow<py::list>(listObj);
             }
 
             // collect results & transfer them back to python
@@ -174,11 +172,11 @@ namespace tuplex {
             if (ss.str().length() > 0)
                 PySys_FormatStdout("%s", ss.str().c_str());
 
-            return boost::python::object(boost::python::handle<>(listObj));
+            return py::reinterpret_borrow<py::list>(listObj);
         }
     }
 
-    PythonDataSet PythonDataSet::map(const std::string &lambda_code, const std::string &pickled_code, PyObject* closureObject) {
+    PythonDataSet PythonDataSet::map(const std::string &lambda_code, const std::string &pickled_code, const py::object& closure) {
 
         auto& logger = Logger::instance().logger("python");
         logger.debug("entering map function");
@@ -191,7 +189,7 @@ namespace tuplex {
             pds.wrap(this->_dataset);
             return pds;
         }
-
+        auto closureObject = closure.ptr(); // nullptr if not set!
         // decode closure object
         auto ce = closureFromDict(closureObject);
 
@@ -227,7 +225,7 @@ namespace tuplex {
         return pds;
     }
 
-    PythonDataSet PythonDataSet::filter(const std::string &lambda_code, const std::string &pickled_code, PyObject* closureObject) {
+    PythonDataSet PythonDataSet::filter(const std::string &lambda_code, const std::string &pickled_code, const py::object& closure) {
 
         // make sure a dataset is wrapped
         assert(this->_dataset);
@@ -237,7 +235,7 @@ namespace tuplex {
             pds.wrap(this->_dataset);
             return pds;
         }
-
+        auto closureObject = closure.ptr(); // nullptr if not set!
         auto ce = closureFromDict(closureObject);
 
         PythonDataSet pds;
@@ -272,7 +270,7 @@ namespace tuplex {
     }
 
     PythonDataSet PythonDataSet::resolve(const int64_t exceptionCode, const std::string &lambda_code,
-                                         const std::string &pickled_code, PyObject* closureObject) {
+                                         const std::string &pickled_code, const py::object& closure) {
         assert(this->_dataset);
         // is error dataset? if so return it directly!
         if (this->_dataset->isError()) {
@@ -281,6 +279,7 @@ namespace tuplex {
             return pds;
         }
 
+        auto closureObject = closure.ptr(); // nullptr if not set!
         auto ce = closureFromDict(closureObject);
 
         PythonDataSet pds;
@@ -314,14 +313,14 @@ namespace tuplex {
     }
 
     PythonDataSet PythonDataSet::mapColumn(const std::string &column, const std::string &lambda_code,
-                                           const std::string &pickled_code, PyObject* closureObject) {
+                                           const std::string &pickled_code, const py::object& closure) {
         assert(this->_dataset);
         if (_dataset->isError()) {
             PythonDataSet pds;
             pds.wrap(this->_dataset);
             return pds;
         }
-
+        auto closureObject = closure.ptr(); // nullptr if not set!
         auto ce = closureFromDict(closureObject);
 
         PythonDataSet pds;
@@ -358,7 +357,7 @@ namespace tuplex {
     PythonDataSet PythonDataSet::aggregate(const std::string& comb, const std::string& comb_pickled,
                                            const std::string& agg, const std::string& agg_pickled,
                                            const std::string& initial_value_pickled,
-                                           PyObject* combClosureObject, PyObject* aggClosureObject) {
+                                           const py::object& comb_closure, const py::object& agg_closure) {
         using namespace std;
 
         // @TODO: warning if udfs are wrongly submitted
@@ -370,6 +369,8 @@ namespace tuplex {
             return pds;
         }
 
+        PyObject* combClosureObject = comb_closure.ptr();
+        PyObject* aggClosureObject = agg_closure.ptr();
         auto combCE = closureFromDict(combClosureObject);
         auto aggCE = closureFromDict(aggClosureObject);
 
@@ -418,7 +419,7 @@ namespace tuplex {
 
     PythonDataSet PythonDataSet::aggregateByKey(const std::string& comb, const std::string& comb_pickled,
                                            const std::string& agg, const std::string& agg_pickled,
-                                           const std::string& initial_value_pickled, boost::python::list columns) {
+                                           const std::string& initial_value_pickled, py::list columns) {
         using namespace std;
 
         // @TODO: warning if udfs are wrongly submitted
@@ -446,7 +447,7 @@ namespace tuplex {
         auto dataset_cols = _dataset->columns();
         PyObject * listObj = columns.ptr();
         std::vector<std::string> key_columns;
-        for (unsigned i = 0; i < boost::python::len(columns); ++i) {
+        for (unsigned i = 0; i < py::len(columns); ++i) {
             PyObject * obj = PyList_GetItem(listObj, i);
             Py_XINCREF(obj);
             if (PyObject_IsInstance(obj, reinterpret_cast<PyObject *>(&PyUnicode_Type))) {
@@ -501,14 +502,14 @@ namespace tuplex {
 
 
     PythonDataSet PythonDataSet::withColumn(const std::string &column, const std::string &lambda_code,
-                                            const std::string &pickled_code, PyObject* closureObject) {
+                                            const std::string &pickled_code, const py::object& closure) {
         assert(this->_dataset);
         if (_dataset->isError()) {
             PythonDataSet pds;
             pds.wrap(this->_dataset);
             return pds;
         }
-
+        auto closureObject = closure.ptr(); // nullptr if not set!
         auto ce = closureFromDict(closureObject);
 
         PythonDataSet pds;
@@ -620,7 +621,7 @@ namespace tuplex {
         return pds;
     }
 
-    PythonDataSet PythonDataSet::selectColumns(boost::python::list L) {
+    PythonDataSet PythonDataSet::selectColumns(py::list L) {
         // check dataset is valid & perform error check.
         assert(this->_dataset);
         if (_dataset->isError()) {
@@ -650,12 +651,12 @@ namespace tuplex {
         auto columns = _dataset->columns();
 
         PyObject * listObj = L.ptr();
-        for (unsigned i = 0; i < boost::python::len(L); ++i) {
+        for (unsigned i = 0; i < py::len(L); ++i) {
             PyObject * obj = PyList_GetItem(listObj, i);
             Py_XINCREF(obj);
             // check type:
             if (PyObject_IsInstance(obj, reinterpret_cast<PyObject *>(&PyLong_Type))) {
-                int index = boost::python::extract<int>(L[i]);
+                int index = py::cast<int>(L[i]);
 
                 // adjust negative index!
                 int adjIndex = index < 0 ? index + num_cols : index;
@@ -720,7 +721,7 @@ namespace tuplex {
 
     void PythonDataSet::tocsv(const std::string &file_path, const std::string &lambda_code, const std::string &pickled_code,
                          size_t fileCount, size_t shardSize, size_t limit, const std::string &null_value,
-                         boost::python::object header) {
+                         py::object header) {
         // make sure a dataset is wrapped
         assert(this->_dataset);
         // ==> error handled below.
@@ -730,7 +731,7 @@ namespace tuplex {
         // is callee error dataset? if so return list with error string
         if (this->_dataset->isError()) {
             ErrorDataSet *eds = static_cast<ErrorDataSet *>(this->_dataset);
-            boost::python::list L;
+            py::list L;
             L.append(eds->getError());
             // Logger::instance().flushAll();
             Logger::instance().flushToPython();
@@ -797,7 +798,7 @@ namespace tuplex {
 
         if (this->_dataset->isError()) {
             ErrorDataSet *eds = static_cast<ErrorDataSet *>(this->_dataset);
-            boost::python::list L;
+            py::list L;
             L.append(eds->getError());
             // Logger::instance().flushAll();
             Logger::instance().flushToPython();
@@ -1344,17 +1345,17 @@ namespace tuplex {
     }
 
     PyObject *PythonDataSet::resultSetToCPython(tuplex::ResultSet *rs, size_t maxRowCount) {
-        auto type = rs->schema().getRowType();
-        // if single type, reset by one
-        assert(type.isTupleType());
-        if (type.parameters().size() == 1)
-            type = type.parameters().front();
-
         // b.c. merging of arbitrary python objects is not implemented yet, whenever they're present, use general
         // version
         // @TODO: this could be optimized!
         if(rs->pyobject_count() != 0)
             return anyToCPythonWithPyObjects(rs, maxRowCount);
+
+        auto type = rs->schema().getRowType();
+        // if single type, reset by one
+        assert(type.isTupleType());
+        if (type.parameters().size() == 1)
+            type = type.parameters().front();
 
         if (python::Type::BOOLEAN == type) {
             return boolToCPython(rs, maxRowCount);
@@ -1469,7 +1470,7 @@ namespace tuplex {
         return pds;
     }
 
-    boost::python::list PythonDataSet::columns() {
+    py::list PythonDataSet::columns() {
         // check if error dataset?
         assert(_dataset);
 
@@ -1641,10 +1642,10 @@ namespace tuplex {
         return pds;
     }
 
-    boost::python::object PythonDataSet::types() {
+    py::object PythonDataSet::types() {
         // is error dataset? if so return it directly!
         if (this->_dataset->isError()) {
-            return boost::python::object(); // none
+            return py::none(); // none
         }
 
         auto row_type = _dataset->schema().getRowType();
@@ -1658,15 +1659,15 @@ namespace tuplex {
             auto typeobj = python::encodePythonSchema(row_type.parameters()[i]);
             PyList_SetItem(listObj, i, typeobj);
         }
-        return boost::python::object(boost::python::handle<>(listObj));
+        return py::reinterpret_borrow<py::list>(listObj);
     }
 
-    boost::python::object PythonDataSet::exception_counts() {
+    py::object PythonDataSet::exception_counts() {
+        if(this->_dataset->isError())
+            return py::none(); // none
+
         // return dict object
         auto dict = PyDict_New();
-
-        if(this->_dataset->isError())
-            return boost::python::object(); // none
 
         // fetch from dataset corresponding metrics
         auto counts = _dataset->getContext()->metrics().getOperatorExceptionCounts(this->_dataset->getOperator()->getID());
@@ -1674,6 +1675,6 @@ namespace tuplex {
             PyDict_SetItemString(dict, keyval.first.c_str(), PyLong_FromLongLong(keyval.second));
         }
 
-        return boost::python::object(boost::python::handle<>(dict));
+        return py::reinterpret_steal<py::dict>(dict);
     }
 }

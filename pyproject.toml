@@ -7,6 +7,8 @@ requires = [
     "numpy",
     "ninja; sys_platform != 'win32'",
     "cmake>=3.12,<3.22",
+    "delocate; sys.platform == 'darwin'",
+    "auditwheel; sys.platform == 'linux'",
     "requests"
 ]
 build-backend = "setuptools.build_meta"

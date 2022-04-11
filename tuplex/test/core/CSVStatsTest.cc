@@ -135,7 +135,7 @@ TEST(CSVStats, FileInference) {
 TEST(CSVStats, RareValueManyNulls) {
     using namespace std;
 
-    string path = "test.csv";
+    string path = "CSVStats.RareValueManyNulls.csv";
 
     FILE *fp = fopen(path.c_str(), "w");
 

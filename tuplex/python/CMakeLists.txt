@@ -2,13 +2,24 @@
 # this build file is aimed to build the python package
 CMAKE_MINIMUM_REQUIRED(VERSION 3.12 FATAL_ERROR)
 
+# use pybind11 (header only library) to create python C-extension representing tuplex
+
 # enable c++14
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
 # how should the module be named?
 SET(MODULE_NAME tuplex)
+
+# fetch pybind11 (external project)
+include(FetchContent)
+FetchContent_Declare(pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11
+                              GIT_TAG        v2.9.1)
+FetchContent_GetProperties(pybind11)
+if(NOT pybind11_POPULATED)
+    FetchContent_Populate(pybind11)
+    add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
+endif()
 
 # Source code & linking
 file(GLOB_RECURSE SOURCES src/*.cc)
@@ -17,19 +28,31 @@ file(GLOB_RECURSE SOURCES src/*.cc)
 #PYTHON_ADD_MODULE(${MODULE_NAME} ${SOURCES})
 message(STATUS "libs: ${Python3_LIBRARIES}")
 message(STATUS "includes: ${Python3_INCLUDE_DIRS}")
-#Python3_add_library(${MODULE_NAME} MODULE ${SOURCES})
-# because FindPython3 is broken in recent cmake, we can simply use add_library to define this directly
-add_library(${MODULE_NAME} MODULE ${SOURCES})
-set_target_properties(${MODULE_NAME} PROPERTIES PREFIX "")
-#target_link_libraries(${MODULE_NAME} PRIVATE ${Python3_LIBRARIES})
-#target_include_directories(${MODULE_NAME} PRIVATE ${Python3_INCLUDE_DIRS})
 
+# cf. https://pybind11.readthedocs.io/en/stable/cmake/index.html
+pybind11_add_module(${MODULE_NAME} ${SOURCES})
+set(PYMODULE "PYBIND11_MODULE(${MODULE_NAME}, m)")
+target_compile_definitions(${MODULE_NAME} PRIVATE PYMODULE=${PYMODULE})
+add_dependencies(${MODULE_NAME} libcore libcodegen)
+target_include_directories(${MODULE_NAME} PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(${MODULE_NAME} PRIVATE
+        libcodegen
+        libcore
+        libcpythonadapter
+        libutils
+        libio
+        Boost::iostreams
+        Boost::thread
+        Boost::system
+        Boost::filesystem)
 
+#check if single generator or multiple
+# copy setup.py/MANIFEST.in files and the directory tuplex
 # python pip package creation/distribution
 SET(PYTHON_DIST_DIR ${DIST_DIR}/python)
-
 message(STATUS "${MODULE_NAME}.so object will be saved to ${PYTHON_DIST_DIR}/tuplex/libexec")
-
 # C++ shared object is placed in libexec within module
 SET_TARGET_PROPERTIES(${MODULE_NAME}
         PROPERTIES
@@ -61,35 +84,6 @@ SET_TARGET_PROPERTIES(${MODULE_NAME}
         LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${PYTHON_DIST_DIR}/tuplex/libexec"
         RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${PYTHON_DIST_DIR}/tuplex/libexec"
         )
-
-
-add_dependencies(${MODULE_NAME} libcore libcodegen)
-
-
-# Specify here the include directories exported
-# by this library
-target_include_directories(${MODULE_NAME} PUBLIC
-        ${Python3_INCLUDE_DIRS}
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_BINARY_DIR}
-        )
-
-# add via define the module name back to C++
-SET(PYMODULE "BOOST_PYTHON_MODULE(${MODULE_NAME})")
-target_compile_definitions(${MODULE_NAME} PRIVATE PYMODULE=${PYMODULE})
-
-# Declare the library
-target_link_libraries(${MODULE_NAME}
-        ${Boost_LIBRARIES}
-        ${Python3_LIBRARIES}
-        libcodegen
-        libcore
-        libcpythonadapter)
-
-#check if single generator or multiple
-
-
-# copy setup.py/MANIFEST.in files and the directory tuplex
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/__init__.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/dataset.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/context.py
@@ -138,6 +132,7 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_tuples.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_math.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_aggregates.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_webui.py
+          ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_exceptions.py
           ${CMAKE_CURRENT_SOURCE_DIR}/tests/helper.py
         DESTINATION ${PYTHON_DIST_DIR}/tests)
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/libexec/__init__.py DESTINATION ${PYTHON_DIST_DIR}/tuplex/libexec)

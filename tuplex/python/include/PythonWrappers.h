@@ -11,21 +11,19 @@
 #ifndef TUPLEX_PYTHONWRAPPERS_H
 #define TUPLEX_PYTHONWRAPPERS_H
 
-#include <boost/python/list.hpp>
 #include <Logger.h>
-#include <boost/python/extract.hpp>
 #include <TypeSystem.h>
-#include <boost/python/tuple.hpp>
 #include <ErrorDataSet.h>
 #include <ClosureEnvironment.h>
+#include "PythonCommon.h"
 #include "PythonException.h"
 
 #include <PythonHelpers.h>
 #include <PythonSerializer.h>
 
-template <typename Container> boost::python::list STL_to_Python(const Container& vec) {
+template <typename Container> py::list STL_to_Python(const Container& vec) {
     typedef typename Container::value_type T;
-    boost::python::list lst;
+    py::list lst;
     std::for_each(vec.begin(), vec.end(), [&](const T& t) { lst.append(t); });
     return lst;
 }
@@ -88,12 +86,17 @@ inline std::unordered_map<size_t, python::Type> extractIndexBasedTypeHints(PyObj
                     python::Type valType = python::decodePythonSchema(val);
                     m[keyVal] = valType;
                 } else if(PyUnicode_Check(key)) {
+
+                    // continue if no columns specified...
+                    if(columns.empty())
+                        continue;
+
                     auto name = python::PyString_AsString(key);
 
                     // check if contained in columns, if not print warning.
                     size_t idx = 0;
                     for(idx = 0; idx < columns.size() && name != columns[idx]; ++idx);
-                    if(columns.empty() || idx > columns.size()) {
+                    if(idx > columns.size()) {
                         logger.warn("received type hint for column '" + name + "', but could not find column. Ignoring hint.");
                     } else {
                         // encode as int
@@ -143,13 +146,11 @@ inline std::unordered_map<std::string, python::Type> extractColumnBasedTypeHints
 
 // helper functions
 namespace tuplex {
-    extern boost::python::object fieldToPython(const tuplex::Field& f);
+    extern py::object fieldToPython(const tuplex::Field& f);
 
-    extern boost::python::object tupleToPython(const tuplex::Tuple& tuple);
+    extern py::object tupleToPython(const tuplex::Tuple& tuple);
 
-    extern boost::python::object rowToPython(const tuplex::Row& row);
-
-
+    extern py::object rowToPython(const tuplex::Row& row);
 }
 
 #endif //TUPLEX_PYTHONWRAPPERS_H

@@ -18,11 +18,18 @@
 #include <VirtualFileSystem.h>
 #include <parser/Parser.h>
 
+#include <boost/filesystem/operations.hpp>
+
 // need for these tests a running python interpreter, so spin it up
 class WrapperTest : public ::testing::Test {
 protected:
+    std::string testName;
+    std::string scratchDir;
 
     void SetUp() override {
+        testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+        scratchDir = "/tmp/" + testName;
+
         python::initInterpreter();
 
         // hold GIL
@@ -34,8 +41,37 @@ protected:
         // important to get GIL for this
         python::closeInterpreter();
     }
-};
 
+    inline void remove_temp_files() {
+        tuplex::Timer timer;
+        boost::filesystem::remove_all(scratchDir.c_str());
+        std::cout<<"removed temp files in "<<timer.time()<<"s"<<std::endl;
+    }
+
+    ~WrapperTest() override {
+        remove_temp_files();
+    }
+
+    inline std::string testOptions() {
+        using namespace tuplex;
+        std::stringstream ss;
+        ss << "{";
+        ss << "\"tuplex.executorCount\": \"4\",";
+        ss << "\"tuplex.partitionSize\": \"512KB\",";
+        ss << "\"tuplex.executorMemory\": \"8MB\",";
+        ss << "\"tuplex.useLLVMOptimizer\": \"true\",";
+        ss << "\"tuplex.allowUndefinedBehavior\": \"false\",";
+        ss << "\"tuplex.webui.enable\": \"false\",";
+        ss << "\"tuplex.scratchDir\": \"file://" << scratchDir << "\",";
+#ifdef BUILD_FOR_CI
+        ss << "\"tuplex.aws.httpThreadCount\": \"0\"";
+#else
+        ss << "\"tuplex.aws.httpThreadCount\": \"1\"";
+#endif
+        ss << "}";
+        return ss.str();
+    }
+};
 
 #ifdef BUILD_WITH_AWS
 TEST_F(WrapperTest, LambdaBackend) {
@@ -55,7 +91,7 @@ TEST_F(WrapperTest, LambdaBackend) {
 TEST_F(WrapperTest, StringTuple) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject *listObj = PyList_New(4);
     PyObject *tupleObj1 = PyTuple_New(2);
@@ -80,10 +116,8 @@ TEST_F(WrapperTest, StringTuple) {
     PyList_SetItem(listObj, 3, tupleObj4);
 
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -97,7 +131,7 @@ TEST_F(WrapperTest, StringTuple) {
 TEST_F(WrapperTest, MixedSimpleTupleTuple) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject *listObj = PyList_New(4);
     PyObject *tupleObj1 = PyTuple_New(2);
@@ -122,15 +156,12 @@ TEST_F(WrapperTest, MixedSimpleTupleTuple) {
     PyList_SetItem(listObj, 3, tupleObj4);
 
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
-        // Change to 4 when parallelize changes are merged
-        ASSERT_EQ(PyList_GET_SIZE(resObj), 3);
+        ASSERT_EQ(PyList_GET_SIZE(resObj), 4);
 
         PyObject_Print(resObj, stdout, 0);
     }
@@ -139,7 +170,7 @@ TEST_F(WrapperTest, MixedSimpleTupleTuple) {
 TEST_F(WrapperTest, StringParallelize) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(3);
     PyList_SET_ITEM(listObj, 0, python::PyString_FromString("Hello"));
@@ -148,10 +179,8 @@ TEST_F(WrapperTest, StringParallelize) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -165,17 +194,17 @@ TEST_F(WrapperTest, StringParallelize) {
 TEST_F(WrapperTest, DictionaryParallelize) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * dictObj1 = PyDict_New();
-    PyDict_SetItem(dictObj1, python::PyString_FromString("Hello"), PyFloat_FromDouble(0.0));
-    PyDict_SetItem(dictObj1, python::PyString_FromString("World"), PyFloat_FromDouble(1.345));
-    PyDict_SetItem(dictObj1, python::PyString_FromString("!"), PyFloat_FromDouble(-2.234));
+    PyDict_SetItem(dictObj1, python::PyString_FromString("a"), PyFloat_FromDouble(0.0));
+    PyDict_SetItem(dictObj1, python::PyString_FromString("b"), PyFloat_FromDouble(1.345));
+    PyDict_SetItem(dictObj1, python::PyString_FromString("c"), PyFloat_FromDouble(-2.234));
 
     PyObject * dictObj2 = PyDict_New();
-    PyDict_SetItem(dictObj2, python::PyString_FromString("a"), PyFloat_FromDouble(1.23));
-    PyDict_SetItem(dictObj2, python::PyString_FromString("b"), PyFloat_FromDouble(2.34));
-    PyDict_SetItem(dictObj2, python::PyString_FromString("c"), PyFloat_FromDouble(-3.45));
+    PyDict_SetItem(dictObj2, python::PyString_FromString("d"), PyFloat_FromDouble(1.23));
+    PyDict_SetItem(dictObj2, python::PyString_FromString("e"), PyFloat_FromDouble(2.34));
+    PyDict_SetItem(dictObj2, python::PyString_FromString("f"), PyFloat_FromDouble(-3.45));
 
     PyObject * listObj = PyList_New(2);
     PyList_SET_ITEM(listObj, 0, dictObj1);
@@ -183,21 +212,19 @@ TEST_F(WrapperTest, DictionaryParallelize) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
-        ASSERT_EQ(PyList_Size(resObj), 1);
+        ASSERT_EQ(PyList_Size(resObj), 2);
 
         // check contents
         // ==> there will be only one result though, because of the type inference. Basically the first row will be taken :)
         // --> the other row will be stored as bad input row.
         auto tuple1 = PyList_GetItem(resObj, 0);
         ASSERT_TRUE(PyTuple_Check(tuple1));
-        ASSERT_EQ(PyTuple_Size(tuple1), 3);
+        ASSERT_EQ(PyTuple_Size(tuple1), 6);
     }
 }
 
@@ -205,7 +232,8 @@ TEST_F(WrapperTest, SimpleCSVParse) {
     using namespace tuplex;
 
     // write sample file
-    FILE *f = fopen("test.csv", "w");
+    auto fName = testName + ".csv";
+    FILE *f = fopen(fName.c_str(), "w");
     fprintf(f, "1,2,3,FAST ETL!\n");
     fprintf(f, "4,5,6,FAST ETL!\n");
     fprintf(f, "7,8,9,\"FAST ETL!\"");
@@ -215,14 +243,14 @@ TEST_F(WrapperTest, SimpleCSVParse) {
     PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
 
     // RAII, destruct python context!
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     // weird block syntax due to RAII problems.
     {
         // below is essentially the following python code.
         // res = dataset.map(lambda a, b, c, d: d).collect()
         // assert res == ["FAST ETL!", "FAST ETL!", "FAST ETL!"]
-        auto res = c.csv("test.csv").map("lambda a, b, c, d: d", "").collect();
+        auto res = c.csv(testName + ".csv").map("lambda a, b, c, d: d", "").collect();
 
         auto resObj = res.ptr();
 
@@ -240,20 +268,20 @@ TEST_F(WrapperTest, SimpleCSVParse) {
     }
 
     // remove file
-    remove("test.csv");
+    remove(fName.c_str());
 }
 
 TEST_F(WrapperTest, GetOptions) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     // weird RAII problems of boost python
     {
         auto d = c.options();
 
         ContextOptions co = ContextOptions::defaults();
-        auto length = boost::python::len(c.options());
+        auto length = py::len(c.options());
         EXPECT_GE(co.store().size(), length);
     }
 
@@ -262,8 +290,8 @@ TEST_F(WrapperTest, GetOptions) {
 TEST_F(WrapperTest, TwoContexts) {
     using namespace tuplex;
 
-    PythonContext c("");
-    PythonContext c2("");
+    PythonContext c("", "", testOptions());
+    PythonContext c2("", "", testOptions());
 
     {
         auto opt1 = c.options();
@@ -275,7 +303,8 @@ TEST_F(WrapperTest, Show) {
     using namespace tuplex;
 
     // write sample file
-    FILE *f = fopen("test.csv", "w");
+    auto fName = testName + ".csv";
+    FILE *f = fopen(fName.c_str(), "w");
     fprintf(f, "a,b,c,s\n");
     fprintf(f, "1,2,3,FAST ETL!\n");
     fprintf(f, "4,5,6,FAST ETL!\n");
@@ -286,18 +315,18 @@ TEST_F(WrapperTest, Show) {
     PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "");
+    PythonContext c("python", "", testOptions());
 
     // weird block syntax due to RAII problems.
     {
         // below is essentially the following python code.
         // res = dataset.map(lambda a, b, c, d: d).collect()
         // assert res == ["FAST ETL!", "FAST ETL!", "FAST ETL!"]
-        c.csv("test.csv").show();
+        c.csv(testName + ".csv").show();
     }
 
     // remove file
-    remove("test.csv");
+    remove(fName.c_str());
 
 }
 
@@ -311,7 +340,7 @@ TEST_F(WrapperTest, GoogleTrace) {
     PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "");
+    PythonContext c("python", "", testOptions());
     /// Based on Google trace data, this mini pipeline serves as CSV parsing test ground.
     ///  c.csv(file_path) \
     ///   .filter(lambda x: x[3] == 0) \
@@ -323,7 +352,7 @@ TEST_F(WrapperTest, GoogleTrace) {
         PyList_SET_ITEM(listObj, 0, PyLong_FromLong(2));
         PyList_SET_ITEM(listObj, 1, PyLong_FromLong(0));
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.csv(sampleTraceFile) \
                     .filter("lambda x: x[3] == 0", "") \
                     .selectColumns(list).collect();
@@ -429,7 +458,7 @@ TEST_F(WrapperTest, extractPriceExample) {
             PyList_SET_ITEM(listObj, pos++, tupleObj);
         }
     }
-    auto list = boost::python::list(boost::python::handle<>(listObj));
+    auto list = py::reinterpret_borrow<py::list>(listObj);
 
     // parallelize extract Price function & test using both dictionary AND tuple syntax.
     // input data here should be
@@ -448,17 +477,17 @@ TEST_F(WrapperTest, extractPriceExample) {
 //    PyTuple_SET_ITEM(tupleObj, 2, python::PyString_FromString("3 bds , 1 ba , 1,560 sqft"));
 //    PyTuple_SET_ITEM(tupleObj, 3, PyLong_FromLong(1560));
 //    PyList_SET_ITEM(listObj, 1, tupleObj);
-//    auto list = boost::python::list(boost::python::handle<>(listObj));
+//    auto list = py::list(py::handle<>(listObj));
 
     PyObject* colObj = PyList_New(4);
     PyList_SET_ITEM(colObj, 0, python::PyString_FromString("price"));
     PyList_SET_ITEM(colObj, 1, python::PyString_FromString("offer"));
     PyList_SET_ITEM(colObj, 2, python::PyString_FromString("facts and features"));
     PyList_SET_ITEM(colObj, 3, python::PyString_FromString("sqft"));
-    auto cols = boost::python::list(boost::python::handle<>(colObj));
+    auto cols = py::reinterpret_borrow<py::list>(colObj);
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "");
+    PythonContext c("python", "", testOptions());
 
     {
         // all calls go here...
@@ -558,7 +587,7 @@ TEST_F(WrapperTest, DictListParallelize) {
     using namespace tuplex;
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "{\"tuplex.webui.enable\" : \"False\"}");
+    PythonContext c("python", "", testOptions());
 
     // weird block syntax due to RAII problems.
     {
@@ -578,7 +607,7 @@ TEST_F(WrapperTest, DictListParallelize) {
         PyObject_Print(listObj, stdout, 0);
         std::cout << std::endl;
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x['a'] + x['b']", "").collect();
 
         auto resObj = res.ptr();
@@ -595,7 +624,9 @@ TEST_F(WrapperTest, UpcastParallelizeI) {
     using namespace tuplex;
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "{\"tuplex.webui.enable\":\"False\", \"tuplex.autoUpcast\":\"True\"}");
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + ", \"tuplex.autoUpcast\":\"True\"}";
+    PythonContext c("python", "", opts);
 
     // weird block syntax due to RAII problems.
     {
@@ -606,7 +637,7 @@ TEST_F(WrapperTest, UpcastParallelizeI) {
         PyList_SET_ITEM(listObj, 2, Py_True); // auto upcast bool --> float
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(10)); // auto upcast int --> float
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x * x + 1", "").collect();
 
         auto resObj = res.ptr();
@@ -625,7 +656,9 @@ TEST_F(WrapperTest, UpcastParallelizeII) {
     using namespace tuplex;
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "{\"tuplex.webui.enable\":\"False\", \"tuplex.autoUpcast\":\"True\"}");
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + ", \"tuplex.autoUpcast\":\"True\"}";
+    PythonContext c("python", "", opts);
 
     // weird block syntax due to RAII problems.
     {
@@ -636,7 +669,7 @@ TEST_F(WrapperTest, UpcastParallelizeII) {
         PyList_SET_ITEM(listObj, 2, Py_True); // auto upcast bool --> int
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(2));
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x * x - 1", "").collect();
 
         auto resObj = res.ptr();
@@ -659,7 +692,9 @@ TEST_F(WrapperTest, FilterAll) {
     using namespace tuplex;
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "{\"tuplex.webui.enable\":\"False\", \"tuplex.autoUpcast\":\"True\"}");
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + ",\"tuplex.autoUpcast\":\"True\"}";
+    PythonContext c("python", "", opts);
 
     // weird block syntax due to RAII problems.
     {
@@ -670,9 +705,8 @@ TEST_F(WrapperTest, FilterAll) {
         PyList_SET_ITEM(listObj, 2, PyLong_FromLong(3));
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(2));
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).filter("lambda x: x > 10", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -685,7 +719,7 @@ TEST_F(WrapperTest, ColumnNames) {
     using namespace tuplex;
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "{\"tuplex.webui.enable\":\"False\"}");
+    PythonContext c("python", "", testOptions());
 
     // weird block syntax due to RAII problems.
     {
@@ -705,28 +739,29 @@ TEST_F(WrapperTest, ColumnNames) {
         PyObject_Print(listObj, stdout, 0);
         std::cout << std::endl;
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res1 = c.parallelize(list).columns();
 
-        ASSERT_EQ(boost::python::len(res1), 2);
+        ASSERT_EQ(py::len(res1), 2);
         std::vector<std::string> ref1{"a", "b"};
-        for (int i = 0; i < boost::python::len(res1); ++i) {
-            std::string col = boost::python::extract<std::string>(res1[i]);
+        for (int i = 0; i < py::len(res1); ++i) {
+            std::string col = py::cast<std::string>(res1[i]);
             EXPECT_EQ(col, ref1[i]);
         }
 
         // write sample file
-        FILE *f = fopen("test.csv", "w");
+        auto fName = testName + ".csv";
+        FILE *f = fopen(fName.c_str(), "w");
         fprintf(f, "a,b,c,d\n");
         fprintf(f, "4,5,6,FAST ETL!\n");
         fprintf(f, "7,8,9,\"FAST ETL!\"");
         fclose(f);
 
-        auto res2 = c.csv("test.csv").columns();
-        ASSERT_EQ(boost::python::len(res2), 4);
+        auto res2 = c.csv(testName + ".csv").columns();
+        ASSERT_EQ(py::len(res2), 4);
         std::vector<std::string> ref2{"a", "b", "c", "d"};
-        for (int i = 0; i < boost::python::len(res1); ++i) {
-            std::string col = boost::python::extract<std::string>(res2[i]);
+        for (int i = 0; i < py::len(res1); ++i) {
+            std::string col = py::cast<std::string>(res2[i]);
             EXPECT_EQ(col, ref2[i]);
         }
     }
@@ -746,7 +781,9 @@ TEST_F(WrapperTest, IntegerTuple) {
     PyDict_SetItemString(pyopt, "tuplex.autoUpcast", Py_True);
 
     // RAII, destruct python context!
-    PythonContext c("python", "", "{\"tuplex.webui.enable\":\"False\", \"tuplex.autoUpcast\":\"True\"}");
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + ",\"tuplex.autoUpcast\":\"True\"}";
+    PythonContext c("python", "", opts);
 
     // weird block syntax due to RAII problems.
     {
@@ -755,7 +792,7 @@ TEST_F(WrapperTest, IntegerTuple) {
         PyList_SET_ITEM(listObj, 0, python::rowToPython(Row(1, 2)));
         PyList_SET_ITEM(listObj, 1, python::rowToPython(Row(3, 2)));
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).withColumn("newcol", "lambda a, b: (a + b)/10", "").collect();
 
         auto resObj = res.ptr();
@@ -800,8 +837,9 @@ TEST_F(WrapperTest, IfWithNull) {
     string sampleFile = "../resources/flight_ifwithnulls.sample.csv"; // also fails, yeah!
 
     // RAII, destruct python context!
-    PythonContext c("python", "",
-                    "{\"tuplex.webui.enable\":\"False\", \"tuplex.useLLVMOptimizer\" : \"False\", \"tuplex.executorCount\":0}");
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + ",\"tuplex.useLLVMOptimizer\" : \"False\", \"tuplex.executorCount\":0}";
+    PythonContext c("python", "", opts);
     // execute mini part of pipeline and output csv to file
     // pipeline is
     // df = ctx.csv(perf_path)
@@ -855,11 +893,11 @@ TEST_F(WrapperTest, IfWithNull) {
         pds = pds.withColumn("CancellationReason", divertedCode, "");
 
         // this here works. it doesn't...???
-        pds.tocsv("test.csv");
+        pds.tocsv(testName + ".csv");
     }
 
     // load file and compare
-    auto contents = fileToString("test.part0.csv");
+    auto contents = fileToString(testName + ".part0.csv");
 
     EXPECT_EQ(contents, "FlDate,OpUniqueCarrier,CancellationCode,Diverted,CancellationReason\n"
                         "2019-01-06,9E,,0.00000000,None\n"
@@ -874,8 +912,9 @@ TEST_F(WrapperTest, FlightData) {
     string sampleFile = "../resources/flights_on_time_performance_2019_01.sample.tworows.csv"; // does not work
 
     // RAII, destruct python context!
-    PythonContext c("python", "",
-                    "{\"tuplex.webui.enable\":\"False\", \"tuplex.useLLVMOptimizer\" : \"False\", \"tuplex.executorCount\":0}");
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + ",\"tuplex.useLLVMOptimizer\" : \"False\", \"tuplex.executorCount\":0}";
+    PythonContext c("python", "", opts);
     // execute mini part of pipeline and output csv to file
     // pipeline is
     // df = ctx.csv(perf_path)
@@ -1001,7 +1040,8 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
                     " \"tuplex.optimizer.csv.selectionPushdown\" : \"True\","
                     " \"tuplex.resolveWithInterpreterOnly\":\"False\","
                     "\"tuplex.executorCount\":0,"
-                    "\"tuplex.driverMemory\":\"6G\"}");
+                    "\"tuplex.driverMemory\":\"6G\","
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\"}");
 
 
     string bts_path = "../resources/flights_on_time_performance_2019_01.sample.csv";
@@ -1026,7 +1066,7 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
                           "            'CrsDepTime', 'Cancelled',\n"
                           "            'Diverted', 'OriginCityName', 'AirTime', 'Origin', 'Dest', 'DestCityName',\n"
                           "            'DivReachedDest', 'TaxiIn', 'DepDelay', 'OpCarrierFlNum']", "time_req_cols");
-        auto time_req_cols = boost::python::list(boost::python::handle<>(time_req_cols_obj));
+        auto time_req_cols = py::reinterpret_borrow<py::list>(time_req_cols_obj);
 
         auto df = ctx.csv(bts_path);
         auto cols = extractFromListOfStrings(df.columns().ptr());
@@ -1059,8 +1099,8 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
                                              "                'LatitudeDegrees', 'LatitudeMinutes', 'LatitudeSeconds', 'LatitudeDirection',\n"
                                              "                'LongitudeDegrees', 'LongitudeMinutes', 'LongitudeSeconds',\n"
                                              "                'LongitudeDirection', 'Altitude', 'LatitudeDecimal', 'LongitudeDecimal']", "airport_cols");
-        auto null_values = boost::python::list(boost::python::borrowed<>(null_values_obj));
-        auto airport_cols = boost::python::list(boost::python::borrowed<>(airport_cols_obj));
+        auto null_values = py::reinterpret_borrow<py::list>(null_values_obj);
+        auto airport_cols = py::reinterpret_borrow<py::list>(airport_cols_obj);
         auto df_airports = ctx.csv(airport_path, airport_cols, true, false, ":", "\"", null_values);
         df_airports = df_airports.cache(true);
 
@@ -1082,7 +1122,7 @@ TEST_F(WrapperTest, Airport) {
 
     // RAII, destruct python context!
     PythonContext c("python", "",
-                    "{\"tuplex.webui.enable\":\"False\", \"tuplex.useLLVMOptimizer\" : \"False\"}");
+                    testOptions());
 
     // execute mini part of pipeline and output csv to file
     // pipeline is
@@ -1118,7 +1158,7 @@ TEST_F(WrapperTest, Airport) {
         auto pds = c.csv(sampleFile, STL_to_Python(airport_cols), false, false, ":");
 
 
-        pds = pds.mapColumn("AirportName", "lambda x: string.capwords(x) if x else None", "", closureObject);
+        pds = pds.mapColumn("AirportName", "lambda x: string.capwords(x) if x else None", "", py::reinterpret_steal<py::dict>(closureObject));
         pds.tocsv("airport.csv");
     }
 }
@@ -1126,7 +1166,7 @@ TEST_F(WrapperTest, Airport) {
 TEST_F(WrapperTest, OptionParallelizeI) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(5);
     PyList_SET_ITEM(listObj, 0, PyLong_FromLong(112));
@@ -1137,10 +1177,8 @@ TEST_F(WrapperTest, OptionParallelizeI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1158,7 +1196,7 @@ TEST_F(WrapperTest, OptionParallelizeI) {
 TEST_F(WrapperTest, OptionParallelizeII) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(5);
 
@@ -1182,10 +1220,8 @@ TEST_F(WrapperTest, OptionParallelizeII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1203,7 +1239,7 @@ TEST_F(WrapperTest, OptionParallelizeII) {
 TEST_F(WrapperTest, NoneParallelize) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(2);
     PyList_SET_ITEM(listObj, 0, Py_None);
@@ -1211,10 +1247,8 @@ TEST_F(WrapperTest, NoneParallelize) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1229,7 +1263,7 @@ TEST_F(WrapperTest, NoneParallelize) {
 TEST_F(WrapperTest, EmptyMapI) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(4);
     PyList_SET_ITEM(listObj, 0, PyLong_FromLong(1));
@@ -1239,10 +1273,8 @@ TEST_F(WrapperTest, EmptyMapI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: None", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1259,7 +1291,7 @@ TEST_F(WrapperTest, EmptyMapI) {
 TEST_F(WrapperTest, EmptyMapII) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(4);
     PyList_SET_ITEM(listObj, 0, PyLong_FromLong(1));
@@ -1269,10 +1301,8 @@ TEST_F(WrapperTest, EmptyMapII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: ()", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1293,7 +1323,7 @@ TEST_F(WrapperTest, EmptyMapII) {
 TEST_F(WrapperTest, EmptyMapIII) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(4);
     PyList_SET_ITEM(listObj, 0, PyLong_FromLong(1));
@@ -1303,10 +1333,8 @@ TEST_F(WrapperTest, EmptyMapIII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: {}", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1327,7 +1355,7 @@ TEST_F(WrapperTest, EmptyMapIII) {
 TEST_F(WrapperTest, EmptyOptionMapI) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(4);
     PyList_SET_ITEM(listObj, 0, PyLong_FromLong(1));
@@ -1337,10 +1365,8 @@ TEST_F(WrapperTest, EmptyOptionMapI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: () if x < 3 else None", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1359,7 +1385,7 @@ TEST_F(WrapperTest, EmptyOptionMapI) {
 TEST_F(WrapperTest, EmptyOptionMapII) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(4);
     PyList_SET_ITEM(listObj, 0, PyLong_FromLong(1));
@@ -1369,10 +1395,8 @@ TEST_F(WrapperTest, EmptyOptionMapII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: {} if x < 3 else None", "").collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1391,7 +1415,7 @@ TEST_F(WrapperTest, EmptyOptionMapII) {
 TEST_F(WrapperTest, OptionTupleParallelizeI) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(3);
 
@@ -1413,10 +1437,8 @@ TEST_F(WrapperTest, OptionTupleParallelizeI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1442,7 +1464,7 @@ TEST_F(WrapperTest, OptionTupleParallelizeI) {
 TEST_F(WrapperTest, OptionTupleParallelizeII) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(3);
 
@@ -1464,10 +1486,8 @@ TEST_F(WrapperTest, OptionTupleParallelizeII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1493,7 +1513,7 @@ TEST_F(WrapperTest, OptionTupleParallelizeII) {
 TEST_F(WrapperTest, OptionTupleParallelizeIII) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = PyList_New(3);
 
@@ -1515,8 +1535,7 @@ TEST_F(WrapperTest, OptionTupleParallelizeIII) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
         auto resObj = res.ptr();
 
@@ -1543,7 +1562,7 @@ TEST_F(WrapperTest, OptionTupleParallelizeIII) {
 TEST_F(WrapperTest, parallelizeOptionTypeI) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = python::runAndGet(
             "test_input = [(1.0, '2', 3, '4', 5, 6, True, 8, 9, None), (None, '2', 3, None, 5, 6, True, 8, 9, None)"
@@ -1555,10 +1574,8 @@ TEST_F(WrapperTest, parallelizeOptionTypeI) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).collect();
-
         auto resObj = res.ptr();
 
         // simplest is string compare
@@ -1572,7 +1589,7 @@ TEST_F(WrapperTest, parallelizeOptionTypeI) {
 TEST_F(WrapperTest, parallelizeNestedSlice) {
     using namespace tuplex;
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     PyObject * listObj = python::runAndGet(
             "test_input = [((), (\"hello\",), 123, \"oh no\", (1, 2)), ((), (\"goodbye\",), 123, \"yes\", (-10, 2)),\n"
@@ -1584,10 +1601,8 @@ TEST_F(WrapperTest, parallelizeNestedSlice) {
 
     // weird block syntax due to RAII problems.
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: x[-10:]", "").collect();
-
         auto resObj = res.ptr();
 
         // simplest is string compare
@@ -1606,12 +1621,11 @@ TEST_F(WrapperTest, TPCHQ6) {
                                            "                    'l_discount', 'l_tax', 'l_returnflag', 'l_linestatus',\n"
                                            "                    'l_shipdate', 'l_commitdate', 'l_receiptdate',\n"
                                            "                    'l_shipinstruct', 'l_shipmode', 'l_comment']", "listitem_columns");
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     {
 
-        auto list = boost::python::list(boost::python::handle<>(listObj));
-
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto init_val = python::pickleObject(python::getMainModule(), PyFloat_FromDouble(0.0));
 
         auto path = "../resources/tpch/lineitem.tbl"; // SF 0.01
@@ -1629,9 +1643,9 @@ TEST_F(WrapperTest, TupleParallelizeI) {
 
     PyObject* listObj = python::runAndGet("L = [('hello', 'world', 'hi', 1, 2, 3), ('foo', 'bar', 'baz', 4, 5, 6), ('blank', '', 'not', 7, 8, 9)]", "L");
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         c.parallelize(list).map("lambda x: ({x[0]: x[3], x[1]: x[4], x[2]: x[5]},)", "").show();
     }
 }
@@ -1641,9 +1655,9 @@ TEST_F(WrapperTest, TupleParallelizeII) {
 
     PyObject* listObj = python::runAndGet("L = [({}, {}, {}), ({}, {}, {}), ({}, {}, {})]", "L");
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         c.parallelize(list).map("lambda x, y, z: [x, y, z]", "").show();
     }
 }
@@ -1658,7 +1672,7 @@ TEST_F(WrapperTest, DictParallelizeRefTest) {
     PyObject* strings = python::runAndGet("strings = [('hello', 'world', 'hi'), ('foo', 'bar', 'baz'), ('blank', '', 'not')]\n", "strings");
     PyObject* floats = python::runAndGet("floats = [(1.2, 3.4, -100.2), (5.6, 7.8, -1.234), (9.0, 0.1, 2.3)]\n", "floats");
     ASSERT_TRUE(floats->ob_refcnt > 0);
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     {
 
@@ -1671,8 +1685,8 @@ TEST_F(WrapperTest, DictParallelizeRefTest) {
         ASSERT_TRUE(floats->ob_refcnt > 0);
 
         // following code screws up python objects!
-        auto list = boost::python::list(boost::python::borrowed(L)); // <-- this is buggy!
-        ASSERT_EQ(boost::python::len(list), 3);
+        auto list = py::reinterpret_borrow<py::list>(L);
+        ASSERT_EQ(py::len(list), 3);
         ASSERT_EQ(PyList_Size(floats), 3);
         ASSERT_EQ(PyObject_Length(floats), 3);
         auto ds = c.parallelize(list).map("lambda x: (x['a'], x['b'], x['c'])", "");
@@ -1693,7 +1707,7 @@ TEST_F(WrapperTest, DictParallelizeRefTest) {
         auto vlen = PyObject_Length(v.ptr());
 
         // compare
-        ASSERT_EQ(boost::python::len(v), PyList_Size(floats));
+        ASSERT_EQ(py::len(v), PyList_Size(floats));
     }
 }
 
@@ -1701,20 +1715,20 @@ TEST_F(WrapperTest, DictParallelizeRefTest) {
 TEST_F(WrapperTest, BuiltinModule) {
     using namespace tuplex;
     using namespace std;
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
 
     {
         PyObject* L = PyList_New(3);
         PyList_SetItem(L, 0, python::PyString_FromString("123"));
         PyList_SetItem(L, 1, python::PyString_FromString("abc"));
         PyList_SetItem(L, 2, python::PyString_FromString("1a2b3c"));
-        auto list = boost::python::list(boost::python::borrowed(L)); // <-- this is buggy!
+        auto list = py::reinterpret_borrow<py::list>(L);
 
         PyObject* closureObject = PyDict_New();
         // import re module
         auto re_mod = PyImport_ImportModule("re");
         PyDict_SetItemString(closureObject, "re", re_mod);
-        auto v = c.parallelize(list).map("lambda x: re.search('\\\\d+', x) != None", "", closureObject).collect();
+        auto v = c.parallelize(list).map("lambda x: re.search('\\\\d+', x) != None", "", py::reinterpret_steal<py::dict>(closureObject)).collect();
 
         ASSERT_EQ(PyObject_Length(v.ptr()), 3);
         auto v_str = python::PyString_AsString(v.ptr());
@@ -1733,7 +1747,7 @@ TEST_F(WrapperTest, SwapIII) {
                 "    return a, b\n"
                 "\n";
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
     {
         PyObject* L = PyList_New(2);
         auto tuple1 = PyTuple_New(2);
@@ -1744,7 +1758,7 @@ TEST_F(WrapperTest, SwapIII) {
         PyTuple_SetItem(tuple2, 1, PyLong_FromLong(2));
         PyList_SetItem(L, 0, tuple1);
         PyList_SetItem(L, 1, tuple2);
-        auto list = boost::python::list(boost::python::borrowed(L));
+        auto list = py::reinterpret_borrow<py::list>(L);
 
         auto v = c.parallelize(list).map(code, "").collect();
         ASSERT_EQ(PyObject_Length(v.ptr()), 2);
@@ -1917,12 +1931,12 @@ namespace tuplex {
            .filter("lambda x: x['type'] == 'house'", "")
            .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
            .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-           .withColumn("bathrooms", extractBa_c, "", ba_closure)
+           .withColumn("bathrooms", extractBa_c, "", py::reinterpret_steal<py::dict>(ba_closure))
            .withColumn("sqft", extractSqft_c, "")
            .withColumn("offer", extractOffer_c, "")
            .withColumn("price", extractPrice_c, "")
            .filter("lambda x: 100000 < x['price'] < 2e7", "")
-           .selectColumns(boost::python::list(boost::python::borrowed<>(cols_to_select)));
+           .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select));
     }
 
     PythonDataSet zillowDirtyWithResolvers(PythonContext& ctx, const std::string& z_path) {
@@ -1948,14 +1962,14 @@ namespace tuplex {
                 .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
                 .ignore(ecToI64(ExceptionCode::TYPEERROR))
                 .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-                .withColumn("bathrooms", extractBa_c, "", ba_closure)
+                .withColumn("bathrooms", extractBa_c, "", py::reinterpret_steal<py::dict>(ba_closure))
                 .ignore(ecToI64(ExceptionCode::VALUEERROR))
                 .withColumn("sqft", extractSqft_c, "")
                 .ignore(ecToI64(ExceptionCode::VALUEERROR)) // why is this showing a single error???
                 .withColumn("offer", extractOffer_c, "")
                 .withColumn("price", extractPrice_c, "")
                 .filter("lambda x: 100000 < x['price'] < 2e7", "")
-                .selectColumns(boost::python::list(boost::python::borrowed<>(cols_to_select)));
+                .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select));
     }
 
     PythonDataSet zillowDirtyCustomLogic(PythonContext& ctx, const std::string& z_path) {
@@ -2033,25 +2047,25 @@ namespace tuplex {
                                  "        return None";
 
         return ctx.csv(z_path)
-                  .withColumn("bedrooms", extractBd_alt_c, "", ba_closure)
+                  .withColumn("bedrooms", extractBd_alt_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: x['bedrooms'] != None and x['bedrooms'] < 10", "")
-                  .withColumn("type", extractType_c, "", ba_closure)
+                  .withColumn("type", extractType_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: x['type'] == 'house'", "")
                   .filter("lambda x: x['postal_code'] != None", "")
                   .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
                   .filter("lambda x: x['zipcode'] != None", "")
                   .mapColumn("zipcode", "lambda x: str(x)", "")
                   .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-                  .withColumn("bathrooms", extractBa_alt_c, "", ba_closure)
+                  .withColumn("bathrooms", extractBa_alt_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: x['bathrooms'] != None", "")
                   .mapColumn("bathrooms", "lambda x: float(x)", "")
-                  .withColumn("sqft", extractSqft_alt_c, "", ba_closure)
+                  .withColumn("sqft", extractSqft_alt_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: x['sqft'] != None", "")
                   .mapColumn("sqft", "lambda x: int(x)", "")
-                  .withColumn("offer", extractOffer_c, "", ba_closure)
-                  .withColumn("price", extractPrice_c, "", ba_closure)
+                  .withColumn("offer", extractOffer_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
+                  .withColumn("price", extractPrice_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                   .filter("lambda x: 100000 < x['price'] < 2e7", "")
-                .selectColumns(boost::python::list(boost::python::borrowed<>(cols_to_select)));
+                .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select));
     }
 }
 
@@ -2076,6 +2090,7 @@ TEST_F(WrapperTest, ZillowDirty) {
                      " \"optimizer.nullValueOptimization\": false,"
                      " \"csv.selectionPushdown\": false, "
                      "\"optimizer.generateParser\": false,"
+                     "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                      "\"optimizer.mergeExceptionsInOrder\": true}";
 
     auto json_opts_alt = "{\"webui.enable\": false,"
@@ -2087,7 +2102,9 @@ TEST_F(WrapperTest, ZillowDirty) {
                      " \"useLLVMOptimizer\": true,"
                      " \"optimizer.nullValueOptimization\": false,"
                      " \"csv.selectionPushdown\": false, "
+                     "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                      "\"optimizer.generateParser\": false,"
+
                      "\"optimizer.mergeExceptionsInOrder\": false}";
 
     z_path = "../resources/zillow_dirty.csv";
@@ -2139,9 +2156,9 @@ TEST_F(WrapperTest, BitwiseAnd) {
 
     PyObject* listObj = python::runAndGet("L = [(False, False), (False, True), (True, False), (True, True)]", "L");
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res_list = c.parallelize(list).map("lambda a, b: a & b", "").collect();
         auto res_obj = res_list.ptr();
         ASSERT_TRUE(res_obj);
@@ -2155,9 +2172,9 @@ TEST_F(WrapperTest, MetricsTest) {
 
     PyObject* listObj = python::runAndGet("L = [(False, False), (False, True), (True, False), (True, True)]", "L");
 
-    PythonContext c("");
+    PythonContext c("c", "", testOptions());
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res_list = c.parallelize(list).map("lambda a, b: a & b", "").collect();
         auto res_obj = res_list.ptr();
         ASSERT_TRUE(res_obj);
@@ -2166,7 +2183,7 @@ TEST_F(WrapperTest, MetricsTest) {
     }
 
     // optimization time in LLVM depends on whether optimizer is activated or not.
-    auto optimizer_enabled = boost::python::extract<bool>(c.options().get("tuplex.useLLVMOptimizer"))();
+    auto optimizer_enabled = py::cast<bool>(c.options()["tuplex.useLLVMOptimizer"]);
     PythonMetrics pythMet = c.getMetrics();
     auto pt1 = pythMet.getTotalCompilationTime();
     auto pt2 = pythMet.getLogicalOptimizationTime();
@@ -2199,6 +2216,7 @@ TEST_F(WrapperTest, LambdaResolveI) {
     auto ctx_opts = "{\"webui.enable\": false,"
                          " \"driverMemory\": \"8MB\","
                          " \"partitionSize\": \"256KB\","
+                         "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                          "\"resolveWithInterpreterOnly\": true}";
     PythonContext ctx("", "", ctx_opts);
 
@@ -2206,7 +2224,7 @@ TEST_F(WrapperTest, LambdaResolveI) {
     auto L = python::runAndGet("L = [0, 1, 2, 3, 4]", "L");
     ASSERT_TRUE(L);
     Py_XINCREF(L);
-    auto object_list = boost::python::list(boost::python::borrowed(L));
+    auto object_list = py::reinterpret_borrow<py::list>(L);
 
     {
 //        // first try
@@ -2237,6 +2255,7 @@ TEST_F(WrapperTest, CollectPyObjects) {
     auto ctx_opts = "{\"webui.enable\": false,"
                     " \"driverMemory\": \"8MB\","
                     " \"partitionSize\": \"256KB\","
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                     "\"resolveWithInterpreterOnly\": true}";
     PythonContext ctx("", "", ctx_opts);
 
@@ -2244,7 +2263,7 @@ TEST_F(WrapperTest, CollectPyObjects) {
     auto L = python::runAndGet("import numpy as np; L = [(1,np.zeros(1)), (4,np.zeros(4))]", "L");
     ASSERT_TRUE(L);
     Py_XINCREF(L);
-    auto object_list = boost::python::list(boost::python::borrowed(L));
+    auto object_list = py::reinterpret_borrow<py::list>(L);
 
     {
         // second w. resolve
@@ -2275,6 +2294,7 @@ TEST_F(WrapperTest, SingleCharCSVField) {
     auto ctx_opts = "{\"webui.enable\": false,"
                     " \"driverMemory\": \"8MB\","
                     " \"partitionSize\": \"256KB\","
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                     "\"resolveWithInterpreterOnly\": true}";
     PythonContext ctx("", "", ctx_opts);
 
@@ -2283,7 +2303,7 @@ TEST_F(WrapperTest, SingleCharCSVField) {
     ASSERT_TRUE(L);
     Py_XINCREF(L);
     {
-        auto object_list = boost::python::list(boost::python::handle<>(L));
+        auto object_list = py::reinterpret_borrow<py::list>(L);
         // save to csv file
         ctx.parallelize(object_list).tocsv("testdata.csv"); // <-- this is not where the failure happens, happens somewhere else?
 
@@ -2291,7 +2311,9 @@ TEST_F(WrapperTest, SingleCharCSVField) {
         PyDict_SetItem(typehints, PyLong_FromLong(0), python::PyString_FromString("str"));
 
         // read from file incl. type hints
-        auto ds = ctx.csv("testdata.part0.csv",boost::python::object(), true, false, "", "\"", boost::python::object(), boost::python::object(boost::python::borrowed(typehints)));
+        auto ds = ctx.csv("testdata.part0.csv",py::none(), true, false, "", "\"",
+                          py::none(),
+                          py::reinterpret_steal<py::dict>(typehints));
     }
 }
 
@@ -2303,6 +2325,7 @@ TEST_F(WrapperTest, NYC311) {
                     " \"driverMemory\": \"8MB\","
                     " \"partitionSize\": \"256KB\","
                     "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                     "\"resolveWithInterpreterOnly\": true}";
 
     auto fix_zip_codes_c = "def fix_zip_codes(zips):\n"
@@ -2327,14 +2350,174 @@ TEST_F(WrapperTest, NYC311) {
         PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
         // type hints:
         // vector<string>{"Unspecified", "NO CLUE", "NA", "N/A", "0", ""}
-        ctx.csv(service_path,boost::python::object(), true, false, "", "\"",
-                boost::python::object(), boost::python::object(boost::python::handle<>(type_dict)))
+        ctx.csv(service_path,py::none(), true, false, "", "\"",
+                py::none(), py::reinterpret_steal<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
-                .selectColumns(boost::python::list(boost::python::handle<>(cols_to_select)))
+                .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select))
                 .unique().show();
 
         std::cout<<std::endl;
     }
+}
+
+TEST_F(WrapperTest, MixedTypesIsWithNone) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + ",\"tuplex.optimizer.mergeExceptionsInOrder\":\"True\"}";
+    PythonContext c("python", "",  opts);
+
+    PyObject *listObj = PyList_New(8);
+    PyList_SetItem(listObj, 0, Py_None);
+    PyList_SetItem(listObj, 1, PyLong_FromLong(255));
+    PyList_SetItem(listObj, 2, PyLong_FromLong(400));
+    PyList_SetItem(listObj, 3, Py_True);
+    PyList_SetItem(listObj, 4, PyFloat_FromDouble(2.7));
+    PyList_SetItem(listObj, 5, PyTuple_New(0)); // empty tuple
+    PyList_SetItem(listObj, 6, PyList_New(0)); // empty list
+    PyList_SetItem(listObj, 7, PyDict_New()); // empty dict
+
+    auto ref = vector<bool>{true, false, false, false, false, false, false, false};
+
+    Py_IncRef(listObj);
+
+    {
+        auto list = py::reinterpret_borrow<py::list>(listObj);
+        auto res = c.parallelize(list).map("lambda x: (x, x is None)", "").collect();
+        auto resObj = res.ptr();
+        PyObject_Print(resObj, stdout, 0);
+        std::cout<<std::endl;
+
+        // convert to list and check
+        ASSERT_TRUE(PyList_Check(resObj));
+        ASSERT_EQ(PyList_Size(resObj), ref.size());
+
+        for(int i = 0; i < ref.size(); ++i) {
+            auto item = PyList_GetItem(resObj, i);
+            Py_INCREF(item);
+            ASSERT_TRUE(PyTuple_Check(item));
+
+            auto el0 = PyTuple_GetItem(item, 0);
+            auto el1 = PyTuple_GetItem(item, 1);
+            Py_INCREF(el0);
+            Py_IncRef(el1);
+            ASSERT_TRUE(el1 == Py_False || el1 == Py_True);
+            auto el1_true = el1 == Py_True;
+            EXPECT_EQ(el1_true, ref[i]);
+
+            auto cmp_res = PyObject_RichCompare(PyList_GetItem(listObj, i), el0, Py_EQ);
+
+            cout<<"comparing "<<python::PyString_AsString(PyList_GetItem(listObj, i))<<" == "<<python::PyString_AsString(el0)<<endl;
+            PyObject_Print(cmp_res, stdout, 0);
+            std::cout<<std::endl;
+            ASSERT_TRUE(cmp_res);
+            EXPECT_EQ(cmp_res, Py_True);
+        }
+    }
+}
+
+TEST_F(WrapperTest, SelectColumns) {
+    using namespace tuplex;
+
+    auto content = "Unique Key,Created Date,Closed Date,Agency,Agency Name,Complaint Type,Descriptor,Location Type,Incident Zip,Incident Address,Street Name,Cross Street 1,Cross Street 2,Intersection Street 1,Intersection Street 2,Address Type,City,Landmark,Facility Type,Status,Due Date,Resolution Description,Resolution Action Updated Date,Community Board,BBL,Borough,X Coordinate (State Plane),Y Coordinate (State Plane),Open Data Channel Type,Park Facility Name,Park Borough,Vehicle Type,Taxi Company Borough,Taxi Pick Up Location,Bridge Highway Name,Bridge Highway Direction,Road Ramp,Bridge Highway Segment,Latitude,Longitude,Location\n"
+                   "19937896,03/01/2011 02:27:57 PM,03/14/2011 03:59:20 PM,DOF,Refunds and Adjustments,DOF Property - Payment Issue,Misapplied Payment,Property Address,10027,,,,,,,ADDRESS,NEW YORK,,N/A,Closed,03/22/2011 02:27:57 PM,The Department of Finance resolved this issue.,03/14/2011 03:59:20 PM,09 MANHATTAN,1019820050,MANHATTAN,,,PHONE,Unspecified,MANHATTAN,,,,,,,,,,\n"
+                   "19937901,03/01/2011 10:41:13 AM,03/15/2011 04:14:19 PM,DOT,Department of Transportation,Street Sign - Dangling,Street Cleaning - ASP,Street,11232,186 25 STREET,25 STREET,3 AVENUE,4 AVENUE,,,ADDRESS,BROOKLYN,,N/A,Closed,03/15/2011 05:32:23 PM,The Department of Transportation has completed the request or corrected the condition.,03/15/2011 04:14:19 PM,07 BROOKLYN,3006540024,BROOKLYN,984640,180028,PHONE,Unspecified,BROOKLYN,,,,,,,,40.660811976282695,-73.99859430999363,\"(40.660811976282695, -73.99859430999363)\"\n"
+                   "19937902,03/01/2011 09:07:45 AM,03/15/2011 08:26:09 AM,DOT,Department of Transportation,Street Sign - Missing,Other/Unknown,Street,11358,,,,,158 STREET,NORTHERN BOULEVARD,INTERSECTION,FLUSHING,,N/A,Closed,03/15/2011 02:24:33 PM,The Department of Transportation has completed the request or corrected the condition.,03/15/2011 08:26:09 AM,07 QUEENS,,QUEENS,1037621,217498,PHONE,Unspecified,QUEENS,,,,,,,,40.763497105049986,-73.80733639290203,\"(40.763497105049986, -73.80733639290203)\"\n"
+                   "19937903,03/01/2011 05:39:26 PM,04/04/2011 11:32:57 AM,DOT,Department of Transportation,Street Sign - Missing,School Crossing,Street,10014,10 SHERIDAN SQUARE,SHERIDAN SQUARE,BARROW STREET,GROVE STREET,,,ADDRESS,NEW YORK,,N/A,Closed,04/01/2011 03:43:12 PM,\"Upon inspection, the reported condition was not found, therefore no action was taken.\",04/04/2011 11:32:57 AM,02 MANHATTAN,1005920040,MANHATTAN,983719,206336,PHONE,Unspecified,MANHATTAN,,,,,,,,40.733021305197404,-74.00191597502526,\"(40.733021305197404, -74.00191597502526)\"\n"
+                   "19937904,03/01/2011 11:08:14 AM,03/02/2011 07:55:37 AM,DOT,Department of Transportation,Street Sign - Missing,Stop,Street,10069,,,,,WEST   63 STREET,WEST END AVENUE,INTERSECTION,NEW YORK,,N/A,Closed,03/08/2011 11:08:14 AM,\"The condition has been inspected/investigated, see customer notes for more information.\",03/02/2011 07:55:37 AM,07 MANHATTAN,,MANHATTAN,987400,221308,PHONE,Unspecified,MANHATTAN,,,,,,,,40.77411510013836,-73.98862703263869,\"(40.77411510013836, -73.98862703263869)\"\n"
+                   "19937906,03/01/2011 03:16:09 PM,03/02/2011 09:06:30 AM,DOF,Correspondence Unit,DOF Property - Request Copy,Copy of Notice of Property Value,Property Address,11105,,,,,,,ADDRESS,ASTORIA,,N/A,Closed,03/06/2011 03:16:09 PM,The Department of Finance mailed the requested item.,03/02/2011 09:06:31 AM,01 QUEENS,4009650074,QUEENS,,,PHONE,Unspecified,QUEENS,,,,,,,,,,\n"
+                   "19937907,03/01/2011 01:22:59 PM,03/02/2011 09:06:28 AM,DOF,Correspondence Unit,DOF Property - Request Copy,Copy of Notice of Property Value,Property Address,10469,,,,,,,ADDRESS,BRONX,,N/A,Closed,03/06/2011 01:22:59 PM,The Department of Finance mailed the requested item.,03/02/2011 09:06:28 AM,12 BRONX,2046970142,BRONX,,,PHONE,Unspecified,BRONX,,,,,,,,,,\n"
+                   "19937908,03/01/2011 12:01:58 PM,03/02/2011 09:05:26 AM,DOF,Correspondence Unit,DOF Property - Request Copy,Copy of Notice of Property Value,Property Address,10305,,,,,,,ADDRESS,STATEN ISLAND,,N/A,Closed,03/06/2011 12:01:58 PM,The Department of Finance mailed the requested item.,03/02/2011 09:05:26 AM,02 STATEN ISLAND,5032350004,STATEN ISLAND,,,PHONE,Unspecified,STATEN ISLAND,,,,,,,,,,\n"
+                   "19937909,03/01/2011 02:35:46 PM,03/02/2011 09:06:31 AM,DOF,Correspondence Unit,DOF Property - Request Copy,Copy of Notice of Property Value,Property Address,11221,,,,,,,ADDRESS,BROOKLYN,,N/A,Closed,03/06/2011 02:35:46 PM,The Department of Finance mailed the requested item.,03/02/2011 09:06:31 AM,04 BROOKLYN,3033660059,BROOKLYN,,,PHONE,Unspecified,BROOKLYN,,,,,,,,,,";
+
+    // write to test dir!
+    auto testURI = testName + "/311_subset.csv";
+
+    stringToFile(testURI, content);
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+        auto cols_to_select = PyList_New(1);
+        PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Unique Key"));
+
+        auto res = ctx.csv(testURI).selectColumns(py::reinterpret_borrow<py::list>(cols_to_select)).columns();
+        auto resObj = res.ptr();
+        ASSERT_TRUE(PyList_Check(resObj));
+        ASSERT_EQ(PyList_Size(resObj), 1);
+        auto col_name = python::PyString_AsString(PyList_GET_ITEM(resObj, 0));
+        EXPECT_EQ(col_name, "Unique Key");
+    }
+}
+
+TEST_F(WrapperTest, PartitionRelease) {
+    // this test checks that when context is destroyed, partitions are also properly released
+
+      using namespace tuplex;
+    using namespace std;
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                    "\"resolveWithInterpreterOnly\": true}";
+
+    auto fix_zip_codes_c = "def fix_zip_codes(zips):\n"
+                           "    if not zips:\n"
+                           "         return None\n"
+                           "    # Truncate everything to length 5 \n"
+                           "    s = zips[:5]\n"
+                           "    \n"
+                           "    # Set 00000 zip codes to nan\n"
+                           "    if s == '00000':\n"
+                           "         return None\n"
+                           "    else:\n"
+                           "         return s";
+
+    auto service_path = "../resources/pipelines/311/311_nyc_sample.csv";
+
+    PythonContext *ctx = new PythonContext("", "", ctx_opts);
+
+    PythonContext ctx2("", "", ctx_opts);
+    {
+        auto type_dict = PyDict_New();
+        PyDict_SetItem(type_dict, python::PyString_FromString("Incident Zip"), python::PyString_FromString("str"));
+        auto cols_to_select = PyList_New(1);
+        PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
+        // type hints:
+        // vector<string>{"Unspecified", "NO CLUE", "NA", "N/A", "0", ""}
+        ctx->csv(service_path,py::none(), true, false, "", "\"",
+                py::none(), py::reinterpret_steal<py::dict>(type_dict))
+                .mapColumn("Incident Zip", fix_zip_codes_c, "")
+                .selectColumns(py::reinterpret_steal<py::dict>(cols_to_select))
+                .unique().show();
+
+        std::cout<<std::endl;
+
+        delete ctx; // should invoke partitions!
+        ctx = nullptr;
+
+
+        type_dict = PyDict_New();
+        PyDict_SetItem(type_dict, python::PyString_FromString("Incident Zip"), python::PyString_FromString("str"));
+        cols_to_select = PyList_New(1);
+        PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
+
+        ctx2.csv(service_path,py::none(), true, false, "", "\"",
+                 py::none(), py::reinterpret_steal<py::dict>(type_dict))
+                .mapColumn("Incident Zip", fix_zip_codes_c, "")
+                .selectColumns(py::reinterpret_steal<py::dict>(cols_to_select))
+                .unique().show();
+    }
+
 }
 
 

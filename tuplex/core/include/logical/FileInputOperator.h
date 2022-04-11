@@ -242,6 +242,12 @@ namespace tuplex {
         void setProjectionDefaults();
 
         int64_t cost() const override;
+
+        /*!
+         * check whether files detected are all empty or not. I.e., there are no files OR the sum of all file sizes is 0.
+         * @return true or false
+         */
+        bool isEmpty() const;
     };
 }
 

@@ -25,7 +25,7 @@ TEST_F(ZillowTest, LargeDirtyFileParse) {
     using namespace tuplex;
     using namespace std;
 
-    Context c;
+    Context c(testOptions());
 
     // TODO: when not using a restricted test environment like azure pipelines
     //       run test on replicated dirty zillow data!

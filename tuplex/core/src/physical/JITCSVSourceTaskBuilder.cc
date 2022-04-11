@@ -14,7 +14,7 @@
 
 namespace tuplex {
     namespace codegen {
-        llvm::Function* JITCSVSourceTaskBuilder::build() {
+        llvm::Function* JITCSVSourceTaskBuilder::build(bool terminateEarlyOnFailureCode) {
 
             // check if pipeline exists
             if(pipeline()) {
@@ -30,7 +30,7 @@ namespace tuplex {
             auto func = createFunction(); // TODO: add name here
 
             // build all necessary ingredients
-            createMainLoop(func);
+            createMainLoop(func, terminateEarlyOnFailureCode);
 
             return func;
         }
@@ -97,6 +97,7 @@ namespace tuplex {
                                                  llvm::Value *outputRowNumberVar,
                                                  llvm::Value *inputRowPtr,
                                                  llvm::Value *inputRowSize,
+                                                 bool terminateEarlyOnLimitCode,
                                                  llvm::Function* processRowFunc) {
 
 #warning "incomplete exception handling here!!!"
@@ -159,6 +160,9 @@ namespace tuplex {
                 auto ecCode = builder.CreateZExtOrTrunc(res.resultCode, env().i64Type());
                 auto ecOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env().i64Type());
                 auto numRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env().i64Type()); // important!!! ==> add to outputRowVar!
+
+                if(terminateEarlyOnLimitCode)
+                    generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
 
                 // call rtfree all after processing one row...
                 _env->freeAll(builder);
@@ -271,7 +275,7 @@ namespace tuplex {
             env().freeAll(builder);
         }
 
-        void JITCSVSourceTaskBuilder::createMainLoop(llvm::Function* read_block_func) {
+        void JITCSVSourceTaskBuilder::createMainLoop(llvm::Function* read_block_func, bool terminateEarlyOnLimitCode) {
             using namespace llvm;
             using namespace std;
 
@@ -346,7 +350,7 @@ namespace tuplex {
 #endif
 
             // process row here -- BEGIN
-            processRow(builder, argUserData, builder.CreateLoad(parseCodeVar), resStructVar, normalRowCountVar, badRowCountVar, outputRowNumberVar, nullptr, nullptr, pipFunc);
+            processRow(builder, argUserData, builder.CreateLoad(parseCodeVar), resStructVar, normalRowCountVar, badRowCountVar, outputRowNumberVar, nullptr, nullptr, terminateEarlyOnLimitCode,pipFunc);
             // end process row here -- END
 
 #ifdef TRACE_PARSER
@@ -469,7 +473,7 @@ namespace tuplex {
             env().debugPrint(builder, "ended in else block", env().i64Const(1));
 #endif
             // process row here -- BEGIN
-            processRow(builder, argUserData, builder.CreateLoad(parseCodeVar), resStructVar, normalRowCountVar, badRowCountVar, outputRowNumberVar, nullptr, nullptr, pipFunc);
+            processRow(builder, argUserData, builder.CreateLoad(parseCodeVar), resStructVar, normalRowCountVar, badRowCountVar, outputRowNumberVar, nullptr, nullptr, terminateEarlyOnLimitCode, pipFunc);
             // end process row here -- EN
 
             env().storeIfNotNull(builder, builder.CreateLoad(normalRowCountVar), argOutNormalRowCount);

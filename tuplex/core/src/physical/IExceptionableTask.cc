@@ -49,7 +49,7 @@ namespace tuplex {
         // special case: no partitions yet
         if(!_startPtr) {
             // alloc
-            Partition *partition = owner->allocWritablePartition(size + sizeof(int64_t), schema, -1);
+            Partition *partition = owner->allocWritablePartition(size + sizeof(int64_t), schema, -1, _contextID);
 
             assert(partition);
 
@@ -69,7 +69,7 @@ namespace tuplex {
                 last->unlockWrite();
                 last->setBytesWritten(bytesWritten());
 
-                Partition *partition = owner->allocWritablePartition(size + sizeof(int64_t), schema, -1);
+                Partition *partition = owner->allocWritablePartition(size + sizeof(int64_t), schema, -1, _contextID);
 
                 assert(partition);
 

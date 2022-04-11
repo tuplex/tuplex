@@ -108,7 +108,7 @@ namespace tuplex {
 
         // write data to partitions
         int64_t dataSetID = 0; // no ID here
-        _inputPartitions = rowsToPartitions(backend()->driver(), dataSetID, rows);
+        _inputPartitions = rowsToPartitions(backend()->driver(), dataSetID, context().id(), rows);
     }
 
 
@@ -120,11 +120,11 @@ namespace tuplex {
 
     void TransformStage::setMemoryResult(const std::vector<Partition *> &partitions,
                                          const std::vector<Partition*>& generalCase,
+                                         const std::unordered_map<std::string, ExceptionInfo>& partitionToExceptionsMap,
                                          const std::vector<std::tuple<size_t, PyObject*>>& interpreterRows,
                                          const std::vector<Partition*>& remainingExceptions,
                                          const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> &ecounts) {
         setExceptionCounts(ecounts);
-        _unresolved_exceptions = generalCase;
 
         if (partitions.empty() && interpreterRows.empty() && generalCase.empty())
             _rs = emptyResultSet();
@@ -159,7 +159,7 @@ namespace tuplex {
 
             // put ALL partitions to result set
             _rs = std::make_shared<ResultSet>(schema, limitedPartitions,
-                                              generalCase, interpreterRows,
+                                              generalCase, partitionToExceptionsMap, interpreterRows,
                                               outputLimit());
         }
     }
@@ -245,7 +245,7 @@ namespace tuplex {
            return std::vector<Partition*>();
 
         Partition* partition = nullptr;
-        PartitionWriter pw(driver, outputSchema, outputDataSetID, context.getOptions().PARTITION_SIZE());
+        PartitionWriter pw(driver, outputSchema, outputDataSetID, context.id(), context.getOptions().PARTITION_SIZE());
 
         // check whether null-bucket is filled, if so output!
         if(result.null_bucket) {
@@ -478,7 +478,7 @@ namespace tuplex {
         }
 
         // construct return partition
-        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1);
+        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1, context.id());
         auto data_region = reinterpret_cast<char *>(p->lockWrite());
         for(const auto& pr: unique_rows) {
             memcpy(data_region, pr.first, pr.second);
@@ -524,7 +524,7 @@ namespace tuplex {
         }
 
         // construct return partition
-        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1);
+        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1, context.id());
         auto data_region = reinterpret_cast<char *>(p->lockWrite());
         for(const auto& pr: unique_rows) {
             memcpy(data_region, pr.first, pr.second);
@@ -540,7 +540,9 @@ namespace tuplex {
         return ret;
     }
 
-    static std::vector<Partition*> convertInt64HashTableToPartitionsAggByKey(const TransformStage::HashResult& result, const Schema &schema, const Context &context) {
+    static std::vector<Partition*> convertInt64HashTableToPartitionsAggByKey(const TransformStage::HashResult& result,
+                                                                             const Schema &schema,
+                                                                             const Context &context) {
         std::vector<std::pair<const char*, size_t>> unique_rows;
         size_t total_serialized_size = 0;
         const map_t &hashtable = result.hash_map;
@@ -564,7 +566,7 @@ namespace tuplex {
         }
 
         // construct return partition
-        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1);
+        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1, context.id());
         auto data_region = reinterpret_cast<char *>(p->lockWrite());
         for(const auto& pr: unique_rows) {
             memcpy(data_region, pr.first, pr.second);
@@ -672,7 +674,6 @@ namespace tuplex {
         // execute stage via backend
         backend()->execute(this);
 
-
         // free hashmaps of dependents (b.c. it's a tree this is ok)
         if(numArgs > 0) {
             for(int i = 0; i < numPreds; ++i) {
@@ -753,8 +754,6 @@ namespace tuplex {
             unoptimizedIR = code();
         }
 
-        logger.info("retrieved metrics object");
-
         // step 1: run optimizer if desired
         if(optimizer) {
             optimizer->optimizeModule(*mod.get());
@@ -764,18 +763,17 @@ namespace tuplex {
             double llvm_optimization_time = timer.time();
             metrics.setLLVMOptimizationTime(llvm_optimization_time);
             logger.info("Optimization via LLVM passes took " + std::to_string(llvm_optimization_time) + " ms");
-
             timer.reset();
         }
 
         logger.debug("registering symbols...");
         // step 2: register callback functions with compiler
         if(registerSymbols && !writeMemoryCallbackName().empty())
-            jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(false));
+            jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(hasOutputLimit(), false));
         if(registerSymbols && !exceptionCallbackName().empty())
             jit.registerSymbol(exceptionCallbackName(), TransformTask::exceptionCallback(false));
         if(registerSymbols && !writeFileCallbackName().empty())
-            jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(true));
+            jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(hasOutputLimit(), true));
 
         if(outputMode() == EndPointMode::HASHTABLE && !_funcHashWriteCallbackName.empty()) {
             if (hashtableKeyByteWidth() == 8) {
@@ -825,8 +823,10 @@ namespace tuplex {
         logger.info("first compile done");
 
         // fetch symbols (this actually triggers the compilation first with register alloc etc.)
-        if(!_syms->functor)
+        if(!_syms->functor && !_updateInputExceptions)
             _syms->functor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(funcName()));
+        if(!_syms->functorWithExp && _updateInputExceptions)
+            _syms->functorWithExp = reinterpret_cast<codegen::read_block_exp_f>(jit.getAddrOfSymbol(funcName()));
         logger.info("functor " + funcName() + " retrieved from llvm");
         if(_outputMode == EndPointMode::FILE && !_syms->writeFunctor)
                 _syms->writeFunctor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(writerFuncName()));
@@ -851,7 +851,12 @@ namespace tuplex {
         }
 
         // check symbols are valid...
-        if(!(_syms->functor && _syms->initStageFunctor && _syms->releaseStageFunctor)) {
+        bool hasValidFunctor = true;
+        if (_updateInputExceptions && !_syms->functorWithExp)
+            hasValidFunctor = false;
+        if (!_updateInputExceptions && !_syms->functor)
+            hasValidFunctor = false;
+        if(!hasValidFunctor && _syms->initStageFunctor && _syms->releaseStageFunctor) {
             logger.error("invalid pointer address for JIT code returned");
             throw std::runtime_error("invalid pointer address for JIT code returned");
         }

@@ -41,6 +41,7 @@ namespace tuplex {
         size_t _size;
 
         int64_t         _dataSetID; //! identifies dataset to which this partition belongs to
+        int64_t         _contextID; //! identifies to which context this partitions belongs to
 
         uniqueid_t  _uuid;
         Executor* const   _owner; // who owns this partition?
@@ -88,7 +89,8 @@ namespace tuplex {
                   uint8_t* memory,
                   size_t size,
                   const Schema& schema,
-                  const int dataSetID) : _owner(owner),
+                  const int dataSetID,
+                  const int contextID) : _owner(owner),
                                          _arena(memory),
                                          _size(size),
                                          _uuid(getUniqueID()),
@@ -99,6 +101,7 @@ namespace tuplex {
                                          _bytesWritten(0),
                                          _schema(schema),
                                          _dataSetID(dataSetID),
+                                         _contextID(contextID),
                                          _swappedToFile(false) {
             // memory MUST point to a valid location
             assert(memory);
@@ -157,6 +160,8 @@ namespace tuplex {
         size_t capacity() { return _size - sizeof(int64_t); }
 
         uniqueid_t uuid() const { return _uuid; }
+
+        int64_t contextID() const { return _contextID; }
 
         /*!
          * checks whether memory of this partition is currently locked

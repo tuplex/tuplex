@@ -55,8 +55,7 @@ tuplex::Row execRow(const tuplex::Row& input, tuplex::UDF udf) {
 
     // add simple map
     pip->mapOperation(0, udf, 0.5, false, false);
-    pip->buildWithTuplexWriter("execRow_writeback", 1);
-
+    pip->buildWithTuplexWriter("execRow_writeback", 1, false);
 
     // create simple mapper
     auto llvmFunc = codegen::createSingleProcessRowWrapper(*pip.get(), "execRow");
@@ -70,7 +69,7 @@ tuplex::Row execRow(const tuplex::Row& input, tuplex::UDF udf) {
 
 
     // init runtime
-    auto co = microTestOptions();
+    auto co = ContextOptions::defaults();
     runtime::init(co.RUNTIME_LIBRARY().toPath());
 
     // execute row executor

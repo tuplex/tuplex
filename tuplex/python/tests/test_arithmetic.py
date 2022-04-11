@@ -18,7 +18,7 @@ from tuplex import *
 
 class TestArithmetic(unittest.TestCase):
     def setUp(self):
-        self.conf = {"webui.enable": False, "driverMemory": "8MB", "partitionSize": "256KB"}
+        self.conf = {"webui.enable": False, "driverMemory": "8MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": True}
 
     def test_add(self):
         c = Context(self.conf)

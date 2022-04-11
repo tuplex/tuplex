@@ -254,7 +254,7 @@ namespace tuplex {
 
             // is trafo stage?
             const TransformStage* tstage = nullptr;
-            if(tstage = dynamic_cast<const TransformStage*>(stage)) {
+            if((tstage = dynamic_cast<const TransformStage*>(stage))) {
                 auto operators = tstage->operators();
                 if(operators.empty())
                     return;

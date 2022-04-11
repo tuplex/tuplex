@@ -64,7 +64,12 @@ else()
     # Note: alternative is to use CJSON_HIDE_SYMBOLS IWTH AWS SDK.
 endif()
 
-add_library(libutils STATIC
+# AWS SDK defines cjson since v1.5, yet if using BUILD_WITH_AWS=OFF make sure to add cJSON symbols...
+if(NOT BUILD_WITH_AWS)
+    list(APPEND SOURCES ${cjson_SOURCE_DIR}/cJSON.c)
+endif()
+
+add_library(libutils OBJECT
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 set_target_properties(libutils PROPERTIES PREFIX "")
 
@@ -89,11 +94,6 @@ include_directories(${json_INCLUDE_DIR})
 # dependencies
 
 add_dependencies(libutils fmt spdlog json)
-
-# AWS SDK defines cjson since v1.5
-if(NOT BUILD_WITH_AWS)
-target_sources(libutils PUBLIC ${cjson_SOURCE_DIR}/cJSON.c)
-endif()
 
 target_include_directories(libutils PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include

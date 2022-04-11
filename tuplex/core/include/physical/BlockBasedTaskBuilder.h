@@ -30,6 +30,13 @@ namespace tuplex {
 
             llvm::Function *createFunction();
 
+            /*!
+             * create function to process blocks of data along with any input exceptions. Used when filters are present
+             * to update the indices of the exceptions.
+             * @return llvm function
+             */
+            llvm::Function *createFunctionWithExceptions();
+
             python::Type _inputRowType; //@TODO: make this private??
 
             std::string _intermediateCallbackName;
@@ -48,7 +55,6 @@ namespace tuplex {
              * @return
              */
             inline llvm::Value *arg(const std::string &name) {
-                assert(_args.size() == 6);
                 auto it = _args.find(name);
                 if (it == _args.end())
                     throw std::runtime_error("unknown arg " + name + " requested");
@@ -67,6 +73,10 @@ namespace tuplex {
                                              llvm::Value *badDataLength);
 
             bool hasExceptionHandler() const { return !_exceptionHandlerName.empty(); }
+
+            void generateTerminateEarlyOnCode(llvm::IRBuilder<>& builder,
+                                              llvm::Value* ecCode,
+                                              ExceptionCode code = ExceptionCode::OUTPUT_LIMIT_REACHED);
 
         private:
             std::shared_ptr<codegen::PipelineBuilder> _pipBuilder;
@@ -129,9 +139,13 @@ namespace tuplex {
 
             /*!
              * build task function
+             * @param terminateEarlyOnFailureCode when set to true, the return code of the pipeline is checked.
+             *                                    If it's non-zero, the loop is terminated. Helpful for implementing
+             *                                    limit operations (i.e. there OUTPUT_LIMIT_REACHED exception is
+             *                                    returned in writeRow(...)).
              * @return LLVM function of the task taking a memory block as input, returns nullptr if build failed
              */
-            virtual llvm::Function *build() = 0;
+            virtual llvm::Function *build(bool terminateEarlyOnFailureCode=false) = 0;
         };
 
         // @TODO:

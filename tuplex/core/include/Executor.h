@@ -22,6 +22,7 @@
 #include <mt/ThreadPool.h>
 #include <BitmapAllocator.h>
 #include <Schema.h>
+#include "Context.h"
 #include "HistoryServerConnector.h"
 #include "physical/IExecutorTask.h"
 
@@ -34,7 +35,7 @@ namespace tuplex {
     class Partition;
     class WorkQueue;
     class HistoryServerConnector;
-
+    class Context;
 
     using ExecutorTaskQueueType=moodycamel::BlockingConcurrentQueue<IExecutorTask*>;
 
@@ -229,7 +230,7 @@ namespace tuplex {
         // for multiple stages, there should be an acquire function
         // based on thread id.
         // this function may be only called by the thread owning this partition
-        Partition* allocWritablePartition(const size_t minRequired, const Schema& schema, const int dataSetID);
+        Partition* allocWritablePartition(const size_t minRequired, const Schema& schema, const int dataSetID, const int contextID);
 
         // two things can happen
         // (1) own partition --> release
@@ -238,6 +239,12 @@ namespace tuplex {
         // beware! this is not multithreading safe!
         // only call carefully...
         void freePartition(Partition* partition);
+
+        /*!
+         * frees all partitions belogning to context ctx
+         * @param ctx a Context object
+         */
+        void freeAllPartitionsOfContext(const Context* ctx=nullptr);
 
         void setThreadNumber(size_t threadNumber) { _threadNumber = threadNumber; }
 

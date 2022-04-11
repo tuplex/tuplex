@@ -92,3 +92,5 @@ tuplex.egg-info/
 
 wheelhouse/
 *.zip
+tuplex/other/tplxlam.zip
+fixed_wheels/

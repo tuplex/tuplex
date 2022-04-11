@@ -25,7 +25,10 @@
 #endif
 
 namespace tuplex {
-    Context::Context(const ContextOptions& options) : _datasetIDGenerator(0), _compilePolicy(compilePolicyFromOptions(options)) {
+
+    int Context::_contextIDGenerator = 10000;
+
+    Context::Context(const ContextOptions& options) : _datasetIDGenerator(0), _compilePolicy(compilePolicyFromOptions(options)), _id(getNextContextID()) {
         // init metrics
         _lastJobMetrics = std::make_unique<JobMetrics>();
         // make sure this is called without holding the GIL
@@ -54,7 +57,7 @@ namespace tuplex {
         switch(options.BACKEND()) {
             case Backend::LOCAL: {
                 // creates a new local backend! --> maybe reuse for multiple contexts?
-                _ee = std::make_unique<LocalBackend>(options);
+                _ee = std::make_unique<LocalBackend>(*this);
                 break;
             }
             case Backend::LAMBDA: {
@@ -72,7 +75,7 @@ namespace tuplex {
                 }
 
                 // @TODO: function name should come from options!
-                _ee = std::make_unique<AwsLambdaBackend>(AWSCredentials::get(), "tuplex-lambda-runner", options);
+                _ee = std::make_unique<AwsLambdaBackend>(*this, AWSCredentials::get(), "tuplex-lambda-runner");
 #endif
                 break;
             }
@@ -109,7 +112,7 @@ namespace tuplex {
             throw std::runtime_error("driver not initialized for backend");
 
         size_t bytes_to_alloc = std::max(minBytesRequired + sizeof(int64_t), _options.PARTITION_SIZE());
-        return driver->allocWritablePartition(bytes_to_alloc, schema, dataSetID);
+        return driver->allocWritablePartition(bytes_to_alloc, schema, dataSetID, id());
     }
 
     DataSet* Context::createDataSet(const Schema& schema) {
@@ -199,7 +202,7 @@ namespace tuplex {
 
     }
 
-    DataSet& Context::fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<std::string>& columns) {
+    DataSet& Context::fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<std::string>& columns, const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects, const std::vector<size_t> &numExceptionsInPartition) {
         auto dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
 
@@ -211,7 +214,7 @@ namespace tuplex {
         // empty?
         if(partitions.empty()) {
             dsptr->setColumns(columns);
-            addParallelizeNode(dsptr);
+            addParallelizeNode(dsptr, badParallelizeObjects, numExceptionsInPartition);
             return *dsptr;
         } else {
             size_t numRows = 0;
@@ -227,7 +230,7 @@ namespace tuplex {
 
             // set rows
             dsptr->setColumns(columns);
-            addParallelizeNode(dsptr);
+            addParallelizeNode(dsptr, badParallelizeObjects, numExceptionsInPartition);
 
             // signal check
             if(check_and_forward_signals()) {
@@ -240,7 +243,8 @@ namespace tuplex {
         }
     }
 
-    DataSet& Context::parallelize(const std::vector<Row>& rows, const std::vector<std::string>& columnNames) {
+    DataSet& Context::parallelize(const std::vector<Row>& rows,
+                                  const std::vector<std::string>& columnNames) {
 
         Schema schema;
         int dataSetID = getNextDataSetID();
@@ -345,7 +349,94 @@ namespace tuplex {
         return op;
     }
 
-    void Context::addParallelizeNode(DataSet *ds) {
+    void Context::serializePythonObjects(const std::vector<std::tuple<size_t, PyObject*>>& pythonObjects,
+                                         const std::vector<size_t> &numExceptionsInPartition,
+                                         const std::vector<Partition*> &normalPartitions,
+                                         const int64_t opID,
+                                         std::vector<Partition*> &serializedPythonObjects,
+                                         std::unordered_map<std::string, ExceptionInfo> &pythonObjectsMap) {
+        if (pythonObjects.empty()) {
+            for (const auto &p : normalPartitions) {
+                pythonObjectsMap[uuidToString(p->uuid())] = ExceptionInfo();
+            }
+            return;
+        }
+
+        Schema schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::STRING}));
+        const size_t allocMinSize = 1024 * 64; // 64KB
+
+        Partition* partition = requestNewPartition(schema, -1, allocMinSize);
+        int64_t* rawPtr = (int64_t*)partition->lockWriteRaw();
+        *rawPtr = 0;
+        uint8_t* ptr = (uint8_t*)(rawPtr + 1);
+        size_t numBytesSerialized = 0;
+
+        auto prevExpByteOffset = 0;
+        auto prevExpRowOffset = 0;
+        auto prevExpInd = 0;
+        auto curNormalPartitionInd = 0;
+        auto numNewExps = 0;
+
+        // Serialize each exception to a partition using the following schema:
+        // (1) is the field containing rowNum
+        // (2) is the field containing ecCode
+        // (3) is the field containing opID
+        // (4) is the field containing pickledObjectSize
+        // (5) is the field containing pickledObject
+        for(auto &exception : pythonObjects) {
+            auto rowNum = std::get<0>(exception);
+            auto pyObj = std::get<1>(exception);
+            auto ecCode = ecToI64(ExceptionCode::PYTHON_PARALLELIZE);
+            auto pickledObject = python::pickleObject(python::getMainModule(), pyObj);
+            auto pickledObjectSize = pickledObject.size();
+            size_t requiredBytes = sizeof(int64_t) * 4 + pickledObjectSize;
+
+            if (partition->capacity() < numBytesSerialized + requiredBytes) {
+                partition->unlockWrite();
+                serializedPythonObjects.push_back(partition);
+                partition = requestNewPartition(schema, -1, allocMinSize);
+                rawPtr = (int64_t *) partition->lockWriteRaw();
+                *rawPtr = 0;
+                ptr = (uint8_t * )(rawPtr + 1);
+                numBytesSerialized = 0;
+            }
+
+            // Check if we have reached the number of exceptions in the input partition
+            // Record the current exception index and offset and iterate to next one
+            auto curNormalPartition = normalPartitions[curNormalPartitionInd];
+            auto normalUUID = uuidToString(curNormalPartition->uuid());
+            auto numExps = numExceptionsInPartition[curNormalPartitionInd];
+            if (numNewExps >= numExps) {
+                pythonObjectsMap[normalUUID] = ExceptionInfo(numExps, prevExpInd, prevExpRowOffset, prevExpByteOffset);
+                prevExpRowOffset = *rawPtr;
+                prevExpByteOffset = numBytesSerialized;
+                prevExpInd = serializedPythonObjects.size();
+                numNewExps = 0;
+                curNormalPartitionInd++;
+            }
+
+            *((int64_t*)(ptr)) = rowNum; ptr += sizeof(int64_t);
+            *((int64_t*)(ptr)) = ecCode; ptr += sizeof(int64_t);
+            *((int64_t*)(ptr)) = opID; ptr += sizeof(int64_t);
+            *((int64_t*)(ptr)) = pickledObjectSize; ptr += sizeof(int64_t);
+            memcpy(ptr, pickledObject.c_str(), pickledObjectSize); ptr += pickledObjectSize;
+
+            *rawPtr = *rawPtr + 1;
+            numBytesSerialized += requiredBytes;
+            numNewExps += 1;
+        }
+
+        // Record mapping for normal last partition
+        auto curNormalPartition = normalPartitions[curNormalPartitionInd];
+        auto normalUUID = uuidToString(curNormalPartition->uuid());
+        auto numExceptions = numExceptionsInPartition[curNormalPartitionInd];
+        pythonObjectsMap[normalUUID] = ExceptionInfo(numExceptions, prevExpInd, prevExpRowOffset, prevExpByteOffset);
+
+        partition->unlockWrite();
+        serializedPythonObjects.push_back(partition);
+    }
+
+    void Context::addParallelizeNode(DataSet *ds, const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects, const std::vector<size_t> &numExceptionsInPartition) {
         assert(ds);
 
         // @TODO: make empty list as special case work. Also true for empty files.
@@ -354,8 +445,15 @@ namespace tuplex {
 
         assert(ds->_schema.getRowType() != python::Type::UNKNOWN);
 
+        auto op = new ParallelizeOperator(ds->_schema, ds->getPartitions(), ds->columns());
+        std::vector<Partition*> serializedPythonObjects;
+        std::unordered_map<std::string, ExceptionInfo> pythonObjectsMap;
+        serializePythonObjects(badParallelizeObjects, numExceptionsInPartition, ds->getPartitions(), op->getID(), serializedPythonObjects, pythonObjectsMap);
+        op->setPythonObjects(serializedPythonObjects);
+        op->setInputPartitionToPythonObjectsMap(pythonObjectsMap);
+
         // add new (root) node
-        ds->_operator = addOperator(new ParallelizeOperator(ds->_schema, ds->getPartitions(), ds->columns()));
+        ds->_operator = addOperator(op);
 
         // set dataset
         ds->_operator->setDataSet(ds);

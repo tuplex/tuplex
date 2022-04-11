@@ -75,7 +75,7 @@ namespace tuplex {
                              "        # else, keep it as dict return object!\n"
                              "        if all(map(lambda k: type(k) == str, res.keys())):\n"
                              "            # columns become keys, values \n"
-                             "            columns = res.keys()\n"
+                             "            columns = tuple(res.keys())\n"
                              "            data = tuple(map(lambda k: res[k], columns))\n"
                              "            return Row(data, columns)\n"
                              "    \n"
@@ -108,13 +108,8 @@ namespace tuplex {
                          "        else:\n"
                          "            return f(row)\n"
                          "    else:\n"
-                         "        try:\n"
-                         "            # call with default mode using tuple as base element essentially\n"
-                         "            return f(row)\n"
-                         "        except Exception as te:\n"
-                         "            # single op error?\n"
-                         "            # try unwrapped...\n"
-                         "            return f(row.data[0])";
+                         "        # unwrap single element tuples.\n"
+                         "        return f(row.data[0])\n";
         _header += applyCode;
 
         // some standard packages to import so stuff works...

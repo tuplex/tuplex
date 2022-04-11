@@ -15,12 +15,15 @@
 #include <physical/CellSourceTaskBuilder.h>
 #include <physical/JITCSVSourceTaskBuilder.h>
 #include <physical/TuplexSourceTaskBuilder.h>
+#include <physical/ExceptionSourceTaskBuilder.h>
 #include <physical/AggregateFunctions.h>
 #include <logical/CacheOperator.h>
 #include <JSONUtils.h>
 #include <CSVUtils.h>
 #include <Utils.h>
 #include <logical/AggregateOperator.h>
+
+#include <limits.h>
 
 // @TODO: code gen needs to be lazily done
 // i.e. codegen stages then execute
@@ -42,11 +45,12 @@ namespace tuplex {
                                    bool generateParser,
                                    double normalCaseThreshold,
                                    bool sharedObjectPropagation,
-                                   bool nullValueOptimization)
+                                   bool nullValueOptimization,
+                                   bool updateInputExceptions)
                 : _stageNumber(stage_number), _isRootStage(rootStage), _allowUndefinedBehavior(allowUndefinedBehavior),
                   _generateParser(generateParser), _normalCaseThreshold(normalCaseThreshold), _sharedObjectPropagation(sharedObjectPropagation),
-                  _nullValueOptimization(nullValueOptimization),
-                  _inputNode(nullptr) {
+                  _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions),
+                  _inputNode(nullptr), _outputLimit(std::numeric_limits<size_t>::max()) {
         }
 
         void StageBuilder::generatePythonCode() {
@@ -892,12 +896,15 @@ namespace tuplex {
                     switch (_outputFileFormat) {
                         case FileFormat::OUTFMT_CSV: {
                             // i.e. write to memory writer!
-                            pip->buildWithCSVRowWriter(_funcMemoryWriteCallbackName, _outputNodeID, _fileOutputParameters["null_value"],
+                            pip->buildWithCSVRowWriter(_funcMemoryWriteCallbackName,
+                                                       _outputNodeID,
+                                                                hasOutputLimit(),
+                                                       _fileOutputParameters["null_value"],
                                                        true, csvOutputDelimiter(), csvOutputQuotechar());
                             break;
                         }
                         case FileFormat::OUTFMT_ORC: {
-                            pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID);
+                            pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID, hasOutputLimit());
                             break;
                         }
                         default:
@@ -957,7 +964,7 @@ namespace tuplex {
                                 _normalCaseOutputSchema = _outputSchema;
                             }
                         }
-                        pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID);
+                        pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID, hasOutputLimit());
                     } else {
                         // build w/o writer
                         pip->build();
@@ -1013,7 +1020,10 @@ namespace tuplex {
                 }
             } else {
                 // tuplex (in-memory) reader
-                tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, inSchema, funcStageName);
+                if (_updateInputExceptions)
+                    tb = make_shared<codegen::ExceptionSourceTaskBuilder>(env, inSchema, funcStageName);
+                else
+                    tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, inSchema, funcStageName);
             }
 
             // set pipeline and
@@ -1029,7 +1039,7 @@ namespace tuplex {
             }
 
             // create code for "wrap-around" function
-            auto func = tb->build();
+            auto func = tb->build(hasOutputLimit());
             if (!func)
                 throw std::runtime_error("could not build codegen csv parser");
 
@@ -1234,14 +1244,18 @@ namespace tuplex {
             llvm::Function* slowPathFunc = nullptr;
             if(useRawOutput) {
                 slowPathFunc = slowPip->buildWithCSVRowWriter(slowPathMemoryWriteCallback, _outputNodeID,
+                                                              hasOutputLimit(),
                                                               _fileOutputParameters["null_value"], true,
                                                               csvOutputDelimiter(), csvOutputQuotechar());
             } else {
                 // @TODO: hashwriter if hash output desired
                 if(_outputMode == EndPointMode::HASHTABLE) {
-                    slowPathFunc = slowPip->buildWithHashmapWriter(slowPathHashWriteCallback, _hashColKeys, hashtableKeyWidth(_hashKeyType), _hashSaveOthers, _hashAggregate);
+                    slowPathFunc = slowPip->buildWithHashmapWriter(slowPathHashWriteCallback,
+                                                                   _hashColKeys,
+                                                                   hashtableKeyWidth(_hashKeyType),
+                                                                   _hashSaveOthers, _hashAggregate);
                 } else {
-                    slowPathFunc = slowPip->buildWithTuplexWriter(slowPathMemoryWriteCallback, 0);
+                    slowPathFunc = slowPip->buildWithTuplexWriter(slowPathMemoryWriteCallback, _outputNodeID, hasOutputLimit());
                 }
             }
 
@@ -1407,6 +1421,12 @@ namespace tuplex {
             stage->_inputFormat = _inputFileFormat;
             stage->_outputFormat = _outputFileFormat;
 
+            // output limit?
+            // no limit operator yet...
+
+            // get limit
+            stage->_outputLimit = _outputLimit;
+
             // copy input/output configurations
             stage->_fileInputParameters = _fileInputParameters;
             stage->_fileOutputParameters = _fileOutputParameters;
@@ -1423,6 +1443,7 @@ namespace tuplex {
             stage->_irBitCode = _irBitCode;
             stage->_pyCode = _pyCode;
             stage->_pyPipelineName = _pyPipelineName;
+            stage->_updateInputExceptions = _updateInputExceptions;
 
             // if last op is CacheOperator, check whether normal/exceptional case should get cached separately
             // or an upcasting step should be performed.

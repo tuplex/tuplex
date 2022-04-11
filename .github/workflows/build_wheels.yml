@@ -8,45 +8,25 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # note: 1. potentially add big sur, though 10.15 catalina build should work on big sur as well.
-        #          no M1 build available yet.
-        #       2. Mac OS not working yet (delocate produces invalid package)
-        #          hence, use only ubuntu for now
-        #os: [ ubuntu-20.04, macos-10.15 ]
-        os: [ ubuntu-20.04 ]
-
+        os: [ ubuntu-20.04, macos-10.15 ]
 
     steps:
       - uses: actions/checkout@v2
 
-      # this is not required because boost-python3 pulls automatically recent python3.9 version.
-      #- uses: actions/setup-python@v2
-      #  name: Install Python
-      #  with:
-      #    python-version: '3.9' # 3.9 is the default version on mac os 10.15
-      #
-      # - name: Set up QEMU
-      #   if: runner.os == 'Linux'
-      #   uses: docker/setup-qemu-action@v1
-      #   with:
-      #     platforms: all
-
       # this will create a dummy dev version based on the current time to avoid conflicts on test.pypi.org
       - name: Create dev version
         if: github.event_name != 'push' || startsWith(github.event.ref, 'refs/tags/v') != true
-        run: cd ./scripts && python3 set_version.py --dev
+        run: cd ./scripts && pip3 install requests && python3 set_version.py --dev
         shell: bash
 
-      - name: MacOS dependencies
-        if: runner.os == 'macOS'
-        run: bash ./scripts/ci/setup-macos.sh
-        shell: bash
-
-      - name: Build Lambda runner
-        run: docker pull registry-1.docker.io/tuplex/ci:latest && bash ./scripts/create_lambda_zip.sh && mkdir -p ./tuplex/python/tuplex/other && cp /home/runner/work/tuplex/tuplex/build-lambda/tplxlam.zip ./tuplex/python/tuplex/other
+      # need to make this an intermediate step, i.e. build first the different lambda runners on Ubuntu...
+      - name: Build Lambda runner (Linux only)
+        if: runner.os != 'macOS'
+        run: docker pull registry-1.docker.io/tuplex/ci:latest && bash ./scripts/create_lambda_zip.sh && mkdir -p ./tuplex/python/tuplex/other && cp ./build-lambda/tplxlam.zip ./tuplex/python/tuplex/other
         shell: bash
 
       - name: Build wheels
+        #if: runner.os != 'macOS'
         uses: pypa/cibuildwheel@v1.11.1.post1
         env:
           # configure cibuildwheel to build native archs ('auto'), and some
@@ -59,17 +39,20 @@ jobs:
           # production version:
           # no musllinux yet, no 3.10 support yet.
           CIBW_BUILD: "cp3{7,8,9}-*"
-          CIBW_SKIP: "cp3{5,6,7,8}-macosx* pp* *-musllinux_*"
+          CIBW_SKIP: "cp3{5,6}-macosx* pp* *-musllinux_*"
 
-          ## for debugging purposes (only linux build)
-          #CIBW_BUILD: "cp38-*"
-          #CIBW_SKIP: "cp3{5,6,7,8}-macosx* pp*"
-
+          CIBW_BEFORE_BUILD_MACOS: brew install coreutils protobuf zstd zlib libmagic llvm@9 pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget boost && bash ./scripts/macos/install_aws-sdk-cpp.sh
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
-          CIBW_BEFORE_BUILD_MACOS: ./scripts/ci/setup-macos.sh
 
           # set this environment variable to include the Lambda zip from the previous build step
-          CIBW_ENVIRONMENT: TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip'
+          # do not include Lambda runner in macos wheel yet. Do in future release.
+
+          # use following line to bundle Lambda runner:
+          # CIBW_ENVIRONMENT_LINUX: "TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
+          # yet, because PyPi limit hasn't been increased yet, do not bundle runner.
+          CIBW_ENVIRONMENT_LINUX: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
+          # requires 10.13 at least for macos!
+          CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13' MACOSX_DEPLOYMENT_TARGET=10.13"
 
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./scripts/test_pypi.sh ./wheelhouse

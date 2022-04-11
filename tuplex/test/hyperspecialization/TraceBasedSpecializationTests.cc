@@ -653,7 +653,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // check again for each file in general mode.
     if(!use_lambda) {
         auto vfs = VirtualFileSystem::fromURI("file://");
-        auto files = vfs.glob(input_pattern);
+        auto files = vfs.globAll(input_pattern);
         for(const auto& path : files) {
             std::cout<<"checking for file "<<path<<std::endl;
             ctx_general.csv(path.toString()).map(UDF(code)).tocsv("test_local_general.csv");

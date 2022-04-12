@@ -800,11 +800,9 @@ namespace tuplex {
         std::vector<Row> StagePlanner::fetchInputSample() {
             if(!_inputNode)
                 return {};
-            return _inputNode->getSample(1000);
+            return _inputNode->getSample(2000);
         }
     }
-
-
 
     // HACK: magical experiment function!!!
     // HACK!

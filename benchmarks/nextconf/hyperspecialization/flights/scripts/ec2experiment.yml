@@ -27,12 +27,19 @@
       copy: content="{{ ec2_key_result.key.private_key }}" dest="./{{ key_name }}.pem" mode=0600
       when: ec2_key_result.changed
 
+# removed in 2.5
+# - name: "Create new VPC"
+#   ec2_vpc:
+#     state: present
+#     resource_tags: { "Environment" : "Experiment" }
+#     region: "{{ region }}"
+#   register: vpc
 
-    - name: "Create new VPC"
-      ec2_vpc:
-        state: present
-        resource_tags: { "Environment" : "Experiment" }
+    - name: "create new VPC"
+      amazon.aws.ec2_vpc_net:
+        name: "{{ key_name }}"
         region: "{{ region }}"
+        tags: { "Environment" : "Experiment" }
       register: vpc
 
     # cf. https://www.ansible.com/blog/ansible-for-aws-introduction-to-spot-instance-automation

@@ -620,9 +620,13 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     if(!use_lambda) {
         auto vfs = VirtualFileSystem::fromURI("file://");
         auto files = vfs.globAll(input_pattern);
+        std::sort(files.begin(), files.end(), [](const URI& a, const URI& b){
+            return a.toString() < b.toString();
+        });
         for(const auto& path : files) {
             std::cout<<"checking for file "<<path<<std::endl;
-            ctx.csv(path.toString()).map(UDF(code)).tocsv("test_local_hyper.csv");
+            auto output_path = "local_hyper" + path.toString().substr(path.toString().rfind('/') + 1) + ".csv";
+            ctx.csv(path.toString()).map(UDF(code)).tocsv(output_path);
         }
     } else
     ctx.csv(input_pattern).map(UDF(code)).tocsv(s3_output +"_hyper");
@@ -656,8 +660,14 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
         auto files = vfs.globAll(input_pattern);
         for(const auto& path : files) {
             std::cout<<"checking for file "<<path<<std::endl;
-            ctx_general.csv(path.toString()).map(UDF(code)).tocsv("test_local_general.csv");
+            auto output_path = "local_general" + path.toString().substr(path.toString().rfind('/') + 1) + ".csv";
+            ctx.csv(path.toString()).map(UDF(code)).tocsv(output_path);
+            //ctx_general.csv(path.toString()).map(UDF(code)).tocsv("test_local_general.csv");
         }
+
+        std::cout<<"running again for all files"<<std::endl;
+        ctx_general.csv(input_pattern).map(UDF(code)).tocsv("all_files_general.csv"); // fix: /aws/lambda/tuplex-lambda-runner?
+
     } else
     ctx_general.csv(input_pattern).map(UDF(code)).tocsv(s3_output +"_general"); // fix: /aws/lambda/tuplex-lambda-runner?
 #ifndef NDEBUG

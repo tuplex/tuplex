@@ -203,3 +203,17 @@ TEST(TypeSys, NewTypEncodeDecode) {
     t = python::Type::decode(encoded_str);
     EXPECT_EQ(t.desc(), func_type.desc());
 }
+
+TEST(TypeSys, ReturnTypeUpcasting) {
+    using namespace tuplex;
+    // [2022-04-12 10:45:23.706] [codegen] [debug] Deoptimized func ret type:   (i64,i64,i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+    //[2022-04-12 10:45:23.706] [codegen] [debug] Deoptimized target ret type: (i64,i64,i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+
+    auto func_ret_type = python::Type::decode("Tuple[i64,i64,i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]]");
+    auto target_type = python::Type::decode("Tuple[i64,i64,i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]]");
+
+    EXPECT_TRUE(python::canUpcastType(target_type, func_ret_type));
+
+    std::cout<<"ret type: "<<func_ret_type.desc()<<std::endl;
+    std::cout<<"target type: "<<target_type.desc()<<std::endl;
+}

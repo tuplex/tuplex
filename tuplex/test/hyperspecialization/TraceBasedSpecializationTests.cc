@@ -588,6 +588,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 
 //    input_pattern = "../resources/hyperspecialization/flights_2003_06.sample.csv";
 
+    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv";
 
     std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;
     Timer timer;

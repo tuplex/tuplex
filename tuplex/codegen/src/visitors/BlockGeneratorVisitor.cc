@@ -4184,11 +4184,14 @@ namespace tuplex {
             auto deopt_func_return_type = deoptimizedType(funcReturnType);
             auto deopt_target_type = deoptimizedType(target_type);
 
-            if(python::canUpcastType(deopt_func_return_type, deopt_target_type)) {
+            _logger.debug("Deoptimized func ret type:   " + deopt_func_return_type.desc());
+            _logger.debug("Deoptimized target ret type: " + deopt_target_type.desc());
+
+            if(python::canUpcastType(deopt_target_type, deopt_func_return_type)) {
                 // ok, fits the globally agreed function return type!
 
                 // the retval popped could need extension to an option type!
-                retVal = upCastReturnType(builder, retVal, expression_type, target_type);
+                retVal = upCastReturnType(builder, retVal, expression_type, funcReturnType);
 
                 // this adds a retValue
                 _lfb->addReturn(retVal);

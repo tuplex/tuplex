@@ -8,6 +8,7 @@ import os
 import glob
 import argparse
 import psutil
+import platform
 
 tstart = time.time()
 import pandas as pd
@@ -129,8 +130,15 @@ def runDask(paths, output_path):
 
     tstart = time.time()
 
-    client = Client(n_workers=16, threads_per_worker=1, processes=True, memory_limit='8GB')
+    # because PyPy needs a ton of memory, give it 14G
+    # client = Client(n_workers=16, threads_per_worker=1, processes=True, memory_limit='8GB')
+    client = Client(n_workers=16, threads_per_worker=1, processes=True, memory_limit='14GB')
     print(client)
+
+    # correct for PyPy internal error
+    meta_title = '__no_default__'
+    if platform.python_implementation().lower() == 'pypy':
+        meta_title = ('title', 'str')
 
     startup_time = time.time() - tstart
 
@@ -140,7 +148,7 @@ def runDask(paths, output_path):
 
     df['bedrooms'] = df['facts and features'].apply(extractBd, meta=('facts and features', 'str')).astype(int)
     df = df[df['bedrooms'] < 10]
-    df['type'] = df['title'].apply(extractType)
+    df['type'] = df['title'].apply(extractType, meta=meta_title)
     df = df[df['type'] == 'condo']
 
     df['zipcode'] = df['postal_code'].apply(lambda zc: '%05d' % int(zc), meta=('postal_code', 'str'))
@@ -148,7 +156,7 @@ def runDask(paths, output_path):
     df['city'] = df['city'].apply(lambda x: x[0].upper() + x[1:].lower(), meta=('city', 'str'))
     df['bathrooms'] = df['facts and features'].apply(extractBa, meta=('facts and features', 'str')).astype(int)
     df['sqft'] = df['facts and features'].apply(extractSqft, meta=('facts and features', 'str')).astype(int)
-    df['offer'] = df['title'].apply(extractOffer)
+    df['offer'] = df['title'].apply(extractOffer, meta=meta_title)
 
     df['price'] = df[['price', 'offer', 'facts and features', 'sqft']].apply(extractPrice, axis=1, meta=('facts and features', 'str')).astype(int)
 

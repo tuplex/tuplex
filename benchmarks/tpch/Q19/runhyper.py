@@ -234,16 +234,22 @@ def run_create_hyper_file_from_csv():
 
             lineitem_table_name = ''
             part_table_name = ''
-            if args.preprocessed:
-                connection.catalog.create_table(table_definition=lineitem_table_preprocessed)
-                lineitem_table_name = lineitem_table_preprocessed.table_name
-                connection.catalog.create_table(table_definition=part_table_preprocessed)
-                part_table_name = part_table_preprocessed.table_name
+            if args.weld_mode:
+                connection.catalog.create_table(table_definition=lineitem_table_weld)
+                lineitem_table_name = lineitem_table_weld.table_name
+                connection.catalog.create_table(table_definition=part_table_weld)
+                part_table_name = part_table_weld.table_name
             else:
-                connection.catalog.create_table(table_definition=lineitem_table)
-                lineitem_table_name = lineitem_table.table_name
-                connection.catalog.create_table(table_definition=part_table)
-                part_table_name = part_table.table_name
+                if args.preprocessed:
+                    connection.catalog.create_table(table_definition=lineitem_table_preprocessed)
+                    lineitem_table_name = lineitem_table_preprocessed.table_name
+                    connection.catalog.create_table(table_definition=part_table_preprocessed)
+                    part_table_name = part_table_preprocessed.table_name
+                else:
+                    connection.catalog.create_table(table_definition=lineitem_table)
+                    lineitem_table_name = lineitem_table.table_name
+                    connection.catalog.create_table(table_definition=part_table)
+                    part_table_name = part_table.table_name
 
             # Using path to current file, create a path that locates CSV file packaged with these examples.
             lineitem_csv_path = args.lineitem_path

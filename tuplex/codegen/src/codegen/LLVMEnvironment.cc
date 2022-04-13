@@ -904,6 +904,12 @@ namespace tuplex {
             // and always return one of their operands.)
             using namespace llvm;
 
+            // constants?
+            if(type.isConstantValued()) {
+                auto const_val = constantValuedTypeToLLVM(builder, type);
+                return truthValueTest(builder, const_val, type.underlying());
+            }
+
             // ==> return i1 directly
             if (val.val && val.val->getType() == i1Type())
                 return val.val;

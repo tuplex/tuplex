@@ -4064,7 +4064,7 @@ namespace tuplex {
             if(type.isConstantValued() && canUpcastType(type.underlying(), targetType)) {
                 // get the constant and upcast then!
                 auto const_val = constantValuedTypeToLLVM(builder, type);
-                return upCastReturnType(builder, const_val, type.underlying(), target_type);
+                return upCastReturnType(builder, const_val, type.underlying(), targetType);
             }
 
             // primitives

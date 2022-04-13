@@ -1,5 +1,6 @@
 import argparse
 import random
+from tqdm import tqdm
 
 def main():
     parser = argparse.ArgumentParser(description='Synthesize data')
@@ -14,11 +15,23 @@ def main():
     dataset_size = args.dataset_size * 1000000
     output_path = args.output_path
 
+    num_rows = dataset_size // row_size
+    num_exceptions = int(exceptions * num_rows)
+
+    exps = set(random.sample(range(num_rows), num_exceptions))
+
     with open(output_path, 'w') as fp:
-        bytes_written = 0
-        while bytes_written < dataset_size:
-            row = f"{0 if random.choices([True, False], weights=(exceptions, 1 - exceptions))[0] else 1},{'a' * (row_size // 8 - 1)}\n"
-            bytes_written += fp.write(row)
+        header = "a,b\n"
+        fp.write(header)
+
+        padding = 'a' * (row_size - 3)
+        norm_row = "1," + padding + "\n"
+        exp_row = "0," + padding + "\n"
+        for i in tqdm(range(num_rows)):
+            if i in exps:
+                fp.write(exp_row)
+            else:
+                fp.write(norm_row)
 
 if __name__ == '__main__':
     main()

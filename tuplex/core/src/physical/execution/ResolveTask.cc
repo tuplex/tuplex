@@ -287,7 +287,7 @@ namespace tuplex {
     }
 
 
-    PyObject * ResolveTask::tupleFromParseException(const uint8_t* ebuf, size_t esize) {
+    PyObject* tupleFromParseException(const uint8_t* ebuf, size_t esize) {
         // cf.  char* serializeParseException(int64_t numCells,
         //            char **cells,
         //            int64_t* sizes,

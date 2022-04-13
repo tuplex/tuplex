@@ -404,40 +404,17 @@ TEST_F(SamplingTest, UpcastFix) {
 TEST_F(SamplingTest, FlightsLambdaVersion) {
     using namespace std;
     using namespace tuplex;
-//    ContextOptions opt = ContextOptions::defaults();
-//    opt.set("tuplex.executorCount", "0");
-//
-//    opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
-//
-//    //opt.set("tuplex.optimizer.nullValueOptimization", "false"); // this also doesn't work -.-
-//
-//    opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
-//
-//    // hyperspecialization setting
-//
-//    opt.set("tuplex.backend", "lambda");
-//    opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
-//
-//    opt.set("tuplex.experimental.hyperspecialization", "true");
-//    Context ctx(opt);
-//
-//    // specialize access with columns vs. non-columns
-//    // --> need to figure this automatically out.
-//
-//    // i.e. turn off null-value optimization for files or not?
-//
-//    // auto null_based_file = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_01.csv";
-//    // auto non_null_based_file = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2013_01.csv"; // do not need to set values...
-//
-//
-//    auto null_based_file = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_01.csv";
-//    auto non_null_based_file = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv"; // do not need to set values...
 
+    // for testing purposes, store here the root path to the flights data (simple ifdef)
+#ifdef __APPLE__
+    // leonhards macbook
+    string flights_root = "/Users/leonhards/Downloads/flights/";
+#else
+    // BBSN00
+    string flights_root = "/hot/data/flights_all/";
+#endif
 
-//    // test with specialization
-//    auto& ds = flightPipeline(ctx, null_based_file);
-//    cout<<"columns: "<<ds.columns()<<endl;
-//    auto v = ds.takeAsVector(5);
+    string s3_flights_root = "s3://tuplex-public/data/flights_all/";
 
     auto code = "def fill_in_delays(row):\n"
                 "    # want to fill in data for missing carrier_delay, weather delay etc.\n"
@@ -565,7 +542,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // BENCHMARK HERE...!
 
 //    string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv";
-    string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv";
+    string input_pattern = "flights_on_time_performance_2003_10.csv";
 
     // 2003 test pattern:
     //input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv";
@@ -580,7 +557,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 //    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_10.csv";
     bool use_lambda = false;
     if(!use_lambda)
-        input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_*.csv";
+        input_pattern = flights_root + "flights_on_time_performance_2003_*.csv";
 
     // test all files through for issues...!
     // this file has issues => i.e., it triggers fallback ALWAYS for hyper-specialization
@@ -588,7 +565,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 
 //    input_pattern = "../resources/hyperspecialization/flights_2003_06.sample.csv";
 
-    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv";
+    input_pattern = flights_root + "flights_on_time_performance_2003_06.csv";
 
     std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;
     Timer timer;

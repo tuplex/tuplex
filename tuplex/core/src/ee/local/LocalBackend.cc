@@ -1318,6 +1318,23 @@ namespace tuplex {
         auto exceptionInputSchema = tstage->generalCaseInputSchema(); // this could be specialized!
         logger().debug("Exception schema (general case input schema): " + exceptionInputSchema.getRowType().desc());
 
+#ifndef NDEBUG
+        {
+            // debug: dump exceptions for python fallback mode
+            // this is helpful for checking/reprocessing using fallback
+
+            // exception partitions
+            std::vector<Partition*> exception_partitions;
+            for(auto task : tasks) {
+                auto tt = dynamic_cast<TransformTask *>(task);
+                auto partitions = tt->getExceptionPartitions();
+                std::copy(partitions.begin(), partitions.end(), std::back_inserter(exception_partitions));
+            }
+            auto dump_path = "fallback_exceptions_stage" + std::to_string(tstage->number()) + ".pkl";
+            dumpExceptionsForFallback(dump_path, exceptionInputSchema, exception_partitions);
+        }
+#endif
+
         // make sure output mode is NOT hash table, not yet supported...
         if(tstage->outputMode() == EndPointMode::HASHTABLE) {
             // note: must hold that normal-case output type is equal to general-case output type
@@ -2125,5 +2142,125 @@ namespace tuplex {
 
         Logger::instance().defaultLogger().info("writing output took " + std::to_string(timer.time()) + "s");
         tstage->setFileResult(ecounts);
+    }
+
+
+    PyObject* exceptionAsPyObject(const Schema& exceptionsInputSchema, int64_t ecCode, int64_t operatorID, const uint8_t* ebuf, size_t eSize) {
+
+        // holds the pythonized data
+        PyObject* tuple = nullptr;
+
+        bool parse_cells = false;
+
+        // there are different data reps for certain error codes.
+        // => decode the correct object from memory & then feed it into the pipeline...
+        if(ecCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)) {
+            // it's a string!
+            tuple = tupleFromParseException(ebuf, eSize);
+            parse_cells = true; // need to parse cells in python mode.
+        } else if(ecCode == ecToI64(ExceptionCode::NORMALCASEVIOLATION)) {
+            // changed, why are these names so random here? makes no sense...
+            auto row = Row::fromMemory(exceptionsInputSchema, ebuf, eSize);
+            tuple = python::rowToPython(row, true);
+            parse_cells = false;
+            // called below...
+        } else if (ecCode == ecToI64(ExceptionCode::PYTHON_PARALLELIZE)) {
+            auto pyObj = python::deserializePickledObject(python::getMainModule(), (char *) ebuf, eSize);
+            tuple = pyObj;
+            parse_cells = false;
+        } else {
+            // normal case, i.e. an exception occurred somewhere.
+            // --> this means if pipeline is using string as input, we should convert
+            auto row = Row::fromMemory(exceptionsInputSchema, ebuf, eSize);
+
+            // cell source automatically takes input, i.e. no need to convert. simply get tuple from row object
+            tuple = python::rowToPython(row, true);
+
+#ifndef NDEBUG
+            if(PyTuple_Check(tuple)) {
+                // make sure tuple is valid...
+                for(unsigned i = 0; i < PyTuple_Size(tuple); ++i) {
+                    auto elemObj = PyTuple_GET_ITEM(tuple, i);
+                    assert(elemObj);
+                }
+            }
+#endif
+            parse_cells = false;
+        }
+
+        // note: current python pipeline always expects a tuple arg. hence pack current element.
+        if(PyTuple_Check(tuple) && PyTuple_Size(tuple) > 1) {
+            // nothing todo...
+        } else {
+            auto tmp_tuple = PyTuple_New(1);
+            PyTuple_SET_ITEM(tmp_tuple, 0, tuple);
+            tuple = tmp_tuple;
+        }
+
+        return tuple;
+    }
+
+    void dumpExceptionsForFallback(const std::string& local_path, const Schema& exceptionInputSchema, const std::vector<Partition*>& exceptions, bool invalidate_exceptions) {
+        python::lockGIL();
+
+
+        auto list_obj = PyList_New(0);
+
+        // go through exceptions and dump them!
+        int64_t rowNumber = 0;
+        for(auto partition : exceptions) {
+            const uint8_t *ptr = partition->lockRaw();
+            int64_t numRows = *((int64_t *) ptr);
+            ptr += sizeof(int64_t);
+
+            for(int i = 0; i < numRows; ++i) {
+                // old
+                // _currentRowNumber = *((int64_t*)ptr);
+                // ptr += sizeof(int64_t);
+                // int64_t ecCode = *((int64_t*)ptr);
+                // ptr += sizeof(int64_t);
+                // int64_t operatorID = *((int64_t*)ptr);
+                // ptr += sizeof(int64_t);
+                // int64_t eSize = *((int64_t*)ptr);
+                // ptr += sizeof(int64_t);
+
+                const uint8_t *ebuf = nullptr;
+                int64_t ecCode = -1, operatorID = -1;
+                size_t eSize = 0;
+                auto delta = deserializeExceptionFromMemory(ptr, &ecCode, &operatorID, &rowNumber, &ebuf,
+                                                            &eSize);
+
+                // call functor over this...
+                // ==> important to use row number here for continuous exception resolution!
+                // args are: "userData",  "rowNumber", "exceptionCode", "rowBuf", "bufSize"
+                auto py_object = exceptionAsPyObject(exceptionInputSchema, ecCode, operatorID, ebuf, eSize);
+
+                // parse cells is only true for badparsestringinput
+                auto parse_cells = ecCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT);
+
+                auto dict_obj = PyDict_New();
+                PyDict_SetItemString(dict_obj, "parse_cells", parse_cells ? Py_True : Py_False);
+                PyDict_SetItemString(dict_obj, "data", py_object);
+                PyDict_SetItemString(dict_obj, "ecCode", PyLong_FromLong(ecCode));
+                PyDict_SetItemString(dict_obj, "operatorID", PyLong_FromLong(operatorID));
+
+                // append to list obj
+                PyList_Append(list_obj, dict_obj);
+                ptr += delta;
+            }
+            partition->unlock();
+
+            if(invalidate_exceptions)
+                partition->invalidate();
+        }
+
+        auto num_exceptions = PyList_Size(list_obj);
+
+        // store large list as pickled object... -> may be slow!
+        auto data = python::pickleObject(python::getMainModule(), list_obj);
+        python::unlockGIL();
+
+        stringToFile(local_path, data);
+        Logger::instance().defaultLogger().debug("wrote " + pluralize(num_exceptions, "exception row") + " to file " + local_path);
     }
 } // namespace tuplex

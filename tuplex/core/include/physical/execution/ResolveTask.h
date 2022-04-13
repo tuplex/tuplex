@@ -345,10 +345,17 @@ namespace tuplex {
             return 0;
         }
 
-        PyObject* tupleFromParseException(const uint8_t* ebuf, size_t esize);
-
         void sinkRowToHashTable(PyObject *rowObject);
     };
+
+    /*!
+     * create tuple for parse exception (BADPARSESTRINGINPUT)
+     * requires GIL to be held
+     * @param ebuf buffer holding the exception
+     * @param esize size in bytes of the buffer
+     * @return pyobject
+     */
+    extern PyObject* tupleFromParseException(const uint8_t* ebuf, size_t esize);
 
 #ifndef NDEBUG
     // helper functions to quickly build up an exception reservoir

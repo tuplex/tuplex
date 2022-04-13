@@ -192,6 +192,16 @@ namespace tuplex {
      * @return nullptr or PyObject* referring to the function named pipeline_name
      */
     extern PyObject* preparePythonPipeline(const std::string& py_code, const std::string& pipeline_name);
+
+    /*!
+     * helper function for debugging which dumps exceptions as python objects to file.
+     * @param local_path local path where to store exceptions
+     * @param exceptions which exceptions
+     */
+    extern void dumpExceptionsForFallback(const std::string& local_path,
+                                          const Schema& exceptionInputSchema,
+                                          const std::vector<Partition*>& exceptions,
+                                          bool invalidate_exceptions=false);
 }
 
 #endif //TUPLEX_LOCALBACKEND_H

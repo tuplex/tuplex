@@ -1178,8 +1178,11 @@ namespace tuplex {
             auto env = _env;
 
             // check, make sure they upcastable...
-            if(!python::canUpcastType(getTupleType(), target_type))
-                throw std::runtime_error("Code generation failure, can't upcast type " + getTupleType().desc() + " to type " + target_type.desc());
+            if(!python::canUpcastType(getTupleType(), target_type)) {
+                auto err_msg = "Code generation failure, can't upcast type " + getTupleType().desc() + " to type " + target_type.desc();
+                Logger::instance().logger("codegen").debug(err_msg);
+                throw std::runtime_error(err_msg);
+            }
 
             // upgrade params
             auto paramsNew = ft.flattenedTupleType().parameters();

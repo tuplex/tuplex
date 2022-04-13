@@ -915,7 +915,8 @@ namespace tuplex {
 
         TransformStage::StageCodePath StageBuilder::generateResolveCodePath(const CodeGenerationContext& ctx,
                                                                             const CodeGenerationContext::CodePathContext& pathContext,
-                                                                            const python::Type& normalCaseType) const {
+                                                                            const python::Type& normalCaseType,
+                                                                            const std::map<int, int>& normalToGeneralMapping) const {
             using namespace std;
             using namespace llvm;
 
@@ -1206,6 +1207,7 @@ namespace tuplex {
             // create wrapper which decodes automatically normal-case rows with optimized types...
             auto null_values = ctx.inputMode == EndPointMode::FILE ? jsonToStringArray(ctx.fileInputParameters.at("null_values"))
                                                      : std::vector<std::string>{"None"};
+#error " need to add here upcasting when normal/general case have different number of columns!"
             auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip, ret.funcStageName/*funcResolveRowName*/,
                                                                             normalCaseType, null_values);
 
@@ -1406,6 +1408,7 @@ namespace tuplex {
          * creates specialized (normal-case) version of pipeline
          */
         CodeGenerationContext::CodePathContext specializePipeline(const CodeGenerationContext::CodePathContext& general_path_ctx,
+                                                                  std::map<int, int>& normalToGeneralMapping,
                                                                   bool enableNVO=true, bool enableCF=true) {
 
             using namespace std;
@@ -1445,6 +1448,9 @@ namespace tuplex {
                 numToRead += indicator;
             logger.info("specialized code reads: " + pluralize(numToRead, "column"));
             logger.info("Specialized stage in " + std::to_string(timer.time() * 1000.0) + "ms");
+
+            normalToGeneralMapping.clear();
+            normalToGeneralMapping = planner.normalToGeneralMapping();
             return path_ctx;
         }
 
@@ -1474,8 +1480,11 @@ namespace tuplex {
                 // need to set codeGenerationContext.normalToGeneralMapping here as well!
                 // 2. specialize fast path (if desired)
                 codeGenerationContext.slowPathContext = getGeneralPathContext();
+                std::map<int, int> normalToGeneralMapping;
                 if(_generateNormalCaseCodePath)
-                    codeGenerationContext.fastPathContext = specializePipeline(codeGenerationContext.slowPathContext, _nullValueOptimization);
+                    codeGenerationContext.fastPathContext = specializePipeline(codeGenerationContext.slowPathContext,
+                                                                               normalToGeneralMapping,
+                                                                               _nullValueOptimization);
                 else
                     codeGenerationContext.fastPathContext = getGeneralPathContext();
 
@@ -1483,8 +1492,14 @@ namespace tuplex {
                 python::Type normalCaseInputRowType = codeGenerationContext.fastPathContext.inputSchema.getRowType(); // if NO normal-case is specialized, generated use this
 
                 // kick off slow path generation
-                std::shared_future<TransformStage::StageCodePath> slowCodePath_f = std::async(std::launch::async, [this, &codeGenerationContext, &normalCaseInputRowType]() {
-                    return generateResolveCodePath(codeGenerationContext, codeGenerationContext.slowPathContext, normalCaseInputRowType);
+                std::shared_future<TransformStage::StageCodePath> slowCodePath_f = std::async(std::launch::async, [this,
+                                                                                                                   &codeGenerationContext,
+                                                                                                                   &normalCaseInputRowType,
+                                                                                                                   &normalToGeneralMapping]() {
+                    return generateResolveCodePath(codeGenerationContext,
+                                                   codeGenerationContext.slowPathContext,
+                                                   normalCaseInputRowType,
+                                                   normalToGeneralMapping);
                 });
 
                 auto py_path = generatePythonCode(codeGenerationContext, number());
@@ -1680,7 +1695,7 @@ namespace tuplex {
                 }
 
                 if(gen_slow_code) {
-                    stage->_slowCodePath = generateResolveCodePath(ctx, ctx.slowPathContext, normalCaseInputRowType);
+                    stage->_slowCodePath = generateResolveCodePath(ctx, ctx.slowPathContext, normalCaseInputRowType, ctx.normalToGeneralMapping);
                 }
 
 #ifndef NDEBUG

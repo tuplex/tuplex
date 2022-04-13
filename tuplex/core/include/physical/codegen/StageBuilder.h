@@ -224,13 +224,18 @@ namespace tuplex {
             // holds values of hashmap globals
             std::unordered_map<int64_t, std::tuple<llvm::Value*, llvm::Value*>> _hashmap_vars;
 
-            /*!
-             * code path for mem2mem exception resolution => sh
-             * @praam normalCaseType: the inputSchema row type of the specialized, normal case!
-             */
+             /*!
+              * code path for mem2mem exception resolution => sh
+              * @param ctx
+              * @param pathContext
+              * @param normalCaseType the inputSchema row type of the specialized, normal case!
+              * @param normalToGeneralMapping mapping columns of normal case to general case (they may have different number of columns)
+              * @return
+              */
             TransformStage::StageCodePath generateResolveCodePath(const CodeGenerationContext& ctx,
                                                                   const CodeGenerationContext::CodePathContext& pathContext,
-                                                                  const python::Type& normalCaseType) const; //! generates mix of LLVM / python code for slow code path including resolvers
+                                                                  const python::Type& normalCaseType,
+                                                                  const std::map<int, int>& normalToGeneralMapping={}) const; //! generates mix of LLVM / python code for slow code path including resolvers
 
             struct PythonCodePath {
                 std::string pyCode;

@@ -1830,6 +1830,7 @@ namespace tuplex {
 
         llvm::Function* createProcessExceptionRowWrapper(PipelineBuilder& pip,
                 const std::string& name, const python::Type& normalCaseType,
+                const std::map<int, int>& normalToGeneralMapping,
                 const std::vector<std::string>& null_values) {
             auto pipFunc = pip.getFunction();
 

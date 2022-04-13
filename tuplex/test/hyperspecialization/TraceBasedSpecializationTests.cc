@@ -569,49 +569,50 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 
     std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;
     Timer timer;
-
-    // running first query with hyper specialization on.
-    ContextOptions opt = ContextOptions::defaults();
-    opt.set("tuplex.executorCount", "0");
-    opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
-    opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
-    opt.set("tuplex.resolveWithInterpreterOnly", "false"); // -> this doesn't work with hyper-specialization yet.
-
-    // hyperspecialization setting
-    if(use_lambda) {
-        opt.set("tuplex.backend", "lambda");
-        opt.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));
-        opt.set("tuplex.aws.lambdaThreads", std::to_string(numLambdaThreads));
-        opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
-    }
-    opt.set("tuplex.experimental.hyperspecialization", "true");
-    Context ctx(opt);
-
-    // could also be interesting to have some sort of figure showing different specializations (i.e. column pushdown)
-
-    // run same query too
-
-    // check for each file in non-lambda mode
-    if(!use_lambda) {
-        timer.reset();
-        auto vfs = VirtualFileSystem::fromURI("file://");
-        auto files = vfs.globAll(input_pattern);
-        std::sort(files.begin(), files.end(), [](const URI& a, const URI& b){
-            return a.toString() < b.toString();
-        });
-        for(const auto& path : files) {
-            std::cout<<"checking for file "<<path<<std::endl;
-            auto output_path = "local_hyper" + path.toString().substr(path.toString().rfind('/') + 1) + ".csv";
-            ctx.csv(path.toString()).map(UDF(code)).tocsv(output_path);
-        }
-    } else {
-        ctx.csv(input_pattern).map(UDF(code)).tocsv(s3_output +"_hyper");
-    }
-#ifndef NDEBUG
-    displayExceptions(std::cout, true);
-#endif
+//
+//    // running first query with hyper specialization on.
+//    ContextOptions opt = ContextOptions::defaults();
+//    opt.set("tuplex.executorCount", "0");
+//    opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
+//    opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
+//    opt.set("tuplex.resolveWithInterpreterOnly", "false"); // -> this doesn't work with hyper-specialization yet.
+//
+//    // hyperspecialization setting
+//    if(use_lambda) {
+//        opt.set("tuplex.backend", "lambda");
+//        opt.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));
+//        opt.set("tuplex.aws.lambdaThreads", std::to_string(numLambdaThreads));
+//        opt.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
+//    }
+//    opt.set("tuplex.experimental.hyperspecialization", "true");
+//    Context ctx(opt);
+//
+//    // could also be interesting to have some sort of figure showing different specializations (i.e. column pushdown)
+//
+//    // run same query too
+//
+//    // check for each file in non-lambda mode
+//    if(!use_lambda) {
+//        timer.reset();
+//        auto vfs = VirtualFileSystem::fromURI("file://");
+//        auto files = vfs.globAll(input_pattern);
+//        std::sort(files.begin(), files.end(), [](const URI& a, const URI& b){
+//            return a.toString() < b.toString();
+//        });
+//        for(const auto& path : files) {
+//            std::cout<<"checking for file "<<path<<std::endl;
+//            auto output_path = "local_hyper" + path.toString().substr(path.toString().rfind('/') + 1) + ".csv";
+//            ctx.csv(path.toString()).map(UDF(code)).tocsv(output_path);
+//        }
+//    } else {
+//        ctx.csv(input_pattern).map(UDF(code)).tocsv(s3_output +"_hyper");
+//    }
+//#ifndef NDEBUG
+//    displayExceptions(std::cout, true);
+//#endif
     double hyperQueryTime = timer.time();
-    std::cout<<"Hyper query done in "<<hyperQueryTime<<"s"<<std::endl;
+//    std::cout<<"Hyper query done in "<<hyperQueryTime<<"s"<<std::endl;
+
     // -----------------------------------------------------------------------------
     std:cout<<"**************************************"<<std::endl;
     std::cout<<"Running query with hyper-opt off"<<std::endl;

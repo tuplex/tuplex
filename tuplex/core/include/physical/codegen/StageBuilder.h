@@ -37,6 +37,7 @@ namespace tuplex {
              * @param sharedObjectPropagation whether to use shared object propogation
              * @param nullValueOptimization whether to use null value optimization
              * @param updateInputExceptions whether input exceptions indices need to be updated
+             * @param generateSpecializedNormalCaseCodePath whether to emit specialized normal case code path or not
              */
             StageBuilder(int64_t stage_number,
                          bool rootStage,
@@ -45,7 +46,8 @@ namespace tuplex {
                          double normalCaseThreshold,
                          bool sharedObjectPropagation,
                          bool nullValueOptimization,
-                         bool updateInputExceptions);
+                         bool updateInputExceptions,
+                         bool generateSpecializedNormalCaseCodePath=true);
 
             // builder functions
             void addMemoryInput(const Schema& schema, std::shared_ptr<LogicalOperator> node);
@@ -135,6 +137,7 @@ namespace tuplex {
             bool _generateParser;
             double _normalCaseThreshold;
             bool _sharedObjectPropagation;
+            bool _generateNormalCaseCodePath;
             bool _nullValueOptimization;
             bool _updateInputExceptions;
 

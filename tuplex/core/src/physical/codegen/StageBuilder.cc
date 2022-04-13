@@ -52,11 +52,12 @@ namespace tuplex {
                                    double normalCaseThreshold,
                                    bool sharedObjectPropagation,
                                    bool nullValueOptimization,
-                                   bool updateInputExceptions)
+                                   bool updateInputExceptions,
+                                   bool generateSpecializedNormalCaseCodePath)
                 : _stageNumber(stage_number), _isRootStage(rootStage), _allowUndefinedBehavior(allowUndefinedBehavior),
                   _generateParser(generateParser), _normalCaseThreshold(normalCaseThreshold), _sharedObjectPropagation(sharedObjectPropagation),
                   _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions),
-                  _inputNode(nullptr), _outputLimit(std::numeric_limits<size_t>::max()) {
+                  _inputNode(nullptr), _outputLimit(std::numeric_limits<size_t>::max()), _generateNormalCaseCodePath(generateSpecializedNormalCaseCodePath) {
         }
 
         inline std::string next_hashmap_name() {
@@ -311,18 +312,7 @@ namespace tuplex {
             return ss.str();
         }
 
-//        std::vector<std::shared_ptr<LogicalOperator>> specializePipeline(bool nullValueOptimization,
-//                                                         const std::shared_ptr<LogicalOperator>& inputNode,
-//                                                         const std::vector<std::shared_ptr<LogicalOperator>>& operators) {
-//
-//            using namespace std;
-//            auto& logger = Logger::instance().defaultLogger();
-//
-//            // use StagePlanner to create specialized pipeline
-//            StagePlanner planner(inputNode, operators);
-//            planner.enableAll();
-//            return planner.optimize();
-//        }
+
 
         void StageBuilder::fillInCallbackNames(const std::string& func_prefix, size_t stageNo, TransformStage::StageCodePath& cp) {
             using namespace std;
@@ -1412,6 +1402,52 @@ namespace tuplex {
             stage->setInitData();
         }
 
+        /*!
+         * creates specialized (normal-case) version of pipeline
+         */
+        CodeGenerationContext::CodePathContext specializePipeline(const CodeGenerationContext::CodePathContext& general_path_ctx,
+                                                                  bool enableNVO=true, bool enableCF=true) {
+
+            using namespace std;
+            auto& logger = Logger::instance().logger("physical planner");
+            Timer timer;
+
+            auto path_ctx = general_path_ctx;
+            assert(path_ctx.valid());
+
+            auto inputNode = path_ctx.inputNode;
+            auto operators = path_ctx.operators;
+
+            // sample using strategy?
+            // // force resampling b.c. of thin layer
+            // if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
+            //     auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode); assert(fop);
+            //     fop->setInputFiles({uri}, {file_size}, true);
+            // }
+
+            // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
+            codegen::StagePlanner planner(inputNode, operators);
+            if(enableNVO)
+                planner.enableNullValueOptimization();
+            if(enableCF)
+                planner.enableConstantFoldingOptimization();
+            planner.optimize();
+            path_ctx.inputNode = planner.input_node();
+            path_ctx.operators = planner.optimized_operators();
+            path_ctx.outputSchema = path_ctx.operators.back()->getOutputSchema();
+            path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();
+            path_ctx.readSchema = std::dynamic_pointer_cast<FileInputOperator>(path_ctx.inputNode)->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
+            path_ctx.columnsToRead = std::dynamic_pointer_cast<FileInputOperator>(path_ctx.inputNode)->columnsToSerialize();
+            logger.info("specialized to input:  " + path_ctx.inputSchema.getRowType().desc());
+            logger.info("specialized to output: " + path_ctx.outputSchema.getRowType().desc());
+            size_t numToRead = 0;
+            for(auto indicator : path_ctx.columnsToRead)
+                numToRead += indicator;
+            logger.info("specialized code reads: " + pluralize(numToRead, "column"));
+            logger.info("Specialized stage in " + std::to_string(timer.time() * 1000.0) + "ms");
+            return path_ctx;
+        }
+
         TransformStage *StageBuilder::build(PhysicalPlan *plan, IBackend *backend) {
             auto& logger = Logger::instance().logger("codegen");
 
@@ -1434,14 +1470,16 @@ namespace tuplex {
                 auto codeGenerationContext = createCodeGenerationContext();
 
                 logger.debug("TODO: Need to add specialization/optimization here...");
+
                 // need to set codeGenerationContext.normalToGeneralMapping here as well!
                 // 2. specialize fast path (if desired)
-                // auto operators = specializePipeline(_nullValueOptimization, _inputNode, _operators);
-
-                codeGenerationContext.fastPathContext = getGeneralPathContext(); // this is basically a fast path using the same nodes as the general path. Can get specialized...!
+                codeGenerationContext.slowPathContext = getGeneralPathContext();
+                if(_generateNormalCaseCodePath)
+                    codeGenerationContext.fastPathContext = specializePipeline(codeGenerationContext.slowPathContext, _nullValueOptimization);
+                else
+                    codeGenerationContext.fastPathContext = getGeneralPathContext();
 
                 // 3. fill in general case codepath context
-                codeGenerationContext.slowPathContext = getGeneralPathContext();
                 python::Type normalCaseInputRowType = codeGenerationContext.fastPathContext.inputSchema.getRowType(); // if NO normal-case is specialized, generated use this
 
                 // kick off slow path generation

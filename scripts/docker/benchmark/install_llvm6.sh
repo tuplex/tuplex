@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # installs LLVM 6.0.1 to /opt
 
-apt-get update && apt-get install -y libxml2-dev
+apt-get update && apt-get install -y libxml2-dev wget build-essential
 
 cd /usr/src &&
 wget https://releases.llvm.org/6.0.1/llvm-6.0.1.src.tar.xz &&

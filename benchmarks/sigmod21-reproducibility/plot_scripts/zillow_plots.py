@@ -5,7 +5,7 @@
 # this notebook produces all plots necessary for Figure 3 in the final number + numbers for the accompanying text.
 # Figure 3, 7 and table3
 # In[24]:
-
+import os.path
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -47,7 +47,9 @@ def load_zillow_to_df(data_root):
     for file in files:
         path = os.path.join(data_root, file)
         name = file[:file.find('-run')]
-        
+
+        basename = os.path.basename(path)
+
         # skip compile runs, they should be loaded separately...
         if 'compile-run' in file:
             continue
@@ -68,7 +70,7 @@ def load_zillow_to_df(data_root):
                     run_no = int(path[path.rfind('run-')+4:path.rfind('.txt')])
                     
                     # CC baseline decode
-                    if 'cc-' in path or 'cpp_' in path:
+                    if 'cc-' in basename or 'cpp_' in basename:
                         d = json.loads(lines[-1])
                         row = {}
                         row['write'] = d['output'] / 10**9
@@ -93,7 +95,7 @@ def load_zillow_to_df(data_root):
                         # override if compute is available
                         if 'compute_time' in d.keys():
                             row['compute'] = d['compute_time']
-                    elif 'scala' in path: # Scala
+                    elif 'scala' in basename: # Scala
                         
                         row['framework'] = 'scala'
                         row['type'] = 'single-threaded'
@@ -108,7 +110,7 @@ def load_zillow_to_df(data_root):
                         row['startup_time'] = float(re.sub('[^0-9.]*', '', lines[0]))
                         
                     # tuplex decode
-                    elif 'tuplex' in path:
+                    elif 'tuplex' in basename:
                         try:
                             d = {}
                             if 'tuplex' in name:
@@ -218,11 +220,20 @@ def load_zillow_to_df(data_root):
             # print('file: {}'.format(file))
             # print(type(e))
             # print(e)
+            logging.warning("Could not parse experimental result file {}, did run complete? Skipping for now.".format(basename))
             pass
     return pd.DataFrame(rows)
 
 
 # In[76]:
+
+def find_idx(arr, f):
+    idx = 0
+    for a in arr:
+        if f(a):
+            return idx
+        idx += 1
+    return None
 
 def load_data(zillow_folder='r5d.8xlarge/zillow'):
     df_Z1 = load_zillow_to_df(os.path.join(zillow_folder, 'Z1/'))
@@ -241,7 +252,7 @@ def load_data(zillow_folder='r5d.8xlarge/zillow'):
     subdf = df[df['type'].isin(['single-threaded-preload', 'preload'])]
     subdf = subdf.groupby(['framework', 'mode', 'type']).mean().sort_values(by='compute').reset_index()
     recs = subdf.to_dict('records')
-    tuplex_time = recs[1]['job_time'] #note the switch due to how times are measured
+    tuplex_time = recs[find_idx(recs, lambda x: x['framework'] == 'tuplex')]['job_time'] #note the switch due to how times are measured
     cc_time = recs[0]['compute']
 
     logging.info('Zillow Z1:: Tuplex takes {:.2f}s vs. C++ {:.2f}s, i.e. comes within {:.2f}%'.format(tuplex_time, cc_time,
@@ -251,7 +262,7 @@ def load_data(zillow_folder='r5d.8xlarge/zillow'):
     subdf = df[df['type'].isin(['single-threaded-preload', 'preload'])]
     subdf = subdf.groupby(['framework', 'mode', 'type']).mean().sort_values(by='compute').reset_index()
     recs = subdf.to_dict('records')
-    tuplex_time = recs[1]['job_time'] #note the switch due to how times are measured
+    tuplex_time = recs[find_idx(recs, lambda x: x['framework'] == 'tuplex')]['job_time'] #note the switch due to how times are measured
     cc_time = recs[0]['compute']
 
     logging.info('Zillow Z2:: Tuplex takes {:.2f}s vs. C++ {:.2f}s, i.e. comes within {:.2f}%'.format(tuplex_time, cc_time,
@@ -288,7 +299,7 @@ def table3(df): # use here df_Z1!
 
     # Compare this to best CPython result
     best_cpython_result = df[df['framework'] == 'python3'].groupby(['framework', 'mode', 'type'])  .mean().reset_index().sort_values('compute').head(1)[['framework', 'mode', 'type', 'compute']]
-    logging.info('Best CPYthon result: {}s'.format(best_cpython_result['compute'].values[0]))
+    logging.info('Best CPython result: {}s'.format(best_cpython_result['compute'].values[0]))
 
 
 def figure3(df_Z1, df_Z2, output_folder):
@@ -300,7 +311,7 @@ def figure3(df_Z1, df_Z2, output_folder):
 
     # which df to use?
     df = df_Z1.copy()
-    # drop tuplex preload
+    # drop tuplex preload and single-threaded
     df = df[df['type'] != 'single-threaded-preload']
     query_name = 'Z1'
 
@@ -313,12 +324,15 @@ def figure3(df_Z1, df_Z2, output_folder):
     df_st_dict = df_st_mu[df_st_mu['type'] == 'dict'].sort_values(by='job_time').reset_index(drop=True)
     df_st_rest = df_st_mu[~df_st_mu['type'].isin(['tuple', 'dict'])].sort_values(by='job_time').reset_index(drop=True)
 
+    # exclude tuplex/single-threaded from st_rest (use the no-nvo version!)
+    df_st_rest = df_st_rest[~((df_st_rest['type'] == 'single-threaded') & (df_st_rest['framework'] == 'tuplex'))]
+
     df_st_tuple_std = df_st_std[df_st_std['type'] == 'tuple']
     df_st_dict_std = df_st_std[df_st_std['type'] == 'dict']
     df_st_rest_std = df_st_std[~df_st_std['type'].isin(['tuple', 'dict'])]
 
     df_st = df[(df['mode'].isin(['python3', 'c++', 'scala'])) & (df['framework'].isin(st_fws))]
-    df_st = df_st[~df_st['type'].isin(['multi-threaded', 'cached', 'preload'])]
+    df_st = df_st[~df_st['type'].isin(['multi-threaded', 'multi-threaded-no-nvo', 'cached', 'preload'])]
     df_st_mu = df_st.groupby(['framework', 'type']).mean().reset_index()
     df_st_std = df_st.groupby(['framework', 'type']).std().reset_index()
 
@@ -331,7 +345,10 @@ def figure3(df_Z1, df_Z2, output_folder):
     df_st_rest_std = df_st_std[~df_st_std['type'].isin(['tuple', 'dict'])]
 
     df_mt = df[(df['mode'].isin(['python3', 'c++', 'scala'])) & (df['framework'].isin(mt_fws))]
-    df_mt = df_mt[~df_mt['type'].isin(['single-threaded', 'cached', 'preload'])]
+    df_mt = df_mt[~df_mt['type'].isin(['single-threaded', 'single-threaded-no-nvo', 'cached', 'preload'])]
+
+    # exclude tuplex multi-threaded, use the no-nvo setting
+    df_mt = df_mt[~((df_mt['type'] == 'multi-threaded') & (df_mt['framework'] == 'tuplex'))]
     df_mt_mu = df_mt.groupby(['framework', 'type']).mean().reset_index()
     df_mt_std = df_mt.groupby(['framework', 'type']).std().reset_index()
 
@@ -363,6 +380,12 @@ def figure3(df_Z1, df_Z2, output_folder):
 
     ##### SINGLE-THREADED ######
     ax = axs[0]
+
+
+    # select Tuplex with single-threaded-no-nvo!
+    # df_st_rest, df_st_rest_std affected!
+    df_st_rest = df_st_rest[~((df_st_rest['type'] == 'single-threaded') & (df_st_rest['framework'] == 'tuplex'))]
+    df_st_rest_std = df_st_rest_std[~((df_st_rest_std['type'] == 'single-threaded') & (df_st_rest_std['framework'] == 'tuplex'))]
 
     python3_dict_err = np.array([df_st_dict_std[df_st_dict_std['framework'] == 'python3']['job_time']])
     python3_tuple_err = np.array([df_st_tuple_std[df_st_tuple_std['framework'] == 'python3']['job_time']])
@@ -519,7 +542,11 @@ def figure3(df_Z1, df_Z2, output_folder):
     df_st_rest_std = df_st_std[~df_st_std['type'].isin(['tuple', 'dict'])]
 
     df_mt = df[(df['mode'].isin(['python3', 'c++', 'scala'])) & (df['framework'].isin(mt_fws))]
-    df_mt = df_mt[~df_mt['type'].isin(['single-threaded', 'cached', 'preload'])]
+    df_mt = df_mt[~df_mt['type'].isin(['single-threaded', 'single-threaded-no-nvo', 'cached', 'preload'])]
+
+    # exclude tuplex multi-threaded, use the no-nvo setting
+    df_mt = df_mt[~((df_mt['type'] == 'multi-threaded') & (df_mt['framework'] == 'tuplex'))]
+
     df_mt_mu = df_mt.groupby(['framework', 'type']).mean().reset_index()
     df_mt_std = df_mt.groupby(['framework', 'type']).std().reset_index()
 
@@ -697,7 +724,11 @@ def figure7(df_Z1, output_folder):
     df_st_rest_std = df_st_std[~df_st_std['type'].isin(['tuple', 'dict'])]
 
     df_mt = df[(df['mode'].isin(['python3', 'c++', 'scala'])) & (df['framework'].isin(mt_fws))]
-    df_mt = df_mt[~df_mt['type'].isin(['single-threaded', 'cached', 'preload'])]
+    df_mt = df_mt[~df_mt['type'].isin(['single-threaded', 'single-threaded-no-nvo', 'cached', 'preload'])]
+
+    # exclude tuplex multi-threaded, use the no-nvo setting
+    df_mt = df_mt[~((df_mt['type'] == 'multi-threaded') & (df_mt['framework'] == 'tuplex'))]
+
     df_mt_mu = df_mt.groupby(['framework', 'type']).mean().reset_index()
     df_mt_std = df_mt.groupby(['framework', 'type']).std().reset_index()
 
@@ -723,6 +754,14 @@ def figure7(df_Z1, output_folder):
     pp_mt = pp_mt[~pp_mt['type'].isin(['single-threaded', 'cached', 'preload'])]
     pp_mt_mu = pp_mt.groupby(['framework', 'type', 'mode']).mean().reset_index()
     pp_mt_std = pp_mt.groupby(['framework', 'type', 'mode']).std().reset_index()
+
+
+    # select Tuplex with single-threaded-no-nvo!
+    # df_st_rest, df_st_rest_std affected!
+    df_st_rest = df_st_rest[~((df_st_rest['type'] == 'multi-threaded-no-nvo') & (df_st_rest['framework'] == 'tuplex'))]
+    df_st_rest = df_st_rest[~((df_st_rest['type'] == 'single-threaded') & (df_st_rest['framework'] == 'tuplex'))]
+    df_st_rest_std = df_st_rest_std[~((df_st_rest_std['type'] == 'multi-threaded-no-nvo') & (df_st_rest_std['framework'] == 'tuplex'))]
+    df_st_rest_std = df_st_rest_std[~((df_st_rest_std['type'] == 'single-threaded') & (df_st_rest_std['framework'] == 'tuplex'))]
 
     # links: https://stackoverflow.com/questions/14852821/aligning-rotated-xticklabels-with-their-respective-xticks
     sf = 1.1
@@ -854,7 +893,7 @@ def figure7(df_Z1, output_folder):
     dask_pypy_err = np.array([pp_mt_std[df_mt_std['framework'] == 'dask']['job_time']])
 
     plt_bar(ax, 3-w4, df_mt_mu[df_mt_mu['framework'] == 'dask']['job_time'], w2, dask_col_g,'Dask', yerr=dask_py_err)
-    plt_bar(ax, 3+w4, pp_mt_mu[df_mt_mu['framework'] == 'dask']['job_time'], w2, dask_col,'Dask', yerr=dask_pypy_err)
+    plt_bar(ax, 3+w4, pp_mt_mu[pp_mt_mu['framework'] == 'dask']['job_time'], w2, dask_col,'Dask', yerr=dask_pypy_err)
 
 
     tplx_err = np.array([df_mt_std[df_mt_std['framework'] == 'tuplex']['job_time']])

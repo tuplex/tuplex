@@ -565,7 +565,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 
 //    input_pattern = "../resources/hyperspecialization/flights_2003_06.sample.csv";
 
-    input_pattern = flights_root + "flights_on_time_performance_2003_06.csv";
+    // input_pattern = flights_root + "flights_on_time_performance_2003_06.csv";
 
     std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;
     Timer timer;
@@ -574,10 +574,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     ContextOptions opt = ContextOptions::defaults();
     opt.set("tuplex.executorCount", "0");
     opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
-
-
     opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
-
     opt.set("tuplex.resolveWithInterpreterOnly", "false"); // -> this doesn't work with hyper-specialization yet.
 
     // hyperspecialization setting
@@ -596,6 +593,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 
     // check for each file in non-lambda mode
     if(!use_lambda) {
+        timer.reset();
         auto vfs = VirtualFileSystem::fromURI("file://");
         auto files = vfs.globAll(input_pattern);
         std::sort(files.begin(), files.end(), [](const URI& a, const URI& b){
@@ -606,8 +604,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
             auto output_path = "local_hyper" + path.toString().substr(path.toString().rfind('/') + 1) + ".csv";
             ctx.csv(path.toString()).map(UDF(code)).tocsv(output_path);
         }
-    } else
-    ctx.csv(input_pattern).map(UDF(code)).tocsv(s3_output +"_hyper");
+    } else {
+        ctx.csv(input_pattern).map(UDF(code)).tocsv(s3_output +"_hyper");
+    }
 #ifndef NDEBUG
     displayExceptions(std::cout, true);
 #endif
@@ -622,6 +621,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     opt_general.set("tuplex.executorCount", "0");
     opt_general.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
     opt_general.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
+    opt_general.set("tuplex.resolveWithInterpreterOnly", "false"); // -> this doesn't work with hyper-specialization yet.
     if(use_lambda) {
         opt_general.set("tuplex.backend", "lambda");
         opt_general.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));
@@ -634,16 +634,19 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // run same query too
     // check again for each file in general mode.
     if(!use_lambda) {
-        auto vfs = VirtualFileSystem::fromURI("file://");
-        auto files = vfs.globAll(input_pattern);
-        for(const auto& path : files) {
-            std::cout<<"checking for file "<<path<<std::endl;
-            auto output_path = "local_general" + path.toString().substr(path.toString().rfind('/') + 1) + ".csv";
-            ctx.csv(path.toString()).map(UDF(code)).tocsv(output_path);
-            //ctx_general.csv(path.toString()).map(UDF(code)).tocsv("test_local_general.csv");
-        }
+
+        // use this to test settings for general context
+        //        auto vfs = VirtualFileSystem::fromURI("file://");
+        //        auto files = vfs.globAll(input_pattern);
+        //        for(const auto& path : files) {
+        //            std::cout<<"checking for file "<<path<<std::endl;
+        //            auto output_path = "local_general" + path.toString().substr(path.toString().rfind('/') + 1) + ".csv";
+        //            ctx.csv(path.toString()).map(UDF(code)).tocsv(output_path);
+        //            //ctx_general.csv(path.toString()).map(UDF(code)).tocsv("test_local_general.csv");
+        //        }
 
         std::cout<<"running again for all files"<<std::endl;
+        timer.reset();
         ctx_general.csv(input_pattern).map(UDF(code)).tocsv("all_files_general.csv"); // fix: /aws/lambda/tuplex-lambda-runner?
 
     } else

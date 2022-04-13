@@ -1207,9 +1207,8 @@ namespace tuplex {
             // create wrapper which decodes automatically normal-case rows with optimized types...
             auto null_values = ctx.inputMode == EndPointMode::FILE ? jsonToStringArray(ctx.fileInputParameters.at("null_values"))
                                                      : std::vector<std::string>{"None"};
-#error " need to add here upcasting when normal/general case have different number of columns!"
             auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip, ret.funcStageName/*funcResolveRowName*/,
-                                                                            normalCaseType, null_values);
+                                                                            normalCaseType, normalToGeneralMapping, null_values);
 
             ret.funcStageName = rowProcessFunc->getName();
 //            ret._resolveRowFunctionName = rowProcessFunc->getName();

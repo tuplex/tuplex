@@ -43,10 +43,14 @@ namespace tuplex {
 
 
         // @TODO: refactor codegenHelper???
-        SerializableValue constantValuedTypeToLLVM(llvm::IRBuilder<>& builder, const python::Type& elementType) {
+        SerializableValue constantValuedTypeToLLVM(llvm::IRBuilder<>& builder, const python::Type& const_type) {
+
+            if(!const_type.isConstantValued())
+                throw std::runtime_error("Given type " + const_type.desc() + " is not constant velued, error");
+
             auto& ctx = builder.getContext();
-            auto ut = elementType.underlying();
-            auto constant_value = elementType.constant();
+            auto ut = const_type.underlying();
+            auto constant_value = const_type.constant();
             auto not_null = llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, false));
             if(ut.isOptionType()) {
                 // check if null?
@@ -57,7 +61,17 @@ namespace tuplex {
                 }
             }
 
-            if(ut == python::Type::I64) {
+            if(ut == python::Type::NULLVALUE) {
+                auto is_null = llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, false));
+                return SerializableValue(nullptr, nullptr, is_null);
+            } else if(ut == python::Type::BOOLEAN) {
+                bool b = stringToBool(constant_value);
+                //auto t = getBooleanType();
+                auto t = llvm::Type::getInt8Ty(ctx);
+                auto bconst = llvm::Constant::getIntegerValue(t, llvm::APInt(t->getIntegerBitWidth(), b));
+                auto bconst_size =  llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(1, false));
+                return SerializableValue(bconst, bconst_size, not_null);
+            } else if(ut == python::Type::I64) {
                 auto ival = std::stoll(constant_value);
                 auto i64const = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(ival, false));
                 auto i64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(sizeof(int64_t), false));
@@ -74,7 +88,7 @@ namespace tuplex {
                 auto s64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(constant_value.length() + 1, false));
                 return SerializableValue(sval, s64const_size, not_null);
             } else {
-                std::cerr<<"wrong type found in gettupleelement constant vlaued: "<<elementType.desc()<<std::endl;
+                std::cerr << "wrong type found in gettupleelement constant valued: " << const_type.desc() << std::endl;
                 throw std::runtime_error("unknown constant valued type");
             }
         }

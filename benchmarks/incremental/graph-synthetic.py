@@ -47,11 +47,11 @@ class Experiment:
         plain_results = self.get_results(True, 'plain')
         inc_results = self.get_results(True, 'incremental')
 
-        plt.figure(figsize=(6, 4))
+        fig = plt.figure(figsize=(6, 4))
 
         plt.plot(plain_results, color=PLAIN_COLOR)
         plt.plot(inc_results, color=INCREMENTAL_COLOR)
-        # plt.ylim(0, 110)
+        plt.ylim(0, 110)
 
         plt.ylabel('Total Execution Time (s)')
         plt.xlabel('Amount of Exceptions')
@@ -65,7 +65,7 @@ class Experiment:
             mpatches.Patch(color=INCREMENTAL_COLOR, label='Incremental'),
         ], loc='upper right')
 
-        fig.savefig(os.path.join(self.save_path, 'in-order-synth.png'), dpi=400, bbox_inches='tight')
+        fig.savefig(os.path.join(self.save_path, 'out-of-order-synth.png'), dpi=400, bbox_inches='tight')
 
     def get_path(self, out_of_order, mode, step, trial):
         filename = f"{mode}-{'out-of-order' if out_of_order else 'in-order'}-e{step}-t{trial}.txt"

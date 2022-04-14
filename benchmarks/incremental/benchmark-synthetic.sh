@@ -52,7 +52,7 @@ for ((r = 1; r <= NUM_RUNS; r++)); do
 done
 
 echo "running in order experiments"
-for ((r = 1; r < NUM_RUNS; r++)); do
+for ((r = 1; r <= NUM_RUNS; r++)); do
   echo "trial ($r/$NUM_RUNS)"
 
   for ((s = 0; s <= 10; s++)) do

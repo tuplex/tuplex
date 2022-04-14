@@ -22,6 +22,7 @@ def synthetic_pipeline(ctx, path, output_path, num_steps, current_step, commit):
             if current_step > step:
                 ds = ds.resolve(ZeroDivisionError, lambda x: 1 // x["a"] if random.choice([True, False]) else 0)
 
+    ds = ds.selectColumns(['a'])
     ds.tocsv(output_path)
 
     return ctx.metrics

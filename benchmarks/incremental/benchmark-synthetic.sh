@@ -21,7 +21,7 @@ NUM_STEPS=5
 TIMEOUT=14400
 
 RESDIR='results_synthetic'
-DATA_PATH='/hot/scratch/bgivertz/data/synth'
+DATA_PATH='/hot/scratch/bgivertz/data/synthetic/synth'
 INCREMENTAL_OUT_PATH='/hot/scratch/bgivertz/output/incremental'
 INCREMENTAL_COMMIT_OUT_PATH='/hot/scratch/bgivertz/output/commit'
 PLAIN_OUT_PATH='/hot/scratch/bgivertz/output/plain'

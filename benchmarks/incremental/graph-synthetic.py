@@ -24,7 +24,7 @@ class Experiment:
 
     def get_metric(self, path):
         with open(path, 'r') as fp:
-            lines = f.read().splitlines()
+            lines = fp.read().splitlines()
             ind = lines.index("EXPERIMENTAL RESULTS") + 1
             line = lines[ind]
             metrics = json.loads(line)

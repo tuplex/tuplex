@@ -51,7 +51,7 @@ class Experiment:
 
         plt.plot(plain_results, color=PLAIN_COLOR)
         plt.plot(inc_results, color=INCREMENTAL_COLOR)
-        plt.ylim(0, 110)
+        # plt.ylim(0, 110)
 
         plt.ylabel('Total Execution Time (s)')
         plt.xlabel('Amount of Exceptions')

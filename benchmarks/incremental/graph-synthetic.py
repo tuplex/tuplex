@@ -1,5 +1,6 @@
 import argparse
 import os.path
+import json
 
 class Experiment:
     def __init__(self, results_path, num_trials, num_steps, save_path):

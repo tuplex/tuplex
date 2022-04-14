@@ -17,7 +17,7 @@ fi
 
 # use 10 runs (3 for very long jobs) and a timeout after 180min/3h
 NUM_RUNS=1
-NUM_STEPS=5
+NUM_STEPS=10
 TIMEOUT=14400
 
 RESDIR='results_synthetic'

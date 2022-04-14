@@ -21,8 +21,8 @@ def synthetic_pipeline(ctx, path, output_path, num_steps, current_step, commit):
     for step in range(num_steps):
             if current_step > step:
                 ds = ds.resolve(ZeroDivisionError, lambda x: 1 // x["a"] if random.choice([True, False]) else 0)
-
-    ds = ds.selectColumns(['a'])
+    ds = ds.withColumn("write", lambda x: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+    ds = ds.selectColumns(['write'])
     ds.tocsv(output_path)
 
     return ctx.metrics

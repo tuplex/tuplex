@@ -1,4 +1,5 @@
 import argparse
+import math
 import random
 from tqdm import tqdm
 
@@ -34,13 +35,17 @@ def main():
     num_rows = dataset_size // row_size
     num_sample_rows = min(num_rows, 100000)
 
+    print(num_rows)
+    print(num_sample_rows)
+    print(num_rows // num_sample_rows)
+
     data = generate_data(num_sample_rows, row_size, exceptions)
 
     with open(output_path, 'w') as fp:
         header = "a,b\n"
         fp.write(header)
 
-        for _ in tqdm(range(num_rows // num_sample_rows)):
+        for _ in tqdm(range(math.ceil(num_rows // num_sample_rows))):
             fp.writelines(data)
 
 if __name__ == '__main__':

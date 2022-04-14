@@ -36,6 +36,7 @@ def main():
     parser.add_argument('--num-trials', type=str, dest='num_trials', default=1)
     parser.add_argument('--num-steps', type=str, dest='num_steps', default=11)
     parser.add_argument('--save-path', type=str, dest='save_path', default='graphs-synthetic')
+    args = parser.parse_args()
 
     results_path = args.results_path
     num_trials = args.num_trials

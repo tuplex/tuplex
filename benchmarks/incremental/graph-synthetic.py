@@ -1,6 +1,13 @@
 import argparse
 import os.path
 import json
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+
+PLAIN_COLOR = "#4285F4"
+INCREMENTAL_COLOR = '#DB4437'
+COMMIT_COLOR = "#F4B400"
 
 class Experiment:
     def __init__(self, results_path, num_trials, num_steps, save_path):
@@ -8,6 +15,30 @@ class Experiment:
         self.num_trials = num_trials
         self.num_steps = num_steps
         self.save_path = save_path
+
+    def graph_out_of_order(self):
+        plain_results = self.get_results(True, 'plain')
+        inc_results = self.get_results(True, 'incremental')
+
+        fig = plt.figure(figsize=(6, 4))
+
+        plt.plot(plain_results, color=PLAIN_COLOR)
+        plt.plot(inc_results, color=INCREMENTAL_COLOR)
+        plt.ylim(0, 110)
+
+        plt.ylabel('Total Execution Time (s)')
+        plt.xlabel('Amount of Exceptions')
+        labels = ['0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '1.0']
+        x = np.arange(len(labels))
+        plt.xticks(x, labels)
+
+        plt.title('Out of Order | Synthetic')
+        plt.legend(handles=[
+            mpatches.Patch(color=PLAIN_COLOR, label='Plain'),
+            mpatches.Patch(color=INCREMENTAL_COLOR, label='Incremental'),
+        ], loc='upper right')
+
+        plt.show()
 
     def get_path(self, out_of_order, mode, step, trial):
         filename = f"{mode}-{'out-of-order' if out_of_order else 'in-order'}-e{step}-t{trial}.txt"
@@ -21,7 +52,7 @@ class Experiment:
                 path = self.get_path(out_of_order, mode, step, trial + 1)
                 step_results.append(self.get_metric(path))
             results.append(sum(step_results) / len(step_results))
-        return results
+        return np.array(results)
 
     def get_metric(self, path):
         with open(path, 'r') as fp:
@@ -48,10 +79,14 @@ def main():
         os.makedirs(save_path)
     assert os.path.isdir(results_path)
 
-    e = Experiment(results_path, num_trials, num_steps, save_path)
-    print(e.get_results(True, 'plain'))
-    print(e.get_results(True, 'incremental'))
+    params = {'font.family': 'Times',
+              'legend.fontsize': 'medium',
+              'axes.labelsize': 'medium',
+              'axes.titlesize': 'medium'}
+    plt.rcParams.update(params)
 
+    e = Experiment(results_path, num_trials, num_steps, save_path)
+    e.graph_out_of_order()
 
 if __name__ == '__main__':
     main()

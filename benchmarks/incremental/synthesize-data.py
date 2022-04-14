@@ -2,6 +2,22 @@ import argparse
 import random
 from tqdm import tqdm
 
+def generate_data(num_rows, row_size, exceptions):
+    num_exceptions = int(exceptions * num_rows)
+    exps = set(random.sample(range(num_rows), num_exceptions))
+
+    padding = 'a' * (row_size - 3)
+    norm_row = "1," + padding + "\n"
+    exp_row = "0," + padding + "\n"
+
+    data = []
+    for i in range(num_rows):
+        if i in exps:
+            data.append(exp_row)
+        else:
+            data.append(norm_row)
+    return data
+
 def main():
     parser = argparse.ArgumentParser(description='Synthesize data')
     parser.add_argument('--row-size', type=int, dest='row_size', default=200, help='number of bytes per row')
@@ -16,22 +32,16 @@ def main():
     output_path = args.output_path
 
     num_rows = dataset_size // row_size
-    num_exceptions = int(exceptions * num_rows)
+    num_sample_rows = min(num_rows, 100000)
 
-    exps = set(random.sample(range(num_rows), num_exceptions))
+    data = generate_data(num_sample_rows, row_size, exceptions)
 
     with open(output_path, 'w') as fp:
         header = "a,b\n"
         fp.write(header)
 
-        padding = 'a' * (row_size - 3)
-        norm_row = "1," + padding + "\n"
-        exp_row = "0," + padding + "\n"
-        for i in tqdm(range(num_rows)):
-            if i in exps:
-                fp.write(exp_row)
-            else:
-                fp.write(norm_row)
+        for _ in tqdm(range(num_rows // num_sample_rows)):
+            fp.writelines(data)
 
 if __name__ == '__main__':
     main()

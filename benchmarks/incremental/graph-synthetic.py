@@ -16,15 +16,42 @@ class Experiment:
         self.num_steps = num_steps
         self.save_path = save_path
 
-    def graph_out_of_order(self):
-        plain_results = self.get_results(True, 'plain')
-        inc_results = self.get_results(True, 'incremental')
+    def graph_in_order(self):
+        plain_results = self.get_results(False, 'plain')
+        inc_results = self.get_results(False, 'incremental')
+        commit_results = self.get_results(False, 'commit')
 
         fig = plt.figure(figsize=(6, 4))
 
         plt.plot(plain_results, color=PLAIN_COLOR)
         plt.plot(inc_results, color=INCREMENTAL_COLOR)
-        plt.ylim(0, 110)
+        plt.plot(commit_results, color=COMMIT_COLOR)
+        # plt.ylim(0, 110)
+
+        plt.ylabel('Total Execution Time (s)')
+        plt.xlabel('Amount of Exceptions')
+        labels = ['0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '1.0']
+        x = np.arange(len(labels))
+        plt.xticks(x, labels)
+
+        plt.title('In Order | Synthetic')
+        plt.legend(handles=[
+            mpatches.Patch(color=PLAIN_COLOR, label='Plain'),
+            mpatches.Patch(color=INCREMENTAL_COLOR, label='Incremental'),
+            mpatches.Patch(color=COMMIT_COLOR, label='Commit')
+        ], loc='upper right')
+
+        fig.savefig(os.path.join(self.save_path, 'in-order-synth.png'), dpi=400, bbox_inches='tight')
+
+    def graph_out_of_order(self):
+        plain_results = self.get_results(True, 'plain')
+        inc_results = self.get_results(True, 'incremental')
+
+        plt.figure(figsize=(6, 4))
+
+        plt.plot(plain_results, color=PLAIN_COLOR)
+        plt.plot(inc_results, color=INCREMENTAL_COLOR)
+        # plt.ylim(0, 110)
 
         plt.ylabel('Total Execution Time (s)')
         plt.xlabel('Amount of Exceptions')
@@ -38,7 +65,7 @@ class Experiment:
             mpatches.Patch(color=INCREMENTAL_COLOR, label='Incremental'),
         ], loc='upper right')
 
-        plt.show()
+        fig.savefig(os.path.join(self.save_path, 'in-order-synth.png'), dpi=400, bbox_inches='tight')
 
     def get_path(self, out_of_order, mode, step, trial):
         filename = f"{mode}-{'out-of-order' if out_of_order else 'in-order'}-e{step}-t{trial}.txt"

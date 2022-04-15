@@ -409,6 +409,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 #ifdef __APPLE__
     // leonhards macbook
     string flights_root = "/Users/leonhards/Downloads/flights/";
+    string flights_root = "/Users/leonhards/Downloads/flights_small/";
 #else
     // BBSN00
     string flights_root = "/hot/data/flights_all/";
@@ -563,7 +564,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     input_pattern = flights_root + "flights_on_time_performance_2003_01.csv" + "," + flights_root + "flights_on_time_performance_2003_12.csv";
 
     // single file
-    input_pattern = flights_root + "flights_on_time_performance_2003_01.csv";
+   // input_pattern = flights_root + "flights_on_time_performance_2003_01.csv";
 
     // test all files through for issues...!
     // this file has issues => i.e., it triggers fallback ALWAYS for hyper-specialization
@@ -629,6 +630,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     opt_general.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
     opt_general.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
     opt_general.set("tuplex.resolveWithInterpreterOnly", "false"); // -> this doesn't work with hyper-specialization yet.
+    opt_general.set("tuplex.driverMemory", "2GB");
     if(use_lambda) {
         opt_general.set("tuplex.backend", "lambda");
         opt_general.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));

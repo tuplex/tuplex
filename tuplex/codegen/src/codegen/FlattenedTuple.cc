@@ -112,7 +112,9 @@ namespace tuplex {
 
                 // special case: string, use empty string
                 if(dummy_type == python::Type::STRING) {
-                    dummy = codegen::SerializableValue(_env->strConst(builder, ""), _env->i64Const(1), _env->boolConst(false));
+                    dummy = codegen::SerializableValue(_env->strConst(builder, ""),
+                                                       _env->i64Const(1),
+                                                       _env->i1Const(false));
                 }
 
                 _tree.set(index, dummy);

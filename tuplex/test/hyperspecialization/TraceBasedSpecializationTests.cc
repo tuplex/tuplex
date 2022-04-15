@@ -559,6 +559,12 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     if(!use_lambda)
         input_pattern = flights_root + "flights_on_time_performance_2003_*.csv";
 
+    // two files
+    input_pattern = flights_root + "flights_on_time_performance_2003_01.csv" + "," + flights_root + "flights_on_time_performance_2003_12.csv";
+
+    // single file
+    input_pattern = flights_root + "flights_on_time_performance_2003_01.csv";
+
     // test all files through for issues...!
     // this file has issues => i.e., it triggers fallback ALWAYS for hyper-specialization
     //input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_08.csv,/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_09.csv";

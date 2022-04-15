@@ -114,6 +114,7 @@ def main():
 
     e = Experiment(results_path, num_trials, num_steps, save_path)
     e.graph_out_of_order()
+    e.graph_in_order()
 
 if __name__ == '__main__':
     main()

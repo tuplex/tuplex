@@ -17,10 +17,10 @@ import random
 
 def synthetic_pipeline(ctx, path, output_path, num_steps, current_step, commit):
     ds = ctx.csv(path, header=True)
-    ds = ds.withColumn("c", lambda x: 1 // x["a"] if x["a"] == 0 else x["a"])
+    ds = ds.withColumn("c", lambda x: 1 // (x["a"] - x["a"]) if x["a"] <= 0 else x["a"])
     for step in range(num_steps):
             if current_step > step:
-                ds = ds.resolve(ZeroDivisionError, lambda x: 1 // x["a"] if random.choice([True, False]) else 0)
+                ds = ds.resolve(ZeroDivisionError, lambda x: 1 // (x["a"] - x["a"]) if x["a"] <= (-1 * current_step) else 0)
     ds.tocsv(output_path, commit=commit)
 
     return ctx.metrics
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Incremental resolution')
     parser.add_argument('--input-path', type=str, dest='data_path', default='synth0.csv', help='path or pattern to synthetic data')
     parser.add_argument('--output-path', type=str, dest='output_path', default='synthetic-output/', help='specify path where to save output data files')
-    parser.add_argument('--num-steps', type=int, dest='num_steps', default=5)
+    parser.add_argument('--num-steps', type=int, dest='num_steps', default=10)
     parser.add_argument('--resolve-in-order', dest='resolve_in_order', action="store_true", help="whether to resolve exceptions in order")
     parser.add_argument('--incremental-resolution', dest='incremental_resolution', action="store_true", help="whether to use incremental resolution")
     parser.add_argument('--commit-mode', dest='commit_mode', action='store_true', help='whether to use commit mode')

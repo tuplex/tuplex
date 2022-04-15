@@ -1837,15 +1837,17 @@ namespace tuplex {
             if(!pipFunc)
                 return nullptr;
 
-            auto exceptionalType = pip.inputRowType();
+            auto generalCaseType = pip.inputRowType();
+
+            assert(checkCaseCompatibility(normalCaseType, generalCaseType, normalToGeneralMapping));
 
             // the type are a bit screwed because of tuple mode or not
             // @TODO: make this cleaner in further releases...
             // // check that pip's inputtype + normal type are compatible
-            // if(!normalTypeCompatible(normalCaseType, exceptionalType))
+            // if(!normalTypeCompatible(normalCaseType, generalCaseType))
             //     throw std::runtime_error("can't generate slow code path for incompatible/not upgradeable compilable type");
 
-            auto num_columns = exceptionalType.parameters().size();
+            auto num_columns = generalCaseType.parameters().size();
 
             // create function
             using namespace llvm;
@@ -1931,7 +1933,7 @@ namespace tuplex {
                     dataPtr = builder.CreateGEP(dataPtr, env.i32Const(sizeof(int64_t)));
                 }
 
-                auto ft = decodeCells(env, builder, exceptionalType, noCells, cellsPtr, sizesPtr, bbStringDecodeFailed,
+                auto ft = decodeCells(env, builder, generalCaseType, noCells, cellsPtr, sizesPtr, bbStringDecodeFailed,
                                       null_values);
 
                 // call pipeline & return its code

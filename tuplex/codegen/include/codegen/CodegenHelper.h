@@ -489,6 +489,56 @@ namespace tuplex {
             }
             return v;
         }
+
+        /*!
+         * check whether row type of normal-case can be upcast to general case type
+         * @param normal_case_type
+         * @param general_case_type
+         * @param mapping optional mapping
+         * @return true/false
+         */
+        inline bool checkCaseCompatibility(const python::Type& normal_case_type, const python::Type& general_case_type,
+                                           const std::map<int, int>& mapping) {
+            auto& logger = Logger::instance().logger("codegen");
+
+            if(!normal_case_type.isTupleType())
+                throw std::runtime_error("normal case type " + normal_case_type.desc() + " is not a row type.");
+            if(!general_case_type.isTupleType())
+                throw std::runtime_error("general case type " + general_case_type.desc() + " is not a row type.");
+
+            auto num_normal_columns = normal_case_type.parameters().size();
+            auto num_general_columns = general_case_type.parameters().size();
+
+            if(mapping.empty()) {
+                // no mapping, column count must match and upcast be possible!
+                if(num_normal_columns != num_general_columns)
+                    return false;
+                return canUpcastRowType(normal_case_type, general_case_type);
+            } else {
+                // check that for each column in normal case a mapping to general case exists and is valid!
+                for(unsigned i = 0; i < num_normal_columns; ++i) {
+                    // check that entry exists in mapping!
+                    auto it = mapping.find(i);
+                    if(it == mapping.end()) {
+                        logger.debug("no mapping entry found for index " + std::to_string(i));
+                        return false;
+                    }
+                    if(it.second < 0 || it.second >= num_general_columns) {
+                        logger.debug("invalid index mapping " + std::to_string(i) + " -> " + std::to_string(it.second));
+                    }
+
+                    // mapping found, check that upcating is possible
+                    auto nt = normal_case_type.parameters()[i];
+                    auto gt = general_case_type.parameters()[mapping[i]]);
+                    if(!canUpcastType(nt, gt) {
+                        logger.debug("can not upcast " + nt.desc() + " -> " + gt.desc());
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
     }
 }
 

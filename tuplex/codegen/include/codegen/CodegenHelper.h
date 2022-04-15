@@ -511,9 +511,14 @@ namespace tuplex {
 
             if(mapping.empty()) {
                 // no mapping, column count must match and upcast be possible!
-                if(num_normal_columns != num_general_columns)
+                if(num_normal_columns != num_general_columns) {
+                    logger.debug("mapping is empty but number of columns normal(" +
+                    std::to_string(num_general_columns) + ")/general(" + std::to_string(num_general_columns)
+                    + ") not matching.");
                     return false;
-                return canUpcastRowType(normal_case_type, general_case_type);
+                }
+
+                return python::canUpcastToRowType(normal_case_type, general_case_type);
             } else {
                 // check that for each column in normal case a mapping to general case exists and is valid!
                 for(unsigned i = 0; i < num_normal_columns; ++i) {
@@ -523,14 +528,14 @@ namespace tuplex {
                         logger.debug("no mapping entry found for index " + std::to_string(i));
                         return false;
                     }
-                    if(it.second < 0 || it.second >= num_general_columns) {
-                        logger.debug("invalid index mapping " + std::to_string(i) + " -> " + std::to_string(it.second));
+                    if(it->second < 0 || it->second >= num_general_columns) {
+                        logger.debug("invalid index mapping " + std::to_string(i) + " -> " + std::to_string(it->second));
                     }
 
                     // mapping found, check that upcating is possible
                     auto nt = normal_case_type.parameters()[i];
-                    auto gt = general_case_type.parameters()[mapping[i]]);
-                    if(!canUpcastType(nt, gt) {
+                    auto gt = general_case_type.parameters()[mapping.at(i)];
+                    if(!python::canUpcastType(nt, gt)) {
                         logger.debug("can not upcast " + nt.desc() + " -> " + gt.desc());
                         return false;
                     }
@@ -538,7 +543,6 @@ namespace tuplex {
             }
             return true;
         }
-
     }
 }
 

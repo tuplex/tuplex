@@ -1479,10 +1479,9 @@ namespace tuplex {
                 // need to set codeGenerationContext.normalToGeneralMapping here as well!
                 // 2. specialize fast path (if desired)
                 codeGenerationContext.slowPathContext = getGeneralPathContext();
-                std::map<int, int> normalToGeneralMapping;
                 if(_generateNormalCaseCodePath)
                     codeGenerationContext.fastPathContext = specializePipeline(codeGenerationContext.slowPathContext,
-                                                                               normalToGeneralMapping,
+                                                                               codeGenerationContext.normalToGeneralMapping,
                                                                                _nullValueOptimization);
                 else
                     codeGenerationContext.fastPathContext = getGeneralPathContext();
@@ -1493,12 +1492,11 @@ namespace tuplex {
                 // kick off slow path generation
                 std::shared_future<TransformStage::StageCodePath> slowCodePath_f = std::async(std::launch::async, [this,
                                                                                                                    &codeGenerationContext,
-                                                                                                                   &normalCaseInputRowType,
-                                                                                                                   &normalToGeneralMapping]() {
+                                                                                                                   &normalCaseInputRowType]() {
                     return generateResolveCodePath(codeGenerationContext,
                                                    codeGenerationContext.slowPathContext,
                                                    normalCaseInputRowType,
-                                                   normalToGeneralMapping);
+                                                   codeGenerationContext.normalToGeneralMapping);
                 });
 
                 auto py_path = generatePythonCode(codeGenerationContext, number());

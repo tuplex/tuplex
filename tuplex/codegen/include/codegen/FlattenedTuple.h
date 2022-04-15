@@ -325,6 +325,72 @@ namespace tuplex {
                 return _flattenedTupleType;
             }
         };
+
+        /*!
+         * convert normal tuple to general tuple by placing dummies.
+         * @param builder
+         * @param normal_tuple
+         * @param normal_case
+         * @param general_case
+         * @param mapping
+         * @return flattened tuple upcast to general type.
+         */
+        inline FlattenedTuple normalToGeneralTuple(llvm::IRBuilder<>& builder,
+                                                   const FlattenedTuple& normal_tuple,
+                                                   const python::Type& normal_case,
+                                                   const python::Type& general_case,
+                                                   const std::map<int, int>& mapping) {
+            auto& logger = Logger::instance().logger("codegen");
+            assert(normal_tuple.getTupleType() == normal_case);
+
+            // could be the case that fast path/normal case requires less columns than general case
+            // (never the other way round!)
+            if(normal_case.parameters().size() != general_case.parameters().size()) {
+                assert(normal_case.parameters().size() <= general_case.parameters().size());
+                std::stringstream ss;
+                ss<<"normal cases uses "<<pluralize(normal_case.parameters().size(), "column")<<" vs. general case which uses "<<pluralize(general_case.parameters().size(), "column");
+                logger.debug(ss.str());
+                // fill in with dummys and then set correct tuple
+                assert(!mapping.empty());
+                // init FlattenedTuple with general case type
+                auto ft = FlattenedTuple(normal_tuple.getEnv());
+                ft.init(general_case);
+
+                // upcast flattened tuple to restricted type
+                std::vector<python::Type> params(normal_case.parameters().size(), python::Type::UNKNOWN);
+                std::map<int, int> generalToNormalMapping;
+                for(auto kv : mapping) {
+                    // check indices
+                    assert(kv.first < params.size());
+                    assert(kv.second < general_case.parameters().size());
+
+                    params[kv.first] = general_case.parameters()[kv.second];
+                    generalToNormalMapping[kv.second] = kv.first;
+                }
+                auto restrictedRowType = python::Type::makeTupleType(params);
+                auto ftRestricted = normal_tuple.upcastTo(builder, restrictedRowType);
+
+                // go through mapping & indices
+                auto generalcase_col_count = general_case.parameters().size();
+                for(unsigned i = 0; i < generalcase_col_count; ++i) {
+                    // need to perform reverse lookup...
+                    auto it = generalToNormalMapping.find(i);
+                    if(it != generalToNormalMapping.end()) {
+                        // found a corresponding normal row entry
+                        auto element = ftRestricted.getLoad(builder, {it->second});
+                        ft.set(builder, {static_cast<int>(i)}, element.val, element.size, element.is_null);
+                    } else {
+                        // set a dummy entry
+                        ft.setDummy(builder, {static_cast<int>(i)});
+                    }
+                }
+                return ft;
+            } else {
+                // upcast flattened tuple!
+                auto ft = normal_tuple.upcastTo(builder, general_case);
+                return ft;
+            }
+        }
     }
 }
 

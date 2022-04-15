@@ -1965,9 +1965,7 @@ namespace tuplex {
                 ft.init(normalCaseType);
                 ft.deserializationCode(builder, args["rowBuf"]);
                 // upcast to general type!
-                // castRow(llvm::IRBuilder<>& builder, const FlattenedTuple& row, const python::Type& target_type)
-                auto tuple = ft.upcastTo(builder, pip.inputRowType());
-
+                auto tuple = normalToGeneralTuple(builder, ft, normalCaseType, pip.inputRowType(), normalToGeneralMapping);
 #ifndef NDEBUG
                 // ft.print(builder);
                 // env.debugPrint(builder, "row casted, processing pipeline now!");

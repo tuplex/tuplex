@@ -137,3 +137,57 @@ TEST_F(ContextBasicsTest, JSON) {
     auto str = ContextOptions::defaults().asJSON();
     EXPECT_GT(str.length(), 2);
 }
+
+TEST_F(ContextBasicsTest, twoContextTest) {
+    using namespace tuplex;
+
+    python::initInterpreter();
+    python::unlockGIL();
+
+    ContextOptions co = testOptions();
+    co.set("tuplex.partitionSize", "100B");
+    co.set("tuplex.executorMemory", "1MB");
+    co.set("tuplex.scratchDir", scratchDir + "/context1");
+
+    // second context with different executor config, should cause the driver to split up
+    ContextOptions co2 = testOptions();
+    co.set("tuplex.partitionSize", "100B");
+    co2.set("tuplex.executorMemory", "2MB");
+    co2.set("tuplex.scratchDir", scratchDir + "/context2");
+
+    Context c1(co);
+    Context c2(co2);
+    Row row1(Tuple(0), Tuple("hello"));
+    Row row2(Tuple(1), Tuple("this"));
+    Row row3(Tuple(2), Tuple("is"));
+    Row row4(Tuple(3), Tuple("a"));
+    Row row5(Tuple(4), Tuple("test"));
+
+    for (int t = 0; t < 10; t++) {
+        auto ds1 = c1.parallelize({row1, row2, row3, row4, row5})
+                .map(UDF("lambda x: x[1][0]")); // new code: string index operator! first to raise an exception!
+
+        auto ds2 = c2.parallelize({row1, row2, row3, row4, row5})
+                .map(UDF("lambda x: x[1][0]")); // new code: string index operator! first to raise an exception!
+
+        auto v1 = ds1.collectAsVector();
+        auto v2 = ds2.collectAsVector();
+
+        std::vector<std::string> ref{"hello", "this", "is", "a", "test"};
+
+        EXPECT_EQ(v1.size(), 5);
+        for (int i = 0; i < 5; i++) {
+            EXPECT_EQ(v1[i].getString(0), ref[i]);
+        }
+
+        EXPECT_EQ(v2.size(), 5);
+        for (int i = 0; i < 5; i++) {
+            EXPECT_EQ(v2[i].getString(0), ref[i]);
+        }
+    }
+
+    python::lockGIL();
+    python::closeInterpreter();
+}
+
+// TODO(march): multiple context test

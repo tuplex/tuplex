@@ -40,14 +40,15 @@ namespace tuplex {
          * constructor for convenience
          * @param context
          */
-        explicit LocalBackend(const Context& context);
+        explicit LocalBackend(const Context &context);
 
-        Executor* driver() override; // for local execution
+        Executor *driver() override; // for local execution
 
-        void execute(PhysicalStage* stage) override;
+        void execute(PhysicalStage *stage) override;
+
     private:
-        Executor *_driver; //! driver from local backend...
-        std::vector<Executor*> _executors; //! drivers to be used
+        std::shared_ptr<Executor> _driver; //! driver from local backend...
+        std::vector<Executor *> _executors; //! drivers to be used
         std::unique_ptr<JITCompiler> _compiler;
 
         HistoryServerConnection _historyConn;
@@ -187,6 +188,7 @@ namespace tuplex {
 
     /*!
      * Trim list of partitions so that it includes up to the first n rows and the last m rows
+     * if n + m > number of rows in input partitions, the partitions will remain unchanged
      * @param partitions [in,out] the list of partitions to trim
      * @param topLimit n, the number of top rows to include
      * @param bottomLimit m, the number of bottom rows to include
@@ -197,7 +199,7 @@ namespace tuplex {
                                TransformStage *tstage, Executor *exec);
 
     /*!
-     * Create a new partition with the same data as the specified partition, but with the first n rows removed
+     * Create a newly allocated partition with the same data as the specified partition, but with the first n rows removed
      * @param p_in the input partition
      * @param numToSkip number of rows to remove from the new partition
      * @param tstage pointer to transform stage, used to generate new partition

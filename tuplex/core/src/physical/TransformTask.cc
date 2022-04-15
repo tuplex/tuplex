@@ -18,12 +18,20 @@
 #include <bucket.h>
 
 namespace tuplex {
+    // this is a logic to stop the execution once it has reached the topLimit and bottomLimit
+    // here, we assume that task order starts with zero and count up by 1, e.g. 0, 1, 2, ..., n
+    // To implement limit, we maintain a mapping from the task order to the number of rows done in that task
+    // (rows done are either 0 or #output rows after processing)
+    // we can then find out how many top rows are done by looking at g_rowsDone[0], g_rowsDone[1], ...
+    // until we reach some segment that's 0
+    // likewise, we can find the bottom rows done by looking at g_rowsDone[g_maxOrder], g_rowsDone[g_maxOrder - 1], ...
+
     // mapping from order number -> row count if the task is finished
     static std::mutex g_rowsDoneMutex;
     static std::unordered_map<size_t, size_t> g_rowsDone;
     static std::atomic_size_t g_maxOrder;
 
-    void TransformTask::resetLimits(size_t maxOrder) {
+    void TransformTask::setMaxOrderAndResetLimits(size_t maxOrder) {
         g_rowsDone.clear();
         g_maxOrder = maxOrder;
     }
@@ -617,7 +625,6 @@ namespace tuplex {
             }
         }
 
-        // TODO: what is the max task number here
         if (_outBottomLimit == 0) {
             isBottomLimitReached = true;
         } else {

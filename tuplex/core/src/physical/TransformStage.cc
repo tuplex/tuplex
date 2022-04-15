@@ -139,10 +139,17 @@ namespace tuplex {
                 }
             }
 
+            size_t maxRows;
+            if (hasOutputLimit()) {
+                maxRows = outputTopLimit() + outputBottomLimit();
+            } else {
+                maxRows = std::numeric_limits<size_t>::max();
+            }
+
             // put ALL partitions to result set
             _rs = std::make_shared<ResultSet>(schema, partitions,
                                               generalCase, partitionToExceptionsMap, interpreterRows,
-                                              outputTopLimit() + outputBottomLimit());
+                                              maxRows);
         }
     }
 

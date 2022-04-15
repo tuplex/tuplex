@@ -116,14 +116,14 @@ namespace tuplex {
     }
 
     Executor *LocalBackend::driver() {
-      assert(_driver);
-      return _driver;
+        assert(_driver);
+        return _driver.get();
     }
 
     void LocalBackend::execute(tuplex::PhysicalStage *stage) {
         assert(stage);
 
-        if(!stage)
+        if (!stage)
             return;
 
         // history server connection should be established
@@ -696,8 +696,6 @@ namespace tuplex {
             }
         }
 
-        // TODO(march): we can avoid setting order here by pre init g_rowsDone
-
         // assign the order for all tasks
         for(size_t i = 0; i < tasks.size(); ++i) {
             tasks[i]->setOrder(i);
@@ -899,7 +897,8 @@ namespace tuplex {
 
             auto output_par = tstage->inputPartitions();
             if (tstage->hasOutputLimit()) {
-                trimPartitionsToLimit(output_par, tstage->outputTopLimit(), tstage->outputBottomLimit(), tstage, _driver);
+                trimPartitionsToLimit(output_par, tstage->outputTopLimit(), tstage->outputBottomLimit(), tstage,
+                                      _driver.get());
             }
             tstage->setMemoryResult(output_par, std::vector<Partition*>{}, std::unordered_map<std::string, ExceptionInfo>(), pyObjects);
             pyObjects.clear();
@@ -1217,7 +1216,8 @@ namespace tuplex {
 
                 if (tstage->hasOutputLimit()) {
                     // the function expect the output to be sorted in ascending order (guaranteed by sortTasks())
-                    trimPartitionsToLimit(output, tstage->outputTopLimit(), tstage->outputBottomLimit(), tstage, _driver);
+                    trimPartitionsToLimit(output, tstage->outputTopLimit(), tstage->outputBottomLimit(), tstage,
+                                          _driver.get());
                 }
 
                 tstage->setMemoryResult(output, generalOutput, partitionToExceptionsMap, nonConformingRows, remainingExceptions, ecounts);
@@ -2232,8 +2232,9 @@ namespace tuplex {
         ptr += sizeof(int64_t);
         size_t numBytesToSkip = 0;
 
+        Deserializer ds(tstage->outputSchema());
         for (unsigned i = 0; i < numToSkip; ++i) {
-            Row r = Row::fromMemory(tstage->outputSchema(), ptr, p_in->capacity() - numBytesToSkip);
+            Row r = Row::fromMemory(ds, ptr, p_in->capacity() - numBytesToSkip);
             ptr += r.serializedLength();
             numBytesToSkip += r.serializedLength();
         }

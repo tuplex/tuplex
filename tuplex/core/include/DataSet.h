@@ -125,7 +125,7 @@ namespace tuplex {
 
         /*!
          * action that displays tuples as nicely formatted table
-         * @param numRows how many rows to print, i.e. top numRows are printed.xs
+         * @param numRows how many rows to print, i.e. top numRows are printed.xs, -1 means print all rows
          * @param os ostream where to print table to
          */
         virtual void show(int64_t numRows = -1, std::ostream &os = std::cout);
@@ -260,21 +260,48 @@ namespace tuplex {
          * @param memoryLayout
          * @return
          */
-        virtual DataSet& cache(const Schema::MemoryLayout& memoryLayout, bool storeSpecialized);
-        DataSet& cache(bool storeSpecialized=true) { return cache(Schema::MemoryLayout::ROW, storeSpecialized); }
+        virtual DataSet &cache(const Schema::MemoryLayout &memoryLayout, bool storeSpecialized);
+
+        DataSet &cache(bool storeSpecialized = true) { return cache(Schema::MemoryLayout::ROW, storeSpecialized); }
 
         /*!
          * helper setter without checks, to update internal column names.
          */
         void setColumns(const std::vector<std::string> &columnNames) { _columnNames = columnNames; }
 
-        // these are actions that cause execution
+        /*!
+         * Execute the pipeline and return all outputs
+         * @param os the logging output
+         * @return the output of the execution
+         */
         virtual std::shared_ptr<ResultSet> collect(std::ostream &os = std::cout);
 
+        /*!
+         * Execute the pipeline and take a subset of the output from the top and bottom rows.
+         * If both top and bottom rows limit exist, then the top and bottom rows will be concatenated.
+         * In the case where topLimit + bottomLimit exceeds the output size, all rows will be taken.
+         * To take all rows, pass in either topLimit=size_t::max(), bottomLimit=size_t::max(), or both.
+         * @param topLimit number of top rows to take. size_t::max() means taking all rows
+         * @param bottomLimit number of bottom rows to take. size_t::max() means taking all rows
+         * @param os the logging output
+         * @return result of the execution, trim to the size of top and bottom limit.
+         */
         virtual std::shared_ptr<ResultSet> take(size_t topLimit, size_t bottomLimit, std::ostream &os = std::cout);
 
+        /*!
+         * Execute the pipeline and return all outputs as vector
+         * @param os the logging output
+         * @return the output of the execution in vector
+         */
         virtual std::vector<Row> collectAsVector(std::ostream &os = std::cout);
 
+        /*!
+         * Execute the pipeline and take a subset of the output from the top rows, return as vector
+         * In the case where numElements exceeds the output size, all rows will be taken.
+         * @param numElements number of top rows to take. size_t::max() means taking all rows
+         * @param os the logging output
+         * @return result of the execution in vector, trim to the size of numElements
+         */
         virtual std::vector<Row> takeAsVector(size_t numElements, std::ostream &os = std::cout);
 
         /*!

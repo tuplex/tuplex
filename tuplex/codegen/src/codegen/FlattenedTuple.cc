@@ -105,7 +105,7 @@ namespace tuplex {
 
                 auto dummy_type = field_type.isOptionType() ? field_type.elementType() : field_type;
                 auto size = _env->i64Const(0);
-                auto is_null = _env->boolConst(false);
+                auto is_null = _env->i1Const(false); // bitmap !!!
                 auto llvm_type = _env->pythonToLLVMType(dummy_type);
                 auto value = _env->nullConstant(llvm_type);
                 auto dummy = codegen::SerializableValue(value, size, is_null);

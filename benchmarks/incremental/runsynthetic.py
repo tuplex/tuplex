@@ -15,24 +15,22 @@ import shutil
 import subprocess
 import random
 
-def synthetic_pipeline(ctx, path, output_path, num_steps, current_step, commit):
+def synthetic_pipeline(ctx, path, output_path, resolve, commit):
     ds = ctx.csv(path, header=True)
-    ds = ds.withColumn("c", lambda x: 1 // (x["a"] - x["a"]) if x["a"] <= 0 else x["a"])
-    for step in range(num_steps):
-            if current_step > step:
-                ds = ds.resolve(ZeroDivisionError, lambda x: 1 // (x["a"] - x["a"]) if x["a"] <= (-1 * current_step) else 0)
+    ds = ds.withColumn("c", lambda x: 1 // x["a"] if x == 0 else x["a"])
+    if resolve:
+        ds = ds.resolve(ZeroDivisionError, lambda x: x)
     ds.tocsv(output_path, commit=commit)
-
     return ctx.metrics
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Incremental resolution')
     parser.add_argument('--input-path', type=str, dest='data_path', default='synth0.csv', help='path or pattern to synthetic data')
     parser.add_argument('--output-path', type=str, dest='output_path', default='synthetic-output/', help='specify path where to save output data files')
-    parser.add_argument('--num-steps', type=int, dest='num_steps', default=10)
-    parser.add_argument('--resolve-in-order', dest='resolve_in_order', action="store_true", help="whether to resolve exceptions in order")
+    parser.add_argument('--use-resolve-step', dest='use_resolve_step', action='store_true')
     parser.add_argument('--incremental-resolution', dest='incremental_resolution', action="store_true", help="whether to use incremental resolution")
     parser.add_argument('--commit-mode', dest='commit_mode', action='store_true', help='whether to use commit mode')
+    parser.add_argument('--resolve-in-order', dest='resolve_in_order', action="store_true", help="whether to resolve exceptions in order")
     parser.add_argument('--clear-cache', dest='clear_cache', action='store_true', help='whether to clear the cache or not')
     args = parser.parse_args()
 
@@ -41,7 +39,6 @@ if __name__ == '__main__':
     # config vars
     path = args.data_path
     output_path = args.output_path
-    num_steps = args.num_steps
 
     if not path:
         print('found no zillow data to process, abort.')
@@ -100,13 +97,26 @@ if __name__ == '__main__':
 
     tstart = time.time()
     metrics = []
-    for step in range(num_steps):
-        print(f'>>> running pipeline with {step} resolver(s) enabled...')
+
+    use_resolve_step = args.use_resolve_step
+
+    if use_resolve_step:
         jobstart = time.time()
-        m = synthetic_pipeline(ctx, path, output_path, num_steps, step, not args.commit_mode or step == num_steps - 1)
+        m = synthetic_pipeline(ctx, path, output_path, False, not args.commit_mode)
         m = m.as_dict()
-        m["numResolvers"] = step
         m["jobTime"] = time.time() - jobstart
+        metrics.append(m)
+
+        jobstart = time.time()
+        m = synthetic_pipeline(ctx, path, output_path, True, True)
+        m = m.as_dict()
+        m["jobTime"] = time.time() - jobstart
+        metrics.append(m)
+    else:
+        jobstart = time.time()
+        m = synthetic_pipeline(ctx, path, output_path, False, True)
+        m = m.as_dict()
+        m['jobTime'] = time.time() - jobstart
         metrics.append(m)
 
     runtime = time.time() - tstart

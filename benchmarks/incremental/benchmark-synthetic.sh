@@ -40,14 +40,22 @@ echo "running out of order experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   echo "trial ($r/$NUM_RUNS)"
 
-  for ((s = 0; s <= 10; s++)) do
+  echo "running plain (0/10)"
+  LOG="${RESDIR}/plain-out-of-order-e0-t$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --clear-cache --input-path "$DATA_PATH$s.csv" --output-path $PLAIN_OUT_PATH >$LOG 2>$LOG.stderr
+
+  echo "running incremental (0/10)"
+  LOG="${RESDIR}/incremental-out-of-order-e0-t$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --clear-cache --incremental-resolution --input-path "$DATA_PATH$s.csv" --output-path $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
+
+  for ((s = 1; s <= 10; s++)) do
     echo "running plain ($s/10)"
     LOG="${RESDIR}/plain-out-of-order-e$s-t$r.txt"
-    timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --num-steps $NUM_STEPS --clear-cache --input-path "$DATA_PATH$s.csv" --output-path $PLAIN_OUT_PATH >$LOG 2>$LOG.stderr
+    timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --use-resolve-step --clear-cache --input-path "$DATA_PATH$s.csv" --output-path $PLAIN_OUT_PATH >$LOG 2>$LOG.stderr
 
     echo "running incremental ($s/10)"
     LOG="${RESDIR}/incremental-out-of-order-e$s-t$r.txt"
-    timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --num-steps $NUM_STEPS --clear-cache --incremental-resolution --input-path "$DATA_PATH$s.csv" --output-path $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
+    timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --use-resolve-step --clear-cache --incremental-resolution --input-path "$DATA_PATH$s.csv" --output-path $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
   done
 done
 
@@ -55,18 +63,30 @@ echo "running in order experiments"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   echo "trial ($r/$NUM_RUNS)"
 
-  for ((s = 0; s <= 10; s++)) do
+  echo "running plain (0/10)"
+  LOG="${RESDIR}/plain-in-order-e0-t$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --clear-cache --resolve-in-order --input-path "$DATA_PATH$s.csv" --output-path $PLAIN_OUT_PATH >$LOG 2>$LOG.stderr
+
+  echo "running incremental (0/10)"
+  LOG="${RESDIR}/incremental-in-order-e0-t$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --clear-cache --resolve-in-order --incremental-resolution --input-path "$DATA_PATH$s.csv" --output-path $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
+
+  echo "running commit (0/10)"
+  LOG="${RESDIR}/commit-in-order-e0-t$r.txt"
+  timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --clear-cache --resolve-in-order --incremental-resolution --commit --input-path "$DATA_PATH$s.csv" --output-path $COMMIT_OUT_PATH >$LOG 2>$LOG.stderr
+
+  for ((s = 1; s <= 10; s++)) do
     echo "running plain ($s/10)"
     LOG="${RESDIR}/plain-in-order-e$s-t$r.txt"
-    timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --clear-cache --resolve-in-order --num-steps $NUM_STEPS --input-path "$DATA_PATH$s.csv" --output-path $PLAIN_OUT_PATH >$LOG 2>$LOG.stderr
+    timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --use-resolve-step --clear-cache --resolve-in-order --input-path "$DATA_PATH$s.csv" --output-path $PLAIN_OUT_PATH >$LOG 2>$LOG.stderr
 
     echo "running incremental ($s/10)"
     LOG="${RESDIR}/incremental-in-order-e$s-t$r.txt"
-    timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --clear-cache --resolve-in-order --num-steps $NUM_STEPS --incremental-resolution --input-path "$DATA_PATH$s.csv" --output-path $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
+    timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --use-resolve-step --clear-cache --resolve-in-order --incremental-resolution --input-path "$DATA_PATH$s.csv" --output-path $INCREMENTAL_OUT_PATH >$LOG 2>$LOG.stderr
 
     echo "running commit ($s/10)"
     LOG="${RESDIR}/commit-in-order-e$s-t$r.txt"
-    timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --clear-cache --resolve-in-order --num-steps $NUM_STEPS --incremental-resolution --commit --input-path "$DATA_PATH$s.csv" --output-path $COMMIT_OUT_PATH >$LOG 2>$LOG.stderr
+    timeout $TIMEOUT ${HWLOC} python3 runsynthetic.py --use-resolve-step --clear-cache --resolve-in-order --incremental-resolution --commit --input-path "$DATA_PATH$s.csv" --output-path $COMMIT_OUT_PATH >$LOG 2>$LOG.stderr
   done
 done
 

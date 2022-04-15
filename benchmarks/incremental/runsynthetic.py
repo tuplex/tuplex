@@ -19,7 +19,7 @@ def synthetic_pipeline(ctx, path, output_path, resolve, commit):
     ds = ctx.csv(path, header=True)
     ds = ds.withColumn("c", lambda x: 1 // x["a"] if x == 0 else x["a"])
     if resolve:
-        ds = ds.resolve(ZeroDivisionError, lambda x: x)
+        ds = ds.resolve(ZeroDivisionError, lambda x: x["a"])
     ds.tocsv(output_path, commit=commit)
     return ctx.metrics
 

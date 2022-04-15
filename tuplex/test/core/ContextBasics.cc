@@ -189,5 +189,3 @@ TEST_F(ContextBasicsTest, twoContextTest) {
     python::lockGIL();
     python::closeInterpreter();
 }
-
-// TODO(march): multiple context test

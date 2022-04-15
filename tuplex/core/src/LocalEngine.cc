@@ -123,7 +123,6 @@ namespace tuplex {
             if (_driver) {
                 Logger::instance().logger("local execution engine").info(
                         "driver already exist, starting new driver with updated config");
-                _driver->release(); // TODO(march): test whether we need this
             }
 
             // lazy start driver
@@ -132,10 +131,9 @@ namespace tuplex {
                                                  "driver");
             _driver_cfg = new_cfg;
 
-            // TODO(march): this could be a problem, if multiple driver with number = 0
-            // TODO(march): write a test for two drivers existing together (thread number 0)
-            // TODO(march): make a comment about potential issue here
             // driver always has thread number 0!
+            // Note: this could be a potential issue if the config change and the old driver is still running
+            // due to external reference. Then there could be two executors with the same number
             _driver->setThreadNumber(0);
 
             std::stringstream ss;

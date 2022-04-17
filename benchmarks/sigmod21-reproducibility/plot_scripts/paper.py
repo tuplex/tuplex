@@ -110,116 +110,120 @@ def parse_logs_exp_to_df(data_root):
 def plt_bar(ax, x, data, w, color, name,
             value=None, cutoff=None, fsize=30, edge_width=2.5, th=100,
             above_offset=200, precision=0, yerr=None, hatch=None):
-    mu = data.mean()
-    std = data.std()
-    h = mu
-    ec = 'white'
-    if cutoff:
-        h = cutoff + th / 2
-        ec = 'none' if not hatch else color
 
-    if hatch:
-        plt.rcParams.update({'hatch.color': 'w'})
-        plt.rcParams.update({'hatch.linewidth': '4'})
-        b = ax.bar(x, h, w, color=color, edgecolor=ec, hatch='//', linewidth=0)
-    else:
-        b = ax.bar(x, h, w, color=color, edgecolor=ec)
-
-    for rect in b:
-
-        # if hatch:
-        #     plt.rcParams.update({'hatch.color': 'w'})
-        #     plt.rcParams.update({'hatch.linewidth': '4'})
-        #
-        #     rect.set_hatch(hatch)
-        #     # col = rect.get_facecolor()
-        #     # rect.set_color('none')
-        #     # rect.set_ec(col)
-        #     # rect.set_lw(2)
-        #     col = rect.get_facecolor()
-        #     rect.set_color(col)
-        #
-        #     # rect.set_ec('w')
-        #     # rect.set_lw(5)
-        dx = 0
+    try:
+        mu = data.mean()
+        std = data.std()
+        h = mu
+        ec = 'white'
         if cutoff:
-            ax.plot([rect.get_x() + dx, rect.get_x() + dx], [rect.get_y(), rect.get_y() + rect.get_height() + th],
-                    lw=edge_width, color='w')
-            ax.plot([rect.get_x() + rect.get_width() - dx, rect.get_x() + rect.get_width() - dx],
-                    [rect.get_y(), rect.get_y() + rect.get_height() + th],
-                    lw=edge_width, color='w')
+            h = cutoff + th / 2
+            ec = 'none' if not hatch else color
 
-        label = '${}$'.format(int(mu))
-        if precision > 0:
-            label = ('${:.' + str(precision) + 'f}$').format(mu)
+        if hatch:
+            plt.rcParams.update({'hatch.color': 'w'})
+            plt.rcParams.update({'hatch.linewidth': '4'})
+            b = ax.bar(x, h, w, color=color, edgecolor=ec, hatch='//', linewidth=0)
+        else:
+            b = ax.bar(x, h, w, color=color, edgecolor=ec)
 
-        neutral_col = 'k' if hatch else 'white'
+        for rect in b:
 
-        if value == 'center':
-            ax.text(rect.get_x() + rect.get_width() / 2.0,
-                    rect.get_height() / 2.0,
-                    label,
-                    ha='center',
-                    va='center', rotation=90, fontSize=fsize, fontweight='bold', color=neutral_col)
-        if value == 'above':
-            ax.text(rect.get_x() + rect.get_width() / 2.0,
-                    rect.get_height() + above_offset,
-                    label,
-                    ha='center',
-                    va='bottom', rotation=90, fontSize=fsize, fontweight='bold', color=color)
+            # if hatch:
+            #     plt.rcParams.update({'hatch.color': 'w'})
+            #     plt.rcParams.update({'hatch.linewidth': '4'})
+            #
+            #     rect.set_hatch(hatch)
+            #     # col = rect.get_facecolor()
+            #     # rect.set_color('none')
+            #     # rect.set_ec(col)
+            #     # rect.set_lw(2)
+            #     col = rect.get_facecolor()
+            #     rect.set_color(col)
+            #
+            #     # rect.set_ec('w')
+            #     # rect.set_lw(5)
+            dx = 0
+            if cutoff:
+                ax.plot([rect.get_x() + dx, rect.get_x() + dx], [rect.get_y(), rect.get_y() + rect.get_height() + th],
+                        lw=edge_width, color='w')
+                ax.plot([rect.get_x() + rect.get_width() - dx, rect.get_x() + rect.get_width() - dx],
+                        [rect.get_y(), rect.get_y() + rect.get_height() + th],
+                        lw=edge_width, color='w')
 
-    # add tile to cutoff bar
-    if cutoff:
+            label = '${}$'.format(int(mu))
+            if precision > 0:
+                label = ('${:.' + str(precision) + 'f}$').format(mu)
 
-        tw = w / 2
-        ty = h
-        tx = x - w / 2
-        vertsA = [
-            (tx, ty),
-            (tx + tw / 2, ty + th),
-            (tx + tw, ty),
-            (tx + tw, ty - 20),
-            (tx + 0, ty - 20),
-            (tx + 0, ty)
-        ]
-        codesA = [
-            Path.MOVETO,
-            Path.CURVE3,
-            Path.CURVE3,
-            Path.LINETO,
-            Path.LINETO,
-            Path.CLOSEPOLY,
-        ]
-        tx = x
-        vertsB = [
-            (tx, ty),
-            (tx + tw / 2, ty - th),
-            (tx + tw, ty),
-            (tx, ty)
-        ]
+            neutral_col = 'k' if hatch else 'white'
 
-        codesB = [
-            Path.MOVETO,
-            Path.CURVE3,
-            Path.CURVE3,
-            Path.LINETO,
-        ]
+            if value == 'center':
+                ax.text(rect.get_x() + rect.get_width() / 2.0,
+                        rect.get_height() / 2.0,
+                        label,
+                        ha='center',
+                        va='center', rotation=90, fontSize=fsize, fontweight='bold', color=neutral_col)
+            if value == 'above':
+                ax.text(rect.get_x() + rect.get_width() / 2.0,
+                        rect.get_height() + above_offset,
+                        label,
+                        ha='center',
+                        va='bottom', rotation=90, fontSize=fsize, fontweight='bold', color=color)
 
-        if not hatch:
-            pathA = Path(vertsA, codesA)
-            pathB = Path(vertsB, codesB)
-            patchA = mpatches.PathPatch(pathA, facecolor=color, edgecolor='none')
-            ax.add_patch(patchA)
-            patchB = mpatches.PathPatch(pathB, facecolor='white', edgecolor='none')
-            ax.add_patch(patchB)
+        # add tile to cutoff bar
+        if cutoff:
 
-    else:
-        if yerr is not None:
-            if len(yerr) == 1:
-                yerr = np.array(yerr)[0]
-            ax.errorbar(x, h,
-                        yerr=yerr,
-                        capsize=10,
-                        capthick=edge_width,
-                        color='k', fmt='none',
-                        linewidth=edge_width)
+            tw = w / 2
+            ty = h
+            tx = x - w / 2
+            vertsA = [
+                (tx, ty),
+                (tx + tw / 2, ty + th),
+                (tx + tw, ty),
+                (tx + tw, ty - 20),
+                (tx + 0, ty - 20),
+                (tx + 0, ty)
+            ]
+            codesA = [
+                Path.MOVETO,
+                Path.CURVE3,
+                Path.CURVE3,
+                Path.LINETO,
+                Path.LINETO,
+                Path.CLOSEPOLY,
+            ]
+            tx = x
+            vertsB = [
+                (tx, ty),
+                (tx + tw / 2, ty - th),
+                (tx + tw, ty),
+                (tx, ty)
+            ]
+
+            codesB = [
+                Path.MOVETO,
+                Path.CURVE3,
+                Path.CURVE3,
+                Path.LINETO,
+            ]
+
+            if not hatch:
+                pathA = Path(vertsA, codesA)
+                pathB = Path(vertsB, codesB)
+                patchA = mpatches.PathPatch(pathA, facecolor=color, edgecolor='none')
+                ax.add_patch(patchA)
+                patchB = mpatches.PathPatch(pathB, facecolor='white', edgecolor='none')
+                ax.add_patch(patchB)
+
+        else:
+            if yerr is not None:
+                if len(yerr) == 1:
+                    yerr = np.array(yerr)[0]
+                ax.errorbar(x, h,
+                            yerr=yerr,
+                            capsize=10,
+                            capthick=edge_width,
+                            color='k', fmt='none',
+                            linewidth=edge_width)
+    except Exception as e:
+        print('plt_bar failed with {}'.format(e))

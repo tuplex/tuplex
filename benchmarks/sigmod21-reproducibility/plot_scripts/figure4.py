@@ -45,6 +45,7 @@ def load_flights_to_df(data_root):
     for file in files:
         path = os.path.join(data_root, file)
         name = file[:file.find('-run')]
+        basename = os.path.basename(path)
         if file.endswith('.txt'):
             # print(path)
             with open(path, 'r') as fp:
@@ -60,7 +61,7 @@ def load_flights_to_df(data_root):
                 run_no = int(path[path.rfind('run-')+4:path.rfind('.txt')])
                     
                 # tuplex decode
-                if 'tuplex' in path:
+                if 'tuplex' in basename:
                     try:
                         d = {}
                         if 'tuplex' in name:
@@ -101,13 +102,18 @@ def load_flights_to_df(data_root):
                         print(e)
                     row['mode'] = 'python3'
                 else:
-                    d = json.loads(lines[-1].replace("'", '"'))
-                    
+                    d = {}
+                    try:
+                        d = json.loads(lines[-1].replace("'", '"'))
+                    except Exception as e:
+                        logging.error("failed to load JSON data for {}, did benchmark run through?".format(path))
+                        continue
+
                     # clean framework
-                    if 'pyspark' in file.lower():
+                    if 'pyspark' in basename.lower():
                         # adjust spark types
                         row['framework'] = 'spark'
-                    if 'dask' in file.lower():
+                    if 'dask' in basename.lower():
                          # adjust spark types
                         row['framework'] = 'dask'
                         

@@ -117,8 +117,8 @@ def figure5(logs_path='r5d.8xlarge/logs/', output_folder='plots'):
     # pyspark bars
     plt_bar(ax, 3-w, pyspark_single_regex_udf, w, pyspark_col, 'PySpark (UDF)', 'center', 1120, th=40)
     plt_bar(ax, -w, pyspark_strip_udf, w, pyspark_col, 'PySpark (UDF)', 'center', 1120, th=40)
-    plt_bar(ax, 2-w2, pysparksql_percol_regex, w, pysparksql_col, 'PySparkSQL', 'center', yerr=np.array([pysparksql_percol_regex.std()]))
-    plt_bar(ax, 1-w2, pysparksql_split, w, pysparksql_col, 'PySparkSQL', 'center', yerr=np.array([pysparksql_split.std()]))
+    plt_bar(ax, 2-w2, pysparksql_percol_regex, w, pysparksql_col, 'PySparkSQL', 'above', above_offset=ao, yerr=np.array([pysparksql_percol_regex.std()]))
+    plt_bar(ax, 1-w2, pysparksql_split, w, pysparksql_col, 'PySparkSQL', 'above', above_offset=ao, yerr=np.array([pysparksql_split.std()]))
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)

@@ -390,8 +390,8 @@ namespace tuplex {
                 auto lnonempty = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SGT, L.size, _env->i64Const(1));
                 auto rnonempty = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SGT, R.size, _env->i64Const(1));
                 auto bothnonempty = builder.CreateAnd(lnonempty, rnonempty);
-                auto retval = builder.CreateAlloca(_env->i8ptrType(), 0, nullptr);
-                auto retsize = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
+                auto retval = builder.CreateAlloca(_env->i8ptrType(), 0, nullptr, "ret");
+                auto retsize = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr, "retsize");
 
                 builder.CreateCondBr(bothnonempty, concatBlock, emptyBlock);
 
@@ -2183,9 +2183,9 @@ namespace tuplex {
 
             // Note: variable alloc should go into constructor block!
             // create alloca for result variable
-            auto result_var = builder.CreateAlloca(restype_llvm, 0, nullptr);
-            auto result_size = builder.CreateAlloca(_env->i64Type(), 0, nullptr);
-            auto result_isnull = builder.CreateAlloca(_env->i1Type(), 0, nullptr);
+            auto result_var = builder.CreateAlloca(restype_llvm);
+            auto result_size = builder.CreateAlloca(_env->i64Type());
+            auto result_isnull = builder.CreateAlloca(_env->i1Type());
             builder.CreateStore(_env->i1Const(false), result_isnull); // per default set it as valid!
             builder.CreateStore(_env->i64Const(0), result_size); // store dummy val of 0 in it.
 
@@ -2859,7 +2859,7 @@ namespace tuplex {
 
                 // empty tuple is represented by special type emptytuple.
                 // simply allocate this (dummy) type and return load of it
-                auto alloc = builder.CreateAlloca(_env->getEmptyTupleType(), 0, nullptr);
+                auto alloc = builder.CreateAlloca(_env->getEmptyTupleType());
                 auto load = builder.CreateLoad(alloc);
 
                 // size of empty tuple is also 8 bytes (serialized size!)
@@ -3385,7 +3385,7 @@ namespace tuplex {
 
                         std::vector<SerializableValue> elements;
                         for (int i = 0; i < numElements; ++i) {
-                            auto load = ft.getLoad(builder, {i});
+                            auto load = ft.getLoad(builder.get(), {i});
                             elements.push_back(load);
                         }
 
@@ -4480,16 +4480,16 @@ namespace tuplex {
 
             auto stringLen = builder.CreateSub(value.size, _env->i64Const(1));
             // local variables
-            auto retval = builder.CreateAlloca(_env->i8ptrType(), 0, nullptr);
-            auto retsize = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
-            auto startpos = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
-            auto endpos = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
-            auto looppos = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
-            auto newstrpos = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
+            auto retval = builder.CreateAlloca(_env->i8ptrType());
+            auto retsize = builder.CreateAlloca(builder.getInt64Ty());
+            auto startpos = builder.CreateAlloca(builder.getInt64Ty());
+            auto endpos = builder.CreateAlloca(builder.getInt64Ty());
+            auto looppos = builder.CreateAlloca(builder.getInt64Ty());
+            auto newstrpos = builder.CreateAlloca(builder.getInt64Ty());
 
             if (!_policy.allowUndefinedBehavior) { // zero stride isn't allowed
                 auto strideIsZero = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, stride, _env->i64Const(0));
-                _lfb->addException(builder, ExceptionCode::VALUEERROR, strideIsZero);
+                _lfb->addException(builder.get(), ExceptionCode::VALUEERROR, strideIsZero);
             }
 
             // branch based on whether stride is positive or negative

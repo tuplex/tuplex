@@ -293,6 +293,10 @@ namespace tuplex {
                 return get_or_throw().CreateMemCpy(Dst, llvm::MaybeAlign(DstAlign), Src, llvm::MaybeAlign(SrcAlign), Size, isVolatile, TBAATag, TBAAStructTag, ScopeTag, NoAliasTag);
             }
 
+            inline llvm::PHINode* CreatePHI(llvm::Type* type, unsigned NumReservedValues, const std::string& twine="") const {
+                 return get_or_throw().CreatePHI(type, NumReservedValues, twine);
+             }
+
             /*!
              * create runtime malloc (calling rtmalloc function)
              * @param size

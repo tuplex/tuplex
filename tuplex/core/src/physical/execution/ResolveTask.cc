@@ -83,6 +83,9 @@ namespace tuplex {
     // debug print function:
     void displayExceptions(std::ostream& os, bool acquireGIL) {
 
+        if(!g_reservoir)
+            return;
+
         assert(g_reservoir);
 
         if(g_reservoir->limit == 0)

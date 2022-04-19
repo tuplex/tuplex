@@ -769,6 +769,9 @@ namespace tuplex {
             errBuilder.CreateRet(_env->i32Const(ecToI32(ExceptionCode::VALUEERROR))); // i.e. raised for bad number parse
             errBuilder.SetInsertPoint(bbNullError);
             storeBadParseInfo(errBuilder);
+#ifndef NDEBUG
+            _env->debugPrint(errBuilder, "emitting NULLERROR (CSVParseRowGenerator)");
+#endif
             errBuilder.CreateRet(_env->i32Const(ecToI32(ExceptionCode::NULLERROR))); // i.e. raised for null value
 
             auto normalizeFunc = getCSVNormalizeFunc();

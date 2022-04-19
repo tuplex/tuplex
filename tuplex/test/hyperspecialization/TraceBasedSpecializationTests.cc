@@ -560,12 +560,12 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     if(!use_lambda)
         input_pattern = flights_root + "flights_on_time_performance_2003_*.csv";
 
-    // two files
-    input_pattern = flights_root + "flights_on_time_performance_2003_01.csv" + "," + flights_root + "flights_on_time_performance_2003_12.csv";
+    // // two files
+    // input_pattern = flights_root + "flights_on_time_performance_2003_01.csv" + "," + flights_root + "flights_on_time_performance_2003_12.csv";
 
     // --- use this for final PR ---
-    // // For testing purposes: resources/hyperspecialization/2003/*.csv holds two mini samples where wrong sampling triggers too many exceptions in general case mode
-    // input_pattern = "../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv,../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
+    // For testing purposes: resources/hyperspecialization/2003/*.csv holds two mini samples where wrong sampling triggers too many exceptions in general case mode
+    input_pattern = "../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv,../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
     // --- end use this for final PR ---
 
 
@@ -635,6 +635,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     ContextOptions opt_general = ContextOptions::defaults();
     opt_general.set("tuplex.executorCount", "0");
     opt_general.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
+    opt_general.set("tuplex.optimizer.nullValueOptimization", "false");
     opt_general.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
     opt_general.set("tuplex.resolveWithInterpreterOnly", "false"); // -> this doesn't work with hyper-specialization yet.
     opt_general.set("tuplex.driverMemory", "2GB");

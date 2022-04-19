@@ -383,7 +383,8 @@ namespace tuplex {
             case ExceptionCode::NORMALCASEVIOLATION:
                 return "tuplex.internal.normalCaseViolation";
             default:
-                return "Exception";
+                return "Exception(" + std::to_string(ecToI32(ec)) + ")";
+                //return "Exception";
         }
     }
 }

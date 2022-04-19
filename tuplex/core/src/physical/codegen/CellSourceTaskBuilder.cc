@@ -397,7 +397,13 @@ namespace tuplex {
                 _nullErrorBlock = BasicBlock::Create(env().getContext(), "null_error", builder.GetInsertBlock()->getParent());
                 IRBuilder<> b(_nullErrorBlock);
 
-                b.CreateRet(env().i64Const(ecToI64(ExceptionCode::NULLERROR))); // internal error!
+#ifndef NDEBUG
+                _env->debugPrint(b, "emitting NULLERROR (CellSourceTaskBuilder)");
+#endif
+                // b.CreateRet(env().i64Const(ecToI64(ExceptionCode::NULLERROR))); // internal error! => use this to force compiled processing?
+
+                // use this to force fallback processing...
+                b.CreateRet(env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
             }
             return _nullErrorBlock;
         }

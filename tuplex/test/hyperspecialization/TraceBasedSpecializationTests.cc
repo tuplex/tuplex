@@ -563,6 +563,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // two files
     input_pattern = flights_root + "flights_on_time_performance_2003_01.csv" + "," + flights_root + "flights_on_time_performance_2003_12.csv";
 
+    // For testing purposes: resources/hyperspecialization/2003/*.csv holds two mini samples where wrong sampling triggers too many exceptions in general case mode
+    input_pattern = "../resources/hyperspecialization/flights_on_time_performance_2003_01.csv,../resources/hyperspecialization/flights_on_time_performance_2003_12.csv";
+
     // single file
    // input_pattern = flights_root + "flights_on_time_performance_2003_01.csv";
 

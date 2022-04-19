@@ -408,7 +408,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // for testing purposes, store here the root path to the flights data (simple ifdef)
 #ifdef __APPLE__
     // leonhards macbook
-    string flights_root = "/Users/leonhards/Downloads/flights/";
+    //string flights_root = "/Users/leonhards/Downloads/flights/";
     string flights_root = "/Users/leonhards/Downloads/flights_small/";
 #else
     // BBSN00

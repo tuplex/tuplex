@@ -136,7 +136,15 @@ namespace tuplex {
         int64_t mergeNormalRow(const uint8_t* buf, int64_t bufSize);
 
         inline void exceptionCallback(const int64_t ecCode, const int64_t opID, const int64_t row, const uint8_t *buf, const size_t bufSize) {
-            serializeException(ecCode, opID, row, buf, bufSize);
+
+            // when using compiled fallback, only serialize non-normal case violation exceptions.
+            // these are true, UDF produced exceptions.
+            // Else use interpreter functor
+            if(_interpreterFunctor && ecCode == ecToI64(ExceptionCode::NORMALCASEVIOLATION)) {
+                // ... do nothing => will get resolved using fallback!
+            } else {
+                serializeException(ecCode, opID, row, buf, bufSize);
+            }
         }
         void writeRowToHashTable(char *key, size_t key_size, bool bucketize, char *buf, size_t buf_size);
         void writeRowToHashTable(uint64_t key, bool key_null, bool bucketize, char *buf, size_t buf_size);

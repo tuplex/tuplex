@@ -59,6 +59,7 @@ class Context:
             logDir (str): Tuplex produces a log file `log.txt` per default. Specify with `logDir` where to store it.
             historyDir (str): Tuplex stores the database and logs within this dir when the webui is enabled.
             normalcaseThreshold (float): used to detect the normal case
+            webui (bool): Alias for webui.enable, whether to use the WebUI interface. By default true.
             webui.enable (bool): whether to use the WebUI interface. By default true.
             webui.url (str): URL where to connect to for history server. Default: localhost
             webui.port (str): port to use when connecting to history server. Default: 6543
@@ -184,6 +185,15 @@ class Context:
 
         # last arg are the options as json string serialized b.c. of boost python problems
         logging.debug('Creating C++ context object')
+
+        # because webui=False/True is convenient, pass it as well to tuplex options
+        if 'tuplex.webui' in options.keys():
+            options['tuplex.webui.enable'] = options['tuplex.webui']
+            del options['tuplex.webui']
+        if 'webui' in options.keys():
+            options['tuplex.webui.enable'] = options['webui']
+            del options['webui']
+
         self._context = _Context(name, runtime_path, json.dumps(options))
         logging.debug('C++ object created.')
         python_metrics = self._context.getMetrics()
@@ -317,7 +327,7 @@ class Context:
         ds = DataSet()
         ds._dataSet = self._context.orc(pattern, columns)
         return ds
-    
+
     def options(self, nested=False):
         """ retrieves all framework parameters as dictionary
 

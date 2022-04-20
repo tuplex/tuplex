@@ -1,0 +1,11 @@
+{"webui.enable": false,
+"executorCount": 15,
+"executorMemory": "6G",
+"driverMemory": "10G",
+"partitionSize": "32MB",
+"runTimeMemory": "8MB",
+"useLLVMOptimizer": true,
+"optimizer.nullValueOptimization": true,
+"csv.selectionPushdown": true,
+"resolveWithInterpreterOnly":false,
+"mergeRowsInOrder":false}

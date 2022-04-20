@@ -39,6 +39,11 @@ namespace tuplex {
     extern void applyNetworkSettings(const NetworkSettings& ns, Aws::Client::ClientConfiguration& config);
 
     /*!
+    calls Aws::InitAPI() 
+    */
+    extern bool initAWSSDK();
+
+    /*!
      * initializes AWS SDK globally (lazy) and add S3 FileSystem.
      * @return true if initializing, else false
      */
@@ -51,9 +56,6 @@ namespace tuplex {
      * @return true/false.
      */
     extern bool isValidAWSZone(const std::string& zone);
-
-
-
 }
 
 // Amazon frequently changes the parameters of lambda functions,

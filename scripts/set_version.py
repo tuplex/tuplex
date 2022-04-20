@@ -15,7 +15,7 @@ def LooseVersion(v):
 
 
 # to create a testpypi version use X.Y.devN
-version = '0.3.2rc3'
+version = '0.3.3rc0'
 
 # https://pypi.org/simple/tuplex/
 # or https://test.pypi.org/simple/tuplex/

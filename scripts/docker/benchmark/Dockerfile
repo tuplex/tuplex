@@ -1,7 +1,7 @@
 # Docker image based on Ubuntu 20.04 which holds all frameworks for evaluation
 # (c) 2021 L.Spiegelberg, R. Yesantharao
 
-FROM ubuntu:groovy-20210225
+FROM ubuntu:20.04
 MAINTAINER Leonhard Spiegelberg "leonhard_spiegelberg@brown.edu"
 
 # Use /tmp folder to build everything...
@@ -158,7 +158,7 @@ RUN set -ex; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends wget; \
 	\
-	wget -O get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
+	wget -O get-pip.py 'https://bootstrap.pypa.io/pip/3.6/get-pip.py'; \
 	\
 	apt-mark auto '.*' > /dev/null; \
 	[ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
@@ -196,10 +196,6 @@ RUN /bin/bash /usr/src/install_llvm6.sh
 COPY install_llvm9.sh /usr/src/install_llvm9.sh
 RUN /bin/bash /usr/src/install_llvm9.sh
 
-# install weld
-COPY install_weld.sh /usr/src/install_weld.sh
-RUN /bin/bash /usr/src/install_weld.sh
-
 # TODO: LS --> Spark 2.4.7 + Scala 2.12.10
 COPY install_spark.sh /usr/src/install_spark.sh
 RUN /bin/bash /usr/src/install_spark.sh
@@ -223,6 +219,11 @@ RUN /bin/bash /usr/src/install_tuplex_reqs.sh
 # install sbt
 ADD install_sbt.sh /usr/src/install_sbt.sh
 RUN /bin/bash /usr/src/install_sbt.sh
+
+# install weld (last)
+ADD PatchedGrizzlyMakefile.make /usr/src/PatchedGrizzlyMakefile.make
+COPY install_weld.sh /usr/src/install_weld.sh
+RUN /bin/bash /usr/src/install_weld.sh
 
 # clean
 RUN rm -rf /usr/src

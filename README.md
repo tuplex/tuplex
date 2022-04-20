@@ -17,6 +17,7 @@ Contributions welcome!
 
 
 ### Contents
++ [Example](#example)
 + [Installation](#installation)
     - [Docker image](#docker)
     - [Pypi](#pypi)
@@ -24,8 +25,20 @@ Contributions welcome!
     - [MacOS build from source](#macos-build-from-source)
     - [Ubuntu build from source](#ubuntu-build-from-source)
     - [Customizing the build](#customizing-the-build)
-+ [Example](#example)
 + [License](#license)
+
+### Example
+Tuplex can be used in python interactive mode, a jupyter notebook or by copying the below code to a file. To try it out, run the following example:
+
+```python
+from tuplex import *
+c = Context()
+res = c.parallelize([1, 2, None, 4]).map(lambda x: (x, x * x)).collect()
+# this prints [(1, 1), (2, 4), (4, 16)]
+print(res)
+```
+
+More examples can be found [here](https://tuplex.cs.brown.edu/gettingstarted.html).
 
 ### Installation
 To install Tuplex, you can use a PyPi package for Linux, or a Docker container for MacOS which will launch a jupyter notebook with Tuplex preinstalled.
@@ -44,7 +57,7 @@ Tuplex is available for MacOS and Linux. The current version has been tested und
 To install Tuplex, simply install the dependencies first and then build the package.
 
 #### MacOS build from source
-To build Tuplex, you need several other packages first which can be easily installed via [brew](https://brew.sh/).
+To build Tuplex, you need several other packages first which can be easily installed via [brew](https://brew.sh/). If you want to build Tuplex with AWS support, you need `macOS 10.13+`.
 ```
 brew install llvm@9 boost boost-python3 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero protobuf libmagic
 python3 -m pip install cloudpickle numpy
@@ -90,19 +103,6 @@ For example, to create a debug build which outputs PDFs use the following snippe
 cmake -DCMAKE_BUILD_TYPE=Debug -DGENERATE_PDFS=ON ..
 ```
 
-### Example
-Tuplex can be used in python interactive mode, a jupyter notebook or by copying the below code to a file. To try it out, run the following example:
-
-```python
-from tuplex import *
-c = Context()
-res = c.parallelize([1, 2, None, 4]).map(lambda x: (x, x * x)).collect()
-# this prints [(1, 1), (2, 4), (4, 16)]
-print(res)
-```
-
-More examples can be found [here](https://tuplex.cs.brown.edu/gettingstarted.html).
-
 ### License
 Tuplex is available under Apache 2.0 License, to cite the paper use:
 
@@ -125,4 +125,4 @@ series = {SIGMOD/PODS '21}
 ```
 
 ---
-(c) 2017-2021 Tuplex contributors
+(c) 2017-2022 Tuplex contributors

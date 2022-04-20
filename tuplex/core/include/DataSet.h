@@ -130,14 +130,6 @@ namespace tuplex {
          */
         virtual void show(int64_t numRows = -1, std::ostream &os = std::cout);
 
-        /*!
-         * Displays a formatted HTML table of a small portion of the data
-         * @param topLimit how many top rows to print
-         * @param bottomLimit how many bottom rows to print
-         * @param os ostream where to print table to
-         */
-        virtual void showHTMLPreview(size_t topLimit, size_t bottomLimit, std::ostream &os = std::cout);
-
         // named dataset management functions
         /*!
          * map Column using a UDF

@@ -1530,7 +1530,7 @@ namespace python {
                 assert(builtin_dict);
                 auto tuple = PyDict_GetItemString(builtin_dict, "tuple");
                 tobj = PyObject_GetItem(tuple, tobj);
-#elif
+#else
                 // use Tuple[...]
                 auto typing_tuple = PyDict_GetItemString(typing_dict, "Optional");
                 assert(typing_tuple);

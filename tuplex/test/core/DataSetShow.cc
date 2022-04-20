@@ -14,7 +14,7 @@
 #include <sstream>
 #include "TestUtils.h"
 
-class DataSetTest : public TuplexTest {};
+class DataSetTest : public PyTest {};
 
 TEST_F(DataSetTest, DataSetShow) {
     using namespace tuplex;

@@ -562,7 +562,8 @@ namespace tuplex {
         return false;
     }
 
-    DataSet & PythonContext::parallelizeAnyType(const py::list &L, const python::Type &majType, const std::vector<std::string>& columns) {
+    DataSet & PythonContext::parallelizeAnyType(const py::list &L, const python::Type &majType,
+                                                const std::vector<std::string> &columns, bool autoUpcast) {
 
         auto& logger = Logger::instance().logger("python");
         logger.info("using slow transfer to backend");
@@ -587,7 +588,7 @@ namespace tuplex {
 
         auto firstRow = PyList_GET_ITEM(listObj, 0);
         Py_XINCREF(firstRow);
-        schema = Schema(Schema::MemoryLayout::ROW, python::pythonToRow(firstRow, majType).getRowType());
+        schema = Schema(Schema::MemoryLayout::ROW, python::pythonToRow(firstRow, majType, autoUpcast).getRowType());
 
         // create new partition on driver
         auto driver = _context->getDriver();
@@ -624,11 +625,11 @@ namespace tuplex {
             // cf. http://www.cse.psu.edu/~gxt29/papers/refcount.pdf
             Py_XINCREF(item);
 
-            python::Type t = python::mapPythonClassToTuplexType(item);
-            if(isSubOptionType(t, majType)) {
+            python::Type t = python::mapPythonClassToTuplexType(item, autoUpcast);
+            if(compatibleType(majType, t, autoUpcast) == majType) {
                 // In this case, t is a subtype of the majority type; this accounts for the case where the majority type
                 // is an option (e.g. majType=Option[int] should encompass both t=I64 and t=NULLVALUE).
-                auto row = python::pythonToRow(item, majType);
+                auto row = python::pythonToRow(item, majType, autoUpcast);
                 auto requiredBytes = row.serializedLength();
 
                 if(partition->capacity() < numBytesSerialized + requiredBytes) {
@@ -720,7 +721,7 @@ namespace tuplex {
                 }
 
                 try {
-                    Row row = python::pythonToRow(tupleObj, rowType);
+                    Row row = python::pythonToRow(tupleObj, rowType, false);
                     size_t requiredBytes = row.serializedLength();
                     // check capacity and realloc if necessary get a new partition
                     if (partition->capacity() < numBytesSerialized + allocMinSize) {
@@ -795,13 +796,13 @@ namespace tuplex {
         if(hasExplicitSchema) {
             majType = python::decodePythonSchema(schemaObj);
         } else
-            majType = inferType(L);
+            majType = inferType(L, autoUpcast);
 
         // special case: majType is a dict with strings as key, i.e. perform String Dict unpacking
         if(autoUnpack && (majType.isDictionaryType() && majType != python::Type::EMPTYDICT && majType != python::Type::GENERICDICT) && majType.keyType() == python::Type::STRING) {
             // automatic unpacking!
             // ==> first check if columns are defined, if not infer columns from sample!
-            auto dictTypes = inferColumnsFromDictObjects(L, _context->getOptions().NORMALCASE_THRESHOLD());
+            auto dictTypes = inferColumnsFromDictObjects(L, _context->getOptions().NORMALCASE_THRESHOLD(), autoUpcast);
 
             // are columns empty? ==> keys are new columns, create type out of that!
             if(columns.empty()) {
@@ -843,19 +844,19 @@ namespace tuplex {
                     ds = &fastMixedSimpleTypeTupleTransfer(L.ptr(), majType, columns);
                 } else {
                     // general slow transfer...
-               ds = &parallelizeAnyType(L, majType, columns);}
+               ds = &parallelizeAnyType(L, majType, columns, autoUpcast);}
         } else if(majType.isDictionaryType() || majType == python::Type::GENERICDICT) {
-            ds = &parallelizeAnyType(L, majType, columns);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
         } else if(majType.isOptionType()) {
             // TODO: special case to fast conversion for the option types with fast underlying types
-            ds = &parallelizeAnyType(L, majType, columns);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
         } else if(majType == python::Type::NULLVALUE) {
             // TODO: special case to fast conversion for the option types with fast underlying types
-            ds = &parallelizeAnyType(L, majType, columns);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
         } else if(majType.isListType()) {
-            ds = &parallelizeAnyType(L, majType, columns);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
         } else if(majType == python::Type::PYOBJECT) {
-            ds = &parallelizeAnyType(L, majType, columns);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
         } else {
             std::string msg = "unsupported type '" + majType.desc() + "' found, could not transfer data to backend";
             Logger::instance().logger("python").error(msg);
@@ -896,45 +897,16 @@ namespace tuplex {
     // If it returns true, it places the "super option" type into the parameter [super].
     // For example, t1=int, t2=None -> super = Option[int]
     // Similarly, t1=(int, none), t2=(none, int) -> super = (Option[int], Option[int])
-    bool hasSuperOptionType(python::Type t1, python::Type t2, python::Type &super) {
-        // same type
-        if(t1 == t2) {
-            super = t1;
+    bool hasSuperOptionType(python::Type t1, python::Type t2, python::Type &super, bool autoUpcast) {
+        auto newType = compatibleType(t1, t2, autoUpcast);
+        if (newType != python::Type::UNKNOWN) {
+            super = newType;
             return true;
         }
-        if(t1.isOptionType() && (t1.getReturnType() == t2 || python::Type::NULLVALUE == t2)) {
-            super = t1;
-            return true;
-        }
-        if(t2.isOptionType() && (t2.getReturnType() == t1 || python::Type::NULLVALUE == t1)) {
-            super = t2;
-            return true;
-        }
-
-        // one of them is null
-        if(t1 == python::Type::NULLVALUE) {
-            super = python::Type::makeOptionType(t2);
-            return true;
-        }
-        if(t2 == python::Type::NULLVALUE) {
-            super = python::Type::makeOptionType(t1);
-            return true;
-        }
-
-        // both tuples, recurse
-        if (t1.isTupleType() && t2.isTupleType() && t1.parameters().size() == t2.parameters().size()) {
-            std::vector<python::Type> types(t1.parameters().size());
-            for(int i=0; i<types.size(); i++) {
-                if(!hasSuperOptionType(t1.parameters()[i], t2.parameters()[i], types[i])) return false;
-            }
-            super = python::Type::makeTupleType(types);
-            return true;
-        }
-
         return false;
     }
 
-    python::Type buildRowTypeFromSamples(const std::map<python::Type, int> &colTypes, int numSamples, double threshold) {
+    python::Type buildRowTypeFromSamples(const std::map<python::Type, int> &colTypes, int numSamples, double threshold, bool autoUpcast) {
         Logger::instance().logger("python").info("inferring type!");
         std::map<int, int> tupleLengthCounter; // count for each length of tuples how often it was seen in the sample
 
@@ -975,7 +947,7 @@ namespace tuplex {
             int num = 0; // the number of elements that will go under the new type
             for (const auto &it : colTypes) {
                 // recurse on each of the fields
-                if(hasSuperOptionType(it.first, superTuple, superTuple)) {
+                if(hasSuperOptionType(it.first, superTuple, superTuple, autoUpcast)) {
                     num += it.second;
                 }
             }
@@ -990,11 +962,10 @@ namespace tuplex {
                 majType = python::Type::makeOptionType(majType);
             }
         }
-
         return majType;
     }
     
-    python::Type PythonContext::inferType(const py::list &L) const {
+    python::Type PythonContext::inferType(const py::list &L, bool autoUpcast) const {
         // elements must be either simple objects, i.e. str/int/float
         // or tuples of simple objects
         // ==> no support for lists yet!!!
@@ -1008,22 +979,39 @@ namespace tuplex {
             py::object o = L[i];
 
             // describe using internal types
-            python::Type t = python::mapPythonClassToTuplexType(o.ptr());
+            python::Type t = python::mapPythonClassToTuplexType(o.ptr(), autoUpcast);
 
-            if(mTypes.find(t) == mTypes.end())
-                mTypes[t] = 1;
-            else
+            if(mTypes.find(t) == mTypes.end()) {
+                // is there a compatible type
+                bool foundCompatible = false;
+                for (auto it = mTypes.begin(); it != mTypes.end(); it++) {
+                    auto newType = compatibleType(it->first, t, autoUpcast);
+                    if(newType != python::Type::UNKNOWN) {
+                        // update map KEY to compatible type
+                        auto mTypeNew = std::make_pair(newType, it->second + 1);
+                        mTypes.erase(it);
+                        mTypes.insert(mTypeNew);
+                        foundCompatible = true;
+                        break;
+                    }
+                }
+                if (!foundCompatible) {
+                    mTypes[t] = 1;
+                }
+            } else {
                 mTypes[t] += 1;
+            }
         }
 
         // be sure to also collapse types to supertypes if possible...
         if(mTypes.size() > 1)
             Logger::instance().logger("python").warn("more than one type in column found");
 
-        return buildRowTypeFromSamples(mTypes, numSample, _context->getOptions().OPTIONAL_THRESHOLD());
+        return buildRowTypeFromSamples(mTypes, numSample, _context->getOptions().OPTIONAL_THRESHOLD(), autoUpcast);
     }
 
-    std::unordered_map<std::string, python::Type> PythonContext::inferColumnsFromDictObjects(const py::list &L, double normalThreshold) {
+    std::unordered_map<std::string, python::Type>
+    PythonContext::inferColumnsFromDictObjects(const py::list &L, double normalThreshold, bool autoUpcast) {
         using namespace std;
 
         auto& logger = Logger::instance().logger("python");
@@ -1069,7 +1057,7 @@ namespace tuplex {
                 ++i;
             }
 
-            auto type = inferType(py::reinterpret_borrow<py::list>(listColObj));
+            auto type = inferType(py::reinterpret_borrow<py::list>(listColObj), autoUpcast);
             m[c.first] = type;
         }
 
@@ -1113,7 +1101,7 @@ namespace tuplex {
                 auto key = PyTuple_GET_ITEM(keyval, 0);
                 auto val = PyTuple_GET_ITEM(keyval, 1);
                 assert(PyUnicode_Check(key));
-                m[python::PyString_AsString(key)] = python::mapPythonClassToTuplexType(val);
+                m[python::PyString_AsString(key)] = python::mapPythonClassToTuplexType(val, false);
             }
         }
 

@@ -267,7 +267,7 @@ namespace python {
      * @param type specify what type of objects should be serialized, may contain options.
      * @return Tuplex C++ row object.
      */
-    extern tuplex::Row pythonToRow(PyObject *obj, const python::Type &type);
+    extern tuplex::Row pythonToRow(PyObject *obj, const python::Type &type, bool autoUpcast);
 
     /*!
      * converts a Tuplex C++ object to a python object
@@ -319,9 +319,10 @@ namespace python {
     /*!
      * get corresponding tuplex type for python object
      * @param o
+     * @param autoUpcast false by default
      * @return
      */
-    extern python::Type mapPythonClassToTuplexType(PyObject *o);
+    extern python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast);
 
     /*!
      * Tuplex's python API provides a paramter to (optionally) specify a schema, this functions decodes that PyObject
@@ -388,6 +389,13 @@ namespace python {
     extern tuplex::ExceptionCode translatePythonExceptionType(PyObject* type);
 
     extern std::string platformExtensionSuffix();
+
+    /*!
+     * Test if type inferred from PyLiteral equals expectedType
+     * @param PyLiteral
+     * @param expectedType
+     */
+    extern void testTypeAndSerialization(const std::string& PyLiteral, const std::string& expectedType, bool autoUpcast);
 }
 
 

@@ -19,6 +19,7 @@
 #include <regex>
 
 #include <unordered_map>
+#include "gtest/gtest.h"
 
 // module specific vars
 static std::unordered_map<std::string, PyObject*> cached_functions;
@@ -529,7 +530,7 @@ namespace python {
             if(PyDict_Size(obj) == 0)
                 return Field::empty_dict();
 
-            auto dictType = mapPythonClassToTuplexType(obj);
+            auto dictType = mapPythonClassToTuplexType(obj, true);
             std::string dictStr;
             PyObject *key = nullptr, *val = nullptr;
             Py_ssize_t pos = 0;  // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
@@ -537,7 +538,7 @@ namespace python {
             while(PyDict_Next(obj, &pos, &key, &val)) {
                 // create key
                 auto keyStr = PyString_AsString(PyObject_Str(key));
-                auto keyType = mapPythonClassToTuplexType(key);
+                auto keyType = mapPythonClassToTuplexType(key, true);
                 python::Type valType;
 
                 // create value, mimicking cJSON printing standards
@@ -662,7 +663,7 @@ namespace python {
      * @param type
      * @return Field object
      */
-    tuplex::Field pythonToField(PyObject *obj, const python::Type &type) {
+    tuplex::Field pythonToField(PyObject *obj, const python::Type &type, bool autoUpcast) {
         assert(obj);
 
         // TODO: check assumptions about whether nonempty tuple can be an option
@@ -671,8 +672,15 @@ namespace python {
                 return tuplex::Field::null(type);
             } else {
                 tuplex::Field f;
-                f = pythonToField(obj);
-                f = fieldCastTo(f, type.getReturnType());
+                auto rtType = type.getReturnType();
+                if(rtType.isListType() || rtType.isTupleType()) {
+                    // type still needed to correctly construct field
+                    f = pythonToField(obj, rtType, autoUpcast);
+                } else {
+                    // simple types
+                    f = pythonToField(obj);
+                    f = autoUpcast? fieldCastTo(f, type.getReturnType()) : f;
+                }
                 f.makeOptional();
                 return f;
             }
@@ -682,19 +690,27 @@ namespace python {
 
             std::vector<tuplex::Field> v;
             for(unsigned i = 0; i < numElements; ++i) {
-                v.push_back(pythonToField(PyTuple_GetItem(obj, i), type.parameters()[i]));
+                v.push_back(pythonToField(PyTuple_GetItem(obj, i), type.parameters()[i], autoUpcast));
             }
             return tuplex::Field(tuplex::Tuple::from_vector(v));
+        } else if(type.isListType() && type != python::Type::EMPTYLIST) {
+            auto numElements = PyList_Size(obj);
+            auto elementType = type.elementType();
+            std::vector<tuplex::Field> v;
+            for(unsigned i = 0; i < numElements; ++i) {
+                v.push_back(pythonToField(PyList_GetItem(obj, i), elementType, autoUpcast));
+            }
+            return tuplex::Field(tuplex::List::from_vector(v));
         } else {
             auto f = pythonToField(obj);
-            return fieldCastTo(f, type);
+            return autoUpcast? fieldCastTo(f, type) : f;
         }
     }
 
-    tuplex::Row pythonToRow(PyObject *obj, const python::Type &type) {
+    tuplex::Row pythonToRow(PyObject *obj, const python::Type &type, bool autoUpcast) {
         assert(obj);
 
-        tuplex::Field f = pythonToField(obj, type);
+        tuplex::Field f = pythonToField(obj, type, autoUpcast);
 
         // unpack the tuples one level
         if(f.getType().isTupleType() && f.getType() != python::Type::EMPTYTUPLE) {
@@ -1365,7 +1381,7 @@ namespace python {
     }
 
     // mapping type to internal types, unknown as default
-    python::Type mapPythonClassToTuplexType(PyObject *o) {
+    python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast) {
         if(Py_None == o)
             return python::Type::NULLVALUE;
 
@@ -1393,7 +1409,7 @@ namespace python {
             for(int j = 0; j < numElements; j++) {
                 auto item = PyTuple_GET_ITEM(o, j); // borrowed reference
                 assert(item->ob_refcnt > 0); // important!!!
-                elementTypes.push_back(mapPythonClassToTuplexType(item));
+                elementTypes.push_back(mapPythonClassToTuplexType(item, autoUpcast));
             }
             return python::TypeFactory::instance().createOrGetTupleType(elementTypes);
         }
@@ -1410,8 +1426,8 @@ namespace python {
             Py_ssize_t pos = 0; // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
             bool types_set = false; // need extra var here b/c vals could be unknown.
             while(PyDict_Next(o, &pos, &key, &val)) {
-                auto curKeyType = mapPythonClassToTuplexType(key);
-                auto curValType = mapPythonClassToTuplexType(val);
+                auto curKeyType = mapPythonClassToTuplexType(key, autoUpcast);
+                auto curValType = mapPythonClassToTuplexType(val, autoUpcast);
                 if(!types_set) {
                     types_set = true;
                     keyType = curKeyType;
@@ -1431,13 +1447,18 @@ namespace python {
             if(numElements == 0)
                 return python::Type::EMPTYLIST;
 
-            python::Type elementType = mapPythonClassToTuplexType(PyList_GetItem(o, 0));
+            python::Type elementType = mapPythonClassToTuplexType(PyList_GetItem(o, 0), autoUpcast);
             // verify that all elements have the same type
             for(int j = 0; j < numElements; j++) {
-                if(elementType != mapPythonClassToTuplexType(PyList_GetItem(o, j))) {
-                    Logger::instance().defaultLogger().error("lists with variable type elements are not supported.");
-                    return python::Type::UNKNOWN;
-                    // TODO: the general case should return python::Type::PyObject in the future
+                python::Type currElementType = mapPythonClassToTuplexType(PyList_GetItem(o, j), autoUpcast);
+                if(elementType != currElementType) {
+                    // possible to use nullable type as element type?
+                    elementType = compatibleType(elementType, currElementType, autoUpcast);
+                    if (elementType == python::Type::UNKNOWN) {
+                        Logger::instance().defaultLogger().error("lists with variable type elements are not supported.");
+                        return python::Type::UNKNOWN;
+                        // TODO: the general case should return python::Type::PyObject in the future
+                    }
                 }
             }
             return python::Type::makeListType(elementType);
@@ -1500,6 +1521,15 @@ namespace python {
             // typing.Optional[str] which is equal to typing.Union[str, NoneType]
             auto typing_optional = PyDict_GetItemString(typing_dict, "Optional");
             assert(typing_optional);
+            if (t.getReturnType().isTupleType()) {
+                // use builtin.tuple[...]
+                auto builtin_mod = PyImport_AddModule("builtins");
+                assert(builtin_mod);
+                auto builtin_dict = PyModule_GetDict(builtin_mod);
+                assert(builtin_dict);
+                auto tuple = PyDict_GetItemString(builtin_dict, "tuple");
+                tobj = PyObject_GetItem(tuple, tobj);
+            }
             auto opt_type = PyObject_GetItem(typing_optional, tobj);
             return opt_type;
         }
@@ -1749,5 +1779,11 @@ namespace python {
             std::cerr<<"calling platformExtensionSuffix - but interpreter is not running. Internal error?"<<std::endl;
         }
         return "";
+    }
+
+    void testTypeAndSerialization(const std::string& PyLiteral, const std::string& expectedType, bool autoUpcast) {
+        auto PyObj = python::runAndGet("obj = " + PyLiteral, "obj");
+        auto rowType = python::mapPythonClassToTuplexType(PyObj, autoUpcast);
+        EXPECT_EQ(rowType.desc(), expectedType);
     }
 }

@@ -960,6 +960,103 @@ namespace python {
         return true;
     }
 
+    Type compatibleType(const python::Type &a, const python::Type &b, bool autoUpcast) {
+        // UNKNOWN type is not compatible
+        if(a == python::Type::UNKNOWN || b == python::Type::UNKNOWN) {
+            return python::Type::UNKNOWN;
+        }
+
+        // same type, return either one
+        if(a == b) {
+            return a;
+        }
+
+        if(a == python::Type::NULLVALUE) {
+            return python::Type::makeOptionType(b);
+        }
+
+        if(b == python::Type::NULLVALUE) {
+            return python::Type::makeOptionType(a);
+        }
+
+        // check for optional type
+        bool makeOption = false;
+        // underlyingType: remove outermost Option if exists
+        python::Type aUnderlyingType = a;
+        python::Type bUnderlyingType = b;
+        if(a.isOptionType()) {
+            makeOption = true;
+            aUnderlyingType = a.getReturnType();
+        }
+
+        if(b.isOptionType()) {
+            makeOption = true;
+            bUnderlyingType = b.getReturnType();
+        }
+
+        // same underlying types? make option
+        if (aUnderlyingType == bUnderlyingType) {
+            return python::Type::makeOptionType(aUnderlyingType);
+        }
+
+        // both numeric types? upcast
+        if(autoUpcast) {
+            if(aUnderlyingType.isNumericType() && bUnderlyingType.isNumericType()) {
+                if(aUnderlyingType == python::Type::F64 || bUnderlyingType == python::Type::F64) {
+                    // upcast to F64 if either is F64
+                    if (makeOption) {
+                        return python::Type::makeOptionType(python::Type::F64);
+                    } else {
+                        return python::Type::F64;
+                    }
+                }
+                // at this point underlyingTypes cannot both be bool. Upcast to I64
+                if (makeOption) {
+                    return python::Type::makeOptionType(python::Type::I64);
+                } else {
+                    return python::Type::I64;
+                }
+            }
+        }
+
+        // list type? check if element type compatible
+        if(aUnderlyingType.isListType() && bUnderlyingType.isListType() && aUnderlyingType != python::Type::EMPTYLIST && bUnderlyingType != python::Type::EMPTYLIST) {
+            python::Type newElementType = compatibleType(aUnderlyingType.elementType(), bUnderlyingType.elementType(), autoUpcast);
+            if(newElementType == python::Type::UNKNOWN) {
+                // incompatible list element type
+                return python::Type::UNKNOWN;
+            }
+            if(makeOption) {
+                return python::Type::makeOptionType(python::Type::makeListType(newElementType));
+            }
+            return python::Type::makeListType(newElementType);
+        }
+
+        // tuple type? check if every parameter type compatible
+        if(aUnderlyingType.isTupleType() && bUnderlyingType.isTupleType()) {
+            if (aUnderlyingType.parameters().size() != bUnderlyingType.parameters().size()) {
+                // tuple length differs
+                return python::Type::UNKNOWN;
+            }
+            std::vector<python::Type> newTuple;
+            for (size_t i = 0; i < aUnderlyingType.parameters().size(); i++) {
+                python::Type newElementType = compatibleType(aUnderlyingType.parameters()[i],bUnderlyingType.parameters()[i], autoUpcast);
+                if(newElementType == python::Type::UNKNOWN) {
+                    // incompatible tuple element type
+                    return python::Type::UNKNOWN;
+                }
+                newTuple.emplace_back(newElementType);
+            }
+            if(makeOption) {
+                return python::Type::makeOptionType(python::Type::makeTupleType(newTuple));
+            }
+            return python::Type::makeTupleType(newTuple);
+        }
+
+        // other collection type
+        return python::Type::UNKNOWN;
+    }
+
     bool python::Type::isZeroSerializationSize() const {
         if(*this == python::Type::NULLVALUE)
             return true;

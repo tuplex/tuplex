@@ -185,28 +185,6 @@ namespace tuplex {
      * @return
      */
     extern URI outputURI(const UDF& udf, const URI& baseURI, int64_t partNo, FileFormat fmt);
-
-    /*!
-     * Trim list of partitions so that it includes up to the first n rows and the last m rows
-     * if n + m > number of rows in input partitions, the partitions will remain unchanged
-     * @param partitions [in,out] the list of partitions to trim
-     * @param topLimit n, the number of top rows to include
-     * @param bottomLimit m, the number of bottom rows to include
-     * @param tstage pointer to transform stage, might be used to generate new partition
-     * @param exec pointer to executor, might be used to allocate new partition
-     */
-    extern void trimPartitionsToLimit(std::vector<Partition *> &partitions, size_t topLimit, size_t bottomLimit,
-                               TransformStage *tstage, Executor *exec);
-
-    /*!
-     * Create a newly allocated partition with the same data as the specified partition, but with the first n rows removed
-     * @param p_in the input partition
-     * @param numToSkip number of rows to remove from the new partition
-     * @param tstage pointer to transform stage, used to generate new partition
-     * @param exec pointer to executor, used to allocate new partition
-     * @return the new partition
-     */
-    extern Partition *newPartitionWithSkipRows(Partition *p_in, size_t numToSkip, TransformStage *tstage, Executor *exec);
 }
 
 #endif //TUPLEX_LOCALBACKEND_H

@@ -19,7 +19,6 @@
 #include <regex>
 
 #include <unordered_map>
-#include "gtest/gtest.h"
 
 // module specific vars
 static std::unordered_map<std::string, PyObject*> cached_functions;
@@ -1522,6 +1521,8 @@ namespace python {
             auto typing_optional = PyDict_GetItemString(typing_dict, "Optional");
             assert(typing_optional);
             if (t.getReturnType().isTupleType()) {
+                // https://docs.python.org/3/library/typing.html#typing.Tuple
+#if (PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 9)
                 // use builtin.tuple[...]
                 auto builtin_mod = PyImport_AddModule("builtins");
                 assert(builtin_mod);
@@ -1529,6 +1530,12 @@ namespace python {
                 assert(builtin_dict);
                 auto tuple = PyDict_GetItemString(builtin_dict, "tuple");
                 tobj = PyObject_GetItem(tuple, tobj);
+#elif
+                // use Tuple[...]
+                auto typing_tuple = PyDict_GetItemString(typing_dict, "Optional");
+                assert(typing_tuple);
+                toby = PyObject_GetItem(typing_tuple, tobj);
+#endif
             }
             auto opt_type = PyObject_GetItem(typing_optional, tobj);
             return opt_type;
@@ -1779,11 +1786,5 @@ namespace python {
             std::cerr<<"calling platformExtensionSuffix - but interpreter is not running. Internal error?"<<std::endl;
         }
         return "";
-    }
-
-    void testTypeAndSerialization(const std::string& PyLiteral, const std::string& expectedType, bool autoUpcast) {
-        auto PyObj = python::runAndGet("obj = " + PyLiteral, "obj");
-        auto rowType = python::mapPythonClassToTuplexType(PyObj, autoUpcast);
-        EXPECT_EQ(rowType.desc(), expectedType);
     }
 }

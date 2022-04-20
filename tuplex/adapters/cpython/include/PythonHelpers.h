@@ -389,13 +389,6 @@ namespace python {
     extern tuplex::ExceptionCode translatePythonExceptionType(PyObject* type);
 
     extern std::string platformExtensionSuffix();
-
-    /*!
-     * Test if type inferred from PyLiteral equals expectedType
-     * @param PyLiteral
-     * @param expectedType
-     */
-    extern void testTypeAndSerialization(const std::string& PyLiteral, const std::string& expectedType, bool autoUpcast);
 }
 
 

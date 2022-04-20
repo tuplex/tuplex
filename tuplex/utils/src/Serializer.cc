@@ -646,7 +646,7 @@ namespace tuplex {
                 } else if(currFieldType == python::Type::F64) {
                     // double is 8 bytes
                     *((double *)_varLenFields.ptr()) = currField.getDouble();
-                } else if(currFieldType == python::Type::STRING || currFieldType.isListType()) {
+                } else if(currFieldType == python::Type::STRING || currFieldType.isListType() || currFieldType.isTupleType()) {
                     // skip 8 bytes as placeholder to fill in offset later
                     varLenOffsetAddrStack.emplace_back(index, _varLenFields.ptr());
                 }
@@ -676,6 +676,7 @@ namespace tuplex {
             } else if(currVarLenFieldType.isTupleType()) {
                 // has to be an optional tuple otherwise it would have been flattened away
                 assert(currVarLenField.getType().isOptionType());
+                *((uint64_t *)currVarLenOffsetAddr) = currOffset;
                 appendWithoutInferenceHelper(*(Tuple *) currVarLenField.getPtr());
             } else {
                 // throw std::runtime_error("element type not support in tuple: " + currVarLenField.getType().desc());

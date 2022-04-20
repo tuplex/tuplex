@@ -1627,19 +1627,19 @@ namespace tuplex {
             addInstruction(res.val, res.size);
         }
 
-        BlockGeneratorVisitor::Variable::Variable(LLVMEnvironment &env, llvm::IRBuilder<> &builder,
+        BlockGeneratorVisitor::Variable::Variable(LLVMEnvironment &env, codegen::IRBuilder &builder,
                                                   const python::Type &t, const std::string &name) {
             // map type to LLVM
             // allocate variable in first block! (important because of loops!)
             // get rid off option!
 
             // only string, bool, int, f64 so far supported!
-            ptr = env.CreateFirstBlockAlloca(builder, env.pythonToLLVMType(t.isOptionType() ? t.getReturnType() : t), name);
+            ptr = env.CreateFirstBlockAlloca(builder.get(), env.pythonToLLVMType(t.isOptionType() ? t.getReturnType() : t), name);
             // alloc size
-            sizePtr = env.CreateFirstBlockAlloca(builder, env.i64Type(), name + "_size");
+            sizePtr = env.CreateFirstBlockAlloca(builder.get(), env.i64Type(), name + "_size");
 
             // option type? then alloc isnull!
-            nullPtr = t.isOptionType() ? env.CreateFirstBlockAlloca(builder, env.i1Type()) : nullptr;
+            nullPtr = t.isOptionType() ? env.CreateFirstBlockAlloca(builder.get(), env.i1Type()) : nullptr;
 
             this->name = name;
         }
@@ -1687,7 +1687,7 @@ namespace tuplex {
                 slot.definedPtr = _env->CreateFirstBlockAlloca(builder.get(), _env->i1Type(), name + "_defined");
                 assert(slot.definedPtr);
                 builder.CreateStore(_env->i1Const(true), slot.definedPtr); // params are always defined!!!
-                slot.var = Variable(*_env, builder.get(), type, name);
+                slot.var = Variable(*_env, builder, type, name);
 
                 // store param into var
                 slot.var.store(builder.get(), param);
@@ -1714,7 +1714,7 @@ namespace tuplex {
                     slot.type = keyval.second.front();
                     slot.definedPtr = _env->CreateFirstBlockAlloca(builder.get(), _env->i1Type(), keyval.first + "_defined");
                     builder.CreateStore(_env->i1Const(false), slot.definedPtr);
-                    slot.var = Variable(*_env, builder.get(), keyval.second.front(), keyval.first);
+                    slot.var = Variable(*_env, builder, keyval.second.front(), keyval.first);
                     _variableSlots[keyval.first] = slot;
                 } else {
                     // this is a variable which has multiple types assigned to names.
@@ -1808,7 +1808,7 @@ namespace tuplex {
 
                     // allocate new pointer for this var, overwrite type
                     slot->type = targetType;
-                    slot->var = Variable(*_env, builder.get(), targetType, target->_name);
+                    slot->var = Variable(*_env, builder, targetType, target->_name);
                 } else {
                     // compatible, so simply assign.
                     // nothing todo here, done below.

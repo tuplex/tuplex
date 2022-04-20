@@ -79,7 +79,7 @@ namespace codegen {
 
             Variable() : ptr(nullptr), sizePtr(nullptr), nullPtr(nullptr), name("undefined") {}
 
-            Variable(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& t, const std::string& name);
+            Variable(LLVMEnvironment& env, codegen::IRBuilder& builder, const python::Type& t, const std::string& name);
 
             static Variable asGlobal(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
                             const python::Type& t,
@@ -255,7 +255,7 @@ namespace codegen {
             return var_realizations;
         }
 
-        inline void restoreVariableSlots(llvm::IRBuilder<>& builder, const std::unordered_map<std::string, VariableRealization>& var_realizations, bool delete_others=false) {
+        inline void restoreVariableSlots(codegen::IRBuilder& builder, const std::unordered_map<std::string, VariableRealization>& var_realizations, bool delete_others=false) {
             using namespace std;
             // when delete is specified, delete all slots which are not used anymore!
             // TODO: potentially add lifetime end!

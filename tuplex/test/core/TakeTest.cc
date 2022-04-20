@@ -282,8 +282,8 @@ TEST_F(TakeTest, collectIdentityTest) {
 }
 
 TEST_F(TakeTest, fileInputTest) {
-    const std::vector<size_t> test_size{1, 10, 1001, 50001};
-    const std::vector<size_t> limit_values{0, 1, 6, 600, 10000};
+    const std::vector<size_t> test_size{1, 1001, 50001};
+    const std::vector<size_t> limit_values{0, 1, 600, 10000};
     const std::vector<string> partition_sizes{"256B", "1MB"};
     std::vector<std::vector<Row>> expected_outputs;
 
@@ -337,10 +337,6 @@ TEST_F(TakeTest, fileInputTest) {
                         ASSERT_EQ(res_row.getInt(0), r.getInt(0));
                         ASSERT_EQ(res_row.getString(1), r.getString(1));
                         ASSERT_EQ(res_row.getInt(2), r.getInt(2));
-                        // TODO(march): this doesn't work because schema are different (for some reason infer as opt[int]?)
-                        // if (!(res_row == r)) {
-                        //     ASSERT_EQ(res_row, r);
-                        // }
                     }
                 }
             }

@@ -133,11 +133,15 @@ namespace tuplex {
             size_t castedTopLimit = 0;
             if (topLimit < 0) {
                 castedTopLimit = std::numeric_limits<size_t>::max();
+            } else {
+                castedTopLimit = topLimit;
             }
 
             size_t castedBottomLimit = 0;
             if (bottomLimit < 0) {
                 castedBottomLimit = std::numeric_limits<size_t>::max();
+            } else {
+                castedBottomLimit = bottomLimit;
             }
 
             try {

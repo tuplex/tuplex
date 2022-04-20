@@ -49,6 +49,7 @@ namespace tuplex {
         bool OPT_DETAILED_CODE_STATS() const { return stringToBool(_store.at("tuplex.optimizer.codeStats")); }
         bool OPT_GENERATE_PARSER() const { return stringToBool(_store.at("tuplex.optimizer.generateParser")); }
         bool OPT_NULLVALUE_OPTIMIZATION() const { return stringToBool(_store.at("tuplex.optimizer.nullValueOptimization")); }
+        bool OPT_CONSTANTFOLDING_OPTIMIZATION() const { return stringToBool(_store.at("tuplex.optimizer.constantFoldingOptimization")); }
         bool OPT_SHARED_OBJECT_PROPAGATION() const { return stringToBool(_store.at("tuplex.optimizer.sharedObjectPropagation")); }
         bool OPT_FILTER_PUSHDOWN() const { return stringToBool(_store.at("tuplex.optimizer.filterPushdown")); }
         bool OPT_OPERATOR_REORDERING() const { return stringToBool(_store.at("tuplex.optimizer.operatorReordering")); }

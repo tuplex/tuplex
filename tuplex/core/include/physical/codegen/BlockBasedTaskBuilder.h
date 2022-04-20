@@ -94,7 +94,7 @@ namespace tuplex {
                     // simple call to exception handler...
                     builder.CreateCall(eh_func, {userData, exceptionCode, exceptionOperatorID, rowNumber, badDataPtr, badDataLength});
                 } else {
-                    Logger::instance().logger("codegen").debug("Calling directly exception handler without being defined. Internal bug?");
+                    logger().debug("Calling directly exception handler without being defined. Internal bug?");
                 }
             }
 
@@ -103,6 +103,10 @@ namespace tuplex {
             void generateTerminateEarlyOnCode(llvm::IRBuilder<>& builder,
                                               llvm::Value* ecCode,
                                               ExceptionCode code = ExceptionCode::OUTPUT_LIMIT_REACHED);
+
+            inline MessageHandler& logger() const {
+                return Logger::instance().logger("codegen");
+            }
 
         private:
             std::shared_ptr<codegen::PipelineBuilder> _pipBuilder;
@@ -171,10 +175,13 @@ namespace tuplex {
                 _pipBuilder = pip;
 
                 // check row compatibility
-                if (pip->inputRowType() != _inputRowType)
+                if (pip->inputRowType() != _inputRowType) {
+                    logger().debug("pip hash: " + std::to_string(pip->inputRowType().hash()) + " _input hash: " + std::to_string(_inputRowType.hash()));
+                    logger().debug("given pipeline has type: " + pip->inputRowType().desc() + "\nbut, task input row type is: " + _inputRowType.desc());
                     throw std::runtime_error("input types of pipeline and CSV Parser incompatible:\n"
                                              "pipeline expects: " + pip->inputRowType().desc() +
                                              " but csv parser yields: " + _inputRowType.desc());
+                }
             }
 
             void

@@ -161,6 +161,12 @@ namespace tuplex {
                 enableDelayedParsingOptimization();
             }
 
+            void disableAll() {
+                _useNVO = false;
+                _useConstantFolding = false;
+                _useDelayedParsing = false;
+            }
+
             void enableNullValueOptimization() { _useNVO = true; }
             void enableConstantFoldingOptimization() { _useConstantFolding = true; }
             void enableDelayedParsingOptimization() { _useDelayedParsing = true; }

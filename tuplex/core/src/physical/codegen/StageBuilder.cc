@@ -1429,16 +1429,26 @@ namespace tuplex {
 
             // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
             codegen::StagePlanner planner(inputNode, operators);
+            planner.disableAll();
             if(enableNVO)
                 planner.enableNullValueOptimization();
             if(enableCF)
                 planner.enableConstantFoldingOptimization();
             planner.optimize();
+
+            // use optimized or non-optimized schema
+            Schema readSchema = Schema::UNKNOWN;
+            if(enableNVO) {
+                readSchema = std::dynamic_pointer_cast<FileInputOperator>(planner.input_node())->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
+            } else {
+                readSchema = planner.input_node()->getInputSchema();
+            }
+            logger.debug("read schema is: " + readSchema.getRowType().desc());
             path_ctx.inputNode = planner.input_node();
             path_ctx.operators = planner.optimized_operators();
             path_ctx.outputSchema = path_ctx.operators.back()->getOutputSchema();
             path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();
-            path_ctx.readSchema = std::dynamic_pointer_cast<FileInputOperator>(path_ctx.inputNode)->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
+            path_ctx.readSchema = readSchema;
             path_ctx.columnsToRead = std::dynamic_pointer_cast<FileInputOperator>(path_ctx.inputNode)->columnsToSerialize();
             logger.info("specialized to input:  " + path_ctx.inputSchema.getRowType().desc());
             logger.info("specialized to output: " + path_ctx.outputSchema.getRowType().desc());

@@ -417,6 +417,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     string flights_root = "/hot/data/flights_all/";
 
     string driver_memory = "32G";
+    string executor_memory = "10G";
+    string num_executors = "0";
+    //num_executors = "16";
 #endif
 
     string s3_flights_root = "s3://tuplex-public/data/flights_all/";
@@ -565,11 +568,11 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
         input_pattern = flights_root + "flights_on_time_performance_2003_*.csv";
 
     // // two files
-    // input_pattern = flights_root + "flights_on_time_performance_2003_01.csv" + "," + flights_root + "flights_on_time_performance_2003_12.csv";
+     input_pattern = flights_root + "flights_on_time_performance_2003_01.csv" + "," + flights_root + "flights_on_time_performance_2003_12.csv";
 
     // --- use this for final PR ---
     // For testing purposes: resources/hyperspecialization/2003/*.csv holds two mini samples where wrong sampling triggers too many exceptions in general case mode
-    input_pattern = "../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv,../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
+    //input_pattern = "../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv,../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
     // --- end use this for final PR ---
 
 
@@ -584,6 +587,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 //    input_pattern = "../resources/hyperspecialization/flights_2003_06.sample.csv";
 
     // input_pattern = flights_root + "flights_on_time_performance_2003_06.csv";
+
+    // BBSN00
+    //input_pattern = flights_root + "flights_on_time_performance_2003*.csv";
 
     bool run_hyperspecialized_version = false;
 
@@ -657,6 +663,10 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
         opt_general.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));
         opt_general.set("tuplex.aws.lambdaThreads", std::to_string(numLambdaThreads));
         opt_general.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp-general");
+    } else {
+    
+    	opt_general.set("tuplex.executorMemory", executor_memory);
+	opt_general.set("tuplex.executorCount", num_executors);
     }
     opt_general.set("tuplex.experimental.hyperspecialization", "false"); // turn off !!!
     Context ctx_general(opt_general);

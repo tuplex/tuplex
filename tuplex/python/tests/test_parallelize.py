@@ -102,7 +102,7 @@ class TestFastParallelize(unittest.TestCase):
 
         input = [{"a":1,"b":2,"c":3},{"a":4,"b":5,"c":6},{"a":7,"b":8,"c":9},{"a": 1, "b":2}, {"c":11}]
         output = c.parallelize(input).map(lambda x: x["a"]).collect()
-        self.assertEqual([1, 4, 7, 1], output)
+        self.assertEqual([1, 4, 7, 1, None], output)
 
         input = [{"a":1,"b":2,"c":3},{"d":4,"e":5,"f":6}]
         output = c.parallelize(input).map(lambda x: (x["a"], x["b"], x["c"], x["d"], x["e"], x["f"])).collect()
@@ -118,6 +118,41 @@ class TestFastParallelize(unittest.TestCase):
     def testNoneType(self):
         c = Context(self.conf)
         ref = [None, None]
+        res = c.parallelize(ref).collect()
+
+        assert res == ref
+
+    def testListTupleI(self):
+        c = Context(self.conf)
+        ref = [([(1, 2), (3, 4)], [(-1, -2), (-3, -4)])]
+        res = c.parallelize(ref).collect()
+
+        assert res == ref
+
+    def testListTupleII(self):
+        c = Context(self.conf)
+        ref = [("a", [("b", [1, 2]), ("c", [1, 2, 3, 4])]), ("....", [("d", [100, 200, -10000000]), ("e", [1000, 2000, 3000, 4000, 5000])])]
+        res = c.parallelize(ref).collect()
+
+        assert res == ref
+
+    def testOptionTypeIII(self):
+        c = Context(self.conf)
+        ref = [(1, 2), None, (3, 4)]
+        res = c.parallelize(ref).collect()
+
+        assert res == ref
+
+    def testOptionTypeIV(self):
+        c = Context(self.conf)
+        ref = [None, ["a", "b"], None]
+        res = c.parallelize(ref).collect()
+
+        assert res == ref
+
+    def testOptionTypeV(self):
+        c = Context(self.conf)
+        ref = [[(1, None), None, (3, (4, None))]]
         res = c.parallelize(ref).collect()
 
         assert res == ref

@@ -122,6 +122,13 @@ class TestFastParallelize(unittest.TestCase):
 
         assert res == ref
 
+
+class TestParallelizeAnyType(unittest.TestCase):
+
+    def __init__(self, *args, **kwargs):
+        self.conf = {"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"}
+        super(TestParallelizeAnyType, self).__init__(*args, **kwargs)
+
     def testListTupleI(self):
         c = Context(self.conf)
         ref = [([(1, 2), (3, 4)], [(-1, -2), (-3, -4)])]

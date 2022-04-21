@@ -22,6 +22,7 @@ namespace tuplex {
             bool                                            allowUndefinedBehavior;
             bool                                            sharedObjectPropagation;
             bool                                            nullValueOptimization;
+            bool                                            constantFoldingOptimization;
             bool                                            isRootStage;
             bool                                            generateParser;
             double                                          normalCaseThreshold;
@@ -94,26 +95,13 @@ namespace tuplex {
             std::string toJSON() const;
             static CodeGenerationContext fromJSON(const std::string& json_str);
 
-//                Schema resolveReadSchema; //! schema for reading input
-//                Schema resolveInputSchema; //! schema after applying projection pushdown to input source code
-//                Schema resolveOutputSchema; //! output schema of stage
-//
-//                Schema normalCaseInputSchema; //! schema after applying normal case optimizations
-
-            // python::Type hashBucketType;
-
-//                // Fast Path
-//                std::vector<LogicalOperator*> fastOperators;
-//                python::Type fastReadSchema;
-//                python::Type fastInSchema;
-//                python::Type fastOutSchema;
-
-
+#ifdef BUILD_WITH_CEREAL
             // serialize using Cereal
             template<class Archive> void serialize(Archive & ar) {
                 ar(allowUndefinedBehavior,
                    sharedObjectPropagation,
                    nullValueOptimization,
+                   constantFoldingOptimization,
                    isRootStage,
                    generateParser,
                    normalCaseThreshold,
@@ -135,6 +123,7 @@ namespace tuplex {
                    fastPathContext,
                    slowPathContext);
             }
+#endif
         };
     }
 }

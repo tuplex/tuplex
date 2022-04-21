@@ -1532,9 +1532,9 @@ namespace python {
                 tobj = PyObject_GetItem(tuple, tobj);
 #else
                 // use Tuple[...]
-                auto typing_tuple = PyDict_GetItemString(typing_dict, "Optional");
+                auto typing_tuple = PyDict_GetItemString(typing_dict, "Tuple");
                 assert(typing_tuple);
-                toby = PyObject_GetItem(typing_tuple, tobj);
+                tobj = PyObject_GetItem(typing_tuple, tobj);
 #endif
             }
             auto opt_type = PyObject_GetItem(typing_optional, tobj);

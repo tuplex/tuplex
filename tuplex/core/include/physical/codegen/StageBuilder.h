@@ -36,6 +36,7 @@ namespace tuplex {
              * @param normalCaseThreshold between 0 and 1 threshold
              * @param sharedObjectPropagation whether to use shared object propogation
              * @param nullValueOptimization whether to use null value optimization
+             * @param constantFoldingOptimization whether to apply constant folding or not
              * @param updateInputExceptions whether input exceptions indices need to be updated
              * @param generateSpecializedNormalCaseCodePath whether to emit specialized normal case code path or not
              */
@@ -46,6 +47,7 @@ namespace tuplex {
                          double normalCaseThreshold,
                          bool sharedObjectPropagation,
                          bool nullValueOptimization,
+                         bool constantFoldingOptimization,
                          bool updateInputExceptions,
                          bool generateSpecializedNormalCaseCodePath=true);
 
@@ -139,6 +141,7 @@ namespace tuplex {
             bool _sharedObjectPropagation;
             bool _generateNormalCaseCodePath;
             bool _nullValueOptimization;
+            bool _constantFoldingOptimization;
             bool _updateInputExceptions;
 
             std::vector<std::shared_ptr<LogicalOperator>> _operators;

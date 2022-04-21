@@ -17,6 +17,7 @@ namespace tuplex {
                 // global settings, encode them!
                 root["sharedObjectPropagation"] = sharedObjectPropagation;
                 root["nullValueOptimization"] = nullValueOptimization;
+                root["constantFoldingOptimization"] = constantFoldingOptimization;
                 root["isRootStage"] = isRootStage;
                 root["generateParser"] = generateParser;
                 root["normalCaseThreshold"] = normalCaseThreshold;
@@ -41,15 +42,6 @@ namespace tuplex {
                     root["fastPathContext"] = fastPathContext.to_json();
                 if(slowPathContext.valid())
                     root["slowPathContext"] = slowPathContext.to_json();
-
-//                stageObj["name"] = stageName;
-//                stageObj["unoptimizedIR"] = unoptimizedIR;
-//                stageObj["optimizedIR"] = optimizedIR;
-//                stageObj["assembly"] = assemblyCode;
-//
-//                json obj;
-//                obj["jobid"] = _jobID;
-//                obj["stage"] = stageObj;
 
                 return root.dump();
             } catch(nlohmann::json::type_error& e) {
@@ -103,6 +95,7 @@ namespace tuplex {
                 // global settings, encode them!
                 ctx.sharedObjectPropagation = root["sharedObjectPropagation"].get<bool>();
                 ctx.nullValueOptimization = root["nullValueOptimization"].get<bool>();// = nullValueOptimization;
+                ctx.constantFoldingOptimization = root["constantFoldingOptimization"].get<bool>();// = nullValueOptimization;
                 ctx.isRootStage = root["isRootStage"].get<bool>();// = isRootStage;
                 ctx.generateParser = root["generateParser"].get<bool>();// = generateParser;
                 ctx.normalCaseThreshold = root["normalCaseThreshold"].get<double>();// = normalCaseThreshold;
@@ -121,10 +114,8 @@ namespace tuplex {
                 ctx.inputNodeID = root["inputNodeID"].get<int>();// = inputNodeID;
                 ctx.fileInputParameters = root["fileInputParameters"].get<std::unordered_map<std::string, std::string>>();// = fileInputParameters;
 
-                //                if(python::Type::UNKNOWN != hashKeyType && hashKeyType.hash() > 0) // HACK
-//                    root["hashKeyType"] = hashKeyType.desc();
-
-                // TODO;
+                // if(python::Type::UNKNOWN != hashKeyType && hashKeyType.hash() > 0) // HACK
+                //     root["hashKeyType"] = hashKeyType.desc();
 
                 if(root.find("fastPathContext") != root.end()) {
                     // won't be true, skip

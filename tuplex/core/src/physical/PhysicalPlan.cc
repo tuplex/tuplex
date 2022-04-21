@@ -247,6 +247,7 @@ namespace tuplex {
                                                _context.getOptions().NORMALCASE_THRESHOLD(),
                                                _context.getOptions().OPT_SHARED_OBJECT_PROPAGATION(),
                                                _context.getOptions().OPT_NULLVALUE_OPTIMIZATION(),
+                                               _context.getOptions().OPT_CONSTANTFOLDING_OPTIMIZATION(),
                                                updateInputExceptions);
         // start code generation
 

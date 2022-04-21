@@ -52,12 +52,17 @@ namespace tuplex {
                                    double normalCaseThreshold,
                                    bool sharedObjectPropagation,
                                    bool nullValueOptimization,
+                                   bool constantFoldingOptimization,
                                    bool updateInputExceptions,
                                    bool generateSpecializedNormalCaseCodePath)
                 : _stageNumber(stage_number), _isRootStage(rootStage), _allowUndefinedBehavior(allowUndefinedBehavior),
                   _generateParser(generateParser), _normalCaseThreshold(normalCaseThreshold), _sharedObjectPropagation(sharedObjectPropagation),
-                  _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions),
-                  _inputNode(nullptr), _outputLimit(std::numeric_limits<size_t>::max()), _generateNormalCaseCodePath(generateSpecializedNormalCaseCodePath) {
+                  _nullValueOptimization(nullValueOptimization),
+                  _constantFoldingOptimization(constantFoldingOptimization),
+                  _updateInputExceptions(updateInputExceptions),
+                  _inputNode(nullptr),
+                  _outputLimit(std::numeric_limits<size_t>::max()),
+                  _generateNormalCaseCodePath(generateSpecializedNormalCaseCodePath) {
         }
 
         inline std::string next_hashmap_name() {
@@ -1492,7 +1497,8 @@ namespace tuplex {
                 if(_generateNormalCaseCodePath)
                     codeGenerationContext.fastPathContext = specializePipeline(codeGenerationContext.slowPathContext,
                                                                                codeGenerationContext.normalToGeneralMapping,
-                                                                               _nullValueOptimization);
+                                                                               _nullValueOptimization,
+                                                                               _constantFoldingOptimization);
                 else
                     codeGenerationContext.fastPathContext = getGeneralPathContext();
 
@@ -1604,6 +1610,7 @@ namespace tuplex {
             ctx.allowUndefinedBehavior = _allowUndefinedBehavior;
             ctx.sharedObjectPropagation = _sharedObjectPropagation;
             ctx.nullValueOptimization = _nullValueOptimization;
+            ctx.constantFoldingOptimization = _constantFoldingOptimization;
             ctx.isRootStage = _isRootStage;
             ctx.generateParser = _generateParser;
             ctx.normalCaseThreshold = _normalCaseThreshold;

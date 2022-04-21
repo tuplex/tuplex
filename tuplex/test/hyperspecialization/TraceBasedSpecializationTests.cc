@@ -410,9 +410,13 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // leonhards macbook
     string flights_root = "/Users/leonhards/Downloads/flights/";
     //string flights_root = "/Users/leonhards/Downloads/flights_small/";
+
+    string driver_memory = "2G";
 #else
     // BBSN00
     string flights_root = "/hot/data/flights_all/";
+
+    string driver_memory = "32G";
 #endif
 
     string s3_flights_root = "s3://tuplex-public/data/flights_all/";
@@ -595,7 +599,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
         opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
         opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
         opt.set("tuplex.resolveWithInterpreterOnly", "false"); // -> this doesn't work with hyper-specialization yet.
-
+        opt.set("tuplex.driverMemory", driver_memory);
         // hyperspecialization setting
         if(use_lambda) {
             opt.set("tuplex.backend", "lambda");
@@ -647,7 +651,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     opt_general.set("tuplex.optimizer.nullValueOptimization", "false");
     opt_general.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
     opt_general.set("tuplex.resolveWithInterpreterOnly", "false"); // -> this doesn't work with hyper-specialization yet.
-    opt_general.set("tuplex.driverMemory", "2GB");
+    opt_general.set("tuplex.driverMemory", driver_memory);
     if(use_lambda) {
         opt_general.set("tuplex.backend", "lambda");
         opt_general.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));

@@ -249,7 +249,7 @@ TEST(BasicInvocation, PurePythonMode) {
     auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
     co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
     co.set("tuplex.useInterpreterOnly", "true");
-    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, false);
+    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
     auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
                                             option<bool>(true),
                                             option<char>(','), option<char>('"'),
@@ -373,7 +373,7 @@ TEST(BasicInvocation, HashOutput) {
     auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
     co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
     co.set("tuplex.useInterpreterOnly", "false");
-    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, false);
+    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
     auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
                                             option<bool>(true),
                                             option<char>(','), option<char>('"'),
@@ -517,7 +517,7 @@ TEST(BasicInvocation, Worker) {
     ContextOptions co = ContextOptions::defaults();
     auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
     co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
-    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, false);
+    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
     auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
                                        option<bool>(true),
                                                option<char>(','), option<char>('"'),

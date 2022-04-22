@@ -419,7 +419,6 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     string driver_memory = "32G";
 #endif
 
-
     // global config here:
     bool use_lambda = true;
     bool run_hyperspecialized_version = true;

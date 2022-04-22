@@ -136,7 +136,7 @@ if __name__ == '__main__':
     lambda_size = "10000"
     lambda_threads = 2
     s3_scratch_dir = "s3://tuplex-leonhard/scratch/flights-exp"
-    use_hyper_specialization = True
+    use_hyper_specialization = False
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv'
     s3_output_path = 's3://tuplex-leonhard/experiments/flights_hyper'
     print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, s3_output_path))
@@ -166,9 +166,6 @@ if __name__ == '__main__':
         with open('tuplex_config.json') as fp:
             conf = json.load(fp)
 
-    if args.single_threaded:
-        conf['executorCount'] = 0
-        conf['driverMemory'] = '32G'
     if args.no_nvo:
         conf["optimizer.nullValueOptimization"] = False
     else:

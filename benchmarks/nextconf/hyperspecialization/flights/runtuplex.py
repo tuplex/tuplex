@@ -126,6 +126,8 @@ if __name__ == '__main__':
     #                     help="whether to use a single thread for execution")
     # parser.add_argument('--preload', dest='preload', action="store_true",
     #                     help="whether to add a cache statement after the csv operator to separate IO costs out.")
+    parser.add_argument('--no-hyper', dest='no_hyper', action="store_true",
+                        help="deactivate hyperspecialization optimization explicitly.")
     parser.add_argument('--no-nvo', dest='no_nvo', action="store_true",
                         help="deactivate null value optimization explicitly.")
     args = parser.parse_args()
@@ -136,10 +138,13 @@ if __name__ == '__main__':
     lambda_size = "10000"
     lambda_threads = 2
     s3_scratch_dir = "s3://tuplex-leonhard/scratch/flights-exp"
-    use_hyper_specialization = False
+    use_hyper_specialization = not args.no_hyper
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv'
     s3_output_path = 's3://tuplex-leonhard/experiments/flights_hyper'
     print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, s3_output_path))
+
+    print('    hyperspecialization: {}'.format(use_hyper_specialization))
+    print('    null-value optimization: {}'.format(not args.no_nvo))
 
     # load data
     tstart = time.time()

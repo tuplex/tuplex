@@ -419,7 +419,14 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     string driver_memory = "32G";
 #endif
 
+
+    // global config here:
+    bool use_lambda = true;
+    bool run_hyperspecialized_version = true;
     string s3_flights_root = "s3://tuplex-public/data/flights_all/";
+    if(use_lambda)
+        flights_root = s3_flights_root;
+    string input_pattern = flights_root + "flights_on_time_performance_2003_*.csv";
 
     auto code = "def fill_in_delays(row):\n"
                 "    # want to fill in data for missing carrier_delay, weather delay etc.\n"
@@ -547,7 +554,6 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // BENCHMARK HERE...!
 
 //    string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv";
-    string input_pattern = "flights_on_time_performance_2003_10.csv";
 
     // 2003 test pattern:
     //input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv";
@@ -560,7 +566,6 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 //
 //    // test:
 //    input_pattern = "/Users/leonhards/Downloads/flights/flights_on_time_performance_2003_10.csv";
-    bool use_lambda = false;
     if(!use_lambda)
         input_pattern = flights_root + "flights_on_time_performance_2003_*.csv";
 
@@ -568,10 +573,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // input_pattern = flights_root + "flights_on_time_performance_2003_01.csv" + "," + flights_root + "flights_on_time_performance_2003_12.csv";
 
     // --- use this for final PR ---
-    // For testing purposes: resources/hyperspecialization/2003/*.csv holds two mini samples where wrong sampling triggers too many exceptions in general case mode
-    input_pattern = "../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv,../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
+    // // For testing purposes: resources/hyperspecialization/2003/*.csv holds two mini samples where wrong sampling triggers too many exceptions in general case mode
+    // input_pattern = "../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv,../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
     // --- end use this for final PR ---
-
 
 
     // single file
@@ -584,9 +588,6 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 //    input_pattern = "../resources/hyperspecialization/flights_2003_06.sample.csv";
 
     // input_pattern = flights_root + "flights_on_time_performance_2003_06.csv";
-
-    bool run_hyperspecialized_version = false;
-
 
     std::cout<<"HyperSpecialization Benchmark:\n------------"<<std::endl;
     Timer timer;
@@ -628,6 +629,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
                 ctx.csv(path.toString()).map(UDF(code)).tocsv(output_path);
             }
         } else {
+            std::cout<<"*** Executing Hyperspecialization query on Lambda/S3 ***"<<std::endl;
             ctx.csv(input_pattern).map(UDF(code)).tocsv(s3_output +"_hyper");
         }
 #ifndef NDEBUG

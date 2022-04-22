@@ -75,6 +75,4 @@ def generateStrTable(numCols, strTable):
             output_str += "| {:<{width}} ".format(r[i], width=max_col_width[i])
         output_str += "|\n"
 
-    output_str += _getLineDivider(max_col_width) + "{} columns\n".format(numCols)
-
     return output_str

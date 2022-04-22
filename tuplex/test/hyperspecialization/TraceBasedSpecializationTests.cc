@@ -417,6 +417,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     string flights_root = "/hot/data/flights_all/";
 
     string driver_memory = "32G";
+    string executor_memory = "10G";
+    string num_executors = "0";
+    //num_executors = "16";
 #endif
 
     // global config here:
@@ -658,6 +661,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
         opt_general.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));
         opt_general.set("tuplex.aws.lambdaThreads", std::to_string(numLambdaThreads));
         opt_general.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp-general");
+    } else {
+    	opt_general.set("tuplex.executorMemory", executor_memory);
+	    opt_general.set("tuplex.executorCount", num_executors);
     }
     opt_general.set("tuplex.experimental.hyperspecialization", "false"); // turn off !!!
     Context ctx_general(opt_general);

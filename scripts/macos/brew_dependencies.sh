@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# install dependencies via brew
+# This script installs all required dependencies via brew
+# for instructions on how to install brew, visit https://brew.sh/
 
 brew install coreutils protobuf zstd zlib libmagic llvm@9 pcre2 gflags yaml-cpp celero wget boost googletest
 
@@ -10,5 +11,3 @@ brew install coreutils protobuf zstd zlib libmagic llvm@9 pcre2 gflags yaml-cpp 
 brew tap-new tuplex/brew
 brew extract --version='4.9.3' antlr4-cpp-runtime tuplex/brew
 brew install antlr4-cpp-runtime@4.9.3
-
-echo "done!"

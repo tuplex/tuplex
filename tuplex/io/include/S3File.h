@@ -155,7 +155,7 @@ namespace tuplex {
 #endif
 
         template <typename R, typename E>
-        std::string outcome_error_message(const Aws::Utils::Outcome<R, E>& outcome, const std::string& uri="") {
+        std::string outcome_error_message(const Aws::Utils::Outcome<R, E>& outcome, const std::string& uri="") const {
             auto s3_details = format_s3_outcome_error_message(outcome, uri);
 
             std::stringstream ss;

@@ -818,7 +818,9 @@ namespace tuplex {
             if(jt != scope->symbols.end()) {
                 auto symbol = jt->second;
                 python::Type matchType = python::Type::UNKNOWN;
-                if(symbol->findFunctionTypeBasedOnParameterType(parameterType, matchType))
+
+                // symbol may be nullptr, this indicates e.g. an attribute.
+                if(symbol && symbol->findFunctionTypeBasedOnParameterType(parameterType, matchType))
                     return matchType;
             }
         }

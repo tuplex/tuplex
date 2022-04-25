@@ -55,17 +55,35 @@ namespace tuplex {
     void S3File::lazyUpload() {
         assert(_mode & VirtualFileMode::VFS_WRITE || _mode & VirtualFileMode::VFS_OVERWRITE);
 
+        MessageHandler& logger = Logger::instance().logger("s3fs");
+
+        // do not upload in reade mode.
+        if(!(_mode & VirtualFileMode::VFS_WRITE || _mode & VirtualFileMode::VFS_OVERWRITE))
+            return;
+
         // check if buffer is valid, if so upload via PutRequest
         if(_buffer && !_fileUploaded) {
 
+            logger.info("Invoking lazyUpload to uri " + _uri.toString());
+
             // check if multipart upload (_partNumber != 0)
             if(_partNumber > 0) {
+
+                logger.info("Completing multipart upload, uploading last part.");
+
                 // upload last part
                 uploadPart();
 
+                logger.info("Completing multipart upload, completion request.");
                 // finish multipart upload
                 completeMultiPartUpload();
+
+                logger.info("Multipart done.");
+
             } else {
+
+                logger.info("Issuing simple write request");
+
                 // simple put request
                 // upload via simple putrequest
                 Aws::S3::Model::PutObjectRequest put_req;
@@ -154,8 +172,10 @@ namespace tuplex {
         assert(_buffer);
 
         // skip empty buffer for second time
-        if(_bufferLength == 0 && _partNumber > 1)
+        if(_bufferLength == 0 && _partNumber > 1) {
+            logger.info("Skipping empty buffer (partno = " + std::to_string(_partNumber) + ")");
             return;
+        }
 
         Aws::S3::Model::UploadPartRequest req;
         //@Todo: what about content MD5???
@@ -195,6 +215,7 @@ namespace tuplex {
         //aws s3api list-multipart-uploads --bucket <bucket name>
 
         MessageHandler& logger = Logger::instance().logger("s3fs");
+        logger.info("Completing multi-part upload for " + pluralize(_partNumber, "part"));
 
         // issue complete upload request
         Aws::S3::Model::CompleteMultipartUploadRequest req;

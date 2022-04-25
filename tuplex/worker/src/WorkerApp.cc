@@ -1613,14 +1613,14 @@ namespace tuplex {
         if(0 == env->numExceptionRows)
             return WORKER_OK; // nothing todo
 
-        // !!! HACK !!!
-        if(stage->use_hyper()) {
-            std::cout<<"Stage got "<<env->numExceptionRows<<std::endl;
-
-            std::cout<<"skipping resolution for now, b.c. buggy."<<std::endl;
-            return WORKER_OK;
-        }
-        /// end
+//        // !!! HACK !!!
+//        if(stage->use_hyper()) {
+//            std::cout<<"Stage got "<<env->numExceptionRows<<std::endl;
+//
+//            std::cout<<"skipping resolution for now, b.c. buggy."<<std::endl;
+//            return WORKER_OK;
+//        }
+//        /// end
 
 
         // if no compiled resolver & no interpreted resolver are present, simply return.

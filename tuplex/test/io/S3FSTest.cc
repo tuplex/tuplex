@@ -3,6 +3,8 @@
 //
 
 #include "FileSystemUtils.h"
+#include "S3File.h"
+
 #ifdef BUILD_WITH_AWS
 
 #include <AWSCommon.h>
@@ -36,6 +38,71 @@ protected:
 };
 
 #ifndef SKIP_AWS_TESTS
+
+TEST_F(S3Tests, FileUploadLargerThanInternal) {
+    // tests S3 writing capabilities
+    using namespace tuplex;
+
+    EXPECT_GE(S3File::INTERNAL_BUFFER_SIZE(), 0);
+
+    auto internal_buf_size = S3File::INTERNAL_BUFFER_SIZE();
+
+    // write S3 file that's larger than internal size
+    auto test_buf_size = 2 * internal_buf_size;
+    auto test_buf = new uint8_t[test_buf_size];
+    memset(test_buf, 42, test_buf_size);
+
+    auto s3_test_path = s3TestBase + "/" + testName + "/larger_than_internal_buf.bin";
+
+    auto vfs = VirtualFileSystem::fromURI(URI("s3://"));
+
+    // write parts...
+    auto file = vfs.open_file(s3_test_path, VirtualFileMode::VFS_OVERWRITE);
+    ASSERT_TRUE(file);
+    file->write(test_buf, test_buf_size);
+    file->close();
+
+    // check file was written correctly
+    uint64_t file_size;
+    vfs.file_size(s3_test_path, file_size);
+    EXPECT_EQ(file_size, test_buf_size);
+}
+
+TEST_F(S3Tests, FileUploadMultiparts) {
+    // tests S3 writing capabilities
+    using namespace tuplex;
+
+    EXPECT_GE(S3File::INTERNAL_BUFFER_SIZE(), 0);
+
+    auto internal_buf_size = S3File::INTERNAL_BUFFER_SIZE();
+
+    // write S3 file that's larger than internal size
+    auto test_buf_size = 2 * internal_buf_size;
+    auto test_buf = new uint8_t[test_buf_size];
+    memset(test_buf, 42, test_buf_size);
+
+    auto s3_test_path = s3TestBase + "/" + testName + "/multiparts.bin";
+
+    auto vfs = VirtualFileSystem::fromURI(URI("s3://"));
+
+    // write parts...
+    auto file = vfs.open_file(s3_test_path, VirtualFileMode::VFS_OVERWRITE);
+    ASSERT_TRUE(file);
+
+    // test some edge cases when writing
+
+    size_t part_size = 0.75 * internal_buf_size;
+    file->write(test_buf, 0);
+    file->write(test_buf, part_size);
+    file->write(test_buf + part_size, internal_buf_size);
+    file->write(test_buf + part_size + internal_buf_size, test_buf_size - (part_size + internal_buf_size));
+    file->close();
+
+    // check file was written correctly
+    uint64_t file_size;
+    vfs.file_size(s3_test_path, file_size);
+    EXPECT_EQ(file_size, test_buf_size);
+}
 
 TEST_F(S3Tests, FileSeek) {
     using namespace tuplex;

@@ -55,6 +55,8 @@ namespace tuplex {
     void S3File::lazyUpload() {
         assert(_mode & VirtualFileMode::VFS_WRITE || _mode & VirtualFileMode::VFS_OVERWRITE);
 
+        MessageHandler& logger = Logger::instance().logger("s3fs");
+
         // do not upload in reade mode.
         if(!(_mode & VirtualFileMode::VFS_WRITE || _mode & VirtualFileMode::VFS_OVERWRITE))
             return;
@@ -170,8 +172,10 @@ namespace tuplex {
         assert(_buffer);
 
         // skip empty buffer for second time
-        if(_bufferLength == 0 && _partNumber > 1)
+        if(_bufferLength == 0 && _partNumber > 1) {
+            logger.info("Skipping empty buffer (partno = " + std::to_string(_partNumber) + ")");
             return;
+        }
 
         Aws::S3::Model::UploadPartRequest req;
         //@Todo: what about content MD5???
@@ -211,6 +215,7 @@ namespace tuplex {
         //aws s3api list-multipart-uploads --bucket <bucket name>
 
         MessageHandler& logger = Logger::instance().logger("s3fs");
+        logger.info("Completing multi-part upload for " + pluralize(_partNumber, "part"));
 
         // issue complete upload request
         Aws::S3::Model::CompleteMultipartUploadRequest req;

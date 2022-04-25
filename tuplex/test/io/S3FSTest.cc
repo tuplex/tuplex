@@ -3,6 +3,8 @@
 //
 
 #include "FileSystemUtils.h"
+#include "S3File.h"
+
 #ifdef BUILD_WITH_AWS
 
 #include <AWSCommon.h>
@@ -36,6 +38,19 @@ protected:
 };
 
 #ifndef SKIP_AWS_TESTS
+
+TEST_F(S3Tests, FileUpload) {
+    // tests S3 writing capabilities
+    using namespace tuplex;
+
+    EXPECT_GE(S3File::INTERNAL_BUFFER_SIZE(), 0);
+
+    auto internal_buf_size = S3File::INTERNAL_BUFFER_SIZE();
+
+    // write to S3 file that's smaller than buffer & file that's larger than buffer & file in parts so buf size is hit & ...
+
+}
+
 
 TEST_F(S3Tests, FileSeek) {
     using namespace tuplex;

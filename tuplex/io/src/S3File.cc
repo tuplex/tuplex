@@ -241,10 +241,40 @@ namespace tuplex {
 
     VirtualFileSystemStatus S3File::write(const void *buffer, uint64_t bufferSize) {
 
+        MessageHandler& logger = Logger::instance().logger("s3fs");
+
         // make sure file is not yet uploaded
         if(_fileUploaded) {
             throw std::runtime_error("file has been already uploaded. Did you call write after close?");
         }
+
+        // skip write
+        if(0 == bufferSize)
+            return VirtualFileSystemStatus::VFS_OK;
+
+        logger.info("Writing buffer of size " + std::to_string(bufferSize));
+
+        // what if buffer size is larger than internal buffer?
+        // ==> invoke write in chunks (max-chunk size = internal buffer size!)
+        if(bufferSize > _bufferSize) {
+            // call recursive loop!
+            size_t remaining_bytes = bufferSize;
+            size_t pos = 0;
+            uint8_t* buf = (uint8_t *) buffer;
+            while (remaining_bytes > _bufferSize) {
+                auto rc = write(buf + pos, _bufferSize);
+                if(rc != VirtualFileSystemStatus::VFS_OK)
+                    return rc;
+                pos += _bufferSize;
+                remaining_bytes -= _bufferSize;
+            }
+
+            // write the rest
+            return write(buf + pos, remaining_bytes);
+        }
+
+        // make sure buffer is smaller than buffer size
+        assert(bufferSize <= _bufferSize);
 
         // two options: either buffer is empty OR full
         if(!_buffer) {
@@ -275,6 +305,9 @@ namespace tuplex {
                     // append another multipart upload part
                     uploadPart();
                 }
+
+                // invoke write again for the buffer after part has been uploaded.
+                return write(buffer, bufferSize);
             }
 
             return VirtualFileSystemStatus::VFS_NOTYETIMPLEMENTED;

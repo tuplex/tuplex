@@ -96,6 +96,11 @@ namespace tuplex {
         size_t size() const override;
 
         bool eof() const override;
+
+        static size_t INTERNAL_BUFFER_SIZE() {
+            return _bufferSize;
+        }
+
     private:
 
         /*!

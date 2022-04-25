@@ -179,7 +179,7 @@ namespace tuplex {
                         serializer.append(el.isNull() ? option<List>::none : option<List>(*(List*)el.getPtr()), el.getType());
                     else if (rt.isTupleType()) {
                         if (el.isNull()) {
-                            serializer.append(option<Tuple>::none);
+                            serializer.append(option<Tuple>::none, el.getType());
                         } else {
                             auto ptrToTuple = (Tuple*)el.getPtr();
                             assert(ptrToTuple);

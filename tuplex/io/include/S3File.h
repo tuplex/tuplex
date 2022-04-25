@@ -115,10 +115,12 @@ namespace tuplex {
 
         uint8_t *_buffer; ///! buffers
         size_t _bufferLength; ///! how many valid bytes are stored in buffer
+
+#ifdef NDEBUG
         static const size_t _bufferSize = 1024 * 1024 * 64; ///! size of the buffer, set here to 64MB buffer
-
-//        static const size_t _bufferSize = 1024 * 1024 * 5 + 100; ///! for debug reasons, set 5MB + 100B buffer
-
+#else
+        static const size_t _bufferSize = 1024 * 1024 * 5 + 100; ///! for debug reasons, set 5MB + 100B buffer
+#endif
 
         // buffer size should be more than 5MB!
         // this is because parts needs to be at least 5MB for multipart upload

@@ -960,7 +960,7 @@ namespace python {
         return true;
     }
 
-    Type compatibleType(const python::Type &a, const python::Type &b, bool autoUpcast) {
+    Type unifyTypes(const python::Type &a, const python::Type &b, bool autoUpcast) {
         // UNKNOWN type is not compatible
         if(a == python::Type::UNKNOWN || b == python::Type::UNKNOWN) {
             return python::Type::UNKNOWN;
@@ -1021,7 +1021,8 @@ namespace python {
 
         // list type? check if element type compatible
         if(aUnderlyingType.isListType() && bUnderlyingType.isListType() && aUnderlyingType != python::Type::EMPTYLIST && bUnderlyingType != python::Type::EMPTYLIST) {
-            python::Type newElementType = compatibleType(aUnderlyingType.elementType(), bUnderlyingType.elementType(), autoUpcast);
+            python::Type newElementType = unifyTypes(aUnderlyingType.elementType(), bUnderlyingType.elementType(),
+                                                     autoUpcast);
             if(newElementType == python::Type::UNKNOWN) {
                 // incompatible list element type
                 return python::Type::UNKNOWN;
@@ -1040,7 +1041,8 @@ namespace python {
             }
             std::vector<python::Type> newTuple;
             for (size_t i = 0; i < aUnderlyingType.parameters().size(); i++) {
-                python::Type newElementType = compatibleType(aUnderlyingType.parameters()[i],bUnderlyingType.parameters()[i], autoUpcast);
+                python::Type newElementType = unifyTypes(aUnderlyingType.parameters()[i],
+                                                         bUnderlyingType.parameters()[i], autoUpcast);
                 if(newElementType == python::Type::UNKNOWN) {
                     // incompatible tuple element type
                     return python::Type::UNKNOWN;
@@ -1053,7 +1055,21 @@ namespace python {
             return python::Type::makeTupleType(newTuple);
         }
 
-        // other collection type
+        // dictionary type
+        if(aUnderlyingType.isDictionaryType() && bUnderlyingType.isDictionaryType()) {
+            auto key_t = unifyTypes(aUnderlyingType.keyType(), bUnderlyingType.keyType(), autoUpcast);
+            auto val_t = unifyTypes(aUnderlyingType.elementType(), bUnderlyingType.elementType(), autoUpcast);
+            if(key_t == python::Type::UNKNOWN || val_t == python::Type::UNKNOWN) {
+                return python::Type::UNKNOWN;
+            }
+            if(makeOption) {
+                return python::Type::makeOptionType(python::Type::makeDictionaryType(key_t, val_t));
+            } else {
+                return python::Type::makeDictionaryType(key_t, val_t);
+            }
+        }
+
+        // other non-supported types
         return python::Type::UNKNOWN;
     }
 

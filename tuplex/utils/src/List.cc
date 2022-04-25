@@ -116,9 +116,7 @@ namespace tuplex {
     size_t List::numNonNullElements() const {
         size_t num = 0;
         for(size_t i = 0; i < _numElements; i++) {
-            if(!getField(i).isNull()) {
-                num += 1;
-            }
+            num += !getField(i).isNull();
         }
         return num;
     }

@@ -473,7 +473,7 @@ namespace python {
         return f;
     }
 
-    tuplex::Field pythonToField(PyObject* obj) {
+    tuplex::Field pythonToField(PyObject *obj, bool autoUpcast) {
         using namespace tuplex;
         using namespace std;
 
@@ -498,7 +498,7 @@ namespace python {
             vector<Field> v;
             v.reserve(numElements);
             for(unsigned i = 0; i < numElements; ++i) {
-                v.push_back(pythonToField(PyTuple_GetItem(obj, i)));
+                v.push_back(pythonToField(PyTuple_GetItem(obj, i), autoUpcast));
             }
             return Field(Tuple::from_vector(v));
         } else if(PyBool_Check(obj)) { // important to call this before isinstance long since isinstance also return long for bool
@@ -529,7 +529,7 @@ namespace python {
             if(PyDict_Size(obj) == 0)
                 return Field::empty_dict();
 
-            auto dictType = mapPythonClassToTuplexType(obj, true);
+            auto dictType = mapPythonClassToTuplexType(obj, autoUpcast);
             std::string dictStr;
             PyObject *key = nullptr, *val = nullptr;
             Py_ssize_t pos = 0;  // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
@@ -537,7 +537,7 @@ namespace python {
             while(PyDict_Next(obj, &pos, &key, &val)) {
                 // create key
                 auto keyStr = PyString_AsString(PyObject_Str(key));
-                auto keyType = mapPythonClassToTuplexType(key, true);
+                auto keyType = mapPythonClassToTuplexType(key, autoUpcast);
                 python::Type valType;
 
                 // create value, mimicking cJSON printing standards
@@ -625,7 +625,7 @@ namespace python {
             vector<Field> v;
             v.reserve(numElements);
             for(unsigned i = 0; i < numElements; ++i) {
-                v.push_back(pythonToField(PyList_GET_ITEM(obj, i)));
+                v.push_back(pythonToField(PyList_GET_ITEM(obj, i), autoUpcast));
             }
             return Field(List::from_vector(v));
         } else if(obj == Py_None) {
@@ -660,9 +660,10 @@ namespace python {
      * converts object to field of specified type.
      * @param obj
      * @param type
+     * @param autoUpcast whether to upcast numeric types to a unified type when type conflicts, false by default
      * @return Field object
      */
-    tuplex::Field pythonToField(PyObject *obj, const python::Type &type, bool autoUpcast) {
+    tuplex::Field pythonToField(PyObject *obj, const python::Type &type, bool autoUpcast=false) {
         assert(obj);
 
         // TODO: check assumptions about whether nonempty tuple can be an option
@@ -677,7 +678,7 @@ namespace python {
                     f = pythonToField(obj, rtType, autoUpcast);
                 } else {
                     // simple types
-                    f = pythonToField(obj);
+                    f = pythonToField(obj, autoUpcast);
                     f = autoUpcast? fieldCastTo(f, type.getReturnType()) : f;
                 }
                 f.makeOptional();
@@ -696,12 +697,15 @@ namespace python {
             auto numElements = PyList_Size(obj);
             auto elementType = type.elementType();
             std::vector<tuplex::Field> v;
+            v.reserve(numElements);
             for(unsigned i = 0; i < numElements; ++i) {
-                v.push_back(pythonToField(PyList_GetItem(obj, i), elementType, autoUpcast));
+                auto currListItem = PyList_GetItem(obj, i);
+                v.push_back(pythonToField(currListItem, elementType, autoUpcast));
+                Py_IncRef(currListItem);
             }
             return tuplex::Field(tuplex::List::from_vector(v));
         } else {
-            auto f = pythonToField(obj);
+            auto f = pythonToField(obj, autoUpcast);
             return autoUpcast? fieldCastTo(f, type) : f;
         }
     }
@@ -1452,11 +1456,10 @@ namespace python {
                 python::Type currElementType = mapPythonClassToTuplexType(PyList_GetItem(o, j), autoUpcast);
                 if(elementType != currElementType) {
                     // possible to use nullable type as element type?
-                    elementType = compatibleType(elementType, currElementType, autoUpcast);
-                    if (elementType == python::Type::UNKNOWN) {
-                        Logger::instance().defaultLogger().error("lists with variable type elements are not supported.");
-                        return python::Type::UNKNOWN;
-                        // TODO: the general case should return python::Type::PyObject in the future
+                    auto newElementType = unifyTypes(elementType, currElementType, autoUpcast);
+                    if (newElementType == python::Type::UNKNOWN) {
+                        Logger::instance().defaultLogger().error("list with variable element type " + elementType.desc() + " and " + currElementType.desc() + " not supported.");
+                        return python::Type::PYOBJECT;
                     }
                 }
             }

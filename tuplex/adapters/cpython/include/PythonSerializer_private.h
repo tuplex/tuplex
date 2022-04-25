@@ -56,6 +56,24 @@ namespace tuplex {
          * @return -1 if invalid, size of serialized data if valid
          */
         int64_t checkTupleCapacity(const uint8_t *ptr, int64_t capacity, const python::Type &row_type);
+
+        std::vector<bool> getBitmapFromType(const python::Type &objectType, const uint8_t *&ptr, int64_t numElements) {
+            std::vector<bool> bitmapV;
+            bitmapV.reserve(numElements);
+            if (objectType.isListType()) {
+                if (objectType.elementType().isOptionType()) {
+                    auto numBitmapFields = core::ceilToMultiple((unsigned long)numElements, 64ul)/64;
+                    auto bitmapSize = numBitmapFields * sizeof(uint64_t);
+                    auto *bitmapAddr = (uint64_t *)ptr;
+                    ptr += bitmapSize;
+                    for (size_t i = 0; i < numElements; i++) {
+                        bool currBit = (bitmapAddr[i/64] >> (i % 64)) & 1;
+                        bitmapV.push_back(currBit);
+                    }
+                }
+            }
+            return bitmapV;
+        }
     }
 }
 

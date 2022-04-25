@@ -178,7 +178,13 @@ namespace tuplex {
                     else if(rt.isListType())
                         serializer.append(el.isNull() ? option<List>::none : option<List>(*(List*)el.getPtr()), el.getType());
                     else if (rt.isTupleType()) {
-                        serializer.append(el.isNull() ? option<Tuple>::none : option<Tuple>(*(Tuple*)el.getPtr()), el.getType());
+                        if (el.isNull()) {
+                            serializer.append(option<Tuple>::none);
+                        } else {
+                            auto ptrToTuple = (Tuple*)el.getPtr();
+                            assert(ptrToTuple);
+                            serializer.append(option<Tuple>(*ptrToTuple), el.getType());
+                        }
                     } else {
                         throw std::runtime_error("option underlying type " + rt.desc() + " not known");
                     }

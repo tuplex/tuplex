@@ -250,9 +250,20 @@ namespace tuplex {
         List        getList(const int col) const;
         Tuple       getOptionTuple(const int col) const;
 
-        // given a ptr to the start of the actual tuple data (not offset), return a tuple
+        /*!
+         * given a ptr to the start of the actual tuple data (not offset), return a tuple
+         * @param tupleType
+         * @param ptr ptr to the start of tuple data
+         * @return Tuple
+         */
         Tuple       getTupleHelper(const python::Type &tupleType, const uint8_t *ptr) const;
-        // given a ptr to the start of the actual list data (not offset), return a list
+
+        /*!
+         * given a ptr to the start of the actual list data (not offset), return a list
+         * @param listType
+         * @param ptr ptr to the start of list data
+         * @return List
+         */
         List        getListHelper(const python::Type &listType, const uint8_t *ptr) const;
 
         const uint8_t* getPtr(const int col) const;

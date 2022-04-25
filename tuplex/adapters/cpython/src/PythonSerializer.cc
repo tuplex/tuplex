@@ -131,10 +131,12 @@ namespace tuplex {
                 python::Type current_type = tree.fieldType(curr);
                 PyObject *elem_to_insert = nullptr;
                 if (current_type.isOptionType() && current_type.getReturnType().isTupleType()) {
+                    // createPyTupleFromMemory requires a ptr to start of the actual tuple data, so need to decode and add offset here
                     uint64_t sizeOffset = *((uint64_t *)(ptr + current_buffer_index));
                     uint64_t offset = sizeOffset & 0xFFFFFFFF;
                     elem_to_insert = createPyObjectFromMemory(ptr + current_buffer_index + offset, current_type, bitmap, bitmap_index);
                 } else {
+                    // otherwise, simply pass ptr to the current field
                     elem_to_insert = createPyObjectFromMemory(ptr + current_buffer_index, current_type, bitmap, bitmap_index);
                 }
 
@@ -211,17 +213,7 @@ namespace tuplex {
                 auto ret = PyList_New(numElements);
 
                 // get bitmap
-                std::vector<bool> bitmapV;
-                if (elementType.isOptionType()) {
-                    auto numBitmapFields = core::ceilToMultiple((unsigned long)numElements, 64ul)/64;
-                    auto bitmapSize = numBitmapFields * sizeof(uint64_t);
-                    auto *bitmapAddr = (uint64_t *)ptr;
-                    ptr += bitmapSize;
-                    for (size_t i = 0; i < numElements; i++) {
-                        bool currBit = (bitmapAddr[i/64] >> (i % 64)) & 1;
-                        bitmapV.push_back(currBit);
-                    }
-                }
+                std::vector<bool> bitmapV = getBitmapFromType(row_type, ptr, numElements);
 
                 for(size_t i=0; i<numElements; i++) {
                     PyObject* element;

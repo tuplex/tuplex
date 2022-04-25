@@ -626,7 +626,7 @@ namespace tuplex {
             Py_XINCREF(item);
 
             python::Type t = python::mapPythonClassToTuplexType(item, autoUpcast);
-            if(compatibleType(majType, t, autoUpcast) == majType) {
+            if(unifyTypes(majType, t, autoUpcast) == majType) {
                 // In this case, t is a subtype of the majority type; this accounts for the case where the majority type
                 // is an option (e.g. majType=Option[int] should encompass both t=I64 and t=NULLVALUE).
                 auto row = python::pythonToRow(item, majType, autoUpcast);
@@ -898,7 +898,7 @@ namespace tuplex {
     // For example, t1=int, t2=None -> super = Option[int]
     // Similarly, t1=(int, none), t2=(none, int) -> super = (Option[int], Option[int])
     bool hasSuperOptionType(python::Type t1, python::Type t2, python::Type &super, bool autoUpcast) {
-        auto newType = compatibleType(t1, t2, autoUpcast);
+        auto newType = unifyTypes(t1, t2, autoUpcast);
         if (newType != python::Type::UNKNOWN) {
             super = newType;
             return true;
@@ -985,7 +985,7 @@ namespace tuplex {
                 // is there a compatible type
                 bool foundCompatible = false;
                 for (auto it = mTypes.begin(); it != mTypes.end(); it++) {
-                    auto newType = compatibleType(it->first, t, autoUpcast);
+                    auto newType = unifyTypes(it->first, t, autoUpcast);
                     if(newType != python::Type::UNKNOWN) {
                         // update map KEY to compatible type
                         auto mTypeNew = std::make_pair(newType, it->second + 1);

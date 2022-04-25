@@ -141,6 +141,11 @@ if __name__ == '__main__':
     use_hyper_specialization = not args.no_hyper
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv'
     s3_output_path = 's3://tuplex-leonhard/experiments/flights_hyper'
+    if use_hyper_specialization:
+        s3_output_path += '/hyper'
+    else:
+        s3_output_path += '/general'
+
     print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, s3_output_path))
 
     print('    hyperspecialization: {}'.format(use_hyper_specialization))

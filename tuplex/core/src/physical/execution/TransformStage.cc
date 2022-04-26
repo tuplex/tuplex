@@ -893,8 +893,8 @@ namespace tuplex {
             hasValidFunctor = false;
         if (!_updateInputExceptions && !_syms->functor)
             hasValidFunctor = false;
-        if(!hasValidFunctor && _syms->initStageFunctor && _syms->releaseStageFunctor) {
-            logger.error("invalid pointer address for JIT code returned");
+        if(!hasValidFunctor && _syms->_fastCodePath.initStageFunctor && _syms->_fastCodePath.releaseStageFunctor) {
+            logger.error("invalid pointer address for JIT code returned in fast path");
             throw std::runtime_error("invalid pointer address for JIT code returned");
         }
 

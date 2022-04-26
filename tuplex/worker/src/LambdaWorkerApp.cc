@@ -745,10 +745,6 @@ namespace tuplex {
 
                 tstage->setInitData();
 
-                // HACK!!! --> disable the init functors because they're somehow screwed up.
-                syms->initStageFunctor = nullptr;
-                syms->releaseStageFunctor = nullptr;
-
                 if(!syms)
                     return WORKER_ERROR_COMPILATION_FAILED;
                 return processTransformStage(tstage, syms, parts, outputURI);

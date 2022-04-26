@@ -660,3 +660,229 @@ TEST(BasicInvocation, SelfInvoke) {
 
     shutdownAWS();
 }
+
+tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, const std::string& test_output_path) {
+
+    using namespace tuplex;
+    using namespace std;
+
+    auto udf_code = "def fill_in_delays(row):\n"
+                    "    # want to fill in data for missing carrier_delay, weather delay etc.\n"
+                    "    # only need to do that prior to 2003/06\n"
+                    "    \n"
+                    "    year = row['YEAR']\n"
+                    "    month = row['MONTH']\n"
+                    "    arr_delay = row['ARR_DELAY']\n"
+                    "    \n"
+                    "    if year == 2003 and month < 6 or year < 2003:\n"
+                    "        # fill in delay breakdown using model and complex logic\n"
+                    "        if arr_delay is None:\n"
+                    "            # stays None, because flight arrived early\n"
+                    "            # if diverted though, need to add everything to div_arr_delay\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': None,\n"
+                    "                    'carrier_delay' : None,\n"
+                    "                    'weather_delay': None,\n"
+                    "                    'nas_delay' : None,\n"
+                    "                    'security_delay': None,\n"
+                    "                    'late_aircraft_delay' : None}\n"
+                    "        elif arr_delay < 0.:\n"
+                    "            # stays None, because flight arrived early\n"
+                    "            # if diverted though, need to add everything to div_arr_delay\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : None,\n"
+                    "                    'weather_delay': None,\n"
+                    "                    'nas_delay' : None,\n"
+                    "                    'security_delay': None,\n"
+                    "                    'late_aircraft_delay' : None}\n"
+                    "        elif arr_delay < 5.:\n"
+                    "            # it's an ontime flight, just attribute any delay to the carrier\n"
+                    "            carrier_delay = arr_delay\n"
+                    "            # set the rest to 0\n"
+                    "            # ....\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : carrier_delay,\n"
+                    "                    'weather_delay': None,\n"
+                    "                    'nas_delay' : None,\n"
+                    "                    'security_delay': None,\n"
+                    "                    'late_aircraft_delay' : None}\n"
+                    "        else:\n"
+                    "            # use model to determine everything and set into (join with weather data?)\n"
+                    "            # i.e., extract here a couple additional columns & use them for features etc.!\n"
+                    "            crs_dep_time = float(row['CRS_DEP_TIME'])\n"
+                    "            crs_arr_time = float(row['CRS_ARR_TIME'])\n"
+                    "            crs_elapsed_time = float(row['CRS_ELAPSED_TIME'])\n"
+                    "            carrier_delay = 1024 + 2.7 * crs_dep_time - 0.2 * crs_elapsed_time\n"
+                    "            weather_delay = 2000 + 0.09 * carrier_delay * (carrier_delay - 10.0)\n"
+                    "            nas_delay = 3600 * crs_dep_time / 10.0\n"
+                    "            security_delay = 7200 / crs_dep_time\n"
+                    "            late_aircraft_delay = (20 + crs_arr_time) / (1.0 + crs_dep_time)\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : carrier_delay,\n"
+                    "                    'weather_delay': weather_delay,\n"
+                    "                    'nas_delay' : nas_delay,\n"
+                    "                    'security_delay': security_delay,\n"
+                    "                    'late_aircraft_delay' : late_aircraft_delay}\n"
+                    "    else:\n"
+                    "        # just return it as is\n"
+                    "        return {'year' : year, 'month' : month,\n"
+                    "                'day' : row['DAY_OF_MONTH'],\n"
+                    "                'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                'distance' : row['DISTANCE'],\n"
+                    "                'dep_delay' : row['DEP_DELAY'],\n"
+                    "                'arr_delay': row['ARR_DELAY'],\n"
+                    "                'carrier_delay' : row['CARRIER_DELAY'],\n"
+                    "                'weather_delay':row['WEATHER_DELAY'],\n"
+                    "                'nas_delay' : row['NAS_DELAY'],\n"
+                    "                'security_delay': row['SECURITY_DELAY'],\n"
+                    "                'late_aircraft_delay' : row['LATE_AIRCRAFT_DELAY']}";
+
+
+        // create a simple TransformStage reading in a file & saving it. Then, execute via Worker!
+    // Note: This one is unoptimized, i.e. no projection pushdown, filter pushdown etc.
+    TransformStage *tstage = nullptr;
+    python::initInterpreter();
+    python::unlockGIL();
+    try {
+        ContextOptions co = ContextOptions::defaults();
+        auto enable_nvo = true; // test later with true! --> important for everything to work properly together!
+        co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
+        codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+        auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path, co,
+                                                                                   option<bool>(true),
+                                                                                   option<char>(','), option<char>('"'),
+                                                                                   {""}, {}, {}, {}));
+        auto mapop = std::make_shared<MapOperator>(csvop, UDF(udf_code), csvop->columns());
+        auto fop = std::make_shared<FileOutputOperator>(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
+        builder.addFileInput(csvop);
+        builder.addOperator(mapop);
+        builder.addFileOutput(fop);
+        tstage = builder.build();
+    } catch(...) {
+        std::cerr<<"Exception occurred! Failure"<<std::endl;
+        return nullptr;
+    }
+
+    python::lockGIL();
+    python::closeInterpreter();
+    return tstage;
+}
+
+TEST(BasicInvocation, FlightsHyper) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto worker_path = find_worker();
+
+    auto testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+    auto scratchDir = "/tmp/" + testName;
+
+    // change cwd & create dir to avoid conflicts!
+    auto cwd_path = boost::filesystem::current_path();
+    auto desired_cwd = cwd_path.string() + "/tests/" + testName;
+    // create dir if it doesn't exist
+    auto vfs = VirtualFileSystem::fromURI("file://");
+    vfs.create_dir(desired_cwd);
+    boost::filesystem::current_path(desired_cwd);
+
+    char buf[4096];
+    auto cur_dir = getcwd(buf, 4096);
+
+    EXPECT_NE(std::string(cur_dir).find(testName), std::string::npos);
+
+    cout<<"current working dir: "<<buf<<endl;
+
+    // check worker exists
+    ASSERT_TRUE(tuplex::fileExists(worker_path));
+
+    // for testing purposes, store here the root path to the flights data (simple ifdef)
+#ifdef __APPLE__
+    // leonhards macbook
+    string flights_root = "/Users/leonhards/Downloads/flights/";
+    //string flights_root = "/Users/leonhards/Downloads/flights_small/";
+
+    string driver_memory = "2G";
+#else
+    // BBSN00
+    string flights_root = "/hot/data/flights_all/";
+
+    string driver_memory = "32G";
+    string executor_memory = "10G";
+    string num_executors = "0";
+    //num_executors = "16";
+#endif
+
+    // --- use this for final PR ---
+    // For testing purposes: resources/hyperspecialization/2003/*.csv holds two mini samples where wrong sampling triggers too many exceptions in general case mode
+    string input_pattern = cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv," + cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
+    // --- end use this for final PR ---
+
+
+    auto test_path = input_pattern;
+    auto test_output_path = "./general_processing/";
+    int num_threads = 1;
+    auto spillURI = std::string("spill_folder");
+
+    auto tstage = create_flights_pipeline(test_path, test_output_path);
+
+
+    // transform to message
+    // create message only for first file!
+    auto input_uri = URI(cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv");
+    auto output_uri = URI(test_output_path + string("output.csv"));
+
+    auto file = tuplex::VirtualFileSystem::open_file(outputURI, mode);
+    ASSERT_TRUE(file);
+    file.reset();
+
+    vfs = VirtualFileSystem::fromURI(input_uri);
+    uint64_t input_file_size = 0;
+    vfs.file_size(test_path, input_file_size);
+    auto json_message = transformStageToReqMessage(tstage, input_uri.toPath(),
+                                                   input_file_size, output_uri.toString(),
+                                                   false,
+                                                   num_threads,
+                                                   spillURI);
+
+    // local WorkerApp
+    // start worker within same process to easier debug...
+    auto app = make_unique<WorkerApp>(WorkerSettings());
+    app->processJSONMessage(json_message);
+    app->shutdown();
+
+    cout<<"Test done."<<endl;
+}

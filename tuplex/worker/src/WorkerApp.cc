@@ -142,16 +142,16 @@ namespace tuplex {
 
     int64_t WorkerApp::initTransformStage(const TransformStage::InitData& initData,
                                           const std::shared_ptr<TransformStage::JITSymbols> &syms) {
-        std::cout<<"init trafo stage"<<std::endl;
-        if(!syms->initStageFunctor) {
+        std::cout<<"init trafo stage (only fast path)"<<std::endl;
+        if(!syms->_fastCodePath.initStageFunctor) {
             std::cout<<"skip init trafo stage, b.c. symbol not found"<<std::endl;
             return 0;
         }
 
         // initialize stage
         int64_t init_rc = 0;
-        std::cout<<"calling initStageFunctor with "<<initData.numArgs<<" arsg"<<std::endl;
-        if((init_rc = syms->initStageFunctor(initData.numArgs,
+        std::cout<<"calling initStageFunctor with "<<initData.numArgs<<" args"<<std::endl;
+        if((init_rc = syms->_fastCodePath.initStageFunctor(initData.numArgs,
                                              reinterpret_cast<void**>(initData.hash_maps),
                                              reinterpret_cast<void**>(initData.null_buckets))) != 0) {
             logger().error("initStage() failed for stage with code " + std::to_string(init_rc));
@@ -173,13 +173,14 @@ namespace tuplex {
     }
 
     int64_t WorkerApp::releaseTransformStage(const std::shared_ptr<TransformStage::JITSymbols>& syms) {
-        if(!syms->initStageFunctor || !syms->releaseStageFunctor) {
+        std::cout<<"release transform stage (only fast path)"<<std::endl;
+        if(!syms->_fastCodePath.initStageFunctor || !syms->_fastCodePath.releaseStageFunctor) {
             std::cout<<"skip release trafo stage, b.c. symbols not found"<<std::endl;
             return 0;
         }
 
         // call release func for stage globals
-        if(syms->releaseStageFunctor() != 0) {
+        if(syms->_fastCodePath.releaseStageFunctor() != 0) {
             logger().error("releaseStage() failed for stage ");
             return WORKER_ERROR_STAGE_CLEANUP;
         }

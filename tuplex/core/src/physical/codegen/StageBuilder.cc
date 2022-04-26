@@ -1475,7 +1475,8 @@ namespace tuplex {
 
             bool mem2mem = _inputMode == EndPointMode::MEMORY && _outputMode == EndPointMode::MEMORY;
 
-            JobMetrics& metrics = stage->PhysicalStage::plan()->getContext().metrics();
+            JobMetrics* metrics = stage->PhysicalStage::plan() ? &stage->PhysicalStage::plan()->getContext().metrics()
+                                                               : nullptr;
             Timer timer;
             if (_operators.empty() && mem2mem) {
                 stage->_pyCode = "";
@@ -1553,8 +1554,8 @@ namespace tuplex {
             stringToFile(URI("fastpath_transform_stage_" + std::to_string(_stageNumber) + ".txt"), stage->fastPathCode());
             stringToFile(URI("slowpath_transform_stage_" + std::to_string(_stageNumber) + ".txt"), stage->slowPathCode());
 #endif
-
-            metrics.setGenerateLLVMTime(timer.time());
+            if(metrics)
+                metrics->setGenerateLLVMTime(timer.time());
             return stage;
         }
 

@@ -340,12 +340,11 @@ namespace tuplex {
             codegen::read_block_exp_f functorWithExp;
             codegen::read_block_f writeFunctor; // memory2file
             codegen::resolve_f resolveFunctor; // always memory2memory
-            codegen::init_stage_f initStageFunctor;
-            codegen::release_stage_f releaseStageFunctor;
+
+            // @TODO: clean this up for different code-paths... buggy!
             codegen::agg_init_f aggInitFunctor;
             codegen::agg_combine_f aggCombineFunctor;
             codegen::agg_agg_f aggAggregateFunctor;
-
 
             JITSymbols() : functor(nullptr),
                            functorWithExp(nullptr),

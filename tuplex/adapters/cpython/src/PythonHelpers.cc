@@ -1461,6 +1461,7 @@ namespace python {
                         Logger::instance().defaultLogger().error("list with variable element type " + elementType.desc() + " and " + currElementType.desc() + " not supported.");
                         return python::Type::PYOBJECT;
                     }
+                    elementType = newElementType;
                 }
             }
             return python::Type::makeListType(elementType);

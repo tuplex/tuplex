@@ -866,7 +866,7 @@ TEST(BasicInvocation, FlightsHyper) {
     auto test_output_path = "./general_processing/";
     int num_threads = 1;
     auto spillURI = std::string("spill_folder");
-    bool use_hyper = true;
+    bool use_hyper = false;
     auto tstage = create_flights_pipeline(test_path, test_output_path, use_hyper);
 
 

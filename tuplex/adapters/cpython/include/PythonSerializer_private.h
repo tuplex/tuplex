@@ -25,7 +25,9 @@ namespace tuplex {
          * @param index of the element within the bitmap
          * @return Python object holding deserialized elements
          */
-        PyObject *createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, const uint8_t *bitmap = nullptr, int index = 0);
+        PyObject *
+        createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, int64_t capacity,
+                                 const uint8_t *bitmap = nullptr, int index = 0);
 
         /*!
          * Creates Python tuple object from raw memory (deserialize)
@@ -33,11 +35,11 @@ namespace tuplex {
          * @param row_type holding information on types of input memory
          * @return Python object holding deserialized elements
          */
-        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type);
+        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type, int64_t capacity);
 
         PyObject *createPyDictFromMemory(const uint8_t *ptr);
 
-        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type);
+        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type, int64_t capacity);
 
         /*!
          * Checks if capacity for buffer with schema is valid (if it is possible for buffer to hold such data given schema)

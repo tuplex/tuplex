@@ -1470,7 +1470,7 @@ namespace tuplex {
         auto rootURI = _settings.spillRootURI.toString().empty() ? "" : _settings.spillRootURI.toString() + "/";
         auto path = URI(rootURI + name + ext);
 
-        logger().info("Spilling " + env->exceptionBuf.size() + " to " + path.toString());
+        logger().info("Spilling " + std::to_string(env->exceptionBuf.size()) + " to " + path.toString());
 
         // open & write
         auto vfs = VirtualFileSystem::fromURI(path);

@@ -458,8 +458,17 @@ namespace tuplex {
             return WORKER_ERROR_PIPELINE_FAILED;
         }
 
-        // print out info
+        // @TODO: write exceptions in order...
 
+        // for now, everything out of order
+        logger().info("Starting exception resolution/slow path execution");
+        Timer resolveTimer;
+        for(unsigned i = 0; i < _numThreads; ++i) {
+            resolveOutOfOrder(i, tstage, syms);
+        }
+        logger().info("Exception resolution/slow path done. Took " + std::to_string(resolveTimer.time()) + "s");
+
+        // print out info
         size_t numNormalRows = 0;
         size_t numExceptionRows = 0;
         size_t numHashRows = 0;
@@ -479,21 +488,10 @@ namespace tuplex {
                     numNormalRows += info.num_rows;
             }
         }
-
         if(tstage->outputMode() == EndPointMode::HASHTABLE) {
             numHashRows = numNormalRows;
             numNormalRows = 0;
         }
-
-        // @TODO: write exceptions in order...
-
-        // for now, everything out of order
-        logger().info("Starting exception resolution/slow path execution");
-        Timer resolveTimer;
-        for(unsigned i = 0; i < _numThreads; ++i) {
-            resolveOutOfOrder(i, tstage, syms);
-        }
-        logger().info("Exception resolution/slow path done. Took " + std::to_string(resolveTimer.time()) + "s");
 
         auto task_duration = timer.time();
         std::stringstream ss;

@@ -240,6 +240,19 @@ namespace tuplex {
             return processTransformStageInPythonMode(tstage, parts, outputURI);
         }
 
+        // using hyper-specialization?
+        if(useHyperSpecialization(req)) {
+            logger().info("*** hyperspecialization active ***");
+            Timer timer;
+            // use first input file
+            std::string uri = req.inputuris(0);
+            size_t file_size = req.inputsizes(0);
+            logger().info("-- specializing to " + uri);
+            hyperspecialize(tstage, uri, file_size);
+            logger().info("-- HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()));
+        }
+
+
         // if not, compile given code & process using both compile code & fallback
         auto syms = compileTransformStage(*tstage);
         if(!syms)

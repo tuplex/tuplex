@@ -661,7 +661,7 @@ TEST(BasicInvocation, SelfInvoke) {
     shutdownAWS();
 }
 
-tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, const std::string& test_output_path) {
+tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, const std::string& test_output_path, bool build_for_hyper) {
 
     using namespace tuplex;
     using namespace std;
@@ -791,7 +791,10 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
         builder.addFileInput(csvop);
         builder.addOperator(mapop);
         builder.addFileOutput(fop);
-        tstage = builder.build();
+        if(!build_for_hyper)
+            tstage = builder.build();
+        else
+            tstage = builder.encodeForSpecialization(nullptr, nullptr, true, false, true);
     } catch(...) {
         std::cerr<<"Exception occurred! Failure"<<std::endl;
         return nullptr;
@@ -856,16 +859,17 @@ TEST(BasicInvocation, FlightsHyper) {
     auto test_output_path = "./general_processing/";
     int num_threads = 1;
     auto spillURI = std::string("spill_folder");
-
-    auto tstage = create_flights_pipeline(test_path, test_output_path);
+    bool use_hyper = false;
+    auto tstage = create_flights_pipeline(test_path, test_output_path, use_hyper);
 
 
     // transform to message
     // create message only for first file!
     auto input_uri = URI(cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv");
-    auto output_uri = URI(test_output_path + string("output.csv"));
+    input_uri = URI(flights_root + "flights_on_time_performance_2003_01.csv");
+    auto output_uri = URI(test_output_path + (use_hyper ? string("output_hyper.csv") : string("output_general.csv")));
 
-    auto file = tuplex::VirtualFileSystem::open_file(outputURI, mode);
+    auto file = tuplex::VirtualFileSystem::open_file(output_uri, VirtualFileMode::VFS_OVERWRITE);
     ASSERT_TRUE(file);
     file.reset();
 
@@ -883,6 +887,16 @@ TEST(BasicInvocation, FlightsHyper) {
     auto app = make_unique<WorkerApp>(WorkerSettings());
     app->processJSONMessage(json_message);
     app->shutdown();
+
+    // check size of ref file
+    uint64_t output_file_size = 0;
+    vfs.file_size("file://./general_processing/output_hyper.csv.csv", output_file_size);
+    cout<<"Output size of hyper file is: "<<output_file_size<<endl;
+    vfs.file_size("file://./general_processing/output_general.csv.csv", output_file_size);
+    cout<<"Output size of general file is: "<<output_file_size<<endl;
+
+    // Output size of file is: 46046908 (general, no hyper)
+    // 46046908
 
     cout<<"Test done."<<endl;
 }

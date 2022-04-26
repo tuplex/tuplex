@@ -368,6 +368,49 @@ namespace tuplex {
 
         return v;
     }
+
+
+    inline std::string quoteForCSV(const std::string& str, char separator, char quotechar) {
+        auto size = str.size();
+
+        if(str.empty())
+            return "";
+
+        // check if there are chars in it that need to be quoted
+        size_t num_quotes = 0;
+        bool need_to_quote = false;
+
+        auto len = size - 1;
+        for(unsigned i = 0; i < len; ++i) {
+            if(str[i] == quotechar)
+                num_quotes++;
+            if(str[i] == separator || str[i] == '\n' || str[i] == '\r')
+                need_to_quote = true;
+        }
+
+        if(num_quotes > 0 || need_to_quote) {
+            auto resSize = len + 1 + 2 + num_quotes;
+            // alloc new string
+            std::string res('\0', resSize);
+            size_t pos = 0;
+
+            res[pos] = quotechar; ++pos;
+            for(unsigned i = 0; i < len; ++i) {
+                if(str[i] == quotechar) {
+                    res[pos] = quotechar; ++pos;
+                    res[pos] = quotechar; ++pos;
+                } else {
+                    res[pos] = str[i]; ++pos;
+                }
+            }
+            res[pos] = quotechar; ++pos;
+            res[pos] = '\0';
+
+            return res;
+        } else {
+           return str;
+        }
+    }
 }
 
 

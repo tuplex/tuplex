@@ -328,6 +328,10 @@ namespace tuplex {
         // slow path callbacks
         static int64_t slowPathRowCallback(ThreadEnv *env, uint8_t* buf, int64_t bufSize);
         static void slowPathExceptCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input, int64_t dataLength);
+
+        inline bool useHyperSpecialization(const tuplex::messages::InvocationRequest& req) {
+            return req.stage().has_serializedstage() && !req.stage().serializedstage().empty() && req.inputuris_size() > 0;
+        }
     };
 
 

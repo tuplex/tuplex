@@ -398,7 +398,7 @@ namespace tuplex {
                 IRBuilder<> b(_nullErrorBlock);
 
 #ifndef NDEBUG
-                _env->debugPrint(b, "emitting NULLERROR (CellSourceTaskBuilder)");
+                // _env->debugPrint(b, "emitting NULLERROR (CellSourceTaskBuilder)");
 #endif
                 // b.CreateRet(env().i64Const(ecToI64(ExceptionCode::NULLERROR))); // internal error! => use this to force compiled processing?
 

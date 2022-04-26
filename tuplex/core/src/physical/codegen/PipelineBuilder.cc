@@ -1417,14 +1417,27 @@ namespace tuplex {
 
                 // short circuit constant valued opt
                 if(t.isConstantValued()) {
+
+                    t = simplifyConstantType(t); // could be NULL or so, therefore check again...
+
                     // TODO: float format, for now ignore
-                    if(t.underlying() == python::Type::F64)
+                    if(t.isConstantValued() && t.underlying() == python::Type::F64)
                         Logger::instance().defaultLogger().debug("should do something with float format here.");
 
-                    // simply use the constant itself!
-                    t = t.underlying();
+                   if(t.isConstantValued() && python::Type::STRING == t.underlying()) {
+                       // dequoted constant value!
+                       space_needed += quoteForCSV(str_value_from_python_raw_value(t.constant()), delimiter, quotechar).length();
+                       continue;
+                   }
 
-                    // @TODO can optimize
+                   if(t.isConstantValued() && python::Type::I64 == t.underlying()) {
+                       space_needed += t.constant().size();
+                       continue;
+                   }
+
+                   // else, use underlying!
+                    if(t.isConstantValued())
+                        t = t.underlying();
                 }
 
                 if(t.isOptionType())
@@ -1470,6 +1483,39 @@ namespace tuplex {
                 auto size = row.getSize(i);
                 auto is_null = row.getIsNull(i);
                 auto t = types[i];
+
+                // directly use constants!
+                //@TODO: can optimize constants next to each other!
+                if(t.isConstantValued()) {
+                    t = simplifyConstantType(t);
+
+                    // check again, b.c. constants are replaced...
+
+                    if(t.isConstantValued() && python::Type::STRING == t.underlying()) {
+                        auto const_val = quoteForCSV(str_value_from_python_raw_value(t.constant()), delimiter, quotechar);
+                        val = env.strConst(builder, const_val);
+                        auto length = env.i64Const(const_val.size() - 1);
+                        builder.CreateMemCpy(buf_ptr, 0, val, 0, length);
+                        buf_ptr = builder.CreateGEP(buf_ptr, length);
+                        continue;
+                    }
+
+                    if(t.isConstantValued() && (python::Type::I64 == t.underlying() ||
+                    python::Type::BOOLEAN == t.underlying() ||
+                    python::Type::F64 == t.underlying())) {
+                        auto const_val = t.constant();
+                        val = env.strConst(builder, const_val);
+                        auto length = env.i64Const(const_val.size() - 1);
+                        builder.CreateMemCpy(buf_ptr, 0, val, 0, length);
+                        buf_ptr = builder.CreateGEP(buf_ptr, length);
+                        continue;
+                    }
+
+                    // else, use underlying type!
+                    if(t.isConstantValued())
+                        t = t.underlying();
+                }
+
 
                 // option?
                 BasicBlock* bbNext = nullptr;

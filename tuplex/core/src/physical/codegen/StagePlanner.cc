@@ -610,6 +610,8 @@ namespace tuplex {
             auto last_rowtype = opt_input_rowtype;
             checkRowType(last_rowtype);
 
+            bool pipeline_breaker_present = false;
+
             // go through ops & specialize (leave jop as is)
             vector<std::shared_ptr<LogicalOperator>> opt_ops;
             std::shared_ptr<LogicalOperator> lastNode = nullptr;
@@ -671,6 +673,7 @@ namespace tuplex {
                     }
 
                     case LogicalOperatorType::JOIN: {
+                        pipeline_breaker_present = true;
                         auto jop = std::dynamic_pointer_cast<JoinOperator>(node);
                         assert(lastNode);
 
@@ -737,6 +740,7 @@ namespace tuplex {
                         break;
                     }
                     case LogicalOperatorType::CACHE: {
+                        pipeline_breaker_present = true;
                         // two options here: Either cache is used as last node or as source!
                         // source?
                         auto cop = std::dynamic_pointer_cast<CacheOperator>(node);
@@ -791,7 +795,7 @@ namespace tuplex {
 
 
             // important to have cost available
-            if(!opt_ops.empty())
+            if(!opt_ops.empty() && pipeline_breaker_present)
                 assert(opt_ops.back()->cost() > 0);
 
             return opt_ops;

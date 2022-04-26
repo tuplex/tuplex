@@ -9,7 +9,6 @@
 # find include (is e.g. in /usr/local/include/antlr4-runtime/antlr4-runtime.h
 find_path(ANTLR4Runtime_INCLUDE_DIR NAMES "antlr4-runtime.h" PATH_SUFFIXES "antlr4-runtime")
 
-
 # find lib
 find_library(ANTLR4Runtime_LIB antlr4-runtime)
 

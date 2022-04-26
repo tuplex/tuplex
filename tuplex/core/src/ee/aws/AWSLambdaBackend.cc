@@ -853,6 +853,7 @@ namespace tuplex {
         ws->set_normalbuffersize(buf_spill_size);
         ws->set_exceptionbuffersize(buf_spill_size);
         ws->set_spillrooturi(spillURI);
+        throw std::runtime_error("ERROR: need unique spill URIS");
         ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
         req.set_allocated_settings(ws.release());
 
@@ -914,7 +915,7 @@ namespace tuplex {
             ws->set_numthreads(numThreads);
             ws->set_normalbuffersize(buf_spill_size);
             ws->set_exceptionbuffersize(buf_spill_size);
-            ws->set_spillrooturi(spillURI);
+            ws->set_spillrooturi(spillURI + "/lam" + fixedPoint(i, num_digits) + "/");
             ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
             req.set_allocated_settings(ws.release());
 

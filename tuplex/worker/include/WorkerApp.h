@@ -286,7 +286,9 @@ namespace tuplex {
          */
         int64_t resolveOutOfOrder(int threadNo, const TransformStage* stage, const std::shared_ptr<TransformStage::JITSymbols>& syms);
 
-        int64_t resolveBuffer(int threadNo, Buffer& buf, size_t numRows, const TransformStage* stage, const std::shared_ptr<TransformStage::JITSymbols>& syms);
+        int64_t resolveBuffer(int threadNo, Buffer& buf, size_t numRows,
+                              const TransformStage* stage,
+                              const std::shared_ptr<TransformStage::JITSymbols>& syms);
 
         /*!
          * thread-safe logger function

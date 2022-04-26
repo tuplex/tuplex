@@ -489,11 +489,11 @@ namespace tuplex {
 
         // for now, everything out of order
         logger().info("Starting exception resolution/slow path execution");
+        Timer resolveTimer;
         for(unsigned i = 0; i < _numThreads; ++i) {
             resolveOutOfOrder(i, tstage, syms);
         }
-        logger().info("Exception resolution/slow path done.");
-
+        logger().info("Exception resolution/slow path done. Took " + std::to_string(resolveTimer.time()) + "s");
 
         auto task_duration = timer.time();
         std::stringstream ss;
@@ -535,15 +535,16 @@ namespace tuplex {
         for(unsigned i = 0; i < _numThreads; ++i) {
             auto& env = _threadEnvs[i];
 
-            if (env.exceptionBuf.size() > 0) {
-                spillExceptionBuffer(i);
-            }
+            // save only when incremental is active...
+            //            if (env.exceptionBuf.size() > 0) {
+            //                spillExceptionBuffer(i);
+            //            }
 
             // first come all the spill parts, then the remaining buffer...
             // add write info...
             // !!! stable sort necessary after this !!!
             WriteInfo info;
-            for(auto spill_info : env.spillFiles) {
+            for(const auto& spill_info : env.spillFiles) {
                 if(!spill_info.isExceptionBuf) {
                     info.partNo = info.partNo;
                     info.use_buf = false;

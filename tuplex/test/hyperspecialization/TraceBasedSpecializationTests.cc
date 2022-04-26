@@ -412,6 +412,8 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     //string flights_root = "/Users/leonhards/Downloads/flights_small/";
 
     string driver_memory = "2G";
+    string executor_memory = "2G";
+    string num_executors = "0";
 #else
     // BBSN00
     string flights_root = "/hot/data/flights_all/";
@@ -424,7 +426,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 
     // global config here:
     bool use_lambda = false;
-    bool run_hyperspecialized_version = true;
+    bool run_hyperspecialized_version = false;
     string s3_flights_root = "s3://tuplex-public/data/flights_all/";
     if(use_lambda)
         flights_root = s3_flights_root;

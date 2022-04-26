@@ -77,7 +77,7 @@ TEST_F(S3Tests, MimickError) {
     auto internal_buf_size = S3File::INTERNAL_BUFFER_SIZE();
 
     // write S3 file that's larger than internal size
-    auto test_buf_size = 1.2 * internal_buf_size;
+    size_t test_buf_size = 1.2 * internal_buf_size;
     auto test_buf = new uint8_t[test_buf_size];
     memset(test_buf, 42, test_buf_size);
 
@@ -109,7 +109,7 @@ TEST_F(S3Tests, FileUploadMultiparts) {
     auto internal_buf_size = S3File::INTERNAL_BUFFER_SIZE();
 
     // write S3 file that's larger than internal size
-    auto test_buf_size = 2 * internal_buf_size;
+    size_t test_buf_size = 2 * internal_buf_size;
     auto test_buf = new uint8_t[test_buf_size];
     memset(test_buf, 42, test_buf_size);
 

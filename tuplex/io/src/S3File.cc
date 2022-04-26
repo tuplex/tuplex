@@ -239,6 +239,33 @@ namespace tuplex {
         }
     }
 
+    void S3File::uploadAndResetBufferIfFull() {
+        MessageHandler& logger = Logger::instance().logger("s3fs");
+
+        // only if larger than limit!
+        if(_bufferLength < 5 * 1024 * 1024)
+            return; // do not upload, part too small. Minimum part size is 5MB. Last part that is allowed to be smaller will be uploaded upon close.
+
+        // need to do multipart upload!
+        size_t part_size = _bufferLength;
+
+        // check if multipart was already initiated
+        if(0 == _partNumber) {
+            // init multipart upload and upload first part
+            // there's a lower limit on the part (except the last one)
+            // i.e., need to have at least 5MB in the buffer before initiating a multipart upload!
+            initMultiPartUpload();
+
+            // check if limit of 10,000 was reached. If so, abort!
+            uploadPart();
+            logger.info("initiated multiupload, first part with size=" + std::to_string(part_size) + " uploaded.");
+        } else {
+            // append another multipart upload part
+            uploadPart();
+            logger.info("uploaded another part with size=" + std::to_string(part_size) + ".");
+        }
+    }
+
     VirtualFileSystemStatus S3File::write(const void *buffer, uint64_t bufferSize) {
 
         MessageHandler& logger = Logger::instance().logger("s3fs");
@@ -258,17 +285,30 @@ namespace tuplex {
         // ==> invoke write in chunks (max-chunk size = internal buffer size!)
         if(bufferSize > _bufferSize) {
             // call recursive loop!
-            int64_t remaining_bytes = bufferSize;
+            size_t remaining_bytes = bufferSize;
             size_t pos = 0;
             uint8_t* buf = (uint8_t *) buffer;
-            while (remaining_bytes > _bufferSize) {
-                auto rc = write(buf + pos, _bufferSize);
-                if(rc != VirtualFileSystemStatus::VFS_OK)
+            // std::cout<<"internal buffer size: "<<INTERNAL_BUFFER_SIZE()<<std::endl;
+            // std::cout<<"Got "<<remaining_bytes<<" bytes to write"<<std::endl;
+            while (remaining_bytes > 0) {
+                // std::cout<<"Still "<<remaining_bytes<<" bytes left to write"<<std::endl;
+                // buffer full? upload part!
+                uploadAndResetBufferIfFull();
+                assert(_bufferLength <= _bufferSize);
+                size_t bytes_to_write = std::min(remaining_bytes, _bufferSize - _bufferLength); // how much capacity is still available?
+                assert(bytes_to_write > 0);
+                auto rc = write(buf + pos, bytes_to_write);
+                if(rc != VirtualFileSystemStatus::VFS_OK) {
+                    // std::cerr<<"Got bad code"<<std::endl;
                     return rc;
-                pos += _bufferSize;
-                remaining_bytes -= _bufferSize;
+                }
+
+                pos += bytes_to_write;
+                remaining_bytes -= bytes_to_write;
             }
 
+            // std::cout<<"Still "<<remaining_bytes<<" bytes left to write"<<std::endl;
+            uploadAndResetBufferIfFull();
             // write the rest
             return write(buf + pos, remaining_bytes);
         }
@@ -290,30 +330,11 @@ namespace tuplex {
                 _bufferPosition += bufferSize;
                 _bufferLength += bufferSize;
             } else {
-                // need to do multipart upload!
-                size_t part_size = _bufferLength;
+                uploadAndResetBufferIfFull();
 
-                // check if multipart was already initiated
-                if(0 == _partNumber) {
-                    // init multipart upload and upload first part
-                    // there's a lower limit on the part (except the last one)
-                    // i.e., need to have at least 5MB in the buffer before initiating a multipart upload!
-                    initMultiPartUpload();
-
-                    // check if limit of 10,000 was reached. If so, abort!
-                    uploadPart();
-                    logger.info("initiated multiupload, first part with size=" + std::to_string(part_size) + " uploaded.");
-                } else {
-                    // append another multipart upload part
-                    uploadPart();
-                    logger.info("uploaded another part with size=" + std::to_string(part_size) + ".");
-                }
-
-                // invoke write again for the buffer after part has been uploaded.
+                // invoke write again for the buffer after flushing the current buffer, i.e. it has been uploaded.
                 return write(buffer, bufferSize);
             }
-
-            return VirtualFileSystemStatus::VFS_NOTYETIMPLEMENTED;
         }
 
         return VirtualFileSystemStatus::VFS_OK;

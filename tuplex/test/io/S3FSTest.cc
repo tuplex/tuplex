@@ -68,6 +68,38 @@ TEST_F(S3Tests, FileUploadLargerThanInternal) {
     EXPECT_EQ(file_size, test_buf_size);
 }
 
+TEST_F(S3Tests, MimickError) {
+    // tests S3 writing capabilities
+    using namespace tuplex;
+
+    EXPECT_GE(S3File::INTERNAL_BUFFER_SIZE(), 0);
+
+    auto internal_buf_size = S3File::INTERNAL_BUFFER_SIZE();
+
+    // write S3 file that's larger than internal size
+    auto test_buf_size = 1.2 * internal_buf_size;
+    auto test_buf = new uint8_t[test_buf_size];
+    memset(test_buf, 42, test_buf_size);
+
+    auto s3_test_path = s3TestBase + "/" + testName + "/mimick.bin";
+
+    auto vfs = VirtualFileSystem::fromURI(URI("s3://"));
+
+    // write parts...
+    auto file = vfs.open_file(s3_test_path, VirtualFileMode::VFS_OVERWRITE);
+    ASSERT_TRUE(file);
+    int64_t test_num = 20;
+    file->write(&test_num, 8);
+    file->write(&test_num, 8);
+    file->write(test_buf, test_buf_size);
+    file->close();
+
+    // check file was written correctly
+    uint64_t file_size;
+    vfs.file_size(s3_test_path, file_size);
+    EXPECT_EQ(file_size, test_buf_size + 2 * 8);
+}
+
 TEST_F(S3Tests, FileUploadMultiparts) {
     // tests S3 writing capabilities
     using namespace tuplex;

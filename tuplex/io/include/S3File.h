@@ -147,6 +147,11 @@ namespace tuplex {
         void lazyUpload();
         bool _fileUploaded;
 
+        /*!
+         * uploads current buffer to S3 (as multipart upload) if full.
+         */
+        void uploadAndResetBufferIfFull();
+
         uint16_t _partNumber; // current part number (1 to 10,000 incl). If 0, no multipart upload
         Aws::String _uploadID; // multipart upload ID
         std::vector<Aws::S3::Model::CompletedPart> _parts;

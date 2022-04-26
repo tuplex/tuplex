@@ -1463,12 +1463,14 @@ namespace tuplex {
             env->exceptionOriginalPartNo = 0;
             return;
         }
-        
+
         // create file name (trivial:)
         auto name = "spill_except_" + std::to_string(threadNo) + "_" + std::to_string(env->spillFiles.size());
         std::string ext = ".tmp";
         auto rootURI = _settings.spillRootURI.toString().empty() ? "" : _settings.spillRootURI.toString() + "/";
         auto path = URI(rootURI + name + ext);
+
+        logger().info("Spilling " + env->exceptionBuf.size() + " to " + path.toString());
 
         // open & write
         auto vfs = VirtualFileSystem::fromURI(path);
@@ -1491,7 +1493,7 @@ namespace tuplex {
             info.originalPartNo = env->exceptionOriginalPartNo;
             info.file_size =  env->exceptionBuf.size() + 2 * sizeof(int64_t);
             env->spillFiles.push_back(info);
-
+            vf->close();
             logger().info("Spilled " + sizeToMemString(info.file_size) + " to " + path.toString());
         }
 

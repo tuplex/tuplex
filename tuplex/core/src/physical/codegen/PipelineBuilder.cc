@@ -1493,8 +1493,13 @@ namespace tuplex {
 
                     if(t.isConstantValued() && python::Type::STRING == t.underlying()) {
                         auto const_val = quoteForCSV(str_value_from_python_raw_value(t.constant()), delimiter, quotechar);
+
+                        // add the delimiter here as well
+                        if(i != num_columns - 1)
+                            const_val += char2str(delimiter);
+
                         val = env.strConst(builder, const_val);
-                        auto length = env.i64Const(const_val.size() - 1);
+                        auto length = env.i64Const(const_val.size());
                         builder.CreateMemCpy(buf_ptr, 0, val, 0, length);
                         buf_ptr = builder.CreateGEP(buf_ptr, length);
                         continue;
@@ -1504,8 +1509,13 @@ namespace tuplex {
                     python::Type::BOOLEAN == t.underlying() ||
                     python::Type::F64 == t.underlying())) {
                         auto const_val = t.constant();
+
+                        // add the delimiter here as well
+                        if(i != num_columns - 1)
+                            const_val += char2str(delimiter);
+
                         val = env.strConst(builder, const_val);
-                        auto length = env.i64Const(const_val.size() - 1);
+                        auto length = env.i64Const(const_val.size());
                         builder.CreateMemCpy(buf_ptr, 0, val, 0, length);
                         buf_ptr = builder.CreateGEP(buf_ptr, length);
                         continue;

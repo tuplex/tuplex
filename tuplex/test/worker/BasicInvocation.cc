@@ -854,12 +854,15 @@ TEST(BasicInvocation, FlightsHyper) {
     string input_pattern = cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv," + cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
     // --- end use this for final PR ---
 
+    // !!! use compatible files for inference when issuing queries, else there'll be errors.
+    input_pattern = flights_root + "flights_on_time_performance_2003_01.csv," + flights_root + "flights_on_time_performance_2003_12.csv";
+
 
     auto test_path = input_pattern;
     auto test_output_path = "./general_processing/";
     int num_threads = 1;
     auto spillURI = std::string("spill_folder");
-    bool use_hyper = false;
+    bool use_hyper = true;
     auto tstage = create_flights_pipeline(test_path, test_output_path, use_hyper);
 
 

@@ -87,6 +87,10 @@ namespace tuplex {
 
         size_t buf_spill_size = 512 * 1024; // for testing, set spill size to 512KB!
 
+        // use higher buf, to avoid spilling
+        buf_spill_size = 128 * 1024 * 1024; // 128MB
+
+
         req.set_type(messages::MessageType::MT_TRANSFORM);
 
         auto pb_stage = tstage->to_protobuf();

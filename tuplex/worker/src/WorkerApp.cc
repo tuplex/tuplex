@@ -1684,7 +1684,7 @@ namespace tuplex {
 
         // same story with exception spill files. Load them first to the temp buffer, and then resolve...
         for(auto info : exceptFiles) {
-
+            throw std::runtime_error("need to implement this: " + std::string(__FILE__) + ":" + std::to_string(__LINE__));
         }
 
         return WORKER_OK;

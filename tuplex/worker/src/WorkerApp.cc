@@ -1455,6 +1455,15 @@ namespace tuplex {
 
         auto env = &_threadEnvs[threadNo];
 
+        // no exceptions or empty buf? skip.
+        if(0 == env->numExceptionRows || 0 == env->exceptionBuf.size()) {
+            // reset
+            env->exceptionBuf.reset();
+            env->numExceptionRows = 0;
+            env->exceptionOriginalPartNo = 0;
+            return;
+        }
+        
         // create file name (trivial:)
         auto name = "spill_except_" + std::to_string(threadNo) + "_" + std::to_string(env->spillFiles.size());
         std::string ext = ".tmp";

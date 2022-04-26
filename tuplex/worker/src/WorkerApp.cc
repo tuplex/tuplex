@@ -530,8 +530,14 @@ namespace tuplex {
         std::vector<WriteInfo> reorganized_normal_parts;
         // @TODO: same for exceptions... => need to correct numbers??
         //  @Ben Givertz will know how to do this...
+        std::vector<SpillInfo> exceptionFiles;
+
         for(unsigned i = 0; i < _numThreads; ++i) {
             auto& env = _threadEnvs[i];
+
+            if (env.exceptionBuf.size() > 0) {
+                spillExceptionBuffer(i);
+            }
 
             // first come all the spill parts, then the remaining buffer...
             // add write info...
@@ -548,6 +554,7 @@ namespace tuplex {
                 } else {
                     // @TODO...
                     // --> these should be saved somewhere separate?
+                    exceptionFiles.push_back(spill_info);
                 }
             }
 

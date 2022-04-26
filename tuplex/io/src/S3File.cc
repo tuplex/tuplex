@@ -258,7 +258,7 @@ namespace tuplex {
         // ==> invoke write in chunks (max-chunk size = internal buffer size!)
         if(bufferSize > _bufferSize) {
             // call recursive loop!
-            size_t remaining_bytes = bufferSize;
+            int64_t remaining_bytes = bufferSize;
             size_t pos = 0;
             uint8_t* buf = (uint8_t *) buffer;
             while (remaining_bytes > _bufferSize) {
@@ -291,6 +291,7 @@ namespace tuplex {
                 _bufferLength += bufferSize;
             } else {
                 // need to do multipart upload!
+                size_t part_size = _bufferLength;
 
                 // check if multipart was already initiated
                 if(0 == _partNumber) {
@@ -301,9 +302,11 @@ namespace tuplex {
 
                     // check if limit of 10,000 was reached. If so, abort!
                     uploadPart();
+                    logger.info("initiated multiupload, first part with size=" + std::to_string(part_size) + " uploaded.");
                 } else {
                     // append another multipart upload part
                     uploadPart();
+                    logger.info("uploaded another part with size=" + std::to_string(part_size) + ".");
                 }
 
                 // invoke write again for the buffer after part has been uploaded.

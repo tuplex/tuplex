@@ -429,7 +429,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
 
     // global config here:
     bool use_lambda = false;
-    bool run_hyperspecialized_version = false;
+    bool run_hyperspecialized_version = true;
     string s3_flights_root = "s3://tuplex-public/data/flights_all/";
     if(use_lambda)
         flights_root = s3_flights_root;

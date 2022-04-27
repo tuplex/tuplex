@@ -424,6 +424,9 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     //num_executors = "16";
 #endif
 
+    // avoid file splitting
+    string input_split_size = "400MB";
+
     // global config here:
     bool use_lambda = false;
     bool run_hyperspecialized_version = false;
@@ -605,6 +608,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
         opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
         opt.set("tuplex.resolveWithInterpreterOnly", "false"); // -> this doesn't work with hyper-specialization yet.
         opt.set("tuplex.driverMemory", driver_memory);
+        opt.set("tuplex.inputSplitSize", input_split_size);
         // hyperspecialization setting
         if(use_lambda) {
             opt.set("tuplex.backend", "lambda");
@@ -658,6 +662,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     opt_general.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
     opt_general.set("tuplex.resolveWithInterpreterOnly", "false"); // -> this doesn't work with hyper-specialization yet.
     opt_general.set("tuplex.driverMemory", driver_memory);
+    opt_general.set("tuplex.inputSplitSize", input_split_size);
     if(use_lambda) {
         opt_general.set("tuplex.backend", "lambda");
         opt_general.set("tuplex.aws.lambdaMemory", std::to_string(lambdaSize));

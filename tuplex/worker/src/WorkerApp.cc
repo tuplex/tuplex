@@ -249,7 +249,7 @@ namespace tuplex {
             size_t file_size = req.inputsizes(0);
             logger().info("-- specializing to " + uri);
             hyperspecialize(tstage, uri, file_size);
-            logger().info("-- hyperspecialization took " + std::to_string(timer.time()));
+            logger().info("-- hyperspecialization took " + std::to_string(timer.time()) + "s");
         }
 
 
@@ -337,7 +337,7 @@ namespace tuplex {
         auto numCodes = std::max(1ul, _numThreads);
         auto processCodes = new int[numCodes];
         memset(processCodes, WORKER_OK, sizeof(int) * numCodes);
-
+        Timer fastPathTimer;
         // process data (single-threaded or via thread pool!)
         if(_numThreads <= 1) {
             std::cout<<"setting runtime memory"<<std::endl;
@@ -457,6 +457,7 @@ namespace tuplex {
         if(failed) {
             return WORKER_ERROR_PIPELINE_FAILED;
         }
+        logger().info("fast path took: " + std::to_string(fastPathTimer.time()) + "s");
 
         // @TODO: write exceptions in order...
 

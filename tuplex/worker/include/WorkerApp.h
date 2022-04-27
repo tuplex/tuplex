@@ -178,7 +178,7 @@ namespace tuplex {
 
         std::vector<FilePart> partsFromMessage(const tuplex::messages::InvocationRequest& req, bool silent=false);
 
-        std::shared_ptr<TransformStage::JITSymbols> compileTransformStage(TransformStage& stage);
+        std::shared_ptr<TransformStage::JITSymbols> compileTransformStage(TransformStage& stage, bool use_llvm_optimizer=false);
 
         // inherited variables
         WorkerSettings _settings;

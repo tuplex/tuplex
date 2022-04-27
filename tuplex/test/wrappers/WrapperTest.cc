@@ -75,7 +75,7 @@ TEST_F(WrapperTest, BasicMergeInOrder) {
     }
 
     {
-        auto list = boost::python::list(boost::python::handle<>(listObj));
+        auto list = py::reinterpret_borrow<py::list>(listObj);
         auto res = c.parallelize(list).map("lambda x: 1 // x if x == 0 else x", "").resolve(ecToI64(ExceptionCode::ZERODIVISIONERROR), "lambda x: -1", "").collect();
         auto resObj = res.ptr();
 

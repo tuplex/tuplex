@@ -44,7 +44,7 @@ namespace tuplex {
              size_t slow_path_input_row_count = 0;
              size_t slow_path_output_row_count = 0;
 
-             double write_output_wall_time_s = 0.0;
+             double write_output_time_s = 0.0;
 
             // disk spilling metrics
             int partitions_swapin_count = 0;
@@ -164,21 +164,38 @@ namespace tuplex {
             it->slow_path_per_row_time_ns = slow_path_per_row_time_ns;
         }
 
+        /*!
+         * set fast path row count info
+         * @param stageNo
+         * @param inputRows
+         * @param outputRows
+         */
         void setFastPathRowCount(int stageNo, size_t inputRows, size_t outputRows) {
             auto it = get_or_create_stage_metrics(stageNo);
             it->fast_path_input_row_count = inputRows;
             it->fast_path_output_row_count = outputRows;
         }
 
+        /*!
+         * set slow path row count info
+         * @param stageNo
+         * @param inputRows
+         * @param outputRows
+         */
         void setSlowPathRowCount(int stageNo, size_t inputRows, size_t outputRows) {
             auto it = get_or_create_stage_metrics(stageNo);
             it->slow_path_input_row_count = inputRows;
             it->slow_path_output_row_count = outputRows;
         }
 
+        /*!
+         * set write timing info
+         * @param stageNo
+         * @param wallTime
+         */
         void setWriteOutputTimes(int stageNo, double wallTime) {
             auto it = get_or_create_stage_metrics(stageNo);
-            it->write_output_wall_time_s = wallTime;
+            it->write_output_time_s = wallTime;
         }
 
         /*!
@@ -259,7 +276,7 @@ namespace tuplex {
                 ss<<"\"fast_path_output_row_count\":"<<s.fast_path_output_row_count<<",";
                 ss<<"\"slow_path_input_row_count\":"<<s.slow_path_input_row_count<<",";
                 ss<<"\"slow_path_output_row_count\":"<<s.slow_path_output_row_count<<",";
-                ss<<"\"write_output_wall_time_s\":"<<s.write_output_wall_time_s;
+                ss<<"\"write_output_wall_time_s\":"<<s.write_output_time_s;
                 ss<<"}";
                 if(s.stageNo != _stage_metrics.back().stageNo)
                     ss<<",";

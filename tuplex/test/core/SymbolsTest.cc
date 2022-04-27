@@ -23,5 +23,7 @@ TEST_F(SymbolProcessTest, MissingSymbol) {
     auto path = "../resources/zillow_data.csv";
     Context c(microTestOptions());
 
-    auto v = c.csv(path).mapColumn("title", UDF("lambda x: split(x)[0]")).collectAsVector();
+    EXPECT_THROW({
+        auto v = c.csv(path).mapColumn("title", UDF("lambda x: split(x)[0]")).collectAsVector()
+                }, std::runtime_error);
 }

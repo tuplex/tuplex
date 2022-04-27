@@ -249,12 +249,15 @@ namespace tuplex {
             size_t file_size = req.inputsizes(0);
             logger().info("-- specializing to " + uri);
             hyperspecialize(tstage, uri, file_size);
+
+            // !!! need to use LLVM optimizers !!! Else, there's no difference.
+            LLVMOptimizer
             logger().info("-- hyperspecialization took " + std::to_string(timer.time()) + "s");
         }
-
-
+        
         // if not, compile given code & process using both compile code & fallback
-        auto syms = compileTransformStage(*tstage);
+        // optimize via LLVM when in hyper mode.
+        auto syms = compileTransformStage(*tstage, useHyperSpecialization(req));
         if(!syms)
             return WORKER_ERROR_COMPILATION_FAILED;
 
@@ -1300,7 +1303,7 @@ namespace tuplex {
         return ws;
     }
 
-    std::shared_ptr<TransformStage::JITSymbols> WorkerApp::compileTransformStage(TransformStage &stage) {
+    std::shared_ptr<TransformStage::JITSymbols> WorkerApp::compileTransformStage(TransformStage &stage, bool use_llvm_optimizer) {
 
         // 1. check fast code path
         auto bitCode = stage.fastPathBitCode() + stage.slowPathBitCode();
@@ -1366,7 +1369,9 @@ namespace tuplex {
             // perform actual compilation
             // -> do not compile slow path for now.
             // -> do not register symbols, because that has been done manually above.
-            auto syms = stage.compile(*_compiler, nullptr,
+
+            LLVMOptimizer opt;
+            auto syms = stage.compile(*_compiler, use_llvm_optimizer ? &opt : nullptr,
                                         true,
                                         false);
 

@@ -571,31 +571,6 @@ namespace tuplex {
             int64_t inSize = inputPartition->size();
             const uint8_t *inPtr = inputPartition->lockRaw();
             _numInputRowsRead += static_cast<size_t>(*((int64_t*)inPtr));
-//
-//            int64_t totalNormalRowCounter = 0;
-//            int64_t totalGeneralRowCounter = 0;
-//            int64_t totalFallbackRowCounter = 0;
-//
-//            int64_t g1[] = {2,
-//                            1, -1, -1, 8, -1,
-//                            2, -1, -1, 8, -1};
-//            int64_t g2[] = {1,
-//                        3, -1, -1, 8, -1};
-//            int64_t g3[] = {2,
-//                            5, -1, -1, 8, -1,
-//                            6, -1, -1, 8, -1};
-//            uint8_t *generalPartitions[] = {(uint8_t*)g1, (uint8_t*)g2, (uint8_t*)g3};
-//            int64_t numGeneralPartitions = 3;
-//            int64_t generalIndexOffset = 0;
-//            int64_t generalRowOffset = 0;
-//            int64_t generalByteOffset = 0;
-//
-//            int64_t f1[] = {1, 2, 3};
-//            uint8_t *fallbackPartitions[] = {};
-//            int64_t numFallbackPartitions = 0;
-//            int64_t fallbackIndexOffset = 0;
-//            int64_t fallbackRowOffset = 0;
-//            int64_t fallbackByteOffset = 0;
 
             // call functor
             auto bytesParsed = functor(this, inPtr, inSize, &num_normal_rows, &num_bad_rows, false,

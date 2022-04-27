@@ -251,10 +251,9 @@ namespace tuplex {
             hyperspecialize(tstage, uri, file_size);
 
             // !!! need to use LLVM optimizers !!! Else, there's no difference.
-            LLVMOptimizer
             logger().info("-- hyperspecialization took " + std::to_string(timer.time()) + "s");
         }
-        
+
         // if not, compile given code & process using both compile code & fallback
         // optimize via LLVM when in hyper mode.
         auto syms = compileTransformStage(*tstage, useHyperSpecialization(req));

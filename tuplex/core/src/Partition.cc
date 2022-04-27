@@ -220,7 +220,6 @@ namespace tuplex {
         TRACE_LOCK("partition " + uuidToString(_uuid));
         std::this_thread::yield();
         _mutex.lock();
-        _isFree = true;
         if(_arena)
             allocator.free(_arena);
         _arena = nullptr;
@@ -228,15 +227,11 @@ namespace tuplex {
         _mutex.unlock();
     }
 
-    void Partition::freeAlways() {
-        _owner->freePartition(this);
-    }
-
     void Partition::invalidate() {
 
         // also make sure this partition does not live forever.
         // these partitions are destroyed when the context is released.
-        if(!_isFree && !isImmortal()) {
+        if(!isImmortal()) {
             // hence only free partition if it is not immortal
             _owner->freePartition(this);
         }

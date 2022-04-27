@@ -2,7 +2,7 @@
   "executorMemory": "6G",
   "executorCount": 15,
   "driverMemory": "10G",
-  "partitionSize": "32MB",
+  "partitionSize": "16MB",
   "runTimeMemory": "64MB",
   "inputSplitSize": "64MB",
   "useLLVMOptimizer": true,

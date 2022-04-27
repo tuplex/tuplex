@@ -22,7 +22,7 @@ jobs:
       # need to make this an intermediate step, i.e. build first the different lambda runners on Ubuntu...
       - name: Build Lambda runner (Linux only)
         if: runner.os != 'macOS'
-        run: docker pull registry-1.docker.io/tuplex/ci:latest && bash ./scripts/create_lambda_zip.sh && mkdir -p ./tuplex/python/tuplex/other && cp /home/runner/work/tuplex/tuplex/build-lambda/tplxlam.zip ./tuplex/python/tuplex/other
+        run: docker pull registry-1.docker.io/tuplex/ci:latest && bash ./scripts/create_lambda_zip.sh && mkdir -p ./tuplex/python/tuplex/other && cp ./build-lambda/tplxlam.zip ./tuplex/python/tuplex/other
         shell: bash
 
       - name: Build wheels
@@ -41,7 +41,7 @@ jobs:
           CIBW_BUILD: "cp3{7,8,9}-*"
           CIBW_SKIP: "cp3{5,6}-macosx* pp* *-musllinux_*"
 
-          CIBW_BEFORE_BUILD_MACOS: brew install coreutils protobuf zstd zlib libmagic llvm@9 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget boost
+          CIBW_BEFORE_BUILD_MACOS: bash ./scripts/macos/brew_dependencies.sh && bash ./scripts/macos/install_aws-sdk-cpp.sh
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
 
           # set this environment variable to include the Lambda zip from the previous build step
@@ -51,7 +51,8 @@ jobs:
           # CIBW_ENVIRONMENT_LINUX: "TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
           # yet, because PyPi limit hasn't been increased yet, do not bundle runner.
           CIBW_ENVIRONMENT_LINUX: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
-          CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' "
+          # requires 10.13 at least for macos!
+          CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13' MACOSX_DEPLOYMENT_TARGET=10.13"
 
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./scripts/test_pypi.sh ./wheelhouse

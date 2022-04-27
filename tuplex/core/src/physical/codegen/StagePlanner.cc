@@ -856,13 +856,14 @@ namespace tuplex {
         auto operators = path_ctx.operators;
 
         // force resampling b.c. of thin layer
+        Timer samplingTimer;
         if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode); assert(fop);
             fop->setInputFiles({uri}, {file_size}, true);
         }
+        logger.info("sampling (setInputFiles) took " + std::to_string(samplingTimer.time()) + "s");
 
         // node need to find some smart way to QUICKLY detect whether the optimizaiton can be applied or should be rather skipped...
-
         codegen::StagePlanner planner(inputNode, operators);
         planner.enableAll();
         planner.optimize();

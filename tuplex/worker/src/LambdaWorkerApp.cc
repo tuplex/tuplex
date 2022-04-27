@@ -699,58 +699,57 @@ namespace tuplex {
                 return WORKER_OK;
             }
 
-            // @TODO: what about remaining time? Partial completion?
-            cout<<"fallback would be called here, is there hyper specialization?"<<endl;
-            // HACK! Hyper-specialization
-            if(req.stage().has_serializedstage() && req.inputuris_size() > 0) {
-                logger().info("HYPERSPECIALIZATION ACTIVE");
-
-                // only transform stage yet supported, in the future support other stages as well!
-                auto tstage = TransformStage::from_protobuf(req.stage());
-
-                Timer timer;
-                // use first input file
-                std::string uri = req.inputuris(0);
-                size_t file_size = req.inputsizes(0);
-                logger().info("Specializing on input " + uri + " (" + sizeToMemString(file_size) + ")");
-                hyperspecialize(tstage, uri, file_size);
-                logger().info("HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()) + "s");
-                Timer opt_timer;
-                // compile & optimize!
-                // i.e. invoke LLVM optimizers here...
-                logger().info("HYPERSPECIALIAITON LLVM OPT TOOK " + std::to_string(opt_timer.time()) + "s");
-
-                URI outputURI = outputURIFromReq(req);
-                auto parts = partsFromMessage(req);
-
-                // check settings, pure python mode?
-                if(req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly()) {
-                    logger().info("WorkerApp is processing everything in single-threaded python/fallback mode.");
-                    return processTransformStageInPythonMode(tstage, parts, outputURI);
-                }
-                // if not, compile given code & process using both compile code & fallback
-                // compile ONLY fast code path!
-                if(tstage->fastPathBitCode().empty())
-                    logger().warn("Weird, no fastPathBitCode??");
-                logger().info("compiling fast path only");
-
-                // Note: this requires to register symbols!
-                // JIT session error: Symbols not found: { fast_memOut_Stage_0, fast_except_Stage_0 }
-                // tstage->compileFastPath(*_compiler, nullptr, false);
-                // auto syms = tstage->jitsyms();
-
-
-                auto syms = compileTransformStage(*tstage);
-                logger().info("fast path compiled");
-
-                tstage->setInitData();
-
-                if(!syms)
-                    return WORKER_ERROR_COMPILATION_FAILED;
-                return processTransformStage(tstage, syms, parts, outputURI);
-            } else {
-                logger().info("no HYPERSPECIALIZATION, old invoke model");
-            }
+//            // @TODO: what about remaining time? Partial completion?
+//            cout<<"fallback would be called here, is there hyper specialization?"<<endl;
+//            // HACK! Hyper-specialization
+//            if(req.stage().has_serializedstage() && req.inputuris_size() > 0) {
+//                logger().info("HYPERSPECIALIZATION ACTIVE");
+//
+//                // only transform stage yet supported, in the future support other stages as well!
+//                auto tstage = TransformStage::from_protobuf(req.stage());
+//
+//                Timer timer;
+//                // use first input file
+//                std::string uri = req.inputuris(0);
+//                size_t file_size = req.inputsizes(0);
+//                logger().info("Specializing on input " + uri + " (" + sizeToMemString(file_size) + ")");
+//                hyperspecialize(tstage, uri, file_size);
+//                logger().info("HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()) + "s");
+//                Timer opt_timer;
+//                // compile & optimize!
+//                // i.e. invoke LLVM optimizers here...
+//                logger().info("HYPERSPECIALIAITON LLVM OPT TOOK " + std::to_string(opt_timer.time()) + "s");
+//
+//                URI outputURI = outputURIFromReq(req);
+//                auto parts = partsFromMessage(req);
+//
+//                // check settings, pure python mode?
+//                if(req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly()) {
+//                    logger().info("WorkerApp is processing everything in single-threaded python/fallback mode.");
+//                    return processTransformStageInPythonMode(tstage, parts, outputURI);
+//                }
+//                // if not, compile given code & process using both compile code & fallback
+//                // compile ONLY fast code path!
+//                if(tstage->fastPathBitCode().empty())
+//                    logger().warn("Weird, no fastPathBitCode??");
+//                logger().info("compiling fast path only (" + sizeToMemString(tstage->fastPathBitCode().size()) + ")");
+//
+//                // Note: this requires to register symbols!
+//                // JIT session error: Symbols not found: { fast_memOut_Stage_0, fast_except_Stage_0 }
+//                // tstage->compileFastPath(*_compiler, nullptr, false);
+//                // auto syms = tstage->jitsyms();
+//
+//                auto syms = compileTransformStage(*tstage);
+//                logger().info("fast path compiled");
+//
+//                tstage->setInitData();
+//
+//                if(!syms)
+//                    return WORKER_ERROR_COMPILATION_FAILED;
+//                return processTransformStage(tstage, syms, parts, outputURI);
+//            } else {
+//                logger().info("no HYPERSPECIALIZATION, old invoke model");
+//            }
 
             // OLD::::::
             // @TODO

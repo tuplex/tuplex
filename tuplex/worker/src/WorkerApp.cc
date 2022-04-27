@@ -249,7 +249,7 @@ namespace tuplex {
             size_t file_size = req.inputsizes(0);
             logger().info("-- specializing to " + uri);
             hyperspecialize(tstage, uri, file_size);
-            logger().info("-- HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()));
+            logger().info("-- hyperspecialization took " + std::to_string(timer.time()));
         }
 
 

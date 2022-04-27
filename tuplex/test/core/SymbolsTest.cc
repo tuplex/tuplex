@@ -24,6 +24,6 @@ TEST_F(SymbolProcessTest, MissingSymbol) {
     Context c(microTestOptions());
 
     EXPECT_THROW({
-        auto v = c.csv(path).mapColumn("title", UDF("lambda x: split(x)[0]")).collectAsVector()
+        auto v = c.csv(path).mapColumn("title", UDF("lambda x: split(x)[0]")).collectAsVector();
                 }, std::runtime_error);
 }

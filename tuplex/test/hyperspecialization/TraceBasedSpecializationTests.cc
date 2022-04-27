@@ -606,7 +606,13 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
         opt.set("tuplex.executorCount", "0");
         opt.set("tuplex.optimizer.nullValueOptimization", "true"); // this yields exceptions... -> turn off! or perform proper type resampling...
         opt.set("tuplex.resolveWithInterpreterOnly", "true"); // -> this doesn't work with hyper-specialization yet.
+
+
+        // trying to explain the difference between local & lambda???
+        // ==> is it the interpreter only resolve??
         opt.set("tuplex.resolveWithInterpreterOnly", "false"); // -> this doesn't work with hyper-specialization yet.
+
+
         opt.set("tuplex.driverMemory", driver_memory);
         opt.set("tuplex.inputSplitSize", input_split_size);
         // hyperspecialization setting

@@ -23,9 +23,9 @@ class Experiment:
 
         fig = plt.figure(figsize=(6, 4))
 
-        plt.plot(plain_results, color=PLAIN_COLOR)
-        plt.plot(inc_results, color=INCREMENTAL_COLOR)
-        plt.plot(commit_results, color=COMMIT_COLOR)
+        plt.plot(plain_results, marker='o', color=PLAIN_COLOR)
+        plt.plot(inc_results, marker='o', color=INCREMENTAL_COLOR)
+        plt.plot(commit_results, marker='o', color=COMMIT_COLOR)
         # plt.ylim(0, 110)
 
         plt.ylabel('Total Execution Time (s)')
@@ -39,7 +39,7 @@ class Experiment:
             mpatches.Patch(color=PLAIN_COLOR, label='Plain'),
             mpatches.Patch(color=INCREMENTAL_COLOR, label='Incremental'),
             mpatches.Patch(color=COMMIT_COLOR, label='Commit')
-        ], loc='upper right')
+        ], loc='lower right')
 
         fig.savefig(os.path.join(self.save_path, 'in-order-synth.png'), dpi=400, bbox_inches='tight')
 
@@ -49,8 +49,8 @@ class Experiment:
 
         fig = plt.figure(figsize=(6, 4))
 
-        plt.plot(plain_results, color=PLAIN_COLOR)
-        plt.plot(inc_results, color=INCREMENTAL_COLOR)
+        plt.plot(plain_results, marker='o', color=PLAIN_COLOR)
+        plt.plot(inc_results, marker='o', color=INCREMENTAL_COLOR)
         # plt.ylim(0, 110)
 
         plt.ylabel('Total Execution Time (s)')

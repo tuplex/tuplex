@@ -146,23 +146,6 @@ namespace tuplex {
         void writeRowToHashTableAggregate(char *key, size_t key_size, bool bucketize, char *buf, size_t buf_size);
         void writeRowToHashTableAggregate(uint64_t key, bool key_null, bool bucketize, char *buf, size_t buf_size);
 
-        void freePartitions() override {
-            for (auto &p : _partitions)
-                p ? p->invalidate() : void();
-            for (auto &p : _fallbackPartitions)
-                p ? p->invalidate() : void();
-            for (auto &p : _generalPartitions)
-                p ? p->invalidate() : void();
-            for (auto &p : _exceptionPartitions)
-                p ? p->invalidate() : void();
-            for (auto &p : _fallbackSink.partitions)
-                p ? p->invalidate() : void();
-            for (auto &p : _mergedRowsSink.partitions)
-                p ? p->invalidate() : void();
-            for (auto &p : _generalCaseSink.partitions)
-                p ? p->invalidate() : void();
-        }
-
         /*!
          * sink output to hashtable
          * @param fmt format of the hashtable (i.e. grouped? globally grouped?)

@@ -71,8 +71,6 @@ namespace tuplex {
 
         Schema getExceptionSchema() const { return _exceptionRowSchema; }
 
-        void freePartitions() override {}
-
     protected:
         virtual void unlockAll();
 

@@ -201,10 +201,23 @@ namespace tuplex {
          */
         std::shared_ptr<ResultSet> resultSet() const override { return _rs;}
 
+        /*!
+         * Cache pipeline execution for merge in order
+         * @param normalPartitions normal rows
+         * @param exceptionPartitions exception rows
+         * @param partitionGroups mapping of normal to exception rows
+         */
         void setIncrementalResult(const std::vector<Partition*>& normalPartitions,
                                   const std::vector<Partition*>& exceptionPartitions,
                                   const std::vector<PartitionGroup>& partitionGroups);
 
+        /*!
+         * Cache pipeline execution for merge out of order
+         * @param exceptionPartitions exception rows
+         * @param generalPartitions general rows
+         * @param fallbackPartitions fallback rows
+         * @param startFileNumber next file number to output rows to
+         */
         void setIncrementalResult(const std::vector<Partition*>& exceptionPartitions,
                                   const std::vector<Partition*>& generalPartitions,
                                   const std::vector<Partition*>& fallbackPartitions,

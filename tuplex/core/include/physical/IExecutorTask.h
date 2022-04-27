@@ -45,8 +45,6 @@ namespace tuplex {
         virtual size_t getNumOutputRows() const;
         virtual size_t getNumInputRows() const { return 0; }
 
-        virtual void freePartitions() {}
-
         /*!
          * how much wall-time this task took.
          * @return

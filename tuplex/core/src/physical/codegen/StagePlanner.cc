@@ -833,17 +833,22 @@ namespace tuplex {
             auto compressed_str = stage->_encodedData;
             auto decompressed_str = decompress_string(compressed_str);
             logger.info("Decompressed Code context from " + sizeToMemString(compressed_str.size()) + " to " + sizeToMemString(decompressed_str.size()));
+            Timer deserializeTimer;
             std::istringstream iss(decompressed_str);
             cereal::BinaryInputArchive ar(iss);
             ar(ctx);
+            logger.info("Deserialization of Code context took " + std::to_string(deserializeTimer.time()) + "s");
         }
-        logger.info("Decode took " + std::to_string(timer.time()) + "s");
+        logger.info("Total Stage Decode took " + std::to_string(timer.time()) + "s");
 #else
         // use custom JSON encoding
         auto compressed_str = stage->_encodedData;
         auto decompressed_str = decompress_string(compressed_str);
         logger.info("Decompressed Code context from " + sizeToMemString(compressed_str.size()) + " to " + sizeToMemString(decompressed_str.size()));
+        Timer deserializeTimer;
         ctx = codegen::CodeGenerationContext::fromJSON(decompressed_str);
+        logger.info("Deserialization of Code context took " + std::to_string(deserializeTimer.time()) + "s");
+        logger.info("Total Stage Decode took " + std::to_string(timer.time()) + "s");
 #endif
         // old hacky version
         // auto ctx = codegen::CodeGenerationContext::fromJSON(stage->_encodedData);
@@ -863,7 +868,7 @@ namespace tuplex {
         }
         logger.info("sampling (setInputFiles) took " + std::to_string(samplingTimer.time()) + "s");
 
-        // node need to find some smart way to QUICKLY detect whether the optimizaiton can be applied or should be rather skipped...
+        // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
         codegen::StagePlanner planner(inputNode, operators);
         planner.enableAll();
         planner.optimize();

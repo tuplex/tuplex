@@ -792,6 +792,14 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
                                                                                    {""}, {}, {}, {}));
         auto mapop = std::make_shared<MapOperator>(csvop, UDF(udf_code), csvop->columns());
         auto fop = std::make_shared<FileOutputOperator>(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
+
+        // TODO: logical opt here?
+        // => somehow on Lambda weird stuff happens...
+
+//        // new: using separate logical optimizer class
+//        auto opt = std::make_unique<LogicalOptimizer>(context.getOptions());
+//        fop =
+
         builder.addFileInput(csvop);
         builder.addOperator(mapop);
         builder.addFileOutput(fop);
@@ -882,7 +890,7 @@ TEST(BasicInvocation, FlightsHyper) {
 
     vfs = VirtualFileSystem::fromURI(input_uri);
     uint64_t input_file_size = 0;
-    vfs.file_size(test_path, input_file_size);
+    vfs.file_size(input_uri, input_file_size);
     auto json_message = transformStageToReqMessage(tstage, input_uri.toPath(),
                                                    input_file_size, output_uri.toString(),
                                                    false,

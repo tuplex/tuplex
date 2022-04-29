@@ -418,6 +418,7 @@ TEST_F(SamplingTest, FlightsLambdaVersion) {
     // BBSN00
     string flights_root = "/hot/data/flights_all/";
 
+    flights_root = "/disk/data/flights/";
     string driver_memory = "32G";
     string executor_memory = "10G";
     string num_executors = "0";

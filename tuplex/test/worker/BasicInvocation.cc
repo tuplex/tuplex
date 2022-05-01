@@ -880,8 +880,8 @@ TEST(BasicInvocation, FlightsHyper) {
 
     // transform to message
     // create message only for first file!
-    auto input_uri = URI(cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv");
-    input_uri = URI(flights_root + "flights_on_time_performance_2003_01.csv");
+    auto input_uri = URI(cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_08.csv");
+    input_uri = URI(flights_root + "flights_on_time_performance_2003_08.csv");
     auto output_uri = URI(test_output_path + (use_hyper ? string("output_hyper.csv") : string("output_general.csv")));
 
     auto file = tuplex::VirtualFileSystem::open_file(output_uri, VirtualFileMode::VFS_OVERWRITE);

@@ -199,5 +199,14 @@ namespace tuplex {
     */
     void printTable(std::ostream& os, const std::vector<std::string>& header,
                     const std::vector<Row>& rows, bool quoteStrings=true);
+
+    /*!
+     * detect (each col independent) majority for each column and form row type
+     * @param rows sample, if empty unknown is returned
+     * @param threshold normal-case threshold
+     * @param independent_columns whether to treat each column indepedently or use joint maximization
+     * @return majority type
+     */
+    extern python::Type detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns=true);
 }
 #endif //TUPLEX_ROW_H

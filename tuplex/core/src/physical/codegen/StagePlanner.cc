@@ -21,6 +21,7 @@
 #include <physical/codegen/StageBuilder.h>
 #include <graphviz/GraphVizBuilder.h>
 #include "logical/LogicalOptimizerTest.h"
+#include <unordered_map>
 
 #define VERBOSE_BUILD
 
@@ -536,6 +537,37 @@ namespace tuplex {
 
             // step 1: retrieve sample from inputnode!
             std::vector<Row> sample = fetchInputSample();
+
+            // columns, check for NAS_DELAY
+            for(int i = 0; i < _inputNode->columns().size(); ++i) {
+                std::cout<<i<<": "<<_inputNode->columns()[i]<<std::endl;
+            }
+
+            // @TODO: stats on types for sample. Use this to retype!
+            // --> important first step!
+            std::unordered_map<std::string, size_t> counts;
+            std::unordered_map<python::Type, size_t> t_counts;
+            for(auto row : sample) {
+                counts[row.getRowType().desc()]++;
+                t_counts[row.getRowType()]++;
+            }
+            for(auto keyval : counts) {
+                std::cout<<keyval.second<<": "<<keyval.first<<std::endl;
+            }
+
+            // print out NAS_delay:
+            auto nas_delay_idx = 58;
+            std::cout<<"NAS DELAY types: "<<std::endl;
+            for(auto keyval : t_counts) {
+                std::cout<<keyval.second<<": "<<keyval.first.parameters()[nas_delay_idx].desc()<<std::endl;
+            }
+
+            // detect majority type
+            // detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns)
+            auto nc_threshold = .9;
+            auto majType = detectMajorityRowType(sample, nc_threshold, true);
+
+            std::cout<<"Majority detected row type is: "<<majType.desc()<<std::endl;
 
             // perform sample based optimizations
             if(_useConstantFolding) {

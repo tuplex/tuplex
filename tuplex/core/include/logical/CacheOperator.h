@@ -25,7 +25,7 @@ namespace tuplex {
 
         CacheOperator(LogicalOperator* parent, bool storeSpecialized,
                       const Schema::MemoryLayout& memoryLayout=Schema::MemoryLayout::ROW) : LogicalOperator(parent), _storeSpecialized(storeSpecialized), _memoryLayout(memoryLayout), _cached(false),
-        _columns(parent->columns()) {
+        _columns(parent->columns()), _normalRowCount(0), _fallbackRowCount(0), _generalRowCount(0) {
             setSchema(this->parent()->getOutputSchema()); // inherit schema from parent
             _optimizedSchema = getOutputSchema();
             if(memoryLayout != Schema::MemoryLayout::ROW)

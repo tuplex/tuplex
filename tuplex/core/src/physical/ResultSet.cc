@@ -303,15 +303,15 @@ namespace tuplex {
             _fallbackRowCounter = 0;
             auto group = _partitionGroups.front();
             _partitionGroups.pop_front();
-            for (int i = group.normalPartitionStartInd; i < group.normalPartitionStartInd + group.numNormalPartitions; ++i) {
+            for (int i = group.normalPartitionStartIndex; i < group.normalPartitionStartIndex + group.numNormalPartitions; ++i) {
                 _currentNormalPartitions.push_back(_remainingNormalPartitions.front());
                 _remainingNormalPartitions.pop_front();
             }
-            for (int i = group.generalPartitionStartInd; i < group.generalPartitionStartInd + group.numGeneralPartitions; ++i) {
+            for (int i = group.generalPartitionStartIndex; i < group.generalPartitionStartIndex + group.numGeneralPartitions; ++i) {
                 _currentGeneralPartitions.push_back(_remainingGeneralPartitions.front());
                 _remainingGeneralPartitions.pop_front();
             }
-            for (int i = group.fallbackPartitionStartInd; i < group.fallbackPartitionStartInd + group.numFallbackPartitions; ++i) {
+            for (int i = group.fallbackPartitionStartIndex; i < group.fallbackPartitionStartIndex + group.numFallbackPartitions; ++i) {
                 _currentFallbackPartitions.push_back(_remainingFallbackPartitions.front());
                 _remainingFallbackPartitions.pop_front();
             }

@@ -657,7 +657,7 @@ namespace tuplex {
             for (const auto &group : partitionGroups) {
                 std::vector<Partition*> taskNormalPartitions;
                 bool invalidateAfterUse = false;
-                for (int i = group.normalPartitionStartInd; i < group.normalPartitionStartInd + group.numNormalPartitions; ++i) {
+                for (int i = group.normalPartitionStartIndex; i < group.normalPartitionStartIndex + group.numNormalPartitions; ++i) {
                     auto p = inputPartitions[i];
                     numInputRows += p->getNumRows();
                     if (!p->isImmortal())
@@ -665,13 +665,13 @@ namespace tuplex {
                     taskNormalPartitions.push_back(p);
                 }
                 std::vector<Partition*> taskGeneralPartitions;
-                for (int i = group.generalPartitionStartInd; i < group.generalPartitionStartInd + group.numGeneralPartitions; ++i) {
+                for (int i = group.generalPartitionStartIndex; i < group.generalPartitionStartIndex + group.numGeneralPartitions; ++i) {
                     auto p = generalPartitions[i];
                     numInputRows += p->getNumRows();
                     taskGeneralPartitions.push_back(p);
                 }
                 std::vector<Partition*> taskFallbackPartitions;
-                for (int i = group.fallbackPartitionStartInd; i < group.fallbackPartitionStartInd + group.numFallbackPartitions; ++i) {
+                for (int i = group.fallbackPartitionStartIndex; i < group.fallbackPartitionStartIndex + group.numFallbackPartitions; ++i) {
                     auto p = fallbackPartitions[i];
                     numInputRows += p->getNumRows();
                     taskFallbackPartitions.push_back(p);
@@ -1189,140 +1189,6 @@ namespace tuplex {
         ss<<"[Transform Stage] Stage "<<tstage->number()<<" took "<<stageTimer.time()<<"s";
         Logger::instance().defaultLogger().info(ss.str());
     }
-
-//    void LocalBackend::setPartitionMergeInfo(const std::vector<Partition*>& normalPartitions,
-//                               const std::vector<Partition*>& generalPartitions, const size_t generalStartInd,
-//                               const std::vector<Partition*>& fallbackPartitions, const size_t fallbackStartInd,
-//                               std::vector<MergeInfo>& partitionMergeInfo) {
-//
-//
-//
-//
-//        auto generalInd = 0;
-//        auto generalRowOff = 0;
-//        auto generalByteOff = 0;
-//        auto generalRowsInPartition = 0;
-//        const uint8_t *generalPtr = nullptr;
-//        if (!generalPartitions.empty()) {
-//            generalRowsInPartition = generalPartitions[0]->getNumRows();
-//            generalPtr = generalPartitions[0]->lock();
-//        }
-//
-//        auto fallbackInd = 0;
-//        auto fallbackRowOff = 0;
-//        auto fallbackByteOff = 0;
-//        auto fallbackRowsInPartition = 0;
-//        const uint8_t *fallbackPtr = nullptr;
-//        if (!fallbackPartitions.empty()) {
-//            fallbackRowsInPartition = fallbackPartitions[0]->getNumRows();
-//            fallbackPtr = fallbackPartitions[0]->lock();
-//        }
-//
-//        auto exceptionInd = 0;
-//        auto exceptionRowOff = 0;
-//        auto exceptionByteOff = 0;
-//        auto exceptionRowsInPartition = 0;
-//        const uint8_t *exceptionPtr = nullptr;
-//        if (!exceptionPartitions.empty()) {
-//            exceptionRowsInPartition = exceptionPartitions[0]->getNumRows();
-//            exceptionPtr = exceptionPartitions[0]->lock();
-//        }
-//
-//        auto totalRowCounter = 0;
-//        auto rowDelta = 0;
-//        for (const auto &p : normalPartitions) {
-//            auto mergeInfo = MergeInfo();
-//            mergeInfo.setRowDelta(rowDelta);
-//            auto numNormalRows = p->getNumRows();
-//
-//            auto generalRowCounter = 0;
-//            auto curGeneralStartInd = generalInd + generalStartInd;
-//            auto curGeneralRowOff = generalRowOff;
-//            auto curGeneralByteOff = generalByteOff;
-//            while (generalPtr && *((int64_t*)generalPtr) <= totalRowCounter + numNormalRows) {
-//                generalRowCounter++;
-//                totalRowCounter++;
-//
-//                auto dataSize = ((int64_t*)generalPtr)[3] + 4*sizeof(int64_t);
-//                generalByteOff += dataSize;
-//                generalPtr += dataSize;
-//                generalRowOff++;
-//
-//                if (generalRowOff == generalRowsInPartition) {
-//                    generalPartitions[generalInd]->unlock();
-//                    generalInd++;
-//                    if (generalInd < generalPartitions.size()) {
-//                        generalPtr = generalPartitions[generalInd]->lock();
-//                        generalRowsInPartition = generalPartitions[generalInd]->getNumRows();
-//                        generalRowOff = 0;
-//                        generalByteOff = 0;
-//                    } else {
-//                        generalPtr = nullptr;
-//                    }
-//                }
-//            }
-//            mergeInfo.setGeneralInfo(generalRowCounter, curGeneralStartInd, curGeneralRowOff, curGeneralByteOff);
-//
-//            auto fallbackRowCounter = 0;
-//            auto curFallbackStartInd = fallbackInd + fallbackStartInd;
-//            auto curFallbackRowOff = fallbackRowOff;
-//            auto curFallbackByteOff = fallbackByteOff;
-//            while (fallbackPtr && *((int64_t*)fallbackPtr) <= totalRowCounter + numNormalRows + generalRowCounter) {
-//                fallbackRowCounter++;
-//                totalRowCounter++;
-//
-//                auto dataSize = ((int64_t*)fallbackPtr)[1] + 2*sizeof(int64_t);
-//                fallbackByteOff += dataSize;
-//                fallbackPtr += dataSize;
-//                fallbackRowOff++;
-//
-//                if (fallbackRowOff == fallbackRowsInPartition) {
-//                    fallbackPartitions[fallbackInd]->unlock();
-//                    fallbackInd++;
-//                    if (fallbackInd < fallbackPartitions.size()) {
-//                        fallbackPtr = fallbackPartitions[fallbackInd]->lock();
-//                        fallbackRowsInPartition = fallbackPartitions[fallbackInd]->getNumRows();
-//                        fallbackRowOff = 0;
-//                        fallbackByteOff = 0;
-//                    } else {
-//                        fallbackPtr = nullptr;
-//                    }
-//                }
-//            }
-//            mergeInfo.setFallbackInfo(fallbackRowCounter, curFallbackStartInd, curFallbackRowOff, curFallbackByteOff);
-//
-//            auto exceptionRowCounter = 0;
-//            auto curExceptionStartInd = exceptionInd + exceptionStartInd;
-//            auto curExceptionRowOff = exceptionRowOff;
-//            auto curExceptionByteOff = exceptionByteOff;
-//            while (exceptionPtr && *((int64_t*)exceptionPtr) <= totalRowCounter + numNormalRows + generalRowCounter + fallbackRowCounter) {
-//                exceptionRowCounter++;
-//                totalRowCounter++;
-//
-//                auto dataSize = ((int64_t*)exceptionPtr)[3] + 4*sizeof(int64_t);
-//                exceptionByteOff += dataSize;
-//                exceptionPtr += dataSize;
-//                exceptionRowOff++;
-//
-//                if (exceptionRowOff == exceptionRowsInPartition) {
-//                    exceptionPartitions[exceptionInd]->unlock();
-//                    exceptionInd++;
-//                    if (exceptionInd < exceptionPartitions.size()) {
-//                        exceptionPtr = exceptionPartitions[exceptionInd]->lock();
-//                        exceptionRowsInPartition = exceptionPartitions[exceptionInd]->getNumRows();
-//                        exceptionRowOff = 0;
-//                        exceptionByteOff = 0;
-//                    } else {
-//                        exceptionPtr = nullptr;
-//                    }
-//                }
-//            }
-//            mergeInfo.setExceptionInfo(exceptionRowCounter, curExceptionStartInd, curExceptionRowOff, curExceptionByteOff);
-//
-//            rowDelta += numNormalRows + generalRowCounter + fallbackRowCounter + exceptionRowCounter;
-//            partitionMergeInfo.push_back(mergeInfo);
-//        }
-//    }
 
     std::vector<IExecutorTask*> LocalBackend::resolveViaSlowPath(
             std::vector<IExecutorTask*> &tasks,

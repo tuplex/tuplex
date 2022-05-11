@@ -60,6 +60,13 @@ namespace tuplex {
 
         // needed because of C++ template issues
         void addPartition(DataSet* ds, Partition *partition);
+
+        /*!
+         * Add parallelize logical operator to dataset
+         * @param ds dataset
+         * @param fallbackPartitions fallback partitions from python parallelize
+         * @param partitionGroups partition mapping information
+         */
         void addParallelizeNode(DataSet *ds, const std::vector<Partition*>& fallbackPartitions=std::vector<Partition*>{}, const std::vector<PartitionGroup>& partitionGroups=std::vector<PartitionGroup>{}); //! adds a paralellize node to the computation graph
 
         Partition* requestNewPartition(const Schema& schema, const int dataSetID, size_t minBytesRequired);
@@ -254,10 +261,9 @@ namespace tuplex {
          * @param partitions partitions to assign to dataset. These should NOT be reused later.
          *        Also, partitions need to hold data in supplied schema. If empty vector is given,
          *        empty dataset will be created.
-         *
+         * @param fallbackPartitions fallback partitions to assign to dataset
+         * @param partitionGroups mapping of partitions to fallback partitions
          * @param columns optional column names
-         * @param badParallelizeObjects schema violations found during parallelization of partitions
-         * @param numExceptionsInPartition number of schema violations that occured in each of the partitions
          * @return reference to newly created dataset.
          */
         DataSet& fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<Partition*>& fallbackPartitions, const std::vector<PartitionGroup>& partitionGroups, const std::vector<std::string>& columns);

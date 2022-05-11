@@ -99,7 +99,7 @@ namespace tuplex {
             return std::accumulate(counts.begin(), counts.end(), 0, [](size_t acc, std::pair<std::tuple<int64_t, ExceptionCode>, size_t> val) { return acc + val.second; });
         }
 
-        inline std::vector<Partition*> getNormalPartitions(IExecutorTask* task) {
+        inline std::vector<Partition*> getNormalPartitions(IExecutorTask* task) const {
             if(!task)
                 return std::vector<Partition*>();
 
@@ -113,7 +113,7 @@ namespace tuplex {
             return std::vector<Partition*>();
         }
 
-        inline std::vector<Partition*> getExceptionPartitions(IExecutorTask* task) {
+        inline std::vector<Partition*> getExceptionPartitions(IExecutorTask* task) const {
             if(!task)
                 return std::vector<Partition*>();
 
@@ -127,7 +127,7 @@ namespace tuplex {
             return std::vector<Partition*>();
         }
 
-        inline std::vector<Partition*> getGeneralPartitions(IExecutorTask* task) {
+        inline std::vector<Partition*> getGeneralPartitions(IExecutorTask* task) const {
             if(!task)
                 return std::vector<Partition*>();
 
@@ -141,7 +141,7 @@ namespace tuplex {
             return std::vector<Partition*>();
         }
 
-        inline std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> getExceptionCounts(IExecutorTask* task) {
+        inline std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> getExceptionCounts(IExecutorTask* task) const {
             if(!task)
                 return std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>();
 
@@ -155,7 +155,7 @@ namespace tuplex {
             return std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>();
         }
 
-        inline std::vector<Partition*> getFallbackPartitions(IExecutorTask* task) {
+        inline std::vector<Partition*> getFallbackPartitions(IExecutorTask* task) const {
             if(!task)
                 return std::vector<Partition*>();
 

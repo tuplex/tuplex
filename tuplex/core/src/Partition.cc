@@ -55,7 +55,7 @@ namespace tuplex {
 
     uint8_t* Partition::lockWriteRaw() {
         // must be the thread who allocated this
-//        assert(_owner->getThreadID() == std::this_thread::get_id());
+        assert(_owner->getThreadID() == std::this_thread::get_id());
 
         TRACE_LOCK("partition " + uuidToString(_uuid));
         std::this_thread::yield();

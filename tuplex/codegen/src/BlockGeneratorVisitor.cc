@@ -1947,7 +1947,7 @@ namespace tuplex {
 
                         // allocate new pointer for this var, overwrite type
                         slot->type = targetType;
-                        slot->var = Variable(*_env, builder.get(), targetType, target->_name);
+                        slot->var = Variable(*_env, builder, targetType, target->_name);
                     } else {
                         // compatible, so simply assign.
                         // nothing todo here, done below.
@@ -2411,7 +2411,7 @@ namespace tuplex {
                     _lfb->setLastBlock(elseBB);
                     auto else_builder = _lfb->getIRBuilder();
                     // restore all variables, based on previous realizations.
-                    restoreVariableSlots(else_builder.get(), var_realizations);
+                    restoreVariableSlots(else_builder, var_realizations);
                     ifelse->_else->accept(*this);
                     // check if early return...
                     lastElseBB = _lfb->getLastBlock(); // lastblock may be nullptr if return was used!
@@ -2576,7 +2576,7 @@ namespace tuplex {
                     // no if-branch variable realizations? I.e., this means all blocks returned.
                     // Thus, simply restore old ones...
                     if(if_var_realizations.empty()) {
-                        llvm::IRBuilder<> exitBuilder(exitBB);
+                        codegen::IRBuilder exitBuilder(exitBB);
                         restoreVariableSlots(exitBuilder, var_realizations, true);
                     }
 
@@ -3213,7 +3213,7 @@ namespace tuplex {
             slot.definedPtr = _env->CreateFirstBlockAlloca(builder.get(), _env->i1Type(), id->_name + "_defined");
             assert(slot.definedPtr);
             builder.CreateStore(_env->i1Const(true), slot.definedPtr);
-            slot.var = Variable(*_env, builder.get(), id->getInferredType(), id->_name);
+            slot.var = Variable(*_env, builder, id->getInferredType(), id->_name);
             _variableSlots[id->_name] = slot;
 
             // visit recursively
@@ -3559,10 +3559,10 @@ namespace tuplex {
 
                     // first pair?
                     if (!lastPair)
-                        lastPair = compareInst(builder, a, a_isnull, atype, cmp->_ops[i - 1], b, b_isnull, btype);
+                        lastPair = compareInst(builder.get(), a, a_isnull, atype, cmp->_ops[i - 1], b, b_isnull, btype);
                     else {
                         // create bit and
-                        auto newPair = compareInst(builder, a, a_isnull, atype, cmp->_ops[i - 1], b, b_isnull, btype);
+                        auto newPair = compareInst(builder.get(), a, a_isnull, atype, cmp->_ops[i - 1], b, b_isnull, btype);
                         lastPair = builder.CreateAnd(lastPair, newPair);
                     }
                 }
@@ -3581,7 +3581,7 @@ namespace tuplex {
             // process string value, i.e. removing quotes and so on.
             auto val = str->value();
 
-            auto sconst = builder.CreateGlobalStringPtr(val);
+            auto sconst = builder.get().CreateGlobalStringPtr(val);
             auto sptr = builder.CreatePointerCast(sconst,
                                                   llvm::Type::getInt8PtrTy(_env->getContext(), 0)); // need gep to cast
             // from [n x i8]* to i8* type

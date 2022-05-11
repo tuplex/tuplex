@@ -176,7 +176,7 @@ namespace tuplex {
         }
 
         /*!
-         * returns/removes all general partitions
+         * returns all general partitions, removes them from result set.
          * @return
          */
         std::vector<Partition*> generalPartitions() {
@@ -187,7 +187,7 @@ namespace tuplex {
         }
 
         /*!
-         * returns/removes all fallback partitions
+         * returns all fallback partitions, removes them from result set.
          * @return
          */
         std::vector<Partition*> fallbackPartitions() {
@@ -198,7 +198,7 @@ namespace tuplex {
         }
 
         /*!
-         * returns/removes all partition groups
+         * returns all partition groups, removes them from result set.
          * @return
          */
         std::vector<PartitionGroup> partitionGroups() {

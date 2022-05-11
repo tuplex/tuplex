@@ -260,6 +260,7 @@ namespace tuplex {
         // sink for type violation rows
         MemorySink _generalCaseSink;
 
+        // sink for fallback rows that violate normal and general case
         MemorySink _fallbackSink;
 
         // hash table sink
@@ -273,8 +274,11 @@ namespace tuplex {
         // hybrid inputs (i.e. when having a long stage the hash-tables of a join)
         std::vector<PyObject*> _py_intermediates;
 
-        // python output which can't be consolidated, saved as separate list
-        void writePythonObject(PyObject* out_row);
+        /*!
+         * Serialize and write python row to the fallback row sink
+         * @param out_row
+         */
+        void writePythonObjectToFallbackSink(PyObject* out_row);
 
         int64_t _outputRowNumber;
 

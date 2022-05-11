@@ -71,15 +71,15 @@ namespace tuplex {
 
         // fetch both partitions (consume) from resultset + any unresolved exceptions
         _normalPartitions = rs->normalPartitions();
-        for(auto p : _normalPartitions)
+        for(auto &p : _normalPartitions)
             p->makeImmortal();
 
         _generalPartitions = rs->generalPartitions();
-        for(auto p : _generalPartitions)
+        for(auto &p : _generalPartitions)
             p->makeImmortal();
 
         _fallbackPartitions = rs->fallbackPartitions();
-        for(auto p : _fallbackPartitions)
+        for(auto &p : _fallbackPartitions)
             p->makeImmortal();
 
         _partitionGroups = rs->partitionGroups();

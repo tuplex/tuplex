@@ -367,6 +367,8 @@ namespace tuplex {
         if (partitionGroups.empty()) {
             std::vector<PartitionGroup> defaultPartitionGroups;
             for (int i = 0; i < ds->getPartitions().size(); ++i) {
+                // New partition group for each normal partition so number is constant at 1
+                // This is because each normal partition is assigned its own task
                 defaultPartitionGroups.push_back(PartitionGroup(1, i, 0, 0, 0, 0));
             }
             op->setPartitionGroups(defaultPartitionGroups);

@@ -218,7 +218,7 @@ namespace tuplex {
         return tuple;
     }
 
-    void ResolveTask::writePythonObject(PyObject *out_row) {
+    void ResolveTask::writePythonObjectToFallbackSink(PyObject *out_row) {
         assert(out_row);
 
         // similar to merge row, need to write other rows first!
@@ -662,9 +662,9 @@ default:
                                     delete [] buf;
                                 } else {
                                     if(PyTuple_Check(rowObj) && PyTuple_Size(rowObj) == 1) {
-                                        writePythonObject(PyTuple_GetItem(rowObj, 0));
+                                        writePythonObjectToFallbackSink(PyTuple_GetItem(rowObj, 0));
                                     } else {
-                                        writePythonObject(rowObj);
+                                        writePythonObjectToFallbackSink(rowObj);
                                     }
                                 }
                                 // Py_XDECREF(rowObj);

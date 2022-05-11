@@ -31,7 +31,7 @@ TEST_F(SymbolProcessTest, MissingSymbol) {
                          auto v = c.csv(path).mapColumn("title", UDF("lambda x: split(x)[0]")).collectAsVector();
 
                          // make sure v is not getting optmized away...
-                         EXPECT_FALSE(v.empty);
+                         EXPECT_FALSE(v.empty());
                      }
                      catch( const std::runtime_error& e )
                      {

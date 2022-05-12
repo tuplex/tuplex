@@ -23,6 +23,7 @@ import os
 import uuid
 import sys
 import datetime
+import logging
 
 from bson.objectid import ObjectId
 # mongodb helpers
@@ -408,6 +409,8 @@ def update_exception():
 @app.route('/api/version', methods=['GET'])
 def get_info():
 
+    print(mongo.cx.address)
+    logging.debug('mongo address: {}'.format(mongo.cx.address))
     mongo_info = dict(zip(('host', 'port'), mongo.cx.address))
     mongo_info['uri'] = MONGO_URI
 

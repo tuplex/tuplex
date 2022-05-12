@@ -84,7 +84,6 @@ endif()
 # BOOST libs
 include_directories(${Boost_INCLUDE_DIR})
 
-
 # ANTLR4 Runtime (installed e.g. via brew install antlr4-cpp-runtime)
 find_package(ANTLR4Runtime REQUIRED)
 

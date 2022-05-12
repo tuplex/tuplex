@@ -78,11 +78,11 @@ namespace python {
 
         Type():_hash(-1) {}
         Type(const Type& other):_hash(other._hash)  {
-            assert(_hash >= -1);
+            // assert(_hash >= -1);
         }
 
         Type& operator = (const Type& other) {
-            assert(_hash >= -1);
+            // assert(_hash >= -1);
             _hash = other._hash;
             return *this;
         }

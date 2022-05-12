@@ -65,9 +65,9 @@ namespace tuplex {
             /*!
              * construct a new task which parses CSV input (given block wise)
              * @param env CodeEnv where to generate code into
-             * @param fileInputRowType the detected row Type of the file
+             * @param normalCaseRowType the detected row Type of the file
              * @param restrictedGeneralCaseInputRowType the (restricted) detected general case row type of the file
-             * @param columnsToSerialize if empty vector, all rows get serialized. If not, indicates which columns should be serialized. Length must match rowType.
+             * @param normalCaseColumnsToSerialize if empty vector, all rows get serialized. If not, indicates which columns should be serialized. Length must match rowType.
              * @param name Name of the function to generate
              * @param operatorID ID of the operator for exception handling.
              * @param null_values array of strings that should be interpreted as null values
@@ -75,8 +75,8 @@ namespace tuplex {
              */
 
             explicit CellSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
-                                           const python::Type& fileInputRowType,
-                                           const std::vector<bool> &columnsToSerialize,
+                                           const python::Type& normalCaseRowType,
+                                           const std::vector<bool> &normalCaseColumnsToSerialize,
                                            const python::Type& generalCaseInputRowType,
                                            const std::vector<bool> &generalCaseColumnsToSerialize,
                                            const std::map<int, int>& normalToGeneralMapping,
@@ -85,15 +85,15 @@ namespace tuplex {
                                            const std::vector<std::string>& null_values=std::vector<std::string>{""},
                                            const std::vector<NormalCaseCheck>& checks={}) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env,
                                                                                                               restrictRowType(
-                                                                                                                      columnsToSerialize,
-                                                                                                                      fileInputRowType),
-                                                                                                                      restrictRowType(generalCaseColumnsToSerialize,
+                                                                                                                      normalCaseColumnsToSerialize,
+                                                                                                                      normalCaseRowType),
+                                                                                                              restrictRowType(generalCaseColumnsToSerialize,
                                                                                                                      generalCaseInputRowType),
                                                                                                               normalToGeneralMapping,
                                                                                                               name),
                                                                  _operatorID(operatorID),
-                                                                 _fileInputRowType(fileInputRowType),
-                                                                 _columnsToSerialize(columnsToSerialize),
+                                                                 _fileInputRowType(normalCaseRowType),
+                                                                 _columnsToSerialize(normalCaseColumnsToSerialize),
                                                                  _functionName(name),
                                                                  _nullValues(null_values),
                                                                  _checks(checks),

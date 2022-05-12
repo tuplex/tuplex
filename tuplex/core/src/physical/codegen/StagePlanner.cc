@@ -922,12 +922,30 @@ namespace tuplex {
         planner.optimize();
         path_ctx.inputNode = planner.input_node();
         path_ctx.operators = planner.optimized_operators();
+
+        // output schema: the schema this stage yields ultimately after processing
+        // input schema: the (optimized/projected, normal case) input schema this stage reads from (CSV, Tuplex, ...)
+        // read schema: the schema to read from (specialized) but unprojected.
+        if(path_ctx.inputNode->type() == LogicalOperatorType::FILEINPUT) {
+            auto fop = std::dynamic_pointer_cast<FileInputOperator>(path_ctx.inputNode);
+            path_ctx.inputSchema = fop->getOptimizedOutputSchema();
+            path_ctx.readSchema = fop->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
+            path_ctx.columnsToRead = fop->columnsToSerialize();
+        } else {
+            path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();
+            path_ctx.readSchema = Schema::UNKNOWN; // not set, b.c. not a reader...
+            path_ctx.columnsToRead = {};
+        };
+
         path_ctx.outputSchema = path_ctx.operators.back()->getOutputSchema();
-        path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();
-        path_ctx.readSchema = std::dynamic_pointer_cast<FileInputOperator>(path_ctx.inputNode)->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
-        path_ctx.columnsToRead = std::dynamic_pointer_cast<FileInputOperator>(path_ctx.inputNode)->columnsToSerialize();
         logger.info("specialized to input:  " + path_ctx.inputSchema.getRowType().desc());
         logger.info("specialized to output: " + path_ctx.outputSchema.getRowType().desc());
+
+        // print out:
+        std::cout<<"input schema ("<<pluralize(path_ctx.inputSchema.getRowType().parameters().size(), "column")<<"): "<<path_ctx.inputSchema.getRowType().desc()<<std::endl;
+        std::cout<<"read schema ("<<pluralize(path_ctx.readSchema.getRowType().parameters().size(), "column")<<"): "<<path_ctx.readSchema.getRowType().desc()<<std::endl;
+        std::cout<<"output schema ("<<pluralize(path_ctx.outputSchema.getRowType().parameters().size(), "column")<<"): "<<path_ctx.outputSchema.getRowType().desc()<<std::endl;
+
         size_t numToRead = 0;
         for(auto indicator : path_ctx.columnsToRead)
             numToRead += indicator;

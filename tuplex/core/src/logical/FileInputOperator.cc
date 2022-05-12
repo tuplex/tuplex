@@ -158,9 +158,10 @@ namespace tuplex {
         // when no null-values are given, simply set to string always
         // else, it's an option type...
         auto rowType = python::Type::makeTupleType({python::Type::STRING});
-        _normalCaseRowType = rowType;
+        _normalCaseRowType = rowType; // NVO speculation?
         if(!null_values.empty())
             rowType = python::Type::makeTupleType({python::Type::makeOptionType(python::Type::STRING)});
+        _generalCaseRowType = rowType;
 
         // get type & assign schema
         setSchema(Schema(Schema::MemoryLayout::ROW, rowType));
@@ -317,6 +318,7 @@ namespace tuplex {
 
             // get type & assign schema
             _normalCaseRowType = normalcasetype;
+            _generalCaseRowType = exceptcasetype;
             setSchema(Schema(Schema::MemoryLayout::ROW, exceptcasetype));
 
             // if csv stat produced unknown, issue warning and use empty
@@ -394,6 +396,7 @@ namespace tuplex {
             auto tuplexType = tuplex::orc::orcRowTypeToTuplex(orcType, columnHasNull);
 
             _normalCaseRowType = tuplexType;
+            _generalCaseRowType = tuplexType;
             _estimatedRowCount = numRows * _fileURIs.size();
 
             bool hasColumnNames = false;

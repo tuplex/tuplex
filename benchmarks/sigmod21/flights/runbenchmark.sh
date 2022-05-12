@@ -16,6 +16,10 @@ PYTHON=python3.6
 mkdir -p ${LG_RESDIR}
 mkdir -p ${SM_RESDIR}
 
+# create original tuplex_config.json (gets overwritten by breakdown...)
+cp tuplex_config_template.json tuplex_config.json
+cat tuplex_config.json
+
 echo "running on large flight data"
 echo "running tuplex"
 for ((r = 1; r <= NUM_RUNS; r++)); do
@@ -65,3 +69,8 @@ for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${SM_RESDIR}/dask-run-$r.txt"
     timeout $TIMEOUT ${PYTHON} rundask.py --path $SM_INPUT_PATH --output-path $OUTPUT_DIR/dask >$LOG 2>$LOG.stderr
 done
+
+# copy config files after LG run
+cp tuplex_config.json ${LG_RESDIR}/
+# copy config files after SM run
+cp tuplex_config.json ${SM_RESDIR}/

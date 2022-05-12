@@ -92,7 +92,8 @@ if __name__ == '__main__':
     #client = Client(n_workers=8, threads_per_worker=1, processes=True) # default init
     # client = Client(n_workers=16, threads_per_worker=1, processes=True)
 
-    client=Client(n_workers=16, threads_per_worker=1, processes=True, memory_limit='8GB')
+    # because Dask tends to fail for the large flights dataset, give it more memory than Tuplex/Spark
+    client=Client(n_workers=16, threads_per_worker=1, processes=True, memory_limit='12GB')
     #client=Client()
     print(client)
 

@@ -371,7 +371,7 @@ TEST_F(AggregateTest, UniqueMixedTypesWithInterpreterFallback) {
     opt_ref.set("tuplex.executorMemory", "64MB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     opt_ref.set("tuplex.csv.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
 

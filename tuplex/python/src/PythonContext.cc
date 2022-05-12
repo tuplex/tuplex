@@ -1418,7 +1418,7 @@ namespace tuplex {
                        python::PyString_FromString("tuplex.optimizer.generateParser"),
                        python::boolToPython(co.OPT_GENERATE_PARSER()));
         PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.nullValueOptimization"),
+                       python::PyString_FromString("tuplex.optimizer.retypeUsingOptimizedInputSchema"),
                        python::boolToPython(co.OPT_NULLVALUE_OPTIMIZATION()));
         PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.optimizer.filterPushdown"),

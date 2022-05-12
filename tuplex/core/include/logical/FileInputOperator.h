@@ -31,6 +31,7 @@ namespace tuplex {
      */
     class FileInputOperator : public LogicalOperator {
     private:
+        // *** members to serialize ***
         std::vector<URI>      _fileURIs;
         std::vector<size_t>   _sizes;
         size_t _estimatedRowCount; // number of rows estimated for these files...
@@ -41,21 +42,86 @@ namespace tuplex {
         char _quotechar;
         char _delimiter;
         bool _header;
+
+        // general fields for managing both cases & projections
         std::vector<std::string> _null_values;
-
-        Schema _optimizedSchema; // schema after selection pushdown is performed.
-        std::vector<std::string> _columnNames;
-        std::vector<std::string> _optimizedColumnNames;
         std::vector<bool> _columnsToSerialize; // which columns to serialize
+        std::vector<std::string> _columnNames;
 
+        // specialized normal-case type
+        python::Type _normalCaseRowType;
+        python::Type _generalCaseRowType;
         std::unordered_map<size_t, python::Type> _indexBasedHints;
 
-        python::Type _normalCaseRowType;
-        python::Type _optimizedNormalCaseRowType;
-
+        // *** members NOT to serialize ***
+        // Variables that wont' get serialized.
+        double _sampling_time_s;
         // internal sample, used for tracing & Co.
         std::vector<Row> _firstRowsSample;
         std::vector<Row> _lastRowsSample;
+
+
+        // *** helper functions ***
+        inline Schema normalCaseSchema() const { return Schema(Schema::MemoryLayout::ROW, _normalCaseRowType); }
+        inline Schema generalCaseSchema() const { return Schema(Schema::MemoryLayout::ROW, _generalCaseRowType); }
+
+        // helper function to project a schema
+        inline python::Type projectRowType(const python::Type& rowType) const {
+            if(_columnsToSerialize.empty()) {
+                // not set, use original
+                return rowType;
+            }
+            // use columns to serialize to get projected type
+            assert(rowType.isTupleType());
+            assert(rowType.parameters().size() == _columnsToSerialize.size());
+
+            auto params = rowType.parameters();
+            std::vector<python::Type> col_types;
+            for(unsigned i = 0; i < _columnsToSerialize.size(); ++i) {
+                col_types.push_back(params[i]);
+            }
+            return python::Type::makeTupleType(col_types);
+        }
+
+        inline std::vector<std::string> projectColumns(const std::vector<std::string>& columns) const {
+            if(_columnsToSerialize.empty() || _columnNames.empty())
+                return {};
+
+            assert(_columnsToSerialize.size() == _columnNames.size());
+            std::vector<std::string> names;
+            for(unsigned i = 0; i < _columnsToSerialize.size(); ++i) {
+                names.push_back(_columnNames[i]);
+            }
+            return names;
+        }
+
+        inline Schema projectSchema(const Schema& schema) const {
+            return Schema(schema.getMemoryLayout(), projectRowType(schema.getRowType()));
+        }
+
+        inline size_t num_projected_columns() const {
+            // how many columns are there?
+            if(_columnsToSerialize.empty()) {
+                // take general case row type!
+                assert(generalCaseSchema().getRowType().isTupleType());
+                assert(generalCaseSchema().getRowType().parameters().size() == _columnsToSerialize.size());
+
+#ifndef NDEBUG
+                std::cerr<<"WARNING: weird internal behavior in file input operator...?"<<std::endl;
+#endif
+
+                return generalCaseSchema().getRowType().parameters().size();
+            } else {
+                // count!
+                assert(generalCaseSchema().getRowType().isTupleType());
+                assert(generalCaseSchema().getRowType().parameters().size() == _columnsToSerialize.size());
+
+                size_t num = 0;
+                for(auto flag : _columnsToSerialize)
+                    num += flag;
+                return num;
+            }
+        }
 
         void detectFiles(const std::string& pattern);
 
@@ -84,9 +150,6 @@ namespace tuplex {
         FileInputOperator(FileInputOperator& other); // specialized copy constructor!
 
         aligned_string loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode);
-
-        double _sampling_time_s;
-
         std::vector<size_t> translateOutputToInputIndices(const std::vector<size_t>& output_indices);
     public:
 
@@ -181,19 +244,30 @@ namespace tuplex {
          * force usage of normal case type for schema & Co.
          */
         void useNormalCase() {
-            auto ml = _optimizedSchema.getMemoryLayout();
-            setSchema(Schema(ml, _normalCaseRowType));
-            _optimizedSchema = Schema(ml, _optimizedNormalCaseRowType);
+            //auto ml = _optimizedSchema.getMemoryLayout();
+            // setSchema(Schema(ml, _normalCaseRowType));
+            // _optimizedSchema = Schema(ml, _optimizedNormalCaseRowType);
+            std::cerr<<"DO NOT CALL, deprecated..."<<std::endl;
         }
 
+        /*!
+         * gets the projected output schema for the normal case
+         * @return normal case + projected schema
+         */
         Schema getOptimizedOutputSchema() const {
-            auto ml = _optimizedSchema.getMemoryLayout();
-            return  Schema(ml, _optimizedNormalCaseRowType);
+//            auto ml = _optimizedSchema.getMemoryLayout();
+//            return  Schema(ml, _optimizedNormalCaseRowType);
+            return projectSchema(normalCaseSchema());
         }
 
+        /*!
+         * gets the normal case schema (no projection!)
+         * @return normal case schema
+         */
         Schema getOptimizedInputSchema() const {
-            auto ml = _optimizedSchema.getMemoryLayout();
-            return  Schema(ml, _normalCaseRowType);
+            return normalCaseSchema();
+//            auto ml = _optimizedSchema.getMemoryLayout();
+//            return  Schema(ml, _normalCaseRowType);
         }
 
         std::vector<Row> getSample(const size_t num) const override;
@@ -203,7 +277,12 @@ namespace tuplex {
             return LogicalOperator::getOutputSchema();
         }
 
-        Schema getOutputSchema() const override { return _optimizedSchema; }
+        /*!
+         * returns general case schema.
+         */
+        Schema getOutputSchema() const override {
+            return generalCaseSchema();
+        }
 
         /*!
          * calls this function to output only a partial number of columns. I.e. used in optimizer for projectionPushdown
@@ -226,7 +305,7 @@ namespace tuplex {
          */
         bool retype(const std::vector<python::Type>& rowTypes=std::vector<python::Type>()) override;
 
-        std::vector<std::string> columns() const override { return _optimizedColumnNames; }
+        std::vector<std::string> columns() const override { return projectColumns(_columnNames); } //{ return _optimizedColumnNames; }
         std::vector<std::string> inputColumns() const override { return _columnNames; }
         std::vector<bool> columnsToSerialize() const { return _columnsToSerialize; }
 
@@ -237,12 +316,13 @@ namespace tuplex {
         inline size_t outputColumnCount() const {
             // fetch number of columns, either from names or type
             size_t num_cols = 0;
+
             if(columns().empty())
-                num_cols = _optimizedSchema.getRowType().parameters().size();
+                num_cols = num_projected_columns();
             else {
-                if(columns().size() != _optimizedSchema.getRowType().parameters().size()) // important to hold
+                if(columns().size() != num_projected_columns()) // important to hold
                     throw std::runtime_error("size of columns stored (" + std::to_string(columns().size()) + ") does not match actual, projected number of columns("
-                                             + std::to_string(_optimizedSchema.getRowType().parameters().size()) + ").");
+                                             + std::to_string(num_projected_columns()) + ").");
                 num_cols = columns().size();
             }
             return num_cols;
@@ -287,22 +367,21 @@ namespace tuplex {
                 sizes.push_back(s);
             obj["uris"] = uris;
             obj["sizes"] = sizes;
+            obj["estimatedRowCount"] = _estimatedRowCount;
             obj["quotechar"] = _quotechar;
             obj["delimiter"] = _delimiter;
             obj["hasHeader"] = _header;
             obj["null_values"] = _null_values;
 
             obj["columnNames"] = _columnNames;
-            obj["optimizedColumnNames"] = _optimizedColumnNames;
             obj["columnsToSerialize"] = _columnsToSerialize;
 
-            obj["schema"] = schema().getRowType().desc();
-            obj["optimizedSchema"] = _optimizedSchema.getRowType().desc();
             obj["normalCaseRowType"] = _normalCaseRowType.desc();
-            obj["optimizedNormalCaseRowType"] = _optimizedNormalCaseRowType.desc();
+            obj["generalCaseRowType"] = _generalCaseRowType.desc();
+            // not really needed...
+            // obj["indexBasedHints"] = _indexBasedHints;
 
             // skip index based hints...
-
             obj["id"] = getID();
 
             return obj;
@@ -319,20 +398,19 @@ namespace tuplex {
             fop->_quotechar = obj["quotechar"].get<char>();
             fop->_delimiter = obj["delimiter"].get<char>();
             fop->_header = obj["hasHeader"].get<bool>();
-            for(auto uri : obj["uris"])
+            for(const auto& uri : obj["uris"])
                 fop->_fileURIs.push_back(uri.get<std::string>());
             fop->_sizes = obj["sizes"].get<std::vector<size_t>>();
+            fop->_estimatedRowCount = obj["estimatedRowCount"].get<size_t>();
             fop->_null_values = obj["null_values"].get<std::vector<std::string>>();
             fop->_columnNames = obj["columnNames"].get<std::vector<std::string>>();
-            fop->_optimizedColumnNames = obj["optimizedColumnNames"].get<std::vector<std::string>>();
             fop->_columnsToSerialize = obj["columnsToSerialize"].get<std::vector<bool>>();
 
-            fop->_optimizedSchema = Schema(Schema::MemoryLayout::ROW, python::decodeType(obj["optimizedSchema"].get<std::string>()));
             fop->_normalCaseRowType = python::decodeType(obj["normalCaseRowType"].get<std::string>());
-            fop->_optimizedNormalCaseRowType = python::decodeType(obj["optimizedNormalCaseRowType"].get<std::string>());
+            fop->_generalCaseRowType = python::decodeType(obj["generalCaseRowType"].get<std::string>());
 
             fop->setID(obj["id"]);
-            auto schema = Schema(Schema::MemoryLayout::ROW, python::decodeType(obj["schema"].get<std::string>()));
+            auto schema = Schema(Schema::MemoryLayout::ROW, fop->_generalCaseRowType);
             fop->setSchema(schema);
             return fop;
         }
@@ -342,20 +420,36 @@ namespace tuplex {
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             ar(cereal::base_class<LogicalOperator>(this),
-                    _fileURIs, _sizes, _estimatedRowCount, _fmt, _quotechar, _delimiter, _header, _null_values, _optimizedSchema,
-                    _columnNames, _optimizedColumnNames,
-                    _columnsToSerialize, _indexBasedHints,
-                    _normalCaseRowType, _optimizedNormalCaseRowType,
-                    _sampling_time_s); // do NOT serialize samples!
+                    _fileURIs,
+                    _sizes,
+                    _estimatedRowCount,
+                    _fmt,
+                    _quotechar,
+                    _delimiter,
+                    _header,
+                    _null_values,
+                    _columnNames,
+                    _columnsToSerialize,
+                    _indexBasedHints,
+                    _normalCaseRowType,
+                    _generalCaseRowType); // do NOT serialize samples!
         }
 
         template<class Archive> void load(Archive &ar) {
             ar(cereal::base_class<LogicalOperator>(this),
-               _fileURIs, _sizes, _estimatedRowCount, _fmt, _quotechar, _delimiter, _header, _null_values, _optimizedSchema,
-               _columnNames, _optimizedColumnNames,
-               _columnsToSerialize, _indexBasedHints,
-               _normalCaseRowType, _optimizedNormalCaseRowType,
-               _sampling_time_s); // do NOT serialize samples!
+               _fileURIs,
+                _sizes,
+                _estimatedRowCount,
+                _fmt,
+                _quotechar,
+                _delimiter,
+                _header,
+                _null_values,
+                _columnNames,
+                _columnsToSerialize,
+                _indexBasedHints,
+                _normalCaseRowType,
+                _generalCaseRowType); // do NOT serialize samples!
         }
 #endif
     };

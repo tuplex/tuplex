@@ -205,7 +205,7 @@ namespace tuplex {
             auto acc_cols = get_accessed_columns({inputNode});
             std::vector<NormalCaseCheck> projected_checks;
             for(auto col_idx : acc_cols) {
-               for(auto check : checks) {
+               for(const auto& check : checks) {
                    if(check.colNo == col_idx)
                        projected_checks.push_back(checks[col_idx]);
                }
@@ -524,17 +524,6 @@ namespace tuplex {
             vector<shared_ptr<LogicalOperator>> optimized_operators = vec_prepend(_inputNode, _operators);
             auto& logger = Logger::instance().logger("specializing stage optimizer");
 
-            if(_useNVO) {
-                logger.info("performing NVO");
-                optimized_operators = nullValueOptimization();
-
-                // overwrite internal operators to apply subsequent optimizations
-                _inputNode = _inputNode ? optimized_operators.front() : nullptr;
-                _operators = _inputNode ? vector<shared_ptr<LogicalOperator>>{optimized_operators.begin() + 1,
-                                                                              optimized_operators.end()}
-                                                                              : optimized_operators;
-            }
-
             // step 1: retrieve sample from inputnode!
             std::vector<Row> sample = fetchInputSample();
 
@@ -565,9 +554,29 @@ namespace tuplex {
             // detect majority type
             // detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns)
             auto nc_threshold = .9;
-            auto majType = detectMajorityRowType(sample, nc_threshold, true);
+            auto majType = detectMajorityRowType(sample, nc_threshold, true, _useNVO);
 
             std::cout<<"Majority detected row type is: "<<majType.desc()<<std::endl;
+            // if majType of sample is different than input node type input sample -> retype!
+            // also need to restrict type first!
+            if(true) {
+                logger.info("performing Retyping");
+                optimized_operators = retypeUsingOptimizedInputSchema(majType);
+
+                // overwrite internal operators to apply subsequent optimizations
+                _inputNode = _inputNode ? optimized_operators.front() : nullptr;
+                _operators = _inputNode ? vector<shared_ptr<LogicalOperator>>{optimized_operators.begin() + 1,
+                                                                              optimized_operators.end()}
+                                        : optimized_operators;
+            }
+
+            // check what output type of optimized input_node is!
+            if(_inputNode) {
+                auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
+                std::cout<<"(unoptimized) output schema of input op: "<<fop->getOutputSchema().getRowType().desc()<<std::endl;
+                std::cout<<"(optimized) output schema of input op: "<<fop->getOptimizedOutputSchema().getRowType().desc()<<std::endl;
+            }
+
 
             // perform sample based optimizations
             if(_useConstantFolding) {
@@ -584,14 +593,14 @@ namespace tuplex {
             // can filters get pushed down even further? => check! constant folding may remove code!
         }
 
-        std::vector<std::shared_ptr<LogicalOperator>> StagePlanner::nullValueOptimization() {
+        std::vector<std::shared_ptr<LogicalOperator>> StagePlanner::retypeUsingOptimizedInputSchema(const python::Type& input_row_type) {
             using namespace std;
 
             auto& logger = Logger::instance().logger("specializing stage optimizer");
 
-            // only null-value opt yet supported
-            if(!_useNVO)
-                return vec_prepend(_inputNode, _operators);
+//            // only null-value opt yet supported
+//            if(!_useNVO)
+//                return vec_prepend(_inputNode, _operators);
 
             // special case: cache operator! might have exceptions or no exceptions => specialize depending on that!
             // i.e. an interesting case happens when join(... .cache(), ...) is used. Then, need to upcast result to general case
@@ -606,6 +615,7 @@ namespace tuplex {
 
             if(_inputNode->type() != LogicalOperatorType::FILEINPUT && _inputNode->type() != LogicalOperatorType::CACHE) {
                 logger.debug("Skipping null-value optimization for pipeline because input node is " + _inputNode->name());
+                // @TODO: maybe this should also be done using retyping?
                 return vec_prepend(_inputNode, _operators);
             }
 
@@ -618,6 +628,10 @@ namespace tuplex {
             else
                 throw std::runtime_error("internal error in specializing for the normal case");
             auto opt_input_rowtype = opt_input_schema.getRowType();
+
+            logger.info("Row type before retype: " + opt_input_rowtype.desc());
+            opt_input_rowtype = input_row_type;
+            logger.info("Row type after retype: " + opt_input_rowtype.desc());
 
 #ifdef VERBOSE_BUILD
             {
@@ -648,7 +662,9 @@ namespace tuplex {
             vector<std::shared_ptr<LogicalOperator>> opt_ops;
             std::shared_ptr<LogicalOperator> lastNode = nullptr;
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode->clone());
-            fop->useNormalCase();
+            // need to restrict potentially?
+            fop->retype({input_row_type});
+            // fop->useNormalCase();
             opt_ops.push_back(fop);
             // go over the other ops from the stage...
             for(const auto& node : _operators) {

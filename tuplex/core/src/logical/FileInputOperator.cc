@@ -425,16 +425,16 @@ namespace tuplex {
     }
 
     void FileInputOperator::setProjectionDefaults() {// set optimized schema to current one
-        // set optimized schema to current one
-        _optimizedSchema = getInputSchema();
-        _optimizedColumnNames = _columnNames;
+//        // set optimized schema to current one
+//        _optimizedSchema = getInputSchema();
+//        _optimizedColumnNames = _columnNames;
         // create per default true array, i.e. serialize all columns
         _columnsToSerialize = std::vector<bool>();
 
         for (int i = 0; i < inputColumnCount(); ++i)
             _columnsToSerialize.push_back(true);
 
-        _optimizedNormalCaseRowType = _normalCaseRowType;
+//        _optimizedNormalCaseRowType = _normalCaseRowType;
     }
 
     std::vector<Row> FileInputOperator::getSample(const size_t num) const {
@@ -500,7 +500,6 @@ namespace tuplex {
         if(!original_indices)
             original_col_indices_to_serialize = translateOutputToInputIndices(columnsToSerialize);
 
-
         // reset to defaults
         setProjectionDefaults();
 
@@ -513,26 +512,12 @@ namespace tuplex {
         for (int i = 0; i < _columnsToSerialize.size(); ++i)
             _columnsToSerialize[i] = false;
 
-        vector<string> cols;
-        vector<python::Type> colTypes;
-        vector<python::Type> colNormalTypes;
         for (auto idx : original_col_indices_to_serialize) {
             assert(idx < rowType.parameters().size());
-            if (!_columnNames.empty()) {
-                assert(idx < _columnNames.size());
-                cols.emplace_back(_columnNames[idx]);
-            }
-
-            colTypes.emplace_back(rowType.parameters()[idx]);
-            colNormalTypes.emplace_back(_normalCaseRowType.parameters()[idx]);
 
             // set to true for idx
             _columnsToSerialize[idx] = true;
         }
-
-        _optimizedColumnNames = cols;
-        _optimizedSchema = Schema(schema.getMemoryLayout(), python::Type::makeTupleType(colTypes));
-        _optimizedNormalCaseRowType = python::Type::makeTupleType(colNormalTypes);
     }
 
     std::unordered_map<int, int> FileInputOperator::projectionMap() const {
@@ -562,14 +547,33 @@ namespace tuplex {
         if(_fileURIs.empty())
             return;
 
-        assert(_columnNames.empty());
+        if(_columnNames.empty()) {
+            if(columnNames.size() != inputColumnCount())
+                throw std::runtime_error("number of columns given (" + std::to_string(columnNames.size()) +
+                                         ") does not match detected count (" + std::to_string(inputColumnCount()) + ")");
+            _columnNames = columnNames;
+            return;
+        }
 
-        if (columnNames.size() != outputColumnCount())
-            throw std::runtime_error("number of columns given (" + std::to_string(columnNames.size()) +
-                                     ") does not match detected count (" + std::to_string(outputColumnCount()) + ")");
+        // check whether it's a match for input Column Count (i.e. full replace) or output column count (projected replace)
+        if(columnNames.size() == inputColumnCount()) {
+            _columnNames = columnNames;
+        } else {
+            // must match
+            if (columnNames.size() != outputColumnCount())
+                throw std::runtime_error("number of columns given (" + std::to_string(columnNames.size()) +
+                                         ") does not match projected column count (" + std::to_string(outputColumnCount()) + ")");
 
-        _columnNames = columnNames;
-        _optimizedColumnNames = _columnNames;
+            assert(_columnNames.size() == _columnsToSerialize.size());
+
+            // replace columns for kept columns
+            unsigned pos = 0;
+            for(unsigned i = 0; i < _columnsToSerialize.size(); ++i) {
+                if(pos < columnNames.size() && _columnsToSerialize[i]) {
+                    _columnNames[i] = columnNames[pos++];
+                }
+            }
+        }
     }
 
     std::shared_ptr<LogicalOperator> FileInputOperator::clone() {
@@ -581,26 +585,23 @@ namespace tuplex {
 
     FileInputOperator::FileInputOperator(tuplex::FileInputOperator &other) : _fileURIs(other._fileURIs),
                                                                              _sizes(other._sizes),
-                                                                             _quotechar(other._quotechar), _delimiter(other._delimiter),
-                                                                             _header(other._header),
-                                                                             _optimizedSchema(other._optimizedSchema),
-                                                                             _columnNames(other._columnNames),
-                                                                             _optimizedColumnNames(other._optimizedColumnNames),
-                                                                             _columnsToSerialize(other._columnsToSerialize),
-                                                                             _null_values(other._null_values),
-                                                                             _fmt(other._fmt),
                                                                              _estimatedRowCount(other._estimatedRowCount),
+                                                                             _fmt(other._fmt),
+                                                                             _quotechar(other._quotechar),
+                                                                             _delimiter(other._delimiter),
+                                                                             _header(other._header),
+                                                                             _null_values(other._null_values),
+                                                                             _columnsToSerialize(other._columnsToSerialize),
+                                                                             _columnNames(other._columnNames),
                                                                              _normalCaseRowType(other._normalCaseRowType),
-                                                                             _optimizedNormalCaseRowType(other._optimizedNormalCaseRowType),
+                                                                             _generalCaseRowType(other._generalCaseRowType),
+                                                                             _indexBasedHints(other._indexBasedHints),
                                                                              _firstRowsSample(other._firstRowsSample),
                                                                              _lastRowsSample(other._lastRowsSample),
-                                                                             _sampling_time_s(other._sampling_time_s),
-                                                                             _indexBasedHints(other._indexBasedHints) {
+                                                                             _sampling_time_s(other._sampling_time_s) {
         // copy members for logical operator
         LogicalOperator::copyMembers(&other);
-
         LogicalOperator::setDataSet(other.getDataSet());
-
     }
 
     int64_t FileInputOperator::cost() const {
@@ -672,8 +673,10 @@ namespace tuplex {
         auto desired_type = rowTypes.front();
         assert(desired_type.isTupleType());
         auto col_types = desired_type.parameters();
-        auto old_col_types = _optimizedSchema.getRowType().parameters();
+        auto old_col_types = normalCaseSchema().getRowType().parameters();
+        auto old_general_col_types = schema().getRowType().parameters();
 
+        assert(old_col_types.size() <= old_general_col_types.size());
         auto& logger = Logger::instance().logger("codegen");
 
         // check whether number of columns are compatible
@@ -689,15 +692,15 @@ namespace tuplex {
             auto t = col_types[i];
             if(col_types[i].isConstantValued())
                 t = t.underlying();
-            if(!python::canUpcastType(t, old_col_types[i])) {
+            if(!python::canUpcastType(t, old_general_col_types[i])) {
                 logger.warn("provided specialized type " + col_types[i].desc() + " can't be upcast to "
-                            + old_col_types[i].desc() + ", ignoring in retype.");
+                            + old_general_col_types[i].desc() + ", ignoring in retype.");
                 col_types[i] = old_col_types[i];
             }
         }
 
         // retype optimized schema!
-        _optimizedSchema = Schema(_optimizedSchema.getMemoryLayout(), python::Type::makeTupleType(col_types));
+        _normalCaseRowType = python::Type::makeTupleType(col_types);
 
         return true;
     }

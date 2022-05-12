@@ -1111,7 +1111,7 @@ namespace tuplex {
         }
         if(_options.OPT_NULLVALUE_OPTIMIZATION()) {
             logger().warn("null value optimization not yet available for AWS Lambda backend, deactivating.");
-            _options.set("tuplex.optimizer.nullValueOptimization", "false");
+            _options.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
         }
 
         _driver.reset(new Executor(_options.DRIVER_MEMORY(),

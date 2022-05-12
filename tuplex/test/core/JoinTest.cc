@@ -26,7 +26,7 @@ TEST_F(JoinTest, InnerJoinNullBucket) {
     opt.set("tuplex.optimizer.filterPushdown", "false"); // no filter pushdown so codegen works properly!
 
     // disable null-value opt
-    opt.set("optimizer.nullValueOptimization", "false");
+    opt.set("optimizer.retypeUsingOptimizedInputSchema", "false");
 
     Context c(opt);
 
@@ -82,7 +82,7 @@ TEST_F(JoinTest, InnerJoinInt64Option) {
     opt.set("tuplex.optimizer.filterPushdown", "false"); // no filter pushdown so codegen works properly!
 
     // disable null-value opt
-    opt.set("optimizer.nullValueOptimization", "false");
+    opt.set("optimizer.retypeUsingOptimizedInputSchema", "false");
 
     Context c(opt);
 

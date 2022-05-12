@@ -243,9 +243,10 @@ namespace tuplex {
 
             /*!
              * perform null-value optimization & return full pipeline. First op is inputnode
+             * @param input_row_type the input row type to use to retype the pipeline.
              * @return vector of operators
              */
-            std::vector<std::shared_ptr<LogicalOperator>> nullValueOptimization();
+            std::vector<std::shared_ptr<LogicalOperator>> retypeUsingOptimizedInputSchema(const python::Type& input_row_type);
 
             /*!
              * perform constant folding optimization using sample

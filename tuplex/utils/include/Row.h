@@ -205,8 +205,12 @@ namespace tuplex {
      * @param rows sample, if empty unknown is returned
      * @param threshold normal-case threshold
      * @param independent_columns whether to treat each column indepedently or use joint maximization
+     * @param use_nvo if active Option[T] types are speculated on to be either None, T or Option[T] depending on threshold
      * @return majority type
      */
-    extern python::Type detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns=true);
+    extern python::Type detectMajorityRowType(const std::vector<Row>& rows,
+                                              double threshold,
+                                              bool independent_columns=true,
+                                              bool use_nvo=true);
 }
 #endif //TUPLEX_ROW_H

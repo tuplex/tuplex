@@ -16,7 +16,7 @@ namespace tuplex {
 
                 // global settings, encode them!
                 root["sharedObjectPropagation"] = sharedObjectPropagation;
-                root["nullValueOptimization"] = nullValueOptimization;
+                root["retypeUsingOptimizedInputSchema"] = nullValueOptimization;
                 root["constantFoldingOptimization"] = constantFoldingOptimization;
                 root["isRootStage"] = isRootStage;
                 root["generateParser"] = generateParser;
@@ -94,8 +94,8 @@ namespace tuplex {
 
                 // global settings, encode them!
                 ctx.sharedObjectPropagation = root["sharedObjectPropagation"].get<bool>();
-                ctx.nullValueOptimization = root["nullValueOptimization"].get<bool>();// = nullValueOptimization;
-                ctx.constantFoldingOptimization = root["constantFoldingOptimization"].get<bool>();// = nullValueOptimization;
+                ctx.nullValueOptimization = root["retypeUsingOptimizedInputSchema"].get<bool>();// = retypeUsingOptimizedInputSchema;
+                ctx.constantFoldingOptimization = root["constantFoldingOptimization"].get<bool>();// = retypeUsingOptimizedInputSchema;
                 ctx.isRootStage = root["isRootStage"].get<bool>();// = isRootStage;
                 ctx.generateParser = root["generateParser"].get<bool>();// = generateParser;
                 ctx.normalCaseThreshold = root["normalCaseThreshold"].get<double>();// = normalCaseThreshold;

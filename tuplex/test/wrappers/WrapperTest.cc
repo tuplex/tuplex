@@ -1029,14 +1029,14 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
     // "executorCount": 15, "driverMemory": "15G",
     // "partitionSize": "32MB", "runTimeMemory": "64MB",
     // "inputSplitSize": "64MB", "useLLVMOptimizer": true,
-    // "optimizer.nullValueOptimization": true,
+    // "optimizer.retypeUsingOptimizedInputSchema": true,
     // "csv.selectionPushdown": true,
     // "optimizer.generateParser": false,
     // "optimizer.mergeExceptionsInOrder": false,
     // "optimizer.filterPushdown": true}
     PythonContext ctx("python", "",
                     "{\"tuplex.webui.enable\":\"False\", \"tuplex.useLLVMOptimizer\" : \"True\","
-                    " \"tuplex.optimizer.nullValueOptimization\" : \"True\","
+                    " \"tuplex.optimizer.retypeUsingOptimizedInputSchema\" : \"True\","
                     " \"tuplex.optimizer.csv.selectionPushdown\" : \"True\","
                     " \"tuplex.resolveWithInterpreterOnly\":\"False\","
                     "\"tuplex.executorCount\":0,"
@@ -2087,7 +2087,7 @@ TEST_F(WrapperTest, ZillowDirty) {
                      " \"partitionSize\": \"4MB\","
                      " \"runTimeMemory\": \"4MB\","
                      " \"useLLVMOptimizer\": true,"
-                     " \"optimizer.nullValueOptimization\": false,"
+                     " \"optimizer.retypeUsingOptimizedInputSchema\": false,"
                      " \"csv.selectionPushdown\": false, "
                      "\"optimizer.generateParser\": false,"
                      "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
@@ -2100,7 +2100,7 @@ TEST_F(WrapperTest, ZillowDirty) {
                      " \"partitionSize\": \"4MB\","
                      " \"runTimeMemory\": \"4MB\","
                      " \"useLLVMOptimizer\": true,"
-                     " \"optimizer.nullValueOptimization\": false,"
+                     " \"optimizer.retypeUsingOptimizedInputSchema\": false,"
                      " \"csv.selectionPushdown\": false, "
                      "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                      "\"optimizer.generateParser\": false,"

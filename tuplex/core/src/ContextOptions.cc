@@ -287,7 +287,7 @@ namespace tuplex {
                      {"tuplex.inputSplitSize", "16MB"},
                      {"tuplex.optimizer.codeStats", "true"},
                      {"tuplex.optimizer.generateParser", "false"},
-                     {"tuplex.optimizer.nullValueOptimization", "false"},
+                     {"tuplex.optimizer.retypeUsingOptimizedInputSchema", "false"},
                      {"tuplex.optimizer.constantFoldingOptimization", "false"},
                      {"tuplex.optimizer.filterPushdown", "true"},
                      {"tuplex.optimizer.operatorReordering", "false"},

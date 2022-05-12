@@ -311,7 +311,10 @@ namespace tuplex {
         os.flush();
     }
 
-    python::Type detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns) {
+    python::Type detectMajorityRowType(const std::vector<Row>& rows,
+                                       double threshold,
+                                       bool independent_columns,
+                                       bool use_nvo) {
         if(rows.empty())
             return python::Type::UNKNOWN;
 
@@ -356,7 +359,7 @@ namespace tuplex {
                } else if(col_counts[i].size() == 1) {
                    col_types[i] = python::Type::fromHash(col_counts[i].begin()->second);
                } else {
-                   // more than one count. Now it get's tricky...
+                   // more than one count. Now it getting tricky...
                    // is the first null and something else present? => use threshold to determine whether option type or not!
                    auto most_common_type = python::Type::fromHash(col_counts[i].begin()->second);
                    auto most_freq = col_counts[i].begin()->first;
@@ -370,7 +373,7 @@ namespace tuplex {
                        auto second_type = python::Type::fromHash(it->second);
 
                        // threshold?
-                       if(1.0 * most_freq / (1.0 * total_freq) >= threshold) {
+                       if(1.0 * most_freq / (1.0 * total_freq) >= threshold && use_nvo) {
                            // null value
                            col_types[i] = python::Type::NULLVALUE;
                        } else {
@@ -390,9 +393,9 @@ namespace tuplex {
                        // null value found? --> form option type!
                        if(it != col_counts[i].end()) {
                            assert(it->second == python::Type::NULLVALUE.hash());
-                           // check counts
+                           // check counts, in case of non-nvo always use Option type
                            auto nv_count = it->first;
-                           if(1.0 * (nv_count + most_freq) / (1.0 * total_freq) >= threshold)
+                           if(1.0 * (nv_count + most_freq) / (1.0 * total_freq) >= threshold || !use_nvo)
                                col_types[i] = python::Type::makeOptionType(most_common_type);
                        }
                    }

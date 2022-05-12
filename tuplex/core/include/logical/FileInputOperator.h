@@ -78,7 +78,8 @@ namespace tuplex {
             auto params = rowType.parameters();
             std::vector<python::Type> col_types;
             for(unsigned i = 0; i < _columnsToSerialize.size(); ++i) {
-                col_types.push_back(params[i]);
+                if(_columnsToSerialize[i])
+                    col_types.push_back(params[i]);
             }
             return python::Type::makeTupleType(col_types);
         }
@@ -90,7 +91,8 @@ namespace tuplex {
             assert(_columnsToSerialize.size() == _columnNames.size());
             std::vector<std::string> names;
             for(unsigned i = 0; i < _columnsToSerialize.size(); ++i) {
-                names.push_back(_columnNames[i]);
+                if(_columnsToSerialize[i])
+                    names.push_back(_columnNames[i]);
             }
             return names;
         }

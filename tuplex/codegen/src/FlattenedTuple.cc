@@ -630,7 +630,7 @@ namespace tuplex {
 #else
                         // API update here, old API only allows single alignment.
                         // new API allows src and dest alignment separately
-                        builder.CreateMemCpy(serialized_str_ptr, 0, cur_str, 0, cur_size, true);
+                        codegen::IRBuilder(builder).CreateMemCpy(serialized_str_ptr, 0, cur_str, 0, cur_size, true);
 #endif
                         // update the loop variables and return
                         builder.CreateStore(builder.CreateSub(builder.CreateLoad(curStrOffset), _env->i64Const(sizeof(uint64_t))), curStrOffset); // curStrOffset -= 8
@@ -676,7 +676,7 @@ namespace tuplex {
 #else
                         // API update here, old API only allows single alignment.
                         // new API allows src and dest alignment separately
-                        builder.CreateMemCpy(outptr, 0, list_arr, 0, builder.CreateMul(listLen, _env->i64Const(sizeof(uint64_t))), true);
+                        codegen::IRBuilder(builder).CreateMemCpy(outptr, 0, list_arr, 0, builder.CreateMul(listLen, _env->i64Const(sizeof(uint64_t))), true);
 #endif
                     } else {
                         throw std::runtime_error("unknown list type " + fieldType.desc() + " to be serialized!");
@@ -714,7 +714,7 @@ namespace tuplex {
 #else
                     // API update here, old API only allows single alignment.
                     // new API allows src and dest alignment separately
-                    builder.CreateMemCpy(outptr, 0, field, 0, size, true);
+                    codegen::IRBuilder(builder).CreateMemCpy(outptr, 0, field, 0, size, true);
 #endif
 
                     // string & forced zero termination?

@@ -5760,7 +5760,7 @@ namespace tuplex {
             // note: no eps compare here!
             auto base_is_zero = base->getType()->isIntegerTy() ?
                     builder.CreateICmpEQ(base, _env->i64Const(0)) :
-                    builder.CreateFCmpOEQ(base, _env->f64Const(0.0));
+                    builder.get().CreateFCmpOEQ(base, _env->f64Const(0.0));
 
             auto bbBaseZero = BasicBlock::Create(_env->getContext(), "base_is_zero", builder.GetInsertBlock()->getParent());
             auto bbBaseNonZero = BasicBlock::Create(_env->getContext(), "base_non_zero", builder.GetInsertBlock()->getParent());
@@ -5797,29 +5797,29 @@ namespace tuplex {
                     break;
                 }
                 case 2: {
-                    power = mul_op(builder, base, base);
+                    power = mul_op(builder.get(), base, base);
                     break;
                 }
                 case 3: {
-                    auto base2 = mul_op(builder, base, base);
+                    auto base2 = mul_op(builder.get(), base, base);
                     power = mul_op(builder, base2, base);
                     break;
                 }
                 case 4: {
-                    auto base2 = mul_op(builder, base, base);
+                    auto base2 = mul_op(builder.get(), base, base);
                     power = mul_op(builder, base2, base2);
                     break;
                 }
                 case 5: {
-                    auto base2 = mul_op(builder, base, base);
-                    auto base4 = mul_op(builder, base2, base2);
+                    auto base2 = mul_op(builder.get(), base, base);
+                    auto base4 = mul_op(builder.get(), base2, base2);
                     power = mul_op(builder, base, base4);
                     break;
                 }
                 case 6: {
-                    auto base2 = mul_op(builder, base, base);
-                    auto base4 = mul_op(builder, base2, base2);
-                    power = mul_op(builder, base2, base4);
+                    auto base2 = mul_op(builder.get(), base, base);
+                    auto base4 = mul_op(builder.get(), base2, base2);
+                    power = mul_op(builder.get(), base2, base4);
                     break;
                 }
                 // could do more, yet let's stop here...
@@ -5829,14 +5829,14 @@ namespace tuplex {
                     int64_t cur_exponent = std::abs(exponent);
                     while (cur_exponent > 1) {
                         // fmul or int mul
-                        curSq = mul_op(builder, curSq, curSq);
+                        curSq = mul_op(builder.get(), curSq, curSq);
                         cur_exponent -= 2;
                     }
 
                     assert(cur_exponent >= 0);
 
                     if (1 == exponent)
-                        power = mul_op(builder, curSq, base);
+                        power = mul_op(builder.get(), curSq, base);
                     power = curSq;
                     break;
                 }

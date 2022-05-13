@@ -93,7 +93,7 @@ namespace tuplex {
 
             // create basic block & simple return
             BasicBlock* bb = BasicBlock::Create(env.getContext(), "body", func);
-            IRBuilder<> builder(bb);
+            codegen::IRBuilder builder(bb);
 
             // simple return: just size - 1
             llvm::Value* size = args[1];

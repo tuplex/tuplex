@@ -334,6 +334,36 @@ namespace tuplex {
         inline bool useHyperSpecialization(const tuplex::messages::InvocationRequest& req) {
             return req.stage().has_serializedstage() && !req.stage().serializedstage().empty() && req.inputuris_size() > 0;
         }
+
+
+        inline std::tuple<size_t, size_t, size_t, size_t, size_t, size_t> get_row_stats(const TransformStage* tstage) const {
+            // print out info
+            size_t numNormalRows = 0;
+            size_t numExceptionRows = 0;
+            size_t numHashRows = 0;
+            size_t normalBufSize = 0;
+            size_t exceptionBufSize = 0;
+            size_t hashMapSize = 0;
+            for(unsigned i = 0; i < _numThreads; ++i) {
+                numNormalRows += _threadEnvs[i].numNormalRows;
+                numExceptionRows += _threadEnvs[i].numExceptionRows;
+                normalBufSize += _threadEnvs[i].normalBuf.size();
+                exceptionBufSize += _threadEnvs[i].exceptionBuf.size();
+                hashMapSize += _threadEnvs[i].hashMapSize();
+                for(auto info : _threadEnvs[i].spillFiles) {
+                    if(info.isExceptionBuf)
+                        numExceptionRows += info.num_rows;
+                    else
+                        numNormalRows += info.num_rows;
+                }
+            }
+            if(tstage->outputMode() == EndPointMode::HASHTABLE) {
+                numHashRows = numNormalRows;
+                numNormalRows = 0;
+            }
+
+            return std::make_tuple(numNormalRows, numExceptionRows, numHashRows, normalBufSize, exceptionBufSize, hashMapSize);
+        }
     };
 
 

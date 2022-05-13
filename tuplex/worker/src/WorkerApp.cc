@@ -461,7 +461,18 @@ namespace tuplex {
         }
         logger().info("fast path took: " + std::to_string(fastPathTimer.time()) + "s");
 
+        // display exception info:
+        size_t num_exceptions = 0;
+        size_t num_normal = 0;
+        for(unsigned i = 0; i < _numThreads; ++i) {
+            auto env = _threadEnvs[i];
+            num_exceptions += env.numExceptionRows;
+            num_normal += env.numNormalRows;
+        }
+
         // @TODO: write exceptions in order...
+        auto stats_before_resolve = get_row_stats(tstage);
+        logger().info("Normal rows before resolve: " + std::to_string(std::get<0>(stats_before_resolve)) + " except rows before resolve: " + std::to_string(std::get<1>(stats_before_resolve)));
 
         // for now, everything out of order
         logger().info("Starting exception resolution/slow path execution");
@@ -471,31 +482,14 @@ namespace tuplex {
         }
         logger().info("Exception resolution/slow path done. Took " + std::to_string(resolveTimer.time()) + "s");
 
-        // print out info
-        size_t numNormalRows = 0;
-        size_t numExceptionRows = 0;
-        size_t numHashRows = 0;
-        size_t normalBufSize = 0;
-        size_t exceptionBufSize = 0;
-        size_t hashMapSize = 0;
-        for(unsigned i = 0; i < _numThreads; ++i) {
-            numNormalRows += _threadEnvs[i].numNormalRows;
-            numExceptionRows += _threadEnvs[i].numExceptionRows;
-            normalBufSize += _threadEnvs[i].normalBuf.size();
-            exceptionBufSize += _threadEnvs[i].exceptionBuf.size();
-            hashMapSize += _threadEnvs[i].hashMapSize();
-            for(auto info : _threadEnvs[i].spillFiles) {
-                if(info.isExceptionBuf)
-                    numExceptionRows += info.num_rows;
-                else
-                    numNormalRows += info.num_rows;
-            }
-        }
-        if(tstage->outputMode() == EndPointMode::HASHTABLE) {
-            numHashRows = numNormalRows;
-            numNormalRows = 0;
-        }
+        auto row_stats = get_row_stats(tstage);
 
+        auto numNormalRows = std::get<0>(row_stats);
+        auto numExceptionRows = std::get<1>(row_stats);
+        auto numHashRows = std::get<2>(row_stats);
+        auto normalBufSize = std::get<3>(row_stats);
+        auto exceptionBufSize = std::get<4>(row_stats);
+        auto hashMapSize = std::get<5>(row_stats);
         auto task_duration = timer.time();
         std::stringstream ss;
         ss<<"in "<<task_duration<<"s "<<sizeToMemString(normalBufSize)

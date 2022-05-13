@@ -118,7 +118,14 @@ namespace tuplex {
             return pds;
         }
 
-        std::vector<Partition*> serializeFallbackRows(const std::vector<std::tuple<size_t, PyObject*>>& fallbackRows);
+        /*!
+         * Serialize vector of PyObjects to Tuplex format fallback rows in the form of:
+         * row index, exception code, operator id, pickled object size, pickled object payload
+         * @param fallbackRows tuples of row index and fallback rows
+         * @param executor where fallback rows originated from
+         * @return
+         */
+        std::vector<Partition*> serializeFallbackRows(const std::vector<std::tuple<size_t, PyObject*>>& fallbackRows, Executor* executor);
     public:
 
         /*!

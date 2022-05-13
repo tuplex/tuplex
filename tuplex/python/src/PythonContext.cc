@@ -46,8 +46,11 @@ namespace tuplex {
         // create new partition on driver
         auto driver = _context->getDriver();
 
+        // contains tuple of row index to python object for non-conforming rows
         std::vector<std::tuple<size_t, PyObject*>> fallbackRows;
+        // contains fallback rows after they have been serialized to Tuplex format
         std::vector<Partition*> fallbackPartitions;
+        // maps fallback partitions to the normal partitions they originated from
         std::vector<PartitionGroup> partitionMergeInfo;
 
         std::vector<Partition*> partitions;
@@ -64,7 +67,7 @@ namespace tuplex {
             // check capacity and realloc if necessary get a new partition
             if(partition->capacity() < numBytesSerialized + sizeof(double)) {
                 rowDelta += *rawPtr + fallbackRows.size();
-                auto serializedRows = serializeFallbackRows(fallbackRows);
+                auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
                 fallbackRows.clear();
                 partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
                 std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -108,7 +111,7 @@ namespace tuplex {
             numBytesSerialized += sizeof(double);
         }
 
-        auto serializedRows = serializeFallbackRows(fallbackRows);
+        auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
         fallbackRows.clear();
         partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
         std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -154,7 +157,7 @@ namespace tuplex {
             // check capacity and realloc if necessary get a new partition
             if(partition->capacity() < numBytesSerialized + sizeof(int64_t)) {
                 rowDelta += *rawPtr + fallbackRows.size();
-                auto serializedRows = serializeFallbackRows(fallbackRows);
+                auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
                 fallbackRows.clear();
                 partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
                 std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -193,7 +196,7 @@ namespace tuplex {
             *rawPtr = *rawPtr + 1;
             numBytesSerialized += sizeof(int64_t);
         }
-        auto serializedRows = serializeFallbackRows(fallbackRows);
+        auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
         fallbackRows.clear();
         partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
         std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -279,7 +282,7 @@ namespace tuplex {
                 // get new partition if capacity exhausted
                 if(partition->capacity() < numBytesSerialized + requiredBytes) {
                     rowDelta += *rawPtr + fallbackRows.size();
-                    auto serializedRows = serializeFallbackRows(fallbackRows);
+                    auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
                     fallbackRows.clear();
                     partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
                     std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -375,7 +378,7 @@ namespace tuplex {
             // (2) is the field containing total varlength
             // (3) is the actual string content (incl. '\0' delimiter)
         }
-        auto serializedRows = serializeFallbackRows(fallbackRows);
+        auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
         fallbackRows.clear();
         partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
         std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -424,7 +427,7 @@ namespace tuplex {
             // check capacity and realloc if necessary get a new partition
             if(partition->capacity() < numBytesSerialized + sizeof(int64_t)) {
                 rowDelta += *rawPtr + fallbackRows.size();
-                auto serializedRows = serializeFallbackRows(fallbackRows);
+                auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
                 fallbackRows.clear();
                 partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
                 std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -448,7 +451,7 @@ namespace tuplex {
                 fallbackRows.emplace_back(i - rowDelta, obj);
             }
         }
-        auto serializedRows = serializeFallbackRows(fallbackRows);
+        auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
         fallbackRows.clear();
         partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
         std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -508,7 +511,7 @@ namespace tuplex {
                 // check capacity and realloc if necessary get a new partition
                 if(partition->capacity() < numBytesSerialized + requiredBytes) {
                     rowDelta += *rawPtr + fallbackRows.size();
-                    auto serializedRows = serializeFallbackRows(fallbackRows);
+                    auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
                     fallbackRows.clear();
                     partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
                     std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -541,7 +544,7 @@ namespace tuplex {
                 fallbackRows.emplace_back(i - rowDelta, obj);
             }
         }
-        auto serializedRows = serializeFallbackRows(fallbackRows);
+        auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
         fallbackRows.clear();
         partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
         std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -642,7 +645,7 @@ namespace tuplex {
 
                 if(partition->capacity() < numBytesSerialized + requiredBytes) {
                     rowDelta += *rawPtr + fallbackRows.size();
-                    auto serializedRows = serializeFallbackRows(fallbackRows);
+                    auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
                     fallbackRows.clear();
                     partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
                     std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -664,7 +667,7 @@ namespace tuplex {
             } else
                 fallbackRows.emplace_back(std::make_tuple(i - rowDelta, item));
         }
-        auto serializedRows = serializeFallbackRows(fallbackRows);
+        auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
         fallbackRows.clear();
         partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
         std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -736,7 +739,7 @@ namespace tuplex {
                     // check capacity and realloc if necessary get a new partition
                     if (partition->capacity() < numBytesSerialized + allocMinSize) {
                         rowDelta += *rawPtr + fallbackRows.size();
-                        auto serializedRows = serializeFallbackRows(fallbackRows);
+                        auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
                         fallbackRows.clear();
                         partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
                         std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -764,7 +767,7 @@ namespace tuplex {
                 fallbackRows.emplace_back(i - rowDelta, obj);
             }
         }
-        auto serializedRows = serializeFallbackRows(fallbackRows);
+        auto serializedRows = serializeFallbackRows(fallbackRows, _context->getDriver());
         fallbackRows.clear();
         partitionMergeInfo.push_back(PartitionGroup(1, partitions.size(), 0, 0, serializedRows.size(), fallbackPartitions.size()));
         std::copy(serializedRows.begin(), serializedRows.end(), std::back_inserter(fallbackPartitions));
@@ -1302,15 +1305,14 @@ namespace tuplex {
         return co;
     }
 
-    std::vector<Partition*> PythonContext::serializeFallbackRows(const std::vector<std::tuple<size_t, PyObject*>>& fallbackRows) {
+    std::vector<Partition*> PythonContext::serializeFallbackRows(const std::vector<std::tuple<size_t, PyObject*>>& fallbackRows, Executor* executor) {
         std::vector<Partition*> fallbackPartitions;
         if (fallbackRows.empty()) {
             return fallbackPartitions;
         }
 
-        auto driver = _context->getDriver();
         Schema schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::STRING}));
-        auto partition = driver->allocWritablePartition(allocMinSize, schema, -1, _context->id());
+        auto partition = executor->allocWritablePartition(allocMinSize, schema, -1, _context->id());
         int64_t* rawPtr = (int64_t*)partition->lockWriteRaw();
         *rawPtr = 0;
         uint8_t* ptr = (uint8_t*)(rawPtr + 1);
@@ -1327,7 +1329,7 @@ namespace tuplex {
             if (partition->capacity() < numBytesSerialized + requiredBytes) {
                 partition->unlockWrite();
                 fallbackPartitions.push_back(partition);
-                partition = driver->allocWritablePartition(allocMinSize, schema, -1, _context->id());
+                partition = executor->allocWritablePartition(allocMinSize, schema, -1, _context->id());
                 rawPtr = (int64_t *) partition->lockWriteRaw();
                 *rawPtr = 0;
                 ptr = (uint8_t * )(rawPtr + 1);

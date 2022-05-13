@@ -661,6 +661,7 @@ default:
                                     mergeRow(buf, serialized_length, BUF_FORMAT_GENERAL_OUTPUT);
                                     delete [] buf;
                                 } else {
+                                    // Unwrap single element tuples before writing them to the fallback sink
                                     if(PyTuple_Check(rowObj) && PyTuple_Size(rowObj) == 1) {
                                         writePythonObjectToFallbackSink(PyTuple_GetItem(rowObj, 0));
                                     } else {

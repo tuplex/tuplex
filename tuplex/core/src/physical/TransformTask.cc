@@ -548,17 +548,17 @@ namespace tuplex {
         int64_t totalFallbackRowCounter = 0;
         int64_t totalFilterCounter = 0;
 
-        std::vector<uint8_t*> generalPartitions;
-        for (auto &p : _generalPartitions)
-            generalPartitions.push_back(p->lockWriteRaw());
+        uint8_t **generalPartitions = new uint8_t*[_generalPartitions.size()];
+        for (int i = 0; i < _generalPartitions.size(); ++i)
+            generalPartitions[i] = _generalPartitions[i]->lockWriteRaw();
         int64_t numGeneralPartitions = _generalPartitions.size();
         int64_t generalIndexOffset = 0;
         int64_t generalRowOffset = 0;
         int64_t generalByteOffset = 0;
 
-        std::vector<uint8_t*> fallbackPartitions;
-        for (auto &p : _fallbackPartitions)
-            fallbackPartitions.push_back(p->lockWriteRaw());
+        uint8_t **fallbackPartitions = new uint8_t*[_fallbackPartitions.size()];
+        for (int i = 0; i < _fallbackPartitions.size(); ++i)
+            fallbackPartitions[i] = _fallbackPartitions[i]->lockWriteRaw();
         int64_t numFallbackPartitions = _fallbackPartitions.size();
         int64_t fallbackIndexOffset = 0;
         int64_t fallbackRowOffset = 0;
@@ -637,6 +637,9 @@ namespace tuplex {
 
         for (auto &p : _fallbackPartitions)
             p->unlockWrite();
+
+        delete[] fallbackPartitions;
+        delete[] generalPartitions;
 
 #ifndef NDEBUG
         owner()->info("Trafo task memory source exhausted (" + pluralize(_inputPartitions.size(), "partition") + ", "

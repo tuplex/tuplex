@@ -65,10 +65,14 @@ namespace tuplex {
                  return get_or_throw().CreateAlloca(type, AddrSpace, ArraySize, name);
              }
 
-             inline llvm::AllocaInst *CreateAlloca(llvm::Type *Ty, llvm::Value *ArraySize = nullptr,
-                                      const std::string &Name = "") {
-                return get_or_throw().CreateAlloca(Ty, ArraySize, Name);
+            inline llvm::Value* CreateAlloca(llvm::Type *type) const {
+                return get_or_throw().CreateAlloca(type);
             }
+
+//             inline llvm::AllocaInst *CreateAlloca(llvm::Type *Ty, llvm::Value *ArraySize = nullptr,
+//                                      const std::string &Name = "") {
+//                return get_or_throw().CreateAlloca(Ty, ArraySize, Name);
+//            }
 
             // StoreInst * 	CreateStore (Value *Val, Value *Ptr, bool isVolatile=false)
             inline llvm::Value* CreateStore(llvm::Value* Val, llvm::Value* Ptr, bool isVolatile=false) const {

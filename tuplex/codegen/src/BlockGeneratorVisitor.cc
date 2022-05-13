@@ -1627,7 +1627,7 @@ namespace tuplex {
             addInstruction(res.val, res.size);
         }
 
-        BlockGeneratorVisitor::Variable::Variable(LLVMEnvironment &env, codegen::IRBuilder &builder,
+        BlockGeneratorVisitor::Variable::Variable(LLVMEnvironment &env, const codegen::IRBuilder& builder,
                                                   const python::Type &t, const std::string &name) {
             // map type to LLVM
             // allocate variable in first block! (important because of loops!)
@@ -3377,8 +3377,8 @@ namespace tuplex {
                         auto numElements = iterType.parameters().size();
 
                         // create array & index
-                        tuple_array = builder.CreateAlloca(_env->pythonToLLVMType(tupleElementType), _env->i64Const(numElements));
-                        tuple_sizes = builder.CreateAlloca(_env->i64Type(), _env->i64Const(numElements));
+                        tuple_array = builder.CreateAlloca(_env->pythonToLLVMType(tupleElementType), 0, _env->i64Const(numElements));
+                        tuple_sizes = builder.CreateAlloca(_env->i64Type(), 0, _env->i64Const(numElements));
 
                         // store the elements into the array
                         FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder.get(), iter.val, iterType);
@@ -3618,11 +3618,11 @@ namespace tuplex {
 
                 // directly take values out of tuple
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env,
-                                                                      builder,
+                                                                      builder.get(),
                                                                       value.val,
                                                                       value_node->getInferredType());
 
-                return ft.getLoad(builder, {idx});
+                return ft.getLoad(builder.get(), {idx});
             } else {
                 // THIS HERE IS BACKUP CODE, usable if the AST tree isn't reduced completely.
                 _logger.warn(
@@ -3632,7 +3632,7 @@ namespace tuplex {
                 assert(isStaticValue(index_node, true));
 
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env,
-                                                                      builder,
+                                                                      builder.get(),
                                                                       value.val,
                                                                       value_node->getInferredType());
                 auto tupleNumElements = value_node->getInferredType().parameters().size();
@@ -3642,7 +3642,7 @@ namespace tuplex {
                 std::vector<SerializableValue> elements;
                 std::vector<llvm::Type *> elementTypes;
                 for (int i = 0; i < tupleNumElements; ++i) {
-                    auto load = ft.getLoad(builder, {i});
+                    auto load = ft.getLoad(builder.get(), {i});
                     elements.push_back(load);
                     elementTypes.push_back(load.val->getType());
                 }
@@ -3685,7 +3685,7 @@ namespace tuplex {
             auto builder = _lfb->getIRBuilder();
             auto subType = sub->getInferredType();
 
-            auto key = dictionaryKey(_env->getContext(), _env->getModule().get(), builder, index.val,
+            auto key = dictionaryKey(_env->getContext(), _env->getModule().get(), builder.get(), index.val,
                                      index_type, subType);
             if (key == nullptr) {
                 error("Invalid dictionary key");
@@ -3695,21 +3695,21 @@ namespace tuplex {
                     cJSONGetObjectItem_prototype(_env->getContext(), _env->getModule().get()),
                     {value.val, key});
             // throw a keyerror if it is an invalid key
-            _lfb->addException(builder, ExceptionCode::KEYERROR, builder.CreateIsNull(cjson_val));
+            _lfb->addException(builder.get(), ExceptionCode::KEYERROR, builder.get().CreateIsNull(cjson_val));
 
             if (subType == python::Type::BOOLEAN) {
                 // BOOL: in type
                 auto isTrue = builder.CreateCall(
                         cJSONIsTrue_prototype(_env->getContext(), _env->getModule().get()),
                         {cjson_val});
-                auto val = _env->upcastToBoolean(builder, builder.CreateICmpEQ(isTrue, _env->i64Const(1)));
+                auto val = _env->upcastToBoolean(builder.get(), builder.CreateICmpEQ(isTrue, _env->i64Const(1)));
                 return {val, nullptr};
             } else if (subType == python::Type::STRING) {
                 // STRING: 32 bytes offset
                 auto valaddr = builder.CreateGEP(cjson_val, _env->i64Const(32));
                 auto valptr = builder.CreatePointerCast(valaddr, llvm::Type::getInt64PtrTy(_env->getContext()));
                 auto valload = builder.CreateLoad(valptr);
-                auto val = builder.CreateCast(Instruction::CastOps::IntToPtr, valload, _env->i8ptrType());
+                auto val = builder.get().CreateCast(Instruction::CastOps::IntToPtr, valload, _env->i8ptrType());
                 auto len = builder.CreateCall(strlen_prototype(_env->getContext(), _env->getModule().get()), {val});
                 return {val, builder.CreateAdd(len, _env->i64Const(1))};
             } else if (subType == python::Type::I64) {
@@ -3769,10 +3769,10 @@ namespace tuplex {
                 // add check
                 if (value_type.withoutOptions().isDictionaryType()) {
                     // KeyError
-                    _lfb->addException(builder, ExceptionCode::KEYERROR, index.is_null);
+                    _lfb->addException(builder.get(), ExceptionCode::KEYERROR, index.is_null);
                 } else {
                     // TypeError
-                    _lfb->addException(builder, ExceptionCode::TYPEERROR, index.is_null);
+                    _lfb->addException(builder.get(), ExceptionCode::TYPEERROR, index.is_null);
                 }
             }
             // remove option from index_type
@@ -3782,7 +3782,7 @@ namespace tuplex {
                 // None can't be indexed, i.e. null check here!
                 assert(value.is_null);
 
-                _lfb->addException(builder, ExceptionCode::TYPEERROR, value.is_null);
+                _lfb->addException(builder.get(), ExceptionCode::TYPEERROR, value.is_null);
             }
             value_type = value_type.withoutOptions();
 
@@ -3823,20 +3823,20 @@ namespace tuplex {
                     auto numElements = value_type.parameters().size();
 
                     // create array & index
-                    auto array = builder.CreateAlloca(_env->pythonToLLVMType(elementType), _env->i64Const(numElements));
-                    auto sizes = builder.CreateAlloca(_env->i64Type(), _env->i64Const(numElements));
+                    auto array = builder.CreateAlloca(_env->pythonToLLVMType(elementType), 0, _env->i64Const(numElements));
+                    auto sizes = builder.CreateAlloca(_env->i64Type(), 0, _env->i64Const(numElements));
 
                     // @ Todo: index protection (out of bounds?)
                     // store the elements into the array
                     FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env,
-                                                                          builder,
+                                                                          builder.get(),
                                                                           value.val,
                                                                           sub->_value->getInferredType());
 
                     std::vector<SerializableValue> elements;
                     std::vector<llvm::Type *> elementTypes;
                     for (int i = 0; i < numElements; ++i) {
-                        auto load = ft.getLoad(builder, {i});
+                        auto load = ft.getLoad(builder.get(), {i});
                         elements.push_back(load);
                         elementTypes.push_back(load.val->getType());
                     }
@@ -3886,8 +3886,8 @@ namespace tuplex {
                 // @TODO: this here throws an exception... --> correct! but then weird things happen?
 
                 // first perform index check, if fails --> exception!
-                auto indexcmp = _env->indexCheck(builder, index.val, strlength);
-                _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp));
+                auto indexcmp = _env->indexCheck(builder.get(), index.val, strlength);
+                _lfb->addException(builder.get(), ExceptionCode::INDEXERROR, _env->i1neg(builder.get(), indexcmp));
 
                 // normal code goes on (builder variable has been updated)
                 // copy out one char string here
@@ -3921,13 +3921,13 @@ namespace tuplex {
                 addInstruction(subval.val, subval.size);
             } else if(value_type.isListType()) {
                 if(value_type == python::Type::EMPTYLIST) {
-                    _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1Const(true));
+                    _lfb->addException(builder.get(), ExceptionCode::INDEXERROR, _env->i1Const(true));
                     addInstruction(nullptr, nullptr);
                 } else {
                     auto elementType = value_type.elementType();
                     if(elementType.isSingleValued()) {
-                        auto indexcmp = _env->indexCheck(builder, index.val, value.val);
-                        _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp)); // error if index out of bounds
+                        auto indexcmp = _env->indexCheck(builder.get(), index.val, value.val);
+                        _lfb->addException(builder.get(), ExceptionCode::INDEXERROR, _env->i1neg(builder.get(), indexcmp)); // error if index out of bounds
                         if(elementType == python::Type::NULLVALUE) {
                             addInstruction(nullptr, nullptr, _env->i1Const(true));
                         } else if(elementType == python::Type::EMPTYTUPLE) {
@@ -3945,8 +3945,8 @@ namespace tuplex {
                         index = SerializableValue(builder.CreateSelect(cmp, builder.CreateAdd(index.val, num_elements), index.val), index.size);
 
                         // first perform index check, if it fails --> exception!
-                        auto indexcmp = _env->indexCheck(builder, index.val, num_elements);
-                        _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp));
+                        auto indexcmp = _env->indexCheck(builder.get(), index.val, num_elements);
+                        _lfb->addException(builder.get(), ExceptionCode::INDEXERROR, _env->i1neg(builder.get(), indexcmp));
 
                         // get the element
                         auto subval = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 2), index.val));
@@ -4160,7 +4160,7 @@ namespace tuplex {
                 // ok, fits the globally agreed function return type!
 
                 // the retval popped could need extension to an option type!
-                retVal = upCastReturnType(builder, retVal, expression_type, target_type);
+                retVal = upCastReturnType(builder.get(), retVal, expression_type, target_type);
 
                 // this adds a retValue
                 _lfb->addReturn(retVal);
@@ -4261,7 +4261,7 @@ namespace tuplex {
                            type) {
                     // null check, exception required
                     if(args[i].is_null) {
-                        _lfb->addException(builder, ExceptionCode::TYPEERROR, args[i].is_null);
+                        _lfb->addException(builder.get(), ExceptionCode::TYPEERROR, args[i].is_null);
                     }
                 } else if(!python::canUpcastType(type, argType)) { // if option select doesn't work and neither upcasting, error.
                     // @TODO: what about downcasting? I.e. when function needs bool but i64 is given? try downcast option!
@@ -4297,9 +4297,9 @@ namespace tuplex {
                     // this creates a general call. Might create an exception block within the current function!
                     // handle iterator-related calls separately since an additional argument iteratorInfo is needed
                     if(call->hasAnnotation() && call->annotation().iteratorInfo) {
-                        ret = _functionRegistry->createIteratorRelatedSymbolCall(*_lfb, builder, funcName, argsType, retType, args, call->annotation().iteratorInfo);
+                        ret = _functionRegistry->createIteratorRelatedSymbolCall(*_lfb, builder.get(), funcName, argsType, retType, args, call->annotation().iteratorInfo);
                     } else {
-                        ret = _functionRegistry->createGlobalSymbolCall(*_lfb, builder, funcName, argsType, retType, args);
+                        ret = _functionRegistry->createGlobalSymbolCall(*_lfb, builder.get(), funcName, argsType, retType, args);
                     }
 
                     // e.g., len(...) won't cause an exception, hence it is very fast...
@@ -4329,21 +4329,21 @@ namespace tuplex {
 
                     if(callerType.isOptionType()) {
                         // null check
-                        _lfb->addException(builder, ExceptionCode::ATTRIBUTEERROR, caller.is_null);
-                        ret = _functionRegistry->createAttributeCall(*_lfb, builder, attrName, callerType, argsType,
+                        _lfb->addException(builder.get(), ExceptionCode::ATTRIBUTEERROR, caller.is_null);
+                        ret = _functionRegistry->createAttributeCall(*_lfb, builder.get(), attrName, callerType, argsType,
                                                                      retType, SerializableValue(caller.val, caller.size), args);
                     } else if(callerType == python::Type::NULLVALUE) {
-                        _lfb->addException(builder, ExceptionCode::ATTRIBUTEERROR, _env->i1Const(true));
+                        _lfb->addException(builder.get(), ExceptionCode::ATTRIBUTEERROR, _env->i1Const(true));
                         ret = SerializableValue(); // default, to continue codegen.
                     } else if(callerType == python::Type::MODULE) {
                         auto& ann = attr->_attribute->annotation();
                         assert(ann.symbol);
                         auto name = ann.symbol->fullyQualifiedName(); // what to call
-                        ret = _functionRegistry->createGlobalSymbolCall(*_lfb, builder, name, argsType, retType, args);
+                        ret = _functionRegistry->createGlobalSymbolCall(*_lfb, builder.get(), name, argsType, retType, args);
                     } else {
                         // regular call to an instance of an object, i.e. builtin objects like int, bool, float, ...
                         assert(!caller.is_null);
-                        ret = _functionRegistry->createAttributeCall(*_lfb, builder, attrName, callerType, argsType,
+                        ret = _functionRegistry->createAttributeCall(*_lfb, builder.get(), attrName, callerType, argsType,
                                                                      retType, caller, args);
                     }
                 } else {
@@ -4428,7 +4428,7 @@ namespace tuplex {
             } else start = SerializableValue(nullptr, nullptr);
             // read in value
             // value for subscript needs to be valid, i.e. perform null check!
-            value = popWithNullCheck(builder, ExceptionCode::TYPEERROR, "'NoneType' object is not subscriptable");
+            value = popWithNullCheck(builder.get(), ExceptionCode::TYPEERROR, "'NoneType' object is not subscriptable");
 
             // get rid off option here
             if (slice->_value->getInferredType().withoutOptions() == python::Type::STRING) {
@@ -4500,9 +4500,9 @@ namespace tuplex {
             builder.SetInsertPoint(positiveStrideBlk);
             // rescale first
             if (!start) builder.CreateStore(_env->i64Const(0), startpos);
-            else builder.CreateStore(processSliceIndex(builder, start, stringLen, stride), startpos);
+            else builder.CreateStore(processSliceIndex(builder.get(), start, stringLen, stride), startpos);
             if (!end) builder.CreateStore(stringLen, endpos);
-            else builder.CreateStore(processSliceIndex(builder, end, stringLen, stride), endpos);
+            else builder.CreateStore(processSliceIndex(builder.get(), end, stringLen, stride), endpos);
 
             // check if start < end; else, return empty
             auto nonemptyResPos = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, builder.CreateLoad(startpos),
@@ -4528,9 +4528,9 @@ namespace tuplex {
             builder.SetInsertPoint(negativeStrideBlk);
             // rescale first
             if (!start) builder.CreateStore(builder.CreateSub(stringLen, _env->i64Const(1)), startpos);
-            else builder.CreateStore(processSliceIndex(builder, start, stringLen, stride), startpos);
+            else builder.CreateStore(processSliceIndex(builder.get(), start, stringLen, stride), startpos);
             if (!end) builder.CreateStore(_env->i64Const(-1), endpos); // SPECIAL, allow negative
-            else builder.CreateStore(processSliceIndex(builder, end, stringLen, stride), endpos);
+            else builder.CreateStore(processSliceIndex(builder.get(), end, stringLen, stride), endpos);
 
             // check if start > end; else, return empty
             auto nonemptyResNeg = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SGT, builder.CreateLoad(startpos),
@@ -4541,7 +4541,7 @@ namespace tuplex {
             builder.SetInsertPoint(validRangeBlk);
             // newstrlen = ceiling(end-start/stride)
             auto diff = builder.CreateSub(builder.CreateLoad(endpos), builder.CreateLoad(startpos));
-            auto newstrlen = _env->floorDivision(builder, diff, stride);
+            auto newstrlen = _env->floorDivision(builder.get(), diff, stride);
             auto hasnorem = builder.CreateICmpEQ(builder.CreateSRem(diff, stride), _env->i64Const(0));
             newstrlen = builder.CreateSelect(hasnorem, newstrlen, builder.CreateAdd(newstrlen, _env->i64Const(1)));
             auto newlen = builder.CreateAdd(newstrlen, _env->i64Const(1));
@@ -4592,7 +4592,7 @@ namespace tuplex {
         }
 
         llvm::Value *
-        BlockGeneratorVisitor::processSliceIndex(IRBuilder<> &builder, llvm::Value *index, llvm::Value *len,
+        BlockGeneratorVisitor::processSliceIndex(llvm::IRBuilder<> &builder, llvm::Value *index, llvm::Value *len,
                                                  llvm::Value *stride) {
             // case 1: (-inf, -stringLen) => 0 // for negative stride, goes to -1
             // case 2: [-stringLen, -1] => +stringLen
@@ -4684,7 +4684,7 @@ namespace tuplex {
                 if (!_policy.allowUndefinedBehavior) {
                     auto strideIsZero = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, stride,
                                                            _env->i64Const(0));
-                    _lfb->addException(builder, ExceptionCode::VALUEERROR, strideIsZero);
+                    _lfb->addException(builder.get(), ExceptionCode::VALUEERROR, strideIsZero);
                 }
 
                 // get size of top level tuple
@@ -4744,7 +4744,7 @@ namespace tuplex {
                     else endpos = size;
                 }
 
-                FlattenedTuple ft_orig = FlattenedTuple::fromLLVMStructVal(_env, builder, tuple.val,
+                FlattenedTuple ft_orig = FlattenedTuple::fromLLVMStructVal(_env, builder.get(), tuple.val,
                                                                            tuple_node->getInferredType());
                 FlattenedTuple ft_new(_env);
                 std::vector<SerializableValue> sliceVals;
@@ -4752,7 +4752,7 @@ namespace tuplex {
 
                 for (int i = startpos; strideval * i < strideval * endpos; i += strideval) {
                     // important to use here vector index!
-                    auto load = ft_orig.getLoad(builder, std::vector<int>{i});
+                    auto load = ft_orig.getLoad(builder.get(), std::vector<int>{i});
                     sliceVals.push_back(load);
                     auto type = ft_orig.fieldType(std::vector<int>{i});
                     sliceTypes.push_back(type);
@@ -4771,9 +4771,9 @@ namespace tuplex {
                 ft_new.init(ft_new_type);
                 for (int i = 0; i < (int) sliceVals.size(); i++) {
                     // important to use set and not setelement!
-                    ft_new.set(builder, std::vector<int>{i}, sliceVals[i].val, sliceVals[i].size, sliceVals[i].is_null);
+                    ft_new.set(builder.get(), std::vector<int>{i}, sliceVals[i].val, sliceVals[i].size, sliceVals[i].is_null);
                 }
-                return {ft_new.getLoad(builder), ft_new.getSize(builder)};
+                return {ft_new.getLoad(builder.get()), ft_new.getSize(builder.get())};
             } else {
                 error("We do not currently support slicing with static, unevaluated expressions");
             }
@@ -4844,9 +4844,9 @@ namespace tuplex {
 
             auto builder = _lfb->getIRBuilder();
             auto expr_type = as->_expression->getInferredType();
-            auto test = _env->truthValueTest(builder, val, expr_type);
-            auto cond = _env->i1neg(builder, test); // flip for assert
-            _lfb->addException(builder, ExceptionCode::ASSERTIONERROR, cond);
+            auto test = _env->truthValueTest(builder.get(), val, expr_type);
+            auto cond = _env->i1neg(builder.get(), test); // flip for assert
+            _lfb->addException(builder.get(), ExceptionCode::ASSERTIONERROR, cond);
         }
 
         void BlockGeneratorVisitor::visit(NRaise* raise) {
@@ -4958,8 +4958,8 @@ namespace tuplex {
                     auto it = _globals.find(name);
                     if(it == _globals.end()) {
                         // add new llvm const
-                        auto const_val = _env->primitiveFieldToLLVM(builder, sym->constantData);
-                        auto var = Variable::asGlobal(*_env, builder, sym->type(), name, const_val);
+                        auto const_val = _env->primitiveFieldToLLVM(builder.get(), sym->constantData);
+                        auto var = Variable::asGlobal(*_env, builder.get(), sym->type(), name, const_val);
                         _globals[name] = std::make_tuple(sym->type(), var);
                     } else {
                         // internal error
@@ -5025,7 +5025,7 @@ namespace tuplex {
             return nullptr;
         }
 
-        void BlockGeneratorVisitor::updateSlotsBasedOnRealizations(llvm::IRBuilder<>& builder,
+        void BlockGeneratorVisitor::updateSlotsBasedOnRealizations(const codegen::IRBuilder& builder,
                 const std::unordered_map<std::string, VariableRealization>& var_realizations,
                 const std::string &branch_name,
                 bool allowNumericUpcasting) {
@@ -5038,10 +5038,10 @@ namespace tuplex {
                     // no, hence add the if type.
                     VariableSlot slot;
                     slot.type = var.second.type;
-                    slot.var = Variable(*_env, builder, slot.type, name);
+                    slot.var = Variable(*_env, codegen::IRBuilder(builder), slot.type, name);
                     // alloc pointer and assign false
                     // => later in ifbuilder assign true to this variable!
-                    slot.definedPtr = _env->CreateFirstBlockVariable(builder, _env->i1Const(false));
+                    slot.definedPtr = _env->CreateFirstBlockVariable(builder.get(), _env->i1Const(false));
                     _variableSlots[name] = slot;
                 } else {
                     // check if we can unify type
@@ -5065,14 +5065,14 @@ namespace tuplex {
 
                         // alloc pointer and assign false
                         // => later in ifbuilder assign true to this variable!
-                        new_slot.definedPtr = _env->CreateFirstBlockVariable(builder, _env->i1Const(false));
+                        new_slot.definedPtr = _env->CreateFirstBlockVariable(builder.get(), _env->i1Const(false));
                         _variableSlots[name] = new_slot;
                     }
                 }
             }
         }
 
-        void BlockGeneratorVisitor::updateSlotsWithSharedTypes(IRBuilder<> &builder,
+        void BlockGeneratorVisitor::updateSlotsWithSharedTypes(const codegen::IRBuilder& builder,
                                                                const std::unordered_map<std::string, VariableRealization> &if_var_realizations,
                                                                const std::unordered_map<std::string, VariableRealization> &else_var_realizations) {
 
@@ -5107,7 +5107,7 @@ namespace tuplex {
                 // alloc pointer and assign true
                 // => vars are shared so they're defined in both!
                 // => we could even get rid off the runtime define here!
-                slot.definedPtr = _env->CreateFirstBlockVariable(builder, _env->i1Const(true));
+                slot.definedPtr = _env->CreateFirstBlockVariable(builder.get(), _env->i1Const(true));
                 _variableSlots[name] = slot;
             }
         }
@@ -5171,7 +5171,7 @@ namespace tuplex {
                     assert(std::get<0>(it->second) == attr->getInferredType());
                     auto var = std::get<1>(it->second);
                     auto builder = _lfb->getIRBuilder();
-                    auto val = var.load(builder);
+                    auto val = var.load(builder.get());
                     addInstruction(val.val, val.size, val.is_null);
                     return;
                 } else {
@@ -5249,9 +5249,9 @@ namespace tuplex {
                 step = _env->i64Const(1);
                 end = builder.CreateSub(exprAlloc.size, _env->i64Const(1));
             } else if(exprType == python::Type::RANGE) {
-                start = builder.CreateLoad(_env->CreateStructGEP(builder, exprAlloc.val, 0));
-                end = builder.CreateLoad(_env->CreateStructGEP(builder, exprAlloc.val, 1));
-                step = builder.CreateLoad(_env->CreateStructGEP(builder, exprAlloc.val, 2));
+                start = builder.CreateLoad(_env->CreateStructGEP(builder.get(), exprAlloc.val, 0));
+                end = builder.CreateLoad(_env->CreateStructGEP(builder.get(), exprAlloc.val, 1));
+                step = builder.CreateLoad(_env->CreateStructGEP(builder.get(), exprAlloc.val, 2));
             } else if(exprType.isIteratorType()) {
                 assert(forStmt->expression->hasAnnotation() && forStmt->expression->annotation().iteratorInfo);
                 iteratorInfo = forStmt->expression->annotation().iteratorInfo;
@@ -5272,9 +5272,9 @@ namespace tuplex {
                         loopCond = _env->i1Const(false);
                     } else {
                         // increment iterator index by 1 and check if it is exhausted
-                        auto iteratorExhausted = _iteratorContextProxy->updateIteratorIndex(builder, exprAlloc.val, iteratorInfo);
+                        auto iteratorExhausted = _iteratorContextProxy->updateIteratorIndex(builder.get(), exprAlloc.val, iteratorInfo);
                         // decrement iterator index by 1
-                        _iteratorContextProxy->incrementIteratorIndex(builder, exprAlloc.val, iteratorInfo, -1);
+                        _iteratorContextProxy->incrementIteratorIndex(builder.get(), exprAlloc.val, iteratorInfo, -1);
                         // loopCond = !iteratorExhausted i.e. if iterator exhausted, ends the loop
                         loopCond = builder.CreateICmpEQ(iteratorExhausted, _env->i1Const(false));
                     }
@@ -5291,11 +5291,11 @@ namespace tuplex {
                     }
                 }
                 auto loopEnd = builder.CreateICmpEQ(loopCond, _env->i1Const(false));
-                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopEnd);
+                _lfb->addException(builder.get(), ExceptionCode::NORMALCASEVIOLATION, loopEnd);
             }
 
             if(!exprType.isIteratorType()) {
-                currPtr = _env->CreateFirstBlockAlloca(builder, _env->i64Type(), "curr");
+                currPtr = _env->CreateFirstBlockAlloca(builder.get(), _env->i64Type(), "curr");
             }
 
             if(unrollFirstIteration) {
@@ -5304,7 +5304,7 @@ namespace tuplex {
                 _logger.debug("first iteration of for loop unrolled to allow type-stability during loop");
                 if(exprType.isIteratorType()) {
                     // increment iterator index by 1
-                    _iteratorContextProxy->incrementIteratorIndex(builder, exprAlloc.val, iteratorInfo, 1);
+                    _iteratorContextProxy->incrementIteratorIndex(builder.get(), exprAlloc.val, iteratorInfo, 1);
                 } else {
                     builder.CreateStore(builder.CreateAdd(start, step), currPtr);
                 }
@@ -5345,7 +5345,7 @@ namespace tuplex {
                     loopCond = _env->i1Const(false);
                 } else {
                     // increment iterator index by 1 and check if it is exhausted
-                    auto iteratorExhausted = _iteratorContextProxy->updateIteratorIndex(builder, exprAlloc.val, iteratorInfo);
+                    auto iteratorExhausted = _iteratorContextProxy->updateIteratorIndex(builder.get(), exprAlloc.val, iteratorInfo);
                     // loopCond = !iteratorExhausted i.e. if iterator exhausted, ends the loop
                     loopCond = builder.CreateICmpEQ(iteratorExhausted, _env->i1Const(false));
                 }
@@ -5384,7 +5384,7 @@ namespace tuplex {
             } else {
                 // should skip loop body, thus add exception for entering loop body
                 _logger.debug("loop body optimized away, as attained in tracing for loop expression evaluates to an empty iterable in majority cases");
-                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopCond);
+                _lfb->addException(builder.get(), ExceptionCode::NORMALCASEVIOLATION, loopCond);
                 if(forStmt->suite_else) {
                     elseBB = llvm::BasicBlock::Create(_env->getContext(), "elseBB", parentFunc);
                     builder.CreateBr(elseBB);
@@ -5435,15 +5435,15 @@ namespace tuplex {
                         // target is of tuple type
                         // either target is a single identifier and needs to be assigned the entire tuple
                         // or target has multiple identifiers and each corresponds to a value in the tuple
-                        FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder, currVal, targetType);
+                        FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder.get(), currVal, targetType);
                         // add value to stack for all identifiers in target
                         if(loopVal.size() == 1) {
                             // single identifier
-                            addInstruction(currVal, ft.getSize(builder));
+                            addInstruction(currVal, ft.getSize(builder.get()));
                         } else {
                             // multiple identifiers, add each value in tuple to stack in reverse order
                             for (int i = loopVal.size() - 1; i >= 0 ; --i) {
-                                auto idVal = ft.getLoad(builder, {i}); // get the value for the ith identifier from tuple
+                                auto idVal = ft.getLoad(builder.get(), {i}); // get the value for the ith identifier from tuple
                                 addInstruction(idVal.val, idVal.size);
                             }
                         }
@@ -5465,7 +5465,7 @@ namespace tuplex {
                 addInstruction(curr, _env->i64Const(8));
             } else if(exprType.isIteratorType()) {
                 if(exprType != python::Type::EMPTYITERATOR) {
-                    auto currVal = _iteratorContextProxy->getIteratorNextElement(builder, exprType.yieldType(), exprAlloc.val, forStmt->expression->annotation().iteratorInfo);
+                    auto currVal = _iteratorContextProxy->getIteratorNextElement(builder.get(), exprType.yieldType(), exprAlloc.val, forStmt->expression->annotation().iteratorInfo);
                     if(exprType.yieldType().isListType()) {
                         if(loopVal.size() == 1) {
                             addInstruction(currVal.val, currVal.size);
@@ -5483,7 +5483,7 @@ namespace tuplex {
                                     addInstruction(idVal, idValSize);
                                 } else if(idType.isTupleType()) {
                                     FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder, idVal, idType);
-                                    addInstruction(idVal, ft.getSize(builder));
+                                    addInstruction(idVal, ft.getSize(builder.get()));
                                 } else {
                                     fatal_error("unsupported target type '" + idType.desc() + "' in for loop encountered");
                                 }
@@ -5497,7 +5497,7 @@ namespace tuplex {
                         } else {
                             // multiple identifiers, add each value in tuple to stack in reverse order
                             for (int i = loopVal.size() - 1; i >= 0 ; --i) {
-                                auto idVal = ft.getLoad(builder, {i}); // get the value for the ith identifier from tuple
+                                auto idVal = ft.getLoad(builder.get(), {i}); // get the value for the ith identifier from tuple
                                 addInstruction(idVal.val, idVal.size);
                             }
                         }
@@ -5547,7 +5547,7 @@ namespace tuplex {
             bool unrollFirstIteration = !skipLoopBody && whileStmt->annotation().typeChangedAndStableCount > whileStmt->annotation().typeStableCount;
 
             // isFirstIteration: true before first iteration completes
-            auto isFirstIterationPtr = _env->CreateFirstBlockAlloca(builder, _env->i1Type(), "firstIterationCompleted");
+            auto isFirstIterationPtr = _env->CreateFirstBlockAlloca(builder.get(), _env->i1Type(), "firstIterationCompleted");
             builder.CreateStore(_env->i1Const(true), isFirstIterationPtr);
 
             // check if we need to separate the first iteration
@@ -5567,7 +5567,7 @@ namespace tuplex {
                 auto cond = _blockStack.back();
                 _blockStack.pop_back();
                 // convert condition value to i1
-                auto whileCond = _env->truthValueTest(builder, cond, whileStmt->expression->getInferredType());
+                auto whileCond = _env->truthValueTest(builder.get(), cond, whileStmt->expression->getInferredType());
                 auto loopEnds = _env->i1neg(builder, whileCond);
                 _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopEnds);
                 builder.CreateStore(_env->i1Const(false), isFirstIterationPtr);
@@ -5610,7 +5610,7 @@ namespace tuplex {
             _blockStack.pop_back();
 
             // convert condition value to i1
-            auto whileCond = _env->truthValueTest(builder, cond, whileStmt->expression->getInferredType());
+            auto whileCond = _env->truthValueTest(builder.get(), cond, whileStmt->expression->getInferredType());
             if(!skipLoopBody) {
                 loopBB = llvm::BasicBlock::Create(_env->getContext(), "loopBB", parentFunc);
                 // type change in loop but loop ends before first iteration? -> normal case violation

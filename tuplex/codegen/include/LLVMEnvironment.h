@@ -118,7 +118,7 @@ namespace tuplex {
             llvm::BasicBlock* _releaseGlobalEntryBlock;
             llvm::Value* _releaseGlobalRetValue;
             // Returns a builder into which global variable release can be inserted.
-            llvm::IRBuilder<> getReleaseGlobalBuilder(const std::string &block_name);
+            codegen::IRBuilder getReleaseGlobalBuilder(const std::string &block_name);
 
             std::unique_ptr<llvm::legacy::FunctionPassManager> _fpm; // lazy initialized function pass manager for quick optimization of function
 
@@ -137,7 +137,7 @@ namespace tuplex {
             std::unique_ptr<llvm::Module> &getModule() { return _module; }
 
             // Returns a builder into which global variable initialization can be inserted.
-            llvm::IRBuilder<> getInitGlobalBuilder(const std::string &block_name);
+            codegen::IRBuilder getInitGlobalBuilder(const std::string &block_name);
 
 //            void preOptimize(llvm::Function* func) {
 // run https://github.com/llvm-mirror/llvm/blob/master/lib/Transforms/IPO/PassManagerBuilder.cpp then whatever is in populateFunctionPassManager.
@@ -638,7 +638,7 @@ namespace tuplex {
                 auto ctor_builder = IRBuilder(builder).firstBlockBuilder();
 //                llvm::IRBuilder<> ctorBuilder(std::move(getFirstBlockBuilder(builder)));
 
-                auto res = ctor_builder.CreateAlloca(llvmType, nullptr, name); assert(res);
+                auto res = ctor_builder.CreateAlloca(llvmType, 0, nullptr, name); assert(res);
                 return res;
             }
 
@@ -673,7 +673,7 @@ namespace tuplex {
 
                 auto ctor_builder = IRBuilder(builder).firstBlockBuilder();
                 auto llvmType = initialValue->getType();
-                auto res = ctor_builder.CreateAlloca(llvmType, nullptr, name);
+                auto res = ctor_builder.CreateAlloca(llvmType, 0, nullptr, name);
                 ctor_builder.CreateStore(initialValue, res);
                 assert(res);
                 return res;

@@ -79,7 +79,7 @@ namespace codegen {
 
             Variable() : ptr(nullptr), sizePtr(nullptr), nullPtr(nullptr), name("undefined") {}
 
-            Variable(LLVMEnvironment& env, codegen::IRBuilder& builder, const python::Type& t, const std::string& name);
+            Variable(LLVMEnvironment& env, const codegen::IRBuilder& builder, const python::Type& t, const std::string& name);
 
             static Variable asGlobal(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
                             const python::Type& t,
@@ -647,12 +647,12 @@ namespace codegen {
 
         llvm::Value *binaryInst(llvm::Value *R, NBinaryOp *op, llvm::Value *L);
 
-        void updateSlotsBasedOnRealizations(llvm::IRBuilder<>& builder,
+        void updateSlotsBasedOnRealizations(const codegen::IRBuilder& builder,
                                             const std::unordered_map<std::string, VariableRealization>& var_realizations,
                                             const std::string &branch_name,
                                             bool allowNumericUpcasting);
 
-        void updateSlotsWithSharedTypes(llvm::IRBuilder<> &builder,
+        void updateSlotsWithSharedTypes(const codegen::IRBuilder& builder,
                                         const std::unordered_map<std::string, VariableRealization> &if_var_realizations,
                                         const std::unordered_map<std::string, VariableRealization> &else_var_realizations);
 

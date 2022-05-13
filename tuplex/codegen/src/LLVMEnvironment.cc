@@ -95,7 +95,7 @@ namespace tuplex {
             builder.CreateRet(builder.CreateLoad(_releaseGlobalRetValue));
         }
 
-        llvm::IRBuilder<> LLVMEnvironment::getInitGlobalBuilder(const std::string &block_name) {
+        codegen::IRBuilder LLVMEnvironment::getInitGlobalBuilder(const std::string &block_name) {
             // get the successor block
             auto globalEntryTerminator = llvm::dyn_cast<llvm::BranchInst>(_initGlobalEntryBlock->getTerminator());
             auto successorBlock = globalEntryTerminator->getSuccessor(1); // the block if ret == 0
@@ -113,7 +113,7 @@ namespace tuplex {
             return retBuilder;
         }
 
-        llvm::IRBuilder<> LLVMEnvironment::getReleaseGlobalBuilder(const std::string &block_name) {
+        codegen::IRBuilder LLVMEnvironment::getReleaseGlobalBuilder(const std::string &block_name) {
             // get the successor block
             auto globalEntryTerminator = llvm::dyn_cast<llvm::BranchInst>(_releaseGlobalEntryBlock->getTerminator());
             auto successorBlock = globalEntryTerminator->getSuccessor(1); // the block if ret == 0

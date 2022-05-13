@@ -479,7 +479,7 @@ namespace tuplex {
             // then block...
             // -------
             codegen::IRBuilder bThen(enoughCapacity);
-            serialize(bThen, output);
+            serialize(bThen.get(), output);
 
             // set builder to insert on then block
             builder.SetInsertPoint(enoughCapacity);

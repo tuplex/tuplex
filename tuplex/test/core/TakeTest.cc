@@ -19,6 +19,58 @@ using namespace std;
 class TakeTest : public PyTest {
 };
 
+
+struct TakeTestConfig {
+    size_t data_size;
+    size_t top_limit;
+    size_t bottom_limit;
+    string partition_sizes;
+};
+
+/**
+ * Generate a predefine list of test scenarios composing of different data size and limit values
+ */
+vector<TakeTestConfig> generateTakeTestCfgs() {
+    std::vector<TakeTestConfig> testCfgs;
+
+    // generate exhaustive test for small values
+    const std::vector<size_t> small_test_size{1, 10};
+    const std::vector<size_t> small_limit_values{0, 1, 5, 11};
+    for (auto data_size: small_test_size) {
+        for (auto top_limit: small_limit_values) {
+            for (auto bottom_limit: small_limit_values) {
+                testCfgs.push_back({data_size, top_limit, bottom_limit, "256B"});
+            }
+        }
+    }
+
+    // add pre-defined bigger cases
+    testCfgs.push_back({1000, 600, 0, "256B"});
+    testCfgs.push_back({1000, 600, 600, "256B"});
+    testCfgs.push_back({1000, 11, 600, "512KB"});
+
+    testCfgs.push_back({10001, 600, 1001, "256B"});
+    testCfgs.push_back({10001, 600, 1001, "512KB"});
+    testCfgs.push_back({10001, 600, 1001, "1MB"});
+
+    testCfgs.push_back({10001, 5000, 4950, "256B"});
+    testCfgs.push_back({10001, 5000, 4950, "512KB"});
+    testCfgs.push_back({10001, 5000, 4950, "1MB"});
+
+    return testCfgs;
+}
+
+/**
+ * partition test into different partition sizes to avoid reinitializing the same context multiple times
+ */
+map<string, vector<TakeTestConfig>> splitCfgsByPartitionSize(const std::vector<TakeTestConfig> &testCfgs) {
+    map<string, vector<TakeTestConfig>> mp;
+    for (const auto &cfg: testCfgs) {
+        mp[cfg.partition_sizes].push_back(cfg);
+    }
+    return mp;
+}
+
 /**
  * Randomly generate a vector of rows for testing
  * @param N the size of vector
@@ -167,32 +219,27 @@ TEST_F(TakeTest, takeBothTest) {
 TEST_F(TakeTest, takeBigTest) {
     mt19937 data_seed_gen(4242);
 
-    const std::vector<size_t> test_size{1, 10, 100, 1001, 10001};
-    const std::vector<size_t> limit_values{0, 1, 5, 11, 600, 10000};
-    const std::vector<string> partition_sizes{"256B", "512KB", "1MB"};
+    auto testCfgs = generateTakeTestCfgs();
+    auto partitionedCfgs = splitCfgsByPartitionSize(testCfgs);
 
-    for (auto &part_size: partition_sizes) {
+    for (const auto &cfg_pair: partitionedCfgs) {
         auto opt = testOptions();
-        opt.set("tuplex.partitionSize", part_size);
+        opt.set("tuplex.partitionSize", cfg_pair.first);
         Context context(opt);
 
-        for (auto data_size: test_size) {
-            for (auto top_limit: limit_values) {
-                for (auto bottom_limit: limit_values) {
-                    std::cout << "testing with partition size:" << part_size << " data size:"
-                              << data_size << " top:" << top_limit << " bottom:" << bottom_limit << std::endl;
+        for (const auto &cfg: cfg_pair.second) {
+            std::cout << "testing with partition size:" << cfg.partition_sizes << " data size:"
+                      << cfg.data_size << " top:" << cfg.top_limit << " bottom:" << cfg.bottom_limit << std::endl;
 
-                    auto data = generateTestData(data_size, data_seed_gen());
-                    auto ref_data = generateReferenceData(data, top_limit, bottom_limit);
+            auto data = generateTestData(cfg.data_size, data_seed_gen());
+            auto ref_data = generateReferenceData(data, cfg.top_limit, cfg.bottom_limit);
 
-                    auto res = context.parallelize(data).take(top_limit, bottom_limit);
-                    ASSERT_EQ(ref_data.size(), res->rowCount());
-                    for (Row &r: ref_data) {
-                        Row res_row = res->getNextRow();
-                        if (!(res_row == r)) {
-                            ASSERT_EQ(res_row, r);
-                        }
-                    }
+            auto res = context.parallelize(data).take(cfg.top_limit, cfg.bottom_limit);
+            ASSERT_EQ(ref_data.size(), res->rowCount());
+            for (Row &r: ref_data) {
+                Row res_row = res->getNextRow();
+                if (!(res_row == r)) {
+                    ASSERT_EQ(res_row, r);
                 }
             }
         }
@@ -220,36 +267,31 @@ vector<Row> generateMapFilterReferenceData(const vector<Row> &input, size_t topL
 TEST_F(TakeTest, takeMapFilterTest) {
     mt19937 data_seed_gen(56120);
 
-    const std::vector<size_t> test_size{1, 10, 100, 1001, 10001};
-    const std::vector<size_t> limit_values{0, 1, 5, 11, 600, 10000};
-    const std::vector<string> partition_sizes{"256B", "512KB", "1MB"};
+    auto testCfgs = generateTakeTestCfgs();
+    auto partitionedCfgs = splitCfgsByPartitionSize(testCfgs);
 
     UDF map_udf("lambda a, b, c: ((a + b), c)");
     UDF filter_udf("lambda a, b: a % 2 == 0");
 
-    for (auto &part_size: partition_sizes) {
+    for (const auto &cfg_pair: partitionedCfgs) {
         auto opt = testOptions();
-        opt.set("tuplex.partitionSize", part_size);
+        opt.set("tuplex.partitionSize", cfg_pair.first);
         Context context(opt);
 
-        for (auto data_size: test_size) {
-            for (auto top_limit: limit_values) {
-                for (auto bottom_limit: limit_values) {
-                    std::cout << "testing with partition size:" << part_size << " data size:"
-                              << data_size << " top:" << top_limit << " bottom:" << bottom_limit << std::endl;
+        for (const auto &cfg: cfg_pair.second) {
+            std::cout << "testing with partition size:" << cfg.partition_sizes << " data size:"
+                      << cfg.data_size << " top:" << cfg.top_limit << " bottom:" << cfg.bottom_limit << std::endl;
 
-                    auto data = generateTestData(data_size, data_seed_gen());
-                    auto ref_data = generateMapFilterReferenceData(data, top_limit, bottom_limit);
+            auto data = generateTestData(cfg.data_size, data_seed_gen());
+            auto ref_data = generateMapFilterReferenceData(data, cfg.top_limit, cfg.bottom_limit);
 
-                    auto ds = context.parallelize(data).map(map_udf).filter(filter_udf);
-                    auto res = ds.take(top_limit, bottom_limit);
-                    ASSERT_EQ(ref_data.size(), res->rowCount());
-                    for (Row &r: ref_data) {
-                        Row res_row = res->getNextRow();
-                        if (!(res_row == r)) {
-                            ASSERT_EQ(res_row, r);
-                        }
-                    }
+            auto ds = context.parallelize(data).map(map_udf).filter(filter_udf);
+            auto res = ds.take(cfg.top_limit, cfg.bottom_limit);
+            ASSERT_EQ(ref_data.size(), res->rowCount());
+            for (Row &r: ref_data) {
+                Row res_row = res->getNextRow();
+                if (!(res_row == r)) {
+                    ASSERT_EQ(res_row, r);
                 }
             }
         }
@@ -259,7 +301,7 @@ TEST_F(TakeTest, takeMapFilterTest) {
 TEST_F(TakeTest, collectIdentityTest) {
     mt19937 data_seed_gen(123454);
 
-    const std::vector<size_t> test_size{1, 10, 100, 1001, 10001};
+    const std::vector<size_t> test_size{1, 10, 1000, 10001};
     const std::vector<string> partition_sizes{"256B", "512KB", "1MB"};
 
     for (auto &part_size: partition_sizes) {
@@ -282,8 +324,8 @@ TEST_F(TakeTest, collectIdentityTest) {
 }
 
 TEST_F(TakeTest, fileInputTest) {
-    const std::vector<size_t> test_size{1, 1001, 50001};
-    const std::vector<size_t> limit_values{0, 1, 600, 10000};
+    const std::vector<size_t> test_size{1, 1001, 10001};
+    const std::vector<size_t> limit_values{0, 1, 600, 5000};
     const std::vector<string> partition_sizes{"256B", "1MB"};
     std::vector<std::vector<Row>> expected_outputs;
 

@@ -19,6 +19,9 @@
 #include <pcre2.h>
 #include <TupleTree.h>
 
+#include <regex>
+#include <set>
+
 using namespace llvm;
 
 // helper functions for debugging.
@@ -62,30 +65,30 @@ namespace tuplex {
             }
 
             if(ut == python::Type::NULLVALUE) {
-                auto is_null = llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, false));
+                auto is_null = llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, true));
                 return SerializableValue(nullptr, nullptr, is_null);
             } else if(ut == python::Type::BOOLEAN) {
                 bool b = stringToBool(constant_value);
                 //auto t = getBooleanType();
                 auto t = llvm::Type::getInt8Ty(ctx);
                 auto bconst = llvm::Constant::getIntegerValue(t, llvm::APInt(t->getIntegerBitWidth(), b));
-                auto bconst_size =  llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(1, false));
+                auto bconst_size =  llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, sizeof(int64_t)));
                 return SerializableValue(bconst, bconst_size, not_null);
             } else if(ut == python::Type::I64) {
                 auto ival = std::stoll(constant_value);
-                auto i64const = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(ival, false));
-                auto i64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(sizeof(int64_t), false));
+                auto i64const = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, ival));
+                auto i64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, sizeof(int64_t)));
                 return SerializableValue(i64const, i64const_size, not_null);
             } else if(ut == python::Type::F64) {
                 auto dval = std::stod(constant_value);
                 auto f64const = llvm::ConstantFP::get(ctx, llvm::APFloat(dval));
-                auto f64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(sizeof(int64_t), false));
+                auto f64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, sizeof(double)));
                 return SerializableValue(f64const, f64const_size, not_null);
             } else if(ut == python::Type::STRING) {
                 assert(builder.GetInsertBlock()->getParent()); // make sure block has a parent, else pretty bad bugs could happen...
                 auto sconst = builder.CreateGlobalStringPtr(constant_value);
                 auto sval = builder.CreatePointerCast(sconst, llvm::Type::getInt8PtrTy(ctx, 0));
-                auto s64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(constant_value.length() + 1, false));
+                auto s64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, constant_value.length() + 1));
                 return SerializableValue(sval, s64const_size, not_null);
             } else {
                 std::cerr << "wrong type found in gettupleelement constant valued: " << const_type.desc() << std::endl;
@@ -2125,6 +2128,35 @@ namespace tuplex {
             auto retAddr = llvm::BlockAddress::get(func, updateIndexBB);
             _generatedIteratorUpdateIndexFunctions[funcName] = retAddr;
             return retAddr;
+        }
+
+        // "Call parameter type does not match function signature!\n  %4 = alloca %struct.tuple\n %struct.tuple.1*  %216 = call i64 @fill_in_delays(%struct.tuple.0* %152, %struct.tuple* %4)\n"
+        std::string LLVMEnvironment::decodeFunctionParameterError(const std::string& err_message) {
+            using namespace std;
+            stringstream ss;
+            if(strStartsWith(err_message, "Call parameter type does not match function signature!")) {
+                // fetch all the tuple structs and look up the types...
+                // regex is: %struct.tuple(\.?\d+)?
+                smatch match;
+                regex r("struct.tuple(\\.?\\d+)?");
+                set<string> S;
+                string subject = err_message;
+                while(regex_search(subject, match, r)) {
+                    S.insert(match.str(0));
+                    subject = match.suffix().str();
+                }
+
+                for(const auto& el : S) {
+                    // find in structs
+                    for(const auto& kv : _generatedTupleTypes) {
+                        auto name = kv.second->getStructName().str();
+                        if(el == name) {
+                            ss<<name<<": "<<kv.first.desc()<<"\n";
+                        }
+                    }
+                }
+            }
+            return ss.str();
         }
     }
 }

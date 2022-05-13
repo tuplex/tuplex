@@ -217,8 +217,13 @@ namespace tuplex {
                     if(irSample.length() > max_length)
                         irSample = irSample.substr(0, max_length);
 
+                    auto add_err = _env->decodeFunctionParameterError(err);
+                    if(!add_err.empty())
+                        add_err = "\n" + add_err;
+
                     std::stringstream ss;
-                    ss << "could not verify function " << std::string(_func->getName()) << ". Details: " << err;
+                    ss << "could not verify function " << std::string(_func->getName()) << ". Details: " << err
+                       << add_err;
                     ss << "\n" << irSample;
                     Logger::instance().logger("codegen").error(ss.str());
 

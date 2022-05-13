@@ -158,10 +158,16 @@ namespace tuplex {
                         builder.SetInsertPoint(bbNullCheckPassed);
                     }
 
+                    t = simplifyConstantType(t);
                     t = t.withoutOptions();
 
+                    // constant?
+                    if(t.isConstantValued()) {
+                        ret = codegen::constantValuedTypeToLLVM(builder, t);
+                    }
+
                     // values?
-                    if(python::Type::STRING == t) {
+                    else if(python::Type::STRING == t) {
                         // fill in
                         auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
                         auto size = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));

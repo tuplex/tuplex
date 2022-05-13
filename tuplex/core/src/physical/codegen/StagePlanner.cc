@@ -664,7 +664,7 @@ namespace tuplex {
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode->clone());
             // need to restrict potentially?
             fop->retype({input_row_type});
-            // fop->useNormalCase();
+            fop->useNormalCase(); // this forces output schema to be normalcase (i.e. overwrite internally output schema to be normal case schema)
             opt_ops.push_back(fop);
             // go over the other ops from the stage...
             for(const auto& node : _operators) {
@@ -931,6 +931,13 @@ namespace tuplex {
             path_ctx.inputSchema = fop->getOptimizedOutputSchema();
             path_ctx.readSchema = fop->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
             path_ctx.columnsToRead = fop->columnsToSerialize();
+
+            // print out columns & types!
+            assert(fop->columns().size() == path_ctx.inputSchema.getRowType().parameters().size());
+            for(unsigned i = 0; i < fop->columns().size(); ++i) {
+                std::cout<<"col "<<i<<" (" + fop->columns()[i] + ")"<<": "<<path_ctx.inputSchema.getRowType().parameters()[i].desc()<<std::endl;
+            }
+
         } else {
             path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();
             path_ctx.readSchema = Schema::UNKNOWN; // not set, b.c. not a reader...
@@ -939,6 +946,9 @@ namespace tuplex {
 
         path_ctx.outputSchema = path_ctx.operators.back()->getOutputSchema();
         logger.info("specialized to input:  " + path_ctx.inputSchema.getRowType().desc());
+
+
+
         logger.info("specialized to output: " + path_ctx.outputSchema.getRowType().desc());
 
         // print out:

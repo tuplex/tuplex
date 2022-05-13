@@ -1019,6 +1019,17 @@ namespace tuplex {
             }
 
             if(val) {
+
+                // debug:
+                if(!(val->getType() == llvm::Type::getInt8PtrTy(context, 0)
+                     || val->getType() == llvm::Type::getInt64Ty(context)
+                     || val->getType() == llvm::Type::getDoubleTy(context)
+                     || val->getType() == _env->getBooleanType()
+                     || val->getType() == _env->getEmptyTupleType()
+                     || val->getType()->isStructTy())) {
+                    std::cerr<<"invalid val type: "<<_env->getLLVMTypeName(val->getType())<<std::endl;
+                }
+
                 // val must be a primitive
                 assert(val->getType() == llvm::Type::getInt8PtrTy(context, 0)
                        || val->getType() == llvm::Type::getInt64Ty(context)

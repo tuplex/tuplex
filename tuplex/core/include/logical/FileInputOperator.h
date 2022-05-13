@@ -249,7 +249,9 @@ namespace tuplex {
             //auto ml = _optimizedSchema.getMemoryLayout();
             // setSchema(Schema(ml, _normalCaseRowType));
             // _optimizedSchema = Schema(ml, _optimizedNormalCaseRowType);
-            std::cerr<<"DO NOT CALL, deprecated..."<<std::endl;
+            //std::cerr<<"DO NOT CALL, deprecated..."<<std::endl;
+            _generalCaseRowType = _normalCaseRowType;
+            setSchema(Schema(Schema::MemoryLayout::ROW, _generalCaseRowType));
         }
 
         /*!

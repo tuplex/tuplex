@@ -132,6 +132,14 @@ namespace tuplex {
 
             std::unique_ptr<llvm::Module> &getModule() { return _module; }
 
+
+            /*!
+             * helper to provide additional insight for func parameter errors...
+             * @param err_message
+             * @return empty str or additional info.
+             */
+            std::string decodeFunctionParameterError(const std::string& err_message);
+
             // Returns a builder into which global variable initialization can be inserted.
             llvm::IRBuilder<> getInitGlobalBuilder(const std::string &block_name);
 

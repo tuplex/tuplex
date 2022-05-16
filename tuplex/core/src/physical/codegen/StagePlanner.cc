@@ -557,6 +557,18 @@ namespace tuplex {
             auto majType = detectMajorityRowType(sample, nc_threshold, true, _useNVO);
 
             std::cout<<"Majority detected row type is: "<<majType.desc()<<std::endl;
+
+            // list details using columns:
+            if(_inputNode) {
+                auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
+                auto columns = fop->inputColumns();
+                assert(columns.size() == majType.parameters().size());
+                for(unsigned i = 0; i < columns.size(); ++i) {
+                    std::cout<<"col ("<<i<<") "<<columns[i]<<": "<<majType.parameters()[i].desc()<<std::endl;
+                }
+            }
+
+
             // if majType of sample is different than input node type input sample -> retype!
             // also need to restrict type first!
             if(true) {
@@ -663,7 +675,7 @@ namespace tuplex {
             std::shared_ptr<LogicalOperator> lastNode = nullptr;
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode->clone());
             // need to restrict potentially?
-            fop->retype({input_row_type});
+            fop->retype(input_row_type, true); // for input operator, ignore Option[str] compatibility which is set per default
             fop->useNormalCase(); // this forces output schema to be normalcase (i.e. overwrite internally output schema to be normal case schema)
             opt_ops.push_back(fop);
             // go over the other ops from the stage...

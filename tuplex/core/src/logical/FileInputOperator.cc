@@ -670,12 +670,8 @@ namespace tuplex {
         }
     }
 
-    bool FileInputOperator::retype(const std::vector<python::Type>& rowTypes) {
-        assert(rowTypes.size() == 1);
-        assert(rowTypes.front().isTupleType());
-        auto desired_type = rowTypes.front();
-        assert(desired_type.isTupleType());
-        auto col_types = desired_type.parameters();
+    bool FileInputOperator::retype(const python::Type& rowType, bool ignore_check_for_str_option) {
+        auto col_types = rowType.parameters();
         auto old_col_types = normalCaseSchema().getRowType().parameters();
         auto old_general_col_types = schema().getRowType().parameters();
 
@@ -685,10 +681,12 @@ namespace tuplex {
         // check whether number of columns are compatible
         if(col_types.size() != old_col_types.size()) {
             logger.error("Provided incompatible rowtype to retype " + name() +
-            ", provided type has " + pluralize(col_types.size(), "column") + " but optimized schema in operator has "
-            + pluralize(old_col_types.size(), "column"));
+                         ", provided type has " + pluralize(col_types.size(), "column") + " but optimized schema in operator has "
+                         + pluralize(old_col_types.size(), "column"));
             return false;
         }
+
+        auto str_opt_type = python::Type::makeOptionType(python::Type::STRING);
 
         // go over and check they're compatible!
         for(unsigned i = 0; i < col_types.size(); ++i) {
@@ -696,15 +694,34 @@ namespace tuplex {
             if(col_types[i].isConstantValued())
                 t = t.underlying();
             if(!python::canUpcastType(t, old_general_col_types[i])) {
-                logger.warn("provided specialized type " + col_types[i].desc() + " can't be upcast to "
-                            + old_general_col_types[i].desc() + ", ignoring in retype.");
-                col_types[i] = old_col_types[i];
+
+                if(!(ignore_check_for_str_option && old_general_col_types[i] == str_opt_type)) {
+                    logger.warn("provided specialized type " + col_types[i].desc() + " can't be upcast to "
+                                + old_general_col_types[i].desc() + ", ignoring in retype.");
+                    col_types[i] = old_col_types[i];
+                }
             }
+        }
+
+        // type hints have precedence over sampling! I.e., include them here!
+        for(const auto& kv : typeHints()) {
+            if(kv.first < col_types.size())
+                col_types[kv.first] = kv.second;
+            else
+                logger.error("internal error, invalid type hint (with wrong index?)");
         }
 
         // retype optimized schema!
         _normalCaseRowType = python::Type::makeTupleType(col_types);
 
         return true;
+    }
+
+    bool FileInputOperator::retype(const std::vector<python::Type>& rowTypes) {
+        assert(rowTypes.size() == 1);
+        assert(rowTypes.front().isTupleType());
+        auto desired_type = rowTypes.front();
+        assert(desired_type.isTupleType());
+        return retype(desired_type, false);
     }
 }

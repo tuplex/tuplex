@@ -352,6 +352,11 @@ namespace tuplex {
             // compute majority, account for null-value prevalence!
             std::vector<python::Type> col_types(col_counts.size());
             for(unsigned i = 0; i < col_counts.size(); ++i) {
+
+                if(i == 58) {
+                    std::cout<<"NAS DELAY"<<std::endl;
+                }
+
                // single type? -> trivial.
                // empty? pyobject
                if(col_counts[i].empty()) {
@@ -368,7 +373,7 @@ namespace tuplex {
                        total_freq += kv.first;
                    if(python::Type::NULLVALUE == most_common_type) {
                        // second one present?
-                       auto it = col_counts[i].begin()++;
+                       auto it = std::next(col_counts[i].begin());
                        auto second_freq = it->first;
                        auto second_type = python::Type::fromHash(it->second);
 
@@ -416,11 +421,13 @@ namespace tuplex {
 
             return python::Type::makeTupleType(col_types);
         } else {
+
+            std::cerr<<"not yet implemented"<<std::endl;
+
             // joint aggregate
             return python::Type::UNKNOWN;
         }
 
         return python::Type::UNKNOWN;
     }
-
 }

@@ -105,24 +105,31 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("codegen");
             // upcast necessary?
             assert(ftIn.getTupleType() == _inputRowType); // needs to be the correct flattened tuple!
-            // upcast necessary?
-            FlattenedTuple ft = ftIn;
-            if(_inputRowType != _inputRowTypeGeneralCase) {
 
-                assert(_inputRowType.isTupleType());
-                assert(_inputRowTypeGeneralCase.isTupleType());
+            if(isNormalCaseAndGeneralCaseCompatible()) {
+                // upcast necessary?
+                FlattenedTuple ft = ftIn;
+                if(_inputRowType != _inputRowTypeGeneralCase) {
 
-                logger.debug("emitting exception upcast on code-path");
-                // could be the case that fast path/normal case requires less columns than general case, therefore cast up
-                ft = normalToGeneralTuple(builder, ftIn, _inputRowType, _inputRowTypeGeneralCase, _normalToGeneralMapping);
+                    assert(_inputRowType.isTupleType());
+                    assert(_inputRowTypeGeneralCase.isTupleType());
+
+                    logger.debug("emitting exception upcast on code-path");
+                    // could be the case that fast path/normal case requires less columns than general case, therefore cast up
+                    ft = normalToGeneralTuple(builder, ftIn, _inputRowType, _inputRowTypeGeneralCase, _normalToGeneralMapping);
+                }
+
+                logger.debug("normal-case input row type of block-based builder is: " + _inputRowType.desc());
+                logger.debug("general-case input row type of block-based builder is: " + _inputRowTypeGeneralCase.desc());
+
+                // serialize!
+                auto serialized_row = ft.serializeToMemory(builder);
+                return serialized_row;
+            } else {
+                logger.debug("incompatible types detected, serializing row as " + ftIn.getTupleType().desc());
+                auto serialized_row = ftIn.serializeToMemory(builder);
+                return serialized_row;
             }
-
-            logger.debug(" normal-case input row type of block-based builder is: " + _inputRowType.desc());
-            logger.debug("general-case input row type of block-based builder is: " + _inputRowTypeGeneralCase.desc());
-
-            // serialize!
-            auto serialized_row = ft.serializeToMemory(builder);
-            return serialized_row;
         }
 
         llvm::BasicBlock* BlockBasedTaskBuilder::exceptionBlock(llvm::IRBuilder<>& builder,

@@ -59,6 +59,8 @@ namespace tuplex {
             inline FlattenedTuple parseNormalCaseRow(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
                 return cellsToTuple(builder, _columnsToSerialize, _fileInputRowType, cellsPtr, sizesPtr);
             }
+
+            SerializableValue serializeBadParseException(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) const;
         public:
             CellSourceTaskBuilder() = delete;
 

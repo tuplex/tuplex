@@ -81,20 +81,36 @@ namespace tuplex {
                     llvm::BasicBlock *bbNoException = llvm::BasicBlock::Create(env().getContext(),
                                                                                "pipeline_ok",
                                                                                builder.GetInsertBlock()->getParent());
-                    // add here exception block for pipeline errors, serialize tuple etc...
-                    auto serialized_row = serializedExceptionRow(builder, ft);
-                    // debug print
-                    logger.debug("CellSourceTaskBuilder: input row type in which exceptions from pipeline are stored that are **not** parse-exceptions is " + ft.getTupleType().desc());
-                    logger.debug("I.e., when creating resolve tasks for this pipeline - set exceptionRowType to this type.");
-                    outputRowNumber = builder.CreateLoad(outputRowNumberVar);
-                    llvm::BasicBlock *curBlock = builder.GetInsertBlock();
-                    auto bbException = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber,
-                                                      serialized_row.val, serialized_row.size);
-                    builder.CreateBr(bbNoException);
 
-                    // add branching to previpus block
-                    builder.SetInsertPoint(curBlock);
-                    builder.CreateCondBr(exceptionRaised, bbException, bbNoException);
+                    // if normal <-> general are incompatible, serialize as NormalCaseViolationError that requires interpreter!
+                    if(isNormalCaseAndGeneralCaseCompatible()) {
+                        // add here exception block for pipeline errors, serialize tuple etc...
+                        auto serialized_row = serializedExceptionRow(builder, ft);
+
+                        // debug print
+                        logger.debug("CellSourceTaskBuilder: input row type in which exceptions from pipeline are stored that are **not** parse-exceptions is " + ft.getTupleType().desc());
+                        logger.debug("I.e., when creating resolve tasks for this pipeline - set exceptionRowType to this type.");
+                        outputRowNumber = builder.CreateLoad(outputRowNumberVar);
+                        llvm::BasicBlock *curBlock = builder.GetInsertBlock();
+                        auto bbException = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber,
+                                                          serialized_row.val, serialized_row.size);
+                        builder.CreateBr(bbNoException);
+                        // add branching to previous block
+                        builder.SetInsertPoint(curBlock);
+                        builder.CreateCondBr(exceptionRaised, bbException, bbNoException);
+                    } else {
+                        outputRowNumber = builder.CreateLoad(outputRowNumberVar);
+                        llvm::BasicBlock *curBlock = builder.GetInsertBlock();
+                        auto nc_ecCode = _env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT));
+                        auto nc_ecOpID = _env->i64Const(_operatorID);
+                        auto serialized_row = serializeBadParseException(builder, cellsPtr, sizesPtr);
+                        auto bbException = exceptionBlock(builder, userData, nc_ecCode, nc_ecOpID, outputRowNumber,
+                                                          serialized_row.val, serialized_row.size);
+                        builder.CreateBr(bbNoException);
+                        // add branching to previous block
+                        builder.SetInsertPoint(curBlock);
+                        builder.CreateCondBr(exceptionRaised, bbException, bbNoException);
+                    }
 
                     builder.SetInsertPoint(bbNoException); // continue inserts & Co
 
@@ -380,6 +396,89 @@ namespace tuplex {
 
             return ft;
         }
+
+        SerializableValue
+        CellSourceTaskBuilder::serializeBadParseException(llvm::IRBuilder<> &builder, llvm::Value *cellsPtr,
+                                                          llvm::Value *sizesPtr) const {
+            size_t numColsToSerialize = 0;
+
+            std::vector<llvm::Value*> cell_strs;
+            std::vector<llvm::Value*> cell_sizes;
+
+            for(int i = 0; i < _columnsToSerialize.size(); ++i) {
+                // should column be serialized? if so emit type logic!
+                if(_columnsToSerialize[i]) {
+                    auto colNo = i;
+                    auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, _env->i64Const(colNo)), "x" + std::to_string(colNo));
+                    auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, _env->i64Const(colNo)), "s" + std::to_string(colNo));
+                    cell_strs.push_back(cellStr);
+                    cell_sizes.push_back(cellSize);
+                   numColsToSerialize++;
+                }
+            }
+
+            // now serialize into buffer (cf. char* serializeParseException(int64_t numCells,
+            //            char **cells,
+            //            int64_t* sizes,
+            //            size_t *buffer_size,
+            //            std::vector<bool> colsToSerialize,
+            //            decltype(malloc) allocator) function)
+
+            size_t numCells = this->_columnsToSerialize.size();
+            llvm::Value* buf_size = _env->i64Const(sizeof(int64_t) + numCells * sizeof(int64_t));
+            // add actual data sizes
+            for(auto vsize : cell_sizes) {
+                buf_size = builder.CreateAdd(buf_size, vsize);
+            }
+
+            SerializableValue row;
+            // alloc temp buffer (rtmalloc!)
+            row.val = _env->malloc(builder, buf_size);
+            row.size = buf_size;
+
+            // first 64bit is actual number of rows.
+            llvm::Value* buf = row.val;
+            builder.CreateStore(_env->i64Const(numColsToSerialize), builder.CreatePointerCast(buf, _env->i64ptrType()));
+            buf = builder.CreateGEP(buf, _env->i32Const(sizeof(int64_t)));
+            size_t pos = 0;
+            llvm::Value* acc_size = _env->i64Const(0);
+            for(unsigned i = 0; i < _columnsToSerialize.size(); ++i) {
+                if(_columnsToSerialize[i]) {
+                    //   uint64_t info = (uint64_t)sizes[i] & 0xFFFFFFFF;
+                    //
+                    //                // offset = jump + acc size
+                    //                uint64_t offset = (numCellsToSerialize - pos) * sizeof(int64_t) + acc_size;
+                    //                *(uint64_t*)buf = (info << 32u) | offset;
+                    //                memcpy(buf_ptr + sizeof(int64_t) * (numCellsToSerialize + 1) + acc_size, cells[i], sizes[i]);
+                    //
+                    //                // memcmp check?
+                    //                assert(memcmp(buf + offset, cells[i], sizes[i]) == 0);
+                    //
+                    //                buf += sizeof(int64_t);
+                    //                acc_size += sizes[i];
+                    //                pos++;
+
+                    // the offset is computed using how many varlen fields have been already serialized
+                    llvm::Value *offset = builder.CreateAdd(_env->i64Const((numColsToSerialize - pos) * sizeof(int64_t)), acc_size);
+                    // len | size
+                    llvm::Value *info = builder.CreateOr(builder.CreateZExt(offset, _env->i64Type()), builder.CreateShl(builder.CreateZExt(cell_sizes[pos], _env->i64Type()), 32));
+                    builder.CreateStore(info, builder.CreateBitCast(buf, _env->i64ptrType()), false);
+
+
+                    // perform memcpy
+                    auto dest_ptr = builder.CreateGEP(buf, offset);
+                    builder.CreateMemCpy(dest_ptr, 0, cell_strs[pos], 0, cell_sizes[pos]);
+
+                    acc_size = builder.CreateAdd(acc_size, cell_sizes[pos]);
+                    buf = builder.CreateGEP(buf, _env->i32Const(sizeof(int64_t)));
+
+                    pos++;
+                }
+            }
+
+            return row;
+        }
+
 
         llvm::BasicBlock* CellSourceTaskBuilder::valueErrorBlock(llvm::IRBuilder<> &builder) {
             using namespace llvm;

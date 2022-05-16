@@ -108,6 +108,8 @@ namespace tuplex {
                 return Logger::instance().logger("codegen");
             }
 
+            bool isNormalCaseAndGeneralCaseCompatible() const { return _normalAndGeneralCompatible; }
+
         private:
             std::shared_ptr<codegen::PipelineBuilder> _pipBuilder;
             std::string _desiredFuncName;
@@ -119,6 +121,8 @@ namespace tuplex {
 
             llvm::Value *_intermediate;
             std::map<int, int> _normalToGeneralMapping;
+
+            bool _normalAndGeneralCompatible;
         public:
             BlockBasedTaskBuilder() = delete;
 
@@ -139,13 +143,14 @@ namespace tuplex {
                                                              _normalToGeneralMapping(normalToGeneralMapping),
                                                              _desiredFuncName(name),
                                                              _intermediate(nullptr),
-                                                             _intermediateType(python::Type::UNKNOWN) {
+                                                             _intermediateType(python::Type::UNKNOWN),
+                                                             _normalAndGeneralCompatible(false) {
                 // check that upcasting is true or there is a valid mapping when sizes differ!
 //                assert((_inputRowType.parameters().size() != _inputRowTypeGeneralCase.parameters().size()
 //                && !_normalToGeneralMapping.empty() && _normalToGeneralMapping.size() == _inputRowType.parameters().size()) ||
 //                canUpcastToRowType(_inputRowType, _inputRowTypeGeneralCase));
-                assert(checkCaseCompatibility(_inputRowType, _inputRowTypeGeneralCase, _normalToGeneralMapping));
-                if(_inputRowType != _inputRowTypeGeneralCase) {
+                _normalAndGeneralCompatible = checkCaseCompatibility(_inputRowType, _inputRowTypeGeneralCase, _normalToGeneralMapping);
+                if(isNormalCaseAndGeneralCaseCompatible() && _inputRowType != _inputRowTypeGeneralCase) {
                     Logger::instance().logger("codegen").debug("emitting auto-upcast for exceptions");
                 }
 

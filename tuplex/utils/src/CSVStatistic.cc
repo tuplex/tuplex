@@ -138,8 +138,9 @@ namespace tuplex {
                         type = python::Type::makeOptionType(python::Type::STRING);
                     }
                 }
-                else
+                else {
                     type = python::Type::NULLVALUE; // assume only null values in this column!
+                }
             }
 
             pyTypes.push_back(type);

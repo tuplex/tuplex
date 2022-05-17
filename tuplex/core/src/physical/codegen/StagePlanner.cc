@@ -218,7 +218,10 @@ namespace tuplex {
 
             // set input type for input node
             auto input_type_before = inputNode->getOutputSchema().getRowType();
+            logger.debug("retyping stage with type " + projected_specialized_row_type.desc());
             inputNode->retype({projected_specialized_row_type});
+            if(inputNode->type() == LogicalOperatorType::FILEINPUT)
+                ((FileInputOperator*)inputNode.get())->useNormalCase();
             auto lastParent = inputNode;
             opt_ops.push_back(inputNode);
             logger.debug("input (before): " + input_type_before.desc() +
@@ -958,9 +961,6 @@ namespace tuplex {
 
         path_ctx.outputSchema = path_ctx.operators.back()->getOutputSchema();
         logger.info("specialized to input:  " + path_ctx.inputSchema.getRowType().desc());
-
-
-
         logger.info("specialized to output: " + path_ctx.outputSchema.getRowType().desc());
 
         // print out:
@@ -973,7 +973,6 @@ namespace tuplex {
             numToRead += indicator;
         logger.info("specialized code reads: " + pluralize(numToRead, "column"));
         ctx.fastPathContext = path_ctx;
-
 
         auto generalCaseInputRowType = ctx.slowPathContext.inputSchema.getRowType();
         if(ctx.slowPathContext.inputNode->type() == LogicalOperatorType::FILEINPUT)

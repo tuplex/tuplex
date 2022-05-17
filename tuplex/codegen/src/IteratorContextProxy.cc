@@ -323,7 +323,7 @@ namespace tuplex {
             FunctionType *ft = llvm::FunctionType::get(llvm::Type::getInt1Ty(_env->getContext()),
                                                        {llvm::PointerType::get(iteratorContextType, 0)}, false);
             auto *nextFunc = _env->getModule()->getOrInsertFunction(funcName, ft).getCallee();
-            auto exhausted = builder.CreateCall(nextFunc, iterator);
+            auto exhausted = builder.get().CreateCall(nextFunc, iterator);
             return exhausted;
         }
 

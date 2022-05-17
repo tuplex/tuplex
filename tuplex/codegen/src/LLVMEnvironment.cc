@@ -102,7 +102,7 @@ namespace tuplex {
             // create a new block in the init function
             auto initGlobalFunc = _initGlobalEntryBlock->getParent();
             auto newBlock = BasicBlock::Create(_context, block_name + "_block", initGlobalFunc, successorBlock);
-            auto retBuilder = llvm::IRBuilder<>(newBlock);
+            auto retBuilder = codegen::IRBuilder(newBlock);
             // insert the new block in between the entry block and it's successor
             globalEntryTerminator->setSuccessor(1, newBlock);
             auto loadInst = retBuilder.CreateLoad(_initGlobalRetValue);
@@ -120,7 +120,7 @@ namespace tuplex {
             // create a new block in the release function
             auto releaseGlobalFunc = _releaseGlobalEntryBlock->getParent();
             auto newBlock = BasicBlock::Create(_context, block_name + "_block", releaseGlobalFunc, successorBlock);
-            auto retBuilder = llvm::IRBuilder<>(newBlock);
+            auto retBuilder = codegen::IRBuilder(newBlock);
             // insert the new block in between the entry block and it's successor
             globalEntryTerminator->setSuccessor(1, newBlock);
             auto loadInst = retBuilder.CreateLoad(_releaseGlobalRetValue);

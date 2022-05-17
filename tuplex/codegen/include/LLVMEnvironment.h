@@ -42,6 +42,7 @@
 
 #include <ASTNodes.h>
 #include <CodegenHelper.h>
+#include <LLVMIntrinsics.h>
 
 #include <memory>
 #include <TypeSystem.h>
@@ -656,7 +657,7 @@ namespace tuplex {
 #else
                 auto fabs_id = llvm::Intrinsic::ID::fabs;
 #endif
-                return builder.CreateFCmpOLT(builder.CreateUnaryIntrinsic(fabs_id, value), eps);
+                return builder.CreateFCmpOLT(builder.CreateUnaryIntrinsic(LLVMIntrinsic::fabs, value), eps);
             }
 
             /*!

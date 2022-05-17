@@ -175,6 +175,12 @@ namespace tuplex {
                 assert(TheBB);
                 get_or_throw().SetInsertPoint(TheBB);
             }
+
+            inline void SetInsertPoint(llvm::Instruction* inst) const {
+                 assert(inst);
+                 get_or_throw().SetInsertPoint(inst);
+             }
+
              inline llvm::Value* CreateAdd(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
                                            bool HasNUW = false, bool HasNSW = false) const {
                  return get_or_throw().CreateAdd(LHS, RHS, Name, HasNUW, HasNSW);

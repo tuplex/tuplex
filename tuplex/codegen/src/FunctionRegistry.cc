@@ -97,7 +97,7 @@ namespace tuplex {
 
             // simple return: just size - 1
             llvm::Value* size = args[1];
-            builder.CreateRet(builder.CreateSub(size, env.i64Const(1)));
+            builder.get().CreateRet(builder.CreateSub(size, env.i64Const(1)));
 
             return func;
         }
@@ -682,7 +682,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::sin, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = llvm::createUnaryIntrinsic(builder, LLVMIntrinsic::sin, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -974,7 +974,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::cos, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = llvm::createUnaryIntrinsic(builder, LLVMIntrinsic::cos, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -987,7 +987,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::sqrt, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = llvm::createUnaryIntrinsic(builder, LLVMIntrinsic::sqrt, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1000,7 +1000,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::exp, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = llvm::createUnaryIntrinsic(builder, LLVMIntrinsic::exp, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1013,7 +1013,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::log, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = llvm::createUnaryIntrinsic(builder, LLVMIntrinsic::log, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1049,7 +1049,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::log2, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = llvm::createUnaryIntrinsic(builder, LLVMIntrinsic::log2, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1062,7 +1062,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::log10, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = llvm::createUnaryIntrinsic(builder, LLVMIntrinsic::log10, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1077,7 +1077,7 @@ namespace tuplex {
             auto val2 = power;
             auto& context = builder.GetInsertBlock()->getContext();
             // cast to f64
-            auto resVal = llvm::createBinaryIntrinsic(builder, llvm::Intrinsic::ID::pow, codegen::upCast(builder, val1.val, llvm::Type::getDoubleTy(context)), codegen::upCast(builder, val2.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = llvm::createBinaryIntrinsic(builder, LLVMIntrinsic::pow, codegen::upCast(builder, val1.val, llvm::Type::getDoubleTy(context)), codegen::upCast(builder, val2.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }

@@ -35,6 +35,11 @@
 #include <llvm/Bitstream/BitCodes.h>
 #include <llvm/Bitcode/BitcodeReader.h>
 
+// llvm 10 refactored sys into Host
+#if LLVM_VERSION_MAJOR > 9
+#include <llvm/Support/Host.h>
+#endif
+
 namespace tuplex {
     namespace codegen {
 
@@ -85,7 +90,7 @@ namespace tuplex {
             auto triple = sys::getProcessTriple();//sys::getDefaultTargetTriple();
             std::string error;
             auto theTarget = llvm::TargetRegistry::lookupTarget(triple, error);
-            std::string CPUStr = sys::getHostCPUName();
+            std::string CPUStr = sys::getHostCPUName().str();
 
             //logger.info("using LLVM for target triple: " + triple + " target: " + theTarget->getName() + " CPU: " + CPUStr);
 
@@ -126,9 +131,12 @@ namespace tuplex {
 #if LLVM_VERSION_MAJOR == 9
             target_machine->addPassesToEmitFile(pass_manager, asm_sstream, nullptr,
                                                 llvm::TargetMachine::CGFT_AssemblyFile);
-#else
+#elif LLVM_VERSION_MAJOR < 9
             target_machine->addPassesToEmitFile(pass_manager, asm_sstream,
                                                 llvm::TargetMachine::CGFT_AssemblyFile);
+#else
+            target_machine->addPassesToEmitFile(pass_manager, asm_sstream, nullptr,
+                                                llvm::CodeGenFileType::CGFT_AssemblyFile);
 #endif
 
             pass_manager.run(*module);

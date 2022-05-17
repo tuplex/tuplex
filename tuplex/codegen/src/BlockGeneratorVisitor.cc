@@ -5482,7 +5482,7 @@ namespace tuplex {
                                     auto idValSize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(currVal.val, {3}), _env->i32Const(i)));
                                     addInstruction(idVal, idValSize);
                                 } else if(idType.isTupleType()) {
-                                    FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder, idVal, idType);
+                                    FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder.get(), idVal, idType);
                                     addInstruction(idVal, ft.getSize(builder.get()));
                                 } else {
                                     fatal_error("unsupported target type '" + idType.desc() + "' in for loop encountered");
@@ -5490,7 +5490,7 @@ namespace tuplex {
                             }
                         }
                     } else if(exprType.yieldType().isTupleType()) {
-                        FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder, currVal.val, targetType);
+                        FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder.get(), currVal.val, targetType);
                         // add value to stack for all identifiers in target
                         if(loopVal.size() == 1) {
                             addInstruction(currVal.val, currVal.size);
@@ -5568,7 +5568,7 @@ namespace tuplex {
                 _blockStack.pop_back();
                 // convert condition value to i1
                 auto whileCond = _env->truthValueTest(builder.get(), cond, whileStmt->expression->getInferredType());
-                auto loopEnds = _env->i1neg(builder, whileCond);
+                auto loopEnds = _env->i1neg(builder.get(), whileCond);
                 _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopEnds);
                 builder.CreateStore(_env->i1Const(false), isFirstIterationPtr);
                 _lfb->setLastBlock(builder.GetInsertBlock());
@@ -5615,7 +5615,7 @@ namespace tuplex {
                 loopBB = llvm::BasicBlock::Create(_env->getContext(), "loopBB", parentFunc);
                 // type change in loop but loop ends before first iteration? -> normal case violation
                 if(typeChange) {
-                    auto loopEnd = _env->i1neg(builder, whileCond);
+                    auto loopEnd = _env->i1neg(builder.get(), whileCond);
                     auto isFirstIteration = builder.CreateLoad(isFirstIterationPtr);
                     _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, builder.CreateAnd(isFirstIteration, loopEnd));
                     builder.CreateStore(builder.CreateAnd(isFirstIteration, _env->i1Const(false)), isFirstIterationPtr);
@@ -5639,7 +5639,7 @@ namespace tuplex {
             } else {
                 // should skip loop body, thus add exception for entering loop body
                 _logger.debug("loop body optimized away, as attained in tracing while condition for first iteration not holds in majority cases");
-                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, whileCond);
+                _lfb->addException(builder.get(), ExceptionCode::NORMALCASEVIOLATION, whileCond);
                 if(whileStmt->suite_else) {
                     elseBB = llvm::BasicBlock::Create(_env->getContext(), "elseBB", parentFunc);
                     builder.CreateBr(elseBB);
@@ -5772,7 +5772,7 @@ namespace tuplex {
             builder.SetInsertPoint(bbBaseZero);
             if(exponent < 0) {
                 // always zero division error!
-                _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, base_is_zero); // always true
+                _lfb->addException(builder.get(), ExceptionCode::ZERODIVISIONERROR, base_is_zero); // always true
             } else {
                 // result is always 0 if base == 0
                 // note: exponent == 0 handled above!
@@ -5802,18 +5802,18 @@ namespace tuplex {
                 }
                 case 3: {
                     auto base2 = mul_op(builder.get(), base, base);
-                    power = mul_op(builder, base2, base);
+                    power = mul_op(builder.get(), base2, base);
                     break;
                 }
                 case 4: {
                     auto base2 = mul_op(builder.get(), base, base);
-                    power = mul_op(builder, base2, base2);
+                    power = mul_op(builder.get(), base2, base2);
                     break;
                 }
                 case 5: {
                     auto base2 = mul_op(builder.get(), base, base);
                     auto base4 = mul_op(builder.get(), base2, base2);
-                    power = mul_op(builder, base, base4);
+                    power = mul_op(builder.get(), base, base4);
                     break;
                 }
                 case 6: {

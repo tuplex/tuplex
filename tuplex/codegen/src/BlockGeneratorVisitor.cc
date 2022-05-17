@@ -5569,7 +5569,7 @@ namespace tuplex {
                 // convert condition value to i1
                 auto whileCond = _env->truthValueTest(builder.get(), cond, whileStmt->expression->getInferredType());
                 auto loopEnds = _env->i1neg(builder.get(), whileCond);
-                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopEnds);
+                _lfb->addException(builder.get(), ExceptionCode::NORMALCASEVIOLATION, loopEnds);
                 builder.CreateStore(_env->i1Const(false), isFirstIterationPtr);
                 _lfb->setLastBlock(builder.GetInsertBlock());
                 // loop body
@@ -5617,7 +5617,7 @@ namespace tuplex {
                 if(typeChange) {
                     auto loopEnd = _env->i1neg(builder.get(), whileCond);
                     auto isFirstIteration = builder.CreateLoad(isFirstIterationPtr);
-                    _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, builder.CreateAnd(isFirstIteration, loopEnd));
+                    _lfb->addException(builder.get(), ExceptionCode::NORMALCASEVIOLATION, builder.CreateAnd(isFirstIteration, loopEnd));
                     builder.CreateStore(builder.CreateAnd(isFirstIteration, _env->i1Const(false)), isFirstIterationPtr);
                 }
 
@@ -5863,8 +5863,8 @@ namespace tuplex {
             if(base_zero_power->getType() != power->getType()) {
                 // upcast to larger type
                 assert(base_zero_power->getType()->isDoubleTy() || power->getType()->isDoubleTy());
-                upcast_power = _env->upCast(builder, power, _env->doubleType());
-                upcast_base_zero_power = _env->upCast(builder, base_zero_power, _env->doubleType());
+                upcast_power = _env->upCast(builder.get(), power, _env->doubleType());
+                upcast_base_zero_power = _env->upCast(builder.get(), base_zero_power, _env->doubleType());
             }
 
             base_type = upcast_power->getType();

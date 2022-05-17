@@ -310,7 +310,7 @@ namespace tuplex {
                 funcName = "list_" + prefix + "iterator_update";
             } else if(iterablesType == python::Type::STRING) {
                 funcName = "str_" + prefix + "iterator_update";
-            } else if(iterablesType == python::Type::RANGE){
+            } else if(iterablesType == python::Type::RANGE) {
                 // range_iterator is always used
                 funcName = "range_iterator_update";
             } else if(iterablesType.isTupleType()) {
@@ -323,7 +323,7 @@ namespace tuplex {
             FunctionType *ft = llvm::FunctionType::get(llvm::Type::getInt1Ty(_env->getContext()),
                                                        {llvm::PointerType::get(iteratorContextType, 0)}, false);
             auto *nextFunc = _env->getModule()->getOrInsertFunction(funcName, ft).getCallee();
-            auto exhausted = builder.get().CreateCall(nextFunc, iterator);
+            auto exhausted = builder.CreateCall(nextFunc, iterator);
             return exhausted;
         }
 

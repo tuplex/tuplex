@@ -1046,7 +1046,7 @@ namespace tuplex {
 
             // struct type? then just print its twine!
             if (t->isStructTy())
-                return ((llvm::StructType *) t)->getName();
+                return ((llvm::StructType *) t)->getName().str();
 
             // check if t is pointer type to struct type
             if (t->isPointerTy()) {
@@ -1342,7 +1342,7 @@ namespace tuplex {
 #if LLVM_VERSION_MAJOR < 9
                 builder.CreateMemCpy(new_ptr, str, size, 0, true);
 #else
-                builder.CreateMemCpy(new_ptr, 0, str, 0, size, true);
+                codegen::IRBuilder(builder).CreateMemCpy(new_ptr, 0, str, 0, size, true);
 #endif
                 builder.CreateStore(i8Const(0),
                                     builder.CreateGEP(new_ptr, builder.CreateSub(size, i64Const(1)))); // zero terminate
@@ -1468,7 +1468,7 @@ namespace tuplex {
                 // func->addFnAttr(Attribute::InlineHint);
 
                 BasicBlock *bbEntry = BasicBlock::Create(_context, "entry", func);
-                IRBuilder<> b(bbEntry);
+                IRBuilder b(bbEntry);
 
                 // use sprintf and speculate a bit on size upfront!
                 // then do logic to extend buffer if necessary

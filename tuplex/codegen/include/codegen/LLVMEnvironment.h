@@ -118,6 +118,16 @@ namespace tuplex {
 
             std::unique_ptr<llvm::legacy::FunctionPassManager> _fpm; // lazy initialized function pass manager for quick optimization of function
 
+            inline python::Type lookupPythonType(const std::string& llvm_struct_name) const {
+                for(const auto& kv : _generatedTupleTypes) {
+                    auto name = kv.second->getStructName().str();
+                    if(llvm_struct_name == name) {
+                        return kv.first;
+                    }
+                }
+                return python::Type::UNKNOWN;
+            }
+
         public:
             LLVMEnvironment(const std::string& moduleName="tuplex") : _module(nullptr),
                                                                       _memoryRequested(false) {
@@ -135,10 +145,11 @@ namespace tuplex {
 
             /*!
              * helper to provide additional insight for func parameter errors...
-             * @param err_message
+             * @param name the name of the function to look up in the module
+             * @param err_message the err message from where to extract information
              * @return empty str or additional info.
              */
-            std::string decodeFunctionParameterError(const std::string& err_message);
+            std::string decodeFunctionParameterError(const std::string& name, const std::string& err_message);
 
             // Returns a builder into which global variable initialization can be inserted.
             llvm::IRBuilder<> getInitGlobalBuilder(const std::string &block_name);

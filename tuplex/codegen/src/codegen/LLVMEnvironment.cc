@@ -2131,15 +2131,26 @@ namespace tuplex {
         }
 
         // "Call parameter type does not match function signature!\n  %4 = alloca %struct.tuple\n %struct.tuple.1*  %216 = call i64 @fill_in_delays(%struct.tuple.0* %152, %struct.tuple* %4)\n"
-        std::string LLVMEnvironment::decodeFunctionParameterError(const std::string& name, const std::string& err_message) {
+        std::string LLVMEnvironment::decodeFunctionParameterError(const std::string& err_message) {
             using namespace std;
             stringstream ss;
             if(strStartsWith(err_message, "Call parameter type does not match function signature!")) {
 
-
                 // lookup function type
                 if(_module) {
-                    llvm::Function* func = _module->getFunction(name);
+
+                    // find func name in error message!
+                    smatch match;
+                    regex r("@[a-zA-Z_]+[a-zA-Z0-9_]*\\(");
+                    string subject = err_message;
+                    string func_name;
+                    while(regex_search(subject, match, r)) {
+                        func_name = match.str(0);
+                        func_name = func_name.substr(1, func_name.length() - 2);
+                        subject = match.suffix().str();
+                    }
+
+                    llvm::Function* func = _module->getFunction(func_name);
                     if(func) {
                         // function has two parameters input, output
                         std::vector<llvm::Argument *> args;
@@ -2157,7 +2168,7 @@ namespace tuplex {
                         // look python types up
                         auto in_llvm_name = getLLVMTypeName(in_llvm_type);
                         auto out_llvm_name = getLLVMTypeName(out_llvm_type);
-                        ss<<"function @" +name<<": "<<in_llvm_name<<" -> "<<out_llvm_name<<"\n";
+                        ss<<"function @" +func_name<<": "<<in_llvm_name<<" -> "<<out_llvm_name<<"\n";
 
                         // get name from stored tuples
                         auto in_type = lookupPythonType(in_llvm_name);
@@ -2165,7 +2176,7 @@ namespace tuplex {
                         ss<<"corresponds to: "<<in_type.desc()<<" -> "<<out_type.desc()<<"\n";
 
                     } else {
-                        ss<<"function @" + name + " not found in LLVM module\n";
+                        ss<<"function @" + func_name + " not found in LLVM module\n";
                     }
                 }
 
@@ -2186,7 +2197,7 @@ namespace tuplex {
                     for(const auto& kv : _generatedTupleTypes) {
                         auto type = lookupPythonType(el);
                         if(python::Type::UNKNOWN != type) {
-                            ss<<name<<": "<<type.desc()<<"\n";
+                            ss<<el<<": "<<type.desc()<<"\n";
                         }
                     }
                 }

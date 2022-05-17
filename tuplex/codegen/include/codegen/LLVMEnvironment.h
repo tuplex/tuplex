@@ -145,11 +145,10 @@ namespace tuplex {
 
             /*!
              * helper to provide additional insight for func parameter errors...
-             * @param name the name of the function to look up in the module
              * @param err_message the err message from where to extract information
              * @return empty str or additional info.
              */
-            std::string decodeFunctionParameterError(const std::string& name, const std::string& err_message);
+            std::string decodeFunctionParameterError(const std::string& err_message);
 
             // Returns a builder into which global variable initialization can be inserted.
             llvm::IRBuilder<> getInitGlobalBuilder(const std::string &block_name);

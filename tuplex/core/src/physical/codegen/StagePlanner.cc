@@ -544,12 +544,12 @@ namespace tuplex {
                 std::cout<<keyval.second<<": "<<keyval.first<<std::endl;
             }
 
-            // print out NAS_delay:
-            auto nas_delay_idx = 58;
-            std::cout<<"NAS DELAY types: "<<std::endl;
-            for(auto keyval : t_counts) {
-                std::cout<<keyval.second<<": "<<keyval.first.parameters()[nas_delay_idx].desc()<<std::endl;
-            }
+//            // print out NAS_delay:
+//            auto nas_delay_idx = 58;
+//            std::cout<<"NAS DELAY types: "<<std::endl;
+//            for(auto keyval : t_counts) {
+//                std::cout<<keyval.second<<": "<<keyval.first.parameters()[nas_delay_idx].desc()<<std::endl;
+//            }
 
             // detect majority type
             // detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns)

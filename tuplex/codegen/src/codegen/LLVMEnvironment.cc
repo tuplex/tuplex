@@ -2194,11 +2194,9 @@ namespace tuplex {
 
                 for(const auto& el : S) {
                     // find in structs
-                    for(const auto& kv : _generatedTupleTypes) {
-                        auto type = lookupPythonType(el);
-                        if(python::Type::UNKNOWN != type) {
-                            ss<<el<<": "<<type.desc()<<"\n";
-                        }
+                    auto type = lookupPythonType(el);
+                    if(python::Type::UNKNOWN != type) {
+                        ss<<el<<": "<<type.desc()<<"\n";
                     }
                 }
             }

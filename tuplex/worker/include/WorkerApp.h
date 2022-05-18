@@ -240,7 +240,7 @@ namespace tuplex {
             size_t buf_size;
             SpillInfo spill_info;
 
-            WriteInfo() : buf(nullptr), use_buf(true), num_rows(0), buf_size(0), partNo(0), threadNo(0), num_rows(0) {}
+            WriteInfo() : buf(nullptr), use_buf(true), num_rows(0), buf_size(0), partNo(0), threadNo(0) {}
 
             WriteInfo(const WriteInfo& other) : use_buf(other.use_buf), partNo(other.partNo), threadNo(other.threadNo), num_rows(other.num_rows),
             buf(other.buf), buf_size(other.buf_size), spill_info(other.spill_info) {}

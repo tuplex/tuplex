@@ -376,11 +376,11 @@ endif()
 # specific Release flags, i.e. targeting loop unrolling.
 ucm_add_flags(-m64 -O3 -funroll-loops CONFIG Release)
 
-# use split dwarf to reduce compile times
-# https://undo.io/resources/gdb-watchpoint/reduce-binary-size-compile-time-split-dwarf/
-# cf. https://undo.io/resources/gdb-watchpoint/build-for-debug-in-gdb/
-ucm_add_flags(-Og -gsplit-dwarf CONFIG Debug)
-ucm_add_flags(-Og -gsplit-dwarf CONFIG RelWithDebInfo)
+## use split dwarf to reduce compile times
+## https://undo.io/resources/gdb-watchpoint/reduce-binary-size-compile-time-split-dwarf/
+## cf. https://undo.io/resources/gdb-watchpoint/build-for-debug-in-gdb/
+#ucm_add_flags(-Og -gsplit-dwarf CONFIG Debug)
+#ucm_add_flags(-Og -gsplit-dwarf CONFIG RelWithDebInfo)
 
 # for GCC add stack protector
 # -fstack-protector-strong

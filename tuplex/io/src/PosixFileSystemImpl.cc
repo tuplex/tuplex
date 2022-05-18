@@ -33,6 +33,9 @@
 #include <FileUtils.h>
 #include <dirent.h>
 
+// use this define to use non thread-safe POSIX APIs under Linux
+// #define USE_UNLOCKED_POSIX
+
 // Note: could improve performance prob further by
 // just using native POSIX calls. they're faster...
 
@@ -218,13 +221,13 @@ namespace tuplex {
         // cf. https://en.cppreference.com/w/c/io/setvbuf
 
         if(_fh) {
-            // set buf size
-            _buf = (char*)malloc(POSIX_IOBUF_SIZE);
-            if(_buf) {
-                setvbuf(_fh, _buf, _IOFBF, POSIX_IOBUF_SIZE);
-            }
+//            // set buf size
+//            _buf = (char*)malloc(POSIX_IOBUF_SIZE);
+//            if(_buf) {
+//                setvbuf(_fh, _buf, _IOFBF, POSIX_IOBUF_SIZE);
+//            }
 
-#ifdef LINUX
+#if defined(LINUX) && defined(USE_UNLOCKED_POSIX)
             // unlock file handle on GNU/Linux
         __fsetlocking (_fh, FSETLOCKING_BYCALLER); // in stdio.h, linux extension. Avoid locking.
 #endif
@@ -237,7 +240,7 @@ namespace tuplex {
 
         assert(buffer);
 
-#ifdef LINUX
+#if defined(LINUX) && defined(USE_UNLOCKED_POSIX)
         auto bytesWritten = fwrite_unlocked(buffer, 1, bufferSize, _fh);
 #else
         auto bytesWritten = fwrite(buffer, 1, bufferSize, _fh);
@@ -254,7 +257,7 @@ namespace tuplex {
 
         assert(buffer);
 
-#ifdef LINUX
+#if defined(LINUX) && defined(USE_UNLOCKED_POSIX)
         size_t bytesRead = fread_unlocked(buffer, 1, nbytes, _fh);
 #else
         size_t bytesRead = fread(buffer, 1, nbytes, _fh);
@@ -269,7 +272,7 @@ namespace tuplex {
     }
 
     bool PosixFileSystemImpl::PosixFile::eof() const {
-#ifdef LINUX
+#if defined(LINUX) && defined(USE_UNLOCKED_POSIX)
         return feof_unlocked(_fh);
 #else
         return feof(_fh);

@@ -44,14 +44,21 @@ namespace tuplex {
             assert(_growthConstant > 0);
         }
 
+        // make non-copyable
+        Buffer(const Buffer& other) = delete;
+        Buffer& operator = (const Buffer& other) = delete;
+
         ~Buffer() {
             if(_buffer)
                 free(_buffer);
+            _buffer = nullptr;
+            _bufferSize = 0;
+            _bufferCapacity = 0;
         }
 
         void provideSpace(const size_t numBytes);
 
-        void* buffer() { return _buffer; }
+        void* buffer() { assert(_buffer); return _buffer; }
 
         void* ptr() const { static_assert(sizeof(unsigned char) == 1, "byte type must be 1 byte wide"); assert(_buffer); return (unsigned char*)_buffer + _bufferSize; }
         void movePtr(const size_t numBytes) { _bufferSize += numBytes; }

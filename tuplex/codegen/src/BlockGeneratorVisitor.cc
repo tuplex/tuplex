@@ -4297,7 +4297,7 @@ namespace tuplex {
                     // this creates a general call. Might create an exception block within the current function!
                     // handle iterator-related calls separately since an additional argument iteratorInfo is needed
                     if(call->hasAnnotation() && call->annotation().iteratorInfo) {
-                        ret = _functionRegistry->createIteratorRelatedSymbolCall(*_lfb, builder.get(), funcName, argsType, retType, args, call->annotation().iteratorInfo);
+                        ret = _functionRegistry->createIteratorRelatedSymbolCall(*_lfb, builder, funcName, argsType, retType, args, call->annotation().iteratorInfo);
                     } else {
                         ret = _functionRegistry->createGlobalSymbolCall(*_lfb, builder.get(), funcName, argsType, retType, args);
                     }

@@ -104,9 +104,9 @@ namespace tuplex {
             // create first basic block within function & add statements to load tuple elements correctly
             // and store them via a lookup map
             _body = BasicBlock::Create(_context, "body", _func._func);
-            IRBuilder<> builder(_body);
+            IRBuilder builder(_body);
 
-            unflattenParameters(builder, parameters, isFirstArgTuple);
+            unflattenParameters(builder.get(), parameters, isFirstArgTuple);
         }
 
         LambdaFunctionBuilder &LambdaFunctionBuilder::create(NLambda *lambda,
@@ -185,9 +185,9 @@ namespace tuplex {
         }
 
         LambdaFunction LambdaFunctionBuilder::exitWithException(const ExceptionCode &ec) {
-            auto builder = getLLVMBuilder();
+            auto builder = getIRBuilder();
             auto ecCode = _env->i64Const(ecToI64(ec));
-            builder.CreateRet(ecCode);
+            builder.get().CreateRet(ecCode);
             _body = nullptr;
             return _func;
         }
@@ -196,7 +196,7 @@ namespace tuplex {
             assert(_retValPtr);
 
             auto res = retValue.val;
-            auto builder = getLLVMBuilder();
+            auto builder = getIRBuilder();
             auto output_type = _fto.getTupleType();
 
             // @TODO: optimize & test/resolve for tuples! it's not a struct type but rather a pointer to a struct type!
@@ -212,7 +212,7 @@ namespace tuplex {
                 auto s = _env->getLLVMTypeName(_retValPtr->getType());
                 // there is nothing to store here, struct type is type {} anyways...
                 int64_t ec = (int64_t) ExceptionCode::SUCCESS;
-                builder.CreateRet(_env->i64Const(ec));
+                builder.get().CreateRet(_env->i64Const(ec));
 
                 _body = nullptr;
 
@@ -223,8 +223,8 @@ namespace tuplex {
 
             // retValue might be also a pointer to a tuple type
             if(res && res->getType()->isPointerTy() && res->getType()->getPointerElementType()->isStructTy()) {
-                _fto = FlattenedTuple::fromLLVMStructVal(_env, builder, res, output_type);
-                res = _fto.getLoad(builder);
+                _fto = FlattenedTuple::fromLLVMStructVal(_env, builder.get(), res, output_type);
+                res = _fto.getLoad(builder.get());
             }
 
             // in the case of a single expression, there may be not a tuple on the stack.
@@ -237,13 +237,13 @@ namespace tuplex {
                 //assert(retValue.val);
                 //assert(retValue.size);
                 _fto.assign(0, retValue.val, retValue.size, retValue.is_null);
-                res = _fto.getLoad(builder);
+                res = _fto.getLoad(builder.get());
             }
 
             // the same applies for emptytuple (special case)
             if (res->getType() == _env->getEmptyTupleType()) {
                 _fto.assign(0, retValue.val, retValue.size, retValue.is_null);
-                res = _fto.getLoad(builder);
+                res = _fto.getLoad(builder.get());
             }
 
             assert(res->getType()->isStructTy()); // needs to be tuple type!
@@ -252,7 +252,7 @@ namespace tuplex {
             // store res
             builder.CreateStore(res, _retValPtr);
             int64_t ec = (int64_t) ExceptionCode::SUCCESS;
-            builder.CreateRet(_env->i64Const(ec));
+            builder.get().CreateRet(_env->i64Const(ec));
             _body = nullptr;
 
             // save info on this function to static global here (to retrieve later)
@@ -271,7 +271,7 @@ namespace tuplex {
         }
 
 
-        llvm::IRBuilder<> LambdaFunctionBuilder::addException(llvm::IRBuilder<> &builder, llvm::Value *ecCode,
+        codegen::IRBuilder LambdaFunctionBuilder::addException(llvm::IRBuilder<> &builder, llvm::Value *ecCode,
                                                               llvm::Value *condition) {
 
             // convert ecCode to i32 if possible
@@ -307,10 +307,10 @@ namespace tuplex {
 
             builder.SetInsertPoint(normalBB);
             this->_body = normalBB;
-            return builder;
+            return codegen::IRBuilder(builder);
         }
 
-        llvm::IRBuilder<> LambdaFunctionBuilder::addException(llvm::IRBuilder<> &builder, ExceptionCode ec,
+        IRBuilder LambdaFunctionBuilder::addException(llvm::IRBuilder<> &builder, ExceptionCode ec,
                                                               llvm::Value *condition) {
             return addException(builder, _env->i32Const(ecToI32(ec)), condition);
         }

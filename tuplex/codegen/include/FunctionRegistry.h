@@ -105,33 +105,33 @@ namespace tuplex {
             SerializableValue createRandomChoiceCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const python::Type &argType, const SerializableValue &arg);
 
             SerializableValue createIterCall(LambdaFunctionBuilder &lfb,
-                                             llvm::IRBuilder<>& builder,
+                                             codegen::IRBuilder &builder,
                                              const python::Type &argsType,
                                              const python::Type &retType,
                                              const std::vector<tuplex::codegen::SerializableValue> &args);
 
             SerializableValue createReversedCall(LambdaFunctionBuilder &lfb,
-                                             llvm::IRBuilder<>& builder,
+                                                 codegen::IRBuilder &builder,
                                              const python::Type &argsType,
                                              const python::Type &retType,
                                              const std::vector<tuplex::codegen::SerializableValue> &args);
 
             SerializableValue createNextCall(LambdaFunctionBuilder &lfb,
-                                             llvm::IRBuilder<>& builder,
+                                             codegen::IRBuilder &builder,
                                              const python::Type &argsType,
                                              const python::Type &retType,
                                              const std::vector<tuplex::codegen::SerializableValue> &args,
                                              const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             SerializableValue createZipCall(LambdaFunctionBuilder &lfb,
-                                             llvm::IRBuilder<>& builder,
+                                            codegen::IRBuilder &builder,
                                              const python::Type &argsType,
                                              const python::Type &retType,
                                              const std::vector<tuplex::codegen::SerializableValue> &args,
                                              const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             SerializableValue createEnumerateCall(LambdaFunctionBuilder &lfb,
-                                            llvm::IRBuilder<>& builder,
+                                                  codegen::IRBuilder &builder,
                                             const python::Type &argsType,
                                             const python::Type &retType,
                                             const std::vector<tuplex::codegen::SerializableValue> &args,
@@ -150,7 +150,7 @@ namespace tuplex {
              * @return
              */
             SerializableValue createIteratorRelatedSymbolCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                              llvm::IRBuilder<> &builder,
+                                                              codegen::IRBuilder &builder,
                                                               const std::string &symbol,
                                                               const python::Type &argsType,
                                                               const python::Type &retType,

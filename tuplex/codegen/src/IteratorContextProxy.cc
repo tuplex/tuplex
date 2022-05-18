@@ -555,7 +555,10 @@ namespace tuplex {
             return SerializableValue(retVal, retSize);
         }
 
-        void IteratorContextProxy::incrementIteratorIndex(codegen::IRBuilder& builder,, llvm::Value *iterator, const std::shared_ptr<IteratorInfo> &iteratorInfo, int offset) {
+        void IteratorContextProxy::incrementIteratorIndex(codegen::IRBuilder& builder,
+                                                          llvm::Value *iterator,
+                                                          const std::shared_ptr<IteratorInfo> &iteratorInfo,
+                                                          int offset) {
             using namespace llvm;
 
             auto iteratorName = iteratorInfo->iteratorName;

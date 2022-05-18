@@ -41,6 +41,24 @@ void _cellPrint(char *start, char *end) {
 namespace tuplex {
     namespace codegen {
 
+        static llvm::CallInst* callCFunction(llvm::IRBuilder<>& builder, const std::string& name, llvm::FunctionType* FT, const std::vector<llvm::Value*>& args) {
+            // multi LLVM version compatible calling helper
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            assert(builder.GetInsertBlock()->getParent()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+
+#if LLVM_VERSION_MAJOR < 9
+            auto func = mod->getOrInsertFunction(name.c_str(), FT);
+#elif LLVM_VERSION_MAJOR == 9
+            auto func = mod->getOrInsertFunction(name.c_str(), FT).getCallee();
+#else
+            auto func = mod->getOrInsertFunction(name.c_str(), FT);
+#endif
+            return builder.CreateCall(func, args);
+        }
+
+
         void LLVMEnvironment::init(const std::string &moduleName) {
 
             initLLVM();
@@ -1481,11 +1499,11 @@ namespace tuplex {
                 auto fmtSize = i64Const(20); // 20 bytes for i64 should be fine
                 string fmtString = "%lld";
 
-                b.CreateStore(malloc(b, fmtSize), bufVar);
+                b.CreateStore(malloc(b.get(), fmtSize), bufVar);
                 auto snprintf_func = snprintf_prototype(getContext(), getModule().get());
 
                 //{csvRow, fmtSize, env().strConst(b, fmtString), ...}
-                auto charsRequired = b.CreateCall(snprintf_func, {b.CreateLoad(bufVar), fmtSize, strConst(b, fmtString),
+                auto charsRequired = b.CreateCall(snprintf_func, {b.CreateLoad(bufVar), fmtSize, strConst(b.get(), fmtString),
                                                                   argMap["value"]});
                 auto sizeWritten = b.CreateAdd(b.CreateZExt(charsRequired, i64Type()), i64Const(1));
 
@@ -1499,15 +1517,15 @@ namespace tuplex {
                 b.SetInsertPoint(bbLargerBuf);
                 // realloc with sizeWritten
                 // store new malloc in bufVar
-                b.CreateStore(malloc(b, sizeWritten), bufVar);
+                b.CreateStore(malloc(b.get(), sizeWritten), bufVar);
                 b.CreateCall(snprintf_func,
-                             {b.CreateLoad(bufVar), sizeWritten, strConst(b, fmtString), argMap["value"]});
+                             {b.CreateLoad(bufVar), sizeWritten, strConst(b.get(), fmtString), argMap["value"]});
 
                 b.CreateBr(bbCastDone);
                 b.SetInsertPoint(bbCastDone);
 
                 b.CreateStore(sizeWritten, argMap["res_size_ptr"]);
-                b.CreateRet(b.CreateLoad(bufVar));
+                b.get().CreateRet(b.CreateLoad(bufVar));
             }
 
             auto func = _generatedFunctionCache[key];
@@ -1570,7 +1588,7 @@ namespace tuplex {
 
             // create initializer code
             // create global pointer to regex pattern
-            auto global_pattern_str = initGlobalBuilder.CreateGlobalStringPtr(regexPattern);
+            auto global_pattern_str = initGlobalBuilder.get().CreateGlobalStringPtr(regexPattern);
             // allocate some error space
             auto errornumber = initGlobalBuilder.CreateAlloca(initGlobalBuilder.getInt32Ty());
             auto erroroffset = initGlobalBuilder.CreateAlloca(initGlobalBuilder.getInt64Ty());
@@ -1594,7 +1612,7 @@ namespace tuplex {
             // debugPrint(initGlobalBuilder, "jitFailed for regex " + regexPattern + ": ", jitFailed);
 #endif
             auto initFailed = initGlobalBuilder.CreateOr(compileFailed, jitFailed);
-            initGlobalBuilder.CreateStore(initGlobalBuilder.CreateIntCast(initFailed, i64Type(), false), _initGlobalRetValue);
+            initGlobalBuilder.CreateStore(initGlobalBuilder.get().CreateIntCast(initFailed, i64Type(), false), _initGlobalRetValue);
 
             // create release code
             releaseGlobalBuilder.CreateCall(pcre2CodeFree_prototype(_context, _module.get()),{releaseGlobalBuilder.CreateLoad(gvar)});
@@ -1642,12 +1660,12 @@ namespace tuplex {
             initGlobalBuilder.CreateStore(match_context, matchContextVar);
             initGlobalBuilder.CreateStore(compile_context, compileContextVar);
 
-            auto generalContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.CreatePtrDiff(general_context, i8nullptr()), i64Const(0));
-            auto matchContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.CreatePtrDiff(match_context, i8nullptr()), i64Const(0));
-            auto compileContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.CreatePtrDiff(compile_context, i8nullptr()), i64Const(0));
+            auto generalContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.get().CreatePtrDiff(general_context, i8nullptr()), i64Const(0));
+            auto matchContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.get().CreatePtrDiff(match_context, i8nullptr()), i64Const(0));
+            auto compileContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.get().CreatePtrDiff(compile_context, i8nullptr()), i64Const(0));
             auto initFailed = initGlobalBuilder.CreateOr(generalContextFailed,
                                                          initGlobalBuilder.CreateOr(matchContextFailed,compileContextFailed));
-            initGlobalBuilder.CreateStore(initGlobalBuilder.CreateIntCast(initFailed, i64Type(), false), _initGlobalRetValue);
+            initGlobalBuilder.CreateStore(initGlobalBuilder.get().CreateIntCast(initFailed, i64Type(), false), _initGlobalRetValue);
 
             // create release code
             releaseGlobalBuilder.CreateCall(pcre2ReleaseGlobalGeneralContext_prototype(_context, _module.get()), {releaseGlobalBuilder.CreateLoad(generalContextVar)});
@@ -1689,8 +1707,10 @@ namespace tuplex {
                                                               i8ptrType()->getPointerTo(0)}, false);
 #if LLVM_VERSION_MAJOR < 9
             auto hmap_get_func = env->getModule()->getOrInsertFunction("hashmap_get", hmap_func_type);
-#else
+#elif LLVM_VERSION_MAJOR == 9
             auto hmap_get_func = getModule()->getOrInsertFunction("hashmap_get", hmap_func_type).getCallee();
+#else
+            auto hmap_get_func = getModule()->getOrInsertFunction("hashmap_get", hmap_func_type);
 #endif
             auto in_hash_map = builder.CreateCall(hmap_get_func, {hashmap, key, key_size, returned_bucket});
             auto found_val = builder.CreateICmpEQ(in_hash_map, i32Const(0));
@@ -1711,14 +1731,8 @@ namespace tuplex {
             FunctionType *hmap_func_type = FunctionType::get(Type::getInt32Ty(_context),
                                                              {i8ptrType(), i64Type(),
                                                               i8ptrType()->getPointerTo(0)}, false);
-#if LLVM_VERSION_MAJOR < 9
-            auto hmap_get_func = env->getModule()->getOrInsertFunction("int64_hashmap_get", hmap_func_type);
-#else
-            auto hmap_get_func = getModule()->getOrInsertFunction("int64_hashmap_get", hmap_func_type).getCallee();
-#endif
-            auto in_hash_map = builder.CreateCall(hmap_get_func, {hashmap, key, returned_bucket});
+            auto in_hash_map = callCFunction(builder, "int64_hashmap_get", hmap_func_type, {hashmap, key, returned_bucket});
             auto found_val = builder.CreateICmpEQ(in_hash_map, i32Const(0));
-
             return found_val;
         }
 
@@ -1943,9 +1957,8 @@ namespace tuplex {
             //{
             //    return fabs(ceilf(value) - value) < EPSILON;
             //}
-            auto cf = builder.CreateUnaryIntrinsic(llvm::Intrinsic::ID::ceil, value);
-            auto fabs_value = builder.CreateUnaryIntrinsic(llvm::Intrinsic::ID::fabs, builder.CreateFSub(cf, value));
-
+            auto cf = builder.CreateUnaryIntrinsic(LLVMIntrinsic::ceil, value);
+            auto fabs_value = builder.CreateUnaryIntrinsic(LLVMIntrinsic::fabs, builder.CreateFSub(cf, value));
             return builder.CreateFCmpOLT(fabs_value, eps);
         }
 

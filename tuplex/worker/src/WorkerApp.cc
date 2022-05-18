@@ -672,8 +672,10 @@ namespace tuplex {
                 assert(part_info.buf);
 
                 std::cout<<"wrote buf of size "<<part_info.buf_size<<" to "<<outputURI.toString()<<std::endl;
-
-                file->write(part_info.buf, part_info.buf_size);
+                if(part_info.buf)
+                    file->write(part_info.buf, part_info.buf_size);
+                else
+                    std::cerr<<"invalid buffer stored?"<<std::endl;
             } else {
                 // read & copy back the file contents of the spill file!
                 logger().debug("opening spilled part file");

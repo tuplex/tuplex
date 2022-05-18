@@ -200,6 +200,8 @@ namespace tuplex {
             size_t file_size;
             size_t originalPartNo;
             bool isExceptionBuf;
+
+            SpillInfo() : path(""), num_rows(0), file_size(0), originalPartNo(0), isExceptionBuf(false) {}
         };
 
         // variables for each Thread
@@ -237,7 +239,22 @@ namespace tuplex {
             uint8_t *buf;
             size_t buf_size;
             SpillInfo spill_info;
-            WriteInfo() : buf(nullptr), use_buf(true), num_rows(0), buf_size(0) {};
+
+            WriteInfo() : buf(nullptr), use_buf(true), num_rows(0), buf_size(0), partNo(0), threadNo(0), num_rows(0) {}
+
+            WriteInfo(const WriteInfo& other) : use_buf(other.use_buf), partNo(other.partNo), threadNo(other.threadNo), num_rows(other.num_rows),
+            buf(other.buf), buf_size(other.buf_size), spill_info(other.spill_info) {}
+
+            WriteInfo& operator = (const WriteInfo& other) {
+                use_buf = other.use_buf;
+                partNo = other.partNo;
+                threadNo = other.threadNo;
+                num_rows = other.num_rows;
+                buf = other.buf;
+                buf_size = other.buf_size;
+                spill_info = other.spill_info;
+                return *this;
+            }
         };
 
         ThreadEnv *_threadEnvs;

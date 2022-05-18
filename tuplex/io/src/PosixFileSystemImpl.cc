@@ -215,6 +215,8 @@ namespace tuplex {
 
         _fh = fopen(path.c_str(), mode.c_str());
 
+        // cf. https://en.cppreference.com/w/c/io/setvbuf
+
         if(_fh) {
             // set buf size
             _buf = (char*)malloc(POSIX_IOBUF_SIZE);

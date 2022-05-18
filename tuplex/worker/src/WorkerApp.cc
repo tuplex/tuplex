@@ -465,7 +465,7 @@ namespace tuplex {
         size_t num_exceptions = 0;
         size_t num_normal = 0;
         for(unsigned i = 0; i < _numThreads; ++i) {
-            auto env = _threadEnvs[i];
+            auto& env = _threadEnvs[i];
             num_exceptions += env.numExceptionRows;
             num_normal += env.numNormalRows;
         }

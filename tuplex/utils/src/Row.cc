@@ -131,7 +131,7 @@ namespace tuplex {
         if(_values.empty()) {
             // basically serialize an empty tuple here
             serializer.append(Tuple()); // use {} here to make empty tuple. default constructor yields unknown
-            return serializer;
+            return std::move(serializer);
         }
 
         for(const auto& el : _values) {

@@ -40,8 +40,19 @@ namespace tuplex {
         size_t _bufferSize;
         size_t _bufferCapacity;
     public:
-        Buffer(const size_t growthConstant) : _growthConstant(growthConstant), _buffer(nullptr), _bufferSize(0), _bufferCapacity(0) {
+
+        Buffer(const size_t growthConstant) : _growthConstant(growthConstant), _buffer(nullptr), _bufferSize(0),
+                                              _bufferCapacity(0) {
             assert(_growthConstant > 0);
+        }
+
+        Buffer() : Buffer::Buffer(1024) {}
+
+        // movable
+        Buffer(Buffer &&other) : _growthConstant(other._growthConstant), _buffer(std::move(other._buffer)),
+                                 _bufferSize(other._bufferSize), _bufferCapacity(other._bufferCapacity) {
+            other._bufferSize = 0;
+            other._bufferCapacity = 0;
         }
 
         // make non-copyable

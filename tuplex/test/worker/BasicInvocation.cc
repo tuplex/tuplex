@@ -92,7 +92,7 @@ namespace tuplex {
 
 
         req.set_type(messages::MessageType::MT_TRANSFORM);
-
+        assert(tstage);
         auto pb_stage = tstage->to_protobuf();
 
         pb_stage->set_bitcode(tstage->fastPathBitCode());
@@ -807,8 +807,15 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
             tstage = builder.build();
         else
             tstage = builder.encodeForSpecialization(nullptr, nullptr, true, false, true);
+    } catch(const std::exception& e) {
+        std::cerr<<"Exception occurred: "<<e.what()<<std::endl;
+        python::lockGIL();
+        python::closeInterpreter();
+        return nullptr;
     } catch(...) {
         std::cerr<<"Exception occurred! Failure"<<std::endl;
+        python::lockGIL();
+        python::closeInterpreter();
         return nullptr;
     }
 
@@ -874,9 +881,8 @@ TEST(BasicInvocation, FlightsHyper) {
     auto test_output_path = "./general_processing/";
     int num_threads = 1;
     auto spillURI = std::string("spill_folder");
-    bool use_hyper = true;
+    bool use_hyper = false;
     auto tstage = create_flights_pipeline(test_path, test_output_path, use_hyper);
-
 
     // transform to message
     // create message only for first file!

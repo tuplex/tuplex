@@ -1888,6 +1888,9 @@ namespace tuplex {
                 const std::string& name, const python::Type& normalCaseType,
                 const std::map<int, int>& normalToGeneralMapping,
                 const std::vector<std::string>& null_values) {
+
+            auto& logger = Logger::instance().logger("codegen");
+
             auto pipFunc = pip.getFunction();
 
             if(!pipFunc)
@@ -1895,7 +1898,20 @@ namespace tuplex {
 
             auto generalCaseType = pip.inputRowType();
 
-            assert(checkCaseCompatibility(normalCaseType, generalCaseType, normalToGeneralMapping));
+
+            bool normalCaseAndGeneralCaseCompatible = checkCaseCompatibility(normalCaseType, generalCaseType, normalToGeneralMapping);
+
+            if(!normalCaseAndGeneralCaseCompatible) {
+                logger.debug("normal and general case are not compatible, forcing all exceptions on fallback (interpreter) path.");
+                std::stringstream ss;
+                ss<<"normal -> general\n";
+                for(unsigned i = 0; i < normalCaseType.parameters().size(); ++i) {
+                    ss<<"("<<i<<"): "<<normalCaseType.parameters()[i].desc()
+                                     <<" -> "<<generalCaseType.parameters()[normalToGeneralMapping.at(i)].desc()
+                                     <<"\n";
+                }
+                logger.debug(ss.str());
+            }
 
             // the type are a bit screwed because of tuple mode or not
             // @TODO: make this cleaner in further releases...
@@ -2032,27 +2048,34 @@ namespace tuplex {
                 auto resultOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env.i64Type());
                 auto resultNumRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env.i64Type());
                 env.freeAll(builder);
-                 builder.CreateRet(resultCode);
+                builder.CreateRet(resultCode);
             }
 
 
             // 3.) decode common/exception case type
             {
                 builder.SetInsertPoint(bbCommonCaseDecode);
-                // env.debugPrint(builder, "exception is in super type format, feed through resolvers&Co");
+                // only if cases are compatible
+                if(normalCaseAndGeneralCaseCompatible) {
+                    // env.debugPrint(builder, "exception is in super type format, feed through resolvers&Co");
 
-                // easiest, no additional steps necessary...
-                FlattenedTuple tuple(&pip.env());
-                tuple.init(pip.inputRowType());
-                tuple.deserializationCode(builder, args["rowBuf"]);
+                    // easiest, no additional steps necessary...
+                    FlattenedTuple tuple(&pip.env());
+                    tuple.init(pip.inputRowType());
+                    tuple.deserializationCode(builder, args["rowBuf"]);
 
-                // add potentially exception handler function
-                auto res = PipelineBuilder::call(builder, pipFunc, tuple, args["userData"], args["rowNumber"]);
-                auto resultCode = builder.CreateZExtOrTrunc(res.resultCode, env.i64Type());
-                auto resultOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env.i64Type());
-                auto resultNumRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env.i64Type());
-                env.freeAll(builder);
-                                                                         builder.CreateRet(resultCode);
+                    // add potentially exception handler function
+                    auto res = PipelineBuilder::call(builder, pipFunc, tuple, args["userData"], args["rowNumber"]);
+                    auto resultCode = builder.CreateZExtOrTrunc(res.resultCode, env.i64Type());
+                    auto resultOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env.i64Type());
+                    auto resultNumRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env.i64Type());
+                    env.freeAll(builder);
+                    builder.CreateRet(resultCode);
+                } else {
+                    // retain original exception, force onto interpreter path
+                    env.freeAll(builder);
+                    builder.CreateRet(ecCode); // original
+                }
             }
 
             return func;

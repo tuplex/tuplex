@@ -917,3 +917,25 @@ TEST(BasicInvocation, FlightsHyper) {
 
     cout<<"Test done."<<endl;
 }
+
+TEST(BasicInvocation, BasicFS) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto path = URI("./general_processing/testfile.csv");
+
+    auto file = VirtualFileSystem::fromURI(path).open_file(path, VirtualFileMode::VFS_OVERWRITE);
+
+    int64_t test_i = 42;
+    file->write(&test_i, sizeof(int64_t));
+    file->write(&test_i, sizeof(int64_t));
+
+    size_t buf_size = 49762375;
+    uint8_t* buf = new uint8_t[buf_size];
+    for(int i = 0; i < buf_size; ++i)
+	    buf[i] = i % 32;
+    file->write(buf, buf_size);
+    file->close();
+
+    delete [] buf;
+}

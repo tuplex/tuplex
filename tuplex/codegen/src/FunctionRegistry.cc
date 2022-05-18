@@ -1632,7 +1632,7 @@ namespace tuplex {
         }
 
         SerializableValue FunctionRegistry::createIteratorRelatedSymbolCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                                            llvm::IRBuilder<> &builder,
+                                                                            codegen::IRBuilder &builder,
                                                                             const std::string &symbol,
                                                                             const python::Type &argsType,
                                                                             const python::Type &retType,
@@ -1717,14 +1717,14 @@ namespace tuplex {
             return SerializableValue(nullptr, nullptr);
         }
 
-        SerializableValue FunctionRegistry::createNextCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
+        SerializableValue FunctionRegistry::createNextCall(LambdaFunctionBuilder &lfb, codegen::IRBuilder &builder,
                                                            const python::Type &argsType, const python::Type &retType,
                                                            const std::vector<tuplex::codegen::SerializableValue> &args,
                                                            const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             if(argsType.parameters().size() == 1) {
                 if(argsType.parameters().front() == python::Type::EMPTYITERATOR) {
                     // always raise exception when next is called on empty iterator
-                    lfb.addException(builder, ExceptionCode::STOPITERATION, _env.i1Const(true));
+                    lfb.addException(builder.get(), ExceptionCode::STOPITERATION, _env.i1Const(true));
                     return SerializableValue(_env.i64Const(0), _env.i64Const(8));
                 }
                 return _iteratorContextProxy->createIteratorNextCall(lfb, builder, argsType.parameters().front().yieldType(), args[0].val, SerializableValue(nullptr, nullptr), iteratorInfo);

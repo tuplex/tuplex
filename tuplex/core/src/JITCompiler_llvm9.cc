@@ -8,6 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
+#if LLVM_VERSION_MAJOR <= 9
 #include <JITCompiler.h>
 #include <Logger.h>
 
@@ -455,3 +456,5 @@ namespace tuplex {
     }
 #endif
 }
+
+#endif

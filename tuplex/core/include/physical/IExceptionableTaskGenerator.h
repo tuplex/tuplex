@@ -28,10 +28,9 @@ namespace tuplex {
 
 
             //! returns builder for where custom code can be generated/inserted
-            llvm::IRBuilder<> getBuilder() {
-
+            inline IRBuilder getBuilder() {
                 assert(_lastBlock);
-                return llvm::IRBuilder<>(_lastBlock);
+                return IRBuilder(_lastBlock);
             }
 
             llvm::BasicBlock* lastBlock() {

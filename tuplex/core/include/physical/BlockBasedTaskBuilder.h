@@ -99,7 +99,7 @@ namespace tuplex {
 
             LLVMEnvironment &env() { return *_env; }
 
-            std::string getTaskFuncName() const { return _func->getName(); }
+            std::string getTaskFuncName() const { return _func->getName().get(); }
 
             /*!
              * set internal processing pipeline

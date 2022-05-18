@@ -17,7 +17,9 @@
 #include <llvm/ExecutionEngine/JITSymbol.h>
 #include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/ExecutionEngine/Orc/Layer.h>
+#if LLVM_VERSION_MAJOR <= 9
 #include <llvm/ExecutionEngine/Orc/Legacy.h>
+#endif
 #include <llvm/ExecutionEngine/RuntimeDyld.h>
 #include <llvm/Object/ObjectFile.h>
 #include <llvm/Support/Error.h>

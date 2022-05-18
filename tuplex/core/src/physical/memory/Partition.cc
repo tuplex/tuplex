@@ -143,10 +143,20 @@ namespace tuplex {
             return;
         }
 
+        size_t bytes_read = 0;
         // read from file
-        fread(&_bytesWritten, sizeof(uint64_t), 1, pFile);
-        fread(_arena, _size, 1, pFile);
-
+        bytes_read = fread(&_bytesWritten, sizeof(uint64_t), 1, pFile);
+        if(bytes_read != sizeof(uint64_t)) {
+            handle_file_error("file corrupted, could not read number of bytes written for partition.");
+            fclose(pFile);
+            return;
+        }
+        bytes_read = fread(_arena, _size, 1, pFile);
+        if(bytes_read != _size) {
+            handle_file_error("file corrupted, could not read data.");
+            fclose(pFile);
+            return;
+        }
         fclose(pFile);
 
         // remove file b.c. it's now loaded

@@ -194,7 +194,7 @@ namespace tuplex {
                 }
             }
         }
-        return serializer;
+        return std::move(serializer);
     }
 
     bool operator == (const Row& lhs, const Row& rhs) {

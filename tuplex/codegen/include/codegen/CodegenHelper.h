@@ -74,9 +74,18 @@ namespace tuplex {
             CHECK_INTEGER_RANGE,
             CHECK_CONSTANT
         };
+
         struct NormalCaseCheck {
             size_t colNo; ///! the column number to check for
             CheckType type;
+
+            NormalCaseCheck() : colNo(0), type(CheckType::CHECK_UNKNOWN) {}
+            NormalCaseCheck(const NormalCaseCheck& other) : colNo(other.colNo), type(other.type) {}
+            NormalCaseCheck& operator = (const NormalCaseCheck& other) {
+                colNo = other.colNo;
+                type = other.type;
+                return *this;
+            }
 
             static NormalCaseCheck NullCheck(size_t colNo) {
                 NormalCaseCheck c;

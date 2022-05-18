@@ -49,10 +49,11 @@ namespace tuplex {
         Buffer() : Buffer::Buffer(1024) {}
 
         // movable
-        Buffer(Buffer &&other) : _growthConstant(other._growthConstant), _buffer(std::move(other._buffer)),
+        Buffer(Buffer &&other) : _growthConstant(other._growthConstant), _buffer(other._buffer),
                                  _bufferSize(other._bufferSize), _bufferCapacity(other._bufferCapacity) {
             other._bufferSize = 0;
             other._bufferCapacity = 0;
+            other._buffer = nullptr;
         }
 
         // make non-copyable
@@ -131,6 +132,25 @@ namespace tuplex {
         Serializer(bool autoSchema = true) : _autoSchema(autoSchema),
                                              _fixedLenFields(_bufferGrowthConstant),
                                              _varLenFields(_bufferGrowthConstant), _col(0)   {}
+         ~Serializer() {
+
+        }
+
+        // move constructor
+        Serializer(Serializer&& other) : _autoSchema(other._autoSchema),
+                                         _schema(other._schema),
+                                         _types(std::move(other._types)), _col(other._col),
+                                         _fixedLenFields(std::move(other._fixedLenFields)),
+                                         _varLenFields(std::move(other._varLenFields)),
+                                         _isVarField(std::move(other._isVarField)),
+                                         _varLenFieldOffsets(std::move(other._varLenFieldOffsets)),
+                                         _requiresBitmap(std::move(other._requiresBitmap)),
+                                         _isNull(std::move(other._isNull)) {}
+
+        // make non-copyable
+        Serializer(const Serializer& other) = delete;
+        Serializer& operator = (const Serializer& other) = delete;
+
 
         Serializer& reset();
 

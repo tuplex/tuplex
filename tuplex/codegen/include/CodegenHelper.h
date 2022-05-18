@@ -237,6 +237,27 @@ namespace tuplex {
                 return get_or_throw().CreateCall(FTy, Callee, Args, Name, FPMathTag);
             }
 
+            // #if LLVM_VERSION_MAJOR < 9
+            //                Function* func = cast<Function>(_module->getOrInsertFunction(key, FT));
+            //#else
+            //                Function *func = cast<Function>(_module->getOrInsertFunction(key, FT).getCallee());
+            //#endif
+
+            inline llvm::CallInst* CreateCall(llvm::Value* func_value, llvm::ArrayRef<llvm::Value *> Args = llvm::None,
+                                              const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) {
+                 if(!llvm::isa<llvm::Function>(func_value))
+                     throw std::runtime_error("trying to call a non-function llvm value");
+                 auto func = llvm::cast<llvm::Function>(func_value);
+                return CreateCall(func->getFunctionType(), func, Args, Name,
+                                  FPMathTag);
+            }
+
+            inline llvm::CallInst* CreateCall(llvm::Function* func, llvm::ArrayRef<llvm::Value *> Args = llvm::None,
+                                              const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) {
+                return CreateCall(func->getFunctionType(), func, Args, Name,
+                                  FPMathTag);
+            }
+
             inline llvm::CallInst *CreateCall(llvm::FunctionCallee Callee, llvm::ArrayRef<llvm::Value *> Args = llvm::None,
                                         const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) {
                 return CreateCall(Callee.getFunctionType(), Callee.getCallee(), Args, Name,

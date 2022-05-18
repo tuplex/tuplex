@@ -5272,9 +5272,9 @@ namespace tuplex {
                         loopCond = _env->i1Const(false);
                     } else {
                         // increment iterator index by 1 and check if it is exhausted
-                        auto iteratorExhausted = _iteratorContextProxy->updateIteratorIndex(builder.get(), exprAlloc.val, iteratorInfo);
+                        auto iteratorExhausted = _iteratorContextProxy->updateIteratorIndex(builder, exprAlloc.val, iteratorInfo);
                         // decrement iterator index by 1
-                        _iteratorContextProxy->incrementIteratorIndex(builder.get(), exprAlloc.val, iteratorInfo, -1);
+                        _iteratorContextProxy->incrementIteratorIndex(builder, exprAlloc.val, iteratorInfo, -1);
                         // loopCond = !iteratorExhausted i.e. if iterator exhausted, ends the loop
                         loopCond = builder.CreateICmpEQ(iteratorExhausted, _env->i1Const(false));
                     }
@@ -5304,7 +5304,7 @@ namespace tuplex {
                 _logger.debug("first iteration of for loop unrolled to allow type-stability during loop");
                 if(exprType.isIteratorType()) {
                     // increment iterator index by 1
-                    _iteratorContextProxy->incrementIteratorIndex(builder.get(), exprAlloc.val, iteratorInfo, 1);
+                    _iteratorContextProxy->incrementIteratorIndex(builder, exprAlloc.val, iteratorInfo, 1);
                 } else {
                     builder.CreateStore(builder.CreateAdd(start, step), currPtr);
                 }
@@ -5345,7 +5345,7 @@ namespace tuplex {
                     loopCond = _env->i1Const(false);
                 } else {
                     // increment iterator index by 1 and check if it is exhausted
-                    auto iteratorExhausted = _iteratorContextProxy->updateIteratorIndex(builder.get(), exprAlloc.val, iteratorInfo);
+                    auto iteratorExhausted = _iteratorContextProxy->updateIteratorIndex(builder, exprAlloc.val, iteratorInfo);
                     // loopCond = !iteratorExhausted i.e. if iterator exhausted, ends the loop
                     loopCond = builder.CreateICmpEQ(iteratorExhausted, _env->i1Const(false));
                 }
@@ -5465,7 +5465,7 @@ namespace tuplex {
                 addInstruction(curr, _env->i64Const(8));
             } else if(exprType.isIteratorType()) {
                 if(exprType != python::Type::EMPTYITERATOR) {
-                    auto currVal = _iteratorContextProxy->getIteratorNextElement(builder.get(), exprType.yieldType(), exprAlloc.val, forStmt->expression->annotation().iteratorInfo);
+                    auto currVal = _iteratorContextProxy->getIteratorNextElement(builder, exprType.yieldType(), exprAlloc.val, forStmt->expression->annotation().iteratorInfo);
                     if(exprType.yieldType().isListType()) {
                         if(loopVal.size() == 1) {
                             addInstruction(currVal.val, currVal.size);

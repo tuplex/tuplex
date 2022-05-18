@@ -206,8 +206,9 @@ namespace tuplex {
             std::vector<NormalCaseCheck> projected_checks;
             for(auto col_idx : acc_cols) {
                for(const auto& check : checks) {
-                   if(check.colNo == col_idx)
-                       projected_checks.push_back(checks[col_idx]);
+                   if(check.colNo == col_idx) {
+                       projected_checks.emplace_back(check); // need to adjust internal colNo? => no, keep for now.
+                   }
                }
             }
             logger.debug("normal case detection requires "

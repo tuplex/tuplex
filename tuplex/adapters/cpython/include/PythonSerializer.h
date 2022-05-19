@@ -26,7 +26,10 @@ namespace tuplex {
          * @param nextptr ptr position after deserialization
          * @return bool for if deserialization was successful or not
          */
-        extern bool fromSerializedMemory(const uint8_t *ptr, int64_t capacity, const Schema &schema, PyObject **obj,
+        extern bool fromSerializedMemory(const uint8_t *ptr,
+                                         size_t capacity,
+                                         const Schema &schema,
+                                         PyObject **obj,
                                          const uint8_t **nextptr = nullptr);
     }
 

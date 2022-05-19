@@ -72,9 +72,18 @@ namespace tuplex {
                 nlohmann::json to_json() const;
                 static CodePathContext from_json(nlohmann::json obj);
 
+                inline size_t columnsToReadCount() const {
+                    size_t count = 0;
+                    for(const auto& b : columnsToRead)
+                        count += b;
+                    return count;
+                }
+
+#ifdef BUILD_WITH_CEREAL
                 template<class Archive> void serialize(Archive & ar) {
                     ar(readSchema, inputSchema, outputSchema, inputNode, operators, columnsToRead);
                 }
+#endif
             };
 
             CodePathContext fastPathContext;

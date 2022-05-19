@@ -1509,6 +1509,22 @@ namespace tuplex {
                 // 3. fill in general case codepath context
                 python::Type normalCaseInputRowType = codeGenerationContext.fastPathContext.inputSchema.getRowType(); // if NO normal-case is specialized, generated use this
 
+                // print out path info
+                {
+                    std::stringstream ss;
+                    ss<<"Stage "<<stage->number()<<":\n";
+                    ss<<"---------------\n";
+
+                    // general case (active?)
+                    ss<<"general case::\n";
+                    ss<<"\tinput schema (after projection): "<<codeGenerationContext.slowPathContext.inputSchema.getRowType().desc()<<"\n";
+                    ss<<"\toutput schema (after projection): "<<codeGenerationContext.slowPathContext.outputSchema.getRowType().desc()<<"\n";
+                    // how many rows to read?
+
+                }
+
+                // actual code generation happens below in separate threads.
+
                 // kick off slow path generation
                 std::shared_future<TransformStage::StageCodePath> slowCodePath_f = std::async(std::launch::async, [this,
                                                                                                                    &codeGenerationContext,

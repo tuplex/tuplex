@@ -52,11 +52,11 @@ namespace tuplex {
         /*!
          * Checks if capacity for buffer with schema is valid (if it is possible for buffer to hold such data given schema)
          * @param ptr memory location to where serialized data is
-         * @param capacity size of buffer
+         * @param capacity size of buffer, negative values are invalid.
          * @param row_type holding information on types of input memory
          * @return bool for if capacity is valid or not
          */
-        bool isCapacityValid(const uint8_t *ptr, size_t capacity, const python::Type &row_type);
+        bool isCapacityValid(const uint8_t *ptr, int64_t capacity, const python::Type &row_type);
 
         /*!
          * Check capacity of tuple for given buffer (and associated tree for schema information)

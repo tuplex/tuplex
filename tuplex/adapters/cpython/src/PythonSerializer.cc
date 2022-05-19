@@ -449,7 +449,7 @@ namespace tuplex {
             return capacitySize;
         }
 
-        bool isCapacityValid(const uint8_t *ptr, size_t capacity, const python::Type &row_type) {
+        bool isCapacityValid(const uint8_t *ptr, int64_t capacity, const python::Type &row_type) {
             if (capacity <= 0) {
                 return false;
             }

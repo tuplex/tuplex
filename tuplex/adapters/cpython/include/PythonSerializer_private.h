@@ -56,7 +56,7 @@ namespace tuplex {
          * @param row_type holding information on types of input memory
          * @return bool for if capacity is valid or not
          */
-        bool isCapacityValid(const uint8_t *ptr, int64_t capacity, const python::Type &row_type);
+        bool isCapacityValid(const uint8_t *ptr, size_t capacity, const python::Type &row_type);
 
         /*!
          * Check capacity of tuple for given buffer (and associated tree for schema information)
@@ -65,7 +65,7 @@ namespace tuplex {
          * @param row_type holding information on types of input memory
          * @return -1 if invalid, size of serialized data if valid
          */
-        int64_t checkTupleCapacity(const uint8_t *ptr, int64_t capacity, const python::Type &row_type);
+        int64_t checkTupleCapacity(const uint8_t *ptr, size_t capacity, const python::Type &row_type);
 
         /*!
          * map bitmap of the object at ptr to a vector with numElements true/false values

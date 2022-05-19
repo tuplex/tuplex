@@ -486,7 +486,7 @@ namespace tuplex {
             return *obj != nullptr;
         }
 
-        std::vector<bool> getBitmapFromType(const python::Type &objectType, const uint8_t *&ptr, int64_t numElements) {
+        std::vector<bool> getBitmapFromType(const python::Type &objectType, const uint8_t *&ptr, size_t numElements) {
             std::vector<bool> bitmapV;
             bitmapV.reserve(numElements);
             if (objectType.isListType()) {

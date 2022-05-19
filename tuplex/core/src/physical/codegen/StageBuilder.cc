@@ -379,6 +379,22 @@ namespace tuplex {
                                                                          int stageNo,
                                                                          const std::string& env_name) {
             using namespace std;
+            auto &logger = Logger::instance().logger("codegen");
+            {
+                // debug print on how fast path is being generated...
+                std::stringstream ss;
+                ss<<"generating fast path with::\n";
+
+                ss<<"\tinput schema: "<<pathContext.inputSchema.getRowType().desc()<<"\n";
+                ss<<"\toutput schema: "<<pathContext.outputSchema.getRowType().desc()<<"\n";
+
+                // general case input/output?
+                ss<<"when exceptions occur, the input schema needs to be upcasted to general case input row type if possible.\n";
+                ss<<"\tgeneral case input row type: "<<generalCaseInputRowType.desc()<<"\n";
+                ss<<"\tgeneral case output row type: "<<generalCaseOutputRowType.desc()<<"\n";
+
+                logger.debug(ss.str());
+            }
 
             TransformStage::StageCodePath ret;
             fillInCallbackNames("fast_", stageNo, ret);
@@ -394,7 +410,6 @@ namespace tuplex {
 //            ret._funcExceptionCallback = func_prefix + "except_Stage_" + to_string(number());
 //            ret._writerFuncName = _writerFuncName;
 
-            auto &logger = Logger::instance().logger("codegen");
             auto env = make_shared<codegen::LLVMEnvironment>(env_name);
 
             Row intermediateInitialValue; // filled by aggregate operator, if needed.
@@ -1422,6 +1437,8 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("physical planner");
             Timer timer;
 
+            bool enableProjectionPushdown = true; // @TODO: pass this properly down...
+
             auto path_ctx = general_path_ctx;
             assert(path_ctx.valid());
 
@@ -1446,18 +1463,25 @@ namespace tuplex {
 
             // use optimized or non-optimized schema
             Schema readSchema = Schema::UNKNOWN;
-            if(enableNVO) {
-                readSchema = std::dynamic_pointer_cast<FileInputOperator>(planner.input_node())->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
+            Schema inputSchema = Schema::UNKNOWN;
+            std::vector<bool> columnsToRead; // empty per default.
+            // fileinput has pushdown, so use it if logical opt is enabled.
+            if(enableProjectionPushdown && planner.input_node()->type() == LogicalOperatorType::FILEINPUT) {
+                auto fop = std::dynamic_pointer_cast<FileInputOperator>(planner.input_node());
+                readSchema = fop->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
+                inputSchema = fop->getOptimizedOutputSchema(); // projected output schema.
+                columnsToRead = fop->columnsToSerialize();
             } else {
                 readSchema = planner.input_node()->getInputSchema();
+                inputSchema = path_ctx.inputNode->getOutputSchema();
             }
             logger.debug("read schema is: " + readSchema.getRowType().desc());
             path_ctx.inputNode = planner.input_node();
             path_ctx.operators = planner.optimized_operators();
-            path_ctx.outputSchema = path_ctx.operators.back()->getOutputSchema();
-            path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();
+            path_ctx.outputSchema = path_ctx.operators.back()->getOutputSchema(); // this is not entirely correct... -> fileoutput operator?
+            path_ctx.inputSchema = inputSchema;
             path_ctx.readSchema = readSchema;
-            path_ctx.columnsToRead = std::dynamic_pointer_cast<FileInputOperator>(path_ctx.inputNode)->columnsToSerialize();
+            path_ctx.columnsToRead = columnsToRead;
             logger.info("specialized to input:  " + path_ctx.inputSchema.getRowType().desc());
             logger.info("specialized to output: " + path_ctx.outputSchema.getRowType().desc());
             size_t numToRead = 0;
@@ -1520,7 +1544,14 @@ namespace tuplex {
                     ss<<"\tinput schema (after projection): "<<codeGenerationContext.slowPathContext.inputSchema.getRowType().desc()<<"\n";
                     ss<<"\toutput schema (after projection): "<<codeGenerationContext.slowPathContext.outputSchema.getRowType().desc()<<"\n";
                     // how many rows to read?
+                    ss<<"\tcolumns to tread (after projection): "<<codeGenerationContext.slowPathContext.columnsToReadCount()<<"\n";
+                    ss<<"---\nnormal case::\n";
+                    ss<<"\tinput schema (after projection): "<<codeGenerationContext.fastPathContext.inputSchema.getRowType().desc()<<"\n";
+                    ss<<"\toutput schema (after projection): "<<codeGenerationContext.fastPathContext.outputSchema.getRowType().desc()<<"\n";
+                    // how many rows to read?
+                    ss<<"\tcolumns to tread (after projection): "<<codeGenerationContext.fastPathContext.columnsToReadCount()<<"\n";
 
+                    logger.debug(ss.str());
                 }
 
                 // actual code generation happens below in separate threads.
@@ -1551,7 +1582,7 @@ namespace tuplex {
                 std::stringstream ss;
                 ss<<"general case input row type: "<<codeGenerationContext.slowPathContext.inputSchema.getRowType().desc()<<std::endl;
                 ss<<"has #columns: "<<codeGenerationContext.slowPathContext.inputSchema.getRowType().parameters().size()<<std::endl;
-                ss<<"general case input row type: "<<codeGenerationContext.fastPathContext.inputSchema.getRowType().desc()<<std::endl;
+                ss<<"normal case input row type: "<<codeGenerationContext.fastPathContext.inputSchema.getRowType().desc()<<std::endl;
                 ss<<"has #columns: "<<codeGenerationContext.fastPathContext.inputSchema.getRowType().parameters().size()<<std::endl;
                 logger.debug(ss.str());
 

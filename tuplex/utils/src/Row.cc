@@ -352,11 +352,6 @@ namespace tuplex {
             // compute majority, account for null-value prevalence!
             std::vector<python::Type> col_types(col_counts.size());
             for(unsigned i = 0; i < col_counts.size(); ++i) {
-
-                if(i == 58) {
-                    std::cout<<"NAS DELAY"<<std::endl;
-                }
-
                // single type? -> trivial.
                // empty? pyobject
                if(col_counts[i].empty()) {

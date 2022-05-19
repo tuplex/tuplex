@@ -27,10 +27,6 @@ namespace tuplex {
     private:
         // the action which is called
         std::shared_ptr<LogicalOperator> _action;
-
-        void optimizeFilters();
-        void emitPartialFilters();
-        void reorderDataProcessingOperators();
     public:
 
         LogicalPlan() = delete;

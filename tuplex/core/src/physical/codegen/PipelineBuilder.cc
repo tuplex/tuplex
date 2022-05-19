@@ -1906,6 +1906,12 @@ namespace tuplex {
                 std::stringstream ss;
                 ss<<"normal -> general\n";
                 for(unsigned i = 0; i < normalCaseType.parameters().size(); ++i) {
+
+                    if(normalToGeneralMapping.find(i) == normalToGeneralMapping.end()) {
+                        logger.error("invalid index in normal -> general map found");
+                        continue;
+                    }
+
                     ss<<"("<<i<<"): "<<normalCaseType.parameters()[i].desc()
                                      <<" -> "<<generalCaseType.parameters()[normalToGeneralMapping.at(i)].desc()
                                      <<"\n";

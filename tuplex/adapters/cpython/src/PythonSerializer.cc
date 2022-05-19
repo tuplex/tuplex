@@ -77,7 +77,7 @@ namespace tuplex {
             return dictObj;
         }
 
-        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type, int64_t capacity) {
+        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type, size_t capacity) {
             int64_t current_buffer_index = 0;
 
             auto tree = tuplex::TupleTree<tuplex::Field>(row_type);
@@ -88,7 +88,7 @@ namespace tuplex {
             std::vector<int> curr;
             std::vector<int> prev;
 
-            int bitmap_index = 0;
+            unsigned bitmap_index = 0;
             const uint8_t *bitmap = ptr;
             auto num_bitmap_fields = core::ceilToMultiple(python::numOptionalFields(row_type), 64ul)/64;
             ptr += sizeof(int64_t) * num_bitmap_fields;
@@ -178,7 +178,7 @@ namespace tuplex {
             return test;
         }
 
-        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type, int64_t capacity) {
+        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type, size_t capacity) {
             assert(row_type.isListType() && row_type != python::Type::EMPTYLIST);
             auto elementType = row_type.elementType();
             if(elementType.isSingleValued()) {
@@ -314,8 +314,8 @@ namespace tuplex {
         }
 
         PyObject *
-        createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, int64_t capacity,
-                                 const uint8_t *bitmap, int index) {
+        createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, size_t capacity,
+                                 const uint8_t *bitmap, unsigned index) {
             if (row_type == python::Type::BOOLEAN) {
                 return PyBool_FromLong(ptr[0]);
             } else if (row_type == python::Type::I64) {
@@ -383,7 +383,7 @@ namespace tuplex {
             return Py_None;
         }
 
-        int64_t checkTupleCapacity(const uint8_t *ptr, int64_t capacity, const python::Type &row_type) {
+        int64_t checkTupleCapacity(const uint8_t *ptr, size_t capacity, const python::Type &row_type) {
             auto tree = tuplex::TupleTree<tuplex::Field>(row_type);
             auto indices = tree.getMultiIndices();
             auto num_bytes = static_cast<int64_t>(indices.size() * sizeof(int64_t));
@@ -404,7 +404,7 @@ namespace tuplex {
             return num_bytes;
         }
 
-        int64_t serializationSize(const uint8_t *ptr, int64_t capacity, const python::Type &row_type) {
+        int64_t serializationSize(const uint8_t *ptr, size_t capacity, const python::Type &row_type) {
 
             // should be identical to Deserializer.inferlength...
 
@@ -449,7 +449,7 @@ namespace tuplex {
             return capacitySize;
         }
 
-        bool isCapacityValid(const uint8_t *ptr, int64_t capacity, const python::Type &row_type) {
+        bool isCapacityValid(const uint8_t *ptr, size_t capacity, const python::Type &row_type) {
             if (capacity <= 0) {
                 return false;
             }
@@ -465,7 +465,7 @@ namespace tuplex {
 
 
         // TODO: check for errors when creating PyObjects
-        bool fromSerializedMemory(const uint8_t *ptr, int64_t capacity, const tuplex::Schema &schema, PyObject **obj,
+        bool fromSerializedMemory(const uint8_t *ptr, size_t capacity, const tuplex::Schema &schema, PyObject **obj,
                                   const uint8_t **nextptr) {
             python::Type row_type = schema.getRowType();
 
@@ -491,12 +491,12 @@ namespace tuplex {
             bitmapV.reserve(numElements);
             if (objectType.isListType()) {
                 if (objectType.elementType().isOptionType()) {
-                    auto numBitmapFields = core::ceilToMultiple((unsigned long)numElements, 64ul)/64;
+                    auto numBitmapFields = core::ceilToMultiple((unsigned long)numElements, 64ul) / 64;
                     auto bitmapSize = numBitmapFields * sizeof(uint64_t);
                     auto *bitmapAddr = (uint64_t *)ptr;
                     ptr += bitmapSize;
                     for (size_t i = 0; i < numElements; i++) {
-                        bool currBit = (bitmapAddr[i/64] >> (i % 64)) & 1;
+                        bool currBit = (bitmapAddr[i / 64] >> (i % 64)) & 0x1;
                         bitmapV.push_back(currBit);
                     }
                 }

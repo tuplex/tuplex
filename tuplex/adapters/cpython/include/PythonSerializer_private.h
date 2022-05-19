@@ -26,9 +26,8 @@ namespace tuplex {
          * @param index of the element within the bitmap
          * @return Python object holding deserialized elements
          */
-        PyObject *
-        createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, int64_t capacity,
-                                 const uint8_t *bitmap = nullptr, int index = 0);
+        PyObject* createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, size_t capacity,
+                                 const uint8_t *bitmap = nullptr, unsigned index = 0);
 
         /*!
          * Creates Python tuple object from raw memory (deserialize)
@@ -37,7 +36,7 @@ namespace tuplex {
          * @param capacity size of buffer
          * @return Python object holding deserialized elements
          */
-        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type, int64_t capacity);
+        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type, size_t capacity);
 
         PyObject *createPyDictFromMemory(const uint8_t *ptr);
 
@@ -48,7 +47,7 @@ namespace tuplex {
          * @param capacity size of buffer
          * @return Python object holding deserialized elements
          */
-        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type, int64_t capacity);
+        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type, size_t capacity);
 
         /*!
          * Checks if capacity for buffer with schema is valid (if it is possible for buffer to hold such data given schema)
@@ -73,9 +72,9 @@ namespace tuplex {
          * @param objectType current object type that contains optional value
          * @param ptr memory location to where the start of bitmap
          * @param numElements number of elements in objectType for which bitmap is needed
-         * @return
+         * @return vector of booleans representing a bitmap indicating whether element is null (true) or not (false).
          */
-        std::vector<bool> getBitmapFromType(const python::Type &objectType, const uint8_t *&ptr, int64_t numElements);
+        std::vector<bool> getBitmapFromType(const python::Type &objectType, const uint8_t *&ptr, size_t numElements);
     }
 }
 

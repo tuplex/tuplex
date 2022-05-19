@@ -320,9 +320,9 @@ namespace python {
 
     /*!
      * get corresponding tuplex type for python object
-     * @param o
+     * @param o python object to map to Tuplex type
      * @param autoUpcast whether to upcast numeric types to a unified type when type conflicts, false by default
-     * @return
+     * @return internal Tuplex type corresponding to given python object.
      */
     extern python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast=false);
 

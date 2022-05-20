@@ -209,18 +209,18 @@ namespace tuplex {
 
             auto exceptionBlock = BasicBlock::Create(env->getContext(), "except", func);
             IRBuilder eb(exceptionBlock);
-            eb.CreateRet(eb.CreateLoad(exceptionVar));
+            eb.get().CreateRet(eb.CreateLoad(exceptionVar));
 
             auto ftOut = cf.callWithExceptionHandler(builder.get(), ftin, resultVar, exceptionBlock, exceptionVar);
 
             // if it's variably allocated, free out after combine and realloc...
             if(aggType.isFixedSizeType()) {
                 // simply overwrite output!
-                ftOut.serialize(builder, out_row_buf);
+                ftOut.serialize(builder.get(), out_row_buf);
             } else {
                 // free & alloc new output!
                 Value* ptr = builder.CreateLoad(args["out"]);
-                Value* size = ftOut.getSize(builder);
+                Value* size = ftOut.getSize(builder.get());
                 if(allocator == malloc) {
                     env->cfree(builder.get(), ptr);
                     ptr = env->cmalloc(builder.get(), builder.CreateAdd(size, buf_offset));

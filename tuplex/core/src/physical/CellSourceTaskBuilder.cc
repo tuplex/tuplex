@@ -36,7 +36,7 @@ namespace tuplex {
 
             BasicBlock* bbEntry = BasicBlock::Create(env().getContext(), "entry", func);
 
-            IRBuilder<> builder(bbEntry);
+            IRBuilder builder(bbEntry);
 
             // where to store how many output rows are produced from this call.
             Value *outputRowNumberVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "outputRowNumberVar");

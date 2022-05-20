@@ -120,7 +120,7 @@ namespace tuplex {
 
             BasicBlock *bbBody = BasicBlock::Create(context, "entry", read_block_func);
 
-            IRBuilder<> builder(bbBody);
+            IRBuilder builder(bbBody);
 
 
             // there should be a check if argInSize is 0

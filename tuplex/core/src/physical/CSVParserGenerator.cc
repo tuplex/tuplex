@@ -71,8 +71,8 @@ namespace tuplex {
 
             // loop condition, i.e. p < endp
             builder.SetInsertPoint(bLoopCond);
-            auto cond = builder.CreateICmpULT(builder.CreatePtrToInt(builder.CreateLoad(_currentPtrVar), _env->i64Type()),
-                                              builder.CreatePtrToInt(_endPtr, _env->i64Type()));
+            auto cond = builder.get().CreateICmpULT(builder.get().CreatePtrToInt(builder.CreateLoad(_currentPtrVar), _env->i64Type()),
+                                              builder.get().CreatePtrToInt(_endPtr, _env->i64Type()));
             builder.CreateCondBr(cond, bLoopBody, bLoopDone);
 
 
@@ -81,7 +81,7 @@ namespace tuplex {
             //call func and advance ptr
 
             auto parseCode = builder.CreateCall(parseRowF, {_resStructVar, builder.CreateLoad(_currentPtrVar), _endPtr});
-            _env->debugPrint(builder, "parseCode is ", parseCode);
+            _env->debugPrint(builder.get(), "parseCode is ", parseCode);
             auto numParsedBytes = builder.CreateLoad(builder.CreateGEP(_resStructVar, {_env->i32Const(0), _env->i32Const(0)}));
 
             // inc ptr & go to loop cond with next blocks
@@ -124,15 +124,15 @@ namespace tuplex {
 
                 auto eh_func_addr = _env->i64Const(reinterpret_cast<int64_t>(_handler));
 
-                auto eh_func = builder.CreateIntToPtr(eh_func_addr, eh_func_ptr_type, "exceptionHandler");
+                auto eh_func = builder.get().CreateIntToPtr(eh_func_addr, eh_func_ptr_type, "exceptionHandler");
 
 
                 // parameters for the call
-                auto ehcode = builder.CreateSExt(parseCode, _env->i64Type());
+                auto ehcode = builder.get().CreateSExt(parseCode, _env->i64Type());
                 auto ehopid = _env->i64Const(_operatorID);
-                auto row = getRowNumber(builder);
-                auto inputlength = builder.CreateSub(builder.CreatePtrToInt(lineEnd, _env->i64Type()),
-                                                     builder.CreatePtrToInt(lineStart, _env->i64Type()));
+                auto row = getRowNumber(builder.get());
+                auto inputlength = builder.CreateSub(builder.get().CreatePtrToInt(lineEnd, _env->i64Type()),
+                                                     builder.get().CreatePtrToInt(lineStart, _env->i64Type()));
 
                 auto inputptr = lineStart;
                 std::vector<llvm::Value *> eh_parameters{getUserDataArg(), ehcode, ehopid, row, inputptr,
@@ -167,9 +167,9 @@ namespace tuplex {
                 if(python::Type::STRING == t)
                     // safely zero terminate strings before further processing...
                     // this will lead to some copies that are unavoidable...
-                    val = _env->zeroTerminateString(builder, val, size);
+                    val = _env->zeroTerminateString(builder.get(), val, size);
 
-                ft.set(builder, {pos}, val, size, nullptr);
+                ft.set(builder.get(), {pos}, val, size, nullptr);
                 pos++;
             }
 
@@ -190,7 +190,7 @@ namespace tuplex {
 
             // row done block (--> actually can save this block but would require to insert command twice)
             builder.SetInsertPoint(bRowDone);
-            incRowNumber(builder);
+            incRowNumber(builder.get());
             builder.CreateBr(bLoopCond);
         }
     }

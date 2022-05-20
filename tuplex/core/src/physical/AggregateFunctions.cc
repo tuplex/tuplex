@@ -114,34 +114,34 @@ namespace tuplex {
 
             auto exceptionBlock = BasicBlock::Create(env->getContext(), "except", func);
             IRBuilder eb(exceptionBlock);
-            eb.CreateRet(eb.CreateLoad(exceptionVar));
+            eb.get().CreateRet(eb.CreateLoad(exceptionVar));
 
-            auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);
+            auto ftOut = cf.callWithExceptionHandler(builder.get(), ftin, resultVar, exceptionBlock, exceptionVar);
 
             // if it's variably allocated, free out after combine and realloc...
             if(aggType.isFixedSizeType()) {
                 // simply overwrite output!
-                ftOut.serialize(builder, builder.CreateLoad(args["out"]));
+                ftOut.serialize(builder.get(), builder.CreateLoad(args["out"]));
             } else {
                 // free & alloc new output!
                 Value* ptr = builder.CreateLoad(args["out"]);
-                Value* size = ftOut.getSize(builder);
+                Value* size = ftOut.getSize(builder.get());
                 if(allocator == malloc) {
-                    env->cfree(builder, ptr);
-                    ptr = env->cmalloc(builder, size);
+                    env->cfree(builder.get(), ptr);
+                    ptr = env->cmalloc(builder.get(), size);
                 } else {
                     // rtmalloc?
                     // nothing to free
-                    ptr = env->malloc(builder, size);
+                    ptr = env->malloc(builder.get(), size);
                 }
 
                 // serialize to ptr
-                ftOut.serialize(builder, ptr);
+                ftOut.serialize(builder.get(), ptr);
                 builder.CreateStore(ptr, args["out"]);
                 builder.CreateStore(size, args["out_size"]);
             }
 
-            builder.CreateRet(builder.CreateLoad(exceptionVar));
+            builder.get().CreateRet(builder.CreateLoad(exceptionVar));
             return func;
         }
 
@@ -164,7 +164,7 @@ namespace tuplex {
             auto args = mapLLVMFunctionArgs(func, {"out", "row", "row_size"});
 
             auto body = BasicBlock::Create(env->getContext(), "body", func);
-            IRBuilder<> builder(body);
+            IRBuilder builder(body);
 
             // pull the row out of the input buffer
             auto buf_offset = env->i64Const(8);
@@ -183,18 +183,18 @@ namespace tuplex {
 
             // deserialize using aggType
             FlattenedTuple ftAgg(env); ftAgg.init(aggType);
-            ftAgg.deserializationCode(builder, out_row_buf);
+            ftAgg.deserializationCode(builder.get(), out_row_buf);
 
             // deserialize using rowType
             FlattenedTuple ftRow(env); ftRow.init(rowType);
-            ftRow.deserializationCode(builder, args["row"]);
+            ftRow.deserializationCode(builder.get(), args["row"]);
 
             // compile the UDF now and call it.
             auto combinedType = python::Type::makeTupleType({aggType, rowType}); // this should be compatible to input type of aggUDF!
             FlattenedTuple ftin(env);
             ftin.init(combinedType);
-            ftin.set(builder, {0}, ftAgg);
-            ftin.set(builder, {1}, ftRow);
+            ftin.set(builder.get(), {0}, ftAgg);
+            ftin.set(builder.get(), {1}, ftRow);
 
             // compile dependent on udf
             assert(udf.isCompiled());
@@ -203,15 +203,15 @@ namespace tuplex {
             if(!cf.good())
                 return nullptr;
 
-            auto resultVar = tuplex::codegen::LLVMEnvironment::CreateFirstBlockAlloca(builder, cf.getLLVMResultType(*env));
-            auto exceptionVar = tuplex::codegen::LLVMEnvironment::CreateFirstBlockAlloca(builder, env->i64Type());
+            auto resultVar = tuplex::codegen::LLVMEnvironment::CreateFirstBlockAlloca(builder.get(), cf.getLLVMResultType(*env));
+            auto exceptionVar = tuplex::codegen::LLVMEnvironment::CreateFirstBlockAlloca(builder.get(), env->i64Type());
             builder.CreateStore(env->i64Const(ecToI64(ExceptionCode::SUCCESS)), exceptionVar);
 
             auto exceptionBlock = BasicBlock::Create(env->getContext(), "except", func);
-            IRBuilder<> eb(exceptionBlock);
+            IRBuilder eb(exceptionBlock);
             eb.CreateRet(eb.CreateLoad(exceptionVar));
 
-            auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);
+            auto ftOut = cf.callWithExceptionHandler(builder.get(), ftin, resultVar, exceptionBlock, exceptionVar);
 
             // if it's variably allocated, free out after combine and realloc...
             if(aggType.isFixedSizeType()) {
@@ -222,23 +222,23 @@ namespace tuplex {
                 Value* ptr = builder.CreateLoad(args["out"]);
                 Value* size = ftOut.getSize(builder);
                 if(allocator == malloc) {
-                    env->cfree(builder, ptr);
-                    ptr = env->cmalloc(builder, builder.CreateAdd(size, buf_offset));
+                    env->cfree(builder.get(), ptr);
+                    ptr = env->cmalloc(builder.get(), builder.CreateAdd(size, buf_offset));
                 } else {
                     // rtmalloc?
                     // nothing to free
-                    ptr = env->malloc(builder, builder.CreateAdd(size, buf_offset));
+                    ptr = env->malloc(builder.get(), builder.CreateAdd(size, buf_offset));
                 }
 
                 // serialize to ptr
                 auto buf_ptr = builder.CreateGEP(ptr, buf_offset);
                 auto size_ptr = builder.CreatePointerCast(ptr, env->i64ptrType());
                 builder.CreateStore(size, size_ptr);
-                ftOut.serialize(builder, buf_ptr);
+                ftOut.serialize(builder.get(), buf_ptr);
                 builder.CreateStore(ptr, args["out"]);
             }
 
-            builder.CreateRet(builder.CreateLoad(exceptionVar));
+            builder.get().CreateRet(builder.CreateLoad(exceptionVar));
             return func;
         }
     }

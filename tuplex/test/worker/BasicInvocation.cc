@@ -950,6 +950,43 @@ TEST(BasicInvocation, BasicFS) {
 std::string basename(const std::string& s) {
     return s.substr(s.rfind('/') + 1);
 }
+namespace tuplex {
+    int checkHyperSpecialization(const URI& input_uri, TransformStage* tstage_hyper, TransformStage* tstage_general, int num_threads, const URI& spillURI) {
+        using namespace std;
+        int rc = 0;
+        auto vfs = VirtualFileSystem::fromURI(input_uri);
+        uint64_t input_file_size = 0;
+        vfs.file_size(input_uri, input_file_size);
+
+        URI output_uri = tstage_hyper->outputURI().toString() + "/" + basename(input_uri.toString());
+        auto json_message_hyper = transformStageToReqMessage(tstage_hyper, input_uri.toPath(),
+                                                             input_file_size, output_uri.toString(),
+                                                             false,
+                                                             num_threads,
+                                                             spillURI.toString());
+        output_uri = tstage_general->outputURI().toString() + "/" + basename(input_uri.toString());
+        auto json_message_general = transformStageToReqMessage(tstage_general, input_uri.toPath(),
+                                                             input_file_size, output_uri.toString(),
+                                                             false,
+                                                             num_threads,
+                                                             spillURI.toString());
+
+        // local WorkerApp
+        // start worker within same process to easier debug...
+        auto app = make_unique<WorkerApp>(WorkerSettings());
+        app->processJSONMessage(json_message_hyper);
+        app->shutdown();
+        rc |= 0x1;
+
+        app = make_unique<WorkerApp>(WorkerSettings());
+        app->processJSONMessage(json_message_general);
+        app->shutdown();
+        rc |= 0x2;
+        return rc;
+    }
+}
+
+
 
 TEST(BasicInvocation, TestAllFlightFiles) {
     using namespace std;
@@ -1010,6 +1047,24 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     cout<<"Found "<<paths.size()<<" CSV files.";
     cout<<basename(paths.front().toString())<<" ... "<<basename(paths.back().toString())<<endl;
 
+    // create the two pipeline versions...
+        // !!! use compatible files for inference when issuing queries, else there'll be errors.
+    input_pattern = paths.front().toString() + "," + paths.back().toString();
+    auto test_output_path = "./general_processing/";
+    int num_threads = 1;
+    auto spillURI = std::string("spill_folder");
+    auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
+    auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false);
+
+    for(const auto& path : paths) {
+        Timer timer;
+        cout<<"Testing "<<basename(path.toString())<<"...";
+        cout.flush();
+        int rc = checkHyperSpecialization(path, tstage_hyper, tstage_general, num_threads, spillURI);
+        std::string hyper_ok = rc & 0x1 ? "OK" : "FAILED";
+        std::string general_ok = rc & 0x2 ? "OK" : "FAILED";
+        cout<<"  hyper: "<<hyper_ok<<" general: "<<general_ok<<" took: "<<timer.time()<<"s"<<endl;
+    }
 
 //    // !!! use compatible files for inference when issuing queries, else there'll be errors.
 //    input_pattern = flights_root + "flights_on_time_performance_2003_01.csv," + flights_root + "flights_on_time_performance_2003_12.csv";

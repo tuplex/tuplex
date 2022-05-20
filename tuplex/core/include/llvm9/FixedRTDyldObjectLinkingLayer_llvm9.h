@@ -7,9 +7,12 @@
 //  Created by Leonhard Spiegelberg first on 1/1/2021                                                                 //
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
+// need to include some llvm file, so version is picked up
+#include <llvm/IR/IRBuilder.h>
 
-#ifndef TUPLEX_FIXEDRTDYLDOBJECTLINKINGLAYER_H
-#define TUPLEX_FIXEDRTDYLDOBJECTLINKINGLAYER_H
+#if LLVM_VERSION_MAJOR <= 9
+#ifndef TUPLEX_FIXEDRTDYLDOBJECTLINKINGLAYER_LLVM9_H
+#define TUPLEX_FIXEDRTDYLDOBJECTLINKINGLAYER_LLVM9_H
 
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/StringMap.h>
@@ -17,9 +20,7 @@
 #include <llvm/ExecutionEngine/JITSymbol.h>
 #include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/ExecutionEngine/Orc/Layer.h>
-#if LLVM_VERSION_MAJOR <= 9
 #include <llvm/ExecutionEngine/Orc/Legacy.h>
-#endif
 #include <llvm/ExecutionEngine/RuntimeDyld.h>
 #include <llvm/Object/ObjectFile.h>
 #include <llvm/Support/Error.h>
@@ -141,6 +142,5 @@ namespace llvm {
         };
     }
 }
-
-
 #endif //TUPLEX_FIXEDRTDYLDOBJECTLINKINGLAYER_H
+#endif

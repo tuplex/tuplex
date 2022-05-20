@@ -10,8 +10,8 @@
 
 #if LLVM_VERSION_MAJOR <= 9
 
-#ifndef TUPLEX_JITCOMPILER_H
-#define TUPLEX_JITCOMPILER_H
+#ifndef TUPLEX_JITCOMPILER_LLVM9_H
+#define TUPLEX_JITCOMPILER_LLVM9_H
 
 // common interface
 #include "IJITCompiler.h"

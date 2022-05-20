@@ -7,8 +7,11 @@
 //  Created by Leonhard Spiegelberg first on 1/1/2021                                                                 //
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
+// need to include some llvm file, so version is picked up
+#include <llvm/IR/IRBuilder.h>
 
-#include <FixedRTDyldObjectLinkingLayer.h>
+#if LLVM_VERSION_MAJOR <= 9
+#include <llvm9/FixedRTDyldObjectLinkingLayer_llvm9.h>
 
 namespace {
 
@@ -218,3 +221,5 @@ namespace llvm {
         }
     } // End namespace orc.
 } // End namespace llvm.
+
+#endif

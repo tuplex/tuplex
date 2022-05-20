@@ -29,7 +29,7 @@ namespace tuplex {
             auto args = mapLLVMFunctionArgs(func, {"agg", "agg_size"});
 
             auto body = BasicBlock::Create(env->getContext(), "body", func);
-            IRBuilder<> builder(body);
+            IRBuilder builder(body);
 
             auto ft = FlattenedTuple::fromRow(env, builder, row);
 

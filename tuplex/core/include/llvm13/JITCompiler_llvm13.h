@@ -8,10 +8,12 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#if (LLVM_VERSION_MAJOR > 9)
+// need to include some llvm file, so version is picked up
+#include <llvm/IR/IRBuilder.h>
 
-#ifndef TUPLEX_JITCOMPILER_H
-#define TUPLEX_JITCOMPILER_H
+#if LLVM_VERSION_MAJOR > 9
+#ifndef TUPLEX_JITCOMPILER_LLVM13_H
+#define TUPLEX_JITCOMPILER_LLVM13_H
 
 // common interface
 #include "IJITCompiler.h"
@@ -47,29 +49,28 @@ namespace tuplex {
          */
         template<typename Function> void registerSymbol(const std::string& Name, Function f) {
             using namespace llvm;
-            using namespace llvm::orc;
+            //using namespace llvm::orc;
 
-            auto addr = reinterpret_cast<llvm::JITTargetAddress>(f);
-            assert(addr);
-
-            // with addressof a C++ function can be hacked into this.
-            // however may lead to hard to debug bugs!
-            _customSymbols[Name] = JITEvaluatedSymbol(addr, JITSymbolFlags::Exported);
+//            auto addr = reinterpret_cast<llvm::JITTargetAddress>(f);
+//            assert(addr);
+//
+//            // with addressof a C++ function can be hacked into this.
+//            // however may lead to hard to debug bugs!
+//            _customSymbols[Name] = JITEvaluatedSymbol(addr, JITSymbolFlags::Exported);
         }
 
     private:
 
-        // @TODO: reimplement JIT using own threadpool for better access on stuff.
-        std::unique_ptr<llvm::orc::LLJIT> _lljit;
-
-        // @TODO: add function to remove llvm lib here! Else indefinite grow with queries!
-        std::vector<llvm::orc::JITDylib*> _dylibs; // for name lookup search
-
-        // custom symbols
-        std::unordered_map<std::string, llvm::JITEvaluatedSymbol> _customSymbols;
+//        // @TODO: reimplement JIT using own threadpool for better access on stuff.
+//        std::unique_ptr<llvm::orc::LLJIT> _lljit;
+//
+//        // @TODO: add function to remove llvm lib here! Else indefinite grow with queries!
+//        std::vector<llvm::orc::JITDylib*> _dylibs; // for name lookup search
+//
+//        // custom symbols
+//        std::unordered_map<std::string, llvm::JITEvaluatedSymbol> _customSymbols;
 
     };
 }
-
-#endif //TUPLEX_COMPILER_H
+#endif
 #endif

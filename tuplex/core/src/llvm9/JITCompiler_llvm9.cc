@@ -8,8 +8,8 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#if LLVM_VERSION_MAJOR <= 9
-#include <JITCompiler.h>
+#if (LLVM_VERSION_MAJOR <= 9)
+#include <llvm9/JITCompiler_llvm9.h>
 #include <Logger.h>
 
 #include <llvm/IR/Verifier.h>

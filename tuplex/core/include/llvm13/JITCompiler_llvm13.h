@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#if LLVM_VERSION_MAJOR > 9
+#if (LLVM_VERSION_MAJOR > 9)
 
 #ifndef TUPLEX_JITCOMPILER_H
 #define TUPLEX_JITCOMPILER_H
@@ -69,7 +69,6 @@ namespace tuplex {
         std::unordered_map<std::string, llvm::JITEvaluatedSymbol> _customSymbols;
 
     };
-#endif
 }
 
 #endif //TUPLEX_COMPILER_H

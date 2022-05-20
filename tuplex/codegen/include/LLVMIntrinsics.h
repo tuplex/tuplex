@@ -11,7 +11,7 @@
 // hence, list here intrinsics
 namespace tuplex {
     namespace codegen {
-#ifdef LLVM_VERSION_MAJOR > 9
+#if LLVM_VERSION_MAJOR > 9
         enum LLVMIntrinsic : llvm::Intrinsic::ID {
             sin = llvm::Intrinsic::IndependentIntrinsics::sin,
             cos = llvm::Intrinsic::IndependentIntrinsics::cos,

@@ -575,8 +575,8 @@ namespace tuplex {
             // call functor
             auto bytesParsed = functor(this, inPtr, inSize, &num_normal_rows, &num_bad_rows, false,
                                        &totalFilterCounter, &totalNormalRowCounter, &totalGeneralRowCounter, &totalFallbackRowCounter,
-                                       generalPartitions, numGeneralPartitions, &generalIndexOffset, &generalRowOffset, &generalByteOffset,
-                                       fallbackPartitions, numFallbackPartitions, &fallbackIndexOffset, &fallbackRowOffset, &fallbackByteOffset);
+                                       &generalPartitions[0], numGeneralPartitions, &generalIndexOffset, &generalRowOffset, &generalByteOffset,
+                                       &fallbackPartitions[0], numFallbackPartitions, &fallbackIndexOffset, &fallbackRowOffset, &fallbackByteOffset);
 
             // save number of normal rows to output rows written if not writeTofile
             if(hasMemorySink())

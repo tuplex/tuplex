@@ -112,4 +112,12 @@ namespace tuplex {
         }
         return true;
     }
+
+    size_t List::numNonNullElements() const {
+        size_t num = 0;
+        for(size_t i = 0; i < _numElements; i++) {
+            num += !getField(i).isNull();
+        }
+        return num;
+    }
 }

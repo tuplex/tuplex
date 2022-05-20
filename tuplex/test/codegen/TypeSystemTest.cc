@@ -162,3 +162,18 @@ TEST(TypeSys, flattenWithPyObject) {
     auto num_params = tuplex::flattenedType(row_type).parameters().size();
     EXPECT_EQ(num_params, 3);
 }
+
+TEST(TypeSys, compatibleType) {
+
+    // [Option[[i64]]] and [[Option[i64]]] ==> [Option[[Option[i64]]]]
+    auto a1_type = python::Type::makeListType(python::Type::makeOptionType(python::Type::makeListType(python::Type::I64)));
+    auto b1_type = python::Type::makeListType(python::Type::makeListType(python::Type::makeOptionType(python::Type::I64)));
+    auto ab1_compatible_type = unifyTypes(a1_type, b1_type, true);
+    EXPECT_EQ(ab1_compatible_type, python::Type::makeListType(python::Type::makeOptionType(python::Type::makeListType(python::Type::makeOptionType(python::Type::I64)))));
+
+    // Option[[Option[(Option[str], [Option[F64]])]]] and [(str, Option[[F64]])] ==> Option[[Option[(Option[str], Option[[Option[F64]]])]]]
+    auto a2_type = python::Type::makeOptionType(python::Type::makeListType(python::Type::makeOptionType(python::Type::makeTupleType({python::Type::makeOptionType(python::Type::STRING), python::Type::makeListType(python::Type::makeOptionType(python::Type::F64))}))));
+    auto b2_type = python::Type::makeListType(python::Type::makeTupleType({python::Type::STRING, python::Type::makeOptionType(python::Type::makeListType(python::Type::F64))}));
+    auto ab2_compatible_type = unifyTypes(a2_type, b2_type, true);
+    EXPECT_EQ(ab2_compatible_type, python::Type::makeOptionType(python::Type::makeListType(python::Type::makeOptionType(python::Type::makeTupleType({python::Type::makeOptionType(python::Type::STRING), python::Type::makeOptionType(python::Type::makeListType(python::Type::makeOptionType(python::Type::F64)))})))));
+}

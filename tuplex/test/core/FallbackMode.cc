@@ -81,7 +81,7 @@ TEST_F(FallbackTest, ArbitraryPyObjectSerialization) {
     cout<<endl;
 
     // convert to tuplex Field (--> PYOBJECT!)
-    auto f = python::pythonToField(np_obj);
+    auto f = python::pythonToField(np_obj, false);
 
     EXPECT_EQ(f.getType(), python::Type::PYOBJECT); // mapped to arbitrary python object
 
@@ -113,7 +113,7 @@ TEST_F(FallbackTest, NonAccessedPyObjectInPipeline) {
     cout << endl;
 
     // convert to tuplex Field (--> PYOBJECT!)
-    auto f = python::pythonToField(np_obj);
+    auto f = python::pythonToField(np_obj, false);
 
     python::unlockGIL();
 

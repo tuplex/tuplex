@@ -947,6 +947,10 @@ TEST(BasicInvocation, BasicFS) {
 }
 
 
+std::string basename(const std::string& s) {
+    return s.substr(s.rfind('/') + 1);
+}
+
 TEST(BasicInvocation, TestAllFlightFiles) {
     using namespace std;
     using namespace tuplex;
@@ -996,13 +1000,15 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     // --- end use this for final PR ---
 
     // find all flight files in root
-    VirtualFileSystem vfs = VirtualFileSystem::fromURI(URI(flights_root));
+    vfs = VirtualFileSystem::fromURI(URI(flights_root));
     auto paths = vfs.globAll(flights_root + "/flights_on_time*.csv");
     std::sort(paths.begin(), paths.end(), [](const URI& a, const URI& b) {
-       return a.toString() < b.toString();
+        auto a_str = a.toString();
+        auto b_str = b.toString();
+       return lexicographical_compare(a_str.begin(), a_str.end(), b_str.begin(), b_str.end());
     });
     cout<<"Found "<<paths.size()<<" CSV files.";
-    cout<<paths.front().toString()<<" ... "<<paths.back().toString();
+    cout<<basename(paths.front().toString())<<" ... "<<basename(paths.back().toString())<<endl;
 
 
 //    // !!! use compatible files for inference when issuing queries, else there'll be errors.

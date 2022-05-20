@@ -13,97 +13,175 @@
 
 namespace tuplex {
     ResultSet::ResultSet(const Schema& schema,
-            const std::vector<Partition*>& partitions,
-            const std::vector<Partition*>& exceptions,
-            const std::unordered_map<std::string, ExceptionInfo>& partitionToExceptionsMap,
-            const std::vector<std::tuple<size_t, PyObject*>> pyobjects,
+            const std::vector<Partition*>& normalPartitions,
+            const std::vector<Partition*>& generalPartitions,
+            const std::vector<Partition*>& fallbackPartitions,
+            const std::vector<PartitionGroup>& partitionGroups,
             int64_t maxRows) : ResultSet::ResultSet() {
-        for(Partition *p : partitions)
-            _partitions.push_back(p);
+        for (const auto &group : partitionGroups)
+            _partitionGroups.push_back(group);
 
-        _pyobjects = std::deque<std::tuple<size_t, PyObject*>>(pyobjects.begin(), pyobjects.end());
-        _exceptions = exceptions;
-        _partitionToExceptionsMap = partitionToExceptionsMap;
-        _curRowCounter = 0;
+        for (const auto &p : normalPartitions)
+            _remainingNormalPartitions.push_back(p);
+        for (const auto &p : generalPartitions)
+            _remainingGeneralPartitions.push_back(p);
+        for (const auto &p : fallbackPartitions)
+            _remainingFallbackPartitions.push_back(p);
+
+        _curNormalRowCounter = 0;
+        _curNormalByteCounter = 0;
+        _curGeneralRowCounter = 0;
+        _curGeneralByteCounter = 0;
+        _curFallbackRowCounter = 0;
+        _curFallbackByteCounter = 0;
+        _normalRowCounter = 0;
+        _generalRowCounter = 0;
+        _fallbackRowCounter = 0;
         _totalRowCounter = 0;
-        _byteCounter = 0;
+
         _schema = schema;
         _maxRows = maxRows < 0 ? std::numeric_limits<int64_t>::max() : maxRows;
-        _rowsRetrieved = 0;
+    }
+
+    void clearPartitions(std::list<Partition*>& partitions) {
+        for (auto &partition : partitions) {
+            partition->invalidate();
+        }
+        partitions.clear();
     }
 
     void ResultSet::clear() {
-        for(auto partition : _partitions)
-            partition->invalidate();
-        _partitions.clear();
-        for(auto partition : _exceptions)
-            partition->invalidate();
+        clearPartitions(_remainingNormalPartitions);
+        clearPartitions(_currentNormalPartitions);
+        clearPartitions(_remainingGeneralPartitions);
+        clearPartitions(_currentGeneralPartitions);
+        clearPartitions(_remainingFallbackPartitions);
+        clearPartitions(_currentFallbackPartitions);
+        _partitionGroups.clear();
 
-        _curRowCounter = 0;
-        _byteCounter = 0;
+        _curNormalRowCounter = 0;
+        _curNormalByteCounter = 0;
+        _curGeneralRowCounter = 0;
+        _curGeneralByteCounter = 0;
+        _curFallbackRowCounter = 0;
+        _curFallbackByteCounter = 0;
+        _normalRowCounter = 0;
+        _generalRowCounter = 0;
+        _fallbackRowCounter = 0;
+        _totalRowCounter = 0;
         _maxRows = 0;
-        _rowsRetrieved = 0;
     }
 
-    bool ResultSet::hasNextRow() {
-
+    bool ResultSet::hasNextNormalPartition() const {
         // all rows already retrieved?
-        if(_rowsRetrieved >= _maxRows)
+        if (_totalRowCounter >= _maxRows)
             return false;
 
         // empty?
-        if(_partitions.empty() && _pyobjects.empty())
+        if (_currentNormalPartitions.empty() && _remainingNormalPartitions.empty()) {
             return false;
-        else {
-            // partitions empty?
-            if(_partitions.empty())
-                return true;
-            else if(_pyobjects.empty()) {
-                assert(_partitions.size() > 0);
-                assert(_partitions.front());
-
-                // still one row left?
-                return _curRowCounter < _partitions.front()->getNumRows();
-            } else {
-                return true; // there's for sure at least one object left!
-            }
+        } else if (!_currentNormalPartitions.empty()) {
+            return _curNormalRowCounter < _currentNormalPartitions.front()->getNumRows();
+        } else {
+            return _remainingNormalPartitions.front()->getNumRows() > 0;
         }
-
     }
 
-
-    bool ResultSet::hasNextPartition() const {
+    bool ResultSet::hasNextGeneralPartition() const {
         // all rows already retrieved?
-        if(_rowsRetrieved >= _maxRows)
+        if (_totalRowCounter >= _maxRows)
             return false;
 
         // empty?
-        if(_partitions.empty())
+        if (_currentGeneralPartitions.empty() && _remainingGeneralPartitions.empty()) {
             return false;
-        else {
-            assert(_partitions.size() > 0);
-            assert(_partitions.front());
-
-            // still one row left?
-            return _curRowCounter < _partitions.front()->getNumRows();
+        } else if (!_currentGeneralPartitions.empty()) {
+            return _curGeneralRowCounter < _currentGeneralPartitions.front()->getNumRows();
+        } else {
+            return _remainingGeneralPartitions.front()->getNumRows() > 0;
         }
     }
 
-    Partition* ResultSet::getNextPartition() {
-        if(_partitions.empty())
+    bool ResultSet::hasNextFallbackPartition() const {
+        // all rows already retrieved?
+        if (_totalRowCounter >= _maxRows)
+            return false;
+
+        // empty?
+        if (_currentFallbackPartitions.empty() && _remainingFallbackPartitions.empty()) {
+            return false;
+        } else if (!_currentFallbackPartitions.empty()) {
+            return _curFallbackRowCounter < _currentFallbackPartitions.front()->getNumRows();
+        } else {
+            return _remainingFallbackPartitions.front()->getNumRows() > 0;
+        }
+    }
+
+    Partition* ResultSet::getNextGeneralPartition() {
+        if (_currentGeneralPartitions.empty() && _remainingGeneralPartitions.empty())
             return nullptr;
 
-        assert(_partitions.size() > 0);
-
-        Partition *first = _partitions.front();
-        assert(_schema == first->schema());
+        Partition *first = nullptr;
+        if (!_currentGeneralPartitions.empty()) {
+            first = _currentGeneralPartitions.front();
+            _currentGeneralPartitions.pop_front();
+        } else {
+            first = _remainingGeneralPartitions.front();
+            _remainingGeneralPartitions.pop_front();
+        }
 
         auto numRows = first->getNumRows();
-        _rowsRetrieved += numRows;
+        _totalRowCounter += numRows;
+        _generalRowCounter += numRows;
 
-        _partitions.pop_front();
-        _curRowCounter = 0;
-        _byteCounter = 0;
+        _curGeneralRowCounter = 0;
+        _curGeneralByteCounter = 0;
+
+        return first;
+    }
+
+    Partition* ResultSet::getNextFallbackPartition() {
+        if (_currentFallbackPartitions.empty() && _remainingFallbackPartitions.empty())
+            return nullptr;
+
+        Partition *first = nullptr;
+        if (!_currentFallbackPartitions.empty()) {
+            first = _currentFallbackPartitions.front();
+            _currentFallbackPartitions.pop_front();
+        } else {
+            first = _remainingFallbackPartitions.front();
+            _remainingFallbackPartitions.pop_front();
+        }
+
+        auto numRows = first->getNumRows();
+        _totalRowCounter += numRows;
+        _fallbackRowCounter += numRows;
+
+        _curFallbackRowCounter = 0;
+        _curFallbackByteCounter = 0;
+
+        return first;
+    }
+
+    Partition* ResultSet::getNextNormalPartition() {
+        if (_currentNormalPartitions.empty() && _remainingNormalPartitions.empty())
+            return nullptr;
+
+        Partition *first = nullptr;
+        if (!_currentNormalPartitions.empty()) {
+            first = _currentNormalPartitions.front();
+            _currentNormalPartitions.pop_front();
+        } else {
+            first = _remainingNormalPartitions.front();
+            _remainingNormalPartitions.pop_front();
+        }
+
+        auto numRows = first->getNumRows();
+        _totalRowCounter += numRows;
+        _normalRowCounter += numRows;
+
+        _curNormalRowCounter = 0;
+        _curNormalByteCounter = 0;
 
         return first;
     }
@@ -121,23 +199,25 @@ namespace tuplex {
             v.reserve(limit);
 
         // do a quick check whether there are ANY pyobjects, if not deserialize quickly!
-        if(_pyobjects.empty()) {
-
-            if(_partitions.empty())
+        if(_currentGeneralPartitions.empty() && _remainingGeneralPartitions.empty() && _currentFallbackPartitions.empty() && _remainingFallbackPartitions.empty()) {
+            if (_currentNormalPartitions.empty() && _remainingNormalPartitions.empty())
                 return vector<Row>{};
+
+            for (const auto &p : _remainingNormalPartitions)
+                _currentNormalPartitions.push_back(p);
 
             Deserializer ds(_schema);
             for(int i = 0; i < limit;) {
 
                 // all exhausted
-                if(_partitions.empty())
+                if(_currentNormalPartitions.empty())
                     break;
 
                 // get number of rows in first partition
-                Partition *first = _partitions.front();
+                Partition *first = _currentNormalPartitions.front();
                 auto num_rows = first->getNumRows();
                 // how many left to retrieve?
-                auto num_to_retrieve_from_partition = std::min(limit - i, num_rows - _curRowCounter);
+                auto num_to_retrieve_from_partition = std::min(limit - i, num_rows - _curNormalRowCounter);
                 if(num_to_retrieve_from_partition <= 0)
                     break;
 
@@ -148,11 +228,11 @@ namespace tuplex {
                 // get next element of partition
                 const uint8_t* ptr = first->lock();
                 for(int j = 0; j < num_to_retrieve_from_partition; ++j) {
-                    auto row = Row::fromMemory(ds, ptr + _byteCounter, first->capacity() - _byteCounter);
-                    _byteCounter += row.serializedLength();
-                    _curRowCounter++;
-                    _rowsRetrieved++;
+                    auto row = Row::fromMemory(ds, ptr + _curNormalByteCounter, first->capacity() - _curNormalByteCounter);
+                    _curNormalByteCounter += row.serializedLength();
+                    _curNormalRowCounter++;
                     _totalRowCounter++;
+                    _normalRowCounter++;
                     v.push_back(row);
                 }
 
@@ -163,17 +243,13 @@ namespace tuplex {
                 i += num_to_retrieve_from_partition;
 
                 // get next Partition ready when current one is exhausted
-                if(_curRowCounter == first->getNumRows())
-                    removeFirstPartition();
+                if(_curNormalRowCounter == first->getNumRows())
+                    removeFirstNormalPartition();
             }
 
             v.shrink_to_fit();
             return v;
         } else {
-            // fallback solution:
-            // @TODO: write faster version with proper merging!
-
-             std::vector<Row> v;
              while (hasNextRow() && v.size() < limit) {
                  v.push_back(getNextRow());
              }
@@ -182,81 +258,235 @@ namespace tuplex {
         }
     }
 
+    bool ResultSet::hasNextNormalRow() {
+        if (!_currentNormalPartitions.empty() && _curNormalRowCounter < _currentNormalPartitions.front()->getNumRows())
+            return true;
+        for (const auto &p : _remainingNormalPartitions)
+            if (p->getNumRows() > 0)
+                return true;
+        return false;
+    }
+
+    bool ResultSet::hasNextGeneralRow() {
+        if (!_currentGeneralPartitions.empty() && _curGeneralRowCounter < _currentGeneralPartitions.front()->getNumRows())
+            return true;
+        for (const auto &p : _remainingGeneralPartitions)
+            if (p->getNumRows() > 0)
+                return true;
+        return false;
+    }
+
+    bool ResultSet::hasNextFallbackRow() {
+        if (!_currentFallbackPartitions.empty() && _curFallbackRowCounter < _currentFallbackPartitions.front()->getNumRows())
+            return true;
+        for (const auto &p : _remainingFallbackPartitions)
+            if (p->getNumRows() > 0)
+                return true;
+        return false;
+    }
+
+    bool ResultSet::hasNextRow() {
+        // all rows already retrieved?
+        if(_totalRowCounter >= _maxRows)
+            return false;
+
+        return hasNextNormalRow() || hasNextGeneralRow() || hasNextFallbackRow();
+    }
+
     Row ResultSet::getNextRow() {
-        // merge rows from objects
-        if(!_pyobjects.empty()) {
-            auto row_number = std::get<0>(_pyobjects.front());
-            auto obj = std::get<1>(_pyobjects.front());
-
-            // partitions empty?
-            // => simply return next row. no fancy merging possible
-            // else merge based on row number.
-            if(_partitions.empty() || row_number <= _totalRowCounter) {
-                // merge
-                python::lockGIL();
-                auto row = python::pythonToRow(obj);
-                python::unlockGIL();
-                _pyobjects.pop_front();
-                _rowsRetrieved++;
-
-                // update row counter (not for double indices which could occur from flatMap!)
-                if(_pyobjects.empty())
-                    _totalRowCounter++;
-                else {
-                    auto next_row_number = std::get<0>(_pyobjects.front());
-                    if(next_row_number != row_number)
-                        _totalRowCounter++;
-                }
-
-                return row;
+        if (_currentNormalPartitions.empty() && _currentFallbackPartitions.empty() && _currentGeneralPartitions.empty()) {
+            // all partitions are exhausted return empty row as default value
+            if (_partitionGroups.empty())
+                return Row();
+            _normalRowCounter = 0;
+            _generalRowCounter = 0;
+            _fallbackRowCounter = 0;
+            auto group = _partitionGroups.front();
+            _partitionGroups.pop_front();
+            for (int i = group.normalPartitionStartIndex; i < group.normalPartitionStartIndex + group.numNormalPartitions; ++i) {
+                _currentNormalPartitions.push_back(_remainingNormalPartitions.front());
+                _remainingNormalPartitions.pop_front();
+            }
+            for (int i = group.generalPartitionStartIndex; i < group.generalPartitionStartIndex + group.numGeneralPartitions; ++i) {
+                _currentGeneralPartitions.push_back(_remainingGeneralPartitions.front());
+                _remainingGeneralPartitions.pop_front();
+            }
+            for (int i = group.fallbackPartitionStartIndex; i < group.fallbackPartitionStartIndex + group.numFallbackPartitions; ++i) {
+                _currentFallbackPartitions.push_back(_remainingFallbackPartitions.front());
+                _remainingFallbackPartitions.pop_front();
+            }
+            return getNextRow();
+        } else if (_currentNormalPartitions.empty() && _currentFallbackPartitions.empty()) {
+            // only general rows remain, return next general row
+            return getNextGeneralRow();
+        } else if (_currentNormalPartitions.empty() && _currentGeneralPartitions.empty()) {
+            // only fallback rows remain, return next fallback row
+            return getNextFallbackRow();
+        } else if (_currentFallbackPartitions.empty() && _currentGeneralPartitions.empty()) {
+            // only normal rows remain, return next normal row
+            return getNextNormalRow();
+        } else if (_currentFallbackPartitions.empty()) {
+            // only normal and general rows remain, compare row index
+            // emit normal rows until reached current general ind
+            if (_normalRowCounter + _generalRowCounter < currentGeneralRowInd()) {
+                return getNextNormalRow();
+            } else {
+                return getNextGeneralRow();
+            }
+        }  else if (_currentGeneralPartitions.empty()) {
+            // only normal and fallback rows remain, compare row index
+            // emit normal rows until reached current fallback ind
+            if (_normalRowCounter + _generalRowCounter + _fallbackRowCounter < currentFallbackRowInd()) {
+                return getNextNormalRow();
+            } else {
+                return getNextFallbackRow();
+            }
+        } else {
+            // all three cases remain, three way row comparison
+            auto generalRowInd = currentGeneralRowInd();
+            auto fallbackRowInd = currentFallbackRowInd();
+            if (_normalRowCounter + _generalRowCounter < generalRowInd && _normalRowCounter + _generalRowCounter + _fallbackRowCounter < fallbackRowInd) {
+                return getNextNormalRow();
+            } else if (generalRowInd <= fallbackRowInd) {
+                return getNextGeneralRow();
+            } else {
+                return getNextFallbackRow();
             }
         }
+    }
 
-        // check whether entry is available, else return empty row
-        if(_partitions.empty())
-            return Row();
+    int64_t ResultSet::currentFallbackRowInd() {
+        assert(!_currentFallbackPartitions.empty());
+        auto p = _currentFallbackPartitions.front();
+        auto ptr = p->lock() + _curFallbackByteCounter;
+        auto rowInd = *((int64_t*) ptr);
+        p->unlock();
+        return rowInd;
+    }
 
-        assert(_partitions.size() > 0);
-        Partition *first = _partitions.front();
+    int64_t ResultSet::currentGeneralRowInd() {
+        assert(!_currentGeneralPartitions.empty());
+        auto p = _currentGeneralPartitions.front();
+        auto ptr = p->lock() + _curGeneralByteCounter;
+        auto rowInd = *((int64_t*) ptr);
+        p->unlock();
+        return rowInd;
+    }
 
-        // make sure partition schema matches stored schema
-        assert(_schema == first->schema());
+    Row ResultSet::getNextNormalRow() {
+        assert (!_currentNormalPartitions.empty());
+        auto p = _currentNormalPartitions.front();
+        assert(_schema == p->schema());
 
-        Row row;
+        auto ptr = p->lock() + _curNormalByteCounter;
+        auto capacity = p->capacity() - _curNormalByteCounter;
+        auto row = Row::fromMemory(_schema, ptr, capacity);
+        p->unlock();
 
-        // thread safe version (slow)
-        // get next element of partition
-        const uint8_t* ptr = first->lock();
-
-        row = Row::fromMemory(_schema, ptr + _byteCounter, first->capacity() - _byteCounter);
-
-        // thread safe version (slow)
-        // deserialize
-        first->unlock();
-
-        _byteCounter += row.serializedLength();
-        _curRowCounter++;
-        _rowsRetrieved++;
+        _curNormalByteCounter += row.serializedLength();
+        _curNormalRowCounter++;
         _totalRowCounter++;
+        _normalRowCounter++;
 
-        // get next Partition ready when current one is exhausted
-        if(_curRowCounter == first->getNumRows())
-            removeFirstPartition();
+        if (_curNormalRowCounter == p->getNumRows()) {
+            removeFirstNormalPartition();
+        }
+
+        return row;
+    }
+
+    Row ResultSet::getNextGeneralRow() {
+        assert (!_currentGeneralPartitions.empty());
+        auto p = _currentGeneralPartitions.front();
+        assert(_schema == p->schema());
+
+        auto prevRowInd = currentGeneralRowInd();
+        _curGeneralByteCounter += 4 * sizeof(int64_t);
+        auto ptr = p->lock() + _curGeneralByteCounter;
+        auto capacity = p->capacity() - _curGeneralByteCounter;
+        auto row = Row::fromMemory(_schema, ptr, capacity);
+        p->unlock();
+
+        _curGeneralByteCounter += row.serializedLength();
+        _curGeneralRowCounter++;
+
+        if (_curGeneralRowCounter == p->getNumRows()) {
+            removeFirstGeneralPartition();
+        }
+
+        _totalRowCounter++;
+        if (_currentGeneralPartitions.empty() || currentGeneralRowInd() > prevRowInd) {
+            _generalRowCounter++;
+        }
+
+        return row;
+    }
+
+    Row ResultSet::getNextFallbackRow() {
+        assert (!_currentFallbackPartitions.empty());
+
+        auto prevRowInd = currentFallbackRowInd();
+        auto p = _currentFallbackPartitions.front();
+        auto ptr = p->lock() + _curFallbackByteCounter;
+        auto pyObjectSize = ((int64_t *) ptr)[3]; ptr += 4 * sizeof(int64_t);
+
+        python::lockGIL();
+        auto row = python::pythonToRow(python::deserializePickledObject(python::getMainModule(), (char *) ptr, pyObjectSize));
+        python::unlockGIL();
+
+        p->unlock();
+
+        _curFallbackByteCounter += pyObjectSize + 4*sizeof(int64_t);
+        _curFallbackRowCounter++;
+
+        if (_curFallbackRowCounter == p->getNumRows()) {
+            removeFirstFallbackPartition();
+        }
+
+        _totalRowCounter++;
+        if (_currentFallbackPartitions.empty() || currentFallbackRowInd() > prevRowInd) {
+            _fallbackRowCounter++;
+        }
 
         return row;
     }
 
     size_t ResultSet::rowCount() const {
         size_t count = 0;
-        for(const auto& partition : _partitions) {
+        for (const auto& partition : _currentNormalPartitions)
             count += partition->getNumRows();
-        }
-        return count + _pyobjects.size();
+        for (const auto& partition : _remainingNormalPartitions)
+            count += partition->getNumRows();
+        for (const auto& partition : _currentGeneralPartitions)
+            count += partition->getNumRows();
+        for (const auto& partition : _remainingGeneralPartitions)
+            count += partition->getNumRows();
+        for (const auto& partition : _currentFallbackPartitions)
+            count += partition->getNumRows();
+        for (const auto& partition : _remainingFallbackPartitions)
+            count += partition->getNumRows();
+        return count;
     }
 
-    void ResultSet::removeFirstPartition() {
-        assert(_partitions.size() > 0);
-        Partition *first = _partitions.front();
+    void ResultSet::removeFirstGeneralPartition() {
+        assert(!_currentGeneralPartitions.empty());
+        Partition *first = _currentGeneralPartitions.front();
+        assert(first);
+
+        // invalidate partition
+#ifndef NDEBUG
+        Logger::instance().defaultLogger().info("ResultSet invalidates partition " + hexAddr(first) + " uuid " + uuidToString(first->uuid()));
+#endif
+        first->invalidate();
+
+        _currentGeneralPartitions.pop_front();
+        _curGeneralRowCounter = 0;
+        _curGeneralByteCounter = 0;
+    }
+
+    void ResultSet::removeFirstFallbackPartition() {
+        assert(!_currentFallbackPartitions.empty());
+        Partition *first = _currentFallbackPartitions.front();
         assert(first);
 
         // invalidate partition
@@ -266,8 +496,35 @@ namespace tuplex {
         first->invalidate();
 
         // remove partition (is now processed)
-        _partitions.pop_front();
-        _curRowCounter = 0;
-        _byteCounter = 0;
+        _currentFallbackPartitions.pop_front();
+        _curFallbackRowCounter = 0;
+        _curFallbackByteCounter = 0;
+    }
+
+    void ResultSet::removeFirstNormalPartition() {
+        assert(!_currentNormalPartitions.empty());
+        Partition *first = _currentNormalPartitions.front();
+        assert(first);
+
+        // invalidate partition
+#ifndef NDEBUG
+        Logger::instance().defaultLogger().info("ResultSet invalidates partition " + hexAddr(first) + " uuid " + uuidToString(first->uuid()));
+#endif
+        first->invalidate();
+
+        // remove partition (is now processed)
+
+        _currentNormalPartitions.pop_front();
+        _curNormalRowCounter = 0;
+        _curNormalByteCounter = 0;
+    }
+
+    size_t ResultSet::fallbackRowCount() const {
+        size_t count = 0;
+        for (const auto &p : _currentFallbackPartitions)
+            count += p->getNumRows();
+        for (const auto&p : _remainingFallbackPartitions)
+            count += p->getNumRows();
+        return count;
     }
 }

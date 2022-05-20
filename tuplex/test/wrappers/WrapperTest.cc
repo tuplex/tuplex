@@ -688,8 +688,8 @@ TEST_F(WrapperTest, OptionListTest) {
 
     // RAII, destruct python context!
     auto opts = testOptions();
-    opts = opts.substr(0, opts.length() - 1) + ", \"tuplex.autoUpcast\":\"True\"}";
-    PythonContext c("python", "", opts);
+    opts.set("tuplex.autoUpcast", "true");
+    PythonContext c("python", "", opts.asJSON());
 
     // weird block syntax due to RAII problems.
     {

@@ -177,7 +177,7 @@ namespace tuplex {
             // new version, directly interact with the interpreter
             Timer timer;
             // build python list object from resultset
-            auto listObj = resultSetToCPython(rs.get(), castedTopLimit);
+            auto listObj = resultSetToCPython(rs.get(), rs->rowCount());
             Logger::instance().logger("python").info("Data transfer back to python took "
                                                      + std::to_string(timer.time()) + " seconds");
             // Logger::instance().flushAll();

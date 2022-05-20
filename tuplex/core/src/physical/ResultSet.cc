@@ -254,7 +254,7 @@ namespace tuplex {
         for(const auto& partition : _partitions) {
             count += partition->getNumRows();
         }
-        return count + _pyobjects.size();
+        return std::min(count + _pyobjects.size(), _maxRows);
     }
 
     void ResultSet::removeFirstPartition() {

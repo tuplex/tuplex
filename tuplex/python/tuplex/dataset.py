@@ -212,7 +212,6 @@ class DataSet:
             "{}"
             "  </tbody>\n"
             "</table>\n"
-            "<p>{} columns</p>\n"
             "</div>")
 
         assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
@@ -256,7 +255,7 @@ class DataSet:
             body += "      <th>...</th>\n"
             for _ in range(num_columns):
                 body += "      <td>...</td>\n"
-                body += "    </tr>\n"
+            body += "    </tr>\n"
 
             for j in range(i, len(rows)):
                 body += table_format.getHTMLRow(len(rows) - j, rows[j])
@@ -275,7 +274,7 @@ class DataSet:
             for i in range(num_columns):
                 headers_str += "      <th>Column {}</th>\n".format(i)
 
-        return HTML_TEMPLATE.format(headers_str, body, num_columns)
+        return HTML_TEMPLATE.format(headers_str, body)
 
     def showStrPreview(self, topLimit=5, bottomLimit=5):
         """ action that generates a physical plan, processes data and return a subset of results as nicely formatted

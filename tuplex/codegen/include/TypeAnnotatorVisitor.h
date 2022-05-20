@@ -19,55 +19,6 @@
 #include <ASTHelpers.h>
 
 namespace tuplex {
-    inline python::Type unifyTypes(const python::Type& a, const python::Type& b, bool allowNumbers) {
-        using namespace std;
-        if(a == b)
-            return a;
-
-        if(!allowNumbers) {
-            // only NULL to any or element and option type allowed
-            if (a == python::Type::NULLVALUE)
-                return python::Type::makeOptionType(b);
-            if (b == python::Type::NULLVALUE)
-                return python::Type::makeOptionType(a);
-
-            // one is option type, the other not but the elementtype of the option type!
-            if (a.isOptionType() && !b.isOptionType() && a.elementType() == b)
-                return a;
-            if (b.isOptionType() && !a.isOptionType() && b.elementType() == a)
-                return b;
-        } else {
-            auto t = python::Type::superType(a, b);
-            if(t != python::Type::UNKNOWN)
-                return t;
-        }
-
-        // tuples, lists, dicts...
-        if(a.isTupleType() && b.isTupleType() && a.parameters().size() == b.parameters().size()) {
-            vector<python::Type> v;
-            for(unsigned i = 0; i < a.parameters().size(); ++i) {
-                v.push_back(unifyTypes(a.parameters()[i], b.parameters()[i], allowNumbers));
-                if(v.back() == python::Type::UNKNOWN)
-                    return python::Type::UNKNOWN;
-            }
-            return python::Type::makeTupleType(v);
-        }
-
-        if(a.isListType() && b.isListType()) {
-            auto el = unifyTypes(a.elementType(), b.elementType(), allowNumbers);
-            if(el == python::Type::UNKNOWN)
-                return python::Type::UNKNOWN;
-            return python::Type::makeListType(el);
-        }
-
-        if(a.isDictionaryType() && b.isDictionaryType()) {
-            auto key_t = unifyTypes(a.keyType(), b.keyType(), allowNumbers);
-            auto val_t = unifyTypes(a.valueType(), b.valueType(), allowNumbers);
-            if(key_t != python::Type::UNKNOWN && val_t != python::Type::UNKNOWN)
-                return python::Type::makeDictionaryType(key_t, val_t);
-        }
-        return python::Type::UNKNOWN;
-    }
 
     class TypeAnnotatorVisitor : public ApatheticVisitor, public IFailable {
     private:

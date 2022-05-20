@@ -103,8 +103,6 @@ namespace tuplex {
         // save which thread executed this task
         task->setID(std::this_thread::get_id());
 
-        _numPendingTasks.fetch_add(-1, std::memory_order_release);
-
         // add task to done list
         TRACE_LOCK("completedTasks");
         _completedTasksMutex.lock();
@@ -112,6 +110,8 @@ namespace tuplex {
         _completedTasksMutex.unlock();
         _numCompletedTasks.fetch_add(1, std::memory_order_release);
         TRACE_UNLOCK("completedTasks");
+
+        _numPendingTasks.fetch_add(-1, std::memory_order_release);
 
         return true;
     }

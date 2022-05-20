@@ -239,11 +239,14 @@ namespace tuplex {
         */
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> exceptionCounts() const { return _exceptionCounts; }
 
-        ExceptionInfo inputExceptionInfo() { return _inputExceptionInfo; }
-        std::vector<Partition*> inputExceptions() { return _inputExceptions; }
+        std::vector<Partition*> generalPartitions() const { return _generalPartitions; }
 
-        void setInputExceptionInfo(ExceptionInfo info) { _inputExceptionInfo = info; }
-        void setInputExceptions(const std::vector<Partition*>& inputExceptions) { _inputExceptions = inputExceptions; }
+        std::vector<Partition*> fallbackPartitions() const { return _fallbackPartitions; }
+
+        void setGeneralPartitions(const std::vector<Partition*>& generalPartitions) { _generalPartitions = generalPartitions; }
+
+        void setFallbackPartitions(const std::vector<Partition*>& fallbackPartitions) { _fallbackPartitions = fallbackPartitions; }
+
         void setUpdateInputExceptions(bool updateInputExceptions) { _updateInputExceptions = updateInputExceptions; }
 
         double wallTime() const override { return _wallTime; }
@@ -292,8 +295,8 @@ namespace tuplex {
         MemorySink _exceptions;
         Schema _inputSchema;
 
-        ExceptionInfo _inputExceptionInfo;
-        std::vector<Partition*> _inputExceptions;
+        std::vector<Partition*> _generalPartitions;
+        std::vector<Partition*> _fallbackPartitions;
         bool _updateInputExceptions;
 
         // hash table sink

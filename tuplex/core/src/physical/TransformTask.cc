@@ -543,35 +543,29 @@ namespace tuplex {
 
         auto functor = reinterpret_cast<codegen::read_block_exp_f>(_functor);
 
-        auto numInputExceptions = _inputExceptionInfo.numExceptions;
-        auto inputExceptionIndex = _inputExceptionInfo.exceptionIndex;
-        auto inputExceptionRowOffset = _inputExceptionInfo.exceptionRowOffset;
-        auto inputExceptionByteOffset = _inputExceptionInfo.exceptionByteOffset;
+        int64_t totalNormalRowCounter = 0;
+        int64_t totalGeneralRowCounter = 0;
+        int64_t totalFallbackRowCounter = 0;
+        int64_t totalFilterCounter = 0;
 
-        // First, prepare the input exception partitions to pass into the code-gen
-        // This is done to simplify the LLVM code. We will end up passing it an
-        // array of expPtrs which point to the first exception in their partition
-        // and expPtrSizes which tell how many exceptions are in that partition.
-        auto arrSize = _inputExceptions.size() - inputExceptionIndex;
-        auto expPtrs = new uint8_t*[arrSize];
-        auto expPtrSizes = new int64_t[arrSize];
-        int expInd = 0;
-        // Iterate through all exception partitions beginning at the one specified by the starting index
-        for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
-            auto numRows = _inputExceptions[i]->getNumRows();
-            auto ptr = _inputExceptions[i]->lock();
-            // If its the first partition, we need to account for the offset
-            if (i == inputExceptionIndex) {
-                numRows -= inputExceptionRowOffset;
-                ptr += inputExceptionByteOffset;
-            }
-            expPtrSizes[expInd] = numRows;
-            expPtrs[expInd] = (uint8_t *) ptr;
-            expInd++;
-        }
+        std::vector<uint8_t*> generalPartitions(_generalPartitions.size(), nullptr);
+        for (int i = 0; i < _generalPartitions.size(); ++i)
+            generalPartitions[i] = _generalPartitions[i]->lockWriteRaw();
+        int64_t numGeneralPartitions = _generalPartitions.size();
+        int64_t generalIndexOffset = 0;
+        int64_t generalRowOffset = 0;
+        int64_t generalByteOffset = 0;
+
+        std::vector<uint8_t*> fallbackPartitions(_fallbackPartitions.size(), nullptr);
+        for (int i = 0; i < _fallbackPartitions.size(); ++i)
+            fallbackPartitions[i] = _fallbackPartitions[i]->lockWriteRaw();
+        int64_t numFallbackPartitions = _fallbackPartitions.size();
+        int64_t fallbackIndexOffset = 0;
+        int64_t fallbackRowOffset = 0;
+        int64_t fallbackByteOffset = 0;
 
         // go over all input partitions.
-        for(auto inputPartition : _inputPartitions) {
+        for(auto &inputPartition : _inputPartitions) {
             // lock ptr, extract number of rows ==> store them
             // lock raw & call functor!
             int64_t inSize = inputPartition->size();
@@ -579,7 +573,10 @@ namespace tuplex {
             _numInputRowsRead += static_cast<size_t>(*((int64_t*)inPtr));
 
             // call functor
-            auto bytesParsed = functor(this, inPtr, inSize, expPtrs, expPtrSizes, numInputExceptions, &num_normal_rows, &num_bad_rows, false);
+            auto bytesParsed = functor(this, inPtr, inSize, &num_normal_rows, &num_bad_rows, false,
+                                       &totalFilterCounter, &totalNormalRowCounter, &totalGeneralRowCounter, &totalFallbackRowCounter,
+                                       &generalPartitions[0], numGeneralPartitions, &generalIndexOffset, &generalRowOffset, &generalByteOffset,
+                                       &fallbackPartitions[0], numFallbackPartitions, &fallbackIndexOffset, &fallbackRowOffset, &fallbackByteOffset);
 
             // save number of normal rows to output rows written if not writeTofile
             if(hasMemorySink())
@@ -595,12 +592,51 @@ namespace tuplex {
                 inputPartition->invalidate();
         }
 
-        delete[] expPtrs;
-        delete[] expPtrSizes;
+        if (generalIndexOffset < numGeneralPartitions) {
+            auto curGeneralPtr = generalPartitions[generalIndexOffset];
+            auto numRowsInPartition = *((int64_t*)curGeneralPtr);
+            curGeneralPtr += sizeof(int64_t) + generalByteOffset;
+            while (generalRowOffset < numRowsInPartition) {
+                *((int64_t*)curGeneralPtr) -= totalFilterCounter;
+                curGeneralPtr += 4 * sizeof(int64_t) + ((int64_t*)curGeneralPtr)[3];
+                generalRowOffset += 1;
 
-        for (int i = inputExceptionIndex; i < _inputExceptions.size(); ++i) {
-            _inputExceptions[i]->unlock();
+                if (generalRowOffset == numRowsInPartition && generalIndexOffset < numGeneralPartitions - 1) {
+                    generalIndexOffset += 1;
+                    curGeneralPtr = generalPartitions[generalIndexOffset];
+                    numRowsInPartition = *((int64_t*)curGeneralPtr);
+                    curGeneralPtr += sizeof(int64_t);
+                    generalByteOffset = 0;
+                    generalRowOffset = 0;
+                }
+            }
         }
+
+        if (fallbackIndexOffset < numFallbackPartitions) {
+            auto curFallbackPtr = fallbackPartitions[fallbackIndexOffset];
+            auto numRowsInPartition = *((int64_t*)curFallbackPtr);
+            curFallbackPtr += sizeof(int64_t) + fallbackByteOffset;
+            while (fallbackRowOffset < numRowsInPartition) {
+                *((int64_t*)curFallbackPtr) -= totalFilterCounter;
+                curFallbackPtr += 4 * sizeof(int64_t) + ((int64_t*)curFallbackPtr)[3];
+                fallbackRowOffset += 1;
+
+                if (fallbackRowOffset == numRowsInPartition && fallbackIndexOffset < numFallbackPartitions - 1) {
+                    fallbackIndexOffset += 1;
+                    curFallbackPtr = fallbackPartitions[fallbackIndexOffset];
+                    numRowsInPartition = *((int64_t*)curFallbackPtr);
+                    curFallbackPtr += sizeof(int64_t);
+                    fallbackByteOffset = 0;
+                    fallbackRowOffset = 0;
+                }
+            }
+        }
+
+        for (auto &p : _generalPartitions)
+            p->unlockWrite();
+
+        for (auto &p : _fallbackPartitions)
+            p->unlockWrite();
 
 #ifndef NDEBUG
         owner()->info("Trafo task memory source exhausted (" + pluralize(_inputPartitions.size(), "partition") + ", "

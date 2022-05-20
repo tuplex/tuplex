@@ -177,13 +177,16 @@ namespace tuplex {
                         serializer.append(el.isNull() ? option<std::string>::none : option<std::string>(std::string((const char*)el.getPtr())), el.getType());
                     else if(rt.isListType())
                         serializer.append(el.isNull() ? option<List>::none : option<List>(*(List*)el.getPtr()), el.getType());
-                    else {
-                        if(rt.isTupleType()) {
-
-                            // needs specialized function, depending on tuple type...
-                            throw std::runtime_error(std::string(__FILE__) + " + " + std::to_string(__LINE__) + std::string(": tuple serialization not yet implemented"));
-                            //serializer.append(*((Tuple *)el.getPtr()));
-                        } else throw std::runtime_error("option underlying type " + rt.desc() + " not known");
+                    else if (rt.isTupleType()) {
+                        if (el.isNull()) {
+                            serializer.append(option<Tuple>::none, el.getType());
+                        } else {
+                            auto ptrToTuple = (Tuple*)el.getPtr();
+                            assert(ptrToTuple);
+                            serializer.append(option<Tuple>(*ptrToTuple), el.getType());
+                        }
+                    } else {
+                        throw std::runtime_error("option underlying type " + rt.desc() + " not known");
                     }
                 } else if(el.getType() == python::Type::NULLVALUE) {
                     serializer.append(NullType());

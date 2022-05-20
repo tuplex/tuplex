@@ -257,17 +257,19 @@ namespace python {
     /*!
      * converts a python object to tuplex object, obj must be not null.
      * @param obj if it can not be mapped to a tuplex type, stored as PYOBJECT (cloudpickled).
+     * @param autoUpcast whether to upcast numeric types to a unified type when type conflicts, false by default
      * @return C++ Tuplex Field object
      */
-    extern tuplex::Field pythonToField(PyObject* obj);
+    extern tuplex::Field pythonToField(PyObject *obj, bool autoUpcast=false);
 
     /*!
      * converts python object to Row using row type supplied in type.
      * @param obj
      * @param type specify what type of objects should be serialized, may contain options.
+     * @param autoUpcast whether to upcast numeric types to a unified type when type conflicts, false by default
      * @return Tuplex C++ row object.
      */
-    extern tuplex::Row pythonToRow(PyObject *obj, const python::Type &type);
+    extern tuplex::Row pythonToRow(PyObject *obj, const python::Type &type, bool autoUpcast=false);
 
     /*!
      * converts a Tuplex C++ object to a python object
@@ -318,10 +320,11 @@ namespace python {
 
     /*!
      * get corresponding tuplex type for python object
-     * @param o
-     * @return
+     * @param o python object to map to Tuplex type
+     * @param autoUpcast whether to upcast numeric types to a unified type when type conflicts, false by default
+     * @return internal Tuplex type corresponding to given python object.
      */
-    extern python::Type mapPythonClassToTuplexType(PyObject *o);
+    extern python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast=false);
 
     /*!
      * Tuplex's python API provides a paramter to (optionally) specify a schema, this functions decodes that PyObject

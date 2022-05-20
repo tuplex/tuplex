@@ -472,7 +472,7 @@ namespace tuplex {
 
         // @TODO: write exceptions in order...
         auto stats_before_resolve = get_row_stats(tstage);
-        logger().info("Normal rows before resolve: " + std::to_string(std::get<0>(stats_before_resolve)) + " except rows before resolve: " + std::to_string(std::get<1>(stats_before_resolve)));
+        logger().info("Normal rows before resolve: " + std::to_string(std::get<0>(stats_before_resolve)) + ", except rows before resolve: " + std::to_string(std::get<1>(stats_before_resolve)));
 
         // for now, everything out of order
         logger().info("Starting exception resolution/slow path execution");
@@ -1477,7 +1477,7 @@ namespace tuplex {
         auto rootURI = _settings.spillRootURI.toString().empty() ? "" : _settings.spillRootURI.toString() + "/";
         auto path = URI(rootURI + name + ext);
 
-        logger().info("Spilling " + std::to_string(env->exceptionBuf.size()) + " to " + path.toString());
+        logger().info("Spilling " + std::to_string(env->exceptionBuf.size()) + "/" + std::to_string(env->exceptionBuf.capacity()) + " to " + path.toString());
 
         // open & write
         auto vfs = VirtualFileSystem::fromURI(path);

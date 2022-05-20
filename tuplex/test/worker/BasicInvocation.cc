@@ -945,3 +945,113 @@ TEST(BasicInvocation, BasicFS) {
 
     delete [] buf;
 }
+
+
+TEST(BasicInvocation, TestAllFlightFiles) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto worker_path = find_worker();
+
+    auto testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+    auto scratchDir = "/tmp/" + testName;
+
+    // change cwd & create dir to avoid conflicts!
+    auto cwd_path = boost::filesystem::current_path();
+    auto desired_cwd = cwd_path.string() + "/tests/" + testName;
+    // create dir if it doesn't exist
+    auto vfs = VirtualFileSystem::fromURI("file://");
+    vfs.create_dir(desired_cwd);
+    boost::filesystem::current_path(desired_cwd);
+
+    char buf[4096];
+    auto cur_dir = getcwd(buf, 4096);
+
+    EXPECT_NE(std::string(cur_dir).find(testName), std::string::npos);
+
+    cout<<"Starting exhaustive Flights hyperspecializaiton test:\n======="<<endl;
+    cout<<"current working dir: "<<buf<<endl;
+
+    // check worker exists
+    ASSERT_TRUE(tuplex::fileExists(worker_path));
+
+    // for testing purposes, store here the root path to the flights data (simple ifdef)
+#ifdef __APPLE__
+    // leonhards macbook
+    string flights_root = "/Users/leonhards/Downloads/flights/";
+    //string flights_root = "/Users/leonhards/Downloads/flights_small/";
+    string driver_memory = "2G";
+#else
+    // BBSN00
+    string flights_root = "/hot/data/flights_all/";
+    string driver_memory = "32G";
+    string executor_memory = "10G";
+    string num_executors = "0";
+    //num_executors = "16";
+#endif
+
+    // --- use this for final PR ---
+    // For testing purposes: resources/hyperspecialization/2003/*.csv holds two mini samples where wrong sampling triggers too many exceptions in general case mode
+    string input_pattern = cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv," + cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
+    // --- end use this for final PR ---
+
+    // find all flight files in root
+    VirtualFileSystem vfs = VirtualFileSystem::fromURI(URI(flights_root));
+    auto paths = vfs.globAll(flights_root + "/flights_on_time*.csv");
+    std::sort(paths.begin(), paths.end(), [](const URI& a, const URI& b) {
+       return a.toString() < b.toString();
+    });
+    cout<<"Found "<<paths.size()<<" CSV files.";
+    cout<<paths.front().toString()<<" ... "<<paths.back().toString();
+
+
+//    // !!! use compatible files for inference when issuing queries, else there'll be errors.
+//    input_pattern = flights_root + "flights_on_time_performance_2003_01.csv," + flights_root + "flights_on_time_performance_2003_12.csv";
+//
+//
+//    auto test_path = input_pattern;
+//    auto test_output_path = "./general_processing/";
+//    int num_threads = 1;
+//    auto spillURI = std::string("spill_folder");
+//    bool use_hyper = false;
+//    auto tstage = create_flights_pipeline(test_path, test_output_path, use_hyper);
+//
+//    // transform to message
+//    // create message only for first file!
+////    auto input_uri = URI(cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_08.csv");
+//    auto input_uri = URI(cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv");
+//    input_uri = URI(flights_root + "flights_on_time_performance_2003_08.csv");
+////    input_uri = URI(flights_root + "flights_on_time_performance_2003_01.csv");
+//    auto output_uri = URI(test_output_path + (use_hyper ? string("output_hyper.csv") : string("output_general.csv")));
+//
+//    auto file = tuplex::VirtualFileSystem::open_file(output_uri, VirtualFileMode::VFS_OVERWRITE);
+//    ASSERT_TRUE(file);
+//    file.reset();
+//
+//    vfs = VirtualFileSystem::fromURI(input_uri);
+//    uint64_t input_file_size = 0;
+//    vfs.file_size(input_uri, input_file_size);
+//    auto json_message = transformStageToReqMessage(tstage, input_uri.toPath(),
+//                                                   input_file_size, output_uri.toString(),
+//                                                   false,
+//                                                   num_threads,
+//                                                   spillURI);
+//
+//    // local WorkerApp
+//    // start worker within same process to easier debug...
+//    auto app = make_unique<WorkerApp>(WorkerSettings());
+//    app->processJSONMessage(json_message);
+//    app->shutdown();
+//
+//    // check size of ref file
+//    uint64_t output_file_size = 0;
+//    vfs.file_size("file://./general_processing/output_hyper.csv.csv", output_file_size);
+//    cout<<"Output size of hyper file is: "<<output_file_size<<endl;
+//    vfs.file_size("file://./general_processing/output_general.csv.csv", output_file_size);
+//    cout<<"Output size of general file is: "<<output_file_size<<endl;
+//
+//    // Output size of file is: 46046908 (general, no hyper)
+//    // 46046908
+
+    cout<<"Test done."<<endl;
+}

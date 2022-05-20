@@ -35,7 +35,7 @@ namespace tuplex {
 
         // get type of key => is elementType? => fetch from internal hashmap.
         // else, use python dict
-        auto key_type = python::mapPythonClassToTuplexType(key);
+        auto key_type = python::mapPythonClassToTuplexType(key, false);
 
         PyObject* ret_list = nullptr;
 
@@ -160,7 +160,7 @@ namespace tuplex {
             return -1;
         }
 
-        auto key_type = python::mapPythonClassToTuplexType(key);
+        auto key_type = python::mapPythonClassToTuplexType(key, false);
 
         // could be direct key_type == hmElementType comparison,
         // yet, let's be lazy so objects can be properly extracted...
@@ -256,8 +256,8 @@ namespace tuplex {
         }
 
         // decoce types of both key and val
-        auto key_type = python::mapPythonClassToTuplexType(key);
-        auto val_type = python::mapPythonClassToTuplexType(value);
+        auto key_type = python::mapPythonClassToTuplexType(key, false);
+        auto val_type = python::mapPythonClassToTuplexType(value, false);
 
         // @TODO: upcasting b.c. of NVO!
 
@@ -273,7 +273,7 @@ namespace tuplex {
 
             // serialize content of value
             auto bucket_type = this->hmBucketType;
-            auto bucket_row = python::pythonToRow(value, bucket_type);
+            auto bucket_row = python::pythonToRow(value, bucket_type, false);
             // serialize to buffer
             auto buf_length = bucket_row.serializedLength();
             auto buf = new uint8_t [buf_length + 32]; // some security bytes

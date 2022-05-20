@@ -693,7 +693,7 @@ default:
                                 continue;
                             }
 
-                            auto rowType = python::mapPythonClassToTuplexType(rowObj);
+                            auto rowType = python::mapPythonClassToTuplexType(rowObj, false);
 
                             // special case output schema is str (fileoutput!)
                             if(rowType == python::Type::STRING) {
@@ -1219,7 +1219,7 @@ default:
 
         switch(_hash_agg_type) {
             case AggregateType::AGG_UNIQUE: {
-                auto rowType = python::mapPythonClassToTuplexType(rowObject);
+                auto rowType = python::mapPythonClassToTuplexType(rowObject, false);
 
                 // special case: Is it single element column? => this is the only supported right now for unique...
                 if(rowType.parameters().size() == 1) {

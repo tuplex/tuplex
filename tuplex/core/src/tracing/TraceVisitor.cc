@@ -338,7 +338,7 @@ namespace tuplex {
             // record input types for schema inference!
             std::vector<python::Type> types;
             for(auto a : extractedArgs) {
-                types.emplace_back(python::mapPythonClassToTuplexType(a));
+                types.emplace_back(python::mapPythonClassToTuplexType(a, false));
             }
             _colTypes.emplace_back(types);
         } else throw std::runtime_error("no nested functions supported in tracer yet!");
@@ -390,7 +390,7 @@ namespace tuplex {
         // @TODO: add annotation object (ptr) to astnodes!
 
         // record type
-        auto retType = python::mapPythonClassToTuplexType(_retValue.value);
+        auto retType = python::mapPythonClassToTuplexType(_retValue.value, false);
         if(retType.isTupleType() && !retType.parameters().empty()) {
             _retColTypes.emplace_back(retType.parameters());
         } else {
@@ -579,7 +579,7 @@ namespace tuplex {
         _evalStack.pop_back();
 
         // record type
-        auto retType = python::mapPythonClassToTuplexType(_retValue.value);
+        auto retType = python::mapPythonClassToTuplexType(_retValue.value, false);
         if(retType.isTupleType() && !retType.parameters().empty()) {
             _retColTypes.emplace_back(retType.parameters());
         } else {
@@ -933,7 +933,7 @@ namespace tuplex {
             node->annotation().numTimesVisited++;
 
             // translate type
-            node->annotation().types.push_back(python::mapPythonClassToTuplexType(item.value));
+            node->annotation().types.push_back(python::mapPythonClassToTuplexType(item.value, false));
 
         }
         // add to instruction stack.

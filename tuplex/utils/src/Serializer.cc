@@ -339,6 +339,43 @@ namespace tuplex {
         return *this;
     }
 
+    Serializer &Serializer::append(const option<Tuple> &t, const python::Type &tupleType) {
+        if(_autoSchema) {
+            _types.push_back(python::Type::makeOptionType(tupleType));
+        } else {
+            assert(_schema.getRowType().parameters()[_col++] == python::Type::makeOptionType(tupleType));
+        }
+
+        if(tupleType == python::Type::EMPTYTUPLE || (tupleType.isOptionType() && tupleType.getReturnType() == python::Type::EMPTYTUPLE)) {
+            _isNull.push_back(!t.has_value());
+            _requiresBitmap.push_back(true);
+            _isVarField.push_back(false);
+            return *this;
+        }
+
+        return appendWithoutInference(t, tupleType.isOptionType() ? tupleType.getReturnType() : tupleType);
+    }
+
+    Serializer &Serializer::appendWithoutInference(const option<Tuple> &tuple, const python::Type &tupleType) {
+        assert(!tupleType.isOptionType() && tupleType != python::Type::EMPTYTUPLE);
+        _isVarField.push_back(true);
+        _isNull.push_back(!tuple.has_value());
+        _requiresBitmap.push_back(true);
+
+        _fixedLenFields.provideSpace(sizeof(uint64_t));
+        *((uint64_t *)_fixedLenFields.ptr()) = 0;
+        _fixedLenFields.movePtr(sizeof(uint64_t));
+
+        _varLenFieldOffsets.push_back(_varLenFields.size());
+
+        if(tuple.has_value()) {
+            Tuple tupleData = tuple.data();
+            appendWithoutInferenceHelper(tupleData);
+        }
+
+        return *this;
+    }
+
     Serializer &Serializer::appendWithoutInference(const option<List> &list, const python::Type &listType) {
         assert(!listType.isOptionType() && listType != python::Type::EMPTYLIST);
         bool isVar = !(listType.elementType().isSingleValued());
@@ -353,50 +390,12 @@ namespace tuplex {
         *((int64_t *) _fixedLenFields.ptr()) = (isVar || !list.has_value()) ? 0L : list.data().numElements();
         _fixedLenFields.movePtr(sizeof(int64_t));
 
+        _varLenFieldOffsets.push_back(_varLenFields.size());
+
         if(isVar && list.has_value()) {
-            // as chars (later UTF8 support here!!!)
-            _varLenFieldOffsets.push_back(_varLenFields.size());
-
-            // add number of elements
-            _varLenFields.provideSpace(sizeof(uint64_t));
-            *((uint64_t *) _varLenFields.ptr()) = list.data().numElements();
-            _varLenFields.movePtr(sizeof(uint64_t));
-
-            // add actual data
-            auto elementType = listType.elementType();
-            if (elementType == python::Type::STRING) { // strings are serialized differently
-                // offset numbers
-                size_t current_offset = sizeof(uint64_t) * list.data().numElements();
-                for (size_t i = 0; i < list.data().numElements(); i++) {
-                    _varLenFields.provideSpace(sizeof(uint64_t));
-                    *((uint64_t *) _varLenFields.ptr()) = current_offset;
-                    _varLenFields.movePtr(sizeof(uint64_t));
-                    // update for next field: move forward one uint64_t, then add on the string
-                    current_offset -= sizeof(uint64_t);
-                    current_offset += strlen((char *) list.data().getField(i).getPtr()) + 1;
-                }
-                // string data
-                for (size_t i = 0; i < list.data().numElements(); i++) {
-                    size_t slen = strlen((char*)list.data().getField(i).getPtr());
-                    _varLenFields.provideSpace(slen + 1);
-                    std::memcpy(_varLenFields.ptr(), list.data().getField(i).getPtr(), slen);
-                    *((uint8_t *) _varLenFields.ptr() + slen) = 0;
-                    _varLenFields.movePtr(slen + 1);
-                }
-            } else { // ints/floats/bools
-                // values
-                for(size_t i = 0; i < list.data().numElements(); i++) {
-                    _varLenFields.provideSpace(sizeof(uint64_t));
-                    if(elementType == python::Type::I64 || elementType == python::Type::BOOLEAN) {
-                        *((uint64_t*)_varLenFields.ptr()) = list.data().getField(i).getInt();
-                    } else if(elementType == python::Type::F64) {
-                        *((double*)_varLenFields.ptr()) = list.data().getField(i).getDouble();
-                    } else {
-                        throw std::runtime_error("serializing invalid list type!: " + listType.desc());
-                    }
-                    _varLenFields.movePtr(sizeof(uint64_t));
-                }
-            }
+            // get list data
+            auto l = list.data();
+            appendWithoutInferenceHelper(l);
         }
         return *this;
     }
@@ -435,7 +434,7 @@ namespace tuplex {
                                       option<std::string>(std::string((char *) dict.value().c_str())));
     }
 
-    Serializer &Serializer::append(const option<List>& list, python::Type listType) {
+    Serializer &Serializer::append(const option<List>& list, const python::Type &listType) {
         // variable length field
         if(_autoSchema) {
             _types.push_back(python::Type::makeOptionType(listType));
@@ -517,11 +516,14 @@ namespace tuplex {
                 _isVarField.push_back(false);
                 _isNull.push_back(f.isNull());
                 _requiresBitmap.push_back(true);
-            } else if(t.isListType()) {
-                throw std::runtime_error("list option not implemented yet!");
+            } else if (t.isListType()) {
+                return appendWithoutInference(f.isNull() ? option<List>::none : option<List>(*(List*)f.getPtr()), t);
+            } else if (t.isTupleType()) {
+                return appendWithoutInference(f.isNull() ? option<Tuple>::none : option<Tuple>(*(Tuple*)f.getPtr()), t);
             } else
-                throw std::runtime_error("unknown type " + f.getType().desc() + " found, can't serialize.");
-
+                // throw std::runtime_error("unknown type " + f.getType().desc() + " found, can't serialize.");
+                Logger::instance().logger("serializer").error(
+                        "unknown field type " + f.getType().desc() + " encountered, can't serialize.");
         } else {
             Logger::instance().logger("serializer").error(
                     "unknown field type " + f.getType().desc() + " encountered, can't serialize.");
@@ -593,50 +595,336 @@ namespace tuplex {
             // as chars (later UTF8 support here!!!)
             _varLenFieldOffsets.push_back(_varLenFields.size());
 
-            // add number of elements
-            _varLenFields.provideSpace(sizeof(uint64_t));
-            *((uint64_t *) _varLenFields.ptr()) = l.numElements();
-            _varLenFields.movePtr(sizeof(uint64_t));
-
-            // add actual data
-            auto elementType = l.getType().elementType();
-            if (elementType == python::Type::STRING) { // strings are serialized differently
-                // offset numbers
-                size_t current_offset = sizeof(uint64_t) * l.numElements();
-                for (size_t i = 0; i < l.numElements(); i++) {
-                    _varLenFields.provideSpace(sizeof(uint64_t));
-                    *((uint64_t *) _varLenFields.ptr()) = current_offset;
-                    _varLenFields.movePtr(sizeof(uint64_t));
-                    // update for next field: move forward one uint64_t, then add on the string
-                    current_offset -= sizeof(uint64_t);
-                    current_offset += strlen((char *) l.getField(i).getPtr()) + 1;
-                }
-                // string data
-                for (size_t i = 0; i < l.numElements(); i++) {
-                    size_t slen = strlen((char*)l.getField(i).getPtr());
-                    _varLenFields.provideSpace(slen + 1);
-                    std::memcpy(_varLenFields.ptr(), l.getField(i).getPtr(), slen);
-                    *((uint8_t *) _varLenFields.ptr() + slen) = 0;
-                    _varLenFields.movePtr(slen + 1);
-                }
-            } else { // ints/floats/bools
-                // values
-                for(size_t i = 0; i < l.numElements(); i++) {
-                    _varLenFields.provideSpace(sizeof(uint64_t));
-                    if(elementType == python::Type::I64 || elementType == python::Type::BOOLEAN) {
-                        *((uint64_t*)_varLenFields.ptr()) = l.getField(i).getInt();
-                    } else if(elementType == python::Type::F64) {
-                        *((double*)_varLenFields.ptr()) = l.getField(i).getDouble();
-                    } else {
-                        throw std::runtime_error("serializing invalid list type!: " + l.getType().desc());
-                    }
-                    _varLenFields.movePtr(sizeof(uint64_t));
-                }
-            }
+            appendWithoutInferenceHelper(l);
         }
         return *this;
     }
 
+    Serializer &Serializer::appendWithoutInferenceHelper(const Tuple &t) {
+        auto tree = tupleToTree(t);
+        tree.tupleType();
+
+        // need bitmap field for elements?
+        std::vector<bool> bitmapV;
+        void *bitmapAddr = nullptr;
+        size_t bitmapSize = 0;
+        size_t numOptionalFields = python::numOptionalFields(t.getType());
+        if(numOptionalFields) {
+            auto numBitmapFields = core::ceilToMultiple(numOptionalFields, 64ul)/64;
+            bitmapSize = numBitmapFields * sizeof(uint64_t);
+            _varLenFields.provideSpace(bitmapSize);
+            bitmapAddr = _varLenFields.ptr();
+            _varLenFields.movePtr(bitmapSize);
+        }
+
+        // std::vector<int>: index for a varLen type in the tuple
+        // void *: address for storing offset to actual data for the varlen type
+        std::vector<std::pair<std::vector<int>, void *>> varLenOffsetAddrStack;
+        for(const auto &index : tree.getMultiIndices()) {
+            auto currField = tree.get(index);
+            auto currFieldType = currField.getType();
+            if(currFieldType.isSingleValued()) {
+                continue;
+            }
+            if(currFieldType.isOptionType()) {
+                // only write to bitmap for optional field in tuple
+                if(currField.isNull()) {
+                    bitmapV.push_back(true);
+                } else {
+                    // need actual type
+                    currFieldType = currFieldType.getReturnType();
+                    bitmapV.push_back(false);
+                }
+            }
+            if (!currField.isNull()) {
+                // assume 8 bytes for each field
+                _varLenFields.provideSpace(sizeof(uint64_t));
+                // either fill in actual data for fixed length field
+                // or record current address to varLenOffsetAddr for filling in offset to actual data later
+                if(currFieldType == python::Type::I64 || currFieldType == python::Type::BOOLEAN) {
+                    *((uint64_t *)_varLenFields.ptr()) = currField.getInt();
+                } else if(currFieldType == python::Type::F64) {
+                    // double is 8 bytes
+                    *((double *)_varLenFields.ptr()) = currField.getDouble();
+                } else if(currFieldType == python::Type::STRING || currFieldType.isListType() || currFieldType.isTupleType()) {
+                    // skip 8 bytes as placeholder to fill in offset later
+                    varLenOffsetAddrStack.emplace_back(index, _varLenFields.ptr());
+                }
+                _varLenFields.movePtr(sizeof(uint64_t));
+            }
+        }
+        // append varLen fields
+        for(const auto &varLenOffsetAddr : varLenOffsetAddrStack) {
+            auto currVarLenField = tree.get(varLenOffsetAddr.first);
+            auto currVarLenFieldType = currVarLenField.getType();
+            if(currVarLenFieldType.isOptionType()) {
+                currVarLenFieldType = currVarLenFieldType.getReturnType();
+            }
+            void *currVarLenOffsetAddr = varLenOffsetAddr.second;
+            uint64_t currOffset = (uintptr_t)_varLenFields.ptr() - (uintptr_t)currVarLenOffsetAddr;
+            // write offset to placeholder then append varLen field
+            if(currVarLenFieldType == python::Type::STRING) {
+                // write size | offset to placeholder
+                uint64_t strSize = strlen((char *)currVarLenField.getPtr()) + 1;
+                uint64_t sizeOffset = currOffset | (strSize << 32);
+                *((uint64_t *)currVarLenOffsetAddr) = sizeOffset;
+                appendWithoutInferenceHelper(std::string((char *) currVarLenField.getPtr()));
+            } else if(currVarLenFieldType.isListType()) {
+                // write offset to placeholder
+                *((uint64_t *)currVarLenOffsetAddr) = currOffset;
+                appendWithoutInferenceHelper(*(List *) currVarLenField.getPtr());
+            } else if(currVarLenFieldType.isTupleType()) {
+                // has to be an optional tuple otherwise it would have been flattened away
+                assert(currVarLenField.getType().isOptionType());
+                *((uint64_t *)currVarLenOffsetAddr) = currOffset;
+                appendWithoutInferenceHelper(*(Tuple *) currVarLenField.getPtr());
+            } else {
+                // throw std::runtime_error("element type not support in tuple: " + currVarLenField.getType().desc());
+                Logger::instance().logger("serializer").error(
+                        "invalid element type in tuple: " + currVarLenField.getType().desc() + " encountered, can't serialize.");
+            }
+        }
+
+        // write bitmap if exists
+        if (bitmapSize) {
+            uint64_t bitmap[bitmapSize / sizeof(int64_t)];
+            std::memset(bitmap, 0, bitmapSize);
+
+            int opt_counter = 0;
+            assert(bitmapV.size() == numOptionalFields);
+            for (int i = 0; i < numOptionalFields; i++) {
+                // set bit
+                if (bitmapV[i]) {
+                    bitmap[i / 64] |= (1UL << (i % 64));
+                }
+            }
+            // write to ptr
+            std::memcpy(bitmapAddr, bitmap, bitmapSize);
+        }
+        return *this;
+    }
+
+    Serializer &Serializer::appendWithoutInferenceHelper(const std::string &str) {
+        // append the string to of _varLenFields
+        const char *cStr = str.c_str();
+        auto strSize = strlen(cStr) + 1;
+        _varLenFields.provideSpace(strSize);
+        std::memcpy(_varLenFields.ptr(), cStr ,strSize);
+        _varLenFields.movePtr(strSize);
+        return *this;
+    }
+
+    Serializer &Serializer::appendWithoutInferenceHelper(const List &l) {
+
+        // add number of elements
+        _varLenFields.provideSpace(sizeof(uint64_t));
+        *((uint64_t *)_varLenFields.ptr()) = l.numElements();
+        _varLenFields.movePtr(sizeof(uint64_t));
+
+        auto elementType = l.getType().elementType();
+        if(elementType.isSingleValued()) {
+            // done. List can be retrieved from numElements and listType
+            return *this;
+        }
+
+        // need bitmap field for elements?
+        std::vector<bool> bitmapV;
+        void *bitmapAddr = nullptr;
+        size_t bitmapSize = 0;
+        if(elementType.isOptionType()) {
+            auto numBitmapFields = core::ceilToMultiple(l.numElements(), 64ul)/64;
+            bitmapSize = numBitmapFields * sizeof(uint64_t);
+            _varLenFields.provideSpace(bitmapSize);
+            bitmapAddr = _varLenFields.ptr();
+            _varLenFields.movePtr(bitmapSize);
+        }
+
+        if(elementType == python::Type::STRING) { // strings are serialized differently
+            // offset numbers
+            size_t current_offset = sizeof(uint64_t) * l.numElements();
+            for (size_t i = 0; i < l.numElements(); i++) {
+                _varLenFields.provideSpace(sizeof(uint64_t));
+                *((uint64_t *) _varLenFields.ptr()) = current_offset;
+                _varLenFields.movePtr(sizeof(uint64_t));
+                // update for next field: move forward one uint64_t, then add on the string
+                current_offset -= sizeof(uint64_t);
+                current_offset += strlen((char *) l.getField(i).getPtr()) + 1;
+            }
+            // string data
+            for (size_t i = 0; i < l.numElements(); i++) {
+                size_t slen = strlen((char*)l.getField(i).getPtr());
+                _varLenFields.provideSpace(slen + 1);
+                std::memcpy(_varLenFields.ptr(), l.getField(i).getPtr(), slen);
+                *((uint8_t *) _varLenFields.ptr() + slen) = 0;
+                _varLenFields.movePtr(slen + 1);
+            }
+        } else if(elementType.isTupleType()) {
+            void *varLenOffsetAddr = _varLenFields.ptr();
+            // skip #elements * 8 bytes as placeholder for offsets
+            auto offsetBytes = l.numElements() * sizeof(uint64_t);
+            _varLenFields.provideSpace(offsetBytes);
+            _varLenFields.movePtr(offsetBytes);
+            for (size_t listIndex = 0; listIndex < l.numElements(); ++listIndex) {
+                // write offset to placeholder
+                uint64_t currOffset = (uintptr_t)_varLenFields.ptr() - (uintptr_t)varLenOffsetAddr;
+                *(uint64_t *)varLenOffsetAddr = currOffset;
+                // increment varLenOffsetAddr by 8
+                varLenOffsetAddr = (void *)((uint64_t *)varLenOffsetAddr + 1);
+                // append tuple
+                auto currTuple = *(Tuple *)(l.getField(listIndex).getPtr());
+                appendWithoutInferenceHelper(currTuple);
+            }
+        }  else if (elementType.isListType()) {
+            void *varLenOffsetAddr = _varLenFields.ptr();
+            // skip #elements * 8 bytes as placeholder for offsets
+            auto offsetBytes = l.numElements() * sizeof(uint64_t);
+            _varLenFields.provideSpace(offsetBytes);
+            _varLenFields.movePtr(offsetBytes);
+            for (size_t listIndex = 0; listIndex < l.numElements(); ++listIndex) {
+                // write offset to placeholder
+                uint64_t currOffset = (uintptr_t)_varLenFields.ptr() - (uintptr_t)varLenOffsetAddr;
+                *(uint64_t *)varLenOffsetAddr = currOffset;
+                // increment varLenOffsetAddr by 8
+                varLenOffsetAddr = (void *)((uint64_t *)varLenOffsetAddr + 1);
+                // append list
+                auto currList = *(List *)(l.getField(listIndex).getPtr());
+                appendWithoutInferenceHelper(currList);
+            }
+        } else if(elementType == python::Type::I64 || elementType == python::Type::BOOLEAN) {
+            for(size_t i = 0; i < l.numElements(); i++) {
+                _varLenFields.provideSpace(sizeof(uint64_t));
+                *((uint64_t*)_varLenFields.ptr()) = l.getField(i).getInt();
+                _varLenFields.movePtr(sizeof(uint64_t));
+            }
+        } else if(elementType == python::Type::F64) {
+            for(size_t i = 0; i < l.numElements(); i++) {
+                _varLenFields.provideSpace(sizeof(uint64_t));
+                *((double*)_varLenFields.ptr()) = l.getField(i).getDouble();
+                _varLenFields.movePtr(sizeof(uint64_t));
+            }
+        } else if(elementType.isOptionType()) {
+            auto underlyingElementType = elementType.getReturnType();
+            size_t numNonNullElements = l.numNonNullElements();
+            if(underlyingElementType == python::Type::STRING) {
+                // offset numbers
+                size_t currentOffset = sizeof(uint64_t) * numNonNullElements;
+                for(size_t i = 0; i < l.numElements(); i++) {
+                    if(l.getField(i).isNull()) {
+                        bitmapV.push_back(true);
+                    } else {
+                        bitmapV.push_back(false);
+                        // write offset
+                        _varLenFields.provideSpace(sizeof(uint64_t));
+                        *((uint64_t *) _varLenFields.ptr()) = currentOffset;
+                        _varLenFields.movePtr(sizeof(uint64_t));
+                        // update for next field: move forward one uint64_t, then add on the string
+                        currentOffset -= sizeof(uint64_t);
+                        currentOffset += strlen((char *) l.getField(i).getPtr()) + 1;
+                    }
+                }
+                // string data
+                for (size_t i = 0; i < l.numElements(); i++) {
+                    if(!l.getField(i).isNull()) {
+                        size_t slen = strlen((char*)l.getField(i).getPtr());
+                        _varLenFields.provideSpace(slen + 1);
+                        std::memcpy(_varLenFields.ptr(), l.getField(i).getPtr(), slen);
+                        *((uint8_t *) _varLenFields.ptr() + slen) = 0;
+                        _varLenFields.movePtr(slen + 1);
+                    }
+                }
+            } else if(underlyingElementType.isTupleType()) {
+                void *varLenOffsetAddr = _varLenFields.ptr();
+                // skip #elements * 8 bytes as placeholder for offsets
+                auto offsetBytes = numNonNullElements * sizeof(uint64_t);
+                _varLenFields.provideSpace(offsetBytes);
+                _varLenFields.movePtr(offsetBytes);
+                for (size_t listIndex = 0; listIndex < l.numElements(); ++listIndex) {
+                    if(l.getField(listIndex).isNull()) {
+                        bitmapV.push_back(true);
+                    } else {
+                        bitmapV.push_back(false);
+                        // write offset to placeholder
+                        uint64_t currOffset = (uintptr_t)_varLenFields.ptr() - (uintptr_t)varLenOffsetAddr;
+                        *(uint64_t *)varLenOffsetAddr = currOffset;
+                        // increment varLenOffsetAddr by 8
+                        varLenOffsetAddr = (void *)((uint64_t *)varLenOffsetAddr + 1);
+                        // append tuple
+                        auto currTuple = *(Tuple *)(l.getField(listIndex).getPtr());
+                        appendWithoutInferenceHelper(currTuple);
+                    }
+                }
+            } else if(underlyingElementType.isListType()) {
+                void *varLenOffsetAddr = _varLenFields.ptr();
+                // skip #elements * 8 bytes as placeholder for offsets
+                auto offsetBytes = l.numNonNullElements() * sizeof(uint64_t);
+                _varLenFields.provideSpace(offsetBytes);
+                _varLenFields.movePtr(offsetBytes);
+                for (size_t listIndex = 0; listIndex < l.numElements(); ++listIndex) {
+                    if(l.getField(listIndex).isNull()) {
+                        bitmapV.push_back(true);
+                    } else {
+                        bitmapV.push_back(false);
+                        // write offset to placeholder
+                        uint64_t currOffset = (uintptr_t)_varLenFields.ptr() - (uintptr_t)varLenOffsetAddr;
+                        *(uint64_t *)varLenOffsetAddr = currOffset;
+                        // increment varLenOffsetAddr by 8
+                        varLenOffsetAddr = (void *)((uint64_t *)varLenOffsetAddr + 1);
+                        // append list
+                        auto currList = *(List *)(l.getField(listIndex).getPtr());
+                        appendWithoutInferenceHelper(currList);
+                    }
+                }
+            } else if(underlyingElementType == python::Type::I64 || underlyingElementType == python::Type::BOOLEAN) {
+                for(size_t i = 0; i < l.numElements(); i++) {
+                    if(l.getField(i).isNull()) {
+                        bitmapV.push_back(true);
+                    } else {
+                        bitmapV.push_back(false);
+                        _varLenFields.provideSpace(sizeof(uint64_t));
+                        *((uint64_t*)_varLenFields.ptr()) = l.getField(i).getInt();
+                        _varLenFields.movePtr(sizeof(uint64_t));
+                    }
+                }
+            } else if(underlyingElementType == python::Type::F64) {
+                for(size_t i = 0; i < l.numElements(); i++) {
+                    if(l.getField(i).isNull()) {
+                        bitmapV.push_back(true);
+                    } else {
+                        bitmapV.push_back(false);
+                        _varLenFields.provideSpace(sizeof(uint64_t));
+                        *((double*)_varLenFields.ptr()) = l.getField(i).getDouble();
+                        _varLenFields.movePtr(sizeof(uint64_t));
+                    }
+                }
+            } else {
+                // throw std::runtime_error("serializing invalid list type!: " + l.getType().desc());
+                Logger::instance().logger("serializer").error(
+                        "invalid list type: " + l.getType().desc() + " encountered, can't serialize.");
+            }
+        } else {
+            // throw std::runtime_error("serializing invalid list type!: " + l.getType().desc());
+            Logger::instance().logger("serializer").error(
+                    "invalid list type: " + l.getType().desc() + " encountered, can't serialize.");
+        }
+
+        // write bitmap if exists
+        if (bitmapSize) {
+            uint64_t bitmap[bitmapSize / sizeof(int64_t)];
+            std::memset(bitmap, 0, bitmapSize);
+
+            int opt_counter = 0;
+            for (int i = 0; i < bitmapV.size(); i++) {
+                // set bit
+                if (bitmapV[i]) {
+                    bitmap[i / 64] |= (1UL << (i % 64));
+                }
+            }
+            // write to ptr
+            std::memcpy(bitmapAddr, bitmap, bitmapSize);
+        }
+
+        return *this;
+    }
 
     size_t Serializer::serialize(void *ptr, const size_t capacityLeft) {
 
@@ -655,6 +943,7 @@ namespace tuplex {
             size += _varLenFields.size() + sizeof(int64_t);
 
         // compute bitmap size
+        // TODO:
         auto bitmapSize = calcBitmapSize(_requiresBitmap);
         size += bitmapSize;
 
@@ -790,7 +1079,8 @@ namespace tuplex {
                        type == python::Type::PYOBJECT ||
                        type.isDictionaryType() ||
                        type == python::Type::GENERICDICT ||
-                       (type.isListType() && !type.elementType().isSingleValued())) {
+                       (type.isListType() && !type.elementType().isSingleValued()) ||
+                       (el.isOptionType() && type.isTupleType())) {
                 _isVarLenField.push_back(true);
             } else {
                 Logger::instance().logger("core").error("non deserializable type '" + el.desc() + "' detected");
@@ -1063,40 +1353,312 @@ namespace tuplex {
                 else if(elType == python::Type::EMPTYLIST) els.push_back(Field::empty_list());
                 else throw std::runtime_error("Unsupported list element type deserialized: " + elType.desc());
             }
-        } else {
-            assert(phys_col < (inferLength(_buffer) - sizeof(int64_t)) / sizeof(int64_t)); // sharper bound because of varlen
-            // get offset: offset is in the lower 32bit, the upper are the size of the var entry
-            int64_t offset = *((int64_t *) ((uint8_t *) _buffer + sizeof(int64_t) * phys_col + calcBitmapSize(_requiresBitmap)));
-            int64_t len = ((offset & (0xFFFFFFFFl << 32)) >> 32) - 1;
-            assert(len > 0);
-            offset = offset & 0xFFFFFFFF;
+            return List::from_vector(els);
+        }
 
-            // pointer to varlen field
-            uint8_t *ptr = (uint8_t *) _buffer + sizeof(int64_t) * phys_col + calcBitmapSize(_requiresBitmap) + offset;
+        assert(phys_col < (inferLength(_buffer) - sizeof(int64_t)) / sizeof(int64_t)); // sharper bound because of varlen
+        // get offset: offset is in the lower 32bit, the upper are the size of the var entry
+        int64_t offset = *((int64_t *) ((uint8_t *) _buffer + sizeof(int64_t) * phys_col + calcBitmapSize(_requiresBitmap)));
+        int64_t len = ((offset & (0xFFFFFFFFl << 32)) >> 32) - 1;
+        assert(len > 0);
+        offset = offset & 0xFFFFFFFF;
 
-            // get number of elements
-            uint64_t num_elements = *(uint64_t *) ptr;
-            ptr += sizeof(uint64_t);
-            if (elType == python::Type::STRING) {
-                // read each string
-                for (int i = 0; i < num_elements; i++) {
-                    auto str_offset = *(int64_t *) ptr;
-                    els.push_back(Field((const char *) (ptr + str_offset)));
-                    ptr += sizeof(uint64_t);
+        // pointer to varlen field
+        uint8_t *ptr = (uint8_t *) _buffer + sizeof(int64_t) * phys_col + calcBitmapSize(_requiresBitmap) + offset;
+
+        return getListHelper(list_type, ptr);
+    }
+
+    Tuple Deserializer::getTupleHelper(const python::Type &tupleType, const uint8_t *ptr) const {
+        auto tree = TupleTree<Field>(tupleType);
+        Field f;
+        std::vector<bool> bitmapV;
+        size_t bitmapIndex = 0;
+        size_t numOptionalFields = python::numOptionalFields(tupleType);
+        if(numOptionalFields) {
+            auto numBitmapFields = core::ceilToMultiple(numOptionalFields, 64ul)/64;
+            auto bitmapSize = numBitmapFields * sizeof(uint64_t);
+            auto *bitmapAddr = (uint64_t *)ptr;
+            ptr += bitmapSize;
+            for (size_t i = 0; i < numOptionalFields; i++) {
+                bool currBit = (bitmapAddr[i/64] >> (i % 64)) & 1;
+                bitmapV.push_back(currBit);
+            }
+        }
+
+        auto flattenedTupleType = flattenedType(tupleType);
+        for (size_t i = 0; i < tree.numElements(); i++) {
+            auto currFieldType = flattenedTupleType.parameters()[i];
+            if(currFieldType == python::Type::BOOLEAN) {
+                f = Field((bool)(*(uint64_t *)ptr));
+                ptr += sizeof(uint64_t);
+            } else if(currFieldType == python::Type::I64) {
+                f = Field(*(int64_t *)ptr);
+                ptr += sizeof(uint64_t);
+            } else if(currFieldType == python::Type::F64) {
+                f = Field(*(double *)ptr);
+                ptr += sizeof(uint64_t);
+            } else if(currFieldType == python::Type::STRING) {
+                uint64_t sizeOffset = *(uint64_t *)ptr; // offset field for string is (size | offset)
+                uint64_t strOffset = sizeOffset & 0xFFFFFFFF;
+                f = Field((const char *)(ptr + strOffset));
+                ptr += sizeof(uint64_t);
+            } else if(currFieldType.isListType()) {
+                auto listOffset = *(int64_t *)ptr;
+                f = Field(getListHelper(currFieldType, ptr + listOffset));
+                ptr += sizeof(uint64_t);
+            } else if(currFieldType == python::Type::NULLVALUE) {
+                f = Field::null();
+            } else if(currFieldType == python::Type::EMPTYTUPLE) {
+                f = Field::empty_tuple();
+            } else if(currFieldType == python::Type::EMPTYLIST) {
+                f = Field::empty_list();
+            } else if(currFieldType == python::Type::EMPTYDICT) {
+                f = Field::empty_dict();
+            } else if(currFieldType.isOptionType()) {
+                // need to check bitmapV
+                auto underlyingType = currFieldType.getReturnType();
+                if(underlyingType == python::Type::BOOLEAN) {
+                    if(bitmapV[bitmapIndex]) {
+                        // is None
+                        f = Field(option<bool>::none);
+                    } else {
+                        f = Field(option<bool>((bool)(*(uint64_t *)ptr)));
+                        ptr += sizeof(uint64_t);
+                    }
+                } else if(underlyingType == python::Type::I64) {
+                    if(bitmapV[bitmapIndex]) {
+                        // is None
+                        f = Field(option<int64_t>::none);
+                    } else {
+                        f = Field(option<int64_t>(*(int64_t *)ptr));
+                        ptr += sizeof(uint64_t);
+                    }
+                } else if(underlyingType == python::Type::F64) {
+                    if(bitmapV[bitmapIndex]) {
+                        // is None
+                        f = Field(option<double>::none);
+                    } else {
+                        f = Field(option<double>(*(double *)ptr));
+                        ptr += sizeof(uint64_t);
+                    }
+                } else if(underlyingType == python::Type::STRING) {
+                    if(bitmapV[bitmapIndex]) {
+                        // is None
+                        f = Field(option<std::string>::none);
+                    } else {
+                        uint64_t sizeOffset = *(uint64_t *)ptr; // offset field for string is (size | offset)
+                        uint64_t strOffset = sizeOffset & 0xFFFFFFFF;
+                        f = Field(option<std::string>((const char *)(ptr + strOffset)));
+                        ptr += sizeof(uint64_t);
+                    }
+                } else if(underlyingType.isListType()) {
+                    if(bitmapV[bitmapIndex]) {
+                        // is None
+                        f = Field::null(currFieldType);
+                    } else {
+                        auto listOffset = *(int64_t *)ptr;
+                        f = Field(option<List>(getListHelper(underlyingType, ptr + listOffset)));
+                        ptr += sizeof(uint64_t);
+                    }
+                } else if(underlyingType.isTupleType()) {
+                    if(bitmapV[bitmapIndex]) {
+                        // is None
+                        f = Field::null(currFieldType);
+                    } else {
+                        auto tupleOffset = *(int64_t *)ptr;
+                        f = Field(option<Tuple>(getTupleHelper(underlyingType, ptr + tupleOffset)));
+                        ptr += sizeof(uint64_t);
+                    }
+                } else {
+                    Logger::instance().logger("deserializer").error(
+                            "invalid element type in tuple: " + currFieldType.desc() + " encountered, can't deserialize.");
+                }
+                // increment bitmapIndex for optional fields only
+                bitmapIndex++;
+            } else {
+                Logger::instance().logger("deserializer").error(
+                        "invalid element type in tuple: " + currFieldType.desc() + " encountered, can't deserialize.");
+            }
+            tree.set(i, f);
+        }
+        return flattenToTuple(tree);
+    }
+
+    Tuple Deserializer::getOptionTuple(const int col) const {
+        assert(_buffer);
+
+        // check type
+        auto tupleType = _flattenedRowType.parameters()[col].getReturnType();
+        assert(tupleType.isTupleType() && tupleType != python::Type::EMPTYTUPLE);
+
+        // get physical column
+        auto phys_col = logicalToPhysicalIndex(col);
+        assert(phys_col >= 0);
+        assert(phys_col < (inferLength(_buffer) - sizeof(uint64_t)) / sizeof(uint64_t));
+
+        uint64_t offset = *((uint64_t *) ((uint8_t *) _buffer + sizeof(uint64_t) * phys_col + calcBitmapSize(_requiresBitmap)));
+        uint64_t len = ((offset & (0xFFFFFFFFl << 32)) >> 32) - 1;
+        assert(len > 0);
+        offset = offset & 0xFFFFFFFF;
+
+        // get ptr to tuple data
+        uint8_t *ptr = (uint8_t *) _buffer + sizeof(uint64_t) * phys_col + calcBitmapSize(_requiresBitmap) + offset;
+
+        return getTupleHelper(tupleType, ptr);
+    }
+
+    List Deserializer::getListHelper(const python::Type &listType, const uint8_t *ptr) const {
+        auto elType = listType.elementType();
+        std::vector<Field> els;
+        // get number of elements
+        uint64_t numElements = *(uint64_t *)ptr;
+        ptr += sizeof(uint64_t);
+
+        if(listType.isSingleValued()) {
+            // does not need memory data
+            // fill els with numElements of the single value
+            if(elType == python::Type::NULLVALUE) {
+                els.insert(els.end(), numElements, Field::null());
+            } else if(elType == python::Type::EMPTYTUPLE) {
+                els.insert(els.end(), numElements, Field::empty_tuple());
+            } else if(elType == python::Type::EMPTYLIST) {
+                els.insert(els.end(), numElements, Field::empty_list());
+            } else if(elType == python::Type::EMPTYDICT) {
+                els.insert(els.end(), numElements, Field::empty_dict());
+            } else {
+                throw std::runtime_error("Unsupported list element type deserialized: " + elType.desc());
+            }
+            return List::from_vector(els);
+        }
+
+        std::vector<bool> bitmapV;
+        if (elType.isOptionType()) {
+            auto numBitmapFields = core::ceilToMultiple((unsigned long)numElements, 64ul)/64;
+            auto bitmapSize = numBitmapFields * sizeof(uint64_t);
+            auto *bitmapAddr = (uint64_t *)ptr;
+            ptr += bitmapSize;
+            for (size_t i = 0; i < numElements; i++) {
+                bool currBit = (bitmapAddr[i/64] >> (i % 64)) & 1;
+                bitmapV.push_back(currBit);
+            }
+        }
+
+        if(elType == python::Type::I64) {
+            for (size_t i = 0; i < numElements; i++) {
+                els.emplace_back(Field(*(int64_t *)ptr));
+                ptr += sizeof(uint64_t);
+            }
+        } else if(elType == python::Type::F64) {
+            for (size_t i = 0; i < numElements; i++) {
+                els.emplace_back(Field(*(double *)ptr));
+                ptr += sizeof(uint64_t);
+            }
+        } else if(elType == python::Type::BOOLEAN) {
+            for (size_t i = 0; i < numElements; i++) {
+                els.emplace_back(Field(bool(*(uint64_t *)ptr)));
+                ptr += sizeof(uint64_t);
+            }
+        } else if(elType == python::Type::STRING) {
+            // read each string
+            for (size_t i = 0; i < numElements; i++) {
+                uint64_t strOffset = *(uint64_t *)ptr;
+                els.emplace_back(Field((const char *)(ptr + strOffset)));
+                ptr += sizeof(uint64_t);
+            }
+        } else if(elType.isTupleType()) {
+            // read each tuple
+            for (size_t i = 0; i < numElements; i++) {
+                auto tupleOffset = *(uint64_t *) ptr;
+                els.emplace_back(Field(getTupleHelper(elType, ptr + tupleOffset)));
+                ptr += sizeof(uint64_t);
+            }
+        } else if(elType.isListType()) {
+            // read each list
+            for (size_t i = 0; i < numElements; i++) {
+                auto listOffset = *(uint64_t *) ptr;
+                els.emplace_back(Field(getListHelper(elType, ptr + listOffset)));
+                ptr += sizeof(uint64_t);
+            }
+        } else if(elType.isOptionType()) {
+            auto underlyingElType = elType.getReturnType();
+            if(underlyingElType == python::Type::STRING) {
+                // check for none then read each string
+                for (size_t i = 0; i < numElements; i++) {
+                    if(bitmapV[i]) {
+                        // is None
+                        els.emplace_back(Field(option<std::string>::none));
+                    } else {
+                        uint64_t strOffset = *(uint64_t *)ptr;
+                        els.emplace_back(Field(option<std::string>((const char *)(ptr + strOffset))));
+                        ptr += sizeof(uint64_t);
+                    }
+                }
+            } else if(underlyingElType.isTupleType()) {
+                // check for none then read each tuple
+                for (size_t i = 0; i < numElements; i++) {
+                    if(bitmapV[i]) {
+                        // is None
+                        els.emplace_back(Field::null(elType));
+                    } else {
+                        auto tupleOffset = *(uint64_t *) ptr;
+                        els.emplace_back(Field(option<Tuple>(
+                                getTupleHelper(underlyingElType, ptr + tupleOffset))));
+                        ptr += sizeof(uint64_t);
+                    }
+                }
+            } else if(underlyingElType.isListType()) {
+                // check for none then read each list
+                for (size_t i = 0; i < numElements; i++) {
+                    if(bitmapV[i]) {
+                        // is None
+                        els.emplace_back(Field::null(elType));
+                    } else {
+                        auto listOffset = *(uint64_t *) ptr;
+                        els.emplace_back(Field(option<List>(getListHelper(underlyingElType, ptr + listOffset))));
+                        ptr += sizeof(uint64_t);
+                    }
+                }
+            } else if(underlyingElType == python::Type::BOOLEAN) {
+                // check for none then read each value
+                for (size_t i = 0; i < numElements; i++) {
+                    if(bitmapV[i]) {
+                        // is None
+                        els.emplace_back(Field(option<bool>::none));
+                    } else {
+                        els.emplace_back(Field(option<bool>((bool)(*(uint64_t *)ptr))));
+                        ptr += sizeof(uint64_t);
+                    }
+                }
+            } else if(underlyingElType == python::Type::I64) {
+                // check for none then read each value
+                for (size_t i = 0; i < numElements; i++) {
+                    if(bitmapV[i]) {
+                        // is None
+                        els.emplace_back(Field(option<int64_t>::none));
+                    } else {
+                        els.emplace_back(Field(option<int64_t>(*(int64_t *)ptr)));
+                        ptr += sizeof(uint64_t);
+                    }
+                }
+            } else if(underlyingElType == python::Type::F64) {
+                // check for none then read each value
+                for (size_t i = 0; i < numElements; i++) {
+                    if(bitmapV[i]) {
+                        // is None
+                        els.emplace_back(Field(option<double>::none));
+                    } else {
+                        els.emplace_back(Field(option<double>((double)(*(double *)ptr))));
+                        ptr += sizeof(uint64_t);
+                    }
                 }
             } else {
-                // read each value
-                for(int i = 0; i< num_elements; i++) {
-                    if(elType == python::Type::BOOLEAN) {
-                        els.push_back(Field((bool)(*(uint64_t *)ptr)));
-                    } else if(elType == python::Type::I64) {
-                        els.push_back(Field(*(int64_t *)ptr));
-                    } else {
-                        els.push_back(Field((*(double*)ptr)));
-                    }
-                    ptr += sizeof(uint64_t);
-                }
+                Logger::instance().logger("deserializer").error(
+                        "invalid list type: " + listType.desc() + " encountered, can't deserialize.");
             }
+        } else {
+            Logger::instance().logger("deserializer").error(
+                    "invalid list type: " + listType.desc() + " encountered, can't deserialize.");
         }
         return List::from_vector(els);
     }
@@ -1165,8 +1727,10 @@ namespace tuplex {
                 else if(rt == python::Type::EMPTYLIST)
                     f = Field(isNull(i) ? option<List>::none : option<List>(List()));
                 else if(rt.isListType())
-                    f = Field(isNull(i) ? option<List>::none : option<List>(getList(i)));
-                else {
+                    f = isNull(i) ? Field::null(type) : Field(option<List>(getList(i)));
+                else if(rt.isTupleType()) {
+                    f = isNull(i) ? Field::null(type) : Field(option<Tuple>(getOptionTuple(i)));
+                } else {
                     f = Field::null(); // default to NULL
                     Logger::instance().defaultLogger().error(
                             "unknown type '" + type.desc() + "' occurred when trying to attempt deserialization of field");

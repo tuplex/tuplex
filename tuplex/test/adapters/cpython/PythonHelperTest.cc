@@ -125,23 +125,24 @@ TEST_F(PythonHelperTest, pythonToTuplexNestedTupleII) {
 TEST_F(PythonHelperTest, typeMap) {
 
     // primitive types
-    EXPECT_EQ(python::Type::BOOLEAN, python::mapPythonClassToTuplexType(Py_True));
-    EXPECT_EQ(python::Type::BOOLEAN, python::mapPythonClassToTuplexType(Py_False));
+    EXPECT_EQ(python::Type::BOOLEAN, python::mapPythonClassToTuplexType(Py_True, false));
+    EXPECT_EQ(python::Type::BOOLEAN, python::mapPythonClassToTuplexType(Py_False, false));
 
-    EXPECT_EQ(python::Type::I64, python::mapPythonClassToTuplexType(PyLong_FromLong(0)));
-    EXPECT_EQ(python::Type::I64, python::mapPythonClassToTuplexType(PyLong_FromLong(-42)));
-    EXPECT_EQ(python::Type::I64, python::mapPythonClassToTuplexType(PyLong_FromLong(1234560)));
+    EXPECT_EQ(python::Type::I64, python::mapPythonClassToTuplexType(PyLong_FromLong(0), false));
+    EXPECT_EQ(python::Type::I64, python::mapPythonClassToTuplexType(PyLong_FromLong(-42), false));
+    EXPECT_EQ(python::Type::I64, python::mapPythonClassToTuplexType(PyLong_FromLong(1234560), false));
 
-    EXPECT_EQ(python::Type::F64, python::mapPythonClassToTuplexType(PyFloat_FromDouble(0.0)));
-    EXPECT_EQ(python::Type::F64, python::mapPythonClassToTuplexType(PyFloat_FromDouble(-1.0)));
-    EXPECT_EQ(python::Type::F64, python::mapPythonClassToTuplexType(PyFloat_FromDouble(3.123456789)));
+    EXPECT_EQ(python::Type::F64, python::mapPythonClassToTuplexType(PyFloat_FromDouble(0.0), false));
+    EXPECT_EQ(python::Type::F64, python::mapPythonClassToTuplexType(PyFloat_FromDouble(-1.0), false));
+    EXPECT_EQ(python::Type::F64, python::mapPythonClassToTuplexType(PyFloat_FromDouble(3.123456789), false));
 
-    EXPECT_EQ(python::Type::STRING, python::mapPythonClassToTuplexType(python::PyString_FromString("")));
-    EXPECT_EQ(python::Type::STRING, python::mapPythonClassToTuplexType(python::PyString_FromString("hello world")));
+    EXPECT_EQ(python::Type::STRING, python::mapPythonClassToTuplexType(python::PyString_FromString(""), false));
+    EXPECT_EQ(python::Type::STRING, python::mapPythonClassToTuplexType(python::PyString_FromString("hello world"),
+                                                                       false));
 
     // compound types
     PyObject* c1 = PyTuple_New(0);
-    EXPECT_EQ(python::Type::EMPTYTUPLE, python::mapPythonClassToTuplexType(c1));
+    EXPECT_EQ(python::Type::EMPTYTUPLE, python::mapPythonClassToTuplexType(c1, false));
 
     PyObject* c2 = PyTuple_New(5);
     PyTuple_SetItem(c2, 0, Py_True);
@@ -150,14 +151,14 @@ TEST_F(PythonHelperTest, typeMap) {
     PyTuple_SetItem(c2, 3, c1);
     PyTuple_SetItem(c2, 4, python::PyString_FromString("abc"));
     auto t2 = python::Type::makeTupleType({python::Type::BOOLEAN, python::Type::I64, python::Type::F64, python::Type::EMPTYTUPLE, python::Type::STRING});
-    EXPECT_EQ(t2, python::mapPythonClassToTuplexType(c2));
+    EXPECT_EQ(t2, python::mapPythonClassToTuplexType(c2, false));
 
     // dict (keytype, valuetype)
     PyObject* c3 = PyDict_New();
     PyDict_SetItemString(c3, "x", Py_True);
     PyDict_SetItemString(c3, "y", Py_False);
     auto t3 = python::Type::makeDictionaryType(python::Type::STRING, python::Type::BOOLEAN);
-    EXPECT_EQ(t3, python::mapPythonClassToTuplexType(c3));
+    EXPECT_EQ(t3, python::mapPythonClassToTuplexType(c3, false));
 
     // @TODO: to represent dicts as struct type, there should be also specific type -> generic type
     PyObject* c4 = PyDict_New();
@@ -171,7 +172,7 @@ TEST_F(PythonHelperTest, typeMap) {
     PyDict_SetItem(c5, Py_True, Py_False);
     PyDict_SetItem(c5, PyLong_FromLong(42), python::PyString_FromString("hello world"));
     PyDict_SetItemString(c5, "test", PyLong_FromLong(42));
-    EXPECT_EQ(python::Type::GENERICDICT, python::mapPythonClassToTuplexType(c5));
+    EXPECT_EQ(python::Type::GENERICDICT, python::mapPythonClassToTuplexType(c5, false));
 }
 
 TEST_F(PythonHelperTest, PythonConversion) {
@@ -402,8 +403,8 @@ TEST_F(PythonHelperTest, FunctionGlobals) {
     PyObject *key = nullptr, *val = nullptr;
     Py_ssize_t pos = 0; // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
     while(PyDict_Next(pyGlobals, &pos, &key, &val)) {
-        auto curKeyType = mapPythonClassToTuplexType(key);
-        auto curValType = mapPythonClassToTuplexType(val);
+        auto curKeyType = mapPythonClassToTuplexType(key, false);
+        auto curValType = mapPythonClassToTuplexType(val, false);
         assert(curKeyType == python::Type::STRING);
 
         // check if value can be dealt with

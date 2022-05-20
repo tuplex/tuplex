@@ -683,6 +683,55 @@ TEST_F(WrapperTest, UpcastParallelizeII) {
     }
 }
 
+TEST_F(WrapperTest, OptionListTest) {
+    using namespace std;
+    using namespace tuplex;
+
+    // RAII, destruct python context!
+    auto opts = testOptions();
+    opts = opts.substr(0, opts.length() - 1) + ", \"tuplex.autoUpcast\":\"True\"}";
+    PythonContext c("python", "", opts);
+
+    // weird block syntax due to RAII problems.
+    {
+        PyObject * listObj1 = PyList_New(2);
+        PyObject * listObj2 = PyList_New(2);
+        PyObject * listObj3 = PyList_New(2);
+        PyObject * listObj4 = PyList_New(2);
+        PyObject * listObj5 = PyList_New(2);
+        PyObject * tupleObj1 = PyTuple_New(1);
+        PyObject * tupleObj2 = PyTuple_New(1);
+        PyObject * listObj6 = PyList_New(2);
+
+        PyList_SET_ITEM(listObj1, 0, PyLong_FromLong(1));
+        PyList_SET_ITEM(listObj1, 1, PyLong_FromLong(2));
+        PyList_SET_ITEM(listObj2, 0, PyLong_FromLong(3));
+        PyList_SET_ITEM(listObj2, 1, PyLong_FromLong(4));
+        PyList_SET_ITEM(listObj3, 0, PyLong_FromLong(5));
+        PyList_SET_ITEM(listObj3, 1, PyLong_FromLong(6));
+        PyList_SET_ITEM(listObj4, 0, listObj1);
+        PyList_SET_ITEM(listObj4, 1, listObj2);
+        PyList_SET_ITEM(listObj5, 0, listObj3);
+        PyList_SET_ITEM(listObj5, 1, Py_None);
+        Py_XINCREF(Py_None);
+        PyTuple_SET_ITEM(tupleObj1, 0, listObj4);
+        PyTuple_SET_ITEM(tupleObj2, 0, listObj5);
+        PyList_SET_ITEM(listObj6, 0, tupleObj1);
+        PyList_SET_ITEM(listObj6, 1, tupleObj2);
+
+        auto list = py::reinterpret_borrow<py::list>(listObj6);
+        auto res = c.parallelize(list).collect();
+
+        auto resObj = res.ptr();
+
+        ASSERT_TRUE(PyList_Check(resObj));
+        ASSERT_EQ(PyList_Size(resObj), 2);
+        auto rowType = python::Type::makeListType(python::Type::makeOptionType(python::Type::makeListType(python::Type::I64)));
+        EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 0), rowType, true).toPythonString(), "([[1,2],[3,4]],)");
+        EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 1), rowType, true).toPythonString(), "([[5,6],None],)");
+    }
+}
+
 TEST_F(WrapperTest, FilterAll) {
     // c = Context()
     // ds = c.parallelize([1, 2, 3, 4, 5])

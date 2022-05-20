@@ -119,7 +119,7 @@ namespace tuplex {
         Serializer& appendWithoutInference(const option<double>& d);
         Serializer& appendWithoutInference(const option<std::string> &str);
         Serializer& appendWithoutInference(const option<List> &list, const python::Type &listType);
-
+        Serializer& appendWithoutInference(const option<Tuple> &tuple, const python::Type &tupleType);
         Serializer& appendWithoutInference(const uint8_t* buf, size_t bufSize);
 
         Serializer& appendWithoutInference(const Field f);
@@ -128,6 +128,16 @@ namespace tuplex {
             // from _isVarLenField, if any element is set to true return true
             return std::any_of(_isVarField.begin(), _isVarField.end(), [](bool b) { return b; });
         }
+
+        // helper functions to append element to a parent list or non-row tuple
+        // only writes data to _varLenFields as part of its parent's varLen field
+        // tuple is serialized as below :
+        // bitmap for optional fields (8-byte aligned) | data of field_1 (if fixed len field) | offset to field_2 (if varLen field) | ... | field_n | actual data of field_2 | ...
+        // list is serialized the same as tuple except for an additional "num of elements" field at the beginning
+        Serializer& appendWithoutInferenceHelper(const Tuple &t);
+        Serializer& appendWithoutInferenceHelper(const List &l);
+        Serializer& appendWithoutInferenceHelper(const std::string &str);
+
     public:
         Serializer(bool autoSchema = true) : _autoSchema(autoSchema),
                                              _fixedLenFields(_bufferGrowthConstant),
@@ -165,8 +175,8 @@ namespace tuplex {
         Serializer& append(const option<float>& f) { return  append(f.has_value() ? static_cast<double>(f.value()) : option<double>::none); }
         Serializer& append(const option<int>& i) { return append(i.has_value() ? static_cast<int64_t>(i.value()) : option<int64_t>::none); }
         Serializer& appendEmptyTupleOption(const Field &f);
-        Serializer& append(const option<Tuple>& t);
-        Serializer& append(const option<List>& list, python::Type listType);
+        Serializer& append(const option<Tuple>& t, const python::Type& tupleType);
+        Serializer& append(const option<List>& list, const python::Type& listType);
 
         // data fields which are not nullable
         Serializer& append(const bool b);
@@ -276,6 +286,23 @@ namespace tuplex {
         std::string getString(const int col) const;
         std::string getDictionary(const int col) const;
         List        getList(const int col) const;
+        Tuple       getOptionTuple(const int col) const;
+
+        /*!
+         * given a ptr to the start of the actual tuple data (not offset), return a tuple
+         * @param tupleType
+         * @param ptr ptr to the start of tuple data
+         * @return Tuple
+         */
+        Tuple       getTupleHelper(const python::Type &tupleType, const uint8_t *ptr) const;
+
+        /*!
+         * given a ptr to the start of the actual list data (not offset), return a list
+         * @param listType
+         * @param ptr ptr to the start of list data
+         * @return List
+         */
+        List        getListHelper(const python::Type &listType, const uint8_t *ptr) const;
 
         const uint8_t* getPtr(const int col) const;
         size_t getSize(const int col) const;

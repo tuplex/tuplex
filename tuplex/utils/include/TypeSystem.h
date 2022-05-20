@@ -580,6 +580,17 @@ namespace python {
     extern bool canUpcastToRowType(const python::Type& minor, const python::Type& major);
 
     /*!
+     * return unified type for both a and b
+     * e.g. a == [Option[[I64]]] and b == [[Option[I64]]] should return [Option[[Option[I64]]]]
+     * return python::Type::UNKNOWN if no compatible type can be found
+     * @param a (optional) primitive or list or tuple type
+     * @param b (optional) primitive or list or tuple type
+     * @param autoUpcast whether to upcast numeric types to a unified type when type conflicts, false by default
+     * @return (optional) compatible type or UNKNOWN
+     */
+    extern Type unifyTypes(const python::Type &a, const python::Type &b, bool autoUpcast=false);
+
+    /*!
      * two types may be combined into one nullable type.
      * @param a
      * @param b

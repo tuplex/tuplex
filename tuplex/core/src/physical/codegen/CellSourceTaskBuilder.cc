@@ -100,10 +100,12 @@ namespace tuplex {
                         builder.CreateCondBr(exceptionRaised, bbException, bbNoException);
                     } else {
                         outputRowNumber = builder.CreateLoad(outputRowNumberVar);
-                        llvm::BasicBlock *curBlock = builder.GetInsertBlock();
                         auto nc_ecCode = _env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT));
                         auto nc_ecOpID = _env->i64Const(_operatorID);
                         auto serialized_row = serializeBadParseException(builder, cellsPtr, sizesPtr);
+
+                        // important to get curBlock here.
+                        llvm::BasicBlock *curBlock = builder.GetInsertBlock();
                         auto bbException = exceptionBlock(builder, userData, nc_ecCode, nc_ecOpID, outputRowNumber,
                                                           serialized_row.val, serialized_row.size);
                         builder.CreateBr(bbNoException);
@@ -409,11 +411,15 @@ namespace tuplex {
                 // should column be serialized? if so emit type logic!
                 if(_columnsToSerialize[i]) {
                     auto colNo = i;
-                    auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, _env->i64Const(colNo)), "x" + std::to_string(colNo));
-                    auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, _env->i64Const(colNo)), "s" + std::to_string(colNo));
+                    llvm::Value* cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, _env->i64Const(colNo)), "x" + std::to_string(colNo));
+                    llvm::Value* cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, _env->i64Const(colNo)), "s" + std::to_string(colNo));
+
+                    // zero terminate str
+                    cellStr = _env->zeroTerminateString(builder, cellStr, cellSize);
+
                     cell_strs.push_back(cellStr);
                     cell_sizes.push_back(cellSize);
-                   numColsToSerialize++;
+                    numColsToSerialize++;
                 }
             }
 

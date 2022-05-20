@@ -93,21 +93,20 @@ namespace python {
 
     void handle_and_throw_py_error() {
         if(PyErr_Occurred()) {
-            PyObject *ptype = NULL, *pvalue = NULL, *ptraceback = NULL;
-            PyErr_Fetch(&ptype,&pvalue,&ptraceback);
-            PyErr_NormalizeException(&ptype,&pvalue,&ptraceback);
+            // PyObject *ptype = NULL, *pvalue = NULL, *ptraceback = NULL;
+            // PyErr_Fetch(&ptype,&pvalue,&ptraceback);
+            // PyErr_NormalizeException(&ptype,&pvalue,&ptraceback);
 
             std::stringstream ss;
-
-            PyObject *extype = nullptr, * value=nullptr, * traceback=nullptr;
+            PyObject *extype = nullptr, *value=nullptr, *traceback=nullptr;
             PyErr_Fetch(&extype, &value, &traceback);
             if (!extype)
                 throw std::runtime_error("could not obtain error");
-            if (!value)
-                throw std::runtime_error("could not obtain value");
-            if (!traceback)
-                throw std::runtime_error("could not obtain traceback");
-            // value and traceback may be nullptr (?)
+//            if (!value)
+//                throw std::runtime_error("could not obtain value");
+//            if (!traceback)
+//                throw std::runtime_error("could not obtain traceback");
+//            // value and traceback may be nullptr (?)
 
             auto mod_traceback = PyImport_ImportModule("traceback");
             if(!mod_traceback) {
@@ -122,6 +121,14 @@ namespace python {
             }
 
             auto format_exception_func = PyObject_GetAttrString(mod_traceback_dict, "format_exception");
+            if(!format_exception_func) {
+#ifndef NDEBUG
+                std::cerr<<"traceback module doesn't contain format_exception function."<<std::endl;
+                std::cerr<<PyString_AsString(mod_traceback_dict)<<std::endl;
+                PyObject_Print(mod_traceback_dict, stderr, 0);
+                std::cerr<<std::endl;
+#endif
+            }
             assert(PyCallable_Check(format_exception_func));
 
             // call function, set all args

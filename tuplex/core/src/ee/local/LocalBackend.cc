@@ -982,6 +982,13 @@ namespace tuplex {
         }
 
         auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms);
+
+        {
+            std::stringstream ss;
+            ss<<"[Transform Stage] Stage "<<tstage->number()<<" starting "<<tasks.size()<<" load&transform tasks";
+            Logger::instance().defaultLogger().info(ss.str());
+        }
+
         auto completedTasks = performTasks(tasks);
 
         // Note: this doesn't work yet because of the globals.

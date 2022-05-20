@@ -18,7 +18,7 @@
 #if LLVM_VERSION_MAJOR <= 9
 #include "JITCompiler_llvm9.h"
 #else
-#include "JITCompiler_llvm13.h"
+#include "llvm13/JITCompiler_llvm13.h"
 #endif
 
 #endif //TUPLEX_COMPILER_H

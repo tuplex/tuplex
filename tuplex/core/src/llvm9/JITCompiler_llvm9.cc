@@ -22,7 +22,7 @@
 #include <Timer.h>
 
 //LLVM9 fixes
-#include <FixedRTDyldObjectLinkingLayer.h>
+#include <FixedRTDyldObjectLinkingLayer_llvm9.h>
 
 // C functions
 #include <hashmap.h>

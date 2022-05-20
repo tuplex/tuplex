@@ -165,7 +165,7 @@ namespace tuplex {
 
         // check whether parent dir exists, if not create dirs!
         auto parent_path = parentPath(uri.toPath());
-        if((VirtualFileMode::VFS_WRITE == vfm || VirtualFileMode::VFS_OVERWRITE == vfm) &&
+        if((VirtualFileMode::VFS_WRITE & vfm || VirtualFileMode::VFS_OVERWRITE & vfm) &&
         !fileExists(parent_path)) {
             logger.debug("parent dir " + parent_path + " does not exist, creating it.");
             create_dir(parent_path);
@@ -231,6 +231,9 @@ namespace tuplex {
             // unlock file handle on GNU/Linux
         __fsetlocking (_fh, FSETLOCKING_BYCALLER); // in stdio.h, linux extension. Avoid locking.
 #endif
+        } else {
+            // get errno
+            logger.error("Failed to open file " + path + " with code " + std::to_string(errno) + ". Details: " + strerror(errno));
         }
     }
 

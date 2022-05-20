@@ -987,6 +987,26 @@ namespace tuplex {
 }
 
 
+TEST(BasicInvocation, FSWrite) {
+    using namespace tuplex;
+
+    auto testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+    auto scratchDir = "/tmp/" + testName;
+
+    // change cwd & create dir to avoid conflicts!
+    auto cwd_path = boost::filesystem::current_path();
+    auto desired_cwd = cwd_path.string() + "/tests/" + testName;
+    // create dir if it doesn't exist
+    auto vfs = VirtualFileSystem::fromURI("file://");
+    vfs.create_dir(desired_cwd);
+    boost::filesystem::current_path(desired_cwd);
+
+    //URI uri("file://./hyper_processing//flights_on_time_performance_2003_01.csv.csv");
+    URI uri("./hyper_processing//flights_on_time_performance_2003_01.csv.csv");
+    auto file = vfs.open_file(uri, VirtualFileMode::VFS_WRITE);
+    ASSERT_TRUE(file);
+    file->close();
+}
 
 TEST(BasicInvocation, TestAllFlightFiles) {
     using namespace std;
@@ -1055,6 +1075,10 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     auto spillURI = std::string("spill_folder");
     auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
     auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false);
+
+    // test: 2013_03 fails
+    paths = {URI("file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2013_03.csv")};
+
 
     for(const auto& path : paths) {
         Timer timer;

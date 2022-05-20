@@ -42,7 +42,7 @@ namespace tuplex {
             }
         }
 
-        void ExceptionSourceTaskBuilder::callProcessFuncWithHandler(llvm::IRBuilder<> &builder, llvm::Value *userData,
+        void ExceptionSourceTaskBuilder::callProcessFuncWithHandler(IRBuilder &builder, llvm::Value *userData,
                                                                  const FlattenedTuple& tuple,
                                                                  llvm::Value *normalRowCountVar,
                                                                  llvm::Value *badRowCountVar,

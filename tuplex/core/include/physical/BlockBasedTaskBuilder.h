@@ -43,9 +43,9 @@ namespace tuplex {
             Row _intermediateInitialValue;
             python::Type _intermediateType;
 
-            llvm::Value *initIntermediate(llvm::IRBuilder<> &builder);
+            llvm::Value *initIntermediate(IRBuilder &builder);
 
-            void writeIntermediate(llvm::IRBuilder<> &builder,
+            void writeIntermediate(IRBuilder &builder,
                                    llvm::Value* userData,
                                    const std::string &intermediateCallbackName);
 

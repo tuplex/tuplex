@@ -159,7 +159,7 @@ namespace tuplex {
             return block;
         }
 
-        llvm::Value * BlockBasedTaskBuilder::initIntermediate(llvm::IRBuilder<> &builder) {
+        llvm::Value * BlockBasedTaskBuilder::initIntermediate(IRBuilder &builder) {
             // return nullptr if unspecified (triggers default behavior w/o intermediate for pipeline)
             if(_intermediateType == python::Type::UNKNOWN)
                 return nullptr;
@@ -169,12 +169,12 @@ namespace tuplex {
 
             // initialize lazily
             if(!_intermediate) {
-                auto b = getFirstBlockBuilder(builder);
+                auto b = codegen::IRBuilder(getFirstBlockBuilder(builder.get()));
 
                 // now store into var!
                 // @TODO: upcast?
-                auto ft = FlattenedTuple::fromRow(_env.get(), b, _intermediateInitialValue);
-                auto var = ft.loadToPtr(b, "intermediate");
+                auto ft = FlattenedTuple::fromRow(_env.get(), b.get(), _intermediateInitialValue);
+                auto var = ft.loadToPtr(b.get(), "intermediate");
                 _intermediate = var;
             }
 
@@ -183,13 +183,13 @@ namespace tuplex {
             return _intermediate;
         }
 
-        void BlockBasedTaskBuilder::writeIntermediate(llvm::IRBuilder<> &builder, llvm::Value* userData,
+        void BlockBasedTaskBuilder::writeIntermediate(IRBuilder &builder, llvm::Value* userData,
                                                       const std::string &intermediateCallbackName) {
             using namespace llvm;
 
-            FlattenedTuple row = FlattenedTuple::fromLLVMStructVal(_env.get(), builder, _intermediate, _intermediateType);
+            FlattenedTuple row = FlattenedTuple::fromLLVMStructVal(_env.get(), builder.get(), _intermediate, _intermediateType);
 
-            auto serialized_row = row.serializeToMemory(builder);
+            auto serialized_row = row.serializeToMemory(builder.get());
 
             // call callback
             // typedef int64_t(*write_row_f)(void*, uint8_t*, int64_t);

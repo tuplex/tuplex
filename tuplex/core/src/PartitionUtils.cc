@@ -125,10 +125,11 @@ namespace tuplex {
                                                         tstage->context().id());
         assert(p_out->capacity() >= p_in->size() - numBytesToSkip);
 
-        auto ptr_out = p_out->lockRaw();
+        auto ptr_out = p_out->lockWriteRaw();
         *((int64_t *) ptr_out) = p_in->getNumRows() - numToSkip;
         ptr_out += sizeof(int64_t);
         memcpy((void *) ptr_out, ptr, p_in->size() - numBytesToSkip);
+        p_out->setNumRows(p_in->getNumRows() - numToSkip);
         p_out->unlock();
 
         p_in->unlock();

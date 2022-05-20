@@ -146,10 +146,6 @@ namespace tuplex {
             }
 
             // put ALL partitions to result set
-            _rs = std::make_shared<ResultSet>(schema, partitions,
-                                              generalCase, partitionToExceptionsMap, interpreterRows,
-                                              maxRows);
-
             _rs = std::make_shared<ResultSet>(schema, normalPartitions, generalPartitions, fallbackPartitions, partitionGroups, maxRows);
         }
     }

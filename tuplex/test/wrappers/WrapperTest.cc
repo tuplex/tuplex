@@ -2573,7 +2573,14 @@ TEST_F(WrapperTest, PartitionRelease) {
 TEST_F(WrapperTest, ResultWithLimitMerge) {
     using namespace tuplex;
 
-    PythonContext c("c", "", testOptions());
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                    "\"resolveWithInterpreterOnly\": true}";
+
+    PythonContext c("c", "", ctx_opts);
 
     PyObject *listObj = PyList_New(4);
     PyObject *tupleObj1 = PyTuple_New(2);

@@ -210,19 +210,19 @@ namespace tuplex {
             for (size_t i = 0; i < limit;) {
 
                 // all exhausted
-                if(_currentNormalPartitions.empty())
+                if (_currentNormalPartitions.empty())
                     break;
 
                 // get number of rows in first partition
                 Partition *first = _currentNormalPartitions.front();
                 auto num_rows = first->getNumRows();
 
-                assert(num_rows >= _curRowCounter);
+                assert(num_rows >= _curNormalRowCounter);
                 assert(limit >= i);
 
                 // how many left to retrieve?
                 auto num_to_retrieve_from_partition = std::min(limit - i, num_rows - _curNormalRowCounter);
-                if(num_to_retrieve_from_partition <= 0)
+                if (num_to_retrieve_from_partition <= 0)
                     break;
 
                 // make sure partition schema matches stored schema

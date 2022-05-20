@@ -53,6 +53,7 @@ namespace tuplex {
         bool OPT_FILTER_PUSHDOWN() const { return stringToBool(_store.at("tuplex.optimizer.filterPushdown")); }
         bool OPT_OPERATOR_REORDERING() const { return stringToBool(_store.at("tuplex.optimizer.operatorReordering")); }
         bool OPT_MERGE_EXCEPTIONS_INORDER() const { return stringToBool(_store.at("tuplex.optimizer.mergeExceptionsInOrder")); }
+        bool OPT_INCREMENTAL_RESOLUTION() const { return stringToBool(_store.at("tuplex.optimizer.incrementalResolution")); }
         bool CSV_PARSER_SELECTION_PUSHDOWN() const; //! whether to use selection pushdown in the parser. If false, then full data will be serialized.
         bool INTERLEAVE_IO() const { return stringToBool(_store.at("tuplex.interleaveIO")); } //! whether to first load, compute, then write or use IO thread to interleave IO work with compute work for faster speeds.
         bool RESOLVE_WITH_INTERPRETER_ONLY() const { return stringToBool(_store.at("tuplex.resolveWithInterpreterOnly")); }

@@ -22,7 +22,7 @@
 
 namespace tuplex {
 
-    class IBackend;\
+    class IBackend;
     class PhysicalStage;
     class PhysicalPlan;
     class LogicalPlan;

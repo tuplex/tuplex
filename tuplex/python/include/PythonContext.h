@@ -117,6 +117,8 @@ namespace tuplex {
             pds.wrap(&_context->makeError(message));
             return pds;
         }
+
+        std::vector<Partition*> serializeFallbackRows(const std::vector<std::tuple<size_t, PyObject*>>& fallbackRows);
     public:
 
         /*!

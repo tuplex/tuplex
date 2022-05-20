@@ -721,7 +721,7 @@ namespace tuplex {
 
     void PythonDataSet::tocsv(const std::string &file_path, const std::string &lambda_code, const std::string &pickled_code,
                          size_t fileCount, size_t shardSize, size_t limit, const std::string &null_value,
-                         py::object header) {
+                         py::object header, const bool commit) {
         // make sure a dataset is wrapped
         assert(this->_dataset);
         // ==> error handled below.
@@ -756,6 +756,8 @@ namespace tuplex {
                     outputOptions["csvHeader"] = csvToHeader(headerNames) + "\n";
                 outputOptions["header"] = "true";
             }
+
+            outputOptions["commit"] = boolToString(commit);
 
             // release GIL & hand over everything to Tuplex
             assert(PyGILState_Check()); // make sure this thread holds the GIL!
@@ -909,8 +911,8 @@ namespace tuplex {
         // retrieve full partitions for speed
         Partition *partition = nullptr;
         size_t pos = 0;
-        while (rs->hasNextPartition() && pos < maxRowCount) {
-            partition = rs->getNextPartition();
+        while (rs->hasNextNormalPartition() && pos < maxRowCount) {
+            partition = rs->getNextNormalPartition();
             auto schema = partition->schema();
             // single value? --> reset rowtype by one level
             auto type = schema.getRowType();
@@ -964,8 +966,8 @@ namespace tuplex {
 
         Partition *partition = nullptr;
         size_t pos = 0;
-        while (rs->hasNextPartition() && pos < maxRowCount) {
-            partition = rs->getNextPartition();
+        while (rs->hasNextNormalPartition() && pos < maxRowCount) {
+            partition = rs->getNextNormalPartition();
 
             // add memory towards list object
             auto ptr = partition->lockRaw();
@@ -1002,8 +1004,8 @@ namespace tuplex {
 
         Partition *partition = nullptr;
         size_t pos = 0;
-        while (rs->hasNextPartition() && pos < maxRowCount) {
-            partition = rs->getNextPartition();
+        while (rs->hasNextNormalPartition() && pos < maxRowCount) {
+            partition = rs->getNextNormalPartition();
 
             // add memory towards list object
             auto ptr = partition->lockRaw();
@@ -1042,8 +1044,8 @@ namespace tuplex {
 
         Partition *partition = nullptr;
         size_t pos = 0;
-        while (rs->hasNextPartition() && pos < maxRowCount) {
-            partition = rs->getNextPartition();
+        while (rs->hasNextNormalPartition() && pos < maxRowCount) {
+            partition = rs->getNextNormalPartition();
 
             // add memory towards list object
             auto ptr = partition->lockRaw();
@@ -1091,8 +1093,8 @@ namespace tuplex {
 
         Partition *partition = nullptr;
         size_t pos = 0;
-        while (rs->hasNextPartition() && pos < maxRowCount) {
-            partition = rs->getNextPartition();
+        while (rs->hasNextNormalPartition() && pos < maxRowCount) {
+            partition = rs->getNextNormalPartition();
 
             // add memory towards list object
             auto ptr = partition->lockRaw();
@@ -1147,8 +1149,8 @@ namespace tuplex {
 
         Partition *partition = nullptr;
         size_t pos = 0;
-        while (rs->hasNextPartition() && pos < maxRowCount) {
-            partition = rs->getNextPartition();
+        while (rs->hasNextNormalPartition() && pos < maxRowCount) {
+            partition = rs->getNextNormalPartition();
 
             // add memory towards list object
             auto ptr = partition->lockRaw();
@@ -1191,8 +1193,8 @@ namespace tuplex {
 
         Partition *partition = nullptr;
         size_t pos = 0;
-        while (rs->hasNextPartition() && pos < maxRowCount) {
-            partition = rs->getNextPartition();
+        while (rs->hasNextNormalPartition() && pos < maxRowCount) {
+            partition = rs->getNextNormalPartition();
 
             // add memory towards list object
             auto ptr = partition->lockRaw();
@@ -1251,8 +1253,8 @@ namespace tuplex {
 
         Partition* partition = nullptr;
         size_t pos = 0;
-        while(rs->hasNextPartition() && pos < maxRowCount) {
-            partition = rs->getNextPartition();
+        while(rs->hasNextNormalPartition() && pos < maxRowCount) {
+            partition = rs->getNextNormalPartition();
 
             // add memory towards list object
             auto ptr = partition->lockRaw();
@@ -1348,7 +1350,7 @@ namespace tuplex {
         // b.c. merging of arbitrary python objects is not implemented yet, whenever they're present, use general
         // version
         // @TODO: this could be optimized!
-        if(rs->pyobject_count() != 0)
+        if(rs->fallbackRowCount() != 0)
             return anyToCPythonWithPyObjects(rs, maxRowCount);
 
         auto type = rs->schema().getRowType();

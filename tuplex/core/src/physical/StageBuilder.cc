@@ -46,10 +46,11 @@ namespace tuplex {
                                    double normalCaseThreshold,
                                    bool sharedObjectPropagation,
                                    bool nullValueOptimization,
-                                   bool updateInputExceptions)
+                                   bool updateInputExceptions,
+                                   bool incrementalResolution)
                 : _stageNumber(stage_number), _isRootStage(rootStage), _allowUndefinedBehavior(allowUndefinedBehavior),
                   _generateParser(generateParser), _normalCaseThreshold(normalCaseThreshold), _sharedObjectPropagation(sharedObjectPropagation),
-                  _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions),
+                  _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions), _incrementalResolution(incrementalResolution),
                   _inputNode(nullptr), _outputLimit(std::numeric_limits<size_t>::max()) {
         }
 
@@ -1051,7 +1052,7 @@ namespace tuplex {
             bool requireSlowPath = _nullValueOptimization; // per default, slow path is always required when null-value opt is enabled.
 
             // special case: input source is cached and no exceptions happened => no resolve path necessary if there are no resolvers!
-            if(_inputNode->type() == LogicalOperatorType::CACHE && dynamic_cast<CacheOperator*>(_inputNode)->cachedExceptions().empty())
+            if(_inputNode->type() == LogicalOperatorType::CACHE && dynamic_cast<CacheOperator *>(_inputNode)->cachedGeneralPartitions().empty() && dynamic_cast<CacheOperator *>(_inputNode)->cachedFallbackPartitions().empty())
                 requireSlowPath = false;
 
             if (numResolveOperators > 0 || requireSlowPath) {
@@ -1443,7 +1444,9 @@ namespace tuplex {
             stage->_irBitCode = _irBitCode;
             stage->_pyCode = _pyCode;
             stage->_pyPipelineName = _pyPipelineName;
+
             stage->_updateInputExceptions = _updateInputExceptions;
+            stage->_incrementalResolution = _incrementalResolution;
 
             // if last op is CacheOperator, check whether normal/exceptional case should get cached separately
             // or an upcasting step should be performed.

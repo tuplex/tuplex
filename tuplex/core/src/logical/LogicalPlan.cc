@@ -58,6 +58,8 @@ namespace tuplex {
         // optimize first if desired (context options object)
         // ==> optimize creates a copy if required
 
+        incrementalResolution(context);
+
         auto optimized_plan = optimize(context, !copy_required); // overwrite
 
         double logical_optimization_time = timer.time();
@@ -68,6 +70,40 @@ namespace tuplex {
         return new PhysicalPlan(optimized_plan, this, context);
     }
 
+    void updateIDs(LogicalOperator *previous, LogicalOperator *current) {
+        std::queue<LogicalOperator*> currentQ;
+        std::queue<LogicalOperator*> previousQ;
+        currentQ.push(current);
+        previousQ.push(previous);
+        bool updated = false;
+        while(!currentQ.empty() && !previousQ.empty()) {
+            auto curNode = currentQ.front(); currentQ.pop();
+            auto prevNode = previousQ.front(); previousQ.pop();
+
+            if (!updated && (curNode->type() == LogicalOperatorType::RESOLVE || curNode->type() == LogicalOperatorType::IGNORE)) {
+                curNode = curNode->parent();
+                updated = true;
+            }
+
+            curNode->setID(prevNode->getID());
+            for (auto parent : curNode->parents()) {
+                currentQ.push(parent);
+            }
+            for (auto parent : prevNode->parents()) {
+                previousQ.push(parent);
+            }
+        }
+    }
+
+    void LogicalPlan::incrementalResolution(const Context& context) {
+        // If cache entry exists, need to copy over operator Ids from previous pipeline to current pipeline
+        // This is because the exceptions are already encoded with the previous pipeline's operator IDs.
+        auto cache = context.getIncrementalCache();
+        auto cacheEntry = cache->getEntry(IncrementalCache::newKey(_action));
+        if (cacheEntry && context.getOptions().OPT_INCREMENTAL_RESOLUTION()) {
+            updateIDs(cacheEntry->pipeline(), _action);
+        }
+    }
 
     void rewriteAllFollowingResolvers(LogicalOperator* op, const std::unordered_map<size_t, size_t>& rewriteMap) {
         // go over children (single!)

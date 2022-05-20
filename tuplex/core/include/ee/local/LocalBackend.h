@@ -69,6 +69,8 @@ namespace tuplex {
         std::vector<IExecutorTask*> createLoadAndTransformToMemoryTasks(TransformStage* tstage, const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms);
         void executeTransformStage(TransformStage* tstage);
 
+        std::vector<IExecutorTask*> createIncrementalTasks(TransformStage* tstage, const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms);
+        void executeIncrementalStage(TransformStage* tstage);
 
         /*!
          * Create the final hashmap from all of the input [tasks] (e.g. either merge them (join) or combine them (aggregate)
@@ -89,7 +91,7 @@ namespace tuplex {
         MessageHandler& logger() const { return Logger::instance().logger("local ee"); }
 
         // write output (may be already in correct format!)
-        void writeOutput(TransformStage* tstage, std::vector<IExecutorTask*>& sortedTasks);
+        size_t writeOutput(TransformStage* tstage, std::vector<IExecutorTask*>& sortedTasks, size_t startFileNumber=0);
 
         std::vector<IExecutorTask*> performTasks(std::vector<IExecutorTask*>& tasks, std::function<void()> driverCallback=[](){});
 
@@ -99,7 +101,7 @@ namespace tuplex {
             return std::accumulate(counts.begin(), counts.end(), 0, [](size_t acc, std::pair<std::tuple<int64_t, ExceptionCode>, size_t> val) { return acc + val.second; });
         }
 
-        inline std::vector<Partition*> getOutputPartitions(IExecutorTask* task) {
+        inline std::vector<Partition*> getNormalPartitions(IExecutorTask* task) {
             if(!task)
                 return std::vector<Partition*>();
 
@@ -113,7 +115,7 @@ namespace tuplex {
             return std::vector<Partition*>();
         }
 
-        inline std::vector<Partition*> getRemainingExceptions(IExecutorTask* task) {
+        inline std::vector<Partition*> getExceptionPartitions(IExecutorTask* task) {
             if(!task)
                 return std::vector<Partition*>();
 
@@ -127,7 +129,7 @@ namespace tuplex {
             return std::vector<Partition*>();
         }
 
-        inline std::vector<Partition*> generalCasePartitions(IExecutorTask* task) {
+        inline std::vector<Partition*> getGeneralPartitions(IExecutorTask* task) {
             if(!task)
                 return std::vector<Partition*>();
 
@@ -155,18 +157,18 @@ namespace tuplex {
             return std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>();
         }
 
-        inline std::vector<std::tuple<size_t, PyObject*>> getNonConformingRows(IExecutorTask* task) {
+        inline std::vector<Partition*> getFallbackPartitions(IExecutorTask* task) {
             if(!task)
-                return std::vector<std::tuple<size_t, PyObject*>>();
+                return std::vector<Partition*>();
 
             if(task->type() == TaskType::UDFTRAFOTASK)
-                return std::vector<std::tuple<size_t, PyObject*>>(); // none here, can be only result from ResolveTask.
+                return std::vector<Partition*>(); // none here, can be only result from ResolveTask.
 
             if(task->type() == TaskType::RESOLVE)
-                return dynamic_cast<ResolveTask*>(task)->getNonConformingRows();
+                return dynamic_cast<ResolveTask*>(task)->getOutputFallbackPartitions();
 
             throw std::runtime_error("unknown task type seen in " + std::string(__FILE_NAME__) + ":" + std::to_string(__LINE__));
-            return std::vector<std::tuple<size_t, PyObject*>>();
+            return std::vector<Partition*>();
         }
 
         std::vector<IExecutorTask*> resolveViaSlowPath(std::vector<IExecutorTask*>& tasks,

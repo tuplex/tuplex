@@ -38,10 +38,13 @@ namespace tuplex {
             double slow_path_time_s = 0.0;
             double fast_path_per_row_time_ns = 0.0;
             double slow_path_per_row_time_ns = 0.0;
-            // size_t fast_path_input_row_count;
-            // size_t fast_path_output_row_count;
-            // size_t slow_path_input_row_count;
-            // size_t slow_path_output_row_count;
+
+             size_t fast_path_input_row_count = 0;
+             size_t fast_path_output_row_count = 0;
+             size_t slow_path_input_row_count = 0;
+             size_t slow_path_output_row_count = 0;
+
+             double write_output_time_s = 0.0;
 
             // disk spilling metrics
             int partitions_swapin_count = 0;
@@ -162,6 +165,40 @@ namespace tuplex {
         }
 
         /*!
+         * set fast path row count info
+         * @param stageNo
+         * @param inputRows
+         * @param outputRows
+         */
+        void setFastPathRowCount(int stageNo, size_t inputRows, size_t outputRows) {
+            auto it = get_or_create_stage_metrics(stageNo);
+            it->fast_path_input_row_count = inputRows;
+            it->fast_path_output_row_count = outputRows;
+        }
+
+        /*!
+         * set slow path row count info
+         * @param stageNo
+         * @param inputRows
+         * @param outputRows
+         */
+        void setSlowPathRowCount(int stageNo, size_t inputRows, size_t outputRows) {
+            auto it = get_or_create_stage_metrics(stageNo);
+            it->slow_path_input_row_count = inputRows;
+            it->slow_path_output_row_count = outputRows;
+        }
+
+        /*!
+         * set write timing info
+         * @param stageNo
+         * @param wallTime
+         */
+        void setWriteOutputTimes(int stageNo, double wallTime) {
+            auto it = get_or_create_stage_metrics(stageNo);
+            it->write_output_time_s = wallTime;
+        }
+
+        /*!
          * set fast path timing info
          * @param stageNo
          * @param fast_path_wall_time_s
@@ -234,7 +271,12 @@ namespace tuplex {
                 ss<<"\"partitions_swapin_count\":"<<s.partitions_swapin_count<<",";
                 ss<<"\"partitions_swapout_count\":"<<s.partitions_swapout_count<<",";
                 ss<<"\"partitions_bytes_swapped_in\":"<<s.partitions_bytes_swapped_in<<",";
-                ss<<"\"partitions_bytes_swapped_out\":"<<s.partitions_bytes_swapped_out;
+                ss<<"\"partitions_bytes_swapped_out\":"<<s.partitions_bytes_swapped_out<<",";
+                ss<<"\"fast_path_input_row_count\":"<<s.fast_path_input_row_count<<",";
+                ss<<"\"fast_path_output_row_count\":"<<s.fast_path_output_row_count<<",";
+                ss<<"\"slow_path_input_row_count\":"<<s.slow_path_input_row_count<<",";
+                ss<<"\"slow_path_output_row_count\":"<<s.slow_path_output_row_count<<",";
+                ss<<"\"write_output_wall_time_s\":"<<s.write_output_time_s;
                 ss<<"}";
                 if(s.stageNo != _stage_metrics.back().stageNo)
                     ss<<",";

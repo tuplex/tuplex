@@ -199,9 +199,11 @@ namespace tuplex {
                 auto t = ops.front()->type();
                 assert(t == LogicalOperatorType::PARALLELIZE || t == LogicalOperatorType::CACHE);
                 if (t == LogicalOperatorType::PARALLELIZE)
-                    hasInputExceptions = !((ParallelizeOperator *)ops.front())->getPythonObjects().empty();
-                if (t == LogicalOperatorType::CACHE)
-                    hasInputExceptions = !((CacheOperator *)ops.front())->cachedExceptions().empty();
+                    hasInputExceptions = !((ParallelizeOperator *) ops.front())->getFallbackPartitions().empty();
+                if (t == LogicalOperatorType::CACHE) {
+                    auto cop = (CacheOperator *) ops.front();
+                    hasInputExceptions = !cop->cachedGeneralPartitions().empty() || !cop->cachedFallbackPartitions().empty();
+                }
             }
         }
 
@@ -239,6 +241,11 @@ namespace tuplex {
         // user wants to merge exceptions in order.
         bool updateInputExceptions = hasFilter && hasInputExceptions && _context.getOptions().OPT_MERGE_EXCEPTIONS_INORDER();
 
+        // Use incremental resolution if pipelines match and user has enabled the option
+        auto cache = _context.getIncrementalCache();
+        auto cacheEntry = cache->getEntry(IncrementalCache::newKey(originalLogicalPlan()->getAction()));
+        auto incrementalResolution = cacheEntry && _context.getOptions().OPT_INCREMENTAL_RESOLUTION();
+
         // create trafostage via builder pattern
         auto builder = codegen::StageBuilder(_num_stages++,
                                                isRootStage,
@@ -247,7 +254,8 @@ namespace tuplex {
                                                _context.getOptions().NORMALCASE_THRESHOLD(),
                                                _context.getOptions().OPT_SHARED_OBJECT_PROPAGATION(),
                                                _context.getOptions().OPT_NULLVALUE_OPTIMIZATION(),
-                                               updateInputExceptions);
+                                               updateInputExceptions,
+                                               incrementalResolution);
         // start code generation
 
         // first, add input
@@ -401,18 +409,23 @@ namespace tuplex {
         // fill in data to start processing from operators.
         if (inputNode->type() == LogicalOperatorType::PARALLELIZE) {
             auto pop = dynamic_cast<ParallelizeOperator *>(inputNode); assert(inputNode);
-            stage->setInputPartitions(pop->getPartitions());
-            stage->setInputExceptions(pop->getPythonObjects());
-            stage->setPartitionToExceptionsMap(pop->getInputPartitionToPythonObjectsMap());
+            stage->setInputPartitions(pop->getNormalPartitions());
+            stage->setFallbackPartitions(pop->getFallbackPartitions());
+            stage->setPartitionGroups(pop->getPartitionGroups());
         } else if(inputNode->type() == LogicalOperatorType::CACHE) {
             auto cop = dynamic_cast<CacheOperator*>(inputNode);  assert(inputNode);
-            stage->setInputPartitions(cop->cachedPartitions());
-            stage->setInputExceptions(cop->cachedExceptions());
-            stage->setPartitionToExceptionsMap(cop->partitionToExceptionsMap());
+            stage->setInputPartitions(cop->cachedNormalPartitions());
+            stage->setGeneralPartitions(cop->cachedGeneralPartitions());
+            stage->setFallbackPartitions(cop->cachedFallbackPartitions());
+            stage->setPartitionGroups(cop->partitionGroups());
         } else if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
             auto csvop = dynamic_cast<FileInputOperator*>(inputNode);
             stage->setInputFiles(csvop->getURIs(), csvop->getURISizes());
         } // else it must be an internal node! => need to set manually based on result
+
+        if (incrementalResolution) {
+            stage->setIncrementalCacheEntry(cacheEntry);
+        }
 
         return stage;
     }

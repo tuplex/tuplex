@@ -87,9 +87,9 @@ namespace tuplex {
 
 
         DataSet &parallelizeAnyType(const py::list &L, const python::Type &majType,
-                                    const std::vector<std::string> &columns);
+                                    const std::vector<std::string> &columns, bool autoUpcast);
 
-        python::Type inferType(const py::list &L) const;
+        python::Type inferType(const py::list &L, bool autoUpcast) const;
 
         /*!
          * infer what are the columns in a probabilistic fashion
@@ -98,7 +98,7 @@ namespace tuplex {
          * @return map of column name and most likely type for each
          */
         std::unordered_map<std::string, python::Type>
-        inferColumnsFromDictObjects(const py::list &L, double normalThreshold);
+        inferColumnsFromDictObjects(const py::list &L, double normalThreshold, bool autoUpcast);
 
         inline size_t sampleSize(const py::list &L) const {
             // sample size to determine how many entries should be scanned to get python types

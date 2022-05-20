@@ -66,7 +66,7 @@ namespace tuplex {
     }
 
     std::vector<Row> DataSet::takeAsVector(size_t numElements, std::ostream &os) {
-        auto rs = take(numElements, false, os);
+        auto rs = take(numElements, 0, os);
         Timer timer;
 
 #warning "limiting should make this hack irrelevant..."

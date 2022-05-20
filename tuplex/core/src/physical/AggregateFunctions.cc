@@ -31,26 +31,26 @@ namespace tuplex {
             auto body = BasicBlock::Create(env->getContext(), "body", func);
             IRBuilder builder(body);
 
-            auto ft = FlattenedTuple::fromRow(env, builder, row);
+            auto ft = FlattenedTuple::fromRow(env, builder.get(), row);
 
-            auto size = ft.getSize(builder); assert(size->getType() == env->i64Type());
+            auto size = ft.getSize(builder.get()); assert(size->getType() == env->i64Type());
             builder.CreateStore(size, args["agg_size"]);
 
             // allocate using the allocator a pointer, then serialize everything to it...
             Value* ptr = nullptr;
             if(allocator == malloc) {
                 // use C-malloc
-                ptr = env->cmalloc(builder, size);
+                ptr = env->cmalloc(builder.get(), size);
             } else {
                 // use rtmalloc
-                ptr = env->malloc(builder, size);
+                ptr = env->malloc(builder.get(), size);
             }
 
             // serialize tuple to it!
-            ft.serialize(builder, ptr);
+            ft.serialize(builder.get(), ptr);
 
             builder.CreateStore(ptr, args["agg"]);
-            builder.CreateRet(env->i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            builder.get().CreateRet(env->i64Const(ecToI64(ExceptionCode::SUCCESS)));
 
             return func;
         }
@@ -59,7 +59,7 @@ namespace tuplex {
         // this function basically should take
         // int64_t combineAggregates(void** aggOut, int64_t* aggOut_size, void* agg, int64_t agg_size)
         llvm::Function *createAggregateCombineFunction(LLVMEnvironment *env, const std::string &name, const UDF &udf,
-                                                       const python::Type aggType,
+                                                       const python::Type& aggType,
                                                        decltype(malloc) allocator) {
             using namespace llvm;
 
@@ -74,7 +74,7 @@ namespace tuplex {
             auto args = mapLLVMFunctionArgs(func, {"out", "out_size", "agg", "agg_size"});
 
             auto body = BasicBlock::Create(env->getContext(), "body", func);
-            IRBuilder<> builder(body);
+            IRBuilder builder(body);
 
             // do not touch agg, this is externally handled.
 
@@ -89,17 +89,17 @@ namespace tuplex {
 
             // deserialize using aggType
             FlattenedTuple ftAgg(env); ftAgg.init(aggType);
-            ftAgg.deserializationCode(builder, args["agg"]);
+            ftAgg.deserializationCode(builder.get(), args["agg"]);
 
             FlattenedTuple ftOther(env); ftOther.init(aggType);
-            ftOther.deserializationCode(builder, builder.CreateLoad(args["out"]));
+            ftOther.deserializationCode(builder.get(), builder.CreateLoad(args["out"]));
 
             // compile the UDF now and call it.
             auto combinedType = python::Type::makeTupleType({aggType, aggType}); // this should be compatible to input type of aggUDF!
             FlattenedTuple ftin(env);
             ftin.init(combinedType);
-            ftin.set(builder, {0}, ftOther);
-            ftin.set(builder, {1}, ftAgg);
+            ftin.set(builder.get(), {0}, ftOther);
+            ftin.set(builder.get(), {1}, ftAgg);
 
             // compile dependent on udf
             assert(udf.isCompiled());
@@ -108,12 +108,12 @@ namespace tuplex {
             if(!cf.good())
                 return nullptr;
 
-            auto resultVar = env->CreateFirstBlockAlloca(builder, cf.getLLVMResultType(*env));
-            auto exceptionVar = env->CreateFirstBlockAlloca(builder, env->i64Type());
+            auto resultVar = env->CreateFirstBlockAlloca(builder.get(), cf.getLLVMResultType(*env));
+            auto exceptionVar = env->CreateFirstBlockAlloca(builder.get(), env->i64Type());
             builder.CreateStore(env->i64Const(ecToI64(ExceptionCode::SUCCESS)), exceptionVar);
 
             auto exceptionBlock = BasicBlock::Create(env->getContext(), "except", func);
-            IRBuilder<> eb(exceptionBlock);
+            IRBuilder eb(exceptionBlock);
             eb.CreateRet(eb.CreateLoad(exceptionVar));
 
             auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);

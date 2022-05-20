@@ -48,7 +48,7 @@ namespace tuplex {
         extern llvm::Function *createAggregateCombineFunction(LLVMEnvironment *env,
                                                               const std::string &name,
                                                               const UDF &udf,
-                                                              const python::Type aggType,
+                                                              const python::Type& aggType,
                                                               decltype(malloc) allocator=malloc);
 
         /*!

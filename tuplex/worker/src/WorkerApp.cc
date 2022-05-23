@@ -1809,7 +1809,6 @@ namespace tuplex {
         //            decltype(malloc) allocator)
         int64_t num_cells = *(int64_t*)buf; buf += sizeof(int64_t);
         PyObject* tuple = PyTuple_New(num_cells);
-        auto buf_start = buf;
         for(unsigned j = 0; j < num_cells; ++j) {
             auto info = *(int64_t*)buf;
             auto offset = info & 0xFFFFFFFF;
@@ -1819,11 +1818,7 @@ namespace tuplex {
             // @TODO: quicker conversion from str cell?
             PyTuple_SET_ITEM(tuple, j, python::PyString_FromString(cell));
             buf += sizeof(int64_t);
-
-            size_t buf_position = buf - buf_start;
-            std::cout<<"j="<<j<<" buf pos: "<<buf_position<<std::endl;
         }
-        PyObject_Print(tuple, stdout, 0); std::cout<<std::endl;
         return tuple;
     }
 

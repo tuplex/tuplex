@@ -1076,8 +1076,8 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
     auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false);
 
-    // test: 2013_03 fails
-    paths = {URI("file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2013_03.csv")};
+    // // test: 2013_03 fails
+    // paths = {URI("file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2013_03.csv")};
 
 
     for(const auto& path : paths) {

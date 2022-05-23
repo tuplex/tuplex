@@ -423,9 +423,8 @@ namespace tuplex {
         if(buffer_size)
             *buffer_size = buf_size;
 
-
         // debug check, deserialize buffer!
-        checkfallbackTupleFromParseException(reinterpret_cast<const uint8_t*>(buf_ptr), buf_size);
+        // checkfallbackTupleFromParseException(reinterpret_cast<const uint8_t*>(buf_ptr), buf_size);
 
         return buf_ptr;
     }

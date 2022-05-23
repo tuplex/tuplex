@@ -332,6 +332,35 @@ namespace tuplex {
 
 
 namespace tuplex {
+
+
+    void checkfallbackTupleFromParseException(const uint8_t* buf, size_t buf_size) {
+        // cf.  char* serializeParseException(int64_t numCells,
+        //            char **cells,
+        //            int64_t* sizes,
+        //            size_t *buffer_size,
+        //            std::vector<bool> colsToSerialize,
+        //            decltype(malloc) allocator)
+        int64_t num_cells = *(int64_t*)buf; buf += sizeof(int64_t);
+        auto buf_start = buf;
+        for(unsigned j = 0; j < num_cells; ++j) {
+            auto info = *(int64_t*)buf;
+            auto offset = info & 0xFFFFFFFF;
+            const char* cell = reinterpret_cast<const char *>(buf + offset);
+            auto cell_size = info >> 32u;
+
+            // check that everything is ok...
+            auto range_end = cell + cell_size - reinterpret_cast<const char*>(buf_start);
+            assert(range_end <= buf_size);
+
+            std::cout<<"j="<<j<<": "<<cell<<std::endl;
+            buf += sizeof(int64_t);
+
+            size_t buf_position = buf - buf_start;
+            std::cout<<"j="<<j<<" buf pos: "<<buf_position<<std::endl;
+        }
+    }
+
     char* serializeParseException(int64_t numCells,
             char **cells,
             int64_t* sizes,
@@ -345,15 +374,22 @@ namespace tuplex {
         if(colsToSerialize.empty())
             for(int i = 0; i < numCells; ++i)
                 colsToSerialize.push_back(true);
+        else {
+            // make sure colsToSerialize is larger than numCells!
+            while(numCells > colsToSerialize.size())
+                colsToSerialize.push_back(true);
+        }
 
         auto numCellsToSerialize = 0;
-        for(auto c : colsToSerialize)
-            numCellsToSerialize += c;
+        for(unsigned i = 0; i < std::min(colsToSerialize.size(), (size_t)numCells); ++i)
+            numCellsToSerialize += colsToSerialize[i];
 
         // special row format for CSV operator exceptions
         // => i.e. first int64_t cell counts, then cell_counts x sizes int64_t with cell sizes + offsets
-        size_t buf_size = sizeof(int64_t) + numCells * sizeof(int64_t);
-        for(int i = 0; i < numCells; ++i)
+        size_t buf_size = sizeof(int64_t) + numCellsToSerialize * sizeof(int64_t);
+
+        // compute size for given number of cells.
+        for(int i = 0; i < std::min(colsToSerialize.size(), (size_t)numCells); ++i)
             if(colsToSerialize[i])
                 buf_size += sizes[i];
 
@@ -386,6 +422,10 @@ namespace tuplex {
 
         if(buffer_size)
             *buffer_size = buf_size;
+
+
+        // debug check, deserialize buffer!
+        checkfallbackTupleFromParseException(reinterpret_cast<const uint8_t*>(buf_ptr), buf_size);
 
         return buf_ptr;
     }
@@ -478,23 +518,34 @@ namespace tuplex {
                 // full row as exception (schema mismatch)
                 // fetch line from parse (add up chars)
                 string line = fromCharPointers(row.cells[0].ptr, reader.ptr());
+                // trim line till '\0' char
+                size_t max_idx = std::distance(line.begin(), std::find(line.begin(), line.begin() + line.size(), '\0'));
+                line = std::string(line.begin(), line.begin() + max_idx);
+
                 assert(row.count != 0);
 
                 // produce badcsvparse input...
                 // Todo: serialize whole row as exception...
                 auto resCode = ExceptionCode::BADPARSE_STRING_INPUT;
 
+                // reparse line, b.c. parser may be thrown off in two short string.
+                std::vector<string> cell_vec;
+                size_t num_parsed_bytes = 0;
+                auto ec = parseRow(line.c_str(), line.c_str() + line.length(), cell_vec, num_parsed_bytes, _delimiter, _quotechar, false);
+                assert(ExceptionCode::SUCCESS == ec);
+
                 // serializeParse exception => this is expensive
-                char **cells = new char*[row.count];
-                int64_t *cell_sizes = new int64_t[row.count];
-                for(int i = 0; i < row.count; ++i)
+                auto num_cells = cell_vec.size();
+                char **cells = new char*[num_cells];
+                int64_t *cell_sizes = new int64_t[num_cells];
+                for(int i = 0; i < num_cells; ++i)
                     cells[i] = nullptr;
                 const char *empty_str = "";
                 // get strings, then do value conversions etc. in code generated code...
-                for(int i = 0; i < row.count; ++i) {
+                for(int i = 0; i < num_cells; ++i) {
                     // note as_str should dequote cell already...
-                    if(row.cells[i].ptr) {
-                        auto cell = row.cells[i].as_str();
+                    if(!cell_vec[i].empty()) {
+                        auto cell = cell_vec[i];
                         cell_sizes[i] = cell.length() + 1;
 
                         // copy using malloc or runtime memory?
@@ -510,7 +561,7 @@ namespace tuplex {
 
                 // now call exception serialize
                 size_t exception_buf_size = 0;
-                auto exception_buf = serializeParseException(row.count, cells, cell_sizes, &exception_buf_size, _columnsToKeep, runtime::rtmalloc);
+                auto exception_buf = serializeParseException(num_cells, cells, cell_sizes, &exception_buf_size, _columnsToKeep, runtime::rtmalloc);
 
                 // upgrade parse errors for slow path resolution
                 if(_makeParseErrorsInternal)
@@ -529,7 +580,6 @@ namespace tuplex {
                 //              int64_t buf_size
                 if(_exceptionHandler)
                     _exceptionHandler(_userData, ecToI64(resCode), _operatorID, rowNumber, reinterpret_cast<uint8_t*>(exception_buf), exception_buf_size);
-
             } else {
 
 

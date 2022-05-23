@@ -26,6 +26,7 @@ namespace tuplex {
             python::Type _fileInputRowType; /// original file input type, i.e. how many cells + what they should represent
             std::vector<bool> _columnsToSerialize; /// which columns from the file input type to serialize, determines output type. Good for projection pushdown.
             std::vector<bool> _generalCaseColumnsToSerialize; // same for the general case
+            std::map<int, int> _normalToGeneralMapping;
             std::string _functionName; /// name of the LLVM function
 
             std::vector<std::string> _nullValues; /// strings that should be interpreted as null values.
@@ -97,6 +98,7 @@ namespace tuplex {
                                                                  _fileInputRowType(normalCaseRowType),
                                                                  _columnsToSerialize(normalCaseColumnsToSerialize),
                                                                  _generalCaseColumnsToSerialize(generalCaseColumnsToSerialize),
+                                                                 _normalToGeneralMapping(normalToGeneralMapping),
                                                                  _functionName(name),
                                                                  _nullValues(null_values),
                                                                  _checks(checks),

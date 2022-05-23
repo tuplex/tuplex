@@ -70,7 +70,7 @@ namespace tuplex {
              * @param normalCaseRowType the detected row Type of the file
              * @param restrictedGeneralCaseInputRowType the (restricted) detected general case row type of the file
              * @param normalCaseColumnsToSerialize if empty vector, all rows get serialized. If not, indicates which columns should be serialized. Length must match rowType.
-             * @param name Name of the function to generate
+             * @param name Name of the function to generate++
              * @param operatorID ID of the operator for exception handling.
              * @param null_values array of strings that should be interpreted as null values
              * @param checks array of checks to perform and else issue a normalcaseviolation
@@ -96,6 +96,7 @@ namespace tuplex {
                                                                  _operatorID(operatorID),
                                                                  _fileInputRowType(normalCaseRowType),
                                                                  _columnsToSerialize(normalCaseColumnsToSerialize),
+                                                                 _generalCaseColumnsToSerialize(generalCaseColumnsToSerialize),
                                                                  _functionName(name),
                                                                  _nullValues(null_values),
                                                                  _checks(checks),

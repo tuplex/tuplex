@@ -1813,11 +1813,10 @@ namespace tuplex {
             auto info = *(int64_t*)buf;
             auto offset = info & 0xFFFFFFFF;
             const char* cell = reinterpret_cast<const char *>(buf + offset);
+            auto cell_size = info >> 32u;
 
             // @TODO: quicker conversion from str cell?
             PyTuple_SET_ITEM(tuple, j, python::PyString_FromString(cell));
-
-            auto cell_size = info >> 32u;
             buf += sizeof(int64_t);
         }
         return tuple;

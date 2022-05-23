@@ -423,6 +423,12 @@ namespace tuplex {
                 }
             }
 
+            // this is normal-case behavior, however exceptions are always in general-case format.
+            // -> hence need to upcast to number of columns!
+            size_t numGeneralCaseCells = 0;
+            for(unsigned i = 0; i < _generalCaseColumnsToSerialize.size(); ++i)
+                numGeneralCaseCells += _generalCaseColumnsToSerialize[i];
+
             // now serialize into buffer (cf. char* serializeParseException(int64_t numCells,
             //            char **cells,
             //            int64_t* sizes,

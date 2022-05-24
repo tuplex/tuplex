@@ -1814,7 +1814,7 @@ namespace tuplex {
             }
         }
 
-        SerializableValue parseBoolean(LLVMEnvironment& env, llvm::IRBuilder<> &builder, llvm::BasicBlock *bbFailed,
+        SerializableValue parseBoolean(LLVMEnvironment& env, IRBuilder &builder, llvm::BasicBlock *bbFailed,
                                                               llvm::Value *str, llvm::Value *strSize,
                                                               llvm::Value *isnull) {
 
@@ -1824,7 +1824,7 @@ namespace tuplex {
             auto& ctx = env.getContext();
             auto func = builder.GetInsertBlock()->getParent(); assert(func);
 
-            Value* bool_val = env.CreateFirstBlockAlloca(builder, env.getBooleanType());
+            Value* bool_val = env.CreateFirstBlockAlloca(builder.get(), env.getBooleanType());
             builder.CreateStore(env.boolConst(false), bool_val);
 
             // all the basicblocks
@@ -1858,7 +1858,7 @@ namespace tuplex {
             return SerializableValue(builder.CreateLoad(bool_val), env.i64Const(sizeof(int64_t)), isnull);
         }
 
-        SerializableValue parseI64(LLVMEnvironment& env, llvm::IRBuilder<> &builder, llvm::BasicBlock *bbFailed,
+        SerializableValue parseI64(LLVMEnvironment& env, IRBuilder &builder, llvm::BasicBlock *bbFailed,
                                    llvm::Value *str, llvm::Value *strSize,
                                    llvm::Value *isnull) {
 
@@ -1868,7 +1868,7 @@ namespace tuplex {
             auto& ctx = env.getContext();
             auto func = builder.GetInsertBlock()->getParent(); assert(func);
 
-            Value* i64_val = env.CreateFirstBlockAlloca(builder, env.i64Type());
+            Value* i64_val = env.CreateFirstBlockAlloca(builder.get(), env.i64Type());
             builder.CreateStore(env.i64Const(0), i64_val);
 
             // all the basicblocks
@@ -1901,7 +1901,7 @@ namespace tuplex {
             return SerializableValue(builder.CreateLoad(i64_val), env.i64Const(sizeof(int64_t)), isnull);
         }
 
-        SerializableValue parseF64(LLVMEnvironment& env, llvm::IRBuilder<> &builder, llvm::BasicBlock *bbFailed,
+        SerializableValue parseF64(LLVMEnvironment& env, IRBuilder &builder, llvm::BasicBlock *bbFailed,
                                    llvm::Value *str, llvm::Value *strSize,
                                    llvm::Value *isnull) {
             using namespace llvm;
@@ -1910,7 +1910,7 @@ namespace tuplex {
             auto& ctx = env.getContext();
             auto func = builder.GetInsertBlock()->getParent(); assert(func);
 
-            Value* f64_val = env.CreateFirstBlockAlloca(builder, env.doubleType());
+            Value* f64_val = env.CreateFirstBlockAlloca(builder.get(), env.doubleType());
             builder.CreateStore(env.f64Const(0), f64_val);
 
             // all the basicblocks

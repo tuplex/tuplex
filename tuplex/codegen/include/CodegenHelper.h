@@ -51,6 +51,11 @@ namespace tuplex {
              // copy
              IRBuilder(const IRBuilder& other);
 
+
+             llvm::LLVMContext& getContext() const {
+                 return get().getContext();
+             }
+
              /*!
               * creates a new builder returning a builder for the first block.
               * @return

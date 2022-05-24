@@ -52,7 +52,7 @@ namespace tuplex {
                                                                  bool terminateEarlyOnLimitCode,
                                                                  llvm::Function *processRowFunc) {
             auto& context = env().getContext();
-            auto pip_res = PipelineBuilder::call(builder.get(), processRowFunc, tuple, userData, builder.CreateLoad(rowNumberVar), initIntermediate(builder));
+            auto pip_res = PipelineBuilder::call(builder, processRowFunc, tuple, userData, builder.CreateLoad(rowNumberVar), initIntermediate(builder));
 
             // create if based on resCode to go into exception block
             auto ecCode = builder.CreateZExtOrTrunc(pip_res.resultCode, env().i64Type());

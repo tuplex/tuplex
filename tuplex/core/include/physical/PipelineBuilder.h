@@ -64,8 +64,8 @@ namespace tuplex {
             }
 
             int _loopLevel; // at which loop level things are (used to call endLoop)
-            void beginForLoop(llvm::IRBuilder<>& builder, llvm::Value* numIterations);
-            void endForLoop(llvm::IRBuilder<>& builder);
+            void beginForLoop(IRBuilder& builder, llvm::Value* numIterations);
+            void endForLoop(IRBuilder& builder);
             std::unordered_map<std::string, llvm::Value*> _args;
 
             std::string _exceptionCallbackName; //! optional, indicates whether pipeline should call exception handler (or not). Often, this functionaliy is better placed a level up except for single row executors
@@ -130,7 +130,7 @@ namespace tuplex {
              * @param persist if true, then a copy will be made using C-malloc (not rtmalloc!)
              * @return
              */
-            SerializableValue makeKey(llvm::IRBuilder<>& builder, const SerializableValue& key, bool persist=true);
+            SerializableValue makeKey(IRBuilder& builder, const SerializableValue& key, bool persist=true);
 
             /*!
              * return builder at current stage of pipeline building!
@@ -138,7 +138,7 @@ namespace tuplex {
             llvm::IRBuilder<> builder();
 
 
-            void createInnerJoinBucketLoop(llvm::IRBuilder<>& builder,
+            void createInnerJoinBucketLoop(IRBuilder& builder,
                                            llvm::Value* num_rows_to_join,
                                            llvm::Value* bucketPtrVar,
                                            bool buildRight,
@@ -146,7 +146,7 @@ namespace tuplex {
                                            python::Type resultType,
                                            int probeKeyIndex);
 
-            void createLeftJoinBucketLoop(llvm::IRBuilder<>& builder,
+            void createLeftJoinBucketLoop(IRBuilder& builder,
                                            llvm::Value* num_rows_to_join,
                                            llvm::Value* bucketPtrVar,
                                            bool buildRight,
@@ -157,27 +157,27 @@ namespace tuplex {
 
             static llvm::StructType* resultStructType(llvm::LLVMContext& ctx);
 
-            void assignWriteCallbackReturnValue(llvm::IRBuilder<> &builder, int64_t operatorID,
+            void assignWriteCallbackReturnValue(IRBuilder &builder, int64_t operatorID,
                                                 llvm::CallInst *callbackECVal);
         protected:
             llvm::StructType* resultStructType() const {
                 return resultStructType(_env->getContext());
             }
-            inline void createRet(llvm::IRBuilder<>& builder, llvm::Value* ecCode, llvm::Value* opID, llvm::Value* numRows) {
+            inline void createRet(IRBuilder& builder, llvm::Value* ecCode, llvm::Value* opID, llvm::Value* numRows) {
                 // cast to i32
                 auto rc = builder.CreateZExtOrTrunc(ecCode, env().i32Type());
                 auto id = builder.CreateZExtOrTrunc(opID, env().i32Type());
                 auto nrows = builder.CreateZExtOrTrunc(numRows, env().i32Type());
 
                 // store into ret!
-                auto idx_rc = env().CreateStructGEP(builder, _args["result"], 0);
-                auto idx_id = env().CreateStructGEP(builder, _args["result"], 1);
-                auto idx_nrows = env().CreateStructGEP(builder, _args["result"], 2);
+                auto idx_rc = env().CreateStructGEP(builder.get(), _args["result"], 0);
+                auto idx_id = env().CreateStructGEP(builder.get(), _args["result"], 1);
+                auto idx_nrows = env().CreateStructGEP(builder.get(), _args["result"], 2);
 
                 builder.CreateStore(rc, idx_rc);
                 builder.CreateStore(id, idx_id);
                 builder.CreateStore(nrows, idx_nrows);
-                builder.CreateRetVoid();
+                builder.get().CreateRetVoid();
             }
 
             // if/else constructs for better code generation => similar to the idea in https://github.com/cmu-db/peloton/blob/1de89798f271804f8be38a71219a20e761a1b4b6/src/include/codegen/lang/if.h
@@ -434,7 +434,7 @@ namespace tuplex {
              * @return return value of this function
              */
             static PipelineResult
-            call(llvm::IRBuilder<> &builder, llvm::Function *func, const FlattenedTuple &ft, llvm::Value *userData,
+            call(IRBuilder &builder, llvm::Function *func, const FlattenedTuple &ft, llvm::Value *userData,
                  llvm::Value *rowNumber, llvm::Value* intermediate=nullptr);
 
 

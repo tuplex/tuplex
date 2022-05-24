@@ -663,8 +663,8 @@ namespace tuplex {
 
             BasicBlock *bbISBody = BasicBlock::Create(env->getContext(), "", initStageFunc);
             BasicBlock *bbRSBody = BasicBlock::Create(env->getContext(), "", releaseStageFunc);
-            IRBuilder<> isBuilder(bbISBody);
-            IRBuilder<> rsBuilder(bbRSBody);
+            IRBuilder isBuilder(bbISBody);
+            IRBuilder rsBuilder(bbRSBody);
             auto isArgs = codegen::mapLLVMFunctionArgs(initStageFunc, {"num_args", "hashmaps", "null_buckets"});
 
             // step 1. build pipeline, i.e. how to process data

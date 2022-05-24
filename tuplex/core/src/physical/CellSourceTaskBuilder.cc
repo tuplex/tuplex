@@ -43,7 +43,7 @@ namespace tuplex {
             builder.CreateStore(args["rowNumber"], outputRowNumberVar);
 
             // get FlattenedTuple from deserializing all things + perform value conversions/type checks...
-            auto ft = cellsToTuple(builder.get(), cellsPtr, sizesPtr);
+            auto ft = cellsToTuple(builder, cellsPtr, sizesPtr);
 
             // if pipeline is set, call it!
             if(pipeline()) {
@@ -51,13 +51,13 @@ namespace tuplex {
                 if(!pipFunc)
                     throw std::runtime_error("error in pipeline function");
 
-                auto res = PipelineBuilder::call(builder.get(), pipFunc, ft, userData, builder.CreateLoad(outputRowNumberVar), initIntermediate(builder));
+                auto res = PipelineBuilder::call(builder, pipFunc, ft, userData, builder.CreateLoad(outputRowNumberVar), initIntermediate(builder));
                 auto ecCode = builder.CreateZExtOrTrunc(res.resultCode, env().i64Type());
                 auto ecOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env().i64Type());
                 auto numRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env().i64Type());
 
                 if(terminateEarlyOnLimitCode)
-                    generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
+                    generateTerminateEarlyOnCode(builder.get(), ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
 
                 // // -- debug print row numbers
                 // env().debugPrint(builder, "numRowsCreatedByPipeline", numRowsCreated);
@@ -98,7 +98,7 @@ namespace tuplex {
 
                     // if intermediate callback desired, perform!
                     if(_intermediateType != python::Type::UNKNOWN && !_intermediateCallbackName.empty()) {
-                        writeIntermediate(builder.get(), userData, _intermediateCallbackName);
+                        writeIntermediate(builder, userData, _intermediateCallbackName);
                     }
 
                     // propagate result to callee, because can be used to update counters
@@ -116,7 +116,7 @@ namespace tuplex {
             return func;
         }
 
-        FlattenedTuple CellSourceTaskBuilder::cellsToTuple(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
+        FlattenedTuple CellSourceTaskBuilder::cellsToTuple(IRBuilder& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
 
             using namespace llvm;
 
@@ -162,25 +162,25 @@ namespace tuplex {
                         // fill in
                         auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
                         auto size = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
-                        ft.setElement(builder, rowTypePos, val, size, isnull);
+                        ft.setElement(builder.get(), rowTypePos, val, size, isnull);
                     } else if(python::Type::BOOLEAN == t) {
                         // conversion code here
                         auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
                         auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
                         auto val = parseBoolean(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
-                        ft.setElement(builder, rowTypePos, val.val, val.size, isnull);
+                        ft.setElement(builder.get(), rowTypePos, val.val, val.size, isnull);
                     } else if(python::Type::I64 == t) {
                         // conversion code here
                         auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
                         auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
                         auto val = parseI64(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
-                        ft.setElement(builder, rowTypePos, val.val, val.size, isnull);
+                        ft.setElement(builder.get(), rowTypePos, val.val, val.size, isnull);
                     } else if(python::Type::F64 == t) {
                         // conversion code here
                         auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
                         auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
                         auto val = parseF64(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
-                        ft.setElement(builder, rowTypePos, val.val, val.size, isnull);
+                        ft.setElement(builder.get(), rowTypePos, val.val, val.size, isnull);
                     } else if(python::Type::NULLVALUE == t) {
                         // perform null check only, & set null element depending on result
                         auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
@@ -190,7 +190,7 @@ namespace tuplex {
                         BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(i) + "_value_check_passed", builder.GetInsertBlock()->getParent());
                         builder.CreateCondBr(isnull, bbNullCheckPassed, valueErrorBlock(builder));
                         builder.SetInsertPoint(bbNullCheckPassed);
-                        ft.setElement(builder, rowTypePos, nullptr, nullptr, env().i1Const(true)); // set NULL (should be ignored)
+                        ft.setElement(builder.get(), rowTypePos, nullptr, nullptr, env().i1Const(true)); // set NULL (should be ignored)
                     } else {
                         throw std::runtime_error("unsupported type " + t.desc() + " in CSV Parser gen encountered (CellSourceTaskBuilder)");
                     }
@@ -213,7 +213,7 @@ namespace tuplex {
                 IRBuilder b(_valueErrorBlock);
 
                 // could use here value error as well. However, for internal resolve use badparse string input!
-                b.CreateRet(env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
+                b.get().CreateRet(env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
             }
 
             return _valueErrorBlock;
@@ -222,10 +222,11 @@ namespace tuplex {
         llvm::BasicBlock* CellSourceTaskBuilder::nullErrorBlock(IRBuilder &builder) {
             using namespace llvm;
             if(!_nullErrorBlock) {
-                _nullErrorBlock = BasicBlock::Create(env().getContext(), "null_error", builder.GetInsertBlock()->getParent());
-                IRBuilder<> b(_nullErrorBlock);
-
-                b.CreateRet(env().i64Const(ecToI64(ExceptionCode::NULLERROR))); // internal error!
+                _nullErrorBlock = BasicBlock::Create(env().getContext(),
+                                               "null_error",
+                                                     builder.GetInsertBlock()->getParent());
+                IRBuilder b(_nullErrorBlock);
+                b.get().CreateRet(env().i64Const(ecToI64(ExceptionCode::NULLERROR))); // internal error!
             }
             return _nullErrorBlock;
         }

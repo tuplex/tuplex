@@ -153,7 +153,7 @@ namespace tuplex {
                 auto lineEnd = builder.CreateLoad(builder.CreateGEP(parseResult, {_env->i32Const(0), _env->i32Const(2)}));
                 //env().debugCellPrint(builder, lineStart, lineEnd);
 
-                auto res = PipelineBuilder::call(builder.get(), processRowFunc, ft,
+                auto res = PipelineBuilder::call(builder, processRowFunc, ft,
                                                  userData, builder.CreateLoad(outputRowNumberVar),
                                                  initIntermediate(builder));
 

@@ -1874,13 +1874,13 @@ namespace tuplex {
 
 
         // parse functions for individual cells
-        extern  SerializableValue parseBoolean(LLVMEnvironment& env, llvm::IRBuilder<> &builder, llvm::BasicBlock *bbFailed,
+        extern  SerializableValue parseBoolean(LLVMEnvironment& env, IRBuilder &builder, llvm::BasicBlock *bbFailed,
                                                llvm::Value *str, llvm::Value *strSize,
                                                llvm::Value *isnull);
-        extern SerializableValue parseF64(LLVMEnvironment& env, llvm::IRBuilder<> &builder, llvm::BasicBlock *bbFailed,
+        extern SerializableValue parseF64(LLVMEnvironment& env, IRBuilder &builder, llvm::BasicBlock *bbFailed,
                                           llvm::Value *str, llvm::Value *strSize,
                                           llvm::Value *isnull);
-        extern SerializableValue parseI64(LLVMEnvironment& env, llvm::IRBuilder<> &builder, llvm::BasicBlock *bbFailed,
+        extern SerializableValue parseI64(LLVMEnvironment& env, IRBuilder &builder, llvm::BasicBlock *bbFailed,
                                           llvm::Value *str, llvm::Value *strSize,
                                           llvm::Value *isnull);
 

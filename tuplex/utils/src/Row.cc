@@ -220,9 +220,43 @@ namespace tuplex {
                 return false;
         }
 
-
         return true;
     }
+    bool operator == (const Row& lhs, const Row& rhs) {
+        if(lhs._values.size() != rhs._values.size())
+            return lhs._values.size() < rhs._values.size();
+
+        // same size
+        auto num_elements = lhs._values.size();
+
+        // element wise comparison (types!)
+        for(unsigned i = 0; i < num_elements; ++i) {
+            // compare values, if not equal then
+            if(lhs._values[i] != rhs._values[i]) {
+                // check whether lhs < rhs
+                // types differ?
+                // sort after type hash!
+                if(lhs._values[i].getType() != rhs._values[i].getType())
+                    return lhs._values[i].getType().hash() < rhs._values[i].getType().hash();
+
+                auto r = rhs._values[i];
+                auto l = lhs._values[i];
+                // same type, so check values
+                auto t = lhs._values[i].getType();
+                if(t == python::Type::BOOLEAN || t == python::Type::I64) {
+                    return l.getInt() < r.getInt();
+                } else if(t == python::Type::F64) {
+                    return l.getDouble() < r.getDouble();
+                } else {
+                    auto r_str = r.toPythonString();
+                    auto l_str = l.toPythonString();
+                    return lexicographical_compare(l_str.begin(), l_str.end(), r_str.begin(), r_str.end());
+                }
+            }
+        }
+        return true;
+    }
+
 
 
     Row Row::upcastedRow(const python::Type &targetType) const {

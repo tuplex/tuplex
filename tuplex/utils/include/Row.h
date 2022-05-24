@@ -184,6 +184,7 @@ namespace tuplex {
 
     // used for tests
     extern bool operator == (const Row& lhs, const Row& rhs);
+    extern bool operator < (const Row& lhs, const Row& rhs);
 
     struct ExceptionSample {
         std::string first_row_traceback;

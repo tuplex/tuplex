@@ -1740,7 +1740,6 @@ namespace tuplex {
             logger().info("except spill files done.");
         }
 
-
         return WORKER_OK;
     }
 

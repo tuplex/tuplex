@@ -34,7 +34,7 @@
 #warning "need S3 Test bucket to run these tests"
 #endif
 
-
+#include <CSVUtils.h>
 #include <procinfo.h>
 #include <FileUtils.h>
 
@@ -1008,6 +1008,38 @@ TEST(BasicInvocation, FSWrite) {
     file->close();
 }
 
+TEST(BasicInvocation, VerifyOutput) {
+    using namespace tuplex;
+
+    std::string root_path = "tests/BasicInvocationTestAllFlightFiles";
+    std::string general_path = root_path + "/general_processing/flights_on_time_performance_2003_01.csv.csv";
+    std::string hyper_path = root_path + "/hyper_processing/flights_on_time_performance_2003_01.csv.csv";
+
+    // load both files as rows and check length
+    auto general_data = fileToString(general_path);
+    ASSERT_TRUE(!general_data.empty());
+    auto general_rows = parseRows(general_data.c_str(), general_data.c_str() + general_data.length(), {""});
+
+    auto hyper_data = fileToString(hyper_path);
+    ASSERT_TRUE(!hyper_data.empty());
+    auto hyper_rows = parseRows(hyper_data.c_str(), hyper_data.c_str() + hyper_data.length(), {""});
+    std::cout<<"file has "<<general_rows.size()<<" general rows, "<<hyper_rows.size()<<" hyper rows"<<std::endl;
+
+    EXPECT_EQ(general_rows.size(), hyper_rows.size());
+
+    if(general_rows.size() == hyper_rows.size()) {
+        // compare individual rows (after sorting them!)
+        std::sort(general_rows.begin(), general_rows.end());
+        std::sort(hyper_rows.begin(), hyper_rows.end());
+
+        // go through rows and compare them one-by-one
+        for(unsigned i = 0; i < general_rows.size(); ++i) {
+            EXPECT_EQ(general_rows[i], hyper_rows[i]);
+        }
+    }
+}
+
+
 TEST(BasicInvocation, TestAllFlightFiles) {
     using namespace std;
     using namespace tuplex;
@@ -1078,7 +1110,7 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 
     // // test: 2013_03 fails -> fixed
     // 2010_01 fails
-    //paths = {URI("file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2018_01.csv")};
+    paths = {URI("file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_01.csv")};
 
     std::reverse(paths.begin(), paths.end());
 

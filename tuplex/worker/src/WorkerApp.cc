@@ -1701,9 +1701,45 @@ namespace tuplex {
         }
 
         // same story with exception spill files. Load them first to the temp buffer, and then resolve...
-        for(auto info : exceptFiles) {
-            throw std::runtime_error("need to implement this: " + std::string(__FILE__) + ":" + std::to_string(__LINE__));
+        if(!exceptFiles.empty()) {
+            logger().info("Processing " + pluralize(exceptFiles.size(), "spilled except file"));
+            for(const auto& part_info : exceptFiles) {
+
+                // loading into buffer & resolving it.
+                logger().debug("opening except part file");
+                auto part_file = VirtualFileSystem::open_file(part_info.path, VirtualFileMode::VFS_READ);
+
+                if(!part_file) {
+                    auto err_msg = "part file could not be found under " + part_info.path + ", output corrupted.";
+                    logger().error(err_msg);
+                    throw std::runtime_error(err_msg);
+                }
+
+                // read contents in from spill file...
+                if(part_file->size() != part_info.file_size) {
+                    logger().warn("part_file: " + std::to_string(part_file->size()) + " part_info: " + std::to_string(part_info.file_size));
+                }
+                // assert(part_file->size() == part_info.spill_info.file_size);
+                assert(part_file->size() >= 2 * sizeof(int64_t));
+
+                part_file->seek(2 * sizeof(int64_t)); // skip first two bytes representing bytes/rows
+                size_t part_buffer_size = part_info.file_size - 2 * sizeof(int64_t);
+                Buffer part_buffer;
+                part_buffer.provideSpace(part_buffer_size);
+                size_t bytes_read = 0;
+                part_file->readOnly(part_buffer.ptr(), part_buffer_size, &bytes_read);
+                logger().debug("read from parts file " + sizeToMemString(bytes_read));
+                part_file->close();
+
+                // process now...
+                auto rc = resolveBuffer(threadNo, part_buffer, part_info.num_rows, stage, syms);
+                if(rc != WORKER_OK)
+                    return rc;
+
+            }
+            logger().info("except spill files done.");
         }
+
 
         return WORKER_OK;
     }

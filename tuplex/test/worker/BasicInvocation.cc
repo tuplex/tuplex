@@ -1078,8 +1078,9 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 
     // // test: 2013_03 fails -> fixed
     // 2010_01 fails
-    paths = {URI("file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2018_01.csv")};
+    //paths = {URI("file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2018_01.csv")};
 
+    std::reverse(paths.begin(), paths.end());
 
     for(const auto& path : paths) {
         Timer timer;

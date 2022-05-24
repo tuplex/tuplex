@@ -74,8 +74,7 @@ namespace tuplex {
             // Setup SUCCESS Block:
             // success loop block, return number of (total) bytes written to N output partitions
             builder.SetInsertPoint(_taskSuccessBlock);
-            builder.CreateRet(getVariable(builder, "outputTotalBytesWritten"));
-
+            builder.get().CreateRet(getVariable(builder, "outputTotalBytesWritten"));
 
             _lastBlock = _entryBlock;
             return true;
@@ -89,7 +88,7 @@ namespace tuplex {
             _exceptionBlock= BasicBlock::Create(context, "exception", _func);
 
             // generate actual exception block
-            IRBuilder<> builder(_exceptionBlock);
+            IRBuilder builder(_exceptionBlock);
 
             // EH handling should be implemented here...
             if(_handler) { // only add call to handler if a valid pointer is given
@@ -111,7 +110,7 @@ namespace tuplex {
                 // the current process needs to be inspected and the address of the function be inserted.
                 auto eh_func_addr = _env->i64Const(reinterpret_cast<int64_t>(_handler));
 
-                auto eh_func = builder.CreateIntToPtr(eh_func_addr, eh_func_ptr_type, "exceptionHandler");
+                auto eh_func = builder.get().CreateIntToPtr(eh_func_addr, eh_func_ptr_type, "exceptionHandler");
 
 
                 // parameters for the call
@@ -224,7 +223,7 @@ namespace tuplex {
                 // Following instructions are inserted into serialization block
                 auto remainingCapacity = capacity;//builder.CreateSub(capacity, _env->i64Const(8));
 
-                llvm::Value *serializedRowSize = ft.serializationCode(builder, output, remainingCapacity, insufficientCapacityBB);
+                llvm::Value *serializedRowSize = ft.serializationCode(builder.get(), output, remainingCapacity, insufficientCapacityBB);
 
                 // get regular handler for serialization
                 BasicBlock *serializeToMemoryBB = builder.GetInsertBlock();
@@ -272,7 +271,7 @@ namespace tuplex {
                 // the current process needs to be inspected and the address of the function be inserted.
                 auto func_addr = _env->i64Const(reinterpret_cast<int64_t>(requestOutputMemory));
 
-                auto func = builder.CreateIntToPtr(func_addr, func_ptr_type, "requestOutputMemory");
+                auto func = builder.get().CreateIntToPtr(func_addr, func_ptr_type, "requestOutputMemory");
 
 
                 // parameters for the call

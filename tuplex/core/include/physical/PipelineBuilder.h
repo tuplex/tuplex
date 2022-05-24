@@ -88,14 +88,14 @@ namespace tuplex {
             // helper functions to use variables via alloc/store in code
             std::map<std::string, llvm::Value *> _variables;
 
-            void addVariable(llvm::IRBuilder<> &builder, const std::string name, llvm::Type *type,
+            void addVariable(IRBuilder &builder, const std::string name, llvm::Type *type,
                              llvm::Value *initialValue = nullptr);
 
-            llvm::Value *getVariable(llvm::IRBuilder<> &builder, const std::string name);
+            llvm::Value *getVariable(IRBuilder &builder, const std::string name);
 
-            llvm::Value *getPointerToVariable(llvm::IRBuilder<> &builder, const std::string name);
+            llvm::Value *getPointerToVariable(IRBuilder &builder, const std::string name);
 
-            void assignToVariable(llvm::IRBuilder<> &builder, const std::string name, llvm::Value *newValue);
+            void assignToVariable(IRBuilder &builder, const std::string name, llvm::Value *newValue);
 
 //            inline llvm::Value *
 //            vec3_i64(llvm::IRBuilder<> &builder, llvm::Value *a0, llvm::Value *a1, llvm::Value *a2) {

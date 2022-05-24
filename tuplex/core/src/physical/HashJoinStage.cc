@@ -257,7 +257,7 @@ namespace tuplex {
     }
 
     void HashJoinStage::writeJoinResult(std::shared_ptr<codegen::LLVMEnvironment> &env,
-                                        IRBuilder &builder, llvm::Value *userData, llvm::Value *bucketPtr,
+                                        codegen::IRBuilder &builder, llvm::Value *userData, llvm::Value *bucketPtr,
                                         const python::Type &buildType, int buildKeyIndex,
                                         const codegen::FlattenedTuple &ftProbe, int probeKeyIndex) {
         using namespace llvm;
@@ -278,13 +278,13 @@ namespace tuplex {
         bucketPtr = builder.CreateGEP(bucketPtr, env->i64Const(sizeof(int64_t)));
 
         // TODO: put bucketPtr Var in constructor
-        auto bucketPtrVar = env->CreateFirstBlockAlloca(builder,
+        auto bucketPtrVar = env->CreateFirstBlockAlloca(builder.get(),
                                                         env->i8ptrType()); //builder.CreateAlloca(env->i8ptrType(), 0, nullptr, "bucketPtrVar");
         builder.CreateStore(bucketPtr, bucketPtrVar);
 
         // loop over numRows
         // TODO: put counter var in constructor block!
-        auto loopVar = env->CreateFirstBlockAlloca(builder,
+        auto loopVar = env->CreateFirstBlockAlloca(builder.get(),
                                                    env->i64Type()); //builder.CreateAlloca(env->i64Type(), 0, nullptr, "iBucketRowVar");
         builder.CreateStore(env->i64Const(0), loopVar);
 
@@ -311,7 +311,7 @@ namespace tuplex {
         // Now: deserialize probe row and build row
         codegen::FlattenedTuple ftBuild(env.get());
         ftBuild.init(buildType);
-        ftBuild.deserializationCode(builder, bucketPtr);
+        ftBuild.deserializationCode(builder.get(), bucketPtr);
 
         // print out probe key
         // env->debugPrint(builder, "build key column: ", ftBuild.get(buildKeyIndex));
@@ -344,7 +344,7 @@ namespace tuplex {
             }
         }
 
-        auto buf = ftResult.serializeToMemory(builder);
+        auto buf = ftResult.serializeToMemory(builder.get());
 
         // call writeRow function
         FunctionType *writeCallback_type = FunctionType::get(codegen::ctypeToLLVM<int64_t>(context),
@@ -460,7 +460,7 @@ namespace tuplex {
             }
         }
 
-        auto buf = ftResult.serializeToMemory(builder);
+        auto buf = ftResult.serializeToMemory(builder.get());
 
         // call writeRow function
         FunctionType *writeCallback_type = FunctionType::get(codegen::ctypeToLLVM<int64_t>(context),

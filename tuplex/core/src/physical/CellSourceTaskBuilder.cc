@@ -43,7 +43,7 @@ namespace tuplex {
             builder.CreateStore(args["rowNumber"], outputRowNumberVar);
 
             // get FlattenedTuple from deserializing all things + perform value conversions/type checks...
-            auto ft = cellsToTuple(builder, cellsPtr, sizesPtr);
+            auto ft = cellsToTuple(builder.get(), cellsPtr, sizesPtr);
 
             // if pipeline is set, call it!
             if(pipeline()) {
@@ -51,7 +51,7 @@ namespace tuplex {
                 if(!pipFunc)
                     throw std::runtime_error("error in pipeline function");
 
-                auto res = PipelineBuilder::call(builder, pipFunc, ft, userData, builder.CreateLoad(outputRowNumberVar), initIntermediate(builder));
+                auto res = PipelineBuilder::call(builder.get(), pipFunc, ft, userData, builder.CreateLoad(outputRowNumberVar), initIntermediate(builder));
                 auto ecCode = builder.CreateZExtOrTrunc(res.resultCode, env().i64Type());
                 auto ecOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env().i64Type());
                 auto numRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env().i64Type());
@@ -75,7 +75,7 @@ namespace tuplex {
                                                                                "pipeline_ok",
                                                                                builder.GetInsertBlock()->getParent());
                     // add here exception block for pipeline errors, serialize tuple etc...
-                    auto serialized_row = ft.serializeToMemory(builder);
+                    auto serialized_row = ft.serializeToMemory(builder.get());
                     auto outputRowNumber = builder.CreateLoad(outputRowNumberVar);
                     llvm::BasicBlock *curBlock = builder.GetInsertBlock();
                     auto bbException = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber,
@@ -93,16 +93,16 @@ namespace tuplex {
                         writeIntermediate(builder, userData, _intermediateCallbackName);
                     }
 
-                    builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                    builder.get().CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
                 } else {
 
                     // if intermediate callback desired, perform!
                     if(_intermediateType != python::Type::UNKNOWN && !_intermediateCallbackName.empty()) {
-                        writeIntermediate(builder, userData, _intermediateCallbackName);
+                        writeIntermediate(builder.get(), userData, _intermediateCallbackName);
                     }
 
                     // propagate result to callee, because can be used to update counters
-                    builder.CreateRet(builder.CreateZExtOrTrunc(ecCode, env().i64Type()));
+                    builder.get().CreateRet(builder.CreateZExtOrTrunc(ecCode, env().i64Type()));
                 }
             } else {
                 // if intermediate callback desired, perform!
@@ -111,7 +111,7 @@ namespace tuplex {
                 }
 
                 // create success ret
-                builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                builder.get().CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
             }
             return func;
         }
@@ -203,14 +203,14 @@ namespace tuplex {
         }
 
 
-        llvm::BasicBlock* CellSourceTaskBuilder::valueErrorBlock(llvm::IRBuilder<> &builder) {
+        llvm::BasicBlock* CellSourceTaskBuilder::valueErrorBlock(IRBuilder &builder) {
             using namespace llvm;
 
             // create value error block lazily
             if(!_valueErrorBlock) {
                 _valueErrorBlock = BasicBlock::Create(env().getContext(), "value_error", builder.GetInsertBlock()->getParent());
 
-                IRBuilder<> b(_valueErrorBlock);
+                IRBuilder b(_valueErrorBlock);
 
                 // could use here value error as well. However, for internal resolve use badparse string input!
                 b.CreateRet(env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
@@ -219,7 +219,7 @@ namespace tuplex {
             return _valueErrorBlock;
         }
 
-        llvm::BasicBlock* CellSourceTaskBuilder::nullErrorBlock(llvm::IRBuilder<> &builder) {
+        llvm::BasicBlock* CellSourceTaskBuilder::nullErrorBlock(IRBuilder &builder) {
             using namespace llvm;
             if(!_nullErrorBlock) {
                 _nullErrorBlock = BasicBlock::Create(env().getContext(), "null_error", builder.GetInsertBlock()->getParent());

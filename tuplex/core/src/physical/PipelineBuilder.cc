@@ -75,7 +75,7 @@ namespace tuplex {
             return ft;
         }
 
-        void PipelineBuilder::addVariable(llvm::IRBuilder<> &builder, const std::string name, llvm::Type *type,
+        void PipelineBuilder::addVariable(IRBuilder &builder, const std::string name, llvm::Type *type,
                                                    llvm::Value *initialValue) {
             _variables[name] = builder.CreateAlloca(type, 0, nullptr, name);
 
@@ -83,17 +83,17 @@ namespace tuplex {
                 builder.CreateStore(initialValue, _variables[name]);
         }
 
-        llvm::Value* PipelineBuilder::getVariable(llvm::IRBuilder<> &builder, const std::string name) {
+        llvm::Value* PipelineBuilder::getVariable(IRBuilder &builder, const std::string name) {
             assert(_variables.find(name) != _variables.end());
             return builder.CreateLoad(_variables[name]);
         }
 
-        llvm::Value* PipelineBuilder::getPointerToVariable(llvm::IRBuilder<> &builder, const std::string name) {
+        llvm::Value* PipelineBuilder::getPointerToVariable(IRBuilder &builder, const std::string name) {
             assert(_variables.find(name) != _variables.end());
             return _variables[name];
         }
 
-        void PipelineBuilder::assignToVariable(llvm::IRBuilder<> &builder, const std::string name,
+        void PipelineBuilder::assignToVariable(IRBuilder &builder, const std::string name,
                                                         llvm::Value *newValue) {
             assert(_variables.find(name) != _variables.end());
             builder.CreateStore(newValue, _variables[name]);
@@ -154,7 +154,7 @@ namespace tuplex {
             _entryBlock = _lastBlock = BasicBlock::Create(context, "entry", _func);
 
             // initialize variables
-            IRBuilder<> builder(_constructorBlock);
+            IRBuilder builder(_constructorBlock);
             addVariable(builder, "exceptionCode", env().i64Type(),env().i64Const(0));
             addVariable(builder, "exceptionOperatorID", env().i64Type());
             addVariable(builder, "numOutputRows", env().i64Type());
@@ -163,11 +163,11 @@ namespace tuplex {
             assignToVariable(builder, "numOutputRows", env().i64Const(0));
 
             // load the tuple1
-            _lastRowResult = _lastRowInput = FlattenedTuple::fromLLVMStructVal(&env(), builder, argRow, ft.getTupleType());
+            _lastRowResult = _lastRowInput = FlattenedTuple::fromLLVMStructVal(&env(), builder.get(), argRow, ft.getTupleType());
 
             // store in var
-            _lastTupleResultVar = _lastRowResult.alloc(builder);
-            _lastRowResult.storeTo(builder, _lastTupleResultVar);
+            _lastTupleResultVar = _lastRowResult.alloc(builder.get());
+            _lastRowResult.storeTo(builder.get(), _lastTupleResultVar);
 
             // assign argInput
             _argInputRow = _lastRowResult;
@@ -185,7 +185,7 @@ namespace tuplex {
             assert(!_exceptionBlocks.empty());
 
             // current exception block
-            IRBuilder<> builder(_exceptionBlocks.back());
+            IRBuilder builder(_exceptionBlocks.back());
 
 
             // logger.debug("name of last exception block: " + _exceptionBlocks.back()->getName().str());
@@ -197,7 +197,7 @@ namespace tuplex {
             // compare last exception code
             Value* lastExceptionCode = getVariable(builder, "exceptionCode");
             Value* lastOperatorID = getVariable(builder, "exceptionOperatorID");
-            Value* ignoreCond = _env->matchExceptionHierarchy(builder, lastExceptionCode, ec);
+            Value* ignoreCond = _env->matchExceptionHierarchy(builder.get(), lastExceptionCode, ec);
 
             // use same approach as when adding a filter operation:
             // i.e. a keep block and then just exit (without writing the row)
@@ -225,10 +225,10 @@ namespace tuplex {
             BasicBlock* lastNormalBlock = _lastBlock; // last block might be modified by filter & Co.
 
             // create new tupleVal
-            IRBuilder<> variableBuilder(_constructorBlock);
+            IRBuilder variableBuilder(_constructorBlock);
 
             // current exception block
-            IRBuilder<> builder(_exceptionBlocks.back());
+            IRBuilder builder(_exceptionBlocks.back());
 
             // remove block from the ones to be connected with the end!
             _exceptionBlocks.erase(_exceptionBlocks.end() - 1);
@@ -239,7 +239,7 @@ namespace tuplex {
             // old:
             // Value* resolveCond = builder.CreateICmpEQ(lastExceptionCode, env().i64Const(ecToI32(ec)));
             // new:
-            Value* resolveCond = _env->matchExceptionHierarchy(builder, lastExceptionCode, ec);
+            Value* resolveCond = _env->matchExceptionHierarchy(builder.get(), lastExceptionCode, ec);
 
             // create two blocks:
             // 1) block where to resolve exception

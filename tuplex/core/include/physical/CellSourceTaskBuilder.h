@@ -35,13 +35,13 @@ namespace tuplex {
 
             llvm::BasicBlock* _valueErrorBlock;
             llvm::BasicBlock* _nullErrorBlock;
-            llvm::BasicBlock* valueErrorBlock(llvm::IRBuilder<>& builder); // create a value error(conversion failure block lazily)
-            llvm::BasicBlock* nullErrorBlock(llvm::IRBuilder<>& builder); // create an (internal) nullerror (i.e. a non option type was expected, but actually there was a null! Only with active null value optimization...)
+            llvm::BasicBlock* valueErrorBlock(IRBuilder& builder); // create a value error(conversion failure block lazily)
+            llvm::BasicBlock* nullErrorBlock(IRBuilder& builder); // create an (internal) nullerror (i.e. a non option type was expected, but actually there was a null! Only with active null value optimization...)
 
-            inline llvm::Value* nullCheck(llvm::IRBuilder<>& builder, llvm::Value* ptr) {
+            inline llvm::Value* nullCheck(IRBuilder& builder, llvm::Value* ptr) {
                 assert(ptr);
                 // Note: maybe put this into separate function & emit call? ==> might be easier for llvm to optimize!
-                return env().compareToNullValues(builder, ptr, _nullValues, true); // NOTE: ptr must be 0 terminated!
+                return env().compareToNullValues(builder.get(), ptr, _nullValues, true); // NOTE: ptr must be 0 terminated!
             }
 
         public:

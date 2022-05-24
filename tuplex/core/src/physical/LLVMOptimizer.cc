@@ -91,7 +91,7 @@ namespace tuplex {
 
     void optimizePipelineI(llvm::Module& mod) {
         // Step 1: optimize functions
-        auto fpm = llvm::make_unique<legacy::FunctionPassManager>(&mod);
+        auto fpm = std::make_unique<legacy::FunctionPassManager>(&mod);
         assert(fpm.get());
 
         generateFunctionPassesI(*fpm.get());

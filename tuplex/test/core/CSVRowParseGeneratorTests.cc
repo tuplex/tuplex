@@ -74,7 +74,7 @@ protected:
         auto func = Function::Create(FT, Function::ExternalLinkage, "getColumn", env->getModule().get());
 
         BasicBlock* bbBody = BasicBlock::Create(ctx, "body",func);
-        IRBuilder builder(bbBody);
+        codegen::IRBuilder builder(bbBody);
 
         auto argMap = tuplex::codegen::mapLLVMFunctionArgs(func, {"result", "column"});
 
@@ -100,13 +100,11 @@ protected:
 
                 auto d = builder.CreateAlloca(env->doubleType());
                 builder.CreateStore(dummy, d);
-                dummy = builder.CreateLoad(builder.CreateBitOrPointerCast(d, env->i64ptrType()));
+                dummy = builder.CreateLoad(builder.get().CreateBitOrPointerCast(d, env->i64ptrType()));
             }
 
             if(dummy->getType()->isIntegerTy())
-                dummy = builder.CreateIntToPtr(dummy, env->i8ptrType());
-
-
+                dummy = builder.get().CreateIntToPtr(dummy, env->i8ptrType());
 
             builder.CreateStore(dummy, builder.CreateGEP(arr, {env->i32Const(0), env->i32Const(i)}));
         }
@@ -126,7 +124,7 @@ protected:
 //        }
 
 
-        builder.CreateRet(val);
+        builder.get().CreateRet(val);
     }
 
     // add helper function to get results back

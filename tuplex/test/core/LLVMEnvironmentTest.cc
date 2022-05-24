@@ -39,18 +39,18 @@ str_test_func_f compileNullValueComparisonFunction(tuplex::JITCompiler& jit, con
 #else
     Function* func = cast<Function>(env->getModule()->getOrInsertFunction(name, FT).getCallee());
 #endif
-    name = func->getName();
+    name = func->getName().str();
 
     auto args = mapLLVMFunctionArgs(func, vector<string>{"str"});
 
     BasicBlock* bbEntry = BasicBlock::Create(env->getContext(), "entry", func);
 
-    IRBuilder<> builder(bbEntry);
+    tuplex::codegen::IRBuilder builder(bbEntry);
 
     // execute compare code
-    auto resVal = env->compareToNullValues(builder, args["str"], null_values);
+    auto resVal = env->compareToNullValues(builder.get(), args["str"], null_values);
 
-    builder.CreateRet(builder.CreateZExt(resVal, env->i32Type()));
+    builder.get().CreateRet(builder.CreateZExt(resVal, env->i32Type()));
 
     // compile func
     auto irCode = env->getIR();
@@ -128,13 +128,13 @@ bitmap_test_func_f compileBitmapTestFunction(tuplex::JITCompiler& jit) {
 #else
     Function* func = cast<Function>(env->getModule()->getOrInsertFunction(name, FT).getCallee());
 #endif
-    name = func->getName();
+    name = func->getName().str();
 
     auto args = mapLLVMFunctionArgs(func, vector<string>{"isnull", "pos"});
 
     BasicBlock* bbEntry = BasicBlock::Create(env->getContext(), "entry", func);
 
-    IRBuilder<> builder(bbEntry);
+    tuplex::codegen::IRBuilder builder(bbEntry);
 
     // isnull << pos is the result
     // does that work for pos > 32? doubt it...
@@ -142,7 +142,7 @@ bitmap_test_func_f compileBitmapTestFunction(tuplex::JITCompiler& jit) {
             builder.CreateZExt(args["isnull"], env->i64Type()),
             args["pos"]);
 
-    builder.CreateRet(resVal);
+    builder.get().CreateRet(resVal);
 
     // compile func
     auto irCode = env->getIR();
@@ -352,12 +352,12 @@ TEST(LLVMENV, TupleStructs) {
 
     // codegen
     BasicBlock* bbEntry = BasicBlock::Create(ctx, "entry", func);
-    IRBuilder<> builder(bbEntry);
+    tuplex::codegen::IRBuilder builder(bbEntry);
 
-    auto val = env->getTupleElement(builder, argTupleType, argMap["inRow"], 0);
-    env->setTupleElement(builder, retTupleType, argMap["outRow"], 1, SerializableValue(env->f64Const(3.141), nullptr, nullptr));
+    auto val = env->getTupleElement(builder.get(), argTupleType, argMap["inRow"], 0);
+    env->setTupleElement(builder.get(), retTupleType, argMap["outRow"], 1, SerializableValue(env->f64Const(3.141), nullptr, nullptr));
 
-    builder.CreateRet(env->i64Const(0));
+    builder.get().CreateRet(env->i64Const(0));
 
     cout<<"\n"<<env->getIR()<<endl;
 
@@ -403,20 +403,20 @@ TEST(LLVMENV, SingleElementStructTypes) {
 
     // codegen
     BasicBlock* bbEntry = BasicBlock::Create(ctx, "entry", func);
-    IRBuilder<> builder(bbEntry);
+    ::tuplex::codegen::IRBuilder builder(bbEntry);
 
-    auto et_res = env->getTupleElement(builder, et_type, argMap["outRow"], 0);
-    auto ed_res = env->getTupleElement(builder, ed_type, argMap["inRow"], 0);
+    auto et_res = env->getTupleElement(builder.get(), et_type, argMap["outRow"], 0);
+    auto ed_res = env->getTupleElement(builder.get(), ed_type, argMap["inRow"], 0);
 
     ASSERT_TRUE(et_res.is_null); // is null option should be a LLVM Value for both...
     ASSERT_TRUE(ed_res.is_null);
 
     // setting values
-    env->setTupleElement(builder, et_type, argMap["outRow"], 0, codegen::SerializableValue(nullptr, nullptr, env->i1Const(false)));
-    env->setTupleElement(builder, ed_type, argMap["inRow"], 0, codegen::SerializableValue(nullptr, nullptr, env->i1Const(false)));
+    env->setTupleElement(builder.get(), et_type, argMap["outRow"], 0, codegen::SerializableValue(nullptr, nullptr, env->i1Const(false)));
+    env->setTupleElement(builder.get(), ed_type, argMap["inRow"], 0, codegen::SerializableValue(nullptr, nullptr, env->i1Const(false)));
 
 
-    builder.CreateRet(env->i64Const(0));
+    builder.get().CreateRet(env->i64Const(0));
 
     // dummy to make sure test is counted, however here it's more about that calls work...
     ASSERT_FALSE(env->getIR().empty());
@@ -448,10 +448,10 @@ TEST(LLVMENV, StringConstantFromGlobal) {
 #endif
 
     BasicBlock* bb = BasicBlock::Create(ctx, "body", func);
-    IRBuilder<> builder(bb);
+    tuplex::codegen::IRBuilder builder(bb);
 
-    auto strObj = env->strConst(builder, "teststring");
-    builder.CreateRet(env->i64Const(0));
+    auto strObj = env->strConst(builder.get(), "teststring");
+    builder.get().CreateRet(env->i64Const(0));
 
     EXPECT_EQ(codegen::globalVariableToString(strObj), "teststring");
 }

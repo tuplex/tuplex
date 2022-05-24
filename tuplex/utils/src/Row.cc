@@ -222,7 +222,7 @@ namespace tuplex {
 
         return true;
     }
-    bool operator == (const Row& lhs, const Row& rhs) {
+    bool operator < (const Row& lhs, const Row& rhs) {
         if(lhs._values.size() != rhs._values.size())
             return lhs._values.size() < rhs._values.size();
 

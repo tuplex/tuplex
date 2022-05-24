@@ -163,6 +163,7 @@ namespace tuplex {
         }
 
         friend bool operator == (const Row& lhs, const Row& rhs);
+        friend bool operator < (const Row& lhs, const Row& rhs);
 
         static Row from_vector(const std::vector<Field>& fields) {
             Row row;

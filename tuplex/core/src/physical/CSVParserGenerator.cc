@@ -130,7 +130,7 @@ namespace tuplex {
                 // parameters for the call
                 auto ehcode = builder.get().CreateSExt(parseCode, _env->i64Type());
                 auto ehopid = _env->i64Const(_operatorID);
-                auto row = getRowNumber(builder.get());
+                auto row = getRowNumber(builder);
                 auto inputlength = builder.CreateSub(builder.get().CreatePtrToInt(lineEnd, _env->i64Type()),
                                                      builder.get().CreatePtrToInt(lineStart, _env->i64Type()));
 
@@ -190,7 +190,7 @@ namespace tuplex {
 
             // row done block (--> actually can save this block but would require to insert command twice)
             builder.SetInsertPoint(bRowDone);
-            incRowNumber(builder.get());
+            incRowNumber(builder);
             builder.CreateBr(bLoopCond);
         }
     }

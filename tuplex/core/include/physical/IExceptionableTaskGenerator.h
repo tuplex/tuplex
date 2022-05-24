@@ -58,11 +58,11 @@ namespace tuplex {
             llvm::Value* getInputSizeArg() const { return _parameters.at("input_size"); }
 
 
-            inline void incRowNumber(llvm::IRBuilder<>& builder) {
+            inline void incRowNumber(IRBuilder& builder) {
                 auto currentValue = getVariable(builder, "row");
                 assignToVariable(builder, "row", builder.CreateAdd(currentValue, _env->i64Const(1)));
             }
-            llvm::Value* getRowNumber(llvm::IRBuilder<>& builder) { return getVariable(builder, "row"); }
+            llvm::Value* getRowNumber(IRBuilder& builder) { return getVariable(builder, "row"); }
         public:
 
             // (1) typedefs
@@ -160,10 +160,10 @@ namespace tuplex {
 
             // helper functions to use variables via alloc/store in code
             std::map<std::string, llvm::Value*> _variables;
-            void addVariable(llvm::IRBuilder<>& builder, const std::string name, llvm::Type* type, llvm::Value* initialValue=nullptr);
-            llvm::Value* getVariable(llvm::IRBuilder<>& builder, const std::string name);
-            llvm::Value* getPointerToVariable(llvm::IRBuilder<>& builder, const std::string name);
-            void assignToVariable(llvm::IRBuilder<>& builder, const std::string name, llvm::Value *newValue);
+            void addVariable(IRBuilder& builder, const std::string name, llvm::Type* type, llvm::Value* initialValue=nullptr);
+            llvm::Value* getVariable(IRBuilder& builder, const std::string name);
+            llvm::Value* getPointerToVariable(IRBuilder& builder, const std::string name);
+            void assignToVariable(IRBuilder& builder, const std::string name, llvm::Value *newValue);
 
             // @ Todo: refactor by introducing overloadable variable class for easier code generation
 

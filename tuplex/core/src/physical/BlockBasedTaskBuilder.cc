@@ -101,7 +101,7 @@ namespace tuplex {
             _intermediateCallbackName = callbackName;
         }
 
-        llvm::BasicBlock* BlockBasedTaskBuilder::exceptionBlock(llvm::IRBuilder<>& builder,
+        llvm::BasicBlock* BlockBasedTaskBuilder::exceptionBlock(IRBuilder& builder,
                 llvm::Value* userData,
                 llvm::Value *exceptionCode,
                                                                 llvm::Value *exceptionOperatorID,

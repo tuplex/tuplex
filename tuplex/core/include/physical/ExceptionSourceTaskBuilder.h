@@ -33,7 +33,7 @@ namespace tuplex {
             * @param processRowFunc (optional) function to be called before output is written.
             *        Most likely this is not a nullptr, because users want to transform data.
             */
-            void processRow(llvm::IRBuilder<>& builder,
+            void processRow(IRBuilder& builder,
                             llvm::Value* userData,
                             const FlattenedTuple& tuple,
                             llvm::Value *normalRowCountVar,
@@ -44,7 +44,7 @@ namespace tuplex {
                             bool terminateEarlyOnLimitCode,
                             llvm::Function* processRowFunc=nullptr);
 
-            void callProcessFuncWithHandler(llvm::IRBuilder<> &builder, llvm::Value *userData,
+            void callProcessFuncWithHandler(IRBuilder &builder, llvm::Value *userData,
                                             const FlattenedTuple &tuple,
                                             llvm::Value *normalRowCountVar, llvm::Value *badRowCountVar, llvm::Value *rowNumberVar,
                                             llvm::Value *inputRowPtr, llvm::Value *inputRowSize,

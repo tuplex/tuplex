@@ -64,7 +64,7 @@ namespace tuplex {
             /*!
              * creates a new exception block. Builder will be set to last block (i.e. where to conitnue logic)
              */
-            llvm::BasicBlock *exceptionBlock(llvm::IRBuilder<> &builder,
+            llvm::BasicBlock *exceptionBlock(IRBuilder &builder,
                                              llvm::Value *userData,
                                              llvm::Value *exceptionCode,
                                              llvm::Value *exceptionOperatorID,

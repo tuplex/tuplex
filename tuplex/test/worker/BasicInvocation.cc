@@ -1029,8 +1029,11 @@ TEST(BasicInvocation, VerifyOutput) {
 
     if(general_rows.size() == hyper_rows.size()) {
         // compare individual rows (after sorting them!)
+        std::cout<<"sorting general rows..."<<std::endl;
         std::sort(general_rows.begin(), general_rows.end());
+        std::cout<<"sorting hyper rows..."<<std::endl;
         std::sort(hyper_rows.begin(), hyper_rows.end());
+        std::cout<<"comparing rows 1:1..."<<std::endl;
 
         // go through rows and compare them one-by-one
         for(unsigned i = 0; i < general_rows.size(); ++i) {

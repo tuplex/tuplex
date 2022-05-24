@@ -21,7 +21,7 @@ namespace tuplex {
             return func;
         }
 
-        void TuplexSourceTaskBuilder::processRow(llvm::IRBuilder<> &builder, llvm::Value *userData,
+        void TuplexSourceTaskBuilder::processRow(IRBuilder &builder, llvm::Value *userData,
                                                  const FlattenedTuple &tuple,
                                                  llvm::Value *normalRowCountVar,
                                                  llvm::Value *badRowCountVar,
@@ -59,7 +59,7 @@ namespace tuplex {
             auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env().i64Type());
 
             if(terminateEarlyOnLimitCode)
-                generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
+                generateTerminateEarlyOnCode(builder.get(), ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
 
             // add number of rows created to output row number variable
             auto outputRowNumber = builder.CreateLoad(rowNumberVar);
@@ -91,7 +91,7 @@ namespace tuplex {
             builder.SetInsertPoint(bbPipelineDone);
 
             // call runtime free all
-            _env->freeAll(builder);
+            _env->freeAll(builder.get());
         }
 
         void TuplexSourceTaskBuilder::createMainLoop(llvm::Function *read_block_func, bool terminateEarlyOnLimitCode) {
@@ -111,7 +111,7 @@ namespace tuplex {
 
             BasicBlock *bbBody = BasicBlock::Create(context, "entry", read_block_func);
 
-            IRBuilder<> builder(bbBody);
+            IRBuilder builder(bbBody);
 
 
             // there should be a check if argInSize is 0
@@ -176,13 +176,13 @@ namespace tuplex {
             FlattenedTuple ft(_env.get());
             ft.init(_inputRowType);
             Value* oldInputPtr = builder.CreateLoad(currentInputPtrVar, "ptr");
-            ft.deserializationCode(builder, oldInputPtr);
-            Value* newInputPtr = builder.CreateGEP(oldInputPtr, ft.getSize(builder)); // @TODO: maybe use inbounds
+            ft.deserializationCode(builder.get(), oldInputPtr);
+            Value* newInputPtr = builder.CreateGEP(oldInputPtr, ft.getSize(builder.get())); // @TODO: maybe use inbounds
             builder.CreateStore(newInputPtr, currentInputPtrVar);
 
             // call function --> incl. exception handling
             // process row here -- BEGIN
-            Value *inputRowSize = ft.getSize(builder);
+            Value *inputRowSize = ft.getSize(builder.get());
             processRow(builder, argUserData, ft, normalRowCountVar, badRowCountVar, outRowCountVar, oldInputPtr, inputRowSize, terminateEarlyOnLimitCode, pipeline() ? pipeline()->getFunction() : nullptr);
             // end process row here -- END
             builder.CreateBr(bbLoopCondition);
@@ -196,13 +196,14 @@ namespace tuplex {
                 writeIntermediate(builder, argUserData, _intermediateCallbackName);
             }
 
-            env().storeIfNotNull(builder, builder.CreateLoad(normalRowCountVar), argOutNormalRowCount);
-            env().storeIfNotNull(builder, builder.CreateLoad(badRowCountVar), argOutBadRowCount);
+            env().storeIfNotNull(builder.get(), builder.CreateLoad(normalRowCountVar), argOutNormalRowCount);
+            env().storeIfNotNull(builder.get(), builder.CreateLoad(badRowCountVar), argOutBadRowCount);
 
             // return bytes read
             Value* curPtr = builder.CreateLoad(currentInputPtrVar, "ptr");
-            Value* bytesRead = builder.CreateSub(builder.CreatePtrToInt(curPtr, env().i64Type()), builder.CreatePtrToInt(argInPtr, env().i64Type()));
-            builder.CreateRet(bytesRead);
+            Value* bytesRead = builder.CreateSub(builder.get().CreatePtrToInt(curPtr, env().i64Type()),
+                                                 builder.get().CreatePtrToInt(argInPtr, env().i64Type()));
+            builder.get().CreateRet(bytesRead);
         }
     }
 }

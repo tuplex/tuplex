@@ -74,7 +74,7 @@ protected:
         auto func = Function::Create(FT, Function::ExternalLinkage, "getColumn", env->getModule().get());
 
         BasicBlock* bbBody = BasicBlock::Create(ctx, "body",func);
-        IRBuilder<> builder(bbBody);
+        IRBuilder builder(bbBody);
 
         auto argMap = tuplex::codegen::mapLLVMFunctionArgs(func, {"result", "column"});
 

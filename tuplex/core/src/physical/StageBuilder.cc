@@ -1063,8 +1063,8 @@ namespace tuplex {
 
             // close initStage/releaseStage functions
             // => call global init function of llvm env
-            isBuilder.CreateRet(env->callGlobalsInit(isBuilder));
-            rsBuilder.CreateRet(env->callGlobalsRelease(rsBuilder));
+            isBuilder.get().CreateRet(env->callGlobalsInit(isBuilder.get()));
+            rsBuilder.get().CreateRet(env->callGlobalsRelease(rsBuilder.get()));
 
             // // print module for debug/dev purposes
             // auto code = codegen::moduleToString(*env->getModule());
@@ -1074,7 +1074,7 @@ namespace tuplex {
 
             // save into variables (allows to serialize stage etc.)
             // IR is generated. Save into stage.
-            _funcStageName = func->getName();
+            _funcStageName = func->getName().str();
             _irBitCode = codegen::moduleToBitCodeString(*env->getModule()); // trafo stage takes ownership of module
 
             // @TODO: lazy & fast codegen of the different paths + lowering of them
@@ -1267,7 +1267,7 @@ namespace tuplex {
             auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip, funcResolveRowName,
                                                                             normalCaseType, null_values);
 
-            _resolveRowFunctionName = rowProcessFunc->getName();
+            _resolveRowFunctionName = rowProcessFunc->getName().str();
             _resolveRowWriteCallbackName = slowPathMemoryWriteCallback;
             _resolveRowExceptionCallbackName = slowPathExceptionCallback;
             _resolveHashCallbackName = slowPathHashWriteCallback;

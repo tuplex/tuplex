@@ -13,6 +13,12 @@
 namespace tuplex {
     namespace codegen {
         llvm::Function* TuplexSourceTaskBuilder::build(bool terminateEarlyOnLimitCode) {
+
+            if(!_checks.empty()) {
+                Logger::instance().logger("codegen").error("TuplexSourceTaskBuilder does not support normal case checks yet.");
+                return nullptr;
+            }
+
             auto func = createFunction();
 
             // create main loop

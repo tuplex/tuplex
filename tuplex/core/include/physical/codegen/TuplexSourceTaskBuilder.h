@@ -46,6 +46,8 @@ namespace tuplex {
                                             llvm::Value *inputRowPtr, llvm::Value *inputRowSize,
                                             bool terminateEarlyOnLimitCode,
                                             llvm::Function *processRowFunc);
+
+            std::vector<NormalCaseCheck> _checks;
         public:
             TuplexSourceTaskBuilder() = delete;
 
@@ -56,12 +58,14 @@ namespace tuplex {
             * @param inputRowType the row type rows are stored in within the memory block
             * @param generalCaseInputRowType the row type exceptions should be stored in. inputRowType must be upcastable to generalCaseInputRowType.
             * @param name how to call the function to be generated.
+            * @param checks normal case checks that are required to be satisfied upon reading in data. If they fail, a normalcaseviolation exception is produced.
             */
             explicit TuplexSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment>& env,
                                              const python::Type& inputRowType,
                                              const python::Type& generalCaseInputRowType,
                                              const std::map<int, int>& normalToGeneralMapping,
-                                             const std::string& name) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env, inputRowType, generalCaseInputRowType, normalToGeneralMapping, name)   {}
+                                             const std::string& name,
+                                             const std::vector<NormalCaseCheck>& checks={}) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env, inputRowType, generalCaseInputRowType, normalToGeneralMapping, name), _checks(checks)   {}
 
             llvm::Function* build(bool terminateEarlyOnLimitCode) override;
         };

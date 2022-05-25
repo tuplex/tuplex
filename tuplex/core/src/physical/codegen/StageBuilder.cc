@@ -840,7 +840,8 @@ namespace tuplex {
                                                                                ctx.inputNodeID,
                                                                                null_values,
                                                                                delimiter,
-                                                                               quotechar);
+                                                                               quotechar.
+                                                                               pathContext.checks);
                         } else {
                             tb = make_shared<codegen::CellSourceTaskBuilder>(env,
                                                                              pathContext.readSchema.getRowType(),
@@ -850,7 +851,8 @@ namespace tuplex {
                                                                              normalToGeneralMapping,
                                                                              funcStageName,
                                                                              ctx.inputNodeID,
-                                                                             null_values);
+                                                                             null_values,
+                                                                             pathContext.checks);
                         }
                         break;
                     }
@@ -865,7 +867,8 @@ namespace tuplex {
                                                                            pathContext.inputSchema.getRowType(),
                                                                            generalCaseInputRowType,
                                                                            normalToGeneralMapping,
-                                                                           funcStageName);
+                                                                           funcStageName,
+                                                                           pathContext.checks);
                         break;
                     }
                     default:
@@ -888,7 +891,8 @@ namespace tuplex {
                                                                    pathContext.inputSchema.getRowType(),
                                                                    generalCaseInputRowType,
                                                                    normalToGeneralMapping,
-                                                                   funcStageName);
+                                                                   funcStageName,
+                                                                   pathContext.checks);
             }
 
             // set pipeline and

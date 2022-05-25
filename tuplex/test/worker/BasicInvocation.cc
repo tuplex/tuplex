@@ -974,9 +974,9 @@ namespace tuplex {
         // local WorkerApp
         // start worker within same process to easier debug...
         auto app = make_unique<WorkerApp>(WorkerSettings());
-        app->processJSONMessage(json_message_hyper);
-        app->shutdown();
-        rc |= 0x1;
+//        app->processJSONMessage(json_message_hyper);
+//        app->shutdown();
+//        rc |= 0x1;
 
         app = make_unique<WorkerApp>(WorkerSettings());
         app->processJSONMessage(json_message_general);
@@ -1038,12 +1038,12 @@ TEST(BasicInvocation, VerifyOutput) {
         // go through rows and compare them one-by-one
         for(unsigned i = 0; i < general_rows.size(); ++i) {
             //EXPECT_EQ(general_rows[i], hyper_rows[i]);
-	    if(!(general_rows[i] == hyper_rows[i])) { 
-	       std::cout<<"row i="<<i<<" not equal"<<std::endl;
-	       std::cout<<"hyper:   "<<hyper_rows[i].toPythonString()<<std::endl;
-	       std::cout<<"general: "<<general_rows[i].toPythonString()<<std::endl;
-	       std::cout<<"----"<<std::endl;
-	    }
+            if(!(general_rows[i] == hyper_rows[i])) {
+               std::cout<<"row i="<<i<<" not equal"<<std::endl;
+               std::cout<<"hyper:   "<<hyper_rows[i].toPythonString()<<std::endl;
+               std::cout<<"general: "<<general_rows[i].toPythonString()<<std::endl;
+               std::cout<<"----"<<std::endl;
+            }
         }
     }
 }

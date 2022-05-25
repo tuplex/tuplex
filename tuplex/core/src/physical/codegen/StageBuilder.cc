@@ -1482,6 +1482,7 @@ namespace tuplex {
             path_ctx.inputSchema = inputSchema;
             path_ctx.readSchema = readSchema;
             path_ctx.columnsToRead = columnsToRead;
+            path_ctx.checks = planner.checks();
             logger.info("specialized to input:  " + path_ctx.inputSchema.getRowType().desc());
             logger.info("specialized to output: " + path_ctx.outputSchema.getRowType().desc());
             size_t numToRead = 0;

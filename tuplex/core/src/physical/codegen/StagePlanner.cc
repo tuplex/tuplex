@@ -316,7 +316,9 @@ namespace tuplex {
                 logger.debug(ss.str());
             }
 
-
+            // add all projected checks
+            for(const auto& check : projected_checks)
+                _checks.push_back(check);
 
 
 //            // only keep in projected checks the ones that are needed
@@ -524,6 +526,9 @@ namespace tuplex {
 
         void StagePlanner::optimize() {
             using namespace std;
+
+            // clear checks
+            _checks.clear();
 
             vector<shared_ptr<LogicalOperator>> optimized_operators = vec_prepend(_inputNode, _operators);
             auto& logger = Logger::instance().logger("specializing stage optimizer");

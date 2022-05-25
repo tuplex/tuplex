@@ -34,6 +34,8 @@
 
 #include <Base.h>
 
+#include <nlohmann/json.hpp>
+
 namespace tuplex {
     namespace codegen {
 
@@ -79,11 +81,21 @@ namespace tuplex {
             size_t colNo; ///! the column number to check for
             CheckType type;
 
-            NormalCaseCheck() : colNo(0), type(CheckType::CHECK_UNKNOWN) {}
-            NormalCaseCheck(const NormalCaseCheck& other) : colNo(other.colNo), type(other.type) {}
+            NormalCaseCheck() : colNo(0), type(CheckType::CHECK_UNKNOWN),
+            _constantType(python::Type::UNKNOWN),
+            _iMin(std::numeric_limits<int64_t>::min()),
+            _iMax(std::numeric_limits<int64_t>::max()) {}
+
+            NormalCaseCheck(const NormalCaseCheck& other) : colNo(other.colNo), type(other.type),
+            _constantType(other._constantType), _iMin(other._iMin), _iMax(other._iMax) {}
+
             NormalCaseCheck& operator = (const NormalCaseCheck& other) {
                 colNo = other.colNo;
                 type = other.type;
+                // private members
+                _constantType = other._constantType;
+                _iMin = other._iMin;
+                _iMax = other._iMax;
                 return *this;
             }
 
@@ -124,12 +136,39 @@ namespace tuplex {
                 assert(type == CheckType::CHECK_CONSTANT);
                 return _constantType;
             }
+
+#ifdef BUILD_WITH_CEREAL
+            template<class Archive> void serialize(Archive & ar) {
+                    ar(colNo, type, _constantType, _iMin, _iMax);
+            }
+#endif
+
+        // JSON serialization
+        nlohmann::json to_json() const {
+            nlohmann::json j;
+            j["colNo"] = colNo;
+            j["type"] = static_cast<int>(type);
+            j["constantType"] = _constantType.desc();
+            j["iMin"] = _iMin;
+            j["iMax"] = _iMax;
+            return j;
+        }
+
+        static NormalCaseCheck from_json(nlohmann::json j) {
+            NormalCaseCheck c;
+            c.colNo = j["colNo"].get<size_t>();
+            c.type = static_cast<CheckType>(j["colNo"].get<int>());
+            c._constantType = python::decodeType(j["constantType"].get<std::string>());
+            c._iMin = j["iMin"].get<int64_t>();
+            c._iMax = j["iMax"].get<int64_t>();
+            return c;
+        }
+
         private:
             python::Type _constantType;
             int64_t _iMin;
             int64_t _iMax;
         };
-
 
         // helper function to determine number of predecessors
         inline size_t successorCount(llvm::BasicBlock* block) {

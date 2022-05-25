@@ -840,7 +840,7 @@ namespace tuplex {
                                                                                ctx.inputNodeID,
                                                                                null_values,
                                                                                delimiter,
-                                                                               quotechar.
+                                                                               quotechar,
                                                                                pathContext.checks);
                         } else {
                             tb = make_shared<codegen::CellSourceTaskBuilder>(env,

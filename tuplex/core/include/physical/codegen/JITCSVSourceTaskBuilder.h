@@ -71,6 +71,7 @@ namespace tuplex {
              * @param operatorID ID of the operator for exception handling.
              * @param delimiter CSV delimiter for which to produce a parser
              * @param quotechar CSV quotechar for which to produce a parser
+             * @param checks normal case checks that are required to be satisfied upon reading in data. If they fail, a normalcaseviolation exception is produced.
              */
             explicit JITCSVSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
                                              const python::Type& fileInputRowType,
@@ -81,7 +82,9 @@ namespace tuplex {
                                              int64_t operatorID,
                                              const std::vector<std::string> &null_values,
                                              char delimiter,
-                                             char quotechar) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env,
+                                             char quotechar,
+                                             const std::vector<NormalCaseCheck>& checks={}
+                                             ) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env,
                                                                                                             restrictRowType(
                                                                                                                     columnsToSerialize,
                                                                                                                     fileInputRowType),
@@ -96,6 +99,9 @@ namespace tuplex {
                                                                _operatorID(operatorID),
                                                                _columnsToSerialize(columnsToSerialize),
                                                                _fileInputRowType(fileInputRowType) {
+
+                if(!checks.empty())
+                    throw std::runtime_error("normal checks not yet supported for JITCSVSourceTaskBuilder");
             }
 
             virtual llvm::Function *build(bool terminateEarlyOnFailureCode) override;

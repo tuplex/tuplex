@@ -138,7 +138,9 @@ namespace tuplex {
         WorkerApp(const WorkerApp& other) =  delete;
 
         // create WorkerApp from settings
-        WorkerApp(const WorkerSettings& settings) : _threadEnvs(nullptr), _numThreads(0), _globallyInitialized(false), _logger(Logger::instance().logger("worker")) {}
+        WorkerApp(const WorkerSettings& settings) : _threadEnvs(nullptr), _numThreads(0),
+                                                    _globallyInitialized(false), _has_python_resolver(false),
+                                                    _logger(Logger::instance().logger("worker")) {}
 
         bool reinitialize(const WorkerSettings& settings);
 
@@ -189,7 +191,7 @@ namespace tuplex {
         Aws::SDKOptions _aws_options;
 #endif
 
-
+        inline bool has_python_resolver() const { return _has_python_resolver; }
 
         // cache for compiled stages (sometimes same IR gets send)
         std::unordered_map<std::string, std::shared_ptr<TransformStage::JITSymbols>> _compileCache;
@@ -340,6 +342,9 @@ namespace tuplex {
         virtual void writeHashedRow(size_t threadNo, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         virtual void writeException(size_t threadNo, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
     private:
+
+        bool _has_python_resolver;
+
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         static void exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);

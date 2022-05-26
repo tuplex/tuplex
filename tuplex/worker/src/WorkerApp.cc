@@ -1600,7 +1600,10 @@ namespace tuplex {
 
     void WorkerApp::slowPathExceptCallback(ThreadEnv *env, int64_t exceptionCode, int64_t exceptionOperatorID,
                                            int64_t rowNumber, uint8_t *input, int64_t dataLength) {
-        env->app->logger().warn("slowPath writeException called, not yet implemented");
+        if(!env->app->has_python_resolver()) {
+            // it's a true exception and processing needs to stop b.c. no python code path is available, else resolveBuffer will try to call the python path on this...
+            env->app->logger().warn("slowPath writeException called, but there's no interprter path. not yet implemented.");
+        }
     }
 
     URI WorkerApp::getNextOutputURI(int threadNo, const URI& baseURI, bool isBaseURIFolder, const std::string& extension) {
@@ -1644,6 +1647,8 @@ namespace tuplex {
 
         assert(threadNo >= 0 && threadNo < _numThreads);
         auto env = &_threadEnvs[threadNo];
+
+        _has_python_resolver = false; // NOT THREADSAFE
 
         if(0 == env->numExceptionRows)
             return WORKER_OK; // nothing todo
@@ -1763,6 +1768,7 @@ namespace tuplex {
         // fetch functors
         auto compiledResolver = syms->resolveFunctor;
         auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
+        _has_python_resolver = true;
 
         // when both compiled resolver & interpreted resolver are invalid, this means basically that all exceptions stay...
         const auto* ptr = static_cast<const uint8_t*>(buf.buffer());

@@ -986,7 +986,6 @@ namespace tuplex {
     }
 }
 
-
 TEST(BasicInvocation, FSWrite) {
     using namespace tuplex;
 

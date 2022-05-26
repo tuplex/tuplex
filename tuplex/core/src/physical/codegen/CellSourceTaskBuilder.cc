@@ -150,15 +150,19 @@ namespace tuplex {
 
             auto key = std::make_tuple(colNo, type);
 
+            //@TODO: there's an error here, i.e. need to force parsing for both general/normal first on path
+            // to avoid domination errors in codegen.
+            bool no_cache = true; // HACK to disable cachedParse.
+
             auto it = _parseCache.find(key);
-            if(it == _parseCache.end()) {
+            if(no_cache || it == _parseCache.end()) {
                 // perform parse
                  auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
                  auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));
 
                 SerializableValue ret;
 
-                 llvm::Value* isnull = nullptr;
+                llvm::Value* isnull = nullptr;
                 python::Type t = type;
                     // option type? do NULL value interpretation
                     if(t.isOptionType()) {
@@ -192,20 +196,14 @@ namespace tuplex {
                         ret = SerializableValue(val, size, isnull);
                     } else if(python::Type::BOOLEAN == t) {
                         // conversion code here
-                        auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
-                        auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));
                         auto val = parseBoolean(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
                         ret = SerializableValue(val.val, val.size, isnull);
                     } else if(python::Type::I64 == t) {
                         // conversion code here
-                         auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
-                        auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));
                         auto val = parseI64(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
                         ret = SerializableValue(val.val, val.size, isnull);
                     } else if(python::Type::F64 == t) {
                         // conversion code here
-                         auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
-                        auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));
                         auto val = parseF64(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
                         ret = SerializableValue(val.val, val.size, isnull);
                     } else if(python::Type::NULLVALUE == t) {
@@ -243,14 +241,13 @@ namespace tuplex {
 
             // sanity check, emit warning if check was given but col not read?
             for(const auto& check : _checks) {
-                if(check.colNo >= _columnsToSerialize.size())
+                if(check.colNo >= _generalCaseColumnsToSerialize.size())
                     logger.warn("check has invalid column number");
                 else {
-                    if(!_columnsToSerialize[check.colNo])
+                    if(!_generalCaseColumnsToSerialize[check.colNo])
                         logger.warn("CellSourceTaskBuilder received check for col=" + std::to_string(check.colNo) + ", but column is eliminated in pushdown!");
                 }
             }
-
 
             // Interesting questions re. checks: => these checks should be performed first. What is the optimal order of checks to perform?
             // what to test first for?
@@ -258,9 +255,9 @@ namespace tuplex {
             llvm::Value* allChecksPassed = _env->i1Const(true);
 
             // Also, need to have some optimization re parsing. Parsing is quite expensive, so only parse if required!
-            for(int i = 0; i < _columnsToSerialize.size(); ++i) {
+            for(int i = 0; i < _generalCaseColumnsToSerialize.size(); ++i) {
                 // should column be serialized? if so emit type logic!
-                if(_columnsToSerialize[i]) {
+                if(_generalCaseColumnsToSerialize[i]) {
                     // find all checks for that column
                     for(const auto& check : _checks) {
                         if(check.colNo == i) {
@@ -279,7 +276,7 @@ namespace tuplex {
                                 auto const_type = check.constant_type();
                                 // performing check against string constant
                                 assert(const_type.isConstantValued());
-                                auto elementType = const_type.elementType();
+                                auto elementType = const_type.underlying();
 
                                 //  auto t = rowType.parameters()[rowTypePos];?
 //                                assert(elementType == )
@@ -334,8 +331,8 @@ namespace tuplex {
                                 // if !check -> normal_case violation!
                                 // else, all good!
 
-                                // debug:
-                                _env->debugPrint(builder, "performing constant check for col=" + std::to_string(i) + " , " + check.constant_type().desc() + " (1=passed): ", check_cond);
+                                // // debug:
+                                // _env->debugPrint(builder, "performing constant check for col=" + std::to_string(i) + " , " + check.constant_type().desc() + " (1=passed): ", check_cond);
                             } else {
                                 logger.warn("unsupported check type encountered");
                             }
@@ -359,9 +356,12 @@ namespace tuplex {
             auto serialized_row = serializedExceptionRow(builder, generalcase_row);
 
             // directly generate call to handler -> no ignore checks necessary.
-            _env->debugPrint(builder, "normal checks didn't pass");
+            // _env->debugPrint(builder, "normal checks didn't pass");
             callExceptHandler(builder, userData, _env->i64Const(ecToI64(ExceptionCode::NORMALCASEVIOLATION)),
                                               _env->i64Const(_operatorID), rowNumber, serialized_row.val, serialized_row.size);
+
+            // processing done, rest needs to be done via different path.
+            builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
 
             builder.SetInsertPoint(bbChecksPassed); // continue generating here...
         }

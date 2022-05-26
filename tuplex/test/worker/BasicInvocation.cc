@@ -953,6 +953,7 @@ std::string basename(const std::string& s) {
 namespace tuplex {
 
     bool checkFiles(const std::string root_path, const std::string basename) {
+        Timer timer;
         //std::string root_path = "tests/BasicInvocationTestAllFlightFiles";
         std::string general_path = root_path + "/general_processing/" + basename;// flights_on_time_performance_2003_01.csv.csv";
         std::string hyper_path = root_path + "/hyper_processing/" + basename; // flights_on_time_performance_2003_01.csv.csv";
@@ -972,9 +973,12 @@ namespace tuplex {
         std::cout<<"file has "<<general_rows.size()<<" general rows, "<<hyper_rows.size()<<" hyper rows"<<std::endl;
 
         //EXPECT_EQ(general_rows.size(), hyper_rows.size());
-        if(general_rows.size() != hyper_rows.size())
+        if(general_rows.size() != hyper_rows.size()) {
+            std::cout<<"different number of rows (general: "<<general_rows.size()<<", hyper: "<<hyper_rows.size()<<")"<<std::endl;
             return false;
+        }
 
+        bool rows_identical = true;
         if(general_rows.size() == hyper_rows.size()) {
             // compare individual rows (after sorting them!)
             std::cout<<"sorting general rows..."<<std::endl;
@@ -991,11 +995,13 @@ namespace tuplex {
                     std::cout<<"hyper:   "<<hyper_rows[i].toPythonString()<<std::endl;
                     std::cout<<"general: "<<general_rows[i].toPythonString()<<std::endl;
                     std::cout<<"----"<<std::endl;
+                    rows_identical = false;
                 }
             }
         }
 
-        return true;
+        std::cout<<"Validation took "<<timer.time()<<"s"<<std::endl;
+        return rows_identical;
     }
 
     int checkHyperSpecialization(const URI& input_uri, TransformStage* tstage_hyper, TransformStage* tstage_general, int num_threads, const URI& spillURI) {
@@ -1038,7 +1044,8 @@ namespace tuplex {
         std::cout<<"basename: "<<s_basename<<std::endl;
         s_basename = s_basename.substr(s_basename.rfind('/')+1) + ".csv";
         auto output_root = ".";//"tests/BasicInvocationTestAllFlightFiles";
-        checkFiles(output_root, s_basename);
+        if(checkFiles(output_root, s_basename))
+            rc |= 0x4;
         return rc;
     }
 }
@@ -1186,7 +1193,8 @@ TEST(BasicInvocation, TestAllFlightFiles) {
         int rc = checkHyperSpecialization(path, tstage_hyper, tstage_general, num_threads, spillURI);
         std::string hyper_ok = rc & 0x1 ? "OK" : "FAILED";
         std::string general_ok = rc & 0x2 ? "OK" : "FAILED";
-        cout<<"  hyper: "<<hyper_ok<<" general: "<<general_ok<<" took: "<<timer.time()<<"s"<<endl;
+        std::string validation_ok = rc & 0x4 ? "OK" : "FAILED";
+        cout<<"  hyper: "<<hyper_ok<<" general: "<<general_ok<<" validation: "<<validation_ok<<" took: "<<timer.time()<<"s"<<endl;
     }
 
 //    // !!! use compatible files for inference when issuing queries, else there'll be errors.

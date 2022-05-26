@@ -316,7 +316,9 @@ namespace tuplex {
                 logger.debug(ss.str());
             }
 
-
+            // add all projected checks
+            for(const auto& check : projected_checks)
+                _checks.push_back(check);
 
 
 //            // only keep in projected checks the ones that are needed
@@ -525,6 +527,9 @@ namespace tuplex {
         void StagePlanner::optimize() {
             using namespace std;
 
+            // clear checks
+            _checks.clear();
+
             vector<shared_ptr<LogicalOperator>> optimized_operators = vec_prepend(_inputNode, _operators);
             auto& logger = Logger::instance().logger("specializing stage optimizer");
 
@@ -566,6 +571,8 @@ namespace tuplex {
             if(_inputNode) {
                 auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
                 auto columns = fop->inputColumns();
+
+                // @TODO: following assert may fail, need to restrict in this case or add NONE values!
                 assert(columns.size() == majType.parameters().size());
                 for(unsigned i = 0; i < columns.size(); ++i) {
                     std::cout<<"col ("<<i<<") "<<columns[i]<<": "<<majType.parameters()[i].desc()<<std::endl;

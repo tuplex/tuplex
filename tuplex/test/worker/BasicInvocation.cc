@@ -34,7 +34,7 @@
 #warning "need S3 Test bucket to run these tests"
 #endif
 
-
+#include <CSVUtils.h>
 #include <procinfo.h>
 #include <FileUtils.h>
 
@@ -951,6 +951,59 @@ std::string basename(const std::string& s) {
     return s.substr(s.rfind('/') + 1);
 }
 namespace tuplex {
+
+    bool checkFiles(const std::string root_path, const std::string basename) {
+        Timer timer;
+        //std::string root_path = "tests/BasicInvocationTestAllFlightFiles";
+        std::string general_path = root_path + "/general_processing/" + basename;// flights_on_time_performance_2003_01.csv.csv";
+        std::string hyper_path = root_path + "/hyper_processing/" + basename; // flights_on_time_performance_2003_01.csv.csv";
+
+        // load both files as rows and check length
+        auto general_data = fileToString(general_path);
+        // ASSERT_TRUE(!general_data.empty());
+        if(general_data.empty())
+            return false;
+        auto general_rows = parseRows(general_data.c_str(), general_data.c_str() + general_data.length(), {""});
+
+        auto hyper_data = fileToString(hyper_path);
+        if(hyper_data.empty())
+            return false;
+        // ASSERT_TRUE(!hyper_data.empty());
+        auto hyper_rows = parseRows(hyper_data.c_str(), hyper_data.c_str() + hyper_data.length(), {""});
+        std::cout<<"file has "<<general_rows.size()<<" general rows, "<<hyper_rows.size()<<" hyper rows"<<std::endl;
+
+        //EXPECT_EQ(general_rows.size(), hyper_rows.size());
+        if(general_rows.size() != hyper_rows.size()) {
+            std::cout<<"different number of rows (general: "<<general_rows.size()<<", hyper: "<<hyper_rows.size()<<")"<<std::endl;
+            return false;
+        }
+
+        bool rows_identical = true;
+        if(general_rows.size() == hyper_rows.size()) {
+            // compare individual rows (after sorting them!)
+            std::cout<<"sorting general rows..."<<std::endl;
+            std::sort(general_rows.begin(), general_rows.end());
+            std::cout<<"sorting hyper rows..."<<std::endl;
+            std::sort(hyper_rows.begin(), hyper_rows.end());
+            std::cout<<"comparing rows 1:1..."<<std::endl;
+
+            // go through rows and compare them one-by-one
+            for(unsigned i = 0; i < general_rows.size(); ++i) {
+                //EXPECT_EQ(general_rows[i], hyper_rows[i]);
+                if(!(general_rows[i] == hyper_rows[i])) {
+                    std::cout<<"row i="<<i<<" not equal"<<std::endl;
+                    std::cout<<"hyper:   "<<hyper_rows[i].toPythonString()<<std::endl;
+                    std::cout<<"general: "<<general_rows[i].toPythonString()<<std::endl;
+                    std::cout<<"----"<<std::endl;
+                    rows_identical = false;
+                }
+            }
+        }
+
+        std::cout<<"Validation took "<<timer.time()<<"s"<<std::endl;
+        return rows_identical;
+    }
+
     int checkHyperSpecialization(const URI& input_uri, TransformStage* tstage_hyper, TransformStage* tstage_general, int num_threads, const URI& spillURI) {
         using namespace std;
         int rc = 0;
@@ -982,10 +1035,20 @@ namespace tuplex {
         app->processJSONMessage(json_message_general);
         app->shutdown();
         rc |= 0x2;
+
+        // now call verify function
+        auto str = input_uri.toString();
+        std::cout<<"input uri: "<<input_uri<<std::endl;
+        auto flights_root = str.substr(0, str.find("/flights_on_time"));
+        auto s_basename = output_uri.toString();
+        std::cout<<"basename: "<<s_basename<<std::endl;
+        s_basename = s_basename.substr(s_basename.rfind('/')+1) + ".csv";
+        auto output_root = ".";//"tests/BasicInvocationTestAllFlightFiles";
+        if(checkFiles(output_root, s_basename))
+            rc |= 0x4;
         return rc;
     }
 }
-
 
 TEST(BasicInvocation, FSWrite) {
     using namespace tuplex;
@@ -1006,6 +1069,46 @@ TEST(BasicInvocation, FSWrite) {
     auto file = vfs.open_file(uri, VirtualFileMode::VFS_WRITE);
     ASSERT_TRUE(file);
     file->close();
+}
+
+TEST(BasicInvocation, VerifyOutput) {
+    using namespace tuplex;
+
+    std::string root_path = "tests/BasicInvocationTestAllFlightFiles";
+    std::string general_path = root_path + "/general_processing/flights_on_time_performance_2003_01.csv.csv";
+    std::string hyper_path = root_path + "/hyper_processing/flights_on_time_performance_2003_01.csv.csv";
+
+    // load both files as rows and check length
+    auto general_data = fileToString(general_path);
+    ASSERT_TRUE(!general_data.empty());
+    auto general_rows = parseRows(general_data.c_str(), general_data.c_str() + general_data.length(), {""});
+
+    auto hyper_data = fileToString(hyper_path);
+    ASSERT_TRUE(!hyper_data.empty());
+    auto hyper_rows = parseRows(hyper_data.c_str(), hyper_data.c_str() + hyper_data.length(), {""});
+    std::cout<<"file has "<<general_rows.size()<<" general rows, "<<hyper_rows.size()<<" hyper rows"<<std::endl;
+
+    EXPECT_EQ(general_rows.size(), hyper_rows.size());
+
+    if(general_rows.size() == hyper_rows.size()) {
+        // compare individual rows (after sorting them!)
+        std::cout<<"sorting general rows..."<<std::endl;
+        std::sort(general_rows.begin(), general_rows.end());
+        std::cout<<"sorting hyper rows..."<<std::endl;
+        std::sort(hyper_rows.begin(), hyper_rows.end());
+        std::cout<<"comparing rows 1:1..."<<std::endl;
+
+        // go through rows and compare them one-by-one
+        for(unsigned i = 0; i < general_rows.size(); ++i) {
+            //EXPECT_EQ(general_rows[i], hyper_rows[i]);
+            if(!(general_rows[i] == hyper_rows[i])) {
+               std::cout<<"row i="<<i<<" not equal"<<std::endl;
+               std::cout<<"hyper:   "<<hyper_rows[i].toPythonString()<<std::endl;
+               std::cout<<"general: "<<general_rows[i].toPythonString()<<std::endl;
+               std::cout<<"----"<<std::endl;
+            }
+        }
+    }
 }
 
 TEST(BasicInvocation, TestAllFlightFiles) {
@@ -1076,9 +1179,13 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
     auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false);
 
-    // // test: 2013_03 fails
-    // paths = {URI("file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2013_03.csv")};
+    // // test: 2013_03 fails -> fixed
+    // 2010_01 fails
+     paths = {URI(flights_root + "/flights_on_time_performance_2021_11.csv")};
 
+     paths = {URI(cwd_path.string() + "/../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.sample.csv")};
+
+    std::reverse(paths.begin(), paths.end());
 
     for(const auto& path : paths) {
         Timer timer;
@@ -1087,7 +1194,8 @@ TEST(BasicInvocation, TestAllFlightFiles) {
         int rc = checkHyperSpecialization(path, tstage_hyper, tstage_general, num_threads, spillURI);
         std::string hyper_ok = rc & 0x1 ? "OK" : "FAILED";
         std::string general_ok = rc & 0x2 ? "OK" : "FAILED";
-        cout<<"  hyper: "<<hyper_ok<<" general: "<<general_ok<<" took: "<<timer.time()<<"s"<<endl;
+        std::string validation_ok = rc & 0x4 ? "OK" : "FAILED";
+        cout<<"  hyper: "<<hyper_ok<<" general: "<<general_ok<<" validation: "<<validation_ok<<" took: "<<timer.time()<<"s"<<endl;
     }
 
 //    // !!! use compatible files for inference when issuing queries, else there'll be errors.

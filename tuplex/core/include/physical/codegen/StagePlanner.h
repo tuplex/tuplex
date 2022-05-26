@@ -144,6 +144,10 @@ namespace tuplex {
              */
             void optimize();
 
+            std::vector<NormalCaseCheck> checks() const {
+                return _checks;
+            }
+
             std::vector<std::shared_ptr<LogicalOperator>> optimized_operators() const {
                 return _operators;
             }
@@ -228,6 +232,7 @@ namespace tuplex {
         private:
             std::shared_ptr<LogicalOperator> _inputNode;
             std::vector<std::shared_ptr<LogicalOperator>> _operators;
+            std::vector<NormalCaseCheck> _checks;
 
             python::Type _unprojected_unoptimized_row_type;
 

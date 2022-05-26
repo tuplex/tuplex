@@ -320,7 +320,7 @@ namespace tuplex {
         return WORKER_OK;
     }
 
-    int WorkerApp::processTransformStage(const TransformStage *tstage,
+    int WorkerApp::processTransformStage(TransformStage *tstage,
                                          const std::shared_ptr<TransformStage::JITSymbols> &syms,
                                          const std::vector<FilePart> &input_parts, const URI &output_uri) {
         std::cout<<"entering processTrafoStage"<<std::endl;
@@ -478,7 +478,7 @@ namespace tuplex {
         logger().info("Starting exception resolution/slow path execution");
         Timer resolveTimer;
         for(unsigned i = 0; i < _numThreads; ++i) {
-            resolveOutOfOrder(i, tstage, syms);
+            resolveOutOfOrder(i, tstage, syms); // note: this func is NOT thread-safe yet!!!
         }
         logger().info("Exception resolution/slow path done. Took " + std::to_string(resolveTimer.time()) + "s");
 
@@ -1591,13 +1591,19 @@ namespace tuplex {
     }
 
     int64_t WorkerApp::slowPathRowCallback(ThreadEnv *env, uint8_t *buf, int64_t bufSize) {
-        env->app->logger().warn("slowPath writeRow called, not yet implemented");
+
+        // slow path & fast path should have compatible output. => hence write it out regularly!
+        env->app->writeRow(env->threadNo, buf, bufSize);
+        // env->app->logger().warn("slowPath writeRow called, not yet implemented");
         return 0;
     }
 
     void WorkerApp::slowPathExceptCallback(ThreadEnv *env, int64_t exceptionCode, int64_t exceptionOperatorID,
                                            int64_t rowNumber, uint8_t *input, int64_t dataLength) {
-        env->app->logger().warn("slowPath writeException called, not yet implemented");
+        if(!env->app->has_python_resolver()) {
+            // it's a true exception and processing needs to stop b.c. no python code path is available, else resolveBuffer will try to call the python path on this...
+            env->app->logger().warn("slowPath writeException called, but there's no interprter path. not yet implemented.");
+        }
     }
 
     URI WorkerApp::getNextOutputURI(int threadNo, const URI& baseURI, bool isBaseURIFolder, const std::string& extension) {
@@ -1635,12 +1641,14 @@ namespace tuplex {
         return hm_size;
     }
 
-    int64_t WorkerApp::resolveOutOfOrder(int threadNo, const TransformStage *stage,
-                                         const std::shared_ptr<TransformStage::JITSymbols> &syms) {
+    int64_t WorkerApp::resolveOutOfOrder(int threadNo, TransformStage *stage,
+                                         std::shared_ptr<TransformStage::JITSymbols> syms) {
         using namespace std;
 
         assert(threadNo >= 0 && threadNo < _numThreads);
         auto env = &_threadEnvs[threadNo];
+
+        _has_python_resolver = false; // NOT THREADSAFE
 
         if(0 == env->numExceptionRows)
             return WORKER_OK; // nothing todo
@@ -1666,8 +1674,16 @@ namespace tuplex {
             throw std::runtime_error("different schemas between normal/exception case not yet supported!");
         }
 
-        // now go through all exceptions & resolve them.
+        // symbols may not have yet a compiled slow path, if so -> compile!
+        if(!_settings.useInterpreterOnly && !stage->slowPathBitCode().empty() && !syms->resolveFunctor) {
+            logger().info("compiling slow code path b.c. exceptions occurred.");
+            Timer timer;
+            stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
+            syms = stage->jitsyms();
+            logger().info("Compilation of slow path took " + std::to_string(timer.time()));
+        }
 
+        // now go through all exceptions & resolve them.
         // --> create a copy of the buffer & spill-files, then empty them!
         Buffer exceptionBuf(1024 * 4);
         if(env->exceptionBuf.size() > 0) {
@@ -1701,8 +1717,43 @@ namespace tuplex {
         }
 
         // same story with exception spill files. Load them first to the temp buffer, and then resolve...
-        for(auto info : exceptFiles) {
-            throw std::runtime_error("need to implement this: " + std::string(__FILE__) + ":" + std::to_string(__LINE__));
+        if(!exceptFiles.empty()) {
+            logger().info("Processing " + pluralize(exceptFiles.size(), "spilled except file"));
+            for(const auto& part_info : exceptFiles) {
+
+                // loading into buffer & resolving it.
+                logger().debug("opening except part file");
+                auto part_file = VirtualFileSystem::open_file(part_info.path, VirtualFileMode::VFS_READ);
+
+                if(!part_file) {
+                    auto err_msg = "part file could not be found under " + part_info.path + ", output corrupted.";
+                    logger().error(err_msg);
+                    throw std::runtime_error(err_msg);
+                }
+
+                // read contents in from spill file...
+                if(part_file->size() != part_info.file_size) {
+                    logger().warn("part_file: " + std::to_string(part_file->size()) + " part_info: " + std::to_string(part_info.file_size));
+                }
+                // assert(part_file->size() == part_info.spill_info.file_size);
+                assert(part_file->size() >= 2 * sizeof(int64_t));
+
+                part_file->seek(2 * sizeof(int64_t)); // skip first two bytes representing bytes/rows
+                size_t part_buffer_size = part_info.file_size - 2 * sizeof(int64_t);
+                Buffer part_buffer;
+                part_buffer.provideSpace(part_buffer_size);
+                size_t bytes_read = 0;
+                part_file->readOnly(part_buffer.ptr(), part_buffer_size, &bytes_read);
+                logger().debug("read from parts file " + sizeToMemString(bytes_read));
+                part_file->close();
+
+                // process now...
+                auto rc = resolveBuffer(threadNo, part_buffer, part_info.num_rows, stage, syms);
+                if(rc != WORKER_OK)
+                    return rc;
+
+            }
+            logger().info("except spill files done.");
         }
 
         return WORKER_OK;
@@ -1717,6 +1768,7 @@ namespace tuplex {
         // fetch functors
         auto compiledResolver = syms->resolveFunctor;
         auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
+        _has_python_resolver = true;
 
         // when both compiled resolver & interpreted resolver are invalid, this means basically that all exceptions stay...
         const auto* ptr = static_cast<const uint8_t*>(buf.buffer());

@@ -62,7 +62,8 @@ namespace tuplex {
 
                 std::shared_ptr<LogicalOperator>              inputNode;
                 std::vector<std::shared_ptr<LogicalOperator>> operators;
-                std::vector<bool>             columnsToRead;
+                std::vector<bool>                             columnsToRead;
+                std::vector<NormalCaseCheck>                  checks;
 
                 // columns to perform checks on (fastPathOnly)
                 CodePathContext() : inputNode(nullptr) {}
@@ -81,7 +82,7 @@ namespace tuplex {
 
 #ifdef BUILD_WITH_CEREAL
                 template<class Archive> void serialize(Archive & ar) {
-                    ar(readSchema, inputSchema, outputSchema, inputNode, operators, columnsToRead);
+                    ar(readSchema, inputSchema, outputSchema, inputNode, operators, columnsToRead, checks);
                 }
 #endif
             };

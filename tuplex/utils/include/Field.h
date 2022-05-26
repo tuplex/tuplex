@@ -76,9 +76,28 @@ namespace tuplex {
 
         // helper function to initialize field as tuple field from vector of elements
         void tuple_from_vector(const std::vector<Field>& elements);
+
+        void deep_copy_from_other(const Field& other);
     public:
 
         Field(): _ptrValue(nullptr), _type(python::Type::UNKNOWN), _size(0), _isNull(false) {}
+
+        // copy and move constructor
+        Field(const Field& other) : _type(other._type), _size(other._size), _isNull(other._isNull) {
+            // deep copy...
+            _ptrValue = nullptr;
+            deep_copy_from_other(other);
+        }
+
+        Field(Field&& other) : _iValue(other._iValue), _type(other._type), _size(other._size), _isNull(other._isNull) {
+            other._ptrValue = nullptr; // !!! important !!!
+            other._type = python::Type::UNKNOWN;
+            other._size = 0;
+        }
+
+        ~Field();
+        Field& operator = (const Field& other);
+
         explicit Field(const bool b);
         explicit Field(const int64_t i);
         explicit Field(const double d);
@@ -166,12 +185,6 @@ namespace tuplex {
          * @return
          */
         static Field upcastTo_unsafe(const Field& f, const python::Type& targetType);
-
-        ~Field();
-
-        Field(const Field& other);
-
-        Field& operator = (const Field& other);
 
         /*!
          * prints formatted field values

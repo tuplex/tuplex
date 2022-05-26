@@ -79,6 +79,13 @@ namespace tuplex {
                 ops.push_back(encodeOperator(op.get()));
 
             obj["operators"] = ops;
+
+            // serialize checks
+            auto arr = nlohmann::json::array();
+            for(auto check : checks)
+                arr.push_back(check.to_json());
+            obj["checks"] = arr;
+
             return std::move(obj);
         }
 
@@ -167,6 +174,13 @@ namespace tuplex {
             }
             ctx.inputNode = operators.front();
             ctx.operators = std::vector<std::shared_ptr<LogicalOperator>>(operators.begin() + 1, operators.end());
+
+            // decode checks
+            std::vector<NormalCaseCheck> checks;
+            for(auto json_check : obj["checks"]) {
+                checks.push_back(NormalCaseCheck::from_json(json_check));
+            }
+            ctx.checks = checks;
 
 
 //            obj["read"] = readSchema.getRowType().desc();

@@ -781,7 +781,7 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
     TransformStage *tstage = nullptr;
     python::initInterpreter();
     python::unlockGIL();
-    try {
+    // try {
         ContextOptions co = ContextOptions::defaults();
         auto enable_nvo = true; // test later with true! --> important for everything to work properly together!
         co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
@@ -807,17 +807,17 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
             tstage = builder.build();
         else
             tstage = builder.encodeForSpecialization(nullptr, nullptr, true, false, true);
-    } catch(const std::exception& e) {
-        std::cerr<<"Exception occurred: "<<e.what()<<std::endl;
-        python::lockGIL();
-        python::closeInterpreter();
-        return nullptr;
-    } catch(...) {
-        std::cerr<<"Exception occurred! Failure"<<std::endl;
-        python::lockGIL();
-        python::closeInterpreter();
-        return nullptr;
-    }
+//    } catch(const std::exception& e) {
+//        std::cerr<<"Exception occurred: "<<e.what()<<std::endl;
+//        python::lockGIL();
+//        python::closeInterpreter();
+//        return nullptr;
+//    } catch(...) {
+//        std::cerr<<"Exception occurred! Failure"<<std::endl;
+//        python::lockGIL();
+//        python::closeInterpreter();
+//        return nullptr;
+//    }
 
     python::lockGIL();
     python::closeInterpreter();

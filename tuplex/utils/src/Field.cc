@@ -116,7 +116,7 @@ namespace tuplex {
     }
 
     void Field::deep_copy_from_other(const Field &other) {
-        if(hasPtrData()) {
+        if(other.hasPtrData()) {
             assert(_ptrValue == nullptr);
 
             // special data structs have to perform individual deep copies

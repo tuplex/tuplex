@@ -1014,7 +1014,7 @@ namespace tuplex {
         URI output_uri = tstage_hyper->outputURI().toString() + "/" + basename(input_uri.toString());
         auto json_message_hyper = transformStageToReqMessage(tstage_hyper, input_uri.toPath(),
                                                              input_file_size, output_uri.toString(),
-                                                             false,
+                                                             false, // this here causes an error!!!
                                                              num_threads,
                                                              spillURI.toString());
         output_uri = tstage_general->outputURI().toString() + "/" + basename(input_uri.toString());
@@ -1031,10 +1031,10 @@ namespace tuplex {
         app->shutdown();
         rc |= 0x1;
 
-        app = make_unique<WorkerApp>(WorkerSettings());
-        app->processJSONMessage(json_message_general);
-        app->shutdown();
-        rc |= 0x2;
+//        app = make_unique<WorkerApp>(WorkerSettings());
+//        app->processJSONMessage(json_message_general);
+//        app->shutdown();
+//        rc |= 0x2;
 
         // now call verify function
         auto str = input_uri.toString();

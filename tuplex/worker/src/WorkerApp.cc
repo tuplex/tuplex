@@ -1636,7 +1636,7 @@ namespace tuplex {
     }
 
     int64_t WorkerApp::resolveOutOfOrder(int threadNo, const TransformStage *stage,
-                                         const std::shared_ptr<TransformStage::JITSymbols> &syms) {
+                                         std::shared_ptr<TransformStage::JITSymbols> syms) {
         using namespace std;
 
         assert(threadNo >= 0 && threadNo < _numThreads);
@@ -1666,8 +1666,13 @@ namespace tuplex {
             throw std::runtime_error("different schemas between normal/exception case not yet supported!");
         }
 
-        // now go through all exceptions & resolve them.
+        // symbols may not have yet a compiled slow path, if so -> compile!
+        if(!_settings.useInterpreterOnly && stage->slowPathBitCode().empty() && !syms->resolveFunctor) {
+            logger().info("compiling slow code path b.c. exceptions occurred");
+            syms = stage->compileSlowPath(_compiler, nullptr, false); // symbols should be known already...
+        }
 
+        // now go through all exceptions & resolve them.
         // --> create a copy of the buffer & spill-files, then empty them!
         Buffer exceptionBuf(1024 * 4);
         if(env->exceptionBuf.size() > 0) {

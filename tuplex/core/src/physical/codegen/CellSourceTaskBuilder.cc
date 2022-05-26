@@ -295,7 +295,7 @@ namespace tuplex {
                                     auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
                                     check_cond = builder.CreateICmpEQ(val.size, _env->i64Const(const_type.constant().size() + 1));
                                     check_cond = builder.CreateAnd(check_cond, _env->fixedSizeStringCompare(builder, val.val, const_type.constant()));
-                                } if(python::Type::NULLVALUE == elementType) {
+                                } else if(python::Type::NULLVALUE == elementType) {
                                     // special case: perform null check against array!
                                     // null check (??)
                                     auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);

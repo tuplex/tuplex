@@ -320,7 +320,7 @@ namespace tuplex {
         return WORKER_OK;
     }
 
-    int WorkerApp::processTransformStage(const TransformStage *tstage,
+    int WorkerApp::processTransformStage(TransformStage *tstage,
                                          const std::shared_ptr<TransformStage::JITSymbols> &syms,
                                          const std::vector<FilePart> &input_parts, const URI &output_uri) {
         std::cout<<"entering processTrafoStage"<<std::endl;
@@ -478,7 +478,7 @@ namespace tuplex {
         logger().info("Starting exception resolution/slow path execution");
         Timer resolveTimer;
         for(unsigned i = 0; i < _numThreads; ++i) {
-            resolveOutOfOrder(i, tstage, syms);
+            resolveOutOfOrder(i, tstage, syms); // note: this func is NOT thread-safe yet!!!
         }
         logger().info("Exception resolution/slow path done. Took " + std::to_string(resolveTimer.time()) + "s");
 
@@ -1635,7 +1635,7 @@ namespace tuplex {
         return hm_size;
     }
 
-    int64_t WorkerApp::resolveOutOfOrder(int threadNo, const TransformStage *stage,
+    int64_t WorkerApp::resolveOutOfOrder(int threadNo, TransformStage *stage,
                                          std::shared_ptr<TransformStage::JITSymbols> syms) {
         using namespace std;
 
@@ -1669,7 +1669,8 @@ namespace tuplex {
         // symbols may not have yet a compiled slow path, if so -> compile!
         if(!_settings.useInterpreterOnly && stage->slowPathBitCode().empty() && !syms->resolveFunctor) {
             logger().info("compiling slow code path b.c. exceptions occurred");
-            syms = stage->compileSlowPath(_compiler, nullptr, false); // symbols should be known already...
+            stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
+            syms = stage->jitsyms();
         }
 
         // now go through all exceptions & resolve them.

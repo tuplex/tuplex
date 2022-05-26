@@ -165,7 +165,7 @@ namespace tuplex {
 
         virtual int processMessage(const tuplex::messages::InvocationRequest& req);
 
-        int processTransformStage(const TransformStage* tstage,
+        int processTransformStage(TransformStage* tstage,
                                           const std::shared_ptr<TransformStage::JITSymbols>& syms,
                                           const std::vector<FilePart>& input_parts,
                                           const URI& output_uri);
@@ -301,7 +301,7 @@ namespace tuplex {
          * @param syms symbols
          * @return err or success code
          */
-        int64_t resolveOutOfOrder(int threadNo, const TransformStage* stage, std::shared_ptr<TransformStage::JITSymbols> syms);
+        int64_t resolveOutOfOrder(int threadNo, TransformStage* stage, std::shared_ptr<TransformStage::JITSymbols> syms);
 
         int64_t resolveBuffer(int threadNo, Buffer& buf, size_t numRows,
                               const TransformStage* stage,

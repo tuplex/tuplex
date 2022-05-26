@@ -1111,7 +1111,6 @@ TEST(BasicInvocation, VerifyOutput) {
     }
 }
 
-
 TEST(BasicInvocation, TestAllFlightFiles) {
     using namespace std;
     using namespace tuplex;

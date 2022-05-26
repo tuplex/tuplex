@@ -51,6 +51,17 @@ namespace tuplex {
     public:
         Row() : _serializedLength(0) {}
 
+        Row(const Row& other) : _schema(other._schema), _values(other._values), _serializedLength(other._serializedLength) {}
+        Row& operator = (const Row& other) {
+            _schema = other._schema;
+            _values = other._values;
+            _serializedLength = other._serializedLength;
+            return *this;
+        }
+        Row(Row&& other) : _schema(other._schema), _values(std::move(other._values)), _serializedLength(other._serializedLength) {
+
+        }
+
         // new constructor using variadic templates
         template<typename... Targs> Row(Targs... Fargs) {
             vec_build(_values, Fargs...);

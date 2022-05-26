@@ -951,6 +951,53 @@ std::string basename(const std::string& s) {
     return s.substr(s.rfind('/') + 1);
 }
 namespace tuplex {
+
+    bool checkFiles(const std::string root_path, const std::string basename) {
+        //std::string root_path = "tests/BasicInvocationTestAllFlightFiles";
+        std::string general_path = root_path + "/general_processing/" + basename;// flights_on_time_performance_2003_01.csv.csv";
+        std::string hyper_path = root_path + "/hyper_processing/" + basename; // flights_on_time_performance_2003_01.csv.csv";
+
+        // load both files as rows and check length
+        auto general_data = fileToString(general_path);
+        // ASSERT_TRUE(!general_data.empty());
+        if(general_data.empty())
+            return false;
+        auto general_rows = parseRows(general_data.c_str(), general_data.c_str() + general_data.length(), {""});
+
+        auto hyper_data = fileToString(hyper_path);
+        if(hyper_data.empty())
+            return false;
+        // ASSERT_TRUE(!hyper_data.empty());
+        auto hyper_rows = parseRows(hyper_data.c_str(), hyper_data.c_str() + hyper_data.length(), {""});
+        std::cout<<"file has "<<general_rows.size()<<" general rows, "<<hyper_rows.size()<<" hyper rows"<<std::endl;
+
+        //EXPECT_EQ(general_rows.size(), hyper_rows.size());
+        if(general_rows.size() != hyper_rows.size())
+            return false;
+
+        if(general_rows.size() == hyper_rows.size()) {
+            // compare individual rows (after sorting them!)
+            std::cout<<"sorting general rows..."<<std::endl;
+            std::sort(general_rows.begin(), general_rows.end());
+            std::cout<<"sorting hyper rows..."<<std::endl;
+            std::sort(hyper_rows.begin(), hyper_rows.end());
+            std::cout<<"comparing rows 1:1..."<<std::endl;
+
+            // go through rows and compare them one-by-one
+            for(unsigned i = 0; i < general_rows.size(); ++i) {
+                //EXPECT_EQ(general_rows[i], hyper_rows[i]);
+                if(!(general_rows[i] == hyper_rows[i])) {
+                    std::cout<<"row i="<<i<<" not equal"<<std::endl;
+                    std::cout<<"hyper:   "<<hyper_rows[i].toPythonString()<<std::endl;
+                    std::cout<<"general: "<<general_rows[i].toPythonString()<<std::endl;
+                    std::cout<<"----"<<std::endl;
+                }
+            }
+        }
+
+        return true;
+    }
+
     int checkHyperSpecialization(const URI& input_uri, TransformStage* tstage_hyper, TransformStage* tstage_general, int num_threads, const URI& spillURI) {
         using namespace std;
         int rc = 0;
@@ -974,14 +1021,24 @@ namespace tuplex {
         // local WorkerApp
         // start worker within same process to easier debug...
         auto app = make_unique<WorkerApp>(WorkerSettings());
-//        app->processJSONMessage(json_message_hyper);
-//        app->shutdown();
-//        rc |= 0x1;
+        app->processJSONMessage(json_message_hyper);
+        app->shutdown();
+        rc |= 0x1;
 
         app = make_unique<WorkerApp>(WorkerSettings());
         app->processJSONMessage(json_message_general);
         app->shutdown();
         rc |= 0x2;
+
+        // now call verify function
+        auto str = input_uri.toString();
+        std::cout<<"input uri: "<<input_uri<<std::endl;
+        auto flights_root = str.substr(0, str.find("/flights_on_time"));
+        auto s_basename = output_uri.toString();
+        std::cout<<"basename: "<<s_basename<<std::endl;
+        s_basename = s_basename.substr(s_basename.rfind('/')+1) + ".csv";
+        auto output_root = ".";//"tests/BasicInvocationTestAllFlightFiles";
+        checkFiles(output_root, s_basename);
         return rc;
     }
 }
@@ -1118,7 +1175,7 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 
     // // test: 2013_03 fails -> fixed
     // 2010_01 fails
-    paths = {URI("file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_01.csv")};
+    paths = {URI(flights_root + "/flights_on_time_performance_2003_01.csv")};
 
     std::reverse(paths.begin(), paths.end());
 

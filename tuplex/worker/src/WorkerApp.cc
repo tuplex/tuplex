@@ -1591,7 +1591,10 @@ namespace tuplex {
     }
 
     int64_t WorkerApp::slowPathRowCallback(ThreadEnv *env, uint8_t *buf, int64_t bufSize) {
-        env->app->logger().warn("slowPath writeRow called, not yet implemented");
+
+        // slow path & fast path should have compatible output. => hence write it out regularly!
+        env->app->writeRow(env->threadNo, buf, bufSize);
+        // env->app->logger().warn("slowPath writeRow called, not yet implemented");
         return 0;
     }
 
@@ -1667,10 +1670,12 @@ namespace tuplex {
         }
 
         // symbols may not have yet a compiled slow path, if so -> compile!
-        if(!_settings.useInterpreterOnly && stage->slowPathBitCode().empty() && !syms->resolveFunctor) {
-            logger().info("compiling slow code path b.c. exceptions occurred");
+        if(!_settings.useInterpreterOnly && !stage->slowPathBitCode().empty() && !syms->resolveFunctor) {
+            logger().info("compiling slow code path b.c. exceptions occurred.");
+            Timer timer;
             stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
             syms = stage->jitsyms();
+            logger().info("Compilation of slow path took " + std::to_string(timer.time()));
         }
 
         // now go through all exceptions & resolve them.

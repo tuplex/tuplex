@@ -1182,7 +1182,7 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 
     // // test: 2013_03 fails -> fixed
     // 2010_01 fails
-    paths = {URI(flights_root + "/flights_on_time_performance_2003_01.csv")};
+    // paths = {URI(flights_root + "/flights_on_time_performance_2003_01.csv")};
 
     std::reverse(paths.begin(), paths.end());
 

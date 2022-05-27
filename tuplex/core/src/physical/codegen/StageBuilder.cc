@@ -256,8 +256,11 @@ namespace tuplex {
             _columnsToRead = csvop->columnsToSerialize();
             _inputNodeID = csvop->getID();
             _readSchema = csvop->getInputSchema(); // schema before projection pushdown...
-            _inputSchema = csvop->getOutputSchema(); // input schema for CSV yields original schema,
-            _normalCaseInputSchema = csvop->getOptimizedOutputSchema();
+
+            // @TODO: rewrite this here properly using the two cases!!!
+            // --> output schema should be the schema AFTER pushdown???
+            _inputSchema = csvop->getProjectedOutputSchema(); //csvop->getOutputSchema(); // input schema for CSV yields original schema,
+            _normalCaseInputSchema = csvop->getOptimizedOutputSchema(); // ???
             // but b.c. of projection pushdown output schema is here what the codegen
             // should use as input schema!
             _inputMode = EndPointMode::FILE;

@@ -289,6 +289,10 @@ namespace tuplex {
             return generalCaseSchema();
         }
 
+        Schema getProjectedOutputSchema() const {
+            return projectSchema(generalCaseSchema());
+        }
+
         /*!
          * calls this function to output only a partial number of columns. I.e. used in optimizer for projectionPushdown
          * @param columnsToSerialize indices of the columns to serialize/keep

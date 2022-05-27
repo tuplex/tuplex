@@ -23,7 +23,8 @@ namespace tuplex {
         class CellSourceTaskBuilder : public BlockBasedTaskBuilder {
         private:
             int64_t _operatorID; // operatorID where to put null failures / value errors etc. out
-            python::Type _fileInputRowType; /// original file input type, i.e. how many cells + what they should represent
+            python::Type _fileInputRowType; /// original file input type, i.e. how many cells + what they should represent, unprojected.
+            python::Type _fileInputRowTypeGeneralCase; /// original file input type general case, unprojected.
             std::vector<bool> _columnsToSerialize; /// which columns from the file input type to serialize, determines output type. Good for projection pushdown.
             std::vector<bool> _generalCaseColumnsToSerialize; // same for the general case
             std::map<int, int> _normalToGeneralMapping;
@@ -55,7 +56,7 @@ namespace tuplex {
             void generateChecks(llvm::IRBuilder<>& builder, llvm::Value* userData, llvm::Value* rowNumber, llvm::Value* cellsPtr, llvm::Value* sizesPtr);
 
             inline FlattenedTuple parseGeneralCaseRow(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
-                return cellsToTuple(builder, _generalCaseColumnsToSerialize, _inputRowTypeGeneralCase, cellsPtr, sizesPtr);
+                return cellsToTuple(builder, _generalCaseColumnsToSerialize, _fileInputRowTypeGeneralCase, cellsPtr, sizesPtr);
             }
             inline FlattenedTuple parseNormalCaseRow(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
                 return cellsToTuple(builder, _columnsToSerialize, _fileInputRowType, cellsPtr, sizesPtr);
@@ -96,6 +97,7 @@ namespace tuplex {
                                                                                                               name),
                                                                  _operatorID(operatorID),
                                                                  _fileInputRowType(normalCaseRowType),
+                                                                 _fileInputRowTypeGeneralCase(generalCaseInputRowType),
                                                                  _columnsToSerialize(normalCaseColumnsToSerialize),
                                                                  _generalCaseColumnsToSerialize(generalCaseColumnsToSerialize),
                                                                  _normalToGeneralMapping(normalToGeneralMapping),
@@ -104,6 +106,12 @@ namespace tuplex {
                                                                  _checks(checks),
                                                                  _valueErrorBlock(nullptr),
                                                                  _nullErrorBlock(nullptr) {
+
+                // both cases should have same amount of columns
+                assert(_fileInputRowType.isTupleType() &&
+                _fileInputRowTypeGeneralCase.isTupleType() &&
+                _fileInputRowType.parameters().size() == _fileInputRowTypeGeneralCase.parameters().size());
+
 
                 // make sure columnsToSerilaize array is valid
                 // if empty array given, add always trues

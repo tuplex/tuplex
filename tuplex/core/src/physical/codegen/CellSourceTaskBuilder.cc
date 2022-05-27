@@ -260,6 +260,7 @@ namespace tuplex {
             // what to test first for?
 
             llvm::Value* allChecksPassed = _env->i1Const(true);
+            // _env->debugPrint(builder, "Checking normalcase for rowno=", rowNumber);
 
             // Also, need to have some optimization re parsing. Parsing is quite expensive, so only parse if required!
             for(int i = 0; i < _generalCaseColumnsToSerialize.size(); ++i) {
@@ -300,6 +301,7 @@ namespace tuplex {
                                 if(python::Type::STRING == elementType) {
                                     // direct compare
                                     auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
+				                    // _env->debugPrint(builder, "Checking whether cellsize==", _env->i64Const(const_type.constant().size() + 1));
                                     auto constant_value = str_value_from_python_raw_value(const_type.constant());
                                     check_cond = builder.CreateICmpEQ(val.size, _env->i64Const(constant_value.size() + 1));
                                     check_cond = builder.CreateAnd(check_cond, _env->fixedSizeStringCompare(builder, val.val, constant_value));
@@ -341,6 +343,9 @@ namespace tuplex {
 
                                 // // debug:
                                 // _env->debugPrint(builder, "performing constant check for col=" + std::to_string(i) + " , " + check.constant_type().desc() + " (1=passed): ", check_cond);
+				                // _env->debugPrint(builder, "cellStr", cellStr);
+				                // _env->debugPrint(builder, "cellSize", cellSize);
+
                             } else {
                                 logger.warn("unsupported check type encountered");
                             }

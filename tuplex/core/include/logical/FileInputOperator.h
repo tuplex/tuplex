@@ -283,10 +283,11 @@ namespace tuplex {
         }
 
         /*!
-         * returns general case schema.
+         * returns general case schema. I.e., the schema the operator yield AFTER pushdown. If the operator is forced
+         * to use normal-case schema, this will yield the normal-case schema as well.
          */
         Schema getOutputSchema() const override {
-            return generalCaseSchema();
+            return projectSchema(generalCaseSchema());
         }
 
         Schema getProjectedOutputSchema() const {

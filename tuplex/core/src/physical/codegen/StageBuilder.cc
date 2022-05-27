@@ -846,6 +846,12 @@ namespace tuplex {
                                                                                quotechar,
                                                                                pathContext.checks);
                         } else {
+
+                            // ensure pipeline is compatible with passed type
+                            auto output_nc_type = restrictRowType(pathContext.columnsToRead, pathContext.readSchema.getRowType());
+                            logger.debug("reader produces normal case rows of type: " + output_nc_type.desc() + " (hash=" + std::to_string(output_nc_type.hash()));
+                            logger.debug("pipeline expects normal case rows of type: " + pip->inputRowType().desc() + " (hash=" + std::to_string(pip->inputRowType().hash()));
+
                             tb = make_shared<codegen::CellSourceTaskBuilder>(env,
                                                                              pathContext.readSchema.getRowType(),
                                                                              pathContext.columnsToRead,
@@ -1573,6 +1579,12 @@ namespace tuplex {
                                                    normalCaseInputRowType,
                                                    codeGenerationContext.normalToGeneralMapping);
                 });
+
+
+                // debug: wait for future.
+#ifndef NDEBUG
+                slowCodePath_f.wait();
+#endif
 
                 auto py_path = generatePythonCode(codeGenerationContext, number());
                 stage->_pyCode = py_path.pyCode;

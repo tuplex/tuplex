@@ -291,7 +291,7 @@ namespace tuplex {
          * @param numExceptionsInPartition number of schema violations that occured in each of the partitions
          * @return reference to newly created dataset.
          */
-        DataSet& fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<std::string>& columns, const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects, const std::vector<size_t> &numExceptionsInPartition);
+        DataSet& fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<std::string>& columns, const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects, const std::vector<size_t> &numExceptionsInPartition, const SamplingMode& sampling_mode);
     };
     // needed for template mechanism to work
 #include <DataSet.h>

@@ -28,7 +28,7 @@
 
 namespace tuplex {
 
-    DataSet& PythonContext::fastF64Parallelize(PyObject* listObj, const std::vector<std::string>& columns, bool upcast) {
+    DataSet& PythonContext::fastF64Parallelize(PyObject* listObj, const std::vector<std::string>& columns, bool upcast, const SamplingMode& sm) {
         assert(listObj);
         assert(PyList_Check(listObj));
 
@@ -44,7 +44,7 @@ namespace tuplex {
         
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition, sm);
 
         // create new partition on driver
         auto driver = _context->getDriver();
@@ -116,10 +116,10 @@ namespace tuplex {
         partitions.push_back(partition);
 
         // create dataset from partitions.
-        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition);
+        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition, sm);
     }
 
-    DataSet& PythonContext::fastI64Parallelize(PyObject* listObj, const std::vector<std::string>& columns, bool upcast) {
+    DataSet& PythonContext::fastI64Parallelize(PyObject* listObj, const std::vector<std::string>& columns, bool upcast, const SamplingMode& sm) {
         assert(listObj);
         assert(PyList_Check(listObj));
 
@@ -132,7 +132,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition, sm);
 
         // create new partition on driver
         auto driver = _context->getDriver();
@@ -199,11 +199,11 @@ namespace tuplex {
         partitions.push_back(partition);
 
         // create dataset from partitions.
-        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition);
+        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition, sm);
     }
 
     DataSet& PythonContext::fastMixedSimpleTypeTupleTransfer(PyObject *listObj, const python::Type &majType,
-                                                             const std::vector<std::string> &columns) {
+                                                             const std::vector<std::string> &columns, const SamplingMode& sm) {
         assert(listObj);
         assert(PyList_Check(listObj));
         assert(majType.isTupleType());
@@ -220,7 +220,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition, sm);
 
 
         // encode type of tuple quickly into string
@@ -381,10 +381,10 @@ namespace tuplex {
         delete [] typeStr;
 
         // create dataset from partitions.
-        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition);
+        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition, sm);
     }
 
-    DataSet& PythonContext::fastBoolParallelize(PyObject *listObj, const std::vector<std::string>& columns) {
+    DataSet& PythonContext::fastBoolParallelize(PyObject *listObj, const std::vector<std::string>& columns, const SamplingMode& sm) {
         assert(listObj);
         assert(PyList_Check(listObj));
 
@@ -397,7 +397,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition, sm);
 
 
         // create new partition on driver
@@ -451,10 +451,10 @@ namespace tuplex {
         partitions.push_back(partition);
 
         // create dataset from partitions.
-        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition);
+        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition, sm);
     }
 
-    DataSet& PythonContext::fastStrParallelize(PyObject* listObj, const std::vector<std::string>& columns) {
+    DataSet& PythonContext::fastStrParallelize(PyObject* listObj, const std::vector<std::string>& columns, const SamplingMode& sm) {
         assert(listObj);
         assert(PyList_Check(listObj));
 
@@ -467,7 +467,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition, sm);
 
 
         // create new partition on driver
@@ -542,7 +542,7 @@ namespace tuplex {
         partitions.push_back(partition);
 
         // create dataset from partitions.
-        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition);
+        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition, sm);
     }
 
     // Returns true if t1 can be considered a subtype of t2, specifically in the context of Option types
@@ -563,7 +563,7 @@ namespace tuplex {
     }
 
     DataSet & PythonContext::parallelizeAnyType(const py::list &L, const python::Type &majType,
-                                                const std::vector<std::string> &columns, bool autoUpcast) {
+                                                const std::vector<std::string> &columns, bool autoUpcast, const SamplingMode& sm) {
 
         auto& logger = Logger::instance().logger("python");
         logger.info("using slow transfer to backend");
@@ -584,7 +584,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition, sm);
 
         auto firstRow = PyList_GET_ITEM(listObj, 0);
         Py_XINCREF(firstRow);
@@ -664,11 +664,11 @@ namespace tuplex {
         partitions.push_back(partition);
 
         // serialize in main memory
-        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition);
+        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition, sm);
     }
 
     DataSet& PythonContext::strDictParallelize(PyObject *listObj, const python::Type &rowType,
-                                               const std::vector<std::string> &columns) {
+                                               const std::vector<std::string> &columns, const SamplingMode& sm) {
         assert(listObj);
         assert(PyList_Check(listObj));
 
@@ -685,7 +685,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), columns, badParallelizeObjects, numExceptionsInPartition, sm);
 
         // create new partition on driver
         auto driver = _context->getDriver();
@@ -762,7 +762,7 @@ namespace tuplex {
         partitions.push_back(partition);
 
         // create dataset from partitions.
-        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition);
+        return _context->fromPartitions(schema, partitions, columns, badParallelizeObjects, numExceptionsInPartition, sm);
     }
 
     PythonDataSet PythonContext::parallelize(py::list L,

@@ -196,7 +196,12 @@ namespace tuplex {
         }
     }
 
-    DataSet& Context::fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<std::string>& columns, const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects, const std::vector<size_t> &numExceptionsInPartition) {
+    DataSet& Context::fromPartitions(const Schema& schema,
+                                     const std::vector<Partition*>& partitions,
+                                     const std::vector<std::string>& columns,
+                                     const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects,
+                                     const std::vector<size_t> &numExceptionsInPartition,
+                                     const SamplingMode& sampling_mode) {
         auto dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
 
@@ -208,7 +213,7 @@ namespace tuplex {
         // empty?
         if(partitions.empty()) {
             dsptr->setColumns(columns);
-            addParallelizeNode(dsptr, badParallelizeObjects, numExceptionsInPartition);
+            addParallelizeNode(dsptr, badParallelizeObjects, numExceptionsInPartition, sampling_mode);
             return *dsptr;
         } else {
             size_t numRows = 0;
@@ -224,7 +229,7 @@ namespace tuplex {
 
             // set rows
             dsptr->setColumns(columns);
-            addParallelizeNode(dsptr, badParallelizeObjects, numExceptionsInPartition);
+            addParallelizeNode(dsptr, badParallelizeObjects, numExceptionsInPartition, sampling_mode);
 
             // signal check
             if(check_and_forward_signals()) {

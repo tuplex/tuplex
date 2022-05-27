@@ -783,4 +783,20 @@ namespace tuplex {
         logger.debug("Sampling (mode=" + std::to_string(mode) + ") took " + std::to_string(_sampling_time_s) + "s");
         return v;
     }
+
+    std::vector<Row> FileInputOperator::sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
+        throw std::runtime_error("not yet implemented");
+        return {};
+    }
+
+    std::vector<Row> FileInputOperator::sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
+        throw std::runtime_error("not yet implemented");
+        return {};
+    }
+
+    std::vector<Row> FileInputOperator::sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
+        throw std::runtime_error("not yet implemented");
+        return {};
+    }
+
 }

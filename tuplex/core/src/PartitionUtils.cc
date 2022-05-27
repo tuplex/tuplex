@@ -15,7 +15,7 @@ namespace tuplex {
     void trimPartitionsToLimit(std::vector<Partition *> &partitions,
                                size_t topLimit,
                                size_t bottomLimit,
-                               TransformStage* tstage,
+                               TransformStage *tstage,
                                Executor *exec) {
         std::vector<Partition *> limitedPartitions, limitedTailPartitions;
 
@@ -97,6 +97,21 @@ namespace tuplex {
             if (lastBottomPart != nullptr) {
                 limitedPartitions.push_back(lastBottomPart);
             }
+        }
+
+        if (partitions.size() != limitedPartitions.size() + limitedTailPartitions.size()) {
+            // partition is changed, we need to change the partition grouping too
+            std::vector<PartitionGroup> oldGrouping = tstage->partitionGroups();
+            std::vector<PartitionGroup> newGrouping;
+            size_t new_normal_num = limitedPartitions.size() + limitedTailPartitions.size();
+            // remove all normal partition, put new one at the front
+            newGrouping.push_back(PartitionGroup(new_normal_num, 0, 0, 0, 0, 0));
+            for (auto gp: oldGrouping) {
+                gp.numNormalPartitions = 0;
+                newGrouping.push_back(gp);
+            }
+
+            tstage->setPartitionGroups(newGrouping);
         }
 
         // merge the head and tail partitions

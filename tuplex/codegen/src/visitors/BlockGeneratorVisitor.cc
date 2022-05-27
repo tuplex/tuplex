@@ -4204,6 +4204,11 @@ namespace tuplex {
                 _lfb->addReturn(retVal);
             } else {
 
+#error "here is the issue. the types are incompatible. YET - there's one chance where they can be compatible, in the case of a null value present and the output type being two different options. Need to implement this."
+
+#error "if that conversion fails, then exit with normalcase!!!"
+
+
                 _logger.debug("added normalcase speculation on return type " + target_type.desc() + ".");
                 _logger.debug("Actual oberserved funcReturnType is: " + funcReturnType.desc());
 

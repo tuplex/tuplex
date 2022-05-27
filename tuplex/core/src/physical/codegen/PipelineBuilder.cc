@@ -1897,8 +1897,6 @@ namespace tuplex {
                 return nullptr;
 
             auto generalCaseType = pip.inputRowType();
-
-
             bool normalCaseAndGeneralCaseCompatible = checkCaseCompatibility(normalCaseType, generalCaseType, normalToGeneralMapping);
 
             if(!normalCaseAndGeneralCaseCompatible) {

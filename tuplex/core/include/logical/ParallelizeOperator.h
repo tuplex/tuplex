@@ -22,7 +22,7 @@ namespace tuplex {
         // maps partitions to their corresponding python objects
         std::unordered_map<std::string, ExceptionInfo> _inputPartitionToPythonObjectsMap;
         std::vector<std::string> _columnNames;
-
+        SamplingMode _samplingMode;
         std::vector<Row> _sample; // sample, not necessary conforming to one type
 
         void initSample(); // helper to fill sample with a certain amount of rows.
@@ -35,7 +35,8 @@ namespace tuplex {
         // this a root node
         ParallelizeOperator(const Schema& schema,
                             const std::vector<Partition*>& partitions,
-                            const std::vector<std::string>& columns);
+                            const std::vector<std::string>& columns,
+                            const SamplingMode& sampling_mode);
 
         std::string name() override { return "parallelize"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::PARALLELIZE; }
@@ -72,10 +73,10 @@ namespace tuplex {
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             // DO NOT INCLUDE sample here.
-            ar(::cereal::base_class<LogicalOperator>(this), _columnNames);
+            ar(::cereal::base_class<LogicalOperator>(this), _columnNames, _samplingMode);
         }
         template<class Archive> void load(Archive &ar) {
-            ar(::cereal::base_class<LogicalOperator>(this), _columnNames);
+            ar(::cereal::base_class<LogicalOperator>(this), _columnNames, _samplingMode);
         }
 #endif
     };

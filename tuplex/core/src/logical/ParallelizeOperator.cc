@@ -13,8 +13,9 @@
 namespace tuplex {
     ParallelizeOperator::ParallelizeOperator(const Schema& schema,
             const std::vector<Partition*>& partitions,
-            const std::vector<std::string>& columns) :  _partitions(partitions),
-            _columnNames(columns) {
+            const std::vector<std::string>& columns,
+            const SamplingMode& sampling_mode) :  _partitions(partitions),
+            _columnNames(columns), _samplingMode(sampling_mode) {
 
         setSchema(schema);
 
@@ -109,7 +110,7 @@ namespace tuplex {
     }
 
     std::shared_ptr<LogicalOperator> ParallelizeOperator::clone() {
-        auto copy = new ParallelizeOperator(getOutputSchema(), _partitions, columns());
+        auto copy = new ParallelizeOperator(getOutputSchema(), _partitions, columns(), _samplingMode);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         copy->setPythonObjects(_pythonObjects);

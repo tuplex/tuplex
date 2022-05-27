@@ -11,6 +11,7 @@
 #ifndef TUPLEX_LOGICALOPERATOR_H
 #define TUPLEX_LOGICALOPERATOR_H
 
+#include "Defs.h"
 #include <logical/LogicalOperatorType.h>
 #include <vector>
 #include <utility>

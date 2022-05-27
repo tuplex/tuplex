@@ -20,12 +20,6 @@ namespace tuplex {
     // because processing happens with 16byte alignment, need to use aligned 16byte strings!
     using aligned_string=std::basic_string<char, std::char_traits<char>, boost::alignment::aligned_allocator<char, 16>>;
 
-    enum class SamplingMode {
-        SAMPLE_FIRST_ROWS,
-        SAMPLE_LAST_ROWS,
-        SAMPLE_RANDOM
-    };
-
     /*!
      * CSV operator will immediately load data into memory when added
      */
@@ -56,6 +50,7 @@ namespace tuplex {
         // *** members NOT to serialize ***
         // Variables that wont' get serialized.
         double _sampling_time_s;
+        SamplingMode _samplingMode;
         // internal sample, used for tracing & Co.
         std::vector<Row> _firstRowsSample;
         std::vector<Row> _lastRowsSample;
@@ -138,16 +133,19 @@ namespace tuplex {
                           const std::vector<std::string>& null_values,
                           const std::vector<std::string>& column_name_hints,
                           const std::unordered_map<size_t, python::Type>& index_based_type_hints,
-                          const std::unordered_map<std::string, python::Type>& column_based_type_hints);
+                          const std::unordered_map<std::string, python::Type>& column_based_type_hints,
+                          const SamplingMode& sampling_mode);
 
         // Text Constructor
         FileInputOperator(const std::string& pattern,
                           const ContextOptions& co,
-                          const std::vector<std::string>& null_values);
+                          const std::vector<std::string>& null_values,
+                          const SamplingMode& sampling_mode);
 
         // Orc Constructor
         FileInputOperator(const std::string& pattern,
-                          const ContextOptions& co);
+                          const ContextOptions& co,
+                          const SamplingMode& sampling_mode);
 
         FileInputOperator(FileInputOperator& other); // specialized copy constructor!
 
@@ -177,7 +175,8 @@ namespace tuplex {
                                          const std::vector<std::string>& null_values,
                                          const std::vector<std::string>& column_name_hints,
                                          const std::unordered_map<size_t, python::Type>& index_based_type_hints,
-                                         const std::unordered_map<std::string, python::Type>& column_based_type_hints);
+                                         const std::unordered_map<std::string, python::Type>& column_based_type_hints,
+                                          const SamplingMode& sampling_mode);
 
         /*!
          * create a new Text File Input operator
@@ -187,7 +186,8 @@ namespace tuplex {
          */
         static FileInputOperator *fromText(const std::string& pattern,
                                           const ContextOptions& co,
-                                          const std::vector<std::string>& null_values);
+                                          const std::vector<std::string>& null_values,
+                                           const SamplingMode& sampling_mode);
 
         /*!
         * create a new orc File Input operator.
@@ -195,7 +195,8 @@ namespace tuplex {
         * @param co ContextOptions, pipeline will take configuration for planning from there
         */
         static FileInputOperator *fromOrc(const std::string& pattern,
-                                         const ContextOptions& co);
+                                         const ContextOptions& co,
+                                          const SamplingMode& sampling_mode);
 
         std::string name() override {
             switch (_fmt) {
@@ -380,6 +381,8 @@ namespace tuplex {
             obj["hasHeader"] = _header;
             obj["null_values"] = _null_values;
 
+            obj["samplingMode"] = (int)_samplingMode;
+
             obj["columnNames"] = _columnNames;
             obj["columnsToSerialize"] = _columnsToSerialize;
 
@@ -413,6 +416,8 @@ namespace tuplex {
             fop->_columnNames = obj["columnNames"].get<std::vector<std::string>>();
             fop->_columnsToSerialize = obj["columnsToSerialize"].get<std::vector<bool>>();
 
+            fop->_samplingMode = static_cast<SamplingMode>(obj["samplingMode"].get<int>());
+
             fop->_normalCaseRowType = python::decodeType(obj["normalCaseRowType"].get<std::string>());
             fop->_generalCaseRowType = python::decodeType(obj["generalCaseRowType"].get<std::string>());
 
@@ -439,7 +444,8 @@ namespace tuplex {
                     _columnsToSerialize,
                     _indexBasedHints,
                     _normalCaseRowType,
-                    _generalCaseRowType); // do NOT serialize samples!
+                    _generalCaseRowType,
+                    _samplingMode); // do NOT serialize samples!
         }
 
         template<class Archive> void load(Archive &ar) {
@@ -456,7 +462,8 @@ namespace tuplex {
                 _columnsToSerialize,
                 _indexBasedHints,
                 _normalCaseRowType,
-                _generalCaseRowType); // do NOT serialize samples!
+                _generalCaseRowType,
+                _samplingMode); // do NOT serialize samples!
         }
 #endif
     };

@@ -38,6 +38,19 @@ namespace tuplex {
         }
         return "";
     }
+
+    // helper enum to specify sampling mode
+    enum SamplingMode : int {
+        FIRST_ROWS = 1,
+        LAST_ROWS = 2,
+        RANDOM_ROWS = 4,
+        FIRST_FILE = 8,
+        LAST_FILE = 16,
+        RANDOM_FILE = 32,
+        ALL_FILES = 64,
+    };
+
+    static const SamplingMode DEFAULT_SAMPLING_MODE = static_cast<SamplingMode>(SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE);
 }
 
 #endif //TUPLEX_DEFS_H

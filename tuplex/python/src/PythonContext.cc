@@ -768,7 +768,8 @@ namespace tuplex {
     PythonDataSet PythonContext::parallelize(py::list L,
                                              py::object cols,
                                              py::object schema,
-                                             bool autoUnpack) {
+                                             bool autoUnpack,
+                                             int sampling_mode) {
 
         assert(_context);
 
@@ -778,7 +779,7 @@ namespace tuplex {
         DataSet *ds = nullptr;
         python::Type majType; // the type assumed for the dataset
         auto autoUpcast = _context->getOptions().AUTO_UPCAST_NUMBERS();
-
+        auto sm = sampling_mode == 0 ? DEFAULT_SAMPLING_MODE : static_cast<SamplingMode>(sampling_mode);
         Timer timer;
         auto numElements = py::len(L);
         std::stringstream ss;
@@ -825,38 +826,38 @@ namespace tuplex {
             majType = python::Type::makeTupleType(types);
 
             // have to use special dict parallelize function here!
-            ds = &strDictParallelize(L.ptr(), majType, columns);
+            ds = &strDictParallelize(L.ptr(), majType, columns, sm);
         }
         // fast convert
         else if(majType == python::Type::BOOLEAN)
-            ds = &fastBoolParallelize(L.ptr(), columns);
+            ds = &fastBoolParallelize(L.ptr(), columns, sm);
         else if(majType == python::Type::I64)
-            ds = &fastI64Parallelize(L.ptr(), columns, autoUpcast);
+            ds = &fastI64Parallelize(L.ptr(), columns, autoUpcast, sm);
         else if(majType == python::Type::F64)
-            ds = &fastF64Parallelize(L.ptr(), columns, autoUpcast);
+            ds = &fastF64Parallelize(L.ptr(), columns, autoUpcast, sm);
         else if(majType == python::Type::STRING)
-            ds = &fastStrParallelize(L.ptr(), columns);
+            ds = &fastStrParallelize(L.ptr(), columns, sm);
         else if(majType.isTupleType()) {
             // check whether it's a tuple consisting of simple types only, if so transfer super fast!
                 if(python::tupleElementsHaveSimpleTypes(majType)) {
-
-                // mixed simple types ==> can do faster transfer here!
-                    ds = &fastMixedSimpleTypeTupleTransfer(L.ptr(), majType, columns);
+                    // mixed simple types ==> can do faster transfer here!
+                    ds = &fastMixedSimpleTypeTupleTransfer(L.ptr(), majType, columns, sm);
                 } else {
                     // general slow transfer...
-               ds = &parallelizeAnyType(L, majType, columns, autoUpcast);}
+                    ds = &parallelizeAnyType(L, majType, columns, autoUpcast, sm);
+                }
         } else if(majType.isDictionaryType() || majType == python::Type::GENERICDICT) {
-            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast, sm);
         } else if(majType.isOptionType()) {
             // TODO: special case to fast conversion for the option types with fast underlying types
-            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast, sm);
         } else if(majType == python::Type::NULLVALUE) {
             // TODO: special case to fast conversion for the option types with fast underlying types
-            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast, sm);
         } else if(majType.isListType()) {
-            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast, sm);
         } else if(majType == python::Type::PYOBJECT) {
-            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast, sm);
         } else {
             std::string msg = "unsupported type '" + majType.desc() + "' found, could not transfer data to backend";
             Logger::instance().logger("python").error(msg);
@@ -1118,7 +1119,8 @@ namespace tuplex {
                                      const std::string& delimiter,
                                      const std::string& quotechar,
                                      py::object null_values,
-                                     py::object type_hints) {
+                                     py::object type_hints,
+                                     int sampling_mode) {
         assert(_context);
 
         // reset signals
@@ -1146,6 +1148,7 @@ namespace tuplex {
         auto null_value_strs = extractFromListOfStrings(null_values.ptr(), "null_values ");
         auto type_idx_hints_c = extractIndexBasedTypeHints(type_hints.ptr(), columns, "type_hints ");
         auto type_col_hints_c = extractColumnBasedTypeHints(type_hints.ptr(), columns, "type_hints ");
+        auto sm = sampling_mode == 0 ? DEFAULT_SAMPLING_MODE : static_cast<SamplingMode>(sampling_mode);
 
         python::unlockGIL();
         DataSet *ds = nullptr;
@@ -1153,7 +1156,7 @@ namespace tuplex {
         try {
             ds = &_context->csv(pattern, columns, autodetect_header ? option<bool>::none : option<bool>(header),
                                 delimiter.empty() ? option<char>::none : option<char>(delimiter[0]),
-                                quotechar[0], null_value_strs, type_idx_hints_c, type_col_hints_c);
+                                quotechar[0], null_value_strs, type_idx_hints_c, type_col_hints_c, sm);
         } catch(const std::exception& e) {
             err_message = e.what();
             Logger::instance().defaultLogger().error(err_message);
@@ -1176,7 +1179,7 @@ namespace tuplex {
         return pds;
     }
 
-    PythonDataSet PythonContext::text(const std::string &pattern, py::object null_values ) {
+    PythonDataSet PythonContext::text(const std::string &pattern, py::object null_values, int sampling_mode) {
         assert(_context);
 
         // reset signals
@@ -1186,12 +1189,13 @@ namespace tuplex {
         PythonDataSet pds;
         assert(PyGILState_Check()); // make sure this thread holds the GIL!
         auto null_value_strs = extractFromListOfStrings(null_values.ptr(), "null_values ");
+        auto sm = sampling_mode == 0 ? DEFAULT_SAMPLING_MODE : static_cast<SamplingMode>(sampling_mode);
 
         python::unlockGIL();
         DataSet *ds = nullptr;
         std::string err_message = "";
         try {
-            ds = &_context->text(pattern, null_value_strs);
+            ds = &_context->text(pattern, null_value_strs, sm);
         } catch(const std::exception& e) {
             err_message = e.what();
             Logger::instance().defaultLogger().error(err_message);
@@ -1215,7 +1219,8 @@ namespace tuplex {
     }
 
     PythonDataSet PythonContext::orc(const std::string &pattern,
-                                     py::object cols) {
+                                     py::object cols,
+                                     int sampling_mode) {
         assert(_context);
 
         // reset signals
@@ -1228,12 +1233,13 @@ namespace tuplex {
 
         // extract columns (if not none)
         auto columns = extractFromListOfStrings(cols.ptr(), "columns ");
+        auto sm = sampling_mode == 0 ? DEFAULT_SAMPLING_MODE : static_cast<SamplingMode>(sampling_mode);
 
         python::unlockGIL();
         DataSet *ds = nullptr;
         std::string err_message = "";
         try {
-            ds = &_context->orc(pattern, columns);
+            ds = &_context->orc(pattern, columns, sm);
         } catch(const std::exception& e) {
             err_message = e.what();
             Logger::instance().defaultLogger().error(err_message);

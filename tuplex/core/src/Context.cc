@@ -238,7 +238,8 @@ namespace tuplex {
     }
 
     DataSet& Context::parallelize(const std::vector<Row>& rows,
-                                  const std::vector<std::string>& columnNames) {
+                                  const std::vector<std::string>& columnNames,
+                                  const SamplingMode& sampling_mode) {
 
         Schema schema;
         int dataSetID = getNextDataSetID();
@@ -248,7 +249,7 @@ namespace tuplex {
             // parallelizing empty dataset...
             // just return what has been initialized so far
             dsptr->setColumns(columnNames);
-            addParallelizeNode(dsptr);
+            addParallelizeNode(dsptr, {}, {}, sampling_mode);
             return *dsptr;
         } else {
             // get row type from first element @TODO: should be inferred from sample, no?
@@ -324,7 +325,7 @@ namespace tuplex {
 
             // set rows
             dsptr->setColumns(columnNames);
-            addParallelizeNode(dsptr);
+            addParallelizeNode(dsptr, {}, {}, sampling_mode);
 
             // signal check
             if(check_and_forward_signals()) {
@@ -430,7 +431,7 @@ namespace tuplex {
         serializedPythonObjects.push_back(partition);
     }
 
-    void Context::addParallelizeNode(DataSet *ds, const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects, const std::vector<size_t> &numExceptionsInPartition) {
+    void Context::addParallelizeNode(DataSet *ds, const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects, const std::vector<size_t> &numExceptionsInPartition, const SamplingMode& sampling_mode) {
         assert(ds);
 
         // @TODO: make empty list as special case work. Also true for empty files.
@@ -439,7 +440,7 @@ namespace tuplex {
 
         assert(ds->_schema.getRowType() != python::Type::UNKNOWN);
 
-        auto op = new ParallelizeOperator(ds->_schema, ds->getPartitions(), ds->columns());
+        auto op = new ParallelizeOperator(ds->_schema, ds->getPartitions(), ds->columns(), sampling_mode);
         std::vector<Partition*> serializedPythonObjects;
         std::unordered_map<std::string, ExceptionInfo> pythonObjectsMap;
         serializePythonObjects(badParallelizeObjects, numExceptionsInPartition, ds->getPartitions(), op->getID(), serializedPythonObjects, pythonObjectsMap);
@@ -460,7 +461,8 @@ namespace tuplex {
                           char quotechar,
                           const std::vector<std::string>& null_values,
                           const std::unordered_map<size_t, python::Type>& index_based_type_hints,
-                          const std::unordered_map<std::string, python::Type>& column_based_type_hints) {
+                          const std::unordered_map<std::string, python::Type>& column_based_type_hints,
+                          const SamplingMode& sampling_mode) {
         using namespace std;
 
         Schema schema;
@@ -469,7 +471,7 @@ namespace tuplex {
 
         dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(
                 FileInputOperator::fromCsv(pattern, this->_options, hasHeader, delimiter, quotechar, null_values, columns,
-                                      index_based_type_hints, column_based_type_hints)));
+                                      index_based_type_hints, column_based_type_hints, sampling_mode)));
         auto op = ((FileInputOperator*)dsptr->_operator.get());
 
         // check whether files were found, else return empty dataset!
@@ -519,14 +521,14 @@ namespace tuplex {
         return *dsptr;
     }
 
-    DataSet& Context::text(const std::string &pattern, const std::vector<std::string>& null_values) {
+    DataSet& Context::text(const std::string &pattern, const std::vector<std::string>& null_values, const SamplingMode& sampling_mode) {
         using namespace std;
 
         Schema schema;
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
 
-        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(FileInputOperator::fromText(pattern, this->_options, null_values)));
+        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(FileInputOperator::fromText(pattern, this->_options, null_values, sampling_mode)));
 
         auto detectedColumns = ((FileInputOperator*)dsptr->_operator.get())->columns();
         dsptr->setColumns(detectedColumns);
@@ -546,7 +548,8 @@ namespace tuplex {
     }
 
     DataSet& Context::orc(const std::string &pattern,
-                          const std::vector<std::string>& columns) {
+                          const std::vector<std::string>& columns,
+                          const SamplingMode& sampling_mode) {
         using namespace std;
 
 #ifndef BUILD_WITH_ORC
@@ -556,7 +559,7 @@ namespace tuplex {
         Schema schema;
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
-        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(FileInputOperator::fromOrc(pattern, this->_options)));
+        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(FileInputOperator::fromOrc(pattern, this->_options, sampling_mode)));
         auto op = ((FileInputOperator*)dsptr->_operator.get());
 
         // check whether files were found, else return empty dataset!

@@ -48,7 +48,7 @@ namespace tuplex {
         * @param columns optional list of column names
         * @return Dataset
         */
-        DataSet &fastBoolParallelize(PyObject *listObj, const std::vector<std::string> &columns);
+        DataSet &fastBoolParallelize(PyObject *listObj, const std::vector<std::string> &columns, const SamplingMode& sampling_mode);
 
         /*!
          * fast Python to framework code for single integers
@@ -57,7 +57,7 @@ namespace tuplex {
          * @param upcast upcast booleans if found to integers
          * @return Dataset
          */
-        DataSet &fastI64Parallelize(PyObject *listObj, const std::vector<std::string> &columns, bool upcast);
+        DataSet &fastI64Parallelize(PyObject *listObj, const std::vector<std::string> &columns, bool upcast, const SamplingMode& sampling_mode);
 
         /*!
          * fast Python to framework code for single floats
@@ -66,7 +66,7 @@ namespace tuplex {
          * @param upcast upcast booleans and ints if found to floats
          * @return Dataset
          */
-        DataSet &fastF64Parallelize(PyObject *listObj, const std::vector<std::string> &columns, bool upcast);
+        DataSet &fastF64Parallelize(PyObject *listObj, const std::vector<std::string> &columns, bool upcast, const SamplingMode& sampling_mode);
 
         /*!
          * fast Python to framework code for strings
@@ -74,20 +74,20 @@ namespace tuplex {
          * @param columns optional list of column names
          * @return Dataset
          */
-        DataSet &fastStrParallelize(PyObject *listObj, const std::vector<std::string> &columns);
+        DataSet &fastStrParallelize(PyObject *listObj, const std::vector<std::string> &columns, const SamplingMode& sampling_mode);
 
         // Note: for even faster code, perhaps code-generate the translation...
 
         // fast mixed tuple transfer
         DataSet &
-        fastMixedSimpleTypeTupleTransfer(PyObject *listObj, const python::Type& majType, const std::vector<std::string> &columns);
+        fastMixedSimpleTypeTupleTransfer(PyObject *listObj, const python::Type& majType, const std::vector<std::string> &columns, const SamplingMode& sampling_mode);
 
 
         // maybe also for mixed tuple elements if they are all primitives...
 
 
         DataSet &parallelizeAnyType(const py::list &L, const python::Type &majType,
-                                    const std::vector<std::string> &columns, bool autoUpcast);
+                                    const std::vector<std::string> &columns, bool autoUpcast, const SamplingMode& sampling_mode);
 
         python::Type inferType(const py::list &L, bool autoUpcast) const;
 
@@ -153,7 +153,7 @@ namespace tuplex {
          * @return PythonDataSet wrapper around internal DataSet class
          */
         PythonDataSet parallelize(py::list L, py::object cols = py::none(),
-                                  py::object schema = py::none(), bool autoUnpack = true);
+                                  py::object schema = py::none(), bool autoUnpack = true, int sampling_mode=0);
 
         /*!
          * reads one (or multiple) csv files into memory
@@ -174,7 +174,8 @@ namespace tuplex {
                           const std::string &delimiter = "",
                           const std::string &quotechar = "\"",
                           py::object null_values = py::none(),
-                          py::object type_hints = py::none());
+                          py::object type_hints = py::none(),
+                          int sampling_mode=0);
 
         /*!
          * reads one (or multiple) text files into memory
@@ -182,7 +183,7 @@ namespace tuplex {
          * @param null_values list of null values
          * @return PythonDataSet wrapper around internal DataSet class corresponding to a text read call
          */
-        PythonDataSet text(const std::string &pattern, py::object null_values = py::none());
+        PythonDataSet text(const std::string &pattern, py::object null_values = py::none(), int samplint_mode=0);
 
         /*!
          * reads one (or multiple) orc files into memory
@@ -191,7 +192,8 @@ namespace tuplex {
          * @return PythonDataSet wrapper around internal DataSet class corresponding to a orc read call
          */
         PythonDataSet orc(const std::string &pattern,
-                          py::object cols = py::none());
+                          py::object cols = py::none(),
+                          int sampling_mode=0);
 
         /*!
          * retrieves options as flattened dictionary.

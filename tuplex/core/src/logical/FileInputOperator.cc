@@ -62,11 +62,11 @@ namespace tuplex {
 
         // depending on sampling mode seek in file!
         switch(mode) {
-            case SamplingMode::SAMPLE_LAST_ROWS: {
+            case SamplingMode::LAST_ROWS: {
                 vf->seek(file_size - sampleSize);
                 break;
             }
-            case SamplingMode::SAMPLE_RANDOM: {
+            case SamplingMode::RANDOM_ROWS: {
                 // random seek between 0 and file_size - sampleSize
                 auto randomSeekOffset = randi(0ul, file_size - sampleSize);
                 vf->seek(randomSeekOffset);
@@ -105,13 +105,15 @@ namespace tuplex {
     }
 
     FileInputOperator *FileInputOperator::fromText(const std::string &pattern, const ContextOptions &co,
-                                                    const std::vector<std::string> &null_values) {
-        return new FileInputOperator(pattern, co, null_values);
+                                                    const std::vector<std::string> &null_values,
+                                                    const SamplingMode& sampling_mode) {
+        return new FileInputOperator(pattern, co, null_values, sampling_mode);
     }
 
     FileInputOperator::FileInputOperator(const std::string& pattern,
             const ContextOptions& co,
-            const std::vector<std::string>& null_values) : _null_values(null_values), _estimatedRowCount(0), _sampling_time_s(0.0) {
+            const std::vector<std::string>& null_values,
+            const SamplingMode& sampling_mode) : _null_values(null_values), _estimatedRowCount(0), _sampling_time_s(0.0), _samplingMode(sampling_mode) {
         auto &logger = Logger::instance().logger("fileinputoperator");
         _fmt = FileFormat::OUTFMT_TEXT;
 
@@ -133,7 +135,7 @@ namespace tuplex {
         aligned_string sample;
         if(!_fileURIs.empty()) {
             sample = loadSample(co.CSV_MAX_DETECTION_MEMORY(), _fileURIs.front(), _sizes.front(),
-                                SamplingMode::SAMPLE_FIRST_ROWS);
+                                SamplingMode::FIRST_ROWS);
         }
 
         // split into lines, compute average length & scale row estimate up
@@ -179,8 +181,10 @@ namespace tuplex {
                                                    const std::vector<std::string> &null_values,
                                                    const std::vector<std::string>& column_name_hints,
                                                    const std::unordered_map<size_t, python::Type>& index_based_type_hints,
-                                                   const std::unordered_map<std::string, python::Type>& column_based_type_hints) {
-        return new FileInputOperator(pattern, co, hasHeader, delimiter, quotechar, null_values, column_name_hints, index_based_type_hints, column_based_type_hints);
+                                                   const std::unordered_map<std::string, python::Type>& column_based_type_hints,
+                                                   const SamplingMode& sampling_mode) {
+        return new FileInputOperator(pattern, co, hasHeader, delimiter, quotechar, null_values,
+                                     column_name_hints, index_based_type_hints, column_based_type_hints, sampling_mode);
     }
 
     FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co,
@@ -190,8 +194,9 @@ namespace tuplex {
                                          const std::vector<std::string> &null_values,
                                          const std::vector<std::string>& column_name_hints,
                                          const std::unordered_map<size_t, python::Type>& index_based_type_hints,
-                                         const std::unordered_map<std::string, python::Type>& column_based_type_hints) :
-                                                                            _null_values(null_values), _sampling_time_s(0.0) {
+                                         const std::unordered_map<std::string, python::Type>& column_based_type_hints,
+                                         const SamplingMode& sampling_mode) :
+                                                                            _null_values(null_values), _sampling_time_s(0.0), _samplingMode(sampling_mode) {
         auto &logger = Logger::instance().logger("fileinputoperator");
         _fmt = FileFormat::OUTFMT_CSV;
 
@@ -217,7 +222,7 @@ namespace tuplex {
             aligned_string sample;
             if(!_fileURIs.empty()) {
                 sample = loadSample(SAMPLE_SIZE, _fileURIs.front(), _sizes.front(),
-                                    SamplingMode::SAMPLE_FIRST_ROWS);
+                                    SamplingMode::FIRST_ROWS);
             }
 
             CSVStatistic csvstat(co.CSV_SEPARATORS(), co.CSV_COMMENTS(),
@@ -345,7 +350,7 @@ namespace tuplex {
                 // only draw sample IF > 1 file or file_size > 2 * sample size
                 bool draw_sample = _fileURIs.size() >= 2 || _sizes.back() >= 2 * SAMPLE_SIZE;
                 if(draw_sample) {
-                    auto last_sample = loadSample(SAMPLE_SIZE, _fileURIs.back(), _sizes.back(), SamplingMode::SAMPLE_LAST_ROWS);
+                    auto last_sample = loadSample(SAMPLE_SIZE, _fileURIs.back(), _sizes.back(), SamplingMode::LAST_ROWS);
                     // search CSV beginning
                     auto column_count = inputColumnCount();
                     auto offset = csvFindLineStart(last_sample.c_str(), SAMPLE_SIZE, column_count, csvstat.delimiter(), csvstat.quotechar());
@@ -367,11 +372,11 @@ namespace tuplex {
         _sampling_time_s += timer.time();
     }
 
-    FileInputOperator *FileInputOperator::fromOrc(const std::string &pattern, const ContextOptions &co) {
-        return new FileInputOperator(pattern, co);
+    FileInputOperator *FileInputOperator::fromOrc(const std::string &pattern, const ContextOptions &co, const SamplingMode& sampling_mode) {
+        return new FileInputOperator(pattern, co, sampling_mode);
     }
 
-    FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co): _sampling_time_s(0.0) {
+    FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co, const SamplingMode& sampling_mode): _sampling_time_s(0.0), _samplingMode(sampling_mode) {
 
 #ifdef BUILD_WITH_ORC
         auto &logger = Logger::instance().logger("fileinputoperator");
@@ -601,6 +606,7 @@ namespace tuplex {
                                                                              _indexBasedHints(other._indexBasedHints),
                                                                              _firstRowsSample(other._firstRowsSample),
                                                                              _lastRowsSample(other._lastRowsSample),
+                                                                             _samplingMode(other._samplingMode),
                                                                              _sampling_time_s(other._sampling_time_s) {
         // copy members for logical operator
         LogicalOperator::copyMembers(&other);
@@ -641,7 +647,7 @@ namespace tuplex {
             // @TODO: rework this...
             aligned_string sample;
             sample = loadSample(SAMPLE_SIZE, _fileURIs.front(), _sizes.front(),
-                                SamplingMode::SAMPLE_FIRST_ROWS);
+                                SamplingMode::FIRST_ROWS);
 
             _firstRowsSample = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1,
                                                                                    strlen(sample.c_str())), _null_values, _delimiter, _quotechar);
@@ -653,7 +659,7 @@ namespace tuplex {
             // only draw sample IF > 1 file or file_size > 2 * sample size
             bool draw_sample = _fileURIs.size() >= 2 || _sizes.back() >= 2 * SAMPLE_SIZE;
             if(draw_sample) {
-                auto last_sample = loadSample(SAMPLE_SIZE, _fileURIs.back(), _sizes.back(), SamplingMode::SAMPLE_LAST_ROWS);
+                auto last_sample = loadSample(SAMPLE_SIZE, _fileURIs.back(), _sizes.back(), SamplingMode::LAST_ROWS);
                 // search CSV beginning
                 auto column_count = inputColumnCount();
                 auto offset = csvFindLineStart(last_sample.c_str(), SAMPLE_SIZE, column_count, _delimiter, _quotechar);

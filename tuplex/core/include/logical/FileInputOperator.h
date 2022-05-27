@@ -151,6 +151,28 @@ namespace tuplex {
 
         aligned_string loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode);
         std::vector<size_t> translateOutputToInputIndices(const std::vector<size_t>& output_indices);
+
+        // sampling functions
+        std::vector<Row> sample(const SamplingMode& mode);
+        std::vector<Row> sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
+        std::vector<Row> sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
+        std::vector<Row> sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
+        inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
+            switch(_fmt) {
+                case FileFormat::OUTFMT_CSV: {
+                    return sampleCSVFile(uri, uri_size, mode);
+                }
+                case FileFormat::OUTFMT_TEXT: {
+                    return sampleTextFile(uri, uri_size, mode);
+                }
+                case FileFormat::OUTFMT_ORC: {
+                    return sampleORCFile(uri, uri_size, mode);
+                }
+                default:
+                    throw std::runtime_error("unsupported sampling of file format "+ std::to_string(static_cast<int>(this->_fmt)));
+            }
+            return {};
+        }
     public:
 
         // required by cereal

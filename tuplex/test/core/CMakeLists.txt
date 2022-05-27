@@ -8,6 +8,8 @@ file(GLOB STDLIB_SRCS stdlib/*.cc)
 
 include(GoogleTest)
 
+message(STATUS "LLVM libs: ${LLVM_LIBRARIES}")
+
 add_executable(testcore ${SRCS} ${STDLIB_SRCS})
 target_link_libraries(testcore
         libutils
@@ -17,6 +19,7 @@ target_link_libraries(testcore
         libcpythonadapter
         ${GTest_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
-        ${Python3_LIBRARIES})
+        ${Python3_LIBRARIES}
+        ${LLVM_LIBRARIES})
 
 gtest_add_tests(TARGET testcore TEST_PREFIX "")

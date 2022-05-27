@@ -119,10 +119,12 @@ target_include_directories(libcodegen PUBLIC
         ${PCRE2_INCLUDE_DIRS}
         )
 
+message(STATUS "LLVM libs codegen: ${LLVM_LIBRARIES}")
+
 # Declare the library
 target_link_libraries(libcodegen
         libutils
-        ${llvm_libs}
+        ${LLVM_LIBRARIES}
         ${FFI_LIBRARIES}
         ${ANTLR4Runtime_LIB}
         ${AWSSDK_LINK_LIBRARIES}

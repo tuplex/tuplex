@@ -435,7 +435,8 @@ namespace tuplex {
 
                     // zero terminate str
                     cellStr = _env->zeroTerminateString(builder, cellStr, cellSize);
-
+                    assert(cellStr->getType() == _env->i8ptrType());
+                    assert(cellSize->getType() == _env->i64Type());
                     cell_strs.push_back(cellStr);
                     cell_sizes.push_back(cellSize);
                     numNormalCaseColsToSerialize++;
@@ -506,8 +507,8 @@ namespace tuplex {
                         gen_cells[gen_idx] = cell_strs[normal_pos];
                         gen_cell_sizes[gen_idx] = cell_sizes[normal_pos];
                     } else {
-                        gen_cells[i] = cell_strs[normal_pos];
-                        gen_cell_sizes[i] = cell_sizes[normal_pos];
+                        gen_cells[general_pos] = cell_strs[normal_pos];
+                        gen_cell_sizes[general_pos] = cell_sizes[normal_pos];
                     }
                     normal_pos++;
                 }

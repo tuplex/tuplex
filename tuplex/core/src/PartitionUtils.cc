@@ -105,7 +105,7 @@ namespace tuplex {
             std::vector<PartitionGroup> newGrouping;
             size_t new_normal_num = limitedPartitions.size() + limitedTailPartitions.size();
             // remove all normal partition, put new one at the front
-            newGrouping.push_back(PartitionGroup(new_normal_num, 0, 0, 0, 0, 0));
+            newGrouping.emplace_back(new_normal_num, 0, 0, 0, 0, 0);
             for (auto gp: oldGrouping) {
                 gp.numNormalPartitions = 0;
                 newGrouping.push_back(gp);

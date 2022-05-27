@@ -1031,10 +1031,10 @@ namespace tuplex {
         app->shutdown();
         rc |= 0x1;
 
-//        app = make_unique<WorkerApp>(WorkerSettings());
-//        app->processJSONMessage(json_message_general);
-//        app->shutdown();
-//        rc |= 0x2;
+        app = make_unique<WorkerApp>(WorkerSettings());
+        app->processJSONMessage(json_message_general);
+        app->shutdown();
+        rc |= 0x2;
 
         // now call verify function
         auto str = input_uri.toString();

@@ -247,6 +247,13 @@ namespace tuplex {
                     if(!_generalCaseColumnsToSerialize[check.colNo])
                         logger.warn("CellSourceTaskBuilder received check for col=" + std::to_string(check.colNo) + ", but column is eliminated in pushdown!");
                 }
+                std::stringstream ss;
+                if(check.type == CheckType::CHECK_CONSTANT) {
+                    ss<<"emitting constant check == "<<check.constant_type().constant()<<" for column "<<check.colNo<<"\n";
+                } else {
+                    ss<<"emitting unknown check for column "<<check.colNo<<"\n";
+                }
+                logger.info(ss.str());
             }
 
             // Interesting questions re. checks: => these checks should be performed first. What is the optimal order of checks to perform?

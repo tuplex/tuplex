@@ -286,6 +286,8 @@ namespace tuplex {
                 return opt;
             }
 
+            std::vector<size_t> get_accessed_columns() const; // get accessed columns of operators for first/input node
+
             static std::vector<size_t> get_accessed_columns(const std::vector<std::shared_ptr<LogicalOperator>>& ops);
         };
     }

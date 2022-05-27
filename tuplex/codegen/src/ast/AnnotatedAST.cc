@@ -605,20 +605,32 @@ namespace tuplex {
                 return;
 
             // ast is valid, now go over it AND replace everything that's constant typed with a simplified version...
-
+#ifdef GENERATE_PDFS
+            writeGraphToPDF("cf_step0_before.pdf");
+            writeGraphToPDF("cf_step0_before_wt.pdf", true);
+#endif
             // steps:
             // 1. run a visitor that replaces any node which has a constant node with the value
             ReplaceConstantTypesVisitor rctv;
             _root->accept(rctv);
 
+#ifdef GENERATE_PDFS
+            writeGraphToPDF("cf_step1_after_const.pdf");
+            writeGraphToPDF("cf_step1_after_const_wt.pdf", true);
+#endif
             // 2. run reduce expressions to further trim the tree
             ReduceExpressionsVisitor rev(_globals);
             _root->accept(rev);
+#ifdef GENERATE_PDFS
+            writeGraphToPDF("cf_step2_after_reduceexp.pdf");
+            writeGraphToPDF("cf_step2_after_reduceexp_wt.pdf", true);
+#endif
+
             RemoveDeadBranchesVisitor rdb(false); // do not use annotations here, remove full subtrees!
             _root->accept(rdb);
 
 #ifdef GENERATE_PDFS
-            writeGraphToPDF("post_constant_folding.pdf");
+            writeGraphToPDF("cf_step3_post_constant_folding.pdf", true);
 #else
             //...
 #endif

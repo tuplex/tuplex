@@ -38,6 +38,7 @@
 #include <procinfo.h>
 #include <FileUtils.h>
 #include <physical/codegen/StagePlanner.h>
+#include <logical/LogicalOptimizer.h>
 
 // dummy so linking works
 namespace tuplex {
@@ -794,6 +795,11 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
         auto mapop = std::make_shared<MapOperator>(csvop, UDF(udf_code), csvop->columns());
         auto fop = std::make_shared<FileOutputOperator>(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
 
+
+        // optimize operators (projection pushdown!)
+        auto logical_opt = std::make_unique<LogicalOptimizer>(options());
+        auto opt_ops = logical_opt->optimize(std::vector<std::shared_ptr<LogicalOperator>>{csvop, mapop, fpo}, true);
+
         // TODO: logical opt here?
         // => somehow on Lambda weird stuff happens...
 
@@ -1013,11 +1019,11 @@ namespace tuplex {
         vfs.file_size(input_uri, input_file_size);
 
         URI output_uri = tstage_hyper->outputURI().toString() + "/" + basename(input_uri.toString());
-        auto json_message_hyper = transformStageToReqMessage(tstage_hyper, input_uri.toPath(),
-                                                             input_file_size, output_uri.toString(),
-                                                             false, // this here causes an error!!!
-                                                             num_threads,
-                                                             spillURI.toString());
+//        auto json_message_hyper = transformStageToReqMessage(tstage_hyper, input_uri.toPath(),
+//                                                             input_file_size, output_uri.toString(),
+//                                                             false, // this here causes an error!!!
+//                                                             num_threads,
+//                                                             spillURI.toString());
         output_uri = tstage_general->outputURI().toString() + "/" + basename(input_uri.toString());
         auto json_message_general = transformStageToReqMessage(tstage_general, input_uri.toPath(),
                                                              input_file_size, output_uri.toString(),
@@ -1028,9 +1034,9 @@ namespace tuplex {
         // local WorkerApp
         // start worker within same process to easier debug...
         auto app = make_unique<WorkerApp>(WorkerSettings());
-        app->processJSONMessage(json_message_hyper);
-        app->shutdown();
-        rc |= 0x1;
+//        app->processJSONMessage(json_message_hyper);
+//        app->shutdown();
+//        rc |= 0x1;
 
         app = make_unique<WorkerApp>(WorkerSettings());
         app->processJSONMessage(json_message_general);

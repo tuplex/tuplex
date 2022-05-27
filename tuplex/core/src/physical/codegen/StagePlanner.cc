@@ -20,7 +20,7 @@
 #include <vector>
 #include <physical/codegen/StageBuilder.h>
 #include <graphviz/GraphVizBuilder.h>
-#include "logical/LogicalOptimizerTest.h"
+#include "logical/LogicalOptimizer.h"
 #include <unordered_map>
 
 #define VERBOSE_BUILD

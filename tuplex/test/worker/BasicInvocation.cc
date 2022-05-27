@@ -797,8 +797,9 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
 
 
         // optimize operators (projection pushdown!)
-        auto logical_opt = std::make_unique<LogicalOptimizer>(options());
-        auto opt_ops = logical_opt->optimize(std::vector<std::shared_ptr<LogicalOperator>>{csvop, mapop, fpo}, true);
+        auto logical_opt = std::make_unique<LogicalOptimizer>(co);
+        auto v = std::vector<std::shared_ptr<LogicalOperator>>{csvop, mapop, fop};
+        auto opt_ops = logical_opt->optimize(v, true);
 
         // TODO: logical opt here?
         // => somehow on Lambda weird stuff happens...

@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <logical/LogicalPlan.h>
-#include <logical/LogicalOptimizerTest.h>
+#include <logical/LogicalOptimizer.h>
 #include <logical/UDFOperator.h>
 #include <logical/ParallelizeOperator.h>
 #include <logical/FileInputOperator.h>

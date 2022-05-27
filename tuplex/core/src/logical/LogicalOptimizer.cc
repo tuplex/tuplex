@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <logical/LogicalOptimizerTest.h>
+#include <logical/LogicalOptimizer.h>
 #include <logical/PlanProperties.h>
 
 #include <visitors/ApplyVisitor.h>

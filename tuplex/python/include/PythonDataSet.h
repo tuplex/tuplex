@@ -77,7 +77,7 @@ namespace tuplex {
         PythonDataSet resolve(const int64_t exceptionCode, const std::string& lambda_code, const std::string& pickled_code, const py::object& closure=py::object());
 
         py::object collect();
-        py::object take(const int64_t numRows);
+        py::object take(const int64_t topLimit, const int64_t bottomLimit);
         void show(const int64_t numRows=-1);
 
         // DataFrame like operations

@@ -53,9 +53,10 @@ namespace tuplex {
 
         void setOrder(size_t order) { _orderNumbers = std::vector<size_t>{order}; }
 
-//        size_t getOrder(const size_t nth = 0) const {
-//            return _orderNumbers[nth];
-//        }
+        size_t getOrder(size_t nth) const {
+            return _orderNumbers[nth];
+        }
+
         std::vector<size_t> getOrder() const { return _orderNumbers; }
 
         void setOrder(const std::vector<size_t>& order) {

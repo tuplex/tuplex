@@ -19,9 +19,9 @@ if (Python3_FOUND)
     # check that cloudpickle is installed via import
     set(cmd -c "import cloudpickle")
     execute_process(COMMAND ${Python3_EXECUTABLE} ${cmd} RESULT_VARIABLE ret)
-    if(NOT "${ret}" STREQUAL "0")
+    if (NOT "${ret}" STREQUAL "0")
         message(FATAL_ERROR "Could not find cloudpickle module, please install via pip3 install cloudpickle.")
-    endif()
+    endif ()
 
     # check that numpy is installed too for testing purposes...
     set(cmd -c "import numpy")

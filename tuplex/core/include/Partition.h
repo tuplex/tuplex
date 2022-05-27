@@ -157,7 +157,7 @@ namespace tuplex {
          * return how much capacity is left, i.e. how many bytes can be actually written
          * @return
          */
-        size_t capacity() { return _size - sizeof(int64_t); }
+        size_t capacity() const { return _size - sizeof(int64_t); }
 
         uniqueid_t uuid() const { return _uuid; }
 

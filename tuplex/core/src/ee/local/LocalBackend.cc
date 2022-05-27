@@ -27,7 +27,7 @@
 #include <physical/HashProbeTask.h>
 #include <physical/LLVMOptimizer.h>
 #include <HybridHashTable.h>
-#include <int_hashmap.h>
+#include "PartitionUtils.h"
 
 namespace tuplex {
 
@@ -116,14 +116,14 @@ namespace tuplex {
     }
 
     Executor *LocalBackend::driver() {
-      assert(_driver);
-      return _driver;
+        assert(_driver);
+        return _driver.get();
     }
 
     void LocalBackend::execute(tuplex::PhysicalStage *stage) {
         assert(stage);
 
-        if(!stage)
+        if (!stage)
             return;
 
         // history server connection should be established
@@ -550,7 +550,8 @@ namespace tuplex {
 
                         task->sinkExceptionsToMemory(inputSchema);
                         task->setStageID(tstage->getID());
-                        task->setOutputLimit(tstage->outputLimit());
+                        task->setOutputTopLimit(tstage->outputTopLimit());
+                        task->setOutputBottomLimit(tstage->outputBottomLimit());
                         // add to tasks
                         tasks.emplace_back(std::move(task));
                     } else {
@@ -584,7 +585,8 @@ namespace tuplex {
                             }
                             task->sinkExceptionsToMemory(inputSchema);
                             task->setStageID(tstage->getID());
-                            task->setOutputLimit(tstage->outputLimit());
+                            task->setOutputTopLimit(tstage->outputTopLimit());
+                            task->setOutputBottomLimit(tstage->outputBottomLimit());
                             // add to tasks
                             tasks.emplace_back(std::move(task));
                             num_parts++;
@@ -621,7 +623,8 @@ namespace tuplex {
                                 }
                                 task->sinkExceptionsToMemory(inputSchema);
                                 task->setStageID(tstage->getID());
-                                task->setOutputLimit(tstage->outputLimit());
+                                task->setOutputTopLimit(tstage->outputTopLimit());
+                                task->setOutputBottomLimit(tstage->outputBottomLimit());
                                 // add to tasks
                                 tasks.emplace_back(std::move(task));
 
@@ -648,6 +651,7 @@ namespace tuplex {
             // --> issue for each memory partition a transform task and put it into local workqueue
             assert(tstage->inputMode() == EndPointMode::MEMORY);
 
+            // restrict after input limit
             size_t numInputRows = 0;
 
             auto inputPartitions = tstage->inputPartitions();
@@ -703,13 +707,50 @@ namespace tuplex {
                 }
                 task->sinkExceptionsToMemory(tstage->inputSchema());
                 task->setStageID(tstage->getID());
-                task->setOutputLimit(tstage->outputLimit());
+                task->setOutputTopLimit(tstage->outputTopLimit());
+                task->setOutputBottomLimit(tstage->outputBottomLimit());
                 tasks.emplace_back(std::move(task));
 
                 // input limit exhausted? break!
                 if(numInputRows >= tstage->inputLimit())
                     break;
             }
+        }
+
+        // assign the order for all tasks
+        for(size_t i = 0; i < tasks.size(); ++i) {
+            tasks[i]->setOrder(i);
+        }
+
+        TransformTask::setMaxOrderAndResetLimits(tasks.size() - 1);
+
+        if (tstage->hasOutputLimit()) {
+            // There are 3 possible cases here:
+            // 1. both top and bottom limit
+            // 2. only top limit
+            // 3. only bottom limit
+            if (tstage->outputTopLimit() > 0 && tstage->outputBottomLimit() > 0) {
+                // case 1: do task striping for output limit on both ends
+                // We are executing in the striping order instead of ascending or descending order
+                // This is an optimization in the case where we have small limits to avoid executing all partitions
+                vector<IExecutorTask*> newTasks;
+                for(size_t i = 0; i < tasks.size() - i; i++) {
+                    const size_t rev_i = tasks.size() - 1 - i;
+                    newTasks.push_back(tasks[i]);
+                    if (i < rev_i) {
+                        newTasks.push_back(tasks[rev_i]);
+                    }
+                }
+                assert(tasks.size() == newTasks.size());
+                tasks.swap(newTasks);
+            } else if (tstage->outputBottomLimit() > 0) {
+                // case 3: bottom limit only, just reverse the task order
+                // We are executing the last partitions first, since we don't need the top rows.
+                // Thus speeding up the execution time
+                std::reverse(tasks.begin(), tasks.end());
+            }
+            // case 3: if top limit only, do nothing since the order is already good
+            // (the tasks is generated in ascending order)
         }
 
         return tasks;
@@ -770,7 +811,6 @@ namespace tuplex {
     }
 
     void LocalBackend::executeTransformStage(tuplex::TransformStage *tstage) {
-
         Timer stageTimer;
         Timer timer; // for detailed measurements.
 
@@ -788,8 +828,14 @@ namespace tuplex {
 
         // special case: skip stage, i.e. empty code and mem2mem
         if(tstage->code().empty() &&  !tstage->fileInputMode() && !tstage->fileOutputMode()) {
-            tstage->setMemoryResult(tstage->inputPartitions(), tstage->generalPartitions(), tstage->fallbackPartitions(),
+            auto output_par = tstage->inputPartitions();
+            if (tstage->hasOutputLimit()) {
+                trimPartitionsToLimit(output_par, tstage->outputTopLimit(), tstage->outputBottomLimit(), tstage,
+                                      _driver.get());
+            }
+            tstage->setMemoryResult(output_par, tstage->generalPartitions(), tstage->fallbackPartitions(),
                                     tstage->partitionGroups());
+          
             // skip stage
             Logger::instance().defaultLogger().info("[Transform Stage] skipped stage " + std::to_string(tstage->number()) + " because there is nothing todo here.");
             return;
@@ -870,6 +916,13 @@ namespace tuplex {
         }
 
         auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms);
+
+        {
+            std::stringstream ss;
+            ss<<"[Transform Stage] Stage "<<tstage->number()<<" starting "<<tasks.size()<<" load&transform tasks";
+            Logger::instance().defaultLogger().info(ss.str());
+        }
+
         auto completedTasks = performTasks(tasks);
 
         // Note: this doesn't work yet because of the globals.
@@ -1096,6 +1149,12 @@ namespace tuplex {
                     std::copy(taskGeneralPartitions.begin(), taskGeneralPartitions.end(), std::back_inserter(generalPartitions));
                     std::copy(taskFallbackPartitions.begin(), taskFallbackPartitions.end(), std::back_inserter(fallbackPartitions));
                     std::copy(taskExceptionPartitions.begin(), taskExceptionPartitions.end(), std::back_inserter(exceptionPartitions));
+                }
+
+                if (tstage->hasOutputLimit()) {
+                    // the function expect the output to be sorted in ascending order (guaranteed by sortTasks())
+                    trimPartitionsToLimit(normalPartitions, tstage->outputTopLimit(), tstage->outputBottomLimit(), tstage,
+                                          _driver.get());
                 }
 
                 tstage->setMemoryResult(normalPartitions, generalPartitions, fallbackPartitions, partitionGroups, exceptionCounts);
@@ -1450,9 +1509,9 @@ namespace tuplex {
             logger().debug("task without order found, please fix in code.");
         }
 #endif
-
         // add all tasks to queue
         for(auto& task : tasks) wq.addTask(task);
+
         // clear
         tasks.clear();
 
@@ -1878,7 +1937,7 @@ namespace tuplex {
 
         // now simply go over the partitions and write the full buffers out
         // check all the params from TrafoStage
-        size_t limit = tstage->outputLimit();
+        size_t limit = tstage->outputTopLimit();
         size_t splitSize = tstage->splitSize();
         size_t numOutputFiles = tstage->numOutputFiles();
         URI uri = tstage->outputURI();
@@ -2003,4 +2062,5 @@ namespace tuplex {
         Logger::instance().defaultLogger().info("writing output took " + std::to_string(timer.time()) + "s");
         tstage->setFileResult(ecounts);
     }
+
 } // namespace tuplex

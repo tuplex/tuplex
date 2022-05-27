@@ -19,6 +19,7 @@ from tuplex.utils.reflection import get_globals
 from tuplex.utils.framework import UDFCodeExtractionError
 from tuplex.utils.source_vault import SourceVault
 from .exceptions import classToExceptionCode
+import tuplex.utils.table_format as table_format
 
 # signed 64bit limit
 max_rows = 9223372036854775807
@@ -27,6 +28,12 @@ class DataSet:
 
     def __init__(self):
         self._dataSet = None
+
+    def _repr_html_(self):
+        return self.showHTMLPreview()
+
+    def __repr__(self):
+        return self.showStrPreview()
 
     def unique(self):
         """ removes duplicates from Dataset (out-of-order). Equivalent to a DISTINCT clause in a SQL-statement.
@@ -109,22 +116,49 @@ class DataSet:
         assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
         return self._dataSet.collect()
 
-    def take(self, nrows=5):
-        """ action that generates a physical plan, processes data and collects the top results then as list of tuples.
+    def take(self, limitTop=5, limitBottom=0):
+        """ action that generates a physical plan, processes data and collects the top and bottom results
+        then as list of tuples.
 
         Args:
-            nrows (int): number of rows to collect. Per default ``5``.
+            limitTop (int): number of top rows to collect. Per default ``5``.
+            limitBottom (int): number of bottom rows to collect. Per default ``0``.
         Returns:
             (list): A list of tuples
 
         """
+        assert limitTop is None or isinstance(limitTop, int), 'num rows must be an integer or None'
+        assert limitBottom is None or isinstance(limitBottom, int), 'num bottom last must be an integer or None'
 
-        assert isinstance(nrows, int), 'num rows must be an integer'
-        assert nrows > 0, 'please specify a number greater than zero'
+        if limitTop is None or limitTop < 0:
+            limitTop = -1
+
+        if limitBottom is None or limitBottom < 0:
+            limitBottom = -1
 
         assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
 
-        return self._dataSet.take(nrows)
+        return self._dataSet.take(limitTop, limitBottom)
+
+    def head(self, nrows):
+        """ action that generates a physical plan, processes data and collects the top results then as list of tuples.
+
+        Args:
+            nrows (int): number of rows to collect.
+        Returns:
+            (list): A list of tuples
+        """
+        return self.take(nrows, 0)
+
+    def tail(self, nrows):
+        """ action that generates a physical plan, processes data and collects the bottom results then as list of tuples.
+
+        Args:
+            nrows (int): number of rows to collect.
+        Returns:
+            (list): A list of tuples
+        """
+        return self.take(0, nrows)
 
     def show(self, nrows=None):
         """ action that generates a physical plan, processes data and prints results as nicely formatted
@@ -141,6 +175,180 @@ class DataSet:
             nrows = -1
 
         self._dataSet.show(nrows)
+
+    def showHTMLPreview(self, topLimit=5, bottomLimit=5):
+        """ action that generates a physical plan, processes data and return a subset of results as nicely formatted
+        HTML table to stdout.
+
+        Args:
+            topLimit (int): number of top rows to collect. If ``None`` all rows will be collected
+            bottomLimit (int): number of bottom rows to collect. If ``None`` all rows will be collected
+
+        Returns:
+            string: an HTML table showing a preview of the data
+        """
+        HTML_TEMPLATE = (
+            "<div>\n"
+            "<style scoped>\n"
+            "    .dataframe tbody tr th:only-of-type {{\n"
+            "        vertical-align: middle;\n"
+            "    }}\n"
+            "\n"
+            "    .dataframe tbody tr th {{\n"
+            "        vertical-align: top;\n"
+            "    }}\n"
+            "\n"
+            "    .dataframe thead th {{\n"
+            "        text-align: right;\n"
+            "    }}\n"
+            "</style>\n"
+            "<table border=\"1\" class=\"dataframe\">\n"
+            "  <thead>\n"
+            "    <tr style=\"text-align: right;\">\n"
+            "{}"
+            "    </tr>\n"
+            "  </thead>\n"
+            "  <tbody>\n"
+            "{}"
+            "  </tbody>\n"
+            "</table>\n"
+            "</div>")
+
+        assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
+
+        rows = self.take(topLimit, bottomLimit)
+
+        if len(rows) == 0:
+            return HTML_TEMPLATE.format("<th></th>\n", "<tr></tr>\n", 0)
+
+        assert topLimit == -1 or bottomLimit == -1 or len(rows) <= topLimit + bottomLimit
+
+        headers_str = ""
+        body = ""
+        num_columns = None
+
+        # construct tables
+        if len(rows) < topLimit + bottomLimit:
+            # the data is small so we get everything (no need to render ...)
+            i = 0
+            for r in rows:
+                if i == 0:
+                    # we set num columns based on the first row
+                    num_columns = len(r) if isinstance(r, list) or isinstance(r, tuple) else 1
+                body += table_format.getHTMLRow(i, r)
+                i += 1
+        else:
+            # some data is not processed because of limiting
+            i = 0
+            for r in rows:
+                if i >= topLimit:
+                    break
+                if i == 0:
+                    # we set num columns based on the first row
+                    num_columns = len(r) if isinstance(r, list) or isinstance(r, tuple) else 1
+
+                body += table_format.getHTMLRow(i, r)
+                i += 1
+
+            # add the ...
+            body += "    <tr>\n"
+            body += "      <th>...</th>\n"
+            for _ in range(num_columns):
+                body += "      <td>...</td>\n"
+            body += "    </tr>\n"
+
+            for j in range(i, len(rows)):
+                body += table_format.getHTMLRow(len(rows) - j, rows[j])
+
+        assert num_columns is not None
+
+        # construct headers
+        column_names = self._dataSet.columns()
+        headers_str += "      <th></th>\n"
+        if len(column_names) > 0:
+            assert (num_columns == len(column_names))
+            for c_name in column_names:
+                headers_str += "      <th>{}</th>\n".format(c_name)
+        else:
+            # default to generic name if column name doesn't exist
+            for i in range(num_columns):
+                headers_str += "      <th>Column {}</th>\n".format(i)
+
+        return HTML_TEMPLATE.format(headers_str, body)
+
+    def showStrPreview(self, topLimit=5, bottomLimit=5):
+        """ action that generates a physical plan, processes data and return a subset of results as nicely formatted
+        ASCII table to stdout.
+
+        Args:
+            topLimit (int): number of top rows to collect. If ``None`` all rows will be collected
+            bottomLimit (int): number of bottom rows to collect. If ``None`` all rows will be collected
+
+        Returns:
+            string: an HTML table showing a preview of the data
+        """
+        assert self._dataSet is not None, 'internal API error, datasets must be created via context objects'
+
+        rows = self.take(topLimit, bottomLimit)
+
+        if len(rows) == 0:
+            return (
+                "---\n"
+                "| |\n"
+                "---\n"
+                "0 columns\n")
+
+        assert topLimit == -1 or bottomLimit == -1 or len(rows) <= topLimit + bottomLimit
+
+        str_table = []
+        num_columns = None
+
+        # construct tables
+        if len(rows) < topLimit + bottomLimit:
+            # the data is small so we get everything (no need to render ...)
+            i = 0
+            for r in rows:
+                if i == 0:
+                    # we set num columns based on the first row
+                    num_columns = len(r) if isinstance(r, list) or isinstance(r, tuple) else 1
+                str_table.append(table_format.getStrTableRow(i, r))
+                i += 1
+        else:
+            # some data is not processed because of limiting
+            i = 0
+            for r in rows:
+                if i >= topLimit:
+                    break
+                if i == 0:
+                    # we set num columns based on the first row
+                    num_columns = len(r) if isinstance(r, list) or isinstance(r, tuple) else 1
+
+                str_table.append(table_format.getStrTableRow(i, r))
+                i += 1
+
+            # add the ...
+            str_table.append(["..."] * (num_columns + 1))
+
+            for j in range(i, len(rows)):
+                str_table.append(table_format.getStrTableRow(len(rows) - j, rows[j]))
+
+        assert num_columns is not None
+
+        # construct headers
+        column_names = self._dataSet.columns()
+        headers_list = [""]
+        if len(column_names) > 0:
+            assert (num_columns == len(column_names))
+            for c_name in column_names:
+                headers_list.append("{}".format(c_name))
+        else:
+            # default to generic name if column name doesn't exist
+            for i in range(num_columns):
+                headers_list.append("Column {}".format(i))
+
+        str_table = [headers_list] + str_table
+
+        return table_format.generateStrTable(num_columns + 1, str_table)
 
     def resolve(self, eclass, ftor):
         """ Adds a resolver operator to the pipeline. The signature of ftor needs to be identical to the one of the preceding operator.

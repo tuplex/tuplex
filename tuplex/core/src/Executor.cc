@@ -32,8 +32,8 @@ namespace tuplex {
 
     std::vector<IExecutorTask*> WorkQueue::popCompletedTasks() {
         TRACE_LOCK("workQueue");
-        std::lock_guard<std::mutex> lock(_completedTasksMutex);
 
+        std::lock_guard<std::mutex> lock(_completedTasksMutex);
         // move leads to circular dependency in gcc and thus a bug on travis-ci. Therefore, just
         // use the below hack to fool the compiler into actually copying the vectors
         // // move to reset completed tasks and return array
@@ -78,59 +78,42 @@ namespace tuplex {
     bool WorkQueue::workTask(Executor& executor, bool nonBlocking) {
 
         IExecutorTask *task = nullptr;
-        if(nonBlocking) {
-            // @Todo: This should be put into a function "work" on the workQueue...
-            // dequeue from general working queue
-            if(_queue.try_dequeue(task)) {
-                if(!task)
-                    return false;
 
-                task->setOwner(&executor);
-                task->setThreadNumber(executor.threadNumber()); // redundant?
-
-                //executor.logger().info("started task...");
-                // process task
-                task->execute();
-                // save which thread executed this task
-                task->setID(std::this_thread::get_id());
-
-                _numPendingTasks.fetch_add(-1, std::memory_order_release);
-
-                // add task to done list
-                TRACE_LOCK("completedTasks");
-                _completedTasksMutex.lock();
-                _completedTasks.push_back(std::move(task));
-                _completedTasksMutex.unlock();
-                _numCompletedTasks.fetch_add(1, std::memory_order_release);
-                TRACE_UNLOCK("completedTasks");
-                return true;
+        // dequeue from general working queue
+        // Note: is this TODO: outdated?
+        // @Todo: This should be put into a function "work" on the workQueue...
+        if (nonBlocking) {
+            if(!_queue.try_dequeue(task)) {
+                return false;
             }
         } else {
             _queue.wait_dequeue(task);
-
-            if(!task)
-                return false;
-
-            task->setOwner(&executor);
-            task->setThreadNumber(executor.threadNumber()); // redundant?
-
-            // process task
-            task->execute();
-            // save which thread executed this task
-            task->setID(std::this_thread::get_id());
-
-            // add task to done list
-            TRACE_LOCK("completedTasks");
-            _completedTasksMutex.lock();
-            _completedTasks.push_back(std::move(task));
-            _completedTasksMutex.unlock();
-            _numCompletedTasks.fetch_add(1, std::memory_order_release);
-            TRACE_UNLOCK("completedTasks");
-
-            _numPendingTasks.fetch_add(-1, std::memory_order_release);
-            return true;
         }
-        return false;
+
+        if(!task) {
+            return false;
+        }
+
+        task->setOwner(&executor);
+        task->setThreadNumber(executor.threadNumber()); // redundant?
+
+        // executor.logger().info("started task...");
+        // process task
+        task->execute();
+        // save which thread executed this task
+        task->setID(std::this_thread::get_id());
+
+        // add task to done list
+        TRACE_LOCK("completedTasks");
+        _completedTasksMutex.lock();
+        _completedTasks.push_back(std::move(task));
+        _completedTasksMutex.unlock();
+        _numCompletedTasks.fetch_add(1, std::memory_order_release);
+        TRACE_UNLOCK("completedTasks");
+
+        _numPendingTasks.fetch_add(-1, std::memory_order_release);
+
+        return true;
     }
 
     void WorkQueue::workUntilAllTasksFinished(tuplex::Executor &executor, bool flushPeriodicallyToPython) {

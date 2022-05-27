@@ -48,7 +48,8 @@ namespace tuplex {
                                    int64_t number,
                                    bool allowUndefinedBehavior) : PhysicalStage::PhysicalStage(plan, backend, number),
                                                                   _inputLimit(std::numeric_limits<size_t>::max()),
-                                                                  _outputLimit(std::numeric_limits<size_t>::max()),
+                                                                  _outputTopLimit(std::numeric_limits<size_t>::max()),
+                                                                  _outputBottomLimit(0),
                                                                   _aggMode(AggregateType::AGG_NONE) {
 
         // TODO: is this code out of date? + is allowUndefinedBehavior needed here?
@@ -128,7 +129,6 @@ namespace tuplex {
         if (normalPartitions.empty() && generalPartitions.empty() && fallbackPartitions.empty())
             _rs = emptyResultSet();
         else {
-            std::vector<Partition *> limitedPartitions;
             auto schema = Schema::UNKNOWN;
 
             if(!normalPartitions.empty()) {
@@ -136,27 +136,17 @@ namespace tuplex {
                 for (auto partition : normalPartitions) {
                     assert(schema == partition->schema());
                 }
-
-                // check output limit, adjust partitions if necessary
-                size_t numOutputRows = 0;
-                for (auto partition : normalPartitions) {
-                    numOutputRows += partition->getNumRows();
-                    if (numOutputRows >= outputLimit()) {
-                        // clip last partition & leave loop
-                        auto clipped = outputLimit() - (numOutputRows - partition->getNumRows());
-                        assert(clipped <= partition->getNumRows());
-                        partition->setNumRows(clipped);
-                        if (clipped > 0)
-                            limitedPartitions.push_back(partition);
-                        break;
-                    } else {
-                        // put full partition to output set
-                        limitedPartitions.push_back(partition);
-                    }
-                }
             }
 
-            _rs = std::make_shared<ResultSet>(schema, limitedPartitions, generalPartitions, fallbackPartitions, partitionGroups, outputLimit());
+            size_t maxRows;
+            if (hasOutputLimit()) {
+                maxRows = outputTopLimit() + outputBottomLimit();
+            } else {
+                maxRows = std::numeric_limits<size_t>::max();
+            }
+
+            // put ALL partitions to result set
+            _rs = std::make_shared<ResultSet>(schema, normalPartitions, generalPartitions, fallbackPartitions, partitionGroups, maxRows);
         }
     }
 

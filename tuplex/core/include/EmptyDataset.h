@@ -67,18 +67,20 @@ namespace tuplex {
         virtual DataSet& aggregateByKey(const UDF& aggCombine, const UDF& aggUDF, const Row& aggInitial, const std::vector<std::string> &keyColumns) override { return *this; }
 
         //virtual void show(const int64_t numRows=-1, std::ostream& os=std::cout) override;
-        virtual std::shared_ptr<ResultSet> collect(std::ostream& os) override;
+        virtual std::shared_ptr<ResultSet> collect(std::ostream &os) override;
 
         // take / collect will print out the error only
-        virtual std::shared_ptr<ResultSet> take(int64_t numElements, std::ostream& os) override;
+        virtual std::shared_ptr<ResultSet> take(size_t topLimit, size_t bottomLimit, std::ostream &os) override;
 
         //virtual void show(const int64_t numRows=-1, std::ostream& os=std::cout) override;
-        virtual std::vector<Row> collectAsVector(std::ostream& os) override;
+        virtual std::vector<Row> collectAsVector(std::ostream &os) override;
 
-        // take / collect will print out the error only
-        virtual std::vector<Row> takeAsVector(int64_t numElements, std::ostream& os) override;
+        /*!
+         * take / collect will print out the error only, return empty rows
+         */
+        virtual std::vector<Row> takeAsVector(size_t numElements, std::ostream &os) override;
 
-        DataSet& cache(const Schema::MemoryLayout& memoryLayout, bool storeSpecialized) override {
+        DataSet &cache(const Schema::MemoryLayout &memoryLayout, bool storeSpecialized) override {
             return *this;
         }
     };

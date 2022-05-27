@@ -12,7 +12,7 @@
 
 
 namespace tuplex {
-    std::vector<Row> ErrorDataSet::takeAsVector(int64_t numElements, std::ostream &os) {
+    std::vector<Row> ErrorDataSet::takeAsVector(size_t numElements, std::ostream &os) {
         // return empty vector and print err message
         Logger::instance().logger("core").error(this->_error);
 
@@ -23,7 +23,7 @@ namespace tuplex {
         return takeAsVector(0, os);
     }
 
-    std::shared_ptr<ResultSet> ErrorDataSet::take(int64_t numElements, std::ostream &os) {
+    std::shared_ptr<ResultSet> ErrorDataSet::take(size_t topLimit, size_t bottomLimit, std::ostream &os) {
         // return empty vector and print err message
         Logger::instance().logger("core").error(this->_error);
 
@@ -31,7 +31,7 @@ namespace tuplex {
     }
 
     std::shared_ptr<ResultSet> ErrorDataSet::collect(std::ostream &os) {
-        return take(0, os);
+        return take(0, 0, os);
     }
 
     void

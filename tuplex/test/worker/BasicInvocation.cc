@@ -1020,11 +1020,11 @@ namespace tuplex {
         vfs.file_size(input_uri, input_file_size);
 
         URI output_uri = tstage_hyper->outputURI().toString() + "/" + basename(input_uri.toString());
-//        auto json_message_hyper = transformStageToReqMessage(tstage_hyper, input_uri.toPath(),
-//                                                             input_file_size, output_uri.toString(),
-//                                                             false, // this here causes an error!!!
-//                                                             num_threads,
-//                                                             spillURI.toString());
+        auto json_message_hyper = transformStageToReqMessage(tstage_hyper, input_uri.toPath(),
+                                                             input_file_size, output_uri.toString(),
+                                                             false, // this here causes an error!!!
+                                                             num_threads,
+                                                             spillURI.toString());
         output_uri = tstage_general->outputURI().toString() + "/" + basename(input_uri.toString());
         auto json_message_general = transformStageToReqMessage(tstage_general, input_uri.toPath(),
                                                              input_file_size, output_uri.toString(),
@@ -1035,9 +1035,9 @@ namespace tuplex {
         // local WorkerApp
         // start worker within same process to easier debug...
         auto app = make_unique<WorkerApp>(WorkerSettings());
-//        app->processJSONMessage(json_message_hyper);
-//        app->shutdown();
-//        rc |= 0x1;
+        app->processJSONMessage(json_message_hyper);
+        app->shutdown();
+        rc |= 0x1;
 
         app = make_unique<WorkerApp>(WorkerSettings());
         app->processJSONMessage(json_message_general);

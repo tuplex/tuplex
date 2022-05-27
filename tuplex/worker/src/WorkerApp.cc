@@ -1680,7 +1680,7 @@ namespace tuplex {
             Timer timer;
             stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
             syms = stage->jitsyms();
-            logger().info("Compilation of slow path took " + std::to_string(timer.time()));
+            logger().info("Compilation of slow path took " + std::to_string(timer.time()) + "s");
         }
 
         // now go through all exceptions & resolve them.
@@ -1765,6 +1765,10 @@ namespace tuplex {
         if(0 == numRows)
             return WORKER_OK;
 
+        // counters for debugging
+        size_t resolved_via_compiled_slow_path = 0;
+        size_t resolved_via_interpreter = 0;
+
         // fetch functors
         auto compiledResolver = syms->resolveFunctor;
         auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
@@ -1789,6 +1793,8 @@ namespace tuplex {
                 rc = compiledResolver(env, ecRowNumber, ecCode, ecBuf, ecBufSize);
                 if(rc == ecToI32(ExceptionCode::NORMALCASEVIOLATION))
                     rc = -1;
+                else
+                    resolved_via_compiled_slow_path++;
             }
 
             // try to resolve using interpreted resolver
@@ -1823,6 +1829,7 @@ namespace tuplex {
                     env->normalBuf.movePtr(fallbackRes.buf.size());
                     env->numNormalRows += fallbackRes.bufRowCount;
                     rc = 0; // all good, next row!
+                    resolved_via_interpreter++;
                 } else {
                     // didn't work, keep as original exception or partially resolved path?
                     // -> for now keep as it is...
@@ -1837,6 +1844,12 @@ namespace tuplex {
 
             ptr += delta;
         }
+
+
+        std::stringstream ss;
+        ss<<"Resolved buffer, compiled: "<<resolved_via_compiled_slow_path<<" interpreted: "
+          <<resolved_via_interpreter<<" unresolved: "<<(numRows - resolved_via_compiled_slow_path - resolved_via_interpreter);
+        env->app->logger().info(ss.str());
 
         return WORKER_OK;
     }

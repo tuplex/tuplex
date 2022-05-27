@@ -1202,9 +1202,11 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 
     // // test: 2013_03 fails -> fixed
     // 2010_01 fails
-     paths = {URI(flights_root + "/flights_on_time_performance_2021_11.csv")};
 
-     // paths = {URI(cwd_path.string() + "/../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.tinysample.csv")};
+    // this file here fails completely => issue is the processing using opt[str] assumptions on the delay breakdown.
+    paths = {URI(flights_root + "/flights_on_time_performance_2021_11.csv")};
+
+    paths = {URI(cwd_path.string() + "/../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.tinysample.csv")};
 
     std::reverse(paths.begin(), paths.end());
 

@@ -1750,8 +1750,9 @@ namespace tuplex {
 
                 // general case input row type is the input schema, but for files the read schema.
                 auto generalCaseInputRowType = ctx.slowPathContext.inputSchema.getRowType();
-                if(ctx.slowPathContext.inputNode->type() == LogicalOperatorType::FILEINPUT)
+                if(ctx.slowPathContext.inputNode->type() == LogicalOperatorType::FILEINPUT) {
                     generalCaseInputRowType = ctx.slowPathContext.readSchema.getRowType();
+                }
                 python::Type normalCaseInputRowType = ctx.fastPathContext.inputSchema.getRowType(); // if no specific fastPath Context was created, simply use this
 
                 if(gen_fast_code) {

@@ -110,7 +110,7 @@ namespace tuplex {
         }
 
         DataSet &
-        strDictParallelize(PyObject *listObj, const python::Type &rowType, const std::vector<std::string> &columns);
+        strDictParallelize(PyObject *listObj, const python::Type &rowType, const std::vector<std::string> &columns, const SamplingMode& sampling_mode);
 
         inline PythonDataSet makeError(const std::string& message) {
             PythonDataSet pds;

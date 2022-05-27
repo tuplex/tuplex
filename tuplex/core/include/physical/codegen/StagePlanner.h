@@ -28,11 +28,18 @@ namespace tuplex {
             DetectionStats() : num_rows(0),
                                num_columns_min(std::numeric_limits<size_t>::max()),
                                num_columns_max(std::numeric_limits<size_t>::min()) {}
-            std::vector<size_t> constant_column_indices() const {
+            std::vector<size_t> constant_column_indices(bool return_optional_constants=false) const {
                 std::vector<size_t> v;
                 for(unsigned i = 0; i < is_column_constant.size(); ++i) {
-                    if(is_column_constant[i])
+                    if(is_column_constant[i]) {
+
+                        // skip options if not explicitly desired.
+                        if(constant_row.get(i).getType().isOptionType() && !return_optional_constants)
+                            continue;
+
+                        // return index
                         v.push_back(i);
+                    }
                 }
                 return v;
             }

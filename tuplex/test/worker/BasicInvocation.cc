@@ -37,6 +37,7 @@
 #include <CSVUtils.h>
 #include <procinfo.h>
 #include <FileUtils.h>
+#include <physical/codegen/StagePlanner.h>
 
 // dummy so linking works
 namespace tuplex {
@@ -1111,6 +1112,19 @@ TEST(BasicInvocation, VerifyOutput) {
     }
 }
 
+TEST(BasicInvocation, DetectNllAndZeroes) {
+    using namespace tuplex;
+    using namespace std;
+
+    vector<Row> rows{Row(0.0), Row(0.0), Row(Field::null())};
+
+    codegen::DetectionStats ds;
+    ds.detect(rows);
+
+    auto indices = ds.constant_column_indices();
+    EXPECT_EQ(indices.size(), 0);
+}
+
 TEST(BasicInvocation, TestAllFlightFiles) {
     using namespace std;
     using namespace tuplex;
@@ -1183,7 +1197,7 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     // 2010_01 fails
      paths = {URI(flights_root + "/flights_on_time_performance_2021_11.csv")};
 
-     paths = {URI(cwd_path.string() + "/../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.tinysample.csv")};
+     // paths = {URI(cwd_path.string() + "/../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.tinysample.csv")};
 
     std::reverse(paths.begin(), paths.end());
 

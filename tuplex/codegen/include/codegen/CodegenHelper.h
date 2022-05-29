@@ -262,6 +262,16 @@ namespace tuplex {
 
                 return *this;
             }
+
+            /*!
+             * gives the value back representing None/NULL
+             * @param builder
+             * @return None
+             */
+            static SerializableValue None(llvm::IRBuilder<>& builder) {
+                auto is_null = llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(builder.getContext()), llvm::APInt(1, true));
+                return SerializableValue(nullptr, nullptr, is_null);
+            }
         };
 
         /*!

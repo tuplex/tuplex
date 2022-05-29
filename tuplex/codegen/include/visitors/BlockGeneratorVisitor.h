@@ -69,6 +69,13 @@ namespace codegen {
     class BlockGeneratorVisitor : public ApatheticVisitor, public IFailable {
     private:
 
+        void generateReturnWithNullExtraction(llvm::IRBuilder<>& builder,
+                                          const SerializableValue& retVal,
+                                          const python::Type& retType,
+                                          const python::Type& desiredRetType,
+                                          bool autoUpcast);
+
+
         void declareVariables(ASTNode* func);
 
         struct Variable {

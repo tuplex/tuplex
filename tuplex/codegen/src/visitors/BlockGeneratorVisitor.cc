@@ -83,7 +83,9 @@ namespace tuplex {
             if(earlyExit())return;
 
             // add SerializableValue with null indicator set to true!
-            _blockStack.push_back(SerializableValue(nullptr, nullptr, _env->i1Const(true))); // ... is_null=true!
+            //            _blockStack.push_back(SerializableValue(nullptr, nullptr, _env->i1Const(true))); // ... is_null=true!
+            auto builder = _lfb->getLLVMBuilder();
+            _blockStack.push_back(SerializableValue::None(builder)); // ... is_null=true!
         }
 
         void BlockGeneratorVisitor::visit(NNumber *num) {
@@ -2449,7 +2451,7 @@ namespace tuplex {
                 // ---------------------------------------------------------------------------------
                 // unification of variables... slow and bad...
 
-                bool allowNumericUpcasting = true;
+                bool allowNumericUpcasting = _policy.allowNumericTypeUnification;
 
                 // restore slots to how the slots were initially, i.e. not from realizations but rather just the pointers!
                 _variableSlots = slots_backup;
@@ -4151,6 +4153,119 @@ namespace tuplex {
             return val;
         }
 
+        // helper function to check whether options can be cast
+        bool canAchieveAtLeastNullCompatibility(const python::Type& a, const python::Type& b) {
+            auto flat_a = flattenedType(python::Type::propagateToTupleType(a));
+            auto flat_b = flattenedType(python::Type::propagateToTupleType(b));
+
+            if(flat_a.parameters().size() != flat_b.parameters().size())
+                return false;
+
+            auto num = flat_a.parameters().size();
+
+            for(unsigned i = 0; i < num; ++i) {
+                auto ea = flat_a.parameters()[i];
+                auto eb = flat_b.parameters()[i];
+
+                // get rid off optimizations
+                ea = deoptimizedType(ea);
+                eb = deoptimizedType(eb);
+
+                if(ea != eb) {
+                    // options or null?
+                    if(ea == python::Type::NULLVALUE && eb.isOptionType()) {
+                        // ok
+                        continue;
+                    } else if(ea.isOptionType() && eb == python::Type::NULLVALUE) {
+                        // ok
+                        continue;
+                    } else if(ea.isOptionType() && eb.isOptionType()) {
+                        // ok, this is the magical null extraction/speculation.
+                        continue;
+                    } else {
+                        // error, not working
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        void BlockGeneratorVisitor::generateReturnWithNullExtraction(llvm::IRBuilder<>& builder,
+                                                                     const SerializableValue& retVal,
+                                                                     const python::Type& retType,
+                                                                     const python::Type& desiredRetType,
+                                                                     bool autoUpcast) {
+            using namespace llvm;
+
+            // assert(canAchieveAtLeastNullCompatibility(retType, desiredRetType));
+            if(retType == desiredRetType) {
+                _lfb->addReturn(retVal);
+                return;
+            }
+
+            auto type = retType;
+            auto targetType = desiredRetType;
+
+            // go through params
+            if(type.parameters().size() != targetType.parameters().size()) {
+                error("generating extraction code for tuple type " + type.desc() + " to tuple type " + targetType.desc()
+                      + " not possible, because tuples contain different amount of parameters!");
+            }
+            // upcast tuples
+            // Load as FlattenedTuple
+            FlattenedTuple val_tuple = FlattenedTuple::fromLLVMStructVal(_env, builder, retVal.val, type);
+            FlattenedTuple target_tuple(_env);
+            target_tuple.init(targetType);
+
+            auto num_elements = type.parameters().size();
+
+            // put to flattenedtuple (incl. assigning tuples!)
+            for (int i = 0; i < num_elements; ++i) {
+                // retrieve from tuple itself and then upcast!
+                auto el_type = val_tuple.fieldType(i);
+                auto el_target_type = target_tuple.fieldType(i);
+                SerializableValue el(val_tuple.get(i), val_tuple.getSize(i), val_tuple.getIsNull(i));
+
+                // check compatibility (todo: auto upcast?)
+                SerializableValue el_target;
+                if(el_type == python::Type::NULLVALUE && el_target_type.isOptionType()) {
+                   // upcast simply
+                    el_target = upCastReturnType(builder, el, el_type, el_target_type);
+                } else if(el_type.isOptionType() && el_target_type == python::Type::NULLVALUE) {
+                    // only ok if el is null
+                    _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, _env->i1neg(builder, el.is_null));
+                    el_target = SerializableValue::None(builder);
+                } else if(el_type.isOptionType() &&
+                          el_target_type.isOptionType() &&
+                          el_type.elementType() != el_target_type.elementType() ) {
+                    // element types are different. Hence, can only return when
+                    if(autoUpcast && python::canUpcastType(el_type.elementType(), el_target_type.elementType())) {
+                        el_target = upCastReturnType(builder, el, el_type, el_target_type);
+                    } else {
+                        // can always upcast None to any option!
+                        _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, _env->i1neg(builder, el.is_null));
+                        el_target = SerializableValue::None(builder);
+                    }
+                } else if(el_type == el_target_type) {
+                    el_target = el;
+                } else {
+                    // error? should not occur
+                    error("INTERNAL ERROR, this branch should never be visited");
+                }
+                target_tuple.setElement(builder, i, el_target.val, el_target.size, el_target.is_null);
+            }
+
+            // get loadable struct type
+            auto ret = target_tuple.getLoad(builder);
+            assert(ret->getType()->isStructTy());
+            auto size = target_tuple.getSize(builder);
+            addInstruction(ret, size);
+
+            auto retValue = SerializableValue(ret, size);
+            _lfb->addReturn(retValue);
+        }
+
         void BlockGeneratorVisitor::visit(NReturn *ret) {
             if(earlyExit())return;
             auto num_stack_entries = _blockStack.size();
@@ -4204,16 +4319,24 @@ namespace tuplex {
                 _lfb->addReturn(retVal);
             } else {
 
-#error "here is the issue. the types are incompatible. YET - there's one chance where they can be compatible, in the case of a null value present and the output type being two different options. Need to implement this."
+                if(canAchieveAtLeastNullCompatibility(deopt_func_return_type, deopt_target_type)) {
+                    _logger.debug("types are not identical, but null-compatible. Adding speculative null return extration.");
+                    // attempt null-extraction, else return with normal-case violation.
+                    generateReturnWithNullExtraction(builder,
+                                                     retVal,
+                                                     expression_type,
+                                                     funcReturnType,
+                                                     _policy.allowNumericTypeUnification);
+                } else {
+                    // always a normal-case violation.
+                    // @TODO: if normal-case always yields exception -> do not process!
+                    // add analysis of this (LLVM!) into pipeline.
+                    _logger.debug("added normalcase speculation on return type " + target_type.desc() + ".");
+                    _logger.debug("Actual oberserved funcReturnType is: " + funcReturnType.desc());
 
-#error "if that conversion fails, then exit with normalcase!!!"
-
-
-                _logger.debug("added normalcase speculation on return type " + target_type.desc() + ".");
-                _logger.debug("Actual oberserved funcReturnType is: " + funcReturnType.desc());
-
-                // normal case violation.
-                _lfb->exitNormalCase(); // NOTE: this only works in a statement, not on an expression.
+                    // normal case violation.
+                    _lfb->exitNormalCase(); // NOTE: this only works in a statement, not on an expression.
+                }
             }
         }
 

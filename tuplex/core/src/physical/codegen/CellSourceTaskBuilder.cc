@@ -102,7 +102,9 @@ namespace tuplex {
                         outputRowNumber = builder.CreateLoad(outputRowNumberVar);
                         auto nc_ecCode = _env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT));
                         auto nc_ecOpID = _env->i64Const(_operatorID);
-                        auto serialized_row = serializeBadParseException(builder, cellsPtr, sizesPtr);
+
+                        // serialize as bad parse -> NOTE: the normal-case checks have passed. Hence, use dummies
+                        auto serialized_row = serializeBadParseException(builder, cellsPtr, sizesPtr, true);
 
                         // important to get curBlock here.
                         llvm::BasicBlock *curBlock = builder.GetInsertBlock();
@@ -414,7 +416,7 @@ namespace tuplex {
 
         SerializableValue
         CellSourceTaskBuilder::serializeBadParseException(llvm::IRBuilder<> &builder, llvm::Value *cellsPtr,
-                                                          llvm::Value *sizesPtr) const {
+                                                          llvm::Value *sizesPtr, bool use_dummies) const {
             size_t numNormalCaseColsToSerialize = 0;
 
             std::vector<llvm::Value*> cell_strs;
@@ -433,7 +435,8 @@ namespace tuplex {
 
                     // zero terminate str
                     cellStr = _env->zeroTerminateString(builder, cellStr, cellSize);
-
+                    assert(cellStr->getType() == _env->i8ptrType());
+                    assert(cellSize->getType() == _env->i64Type());
                     cell_strs.push_back(cellStr);
                     cell_sizes.push_back(cellSize);
                     numNormalCaseColsToSerialize++;
@@ -489,7 +492,11 @@ namespace tuplex {
             std::vector<llvm::Value*> gen_cells(numGeneralCaseCells, nullptr);
             std::vector<llvm::Value*> gen_cell_sizes(numGeneralCaseCells, nullptr);
 
+            auto empty_str = _env->strConst(builder, "");
+            auto empty_str_size = _env->i64Const(1);
+
             size_t normal_pos = 0;
+            size_t general_pos = 0;
             for(unsigned i = 0; i < _columnsToSerialize.size(); ++i) {
                 if(_columnsToSerialize[i]) {
                     // mapping?
@@ -498,17 +505,38 @@ namespace tuplex {
                         assert(gen_idx < numGeneralCaseCells);
                         assert(_generalCaseColumnsToSerialize[gen_idx]);
                         gen_cells[gen_idx] = cell_strs[normal_pos];
-                        gen_cells[gen_idx] = cell_sizes[normal_pos];
+                        gen_cell_sizes[gen_idx] = cell_sizes[normal_pos];
                     } else {
-                        gen_cells[i] = cell_strs[normal_pos];
-                        gen_cell_sizes[i] = cell_sizes[normal_pos];
+                        gen_cells[general_pos] = cell_strs[normal_pos];
+                        gen_cell_sizes[general_pos] = cell_sizes[normal_pos];
                     }
                     normal_pos++;
+                }
+
+                // because _columnsToSerialize and general columns to serialize may be different, either use dummies or reuse
+                if(i < _generalCaseColumnsToSerialize.size() && _generalCaseColumnsToSerialize[i]) {
+                    if(!gen_cells[general_pos]) {
+                        if(use_dummies) {
+                            gen_cells[general_pos] = empty_str;
+                            gen_cell_sizes[general_pos] = empty_str_size;
+                        } else {
+                            // originals
+                            size_t colNo = i;
+                            llvm::Value* cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, _env->i64Const(colNo)), "x" + std::to_string(colNo));
+                            llvm::Value* cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, _env->i64Const(colNo)), "s" + std::to_string(colNo));
+
+                            // zero terminate str
+                            cellStr = _env->zeroTerminateString(builder, cellStr, cellSize);
+                            gen_cells[general_pos] = cellStr;
+                            gen_cell_sizes[general_pos] = cellSize;
+                        }
+                    }
+                    general_pos++;
                 }
             }
 
             // store general case cells now...
-            size_t general_pos = 0;
+            general_pos = 0;
             llvm::Value* acc_size = _env->i64Const(0);
             llvm::Value* empty_str_offset = nullptr;
             for(unsigned i = 0; i < _generalCaseColumnsToSerialize.size(); ++i) {
@@ -530,6 +558,9 @@ namespace tuplex {
                     auto cell = gen_cells[general_pos];
                     auto cell_size = gen_cell_sizes[general_pos];
 
+                    assert(cell && cell->getType() == _env->i8ptrType());
+                    assert(cell_size && cell_size->getType() == _env->i64Type());
+
                     // special case empty str?
                     if(cell && cell_size) {
                         // the offset is computed using how many varlen fields have been already serialized
@@ -550,6 +581,7 @@ namespace tuplex {
                         // --> need to compute correct offset.
                         auto remaining_cells_offset = _env->i64Const(((int64_t)numGeneralCaseCells - (int64_t)general_pos) * sizeof(int64_t));
                         llvm::Value *offset = builder.CreateAdd(remaining_cells_offset, varlen_total_size);
+                        assert(offset->getType() == _env->i64Type());
                         llvm::Value *info = builder.CreateOr(builder.CreateZExt(offset, _env->i64Type()),
                                                              builder.CreateShl(builder.CreateZExt(_env->i64Const(sizeof(char)), _env->i64Type()), 32));
                         builder.CreateStore(info, builder.CreateBitCast(buf, _env->i64ptrType()), false);

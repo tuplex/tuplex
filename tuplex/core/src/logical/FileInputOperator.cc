@@ -730,4 +730,73 @@ namespace tuplex {
         assert(desired_type.isTupleType());
         return retype(desired_type, false);
     }
+
+    std::vector<Row> FileInputOperator::sample(const SamplingMode& mode) {
+        auto& logger = Logger::instance().logger("logical");
+        if(_fileURIs.empty())
+            return {};
+
+        Timer timer;
+        std::vector<Row> v;
+
+        // check sampling mode, i.e. how files should be sample?
+        std::set<unsigned> sampled_file_indices;
+        if(mode & SamplingMode::ALL_FILES) {
+            assert(_fileURIs.size() == _sizes.size());
+            for(unsigned i = 0; i < _fileURIs.size(); ++i) {
+                auto s = sampleFile(_fileURIs[i], _sizes[i], mode);
+                std::copy(s.begin(), s.end(), std::back_inserter(v));
+                sampled_file_indices.insert(i);
+            }
+        }
+
+        // sample the first file present?
+        if(mode & SamplingMode::FIRST_FILE && sampled_file_indices.find(0) == sampled_file_indices.end()) {
+            auto s = sampleFile(_fileURIs.front(), _sizes.front(), mode);
+            std::copy(s.begin(), s.end(), std::back_inserter(v));
+            sampled_file_indices.insert(0);
+        }
+
+        // sample the last file present?
+        if(mode & SamplingMode::LAST_FILE && sampled_file_indices.find(_fileURIs.size() - 1) == sampled_file_indices.end()) {
+            auto s = sampleFile(_fileURIs.back(), _sizes.back(), mode);
+            std::copy(s.begin(), s.end(), std::back_inserter(v));
+            sampled_file_indices.insert(_fileURIs.size() - 1);
+        }
+
+        // sample a random file?
+        if(mode & SamplingMode::RANDOM_FILE && sampled_file_indices.size() < _fileURIs.size()) {
+            // form set of valid indices
+            std::vector<unsigned> valid_indices;
+            for(unsigned i = 0; i < _fileURIs.size(); ++i)
+                if(sampled_file_indices.find(i) == sampled_file_indices.end())
+                    valid_indices.push_back(i);
+            assert(!valid_indices.empty());
+            auto random_idx = valid_indices[randi(0ul, valid_indices.size() - 1)];
+            logger.debug("Sampling file (random) idx=" + std::to_string(random_idx));
+            auto s = sampleFile(_fileURIs[random_idx], _sizes[random_idx], mode);
+            std::copy(s.begin(), s.end(), std::back_inserter(v));
+            sampled_file_indices.insert(random_idx);
+        }
+
+        _sampling_time_s = timer.time();
+        logger.debug("Sampling (mode=" + std::to_string(mode) + ") took " + std::to_string(_sampling_time_s) + "s");
+        return v;
+    }
+
+    std::vector<Row> FileInputOperator::sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
+        throw std::runtime_error("not yet implemented");
+        return {};
+    }
+
+    std::vector<Row> FileInputOperator::sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
+        throw std::runtime_error("not yet implemented");
+        return {};
+    }
+
+    std::vector<Row> FileInputOperator::sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
+        throw std::runtime_error("not yet implemented");
+        return {};
+    }
+
 }

@@ -66,6 +66,9 @@ if(LLVM_DIR)
     message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 endif()
 MESSAGE(STATUS "Found llvm include dirs at: " ${LLVM_INCLUDE_DIRS})
+MESSAGE(STATUS "LLVM library dir: ${LLVM_LIBRARY_DIRS}")
+set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LLVM_LIBRARY_DIRS})
+
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
@@ -128,4 +131,5 @@ target_link_libraries(libcodegen
         ${FFI_LIBRARIES}
         ${ANTLR4Runtime_LIB}
         ${AWSSDK_LINK_LIBRARIES}
-        ${PCRE2_LIBRARIES})
+        ${PCRE2_LIBRARIES}
+        ${LLVM_LIBRARY_DIRS}/LLVM-13)

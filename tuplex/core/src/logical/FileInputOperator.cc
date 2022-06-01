@@ -113,7 +113,7 @@ namespace tuplex {
     FileInputOperator::FileInputOperator(const std::string& pattern,
             const ContextOptions& co,
             const std::vector<std::string>& null_values,
-            const SamplingMode& sampling_mode) : _null_values(null_values), _estimatedRowCount(0), _sampling_time_s(0.0), _samplingMode(sampling_mode) {
+            const SamplingMode& sampling_mode) : _null_values(null_values), _estimatedRowCount(0), _sampling_time_s(0.0), _samplingMode(sampling_mode), _samplingSize(co.SAMPLE_SIZE()) {
         auto &logger = Logger::instance().logger("fileinputoperator");
         _fmt = FileFormat::OUTFMT_TEXT;
 
@@ -187,7 +187,8 @@ namespace tuplex {
                                      column_name_hints, index_based_type_hints, column_based_type_hints, sampling_mode);
     }
 
-    FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co,
+    FileInputOperator::FileInputOperator(const std::string &pattern,
+                                         const ContextOptions &co,
                                          option<bool> hasHeader,
                                          option<char> delimiter,
                                          option<char> quotechar,
@@ -196,7 +197,7 @@ namespace tuplex {
                                          const std::unordered_map<size_t, python::Type>& index_based_type_hints,
                                          const std::unordered_map<std::string, python::Type>& column_based_type_hints,
                                          const SamplingMode& sampling_mode) :
-                                                                            _null_values(null_values), _sampling_time_s(0.0), _samplingMode(sampling_mode) {
+                                                                            _null_values(null_values), _sampling_time_s(0.0), _samplingMode(sampling_mode), _samplingSize(co.SAMPLE_SIZE()) {
         auto &logger = Logger::instance().logger("fileinputoperator");
         _fmt = FileFormat::OUTFMT_CSV;
 
@@ -376,7 +377,7 @@ namespace tuplex {
         return new FileInputOperator(pattern, co, sampling_mode);
     }
 
-    FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co, const SamplingMode& sampling_mode): _sampling_time_s(0.0), _samplingMode(sampling_mode) {
+    FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co, const SamplingMode& sampling_mode): _sampling_time_s(0.0), _samplingMode(sampling_mode), _samplingSize(co.SAMPLE_SIZE()) {
 
 #ifdef BUILD_WITH_ORC
         auto &logger = Logger::instance().logger("fileinputoperator");
@@ -607,7 +608,8 @@ namespace tuplex {
                                                                              _firstRowsSample(other._firstRowsSample),
                                                                              _lastRowsSample(other._lastRowsSample),
                                                                              _samplingMode(other._samplingMode),
-                                                                             _sampling_time_s(other._sampling_time_s) {
+                                                                             _sampling_time_s(other._sampling_time_s),
+                                                                             _samplingSize(other._samplingSize) {
         // copy members for logical operator
         LogicalOperator::copyMembers(&other);
         LogicalOperator::setDataSet(other.getDataSet());
@@ -785,8 +787,59 @@ namespace tuplex {
     }
 
     std::vector<Row> FileInputOperator::sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
-        throw std::runtime_error("not yet implemented");
-        return {};
+        auto& logger = Logger::instance().logger("logical");
+        std::vector<Row> v;
+        assert(mode & SamplingMode::FIRST_ROWS || mode & SamplingMode::LAST_ROWS || mode & SamplingMode::RANDOM_ROWS);
+
+        if(0 == uri_size || uri == URI::INVALID) {
+            logger.debug("empty file, can't obtain sample from it");
+            return {};
+        }
+
+        SamplingMode m = mode;
+
+        // if uri_size < file_size -> first rows only
+        if(uri_size <= _samplingSize)
+            m = SamplingMode::FIRST_ROWS;
+
+        // check file sampling modes & then load the samples accordingly
+        if(m & SamplingMode::FIRST_ROWS) {
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS);
+            // parse as rows using the settings detected.
+            v = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
+                          _null_values, _delimiter, _quotechar);
+        }
+
+        if(m & SamplingMode::LAST_ROWS) {
+            // the smaller of remaining and sample size!
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::LAST_ROWS);
+            size_t offset = 0;
+            if(!v.empty()) {
+                if(uri_size < 2 * _samplingSize) {
+                    offset = _samplingSize - (uri_size - _samplingSize);
+                    assert(offset <= _samplingSize);
+                }
+                auto rows = parseRows(sample.c_str() + offset, sample.c_str() + offset + std::min(sample.size() - 1, strlen(sample.c_str())),
+                                            _null_values, _delimiter, _quotechar);
+                std::copy(rows.begin(), rows.end(), std::back_inserter(v));
+
+            } else {
+                v = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
+                                _null_values, _delimiter, _quotechar);
+            }
+        }
+
+        // most complicated: random -> make sure no overlap with first/last rows
+        if(m & SamplingMode::RANDOM_ROWS) {
+            // @TODO: there could be overlap with first/last rows.
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::RANDOM_ROWS);
+            // parse as rows using the settings detected.
+            auto rows = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
+                          _null_values, _delimiter, _quotechar);
+            std::copy(rows.begin(), rows.end(), std::back_inserter(v));
+        }
+
+        return v;
     }
 
     std::vector<Row> FileInputOperator::sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
@@ -798,5 +851,4 @@ namespace tuplex {
         throw std::runtime_error("not yet implemented");
         return {};
     }
-
 }

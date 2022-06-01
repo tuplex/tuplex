@@ -1034,11 +1034,13 @@ namespace tuplex {
 
         // local WorkerApp
         // start worker within same process to easier debug...
+        std::cout<<" --- Hyper processing --- "<<std::endl;
         auto app = make_unique<WorkerApp>(WorkerSettings());
         app->processJSONMessage(json_message_hyper);
         app->shutdown();
         rc |= 0x1;
 
+        std::cout<<" --- General processing --- "<<std::endl;
         app = make_unique<WorkerApp>(WorkerSettings());
         app->processJSONMessage(json_message_general);
         app->shutdown();
@@ -1206,7 +1208,7 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     // this file here fails completely => issue is the processing using opt[str] assumptions on the delay breakdown.
     paths = {URI(flights_root + "/flights_on_time_performance_2021_11.csv")};
 
-    paths = {URI(cwd_path.string() + "/../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.tinysample.csv")};
+    paths = {URI(cwd_path.string() + "/../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.sample.csv")};
 
     std::reverse(paths.begin(), paths.end());
 

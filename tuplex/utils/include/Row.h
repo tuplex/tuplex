@@ -58,8 +58,9 @@ namespace tuplex {
             _serializedLength = other._serializedLength;
             return *this;
         }
-        Row(Row&& other) : _schema(other._schema), _values(std::move(other._values)), _serializedLength(other._serializedLength) {
-
+        Row(Row&& other) : _schema(other._schema), _serializedLength(other._serializedLength) {
+            _values = other._values;
+            other._values.clear();
         }
 
         // new constructor using variadic templates

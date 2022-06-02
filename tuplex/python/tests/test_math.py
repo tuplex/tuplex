@@ -366,7 +366,7 @@ class TestMath(unittest.TestCase):
         L1 = c.parallelize(pow_test).map(lambda x, y: math.pow(x, y)).collect()
         assert len(L1) == 4, 'wrong length'
         self.assertAlmostEqual(L1[0], 5.0)
-        self.assertAlmostEqual(L1[1], -1.0 / 9.0)
+        self.assertAlmostEqual(L1[1], 1.0 / 9.0)
         self.assertAlmostEqual(L1[2], -64.0)
         self.assertAlmostEqual(L1[3], 1.0 / 625.0)
 

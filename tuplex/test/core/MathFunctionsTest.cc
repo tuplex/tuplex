@@ -716,9 +716,20 @@ TEST_F(MathFunctionsTest, TEST) {
     // EXPECT_DOUBLE_EQ(v1[2].getDouble(0), -64.0);
     // EXPECT_DOUBLE_EQ(v1[3].getDouble(0), pow(-5.0, -4.0));
 
+    // auto v1 = c.parallelize({
+    //     Row(100.0), Row(1.0), Row(0.0), Row(1 / 100)
+    // }).map(UDF("lambda x: math.sqrt(x)", "", ce)).collectAsVector();
+
+    // EXPECT_EQ(v1.size(), 4);
+    // EXPECT_DOUBLE_EQ(v1[0].getDouble(0), 10.0);
+    // EXPECT_DOUBLE_EQ(v1[1].getDouble(0), 1.0);
+    // EXPECT_DOUBLE_EQ(v1[2].getDouble(0), 0.0);
+    // EXPECT_DOUBLE_EQ(v1[3].getDouble(0), sqrt(1 / 100));
+
     auto v2 = c.parallelize({
-        Row(0), Row(1.0), Row(4.0), Row(16)
+        Row(0.0), Row(1.0), Row(4.0), Row(16.0)
     }).map(UDF("lambda x: math.sqrt(x)", "", ce)).collectAsVector();
+    
     EXPECT_EQ(v2.size(), 4);
     EXPECT_DOUBLE_EQ(v2[0].getDouble(0), 0.0);
     EXPECT_DOUBLE_EQ(v2[1].getDouble(0), 1.0);

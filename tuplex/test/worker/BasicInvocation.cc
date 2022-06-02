@@ -1134,6 +1134,86 @@ TEST(BasicInvocation, DetectNllAndZeroes) {
     EXPECT_EQ(indices.size(), 0);
 }
 
+namespace tuplex {
+    std::shared_ptr<LogicalOperator> sampleFiles(const std::string& pattern, const SamplingMode& mode) {
+        python::initInterpreter();
+        python::unlockGIL();
+        // try {
+        ContextOptions co = ContextOptions::defaults();
+        auto enable_nvo = true; // test later with true! --> important for everything to work properly together!
+        co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
+        codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+        auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(pattern, co,
+                                                                                   option<bool>(true),
+                                                                                   option<char>(','), option<char>('"'),
+                                                                                   {""}, {}, {}, {}, mode));
+        python::lockGIL();
+        python::closeInterpreter();
+        return csvop;
+    }
+}
+
+TEST(BasicInvocation, FileSampling) {
+    using namespace std;
+    using namespace tuplex;
+
+    // for testing purposes, store here the root path to the flights data (simple ifdef)
+#ifdef __APPLE__
+    // leonhards macbook
+    string flights_root = "/Users/leonhards/Downloads/flights/";
+    //string flights_root = "/Users/leonhards/Downloads/flights_small/";
+    string driver_memory = "2G";
+#else
+    // BBSN00
+    string flights_root = "/hot/data/flights_all/";
+    string driver_memory = "32G";
+    string executor_memory = "10G";
+    string num_executors = "0";
+    //num_executors = "16";
+#endif
+
+    // find all flight files in root
+    auto vfs = VirtualFileSystem::fromURI(URI(flights_root));
+    auto paths = vfs.globAll(flights_root + "/flights_on_time*.csv");
+    std::sort(paths.begin(), paths.end(), [](const URI& a, const URI& b) {
+        auto a_str = a.toString();
+        auto b_str = b.toString();
+        return lexicographical_compare(a_str.begin(), a_str.end(), b_str.begin(), b_str.end());
+    });
+    cout<<"Found "<<paths.size()<<" CSV files.";
+    cout<<basename(paths.front().toString())<<" ... "<<basename(paths.back().toString())<<endl;
+
+    // sample all files & record time!
+    Timer timer;
+    auto op = sampleFiles(flights_root + "/flights_on_time*.csv", DEFAULT_SAMPLING_MODE);
+    ASSERT_TRUE(op);
+    auto sample = op->getSample();
+    auto default_duration = timer.time();
+    ASSERT_GT(default_duration, 0.0);
+
+    // no go through modes
+    vector<pair<string, SamplingMode>> v{make_pair("first file", SamplingMode::FIRST_ROWS | SamplingMode::FIRST_FILE),
+                                 make_pair("all files, first rows", SamplingMode::ALL_FILES | SamplingMode::FIRST_ROWS),
+                                 make_pair("all files, first and last rows", SamplingMode::ALL_FILES | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS),
+                                 make_pair("all files, first/last/random", SamplingMode::ALL_FILES | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::RANDOM_ROWS)};
+
+    std::stringstream ss;
+    ss<<"Sampling times:\n";
+    for(auto t : v) {
+        auto name = t.first;
+        auto mode = t.second;
+        timer.reset();
+        op = sampleFiles(flights_root + "/flights_on_time*.csv", mode);
+        ASSERT_TRUE(op);
+        sample = op->getSample();
+        auto duration = timer.time();
+        ss<<name<<": "<<duration<<"s\n";
+        cout<<"done with mode "<<name<<endl;
+    }
+    cout<<endl;
+    cout<<ss.str()<<endl;
+}
+
 TEST(BasicInvocation, TestAllFlightFiles) {
     using namespace std;
     using namespace tuplex;

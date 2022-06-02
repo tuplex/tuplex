@@ -51,6 +51,10 @@ namespace tuplex {
     };
 
     static const SamplingMode DEFAULT_SAMPLING_MODE = static_cast<SamplingMode>(SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE);
+
+    inline SamplingMode operator | (const SamplingMode& lhs, const SamplingMode& rhs) {
+        return static_cast<SamplingMode>(lhs | rhs);
+    }
 }
 
 #endif //TUPLEX_DEFS_H

@@ -369,13 +369,15 @@ namespace tuplex {
 
             //inline llvm::Value* CreateLoad()
          private:
-             // original LLVM builder
-             std::unique_ptr<llvm::IRBuilder<>> _llvm_builder;
+            // original LLVM builder
+            std::unique_ptr<llvm::IRBuilder<>> _llvm_builder;
             llvm::IRBuilder<>& get_or_throw() const {
                 if(!_llvm_builder)
                     throw std::runtime_error("no builder specified");
                 return *_llvm_builder;
             }
+
+            IRBuilder(llvm::BasicBlock::iterator& it);
          };
 
         // various switches to influence compiler behavior

@@ -42,7 +42,6 @@
 
 namespace tuplex {
     namespace codegen {
-
         // global var because often only references are passed around.
         // CompilePolicy DEFAULT_COMPILE_POLICY = CompilePolicy();
 
@@ -60,6 +59,25 @@ namespace tuplex {
         void shutdownLLVM() {
             llvm::llvm_shutdown();
             llvmInitialized = false;
+        }
+
+        // IRBuilder definitions
+        IRBuilder::IRBuilder(llvm::BasicBlock *bb) {
+            _llvm_builder = std::make_unique<llvm::IRBuilder<>>(bb);
+        }
+
+        IRBuilder::IRBuilder(llvm::IRBuilder<> &llvm_builder) : IRBuilder(llvm_builder.GetInsertPoint()) {}
+
+        IRBuilder::IRBuilder(const IRBuilder &other) : _llvm_builder(nullptr) {
+            if(other._llvm_builder) {
+                _llvm_builder = std::make_unique<llvm::IRBuilder<>>(other._llvm_builder->GetInsertPoint());
+            }
+        }
+
+        IRBuilder::IRBuilder(const llvm::IRBuilder<> &llvm_builder) : IRBuilder(llvm_builder.GetInsertPoint()) {}
+
+        IRBuilder::IRBuilder(llvm::BasicBlock::iterator& it) {
+            _llvm_builder = std::make_unique<llvm::IRBuilder<>>(it);
         }
 
         // Clang doesn't work well with ASAN, disable here container overflow.

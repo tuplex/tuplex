@@ -108,7 +108,10 @@ ucm_add_flags("-fexceptions -frtti")
 
 add_library(libcodegen OBJECT
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${ANTLR_Python3Grammar_CXX_OUTPUTS})
-set_target_properties(libcodegen PROPERTIES PREFIX "")
+set_target_properties(libcodegen PROPERTIES PREFIX ""
+        LINK_FLAGS "${LLVM_LDFLAGS}")
+
+message(STATUS "ZLIB: ${ZLIB_LIBRARIES}")
 
 # Specify here the include directories exported
 # by this library
@@ -123,13 +126,14 @@ target_include_directories(libcodegen PUBLIC
         )
 
 message(STATUS "LLVM libs codegen: ${LLVM_LIBRARIES}")
-
+message(STATUS "LLVM shared link mode: ${LLVM_IS_SHARED}")
 # Declare the library
 target_link_libraries(libcodegen
         libutils
-        ${LLVM_LIBRARIES}
         ${FFI_LIBRARIES}
         ${ANTLR4Runtime_LIB}
         ${AWSSDK_LINK_LIBRARIES}
         ${PCRE2_LIBRARIES}
-        ${LLVM_LIBRARY_DIRS}/LLVM-13)
+        ${LLVM_LIBRARIES}
+        ${LLVM_SYSTEM_LIBS}
+        ${ZLIB_LIBRARIES})

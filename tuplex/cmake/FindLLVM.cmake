@@ -86,7 +86,7 @@ else()
         endif()
         set(result_code)
         execute_process(
-                COMMAND ${LLVM_CONFIG} --${flag}
+                COMMAND ${LLVM_CONFIG} --link-static --${flag}
                 RESULT_VARIABLE result_code
                 OUTPUT_VARIABLE LLVM_${var}
                 OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -105,8 +105,10 @@ else()
             set(_quiet_arg ERROR_QUIET)
         endif()
         set(result_code)
+
+        # should have a global option for static/dynamic
         execute_process(
-                COMMAND ${LLVM_CONFIG} --${flag} ${components}
+                COMMAND ${LLVM_CONFIG} --link-static --${flag} ${components}
                 RESULT_VARIABLE result_code
                 OUTPUT_VARIABLE tmplibs
                 OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -129,7 +131,7 @@ else()
     # The LLVM version string _may_ contain a git/svn suffix, so match only the x.y.z part
     string(REGEX MATCH "^[0-9]+[.][0-9]+[.][0-9]+" LLVM_VERSION_BASE_STRING "${LLVM_VERSION_STRING}")
 
-    llvm_set(SHARED_MODE shared-mode)
+    # llvm_set(SHARED_MODE shared-mode)
     if(LLVM_SHARED_MODE STREQUAL "shared")
         set(LLVM_IS_SHARED ON)
     else()
@@ -147,7 +149,7 @@ else()
     if(LLVM_FIND_COMPONENTS)
         message(STATUS "LLVM components to search for are: ${LLVM_FIND_COMPONENTS}")
     endif()
-    llvm_set_libs(LIBRARIES libs "${LLVM_FIND_COMPONENTS}")
+    llvm_set_libs(LIBRARIES libfiles "${LLVM_FIND_COMPONENTS}")
     # LLVM bug: llvm-config --libs tablegen returns -lLLVM-3.8.0
     # but code for it is not in shared library
     if("${LLVM_FIND_COMPONENTS}" MATCHES "tablegen")

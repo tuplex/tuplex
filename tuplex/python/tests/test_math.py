@@ -362,7 +362,7 @@ class TestMath(unittest.TestCase):
     def testTEST(self):
         c = tuplex.Context(self.conf)
 
-        pow_test = [(25, 0.5), (3, -2), (-4.0, 3.0), (-5, -4)]
+        pow_test = [(25.0, 0.5), (3.0, -2.0), (-4.0, 3.0), (-5.0, -4.0)]
         c.parallelize(pow_test).map(lambda x, y: math.pow(x, y)).collect()
         assert len(pow_test) == 4, 'wrong length'
         self.assertAlmostEqual(pow_test[0], 5.0)

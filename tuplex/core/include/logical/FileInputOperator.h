@@ -51,6 +51,15 @@ namespace tuplex {
         // Variables that wont' get serialized.
         double _sampling_time_s;
         SamplingMode _samplingMode;
+        size_t _samplingSize;
+
+        // a sample cache (avoids sampling the same file over and over again).
+        // -> load_sample uses this
+        std::unordered_map<std::tuple<URI, SamplingMode>, aligned_string> _sampleCache;
+
+        // for CSV, have here a global csv stat (that can get reset)
+        // ??
+
         // internal sample, used for tracing & Co.
         std::vector<Row> _firstRowsSample;
         std::vector<Row> _lastRowsSample;
@@ -158,6 +167,12 @@ namespace tuplex {
         std::vector<Row> sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
+            auto& logger = Logger::instance().logger("logical");
+            if(!(mode & SamplingMode::FIRST_ROWS) && !(mode & SamplingMode::LAST_ROWS) && !(mode & SamplingMode::RANDOM_ROWS)) {
+                logger.debug("no file sampling mode (first rows/last rows/random rows) specified. skip.");
+                return {};
+            }
+
             switch(_fmt) {
                 case FileFormat::OUTFMT_CSV: {
                     return sampleCSVFile(uri, uri_size, mode);
@@ -409,6 +424,7 @@ namespace tuplex {
             obj["null_values"] = _null_values;
 
             obj["samplingMode"] = (int)_samplingMode;
+            obj["samplingSize"] = _samplingSize;
 
             obj["columnNames"] = _columnNames;
             obj["columnsToSerialize"] = _columnsToSerialize;
@@ -444,6 +460,7 @@ namespace tuplex {
             fop->_columnsToSerialize = obj["columnsToSerialize"].get<std::vector<bool>>();
 
             fop->_samplingMode = static_cast<SamplingMode>(obj["samplingMode"].get<int>());
+            fop->_samplingSize = static_cast<SamplingMode>(obj["samplingSize"].get<int>());
 
             fop->_normalCaseRowType = python::decodeType(obj["normalCaseRowType"].get<std::string>());
             fop->_generalCaseRowType = python::decodeType(obj["generalCaseRowType"].get<std::string>());
@@ -472,7 +489,8 @@ namespace tuplex {
                     _indexBasedHints,
                     _normalCaseRowType,
                     _generalCaseRowType,
-                    _samplingMode); // do NOT serialize samples!
+                    _samplingMode,
+                    _samplingSize); // do NOT serialize samples!
         }
 
         template<class Archive> void load(Archive &ar) {
@@ -490,7 +508,8 @@ namespace tuplex {
                 _indexBasedHints,
                 _normalCaseRowType,
                 _generalCaseRowType,
-                _samplingMode); // do NOT serialize samples!
+                _samplingMode,
+                _samplingSize); // do NOT serialize samples!
         }
 #endif
     };

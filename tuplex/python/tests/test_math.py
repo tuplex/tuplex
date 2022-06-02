@@ -363,20 +363,20 @@ class TestMath(unittest.TestCase):
         c = tuplex.Context(self.conf)
 
         pow_test = [(25.0, 0.5), (3.0, -2.0), (-4.0, 3.0), (-5.0, -4.0)]
-        c.parallelize(pow_test).map(lambda x, y: math.pow(x, y)).collect()
-        assert len(pow_test) == 4, 'wrong length'
-        self.assertAlmostEqual(pow_test[0], 5.0)
-        self.assertAlmostEqual(pow_test[1], -1.0 / 9.0)
-        self.assertAlmostEqual(pow_test[2], -64.0)
-        self.assertAlmostEqual(pow_test[3], 1.0 / 625.0)
+        L1 = c.parallelize(pow_test).map(lambda x, y: math.pow(x, y)).collect()
+        assert len(L1) == 4, 'wrong length'
+        self.assertAlmostEqual(L1[0], 5.0)
+        self.assertAlmostEqual(L1[1], -1.0 / 9.0)
+        self.assertAlmostEqual(L1[2], -64.0)
+        self.assertAlmostEqual(L1[3], 1.0 / 625.0)
 
-        sqrt_test = [0, 1.0, 4.0, 16]
-        c.parallelize(sqrt_test).map(lambda x: math.sqrt(x)).collect()
-        assert len(sqrt_test) == 4, 'wrong length'
-        self.assertAlmostEqual(sqrt_test[0], 0.0)
-        self.assertAlmostEqual(sqrt_test[1], 1.0)
-        self.assertAlmostEqual(sqrt_test[2], 2.0)
-        self.assertAlmostEqual(sqrt_test[3], 4.0)
+        sqrt_test = [0, 1, 4, 16]
+        L2 = c.parallelize(sqrt_test).map(lambda x: math.sqrt(x)).collect()
+        assert len(L2) == 4, 'wrong length'
+        self.assertAlmostEqual(L2[0], 0.0)
+        self.assertAlmostEqual(L2[1], 1.0)
+        self.assertAlmostEqual(L2[2], 2.0)
+        self.assertAlmostEqual(L2[3], 4.0)
 
     
     # def testIsInf(self):

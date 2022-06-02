@@ -46,6 +46,12 @@ namespace tuplex {
         if(0 == file_size || uri == URI::INVALID)
             return "";
 
+        // check if in sample cache already
+        auto key = std::make_tuple(uri, mode);
+        auto it = _sampleCache.find(key);
+        if(it != _sampleCache.end())
+            return it->second;
+
         auto vfs = VirtualFileSystem::fromURI(uri);
         auto vf = vfs.open_file(uri, VirtualFileMode::VFS_READ);
         if (!vf) {
@@ -101,6 +107,10 @@ namespace tuplex {
 
         Logger::instance().defaultLogger().info(
                 "sampled " + uri.toString() + " on " + sizeToMemString(sampleSize));
+
+        // put into cache
+        _sampleCache[key] = sample;
+
         return sample;
     }
 
@@ -215,14 +225,12 @@ namespace tuplex {
         Timer timer;
         detectFiles(pattern);
 
-        auto SAMPLE_SIZE = co.CSV_MAX_DETECTION_MEMORY();
-
         // infer schema using first file only
         if (!_fileURIs.empty()) {
 
             aligned_string sample;
             if(!_fileURIs.empty()) {
-                sample = loadSample(SAMPLE_SIZE, _fileURIs.front(), _sizes.front(),
+                sample = loadSample(co.SAMPLE_SIZE(), _fileURIs.front(), _sizes.front(),
                                     SamplingMode::FIRST_ROWS);
             }
 
@@ -349,12 +357,12 @@ namespace tuplex {
             // draw last rows sample from last file & append.
             if(!_fileURIs.empty()) {
                 // only draw sample IF > 1 file or file_size > 2 * sample size
-                bool draw_sample = _fileURIs.size() >= 2 || _sizes.back() >= 2 * SAMPLE_SIZE;
+                bool draw_sample = _fileURIs.size() >= 2 || _sizes.back() >= 2 * _samplingSize;
                 if(draw_sample) {
-                    auto last_sample = loadSample(SAMPLE_SIZE, _fileURIs.back(), _sizes.back(), SamplingMode::LAST_ROWS);
+                    auto last_sample = loadSample(_samplingSize, _fileURIs.back(), _sizes.back(), SamplingMode::LAST_ROWS);
                     // search CSV beginning
                     auto column_count = inputColumnCount();
-                    auto offset = csvFindLineStart(last_sample.c_str(), SAMPLE_SIZE, column_count, csvstat.delimiter(), csvstat.quotechar());
+                    auto offset = csvFindLineStart(last_sample.c_str(), _samplingSize, column_count, csvstat.delimiter(), csvstat.quotechar());
                     if(offset >= 0) {
                         // parse into last rows
                         _lastRowsSample = parseRows(last_sample.c_str(), last_sample.c_str() + std::min(last_sample.size() - 1, strlen(last_sample.c_str())), _null_values, _delimiter, _quotechar);
@@ -613,6 +621,9 @@ namespace tuplex {
         // copy members for logical operator
         LogicalOperator::copyMembers(&other);
         LogicalOperator::setDataSet(other.getDataSet());
+
+        // copy cache (?)
+        for (const auto& kv: other._sampleCache) { _sampleCache[kv.first] = kv.second; }
     }
 
     int64_t FileInputOperator::cost() const {

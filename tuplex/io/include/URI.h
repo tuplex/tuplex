@@ -222,7 +222,19 @@ namespace tuplex {
         os<<uri.toString();
         return os;
     }
+}
 
+// make URI hashabke
+namespace std {
+    template <> struct hash<tuplex::URI> {
+        std::size_t operator()(const tuplex::URI& uri) const {
+            using std::size_t;
+            using std::hash;
+            using std::string;
+
+            return hash<string>()(uri.toString());
+        }
+    };
 }
 
 #endif //TUPLEX_URI_H

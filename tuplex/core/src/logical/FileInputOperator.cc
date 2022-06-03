@@ -455,6 +455,28 @@ namespace tuplex {
     }
 
     std::vector<Row> FileInputOperator::getSample(const size_t num) const {
+        auto rows = const_cast<FileInputOperator*>(this)->sample(_samplingMode);
+
+        // restrict to num
+        if(num <= rows.size()) {
+            // select num random rows...
+            // use https://en.wikipedia.org/wiki/Reservoir_sampling the optimal algorithm there to fetch the sample quickly...
+            // i.e., https://www.geeksforgeeks.org/reservoir-sampling/
+            return randomSampleFromReservoir(rows, num);
+        } else {
+            // need to increase sample size!
+            Logger::instance().defaultLogger().warn("requested " + std::to_string(num)
+                                                    + " rows for sampling, but only "
+                                                    + std::to_string(rows.size())
+                                                    + " stored. Consider decreasing sample size.");
+            return rows;
+        }
+
+        // old code below.
+
+
+
+
         auto totalSampleCount = _firstRowsSample.size() + _lastRowsSample.size();
         if(num > totalSampleCount) {
 #ifndef NEDEBUG

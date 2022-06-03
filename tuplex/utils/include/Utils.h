@@ -184,6 +184,51 @@ struct hash<std::tuple<TT...>>
 
 namespace tuplex {
 
+    // random uniform integer
+    template<typename T> T randi(const T& low, const T& high) {
+        std::random_device rd;
+        std::mt19937 rng(rd());
+        std::uniform_int_distribution<int> uni(low, high);
+
+        auto random_integer = uni(rng);
+        return random_integer;
+    }
+
+    /*!
+     * perform reservoir sampling over sample
+     * @tparam T
+     * @param v sample
+     * @param k how many elements to sample
+     * @return sample
+     */
+    template<typename T> std::vector<T> randomSampleFromReservoir(const std::vector<T>& v, size_t k) {
+        // optimal algorithm from https://en.wikipedia.org/wiki/Reservoir_sampling
+        using namespace std;
+
+        if(0 == k || v.empty())
+            return {};
+        if(1 == k)
+            return {v[randi(0ul, v.size() - 1)]};
+
+        if(k >= v.size())
+            return v;
+
+        vector<T> R(v.begin(), v.begin() + k);
+
+        auto W = exp(log(random()) / k);
+        size_t i = 0;
+        auto n = v.size();
+        while(i <= n) {
+            i += floor(log(random()) / log(1 - W)) + 1;
+            if(i <= n) {
+                R[randi(0ul, R.size() - 1)] = v[i];
+                W = W * exp(log(random()) / k);
+            }
+        }
+
+        return R;
+    }
+
     template<typename T> bool isSortedAsc(const std::vector<T>& v) {
         if(v.empty())
             return true;
@@ -194,16 +239,6 @@ namespace tuplex {
             last = *it;
         }
         return true;
-    }
-
-    // random uniform integer
-    template<typename T> T randi(const T& low, const T& high) {
-        std::random_device rd;
-        std::mt19937 rng(rd());
-        std::uniform_int_distribution<int> uni(low, high);
-
-        auto random_integer = uni(rng);
-        return random_integer;
     }
 
     // current system timestamp

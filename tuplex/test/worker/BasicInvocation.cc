@@ -1191,6 +1191,9 @@ TEST(BasicInvocation, FileSampling) {
     auto default_duration = timer.time();
     ASSERT_GT(default_duration, 0.0);
 
+
+    size_t sample_size = 10000; // 10k samples.
+
     // no go through modes
     vector<pair<string, SamplingMode>> v{make_pair("first file", SamplingMode::FIRST_ROWS | SamplingMode::FIRST_FILE),
                                  make_pair("all files, first rows", SamplingMode::ALL_FILES | SamplingMode::FIRST_ROWS),
@@ -1199,16 +1202,16 @@ TEST(BasicInvocation, FileSampling) {
 
     std::stringstream ss;
     ss<<"Sampling times:\n";
-    for(auto t : v) {
+    for(const auto& t : v) {
         auto name = t.first;
         auto mode = t.second;
         timer.reset();
         op = sampleFiles(flights_root + "/flights_on_time*.csv", mode);
         ASSERT_TRUE(op);
-        sample = op->getSample();
+        sample = op->getSample(sample_size);
         auto duration = timer.time();
         ss<<name<<": "<<duration<<"s\n";
-        cout<<"done with mode "<<name<<endl;
+        cout<<"done with mode "<<name<<" "<<pluralize(sample.size(), "row")<<endl;
     }
     cout<<endl;
     cout<<ss.str()<<endl;

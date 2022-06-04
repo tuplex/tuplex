@@ -343,13 +343,19 @@ namespace tuplex {
             _colTypes.emplace_back(types);
         } else throw std::runtime_error("no nested functions supported in tracer yet!");
 
-
+#error "need to fix this, should be upcast etc.!"
         // if input row type is given, check!
         if(_inputRowType != python::Type::UNKNOWN) {
-            if(python::Type::makeTupleType(_colTypes.back()) != _inputRowType) {
+
+            // debug:
+            auto sample_row_type_name = python::Type::makeTupleType(_colTypes.back()).desc();
+            auto input_row_type_name = _inputRowType.desc();
+
+            auto sample_row_type = python::Type::makeTupleType(_colTypes.back());
+            if(sample_row_type != _inputRowType) { // check here for upcastability
 
                 // special case: coltypes could be single element & tuple!
-                if(_colTypes.back().size() == 1 && _colTypes.back().front() == _inputRowType) {
+                if(_colTypes.back().size() == 1 && _colTypes.back().front() == _inputRowType) { // also the last check should be upcastable!!!
                     // update colTypes accordingly!
                     for(auto& colType : _colTypes)
                         colType = _inputRowType.parameters();

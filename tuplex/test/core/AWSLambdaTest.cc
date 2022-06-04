@@ -502,11 +502,15 @@ TEST_F(AWSTest, FullZillowPipeline) {
 
 //    auto inputFiles = "s3://tuplex-public/data/100GB/*.csv"; // 100GB of data
     string inputFiles = "s3://tuplex-public/data/100GB/zillow_00001.csv";
+
+    // local test
+    inputFiles = "../resources/zillow_dirty.csv";
+
     string outputDir = string("s3://") + S3_TEST_BUCKET + "/tests/" + testName + "/zillow_output.csv";
     Context ctx(opt);
 
     Timer timer;
-    auto ds = zillowPipeline(ctx, inputFiles);
+    auto& ds = zillowPipeline(ctx, inputFiles);
     ds.tocsv(outputDir);
     cout<<"Lambda zillow took: "<<timer.time()<<endl;
     // 2. get S3 thing working

@@ -343,7 +343,6 @@ namespace tuplex {
             _colTypes.emplace_back(types);
         } else throw std::runtime_error("no nested functions supported in tracer yet!");
 
-#error "need to fix this, should be upcast etc.!"
         // if input row type is given, check!
         if(_inputRowType != python::Type::UNKNOWN) {
 
@@ -352,15 +351,24 @@ namespace tuplex {
             auto input_row_type_name = _inputRowType.desc();
 
             auto sample_row_type = python::Type::makeTupleType(_colTypes.back());
-            if(sample_row_type != _inputRowType) { // check here for upcastability
+
+            auto unified_type = unifyTypes(sample_row_type, _inputRowType);
+
+            if(unified_type == python::Type::UNKNOWN) { // check here for upcastability
 
                 // special case: coltypes could be single element & tuple!
-                if(_colTypes.back().size() == 1 && _colTypes.back().front() == _inputRowType) { // also the last check should be upcastable!!!
+                if(_colTypes.back().size() == 1)
+                    unified_type = unifyTypes(_colTypes.back().front(), _inputRowType);
+                if(unified_type != python::Type::UNKNOWN) {
                     // update colTypes accordingly!
                     for(auto& colType : _colTypes)
-                        colType = _inputRowType.parameters();
+                        colType = unified_type.parameters();
                 } else {
-                    PyErr_SetString(PyExc_TypeError, "sample object given doesn't match input row type");
+                    auto err_str = "sample object (type=" + sample_row_type.desc()
+                            + ") given doesn't match or can be unified with input row type (type="
+                            + _inputRowType.desc() + ")";
+
+                    PyErr_SetString(PyExc_TypeError, err_str.c_str());
                 }
             }
         }

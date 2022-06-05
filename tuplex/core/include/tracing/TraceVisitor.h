@@ -95,6 +95,8 @@ namespace tuplex {
 
         python::Type _inputRowType; // optional schema to filter out bad input rows (will save as exception)
 
+        codegen::CompilePolicy _policy; // holds compilation parameters
+
         void fetchAndStoreError();
 
         void errCheck();
@@ -107,9 +109,10 @@ namespace tuplex {
         class TraceException : public std::exception {
         };
     public:
-        explicit TraceVisitor(const python::Type& inputRowType=python::Type::UNKNOWN) : _args(nullptr),
+        explicit TraceVisitor(const python::Type& inputRowType=python::Type::UNKNOWN,
+                              const codegen::CompilePolicy& policy=codegen::CompilePolicy()) : _args(nullptr),
                     _functionSeen(false),
-                    _retValue(nullptr), _inputRowType(inputRowType), _numSamplesProcessed(0) {
+                    _retValue(nullptr), _inputRowType(inputRowType), _numSamplesProcessed(0), _policy(policy) {
         }
 
         /*!

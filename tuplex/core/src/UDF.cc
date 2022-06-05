@@ -1322,7 +1322,7 @@ namespace tuplex {
 
 
     bool UDF::hintSchemaWithSample(const std::vector<PyObject *>& sample, const python::Type& inputRowType, bool acquireGIL) {
-        TraceVisitor tv(inputRowType);
+        TraceVisitor tv(inputRowType, _policy);
 
         auto funcNode = _ast.getFunctionAST();
 

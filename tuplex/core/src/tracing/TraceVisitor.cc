@@ -90,12 +90,16 @@ namespace tuplex {
     }
 
     void TraceVisitor::visit(NNumber *node) {
+
+        // if constants are used, always use the deoptimized type
+        auto type = deoptimizedType(node->getInferredType());
+
         // leaf node, check string then issue python type
-        if(node->getInferredType() == python::Type::I64)
+        if(type == python::Type::I64)
             addTraceResult(node, TraceItem(PyLong_FromLongLong(node->getI64())));
-        else if(node->getInferredType() == python::Type::F64)
+        else if(type == python::Type::F64)
             addTraceResult(node, TraceItem(PyFloat_FromDouble(node->getF64())));
-        else throw std::runtime_error("weird, Number node type not defined");
+        else throw std::runtime_error("weird, Number node type " + type.desc() + " not defined");
     }
 
     void TraceVisitor::visit(NIdentifier *node) {
@@ -738,6 +742,10 @@ namespace tuplex {
 
         // getitem with slice
         auto res = PyObject_GetItem(ti_value.value, ti_slice.value);
+
+        // check error, i.e. None indexed by something will lead to an error.
+        if(!res)
+            errCheck();
 
         // @TODO: error??
         assert(res);

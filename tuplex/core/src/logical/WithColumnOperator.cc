@@ -47,7 +47,7 @@ namespace tuplex {
         if(parentSchema == Schema::UNKNOWN)
             parentSchema = getInputSchema();
 
-        auto columnNames = UDFOperator::columns();
+        auto inputColumnNames = UDFOperator::inputColumns();
 
         // detect schema of UDF
         auto udfSchema = UDFOperator::inferSchema(parentSchema);
@@ -75,8 +75,8 @@ namespace tuplex {
         if(inParameters.size() == 1 && inParameters.front().isTupleType())
             inParameters = inParameters.front().parameters();
 
-        if(!columnNames.empty())
-            assert(columnNames.size() == inParameters.size());
+        if(!inputColumnNames.empty())
+            assert(inoutColumnNames.size() == inParameters.size());
 
         if(_columnToMapIndex < inParameters.size())
             inParameters[_columnToMapIndex] = retType;

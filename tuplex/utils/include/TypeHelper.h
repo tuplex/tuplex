@@ -54,6 +54,9 @@ namespace tuplex {
                 return python::Type::makeTupleType(params);
             }
 
+            if(optType == python::Type::PYOBJECT)
+                return python::Type::PYOBJECT;
+
             throw std::runtime_error("unsupported type " + optType.desc() + " encountered in "
             + std::string(__FILE__) + ":" + std::to_string(__LINE__));
         }

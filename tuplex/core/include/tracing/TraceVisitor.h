@@ -20,6 +20,7 @@
 #include <csetjmp>
 #include <symbols/ClosureEnvironment.h>
 #include <ast/ASTHelpers.h>
+#include <codegen/CodegenHelper.h>
 
 #define TI_FLAGS_NONE 0x0
 #define TI_FLAGS_INPUT_PARAMETER 0x1

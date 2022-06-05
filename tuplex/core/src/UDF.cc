@@ -1322,6 +1322,8 @@ namespace tuplex {
 
 
     bool UDF::hintSchemaWithSample(const std::vector<PyObject *>& sample, const python::Type& inputRowType, bool acquireGIL) {
+        auto& logger = Logger::instance().logger("type inference");
+
         TraceVisitor tv(inputRowType, _policy);
 
         auto funcNode = _ast.getFunctionAST();
@@ -1360,7 +1362,11 @@ namespace tuplex {
         _outputSchema = Schema(Schema::MemoryLayout::ROW, row_type);
 
         // run type annotator on top of tree which has been equipped with annotations now
-        hintInputSchema(Schema(Schema::MemoryLayout::ROW, inputSchema.getRowType()), false, false); // TODO: could do this directly in tracevisitor as well, but let's separate concerns here...
+        auto res = hintInputSchema(Schema(Schema::MemoryLayout::ROW, inputSchema.getRowType()), false, false); // TODO: could do this directly in tracevisitor as well, but let's separate concerns here...
+        if(!res) {
+            logger.error("type inference using traced sample failed. Details: Failed to annotate AST tree with tracing results.");
+            return false;
+        }
 
         _inputSchema = inputSchema; // somehow hintInputSchema overwrites current one? => Restore.
 

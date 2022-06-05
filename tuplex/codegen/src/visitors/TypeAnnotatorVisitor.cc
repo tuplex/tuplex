@@ -348,16 +348,21 @@ namespace tuplex {
                 }
             }
 
+
             // special case call:
             if(parent()->type() == ASTNodeType::Call) {
                 NCall *call = (NCall*)parent();
+
+                auto lastCallParameterType = _lastCallParameterType.top();
+                // deoptimize, no constant functions defined in symbol table
+                lastCallParameterType = deoptimizedType(lastCallParameterType);
 
                 if(call->_func.get() == id) {
                     // lookup function with parameters
 
                     // when performing null-value optimization, could happen that symbol is there but no type match
                     // => type call as type error!
-                    auto funcType = _symbolTable.findFunctionType(id->_name, _lastCallParameterType.top());
+                    auto funcType = _symbolTable.findFunctionType(id->_name, lastCallParameterType);
                     if(python::Type::UNKNOWN == funcType) {
 
                         // no typing possible, does the symbol exist though?
@@ -365,7 +370,7 @@ namespace tuplex {
                         if(sym) {
                             // typing issue. => throw TypeError!
                             // => for NULL value opt, try to type again but this time treating all NULLs as any.
-                            funcType = _symbolTable.findFunctionType(id->_name, _lastCallParameterType.top(), true);
+                            funcType = _symbolTable.findFunctionType(id->_name, lastCallParameterType, true);
                             if(python::Type::UNKNOWN == funcType)
                                 error("symbol not compatible with nulls treated as any. Could not find type information for symbol " + id->_name);
                         } else {
@@ -817,6 +822,17 @@ namespace tuplex {
             if(call->_func->type() == ASTNodeType::Identifier)
                 name = ((NIdentifier*)call->_func.get())->_name;
 
+            if(call->_func->type() == ASTNodeType::Attribute) {
+                NAttribute* attr = static_cast<NAttribute*>(call->_func.get());
+                if(attr->_attribute->type() == ASTNodeType::Identifier) {
+                    name = "." + ((NIdentifier*)attr->_attribute.get())->_name;
+                } else {
+#ifndef NDEBUG
+                    Logger::instance().logger("type inference").debug("DEBUG: should probably get the name hereof");
+#endif
+                }
+            }
+
             // annotation available?
             // -> then create type from arguments + return type!
             if(call->_func->hasAnnotation()) {
@@ -1020,7 +1036,12 @@ namespace tuplex {
                 return;
             }
             assert(object_type != python::Type::UNKNOWN);
-            auto type = _symbolTable.findAttributeType(object_type, attr->_attribute->_name, _lastCallParameterType.top());
+
+            auto lastCallParameterType = _lastCallParameterType.top();
+            // deoptimize, no optimized functins in symboltable
+            lastCallParameterType = deoptimizedType(lastCallParameterType);
+
+            auto type = _symbolTable.findAttributeType(object_type, attr->_attribute->_name, lastCallParameterType);
 
             // unknown type but annotation available? -> use that one
             if(type == python::Type::UNKNOWN && attr->_attribute->hasAnnotation()) {

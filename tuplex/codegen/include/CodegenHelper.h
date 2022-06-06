@@ -42,7 +42,7 @@ namespace tuplex {
          */
          class IRBuilder {
          public:
-             IRBuilder();
+             IRBuilder() : _llvm_builder(nullptr) {}
 
              IRBuilder(llvm::IRBuilder<>& llvm_builder);
              IRBuilder(const llvm::IRBuilder<>& llvm_builder);
@@ -58,9 +58,11 @@ namespace tuplex {
 
              /*!
               * creates a new builder returning a builder for the first block.
+              * @param insertAtEnd if true, sets the IR builder insert point at the end of the first basic block in the function. If false, at start.
               * @return
               */
-            IRBuilder firstBlockBuilder() const;
+            IRBuilder firstBlockBuilder(bool insertAtEnd=true) const;
+
             // CreateAlloca (Type *Ty, unsigned AddrSpace, Value *ArraySize=nullptr, const Twine &Name=""
 //            inline llvm::Value* CreateAlloca(llvm::Type *type, const std::string& name="") {
 //                return get_or_throw().CreateAlloca(type, 0, nullptr, name);
@@ -378,7 +380,6 @@ namespace tuplex {
             }
 
             IRBuilder(llvm::BasicBlock::iterator it);
-
             void initFromIterator(llvm::BasicBlock::iterator &it);
         };
 

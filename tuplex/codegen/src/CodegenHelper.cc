@@ -75,6 +75,36 @@ namespace tuplex {
             }
         }
 
+        IRBuilder IRBuilder::firstBlockBuilder(bool insertAtEnd) const {
+            // create new IRBuilder for first block
+
+            // empty builder? I.e., no basicblock?
+            if(!_llvm_builder)
+                return IRBuilder();
+
+            assert(_llvm_builder->GetInsertBlock());
+            assert(_llvm_builder->GetInsertBlock()->getParent());
+
+            // function shouldn't be empty when this function here is called!
+            assert(!_llvm_builder->GetInsertBlock()->getParent()->empty());
+
+            // special case: no instructions yet present?
+            auto& firstBlock = _llvm_builder->GetInsertBlock()->getParent()->getEntryBlock();
+            if(!insertAtEnd)
+                return IRBuilder(firstBlock.getFirstInsertionPt());
+            else {
+                // create inserter unless it's a branch instruction
+                auto it = firstBlock.getFirstInsertionPt();
+                auto lastit = it;
+                while(it != firstBlock.end() && !llvm::isa<llvm::BranchInst>(*it)) {
+                    lastit = it;
+                    ++it;
+                }
+                return IRBuilder(lastit);
+            }
+
+        }
+
         void IRBuilder::initFromIterator(llvm::BasicBlock::iterator &it) {
             if(it->getParent()->empty())
                 _llvm_builder = std::__1::make_unique<llvm::IRBuilder<>>(it->getParent());

@@ -69,6 +69,7 @@ namespace tuplex {
         inline Schema normalCaseSchema() const { return Schema(Schema::MemoryLayout::ROW, _normalCaseRowType); }
         inline Schema generalCaseSchema() const { return Schema(Schema::MemoryLayout::ROW, _generalCaseRowType); }
 
+    public:
         // helper function to project a schema
         inline python::Type projectRowType(const python::Type& rowType) const {
             if(_columnsToSerialize.empty()) {
@@ -87,7 +88,7 @@ namespace tuplex {
             }
             return python::Type::makeTupleType(col_types);
         }
-
+    private:
         inline std::vector<std::string> projectColumns(const std::vector<std::string>& columns) const {
             if(_columnsToSerialize.empty() || _columnNames.empty())
                 return {};

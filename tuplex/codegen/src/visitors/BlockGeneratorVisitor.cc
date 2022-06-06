@@ -1722,24 +1722,35 @@ namespace tuplex {
             // for each other var found, declare a slot now.
             // if this fails, then print detailed error message!
             std::stringstream unify_error_stream;
-            for(auto& keyval : var_info) {
-
+            for(const auto& keyval : var_info) {
                 // exists already as parameter? => skip!
                 if(_variableSlots.find(keyval.first) != _variableSlots.end())
                     continue;
 
+                python::Type variableAllocationType = python::Type::UNKNOWN;
+
                 if(keyval.second.size() != 1) {
                     assert(keyval.second.size() > 1); // can't be empty!
-                    keyval.second = std::vector<python::Type>{python::Type::UNKNOWN}; // save result
+
+                    // keyval.second = std::vector<python::Type>{python::Type::UNKNOWN}; // save result
+
+                    // are the types compatible under the compile policy?
+                    auto type = keyval.second.front();
+                    for(unsigned i = 1; i < keyval.second.size(); ++i)
+                        type = unifyTypes(type, keyval.second[i], _policy.allowNumericTypeUnification);
+                    if(type != python::Type::UNKNOWN) {
+                        // allocate with the unified type (b.c. upcasting will anyways happen)
+                        variableAllocationType = type;
+                    }
                 }
 
                 // add var to lookup but mark as undefined yet.
-                if(keyval.second.front() != python::Type::UNKNOWN) {
+                if(variableAllocationType != python::Type::UNKNOWN) {
                     VariableSlot slot;
-                    slot.type = keyval.second.front();
+                    slot.type = variableAllocationType;
                     slot.definedPtr = _env->CreateFirstBlockAlloca(builder, _env->i1Type(), keyval.first + "_defined");
                     builder.CreateStore(_env->i1Const(false), slot.definedPtr);
-                    slot.var = Variable(*_env, builder, keyval.second.front(), keyval.first);
+                    slot.var = Variable(*_env, builder, variableAllocationType, keyval.first);
                     _variableSlots[keyval.first] = slot;
                 } else {
                     // this is a variable which has multiple types assigned to names.

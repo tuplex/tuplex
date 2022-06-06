@@ -576,18 +576,23 @@ namespace tuplex {
             auto nc_threshold = .9;
             auto majType = detectMajorityRowType(sample, nc_threshold, true, _useNVO);
 
+            // the detected majority type here is BEFORE projection pushdown.
+            // --> therefore restrict it to the type of the input operator.
+
+
             std::cout<<"Majority detected row type is: "<<majType.desc()<<std::endl;
 
             // list details using columns:
             if(_inputNode) {
                 auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
                 auto columns = fop->inputColumns();
+                majType = fop->projectRowType(majType);
 
-                // @TODO: following assert may fail, need to restrict in this case or add NONE values!
-                assert(columns.size() == majType.parameters().size());
-                for(unsigned i = 0; i < columns.size(); ++i) {
-                    std::cout<<"col ("<<i<<") "<<columns[i]<<": "<<majType.parameters()[i].desc()<<std::endl;
-                }
+//                // @TODO: following assert may fail, need to restrict in this case or add NONE values!
+//                assert(columns.size() == majType.parameters().size());
+//                for(unsigned i = 0; i < columns.size(); ++i) {
+//                    std::cout<<"col ("<<i<<") "<<columns[i]<<": "<<majType.parameters()[i].desc()<<std::endl;
+//                }
             }
 
 

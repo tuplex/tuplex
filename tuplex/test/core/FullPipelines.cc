@@ -535,21 +535,20 @@ namespace tuplex {
                                                   "type", "price"});
         } else {
             return ctx.csv(zillow_path)
-                    //.withColumn("bedrooms", UDF(extractBd_c))
-                    //.filter(UDF("lambda x: x['bedrooms'] < 10"))
-                    //.withColumn("type", UDF(extractType_c))
-                    //.filter(UDF("lambda x: x['type'] == 'house'"))
+                    .withColumn("bedrooms", UDF(extractBd_c))
+                    .filter(UDF("lambda x: x['bedrooms'] < 10"))
+                    .withColumn("type", UDF(extractType_c))
+                    .filter(UDF("lambda x: x['type'] == 'house'"))
                     .withColumn("zipcode", UDF("lambda x: '%05d' % int(x['postal_code'])"))
-                    //.mapColumn("city", UDF("lambda x: x[0].upper() + x[1:].lower()"))
-                    //.withColumn("bathrooms", UDF(extractBa_c))
-                    //.withColumn("sqft", UDF(extractSqft_c))
-                    //.withColumn("offer", UDF(extractOffer_c))
-                    //.withColumn("price", UDF(extractPrice_c))
-                    //.filter(UDF("lambda x: 100000 < x['price'] < 2e7"))
-//                    .selectColumns(vector<string>{"url", "zipcode", "address", "city", "state",
-//                                                  "bedrooms", "bathrooms", "sqft", "offer",
-//                                                  "type", "price"});
-                    .selectColumns(vector<string>{"url", "zipcode"});
+                    .mapColumn("city", UDF("lambda x: x[0].upper() + x[1:].lower()"))
+                    .withColumn("bathrooms", UDF(extractBa_c))
+                    .withColumn("sqft", UDF(extractSqft_c))
+                    .withColumn("offer", UDF(extractOffer_c))
+                    .withColumn("price", UDF(extractPrice_c))
+                    .filter(UDF("lambda x: 100000 < x['price'] < 2e7"))
+                    .selectColumns(vector<string>{"url", "zipcode", "address", "city", "state",
+                                                  "bedrooms", "bathrooms", "sqft", "offer",
+                                                  "type", "price"});
         }
     }
 

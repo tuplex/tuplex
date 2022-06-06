@@ -172,8 +172,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = op->_left->getInferredType().withoutOptions();
-            python::Type rtype = op->_right->getInferredType().withoutOptions();
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
 
             // special case:
             // overloaded string operator
@@ -304,7 +304,7 @@ namespace tuplex {
             }
 
             // get supertype
-            auto superType = python::Type::superType(ltype, rtype);
+            auto superType = unifyTypes(ltype, rtype, _policy.allowNumericTypeUnification); // python::Type::superType(ltype, rtype);
 
             if (superType == python::Type::UNKNOWN)
                 return SerializableValue(logErrorV("could not find supertype!"), nullptr);
@@ -333,8 +333,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = op->_left->getInferredType().withoutOptions();
-            python::Type rtype = op->_right->getInferredType().withoutOptions();
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
 
             // special case:
             // overloaded string operator
@@ -345,8 +345,7 @@ namespace tuplex {
             }
 
             // get supertype
-            auto superType = python::Type::superType(ltype, rtype);
-
+            auto superType =  unifyTypes(ltype, rtype, _policy.allowNumericTypeUnification); // python::Type::superType(ltype, rtype);
             if (superType == python::Type::UNKNOWN) {
                 return logErrorV("could not find supertype!");
             }
@@ -390,8 +389,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = op->_left->getInferredType().withoutOptions();
-            python::Type rtype = op->_right->getInferredType().withoutOptions();
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
 
             // overloaded: string addition = concatenation
             if (ltype == python::Type::STRING
@@ -446,7 +445,7 @@ namespace tuplex {
                 return ret;
             } else {
                 // get supertype
-                auto superType = python::Type::superType(ltype, rtype);
+                auto superType = unifyTypes(ltype, rtype, _policy.allowNumericTypeUnification); // python::Type::superType(ltype, rtype);
 
                 // special case: boolean
                 // => arithmetic instructions autocast bool then to int!
@@ -476,8 +475,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = op->_left->getInferredType().withoutOptions();
-            python::Type rtype = op->_right->getInferredType().withoutOptions();
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
 
             // strings not yet supported
             if (ltype == python::Type::STRING
@@ -485,7 +484,7 @@ namespace tuplex {
                 return logErrorV("TypeError: unsupported operand type(s) for -: 'str' and 'str'");
             else {
                 // get supertype
-                auto superType = python::Type::superType(ltype, rtype);
+                auto superType = unifyTypes(ltype, rtype, _policy.allowNumericTypeUnification); // python::Type::superType(ltype, rtype);
 
                 // special case: boolean
                 // => arithmetic instructions autocast bool then to int!
@@ -515,8 +514,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = op->_left->getInferredType().withoutOptions();
-            python::Type rtype = op->_right->getInferredType().withoutOptions();
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
 
             // special case:
             // overloaded string operator
@@ -550,8 +549,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = op->_left->getInferredType().withoutOptions();
-            python::Type rtype = op->_right->getInferredType().withoutOptions();
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
 
             // special case:
             // overloaded string operator
@@ -562,8 +561,7 @@ namespace tuplex {
             }
 
             // get supertype
-            auto superType = python::Type::superType(ltype, rtype);
-
+            auto superType = unifyTypes(ltype, rtype, _policy.allowNumericTypeUnification); // python::Type::superType(ltype, rtype);
             if (superType == python::Type::UNKNOWN) {
                 return logErrorV("could not find supertype!");
             }
@@ -630,8 +628,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = op->_left->getInferredType().withoutOptions();
-            python::Type rtype = op->_right->getInferredType().withoutOptions();
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
 
             if (!(ltype == python::Type::I64 || ltype == python::Type::BOOLEAN) ||
                 !(rtype == python::Type::I64 || rtype == python::Type::BOOLEAN)) {
@@ -660,8 +658,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = op->_left->getInferredType().withoutOptions();
-            python::Type rtype = op->_right->getInferredType().withoutOptions();
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
 
             // only support i64, boolean
             if (!(ltype == python::Type::I64 || ltype == python::Type::BOOLEAN) ||
@@ -5161,8 +5159,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = op->_left->getInferredType().withoutOptions();
-            python::Type rtype = op->_right->getInferredType().withoutOptions();
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
 
             // only support i64, boolean
             if (!(ltype == python::Type::I64 || ltype == python::Type::BOOLEAN) ||

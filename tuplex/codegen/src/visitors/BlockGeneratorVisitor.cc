@@ -4565,7 +4565,7 @@ namespace tuplex {
 
             // read slice items off the stack, validate + clean values
             if (sliceItem->_stride) {
-                auto itype = sliceItem->_stride->getInferredType();
+                auto itype = deoptimizedType(sliceItem->_stride->getInferredType());
                 if (itype == python::Type::I64 || itype == python::Type::BOOLEAN) {
                     assert(_blockStack.size() >= 1);
 
@@ -4577,7 +4577,7 @@ namespace tuplex {
             } else stride = SerializableValue(_env->i64Const(1), nullptr);
 
             if (sliceItem->_end) {
-                auto itype = sliceItem->_end->getInferredType();
+                auto itype = deoptimizedType(sliceItem->_end->getInferredType());
                 if (itype == python::Type::I64 || itype == python::Type::BOOLEAN) {
                     assert(_blockStack.size() >= 1);
                     end = _blockStack.back();
@@ -4588,7 +4588,7 @@ namespace tuplex {
             } else end = SerializableValue(nullptr, nullptr);
 
             if (sliceItem->_start) {
-                auto itype = sliceItem->_start->getInferredType();
+                auto itype = deoptimizedType(sliceItem->_start->getInferredType());
                 if (itype == python::Type::I64 || itype == python::Type::BOOLEAN) {
                     assert(_blockStack.size() >= 1);
                     start = _blockStack.back();
@@ -4602,7 +4602,7 @@ namespace tuplex {
             value = popWithNullCheck(builder, ExceptionCode::TYPEERROR, "'NoneType' object is not subscriptable");
 
             // get rid off option here
-            if (slice->_value->getInferredType().withoutOptions() == python::Type::STRING) {
+            if (deoptimizedType(slice->_value->getInferredType().withoutOptions()) == python::Type::STRING) {
                 assert(value.val->getType() == _env->i8ptrType());
 
                 stride.val = upCast(builder, stride.val, _env->i64Type());
@@ -4610,13 +4610,17 @@ namespace tuplex {
                 if (sliceItem->_start) start.val = upCast(builder, start.val, _env->i64Type());
                 // do the slice
                 res = stringSliceInst(value, start.val, end.val, stride.val);
-            } else if (slice->_value->getInferredType().isTupleType()) {
+            } else if (deoptimizedType(slice->_value->getInferredType()).isTupleType()) { // @TODO: optional tuple?
                 // only support static slices
                 if ((!sliceItem->_start || isStaticValue(sliceItem->_start.get(), true))
                     && (!sliceItem->_end || isStaticValue(sliceItem->_end.get(), true))
                     && (!sliceItem->_stride || isStaticValue(sliceItem->_stride.get(), true))) {
-                    res = tupleStaticSliceInst(slice->_value.get(), sliceItem->_start.get(), sliceItem->_end.get(), sliceItem->_stride.get(),
-                                               value, start.val, end.val, stride.val);
+                    res = tupleStaticSliceInst(slice->_value.get(),
+                                               sliceItem->_start.get(),
+                                               sliceItem->_end.get(),
+                                               sliceItem->_stride.get(),
+                                               value,
+                                               start.val, end.val, stride.val);
                 } else {
                     error("We do not currently support slicing tuples with non-static expressions");
                 }

@@ -58,14 +58,9 @@ namespace tuplex {
             _serializedLength = other._serializedLength;
             return *this;
         }
-        Row(Row&& other) : _schema(other._schema), _serializedLength(other._serializedLength) {
-            if(!other._values.empty()) {
-                _values = std::vector<Field>(other._values.begin(), other._values.end());
-                other._values.clear();
-            }
-            else
-                _values = std::vector<Field>();
 
+        Row(Row&& other) : _schema(other._schema), _serializedLength(other._serializedLength), _values(std::move(other._values)) {
+            other._values = {};
             other._serializedLength = 0;
             other._schema = Schema::UNKNOWN;
         }

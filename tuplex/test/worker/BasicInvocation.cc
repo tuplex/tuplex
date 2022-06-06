@@ -1060,6 +1060,20 @@ namespace tuplex {
     }
 }
 
+TEST(BasicInvocation, RowSort) {
+
+    using namespace tuplex;
+
+    std::string general_path = "./tests/BasicInvocationTestAllFlightFiles/general_processing/flights_on_time_performance_2021_11.sample.csv.csv";// flights_on_time_performance_2003_01.csv.csv";
+//    general_path = ".tests/BasicInvocationTestAllFlightFiles/general_processing/flights_on_time_performance_2021_11.sample.csv.csv";// flights_on_time_performance_2003_01.csv.csv";
+
+    // load both files as rows and check length
+    auto general_data = fileToString(general_path);
+
+    auto general_rows = parseRows(general_data.c_str(), general_data.c_str() + general_data.length(), {""});
+    std::sort(general_rows.begin(), general_rows.end());
+}
+
 TEST(BasicInvocation, FSWrite) {
     using namespace tuplex;
 

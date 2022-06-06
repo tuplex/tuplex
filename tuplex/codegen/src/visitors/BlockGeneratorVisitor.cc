@@ -1727,21 +1727,15 @@ namespace tuplex {
                 if(_variableSlots.find(keyval.first) != _variableSlots.end())
                     continue;
 
-                python::Type variableAllocationType = python::Type::UNKNOWN;
-
-                if(keyval.second.size() != 1) {
-                    assert(keyval.second.size() > 1); // can't be empty!
-
-                    // keyval.second = std::vector<python::Type>{python::Type::UNKNOWN}; // save result
-
-                    // are the types compatible under the compile policy?
-                    auto type = keyval.second.front();
-                    for(unsigned i = 1; i < keyval.second.size(); ++i)
-                        type = unifyTypes(type, keyval.second[i], _policy.allowNumericTypeUnification);
-                    if(type != python::Type::UNKNOWN) {
-                        // allocate with the unified type (b.c. upcasting will anyways happen)
-                        variableAllocationType = type;
-                    }
+                assert(keyval.second.size() >= 1); // can't be empty!
+                // are the types compatible under the compile policy?
+                // --> allocate with unified type (b.c. upcasting will anyway happen)
+                python::Type variableAllocationType = keyval.second.front();
+                for(unsigned i = 1; i < keyval.second.size(); ++i)
+                    variableAllocationType = unifyTypes(variableAllocationType, keyval.second[i], _policy.allowNumericTypeUnification);
+                if(variableAllocationType == python::Type::UNKNOWN) {
+                   // debug warning
+                   _logger.debug("variable " + keyval.first + " has multiple incompatible types.");
                 }
 
                 // add var to lookup but mark as undefined yet.

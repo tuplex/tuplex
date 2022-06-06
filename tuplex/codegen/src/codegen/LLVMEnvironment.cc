@@ -1297,6 +1297,10 @@ namespace tuplex {
                 }
             }
 
+            // optimized type? -> deoptimize!
+            if(t.isOptimizedType())
+                return pythonToLLVMType(t.underlying());
+
             throw std::runtime_error("could not convert type '" + t.desc() + "' to LLVM compliant type");
             return nullptr;
         }

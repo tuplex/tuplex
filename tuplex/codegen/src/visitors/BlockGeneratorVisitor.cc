@@ -692,7 +692,7 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            assert(op->_left->getInferredType() == python::Type::STRING);
+            assert(deoptimizedType(op->_left->getInferredType()) == python::Type::STRING);
 
             std::vector<llvm::Value *> argsList;
             llvm::Value *bufVar, *buf;
@@ -1598,7 +1598,7 @@ namespace tuplex {
                     case TokenType::PERCENT: {
                         // operator has depending on type two meanings:
                         // either modulo for numbers OR format for strings
-                        if (op->_left->getInferredType() == python::Type::STRING)
+                        if (deoptimizedType(op->_left->getInferredType()) == python::Type::STRING)
                             res = formatStr(SerialL, op, SerialR);
                         else
                             // modulo operation (handles errors too)

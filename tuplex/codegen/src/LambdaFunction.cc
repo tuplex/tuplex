@@ -85,7 +85,7 @@ namespace tuplex {
 
                 if(1 == i) {
                     arg.setName("inRow");
-                    arg.addAttr(Attribute::ByVal);
+                    //arg.addAttr(Attribute::ByVal); // not working with LLVM13?
                     // maybe align by 8?
                 }
             }

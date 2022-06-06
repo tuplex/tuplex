@@ -19,6 +19,9 @@
 namespace tuplex {
     // llvm10+ compatible (designed for llvm13+) compiler class using ORC
 
+    // Note: According to https://llvm.org/docs/ORCv2.html JITEventListeners are NOT supported with ORC.
+    // should use MCJIT therefore??
+
     JITCompiler::JITCompiler() {
 
     }

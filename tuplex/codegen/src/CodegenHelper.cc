@@ -66,7 +66,10 @@ namespace tuplex {
             _llvm_builder = std::make_unique<llvm::IRBuilder<>>(bb);
         }
 
-        IRBuilder::IRBuilder(llvm::IRBuilder<> &llvm_builder) : IRBuilder(llvm_builder.GetInsertPoint()) {}
+        IRBuilder::IRBuilder(llvm::IRBuilder<> &llvm_builder) {
+            _llvm_builder = std::make_unique<llvm::IRBuilder<>>(llvm_builder.getContext());
+            _llvm_builder->SetInsertPoint(llvm_builder.GetInsertBlock(), llvm_builder.GetInsertPoint());
+        }
 
         IRBuilder::IRBuilder(const IRBuilder &other) : _llvm_builder(nullptr) {
             if(other._llvm_builder) {
@@ -89,7 +92,15 @@ namespace tuplex {
             assert(!_llvm_builder->GetInsertBlock()->getParent()->empty());
 
             // special case: no instructions yet present?
+            auto func = _llvm_builder->GetInsertBlock()->getParent();
+            auto is_empty = _llvm_builder->GetInsertBlock()->getParent()->empty();
+            auto num_blocks = func->size();
+            //size_t num_blocks = _llvm_builder->GetInsertBlock()->getParent()->size();
             auto& firstBlock = _llvm_builder->GetInsertBlock()->getParent()->getEntryBlock();
+
+            if(firstBlock.empty())
+                return IRBuilder(&firstBlock);
+
             if(!insertAtEnd)
                 return IRBuilder(firstBlock.getFirstInsertionPt());
             else {
@@ -107,10 +118,13 @@ namespace tuplex {
 
         void IRBuilder::initFromIterator(llvm::BasicBlock::iterator &it) {
             if(it->getParent()->empty())
-                _llvm_builder = std::__1::make_unique<llvm::IRBuilder<>>(it->getParent());
+                _llvm_builder = std::make_unique<llvm::IRBuilder<>>(it->getParent());
             else {
-                llvm::Instruction &inst = *it;
-                _llvm_builder = std::__1::make_unique<llvm::IRBuilder<>>(&inst);
+                //llvm::Instruction &inst = *it;
+                //_llvm_builder = std::make_unique<llvm::IRBuilder<>>(it->getParent());
+                auto& ctx = it->getParent()->getContext();
+                _llvm_builder = std::make_unique<llvm::IRBuilder<>>(ctx);
+                _llvm_builder->SetInsertPoint(it->getParent(), it);
             }
         }
 

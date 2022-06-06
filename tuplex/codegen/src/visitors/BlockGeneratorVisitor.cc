@@ -303,8 +303,8 @@ namespace tuplex {
                 return ret;
             }
 
-            // get supertype
-            auto superType = unifyTypes(ltype, rtype, _policy.allowNumericTypeUnification); // python::Type::superType(ltype, rtype);
+            // get supertype, do not use unify types here because binary operations trigger implicit cast.
+            auto superType = python::Type::superType(ltype, rtype);
 
             if (superType == python::Type::UNKNOWN)
                 return SerializableValue(logErrorV("could not find supertype!"), nullptr);
@@ -344,8 +344,8 @@ namespace tuplex {
                 return logErrorV("strings do not implement //");
             }
 
-            // get supertype
-            auto superType =  unifyTypes(ltype, rtype, _policy.allowNumericTypeUnification); // python::Type::superType(ltype, rtype);
+            // get supertype, do not use unify types here because binary operations trigger implicit cast.
+            auto superType = python::Type::superType(ltype, rtype);
             if (superType == python::Type::UNKNOWN) {
                 return logErrorV("could not find supertype!");
             }
@@ -444,8 +444,8 @@ namespace tuplex {
                 _lfb->setLastBlock(retBlock);
                 return ret;
             } else {
-                // get supertype
-                auto superType = unifyTypes(ltype, rtype, _policy.allowNumericTypeUnification); // python::Type::superType(ltype, rtype);
+                // get supertype, do not use unify types here because binary operations trigger implicit cast.
+                auto superType = python::Type::superType(ltype, rtype);
 
                 // special case: boolean
                 // => arithmetic instructions autocast bool then to int!
@@ -483,8 +483,8 @@ namespace tuplex {
                 && rtype == python::Type::STRING)
                 return logErrorV("TypeError: unsupported operand type(s) for -: 'str' and 'str'");
             else {
-                // get supertype
-                auto superType = unifyTypes(ltype, rtype, _policy.allowNumericTypeUnification); // python::Type::superType(ltype, rtype);
+                // get supertype, do not use unify types here because binary operations trigger implicit cast.
+                auto superType = python::Type::superType(ltype, rtype);
 
                 // special case: boolean
                 // => arithmetic instructions autocast bool then to int!
@@ -560,8 +560,8 @@ namespace tuplex {
                 return logErrorV("string formatting not yet supported!");
             }
 
-            // get supertype
-            auto superType = unifyTypes(ltype, rtype, _policy.allowNumericTypeUnification); // python::Type::superType(ltype, rtype);
+            // get supertype, do not use unify types here because binary operations trigger implicit cast.
+            auto superType = python::Type::superType(ltype, rtype);
             if (superType == python::Type::UNKNOWN) {
                 return logErrorV("could not find supertype!");
             }

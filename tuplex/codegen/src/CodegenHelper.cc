@@ -70,14 +70,24 @@ namespace tuplex {
 
         IRBuilder::IRBuilder(const IRBuilder &other) : _llvm_builder(nullptr) {
             if(other._llvm_builder) {
-                _llvm_builder = std::make_unique<llvm::IRBuilder<>>(other._llvm_builder->GetInsertPoint());
+                auto it = other._llvm_builder->GetInsertPoint();
+                initFromIterator(it);
+            }
+        }
+
+        void IRBuilder::initFromIterator(llvm::BasicBlock::iterator &it) {
+            if(it->getParent()->empty())
+                _llvm_builder = std::__1::make_unique<llvm::IRBuilder<>>(it->getParent());
+            else {
+                llvm::Instruction &inst = *it;
+                _llvm_builder = std::__1::make_unique<llvm::IRBuilder<>>(&inst);
             }
         }
 
         IRBuilder::IRBuilder(const llvm::IRBuilder<> &llvm_builder) : IRBuilder(llvm_builder.GetInsertPoint()) {}
 
-        IRBuilder::IRBuilder(llvm::BasicBlock::iterator& it) {
-            _llvm_builder = std::make_unique<llvm::IRBuilder<>>(it);
+        IRBuilder::IRBuilder(llvm::BasicBlock::iterator it) {
+            initFromIterator(it);
         }
 
         // Clang doesn't work well with ASAN, disable here container overflow.

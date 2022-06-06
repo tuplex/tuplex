@@ -377,8 +377,10 @@ namespace tuplex {
                 return *_llvm_builder;
             }
 
-            IRBuilder(llvm::BasicBlock::iterator& it);
-         };
+            IRBuilder(llvm::BasicBlock::iterator it);
+
+            void initFromIterator(llvm::BasicBlock::iterator &it);
+        };
 
         // various switches to influence compiler behavior
         struct CompilePolicy {

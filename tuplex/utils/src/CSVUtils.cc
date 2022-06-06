@@ -1731,7 +1731,7 @@ parse_error:
         const char* p = start;
         while(p < end && (ec = parseRow(p, end, cells, num_bytes, delimiter, quotechar, false)) == ExceptionCode::SUCCESS) {
             // convert cells to row
-            rows.emplace_back(cellsToRow(cells, null_values));
+            rows.push_back(cellsToRow(cells, null_values));
             cells.clear();
             p += num_bytes;
         }

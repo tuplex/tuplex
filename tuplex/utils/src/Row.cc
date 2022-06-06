@@ -223,6 +223,11 @@ namespace tuplex {
         return true;
     }
     bool operator < (const Row& lhs, const Row& rhs) {
+
+        std::cout<<"lhs #elements: "<<lhs._values.size()<<" rhs #elements: "<<rhs._values.size()<<std::endl;
+        if(lhs._values.size() == 0) {
+            std::cout<<"specvial case"<<std::endl;
+        }
         if(lhs._values.size() != rhs._values.size())
             return lhs._values.size() < rhs._values.size();
 

@@ -1318,6 +1318,9 @@ namespace tuplex {
         try {
             // compile transform stage, depending on worker settings use optimizer before or not!
             // -> per default, don't.
+            if(!_compiler)
+                throw std::runtime_error("JITCompiler not initialized.");
+            assert(_compiler);
 
             // register functions
             // Note: only normal case for now, the other stuff is not interesting yet...

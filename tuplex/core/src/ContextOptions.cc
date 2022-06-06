@@ -588,7 +588,7 @@ namespace tuplex {
 
         // check first with pathParent, then PATH
         std::vector<std::string> failedPaths;
-        for(auto c : candidates) {
+        for(const auto& c : candidates) {
             URI p = URI(pathParent.empty() ? c : pathParent + "/" + c);
             if(p.exists() && p.isFile())
                 return p;
@@ -610,7 +610,8 @@ namespace tuplex {
                                         URI("file:///usr/local/lib"),
                                         URI("file:///lib"),
                                         URI("file:///usr/lib"),
-                                        URI("file://" + execPath.parent_path().string())};
+                                        URI("file://" + execPath.parent_path().string()),
+                                        URI("file://" + execPath.parent_path().string() + "/../lib")};
 
         // very generous searching, even wrong extension is tolerated...
         for(auto c : candidates) {

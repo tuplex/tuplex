@@ -1221,6 +1221,9 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     using namespace std;
     using namespace tuplex;
 
+    // get runtime lib path
+    auto rtlib_path = ContextOptions::defaults().RUNTIME_LIBRARY().toString();
+
     auto worker_path = find_worker();
 
     auto testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());

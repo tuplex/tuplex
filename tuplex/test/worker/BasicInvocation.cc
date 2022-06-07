@@ -1388,6 +1388,9 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 //    paths = {URI(flights_root + "flights_on_time_performance_2003_01.csv"), URI(flights_root + "flights_on_time_performance_2003_12.csv")};
     paths = {URI(flights_root + "flights_on_time_performance_2000_02.csv")};
     paths = {URI(flights_root + "flights_on_time_performance_2021_11.csv")};
+
+
+    paths = {URI(flights_root + "flights_on_time_performance_2008_02.csv")}; // this seems to fail in python mode??
     std::reverse(paths.begin(), paths.end());
 
     for(const auto& path : paths) {

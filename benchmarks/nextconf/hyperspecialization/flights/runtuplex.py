@@ -141,6 +141,10 @@ if __name__ == '__main__':
     use_hyper_specialization = not args.no_hyper
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv'
     s3_output_path = 's3://tuplex-leonhard/experiments/flights_hyper'
+
+    # full dataset here (oO)
+    input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004*.csv'
+
     if use_hyper_specialization:
         s3_output_path += '/hyper'
     else:
@@ -199,6 +203,7 @@ if __name__ == '__main__':
     print('Tuplex job time: {} s'.format(job_time))
     m = ctx.metrics
     print(ctx.options())
+    print(json.dumps(ctx.options()))
     print(m.as_json())
     # print stats as last line
     print(json.dumps({"startupTime" : startup_time, "jobTime" : job_time}))

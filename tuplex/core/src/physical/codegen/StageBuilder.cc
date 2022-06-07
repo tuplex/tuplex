@@ -1046,6 +1046,7 @@ namespace tuplex {
             auto slowPip = std::make_shared<codegen::PipelineBuilder>(env, resolveInSchema, intermediateType(pathContext.operators), ret.funcStageName/*funcSlowPathName*/);
             int global_var_cnt = 0;
             auto num_operators = pathContext.operators.size();
+            bool resolvers_found = false;
             for (int i = 0; i < num_operators; ++i) {
                 auto node = pathContext.operators[i];
                 assert(node);
@@ -1084,6 +1085,7 @@ namespace tuplex {
                         auto rop = std::dynamic_pointer_cast<ResolveOperator>(node);
                         slowPip->addResolver(rop->ecCode(), rop->getID(), rop->getUDF(), _normalCaseThreshold, ctx.allowUndefinedBehavior,
                                              ctx.sharedObjectPropagation);
+                        resolvers_found = true;
                         break;
                     }
                     case LogicalOperatorType::IGNORE: {
@@ -1219,8 +1221,16 @@ namespace tuplex {
                 }
             }
 
-            // add exception callback (required when resolvers throw exceptions themselves!)
-            slowPip->addExceptionHandler(ret.writeExceptionCallbackName/*slowPathExceptionCallback*/);
+
+            std::cout<<"HACK: need to fix resolver throwing exception case here."<<std::endl;
+            if(resolvers_found) {
+                // add exception callback (required when resolvers throw exceptions themselves!)
+                slowPip->addExceptionHandler(ret.writeExceptionCallbackName/*slowPathExceptionCallback*/);
+            } else {
+                // true exceptions that need to be placed on fallback path, not necessary to add an exception handler to this path.
+
+                // ??? is for slowpath the handler anyways needed when fastpath is present ??? --> prob. not!
+            }
 
             // @TODO: when supporting text output, need to include check that no newline occurs within string!
             // => else, error!

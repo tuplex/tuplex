@@ -246,6 +246,11 @@ namespace tuplex {
 
         // using hyper-specialization?
         if(useHyperSpecialization(req)) {
+
+            // check if encoded AST is compatible...
+            if(!astFormatCompatible(req))
+                return WORKER_ERROR_INCOMPATIBLE_AST_FORMAT;
+
             logger().info("*** hyperspecialization active ***");
             Timer timer;
             // use first input file

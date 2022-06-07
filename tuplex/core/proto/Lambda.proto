@@ -21,6 +21,10 @@ enum MessageType {
     MT_TRANSFORM = 2;
 }
 
+enum SerializationFormat {
+    SF_JSON = 0;
+    SF_CEREAL = 1;
+}
 
 message CodePath {
     bytes irBitCode = 1;
@@ -66,19 +70,20 @@ message TransformStage {
 
     // bytes holding serialized stage, ready for hyper-specialization.
     optional bytes serializedStage = 21;
+    optional SerializationFormat stageSerializationMode = 22;
 
-    uint32 stageNumber = 22;
-    uint32 numColumns = 23;
-    string pyCode = 24;
-    string pyPipelineName = 25;
+    uint32 stageNumber = 23;
+    uint32 numColumns = 24;
+    string pyCode = 25;
+    string pyPipelineName = 26;
 
     // file input + output params as dict
-    map<string, string> inputParameters = 26;
-    map<string, string> outputParameters = 27;
+    map<string, string> inputParameters = 27;
+    map<string, string> outputParameters = 28;
 
     // how many lambdas should each Lambda invoke? Recursive, i.e. {1, 1, 1} means the first Lambda invokes another
     // lambda, that again another etc. The total wait time thereby is baseDelay * depth
-    repeated uint32 invocationCount = 28;
+    repeated uint32 invocationCount = 29;
 }
 
 message WorkerSettings {

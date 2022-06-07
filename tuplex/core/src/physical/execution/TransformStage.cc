@@ -993,6 +993,19 @@ namespace tuplex {
         if(msg.has_serializedstage())
             stage->_encodedData = msg.serializedstage();
 
+        auto& logger = Logger::instance().logger("physical planner");
+
+        // check with mode
+        if(msg.has_stageserializationmode()) {
+#ifdef BUILD_WITH_CEREAL
+            if(msg.stageserializationmode() != messages::SF_CEREAL)
+                logger.error("invalid serialization format encountered in message, incompatible with how client is compiled.");
+#else
+            if(msg.stageserializationmode() != messages::SF_CEREAL)
+                logger.error("invalid serialization format encountered in message, incompatible with how client is compiled.");
+#endif
+        }
+
 //        stage->_irBitCode = msg.bitcode();
 //        stage->_funcStageName = msg.funcstagename();
 //        stage->_funcMemoryWriteCallbackName = msg.funcmemorywritecallbackname();
@@ -1024,6 +1037,12 @@ namespace tuplex {
         msg->set_pypipelinename(_pyPipelineName);
 
         msg->set_serializedstage(_encodedData);
+
+#ifdef BUILD_WITH_CEREAL
+        msg->set_stageserializationmode(messages::SF_CEREAL);
+#else
+        msg->set_stageserializationmode(messages::SF_JSON);
+#endif
 
         for(const auto& col : _inputColumns)
             msg->add_inputcolumns(col);

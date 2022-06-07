@@ -183,6 +183,11 @@ namespace tuplex {
         }
 
         logger().info("Using Lambda running on " + _functionArchitecture);
+#ifdef BUILD_WITH_CEREAL
+        logger().info("Lambda client uses Cereal AST serialization format.");
+#else
+        logger().info("Lambda client uses JSON AST serialization format.");
+#endif
 
         // could also check account limits in case:
         // https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.get_function_configuration

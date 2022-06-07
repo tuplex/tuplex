@@ -29,6 +29,7 @@
 #define WORKER_ERROR_UNKNOWN_MESSAGE 111
 #define WORKER_ERROR_GLOBAL_INIT 112
 #define WORKER_ERROR_MISSING_PYTHON_CODE 113
+#define WORKER_ERROR_INCOMPATIBLE_AST_FORMAT 114
 
 // give 32MB standard buf size, 8MB for exceptions and hash
 #define WORKER_DEFAULT_BUFFER_SIZE 33554432
@@ -357,6 +358,18 @@ namespace tuplex {
             return req.stage().has_serializedstage() && !req.stage().serializedstage().empty() && req.inputuris_size() > 0;
         }
 
+        inline bool astFormatCompatible(const tuplex::messages::InvocationRequest& req) const {
+            if(req.stage().has_stageserializationmode()) {
+#ifdef BUILD_WITH_CEREAL
+                if(msg.stageserializationmode() != messages::SF_CEREAL)
+                return false;
+#else
+                if(msg.stageserializationmode() != messages::SF_CEREAL)
+                   return false;
+#endif
+            }
+            return true;
+        }
 
         inline std::tuple<size_t, size_t, size_t, size_t, size_t, size_t> get_row_stats(const TransformStage* tstage) const {
             // print out info

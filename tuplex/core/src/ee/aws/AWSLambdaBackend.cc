@@ -1330,9 +1330,8 @@ namespace tuplex {
             }
 
             // print stage stats
-            logger().info("LAMBDA Stage: " + pluralize(total_num_output_rows, "row")
-                                           + pluralize(total_num_exceptions, " exception") + " "
-                                           + sizeToMemString(total_bytes_written));
+            logger().info("LAMBDA Stage: " + pluralize(total_num_output_rows, "row") + ", "
+                                           + pluralize(total_num_exceptions, "exception"));
 
             // compute cost of s3 + Lambda
             ss << "Lambda #containers used: " << containerIDs.size() << " reused: " << numReused

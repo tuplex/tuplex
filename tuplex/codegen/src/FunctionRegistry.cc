@@ -966,6 +966,22 @@ namespace tuplex {
             return SerializableValue(resVal, resSize);
         }
 
+        codegen::SerializableValue createMathIsInfCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+                                                     const python::Type &retType,
+                                                     const std::vector<tuplex::codegen::SerializableValue> &args) {
+            using namespace llvm;
+            auto& context = builder.GetInsertBlock()->getContext();
+            // note: val.val is a llvm::Value* ; see SerializableValue struct in CodegenHelper.h
+            auto val = args.front();
+
+            // make llvm Value out of INFINITY
+            llvm::Value* F64Infinity = _env.f64Const(INFINITY);
+            // make comparison instruction
+            auto resVal = builder.CreateICmpEQ(val.val, F64Infinity);
+            auto resSize = _env.i64Const(sizeof(bool));
+            return SerializableValue(resVal, resSize);
+        }
+
         codegen::SerializableValue createMathCosCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
                                                      const python::Type &retType,
                                                      const std::vector<tuplex::codegen::SerializableValue> &args) {
@@ -988,23 +1004,6 @@ namespace tuplex {
 
             // cast to f64
             auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::sqrt, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
-            auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
-            return SerializableValue(resVal, resSize);
-        }
-
-        codegen::SerializableValue createMathIsInfCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
-                                                     const python::Type &retType,
-                                                     const std::vector<tuplex::codegen::SerializableValue> &args) {
-            // call llvm intrinsic
-            // gets the first value from the args vector (since isinf only takes one value)
-            auto val = args.front();
-            // don't know what this does
-            auto& context = builder.GetInsertBlock()->getContext();
-
-            // cast to f64
-            // essentially creates the isinf function call within the builder? so it adds the (llvm intrinsic) call to the current builder?
-            // not really sure what the type of resVal is
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::isinf, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }

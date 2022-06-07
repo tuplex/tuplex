@@ -382,15 +382,13 @@ class TestMath(unittest.TestCase):
     def testIsInf(self):
         c = tuplex.Context(self.conf)
 
-        float_test = [0.0, 1.0, -1.0, -math.inf, 3.0, math.inf]
+        float_test = [0.0, -1.0, 3.0, math.inf]
         L0 = c.parallelize(float_test).map(lambda x: math.isinf(x)).collect()
-        assert len(L0) == 6, 'wrong length'
+        assert len(L0) == 4, 'wrong length'
         self.assertEqual(L0[0], False)
         self.assertEqual(L0[1], False)
         self.assertEqual(L0[2], False)
         self.assertEqual(L0[3], True)
-        self.assertEqual(L0[4], False)
-        self.assertEqual(L0[5], True)
 
         tuple_test = [(1.0, math.inf), (-math.inf, 0.0), (-math.inf, math.inf), (-2.0, 0.0)]
         L1 = c.parallelize(tuple_test).map(lambda x, y: (math.isinf(x), math.isinf(y))).collect()
@@ -409,7 +407,7 @@ class TestMath(unittest.TestCase):
         self.assertEqual(L2[3], False)
         self.assertEqual(L2[4], True)
 
-        mix_test = [-1, math.inf, 1.5, math.nan, -math.inf, 0.0]
+        mix_test = [-1.0, math.inf, 1.5, math.nan, -math.inf, 0.0]
         L3 = c.parallelize(mix_test).map(lambda x, y: math.pow(x, y)).collect()
         assert len(L3) == 6
         self.assertEqual(L3[0], False)
@@ -418,11 +416,11 @@ class TestMath(unittest.TestCase):
         self.assertEqual(L3[3], False)
         self.assertEqual(L3[4], True)
         self.assertEqual(L3[5], False)
-    
+
 
     # def testIsNan(self):
     #     c = tuplex.Context(self.conf)
-
+    #
     #     test0 = [0.0, math.nan, -3.5, -math.inf]
     #     L0 = c.parallelize(test0).map(lambda x: math.isnan(x)).collect()
     #     assert len(L0) == 4, 'wrong length'
@@ -430,7 +428,7 @@ class TestMath(unittest.TestCase):
     #     self.assertEqual(L0[1], True)
     #     self.assertEqual(L0[2], False)
     #     self.assertEqual(L0[3], False)
-
+    #
     #     test1 = [0, -1, math.nan, math.inf, 97]
     #     L1 = c.parallelize(test1).map(lambda x: math.isnan(x)).collect()
     #     assert len(L1) == 5, 'wrong length'
@@ -439,7 +437,7 @@ class TestMath(unittest.TestCase):
     #     self.assertEqual(L1[2], True)
     #     self.assertEqual(L1[3], False)
     #     self.assertEqual(L1[4], False)
-        
+    #
     #     test2 = [math.nan, 0, -math.inf, -1.5, math.nan, 97]
     #     L2 = c.parallelize(test2).map(lambda x: math.isnan(x)).collect()
     #     assert len(L2) == 6, 'wrong length'

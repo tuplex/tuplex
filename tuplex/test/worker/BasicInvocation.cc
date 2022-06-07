@@ -1098,9 +1098,9 @@ namespace tuplex {
         // start worker within same process to easier debug...
         std::cout<<" --- Hyper processing --- "<<std::endl;
         auto app = make_unique<WorkerApp>(WorkerSettings());
-//        app->processJSONMessage(json_message_hyper);
-//        app->shutdown();
-//        rc |= 0x1;
+        app->processJSONMessage(json_message_hyper);
+        app->shutdown();
+        rc |= 0x1;
 
         std::cout<<" --- General processing --- "<<std::endl;
         app = make_unique<WorkerApp>(WorkerSettings());
@@ -1368,7 +1368,8 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     // create the two pipeline versions...
         // !!! use compatible files for inference when issuing queries, else there'll be errors.
 
-    paths = {URI(flights_root + "flights_on_time_performance_2000_01.csv"), URI(flights_root + "flights_on_time_performance_2021_11.csv")};
+//    paths = {URI(flights_root + "flights_on_time_performance_2000_01.csv"), URI(flights_root + "flights_on_time_performance_2021_11.csv")};
+    paths = {URI(flights_root + "flights_on_time_performance_1987_10.csv"), URI(flights_root + "flights_on_time_performance_2021_11.csv")};
 
     input_pattern = paths.front().toString() + "," + paths.back().toString();
     auto test_output_path = "./general_processing/";
@@ -1386,6 +1387,7 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 //    paths = {URI(cwd_path.string() + "/../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.sample.csv")};
 //    paths = {URI(flights_root + "flights_on_time_performance_2003_01.csv"), URI(flights_root + "flights_on_time_performance_2003_12.csv")};
     paths = {URI(flights_root + "flights_on_time_performance_2000_02.csv")};
+    paths = {URI(flights_root + "flights_on_time_performance_2021_11.csv")};
     std::reverse(paths.begin(), paths.end());
 
     for(const auto& path : paths) {

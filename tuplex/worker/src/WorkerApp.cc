@@ -485,6 +485,18 @@ namespace tuplex {
 
         // for now, everything out of order
         logger().info("Starting exception resolution/slow path execution");
+
+        // print out whether compiled/interpreter paths are available
+        {
+            std::stringstream ss;
+            auto pythonCode = tstage->purePythonCode();
+            auto pythonPipelineName = tstage->pythonPipelineName();
+            ss<<"has interpreter path: "<<((pythonCode.empty() || pythonPipelineName.empty()) ? "no" : "yes")
+              <<" has compiled fallback path: "
+              <<(tstage->slowPathBitCode().empty() ? "no" : "yes");
+            logger().info(ss.str());
+        }
+
         Timer resolveTimer;
         for(unsigned i = 0; i < _numThreads; ++i) {
             resolveOutOfOrder(i, tstage, syms); // note: this func is NOT thread-safe yet!!!

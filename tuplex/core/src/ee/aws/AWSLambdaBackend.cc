@@ -1125,10 +1125,10 @@ namespace tuplex {
             logger().warn("using generated CSV parser not yet supported in AWS Lambda backend, defaulting back to original parser");
             _options.set("tuplex.optimizer.generateParser", "false");
         }
-        if(_options.OPT_NULLVALUE_OPTIMIZATION()) {
-            logger().warn("null value optimization not yet available for AWS Lambda backend, deactivating.");
-            _options.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
-        }
+//        if(_options.OPT_NULLVALUE_OPTIMIZATION()) {
+//            logger().warn("null value optimization not yet available for AWS Lambda backend, deactivating.");
+//            _options.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+//        }
 
         _driver.reset(new Executor(_options.DRIVER_MEMORY(),
                                    _options.PARTITION_SIZE(),

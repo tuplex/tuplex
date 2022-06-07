@@ -1098,9 +1098,9 @@ namespace tuplex {
         // start worker within same process to easier debug...
         std::cout<<" --- Hyper processing --- "<<std::endl;
         auto app = make_unique<WorkerApp>(WorkerSettings());
-        app->processJSONMessage(json_message_hyper);
-        app->shutdown();
-        rc |= 0x1;
+//        app->processJSONMessage(json_message_hyper);
+//        app->shutdown();
+//        rc |= 0x1;
 
         std::cout<<" --- General processing --- "<<std::endl;
         app = make_unique<WorkerApp>(WorkerSettings());

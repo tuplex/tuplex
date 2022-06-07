@@ -666,12 +666,13 @@ TEST_F(AWSTest, FlightsHyperPipeline) {
     opt.set("tuplex.aws.lambdaInvocationStrategy", "direct");
     opt.set("tuplex.useInterpreterOnly", "false");
 
-    opt.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt.set("tuplex.optimizer.nullValueOptimization", "true");
     opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
 
 
     // s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv -> s3://tuplex-leonhard/experiments/flights_hyper/general
     string inputFiles = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv";
+    inputFiles = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
     string outputDir = "s3://tuplex-leonhard/experiments/flights_hyper/general";
     Context ctx(opt);
 

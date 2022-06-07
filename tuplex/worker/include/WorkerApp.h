@@ -362,7 +362,7 @@ namespace tuplex {
             if(req.stage().has_stageserializationmode()) {
 #ifdef BUILD_WITH_CEREAL
                 if(req.stage().stageserializationmode() != messages::SF_CEREAL)
-                return false;
+                    return false;
 #else
                 if(req.stage().stageserializationmode() != messages::SF_JSON)
                    return false;

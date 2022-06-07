@@ -1042,6 +1042,17 @@ namespace tuplex {
                 if(info.returnCode != 0) {
                     // stop execution
                     backend->_numPendingRequests.fetch_add(-1, std::memory_order_release);
+
+                    // in dev mode, print out details which file caused the failure!
+                    std::stringstream err_stream;
+                    err_stream<<"LAMBDA failure for uri";
+                    if(invoke_req.inputuris_size() > 1)
+                        err_stream<<"s";
+                    for(const auto& uri : invoke_req.inputuris())
+                        err_stream<<" "<<uri.c_str();
+                    backend->logger().error(err_stream.str());
+
+                    // abort the other requests (save the $)
                     backend->abortRequestsAndFailWith(info.returnCode, info.errorMessage);
                     return;
                 }

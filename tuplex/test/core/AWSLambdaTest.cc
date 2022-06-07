@@ -666,6 +666,10 @@ TEST_F(AWSTest, FlightsHyperPipeline) {
     opt.set("tuplex.aws.lambdaInvocationStrategy", "direct");
     opt.set("tuplex.useInterpreterOnly", "false");
 
+    opt.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
+
+
     // s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv -> s3://tuplex-leonhard/experiments/flights_hyper/general
     string inputFiles = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv";
     string outputDir = "s3://tuplex-leonhard/experiments/flights_hyper/general";
@@ -673,6 +677,9 @@ TEST_F(AWSTest, FlightsHyperPipeline) {
 
     //  ctx.csv(input_pattern).map(fill_in_delays).tocsv(s3_output_path)
     ctx.csv(inputFiles).map(UDF(udf_code)).tocsv(outputDir);
+
+    // print options!
+    std::cout<<"OPTIONS:\n"<<ctx.getOptions().asJSON()<<std::endl;
 }
 
 // zillow Pipeline on AWS Lambda (incl. various options -> multithreading, self-invocation, ...)

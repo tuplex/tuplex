@@ -22,7 +22,11 @@ namespace tuplex {
             return WORKER_OK;
 
         logger().info("WorkerAPP globalInit");
-
+#ifdef BUILD_WITH_CEREAL
+        logger().info("Using Cereal AST serialization");
+#else
+        logger().info("Using JSON AST serializastion");
+#endif
         // runtime library path
         auto runtime_path = ContextOptions::defaults().RUNTIME_LIBRARY().toPath();
         std::string python_home_dir = python::find_stdlib_location();

@@ -1871,10 +1871,8 @@ namespace tuplex {
                     if(is_first_unresolved_interpreter) {
                         std::stringstream ss;
                         ss<<"ec code: "<<fallbackRes.code<<" ";
-                        python::lockGIL();
-                        auto input_row = python::PyString_AsString(fallbackRes.)
-                        python::unlockGIL();
                         is_first_unresolved_interpreter = false;
+                        logger().info("first unresolved row ec code result is: " + ss.str());
                     }
 
 

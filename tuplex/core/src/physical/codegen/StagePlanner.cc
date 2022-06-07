@@ -571,16 +571,16 @@ namespace tuplex {
             // detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns)
             auto nc_threshold = .9;
             auto majType = detectMajorityRowType(sample, nc_threshold, true, _useNVO);
-
-            // the detected majority type here is BEFORE projection pushdown.
-            // --> therefore restrict it to the type of the input operator.
-            std::cout<<"Majority detected row type is: "<<majType.desc()<<std::endl;
+            python::Type projectedMajType = majType;
 
             // list details using columns:
             if(_inputNode) {
                 auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
                 auto columns = fop->inputColumns();
-                majType = fop->projectRowType(majType);
+
+                projectedMajType = fop->projectRowType(majType);
+
+                //majType = fop->projectRowType(majType);
 
 //                // @TODO: following assert may fail, need to restrict in this case or add NONE values!
 //                assert(columns.size() == majType.parameters().size());
@@ -589,6 +589,9 @@ namespace tuplex {
 //                }
             }
 
+            // the detected majority type here is BEFORE projection pushdown.
+            // --> therefore restrict it to the type of the input operator.
+            std::cout<<"Majority detected row type is: "<<projectedMajType.desc()<<std::endl;
 
             // if majType of sample is different than input node type input sample -> retype!
             // also need to restrict type first!
@@ -606,6 +609,7 @@ namespace tuplex {
             // run validation after forcing majority sample based type
             validation_rc = validatePipeline();
             logger.debug(std::string("post-specialization pipeline validation: ") + (validation_rc ? "ok" : "failed"));
+            assert(validation_rc);
 
             // check what output type of optimized input_node is!
             if(_inputNode) {
@@ -613,7 +617,6 @@ namespace tuplex {
                 std::cout<<"(unoptimized) output schema of input op: "<<fop->getOutputSchema().getRowType().desc()<<std::endl;
                 std::cout<<"(optimized) output schema of input op: "<<fop->getOptimizedOutputSchema().getRowType().desc()<<std::endl;
             }
-
 
             // perform sample based optimizations
             if(_useConstantFolding) {
@@ -742,6 +745,9 @@ namespace tuplex {
             fop->retype(input_row_type, true); // for input operator, ignore Option[str] compatibility which is set per default
             fop->useNormalCase(); // this forces output schema to be normalcase (i.e. overwrite internally output schema to be normal case schema)
             opt_ops.push_back(fop);
+
+            last_rowtype = fop->getOutputSchema().getRowType();
+
             // go over the other ops from the stage...
             for(const auto& node : _operators) {
                 auto lastParent = opt_ops.empty() ? _inputNode : opt_ops.back();

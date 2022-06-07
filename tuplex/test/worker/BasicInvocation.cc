@@ -1063,9 +1063,19 @@ namespace tuplex {
 TEST(BasicInvocation, RowSort) {
 
     using namespace tuplex;
+    using namespace std;
+
+    vector<Row> v{Row(), Row(10, 20), Row(5, 10)};
+
+    std::sort(v.begin(), v.end());
+
+    ASSERT_EQ(v.size(), 3);
+    EXPECT_EQ(v[0].toPythonString(), "()");
+    EXPECT_EQ(v[1].toPythonString(), "(5,10)");
+    EXPECT_EQ(v[2].toPythonString(), "(10,20)");
+
 
     std::string general_path = "./tests/BasicInvocationTestAllFlightFiles/general_processing/flights_on_time_performance_2021_11.sample.csv.csv";// flights_on_time_performance_2003_01.csv.csv";
-//    general_path = ".tests/BasicInvocationTestAllFlightFiles/general_processing/flights_on_time_performance_2021_11.sample.csv.csv";// flights_on_time_performance_2003_01.csv.csv";
 
     // load both files as rows and check length
     auto general_data = fileToString(general_path);

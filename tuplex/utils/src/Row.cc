@@ -206,8 +206,10 @@ namespace tuplex {
             return false;
 
         // special case: empty rows
-        if(lhs._values.size() == 0)
+        if(lhs._values.size() == 0) {
+            assert(rhs._values.size() == 0);
             return true;
+        }
 
         // check whether type matches
         if(lhs.getRowType() != rhs.getRowType())
@@ -223,11 +225,10 @@ namespace tuplex {
         return true;
     }
     bool operator < (const Row& lhs, const Row& rhs) {
+        // this is important !!!
+        if(lhs == rhs)
+            return false;
 
-        std::cout<<"lhs #elements: "<<lhs._values.size()<<" rhs #elements: "<<rhs._values.size()<<std::endl;
-        if(lhs._values.size() == 0) {
-            std::cout<<"specvial case"<<std::endl;
-        }
         if(lhs._values.size() != rhs._values.size())
             return lhs._values.size() < rhs._values.size();
 

@@ -1082,7 +1082,7 @@ namespace tuplex {
         llvm::LLVMContext llvm_ctx;
         auto mod = codegen::bitCodeToModule(llvm_ctx, tstage_general->slowPathBitCode());
         stringToFile("general_slowpath.txt", codegen::moduleToString(*mod.get()));
-        annotateModuleWithInstructionPrint(*mod.get());
+        // annotateModuleWithInstructionPrint(*mod.get());
         // debug, overwrite slowpath with newly annotated module!
         tstage_general->slowPathBitCode() = codegen::moduleToBitCodeString(*mod.get());
 

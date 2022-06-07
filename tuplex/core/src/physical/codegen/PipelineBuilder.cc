@@ -1902,6 +1902,10 @@ namespace tuplex {
                 const std::map<int, int>& normalToGeneralMapping,
                 const std::vector<std::string>& null_values) {
 
+            // uncomment to get debug printing for this function
+// #define PRINT_EXCEPTION_PROCESSING_DETAILS
+
+
             auto& logger = Logger::instance().logger("codegen");
 
             auto pipFunc = pip.getFunction();
@@ -1960,10 +1964,10 @@ namespace tuplex {
 
             auto body = BasicBlock::Create(context, "body", func);
             IRBuilder<> builder(body);
-
+#ifdef PRINT_EXCEPTION_PROCESSING_DETAILS
              env.debugPrint(builder, "slow process functor entered!");
              env.debugPrint(builder, "exception buffer size is: ", args["bufSize"]);
-
+#endif
             // decode according to exception type => i.e. decode according to pipeline builder + nullvalue opt!
             auto ecCode = args["exceptionCode"];
             auto dataPtr = args["rowBuf"];
@@ -1984,14 +1988,14 @@ namespace tuplex {
                 // => else exception, i.e. handle in interpreter
                 BasicBlock *bbStringDecodeFailed = BasicBlock::Create(context, "decodeStringsFailed", func);
                 builder.SetInsertPoint(bbStringFieldDecode);
-#ifndef NDEBUG
+#ifdef PRINT_EXCEPTION_PROCESSING_DETAILS
                 env.debugPrint(builder, "decoding a string type exception");
 #endif
 
                 // decode into noCells, cellsPtr, sizesPtr etc.
                 auto noCells = builder.CreateLoad(builder.CreatePointerCast(dataPtr, env.i64ptrType()));
 
-#ifndef NDEBUG
+#ifdef PRINT_EXCEPTION_PROCESSING_DETAILS
                  env.debugPrint(builder, "parsed #cells: ", noCells);
 #endif
                 dataPtr = builder.CreateGEP(dataPtr, env.i32Const(sizeof(int64_t)));
@@ -2013,7 +2017,7 @@ namespace tuplex {
                     builder.CreateStore(builder.CreateGEP(dataPtr, offset),
                                         builder.CreateGEP(cellsPtr, env.i32Const(i)));
 
-#ifndef NDEBUG
+#ifdef PRINT_EXCEPTION_PROCESSING_DETAILS
                       env.debugPrint(builder, "cell("  + std::to_string(i) + ") size: ", size);
                       env.debugPrint(builder, "cell("  + std::to_string(i) + ") offset: ", offset);
                       env.debugPrint(builder, "cell " + std::to_string(i) + ": ", builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i32Const(i))));
@@ -2031,14 +2035,14 @@ namespace tuplex {
                 auto resultOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env.i64Type());
                 auto resultNumRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env.i64Type());
 
-#ifndef NDEBUG
+#ifdef PRINT_EXCEPTION_PROCESSING_DETAILS
                  env.debugPrint(builder, "calling pipeline yielded #rows: ", resultNumRowsCreated);
 #endif
                 env.freeAll(builder);
                 builder.CreateRet(resultCode);
 
                 builder.SetInsertPoint(bbStringDecodeFailed);
-#ifndef NDEBUG
+#ifdef PRINT_EXCEPTION_PROCESSING_DETAILS
                  env.debugPrint(builder, "string decode failed");
 #endif
                 env.freeAll(builder);
@@ -2047,15 +2051,16 @@ namespace tuplex {
             // 2.) decode normal case type & upgrade to exception case type, then apply all resolvers & Co
             {
                 builder.SetInsertPoint(bbNormalCaseDecode);
+#ifdef PRINT_EXCEPTION_PROCESSING_DETAILS
                  env.debugPrint(builder, "exception is in normal case format, feed through resolvers&Co");
-
+#endif
                 // i.e. same code as in pip upgradeType
                 FlattenedTuple ft(&env);
                 ft.init(normalCaseType);
                 ft.deserializationCode(builder, args["rowBuf"]);
                 // upcast to general type!
                 auto tuple = normalToGeneralTuple(builder, ft, normalCaseType, pip.inputRowType(), normalToGeneralMapping);
-#ifndef NDEBUG
+#ifdef PRINT_EXCEPTION_PROCESSING_DETAILS
                  ft.print(builder);
                  env.debugPrint(builder, "row casted, processing pipeline now!");
                  tuple.print(builder);
@@ -2074,8 +2079,9 @@ namespace tuplex {
                 builder.SetInsertPoint(bbCommonCaseDecode);
                 // only if cases are compatible
                 if(normalCaseAndGeneralCaseCompatible) {
+#ifdef PRINT_EXCEPTION_PROCESSING_DETAILS
                      env.debugPrint(builder, "exception is in super type format, feed through resolvers&Co");
-
+#endif
                     // easiest, no additional steps necessary...
                     FlattenedTuple tuple(&pip.env());
                     tuple.init(pip.inputRowType());

@@ -450,6 +450,19 @@ namespace tuplex {
             _lastTupleResultVar = variableBuilder.CreateAlloca(cf.getLLVMResultType(env()), 0, nullptr);
             _lastRowInput = _lastRowResult;
 
+            // debug info
+            logger.debug("Compiled function takes input row type: " + cf.input_type.desc());
+            logger.debug("Last LLVM input row is: " + _lastRowResult.getTupleType().desc());
+
+            // check compatibility of types -> they HAVE to be compatible on a flattened type basis
+            if(flattenedType(cf.input_type) != flattenedType(_lastRowResult.getTupleType())) {
+                std::stringstream err;
+                err<<"last result and expected UDF input type are not compatible\n"
+                     <<"Compiled function takes input row type: " + cf.input_type.desc() + "\n"
+                     <<"Last LLVM input row is: " + _lastRowResult.getTupleType().desc();
+                logger.warn(err.str());
+            }
+
             auto exceptionBlock = createExceptionBlock();
             _lastRowResult = cf.callWithExceptionHandler(builder, _lastRowResult, _lastTupleResultVar, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
 

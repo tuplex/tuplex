@@ -540,9 +540,12 @@ namespace tuplex {
 
             // clear checks
             _checks.clear();
-
             vector<shared_ptr<LogicalOperator>> optimized_operators = vec_prepend(_inputNode, _operators);
             auto& logger = Logger::instance().logger("specializing stage optimizer");
+
+            // run validation on initial pipeline
+            bool validation_rc = validatePipeline();
+            logger.debug(std::string("initial pipeline validation: ") + (validation_rc ? "ok" : "failed"));
 
             // step 1: retrieve sample from inputnode!
             std::vector<Row> sample = fetchInputSample();
@@ -564,13 +567,6 @@ namespace tuplex {
                 std::cout<<keyval.second<<": "<<keyval.first<<std::endl;
             }
 
-//            // print out NAS_delay:
-//            auto nas_delay_idx = 58;
-//            std::cout<<"NAS DELAY types: "<<std::endl;
-//            for(auto keyval : t_counts) {
-//                std::cout<<keyval.second<<": "<<keyval.first.parameters()[nas_delay_idx].desc()<<std::endl;
-//            }
-
             // detect majority type
             // detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns)
             auto nc_threshold = .9;
@@ -578,8 +574,6 @@ namespace tuplex {
 
             // the detected majority type here is BEFORE projection pushdown.
             // --> therefore restrict it to the type of the input operator.
-
-
             std::cout<<"Majority detected row type is: "<<majType.desc()<<std::endl;
 
             // list details using columns:
@@ -609,6 +603,10 @@ namespace tuplex {
                                         : optimized_operators;
             }
 
+            // run validation after forcing majority sample based type
+            validation_rc = validatePipeline();
+            logger.debug(std::string("post-specialization pipeline validation: ") + (validation_rc ? "ok" : "failed"));
+
             // check what output type of optimized input_node is!
             if(_inputNode) {
                 auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
@@ -627,9 +625,48 @@ namespace tuplex {
                 _operators = _inputNode ? vector<shared_ptr<LogicalOperator>>{optimized_operators.begin() + 1,
                                                                               optimized_operators.end()}
                                                                               : optimized_operators;
+
+                // run validation after applying constant folding
+                validation_rc = validatePipeline();
+                logger.debug(std::string("post-constant-folding pipeline validation: ") + (validation_rc ? "ok" : "failed"));
             }
 
             // can filters get pushed down even further? => check! constant folding may remove code!
+        }
+
+        bool StagePlanner::validatePipeline() {
+
+            auto& logger = Logger::instance().logger("specializing stage optimizer");
+
+            python::Type lastRowType;
+            if(_inputNode) {
+                if(_inputNode->type() == LogicalOperatorType::FILEINPUT) {
+                    auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
+                    lastRowType = fop->getOutputSchema().getRowType();
+                } else {
+                    lastRowType = _inputNode->getOutputSchema().getRowType();
+                }
+            } else {
+                if(_operators.empty())
+                    return true;
+                lastRowType = _operators.front()->getInputSchema().getRowType();
+            }
+
+            bool validation_ok = true;
+
+            // go through ops and check input/output is compatible (flattened!)
+            for(const auto& op : _operators) {
+                if(flattenedType(lastRowType) != flattenedType(op->getInputSchema().getRowType())) {
+                    logger.error("(" + op->name() + "): input schema "
+                    + op->getInputSchema().getRowType().desc()
+                    + " incompatible with previous operator's output schema "
+                    + lastRowType.desc());
+                    validation_ok = false;
+                }
+                lastRowType = op->getOutputSchema().getRowType();
+            }
+
+            return validation_ok;
         }
 
         std::vector<std::shared_ptr<LogicalOperator>> StagePlanner::retypeUsingOptimizedInputSchema(const python::Type& input_row_type) {

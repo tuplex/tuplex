@@ -1319,7 +1319,7 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     //paths = {URI(flights_root + "/flights_on_time_performance_2021_11.csv")};
 
     paths = {URI(cwd_path.string() + "/../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.sample.csv")};
-
+    paths = {URI(flights_root + "flights_on_time_performance_2003_01.csv"), URI(flights_root + "flights_on_time_performance_2003_12.csv")};
     std::reverse(paths.begin(), paths.end());
 
     for(const auto& path : paths) {

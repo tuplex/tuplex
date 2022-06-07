@@ -479,6 +479,202 @@ TEST_F(AWSTest, FlightBasedJoin) {
     ds_final.show(5);
 }
 
+TEST_F(AWSTest, FlightsHyperPipeline) {
+    auto udf_code = "def fill_in_delays(row):\n"
+                    "    # want to fill in data for missing carrier_delay, weather delay etc.\n"
+                    "    # only need to do that prior to 2003/06\n"
+                    "\n"
+                    "    year = row['YEAR']\n"
+                    "    month = row['MONTH']\n"
+                    "    arr_delay = row['ARR_DELAY']\n"
+                    "\n"
+                    "    if year == 2003 and month < 6 or year < 2003:\n"
+                    "        # fill in delay breakdown using model and complex logic\n"
+                    "        if arr_delay is None:\n"
+                    "            # stays None, because flight arrived early\n"
+                    "            # if diverted though, need to add everything to div_arr_delay\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': None,\n"
+                    "                    'carrier_delay' : None,\n"
+                    "                    'weather_delay': None,\n"
+                    "                    'nas_delay' : None,\n"
+                    "                    'security_delay': None,\n"
+                    "                    'late_aircraft_delay' : None}\n"
+                    "        elif arr_delay < 0.:\n"
+                    "            # stays None, because flight arrived early\n"
+                    "            # if diverted though, need to add everything to div_arr_delay\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : None,\n"
+                    "                    'weather_delay': None,\n"
+                    "                    'nas_delay' : None,\n"
+                    "                    'security_delay': None,\n"
+                    "                    'late_aircraft_delay' : None}\n"
+                    "        elif arr_delay < 5.:\n"
+                    "            # it's an ontime flight, just attribute any delay to the carrier\n"
+                    "            carrier_delay = arr_delay\n"
+                    "            # set the rest to 0\n"
+                    "            # ....\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : carrier_delay,\n"
+                    "                    'weather_delay': None,\n"
+                    "                    'nas_delay' : None,\n"
+                    "                    'security_delay': None,\n"
+                    "                    'late_aircraft_delay' : None}\n"
+                    "        else:\n"
+                    "            # use model to determine everything and set into (join with weather data?)\n"
+                    "            # i.e., extract here a couple additional columns & use them for features etc.!\n"
+                    "            crs_dep_time = float(row['CRS_DEP_TIME'])\n"
+                    "            crs_arr_time = float(row['CRS_ARR_TIME'])\n"
+                    "            crs_elapsed_time = float(row['CRS_ELAPSED_TIME'])\n"
+                    "            carrier_delay = 1024 + 2.7 * crs_dep_time - 0.2 * crs_elapsed_time\n"
+                    "            weather_delay = 2000 + 0.09 * carrier_delay * (carrier_delay - 10.0)\n"
+                    "            nas_delay = 3600 * crs_dep_time / 10.0\n"
+                    "            security_delay = 7200 / crs_dep_time\n"
+                    "            late_aircraft_delay = (20 + crs_arr_time) / (1.0 + crs_dep_time)\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : carrier_delay,\n"
+                    "                    'weather_delay': weather_delay,\n"
+                    "                    'nas_delay' : nas_delay,\n"
+                    "                    'security_delay': security_delay,\n"
+                    "                    'late_aircraft_delay' : late_aircraft_delay}\n"
+                    "    else:\n"
+                    "        # just return it as is\n"
+                    "        return {'year' : year, 'month' : month,\n"
+                    "                'day' : row['DAY_OF_MONTH'],\n"
+                    "                'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                'distance' : row['DISTANCE'],\n"
+                    "                'dep_delay' : row['DEP_DELAY'],\n"
+                    "                'arr_delay': row['ARR_DELAY'],\n"
+                    "                'carrier_delay' : row['CARRIER_DELAY'],\n"
+                    "                'weather_delay':row['WEATHER_DELAY'],\n"
+                    "                'nas_delay' : row['NAS_DELAY'],\n"
+                    "                'security_delay': row['SECURITY_DELAY'],\n"
+                    "                'late_aircraft_delay' : row['LATE_AIRCRAFT_DELAY']}";
+
+    using namespace tuplex;
+    using namespace std;
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    auto opt = microLambdaOptions();
+
+    // {'tuplex.useLLVMOptimizer': True,
+    // 'tuplex.autoUpcast': False,
+    // 'tuplex.allowUndefinedBehavior': False,
+    // 'tuplex.optimizer.codeStats': False,
+    // 'tuplex.optimizer.generateParser': False,
+    // 'tuplex.optimizer.retypeUsingOptimizedInputSchema': False,
+    // 'tuplex.optimizer.filterPushdown': True,
+    // 'tuplex.optimizer.sharedObjectPropagation': True,
+    // 'tuplex.optimizer.mergeExceptionsInOrder': True,
+    // 'tuplex.optimizer.operatorReordering': False,
+    // 'tuplex.interleaveIO': True,
+    // 'tuplex.resolveWithInterpreterOnly': False,
+    // 'tuplex.network.verifySSL': False,
+    // 'tuplex.redirectToPythonLogging': False,
+    // 'tuplex.useInterpreterOnly': False,
+    // 'tuplex.aws.lambdaInvokeOthers': True,
+    // 'tuplex.csv.selectionPushdown': True,
+    // 'tuplex.webui.enable': False,
+    // 'tuplex.executorCount': 0,
+    // 'tuplex.csv.maxDetectionRows': 10000,
+    // 'tuplex.webui.port': 5000,
+    // 'tuplex.webui.mongodb.port': 27017,
+    // 'tuplex.webui.exceptionDisplayLimit': 5,
+    // 'tuplex.aws.requestTimeout': 600,
+    // 'tuplex.aws.connectTimeout': 1,
+    // 'tuplex.aws.maxConcurrency': 100,
+    // 'tuplex.aws.httpThreadCount': 128,
+    // 'tuplex.aws.lambdaMemory': 10000,
+    // 'tuplex.aws.lambdaTimeout': 600,
+    // 'tuplex.aws.requesterPay': False,
+    // 'tuplex.normalcaseThreshold': 0.9,
+    // 'tuplex.optionalThreshold': 0.7,
+    // 'tuplex.aws.lambdaInvocationStrategy': 'direct',
+    // 'tuplex.aws.lambdaThreads': '2',
+    // 'tuplex.aws.region': 'us-east-1',
+    // 'tuplex.aws.scratchDir': 's3://tuplex-leonhard/scratch/flights-exp',
+    // 'tuplex.backend': 'lambda',
+    // 'tuplex.csv.comments': ['#', '~'],
+    // 'tuplex.csv.maxDetectionMemory': '256KB',
+    // 'tuplex.csv.quotechar': '"',
+    // 'tuplex.csv.separators': [',', ';', '|', '\t'],
+    // 'tuplex.driverMemory': '2G',
+    // 'tuplex.env.hostname': 'bbsn00',
+    // 'tuplex.env.mode': 'file',
+    // 'tuplex.env.user': 'lspiegel',
+    // 'tuplex.executorMemory': '2G',
+    // 'tuplex.experimental.hyperspecialization': 'false',
+    // 'tuplex.inputSplitSize': '64MB',
+    // 'tuplex.logDir': '.',
+    // 'tuplex.network.caFile': '',
+    // 'tuplex.network.caPath': '',
+    // 'tuplex.optimizer.constantFoldingOptimization': 'false',
+    // 'tuplex.optimizer.nullValueOptimization': 'false',
+    // 'tuplex.partitionSize': '32MB',
+    // 'tuplex.readBufferSize': '128KB',
+    // 'tuplex.runTimeLibrary': '/home/lspiegel/tuplex-public/tuplex/build/dist/python/tuplex/libexec/tuplex_runtime.so',
+    // 'tuplex.runTimeMemory': '128MB',
+    // 'tuplex.runTimeMemoryBlockSize': '4MB',
+    // 'tuplex.scratchDir': '/tmp/tuplex-cache-lspiegel',
+    // 'tuplex.webui.mongodb.path': '/tmp/tuplex-cache-lspiegel/mongodb',
+    // 'tuplex.webui.mongodb.url': 'localhost',
+    // 'tuplex.webui.url': 'localhost'}
+
+    // startegies:
+    // 1. no-op Lambda spin out experiment
+    opt.set("tuplex.aws.lambdaInvokeOthers", "true");
+    opt.set("tuplex.aws.lambdaMemory", "10000");
+    opt.set("tuplex.aws.maxConcurrency", "120");
+    opt.set("tuplex.aws.lambdaThreads", "4"); // AWS EMR compatible setting
+
+    opt.set("tuplex.aws.lambdaInvocationStrategy", "direct");
+    opt.set("tuplex.useInterpreterOnly", "false");
+
+    // s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv -> s3://tuplex-leonhard/experiments/flights_hyper/general
+    string inputFiles = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv";
+    string outputDir = "s3://tuplex-leonhard/experiments/flights_hyper/general";
+    Context ctx(opt);
+
+    //  ctx.csv(input_pattern).map(fill_in_delays).tocsv(s3_output_path)
+    ctx.csv(inputFiles).map(UDF(udf_code)).tocsv(outputDir);
+}
+
 // zillow Pipeline on AWS Lambda (incl. various options -> multithreading, self-invocation, ...)
 TEST_F(AWSTest, FullZillowPipeline) {
 #ifdef SKIP_AWS_TESTS

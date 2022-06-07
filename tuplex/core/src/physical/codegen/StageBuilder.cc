@@ -481,6 +481,9 @@ namespace tuplex {
             IRBuilder<> rsBuilder(bbRSBody);
             auto isArgs = codegen::mapLLVMFunctionArgs(fastPathInitStageFunc, {"num_args", "hashmaps", "null_buckets"});
 
+            // debug print
+            logger.debug("Creating pipeline with input row type: " + pathContext.inputSchema.getRowType().desc());
+
             // step 1. build pipeline, i.e. how to process data
             auto pip = std::make_shared<codegen::PipelineBuilder>(env, pathContext.inputSchema.getRowType(), intermediateType(pathContext.operators), funcProcessRowName);
 

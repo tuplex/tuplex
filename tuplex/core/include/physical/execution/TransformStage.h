@@ -326,7 +326,7 @@ namespace tuplex {
 
         size_t numOutputFiles() const { return std::stoi(_fileOutputParameters.at("numParts")); }
 
-        UDF outputPathUDF() const { std::cout<<_fileOutputParameters.at("udf")<<std::endl; return UDF(_fileOutputParameters.at("udf")); }
+        UDF outputPathUDF() const { return UDF(_fileOutputParameters.at("udf")); }
 
         FileFormat outputFormat() const { return _outputFormat; }
         FileFormat inputFormat() const { return _inputFormat; }

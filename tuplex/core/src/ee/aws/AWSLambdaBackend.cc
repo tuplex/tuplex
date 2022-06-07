@@ -935,7 +935,6 @@ namespace tuplex {
                 auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
                 req.set_baseoutputuri(uri.toPath());
             } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
-
                 // there's two options now, either this is an end-stage (i.e., unique/aggregateByKey/...)
                 // or an intermediate stage where a temp hash-table is required.
                 // in any case, because compute is done on Lambda materialize hash-table as temp file.

@@ -361,10 +361,10 @@ namespace tuplex {
         inline bool astFormatCompatible(const tuplex::messages::InvocationRequest& req) const {
             if(req.stage().has_stageserializationmode()) {
 #ifdef BUILD_WITH_CEREAL
-                if(msg.stageserializationmode() != messages::SF_CEREAL)
+                if(req.stage().stageserializationmode() != messages::SF_CEREAL)
                 return false;
 #else
-                if(msg.stageserializationmode() != messages::SF_CEREAL)
+                if(req.stage().stageserializationmode() != messages::SF_CEREAL)
                    return false;
 #endif
             }

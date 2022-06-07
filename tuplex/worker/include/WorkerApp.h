@@ -364,7 +364,7 @@ namespace tuplex {
                 if(req.stage().stageserializationmode() != messages::SF_CEREAL)
                 return false;
 #else
-                if(req.stage().stageserializationmode() != messages::SF_CEREAL)
+                if(req.stage().stageserializationmode() != messages::SF_JSON)
                    return false;
 #endif
             }

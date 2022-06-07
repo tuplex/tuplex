@@ -999,10 +999,10 @@ namespace tuplex {
         if(msg.has_stageserializationmode()) {
 #ifdef BUILD_WITH_CEREAL
             if(msg.stageserializationmode() != messages::SF_CEREAL)
-                logger.error("invalid serialization format encountered in message, incompatible with how client is compiled.");
+                logger.error("invalid serialization format " + std::to_string(msg.stageserializationmode()) + " encountered in message, incompatible with how client is compiled.");
 #else
-            if(msg.stageserializationmode() != messages::SF_CEREAL)
-                logger.error("invalid serialization format encountered in message, incompatible with how client is compiled.");
+            if(msg.stageserializationmode() != messages::SF_JSON)
+                logger.error("invalid serialization format " + std::to_string(msg.stageserializationmode()) + " encountered in message, incompatible with how client is compiled.");
 #endif
         }
 

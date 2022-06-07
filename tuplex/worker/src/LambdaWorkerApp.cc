@@ -390,6 +390,13 @@ namespace tuplex {
         std::chrono::milliseconds timeout(this_container.msRemaining - AWS_LAMBDA_SAFETY_DURATION_IN_MS);
         setLambdaTimeout(timeout);
         _globallyInitialized = true;
+
+#ifdef BUILD_WITH_CEREAL
+        logger().info("Lambda is using Cereal AST serialization");
+#else
+        logger().info("Lambda is using JSON AST serializastion");
+#endif
+
         return WORKER_OK;
     }
 

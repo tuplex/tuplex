@@ -1293,8 +1293,16 @@ namespace tuplex {
             size_t numReused = 0;
             size_t numNew = 0;
 
+            size_t total_num_output_rows = 0;
+            size_t total_num_exceptions = 0;
+            size_t total_bytes_written = 0;
+
             // aggregate stats over responses
             for (const auto &task : _tasks) {
+                total_num_output_rows += task.numrowswritten();
+                total_num_exceptions += task.numexceptions();
+                total_bytes_written += task.numbyteswritten();
+
                 awsInitTime.update(task.awsinittime());
                 taskExecutionTime.update(task.taskexecutiontime());
                 for (const auto &keyval : task.s3stats()) {
@@ -1320,6 +1328,11 @@ namespace tuplex {
                 numReused += task.container().reused();
                 numNew += !task.container().reused();
             }
+
+            // print stage stats
+            logger().info("LAMBDA Stage: " + pluralize(total_num_output_rows, "row")
+                                           + pluralize(total_num_exceptions, " exception") + " "
+                                           + sizeToMemString(total_bytes_written));
 
             // compute cost of s3 + Lambda
             ss << "Lambda #containers used: " << containerIDs.size() << " reused: " << numReused

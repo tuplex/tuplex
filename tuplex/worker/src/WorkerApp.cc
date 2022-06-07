@@ -1798,6 +1798,8 @@ namespace tuplex {
         auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
         _has_python_resolver = true;
 
+        bool is_first_unresolved_interpreter = true;
+
         // when both compiled resolver & interpreted resolver are invalid, this means basically that all exceptions stay...
         const auto* ptr = static_cast<const uint8_t*>(buf.buffer());
         auto env = &_threadEnvs[threadNo];
@@ -1829,6 +1831,8 @@ namespace tuplex {
                 Schema specialized_output_schema = stage->normalCaseOutputSchema();
                 Schema general_output_schema = stage->outputSchema();
 
+                std::stringstream err_stream;
+
                 python::lockGIL();
                 auto fallbackRes = processRowUsingFallback(interpretedResolver, ecCode, ecOperatorID,
                                                            exception_input_schema,
@@ -1837,8 +1841,13 @@ namespace tuplex {
                                                            general_output_schema,
                                                            {},
                                                            _settings.allowNumericTypeUnification,
-                                                           output_is_hashtable);
+                                                           output_is_hashtable,
+                                                           &err_stream);
                 python::unlockGIL();
+
+                auto err = err_stream.str();
+                if(!err.empty())
+                    logger().error(err);
 
                 // check whether output succeeded
                 if(fallbackRes.code == ecToI64(ExceptionCode::SUCCESS)) {
@@ -1857,6 +1866,19 @@ namespace tuplex {
                 } else {
                     // didn't work, keep as original exception or partially resolved path?
                     // -> for now keep as it is...
+
+                    // debug: print out result for first unresolved row.
+                    if(is_first_unresolved_interpreter) {
+                        std::stringstream ss;
+                        ss<<"ec code: "<<fallbackRes.code<<" ";
+                        python::lockGIL();
+                        auto input_row = python::PyString_AsString(fallbackRes.)
+                        python::unlockGIL();
+                        is_first_unresolved_interpreter = false;
+                    }
+
+
+
                     rc = -1;
                 }
             }

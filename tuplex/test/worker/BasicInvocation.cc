@@ -1012,6 +1012,58 @@ namespace tuplex {
         return rows_identical;
     }
 
+    void annotateModuleWithInstructionPrint(llvm::Module& mod) {
+
+        auto printf_func = codegen::printf_prototype(mod.getContext(), &mod);
+
+
+        // lookup table for names (before modifying module!)
+        std::unordered_map<llvm::Instruction*, std::string> names;
+        for(auto& func : mod) {
+            for(auto& bb : func) {
+
+                for(auto& inst : bb) {
+                    std::string inst_name;
+                    llvm::raw_string_ostream os(inst_name);
+                    inst.print(os);
+                    os.flush();
+
+                    // save instruction name in map
+                    auto inst_ptr = &inst;
+                    names[inst_ptr] = inst_name;
+
+                }
+            }
+        }
+
+
+        // go over all functions in mod
+        for(auto& func : mod) {
+            std::cout<<"Annotating "<<func.getName().str()<<std::endl;
+
+            // go over blocks
+            size_t num_blocks = 0;
+            size_t num_instructions = 0;
+            for(auto& bb : func) {
+                for(auto& inst : bb) {
+                    // only call printf IFF not a branching instruction and not a ret instruction
+                    auto inst_ptr = &inst;
+                    auto inst_name = names.at(inst_ptr);
+                    if(!llvm::isa<llvm::BranchInst>(inst_ptr) && !llvm::isa<llvm::ReturnInst>(inst_ptr) && !llvm::isa<llvm::PHINode>(inst_ptr)) {
+                        llvm::IRBuilder<> builder(inst_ptr);
+                        llvm::Value *sConst = builder.CreateGlobalStringPtr(inst_name);
+                        llvm::Value *sFormat = builder.CreateGlobalStringPtr("%s\n");
+                        builder.CreateCall(printf_func, {sFormat, sConst});
+                        num_instructions++;
+                    }
+                }
+
+                num_blocks++;
+            }
+            std::cout<<"Annotated "<<pluralize(num_blocks, "basic block")<<", "<<pluralize(num_instructions, "instruction")<<std::endl;
+        }
+    }
+
     int checkHyperSpecialization(const URI& input_uri, TransformStage* tstage_hyper, TransformStage* tstage_general, int num_threads, const URI& spillURI) {
         using namespace std;
         int rc = 0;
@@ -1025,6 +1077,16 @@ namespace tuplex {
                                                              false, // this here causes an error!!!
                                                              num_threads,
                                                              spillURI.toString());
+
+        // print slowpath to file
+        llvm::LLVMContext llvm_ctx;
+        auto mod = codegen::bitCodeToModule(llvm_ctx, tstage_general->slowPathBitCode());
+        stringToFile("general_slowpath.txt", codegen::moduleToString(*mod.get()));
+        annotateModuleWithInstructionPrint(*mod.get());
+        // debug, overwrite slowpath with newly annotated module!
+        tstage_general->slowPathBitCode() = codegen::moduleToBitCodeString(*mod.get());
+
+
         output_uri = tstage_general->outputURI().toString() + "/" + basename(input_uri.toString());
         auto json_message_general = transformStageToReqMessage(tstage_general, input_uri.toPath(),
                                                              input_file_size, output_uri.toString(),
@@ -1036,9 +1098,9 @@ namespace tuplex {
         // start worker within same process to easier debug...
         std::cout<<" --- Hyper processing --- "<<std::endl;
         auto app = make_unique<WorkerApp>(WorkerSettings());
-        app->processJSONMessage(json_message_hyper);
-        app->shutdown();
-        rc |= 0x1;
+//        app->processJSONMessage(json_message_hyper);
+//        app->shutdown();
+//        rc |= 0x1;
 
         std::cout<<" --- General processing --- "<<std::endl;
         app = make_unique<WorkerApp>(WorkerSettings());
@@ -1305,6 +1367,9 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 
     // create the two pipeline versions...
         // !!! use compatible files for inference when issuing queries, else there'll be errors.
+
+    paths = {URI(flights_root + "flights_on_time_performance_2000_01.csv"), URI(flights_root + "flights_on_time_performance_2021_11.csv")};
+
     input_pattern = paths.front().toString() + "," + paths.back().toString();
     auto test_output_path = "./general_processing/";
     int num_threads = 1;
@@ -1317,9 +1382,10 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 
     // this file here fails completely => issue is the processing using opt[str] assumptions on the delay breakdown.
     //paths = {URI(flights_root + "/flights_on_time_performance_2021_11.csv")};
-
-    paths = {URI(cwd_path.string() + "/../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.sample.csv")};
-    paths = {URI(flights_root + "flights_on_time_performance_2003_01.csv"), URI(flights_root + "flights_on_time_performance_2003_12.csv")};
+//
+//    paths = {URI(cwd_path.string() + "/../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.sample.csv")};
+//    paths = {URI(flights_root + "flights_on_time_performance_2003_01.csv"), URI(flights_root + "flights_on_time_performance_2003_12.csv")};
+    paths = {URI(flights_root + "flights_on_time_performance_2000_02.csv")};
     std::reverse(paths.begin(), paths.end());
 
     for(const auto& path : paths) {

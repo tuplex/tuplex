@@ -231,6 +231,14 @@ namespace tuplex {
             return _slowCodePath.irBitCode;//_slowPathIRBitCode;
         }
 
+        std::string& fastPathBitCode() {
+            return _fastCodePath.irBitCode;//_fastPathIRBitCode;
+        }
+
+        std::string& slowPathBitCode() {
+            return _slowCodePath.irBitCode;//_slowPathIRBitCode;
+        }
+
         Schema generalCaseInputSchema() const {
             return this->_generalCaseInputSchema;
         }

@@ -134,7 +134,7 @@ if __name__ == '__main__':
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004*.csv'
     # minimal example where double write occassionally occurs. I.e., was something not properly reset?
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_11.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv'
-    use_hyper_specialization = True
+    use_hyper_specialization = False
     s3_output_path += '/sampling'
 
     print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, s3_output_path))

@@ -971,11 +971,13 @@ namespace tuplex {
                                                      const std::vector<tuplex::codegen::SerializableValue> &args) {
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
+            /** TODO: need a check on argsType etc. that they are float numbers (python::Type::F64) **/
+
             // val.val is an llvm::Value* ; see SerializableValue struct in CodegenHelper.h
             auto val = args.front();
 
             // make llvm Value out of NAN
-            // what's _env? 
+            // what's _env? instance of LLVMEnvironment
             llvm::Value* F64Nan = _env.f64Const(NAN);
             // make comparison instruction
             auto resVal = builder.CreateICmpEQ(val.val, F64Nan);
@@ -983,7 +985,7 @@ namespace tuplex {
             return SerializableValue(resVal, resSize);
         }
 
-        // codegen::SerializableValue createMathIsInfCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+        // codegen::SerializableValue FunctionRegistry::createMathIsInfCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
         //                                              const python::Type &retType,
         //                                              const std::vector<tuplex::codegen::SerializableValue> &args) {
         //     using namespace llvm;
@@ -1227,6 +1229,9 @@ namespace tuplex {
 
             if (symbol == "math.degrees")
                 return createMathToDegreesCall(builder, argsType, retType, args);
+            
+            if (symbol == "math.isnan")
+                return createMathIsNanCall(builder, argsType, retType, args);
 
 
             // re module

@@ -39,8 +39,6 @@ namespace tuplex {
             using namespace std;
             assert(!alias.empty());
 
-            // TODO: add the widely used constants inf, pi, ...
-
             auto m = make_shared<Symbol>(alias, python::Type::MODULE);
             m->qualifiedName = "math";
 

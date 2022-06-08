@@ -789,7 +789,7 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
         co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
         codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
         auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path, co,
-                                                                                   option<bool>::none,
+                                                                                   option<bool>(false),
                                                                                    option<char>::none, option<char>::none,
                                                                                    {""}, {}, {}, {}, mode));
         auto mapop = std::make_shared<MapOperator>(csvop, UDF(udf_code), csvop->columns());

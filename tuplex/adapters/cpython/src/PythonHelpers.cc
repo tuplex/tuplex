@@ -180,6 +180,15 @@ namespace python {
     PyObject* PyString_FromString(const char* str) {
        auto unicode_obj = PyUnicode_DecodeUTF8(str, strlen(str), nullptr);
 
+       if(!unicode_obj) {
+           PyErr_Clear();
+
+           // string was not a unicode object. use per default iso_8859_1 (latin-1 supplement) to utf8 conversion
+           auto utf8_str = iso_8859_1_to_utf8(str);
+           assert(utf8_check_is_valid);
+           return PyString_FromString(utf8_str.c_str());
+       }
+
 #ifndef NDEBUG
        handle_and_throw_py_error();
 #endif

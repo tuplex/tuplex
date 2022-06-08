@@ -452,9 +452,9 @@ namespace tuplex {
             // print info on csv header estimation
             if(!hasHeader.has_value()) {
                 if(_header)
-                    logger.info("Auto-detected presence of a header line in CSV files");
+                    logger.info("Auto-detected presence of a header line in CSV files.");
                 else
-                    logger.info("Auto-detected there's no header line in CSV files");
+                    logger.info("Auto-detected there's no header line in CSV files.");
             }
 
             // set column names from stat
@@ -1058,7 +1058,7 @@ namespace tuplex {
                     offset = _samplingSize - (uri_size - _samplingSize);
                     assert(offset <= _samplingSize);
                 }
-                auto rows = parseRows(sample.c_str() + offset, sample.c_str() + offset + std::min(sample.size() - 1, strlen(sample.c_str())),
+                auto rows = parseRows(sample.c_str() + offset, sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
                                             _null_values, _delimiter, _quotechar);
                 // offset = 0?
                 if(file_offset == 0) {

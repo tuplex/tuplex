@@ -855,8 +855,16 @@ namespace tuplex {
         }
 
         assert(call->_func->getInferredType() != python::Type::UNKNOWN);
-        for(auto &arg : call->_positionalArguments)
-            assert(arg->getInferredType() != python::Type::UNKNOWN);
+        unsigned arg_index = 0;
+        for(auto &arg : call->_positionalArguments) {
+            if(arg->getInferredType() == python::Type::UNKNOWN) {
+                // arg was typed as unknown, can't deduce return type of call
+                std::stringstream ss;
+                ss<<"Argument "<<arg_index<<" of call could not be typed. Can't type call.";
+                fatal_error(ss.str());
+            }
+            arg_index++;
+        }
 
         // type call with func result type.
         // check they are compatible

@@ -321,7 +321,7 @@ namespace tuplex {
     // from https://stackoverflow.com/questions/4059775/convert-iso-8859-1-strings-to-utf-8-in-c-c
     inline std::string iso_8859_1_to_utf8(const std::string &str) {
         std::string strOut;
-        for (std::string::iterator it = str.begin(); it != str.end(); ++it) {
+        for (auto it = str.cbegin(); it != str.cend(); ++it) {
             uint8_t ch = *it;
             if (ch < 0x80) {
                 strOut.push_back(ch);

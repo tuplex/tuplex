@@ -222,7 +222,7 @@ namespace tuplex {
         }
 
         // if neither single-threaded nor multi-threaded are specified, use multi-threaded mode per default.
-        if(!(mode & SamplingMode::SINGLETHREADED) && !(SamplingMode::MULTITHREADED)) {
+        if(!(mode & SamplingMode::SINGLETHREADED) && !(mode & SamplingMode::MULTITHREADED)) {
             mode = mode | SamplingMode::MULTITHREADED;
         }
 
@@ -237,7 +237,7 @@ namespace tuplex {
 
         _cachePopulated = true;
         auto duration = timer.time();
-        logger.debug("Filling cache for " + name() + " operator took " + std::to_string(duration) + "s");
+        logger.info("Filling sample cache for " + name() + " operator took " + std::to_string(duration) + "s");
         _sampling_time_s += duration; // update how long filling the cache took
     }
 
@@ -350,7 +350,7 @@ namespace tuplex {
             logger.info("Filling file cache...");
             fillCache(sampling_mode);
             logger.info("File cache filled (" + std::to_string(_sampleCache.size()) + " entries)");
-            
+
             aligned_string sample;
             if(!_fileURIs.empty()) {
                 sample = loadSample(co.SAMPLE_SIZE(), _fileURIs.front(), _sizes.front(),

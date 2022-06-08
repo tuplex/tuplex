@@ -299,7 +299,7 @@ namespace tuplex {
             auto size = _sizes[idx];
             auto file_mode = perFileMode(mode);
 
-            f_rows[i] = std::async([this](const URI& uri, size_t size, const SamplingMode& mode) {
+            f_rows[i] = std::async([this, file_mode](const URI& uri, size_t size, const SamplingMode& mode) {
                 return sampleFile(_samplingSize, uri, size, file_mode);
             }, _fileURIs[idx], _sizes[idx], mode);
         }

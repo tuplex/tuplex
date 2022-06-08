@@ -971,7 +971,7 @@ namespace tuplex {
                                                      const std::vector<tuplex::codegen::SerializableValue> &args) {
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
-            /** TODO: need a check on argsType etc. that they are float numbers (python::Type::F64) **/
+            /** TODO: need a check on argsType --> float numbers (python::Type::F64) **/
             auto val = args.front();
             llvm::Value* F64Nan = _env.f64Const(NAN);
             auto resVal = builder.CreateICmpEQ(val.val, F64Nan);

@@ -966,21 +966,39 @@ namespace tuplex {
             return SerializableValue(resVal, resSize);
         }
 
-        codegen::SerializableValue createMathIsInfCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+        codegen::SerializableValue FunctionRegistry::createMathIsNanCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
                                                      const python::Type &retType,
                                                      const std::vector<tuplex::codegen::SerializableValue> &args) {
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
-            // note: val.val is a llvm::Value* ; see SerializableValue struct in CodegenHelper.h
+            // val.val is an llvm::Value* ; see SerializableValue struct in CodegenHelper.h
             auto val = args.front();
 
-            // make llvm Value out of INFINITY
-            llvm::Value* F64Infinity = _env.f64Const(INFINITY);
+            // make llvm Value out of NAN
+            // what's _env? 
+            llvm::Value* F64Nan = _env.f64Const(NAN);
             // make comparison instruction
-            auto resVal = builder.CreateICmpEQ(val.val, F64Infinity);
+            auto resVal = builder.CreateICmpEQ(val.val, F64Nan);
             auto resSize = _env.i64Const(sizeof(bool));
             return SerializableValue(resVal, resSize);
         }
+
+        // codegen::SerializableValue createMathIsInfCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+        //                                              const python::Type &retType,
+        //                                              const std::vector<tuplex::codegen::SerializableValue> &args) {
+        //     using namespace llvm;
+        //     auto& context = builder.GetInsertBlock()->getContext();
+        //     // note: val.val is a llvm::Value* ; see SerializableValue struct in CodegenHelper.h
+        //     auto val = args.front();
+
+        //     // make llvm Value out of INFINITY
+        //     // what's _env? 
+        //     llvm::Value* F64Infinity = _env.f64Const(INFINITY);
+        //     // make comparison instruction
+        //     auto resVal = builder.CreateICmpEQ(val.val, F64Infinity);
+        //     auto resSize = _env.i64Const(sizeof(bool));
+        //     return SerializableValue(resVal, resSize);
+        // }
 
         codegen::SerializableValue createMathCosCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
                                                      const python::Type &retType,

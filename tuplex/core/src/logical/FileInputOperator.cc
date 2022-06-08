@@ -325,7 +325,7 @@ namespace tuplex {
                                          const std::unordered_map<size_t, python::Type>& index_based_type_hints,
                                          const std::unordered_map<std::string, python::Type>& column_based_type_hints,
                                          const SamplingMode& sampling_mode) :
-                                                                            _null_values(null_values), _sampling_time_s(0.0), _samplingMode(sampling_mode), _samplingSize(co.SAMPLE_SIZE()), _cachePopulated(false) {
+                                                                            _null_values(null_values), _sampling_time_s(0.0), _samplingMode(sampling_mode), _samplingSize(co.SAMPLE_SIZE()), _cachePopulated(false), _estimatedRowCount(0) {
         auto &logger = Logger::instance().logger("fileinputoperator");
         _fmt = FileFormat::OUTFMT_CSV;
 
@@ -349,6 +349,7 @@ namespace tuplex {
             // fill sampling cache
             fillCache(sampling_mode);
 
+            // need to load first rows in order to perform header/csv detection. @TODO: could optimize this.
             aligned_string sample;
             if(!_fileURIs.empty()) {
                 sample = loadSample(co.SAMPLE_SIZE(), _fileURIs.front(), _sizes.front(),
@@ -374,6 +375,14 @@ namespace tuplex {
             _delimiter = delimiter.value_or(csvstat.delimiter());
             _quotechar = quotechar.value_or(csvstat.quotechar());
             _header = hasHeader.value_or(csvstat.hasHeader());
+
+            // print info on csv header estimation
+            if(!hasHeader.has_value()) {
+                if(_header)
+                    logger.info("Auto-detected presence of a header line in CSV files");
+                else
+                    loger.info("Auto-detected there's no header line in CSV files");
+            }
 
             // set column names from stat
             // Note: call this BEFORE applying type hints!

@@ -885,6 +885,8 @@ TEST(BasicInvocation, FlightsHyper) {
     input_pattern = flights_root + "flights_on_time_performance_2003_01.csv," + flights_root + "flights_on_time_performance_2003_12.csv";
 
 
+    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_11.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv";
+
     auto test_path = input_pattern;
     auto test_output_path = "./general_processing/";
     int num_threads = 1;
@@ -1545,9 +1547,9 @@ TEST(BasicInvocation, FlightsSampling) {
 
     // determine here which files to use for sampling
     //
-    paths = {URI(flights_root + "flights_on_time_performance_2002_01.csv"), URI(flights_root + "flights_on_time_performance_2004_12.csv")};
+    //paths = {URI(flights_root + "flights_on_time_performance_2002_01.csv"), URI(flights_root + "flights_on_time_performance_2004_12.csv")};
 
-    input_pattern = paths.front().toString() + "," + paths.back().toString();
+    input_pattern = paths.front().toString() + "," + paths[1].toString() + "," + paths.back().toString();
     auto test_output_path = "./general_processing/";
     int num_threads = 1;
     auto spillURI = std::string("spill_folder");
@@ -1558,7 +1560,7 @@ TEST(BasicInvocation, FlightsSampling) {
     auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false, sampling_mode);
 
     // now specify which files to run on.
-    paths = {URI(flights_root + "flights_on_time_performance_2008_02.csv")};
+    paths = {URI(flights_root + "/flights_on_time_performance_2003_11.csv")};
     std::reverse(paths.begin(), paths.end());
 
     for(const auto& path : paths) {

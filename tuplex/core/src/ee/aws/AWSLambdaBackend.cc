@@ -895,12 +895,6 @@ namespace tuplex {
 
         std::vector<messages::InvocationRequest> requests;
 
-
-        // debug: python code to file -> for debugging to see what's going wrong
-        auto py_code_path = URI("req_python_path.py.txt");
-        stringToFile(py_code_path, tstage->purePythonCode());
-        logger().info("saved python code path to: " + py_code_path.toString());
-
         // Note: for now, super simple: 1 request per file (this is inefficient, but whatever)
         // @TODO: more sophisticated splitting of workload!
         Timer timer;

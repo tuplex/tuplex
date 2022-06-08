@@ -288,7 +288,7 @@ namespace tuplex {
             _sampleCache[key] = vf[i].get();
         }
 
-        logger.debug("parallel sample fetch done.");
+        logger.info("Parallel sample fetch done. Parsing to sample now.");
 
         // parse now rows for detection etc.
         vector<std::future<vector<Row>>> f_rows(indices.size());
@@ -311,7 +311,7 @@ namespace tuplex {
             std::copy(rows.begin(), rows.end(), std::back_inserter(res));
         }
 
-        logger.debug("parallel sample parse done.");
+        logger.info("Parallel sample parse done.");
         return res;
     }
 

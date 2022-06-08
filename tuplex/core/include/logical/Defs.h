@@ -48,6 +48,8 @@ namespace tuplex {
         LAST_FILE = 16,
         RANDOM_FILE = 32,
         ALL_FILES = 64,
+        SINGLETHREADED = 128,
+        MULTITHREADED = 256
     };
 
     static const SamplingMode DEFAULT_SAMPLING_MODE = static_cast<SamplingMode>(SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE);
@@ -57,6 +59,10 @@ namespace tuplex {
         int i_rhs = rhs;
         auto ans = i_lhs | i_rhs;
         return static_cast<SamplingMode>(ans);
+    }
+
+    inline SamplingMode perFileMode(const SamplingMode& mode) {
+        return static_cast<SamplingMode>((mode & SamplingMode::FIRST_ROWS) | (mode & SamplingMode::LAST_ROWS) | (mode & SamplingMode::RANDOM_ROWS));
     }
 }
 

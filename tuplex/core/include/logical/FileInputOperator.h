@@ -56,14 +56,16 @@ namespace tuplex {
         // a sample cache (avoids sampling the same file over and over again).
         // -> load_sample uses this
         std::unordered_map<std::tuple<URI, SamplingMode>, aligned_string> _sampleCache;
+        bool _cachePopulated;
+        std::vector<Row> _rowsSample;
+        void fillCache(SamplingMode mode);
 
         // for CSV, have here a global csv stat (that can get reset)
         // ??
 
-        // internal sample, used for tracing & Co.
-        std::vector<Row> _firstRowsSample;
-        std::vector<Row> _lastRowsSample;
-
+//        // internal sample, used for tracing & Co.
+//        std::vector<Row> _firstRowsSample;
+//        std::vector<Row> _lastRowsSample;
 
         // *** helper functions ***
         inline Schema normalCaseSchema() const { return Schema(Schema::MemoryLayout::ROW, _normalCaseRowType); }
@@ -159,11 +161,12 @@ namespace tuplex {
 
         FileInputOperator(FileInputOperator& other); // specialized copy constructor!
 
-        aligned_string loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode);
+        aligned_string loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode, bool use_cache=true);
         std::vector<size_t> translateOutputToInputIndices(const std::vector<size_t>& output_indices);
 
         // sampling functions
         std::vector<Row> sample(const SamplingMode& mode);
+        std::vector<Row> multithreadedSample(const SamplingMode& mode);
         std::vector<Row> sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode);

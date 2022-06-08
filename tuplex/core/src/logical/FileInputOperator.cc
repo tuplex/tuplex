@@ -40,17 +40,19 @@ namespace tuplex {
         ") to process.");
     }
 
-    aligned_string FileInputOperator::loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode) {
+    aligned_string FileInputOperator::loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode, bool use_cache) {
         auto &logger = Logger::instance().logger("fileinputoperator");
 
         if(0 == file_size || uri == URI::INVALID)
             return "";
 
-        // check if in sample cache already
-        auto key = std::make_tuple(uri, mode);
-        auto it = _sampleCache.find(key);
-        if(it != _sampleCache.end())
-            return it->second;
+        auto key = std::make_tuple(uri, perFileMode(mode));
+        if(use_cache) {
+            // check if in sample cache already
+            auto it = _sampleCache.find(key);
+            if(it != _sampleCache.end())
+                return it->second;
+        }
 
         auto vfs = VirtualFileSystem::fromURI(uri);
         auto vf = vfs.open_file(uri, VirtualFileMode::VFS_READ);
@@ -108,8 +110,10 @@ namespace tuplex {
         Logger::instance().defaultLogger().info(
                 "sampled " + uri.toString() + " on " + sizeToMemString(sampleSize));
 
-        // put into cache
-        _sampleCache[key] = sample;
+        if(use_cache) {
+            // put into cache
+            _sampleCache[key] = sample;
+        }
 
         return sample;
     }
@@ -123,7 +127,7 @@ namespace tuplex {
     FileInputOperator::FileInputOperator(const std::string& pattern,
             const ContextOptions& co,
             const std::vector<std::string>& null_values,
-            const SamplingMode& sampling_mode) : _null_values(null_values), _estimatedRowCount(0), _sampling_time_s(0.0), _samplingMode(sampling_mode), _samplingSize(co.SAMPLE_SIZE()) {
+            const SamplingMode& sampling_mode) : _null_values(null_values), _estimatedRowCount(0), _sampling_time_s(0.0), _samplingMode(sampling_mode), _samplingSize(co.SAMPLE_SIZE()), _cachePopulated(false) {
         auto &logger = Logger::instance().logger("fileinputoperator");
         _fmt = FileFormat::OUTFMT_TEXT;
 
@@ -197,6 +201,88 @@ namespace tuplex {
                                      column_name_hints, index_based_type_hints, column_based_type_hints, sampling_mode);
     }
 
+    void FileInputOperator::fillCache(SamplingMode mode) {
+        auto &logger = Logger::instance().logger("fileinputoperator");
+        Timer timer;
+
+        // cache already populated?
+        // drop!
+        if(_cachePopulated) {
+            _sampleCache.clear();
+            _rowsSample.clear();
+            _cachePopulated = false;
+        }
+
+        // if neither single-threaded nor multi-threaded are specified, use multi-threaded mode per default.
+        if(!(mode & SamplingMode::SINGLETHREADED) && !(SamplingMode::MULTITHREADED)) {
+            mode = mode | SamplingMode::MULTITHREADED;
+        }
+
+        if(mode & SamplingMode::SINGLETHREADED) {
+            // simply fill cache by drawing the proper samples & store rows.
+            _rowsSample = sample(_samplingMode);
+        } else if(mode & SamplingMode::MULTITHREADED) {
+            _rowsSample = multithreadedSample(_samplingMode);
+        } else {
+            logger.debug("INTERNAL ERROR, invalid sampling mode.");
+        }
+
+        _cachePopulated = true;
+        auto duration = timer.time();
+        logger.debug("Filling cache for " + name() + " operator took " + std::to_string(duration) + "s");
+        _sampling_time_s += duration; // update how long filling the cache took
+    }
+
+    std::vector<Row> FileInputOperator::multithreadedSample(const SamplingMode &mode) {
+        using namespace std;
+
+        auto &logger = Logger::instance().logger("fileinputoperator");
+
+        // first, fill the internal cache
+        assert(_sampleCache.empty());
+
+        // this works by loading/requesting files in parallel
+        std::set<int> file_indices;
+        if(mode & SamplingMode::FIRST_FILE && _fileURIs.size() >= 1)
+            file_indices.insert(0);
+        if(mode & SamplingMode::LAST_FILE && _fileURIs.size() >= 1)
+            file_indices.insert(_fileURIs.size() - 1);
+        if(mode & SamplingMode::RANDOM_FILE && _fileURIs.size() >= 1)
+            file_indices.insert(randi(0ul, _fileURIs.size() - 1));
+
+        if(mode & SamplingMode::ALL_FILES) {
+            for(unsigned i = 0; i < _fileURIs.size(); ++i)
+                file_indices.insert(i);
+        }
+        // empty?
+        if(file_indices.empty())
+            return {};
+
+        // now load all the files in parallel into vector!
+        vector<unsigned> indices(file_indices.begin(), file_indices.end());
+        std::sort(indices.begin(), indices.end());
+
+        vector<std::future<aligned_string>> vf(file_indices.size());
+        for(unsigned i = 0; i < indices.size(); ++i) {
+            auto idx = indices[i];
+            vf[i] = std::async([this, idx](const URI& uri, size_t size, const SamplingMode& mode) {
+                return loadSample(_samplingSize, uri, size, mode, false);
+            }, _fileURIs[idx], _sizes[idx], mode);
+        }
+
+        // check till all futures are done
+        for(unsigned i = 0; i < indices.size(); ++i) {
+            auto idx = indices[i];
+            auto uri = _fileURIs[idx];
+            auto file_mode = perFileMode(mode);
+            auto key = std::make_tuple(uri, file_mode);
+            // place into cache
+            _sampleCache[key] = vf[i].get();
+        }
+
+        logger.debug("parallel sample fetch done.");
+    }
+
     FileInputOperator::FileInputOperator(const std::string &pattern,
                                          const ContextOptions &co,
                                          option<bool> hasHeader,
@@ -207,7 +293,7 @@ namespace tuplex {
                                          const std::unordered_map<size_t, python::Type>& index_based_type_hints,
                                          const std::unordered_map<std::string, python::Type>& column_based_type_hints,
                                          const SamplingMode& sampling_mode) :
-                                                                            _null_values(null_values), _sampling_time_s(0.0), _samplingMode(sampling_mode), _samplingSize(co.SAMPLE_SIZE()) {
+                                                                            _null_values(null_values), _sampling_time_s(0.0), _samplingMode(sampling_mode), _samplingSize(co.SAMPLE_SIZE()), _cachePopulated(false) {
         auto &logger = Logger::instance().logger("fileinputoperator");
         _fmt = FileFormat::OUTFMT_CSV;
 
@@ -227,6 +313,10 @@ namespace tuplex {
 
         // infer schema using first file only
         if (!_fileURIs.empty()) {
+
+            // fill sampling cache
+            fillCache(sampling_mode);
+
 
             aligned_string sample;
             if(!_fileURIs.empty()) {
@@ -385,7 +475,7 @@ namespace tuplex {
         return new FileInputOperator(pattern, co, sampling_mode);
     }
 
-    FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co, const SamplingMode& sampling_mode): _sampling_time_s(0.0), _samplingMode(sampling_mode), _samplingSize(co.SAMPLE_SIZE()) {
+    FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co, const SamplingMode& sampling_mode): _sampling_time_s(0.0), _samplingMode(sampling_mode), _samplingSize(co.SAMPLE_SIZE()), _cachePopulated(false) {
 
 #ifdef BUILD_WITH_ORC
         auto &logger = Logger::instance().logger("fileinputoperator");
@@ -455,45 +545,23 @@ namespace tuplex {
     }
 
     std::vector<Row> FileInputOperator::getSample(const size_t num) const {
-        auto rows = const_cast<FileInputOperator*>(this)->sample(_samplingMode);
+        if(!_cachePopulated || _rowsSample.empty())
+            throw std::runtime_error("need to populate cache first");
 
         // restrict to num
-        if(num <= rows.size()) {
+        if(num <= _rowsSample.size()) {
             // select num random rows...
             // use https://en.wikipedia.org/wiki/Reservoir_sampling the optimal algorithm there to fetch the sample quickly...
             // i.e., https://www.geeksforgeeks.org/reservoir-sampling/
-            return randomSampleFromReservoir(rows, num);
+            return randomSampleFromReservoir(_rowsSample, num);
         } else {
             // need to increase sample size!
             Logger::instance().defaultLogger().warn("requested " + std::to_string(num)
                                                     + " rows for sampling, but only "
-                                                    + std::to_string(rows.size())
-                                                    + " stored. Consider decreasing sample size.");
-            return rows;
+                                                    + std::to_string(_rowsSample.size())
+                                                    + " stored. Consider decreasing sample size. Returning all available rows.");
+            return _rowsSample;
         }
-
-        // old code below.
-
-
-
-
-        auto totalSampleCount = _firstRowsSample.size() + _lastRowsSample.size();
-        if(num > totalSampleCount) {
-#ifndef NEDEBUG
-            Logger::instance().defaultLogger().warn("requested " + std::to_string(num)
-                                                    + " rows for sampling, but only "
-                                                    + std::to_string(totalSampleCount)
-                                                    + " stored. Consider decreasing sample size.");
-#endif
-        }
-
-        // retrieve full sample from first and last rows
-        auto sample = _firstRowsSample;
-        for(auto row : _lastRowsSample)
-            sample.push_back(row);
-
-        // retrieve as many rows as necessary from the combined sample
-        return std::vector<Row>(sample.begin(), sample.begin() + std::min(sample.size(), num));
     }
 
     std::vector<size_t> FileInputOperator::translateOutputToInputIndices(const std::vector<size_t> &output_indices) {
@@ -635,8 +703,8 @@ namespace tuplex {
                                                                              _normalCaseRowType(other._normalCaseRowType),
                                                                              _generalCaseRowType(other._generalCaseRowType),
                                                                              _indexBasedHints(other._indexBasedHints),
-                                                                             _firstRowsSample(other._firstRowsSample),
-                                                                             _lastRowsSample(other._lastRowsSample),
+                                                                             _rowsSample(other._rowsSample),
+                                                                             _cachePopulated(other._cachePopulated),
                                                                              _samplingMode(other._samplingMode),
                                                                              _sampling_time_s(other._sampling_time_s),
                                                                              _samplingSize(other._samplingSize) {

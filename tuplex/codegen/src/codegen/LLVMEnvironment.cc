@@ -19,6 +19,8 @@
 #include <pcre2.h>
 #include <TupleTree.h>
 
+#include <codegen/FlattenedTuple.h>
+
 #include <regex>
 #include <set>
 
@@ -2206,6 +2208,148 @@ namespace tuplex {
                 }
             }
             return ss.str();
+        }
+
+        SerializableValue LLVMEnvironment::dummyValue(llvm::IRBuilder<> &builder, const python::Type &type) {
+            // dummy value needs to be created for llvm to combine stuff.
+            SerializableValue retVal;
+            if (python::Type::BOOLEAN == type || python::Type::I64 == type) {
+                retVal.val = i64Const(0);
+                retVal.size = i64Const(sizeof(int64_t));
+            } else if (python::Type::F64 == type) {
+                retVal.val = f64Const(0.0);
+                retVal.size = i64Const(sizeof(double));
+            } else if (python::Type::STRING == type || type.isDictionaryType()) {
+                retVal.val = i8ptrConst(nullptr);
+                retVal.size = i64Const(0);
+            } else if (type.isListType()) {
+                auto llvmType = getListType(type);
+                auto val = CreateFirstBlockAlloca(builder, llvmType);
+                if (type == python::Type::EMPTYLIST) {
+                    builder.CreateStore(i8nullptr(), val);
+                } else {
+                    auto elementType = type.elementType();
+                    if (elementType.isSingleValued()) {
+                        builder.CreateStore(i64Const(0), val);
+                    } else {
+                        builder.CreateStore(i64Const(0), CreateStructGEP(builder, val, 0));
+                        builder.CreateStore(i64Const(0), CreateStructGEP(builder, val, 1));
+                        builder.CreateStore(llvm::ConstantPointerNull::get(
+                                                    llvm::dyn_cast<PointerType>(llvmType->getStructElementType(2))),
+                                            CreateStructGEP(builder, val, 2));
+                        if (elementType == python::Type::STRING) {
+                            builder.CreateStore(llvm::ConstantPointerNull::get(
+                                                        llvm::dyn_cast<PointerType>(llvmType->getStructElementType(3))),
+                                                CreateStructGEP(builder, val, 3));
+                        }
+                    }
+                }
+                retVal.val = builder.CreateLoad(val);
+                retVal.size = i64Const(3 * sizeof(int64_t));
+            } else {
+                Logger::instance().logger("codegen").warn("Requested dummy for type " + type.desc() + " but not yet implemented");
+            }
+            return retVal;
+        }
+
+        SerializableValue LLVMEnvironment::upcastValue(llvm::IRBuilder<>& builder, const SerializableValue &val,
+                                                      const python::Type &type,
+                                                      const python::Type &targetType) {
+            if(!canUpcastType(type, targetType))
+                throw std::runtime_error("types " + type.desc() + " and " + targetType.desc() + " not compatible for upcasting");
+
+            if(type == targetType)
+                return val;
+
+            // the types are different
+
+            // constant -> underlying?
+            if(type.isConstantValued() && canUpcastType(type.underlying(), targetType)) {
+                // get the constant and upcast then!
+                auto const_val = constantValuedTypeToLLVM(builder, type);
+                return upcastValue(builder, const_val, type.underlying(), targetType);
+            }
+
+            // primitives
+            // bool -> int -> f64
+            if(type == python::Type::BOOLEAN) {
+                if(targetType == python::Type::I64) {
+                    // widen to i64
+                    return SerializableValue(upCast(builder, val.val, i64Type()), i64Const(sizeof(int64_t)));
+                }
+                if(targetType == python::Type::F64)
+                    // widen to f64
+                    return SerializableValue(upCast(builder, val.val, doubleType()), i64Const(sizeof(int64_t)));
+            }
+            // int -> f64
+            if(type == python::Type::I64 && targetType == python::Type::F64)
+                return SerializableValue(upCast(builder, val.val, doubleType()), i64Const(sizeof(int64_t)));
+
+            // null to Option[Any]
+            if(type == python::Type::NULLVALUE && targetType.isOptionType()) {
+
+                // need to create dummy value so LLVM works...
+                auto baseType = targetType.getReturnType();
+                auto tmp = dummyValue(builder, baseType);
+                return SerializableValue(tmp.val, tmp.size, i1Const(true));
+            }
+
+            // primitive to option?
+            if(!type.isOptionType() && targetType.isOptionType()) {
+                auto tmp = upcastValue(builder, val, type, targetType.withoutOptions());
+                return SerializableValue(tmp.val, tmp.size, i1Const(false));
+            }
+
+            // option[a] to option[b]?
+            if(type.isOptionType() && targetType.isOptionType()) {
+                auto tmp = upcastValue(builder, val, type.withoutOptions(), targetType.withoutOptions());
+                return SerializableValue(tmp.val, tmp.size, val.is_null);
+            }
+
+            if(type.isTupleType() && targetType.isTupleType()) {
+                if(type.parameters().size() != targetType.parameters().size()) {
+                    throw std::runtime_error("upcasting tuple type " + type.desc() + " to tuple type " + targetType.desc()
+                          + " not possible, because tuples contain different amount of parameters!");
+                }
+                // upcast tuples
+                // Load as FlattenedTuple
+                FlattenedTuple val_tuple = FlattenedTuple::fromLLVMStructVal(this, builder, val.val, type);
+                FlattenedTuple target_tuple(this);
+                target_tuple.init(targetType);
+
+                auto num_elements = type.parameters().size();
+
+                // put to flattenedtuple (incl. assigning tuples!)
+                for (int i = 0; i < num_elements; ++i) {
+                    // retrieve from tuple itself and then upcast!
+                    auto el_type = val_tuple.fieldType(i);
+                    auto el_target_type = target_tuple.fieldType(i);
+                    SerializableValue el(val_tuple.get(i), val_tuple.getSize(i), val_tuple.getIsNull(i));
+                    auto el_target = upcastValue(builder, el, el_type, el_target_type);
+                    target_tuple.setElement(builder, i, el_target.val, el_target.size, el_target.is_null);
+                }
+
+                // get loadable struct type
+                auto ret = target_tuple.getLoad(builder);
+                assert(ret->getType()->isStructTy());
+                auto size = target_tuple.getSize(builder);
+                return SerializableValue(ret, size);
+            }
+
+            // @TODO: Issue https://github.com/LeonhardFS/Tuplex/issues/214
+            // @TODO: List[a] to List[b] if a,b are compatible?
+            // @TODO: Dict[a, b] to Dict[c, d] if upcast a to c works, and upcast b to d works?
+            if(type.isListType() && targetType.isListType()) {
+                // @TODO:
+                throw std::runtime_error("upcasting list type " + type.desc() + " to list type " + targetType.desc() + " not yet implemented");
+            }
+
+            if(type.isDictionaryType() && targetType.isDictionaryType()) {
+                throw std::runtime_error("upcasting dict type " + type.desc() + " to dict type " + targetType.desc() + " not yet implemented");
+            }
+
+            throw std::runtime_error("can not generate code to upcast " + type.desc() + " to " + targetType.desc());
+            return val;
         }
     }
 }

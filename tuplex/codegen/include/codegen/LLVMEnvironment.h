@@ -449,6 +449,26 @@ namespace tuplex {
             }
 
             /*!
+             * upcast a serializable value according to type/targetype (no check)
+             * @param builder
+             * @param val
+             * @param type
+             * @param targetType
+             * @return upcasted value
+             */
+            SerializableValue upcastValue(llvm::IRBuilder<>& builder, const SerializableValue &val,
+                                          const python::Type &type,
+                                          const python::Type &targetType);
+
+            /*!
+             * creates a dummy value for a given type (needed to fill memory slots)
+             * @param builder
+             * @param type
+             * @return a value representing some sort of value
+             */
+            SerializableValue dummyValue(llvm::IRBuilder<> &builder, const python::Type &type);
+
+            /*!
              * creates llvm code for boolean value corresponding to this environment
              * @param builder belonging to basic block where to insert instruction
              * @param b value

@@ -10,6 +10,7 @@
 
 #include <physical/codegen/PipelineBuilder.h>
 #include <CSVUtils.h>
+#include "visitors/BlockGeneratorVisitor.h"
 
 namespace tuplex {
     namespace codegen {
@@ -2058,19 +2059,45 @@ namespace tuplex {
                 FlattenedTuple ft(&env);
                 ft.init(normalCaseType);
                 ft.deserializationCode(builder, args["rowBuf"]);
-                // upcast to general type!
-                auto tuple = normalToGeneralTuple(builder, ft, normalCaseType, pip.inputRowType(), normalToGeneralMapping);
+
+                FlattenedTuple tuple(&env); // general case tuple
+                if(!normalCaseAndGeneralCaseCompatible) {
+                    // can null compatibility be achieved? if not jump directly to returning exception forcing it onto interpreter path
+                    assert(pip.inputRowType().isTupleType());
+                    auto col_types = pip.inputRowType().parameters();
+                    auto normal_col_types = normalCaseType.parameters();
+                    // fill in according to mapping normal case type
+                    for(auto keyval : normalToGeneralMapping) {
+                        assert(keyval.first < normal_col_types.size());
+                        assert(keyval.second < col_types.size());
+                        col_types[keyval.second] = normal_col_types[keyval.first];
+                    }
+                    python::Type extendedNormalCaseType = python::Type::makeTupleType(col_types);
+                    if(canAchieveAtLeastNullCompatibility(extendedNormalCaseType, pip.inputRowType())) {
+                        // null-extraction and then call pipeline
+                        throw std::runtime_error("need to implement this");
+                    } else {
+                        // all goes onto exception path
+                        // retain original exception, force onto interpreter path
+                        env.freeAll(builder);
+                        builder.CreateRet(ecCode); // original
+                    }
+                } else {
+                    // upcast to general type!
+                    tuple = normalToGeneralTuple(builder, ft, normalCaseType, pip.inputRowType(), normalToGeneralMapping);
+
 #ifdef PRINT_EXCEPTION_PROCESSING_DETAILS
-                 ft.print(builder);
+                    ft.print(builder);
                  env.debugPrint(builder, "row casted, processing pipeline now!");
                  tuple.print(builder);
 #endif
-                auto res = PipelineBuilder::call(builder, pipFunc, tuple, args["userData"], args["rowNumber"]);
-                auto resultCode = builder.CreateZExtOrTrunc(res.resultCode, env.i64Type());
-                auto resultOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env.i64Type());
-                auto resultNumRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env.i64Type());
-                env.freeAll(builder);
-                builder.CreateRet(resultCode);
+                    auto res = PipelineBuilder::call(builder, pipFunc, tuple, args["userData"], args["rowNumber"]);
+                    auto resultCode = builder.CreateZExtOrTrunc(res.resultCode, env.i64Type());
+                    auto resultOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env.i64Type());
+                    auto resultNumRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env.i64Type());
+                    env.freeAll(builder);
+                    builder.CreateRet(resultCode);
+                }
             }
 
 

@@ -667,7 +667,7 @@ TEST(BasicInvocation, SelfInvoke) {
     shutdownAWS();
 }
 
-tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, const std::string& test_output_path, bool build_for_hyper) {
+tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, const std::string& test_output_path, bool build_for_hyper, const tuplex::SamplingMode& mode = tuplex::DEFAULT_SAMPLING_MODE) {
 
     using namespace tuplex;
     using namespace std;
@@ -791,7 +791,7 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
         auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path, co,
                                                                                    option<bool>(true),
                                                                                    option<char>(','), option<char>('"'),
-                                                                                   {""}, {}, {}, {}, DEFAULT_SAMPLING_MODE));
+                                                                                   {""}, {}, {}, {}, mode));
         auto mapop = std::make_shared<MapOperator>(csvop, UDF(udf_code), csvop->columns());
         auto fop = std::make_shared<FileOutputOperator>(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
 
@@ -1071,53 +1071,73 @@ namespace tuplex {
         uint64_t input_file_size = 0;
         vfs.file_size(input_uri, input_file_size);
 
-        URI output_uri = tstage_hyper->outputURI().toString() + "/" + basename(input_uri.toString());
-        auto json_message_hyper = transformStageToReqMessage(tstage_hyper, input_uri.toPath(),
-                                                             input_file_size, output_uri.toString(),
-                                                             false, // this here causes an error!!!
-                                                             num_threads,
-                                                             spillURI.toString());
+        std::unique_ptr<WorkerApp> app;
+        std::string json_message_hyper;
+        std::string json_message_general;
+        URI output_uri;
 
-        // print slowpath to file
-        llvm::LLVMContext llvm_ctx;
-        auto mod = codegen::bitCodeToModule(llvm_ctx, tstage_general->slowPathBitCode());
-        stringToFile("general_slowpath.txt", codegen::moduleToString(*mod.get()));
-        // annotateModuleWithInstructionPrint(*mod.get());
-        // debug, overwrite slowpath with newly annotated module!
-        tstage_general->slowPathBitCode() = codegen::moduleToBitCodeString(*mod.get());
+        // prep stages
+        if(tstage_hyper) {
+            output_uri = tstage_hyper->outputURI().toString() + "/" + basename(input_uri.toString());
+            json_message_hyper = transformStageToReqMessage(tstage_hyper, input_uri.toPath(),
+                                                            input_file_size, output_uri.toString(),
+                                                            false, // this here causes an error!!!
+                                                            num_threads,
+                                                            spillURI.toString());
+
+            // print slowpath to file
+            llvm::LLVMContext llvm_ctx;
+            auto mod = codegen::bitCodeToModule(llvm_ctx, tstage_general->slowPathBitCode());
+            stringToFile("general_slowpath.txt", codegen::moduleToString(*mod.get()));
+            // annotateModuleWithInstructionPrint(*mod.get());
+            // debug, overwrite slowpath with newly annotated module!
+            tstage_general->slowPathBitCode() = codegen::moduleToBitCodeString(*mod.get());
+        }
 
 
-        output_uri = tstage_general->outputURI().toString() + "/" + basename(input_uri.toString());
-        auto json_message_general = transformStageToReqMessage(tstage_general, input_uri.toPath(),
-                                                             input_file_size, output_uri.toString(),
-                                                             false,
-                                                             num_threads,
-                                                             spillURI.toString());
+        if(tstage_general) {
+            output_uri = tstage_general->outputURI().toString() + "/" + basename(input_uri.toString());
+            json_message_general = transformStageToReqMessage(tstage_general, input_uri.toPath(),
+                                                                   input_file_size, output_uri.toString(),
+                                                                   false,
+                                                                   num_threads,
+                                                                   spillURI.toString());
+        }
+
+
 
         // local WorkerApp
         // start worker within same process to easier debug...
-        std::cout<<" --- Hyper processing --- "<<std::endl;
-        auto app = make_unique<WorkerApp>(WorkerSettings());
-//        app->processJSONMessage(json_message_hyper);
-//        app->shutdown();
-//        rc |= 0x1;
 
-        std::cout<<" --- General processing --- "<<std::endl;
-        app = make_unique<WorkerApp>(WorkerSettings());
-        app->processJSONMessage(json_message_general);
-        app->shutdown();
-        rc |= 0x2;
+        if(tstage_hyper) {
+            std::cout<<" --- Hyper processing --- "<<std::endl;
+            app = make_unique<WorkerApp>(WorkerSettings());
+            app->processJSONMessage(json_message_hyper);
+            app->shutdown();
+            rc |= 0x1;
+        }
 
-        // now call verify function
-        auto str = input_uri.toString();
-        std::cout<<"input uri: "<<input_uri<<std::endl;
-        auto flights_root = str.substr(0, str.find("/flights_on_time"));
-        auto s_basename = output_uri.toString();
-        std::cout<<"basename: "<<s_basename<<std::endl;
-        s_basename = s_basename.substr(s_basename.rfind('/')+1) + ".csv";
-        auto output_root = ".";//"tests/BasicInvocationTestAllFlightFiles";
-        if(checkFiles(output_root, s_basename))
-            rc |= 0x4;
+        if(tstage_general) {
+            std::cout<<" --- General processing --- "<<std::endl;
+            app = make_unique<WorkerApp>(WorkerSettings());
+            app->processJSONMessage(json_message_general);
+            app->shutdown();
+            rc |= 0x2;
+        }
+
+        if(tstage_hyper && tstage_general) {
+            // now call verify function
+            auto str = input_uri.toString();
+            std::cout<<"input uri: "<<input_uri<<std::endl;
+            auto flights_root = str.substr(0, str.find("/flights_on_time"));
+            auto s_basename = output_uri.toString();
+            std::cout<<"basename: "<<s_basename<<std::endl;
+            s_basename = s_basename.substr(s_basename.rfind('/')+1) + ".csv";
+            auto output_root = ".";//"tests/BasicInvocationTestAllFlightFiles";
+            if(checkFiles(output_root, s_basename))
+                rc |= 0x4;
+        }
+
         return rc;
     }
 }
@@ -1451,6 +1471,106 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 //
 //    // Output size of file is: 46046908 (general, no hyper)
 //    // 46046908
+
+    cout<<"Test done."<<endl;
+}
+
+
+TEST(BasicInvocation, FlightsSampling) {
+    using namespace std;
+    using namespace tuplex;
+
+    // get runtime lib path
+    auto rtlib_path = ContextOptions::defaults().RUNTIME_LIBRARY().toString();
+
+    auto worker_path = find_worker();
+
+    auto testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+    auto scratchDir = "/tmp/" + testName;
+
+    // change cwd & create dir to avoid conflicts!
+    auto cwd_path = boost::filesystem::current_path();
+    auto desired_cwd = cwd_path.string() + "/tests/" + testName;
+    // create dir if it doesn't exist
+    auto vfs = VirtualFileSystem::fromURI("file://");
+    vfs.create_dir(desired_cwd);
+    boost::filesystem::current_path(desired_cwd);
+
+    char buf[4096];
+    auto cur_dir = getcwd(buf, 4096);
+
+    EXPECT_NE(std::string(cur_dir).find(testName), std::string::npos);
+
+    cout<<"Starting exhaustive Flights hyperspecializaiton test:\n======="<<endl;
+    cout<<"current working dir: "<<buf<<endl;
+
+    // check worker exists
+    ASSERT_TRUE(tuplex::fileExists(worker_path));
+
+    // for testing purposes, store here the root path to the flights data (simple ifdef)
+#ifdef __APPLE__
+    // leonhards macbook
+    string flights_root = "/Users/leonhards/Downloads/flights/";
+    //string flights_root = "/Users/leonhards/Downloads/flights_small/";
+    string driver_memory = "2G";
+#else
+    // BBSN00
+    string flights_root = "/hot/data/flights_all/";
+    string driver_memory = "32G";
+    string executor_memory = "10G";
+    string num_executors = "0";
+    //num_executors = "16";
+#endif
+
+    // --- use this for final PR ---
+    // For testing purposes: resources/hyperspecialization/2003/*.csv holds two mini samples where wrong sampling triggers too many exceptions in general case mode
+    string input_pattern = cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv," + cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
+    // --- end use this for final PR ---
+
+    // find all flight files in root
+    vfs = VirtualFileSystem::fromURI(URI(flights_root));
+    auto paths = vfs.globAll(flights_root + "/flights_on_time*.csv");
+    // input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_11.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv'
+    paths = vector<URI>{URI(flights_root + "/flights_on_time_performance_2002_01.csv"),
+             URI(flights_root + "/flights_on_time_performance_2003_11.csv"),
+             URI(flights_root + "/flights_on_time_performance_2004_12.csv")};
+
+    std::sort(paths.begin(), paths.end(), [](const URI& a, const URI& b) {
+        auto a_str = a.toString();
+        auto b_str = b.toString();
+        return lexicographical_compare(a_str.begin(), a_str.end(), b_str.begin(), b_str.end());
+    });
+    cout<<"Found "<<paths.size()<<" CSV files.";
+    cout<<basename(paths.front().toString())<<" ... "<<basename(paths.back().toString())<<endl;
+
+    // determine here which files to use for sampling
+    //
+    paths = {URI(flights_root + "flights_on_time_performance_2002_01.csv"), URI(flights_root + "flights_on_time_performance_2004_12.csv")};
+
+    input_pattern = paths.front().toString() + "," + paths.back().toString();
+    auto test_output_path = "./general_processing/";
+    int num_threads = 1;
+    auto spillURI = std::string("spill_folder");
+
+    // sm = tuplex.dataset.SamplingMode.ALL_FILES | tuplex.dataset.SamplingMode.FIRST_ROWS
+    auto sampling_mode = SamplingMode::ALL_FILES | SamplingMode::FIRST_ROWS;
+    auto tstage_hyper = nullptr; // create_flights_pipeline(input_pattern, "./hyper_processing/", true);
+    auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false, sampling_mode);
+
+    // now specify which files to run on.
+    paths = {URI(flights_root + "flights_on_time_performance_2008_02.csv")};
+    std::reverse(paths.begin(), paths.end());
+
+    for(const auto& path : paths) {
+        Timer timer;
+        cout<<"Testing "<<basename(path.toString())<<"...";
+        cout.flush();
+        int rc = checkHyperSpecialization(path, tstage_hyper, tstage_general, num_threads, spillURI);
+        std::string hyper_ok = rc & 0x1 ? "OK" : "FAILED";
+        std::string general_ok = rc & 0x2 ? "OK" : "FAILED";
+        std::string validation_ok = rc & 0x4 ? "OK" : "FAILED";
+        cout<<"  hyper: "<<hyper_ok<<" general: "<<general_ok<<" validation: "<<validation_ok<<" took: "<<timer.time()<<"s"<<endl;
+    }
 
     cout<<"Test done."<<endl;
 }

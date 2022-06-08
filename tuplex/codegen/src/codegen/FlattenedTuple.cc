@@ -66,7 +66,7 @@ namespace tuplex {
             return _tree.get(index).size;
         }
 
-        python::Type FlattenedTuple::fieldType(const std::vector<int>& index) {
+        python::Type FlattenedTuple::fieldType(const std::vector<int>& index) const {
 
             // if index size is zero, this may mean the flattened tuple is an empty tuple
             if(index.size() == 0) {

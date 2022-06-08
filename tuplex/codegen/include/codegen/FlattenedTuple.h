@@ -140,9 +140,9 @@ namespace tuplex {
 
             std::vector<python::Type> getFieldTypes() const;
 
-            python::Type fieldType(const std::vector<int>& index);
+            python::Type fieldType(const std::vector<int>& index) const;
 
-            inline python::Type fieldType(int index) { return getFieldTypes()[index]; }
+            inline python::Type fieldType(int index) const { return getFieldTypes()[index]; }
 
 #ifndef NDEBUG
             void print(llvm::IRBuilder<>& builder);
@@ -390,6 +390,81 @@ namespace tuplex {
                 auto ft = normal_tuple.upcastTo(builder, general_case);
                 return ft;
             }
+        }
+
+        inline FlattenedTuple normalToGeneralTupleWithNullCompatibility(llvm::IRBuilder<>& builder,
+                                                               LLVMEnvironment* env,
+                                                               const FlattenedTuple& normal_tuple,
+                                                               const python::Type& normal_case,
+                                                               const python::Type& general_case,
+                                                               const std::map<int, int>& mapping,
+                                                               llvm::BasicBlock* failureBlock,
+                                                               bool autoUpcast) {
+            using namespace llvm;
+
+            if(normal_case == general_case)
+                return normal_tuple;
+
+            assert(failureBlock);
+            assert(env);
+
+            FlattenedTuple target_tuple(env);
+            target_tuple.init(general_case);
+
+            auto num_elements = normal_case.parameters().size();
+
+            std::set<int> indices_set;
+
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto& ctx = builder.GetInsertBlock()->getContext();
+            auto func = builder.GetInsertBlock()->getParent();
+
+            // put to flattenedtuple (incl. assigning tuples!)
+            for (int i = 0; i < num_elements; ++i) {
+                // retrieve from tuple itself and then upcast!
+                auto el_type = normal_tuple.fieldType(i);
+                auto el_target_type = target_tuple.fieldType(i);
+                SerializableValue el(normal_tuple.get(i), normal_tuple.getSize(i), normal_tuple.getIsNull(i));
+
+                // check compatibility (todo: auto upcast?)
+                SerializableValue el_target;
+                if(el_type == python::Type::NULLVALUE && el_target_type.isOptionType()) {
+                    // upcast simply
+                    el_target = env->upcastValue(builder, el, el_type, el_target_type);
+                } else if(el_type.isOptionType() && el_target_type == python::Type::NULLVALUE) {
+                    // compare isnull, if is isnull == 0, then go to failure block
+                    auto cond = builder.CreateICmpEQ(el.is_null, env->i1Const(false));
+                    llvm::BasicBlock* bb = llvm::BasicBlock::Create(ctx, "null_check", func);
+                    builder.CreateCondBr(cond, failureBlock, bb);
+                    builder.SetInsertPoint(bb);
+
+                    el_target = SerializableValue::None(builder);
+                } else if(el_type.isOptionType() &&
+                          el_target_type.isOptionType() &&
+                          el_type.elementType() != el_target_type.elementType() ) {
+                    // element types are different. Hence, can only return when
+                    if(autoUpcast && python::canUpcastType(el_type.elementType(), el_target_type.elementType())) {
+                        el_target = env->upcastValue(builder, el, el_type, el_target_type);
+                    } else {
+                        // can always upcast None to any option! --> emit check to see whether element is null.
+                        auto cond = builder.CreateICmpEQ(el.is_null, env->i1Const(false));
+                        llvm::BasicBlock* bb = llvm::BasicBlock::Create(ctx, "null_check", func);
+                        builder.CreateCondBr(cond, failureBlock, bb);
+                        builder.SetInsertPoint(bb);
+
+                        el_target = SerializableValue::None(builder);
+                    }
+                } else if(el_type == el_target_type) {
+                    el_target = el;
+                } else {
+                    // error? should not occur
+                   throw std::runtime_error("INTERNAL ERROR, this branch should never be visited");
+                }
+                target_tuple.setElement(builder, i, el_target.val, el_target.size, el_target.is_null);
+            }
+
+            return target_tuple;
         }
     }
 }

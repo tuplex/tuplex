@@ -64,6 +64,7 @@ namespace codegen {
      */
     extern std::vector<std::tuple<std::string, python::Type>> getComprehensionVariables(NLambda* root);
 
+    extern bool canAchieveAtLeastNullCompatibility(const python::Type& a, const python::Type& b);
 
     // visitor to generate LLVM IR
     class BlockGeneratorVisitor : public ApatheticVisitor, public IFailable {
@@ -452,9 +453,17 @@ namespace codegen {
         }
 
         // upcast return type
-        SerializableValue upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue& val, const python::Type& type, const python::Type& targetType);
+        // @TODO: refactor, replace this
+        inline SerializableValue upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue& val, const python::Type& type, const python::Type& targetType) {
 
-        SerializableValue CreateDummyValue(llvm::IRBuilder<>& builder, const python::Type& type);
+            // @TODO: if it fails addInstruction(ret, size);? i.e. of the results below?
+            return _env->upcastValue(builder, val, type, targetType);
+        }
+
+        // @TODO: refactor, replace this
+        inline SerializableValue CreateDummyValue(llvm::IRBuilder<>& builder, const python::Type& type) {
+            return _env->dummyValue(builder, type);
+        }
         SerializableValue popWithNullCheck(llvm::IRBuilder<>& builder, ExceptionCode ec, const std::string& message="");
 
         SerializableValue additionInst(const SerializableValue &L, NBinaryOp *op, const SerializableValue &R);

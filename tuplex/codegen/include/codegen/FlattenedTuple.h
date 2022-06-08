@@ -412,7 +412,7 @@ namespace tuplex {
             target_tuple.init(general_case);
 
             auto num_elements = normal_case.parameters().size();
-
+            auto num_target_elements = general_case.parameters().size();
             std::set<int> indices_set;
 
             assert(builder.GetInsertBlock());
@@ -422,9 +422,13 @@ namespace tuplex {
 
             // put to flattenedtuple (incl. assigning tuples!)
             for (int i = 0; i < num_elements; ++i) {
+                assert(mapping.find(i) != mapping.end());
+                auto general_idx = mapping[i];
+                indices_set.insert(general_idx);
+
                 // retrieve from tuple itself and then upcast!
                 auto el_type = normal_tuple.fieldType(i);
-                auto el_target_type = target_tuple.fieldType(i);
+                auto el_target_type = target_tuple.fieldType(general_idx);
                 SerializableValue el(normal_tuple.get(i), normal_tuple.getSize(i), normal_tuple.getIsNull(i));
 
                 // check compatibility (todo: auto upcast?)
@@ -461,7 +465,20 @@ namespace tuplex {
                     // error? should not occur
                    throw std::runtime_error("INTERNAL ERROR, this branch should never be visited");
                 }
-                target_tuple.setElement(builder, i, el_target.val, el_target.size, el_target.is_null);
+
+                // set in general-case tuple the value.
+                target_tuple.setElement(builder, general_idx, el_target.val, el_target.size, el_target.is_null);
+            }
+
+            // fill rest with dummy values
+            for(unsigned i = 0; i < num_target_elements; ++i) {
+                // index set?
+                if(indices_set.find(i) == indices_set.end()) {
+                    // set dummy
+                    auto dummy_type = general_case.parameters()[i];
+                    auto dummy = env->dummyValue(builder, dummy_type);
+                    target_tuple.setElement(builder, i, dummy.val, dummy.size, dummy.is_null);
+                }
             }
 
             return target_tuple;

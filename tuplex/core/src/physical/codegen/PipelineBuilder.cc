@@ -1901,7 +1901,8 @@ namespace tuplex {
         llvm::Function* createProcessExceptionRowWrapper(PipelineBuilder& pip,
                 const std::string& name, const python::Type& normalCaseType,
                 const std::map<int, int>& normalToGeneralMapping,
-                const std::vector<std::string>& null_values) {
+                const std::vector<std::string>& null_values,
+                const CompilePolicy& policy) {
 
             // uncomment to get debug printing for this function
 // #define PRINT_EXCEPTION_PROCESSING_DETAILS
@@ -2075,7 +2076,19 @@ namespace tuplex {
                     python::Type extendedNormalCaseType = python::Type::makeTupleType(col_types);
                     if(canAchieveAtLeastNullCompatibility(extendedNormalCaseType, pip.inputRowType())) {
                         // null-extraction and then call pipeline
-                        throw std::runtime_error("need to implement this");
+                        BasicBlock *bb_failure = BasicBlock::Create(context, "nullextract_failed", func);
+                        tuple = normalToGeneralTupleWithNullCompatibility(builder,
+                                                                          &env,
+                                                                          ft,
+                                                                          normalCaseType, pip.inputRowType(),
+                                                                          normalToGeneralMapping,
+                                                                          bb_failure,
+                                                                          policy.allowNumericTypeUnification);
+                        builder.SetInsertPoint(bb_failure);
+                        // all goes onto exception path
+                        // retain original exception, force onto interpreter path
+                        env.freeAll(builder);
+                        builder.CreateRet(ecCode); // original
                     } else {
                         // all goes onto exception path
                         // retain original exception, force onto interpreter path

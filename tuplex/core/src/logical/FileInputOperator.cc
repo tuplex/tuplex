@@ -300,7 +300,7 @@ namespace tuplex {
             auto file_mode = perFileMode(mode);
 
             f_rows[i] = std::async([this, file_mode](const URI& uri, size_t size, const SamplingMode& mode) {
-                return sampleFile(_samplingSize, uri, size, file_mode);
+                return sampleFile(uri, size, file_mode);
             }, _fileURIs[idx], _sizes[idx], mode);
         }
 
@@ -978,7 +978,7 @@ namespace tuplex {
 
             } else {
                 v = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
-                                _null_values, _delimiter, _quotechar, &file_offset);
+                                _null_values, _delimiter, _quotechar);
 
                 // offset = 0?
                 if(file_offset == 0) {

@@ -209,7 +209,7 @@ namespace tuplex {
                                      column_name_hints, index_based_type_hints, column_based_type_hints, sampling_mode);
     }
 
-    FileInputOperator::fillRowCache(SamplingMode mode) {
+    void FileInputOperator::fillRowCache(SamplingMode mode) {
         // based on samples stored, fill the row cache
         if(_sampleCache.empty())
             return;
@@ -456,7 +456,7 @@ namespace tuplex {
             _columnNames = _header ? csvstat.columns() : std::vector<std::string>();
             
             // now fill row cache to detect majority type (?)
-            fillRowCache();
+            fillRowCache(sampling_mode);
 
             // use sample to detect types
             bool use_independent_columns = true;

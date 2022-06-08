@@ -209,7 +209,18 @@ namespace tuplex {
                                      column_name_hints, index_based_type_hints, column_based_type_hints, sampling_mode);
     }
 
-    void FileInputOperator::fillCache(SamplingMode mode) {
+    FileInputOperator::fillRowCache(SamplingMode mode) {
+        // based on samples stored, fill the row cache
+        if(_sampleCache.empty())
+            return;
+
+        if(mode & SamplingMode::SINGLETHREADED)
+            _rowsSample = sample(mode);
+        else
+            _rowsSample = multithreadedSample(mode);
+    }
+
+    void FileInputOperator::fillFileCache(SamplingMode mode) {
         auto &logger = Logger::instance().logger("fileinputoperator");
         Timer timer;
 
@@ -217,7 +228,6 @@ namespace tuplex {
         // drop!
         if(_cachePopulated) {
             _sampleCache.clear();
-            _rowsSample.clear();
             _cachePopulated = false;
         }
 
@@ -228,9 +238,9 @@ namespace tuplex {
 
         if(mode & SamplingMode::SINGLETHREADED) {
             // simply fill cache by drawing the proper samples & store rows.
-            _rowsSample = sample(_samplingMode);
+            fillFileCacheSinglethreaded(_samplingMode);
         } else if(mode & SamplingMode::MULTITHREADED) {
-            _rowsSample = multithreadedSample(_samplingMode);
+            fillFileCacheMultithreaded(_samplingMode);
         } else {
             logger.debug("INTERNAL ERROR, invalid sampling mode.");
         }
@@ -241,9 +251,8 @@ namespace tuplex {
         _sampling_time_s += duration; // update how long filling the cache took
     }
 
-    std::vector<Row> FileInputOperator::multithreadedSample(const SamplingMode &mode) {
+    void FileInputOperator::fillFileCacheSinglethreaded(SamplingMode mode) {
         using namespace std;
-
         auto &logger = Logger::instance().logger("fileinputoperator");
 
         // first, fill the internal cache
@@ -264,7 +273,47 @@ namespace tuplex {
         }
         // empty?
         if(file_indices.empty())
-            return {};
+            return;
+
+        // now load all the files in parallel into vector!
+        vector<unsigned> indices(file_indices.begin(), file_indices.end());
+        std::sort(indices.begin(), indices.end());
+        for(unsigned i = 0; i < indices.size(); ++i) {
+            auto idx = indices[i];
+            auto uri = _fileURIs[idx];
+            auto size = _sizes[idx];
+            auto file_mode = perFileMode(mode);
+            auto key = std::make_tuple(uri, file_mode);
+            // place into cache
+            _sampleCache[key] = loadSample(_samplingSize, uri, size, mode, true);
+        }
+
+        logger.info("Sample fetch done.");
+    }
+
+    void FileInputOperator::fillFileCacheMultithreaded(SamplingMode mode) {
+        using namespace std;
+        auto &logger = Logger::instance().logger("fileinputoperator");
+
+        // first, fill the internal cache
+        assert(_sampleCache.empty());
+
+        // this works by loading/requesting files in parallel
+        std::set<int> file_indices;
+        if(mode & SamplingMode::FIRST_FILE && _fileURIs.size() >= 1)
+            file_indices.insert(0);
+        if(mode & SamplingMode::LAST_FILE && _fileURIs.size() >= 1)
+            file_indices.insert(_fileURIs.size() - 1);
+        if(mode & SamplingMode::RANDOM_FILE && _fileURIs.size() >= 1)
+            file_indices.insert(randi(0ul, _fileURIs.size() - 1));
+
+        if(mode & SamplingMode::ALL_FILES) {
+            for(unsigned i = 0; i < _fileURIs.size(); ++i)
+                file_indices.insert(i);
+        }
+        // empty?
+        if(file_indices.empty())
+            return;
 
         // now load all the files in parallel into vector!
         vector<unsigned> indices(file_indices.begin(), file_indices.end());
@@ -288,7 +337,25 @@ namespace tuplex {
             _sampleCache[key] = vf[i].get();
         }
 
-        logger.info("Parallel sample fetch done. Parsing to sample now.");
+        logger.info("Parallel sample fetch done.");
+    }
+
+    std::vector<Row> FileInputOperator::multithreadedSample(const SamplingMode &mode) {
+        using namespace std;
+        auto &logger = Logger::instance().logger("fileinputoperator");
+
+        // construct indices from cache
+        if(!_cachePopulated)
+            fillFileCache(mode);
+        set<unsigned> file_indices;
+        for(const auto& keyval : _sampleCache) {
+            auto uri = std::get<0>(keyval.first);
+            auto idx = indexInVector(uri, _fileURIs);
+            if(idx < 0)
+                throw std::runtime_error("fatal internal error, could not find URI " + uri.toString() + " in file cache.");
+            file_indices.insert(static_cast<unsigned>(idx));
+        }
+        vector<unsigned> indices(file_indices.begin(), file_indices.end());
 
         // parse now rows for detection etc.
         vector<std::future<vector<Row>>> f_rows(indices.size());
@@ -347,7 +414,7 @@ namespace tuplex {
         if (!_fileURIs.empty()) {
 
             // fill sampling cache
-            fillCache(sampling_mode);
+            fillFileCache(sampling_mode);
 
             // need to load first rows in order to perform header/csv detection. @TODO: could optimize this.
             aligned_string sample;
@@ -387,20 +454,33 @@ namespace tuplex {
             // set column names from stat
             // Note: call this BEFORE applying type hints!
             _columnNames = _header ? csvstat.columns() : std::vector<std::string>();
+            
+            // now fill row cache to detect majority type (?)
+            fillRowCache();
 
+            // use sample to detect types
+            bool use_independent_columns = true;
+            // when NVO is deactivated, normalcase and general case detected here are the same.
+            auto normalcasetype = detectMajorityRowType(_rowsSample, co.NORMALCASE_THRESHOLD(), use_independent_columns, co.OPT_NULLVALUE_OPTIMIZATION());
+            auto generalcasetype = co.OPT_NULLVALUE_OPTIMIZATION() ? detectMajorityRowType(_rowsSample, co.NORMALCASE_THRESHOLD(), use_independent_columns, false) : normalcasetype;
             // NULL Value optimization on or off?
             // Note: if off, can improve performance of estimate...
 
+            // @TODO: change this to be the majority detected row type!
             // normalcase and exception case types
-            auto normalcasetype = csvstat.type();
-            auto exceptcasetype = csvstat.superType();
+            
+            if(normalcasetype == python::Type::UNKNOWN || generalcasetype == python::Type::UNKNOWN) {
+                logger.warn("sample-based detection could not infer type, using csvstat type directly.");
+                normalcasetype = csvstat.type();
+                generalcasetype = csvstat.superType();
+            }
 
             // type hints?
             // ==> enforce certain type for specific columns!
             if(!index_based_type_hints.empty()) {
-                assert(exceptcasetype.isTupleType());
+                assert(generalcasetype.isTupleType());
                 auto paramsNormal = normalcasetype.parameters();
-                auto paramsExcept = exceptcasetype.parameters();
+                auto paramsExcept = generalcasetype.parameters();
                 for(const auto& keyval : index_based_type_hints) {
                     if(keyval.first >= paramsExcept.size()) {
                         // simply ignore, do not error!
@@ -419,14 +499,14 @@ namespace tuplex {
                 }
 
                 normalcasetype = python::Type::makeTupleType(paramsNormal);
-                exceptcasetype = python::Type::makeTupleType(paramsExcept); // update row type...
+                generalcasetype = python::Type::makeTupleType(paramsExcept); // update row type...
             }
 
             // apply column based type hints
             if(!column_based_type_hints.empty()) {
-                assert(exceptcasetype.isTupleType());
+                assert(generalcasetype.isTupleType());
                 auto paramsNormal = normalcasetype.parameters();
-                auto paramsExcept = exceptcasetype.parameters();
+                auto paramsExcept = generalcasetype.parameters();
                 for(const auto& keyval : column_based_type_hints) {
 
                     // translate name into index, error if out of range...!
@@ -457,13 +537,13 @@ namespace tuplex {
                 }
 
                 normalcasetype = python::Type::makeTupleType(paramsNormal);
-                exceptcasetype = python::Type::makeTupleType(paramsExcept); // update row type...
+                generalcasetype = python::Type::makeTupleType(paramsExcept); // update row type...
             }
 
             // get type & assign schema
             _normalCaseRowType = normalcasetype;
-            _generalCaseRowType = exceptcasetype;
-            setSchema(Schema(Schema::MemoryLayout::ROW, exceptcasetype));
+            _generalCaseRowType = generalcasetype;
+            setSchema(Schema(Schema::MemoryLayout::ROW, generalcasetype));
 
             // if csv stat produced unknown, issue warning and use empty
             if (csvstat.type() == python::Type::UNKNOWN) {
@@ -782,8 +862,8 @@ namespace tuplex {
             // clear sample cache
             _cachePopulated = false;
             _sampleCache.clear();
-            _rowsSample.clear();
-            fillCache(_samplingMode);
+            _rowsSample.clear(); // reset row samples!
+            fillFileCache(_samplingMode);
 
             _estimatedRowCount = 100000; // @TODO.
 

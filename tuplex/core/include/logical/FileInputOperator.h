@@ -58,7 +58,14 @@ namespace tuplex {
         std::unordered_map<std::tuple<URI, SamplingMode>, aligned_string> _sampleCache;
         bool _cachePopulated;
         std::vector<Row> _rowsSample;
-        void fillCache(SamplingMode mode);
+
+        // file cache (i.e. just the samples from the files)
+        void fillFileCache(SamplingMode mode);
+        void fillFileCacheMultithreaded(SamplingMode mode);
+        void fillFileCacheSinglethreaded(SamplingMode mode);
+
+        // row cache (i.e. parse samples utilizing file cache)
+        void fillRowCache(SamplingMode mode);
 
         // for CSV, have here a global csv stat (that can get reset)
         // ??

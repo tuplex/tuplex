@@ -237,7 +237,7 @@ namespace tuplex {
 
         _cachePopulated = true;
         auto duration = timer.time();
-        logger.info("Filling sample cache for " + name() + " operator took " + std::to_string(duration) + "s (" + std::to_string(_sampleCache.size()) + " entries)");
+        logger.info("Filling sample cache for " + name() + " operator took " + std::to_string(duration) + "s (" + std::to_string(_sampleCache.size()) + " entries, " + pluralize(_rowsSample.size(), "row") + ")");
         _sampling_time_s += duration; // update how long filling the cache took
     }
 
@@ -945,7 +945,7 @@ namespace tuplex {
 
         // check file sampling modes & then load the samples accordingly
         if(m & SamplingMode::FIRST_ROWS) {
-            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS);
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS, true);
             // parse as rows using the settings detected.
             v = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
                           _null_values, _delimiter, _quotechar);

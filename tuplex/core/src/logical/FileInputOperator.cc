@@ -194,6 +194,7 @@ namespace tuplex {
         logger.info("Created file input operator for text file");
 #endif
         _sampling_time_s = timer.time();
+        logger.info("Sampling took " + std::to_string(_sampling_time_s));
     }
 
     FileInputOperator *FileInputOperator::fromCsv(const std::string &pattern, const ContextOptions &co,
@@ -210,14 +211,20 @@ namespace tuplex {
     }
 
     void FileInputOperator::fillRowCache(SamplingMode mode) {
+        auto &logger = Logger::instance().logger("fileinputoperator");
+
         // based on samples stored, fill the row cache
         if(_sampleCache.empty())
             return;
+
+        Timer timer;
 
         if(mode & SamplingMode::SINGLETHREADED)
             _rowsSample = sample(mode);
         else
             _rowsSample = multithreadedSample(mode);
+
+        logger.info("Extracting row sample took " + std::to_string(timer.time()) + "s");
     }
 
     void FileInputOperator::fillFileCache(SamplingMode mode) {
@@ -248,7 +255,6 @@ namespace tuplex {
         _cachePopulated = true;
         auto duration = timer.time();
         logger.info("Filling sample cache for " + name() + " operator took " + std::to_string(duration) + "s (" + std::to_string(_sampleCache.size()) + " entries, " + pluralize(_rowsSample.size(), "row") + ")");
-        _sampling_time_s += duration; // update how long filling the cache took
     }
 
     void FileInputOperator::fillFileCacheSinglethreaded(SamplingMode mode) {
@@ -1010,8 +1016,7 @@ namespace tuplex {
             sampled_file_indices.insert(random_idx);
         }
 
-        _sampling_time_s = timer.time();
-        logger.debug("Sampling (mode=" + std::to_string(mode) + ") took " + std::to_string(_sampling_time_s) + "s");
+        logger.debug("Sampling (mode=" + std::to_string(mode) + ") took " + std::to_string(timer.time()) + "s");
         return v;
     }
 

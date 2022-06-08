@@ -98,7 +98,6 @@ namespace tuplex {
         std::shared_ptr<JobMetrics> _lastJobMetrics;
 
         codegen::CompilePolicy _compilePolicy;
-        codegen::CompilePolicy compilePolicyFromOptions(const ContextOptions& options);
 
         inline int getNextContextID() { return _contextIDGenerator++; }
 
@@ -395,6 +394,8 @@ namespace tuplex {
         addParallelizeNode(dsptr, {}, {}, sampling_mode);
         return *dsptr;
     }
+
+    extern codegen::CompilePolicy compilePolicyFromOptions(const ContextOptions& options);
 }
 
 

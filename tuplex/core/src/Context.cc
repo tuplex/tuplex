@@ -634,7 +634,7 @@ namespace tuplex {
         assert(_ee); return _ee->driver();
     }
 
-    codegen::CompilePolicy Context::compilePolicyFromOptions(const ContextOptions &options) {
+    codegen::CompilePolicy compilePolicyFromOptions(const ContextOptions &options) {
         auto p = codegen::CompilePolicy();
         p.allowUndefinedBehavior = options.UNDEFINED_BEHAVIOR_FOR_OPERATORS();
         p.allowNumericTypeUnification = options.AUTO_UPCAST_NUMBERS();

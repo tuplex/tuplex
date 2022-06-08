@@ -381,7 +381,7 @@ namespace tuplex {
                 if(_header)
                     logger.info("Auto-detected presence of a header line in CSV files");
                 else
-                    loger.info("Auto-detected there's no header line in CSV files");
+                    logger.info("Auto-detected there's no header line in CSV files");
             }
 
             // set column names from stat

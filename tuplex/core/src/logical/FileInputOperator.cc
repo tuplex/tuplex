@@ -347,9 +347,10 @@ namespace tuplex {
         if (!_fileURIs.empty()) {
 
             // fill sampling cache
+            logger.info("Filling file cache...");
             fillCache(sampling_mode);
-
-
+            logger.info("File cache filled (" + std::to_string(_sampleCache.size()) + " entries)");
+            
             aligned_string sample;
             if(!_fileURIs.empty()) {
                 sample = loadSample(co.SAMPLE_SIZE(), _fileURIs.front(), _sizes.front(),

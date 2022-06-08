@@ -423,7 +423,7 @@ namespace tuplex {
             // put to flattenedtuple (incl. assigning tuples!)
             for (int i = 0; i < num_elements; ++i) {
                 assert(mapping.find(i) != mapping.end());
-                auto general_idx = mapping[i];
+                auto general_idx = mapping.at(i);
                 indices_set.insert(general_idx);
 
                 // retrieve from tuple itself and then upcast!

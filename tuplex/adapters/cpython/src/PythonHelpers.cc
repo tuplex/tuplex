@@ -184,8 +184,8 @@ namespace python {
            PyErr_Clear();
 
            // string was not a unicode object. use per default iso_8859_1 (latin-1 supplement) to utf8 conversion
-           auto utf8_str = iso_8859_1_to_utf8(str);
-           assert(utf8_check_is_valid);
+           auto utf8_str = tuplex::iso_8859_1_to_utf8(str);
+           assert(tuplex::utf8_check_is_valid);
            return PyString_FromString(utf8_str.c_str());
        }
 

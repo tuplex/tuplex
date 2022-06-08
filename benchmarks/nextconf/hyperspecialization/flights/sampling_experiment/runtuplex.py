@@ -2,6 +2,7 @@
 
 # Tuplex based cleaning script
 import tuplex
+import tuplex.dataset
 import time
 import sys
 import json
@@ -117,19 +118,7 @@ def fill_in_delays(row):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Flights hyper specialization query')
-    # parser.add_argument('--path', type=str, dest='data_path', default='data/large100MB.csv',
-    #                     help='path or pattern to zillow data')
-    # parser.add_argument('--output-path', type=str, dest='output_path', default='tuplex_output/',
-    #                     help='specify path where to save output data files')
-    # parser.add_argument('--single-threaded', dest='single_threaded', action="store_true",
-    #                     help="whether to use a single thread for execution")
-    # parser.add_argument('--preload', dest='preload', action="store_true",
-    #                     help="whether to add a cache statement after the csv operator to separate IO costs out.")
-    parser.add_argument('--no-hyper', dest='no_hyper', action="store_true",
-                        help="deactivate hyperspecialization optimization explicitly.")
-    parser.add_argument('--no-nvo', dest='no_nvo', action="store_true",
-                        help="deactivate null value optimization explicitly.")
+    parser = argparse.ArgumentParser(description='Flights hyper specialization sampling experiment')
     args = parser.parse_args()
 
     if not 'AWS_ACCESS_KEY_ID' in os.environ or 'AWS_SECRET_ACCESS_KEY' not in os.environ:
@@ -138,25 +127,18 @@ if __name__ == '__main__':
     lambda_size = "10000"
     lambda_threads = 2
     s3_scratch_dir = "s3://tuplex-leonhard/scratch/flights-exp"
-    use_hyper_specialization = not args.no_hyper
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv'
     s3_output_path = 's3://tuplex-leonhard/experiments/flights_hyper'
 
     # full dataset here (oO)
-    #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv'
-    #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv'
-    #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004*.csv'
+    input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004*.csv'
 
-
-    if use_hyper_specialization:
-        s3_output_path += '/hyper'
-    else:
-        s3_output_path += '/general'
+    use_hyper_specialization = True
+    s3_output_path += '/sampling'
 
     print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, s3_output_path))
 
     print('    hyperspecialization: {}'.format(use_hyper_specialization))
-    print('    null-value optimization: {}'.format(not args.no_nvo))
 
     # load data
     tstart = time.time()
@@ -183,10 +165,7 @@ if __name__ == '__main__':
         with open('tuplex_config.json') as fp:
             conf = json.load(fp)
 
-    if args.no_nvo:
-        conf["optimizer.nullValueOptimization"] = False
-    else:
-        conf["optimizer.nullValueOptimization"] = True
+    conf["optimizer.nullValueOptimization"] = True
 
     tstart = time.time()
     import tuplex
@@ -196,8 +175,10 @@ if __name__ == '__main__':
     print('Tuplex startup time: {}'.format(startup_time))
     tstart = time.time()
     ### QUERY HERE ###
-
-    ctx.csv(input_pattern).map(fill_in_delays).tocsv(s3_output_path)
+    sm = tuplex.dataset.SamplingMode.ALL_FILES | tuplex.dataset.SamplingMode.FIRST_ROWS
+    #sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS
+    print('Sampling mode: {}'.format(sm))
+    ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).tocsv(s3_output_path)
 
     ### END QUERY ###
     run_time = time.time() - tstart

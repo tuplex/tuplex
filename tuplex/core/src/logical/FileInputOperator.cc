@@ -959,7 +959,7 @@ namespace tuplex {
         if(m & SamplingMode::LAST_ROWS) {
             // the smaller of remaining and sample size!
             size_t file_offset = 0;
-            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::LAST_ROWS, &file_offset);
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::LAST_ROWS, true, &file_offset);
             size_t offset = 0;
             if(!v.empty()) {
                 if(uri_size < 2 * _samplingSize) {
@@ -994,7 +994,7 @@ namespace tuplex {
         if(m & SamplingMode::RANDOM_ROWS) {
             // @TODO: there could be overlap with first/last rows.
             size_t file_offset = 0;
-            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::RANDOM_ROWS, &file_offset);
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::RANDOM_ROWS, true, &file_offset);
             // parse as rows using the settings detected.
             auto rows = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
                           _null_values, _delimiter, _quotechar);

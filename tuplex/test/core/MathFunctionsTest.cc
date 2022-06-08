@@ -799,28 +799,28 @@ TEST_F(MathFunctionsTest, MathIsNan) {
     EXPECT_EQ(v1[2].getBoolean(0), false);
     EXPECT_EQ(v1[3].getBoolean(0), false);
 
-    auto v2 = c.parallelize({
-        Row(0), Row(-1), Row(NAN), Row(INFINITY), Row(97)
-    }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
+    // auto v2 = c.parallelize({
+    //     Row(0), Row(-1), Row(NAN), Row(INFINITY), Row(97)
+    // }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
 
-    EXPECT_EQ(v2.size(), 5);
-    EXPECT_EQ(v2[0].getBoolean(0), false);
-    EXPECT_EQ(v2[1].getBoolean(0), false);
-    EXPECT_EQ(v2[2].getBoolean(0), true);
-    EXPECT_EQ(v2[3].getBoolean(0), false);
-    EXPECT_EQ(v2[4].getBoolean(0), false);
+    // EXPECT_EQ(v2.size(), 5);
+    // EXPECT_EQ(v2[0].getBoolean(0), false);
+    // EXPECT_EQ(v2[1].getBoolean(0), false);
+    // EXPECT_EQ(v2[2].getBoolean(0), true);
+    // EXPECT_EQ(v2[3].getBoolean(0), false);
+    // EXPECT_EQ(v2[4].getBoolean(0), false);
 
-    auto v3 = c.parallelize({
-        Row(NAN), Row(0.0), Row(-INFINITY), Row(-1.5), Row(NAN), Row(97.0)
-    }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
+    // auto v3 = c.parallelize({
+    //     Row(NAN), Row(0.0), Row(-INFINITY), Row(-1.5), Row(NAN), Row(97.0)
+    // }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
 
-    EXPECT_EQ(v3.size(), 6);
-    EXPECT_EQ(v3[0].getBoolean(0), true);
-    EXPECT_EQ(v3[1].getBoolean(0), false);
-    EXPECT_EQ(v3[2].getBoolean(0), false);
-    EXPECT_EQ(v3[3].getBoolean(0), false);
-    EXPECT_EQ(v3[4].getBoolean(0), true);
-    EXPECT_EQ(v3[5].getBoolean(0), false);
+    // EXPECT_EQ(v3.size(), 6);
+    // EXPECT_EQ(v3[0].getBoolean(0), true);
+    // EXPECT_EQ(v3[1].getBoolean(0), false);
+    // EXPECT_EQ(v3[2].getBoolean(0), false);
+    // EXPECT_EQ(v3[3].getBoolean(0), false);
+    // EXPECT_EQ(v3[4].getBoolean(0), true);
+    // EXPECT_EQ(v3[5].getBoolean(0), false);
 
     python::lockGIL();
     python::closeInterpreter();

@@ -54,9 +54,28 @@ namespace tuplex {
                                    bool nullValueOptimization,
                                    bool constantFoldingOptimization,
                                    bool updateInputExceptions,
+                                   bool generateSpecializedNormalCaseCodePath) : StageBuilder::StageBuilder({allowUndefinedBehavior, false, sharedObjectPropagation, normalCaseThreshold},
+                                                                                                            stage_number,
+                                                                                                            rootStage,
+                                                                                                            generateParser,
+                                                                                                            nullValueOptimization,
+                                                                                                            constantFoldingOptimization,
+                                                                                                            updateInputExceptions,
+                                                                                                            generateSpecializedNormalCaseCodePath) {
+            Logger::instance().defaultLogger().warn("using deprecated StageBuilder ctor");
+        }
+
+
+        StageBuilder::StageBuilder(const CompilePolicy& policy,
+                                   int64_t stage_number,
+                                   bool rootStage,
+                                   bool generateParser,
+                                   bool nullValueOptimization,
+                                   bool constantFoldingOptimization,
+                                   bool updateInputExceptions,
                                    bool generateSpecializedNormalCaseCodePath)
-                : _stageNumber(stage_number), _isRootStage(rootStage), _allowUndefinedBehavior(allowUndefinedBehavior),
-                  _generateParser(generateParser), _normalCaseThreshold(normalCaseThreshold), _sharedObjectPropagation(sharedObjectPropagation),
+                : _policy(policy), _stageNumber(stage_number), _isRootStage(rootStage),
+                  _generateParser(generateParser),
                   _nullValueOptimization(nullValueOptimization),
                   _constantFoldingOptimization(constantFoldingOptimization),
                   _updateInputExceptions(updateInputExceptions),
@@ -1256,8 +1275,12 @@ namespace tuplex {
             // create wrapper which decodes automatically normal-case rows with optimized types...
             auto null_values = ctx.inputMode == EndPointMode::FILE ? jsonToStringArray(ctx.fileInputParameters.at("null_values"))
                                                      : std::vector<std::string>{"None"};
-            auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip, ret.funcStageName/*funcResolveRowName*/,
-                                                                            normalCaseType, normalToGeneralMapping, null_values);
+            auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip,
+                                                                            ret.funcStageName/*funcResolveRowName*/,
+                                                                            normalCaseType,
+                                                                            normalToGeneralMapping,
+                                                                            null_values,
+                                                                            _policy);
 
             ret.funcStageName = rowProcessFunc->getName();
 //            ret._resolveRowFunctionName = rowProcessFunc->getName();

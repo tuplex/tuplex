@@ -239,18 +239,15 @@ namespace tuplex {
         // user wants to merge exceptions in order.
         bool updateInputExceptions = hasFilter && hasInputExceptions && _context.getOptions().OPT_MERGE_EXCEPTIONS_INORDER();
 
-        // create trafostage via builder pattern
-        auto builder = codegen::StageBuilder(_num_stages++,
-                                               isRootStage,
-                                               _context.getOptions().UNDEFINED_BEHAVIOR_FOR_OPERATORS(),
-                                               _context.getOptions().OPT_GENERATE_PARSER(),
-                                               _context.getOptions().NORMALCASE_THRESHOLD(),
-                                               _context.getOptions().OPT_SHARED_OBJECT_PROPAGATION(),
-                                               _context.getOptions().OPT_NULLVALUE_OPTIMIZATION(),
-                                               _context.getOptions().OPT_CONSTANTFOLDING_OPTIMIZATION(),
-                                               updateInputExceptions);
+        // create transform-stage via builder pattern
+        auto builder = codegen::StageBuilder(compilePolicyFromOptions(_context.getOptions()),
+                                             _num_stages++,
+                                             isRootStage,
+                                             _context.getOptions().OPT_GENERATE_PARSER(),
+                                             _context.getOptions().OPT_NULLVALUE_OPTIMIZATION(),
+                                             _context.getOptions().OPT_CONSTANTFOLDING_OPTIMIZATION(),
+                                             updateInputExceptions);
         // start code generation
-
         // first, add input
         assert(!ops.empty());
         auto inputNode = ops.front();

@@ -237,7 +237,7 @@ namespace tuplex {
 
         _cachePopulated = true;
         auto duration = timer.time();
-        logger.info("Filling sample cache for " + name() + " operator took " + std::to_string(duration) + "s");
+        logger.info("Filling sample cache for " + name() + " operator took " + std::to_string(duration) + "s (" + std::to_string(_sampleCache.size()) + " entries)");
         _sampling_time_s += duration; // update how long filling the cache took
     }
 
@@ -299,14 +299,15 @@ namespace tuplex {
             auto size = _sizes[idx];
             auto file_mode = perFileMode(mode);
 
-            f_rows[i] = std::async([this, file_mode](const URI& uri, size_t size, const SamplingMode& mode) {
+            f_rows[i] = std::async([this, file_mode](const URI& uri, size_t size) {
                 return sampleFile(uri, size, file_mode);
-            }, _fileURIs[idx], _sizes[idx], mode);
+            }, _fileURIs[idx], _sizes[idx]);
         }
 
         // combine rows now.
         vector<Row> res;
         for(unsigned i = 0; i < indices.size(); ++i) {
+            logger.info("sample parse done.");
             auto rows = f_rows[i].get();
             std::copy(rows.begin(), rows.end(), std::back_inserter(res));
         }
@@ -347,9 +348,7 @@ namespace tuplex {
         if (!_fileURIs.empty()) {
 
             // fill sampling cache
-            logger.info("Filling file cache...");
             fillCache(sampling_mode);
-            logger.info("File cache filled (" + std::to_string(_sampleCache.size()) + " entries)");
 
             aligned_string sample;
             if(!_fileURIs.empty()) {

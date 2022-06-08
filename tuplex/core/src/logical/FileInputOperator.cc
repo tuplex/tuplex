@@ -273,7 +273,7 @@ namespace tuplex {
         vector<std::future<aligned_string>> vf(file_indices.size());
         for(unsigned i = 0; i < indices.size(); ++i) {
             auto idx = indices[i];
-            vf[i] = std::async([this](const URI& uri, size_t size, const SamplingMode& mode) {
+            vf[i] = std::async(std::launch::async, [this](const URI& uri, size_t size, const SamplingMode& mode) {
                 return loadSample(_samplingSize, uri, size, mode, false);
             }, _fileURIs[idx], _sizes[idx], mode);
         }
@@ -299,7 +299,7 @@ namespace tuplex {
             auto size = _sizes[idx];
             auto file_mode = perFileMode(mode);
 
-            f_rows[i] = std::async([this, file_mode](const URI& uri, size_t size) {
+            f_rows[i] = std::async(std::launch::async, [this, file_mode](const URI& uri, size_t size) {
                 return sampleFile(uri, size, file_mode);
             }, _fileURIs[idx], _sizes[idx]);
         }
@@ -307,7 +307,6 @@ namespace tuplex {
         // combine rows now.
         vector<Row> res;
         for(unsigned i = 0; i < indices.size(); ++i) {
-            logger.info("sample parse done.");
             auto rows = f_rows[i].get();
             std::copy(rows.begin(), rows.end(), std::back_inserter(res));
         }

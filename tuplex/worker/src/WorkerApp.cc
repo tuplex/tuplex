@@ -98,6 +98,12 @@ namespace tuplex {
         }
     }
 
+    void WorkerApp::resetThreadEnvironments() {
+        for(int i = 0; i < _numThreads; ++i) {
+            _threadEnvs[i].reset();
+        }
+    }
+
     void WorkerApp::shutdown() {
         if(python::isInterpreterRunning()) {
             python::lockGIL();
@@ -232,6 +238,8 @@ namespace tuplex {
     }
 
     int WorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
+        // reset buffers
+        resetThreadEnvironments();
 
         // only transform stage yet supported, in the future support other stages as well!
         auto tstage = TransformStage::from_protobuf(req.stage());

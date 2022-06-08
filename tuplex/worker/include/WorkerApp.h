@@ -229,6 +229,24 @@ namespace tuplex {
            * @return size in bytes
            */
             size_t hashMapSize() const;
+
+            /*!
+             * reset threadenv to original state, important for consistency.
+             */
+            void reset() {
+                normalBuf.reset();
+                normalOriginalPartNo = 0;
+                numNormalRows = 0;
+                exceptionBuf.reset();
+                exceptionOriginalPartNo = 0;
+                numExceptionRows = 0;
+                hashMap = hashmap_new();
+                if(nullBucket)
+                    free(nullBucket);
+                nullBucket = nullptr; // empty bucket.
+                hashOriginalPartNo = 0;
+                spillFiles.clear();
+            }
         };
 
         // helper struct for storing info related to sorting buffers + spill files together...
@@ -264,6 +282,8 @@ namespace tuplex {
         size_t _numThreads;
 
         void initThreadEnvironments(size_t numThreads);
+
+        void resetThreadEnvironments(); // resets all buffers in working sets.
 
         int64_t initTransformStage(const TransformStage::InitData& initData, const std::shared_ptr<TransformStage::JITSymbols>& syms);
         int64_t releaseTransformStage(const std::shared_ptr<TransformStage::JITSymbols>& syms);

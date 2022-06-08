@@ -84,7 +84,7 @@ namespace tuplex {
                             // check if output type is exception type -> this means sample produced only errors!
                             if(_udf.getOutputSchema().getRowType().isExceptionType()) {
                                 std::stringstream ss;
-                                ss<<"Sample of " + pluralize(rows_sample.size(), "row") + " produced only exceptions of type " +_udf.getOutputSchema().getRowType().desc() + ".\n";
+                                ss<<"Sample of " + pluralize(rows_sample.size(), "row") + " produced only exceptions of type " +_udf.getOutputSchema().getRowType().desc() + ". Either increase sample size so rows producing no exceptions are in the majority, or change user-defined code.\n";
 
                                 // produce a sample traceback for user feedback... -> this should probably go to python API display??
                                 // @TODO

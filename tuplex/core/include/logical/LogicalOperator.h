@@ -192,7 +192,7 @@ namespace tuplex {
          */
         virtual bool isDataSource() = 0;
 
-        virtual Schema getOutputSchema() const { assert(_schema.getRowType() != python::Type::UNKNOWN); return _schema; };
+        virtual Schema getOutputSchema() const { return _schema; };
 
         virtual Schema getInputSchema() const = 0;
 

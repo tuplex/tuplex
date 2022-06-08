@@ -40,7 +40,7 @@ namespace tuplex {
         ") to process.");
     }
 
-    aligned_string FileInputOperator::loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode, bool use_cache) {
+    aligned_string FileInputOperator::loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode, bool use_cache, size_t* file_offset) {
         auto &logger = Logger::instance().logger("fileinputoperator");
 
         if(0 == file_size || uri == URI::INVALID)
@@ -61,6 +61,9 @@ namespace tuplex {
             return "";
         }
 
+        if(file_offset)
+            *file_offset = 0;
+
         // determine sample size
         if (file_size > sampleSize)
             sampleSize = core::floorToMultiple(std::min(sampleSize, file_size), 16ul);
@@ -72,12 +75,16 @@ namespace tuplex {
         switch(mode) {
             case SamplingMode::LAST_ROWS: {
                 vf->seek(file_size - sampleSize);
+                if(file_offset)
+                    *file_offset = file_size - sampleSize;
                 break;
             }
             case SamplingMode::RANDOM_ROWS: {
                 // random seek between 0 and file_size - sampleSize
                 auto randomSeekOffset = randi(0ul, file_size - sampleSize);
                 vf->seek(randomSeekOffset);
+                if(file_offset)
+                    *file_offset = randomSeekOffset;
                 break;
             }
             default:
@@ -163,13 +170,14 @@ namespace tuplex {
             estimatedRowCount += (double)s / (double)avgLineLength;
         _estimatedRowCount = static_cast<size_t>(std::ceil(estimatedRowCount));
 
-        // store as internal sample
-        _firstRowsSample.clear();
-        for(auto line : lines) {
-            _firstRowsSample.push_back(Row(line));
-        }
-        if(_header && !_firstRowsSample.empty())
-            _firstRowsSample.erase(_firstRowsSample.begin());
+        throw std::runtime_error("NOT YET SUPPORTED< NEED TO FIX text again");
+//        // store as internal sample
+//        _firstRowsSample.clear();
+//        for(auto line : lines) {
+//            _firstRowsSample.push_back(Row(line));
+//        }
+//        if(_header && !_firstRowsSample.empty())
+//            _firstRowsSample.erase(_firstRowsSample.begin());
 
         // when no null-values are given, simply set to string always
         // else, it's an option type...
@@ -265,7 +273,7 @@ namespace tuplex {
         vector<std::future<aligned_string>> vf(file_indices.size());
         for(unsigned i = 0; i < indices.size(); ++i) {
             auto idx = indices[i];
-            vf[i] = std::async([this, idx](const URI& uri, size_t size, const SamplingMode& mode) {
+            vf[i] = std::async([this](const URI& uri, size_t size, const SamplingMode& mode) {
                 return loadSample(_samplingSize, uri, size, mode, false);
             }, _fileURIs[idx], _sizes[idx], mode);
         }
@@ -281,6 +289,29 @@ namespace tuplex {
         }
 
         logger.debug("parallel sample fetch done.");
+
+        // parse now rows for detection etc.
+        vector<std::future<vector<Row>>> f_rows(indices.size());
+        // inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size, const SamplingMode& mode)
+        for(unsigned i = 0; i < indices.size(); ++i) {
+            auto idx = indices[i];
+            auto uri = _fileURIs[idx];
+            auto size = _sizes[idx];
+            auto file_mode = perFileMode(mode);
+
+            f_rows[i] = std::async([this](const URI& uri, size_t size, const SamplingMode& mode) {
+                return sampleFile(_samplingSize, uri, size, file_mode);
+            }, _fileURIs[idx], _sizes[idx], mode);
+        }
+
+        // combine rows now.
+        _rowsSample.clear();
+        for(unsigned i = 0; i < indices.size(); ++i) {
+            auto rows = f_rows[i].get();
+            std::copy(rows.begin(), rows.end(), std::back_inserter(_rowsSample));
+        }
+
+        logger.debug("parallel sample parse done.");
     }
 
     FileInputOperator::FileInputOperator(const std::string &pattern,
@@ -434,35 +465,35 @@ namespace tuplex {
             // set defaults for possible projection pushdown...
             setProjectionDefaults();
 
-            // now parse from the allocated buffer all rows and store as internal sample.
-            // there should be at least one 3 rows!
-            // store as internal sample
-            // => use here strlen because _firstRowsSample is zero terminated!
-            assert(sample.back() == '\0');
-            _firstRowsSample = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())), _null_values, _delimiter, _quotechar);
-            // header? ignore first row!
-            if(_header && !_firstRowsSample.empty())
-                _firstRowsSample.erase(_firstRowsSample.begin());
-
-            // draw last rows sample from last file & append.
-            if(!_fileURIs.empty()) {
-                // only draw sample IF > 1 file or file_size > 2 * sample size
-                bool draw_sample = _fileURIs.size() >= 2 || _sizes.back() >= 2 * _samplingSize;
-                if(draw_sample) {
-                    auto last_sample = loadSample(_samplingSize, _fileURIs.back(), _sizes.back(), SamplingMode::LAST_ROWS);
-                    // search CSV beginning
-                    auto column_count = inputColumnCount();
-                    auto offset = csvFindLineStart(last_sample.c_str(), _samplingSize, column_count, csvstat.delimiter(), csvstat.quotechar());
-                    if(offset >= 0) {
-                        // parse into last rows
-                        _lastRowsSample = parseRows(last_sample.c_str(), last_sample.c_str() + std::min(last_sample.size() - 1, strlen(last_sample.c_str())), _null_values, _delimiter, _quotechar);
-                    } else {
-                        logger.warn("could not find CSV line start in last rows sample.");
-                    }
-                }
-            }
-
-            // @TODO: could draw also additional random sample from data!
+//            // now parse from the allocated buffer all rows and store as internal sample.
+//            // there should be at least one 3 rows!
+//            // store as internal sample
+//            // => use here strlen because _firstRowsSample is zero terminated!
+//            assert(sample.back() == '\0');
+//            _firstRowsSample = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())), _null_values, _delimiter, _quotechar);
+//            // header? ignore first row!
+//            if(_header && !_firstRowsSample.empty())
+//                _firstRowsSample.erase(_firstRowsSample.begin());
+//
+//            // draw last rows sample from last file & append.
+//            if(!_fileURIs.empty()) {
+//                // only draw sample IF > 1 file or file_size > 2 * sample size
+//                bool draw_sample = _fileURIs.size() >= 2 || _sizes.back() >= 2 * _samplingSize;
+//                if(draw_sample) {
+//                    auto last_sample = loadSample(_samplingSize, _fileURIs.back(), _sizes.back(), SamplingMode::LAST_ROWS);
+//                    // search CSV beginning
+//                    auto column_count = inputColumnCount();
+//                    auto offset = csvFindLineStart(last_sample.c_str(), _samplingSize, column_count, csvstat.delimiter(), csvstat.quotechar());
+//                    if(offset >= 0) {
+//                        // parse into last rows
+//                        _lastRowsSample = parseRows(last_sample.c_str(), last_sample.c_str() + std::min(last_sample.size() - 1, strlen(last_sample.c_str())), _null_values, _delimiter, _quotechar);
+//                    } else {
+//                        logger.warn("could not find CSV line start in last rows sample.");
+//                    }
+//                }
+//            }
+//
+//            // @TODO: could draw also additional random sample from data!
 
         } else {
             logger.warn("no input files found, can't infer type from given path: " + pattern);
@@ -739,43 +770,52 @@ namespace tuplex {
         _sizes = uri_sizes;
 
         if(resample && !_fileURIs.empty()) {
-            // only CSV supported...
-            if(_fmt != FileFormat::OUTFMT_CSV)
-                throw std::runtime_error("only csv supported");
 
-            // NOTE: 256 triggers deoptimization ==> need to study this behavior more carefully...!
+            _estimatedRowCount = 10000; // @TODO
 
-            size_t SAMPLE_SIZE = 1024 * 512; // use 256KB each
+            // clear sample cache
+            _cachePopulated = false;
+            _sampleCache.clear();
+            _rowsSample.clear();
+            fillCache(_samplingMode);
 
-            // @TODO: rework this...
-            aligned_string sample;
-            sample = loadSample(SAMPLE_SIZE, _fileURIs.front(), _sizes.front(),
-                                SamplingMode::FIRST_ROWS);
-
-            _firstRowsSample = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1,
-                                                                                   strlen(sample.c_str())), _null_values, _delimiter, _quotechar);
-            // header? ignore first row!
-            if(_header && !_firstRowsSample.empty())
-                _firstRowsSample.erase(_firstRowsSample.begin());
-
-            // fetch also last rows sample?
-            // only draw sample IF > 1 file or file_size > 2 * sample size
-            bool draw_sample = _fileURIs.size() >= 2 || _sizes.back() >= 2 * SAMPLE_SIZE;
-            if(draw_sample) {
-                auto last_sample = loadSample(SAMPLE_SIZE, _fileURIs.back(), _sizes.back(), SamplingMode::LAST_ROWS);
-                // search CSV beginning
-                auto column_count = inputColumnCount();
-                auto offset = csvFindLineStart(last_sample.c_str(), SAMPLE_SIZE, column_count, _delimiter, _quotechar);
-                if(offset >= 0) {
-                    // parse into last rows
-                    _lastRowsSample = parseRows(last_sample.c_str(), last_sample.c_str() + std::min(last_sample.size() - 1, strlen(last_sample.c_str())), _null_values, _delimiter, _quotechar);
-                } else {
-                    //logger.warn("could not find CSV line start in last rows sample.");
-                }
-            }
-
-            // pretty bad but required, else stageplanner/builder will complain
-            _estimatedRowCount = _firstRowsSample.size() * ( 1.0 * _sizes.front() / (1.0 * sample.size()));
+//            // only CSV supported...
+//            if(_fmt != FileFormat::OUTFMT_CSV)
+//                throw std::runtime_error("only csv supported");
+//
+//            // NOTE: 256 triggers deoptimization ==> need to study this behavior more carefully...!
+//
+//            size_t SAMPLE_SIZE = 1024 * 512; // use 256KB each
+//
+//            // @TODO: rework this...
+//            aligned_string sample;
+//            sample = loadSample(SAMPLE_SIZE, _fileURIs.front(), _sizes.front(),
+//                                SamplingMode::FIRST_ROWS);
+//
+//            _firstRowsSample = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1,
+//                                                                                   strlen(sample.c_str())), _null_values, _delimiter, _quotechar);
+//            // header? ignore first row!
+//            if(_header && !_firstRowsSample.empty())
+//                _firstRowsSample.erase(_firstRowsSample.begin());
+//
+//            // fetch also last rows sample?
+//            // only draw sample IF > 1 file or file_size > 2 * sample size
+//            bool draw_sample = _fileURIs.size() >= 2 || _sizes.back() >= 2 * SAMPLE_SIZE;
+//            if(draw_sample) {
+//                auto last_sample = loadSample(SAMPLE_SIZE, _fileURIs.back(), _sizes.back(), SamplingMode::LAST_ROWS);
+//                // search CSV beginning
+//                auto column_count = inputColumnCount();
+//                auto offset = csvFindLineStart(last_sample.c_str(), SAMPLE_SIZE, column_count, _delimiter, _quotechar);
+//                if(offset >= 0) {
+//                    // parse into last rows
+//                    _lastRowsSample = parseRows(last_sample.c_str(), last_sample.c_str() + std::min(last_sample.size() - 1, strlen(last_sample.c_str())), _null_values, _delimiter, _quotechar);
+//                } else {
+//                    //logger.warn("could not find CSV line start in last rows sample.");
+//                }
+//            }
+//
+//            // pretty bad but required, else stageplanner/builder will complain
+//            _estimatedRowCount = _firstRowsSample.size() * ( 1.0 * _sizes.front() / (1.0 * sample.size()));
         }
     }
 
@@ -909,11 +949,16 @@ namespace tuplex {
             // parse as rows using the settings detected.
             v = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
                           _null_values, _delimiter, _quotechar);
+
+            // header? ignore first row!
+            if(_header && !v.empty())
+                v.erase(v.begin());
         }
 
         if(m & SamplingMode::LAST_ROWS) {
             // the smaller of remaining and sample size!
-            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::LAST_ROWS);
+            size_t file_offset = 0;
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::LAST_ROWS, &file_offset);
             size_t offset = 0;
             if(!v.empty()) {
                 if(uri_size < 2 * _samplingSize) {
@@ -922,21 +967,44 @@ namespace tuplex {
                 }
                 auto rows = parseRows(sample.c_str() + offset, sample.c_str() + offset + std::min(sample.size() - 1, strlen(sample.c_str())),
                                             _null_values, _delimiter, _quotechar);
+                // offset = 0?
+                if(file_offset == 0) {
+                    // header? ignore first row!
+                    if(_header && !rows.empty())
+                        rows.erase(rows.begin());
+                }
+
                 std::copy(rows.begin(), rows.end(), std::back_inserter(v));
 
             } else {
                 v = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
-                                _null_values, _delimiter, _quotechar);
+                                _null_values, _delimiter, _quotechar, &file_offset);
+
+                // offset = 0?
+                if(file_offset == 0) {
+                    // header? ignore first row!
+                    if(_header && !v.empty())
+                        v.erase(v.begin());
+                }
             }
         }
 
         // most complicated: random -> make sure no overlap with first/last rows
         if(m & SamplingMode::RANDOM_ROWS) {
             // @TODO: there could be overlap with first/last rows.
-            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::RANDOM_ROWS);
+            size_t file_offset = 0;
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::RANDOM_ROWS, &file_offset);
             // parse as rows using the settings detected.
             auto rows = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
                           _null_values, _delimiter, _quotechar);
+
+            // offset = 0?
+            if(file_offset == 0) {
+                // header? ignore first row!
+                if(_header && !rows.empty())
+                    rows.erase(rows.begin());
+            }
+
             std::copy(rows.begin(), rows.end(), std::back_inserter(v));
         }
 

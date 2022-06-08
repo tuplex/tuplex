@@ -161,7 +161,7 @@ namespace tuplex {
 
         FileInputOperator(FileInputOperator& other); // specialized copy constructor!
 
-        aligned_string loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode, bool use_cache=true);
+        aligned_string loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode, bool use_cache=true, size_t* file_offset=nullptr);
         std::vector<size_t> translateOutputToInputIndices(const std::vector<size_t>& output_indices);
 
         // sampling functions

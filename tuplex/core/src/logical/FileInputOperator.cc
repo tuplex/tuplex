@@ -305,13 +305,14 @@ namespace tuplex {
         }
 
         // combine rows now.
-        _rowsSample.clear();
+        vector<Row> res;
         for(unsigned i = 0; i < indices.size(); ++i) {
             auto rows = f_rows[i].get();
-            std::copy(rows.begin(), rows.end(), std::back_inserter(_rowsSample));
+            std::copy(rows.begin(), rows.end(), std::back_inserter(res));
         }
 
         logger.debug("parallel sample parse done.");
+        return res;
     }
 
     FileInputOperator::FileInputOperator(const std::string &pattern,
@@ -770,14 +771,13 @@ namespace tuplex {
         _sizes = uri_sizes;
 
         if(resample && !_fileURIs.empty()) {
-
-            _estimatedRowCount = 10000; // @TODO
-
             // clear sample cache
             _cachePopulated = false;
             _sampleCache.clear();
             _rowsSample.clear();
             fillCache(_samplingMode);
+
+            _estimatedRowCount = 100000; // @TODO.
 
 //            // only CSV supported...
 //            if(_fmt != FileFormat::OUTFMT_CSV)

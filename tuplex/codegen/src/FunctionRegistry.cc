@@ -972,14 +972,8 @@ namespace tuplex {
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
             /** TODO: need a check on argsType etc. that they are float numbers (python::Type::F64) **/
-
-            // val.val is an llvm::Value* ; see SerializableValue struct in CodegenHelper.h
             auto val = args.front();
-
-            // make llvm Value out of NAN
-            // what's _env? instance of LLVMEnvironment
             llvm::Value* F64Nan = _env.f64Const(NAN);
-            // make comparison instruction
             auto resVal = builder.CreateICmpEQ(val.val, F64Nan);
             auto resSize = _env.i64Const(sizeof(bool));
             return SerializableValue(resVal, resSize);

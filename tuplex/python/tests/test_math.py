@@ -421,7 +421,7 @@ class TestMath(unittest.TestCase):
     def testIsNan(self):
         c = tuplex.Context(self.conf)
     
-        test0 = [0.0, math.nan, -3.5, -math.inf]
+        test0 = [0.0, math.nan, -3.5, math.inf]
         L0 = c.parallelize(test0).map(lambda x: math.isnan(x)).collect()
         assert len(L0) == 4, 'wrong length'
         self.assertEqual(L0[0], False)

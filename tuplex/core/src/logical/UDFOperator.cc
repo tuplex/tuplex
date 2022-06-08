@@ -72,20 +72,35 @@ namespace tuplex {
                     // => only use rows which match parent type.
                     // => general case rows thus get transferred to interpreter...
                     logger.debug("performing traced typing for UDF in operator " + name());
-                    success = _udf.hintSchemaWithSample(parent()->getPythonicSample(MAX_TYPE_SAMPLING_ROWS),
+                    auto rows_sample = parent()->getPythonicSample(MAX_TYPE_SAMPLING_ROWS);
+                    success = _udf.hintSchemaWithSample(rows_sample,
                                                         parentSchema.getRowType(), true);
 
                     // only exceptions?
                     // => report, abort compilation!
                     if(_udf.getCompileErrors().empty()) {
                         if(!success) {
-                            Logger::instance().defaultLogger().info("was not able to detect type for UDF, statically and via tracing."
-                                                                    " Provided parent row type was " + parentSchema.getRowType().desc() );
-                            // 4. mark as uncompilable UDF, but sample output row type, so at least subsequent operators
-                            //    can get compiled!
-                            _udf.markAsNonCompilable();
-                            throw std::runtime_error("TODO: implement via sampling of Python UDF executed most likely type, so pipeline can still get compiled.");
-                            return Schema::UNKNOWN;
+
+                            // check if output type is exception type -> this means sample produced only errors!
+                            if(_udf.getOutputSchema().getRowType().isExceptionType()) {
+                                std::stringstream ss;
+                                ss<<"Sample of " + pluralize(rows_sample.size(), "row") + " produced only exceptions of type " +_udf.getOutputSchema().getRowType().desc() + ".\n";
+
+                                // produce a sample traceback for user feedback... -> this should probably go to python API display??
+                                // @TODO
+
+                                logger.error(ss.str());
+                                return Schema::UNKNOWN;
+                            } else {
+                                Logger::instance().defaultLogger().info("was not able to detect type for UDF, statically and via tracing."
+                                                                        " Provided parent row type was " + parentSchema.getRowType().desc() + ". Marking UDF as uncompilable which will require interpreter for execution.");
+                                // 4. mark as uncompilable UDF, but sample output row type, so at least subsequent operators
+                                //    can get compiled!
+                                _udf.markAsNonCompilable();
+
+                                return Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(python::Type::PYOBJECT));
+                                // throw std::runtime_error("TODO: implement via sampling of Python UDF executed most likely type, so pipeline can still get compiled.");
+                            }
                         } else {
                             // check what return type was given
                             auto output_type = _udf.getOutputSchema().getRowType();

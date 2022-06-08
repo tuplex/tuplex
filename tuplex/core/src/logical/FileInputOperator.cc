@@ -18,6 +18,37 @@
 
 namespace tuplex {
 
+//    std::vector<tuplex::Row> parseRows(const char *start, const char *end, const std::vector<std::string>& null_values, char delimiter, char quotechar) {
+//        using namespace std;
+//        using namespace tuplex;
+//        vector<Row> rows;
+//
+//        ExceptionCode ec;
+//        vector<string> cells;
+//        size_t num_bytes = 0;
+//        const char* p = start;
+//        while(p < end && (ec = parseRow(p, end, cells, num_bytes, delimiter, quotechar, false)) == ExceptionCode::SUCCESS) {
+//            // convert cells to row
+//            auto row = cellsToRow(cells, null_values);
+//
+//#ifndef NDEBUG
+//            // validate
+//            python::lockGIL();
+//            auto py_row = python::rowToPython(row);
+//            python::unlockGIL();
+//#endif
+//
+//            rows.push_back(row);
+//            cells.clear();
+//            p += num_bytes;
+//        }
+//
+//        return rows;
+//    }
+
+
+
+
     void FileInputOperator::detectFiles(const std::string& pattern) {
         auto &logger = Logger::instance().logger("fileinputoperator");
 

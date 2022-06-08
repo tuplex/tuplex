@@ -45,6 +45,14 @@
 namespace tuplex {
     namespace codegen {
 
+        static CompilePolicy makeCP(bool allowUndefinedBehavior, bool sharedObjectPropagation, double normalCaseThreshold) {
+            CompilePolicy p;
+            p.allowUndefinedBehavior = allowUndefinedBehavior;
+            p.sharedObjectPropagation = sharedObjectPropagation;
+            p.normalCaseThreshold = normalCaseThreshold;
+            return p;
+        }
+
         StageBuilder::StageBuilder(int64_t stage_number,
                                    bool rootStage,
                                    bool allowUndefinedBehavior,
@@ -54,7 +62,7 @@ namespace tuplex {
                                    bool nullValueOptimization,
                                    bool constantFoldingOptimization,
                                    bool updateInputExceptions,
-                                   bool generateSpecializedNormalCaseCodePath) : StageBuilder::StageBuilder({allowUndefinedBehavior, false, sharedObjectPropagation, normalCaseThreshold},
+                                   bool generateSpecializedNormalCaseCodePath) : StageBuilder::StageBuilder(makeCP(allowUndefinedBehavior, sharedObjectPropagation, normalCaseThreshold),
                                                                                                             stage_number,
                                                                                                             rootStage,
                                                                                                             generateParser,

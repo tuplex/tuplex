@@ -973,17 +973,11 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
             /** TODO: need a check on argsType --> float numbers (python::Type::F64) **/
             auto val = args.front();
-            if (val.val->getType()->isFloatingPointTy()) {
-                auto ival = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, val.val, _env.f64Const(NAN));
-                auto resVal = _env.upcastToBoolean(builder, ival);
-                auto resSize = _env.i64Const(sizeof(bool));
-                return SerializableValue(resVal, resSize);
-            } else {
-                auto ival = builder.CreateICmpEQ(val.val, _env.i64Const(NAN));
-                auto resVal = _env.upcastToBoolean(builder, ival);
-                auto resSize = _env.i64Const(sizeof(bool));
-                return SerializableValue(resVal, resSize);
-            }
+            auto ival = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, val.val, _env.f64Const(NAN));
+            auto resVal = _env.upcastToBoolean(builder, ival);
+            auto resSize = _env.i64Const(sizeof(bool));
+            
+            return SerializableValue(resVal, resSize);
         }
 
         // codegen::SerializableValue FunctionRegistry::createMathIsInfCall(llvm::IRBuilder<>& builder, const python::Type &argsType,

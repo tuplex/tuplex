@@ -59,6 +59,8 @@
 
 namespace tuplex {
 
+    // consider https://codereview.stackexchange.com/questions/113439/copyable-atomic
+
     struct CodePathStatistics {
         std::atomic<int64_t> rowsOnNormalPathCount;
         std::atomic<int64_t> rowsOnGeneralPathCount;
@@ -76,8 +78,18 @@ namespace tuplex {
             reset();
         }
 
-        CodePathStatistics(const CodePathStatistics& other) : rowsOnNormalPathCount(other.rowsOnNormalPathCount),
-        rowsOnGeneralPathCount(other.rowsOnGeneralPathCount), rowsOnInterpreterPathCount(other.rowsOnInterpreterPathCount), unresolvedRowsCount(other.unresolvedRowsCount) {}
+        CodePathStatistics(const CodePathStatistics& other) : rowsOnNormalPathCount(other.rowsOnNormalPathCount.load()),
+        rowsOnGeneralPathCount(other.rowsOnGeneralPathCount.load()),
+        rowsOnInterpreterPathCount(other.rowsOnInterpreterPathCount.load()),
+        unresolvedRowsCount(other.unresolvedRowsCount.load()) {}
+
+        CodePathStatistics& operator = (const CodePathStatistics& other) {
+            rowsOnNormalPathCount = other.rowsOnNormalPathCount.load();
+            rowsOnGeneralPathCount = other.rowsOnGeneralPathCount.load();
+            rowsOnInterpreterPathCount = other.rowsOnInterpreterPathCount.load();
+            unresolvedRowsCount = other.unresolvedRowsCount.load();
+            return *this;
+        }
     };
 
     struct MessageStatistic {

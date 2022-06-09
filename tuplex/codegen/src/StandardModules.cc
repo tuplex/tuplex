@@ -56,6 +56,12 @@ namespace tuplex {
                     m->addAttribute(make_shared<Symbol>(name, name, python::Type::makeFunctionType(python::Type::propagateToTupleType(type), python::Type::F64), SymbolType::FUNCTION));
                 }
             }
+            
+            // math.isnan
+            auto symb = make_shared<Symbol>("isnan", "isnan", python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::F64), python::Type::BOOLEAN), SymbolType::FUNCTION);
+            symb->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::I64), python::Type::BOOLEAN));
+            symb->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::BOOLEAN), python::Type::BOOLEAN));
+            m->addAttribute(symb);
 
             // math.ceil/math.floor
             for(const auto& name : vector<string>{"ceil", "floor"}) {

@@ -504,7 +504,7 @@ namespace tuplex {
             // for null, assume option[str].
             // -> this is required for hyperspecialization upcast + a meaningful assumption for the sample
             auto normalcase_coltypes = normalcasetype.parameters();
-            vector<python::Type> generalcase_coltypes = normalcase_coltypes;
+            std::vector<python::Type> generalcase_coltypes = normalcase_coltypes;
             for(auto& type : generalcase_coltypes) {
                 if(!type.isOptionType()) {
                     if(python::Type::NULLVALUE == type)

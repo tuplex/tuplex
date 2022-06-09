@@ -974,8 +974,9 @@ namespace tuplex {
             /** TODO: need a check on argsType --> float numbers (python::Type::F64) **/
             auto val = args.front();
             _env.printValue(builder, val.val, "value\n");
-            _env.printValue(builder, val.val->getType(), "value type\n");
-            auto ival = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, val.val, _env.f64Const(nan("")));
+            auto F64NAN = _env.f64Const(nan(""));
+            _env.printValue(builder, F64NAN, "f64nan\n");
+            auto ival = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, val.val, F64NAN);
             auto resVal = _env.upcastToBoolean(builder, ival);
             auto resSize = _env.i64Const(sizeof(bool));
 

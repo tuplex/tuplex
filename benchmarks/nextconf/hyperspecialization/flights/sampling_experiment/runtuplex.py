@@ -133,7 +133,7 @@ if __name__ == '__main__':
     # full dataset here (oO)
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004*.csv'
     # minimal example where double write occassionally occurs. I.e., was something not properly reset?
-    input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_11.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv'
+    #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_11.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv'
     use_hyper_specialization = False
     s3_output_path += '/sampling'
 
@@ -176,8 +176,9 @@ if __name__ == '__main__':
     print('Tuplex startup time: {}'.format(startup_time))
     tstart = time.time()
     ### QUERY HERE ###
-    sm = tuplex.dataset.SamplingMode.ALL_FILES | tuplex.dataset.SamplingMode.FIRST_ROWS
+    sm = tuplex.dataset.SamplingMode.ALL_FILES | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.RANDOM_ROWS
     #sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS
+    sm = tuplex.dataset.SamplingMode.LAST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS
     print('Sampling mode: {}'.format(sm))
     ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).tocsv(s3_output_path)
 

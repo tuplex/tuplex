@@ -143,7 +143,7 @@ if __name__ == '__main__':
     s3_output_path = 's3://tuplex-leonhard/experiments/flights_hyper'
 
     # full dataset here (oO)
-    #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv'
+    input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv'
     #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv'
     #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004*.csv'
 
@@ -167,6 +167,8 @@ if __name__ == '__main__':
             "backend": "lambda",
             "aws.lambdaMemory": lambda_size,
             "aws.lambdaThreads": lambda_threads,
+            "aws.maxConcurrency": 410,
+            'tuplex.csv.maxDetectionMemory': '32KB',
             "aws.scratchDir": s3_scratch_dir,
             "experimental.hyperspecialization": use_hyper_specialization,
             "executorCount": 0,
@@ -175,8 +177,9 @@ if __name__ == '__main__':
             "partitionSize": "32MB",
             "runTimeMemory": "128MB",
             "useLLVMOptimizer": True,
-            "optimizer.nullValueOptimization": False,
+            "optimizer.nullValueOptimization": True,
             "resolveWithInterpreterOnly": False,
+            "optimizer.constantFoldingOptimization": True,
             "csv.selectionPushdown" : True}
 
     if os.path.exists('tuplex_config.json'):

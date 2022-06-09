@@ -72,6 +72,7 @@ namespace tuplex {
              * @param delimiter CSV delimiter for which to produce a parser
              * @param quotechar CSV quotechar for which to produce a parser
              * @param checks normal case checks that are required to be satisfied upon reading in data. If they fail, a normalcaseviolation exception is produced.
+             * @param serializeExceptionAsGeneralCase if true, upcasts exceptions to generalCaseInputRowType. If false, uses inputRowType.
              */
             explicit JITCSVSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
                                              const python::Type& fileInputRowType,
@@ -79,6 +80,7 @@ namespace tuplex {
                                              const std::vector<bool> &columnsToSerialize,
                                              const std::map<int, int>& normalToGeneralMapping,
                                              const std::string &name,
+                                             bool serializeExceptionsAsGeneralCase,
                                              int64_t operatorID,
                                              const std::vector<std::string> &null_values,
                                              char delimiter,
@@ -92,7 +94,8 @@ namespace tuplex {
                                                                                                                     columnsToSerialize,
                                                                                                                     fileGeneralCaseInputRowType),
                                                                                                             normalToGeneralMapping,
-                                                                                                            name),
+                                                                                                            name,
+                                                                                                            serializeExceptionsAsGeneralCase),
                                                                _parseRowGen(
                                                                        new CSVParseRowGenerator(_env.get(), null_values,
                                                                                                 quotechar, delimiter)),

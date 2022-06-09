@@ -105,7 +105,7 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("codegen");
 
             // is it a normal-case or general case row?
-            if(ftIn.getTupleType() == _inputRowTypeGeneralCase) {
+            if(ftIn.getTupleType() == _inputRowTypeGeneralCase || !_serializeExceptionsAsGeneralCase) {
                 // perfect, simply serialize
                 auto serialized_row = ftIn.serializeToMemory(builder);
                 return serialized_row;

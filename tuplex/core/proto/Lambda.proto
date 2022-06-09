@@ -158,6 +158,14 @@ message RequestInfo {
     string errorMessage = 10;
 }
 
+// statistics about how input rows were processed.
+message CodePathStats {
+    uint64 normal = 1;
+    uint64 general = 2;
+    uint64 interpreter = 3;
+    uint64 unresolved = 4;
+}
+
 message InvocationResponse {
     enum Status {
         SUCCESS = 0;
@@ -174,16 +182,18 @@ message InvocationResponse {
     uint64 numExceptions = 7;
     uint64 numBytesWritten = 8;
 
-    ContainerInfo container = 9;
-    repeated ContainerInfo invokedContainers = 10;
-    repeated RequestInfo invokedRequests = 11;
+    CodePathStats rowStats = 9;
+
+    ContainerInfo container = 10;
+    repeated ContainerInfo invokedContainers = 11;
+    repeated RequestInfo invokedRequests = 12;
 
     // messages may contain already result data, given in form of a resource
-    repeated Resource resources = 12;
+    repeated Resource resources = 13;
 
     // stats
-    double awsInitTime = 13;
-    double taskExecutionTime = 14;
-    map<string, uint64> s3Stats = 15;
-    map<string, double> breakdownTimes = 16;
+    double awsInitTime = 14;
+    double taskExecutionTime = 15;
+    map<string, uint64> s3Stats = 16;
+    map<string, double> breakdownTimes = 17;
 }

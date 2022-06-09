@@ -59,10 +59,32 @@
 
 namespace tuplex {
 
+    struct CodePathStatistics {
+        std::atomic<int64_t> rowsOnNormalPathCount;
+        std::atomic<int64_t> rowsOnGeneralPathCount;
+        std::atomic<int64_t> rowsOnInterpreterPathCount;
+        std::atomic<int64_t> unresolvedRowsCount;
+
+        void reset() {
+            rowsOnNormalPathCount = 0;
+            rowsOnGeneralPathCount = 0;
+            rowsOnInterpreterPathCount = 0;
+            unresolvedRowsCount = 0;
+        }
+
+        CodePathStatistics() {
+            reset();
+        }
+
+        CodePathStatistics(const CodePathStatistics& other) : rowsOnNormalPathCount(other.rowsOnNormalPathCount),
+        rowsOnGeneralPathCount(other.rowsOnGeneralPathCount), rowsOnInterpreterPathCount(other.rowsOnInterpreterPathCount), unresolvedRowsCount(other.unresolvedRowsCount) {}
+    };
+
     struct MessageStatistic {
         double totalTime;
         size_t numNormalOutputRows;
         size_t numExceptionOutputRows;
+        CodePathStatistics codePathStats;
     };
 
     /// settings to use to initialize a worker application. Helpful to tune depending on
@@ -288,11 +310,16 @@ namespace tuplex {
         int64_t initTransformStage(const TransformStage::InitData& initData, const std::shared_ptr<TransformStage::JITSymbols>& syms);
         int64_t releaseTransformStage(const std::shared_ptr<TransformStage::JITSymbols>& syms);
 
-        int64_t processSource(int threadNo, int64_t inputNodeID, const FilePart& part, const TransformStage* tstage, const std::shared_ptr<TransformStage::JITSymbols>& syms);
+        int64_t processSource(int threadNo, int64_t inputNodeID,
+                              const FilePart& part,
+                              const TransformStage* tstage,
+                              const std::shared_ptr<TransformStage::JITSymbols>& syms,
+                              size_t* inputRowCount);
 
         int64_t processSourceInPython(int threadNo, int64_t inputNodeID, const FilePart& part,
                                       const TransformStage* tstage, PyObject* pipelineObject,
-                                      bool acquireGIL);
+                                      bool acquireGIL,
+                                      size_t* inputRowCount);
 
         int64_t writeAllPartsToOutput(const URI& output_uri, const FileFormat& output_format, const std::unordered_map<std::string, std::string>& output_options);
 
@@ -365,6 +392,7 @@ namespace tuplex {
     private:
 
         bool _has_python_resolver;
+        CodePathStatistics _codePathStats; // stats per message
 
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
@@ -418,6 +446,18 @@ namespace tuplex {
             }
 
             return std::make_tuple(numNormalRows, numExceptionRows, numHashRows, normalBufSize, exceptionBufSize, hashMapSize);
+        }
+
+        inline size_t get_exception_row_count() const {
+            size_t numExceptionRows = 0;
+            for(unsigned i = 0; i < _numThreads; ++i) {
+                numExceptionRows += _threadEnvs[i].numExceptionRows;
+                for(auto info : _threadEnvs[i].spillFiles) {
+                    if(info.isExceptionBuf)
+                        numExceptionRows += info.num_rows;
+                }
+            }
+            return numExceptionRows;
         }
     };
 

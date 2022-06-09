@@ -836,6 +836,9 @@ namespace tuplex {
                 }
             }
 
+            // in fast path, keep the (smaller) normal-case format.
+            bool emitGeneralCaseExceptionRows = false;
+
             // step 2. build connector to data source, i.e. generated parser or simply iterating over stuff
             std::shared_ptr<codegen::BlockBasedTaskBuilder> tb;
             if (ctx.inputMode == EndPointMode::FILE) {
@@ -870,6 +873,7 @@ namespace tuplex {
                                                                                pathContext.columnsToRead,
                                                                                normalToGeneralMapping,
                                                                                funcStageName,
+                                                                               emitGeneralCaseExceptionRows,
                                                                                ctx.inputNodeID,
                                                                                null_values,
                                                                                delimiter,
@@ -889,6 +893,7 @@ namespace tuplex {
                                                                              generalCaseColumnsToRead,
                                                                              normalToGeneralMapping,
                                                                              funcStageName,
+                                                                             emitGeneralCaseExceptionRows,
                                                                              ctx.inputNodeID,
                                                                              null_values,
                                                                              pathContext.checks);
@@ -907,6 +912,7 @@ namespace tuplex {
                                                                            generalCaseInputRowType,
                                                                            normalToGeneralMapping,
                                                                            funcStageName,
+                                                                           emitGeneralCaseExceptionRows,
                                                                            pathContext.checks);
                         break;
                     }
@@ -931,6 +937,7 @@ namespace tuplex {
                                                                    generalCaseInputRowType,
                                                                    normalToGeneralMapping,
                                                                    funcStageName,
+                                                                   emitGeneralCaseExceptionRows,
                                                                    pathContext.checks);
             }
 

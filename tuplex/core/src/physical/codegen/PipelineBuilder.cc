@@ -833,6 +833,8 @@ namespace tuplex {
                     // output original input row
                     // => serialize to runtime memory!
                     logger.debug("Warning: need to make sure types are here correct when using exception handler directly from PipelineBuilder.cc");
+                    logger.info("generating exception handler with input data of type " + _argInputRow.getTupleType().desc());
+#warning "probably would need to upcast to general case here."
                     auto serialized_row = _argInputRow.serializeToMemory(builder);
 
                     // call handler
@@ -1905,8 +1907,7 @@ namespace tuplex {
                 const CompilePolicy& policy) {
 
             // uncomment to get debug printing for this function
-// #define PRINT_EXCEPTION_PROCESSING_DETAILS
-
+            // #define PRINT_EXCEPTION_PROCESSING_DETAILS
 
             auto& logger = Logger::instance().logger("codegen");
 
@@ -2080,7 +2081,8 @@ namespace tuplex {
                         tuple = normalToGeneralTupleWithNullCompatibility(builder,
                                                                           &env,
                                                                           ft,
-                                                                          normalCaseType, pip.inputRowType(),
+                                                                          normalCaseType,
+                                                                          pip.inputRowType(),
                                                                           normalToGeneralMapping,
                                                                           bb_failure,
                                                                           policy.allowNumericTypeUnification);

@@ -499,7 +499,21 @@ namespace tuplex {
             bool use_independent_columns = true;
             // when NVO is deactivated, normalcase and general case detected here are the same.
             auto normalcasetype = detectMajorityRowType(_rowsSample, co.NORMALCASE_THRESHOLD(), use_independent_columns, co.OPT_NULLVALUE_OPTIMIZATION());
-            auto generalcasetype = co.OPT_NULLVALUE_OPTIMIZATION() ? detectMajorityRowType(_rowsSample, co.NORMALCASE_THRESHOLD(), use_independent_columns, false) : normalcasetype;
+
+            // general-case type is option[T] version of types encountered in normalcasetype.
+            // for null, assume option[str].
+            // -> this is required for hyperspecialization upcast + a meaningful assumption for the sample
+            auto normalcase_coltypes = normalcasetype.parameters();
+            vector<python::Type> generalcase_coltypes = normalcase_coltypes;
+            for(auto& type : generalcase_coltypes) {
+                if(!type.isOptionType()) {
+                    if(python::Type::NULLVALUE == type)
+                        type = python::Type::makeOptionType(python::Type::STRING);
+                    else
+                        type = python::Type::makeOptionType(type);
+                }
+            }
+            auto generalcasetype = python::Type::makeTupleType(generalcase_coltypes);
             // NULL Value optimization on or off?
             // Note: if off, can improve performance of estimate...
 

@@ -99,6 +99,8 @@ namespace tuplex {
     }
 
     void WorkerApp::resetThreadEnvironments() {
+        // reset codepath stats
+        _codePathStats.reset();
         for(int i = 0; i < _numThreads; ++i) {
             _threadEnvs[i].reset();
         }
@@ -309,13 +311,17 @@ namespace tuplex {
 
         logger().info("runtime memory initialized, attempting to lock GIL");
 
+        int64_t numInputRowsProcessed = 0;
+
         // loop over parts & process
         python::lockGIL();
         logger().info("GIL locked, processing " + pluralize(input_parts.size(), "part"));
         for(const auto& part : input_parts) {
+            size_t inputRowCount = 0;
             auto rc = processSourceInPython(0, tstage->fileInputOperatorID(),
-                                            part, tstage, pipelineFunctionObj, false);
+                                            part, tstage, pipelineFunctionObj, false, &inputRowCount);
             logger().info("part processed, rc=" + std::to_string(rc));
+            numInputRowsProcessed += inputRowCount;
             if(rc != WORKER_OK) {
                 python::unlockGIL();
                 runtime::releaseRunTimeMemory();
@@ -332,6 +338,13 @@ namespace tuplex {
 
         // write output parts (incl. spilled parts) to output file
         auto rc = writeAllPartsToOutput(output_uri, tstage->outputFormat(), tstage->outputOptions());
+
+        // compute number of successful normal-case rows -> rest is unresolved
+        auto exception_row_count = get_exception_row_count();
+        assert(numInputRowsProcessed >= exception_row_count);
+        _codePathStats.rowsOnNormalPathCount += numInputRowsProcessed - exception_row_count;
+        _codePathStats.unresolvedRowsCount += exception_row_count;
+
         if(rc != WORKER_OK)
             return rc;
         return WORKER_OK;
@@ -353,6 +366,7 @@ namespace tuplex {
 
         std::cout<<"initTrafoStage done"<<std::endl;
 
+        std::atomic<size_t> numInputRowsProcessed(0);
         auto numCodes = std::max(1ul, _numThreads);
         auto processCodes = new int[numCodes];
         memset(processCodes, WORKER_OK, sizeof(int) * numCodes);
@@ -367,10 +381,12 @@ namespace tuplex {
                 for(unsigned i = 0; i < input_parts.size(); ++i) {
                    auto fp = input_parts[i];
                     std::cout<<"start process source"<<std::endl;
-                    processCodes[0] = processSource(0, tstage->fileInputOperatorID(), fp, tstage, syms);
+                    size_t inputRowCount = 0;
+                    processCodes[0] = processSource(0, tstage->fileInputOperatorID(), fp, tstage, syms, &inputRowCount);
                     logger().info("processed file " + std::to_string(i + 1) + "/" + std::to_string(input_parts.size()));
                     if(processCodes[0] != WORKER_OK)
                         break;
+                    numInputRowsProcessed += inputRowCount;
                 }
             } catch(...) {
                 processCodes[0] = WORKER_ERROR_EXCEPTION;
@@ -402,7 +418,7 @@ namespace tuplex {
             std::vector<std::thread> threads;
             threads.reserve(_numThreads);
             for(int i = 1; i < _numThreads; ++i) {
-                threads.emplace_back([this, tstage, &syms, &processCodes](int threadNo, const std::vector<FilePart>& parts) {
+                threads.emplace_back([this, tstage, &syms, &processCodes, &numInputRowsProcessed](int threadNo, const std::vector<FilePart>& parts) {
                     logger().debug("thread (" + std::to_string(threadNo) + ") started.");
 
                     runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
@@ -410,9 +426,11 @@ namespace tuplex {
                     try {
                         for(const auto& part : parts) {
                             logger().debug("thread (" + std::to_string(threadNo) + ") processing part");
-                            processCodes[threadNo] = processSource(threadNo, tstage->fileInputOperatorID(), part, tstage, syms);
+                            size_t inputRowCount = 0;
+                            processCodes[threadNo] = processSource(threadNo, tstage->fileInputOperatorID(), part, tstage, syms, &inputRowCount);
                             if(processCodes[threadNo] != WORKER_OK)
                                 break;
+                            numInputRowsProcessed += inputRowCount;
                         }
                     } catch(const std::exception& e) {
                         logger().error(std::string("exception recorded: ") + e.what());
@@ -437,9 +455,11 @@ namespace tuplex {
             try {
                 for(auto part : parts[0]) {
                     logger().debug("thread (main) processing part");
-                    processCodes[0] = processSource(0, tstage->fileInputOperatorID(), part, tstage, syms);
+                    size_t inputRowCount = 0;
+                    processCodes[0] = processSource(0, tstage->fileInputOperatorID(), part, tstage, syms, &inputRowCount);
                     if(processCodes[0] != WORKER_OK)
                         break;
+                    numInputRowsProcessed += inputRowCount;
                 }
             } catch(const std::exception& e) {
                 logger().error(std::string("exception recorded: ") + e.what());
@@ -478,6 +498,15 @@ namespace tuplex {
         }
         logger().info("fast path took: " + std::to_string(fastPathTimer.time()) + "s");
 
+        // update paths
+        // compute number of successful normal-case rows -> rest is unresolved
+        auto exception_row_count = get_exception_row_count();
+        assert(numInputRowsProcessed >= exception_row_count);
+        _codePathStats.rowsOnNormalPathCount += numInputRowsProcessed - exception_row_count;
+        _codePathStats.unresolvedRowsCount += exception_row_count;
+
+        logger().info("Input rows processed: normal: " + std::to_string(_codePathStats.rowsOnNormalPathCount)
+                        + " unresolved: " + std::to_string(_codePathStats.unresolvedRowsCount));
         // display exception info:
         size_t num_exceptions = 0;
         size_t num_normal = 0;
@@ -504,6 +533,11 @@ namespace tuplex {
               <<(tstage->slowPathBitCode().empty() ? "no" : "yes");
             logger().info(ss.str());
         }
+
+        // start resolution, therefore reset unresolvedRowsCount
+        _codePathStats.unresolvedRowsCount = 0;
+        _codePathStats.rowsOnGeneralPathCount = 0;
+        _codePathStats.rowsOnInterpreterPathCount = 0;
 
         Timer resolveTimer;
         for(unsigned i = 0; i < _numThreads; ++i) {
@@ -542,9 +576,14 @@ namespace tuplex {
         stat.totalTime = timer.time();
         stat.numNormalOutputRows = numNormalRows;
         stat.numExceptionOutputRows = numExceptionRows;
+        stat.codePathStats = _codePathStats;
         _statistics.push_back(stat);
 
         logger().info("Took " + std::to_string(timer.time()) + "s in total");
+        logger().info("Input rows' paths: normal: " + std::to_string(_codePathStats.rowsOnNormalPathCount)
+        + " general: " + std::to_string(_codePathStats.rowsOnGeneralPathCount)
+        + " interpreter: " + std::to_string(_codePathStats.rowsOnInterpreterPathCount)
+        + " unresolved: " + std::to_string(_codePathStats.unresolvedRowsCount));
         return WORKER_OK;
     }
 
@@ -945,10 +984,14 @@ namespace tuplex {
 
     int64_t WorkerApp::processSourceInPython(int threadNo, int64_t inputNodeID, const FilePart& part,
                                              const TransformStage* tstage, PyObject* pipelineObject,
-                                             bool acquireGIL) {
+                                             bool acquireGIL,
+                                             size_t* inputRowCount) {
         using namespace std;
         assert(tstage);
         assert(pipelineObject);
+
+        // reset counter
+        if(inputRowCount)*inputRowCount = 0;
 
         if(acquireGIL)
             python::lockGIL();
@@ -1040,6 +1083,8 @@ namespace tuplex {
                     // read assigned file...
                     logger().info("Calling read func on reader...");
                     reader->read(inputURI);
+                    if(inputRowCount)
+                        *inputRowCount += reader->inputRowCount();
                     runtime::rtfree_all();
                     break;
                 }
@@ -1104,7 +1149,7 @@ namespace tuplex {
 
 
     int64_t WorkerApp::processSource(int threadNo, int64_t inputNodeID, const FilePart& part, const TransformStage *tstage,
-                                     const std::shared_ptr<TransformStage::JITSymbols>& syms) {
+                                     const std::shared_ptr<TransformStage::JITSymbols>& syms, size_t* inputRowCount) {
         using namespace std;
 
         // couple checks
@@ -1119,6 +1164,9 @@ namespace tuplex {
             logger().error(err_stream.str());
             return WORKER_ERROR_UNSUPPORTED_INPUT;
         }
+
+        // reset optional output counter
+        if(inputRowCount)*inputRowCount = 0;
 
         size_t rangeStart=0, rangeEnd=0;
         auto inputURI = part.uri;
@@ -1191,8 +1239,12 @@ namespace tuplex {
                 // Note: ORC reader does not support parts yet... I.e., function needs to read FULL file!
 
                 // read assigned file...
-
                 reader->read(inputURI);
+
+                // fetch row count
+                if(inputRowCount)
+                    *inputRowCount = reader->inputRowCount();
+
                 runtime::rtfree_all();
                 break;
             }
@@ -1213,6 +1265,11 @@ namespace tuplex {
                     auto input_buffer = new uint8_t[file_size];
                     vf->read(input_buffer, file_size, &bytes_read);
                     logger().info("Read " + std::to_string(bytes_read) + " bytes from " + inputURI.toString());
+
+                    // tuplex file format has number of rows first?
+                    int64_t num_rows = *(int64_t*)input_buffer;
+                    if(inputRowCount)
+                        *inputRowCount = num_rows;
 
                     assert(syms->functor);
                     int64_t normal_row_output_count = 0;
@@ -1898,6 +1955,10 @@ namespace tuplex {
             ptr += delta;
         }
 
+        // update stats
+        _codePathStats.rowsOnGeneralPathCount += resolved_via_compiled_slow_path;
+        _codePathStats.rowsOnInterpreterPathCount += resolved_via_interpreter;
+        _codePathStats.unresolvedRowsCount += numRows - resolved_via_compiled_slow_path - resolved_via_interpreter;
 
         std::stringstream ss;
         ss<<"Resolved buffer, compiled: "<<resolved_via_compiled_slow_path<<" interpreted: "

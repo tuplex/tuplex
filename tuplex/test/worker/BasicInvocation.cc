@@ -1396,7 +1396,7 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 
     input_pattern = paths.front().toString() + "," + paths.back().toString();
     auto test_output_path = "./general_processing/";
-    int num_threads = 1;
+    int num_threads = 5;
     auto spillURI = std::string("spill_folder");
     auto tstage_hyper = nullptr;//create_flights_pipeline(input_pattern, "./hyper_processing/", true);
     auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false);

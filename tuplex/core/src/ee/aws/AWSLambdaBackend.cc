@@ -1291,11 +1291,22 @@ namespace tuplex {
             size_t total_num_exceptions = 0;
             size_t total_bytes_written = 0;
 
+            // paths rows took
+            size_t total_normal_path = 0;
+            size_t total_general_path = 0;
+            size_t total_interpreter_path = 0;
+            size_t total_unresolved = 0;
+
             // aggregate stats over responses
             for (const auto &task : _tasks) {
                 total_num_output_rows += task.numrowswritten();
                 total_num_exceptions += task.numexceptions();
                 total_bytes_written += task.numbyteswritten();
+
+                total_normal_path += task.rowstats().normal();
+                total_general_path += task.rowstats().general();
+                total_interpreter_path += task.rowstats().interpreter();
+                total_unresolved += task.rowstats().unresolved();
 
                 awsInitTime.update(task.awsinittime());
                 taskExecutionTime.update(task.taskexecutiontime());
@@ -1326,6 +1337,9 @@ namespace tuplex {
             // print stage stats
             logger().info("LAMBDA Stage: " + pluralize(total_num_output_rows, "row") + ", "
                                            + pluralize(total_num_exceptions, "exception"));
+            logger().info("LAMBDA paths rows took: normal: " + std::to_string(total_normal_path)
+            + " general: " + std::to_string(total_general_path) + " interpreter: "
+            + std::to_string(total_interpreter_path) + " unresolved: " + std::to_string(total_unresolved));
 
             // compute cost of s3 + Lambda
             ss << "Lambda #containers used: " << containerIDs.size() << " reused: " << numReused

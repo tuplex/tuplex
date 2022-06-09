@@ -1403,8 +1403,8 @@ namespace tuplex {
                                         true,
                                         false);
 
-            // cache symbols for reuse.
-            _compileCache[bitCode] = syms;
+            // // cache symbols for reuse.
+            // _compileCache[bitCode] = syms;
 
             return syms;
         } catch(std::runtime_error& e) {

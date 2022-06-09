@@ -702,6 +702,11 @@ namespace tuplex {
     }
 
     std::vector<Row> FileInputOperator::getSample(const size_t num) const {
+        if(!_cachePopulated)
+            const_cast<FileInputOperator*>(this)->fillFileCache(_samplingMode);
+        if(_rowsSample.empty())
+            const_cast<FileInputOperator*>(this)->fillRowCache(_samplingMode);
+
         if(!_cachePopulated || _rowsSample.empty())
             throw std::runtime_error("need to populate cache first");
 

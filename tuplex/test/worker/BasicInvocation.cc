@@ -787,9 +787,10 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
         ContextOptions co = ContextOptions::defaults();
         auto enable_nvo = true; // test later with true! --> important for everything to work properly together!
         co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
+        co.set("tuplex.csv.maxDetectionMemory", "32KB");
         codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
         auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path, co,
-                                                                                   option<bool>(false),
+                                                                                   option<bool>::none,
                                                                                    option<char>::none, option<char>::none,
                                                                                    {""}, {}, {}, {}, mode));
         auto mapop = std::make_shared<MapOperator>(csvop, UDF(udf_code), csvop->columns());
@@ -1091,7 +1092,7 @@ namespace tuplex {
             llvm::LLVMContext llvm_ctx;
             auto mod = codegen::bitCodeToModule(llvm_ctx, tstage_general->slowPathBitCode());
             stringToFile("general_slowpath.txt", codegen::moduleToString(*mod.get()));
-            // annotateModuleWithInstructionPrint(*mod.get());
+            annotateModuleWithInstructionPrint(*mod.get());
             // debug, overwrite slowpath with newly annotated module!
             tstage_general->slowPathBitCode() = codegen::moduleToBitCodeString(*mod.get());
         }
@@ -1397,7 +1398,7 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     auto test_output_path = "./general_processing/";
     int num_threads = 1;
     auto spillURI = std::string("spill_folder");
-    auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
+    auto tstage_hyper = nullptr;//create_flights_pipeline(input_pattern, "./hyper_processing/", true);
     auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false);
 
     // // test: 2013_03 fails -> fixed
@@ -1413,6 +1414,8 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 
 
     paths = {URI(flights_root + "flights_on_time_performance_2008_02.csv")}; // this seems to fail in python mode??
+
+    paths = {URI(flights_root + "flights_on_time_performance_1997_04.csv")}; // this seems to fail in python mode??
     std::reverse(paths.begin(), paths.end());
 
     for(const auto& path : paths) {

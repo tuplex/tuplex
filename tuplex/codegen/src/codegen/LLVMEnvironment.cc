@@ -2216,12 +2216,16 @@ namespace tuplex {
             if (python::Type::BOOLEAN == type || python::Type::I64 == type) {
                 retVal.val = i64Const(0);
                 retVal.size = i64Const(sizeof(int64_t));
+                retVal.is_null = i1Const(false);
             } else if (python::Type::F64 == type) {
                 retVal.val = f64Const(0.0);
                 retVal.size = i64Const(sizeof(double));
+                retVal.is_null = i1Const(false);
             } else if (python::Type::STRING == type || type.isDictionaryType()) {
-                retVal.val = i8ptrConst(nullptr);
-                retVal.size = i64Const(0);
+                // use empty string, DO NOT use nullptr.
+                retVal.val = strConst(builder, "");
+                retVal.size = i64Const(1);
+                retVal.is_null = i1Const(false);
             } else if (type.isListType()) {
                 auto llvmType = getListType(type);
                 auto val = CreateFirstBlockAlloca(builder, llvmType);
@@ -2246,6 +2250,7 @@ namespace tuplex {
                 }
                 retVal.val = builder.CreateLoad(val);
                 retVal.size = i64Const(3 * sizeof(int64_t));
+                retVal.is_null = i1Const(false);
             } else {
                 Logger::instance().logger("codegen").warn("Requested dummy for type " + type.desc() + " but not yet implemented");
             }

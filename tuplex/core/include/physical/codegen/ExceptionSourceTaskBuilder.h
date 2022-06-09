@@ -61,12 +61,14 @@ namespace tuplex {
              * @param inputRowType the row type rows are stored in within the memory block
              * @param generalCaseInputRowType the row type exceptions should be stored in. inputRowType must be upcastable to generalCaseInputRowType.
              * @param name how to call the function to be generated.
+             * @param serializeExceptionAsGeneralCase if true, upcasts exceptions to generalCaseInputRowType. If false, uses inputRowType.
              */
             explicit ExceptionSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment>& env,
                                                 const python::Type& inputRowType,
                                                 const python::Type& generalCaseInputRowType,
                                                 const std::map<int, int>& normalToGeneralMapping,
-                                                const std::string& name) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env, inputRowType, generalCaseInputRowType, normalToGeneralMapping, name)   {}
+                                                const std::string& name,
+                                                bool serializeExceptionsAsGeneralCase) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env, inputRowType, generalCaseInputRowType, normalToGeneralMapping, name, serializeExceptionsAsGeneralCase) {}
 
             llvm::Function* build(bool terminateEarlyOnFailureCode) override;
         };

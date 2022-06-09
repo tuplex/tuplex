@@ -51,7 +51,7 @@ namespace tuplex {
                                    const std::string &intermediateCallbackName);
 
             /*!
-             * serializes the exception row
+             * serializes the exception row, can deliver serialized rows in normal-case format or general-case format. Depends on how the builder is configured.
              * @param LLVM builder
              * @param ftIn the flattened tuple representing an input row
              * @return a rtmalloc'ed representation of the exception row
@@ -123,6 +123,7 @@ namespace tuplex {
             std::map<int, int> _normalToGeneralMapping;
 
             bool _normalAndGeneralCompatible;
+            bool _serializeExceptionsAsGeneralCase;
         public:
             BlockBasedTaskBuilder() = delete;
 
@@ -133,18 +134,21 @@ namespace tuplex {
              * @param generalCaseInputRowType the row type exceptions should be stored in. inputRowType must be upcastable to generalCaseInputRowType.
              * @param normalToGeneralMapping normal to general mapping, i.e. which column index in normal case corresponds to which column index in general case. If empty, means it's a 1:1 trivial mapping.
              * @param name how to call the function to be generated.
+             * @param serializeExceptionAsGeneralCase if true, upcasts exceptions to generalCaseInputRowType. If false, uses inputRowType.
              */
             BlockBasedTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
                                   const python::Type& inputRowType,
                                   const python::Type& generalCaseInputRowType,
                                   const std::map<int, int>& normalToGeneralMapping,
-                                  const std::string &name) : _env(env), _inputRowType(inputRowType),
+                                  const std::string &name,
+                                  bool serializeExceptionsAsGeneralCase) : _env(env), _inputRowType(inputRowType),
                                                              _inputRowTypeGeneralCase(generalCaseInputRowType),
                                                              _normalToGeneralMapping(normalToGeneralMapping),
                                                              _desiredFuncName(name),
                                                              _intermediate(nullptr),
                                                              _intermediateType(python::Type::UNKNOWN),
-                                                             _normalAndGeneralCompatible(false) {
+                                                             _normalAndGeneralCompatible(false),
+                                                             _serializeExceptionsAsGeneralCase(serializeExceptionsAsGeneralCase) {
                 // check that upcasting is true or there is a valid mapping when sizes differ!
 //                assert((_inputRowType.parameters().size() != _inputRowTypeGeneralCase.parameters().size()
 //                && !_normalToGeneralMapping.empty() && _normalToGeneralMapping.size() == _inputRowType.parameters().size()) ||
@@ -166,6 +170,8 @@ namespace tuplex {
                         _normalToGeneralMapping[i] = i;
                 }
             }
+
+            inline python::Type exceptionsRowType() const { return _serializeExceptionsAsGeneralCase ? _inputRowTypeGeneralCase : _inputRowType; }
 
             LLVMEnvironment &env() { return *_env; }
 

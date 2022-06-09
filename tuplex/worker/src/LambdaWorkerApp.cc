@@ -1007,11 +1007,13 @@ namespace tuplex {
             result.set_numexceptions(last.numExceptionOutputRows);
 
             // set input row statistics
-            auto element = result.add_rowstats();
-            element.set_normal(last.codePathStats.rowsOnNormalPathCount);
-            element.set_general(last.codePathStats.rowsOnGeneralPathCount);
-            element.set_interpreter(last.codePathStats.rowsOnInterpreterPathCount);
-            element.set_unresolved(last.codePathStats.unresolvedRowsCount);
+            auto path_stats = new tuplex::messages::CodePathStats();
+            path_stats->set_normal(last.codePathStats.rowsOnNormalPathCount);
+            path_stats->set_general(last.codePathStats.rowsOnGeneralPathCount);
+            path_stats->set_interpreter(last.codePathStats.rowsOnInterpreterPathCount);
+            path_stats->set_unresolved(last.codePathStats.unresolvedRowsCount);
+            result.set_allocated_rowstats(path_stats);
+
         }
 
         // message specific results

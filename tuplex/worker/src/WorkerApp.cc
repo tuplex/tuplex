@@ -1337,12 +1337,13 @@ namespace tuplex {
             return nullptr;
         }
 
-        // use cache
-        auto it = _compileCache.find(bitCode);
-        if(it != _compileCache.end()) {
-            logger().info("Using cached compiled code for fast/slow path");
-            return it->second;
-        }
+        // disable cache, unfairly benefits no-hyper specialization case.
+        // // use cache
+        // auto it = _compileCache.find(bitCode);
+        // if(it != _compileCache.end()) {
+        //     logger().info("Using cached compiled code for fast/slow path");
+        //     return it->second;
+        // }
 
         try {
             // compile transform stage, depending on worker settings use optimizer before or not!

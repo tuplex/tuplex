@@ -1005,6 +1005,13 @@ namespace tuplex {
             result.set_taskexecutiontime(last.totalTime);
             result.set_numrowswritten(last.numNormalOutputRows);
             result.set_numexceptions(last.numExceptionOutputRows);
+
+            // set input row statistics
+            auto element = result.add_rowstats();
+            element.set_normal(last.codePathStats.rowsOnNormalPathCount);
+            element.set_general(last.codePathStats.rowsOnGeneralPathCount);
+            element.set_interpreter(last.codePathStats.rowsOnInterpreterPathCount);
+            element.set_unresolved(last.codePathStats.unresolvedRowsCount);
         }
 
         // message specific results

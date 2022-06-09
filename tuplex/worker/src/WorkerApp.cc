@@ -580,7 +580,7 @@ namespace tuplex {
         _statistics.push_back(stat);
 
         logger().info("Took " + std::to_string(timer.time()) + "s in total");
-        logger().info("Input rows' paths: normal: " + std::to_string(_codePathStats.rowsOnNormalPathCount)
+        logger().info("Paths rows took: normal: " + std::to_string(_codePathStats.rowsOnNormalPathCount)
         + " general: " + std::to_string(_codePathStats.rowsOnGeneralPathCount)
         + " interpreter: " + std::to_string(_codePathStats.rowsOnInterpreterPathCount)
         + " unresolved: " + std::to_string(_codePathStats.unresolvedRowsCount));

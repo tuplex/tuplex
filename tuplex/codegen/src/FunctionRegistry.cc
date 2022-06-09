@@ -973,6 +973,8 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
             /** TODO: need a check on argsType --> float numbers (python::Type::F64) **/
             auto val = args.front();
+            assert(val.val->getType() == llvm::Type::getDoubleTy(_env.getContext()));
+
             llvm::Value* F64Nan = _env.f64Const(NAN);
             auto resVal = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, val.val, F64Nan);
             auto resSize = _env.i64Const(sizeof(bool));

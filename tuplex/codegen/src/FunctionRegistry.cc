@@ -994,8 +994,11 @@ namespace tuplex {
             //     %10 = icmp ugt i32 %9, 2146435072 --> %10 = (%9 > 0x7ff00000)
             auto addCmp = builder.CreateICmpUGT(added, ConstantInt::get(i32Val->getType(), 2146435072));
             //     %11 = zext i1 %10 to i32 --> %11 = 4 byte int version of %10
-            auto resVal = builder.CreateZExt(addCmp, llvm::Type::getInt32Ty(context));
-            auto resSize = _env.i64Const(sizeof(int32_t));
+            auto resVal = _env.upcastToBoolean(builder, addCmp);
+            // _env.printValue(builder, resVal, "result\n");
+            auto resSize = _env.i64Const(sizeof(bool));
+            // auto resVal = builder.CreateZExt(addCmp, llvm::Type::getInt32Ty(context));
+            // auto resSize = _env.i64Const(sizeof(int32_t));
             //     ret i32 %11 --> return %11 (in our case, return SerializableValue(%11, i32))
             return SerializableValue(resVal, resSize);
         }

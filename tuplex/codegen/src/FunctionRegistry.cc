@@ -991,8 +991,6 @@ namespace tuplex {
         //     // note: val.val is a llvm::Value* ; see SerializableValue struct in CodegenHelper.h
         //     auto val = args.front();
 
-        //     // make llvm Value out of INFINITY
-        //     // what's _env? 
         //     llvm::Value* F64Infinity = _env.f64Const(INFINITY);
         //     // make comparison instruction
         //     auto resVal = builder.CreateICmpEQ(val.val, F64Infinity);

@@ -12,7 +12,7 @@ mkdir -p ${RESDIR}
 PYTHON=python3.9
 echo "benchmarking sampling times"
 for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/dsmpling-run-$r.txt"
+  LOG="${RESDIR}/sampling-run-$r.txt"
   echo "running $r/${NUM_RUNS}"
   timeout $TIMEOUT $PYTHON runtuplex.py >$LOG 2>$LOG.stderr
 done

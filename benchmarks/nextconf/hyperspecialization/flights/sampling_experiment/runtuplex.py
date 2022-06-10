@@ -159,6 +159,7 @@ if __name__ == '__main__':
             "runTimeMemory": "128MB",
             "useLLVMOptimizer": True,
             "optimizer.nullValueOptimization": False,
+            "tuplex.redirectToPythonLogging": True,
             "resolveWithInterpreterOnly": False,
             "csv.selectionPushdown" : True}
 

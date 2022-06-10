@@ -81,9 +81,11 @@ namespace tuplex {
             if(_inputRowType == _inputRowTypeGeneralCase) {
                 bad_row = SerializableValue(inputRowPtr, inputRowSize, nullptr);
             } else {
-                bad_row = serializedExceptionRow(builder, tuple);
+                bad_row = serializedExceptionRow(builder, tuple, exception_serialization_format());
             }
-            llvm::BasicBlock* bbPipelineFailed = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber, bad_row.val, bad_row.size); // generate exception block (incl. ignore & handler if necessary)
+            llvm::BasicBlock* bbPipelineFailed = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber,
+                                                                exception_serialization_format(),
+                                                                bad_row.val, bad_row.size); // generate exception block (incl. ignore & handler if necessary)
 
             llvm::BasicBlock* lastExceptionBlock = builder.GetInsertBlock();
             llvm::BasicBlock* bbPipelineDone = llvm::BasicBlock::Create(context, "pipeline_done", builder.GetInsertBlock()->getParent());

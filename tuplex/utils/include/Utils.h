@@ -320,6 +320,15 @@ namespace tuplex {
         return std::vector<std::pair<K,V>>(map.begin(), map.end());
     }
 
+    template<typename T> bool vec_equal(const std::vector<T>& a, const std::vector<T>& b) {
+        if(a.size() != b.size())
+            return false;
+        for(unsigned i = 0; i < a.size(); ++i)
+            if(a[i] != b[i])
+                return false;
+        return true;
+    }
+
     /*!
      * takes a string which holds a memory size with suffixes and converts to bytes.
      * @param str

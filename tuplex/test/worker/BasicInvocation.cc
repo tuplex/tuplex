@@ -787,6 +787,7 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
         ContextOptions co = ContextOptions::defaults();
         auto enable_nvo = true; // test later with true! --> important for everything to work properly together!
         co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
+        co.set("tuplex.optimizer.constantFoldingOptimization", "true");
         co.set("tuplex.csv.maxDetectionMemory", "32KB");
         codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
         auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path, co,
@@ -1087,14 +1088,6 @@ namespace tuplex {
                                                             false, // this here causes an error!!!
                                                             num_threads,
                                                             spillURI.toString());
-
-            // print slowpath to file
-            llvm::LLVMContext llvm_ctx;
-            auto mod = codegen::bitCodeToModule(llvm_ctx, tstage_general->slowPathBitCode());
-            stringToFile("general_slowpath.txt", codegen::moduleToString(*mod.get()));
-            annotateModuleWithInstructionPrint(*mod.get());
-            // debug, overwrite slowpath with newly annotated module!
-            tstage_general->slowPathBitCode() = codegen::moduleToBitCodeString(*mod.get());
         }
 
 
@@ -1105,6 +1098,14 @@ namespace tuplex {
                                                                    false,
                                                                    num_threads,
                                                                    spillURI.toString());
+
+            // print slowpath to file
+            llvm::LLVMContext llvm_ctx;
+            auto mod = codegen::bitCodeToModule(llvm_ctx, tstage_general->slowPathBitCode());
+            stringToFile("general_slowpath.txt", codegen::moduleToString(*mod.get()));
+            annotateModuleWithInstructionPrint(*mod.get());
+            // debug, overwrite slowpath with newly annotated module!
+            tstage_general->slowPathBitCode() = codegen::moduleToBitCodeString(*mod.get());
         }
 
 
@@ -1396,10 +1397,10 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 
     input_pattern = paths.front().toString() + "," + paths.back().toString();
     auto test_output_path = "./general_processing/";
-    int num_threads = 5;
+    int num_threads = 1;
     auto spillURI = std::string("spill_folder");
-    auto tstage_hyper = nullptr;//create_flights_pipeline(input_pattern, "./hyper_processing/", true);
-    auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false);
+    auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
+    auto tstage_general = nullptr; // create_flights_pipeline(input_pattern, "./general_processing/", false);
 
     // // test: 2013_03 fails -> fixed
     // 2010_01 fails
@@ -1416,6 +1417,12 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     paths = {URI(flights_root + "flights_on_time_performance_2008_02.csv")}; // this seems to fail in python mode??
 
     paths = {URI(flights_root + "flights_on_time_performance_1997_04.csv")}; // this seems to fail in python mode??
+
+    // @TODO: create from all files a diverse set!
+
+    // this fails with hyper and 32KB sampling memory
+    paths = {URI(flights_root + "flights_on_time_performance_2000_10.csv")}; // this seems to fail in python mode??
+
     std::reverse(paths.begin(), paths.end());
 
     for(const auto& path : paths) {

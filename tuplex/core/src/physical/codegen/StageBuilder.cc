@@ -836,8 +836,11 @@ namespace tuplex {
                 }
             }
 
-            // in fast path, keep the (smaller) normal-case format.
-            bool emitGeneralCaseExceptionRows = false;
+
+            // TODO: need to optimize this..., i.e. more efficient when false.
+            // --> yet, for now always emit general-case exceptions!
+            // keep the smaller normal-case exception format. (note this option has not been properly tested throughout code base)
+            bool emitGeneralCaseExceptionRows = true;
 
             // step 2. build connector to data source, i.e. generated parser or simply iterating over stuff
             std::shared_ptr<codegen::BlockBasedTaskBuilder> tb;
@@ -1812,13 +1815,16 @@ namespace tuplex {
 
                 // use fast path context
                 ctx.fastPathContext = ctx.slowPathContext;
-
+                // use normalCaseInputType of stage!
+                stage->_normalCaseInputSchema = ctx.fastPathContext.inputSchema;
+                stage->_normalCaseOutputSchema = ctx.fastPathContext.outputSchema;
 
                 // general case input row type is the input schema, but for files the read schema.
                 auto generalCaseInputRowType = ctx.slowPathContext.inputSchema.getRowType();
                 if(ctx.slowPathContext.inputNode->type() == LogicalOperatorType::FILEINPUT) {
                     generalCaseInputRowType = ctx.slowPathContext.readSchema.getRowType();
                 }
+
                 python::Type normalCaseInputRowType = ctx.fastPathContext.inputSchema.getRowType(); // if no specific fastPath Context was created, simply use this
 
                 if(gen_fast_code) {

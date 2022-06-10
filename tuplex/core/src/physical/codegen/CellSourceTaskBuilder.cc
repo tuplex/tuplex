@@ -82,10 +82,41 @@ namespace tuplex {
                                                                                "pipeline_ok",
                                                                                builder.GetInsertBlock()->getParent());
 
+                    // how should exceptions get serialized?
+                    // --> here, all normal checks have passed. If we want to force processing on the slow path to decode
+                    // a normal case typed row for that particular case, then should emit normal-case violation as code
+                    // and DO NOT upcast.
+
+                    // if exception is to be processed in the given general-case format, any code except normalcaseviolation will do.
+                    // for simplicity,
+
+                    // there's a design flaw here. Basically need to store type of exception AND format of exception row.
+                    // -> could use lower/upper 32bit again for this...
+                    // e.g., if there's a resolver present for a certain type THEN use the general-case format?? --> need to be a bit more flexible wrt.
+
+                    // TODO: need to clarify row formats that are passed down. make note of format for hyperspecialization.
+
+                    // --> when using ALWAYS emit general-case exceptions, then the singleprcoess wrapper function has to be differently designed.
+                    // --> i.e., the serialization logic is either pushed onto the fast path or the slow path.
+                    // --> this is basically what this means...
+                    // => when using the emit general-case exceptions, then any BADPARSE_STRING_INPUT is ALWAYS an interpreter exception.
+                    // i.e., could have an option for hyperspecializastion to force any normalcase vuokation exception to become a badparse string input exception,
+                    // that is then forved onto the slowpath decode.
+
+                    // TODO: add debugPrints on row formats...
+
+                    // the formats seem to be the cleanest...
+                    // -> introduce that!
+                    // @TODO.
+
+                    // --> when using hyperspecialiation, should always use that option.
+                    logger.debug("UDF exceptions are emitted in general case format " + _inputRowTypeGeneralCase.desc());
+
+                    // always emit general-case exceptions
                     // if normal <-> general are incompatible, serialize as NormalCaseViolationError that requires interpreter!
                     if(isNormalCaseAndGeneralCaseCompatible()) {
                         // add here exception block for pipeline errors, serialize tuple etc...
-                        auto serialized_row = serializedExceptionRow(builder, ft);
+                        auto serialized_row = serializedExceptionRow(builder, ft, exception_serialization_format());
 
                         // debug print
                         logger.debug("CellSourceTaskBuilder: input row type in which exceptions from pipeline are stored that are **not** parse-exceptions is " + ft.getTupleType().desc());
@@ -93,12 +124,17 @@ namespace tuplex {
                         outputRowNumber = builder.CreateLoad(outputRowNumberVar);
                         llvm::BasicBlock *curBlock = builder.GetInsertBlock();
                         auto bbException = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber,
+                                                          exception_serialization_format(),
                                                           serialized_row.val, serialized_row.size);
                         builder.CreateBr(bbNoException);
                         // add branching to previous block
                         builder.SetInsertPoint(curBlock);
                         builder.CreateCondBr(exceptionRaised, bbException, bbNoException);
                     } else {
+                        // the exceptions are incompatible, therefore forcing a badparse string input exception (need to decode exceptions therefore)
+                        // -> this doesn't allow for proper resolved etc. logic. wrt to counting exceptions (i.e. requires slow path/interpreter path to exist!)
+                        logger.warn("this requires slowpath/interpreter path to exist");
+
                         outputRowNumber = builder.CreateLoad(outputRowNumberVar);
                         auto nc_ecCode = _env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT));
                         auto nc_ecOpID = _env->i64Const(_operatorID);
@@ -109,6 +145,7 @@ namespace tuplex {
                         // important to get curBlock here.
                         llvm::BasicBlock *curBlock = builder.GetInsertBlock();
                         auto bbException = exceptionBlock(builder, userData, nc_ecCode, nc_ecOpID, outputRowNumber,
+                                                          exception_serialization_format(),
                                                           serialized_row.val, serialized_row.size);
                         builder.CreateBr(bbNoException);
                         // add branching to previous block
@@ -366,17 +403,56 @@ namespace tuplex {
             builder.CreateCondBr(allChecksPassed, bbChecksPassed, bbChecksFailed);
             builder.SetInsertPoint(bbChecksFailed);
 
-            // need to parse full row (with general case types!)
-            auto generalcase_row = parseGeneralCaseRow(builder, cellsPtr, sizesPtr);
-            auto serialized_row = serializedExceptionRow(builder, generalcase_row);
+//            // if configured as logging normal-case failures, the proper exception to produce for a failed check is parsed input.
+//            // else, if general-case exceptions are accepted, produce a normal-case violation
+//            if(exceptionsRowType() == _inputRowTypeGeneralCase) {
+//                // need to parse full row (with general case types!)
+//                auto generalcase_row = parseGeneralCaseRow(builder, cellsPtr, sizesPtr); // this should handle automatically bad parse.
+//                auto serialized_row = serializedExceptionRow(builder, generalcase_row, ExceptionSerializationFormat::GENERALCASE);
+//
+//                if(exceptionsRowType() != _inputRowTypeGeneralCase) {
+//                    // i.e., to solve this should introduce another ExceptionCode::NORMALCASECHECKFAILED which is then in
+//                    // the resolve path properly decoded as general-case exception.
+//                    throw std::runtime_error("failure here, need to make sure exceptions are always passed in as general case format! Else, the whole hyperspecialziation etc. thing makes no sense.");
+//                }
+//
+//                //// check failed?
+//                // _env->debugPrint("check failed. calling except handler with general-case row format...");
+//
+//                // directly generate call to handler -> no ignore checks necessary.
+//                // _env->debugPrint(builder, "normal checks didn't pass");
+//                callExceptHandler(builder, userData, _env->i64Const(ecToI64(ExceptionCode::NORMALCASEVIOLATION)),
+//                                  _env->i64Const(_operatorID), rowNumber, serialized_row.val, serialized_row.size);
+//
+//                // processing done, rest needs to be done via different path.
+//                builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+//            } else {
+//                // bad parse exception! => get's matched/resolved first on fallback path.
+//                // DO NOT USE dummies here
+//                auto serialized_row = serializeBadParseException(builder, cellsPtr, sizesPtr, false);
+//                callExceptHandler(builder, userData, _env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)),
+//                                  _env->i64Const(_operatorID), rowNumber, serialized_row.val, serialized_row.size);
+//
+//                // processing done, rest needs to be done via different path.
+//                builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+//            }
 
-            // directly generate call to handler -> no ignore checks necessary.
-            // _env->debugPrint(builder, "normal checks didn't pass");
-            callExceptHandler(builder, userData, _env->i64Const(ecToI64(ExceptionCode::NORMALCASEVIOLATION)),
-                                              _env->i64Const(_operatorID), rowNumber, serialized_row.val, serialized_row.size);
+            {
+                // let the slow path do the general-case matching, i.e. produce a bad parse exception.
+                // above code allows to use directly general-case format for efficiency. Yet, keep logic smaller for fast
+                // code path.
 
-            // processing done, rest needs to be done via different path.
-            builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                // bad parse exception! => gets matched/resolved first on fallback path.
+                // DO NOT USE dummies here
+                auto serialized_row = serializeBadParseException(builder, cellsPtr, sizesPtr, false);
+                callExceptHandler(builder, userData, _env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)),
+                                  _env->i64Const(_operatorID), rowNumber,
+                                  ExceptionSerializationFormat::STRING_CELLS,
+                                  serialized_row.val, serialized_row.size);
+
+                // processing done, rest needs to be done via different path.
+                builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            }
 
             builder.SetInsertPoint(bbChecksPassed); // continue generating here...
         }
@@ -443,7 +519,7 @@ namespace tuplex {
                 }
             }
 
-            // this is normal-case behavior, however exceptions are always in general-case format.
+            // this is normal-case behavior, however bad-parse exceptions are always in general-case format.
             // -> hence need to upcast to number of columns!
             size_t numGeneralCaseCells = 0;
             for(unsigned i = 0; i < _generalCaseColumnsToSerialize.size(); ++i)

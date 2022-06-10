@@ -450,6 +450,9 @@ namespace tuplex {
             return _inputColumnsToKeep;
         }
 
+        std::vector<unsigned> normalCaseInputColumnsToKeep() const;
+        std::vector<unsigned> generalCaseInputColumnsToKeep() const;
+
         /*!
          * whether to cache normal case/general case separately (true if .cache() is used)
          */
@@ -536,7 +539,8 @@ namespace tuplex {
             writeMemoryCallbackName(p.writememorycallbackname()), writeHashCallbackName(p.writehashcallbackname()),
             writeExceptionCallbackName(p.writeexceptioncallbackname()), writeAggregateCallbackName(p.writeaggregatecallbackname()),
             aggregateInitFuncName(p.aggregateinitfuncname()), aggregateCombineFuncName(p.aggregatecombinefuncname()),
-            aggregateAggregateFuncName(p.aggregateaggregatefuncname()) {}
+            aggregateAggregateFuncName(p.aggregateaggregatefuncname()) {
+            }
 
             inline void fill(messages::CodePath* c) const {
                 if(!c)

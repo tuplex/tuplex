@@ -248,6 +248,11 @@ namespace tuplex {
         URI outputURI = outputURIFromReq(req);
         auto parts = partsFromMessage(req);
 
+        // reset types
+        _normalCaseRowType = tstage->normalCaseInputSchema().getRowType();
+        _hyperspecializedNormalCaseRowType = python::Type::UNKNOWN;
+        _ncAndHyperNCIncompatible = false;
+
         // check settings, pure python mode?
         if(req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly()) {
             logger().info("WorkerApp is processing everything in single-threaded python/fallback mode.");
@@ -267,7 +272,20 @@ namespace tuplex {
             std::string uri = req.inputuris(0);
             size_t file_size = req.inputsizes(0);
             logger().info("-- specializing to " + uri);
+
+            // check if specialized normal-case type is different from current normal case type
+            _normalCaseRowType = tstage->normalCaseInputSchema().getRowType(); // needed when fastcode path is missing?
+            auto normalCaseCols = tstage->normalCaseInputColumnsToKeep();
             hyperspecialize(tstage, uri, file_size);
+            _hyperspecializedNormalCaseRowType = tstage->normalCaseInputSchema().getRowType(); // refactor?
+            auto hyperspecializedNormalCaseCols = tstage->normalCaseInputColumnsToKeep();
+
+            // note: types could be identical but projected columns different!
+            if(_hyperspecializedNormalCaseRowType != _normalCaseRowType ||
+               !vec_equal(normalCaseCols, hyperspecializedNormalCaseCols)) {
+                logger().info("specialized normal-case type " + _hyperspecializedNormalCaseRowType.desc() + " is different than given normal-case type " + _normalCaseRowType.desc() + ".");
+                _ncAndHyperNCIncompatible = true;
+            }
 
             // !!! need to use LLVM optimizers !!! Else, there's no difference.
             logger().info("-- hyperspecialization took " + std::to_string(timer.time()) + "s");
@@ -1761,6 +1779,7 @@ namespace tuplex {
 
         // is exception output schema different than normal case schema? I.e., upgrade necessary?
         if(stage->normalCaseOutputSchema() != stage->outputSchema()) {
+            logger().error("normal case output schema: " + stage->normalCaseOutputSchema().getRowType().desc() + " general case output schema: " + stage->outputSchema().getRowType().desc());
             throw std::runtime_error("different schemas between normal/exception case not yet supported!");
         }
 
@@ -1871,6 +1890,10 @@ namespace tuplex {
         auto env = &_threadEnvs[threadNo];
         for(unsigned i = 0; i < numRows; ++i) {
             auto rc = -1;
+
+            // debug
+            std::cout<<"processing row "<<(i+1)<<"/"<<numRows<<std::endl;
+
             // most of the code here is similar to ResolveTask.cc --> maybe avoid redundant code!
             // deserialize exception
             const uint8_t *ecBuf = nullptr;
@@ -1880,18 +1903,32 @@ namespace tuplex {
             auto delta = deserializeExceptionFromMemory(ptr, &ecCode, &ecOperatorID, &ecRowNumber, &ecBuf,
                                                         &ecBufSize);
 
+            // remove exception format from ecCode (??)
+
+            // only exec on faukty rpw
+            if(i + 1 != 685) {
+                ptr += delta;
+                continue;
+            }
+
             // try to resolve using compiled resolver...
             if(compiledResolver) {
-                rc = compiledResolver(env, ecRowNumber, ecCode, ecBuf, ecBufSize);
-                if(rc == ecToI32(ExceptionCode::NORMALCASEVIOLATION))
-                    rc = -1;
-                else
-                    resolved_via_compiled_slow_path++;
+                auto exFmt = ecCode >> 32;
+
+                if(exFmt == static_cast<unsigned>(ExceptionSerializationFormat::NORMALCASE) && _ncAndHyperNCIncompatible) {
+                    throw std::runtime_error("not yet supported! need to upcast buf to general-case before feeding it further.");
+                } else {
+                    // for hyper, force onto general case format.
+                    rc = compiledResolver(env, ecRowNumber, ecCode, ecBuf, ecBufSize);
+                    if(rc != ecToI32(ExceptionCode::SUCCESS)) // todo, true exceptions??
+                        rc = -1;
+                    else
+                        resolved_via_compiled_slow_path++;
+                }
             }
 
             // try to resolve using interpreted resolver
             if(-1 == rc && interpretedResolver) {
-
                 bool output_is_hashtable = stage->outputMode() == EndPointMode::HASHTABLE;
                 Schema exception_input_schema = stage->inputSchema();
                 Schema specialized_output_schema = stage->normalCaseOutputSchema();
@@ -1900,8 +1937,11 @@ namespace tuplex {
                 std::stringstream err_stream;
 
                 python::lockGIL();
-                auto fallbackRes = processRowUsingFallback(interpretedResolver, ecCode, ecOperatorID,
-                                                           exception_input_schema,
+                auto fallbackRes = processRowUsingFallback(interpretedResolver,
+                                                           ecCode,
+                                                           ecOperatorID,
+                                                           stage->normalCaseInputSchema(),
+                                                           stage->inputSchema(),
                                                            ecBuf, ecBufSize,
                                                            specialized_output_schema,
                                                            general_output_schema,
@@ -2002,9 +2042,10 @@ namespace tuplex {
     }
 
     FallbackPathResult processRowUsingFallback(PyObject* func,
-                                               int64_t ecCode,
+                                               int64_t ecCodeWithFmt,
                                                int64_t ecOperatorID,
-                                               const Schema& input_schema,
+                                               const Schema& normal_input_schema,
+                                               const Schema& general_input_schema,
                                                const uint8_t* buf,
                                                size_t buf_size,
                                                const Schema& specialized_target_schema,
@@ -2023,41 +2064,43 @@ namespace tuplex {
 
         bool parse_cells = false;
 
-        // hyper specialization causes some weird NULL errors???
-        // std::cout<<"ecCode: "<<ecCode<<std::endl;
+        // extract serialization format from code
+        auto exFmt = static_cast<ExceptionSerializationFormat>(ecCodeWithFmt >> 32);
+        auto ecCode = ecCodeWithFmt & 0xFFFFFFFF;
 
+        // fmt needs to be either generalcase or cells
+        if(exFmt != ExceptionSerializationFormat::GENERALCASE && exFmt != ExceptionSerializationFormat::STRING_CELLS) {
+            // whe normal == general, ok
+            if(normal_input_schema != general_input_schema)
+                throw std::runtime_error("not yet supported, fallback only allows for general case exception format or string cells");
+        }
 
         // there are different data reps for certain error codes.
         // => decode the correct object from memory & then feed it into the pipeline...
-        if(ecCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)) {
+        if(exFmt == ExceptionSerializationFormat::STRING_CELLS) {
             // it's a string!
             tuple = fallbackTupleFromParseException(buf, buf_size);
             parse_cells = true; // need to parse cells in python mode.
-        } else if(ecCode == ecToI64(ExceptionCode::NORMALCASEVIOLATION)) {
+        } else if(exFmt == ExceptionSerializationFormat::NORMALCASE) {
             // changed, why are these names so random here? makes no sense...
-            auto row = Row::fromMemory(input_schema, buf, buf_size);
+            auto row = Row::fromMemory(normal_input_schema, buf, buf_size);
+
+            // upcast to general-case schema b.c. fallback will only accept genral-case rows?
+            throw std::runtime_error("not yet implemented, fallback will only accept general-case rows currently!");
+            // maybe generate upcast into python code as well?
 
             tuple = python::rowToPython(row, true);
             parse_cells = false;
             // called below...
-        } else {
+        } else if(exFmt == ExceptionSerializationFormat::GENERALCASE) {
             // normal case, i.e. an exception occurred somewhere.
             // --> this means if pipeline is using string as input, we should convert
-            auto row = Row::fromMemory(input_schema, buf, buf_size);
-
+            auto row = Row::fromMemory(general_input_schema, buf, buf_size);
             // cell source automatically takes input, i.e. no need to convert. simply get tuple from row object
             tuple = python::rowToPython(row, true);
-
-#ifndef NDEBUG
-            if(PyTuple_Check(tuple)) {
-                // make sure tuple is valid...
-                for(unsigned i = 0; i < PyTuple_Size(tuple); ++i) {
-                    auto elemObj = PyTuple_GET_ITEM(tuple, i);
-                    assert(elemObj);
-                }
-            }
-#endif
             parse_cells = false;
+        } else {
+            throw std::runtime_error("unknown serialization format.");
         }
 
         // compute

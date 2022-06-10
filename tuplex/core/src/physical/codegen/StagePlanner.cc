@@ -112,7 +112,7 @@ namespace tuplex {
 
             if(!_useConstantFolding || sample.size() < MINIMUM_SAMPLES_REQUIRED) {
                 if(sample.size() < MINIMUM_SAMPLES_REQUIRED)
-                    logger.debug("not enough samples to reliably apply constant folding optimization, skipping.");
+                    logger.warn("not enough samples to reliably apply constant folding optimization, skipping.");
                 return vec_prepend(_inputNode, _operators);
             }
 
@@ -1057,6 +1057,12 @@ namespace tuplex {
                                                                            generalCaseOutputRowType,
                                                                            planner.normalToGeneralMapping(),
                                                                            stage->number());
+        // update schemas!
+        stage->_normalCaseInputSchema = Schema(stage->_normalCaseInputSchema.getMemoryLayout(), path_ctx.inputSchema.getRowType());
+
+        // the output schema (str in tocsv) case is not finalized yet...
+        // stage->_normalCaseOutputSchema = Schema(stage->_normalCaseOutputSchema.getMemoryLayout(), path_ctx.outputSchema.getRowType());
+
         logger.info("generated code in " + std::to_string(timer.time()) + "s");
         // can then compile everything, hooray!
     }

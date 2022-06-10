@@ -146,14 +146,21 @@ namespace tuplex {
             return _outputMode == EndPointMode::FILE;
         }
 
+        Schema readSchema() const { return _generalCaseReadSchema; }
         Schema outputSchema() const { return _generalCaseOutputSchema; }
         Schema inputSchema() const { return _generalCaseInputSchema; }
         Schema normalCaseOutputSchema() const { return _normalCaseOutputSchema; }
         Schema normalCaseInputSchema() const { return _normalCaseInputSchema; }
+
+        /*!
+         * from original columns, get indices back which columns are read in each case. To get number of columns, use inputColumnCount
+         */
+        std::vector<unsigned> normalCaseInputColumnsToKeep() const { return _normalCaseColumnsToKeep; }
+        std::vector<unsigned> generalCaseInputColumnsToKeep() const { return _generalCaseColumnsToKeep; }
+        size_t inputColumnCount() const { return readSchema().getRowType().parameters().size(); }
         int64_t outputDataSetID() const { return _outputDataSetID; }
         std::unordered_map<std::string, std::string> outputOptions() const;
 
-        Schema readSchema() const { return _generalCaseReadSchema; }
         int64_t fileInputOperatorID() const { assert(_inputMode == EndPointMode::FILE); return _inputNodeID; }
 
         /*!
@@ -446,9 +453,9 @@ namespace tuplex {
             _hashResult.bucketType = _hashOutputBucketType;
         }
 
-        std::vector<bool> columnsToKeep() const {
-            return _inputColumnsToKeep;
-        }
+//        std::vector<bool> columnsToKeep() const {
+//            return _inputColumnsToKeep;
+//        }
 
         /*!
          * whether to cache normal case/general case separately (true if .cache() is used)
@@ -536,7 +543,8 @@ namespace tuplex {
             writeMemoryCallbackName(p.writememorycallbackname()), writeHashCallbackName(p.writehashcallbackname()),
             writeExceptionCallbackName(p.writeexceptioncallbackname()), writeAggregateCallbackName(p.writeaggregatecallbackname()),
             aggregateInitFuncName(p.aggregateinitfuncname()), aggregateCombineFuncName(p.aggregatecombinefuncname()),
-            aggregateAggregateFuncName(p.aggregateaggregatefuncname()) {}
+            aggregateAggregateFuncName(p.aggregateaggregatefuncname()) {
+            }
 
             inline void fill(messages::CodePath* c) const {
                 if(!c)
@@ -619,7 +627,9 @@ namespace tuplex {
         Schema _generalCaseOutputSchema;
         int64_t _outputDataSetID;
         int64_t _inputNodeID;
-        std::vector<bool> _inputColumnsToKeep;
+        std::vector<unsigned> _normalCaseColumnsToKeep;
+        std::vector<unsigned> _generalCaseColumnsToKeep;
+//        std::vector<bool> _inputColumnsToKeep;
         FileFormat _inputFormat;
         FileFormat _outputFormat;
         Schema _normalCaseOutputSchema;

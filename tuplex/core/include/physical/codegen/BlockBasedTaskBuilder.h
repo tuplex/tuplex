@@ -30,6 +30,10 @@ namespace tuplex {
 
             llvm::Function *createFunction();
 
+            ExceptionSerializationFormat exception_serialization_format() const {
+                return _serializeExceptionsAsGeneralCase ? ExceptionSerializationFormat::GENERALCASE : ExceptionSerializationFormat::NORMALCASE;
+            }
+
             /*!
              * create function to process blocks of data along with any input exceptions. Used when filters are present
              * to update the indices of the exceptions.
@@ -54,9 +58,12 @@ namespace tuplex {
              * serializes the exception row, can deliver serialized rows in normal-case format or general-case format. Depends on how the builder is configured.
              * @param LLVM builder
              * @param ftIn the flattened tuple representing an input row
+             * @param fmt in which format to serialize exceptions.
              * @return a rtmalloc'ed representation of the exception row
              */
-            SerializableValue serializedExceptionRow(llvm::IRBuilder<>& builder, const FlattenedTuple& ftIn) const;
+            SerializableValue serializedExceptionRow(llvm::IRBuilder<>& builder,
+                                                     const FlattenedTuple& ftIn,
+                                                     const ExceptionSerializationFormat& fmt) const;
 
             /*!
              * returns argument of function
@@ -78,6 +85,7 @@ namespace tuplex {
                                              llvm::Value *exceptionCode,
                                              llvm::Value *exceptionOperatorID,
                                              llvm::Value *rowNumber,
+                                             const ExceptionSerializationFormat& fmt,
                                              llvm::Value *badDataPtr,
                                              llvm::Value *badDataLength);
 
@@ -87,12 +95,18 @@ namespace tuplex {
                                              llvm::Value *exceptionCode,
                                              llvm::Value *exceptionOperatorID,
                                              llvm::Value *rowNumber,
+                                             const ExceptionSerializationFormat& fmt,
                                              llvm::Value *badDataPtr,
                                              llvm::Value *badDataLength) {
                 if(!_exceptionHandlerName.empty()) {
                     auto eh_func = codegen::exception_handler_prototype(env().getContext(), env().getModule().get(), _exceptionHandlerName);
                     // simple call to exception handler...
-                    builder.CreateCall(eh_func, {userData, exceptionCode, exceptionOperatorID, rowNumber, badDataPtr, badDataLength});
+
+                    // encode here serialization format as part of exception code
+#warning "refactor this more nicely!"
+                    assert(fmt != ExceptionSerializationFormat::UNKNOWN);
+                    auto encodedECAndFormat = _env->pack32iTo64i(builder, _env->i32Const(static_cast<int32_t>(fmt)), builder.CreateTrunc(exceptionCode, _env->i32Type()));
+                    builder.CreateCall(eh_func, {userData, encodedECAndFormat, exceptionOperatorID, rowNumber, badDataPtr, badDataLength});
                 } else {
                     logger().debug("Calling directly exception handler without being defined. Internal bug?");
                 }
@@ -154,7 +168,7 @@ namespace tuplex {
 //                && !_normalToGeneralMapping.empty() && _normalToGeneralMapping.size() == _inputRowType.parameters().size()) ||
 //                canUpcastToRowType(_inputRowType, _inputRowTypeGeneralCase));
                 _normalAndGeneralCompatible = checkCaseCompatibility(_inputRowType, _inputRowTypeGeneralCase, _normalToGeneralMapping);
-                if(isNormalCaseAndGeneralCaseCompatible() && _inputRowType != _inputRowTypeGeneralCase) {
+                if(isNormalCaseAndGeneralCaseCompatible() && _inputRowType != _inputRowTypeGeneralCase && _serializeExceptionsAsGeneralCase) {
                     Logger::instance().logger("codegen").debug("emitting auto-upcast for exceptions");
                 }
 

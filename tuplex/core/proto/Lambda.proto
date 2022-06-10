@@ -53,37 +53,39 @@ message TransformStage {
     string outputSchema = 6;
     string normalCaseInputSchema = 7;
     string normalCaseOutputSchema = 8;
-    uint32 outputDataSetID = 9;
-    uint32 inputNodeID = 10;
-    EndPointMode inputMode = 11;
-    EndPointMode outputMode = 12;
-    repeated uint32 inputColumnsToKeep = 13;
-    string outputURI = 14;
-    FileFormat inputFormat = 15;
-    FileFormat outputFormat = 16;
-    bool persistSeparateCases = 17;
-    bool updateInputExceptions = 18;
+    repeated uint32 normalCaseInputColumnsToKeep = 9;
+    repeated uint32 generalCaseInputColumnsToKeep = 10;
+    uint32 outputDataSetID = 11;
+    uint32 inputNodeID = 12;
+    EndPointMode inputMode = 13;
+    EndPointMode outputMode = 14;
+
+    string outputURI = 15;
+    FileFormat inputFormat = 16;
+    FileFormat outputFormat = 17;
+    bool persistSeparateCases = 18;
+    bool updateInputExceptions = 19;
 
     // the code paths (fast / slow)
-    optional CodePath fastPath = 19;
-    optional CodePath slowPath = 20;
+    optional CodePath fastPath = 20;
+    optional CodePath slowPath = 21;
 
     // bytes holding serialized stage, ready for hyper-specialization.
-    optional bytes serializedStage = 21;
-    optional SerializationFormat stageSerializationMode = 22;
+    optional bytes serializedStage = 22;
+    optional SerializationFormat stageSerializationMode = 23;
 
-    uint32 stageNumber = 23;
-    uint32 numColumns = 24;
-    string pyCode = 25;
-    string pyPipelineName = 26;
+    uint32 stageNumber = 24;
+    uint32 numColumns = 25;
+    string pyCode = 26;
+    string pyPipelineName = 27;
 
     // file input + output params as dict
-    map<string, string> inputParameters = 27;
-    map<string, string> outputParameters = 28;
+    map<string, string> inputParameters = 28;
+    map<string, string> outputParameters = 29;
 
     // how many lambdas should each Lambda invoke? Recursive, i.e. {1, 1, 1} means the first Lambda invokes another
     // lambda, that again another etc. The total wait time thereby is baseDelay * depth
-    repeated uint32 invocationCount = 29;
+    repeated uint32 invocationCount = 30;
 }
 
 message WorkerSettings {

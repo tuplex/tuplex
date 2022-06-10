@@ -965,9 +965,16 @@ namespace tuplex {
 
         stage->_outputDataSetID = msg.outputdatasetid();
         stage->_inputNodeID = msg.inputnodeid();
-        stage->_inputColumnsToKeep = std::vector<bool>(msg.numcolumns(), false);
-        for(auto i : msg.inputcolumnstokeep())
-            stage->_inputColumnsToKeep[i] = true;
+
+        stage->_normalCaseColumnsToKeep = std::vector<unsigned>();
+        for(auto i : msg.normalcaseinputcolumnstokeep())
+            stage->_normalCaseColumnsToKeep.push_back(i);
+        stage->_generalCaseColumnsToKeep = std::vector<unsigned>();
+        for(auto i : msg.generalcaseinputcolumnstokeep())
+            stage->_generalCaseColumnsToKeep.push_back(i);
+//        stage->_inputColumnsToKeep = std::vector<bool>(msg.numcolumns(), false);
+//        for(auto i : msg.inputcolumnstokeep())
+//            stage->_inputColumnsToKeep[i] = true;
 
         stage->_outputURI = msg.outputuri();
         stage->_inputFormat = proto_toFileFormat(msg.inputformat());
@@ -1058,11 +1065,16 @@ namespace tuplex {
         msg->set_inputmode(static_cast<messages::EndPointMode>(_inputMode));
         msg->set_outputmode(static_cast<messages::EndPointMode>(_outputMode));
 
-        msg->set_numcolumns(_inputColumnsToKeep.size());
-        for(int i = 0; i < _inputColumnsToKeep.size(); ++i) {
-            if(_inputColumnsToKeep[i])
-                msg->add_inputcolumnstokeep(i);
-        }
+        msg->set_numcolumns(inputColumnCount());
+
+        for(auto idx : _normalCaseColumnsToKeep)
+            msg->add_normalcaseinputcolumnstokeep(idx);
+        for(auto idx : _generalCaseColumnsToKeep)
+            msg->add_generalcaseinputcolumnstokeep(idx);
+//        for(int i = 0; i < _inputColumnsToKeep.size(); ++i) {
+//            if(_inputColumnsToKeep[i])
+//                msg->add_inputcolumnstokeep(i);
+//        }
 
         msg->set_outputuri(_outputURI.toString()); // NOTE: this should be overwritten by the task!!!
 

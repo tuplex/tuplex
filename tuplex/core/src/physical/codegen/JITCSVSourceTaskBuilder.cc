@@ -174,11 +174,11 @@ namespace tuplex {
 
                 // create exception block, serialize input row depending on result
                 // note: creating exception block automatically sets builder to this block
-                auto serialized_row = serializedExceptionRow(builder, ft);
+                auto serialized_row = serializedExceptionRow(builder, ft, exception_serialization_format());
                 auto outputRowNumber = builder.CreateLoad(outputRowNumberVar);
                 llvm::BasicBlock* curBlock = builder.GetInsertBlock();
                 llvm::BasicBlock* bbException = exceptionBlock(builder, userData, ecCode, ecOpID,
-                        outputRowNumber, serialized_row.val, serialized_row.size); // generate exception block (incl. ignore & handler if necessary)
+                        outputRowNumber, exception_serialization_format(), serialized_row.val, serialized_row.size); // generate exception block (incl. ignore & handler if necessary)
                 // env().debugPrint(builder, "exception occurred at row: ", builder.CreateLoad(outputRowNumberVar));
                 // env().debugPrint(builder, "throwing operator ID: ", ecOpID);
                 // env().debugPrint(builder, "code: ", ecCode);
@@ -249,7 +249,7 @@ namespace tuplex {
             auto bbBadRowException = exceptionBlock(builder, userData,
                                                     env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)),
                                                     env().i64Const(_operatorID), builder.CreateLoad(outputRowNumberVar),
-                                                    badDataPtr, badDataLength);
+                                                    exception_serialization_format(), badDataPtr, badDataLength);
             auto curBlock = builder.GetInsertBlock();
 
             // connect blocks together, continue inserting on this exception block.

@@ -101,52 +101,80 @@ namespace tuplex {
             _intermediateCallbackName = callbackName;
         }
 
-        SerializableValue BlockBasedTaskBuilder::serializedExceptionRow(llvm::IRBuilder<>& builder, const FlattenedTuple& ftIn) const {
+        SerializableValue BlockBasedTaskBuilder::serializedExceptionRow(llvm::IRBuilder<>& builder,
+                                                                        const FlattenedTuple& ftIn,
+                                                                        const ExceptionSerializationFormat& fmt) const {
             auto& logger = Logger::instance().logger("codegen");
 
-            // is it a normal-case or general case row?
-            if(ftIn.getTupleType() == _inputRowTypeGeneralCase || !_serializeExceptionsAsGeneralCase) {
-                // perfect, simply serialize
-                auto serialized_row = ftIn.serializeToMemory(builder);
-                return serialized_row;
-            } else {
-                // upcast necessary?
-                 assert(ftIn.getTupleType() == _inputRowType); // needs to be the correct flattened tuple!
-                if(isNormalCaseAndGeneralCaseCompatible()) {
-                    // upcast necessary?
-                    FlattenedTuple ft = ftIn;
-                    if(_inputRowType != _inputRowTypeGeneralCase) {
+            // only supported formats for this are NORMALCASE and GENERALCASE
+            switch(fmt) {
+                case ExceptionSerializationFormat::NORMALCASE: {
 
-                        assert(_inputRowType.isTupleType());
-                        assert(_inputRowTypeGeneralCase.isTupleType());
-
-                        logger.debug("emitting exception upcast on code-path");
-                        // could be the case that fast path/normal case requires less columns than general case, therefore cast up
-                        ft = normalToGeneralTuple(builder, ftIn, _inputRowType, _inputRowTypeGeneralCase, _normalToGeneralMapping);
+                    // is ftIn in normalcase format? ==> serialize out.
+                    if(ftIn.getTupleType() == _inputRowType) {
+                        // perfect, simply serialize
+                        auto serialized_row = ftIn.serializeToMemory(builder);
+                        return serialized_row;
+                    } else {
+                        throw std::runtime_error("format of ftIn " + ftIn.getTupleType().desc() + " does not match normal case input row type " + _inputRowType.desc());
                     }
-
-                    logger.debug("normal-case input row type of block-based builder is: " + _inputRowType.desc());
-                    logger.debug("general-case input row type of block-based builder is: " + _inputRowTypeGeneralCase.desc());
-
-                    // serialize!
-                    auto serialized_row = ft.serializeToMemory(builder);
-                    return serialized_row;
-                } else {
-                    logger.debug("incompatible types detected, serializing row as " + ftIn.getTupleType().desc());
-                    auto serialized_row = ftIn.serializeToMemory(builder);
-                    return serialized_row;
+                    break;
                 }
+                case ExceptionSerializationFormat::GENERALCASE: {
+                    // is ftIn in general-case format? -> serialize as is
+                    if(ftIn.getTupleType() == _inputRowTypeGeneralCase) {
+                        // perfect, simply serialize
+                        auto serialized_row = ftIn.serializeToMemory(builder);
+                        return serialized_row;
+                    } else {
+                        // must be in normal-case format
+                        if(ftIn.getTupleType() != _inputRowType) {
+                            std::stringstream ss;
+                            ss<<"ftIn is in unknown format "<<ftIn.getTupleType().desc()<<" that is neither normal-case format "
+                            <<_inputRowType.desc()<<" nor general-case format "<<_inputRowTypeGeneralCase.desc();
+                            throw std::runtime_error(ss.str());
+                        }
+
+                        // can normal-case be upcasted to general-case?
+                        if(isNormalCaseAndGeneralCaseCompatible()) {
+                            // upcast necessary?
+                            FlattenedTuple ft = ftIn;
+                            if(_inputRowType != _inputRowTypeGeneralCase) {
+                                assert(_inputRowType.isTupleType());
+                                assert(_inputRowTypeGeneralCase.isTupleType());
+
+                                logger.debug("emitting exception upcast on code-path");
+                                // could be the case that fast path/normal case requires less columns than general case, therefore cast up
+                                ft = normalToGeneralTuple(builder, ftIn, _inputRowType, _inputRowTypeGeneralCase, _normalToGeneralMapping);
+                            }
+
+                            logger.debug("normal-case input row type of block-based builder is: " + _inputRowType.desc());
+                            logger.debug("general-case input row type of block-based builder is: " + _inputRowTypeGeneralCase.desc());
+
+                            // serialize!
+                            auto serialized_row = ft.serializeToMemory(builder);
+                            return serialized_row;
+                        } else {
+                            throw std::runtime_error("can not upcast row in normal-case format " + _inputRowType.desc() + " to general-case format " + _inputRowTypeGeneralCase.desc());
+                        }
+                    }
+                    break;
+                }
+                default:
+                    throw std::runtime_error("This function only supports normalcase/generalcase exception formats");
             }
 
+            return {};
         }
 
         llvm::BasicBlock* BlockBasedTaskBuilder::exceptionBlock(llvm::IRBuilder<>& builder,
                 llvm::Value* userData,
                 llvm::Value *exceptionCode,
-                                                                llvm::Value *exceptionOperatorID,
-                                                                llvm::Value *rowNumber,
-                                                                llvm::Value *badDataPtr,
-                                                                llvm::Value *badDataLength) {
+                llvm::Value *exceptionOperatorID,
+                llvm::Value *rowNumber,
+                const ExceptionSerializationFormat& fmt,
+                llvm::Value *badDataPtr,
+                llvm::Value *badDataLength) {
             // creates new exception block w. handlers and so on
             using namespace llvm;
             auto func = builder.GetInsertBlock()->getParent(); assert(func);
@@ -155,9 +183,6 @@ namespace tuplex {
             auto& context = env().getContext();
 
             if(!_exceptionHandlerName.empty()) {
-
-                auto eh_func = codegen::exception_handler_prototype(env().getContext(), env().getModule().get(), _exceptionHandlerName);
-
                 // check if ignore codes are present
                 if(!_codesToIgnore.empty()) {
                     // create condition and only call handler if the code combination is not to be ignored...
@@ -179,10 +204,7 @@ namespace tuplex {
 
                     builder.CreateCondBr(ignoreCond, bbDone, bb);
                     builder.SetInsertPoint(bb);
-
-                     // _env->debugPrint(builder, "calling exception functor from BlockBasedTaskBuilder");
-
-                    builder.CreateCall(eh_func, {userData, exceptionCode, exceptionOperatorID, rowNumber, badDataPtr, badDataLength});
+                    callExceptHandler(builder, userData, exceptionCode, exceptionOperatorID, rowNumber, fmt, badDataPtr, badDataLength);
                     builder.CreateBr(bbDone);
 
                     builder.SetInsertPoint(bbDone);
@@ -192,7 +214,7 @@ namespace tuplex {
                     // _env->debugPrint(builder, "row number of exception is: ", rowNumber);
 
                     // simple call to exception handler...
-                    builder.CreateCall(eh_func, {userData, exceptionCode, exceptionOperatorID, rowNumber, badDataPtr, badDataLength});
+                    callExceptHandler(builder, userData, exceptionCode, exceptionOperatorID, rowNumber, fmt, badDataPtr, badDataLength);
                 }
             }
             return block;

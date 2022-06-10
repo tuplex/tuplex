@@ -405,7 +405,9 @@ namespace tuplex {
 
         bool _has_python_resolver;
         CodePathStatistics _codePathStats; // stats per message
-
+        python::Type _normalCaseRowType; // given normal-case row type
+        python::Type _hyperspecializedNormalCaseRowType; // this can be incompatible with the given normal case type which in this case requires a conversion.
+        bool _ncAndHyperNCIncompatible;
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         static void exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
@@ -503,7 +505,8 @@ namespace tuplex {
     extern FallbackPathResult processRowUsingFallback(PyObject* func,
                                                       int64_t ecCode,
                                                       int64_t ecOperatorID,
-                                                      const Schema& input_schema,
+                                                      const Schema& normal_input_schema,
+                                                      const Schema& general_input_schema,
                                                       const uint8_t* buf,
                                                       size_t buf_size,
                                                       const Schema& specialized_target_schema,

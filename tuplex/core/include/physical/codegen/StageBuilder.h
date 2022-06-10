@@ -203,6 +203,11 @@ namespace tuplex {
             size_t number() const { return _stageNumber; }
             int64_t outputDataSetID() const;
 
+            inline size_t inputColumnCount() const {
+                assert(_readSchema != Schema::UNKNOWN);
+                return _readSchema.getRowType().parameters().size();
+            }
+
             inline bool hasOutputLimit() const {
                 return _outputLimit < std::numeric_limits<size_t>::max();
             }

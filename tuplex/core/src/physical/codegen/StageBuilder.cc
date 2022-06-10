@@ -836,8 +836,11 @@ namespace tuplex {
                 }
             }
 
-            // in fast path, keep the (smaller) normal-case format.
-            bool emitGeneralCaseExceptionRows = false;
+
+            // TODO: need to optimize this..., i.e. more efficient when false.
+            // --> yet, for now always emit general-case exceptions!
+            // keep the smaller normal-case exception format. (note this option has not been properly tested throughout code base)
+            bool emitGeneralCaseExceptionRows = true;
 
             // step 2. build connector to data source, i.e. generated parser or simply iterating over stuff
             std::shared_ptr<codegen::BlockBasedTaskBuilder> tb;
@@ -1446,14 +1449,19 @@ namespace tuplex {
             stage->_outputDataSetID = outputDataSetID();
             stage->_inputNodeID = _inputNodeID;
             auto numColumns = stage->_generalCaseReadSchema.getRowType().parameters().size();
-            if(_inputMode == EndPointMode::FILE && _inputNode) {
-                stage->_inputColumnsToKeep = dynamic_cast<FileInputOperator*>(_inputNode.get())->columnsToSerialize();
-                if(stage->_inputColumnsToKeep.empty())
-                    stage->_inputColumnsToKeep = std::vector<bool>(numColumns, true);
-                assert(stage->_inputColumnsToKeep.size() == numColumns);
-            } else {
-                stage->_inputColumnsToKeep = std::vector<bool>(numColumns, true);
-            }
+//            if(_inputMode == EndPointMode::FILE && _inputNode) {
+//
+//
+////                auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
+////                fop->
+////
+////                stage->_inputColumnsToKeep = dynamic_cast<FileInputOperator*>(_inputNode.get())->columnsToSerialize();
+////                if(stage->_inputColumnsToKeep.empty())
+////                    stage->_inputColumnsToKeep = std::vector<bool>(numColumns, true);
+////                assert(stage->_inputColumnsToKeep.size() == numColumns);
+//            } else {
+//                //stage->_inputColumnsToKeep = std::vector<bool>(numColumns, true);
+//            }
 
             stage->_outputURI = _outputURI;
             stage->_inputFormat = _inputFileFormat;
@@ -1620,6 +1628,7 @@ namespace tuplex {
                 }
 
                 // actual code generation happens below in separate threads.
+                stage->_generalCaseColumnsToKeep = boolArrayToIndices(codeGenerationContext.slowPathContext.columnsToRead);
 
                 // kick off slow path generation
                 std::shared_future<TransformStage::StageCodePath> slowCodePath_f = std::async(std::launch::async, [this,
@@ -1664,6 +1673,7 @@ namespace tuplex {
                                                             codeGenerationContext.slowPathContext.outputSchema.getRowType(),
                                                             codeGenerationContext.normalToGeneralMapping,
                                                             number());
+                stage->_normalCaseColumnsToKeep = boolArrayToIndices(codeGenerationContext.fastPathContext.columnsToRead);
                 stage->_slowCodePath = slowCodePath_f.get();
             }
 
@@ -1802,6 +1812,8 @@ namespace tuplex {
                 // basically just need to get general settings & general path and then encode that!
                 auto ctx = createCodeGenerationContext();
                 ctx.slowPathContext = getGeneralPathContext();
+                auto num_columns = ctx.slowPathContext.
+                stage->_generalCaseColumnsToKeep = boolArrayToIndices(codeGenerationContext.slowPathContext.columnsToRead);
 
                 // also important to encode into stage python code. Else, nowhere to be found!
                 if(gen_py_code) {
@@ -1812,13 +1824,16 @@ namespace tuplex {
 
                 // use fast path context
                 ctx.fastPathContext = ctx.slowPathContext;
-
+                // use normalCaseInputType of stage!
+                stage->_normalCaseInputSchema = ctx.fastPathContext.inputSchema;
+                stage->_normalCaseOutputSchema = ctx.fastPathContext.outputSchema;
 
                 // general case input row type is the input schema, but for files the read schema.
                 auto generalCaseInputRowType = ctx.slowPathContext.inputSchema.getRowType();
                 if(ctx.slowPathContext.inputNode->type() == LogicalOperatorType::FILEINPUT) {
                     generalCaseInputRowType = ctx.slowPathContext.readSchema.getRowType();
                 }
+
                 python::Type normalCaseInputRowType = ctx.fastPathContext.inputSchema.getRowType(); // if no specific fastPath Context was created, simply use this
 
                 if(gen_fast_code) {
@@ -1829,6 +1844,7 @@ namespace tuplex {
                                                                 ctx.slowPathContext.outputSchema.getRowType(),
                                                                 ctx.normalToGeneralMapping,
                                                                 number());
+                    stage->_normalCaseColumnsToKeep = boolArrayToIndices(codeGenerationContext.fastPathContext.columnsToRead);
                 }
 
                 if(gen_slow_code) {

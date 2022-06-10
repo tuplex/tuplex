@@ -375,6 +375,32 @@ namespace tuplex {
                 return llvm::Type::getDoublePtrTy(_context, 0);
             }
 
+            inline llvm::Value* pack32iTo64i(llvm::IRBuilder<>& builder, llvm::Value* high, llvm::Value* low) {
+                assert(high && low);
+                assert(high->getType() == i32Type());
+                assert(low->getType() == i32Type());
+
+                // pack two 64bit integer
+
+                // shift left
+                auto higher_bits = builder.CreateShl(builder.CreateZExt(high, i64Type()), 32);
+                auto lower_bits = builder.CreateZExt(low, i64Type());
+                return builder.CreateOr(higher_bits, lower_bits);
+            }
+
+            inline void extract32iFrom64i(llvm::IRBuilder<>& builder, llvm::Value* val, llvm::Value** high, llvm::Value** low) {
+                if(!high && !low)
+                    return;
+                assert(val && val->getType() == i64Type());
+                if(high) {
+                    *high = builder.CreateTrunc(builder.CreateLShr(val, 32), i32Type());
+                }
+
+                if(low) {
+                    *low = builder.CreateTrunc(val, i32Type());
+                }
+            }
+
             /*!
              * Represents the [matchObject] struct in Runtime.h. This struct is used to hold a pcre2 ovector (e.g. the
              * indices of match groups) and the underlying subject string that the match was run over.

@@ -179,8 +179,29 @@ if __name__ == '__main__':
     sm = tuplex.dataset.SamplingMode.ALL_FILES | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.RANDOM_ROWS
     #sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS
     sm = tuplex.dataset.SamplingMode.LAST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS
-    print('Sampling mode: {}'.format(sm))
-    ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).tocsv(s3_output_path)
+
+    available_modes = [mode for mode in tuplex.dataset.SamplingMode]
+    print('Following sampling modes are supported: {}'.format(available_modes))
+    
+    combos = [tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS,
+            tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS,
+            tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS,
+            tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS,
+            tuplex.dataset.SamplingMode.ALL_FILES | tuplex.dataset.SamplingMode.FIRST_ROWS,
+            tuplex.dataset.SamplingMode.ALL_FILES | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS]
+    print('Testing sampling times for following modes: {}'.format(combos))
+
+    rows = []
+    for sm in combos:
+        tstart = time.time()
+        ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).tocsv(s3_output_path)
+        job_time = time.time() - tstart
+        row = {'sampling_mode': str(sm), 'job_time': job_time, 'metrics': ctx.metrics.as_dict()}
+        print(row)
+        rows.append(row)
+
+    print('SAMPLING RESULTS::')
+    print(rows)
 
     ### END QUERY ###
     run_time = time.time() - tstart

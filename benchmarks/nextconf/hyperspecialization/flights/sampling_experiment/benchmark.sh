@@ -1,5 +1,20 @@
 #!/usr/bin/env bash
+# (c) L.Spiegelberg 2022
+# this file runs a simple sampling benchmark to show that sampling times increase with number of files etc.
 
-echo "Running different sampling modes"
+# use 11 runs (in case of cold start) and a timeout after 60min
+NUM_RUNS=5
+TIMEOUT=3600
 
-python3.6 runtuplex.py
+# make results directory
+RESDIR=results_sampling
+mkdir -p ${RESDIR}
+PYTHON=python3.9
+echo "benchmarking sampling times"
+for ((r = 1; r <= NUM_RUNS; r++)); do
+  LOG="${RESDIR}/dsmpling-run-$r.txt"
+  echo "running $r/${NUM_RUNS}"
+  timeout $TIMEOUT $PYTHON runtuplex.py >$LOG 2>$LOG.stderr
+done
+echo "done!"
+

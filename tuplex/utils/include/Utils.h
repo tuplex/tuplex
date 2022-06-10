@@ -329,6 +329,21 @@ namespace tuplex {
         return true;
     }
 
+    template<typename T> std::vector<bool> indicesToBoolArray(const std::vector<T>& indices, size_t count) {
+        std::vector<bool> v(count, false);
+        for(auto idx : indices)
+            v[idx] = true;
+        return v;
+    }
+
+    template<typename T> std::vector<T> boolArrayToIndices(const std::vector<bool>& bits) {
+        std::vector<T> v;
+        for(T idx = 0; idx < bits.size(); ++idx)
+            if(bits[idx])
+                v.push_back(idx);
+        return v;
+    }
+
     /*!
      * takes a string which holds a memory size with suffixes and converts to bytes.
      * @param str

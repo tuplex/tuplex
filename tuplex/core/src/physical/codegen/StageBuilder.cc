@@ -1449,14 +1449,19 @@ namespace tuplex {
             stage->_outputDataSetID = outputDataSetID();
             stage->_inputNodeID = _inputNodeID;
             auto numColumns = stage->_generalCaseReadSchema.getRowType().parameters().size();
-            if(_inputMode == EndPointMode::FILE && _inputNode) {
-                stage->_inputColumnsToKeep = dynamic_cast<FileInputOperator*>(_inputNode.get())->columnsToSerialize();
-                if(stage->_inputColumnsToKeep.empty())
-                    stage->_inputColumnsToKeep = std::vector<bool>(numColumns, true);
-                assert(stage->_inputColumnsToKeep.size() == numColumns);
-            } else {
-                stage->_inputColumnsToKeep = std::vector<bool>(numColumns, true);
-            }
+//            if(_inputMode == EndPointMode::FILE && _inputNode) {
+//
+//
+////                auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
+////                fop->
+////
+////                stage->_inputColumnsToKeep = dynamic_cast<FileInputOperator*>(_inputNode.get())->columnsToSerialize();
+////                if(stage->_inputColumnsToKeep.empty())
+////                    stage->_inputColumnsToKeep = std::vector<bool>(numColumns, true);
+////                assert(stage->_inputColumnsToKeep.size() == numColumns);
+//            } else {
+//                //stage->_inputColumnsToKeep = std::vector<bool>(numColumns, true);
+//            }
 
             stage->_outputURI = _outputURI;
             stage->_inputFormat = _inputFileFormat;
@@ -1623,6 +1628,7 @@ namespace tuplex {
                 }
 
                 // actual code generation happens below in separate threads.
+                stage->_generalCaseColumnsToKeep = boolArrayToIndices(codeGenerationContext.slowPathContext.columnsToRead);
 
                 // kick off slow path generation
                 std::shared_future<TransformStage::StageCodePath> slowCodePath_f = std::async(std::launch::async, [this,
@@ -1667,6 +1673,7 @@ namespace tuplex {
                                                             codeGenerationContext.slowPathContext.outputSchema.getRowType(),
                                                             codeGenerationContext.normalToGeneralMapping,
                                                             number());
+                stage->_normalCaseColumnsToKeep = boolArrayToIndices(codeGenerationContext.fastPathContext.columnsToRead);
                 stage->_slowCodePath = slowCodePath_f.get();
             }
 
@@ -1805,6 +1812,8 @@ namespace tuplex {
                 // basically just need to get general settings & general path and then encode that!
                 auto ctx = createCodeGenerationContext();
                 ctx.slowPathContext = getGeneralPathContext();
+                auto num_columns = ctx.slowPathContext.
+                stage->_generalCaseColumnsToKeep = boolArrayToIndices(codeGenerationContext.slowPathContext.columnsToRead);
 
                 // also important to encode into stage python code. Else, nowhere to be found!
                 if(gen_py_code) {
@@ -1835,6 +1844,7 @@ namespace tuplex {
                                                                 ctx.slowPathContext.outputSchema.getRowType(),
                                                                 ctx.normalToGeneralMapping,
                                                                 number());
+                    stage->_normalCaseColumnsToKeep = boolArrayToIndices(codeGenerationContext.fastPathContext.columnsToRead);
                 }
 
                 if(gen_slow_code) {

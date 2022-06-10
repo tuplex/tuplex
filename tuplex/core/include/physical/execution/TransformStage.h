@@ -150,6 +150,12 @@ namespace tuplex {
         Schema inputSchema() const { return _generalCaseInputSchema; }
         Schema normalCaseOutputSchema() const { return _normalCaseOutputSchema; }
         Schema normalCaseInputSchema() const { return _normalCaseInputSchema; }
+
+        /*!
+         * from original columns, get indices back which columns are read in each case. To get number of columns, use inputColumnCount
+         */
+        std::vector<unsigned> normalCaseInputColumnsToKeep() const { return _normalCaseColumnsToKeep; }
+        std::vector<unsigned> generalCaseInputColumnsToKeep() const { return _generalCaseColumnsToKeep; }
         int64_t outputDataSetID() const { return _outputDataSetID; }
         std::unordered_map<std::string, std::string> outputOptions() const;
 
@@ -446,12 +452,9 @@ namespace tuplex {
             _hashResult.bucketType = _hashOutputBucketType;
         }
 
-        std::vector<bool> columnsToKeep() const {
-            return _inputColumnsToKeep;
-        }
-
-        std::vector<unsigned> normalCaseInputColumnsToKeep() const;
-        std::vector<unsigned> generalCaseInputColumnsToKeep() const;
+//        std::vector<bool> columnsToKeep() const {
+//            return _inputColumnsToKeep;
+//        }
 
         /*!
          * whether to cache normal case/general case separately (true if .cache() is used)
@@ -623,7 +626,9 @@ namespace tuplex {
         Schema _generalCaseOutputSchema;
         int64_t _outputDataSetID;
         int64_t _inputNodeID;
-        std::vector<bool> _inputColumnsToKeep;
+        std::vector<unsigned> _normalCaseColumnsToKeep;
+        std::vector<unsigned> _generalCaseColumnsToKeep;
+//        std::vector<bool> _inputColumnsToKeep;
         FileFormat _inputFormat;
         FileFormat _outputFormat;
         Schema _normalCaseOutputSchema;

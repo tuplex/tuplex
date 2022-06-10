@@ -193,10 +193,12 @@ if __name__ == '__main__':
 
     rows = []
     for sm in combos:
+        print('--> Running with Sampling mode {}'.format(sm))
         tstart = time.time()
         ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).tocsv(s3_output_path)
         job_time = time.time() - tstart
         row = {'sampling_mode': str(sm), 'job_time': job_time, 'metrics': ctx.metrics.as_dict()}
+        print('--- done ---')
         print(row)
         rows.append(row)
 

@@ -978,6 +978,7 @@ namespace tuplex {
             _env.printValue(builder, F64NAN, "f64nan\n");
             auto ival = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, val.val, F64NAN);
             auto resVal = _env.upcastToBoolean(builder, ival);
+            _env.printValue(builder, resVal, "result\n");
             auto resSize = _env.i64Const(sizeof(bool));
 
             return SerializableValue(resVal, resSize);

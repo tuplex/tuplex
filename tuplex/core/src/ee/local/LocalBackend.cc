@@ -514,7 +514,7 @@ namespace tuplex {
             char delimiter = tstage->csvInputDelimiter();
             char quotechar = tstage->csvInputQuotechar();
 
-            vector<bool> colsToKeep = tstage->normalCaseInputColumnsToKeep();//tstage->columnsToKeep(); // after projection pushdown, what to keep
+            vector<bool> colsToKeep = indicesToBoolArray(tstage->normalCaseInputColumnsToKeep(), tstage->inputColumnCount()); //tstage->columnsToKeep(); // after projection pushdown, what to keep
 
             for(auto partition : tstage->inputPartitions()) {
                 // get num

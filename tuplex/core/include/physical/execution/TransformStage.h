@@ -146,6 +146,7 @@ namespace tuplex {
             return _outputMode == EndPointMode::FILE;
         }
 
+        Schema readSchema() const { return _generalCaseReadSchema; }
         Schema outputSchema() const { return _generalCaseOutputSchema; }
         Schema inputSchema() const { return _generalCaseInputSchema; }
         Schema normalCaseOutputSchema() const { return _normalCaseOutputSchema; }
@@ -156,10 +157,10 @@ namespace tuplex {
          */
         std::vector<unsigned> normalCaseInputColumnsToKeep() const { return _normalCaseColumnsToKeep; }
         std::vector<unsigned> generalCaseInputColumnsToKeep() const { return _generalCaseColumnsToKeep; }
+        size_t inputColumnCount() const { return readSchema().getRowType().parameters().size(); }
         int64_t outputDataSetID() const { return _outputDataSetID; }
         std::unordered_map<std::string, std::string> outputOptions() const;
 
-        Schema readSchema() const { return _generalCaseReadSchema; }
         int64_t fileInputOperatorID() const { assert(_inputMode == EndPointMode::FILE); return _inputNodeID; }
 
         /*!

@@ -992,7 +992,7 @@ namespace tuplex {
             //     %9 = add nuw i32 %5, %8 --> %5 + %8 (what's 'nuw'? A: no unsigned wrap)
             auto added = builder.CreateNUWAdd(andRes, i32cmp);
             //     %10 = icmp ugt i32 %9, 2146435072 --> %10 = (%9 > 0x7ff00000)
-            auto addCmp = builder.CreateICmpUGT(added, 2146435072);
+            auto addCmp = builder.CreateICmpUGT(added, ConstantInt::get(i32Val->getType(), 2146435072));
             //     %11 = zext i1 %10 to i32 --> %11 = 4 byte int version of %10
             auto resVal = builder.CreateZExt(addCmp, llvm::Type::getInt32Ty(context));
             auto resSize = _env.i64Const(sizeof(int32_t));

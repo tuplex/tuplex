@@ -971,18 +971,52 @@ namespace tuplex {
                                                      const std::vector<tuplex::codegen::SerializableValue> &args) {
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
-            /** TODO: need a check on argsType --> float numbers (python::Type::F64) **/
             auto val = args.front();
-            _env.printValue(builder, val.val, "value\n");
-            auto F64NAN = _env.f64Const(nan(""));
-            _env.printValue(builder, F64NAN, "f64nan\n");
-            auto ival = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, val.val, F64NAN);
-            auto resVal = _env.upcastToBoolean(builder, ival);
-            _env.printValue(builder, resVal, "result\n");
-            auto resSize = _env.i64Const(sizeof(bool));
-
+            /** TODO: need a check on argsType --> float numbers (python::Type::F64), integers, booleans **/
+            
+            // define dso_local noundef i32 @_Z5isnand(double noundef %0) local_unnamed_addr #3 {
+            //     %2 = bitcast double %0 to i64 --> don't really know what this is for
+            auto i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
+            //     %3 = lshr i64 %2, 32 --> right shift %2 by 32 bits
+            auto shiftedVal = builder.CreateLShr(i64Val, 32);
+            //     %4 = trunc i64 %3 to i32 --> remove first/last 32 bits of the i64 value?
+            auto i32Shift = builder.CreateTrunc(shiftedVal, llvm::Type::getInt32Ty(context));
+            //     %5 = and i32 %4, 2147483647 --> %4 & 0x7fffffff
+            auto andRes = builder.CreateAnd(i32Shift, 2147483647);
+            //     %6 = trunc i64 %2 to i32 --> remove first/last 32 bits of %2 (input)?
+            auto i32Val = builder.CreateTrunc(i64Val, llvm::Type::getInt32Ty(context));
+            //     %7 = icmp ne i32 %6, 0 --> %7 = (%6 != 0)
+            auto cmpRes = builder.CreateICmpNE(i32Val, ConstantInt::get(i32Val->getType(), 0));
+            //     %8 = zext i1 %7 to i32 --> extends %7 to be a 4 byte int instead of 1 bit
+            auto i32cmp = builder.CreateZExt(cmpRes, llvm::Type::getInt32Ty(context));
+            //     %9 = add nuw i32 %5, %8 --> %5 + %8 (what's 'nuw'? A: no unsigned wrap)
+            auto added = builder.CreateNUWAdd(andRes, i32cmp);
+            //     %10 = icmp ugt i32 %9, 2146435072 --> %10 = (%9 > 0x7ff00000)
+            auto addCmp = builder.CreateICmpUGT(added, 2146435072);
+            //     %11 = zext i1 %10 to i32 --> %11 = 4 byte int version of %10
+            auto resVal = builder.CreateZExt(addCmp, llvm::Type::getInt32Ty(context));
+            auto resSize = _env.i64Const(sizeof(int32_t));
+            //     ret i32 %11 --> return %11 (in our case, return SerializableValue(%11, i32))
             return SerializableValue(resVal, resSize);
         }
+
+        // codegen::SerializableValue FunctionRegistry::createMathIsNanCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+        //                                              const python::Type &retType,
+        //                                              const std::vector<tuplex::codegen::SerializableValue> &args) {
+        //     using namespace llvm;
+        //     auto& context = builder.GetInsertBlock()->getContext();
+        //     /** TODO: need a check on argsType --> float numbers (python::Type::F64), integers, booleans **/
+        //     auto val = args.front();
+        //     _env.printValue(builder, val.val, "value\n");
+        //     auto F64quietnan = _env.f64Const(nan(""));
+        //     _env.printValue(builder, F64quietnan, "F64quietnan\n");
+        //     auto ival = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, val.val, F64quietnan);
+        //     auto resVal = _env.upcastToBoolean(builder, ival);
+        //     _env.printValue(builder, resVal, "result\n");
+        //     auto resSize = _env.i64Const(sizeof(bool));
+
+        //     return SerializableValue(resVal, resSize);
+        // }
 
         // codegen::SerializableValue FunctionRegistry::createMathIsInfCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
         //                                              const python::Type &retType,

@@ -1891,8 +1891,8 @@ namespace tuplex {
         for(unsigned i = 0; i < numRows; ++i) {
             auto rc = -1;
 
-            // debug
-            std::cout<<"processing row "<<(i+1)<<"/"<<numRows<<std::endl;
+            // // debug
+            // std::cout<<"processing row "<<(i+1)<<"/"<<numRows<<std::endl;
 
             // most of the code here is similar to ResolveTask.cc --> maybe avoid redundant code!
             // deserialize exception
@@ -1905,10 +1905,15 @@ namespace tuplex {
 
             // remove exception format from ecCode (??)
 
-            // only exec on faukty rpw
-            if(i + 1 != 685) {
-                ptr += delta;
-                continue;
+//            // only exec on faukty rpw
+//            if(i + 1 != 685) {
+//                ptr += delta;
+//                continue;
+//            }
+
+            // hack: in some parts of the code base, the exception format is not used yet. Therefore, manually fix up BADPARSE_STRING_INPUT format
+            if((ecCode >> 32) != static_cast<uint64_t>(ExceptionSerializationFormat::STRING_CELLS) && ecCode == ecToI32(ExceptionCode::BADPARSE_STRING_INPUT)) {
+                ecCode |= static_cast<uint64_t>(ExceptionSerializationFormat::STRING_CELLS) << 32;
             }
 
             // try to resolve using compiled resolver...
@@ -1920,10 +1925,18 @@ namespace tuplex {
                 } else {
                     // for hyper, force onto general case format.
                     rc = compiledResolver(env, ecRowNumber, ecCode, ecBuf, ecBufSize);
-                    if(rc != ecToI32(ExceptionCode::SUCCESS)) // todo, true exceptions??
-                        rc = -1;
-                    else
-                        resolved_via_compiled_slow_path++;
+                    if(rc != ecToI32(ExceptionCode::SUCCESS)) {
+                        // fallback is only required if normalcaseviolation or badparsestringinput, else it's considered a true exception
+                        // to force reprocessing always onto fallback path, use rc = -1 here
+                        if(rc == ecToI32(ExceptionCode::NORMALCASEVIOLATION) || rc == ecToI32(ExceptionCode::BADPARSE_STRING_INPUT) || rc == ecToI32(ExceptionCode::NULLERROR))
+                            rc = -1;
+                        // todo, true exceptions??
+                    } else {
+                        // resolved if rc == success
+                        if(rc == ecToI32(ExceptionCode::SUCCESS))
+                            resolved_via_compiled_slow_path++;
+                    }
+
                 }
             }
 
@@ -1981,11 +1994,13 @@ namespace tuplex {
                         logger().info("first unresolved row ec code result is: " + ss.str());
                     }
 
-
-
                     rc = -1;
                 }
             }
+
+            // check if not success, then also exception (i.e. fallthrough from compiled resolver
+            if(rc != ecToI32(ExceptionCode::SUCCESS))
+                rc = -1;
 
             // else, save as exception!
             if(-1 == rc) {

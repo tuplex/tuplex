@@ -1293,6 +1293,7 @@ namespace tuplex {
             // create wrapper which decodes automatically normal-case rows with optimized types...
             auto null_values = ctx.inputMode == EndPointMode::FILE ? jsonToStringArray(ctx.fileInputParameters.at("null_values"))
                                                      : std::vector<std::string>{"None"};
+
             auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip,
                                                                             ret.funcStageName/*funcResolveRowName*/,
                                                                             normalCaseType,

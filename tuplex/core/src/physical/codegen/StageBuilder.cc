@@ -1628,7 +1628,7 @@ namespace tuplex {
                 }
 
                 // actual code generation happens below in separate threads.
-                stage->_generalCaseColumnsToKeep = boolArrayToIndices(codeGenerationContext.slowPathContext.columnsToRead);
+                stage->_generalCaseColumnsToKeep = boolArrayToIndices<unsigned>(codeGenerationContext.slowPathContext.columnsToRead);
 
                 // kick off slow path generation
                 std::shared_future<TransformStage::StageCodePath> slowCodePath_f = std::async(std::launch::async, [this,
@@ -1673,7 +1673,7 @@ namespace tuplex {
                                                             codeGenerationContext.slowPathContext.outputSchema.getRowType(),
                                                             codeGenerationContext.normalToGeneralMapping,
                                                             number());
-                stage->_normalCaseColumnsToKeep = boolArrayToIndices(codeGenerationContext.fastPathContext.columnsToRead);
+                stage->_normalCaseColumnsToKeep = boolArrayToIndices<unsigned>(codeGenerationContext.fastPathContext.columnsToRead);
                 stage->_slowCodePath = slowCodePath_f.get();
             }
 
@@ -1812,8 +1812,8 @@ namespace tuplex {
                 // basically just need to get general settings & general path and then encode that!
                 auto ctx = createCodeGenerationContext();
                 ctx.slowPathContext = getGeneralPathContext();
-                auto num_columns = ctx.slowPathContext.
-                stage->_generalCaseColumnsToKeep = boolArrayToIndices(codeGenerationContext.slowPathContext.columnsToRead);
+                auto num_columns = ctx.slowPathContext.readSchema.getRowType().parameters().size();
+                stage->_generalCaseColumnsToKeep = boolArrayToIndices<unsigned>(ctx.slowPathContext.columnsToRead);
 
                 // also important to encode into stage python code. Else, nowhere to be found!
                 if(gen_py_code) {
@@ -1844,7 +1844,7 @@ namespace tuplex {
                                                                 ctx.slowPathContext.outputSchema.getRowType(),
                                                                 ctx.normalToGeneralMapping,
                                                                 number());
-                    stage->_normalCaseColumnsToKeep = boolArrayToIndices(codeGenerationContext.fastPathContext.columnsToRead);
+                    stage->_normalCaseColumnsToKeep = boolArrayToIndices<unsigned>(ctx.fastPathContext.columnsToRead);
                 }
 
                 if(gen_slow_code) {

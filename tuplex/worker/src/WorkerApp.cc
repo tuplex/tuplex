@@ -1072,7 +1072,7 @@ namespace tuplex {
                             header = tstage->csvHeader();
                         auto delimiter = tstage->csvInputDelimiter();
                         auto quotechar = tstage->csvInputQuotechar();
-                        auto colsToKeep = tstage->columnsToKeep();
+                        auto colsToKeep = indicesToBoolArray(tstage->generalCaseInputColumnsToKeep(), tstage->inputColumnCount());
 
                         ctx.numInputColumns = numColumns;
 
@@ -1233,7 +1233,7 @@ namespace tuplex {
                         header = tstage->csvHeader();
                     auto delimiter = tstage->csvInputDelimiter();
                     auto quotechar = tstage->csvInputQuotechar();
-                    auto colsToKeep = tstage->columnsToKeep();
+                    auto colsToKeep = indicesToBoolArray(tstage->generalCaseInputColumnsToKeep(), tstage->inputColumnCount()); //tstage->columnsToKeep();
 
                     auto csv = new CSVReader(userData, reinterpret_cast<codegen::cells_row_f>(syms->functor),
                                              normalCaseEnabled,

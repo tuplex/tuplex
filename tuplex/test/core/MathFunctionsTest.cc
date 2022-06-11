@@ -790,37 +790,31 @@ TEST_F(MathFunctionsTest, MathIsNan) {
     ce.importModuleAs("math", "math");
 
     auto v1 = c.parallelize({
-        Row(0.0), Row(NAN), Row(-3.0), Row(INFINITY)
+        Row(NAN), 
+        Row(-NAN), 
+        Row(INFINITY * 0), 
+        Row(INFINITY), 
+        Row(M_PI), 
+        Row(0.0), 
+        Row(1), 
+        Row(-1.0), 
+        Row(-128), 
+        Row(3.0), 
+        Row(True)
     }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
 
-    EXPECT_EQ(v1.size(), 4);
-    EXPECT_EQ(v1[0].getBoolean(0), false);
+    EXPECT_EQ(v1.size(), 11);
+    EXPECT_EQ(v1[0].getBoolean(0), true);
     EXPECT_EQ(v1[1].getBoolean(0), true);
-    EXPECT_EQ(v1[2].getBoolean(0), false);
+    EXPECT_EQ(v1[2].getBoolean(0), true);
     EXPECT_EQ(v1[3].getBoolean(0), false);
-
-    auto v2 = c.parallelize({
-        Row(0), Row(-1), Row(NAN), Row(INFINITY), Row(97)
-    }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
-
-    EXPECT_EQ(v2.size(), 5);
-    EXPECT_EQ(v2[0].getBoolean(0), false);
-    EXPECT_EQ(v2[1].getBoolean(0), false);
-    EXPECT_EQ(v2[2].getBoolean(0), true);
-    EXPECT_EQ(v2[3].getBoolean(0), false);
-    EXPECT_EQ(v2[4].getBoolean(0), false);
-
-    // auto v3 = c.parallelize({
-    //     Row(NAN), Row(0.0), Row(-INFINITY), Row(-1.5), Row(NAN), Row(97.0)
-    // }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
-
-    // EXPECT_EQ(v3.size(), 6);
-    // EXPECT_EQ(v3[0].getBoolean(0), true);
-    // EXPECT_EQ(v3[1].getBoolean(0), false);
-    // EXPECT_EQ(v3[2].getBoolean(0), false);
-    // EXPECT_EQ(v3[3].getBoolean(0), false);
-    // EXPECT_EQ(v3[4].getBoolean(0), true);
-    // EXPECT_EQ(v3[5].getBoolean(0), false);
+    EXPECT_EQ(v1[4].getBoolean(0), false);
+    EXPECT_EQ(v1[5].getBoolean(0), false);
+    EXPECT_EQ(v1[6].getBoolean(0), false);
+    EXPECT_EQ(v1[7].getBoolean(0), false);
+    EXPECT_EQ(v1[8].getBoolean(0), false);
+    EXPECT_EQ(v1[9].getBoolean(0), false);
+    EXPECT_EQ(v1[10].getBoolean(0), false);
 
     python::lockGIL();
     python::closeInterpreter();

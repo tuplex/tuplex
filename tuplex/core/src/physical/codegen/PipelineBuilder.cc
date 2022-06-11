@@ -2320,8 +2320,8 @@ namespace tuplex {
                 const CompilePolicy& policy) {
 
 
-            // uncomment to get debug printing for this function
-            #define PRINT_EXCEPTION_PROCESSING_DETAILS
+            // // uncomment to get debug printing for this function
+            // #define PRINT_EXCEPTION_PROCESSING_DETAILS
 
             auto& logger = Logger::instance().logger("codegen");
             auto pipFunc = pip.getFunction();

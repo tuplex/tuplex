@@ -800,7 +800,7 @@ TEST_F(MathFunctionsTest, MathIsNan) {
         Row(-1.0), 
         Row(-128), 
         Row(3.0), 
-        Row(True)
+        Row(true)
     }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
 
     EXPECT_EQ(v1.size(), 11);

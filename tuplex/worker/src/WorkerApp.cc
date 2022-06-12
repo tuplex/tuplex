@@ -557,6 +557,11 @@ namespace tuplex {
         _codePathStats.rowsOnGeneralPathCount = 0;
         _codePathStats.rowsOnInterpreterPathCount = 0;
 
+        // reset for all envs the exception counts, they will be newly counted in exception resolution.
+        for(unsigned i = 0; i < _numThreads; ++i) {
+            _threadEnvs[i].exceptionCounts.clear();
+        }
+
         Timer resolveTimer;
         for(unsigned i = 0; i < _numThreads; ++i) {
             resolveOutOfOrder(i, tstage, syms); // note: this func is NOT thread-safe yet!!!
@@ -1641,6 +1646,10 @@ namespace tuplex {
             memcpy(out_buf.ptr(), buf, bufSize);
             out_buf.movePtr(bufSize);
             env->numExceptionRows++;
+
+            // update type (TODO, first traceback sample??)
+            auto key = std::make_tuple(exceptionOperatorID, exceptionCode);
+            env->exceptionCounts[key]++;
         } else {
 
             // check if bufSize exceeds limit, if so resize and call again!

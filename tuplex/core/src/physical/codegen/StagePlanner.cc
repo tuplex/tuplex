@@ -112,8 +112,8 @@ namespace tuplex {
 
             if(!_useConstantFolding || sample.size() < MINIMUM_SAMPLES_REQUIRED) {
                 if(sample.size() < MINIMUM_SAMPLES_REQUIRED)
-                    logger.warn("not enough samples to reliably apply constant folding optimization, skipping.");
-                return vec_prepend(_inputNode, _operators);
+                    logger.warn("not enough samples to reliably apply constant folding optimization, consider increasing sample size.");
+                // return vec_prepend(_inputNode, _operators);
             }
 
             // should have at least 100 samples to determine this...

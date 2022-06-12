@@ -1035,6 +1035,14 @@ namespace tuplex {
         for(const auto& uri : _output_uris)
             result.add_outputuris(uri);
 
+        // set exception counts
+        for(const auto& keyval : exception_counts()) {
+            // compress keys
+            assert(std::get<0>(keyval.first) < std::numeric_limits<int32_t>::max() && std::get<1>(keyval.first) < std::numeric_limits<int32_t>::max());
+            auto key = std::get<0>(keyval.first) << 32 | std::get<1>(leyval.second);
+            (*result.mutable_exceptioncounts())[key] = keyval.second;
+        }
+
         // TODO: other stuff...
 //        for(const auto& uri : inputURIs) {
 //            result.add_inputuris(uri.toPath());

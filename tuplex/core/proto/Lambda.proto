@@ -184,18 +184,19 @@ message InvocationResponse {
     uint64 numExceptions = 7;
     uint64 numBytesWritten = 8;
 
-    CodePathStats rowStats = 9;
+    map<uint64, uint64> exceptionCounts = 9;
+    CodePathStats rowStats = 10;
 
-    ContainerInfo container = 10;
-    repeated ContainerInfo invokedContainers = 11;
-    repeated RequestInfo invokedRequests = 12;
+    ContainerInfo container = 11;
+    repeated ContainerInfo invokedContainers = 12;
+    repeated RequestInfo invokedRequests = 13;
 
     // messages may contain already result data, given in form of a resource
-    repeated Resource resources = 13;
+    repeated Resource resources = 14;
 
     // stats
-    double awsInitTime = 14;
-    double taskExecutionTime = 15;
-    map<string, uint64> s3Stats = 16;
-    map<string, double> breakdownTimes = 17;
+    double awsInitTime = 15;
+    double taskExecutionTime = 16;
+    map<string, uint64> s3Stats = 17;
+    map<string, double> breakdownTimes = 18;
 }

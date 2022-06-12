@@ -217,6 +217,17 @@ namespace tuplex {
 
         std::shared_ptr<TransformStage::JITSymbols> compileTransformStage(TransformStage& stage, bool use_llvm_optimizer=false);
 
+
+        inline std::unordered_map<std::tuple<int64_t, int64_t>, int64_t> exception_counts() const {
+            std::unordered_map<std::tuple<int64_t, int64_t>, int64_t> m;
+            for(unsigned i = 0; i < _numThreads; ++i) {
+                for(const auto& keyval : _threadEnvs[i].exceptionCounts) {
+                    m[keyval.first] += m[keyval.second];
+                }
+            }
+            return m;
+        }
+
         // inherited variables
         WorkerSettings _settings;
         bool _globallyInitialized;
@@ -251,6 +262,7 @@ namespace tuplex {
             Buffer exceptionBuf; //! holds exception rows
             size_t exceptionOriginalPartNo; //! holds original part no for exception buffer
             size_t numExceptionRows; //! how many exception rows
+            std::unordered_map<std::tuple<int64_t, int64_t>, int64_t> exceptionCounts; //! count how many exceptions of which type occur
             void* hashMap; //! for hash output
             uint8_t* nullBucket;
             size_t hashOriginalPartNo; //! original part No
@@ -274,6 +286,7 @@ namespace tuplex {
                 exceptionBuf.reset();
                 exceptionOriginalPartNo = 0;
                 numExceptionRows = 0;
+                exceptionCounts.clear();
                 hashMap = hashmap_new();
                 if(nullBucket)
                     free(nullBucket);

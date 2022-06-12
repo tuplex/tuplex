@@ -690,6 +690,20 @@ namespace tuplex {
         waitForRequests();
         printStatistics();
 
+        // collect exception counts from stage
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+
+            std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> ecounts;
+
+            // aggregate stats over responses
+            for (const auto &task : _tasks) {
+                // @TODO: response needs to contain exception info incl. traceback (?)
+                // -> add this
+                std::cerr<<"SHOULD ADD EXCEPTION ANSWER TO RESPONSE HERE!!!"<<std::endl;
+            }
+        }
+
         // check here whether all files where successfully processed or not!
         // -> reissue requests for missing files...!
 
@@ -1340,6 +1354,11 @@ namespace tuplex {
             logger().info("LAMBDA paths rows took: normal: " + std::to_string(total_normal_path)
             + " general: " + std::to_string(total_general_path) + " interpreter: "
             + std::to_string(total_interpreter_path) + " unresolved: " + std::to_string(total_unresolved));
+
+//            // print exception summary if any occurred
+//            if(total_num_exceptions > 0) {
+//                printErrorTreeHelper
+//            }
 
             // compute cost of s3 + Lambda
             ss << "Lambda #containers used: " << containerIDs.size() << " reused: " << numReused

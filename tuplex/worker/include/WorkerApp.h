@@ -222,7 +222,7 @@ namespace tuplex {
             std::unordered_map<std::tuple<int64_t, int64_t>, int64_t> m;
             for(unsigned i = 0; i < _numThreads; ++i) {
                 for(const auto& keyval : _threadEnvs[i].exceptionCounts) {
-                    m[keyval.first] += m[keyval.second];
+                    m[keyval.first] += keyval.second;
                 }
             }
             return m;

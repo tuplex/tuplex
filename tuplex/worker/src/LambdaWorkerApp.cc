@@ -1039,7 +1039,7 @@ namespace tuplex {
         for(const auto& keyval : exception_counts()) {
             // compress keys
             assert(std::get<0>(keyval.first) < std::numeric_limits<int32_t>::max() && std::get<1>(keyval.first) < std::numeric_limits<int32_t>::max());
-            auto key = std::get<0>(keyval.first) << 32 | std::get<1>(leyval.second);
+            auto key = std::get<0>(keyval.first) << 32 | std::get<1>(keyval.first);
             (*result.mutable_exceptioncounts())[key] = keyval.second;
         }
 

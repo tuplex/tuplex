@@ -1027,18 +1027,18 @@ namespace tuplex {
         //     return SerializableValue(resVal, resSize);
         // }
 
-        // codegen::SerializableValue createMathCosCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
-        //                                              const python::Type &retType,
-        //                                              const std::vector<tuplex::codegen::SerializableValue> &args) {
-        //     // call llvm intrinsic
-        //     auto val = args.front();
-        //     auto& context = builder.GetInsertBlock()->getContext();
+        codegen::SerializableValue createMathCosCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+                                                     const python::Type &retType,
+                                                     const std::vector<tuplex::codegen::SerializableValue> &args) {
+            // call llvm intrinsic
+            auto val = args.front();
+            auto& context = builder.GetInsertBlock()->getContext();
 
-        //     // cast to f64
-        //     auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::cos, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
-        //     auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
-        //     return SerializableValue(resVal, resSize);
-        // }
+            // cast to f64
+            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::cos, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
+            return SerializableValue(resVal, resSize);
+        }
 
         codegen::SerializableValue createMathSqrtCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
                                                      const python::Type &retType,

@@ -742,37 +742,29 @@ TEST_F(MathFunctionsTest, MathPow) {
 //     ce.importModuleAs("math", "math");
 
 //     auto v1 = c.parallelize({
-//         Row(0.0), Row(-1.0), Row(3.0), Row(INFINITY)
+//         Row(INFINITY),
+//         Row(-INFINITY),
+//         Row(INFINITY + INFINITY),
+//         Row(NAN),
+//         Row(M_PI),
+//         Row(0.0),
+//         Row(1),
+//         Row(-1.0),
+//         Row(-128),
+//         Row(true)
 //     }).map(UDF("lambda x: math.isinf(x)", "", ce)).collectAsVector();
 
-//     EXPECT_EQ(v1.size(), 4);
-//     EXPECT_EQ(v1[0].getBoolean(0), false);
-//     EXPECT_EQ(v1[1].getBoolean(0), false);
-//     EXPECT_EQ(v1[2].getBoolean(0), false);
-//     EXPECT_EQ(v1[3].getBoolean(0), true);
-    
-//     auto v2 = c.parallelize({
-//         Row(1.0), Row(-INFINITY), Row(-1.0), Row(0.0), Row(INFINITY)
-//     }).map(UDF("lambda x: math.isinf(x)", "", ce)).collectAsVector();
-
-//     EXPECT_EQ(v2.size(), 5);
-//     EXPECT_EQ(v2[0].getBoolean(0), false);
-//     EXPECT_EQ(v2[1].getBoolean(0), true);
-//     EXPECT_EQ(v2[2].getBoolean(0), false);
-//     EXPECT_EQ(v2[3].getBoolean(0), false);
-//     EXPECT_EQ(v2[4].getBoolean(0), true);
-
-//     auto v3 = c.parallelize({
-//         Row(-1.0), Row(INFINITY), Row(1.5), Row(NAN), Row(-INFINITY), Row(0.0)
-//     }).map(UDF("lambda x: math.isinf(x)", "", ce)).collectAsVector();
-
-//     EXPECT_EQ(v3.size(), 6);
-//     EXPECT_DOUBLE_EQ(v3[0].getBoolean(0), false);
-//     EXPECT_DOUBLE_EQ(v3[1].getBoolean(0), true);
-//     EXPECT_DOUBLE_EQ(v3[2].getBoolean(0), false);
-//     EXPECT_DOUBLE_EQ(v3[3].getBoolean(0), false);
-//     EXPECT_DOUBLE_EQ(v3[4].getBoolean(0), true);
-//     EXPECT_DOUBLE_EQ(v3[5].getBoolean(0), false);
+//     EXPECT_EQ(v1.size(), 10);
+//     EXPECT_EQ(v1[0].getBoolean(0), true);
+//     EXPECT_EQ(v1[1].getBoolean(0), true);
+//     EXPECT_EQ(v1[2].getBoolean(0), true);
+//     EXPECT_EQ(v1[3].getBoolean(0), false);
+//     EXPECT_EQ(v1[4].getBoolean(0), false);
+//     EXPECT_EQ(v1[5].getBoolean(0), false);
+//     EXPECT_EQ(v1[6].getBoolean(0), false);
+//     EXPECT_EQ(v1[7].getBoolean(0), false);
+//     EXPECT_EQ(v1[8].getBoolean(0), false);
+//     EXPECT_EQ(v1[9].getBoolean(0), false);
 
 //     python::lockGIL();
 //     python::closeInterpreter();

@@ -1012,9 +1012,8 @@ namespace tuplex {
             auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xFFF0000000000000));
             // %4 = or i1 %2, %3, !dbg !1245
             auto orRes = builder.CreateOr(negCmp, posCmp);
-            // %5 = zext i1 %4 to i32, !dbg !1246
-            auto resVal = builder.CreateZExt(orRes, llvm::Type::getInt32Ty(context));
             // ret i32 %5, !dbg !1247
+            auto resVal = _env.upcastToBoolean(builder, orRes);
             auto resSize = _env.i64Const(sizeof(int32_t));
 
             return SerializableValue(resVal, resSize);

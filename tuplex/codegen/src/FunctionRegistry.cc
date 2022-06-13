@@ -1007,10 +1007,9 @@ namespace tuplex {
             auto val = args.front();
 
             // %2 = fcmp oeq double %0, 0x7FF0000000000000, !dbg !1243
-            // ConstantInt::get(i32Val->getType(), 0)
-            auto posCmp = builder.CreateFCmpOEQ(val.val, 0x7FF0000000000000);
+            auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7FF0000000000000));
             // %3 = fcmp oeq double %0, 0xFFF0000000000000
-            auto negCmp = builder.CreateFCmpOEQ(val.val, 0xFFF0000000000000);
+            auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xFFF0000000000000));
             // %4 = or i1 %2, %3, !dbg !1245
             auto orRes = builder.CreateOr(negCmp, posCmp);
             // %5 = zext i1 %4 to i32, !dbg !1246
@@ -1027,8 +1026,6 @@ namespace tuplex {
         //     using namespace llvm;
         //     auto& context = builder.GetInsertBlock()->getContext();
         //     auto val = args.front();
-
-            
         //     return SerializableValue(resVal, resSize);
         // }
 

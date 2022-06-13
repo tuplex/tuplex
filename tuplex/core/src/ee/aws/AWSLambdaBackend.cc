@@ -707,6 +707,8 @@ namespace tuplex {
                     int64_t ecCode = keyval.first & 0xFFFFFFFF;
                     auto key = std::make_tuple(opID, i64ToEC(ecCode));
                     ecounts[key] += keyval.second;
+
+                    std::cout<<"opID="<<opID<<" ecCode="<<ecCode<<" #: "<<keyval.second<<std::endl;
                 }
             }
         }

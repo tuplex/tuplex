@@ -696,79 +696,45 @@ TEST_F(MathFunctionsTest, MathPow) {
     python::closeInterpreter();
 }
 
-// TEST_F(MathFunctionsTest, TEST) {
-//     using namespace std;
-//     using namespace tuplex;
+TEST_F(MathFunctionsTest, MathIsInf) {
+    using namespace std;
+    using namespace tuplex;
 
-//     python::initInterpreter();
-//     python::unlockGIL();
+    python::initInterpreter();
+    python::unlockGIL();
 
-//     Context c(microTestOptions());
-//     ClosureEnvironment ce;
-//     ce.importModuleAs("math", "math");
+    Context c(microTestOptions());
+    ClosureEnvironment ce;
+    ce.importModuleAs("math", "math");
 
-//     auto v1 = c.parallelize({
-//         Row(25.0, 0.5), Row(3.0, -2.0), Row(-4.0, 3.0), Row(-5.0, -4.0)
-//     }).map(UDF("lambda x, y: math.pow(x, y)", "", ce)).collectAsVector();
-//     EXPECT_EQ(v1.size(), 4);
-//     EXPECT_DOUBLE_EQ(v1[0].getDouble(0), 5.0);
-//     EXPECT_DOUBLE_EQ(v1[1].getDouble(0), pow(3.0, -2.0));
-//     EXPECT_DOUBLE_EQ(v1[2].getDouble(0), -64.0);
-//     EXPECT_DOUBLE_EQ(v1[3].getDouble(0), pow(-5.0, -4.0));
+    auto v1 = c.parallelize({
+        Row(INFINITY),
+        Row(-INFINITY),
+        Row(INFINITY + INFINITY),
+        Row(NAN),
+        Row(M_PI),
+        Row(0.0),
+        Row(1),
+        Row(-1.0),
+        Row(-128),
+        Row(true)
+    }).map(UDF("lambda x: math.isinf(x)", "", ce)).collectAsVector();
 
-//     auto v2 = c.parallelize({
-//         Row(0), Row(1), Row(4), Row(16)
-//     }).map(UDF("lambda x: math.sqrt(x)", "", ce)).collectAsVector();
-    
-//     EXPECT_EQ(v2.size(), 4);
-//     EXPECT_DOUBLE_EQ(v2[0].getDouble(0), 0.0);
-//     EXPECT_DOUBLE_EQ(v2[1].getDouble(0), 1.0);
-//     EXPECT_DOUBLE_EQ(v2[2].getDouble(0), 2.0);
-//     EXPECT_DOUBLE_EQ(v2[3].getDouble(0), 4.0);
+    EXPECT_EQ(v1.size(), 10);
+    EXPECT_EQ(v1[0].getBoolean(0), true);
+    EXPECT_EQ(v1[1].getBoolean(0), true);
+    EXPECT_EQ(v1[2].getBoolean(0), true);
+    EXPECT_EQ(v1[3].getBoolean(0), false);
+    EXPECT_EQ(v1[4].getBoolean(0), false);
+    EXPECT_EQ(v1[5].getBoolean(0), false);
+    EXPECT_EQ(v1[6].getBoolean(0), false);
+    EXPECT_EQ(v1[7].getBoolean(0), false);
+    EXPECT_EQ(v1[8].getBoolean(0), false);
+    EXPECT_EQ(v1[9].getBoolean(0), false);
 
-//     python::lockGIL();
-//     python::closeInterpreter();
-// }
-
-// TEST_F(MathFunctionsTest, MathIsInf) {
-//     using namespace std;
-//     using namespace tuplex;
-
-//     python::initInterpreter();
-//     python::unlockGIL();
-
-//     Context c(microTestOptions());
-//     ClosureEnvironment ce;
-//     ce.importModuleAs("math", "math");
-
-//     auto v1 = c.parallelize({
-//         Row(INFINITY),
-//         Row(-INFINITY),
-//         Row(INFINITY + INFINITY),
-//         Row(NAN),
-//         Row(M_PI),
-//         Row(0.0),
-//         Row(1),
-//         Row(-1.0),
-//         Row(-128),
-//         Row(true)
-//     }).map(UDF("lambda x: math.isinf(x)", "", ce)).collectAsVector();
-
-//     EXPECT_EQ(v1.size(), 10);
-//     EXPECT_EQ(v1[0].getBoolean(0), true);
-//     EXPECT_EQ(v1[1].getBoolean(0), true);
-//     EXPECT_EQ(v1[2].getBoolean(0), true);
-//     EXPECT_EQ(v1[3].getBoolean(0), false);
-//     EXPECT_EQ(v1[4].getBoolean(0), false);
-//     EXPECT_EQ(v1[5].getBoolean(0), false);
-//     EXPECT_EQ(v1[6].getBoolean(0), false);
-//     EXPECT_EQ(v1[7].getBoolean(0), false);
-//     EXPECT_EQ(v1[8].getBoolean(0), false);
-//     EXPECT_EQ(v1[9].getBoolean(0), false);
-
-//     python::lockGIL();
-//     python::closeInterpreter();
-// }
+    python::lockGIL();
+    python::closeInterpreter();
+}
 
 TEST_F(MathFunctionsTest, MathIsNan) {
     using namespace std;
@@ -790,7 +756,7 @@ TEST_F(MathFunctionsTest, MathIsNan) {
         Row(0.0), 
         Row(1), 
         Row(-1.0), 
-        Row(-128.0),
+        Row(-128.0), // doesn't pass if Row(128) ?
         Row(3.0), 
         Row(true)
     }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();

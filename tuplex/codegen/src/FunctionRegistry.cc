@@ -999,25 +999,27 @@ namespace tuplex {
             }
         }
 
-        // codegen::SerializableValue FunctionRegistry::createMathIsInfCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
-        //                                              const python::Type &retType,
-        //                                              const std::vector<tuplex::codegen::SerializableValue> &args) {
-        //     using namespace llvm;
-        //     auto& context = builder.GetInsertBlock()->getContext();
-        //     auto val = args.front();
+        codegen::SerializableValue FunctionRegistry::createMathIsInfCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+                                                     const python::Type &retType,
+                                                     const std::vector<tuplex::codegen::SerializableValue> &args) {
+            using namespace llvm;
+            auto& context = builder.GetInsertBlock()->getContext();
+            auto val = args.front();
 
-        //     // %2 = fcmp oeq double %0, 0x7FF0000000000000, !dbg !1243
-        //     // %3 = fcmp oeq double %0, 0xFFF0000000000000
-        //     // %4 = or i1 %2, %3, !dbg !1245
-        //     // %5 = zext i1 %4 to i32, !dbg !1246
-        //     // ret i32 %5, !dbg !1247
+            // %2 = fcmp oeq double %0, 0x7FF0000000000000, !dbg !1243
+            // ConstantInt::get(i32Val->getType(), 0)
+            auto posCmp = builder.CreateFCmpOEQ(val.val, 0x7FF0000000000000);
+            // %3 = fcmp oeq double %0, 0xFFF0000000000000
+            auto negCmp = builder.CreateFCmpOEQ(val.val, 0xFFF0000000000000);
+            // %4 = or i1 %2, %3, !dbg !1245
+            auto orRes = builder.CreateOr(negCmp, posCmp);
+            // %5 = zext i1 %4 to i32, !dbg !1246
+            auto resVal = builder.CreateZExt(orRes, llvm::Type::getInt32Ty(context));
+            // ret i32 %5, !dbg !1247
+            auto resSize = _env.i64Const(sizeof(int32_t));
 
-        //     llvm::Value* F64Infinity = _env.f64Const(INFINITY);
-        //     // make comparison instruction
-        //     auto resVal = builder.CreateICmpEQ(val.val, F64Infinity);
-        //     auto resSize = _env.i64Const(sizeof(bool));
-        //     return SerializableValue(resVal, resSize);
-        // }
+            return SerializableValue(resVal, resSize);
+        }
 
         // codegen::SerializableValue FunctionRegistry::createMathIsCloseCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
         //                                              const python::Type &retType,

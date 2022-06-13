@@ -690,17 +690,24 @@ namespace tuplex {
         waitForRequests();
         printStatistics();
 
+        std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> ecounts;
+
         // collect exception counts from stage
         {
             std::lock_guard<std::mutex> lock(_mutex);
 
-            std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> ecounts;
-
             // aggregate stats over responses
             for (const auto &task : _tasks) {
                 // @TODO: response needs to contain exception info incl. traceback (?)
-                // -> add this
-                std::cerr<<"SHOULD ADD EXCEPTION ANSWER TO RESPONSE HERE!!!"<<std::endl;
+                for(const auto& keyval : task.exceptioncounts()) {
+                    // decode from message
+                    // auto key = std::get<0>(keyval.first) << 32 | std::get<1>(keyval.first);
+                    // auto key = std::make_tuple(exceptionOperatorID, exceptionCode);
+                    int64_t opID = keyval.first >> 32;
+                    int64_t ecCode = keyval.first & 0xFFFFFFFF;
+                    auto key = std::make_tuple(opID, i64ToEC(ecCode));
+                    ecounts[key] += keyval.second;
+                }
             }
         }
 
@@ -726,7 +733,6 @@ namespace tuplex {
         // @TODO: results sets etc.
         switch(tstage->outputMode()) {
             case EndPointMode::FILE: {
-                std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> ecounts; // Todo: fill in from lambda
                 tstage->setFileResult(ecounts);
                 break;
             }

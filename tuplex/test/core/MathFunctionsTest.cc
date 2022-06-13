@@ -790,7 +790,7 @@ TEST_F(MathFunctionsTest, MathIsNan) {
         Row(0.0), 
         Row(1), 
         Row(-1.0), 
-        Row(-128), 
+        Row(-128.0),
         Row(3.0), 
         Row(true)
     }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();

@@ -1259,6 +1259,9 @@ namespace tuplex {
             
             if (symbol == "math.isnan")
                 return createMathIsNanCall(builder, argsType, retType, args);
+            
+            if (symbol == "math.isinf")
+                return createMathIsInfCall(builder, argsType, retType, args);
 
 
             // re module

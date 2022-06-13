@@ -58,10 +58,16 @@ namespace tuplex {
             }
             
             // math.isnan
-            auto symb = make_shared<Symbol>("isnan", "isnan", python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::F64), python::Type::BOOLEAN), SymbolType::FUNCTION);
-            symb->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::I64), python::Type::BOOLEAN));
-            symb->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::BOOLEAN), python::Type::BOOLEAN));
-            m->addAttribute(symb);
+            auto isnanSym = make_shared<Symbol>("isnan", "isnan", python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::F64), python::Type::BOOLEAN), SymbolType::FUNCTION);
+            isnanSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::I64), python::Type::BOOLEAN));
+            isnanSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::BOOLEAN), python::Type::BOOLEAN));
+            m->addAttribute(isnanSym);
+
+            // math.isinf
+            auto isinfSym = make_shared<Symbol>("isinf", "isinf", python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::F64), python::Type::BOOLEAN), SymbolType::FUNCTION);
+            isinfSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::I64), python::Type::BOOLEAN));
+            isinfSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::BOOLEAN), python::Type::BOOLEAN));
+            m->addAttribute(isinfSym);
 
             // math.ceil/math.floor
             for(const auto& name : vector<string>{"ceil", "floor"}) {

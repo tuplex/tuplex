@@ -972,8 +972,9 @@ namespace tuplex {
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
             auto val = args.front();
+            auto type = argsType.parameters().front();
             
-            if (val.val->getType()->isDoubleTy()) {
+            if (python::Type::F64 == type) {
                 _env.printValue(builder, val.val, "double value\n");
                 auto i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
                 auto shiftedVal = builder.CreateLShr(i64Val, 32);
@@ -991,7 +992,7 @@ namespace tuplex {
                 return SerializableValue(resVal, resSize);
             } else {
                 // only other valid input types are integer and boolean
-                assert(val.val->getType() == _env.i64Type() || val.val->getType() == _env.getBooleanType());
+                assert(python::Type::BOOLEAN == type || python::Type::I64 == type);
                 _env.printValue(builder, val.val, "not double value\n");
                 
                 return SerializableValue(ConstantInt::get(llvm::Type::getInt32Ty(context), 0), _env.i64Const(sizeof(int32_t)));

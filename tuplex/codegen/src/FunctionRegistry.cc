@@ -1005,6 +1005,7 @@ namespace tuplex {
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
             auto val = args.front();
+            _env.printValue(builder, val.val, "isinf value\n");
 
             // %2 = fcmp oeq double %0, 0x7FF0000000000000, !dbg !1243
             auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7FF0000000000000));

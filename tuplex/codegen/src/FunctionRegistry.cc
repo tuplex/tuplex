@@ -1023,7 +1023,7 @@ namespace tuplex {
             // auto andRes = builder.CreateAnd(i64Val, 0x7FFFFFFFFFFFFFFF);
             // auto cmpRes = builder.CreateICmpEQ(andRes, _env.i64Const(0x7FF0000000000000));
 
-            auto resVal = _env.upcastToBoolean(builder, cmpRes);
+            auto resVal = _env.upcastToBoolean(builder, orRes);
             auto resSize = _env.i64Const(sizeof(int64_t));
 
             return SerializableValue(resVal, resSize);

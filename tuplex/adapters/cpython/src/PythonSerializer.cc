@@ -77,7 +77,7 @@ namespace tuplex {
             return dictObj;
         }
 
-        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type) {
+        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type, uintptr_t max_ptr) {
             int64_t current_buffer_index = 0;
 
             auto tree = tuplex::TupleTree<tuplex::Field>(row_type);
@@ -88,7 +88,7 @@ namespace tuplex {
             std::vector<int> curr;
             std::vector<int> prev;
 
-            int bitmap_index = 0;
+            unsigned bitmap_index = 0;
             const uint8_t *bitmap = ptr;
             auto num_bitmap_fields = core::ceilToMultiple(python::numOptionalFields(row_type), 64ul)/64;
             ptr += sizeof(int64_t) * num_bitmap_fields;
@@ -129,7 +129,19 @@ namespace tuplex {
 
                 int curr_index = curr.back();
                 python::Type current_type = tree.fieldType(curr);
-                PyObject *elem_to_insert = createPyObjectFromMemory(ptr + current_buffer_index, current_type, bitmap, bitmap_index);
+                PyObject *elem_to_insert = nullptr;
+                if (current_type.isOptionType() && current_type.getReturnType().isTupleType()) {
+                    // createPyTupleFromMemory requires a ptr to start of the actual tuple data, so need to decode and add offset here
+                    uint64_t offset = *((uint64_t *)(ptr + current_buffer_index));
+                    assert((uintptr_t)(ptr + current_buffer_index + offset) <= max_ptr);
+                    elem_to_insert = createPyObjectFromMemory(ptr + current_buffer_index + offset, current_type,
+                                                              max_ptr, bitmap, bitmap_index);
+                } else {
+                    // otherwise, simply pass ptr to the current field
+                    elem_to_insert = createPyObjectFromMemory(ptr + current_buffer_index, current_type, max_ptr,
+                                                              bitmap, bitmap_index);
+                }
+
                 if(current_type.isOptionType()) bitmap_index++;
                 if (elem_to_insert == nullptr) {
                     return nullptr;
@@ -166,7 +178,7 @@ namespace tuplex {
             return test;
         }
 
-        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type) {
+        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type, uintptr_t max_ptr) {
             assert(row_type.isListType() && row_type != python::Type::EMPTYLIST);
             auto elementType = row_type.elementType();
             if(elementType.isSingleValued()) {
@@ -193,9 +205,9 @@ namespace tuplex {
                 // access the field element
                 auto elem = *(uint64_t *) ptr;
                 auto offset = (uint32_t) elem;
-                auto length = (uint32_t) (elem >> 32ul);
 
                 // move to varlen field
+                assert((uintptr_t)(ptr + offset) <= max_ptr);
                 ptr = &ptr[offset];
 
                 // get number of elements
@@ -203,42 +215,107 @@ namespace tuplex {
                 ptr += sizeof(int64_t);
                 auto ret = PyList_New(numElements);
 
+                // get bitmap
+                std::vector<bool> bitmapV = getBitmapFromType(row_type, ptr, numElements);
+
                 for(size_t i=0; i<numElements; i++) {
                     PyObject* element;
                     if(elementType == python::Type::I64) {
                         element = PyLong_FromLong(*reinterpret_cast<const int64_t*>(ptr));
+                        ptr += sizeof(int64_t);
                     } else if(elementType == python::Type::F64) {
                         element = PyFloat_FromDouble(*reinterpret_cast<const double*>(ptr));
+                        ptr += sizeof(int64_t);
                     } else if(elementType == python::Type::BOOLEAN) {
                         element = PyBool_FromLong(*reinterpret_cast<const int64_t*>(ptr));
+                        ptr += sizeof(int64_t);
                     } else if (elementType == python::Type::STRING) {
                         char *string_errors = nullptr;
-                        auto curStrOffset = *reinterpret_cast<const int64_t *>(ptr);
-                        int64_t curStrLen;
-                        // string lists are serialized (in the varlen section) as | num elements | offset 1 | ... | offset n | string 1 | ... | string n
-                        // we need to use the offsets to calculate the lengths of the strings
-                        if(i == numElements-1) {
-                            // for the final string, we need to calculate the length by subtracting the offset from the total length of the varlen section (minus the spaces used for the first n-1 offsets and the number of elements)
-                            curStrLen = (length - (numElements*sizeof(int64_t))) - curStrOffset;
-                        } else {
-                            // for any string other than the final string, we calculate the length by taking the difference between consecutive offsets (and accounting for the 8 byte shift in where the offsets start from)
-                            auto nextStrOffset = *reinterpret_cast<const int64_t*>(ptr+sizeof(int64_t));
-                            curStrLen = nextStrOffset - (curStrOffset-sizeof(int64_t));
-                        }
-                        element = PyUnicode_DecodeUTF8(reinterpret_cast<const char*>(&ptr[curStrOffset]), curStrLen-1, string_errors);
+                        // get offset for string
+                        auto currOffset = *reinterpret_cast<const uint64_t *>(ptr);
+                        assert((uintptr_t)(ptr + currOffset) <= max_ptr);
+                        auto currStr = reinterpret_cast<const char*>(&ptr[currOffset]);
+                        element = PyUnicode_DecodeUTF8(currStr, (long)(strlen(currStr)), string_errors);
+                        ptr += sizeof(int64_t);
                     } else if(elementType.isTupleType()) {
-                        element = createPyTupleFromMemory(ptr, elementType);
+                        auto currOffset = *(uint64_t *)ptr;
+                        assert((uintptr_t)(ptr + currOffset) <= max_ptr);
+                        element = createPyTupleFromMemory(ptr + currOffset, elementType, max_ptr);
+                        ptr += sizeof(int64_t);
+                    } else if(elementType.isListType()) {
+                        element = createPyListFromMemory(ptr, elementType, max_ptr);
+                        ptr += sizeof(int64_t);
                     } else if(elementType.isDictionaryType()) {
                         element = createPyDictFromMemory(ptr);
+                        ptr += sizeof(int64_t);
+                    } else if(elementType.isOptionType()) {
+                        auto underlyingType = elementType.getReturnType();
+                        if(underlyingType == python::Type::BOOLEAN) {
+                            if(bitmapV[i]) {
+                                Py_XINCREF(Py_None);
+                                element = Py_None;
+                            } else {
+                                element = PyBool_FromLong(*reinterpret_cast<const int64_t*>(ptr));
+                                ptr += sizeof(int64_t);
+                            }
+                        } else if(underlyingType == python::Type::I64) {
+                            if(bitmapV[i]) {
+                                Py_XINCREF(Py_None);
+                                element = Py_None;
+                            } else {
+                                element = PyLong_FromLong(*reinterpret_cast<const int64_t*>(ptr));
+                                ptr += sizeof(int64_t);
+                            }
+                        } else if(underlyingType == python::Type::F64) {
+                            if(bitmapV[i]) {
+                                Py_XINCREF(Py_None);
+                                element = Py_None;
+                            } else {
+                                element = PyFloat_FromDouble(*reinterpret_cast<const double*>(ptr));
+                                ptr += sizeof(int64_t);
+                            }
+                        } else if(underlyingType == python::Type::STRING) {
+                            if(bitmapV[i]) {
+                                Py_XINCREF(Py_None);
+                                element = Py_None;
+                            } else {
+                                char *string_errors = nullptr;
+                                // get offset for string
+                                auto currOffset = *reinterpret_cast<const uint64_t *>(ptr);
+                                assert((uintptr_t)(ptr + currOffset) <= max_ptr);
+                                auto currStr = reinterpret_cast<const char*>(&ptr[currOffset]);
+                                element = PyUnicode_DecodeUTF8(currStr, (long)(strlen(currStr)), string_errors);
+                                ptr += sizeof(int64_t);
+                            }
+                        } else if(underlyingType.isListType()) {
+                            if(bitmapV[i]) {
+                                Py_XINCREF(Py_None);
+                                element = Py_None;
+                            } else {
+                                element = createPyListFromMemory(ptr, underlyingType, max_ptr);
+                                ptr += sizeof(int64_t);
+                            }
+                        } else if(underlyingType.isTupleType()) {
+                            if(bitmapV[i]) {
+                                Py_XINCREF(Py_None);
+                                element = Py_None;
+                            } else {
+                                uint64_t currOffset = *((uint64_t *)(ptr));
+                                assert((uintptr_t)(ptr + currOffset) <= max_ptr);
+                                element = createPyTupleFromMemory(ptr + currOffset, underlyingType, max_ptr);
+                                ptr += sizeof(int64_t);
+                            }
+                        } else throw std::runtime_error("Invalid list type: " + row_type.desc());
                     } else throw std::runtime_error("Invalid list type: " + row_type.desc());
                     PyList_SET_ITEM(ret, i, element);
-                    ptr += sizeof(int64_t);
                 }
                 return ret;
             }
         }
 
-        PyObject *createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, const uint8_t *bitmap, int index) {
+        PyObject *
+        createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, uintptr_t max_ptr,
+                                 const uint8_t *bitmap, unsigned index) {
             if (row_type == python::Type::BOOLEAN) {
                 return PyBool_FromLong(ptr[0]);
             } else if (row_type == python::Type::I64) {
@@ -249,13 +326,14 @@ namespace tuplex {
                 auto elem = *(uint64_t *) (ptr);
                 auto offset = (uint32_t) elem;
                 auto length = (uint32_t) (elem >> 32ul);
+                assert((uintptr_t)(ptr + offset + length) <= max_ptr);
                 auto str = reinterpret_cast<const char *>(&ptr[offset]);
                 char *string_errors = nullptr;
                 return PyUnicode_DecodeUTF8(str, length - 1, string_errors);
             } else if (row_type == python::Type::EMPTYTUPLE) {
                 return PyTuple_New(0);
             } else if (row_type.isTupleType()) {
-                return createPyTupleFromMemory(ptr, row_type);
+                return createPyTupleFromMemory(ptr, row_type, max_ptr);
             } else if (row_type == python::Type::EMPTYDICT) {
                 return PyDict_New();
             } else if (row_type.isDictionaryType() || row_type == python::Type::GENERICDICT) {
@@ -263,10 +341,12 @@ namespace tuplex {
             } else if(row_type == python::Type::EMPTYLIST) {
                 return PyList_New(0);
             } else if(row_type.isListType()) {
-                return createPyListFromMemory(ptr, row_type);
+                return createPyListFromMemory(ptr, row_type, max_ptr);
             } else if(row_type.isOptionType()) { // TODO: should this be [isOptional()]?
+                bool singleValue = false;
                 if(!bitmap) {
                     // If bitmap was null, this means that it was a single value, not part of a tuple
+                    singleValue = true;
                     bitmap = ptr;
                     index = 0;
                     ptr += (sizeof(uint64_t)/sizeof(uint8_t));
@@ -278,12 +358,20 @@ namespace tuplex {
                 }
 
                 auto t = row_type.getReturnType();
-                return createPyObjectFromMemory(ptr, t);
+                if (t.isTupleType() && singleValue) {
+                    // offset exists
+                    uint64_t sizeOffset = *((uint64_t *)ptr);
+                    uint64_t offset = sizeOffset & 0xFFFFFFFF;
+                    assert((uintptr_t)(ptr + offset) <= max_ptr);
+                    ptr += offset;
+                }
+                return createPyObjectFromMemory(ptr, t, max_ptr);
             } else if(row_type == python::Type::PYOBJECT) {
                 // cloudpickle, deserialize
                 auto elem = *(uint64_t *) (ptr);
                 auto offset = (uint32_t) elem;
                 auto buf_size = (uint32_t) (elem >> 32ul);
+                assert((uintptr_t)(ptr + offset + buf_size) <= max_ptr);
                 auto buf = reinterpret_cast<const char *>(&ptr[offset]);
                 return python::deserializePickledObject(python::getMainModule(), buf, buf_size);
             } else {
@@ -295,7 +383,7 @@ namespace tuplex {
             return Py_None;
         }
 
-        int64_t checkTupleCapacity(const uint8_t *ptr, int64_t capacity, const python::Type &row_type) {
+        int64_t checkTupleCapacity(const uint8_t *ptr, size_t capacity, const python::Type &row_type) {
             auto tree = tuplex::TupleTree<tuplex::Field>(row_type);
             auto indices = tree.getMultiIndices();
             auto num_bytes = static_cast<int64_t>(indices.size() * sizeof(int64_t));
@@ -316,7 +404,7 @@ namespace tuplex {
             return num_bytes;
         }
 
-        int64_t serializationSize(const uint8_t *ptr, int64_t capacity, const python::Type &row_type) {
+        int64_t serializationSize(const uint8_t *ptr, size_t capacity, const python::Type &row_type) {
 
             // should be identical to Deserializer.inferlength...
 
@@ -377,7 +465,7 @@ namespace tuplex {
 
 
         // TODO: check for errors when creating PyObjects
-        bool fromSerializedMemory(const uint8_t *ptr, int64_t capacity, const tuplex::Schema &schema, PyObject **obj,
+        bool fromSerializedMemory(const uint8_t *ptr, size_t capacity, const tuplex::Schema &schema, PyObject **obj,
                                   const uint8_t **nextptr) {
             python::Type row_type = schema.getRowType();
 
@@ -390,12 +478,30 @@ namespace tuplex {
             //     return false;
             // }
 
-            *obj = createPyObjectFromMemory(ptr, row_type);
+            *obj = createPyObjectFromMemory(ptr, row_type, (uintptr_t)(ptr + capacity));
 
             if (nextptr) {
                 *nextptr = ptr + serializationSize(ptr, capacity, row_type);
             }
             return *obj != nullptr;
+        }
+
+        std::vector<bool> getBitmapFromType(const python::Type &objectType, const uint8_t *&ptr, size_t numElements) {
+            std::vector<bool> bitmapV;
+            bitmapV.reserve(numElements);
+            if (objectType.isListType()) {
+                if (objectType.elementType().isOptionType()) {
+                    auto numBitmapFields = core::ceilToMultiple((unsigned long)numElements, 64ul) / 64;
+                    auto bitmapSize = numBitmapFields * sizeof(uint64_t);
+                    auto *bitmapAddr = (uint64_t *)ptr;
+                    ptr += bitmapSize;
+                    for (size_t i = 0; i < numElements; i++) {
+                        bool currBit = (bitmapAddr[i / 64] >> (i % 64)) & 0x1;
+                        bitmapV.push_back(currBit);
+                    }
+                }
+            }
+            return bitmapV;
         }
     }
 }

@@ -21,28 +21,38 @@ namespace tuplex {
          * Creates Python object from raw memory (deserialize)
          * @param ptr memory location to where serialized data is
          * @param row_type holding information on types of input memory
+         * @param max_ptr upper bound of ptr
          * @param bitmap pointer to bitmap (i.e. multiple 64bit blocks)
          * @param index of the element within the bitmap
          * @return Python object holding deserialized elements
          */
-        PyObject *createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, const uint8_t *bitmap = nullptr, int index = 0);
+        PyObject* createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, uintptr_t max_ptr,
+                                 const uint8_t *bitmap = nullptr, unsigned index = 0);
 
         /*!
          * Creates Python tuple object from raw memory (deserialize)
          * @param ptr memory location to where serialized data is
          * @param row_type holding information on types of input memory
+         * @param max_ptr upper bound of ptr
          * @return Python object holding deserialized elements
          */
-        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type);
+        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type, uintptr_t max_ptr);
 
         PyObject *createPyDictFromMemory(const uint8_t *ptr);
 
-        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type);
+        /*!
+         * Creates Python list object from raw memory (deserialize)
+         * @param ptr memory location to where serialized data is
+         * @param row_type holding information on types of input memory
+         * @param max_ptr upper bound of ptr
+         * @return Python object holding deserialized elements
+         */
+        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type, uintptr_t max_ptr);
 
         /*!
          * Checks if capacity for buffer with schema is valid (if it is possible for buffer to hold such data given schema)
          * @param ptr memory location to where serialized data is
-         * @param capacity size of buffer
+         * @param capacity size of buffer, negative values are invalid.
          * @param row_type holding information on types of input memory
          * @return bool for if capacity is valid or not
          */
@@ -55,7 +65,16 @@ namespace tuplex {
          * @param row_type holding information on types of input memory
          * @return -1 if invalid, size of serialized data if valid
          */
-        int64_t checkTupleCapacity(const uint8_t *ptr, int64_t capacity, const python::Type &row_type);
+        int64_t checkTupleCapacity(const uint8_t *ptr, size_t capacity, const python::Type &row_type);
+
+        /*!
+         * map bitmap of the object at ptr to a vector with numElements true/false values
+         * @param objectType current object type that contains optional value
+         * @param ptr memory location to where the start of bitmap
+         * @param numElements number of elements in objectType for which bitmap is needed
+         * @return vector of booleans representing a bitmap indicating whether element is null (true) or not (false).
+         */
+        std::vector<bool> getBitmapFromType(const python::Type &objectType, const uint8_t *&ptr, size_t numElements);
     }
 }
 

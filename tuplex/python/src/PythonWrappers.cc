@@ -172,8 +172,8 @@ namespace tuplex {
 
                     Partition* partition = nullptr;
                     size_t pos = 0;
-                    while(rs->hasNextPartition()) {
-                        partition = rs->getNextPartition();
+                    while(rs->hasNextNormalPartition()) {
+                        partition = rs->getNextNormalPartition();
 
                         // add memory towards list object
                         auto ptr = partition->lockRaw();
@@ -318,7 +318,7 @@ namespace tuplex {
             } else {
                 ClosureEnvironment::Constant c;
                 c.identifier = identifier;
-                c.type = python::mapPythonClassToTuplexType(val);
+                c.type = python::mapPythonClassToTuplexType(val, false);
 
                 c.value = python::pythonToField(val);
                 // // call json.dumps

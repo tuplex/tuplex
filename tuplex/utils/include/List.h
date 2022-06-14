@@ -52,6 +52,8 @@ namespace tuplex {
         size_t numElements() const { return _numElements; }
         Field getField(const int i) const;
 
+        size_t numNonNullElements() const;
+
         friend bool operator == (const List& rhs, const List& lhs);
 
         static List from_vector(const std::vector<tuplex::Field>& elements) {

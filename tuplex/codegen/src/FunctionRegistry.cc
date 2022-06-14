@@ -975,13 +975,14 @@ namespace tuplex {
             auto type = argsType.parameters().front();
             
             if (python::Type::F64 == type || python::Type::I64 == type) {
+                llvm::Value* i64Val;
                 if (python::Type::F64 == type) {
                     _env.printValue(builder, val.val, "double/python float value\n");
-                    auto i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
+                    i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
                 } else {
                     assert(python::Type::I64 == type);
                     _env.printValue(builder, val.val, "int value\n");
-                    auto i64Val = val.val;
+                    i64Val = val.val;
                 }
                 
                 auto shiftedVal = builder.CreateLShr(i64Val, 32);

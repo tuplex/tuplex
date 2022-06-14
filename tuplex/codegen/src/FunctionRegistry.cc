@@ -1007,27 +1007,70 @@ namespace tuplex {
             auto val = args.front();
             _env.printValue(builder, val.val, "isinf value\n");
 
-            // %2 = fcmp oeq double %0, 0x7FF0000000000000, !dbg !1243
             auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7FF0000000000000));
-            // %3 = fcmp oeq double %0, 0xFFF0000000000000
             auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xFFF0000000000000));
-            // %4 = or i1 %2, %3, !dbg !1245
             auto orRes = builder.CreateOr(negCmp, posCmp);
-            // ret i32 %5, !dbg !1247
+            
             auto resVal = _env.upcastToBoolean(builder, orRes);
             auto resSize = _env.i64Const(sizeof(int32_t));
 
             return SerializableValue(resVal, resSize);
         }
 
-        // codegen::SerializableValue FunctionRegistry::createMathIsCloseCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
-        //                                              const python::Type &retType,
-        //                                              const std::vector<tuplex::codegen::SerializableValue> &args) {
-        //     using namespace llvm;
-        //     auto& context = builder.GetInsertBlock()->getContext();
-        //     auto val = args.front();
-        //     return SerializableValue(resVal, resSize);
-        // }
+        codegen::SerializableValue FunctionRegistry::createMathIsCloseCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+                                                     const python::Type &retType,
+                                                     const std::vector<tuplex::codegen::SerializableValue> &args) {
+            using namespace llvm;
+            auto& context = builder.GetInsertBlock()->getContext();
+            Module *M = builder.GetInsertBlock()->getModule();
+
+            auto x = args[0];
+            auto y = args[1];
+            auto rel_tol = args[2];
+            auto abs_tol = args[3];
+
+            // %5 = fsub double %0, %1, !dbg !1279
+            auto diff = builder.CreateFSub(x.val, y.val);
+
+            // %6 = tail call double @llvm.fabs.f64(double %5) #8, !dbg !1285
+            // call standard C abs function
+            FunctionType *abs_type = FunctionType::get(ctypeToLLVM<double>(context), {ctypeToLLVM<double>(context)}, false);
+#if LLVM_VERSION_MAJOR < 9
+            Function *abs_func = cast<Function>(M->getOrInsertFunction("abs", abs_type));
+#else
+            Function *abs_func = cast<Function>(M->getOrInsertFunction("abs", abs_type).getCallee());
+#endif
+            auto LHS = builder.CreateCall(abs_func, {codegen::upCast(builder, diff, Type::getDoubleTy(context))});
+            
+            // %7 = tail call double @llvm.fabs.f64(double %0) #8, !dbg !1288
+            auto x_abs = builder.CreateCall(abs_func, {codegen::upCast(builder, x.val, Type::getDoubleTy(context))});
+
+            // %8 = tail call double @llvm.fabs.f64(double %1) #8, !dbg !1291
+            auto y_abs = builder.CreateCall(abs_func, {codegen::upCast(builder, y.val, Type::getDoubleTy(context))});
+
+            // %9 = fcmp olt double %7, %8, !dbg !1305
+            auto ab_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
+
+            // %10 = select i1 %9, double %8, double %7, !dbg !1307
+            auto ab_select = builder.CreateSelect(ab_cmp, y_abs, x_abs);
+
+            // %11 = fmul double %10, %2, !dbg !1308
+            auto rel_tol_mult = builder.CreateFMul(ab_select, rel_tol.val);
+
+            // %12 = fcmp olt double %11, %3, !dbg !1311
+            auto abs_tol_cmp = builder.CreateFCmpOLT(rel_tol_mult, abs_tol.val);
+
+            // %13 = select i1 %12, double %3, double %11, !dbg !1312
+            auto RHS = builder.CreateSelect(abs_tol_cmp, abs_tol.val, rel_tol_mult);
+
+            // %14 = fcmp ole double %6, %13, !dbg !1313
+            auto res_cmp = builder.CreateFCmpOLE(LHS, RHS);
+
+            auto resVal = _env.upcastToBoolean(builder, res_cmp);
+            auto resSize = _env.i64Const(sizeof(int32_t));
+
+            return SerializableValue(resVal, resSize);
+        }
 
         codegen::SerializableValue createMathCosCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
                                                      const python::Type &retType,

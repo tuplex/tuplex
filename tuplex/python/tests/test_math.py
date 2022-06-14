@@ -434,39 +434,39 @@ class TestMath(unittest.TestCase):
         # self.assertEqual(L2[4], False)
     
 
-    # def testIsClose(self):
-    #     c = tuplex.Context(self.conf)
+    def testIsClose(self):
+        c = tuplex.Context(self.conf)
 
-    #     test0 = [(0, 0), (1, 2), (1.0, 1.000000001)]
-    #     L0 = c.parallelize(test0).map(lambda x, y: math.isclose(x, y)).collect()
-    #     assert len(L0) == 3, 'wrong length'
-    #     self.assertEqual(L0[0], True)
-    #     self.assertEqual(L0[1], False)
-    #     self.assertEqual(L0[2], False)
+        test0 = [(0, 0), (1, 2), (1.0, 1.000000001)]
+        L0 = c.parallelize(test0).map(lambda x, y: math.isclose(x, y)).collect()
+        assert len(L0) == 3, 'wrong length'
+        self.assertEqual(L0[0], True)
+        self.assertEqual(L0[1], False)
+        self.assertEqual(L0[2], False)
 
-    #     # abs_tol
-    #     test1 = [(0.0, 0.0, 0.4), (1.5, 1.6, 0.0001), (3.0, 3.000000001, 1e-07)]
-    #     L1 = c.parallelize(test1).map(lambda x, y, z: math.isclose(x, y, abs_tol=z)).collect()
-    #     assert len(L1) == 3, 'wrong length'
-    #     self.assertEqual(L1[0], True)
-    #     self.assertEqual(L1[1], False)
-    #     self.assertEqual(L1[2], True)
+        # abs_tol
+        test1 = [(0.0, 0.0, 0.4), (1.5, 1.6, 0.0001), (3.0, 3.000000001, 1e-07)]
+        L1 = c.parallelize(test1).map(lambda x, y, z: math.isclose(x, y, abs_tol=z)).collect()
+        assert len(L1) == 3, 'wrong length'
+        self.assertEqual(L1[0], True)
+        self.assertEqual(L1[1], False)
+        self.assertEqual(L1[2], True)
 
-    #     # rel_tol
-    #     test2 = [(0, 0, 1e-08), (1.0, 2.0, 0.1), (1.0, 1.000000001, 1e-07)]
-    #     L2 = c.parallelize(test2).map(lambda x, y, z: math.isclose(x, y, rel_tol=z)).collect()
-    #     assert len(L2) == 3, 'wrong length'
-    #     self.assertEqual(L2[0], True)
-    #     self.assertEqual(L2[1], False)
-    #     self.assertEqual(L2[2], True)
+        # rel_tol
+        test2 = [(0, 0, 1e-08), (1.0, 2.0, 0.1), (1.0, 1.000000001, 1e-07)]
+        L2 = c.parallelize(test2).map(lambda x, y, z: math.isclose(x, y, rel_tol=z)).collect()
+        assert len(L2) == 3, 'wrong length'
+        self.assertEqual(L2[0], True)
+        self.assertEqual(L2[1], False)
+        self.assertEqual(L2[2], True)
 
-    #     # both
-    #     test3 = [(0.0, 0.0, 1e-08, 0.4), (1.0, 2.0, 0.1, 0.0001), (1.0, 1.000000001, 1e-07, 0.000005)]
-    #     L3 = c.parallelize(test3).map(lambda w, x, y, z: math.isclose(w, x, rel_tol=y, abs_tol=z)).collect()
-    #     assert len(L3) == 3, 'wrong length'
-    #     self.assertEqual(L3[0], True)
-    #     self.assertEqual(L3[1], False)
-    #     self.assertEqual(L3[2], True)
+        # both
+        test3 = [(0.0, 0.0, 1e-08, 0.4), (1.0, 2.0, 0.1, 0.0001), (1.0, 1.000000001, 1e-07, 0.000005)]
+        L3 = c.parallelize(test3).map(lambda w, x, y, z: math.isclose(w, x, rel_tol=y, abs_tol=z)).collect()
+        assert len(L3) == 3, 'wrong length'
+        self.assertEqual(L3[0], True)
+        self.assertEqual(L3[1], False)
+        self.assertEqual(L3[2], True)
 
 
 # Return True if the values a and b are close to each other and False otherwise.

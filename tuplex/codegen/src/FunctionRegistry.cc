@@ -974,9 +974,16 @@ namespace tuplex {
             auto val = args.front();
             auto type = argsType.parameters().front();
             
-            if (python::Type::F64 == type) {
-                _env.printValue(builder, val.val, "double/python float value\n");
-                auto i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
+            if (python::Type::F64 == type || python::Type::I64 == type) {
+                if (python::Type::F64 == type) {
+                    _env.printValue(builder, val.val, "double/python float value\n");
+                    auto i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
+                } else {
+                    assert(python::Type::I64 == type);
+                    _env.printValue(builder, val.val, "int value\n");
+                    auto i64Val = val.val;
+                }
+                
                 auto shiftedVal = builder.CreateLShr(i64Val, 32);
                 auto i32Shift = builder.CreateTrunc(shiftedVal, llvm::Type::getInt32Ty(context));
                 auto andRes = builder.CreateAnd(i32Shift, 2147483647);
@@ -992,8 +999,8 @@ namespace tuplex {
                 return SerializableValue(resVal, resSize);
             } else {
                 // only other valid input types are integer and boolean
-                assert(python::Type::BOOLEAN == type || python::Type::I64 == type);
-                _env.printValue(builder, val.val, "not double value\n");
+                assert(python::Type::BOOLEAN == type);
+                _env.printValue(builder, val.val, "boolean value\n");
                 
                 // return SerializableValue(ConstantInt::get(llvm::Type::getInt64Ty(context), 0), _env.i64Const(sizeof(int64_t)));
                 return SerializableValue(_env.boolConst(false), _env.i64Const(sizeof(int64_t)));
@@ -1008,11 +1015,14 @@ namespace tuplex {
             auto val = args.front();
             _env.printValue(builder, val.val, "isinf value\n");
 
-            auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7ff0000000000000ULL));
-            auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xFFF0000000000000ULL));
-            auto orRes = builder.CreateOr(negCmp, posCmp);
-            
-            auto resVal = _env.upcastToBoolean(builder, orRes);
+            // auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7ff0000000000000ULL));
+            // auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xFFF0000000000000ULL));
+            // auto orRes = builder.CreateOr(negCmp, posCmp);
+            auto i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
+            auto andRes = builder.CreateAnd(i64Val, 0x7FFFFFFFFFFFFFFF);
+            auto cmpRes = builder.CreateICmpEQ(andRes, 0x7FF0000000000000);
+
+            auto resVal = _env.upcastToBoolean(builder, cmpRes);
             auto resSize = _env.i64Const(sizeof(int64_t));
 
             return SerializableValue(resVal, resSize);

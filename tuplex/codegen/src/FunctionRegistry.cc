@@ -995,7 +995,8 @@ namespace tuplex {
                 assert(python::Type::BOOLEAN == type || python::Type::I64 == type);
                 _env.printValue(builder, val.val, "not double value\n");
                 
-                return SerializableValue(ConstantInt::get(llvm::Type::getInt64Ty(context), 0), _env.i64Const(sizeof(int64_t)));
+                // return SerializableValue(ConstantInt::get(llvm::Type::getInt64Ty(context), 0), _env.i64Const(sizeof(int64_t)));
+                return SerializableValue(_env.boolConst(false), _env.i64Const(sizeof(int64_t)));
             }
         }
 

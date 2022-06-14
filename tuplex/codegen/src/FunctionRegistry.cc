@@ -1016,12 +1016,12 @@ namespace tuplex {
             auto val = args.front();
             _env.printValue(builder, val.val, "isinf value\n");
 
-            // auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7ff0000000000000ULL));
-            // auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xFFF0000000000000ULL));
-            // auto orRes = builder.CreateOr(negCmp, posCmp);
-            auto i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
-            auto andRes = builder.CreateAnd(i64Val, 0x7FFFFFFFFFFFFFFF);
-            auto cmpRes = builder.CreateICmpEQ(andRes, _env.i64Const(0x7FF0000000000000));
+            auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7ff0000000000000ULL));
+            auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xFFF0000000000000ULL));
+            auto orRes = builder.CreateOr(negCmp, posCmp);
+            // auto i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
+            // auto andRes = builder.CreateAnd(i64Val, 0x7FFFFFFFFFFFFFFF);
+            // auto cmpRes = builder.CreateICmpEQ(andRes, _env.i64Const(0x7FF0000000000000));
 
             auto resVal = _env.upcastToBoolean(builder, cmpRes);
             auto resSize = _env.i64Const(sizeof(int64_t));

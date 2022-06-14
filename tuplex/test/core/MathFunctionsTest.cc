@@ -742,7 +742,7 @@ TEST_F(MathFunctionsTest, MathIsInf) {
     EXPECT_EQ(v3[4].getBoolean(0), true);
 
     auto v4 = c.parallelize({
-        Row(True), Row(False), Row(INFINITY), Row(True), Row(False)
+        Row(true), Row(false), Row(INFINITY), Row(true), Row(false)
     }).map(UDF("lambda x: math.isinf(x)", "", ce)).collectAsVector();
     EXPECT_EQ(v4.size(), 5);
     EXPECT_EQ(v4[0].getBoolean(0), false);
@@ -789,7 +789,7 @@ TEST_F(MathFunctionsTest, MathIsNan) {
     EXPECT_EQ(v2[4].getBoolean(0), true);
 
     auto v3 = c.parallelize({
-        Row(True), Row(False), Row(NAN), Row(True)
+        Row(true), Row(false), Row(NAN), Row(true)
     }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
     EXPECT_EQ(v3.size(), 4);
     EXPECT_EQ(v3[0].getBoolean(0), false);

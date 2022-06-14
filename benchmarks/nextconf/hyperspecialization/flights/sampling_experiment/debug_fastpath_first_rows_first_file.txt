@@ -1,0 +1,3375 @@
+; ModuleID = '<module>'
+source_filename = "tuplex_fastCodePath"
+
+%struct.tuple = type { [2 x i1], i64, i64, i64, i8*, i64, i64, i64, i64, double, i64, double, double, double, i64 }
+%struct.tuple.0 = type { [7 x i1], i64, i64, i64, i8*, i64, i64, i64, double, double, double, double, double, double, double, double, i64 }
+%struct.tuple.2 = type { [2 x i1], i64, i64, i64, i8*, i64, i64, i64, double, double, double, i64 }
+%struct.tuple.4 = type { [2 x i1], i64, i64, i64, i8*, i64, i64, i64, double, double, double, double, double, double, double, double, i64 }
+%struct.tuple.3 = type { [3 x i1], i64, i64, i64, i8*, i64, i64, i64, double, double, double, double, i64 }
+%struct.tuple.1 = type { [1 x i1], i64, i64, i64, i8*, i64, i64, i64, double, double, i64 }
+
+@0 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@1 = private unnamed_addr constant [5 x i8] c"true\00", align 1
+@2 = private unnamed_addr constant [6 x i8] c"false\00", align 1
+@3 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@4 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@5 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@6 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@7 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+
+define i64 @initGlobal() {
+initGlobalEntry:
+  %0 = alloca i64
+  store i64 0, i64* %0
+  %1 = load i64, i64* %0
+  %2 = icmp ne i64 %1, 0
+  br i1 %2, label %initGlobalReturn, label %init_closure_block
+
+init_closure_block:                               ; preds = %initGlobalEntry
+  %3 = load i64, i64* %0
+  %4 = icmp ne i64 %3, 0
+  br i1 %4, label %initGlobalReturn, label %initGlobalReturn
+
+initGlobalReturn:                                 ; preds = %init_closure_block, %init_closure_block, %initGlobalEntry
+  %5 = load i64, i64* %0
+  ret i64 %5
+}
+
+define i64 @releaseGlobal() {
+releaseGlobalEntry:
+  %0 = alloca i64
+  store i64 0, i64* %0
+  %1 = load i64, i64* %0
+  %2 = icmp ne i64 %1, 0
+  br i1 %2, label %releaseGlobalReturn, label %releaseGlobalReturn
+
+releaseGlobalReturn:                              ; preds = %releaseGlobalEntry, %releaseGlobalEntry
+  %3 = load i64, i64* %0
+  ret i64 %3
+}
+
+define i64 @fast_init_Stage_0(i64, i8**, i8**) {
+  %4 = call i64 @initGlobal()
+  ret i64 %4
+}
+
+define i64 @fast_release_Stage_0() {
+  %1 = call i64 @releaseGlobal()
+  ret i64 %1
+}
+
+define internal void @fast_processRow_Stage_0({ i32, i32, i32 }* noalias sret, i8*, %struct.tuple*, i64) {
+constructors:
+  %quoted_str_size = alloca i64
+  %4 = alloca %struct.tuple
+  %5 = alloca %struct.tuple
+  %exceptionCode = alloca i64
+  store i64 0, i64* %exceptionCode
+  %exceptionOperatorID = alloca i64
+  %numOutputRows = alloca i64
+  store i64 0, i64* %numOutputRows
+  %6 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 1
+  %7 = load i64, i64* %6
+  %8 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 2
+  %9 = load i64, i64* %8
+  %10 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 3
+  %11 = load i64, i64* %10
+  %12 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 4
+  %13 = load i8*, i8** %12
+  %14 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 14
+  %15 = load i64, i64* %14
+  %16 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 5
+  %17 = load i64, i64* %16
+  %18 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 6
+  %19 = load i64, i64* %18
+  %20 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 7
+  %21 = load i64, i64* %20
+  %22 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 8
+  %23 = load i64, i64* %22
+  %24 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 0
+  %25 = getelementptr inbounds [2 x i1], [2 x i1]* %24, i64 0, i64 0
+  %26 = load i1, i1* %25
+  %27 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 9
+  %28 = load double, double* %27
+  %29 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 10
+  %30 = load i64, i64* %29
+  %31 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 0
+  %32 = getelementptr inbounds [2 x i1], [2 x i1]* %31, i64 0, i64 1
+  %33 = load i1, i1* %32
+  %34 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 11
+  %35 = load double, double* %34
+  %36 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 12
+  %37 = load double, double* %36
+  %38 = getelementptr inbounds %struct.tuple, %struct.tuple* %2, i32 0, i32 13
+  %39 = load double, double* %38
+  %40 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 1
+  store i64 %7, i64* %40
+  %41 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 2
+  store i64 %9, i64* %41
+  %42 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 3
+  store i64 %11, i64* %42
+  %43 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 4
+  store i8* %13, i8** %43
+  %44 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 14
+  store i64 %15, i64* %44
+  %45 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 5
+  store i64 %17, i64* %45
+  %46 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 6
+  store i64 %19, i64* %46
+  %47 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 7
+  store i64 %21, i64* %47
+  %48 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 8
+  store i64 %23, i64* %48
+  %49 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 0
+  %50 = getelementptr inbounds [2 x i1], [2 x i1]* %49, i64 0, i64 0
+  store i1 %26, i1* %50
+  %51 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 9
+  store double %28, double* %51
+  %52 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 10
+  store i64 %30, i64* %52
+  %53 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 0
+  %54 = getelementptr inbounds [2 x i1], [2 x i1]* %53, i64 0, i64 1
+  store i1 %33, i1* %54
+  %55 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 11
+  store double %35, double* %55
+  %56 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 12
+  store double %37, double* %56
+  %57 = getelementptr inbounds %struct.tuple, %struct.tuple* %5, i32 0, i32 13
+  store double %39, double* %57
+  %58 = alloca %struct.tuple.0
+  br label %entry
+
+destructors:                                      ; preds = %"cell(14)_done", %except
+  %59 = load i64, i64* %exceptionCode
+  %60 = load i64, i64* %exceptionOperatorID
+  %61 = load i64, i64* %numOutputRows
+  %62 = trunc i64 %59 to i32
+  %63 = trunc i64 %60 to i32
+  %64 = trunc i64 %61 to i32
+  %65 = getelementptr inbounds { i32, i32, i32 }, { i32, i32, i32 }* %0, i32 0, i32 0
+  %66 = getelementptr inbounds { i32, i32, i32 }, { i32, i32, i32 }* %0, i32 0, i32 1
+  %67 = getelementptr inbounds { i32, i32, i32 }, { i32, i32, i32 }* %0, i32 0, i32 2
+  store i32 %62, i32* %65
+  store i32 %63, i32* %66
+  store i32 %64, i32* %67
+  ret void
+
+entry:                                            ; preds = %constructors
+  store i64 100001, i64* %exceptionOperatorID
+  %68 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 1
+  store i64 %7, i64* %68
+  %69 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 2
+  store i64 %9, i64* %69
+  %70 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 3
+  store i64 %11, i64* %70
+  %71 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 4
+  store i8* %13, i8** %71
+  %72 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 14
+  store i64 %15, i64* %72
+  %73 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 5
+  store i64 %17, i64* %73
+  %74 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 6
+  store i64 %19, i64* %74
+  %75 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 7
+  store i64 %21, i64* %75
+  %76 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 8
+  store i64 %23, i64* %76
+  %77 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 0
+  %78 = getelementptr inbounds [2 x i1], [2 x i1]* %77, i64 0, i64 0
+  store i1 %26, i1* %78
+  %79 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 9
+  store double %28, double* %79
+  %80 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 10
+  store i64 %30, i64* %80
+  %81 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 0
+  %82 = getelementptr inbounds [2 x i1], [2 x i1]* %81, i64 0, i64 1
+  store i1 %33, i1* %82
+  %83 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 11
+  store double %35, double* %83
+  %84 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 12
+  store double %37, double* %84
+  %85 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 13
+  store double %39, double* %85
+  %86 = call i64 @fill_in_delays(%struct.tuple.0* %58, %struct.tuple* byval(%struct.tuple) %4)
+  store i64 %86, i64* %exceptionCode
+  %87 = icmp eq i64 %86, 0
+  br i1 %87, label %normal, label %except
+
+except:                                           ; preds = %entry
+  store i64 1, i64* %numOutputRows
+  br label %destructors
+
+normal:                                           ; preds = %entry
+  %88 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 1
+  %89 = load i64, i64* %88
+  %90 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 2
+  %91 = load i64, i64* %90
+  %92 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 3
+  %93 = load i64, i64* %92
+  %94 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 4
+  %95 = load i8*, i8** %94
+  %96 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 16
+  %97 = load i64, i64* %96
+  %98 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 5
+  %99 = load i64, i64* %98
+  %100 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 6
+  %101 = load i64, i64* %100
+  %102 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 7
+  %103 = load i64, i64* %102
+  %104 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 8
+  %105 = load double, double* %104
+  %106 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 0
+  %107 = getelementptr inbounds [7 x i1], [7 x i1]* %106, i64 0, i64 0
+  %108 = load i1, i1* %107
+  %109 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 9
+  %110 = load double, double* %109
+  %111 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 0
+  %112 = getelementptr inbounds [7 x i1], [7 x i1]* %111, i64 0, i64 1
+  %113 = load i1, i1* %112
+  %114 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 10
+  %115 = load double, double* %114
+  %116 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 0
+  %117 = getelementptr inbounds [7 x i1], [7 x i1]* %116, i64 0, i64 2
+  %118 = load i1, i1* %117
+  %119 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 11
+  %120 = load double, double* %119
+  %121 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 0
+  %122 = getelementptr inbounds [7 x i1], [7 x i1]* %121, i64 0, i64 3
+  %123 = load i1, i1* %122
+  %124 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 12
+  %125 = load double, double* %124
+  %126 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 0
+  %127 = getelementptr inbounds [7 x i1], [7 x i1]* %126, i64 0, i64 4
+  %128 = load i1, i1* %127
+  %129 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 13
+  %130 = load double, double* %129
+  %131 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 0
+  %132 = getelementptr inbounds [7 x i1], [7 x i1]* %131, i64 0, i64 5
+  %133 = load i1, i1* %132
+  %134 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 14
+  %135 = load double, double* %134
+  %136 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 0
+  %137 = getelementptr inbounds [7 x i1], [7 x i1]* %136, i64 0, i64 6
+  %138 = load i1, i1* %137
+  %139 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %58, i32 0, i32 15
+  %140 = load double, double* %139
+  %141 = mul i64 %97, 2
+  %142 = add i64 2, %141
+  %143 = add i64 0, %142
+  %144 = add i64 %143, 2679
+  %145 = call i8* @rtmalloc(i64 %144)
+  %146 = call i32 @i64toa_sse2(i64 %89, i8* %145)
+  %147 = getelementptr i8, i8* %145, i32 %146
+  store i8 44, i8* %147
+  %148 = getelementptr i8, i8* %147, i32 1
+  %149 = call i32 @i64toa_sse2(i64 %91, i8* %148)
+  %150 = getelementptr i8, i8* %148, i32 %149
+  store i8 44, i8* %150
+  %151 = getelementptr i8, i8* %150, i32 1
+  %152 = call i32 @i64toa_sse2(i64 %93, i8* %151)
+  %153 = getelementptr i8, i8* %151, i32 %152
+  store i8 44, i8* %153
+  %154 = getelementptr i8, i8* %153, i32 1
+  %155 = call i8* @quoteForCSV(i8* %95, i64 %97, i64* %quoted_str_size, i8 44, i8 34)
+  %156 = load i64, i64* %quoted_str_size
+  %157 = sub i64 %156, 1
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %154, i8* %155, i64 %157, i1 false)
+  %158 = getelementptr i8, i8* %154, i64 %157
+  store i8 44, i8* %158
+  %159 = getelementptr i8, i8* %158, i32 1
+  %160 = call i32 @i64toa_sse2(i64 %99, i8* %159)
+  %161 = getelementptr i8, i8* %159, i32 %160
+  store i8 44, i8* %161
+  %162 = getelementptr i8, i8* %161, i32 1
+  %163 = call i32 @i64toa_sse2(i64 %101, i8* %162)
+  %164 = getelementptr i8, i8* %162, i32 %163
+  store i8 44, i8* %164
+  %165 = getelementptr i8, i8* %164, i32 1
+  %166 = call i32 @i64toa_sse2(i64 %103, i8* %165)
+  %167 = getelementptr i8, i8* %165, i32 %166
+  store i8 44, i8* %167
+  %168 = getelementptr i8, i8* %167, i32 1
+  %169 = call i32 @d2fixed_buffered_n(double %105, i32 8, i8* %168)
+  %170 = getelementptr i8, i8* %168, i32 %169
+  store i8 44, i8* %170
+  %171 = getelementptr i8, i8* %170, i32 1
+  %172 = icmp eq i1 %108, true
+  br i1 %172, label %"cell(8)_null", label %"cell(8)_notnull"
+
+"cell(8)_null":                                   ; preds = %normal
+  br label %"cell(8)_done"
+
+"cell(8)_notnull":                                ; preds = %normal
+  %173 = call i32 @d2fixed_buffered_n(double %110, i32 8, i8* %171)
+  %174 = getelementptr i8, i8* %171, i32 %173
+  br label %"cell(8)_done"
+
+"cell(8)_done":                                   ; preds = %"cell(8)_notnull", %"cell(8)_null"
+  %175 = phi i8* [ %171, %"cell(8)_null" ], [ %174, %"cell(8)_notnull" ]
+  store i8 44, i8* %175
+  %176 = getelementptr i8, i8* %175, i32 1
+  %177 = icmp eq i1 %113, true
+  br i1 %177, label %"cell(9)_null", label %"cell(9)_notnull"
+
+"cell(9)_null":                                   ; preds = %"cell(8)_done"
+  br label %"cell(9)_done"
+
+"cell(9)_notnull":                                ; preds = %"cell(8)_done"
+  %178 = call i32 @d2fixed_buffered_n(double %115, i32 8, i8* %176)
+  %179 = getelementptr i8, i8* %176, i32 %178
+  br label %"cell(9)_done"
+
+"cell(9)_done":                                   ; preds = %"cell(9)_notnull", %"cell(9)_null"
+  %180 = phi i8* [ %176, %"cell(9)_null" ], [ %179, %"cell(9)_notnull" ]
+  store i8 44, i8* %180
+  %181 = getelementptr i8, i8* %180, i32 1
+  %182 = icmp eq i1 %118, true
+  br i1 %182, label %"cell(10)_null", label %"cell(10)_notnull"
+
+"cell(10)_null":                                  ; preds = %"cell(9)_done"
+  br label %"cell(10)_done"
+
+"cell(10)_notnull":                               ; preds = %"cell(9)_done"
+  %183 = call i32 @d2fixed_buffered_n(double %120, i32 8, i8* %181)
+  %184 = getelementptr i8, i8* %181, i32 %183
+  br label %"cell(10)_done"
+
+"cell(10)_done":                                  ; preds = %"cell(10)_notnull", %"cell(10)_null"
+  %185 = phi i8* [ %181, %"cell(10)_null" ], [ %184, %"cell(10)_notnull" ]
+  store i8 44, i8* %185
+  %186 = getelementptr i8, i8* %185, i32 1
+  %187 = icmp eq i1 %123, true
+  br i1 %187, label %"cell(11)_null", label %"cell(11)_notnull"
+
+"cell(11)_null":                                  ; preds = %"cell(10)_done"
+  br label %"cell(11)_done"
+
+"cell(11)_notnull":                               ; preds = %"cell(10)_done"
+  %188 = call i32 @d2fixed_buffered_n(double %125, i32 8, i8* %186)
+  %189 = getelementptr i8, i8* %186, i32 %188
+  br label %"cell(11)_done"
+
+"cell(11)_done":                                  ; preds = %"cell(11)_notnull", %"cell(11)_null"
+  %190 = phi i8* [ %186, %"cell(11)_null" ], [ %189, %"cell(11)_notnull" ]
+  store i8 44, i8* %190
+  %191 = getelementptr i8, i8* %190, i32 1
+  %192 = icmp eq i1 %128, true
+  br i1 %192, label %"cell(12)_null", label %"cell(12)_notnull"
+
+"cell(12)_null":                                  ; preds = %"cell(11)_done"
+  br label %"cell(12)_done"
+
+"cell(12)_notnull":                               ; preds = %"cell(11)_done"
+  %193 = call i32 @d2fixed_buffered_n(double %130, i32 8, i8* %191)
+  %194 = getelementptr i8, i8* %191, i32 %193
+  br label %"cell(12)_done"
+
+"cell(12)_done":                                  ; preds = %"cell(12)_notnull", %"cell(12)_null"
+  %195 = phi i8* [ %191, %"cell(12)_null" ], [ %194, %"cell(12)_notnull" ]
+  store i8 44, i8* %195
+  %196 = getelementptr i8, i8* %195, i32 1
+  %197 = icmp eq i1 %133, true
+  br i1 %197, label %"cell(13)_null", label %"cell(13)_notnull"
+
+"cell(13)_null":                                  ; preds = %"cell(12)_done"
+  br label %"cell(13)_done"
+
+"cell(13)_notnull":                               ; preds = %"cell(12)_done"
+  %198 = call i32 @d2fixed_buffered_n(double %135, i32 8, i8* %196)
+  %199 = getelementptr i8, i8* %196, i32 %198
+  br label %"cell(13)_done"
+
+"cell(13)_done":                                  ; preds = %"cell(13)_notnull", %"cell(13)_null"
+  %200 = phi i8* [ %196, %"cell(13)_null" ], [ %199, %"cell(13)_notnull" ]
+  store i8 44, i8* %200
+  %201 = getelementptr i8, i8* %200, i32 1
+  %202 = icmp eq i1 %138, true
+  br i1 %202, label %"cell(14)_null", label %"cell(14)_notnull"
+
+"cell(14)_null":                                  ; preds = %"cell(13)_done"
+  br label %"cell(14)_done"
+
+"cell(14)_notnull":                               ; preds = %"cell(13)_done"
+  %203 = call i32 @d2fixed_buffered_n(double %140, i32 8, i8* %201)
+  %204 = getelementptr i8, i8* %201, i32 %203
+  br label %"cell(14)_done"
+
+"cell(14)_done":                                  ; preds = %"cell(14)_notnull", %"cell(14)_null"
+  %205 = phi i8* [ %201, %"cell(14)_null" ], [ %204, %"cell(14)_notnull" ]
+  store i8 10, i8* %205
+  %206 = getelementptr i8, i8* %205, i32 1
+  %207 = ptrtoint i8* %145 to i64
+  %208 = ptrtoint i8* %206 to i64
+  %209 = sub i64 %208, %207
+  %210 = call i64 @fast_memOut_Stage_0(i8* %1, i8* %145, i64 %209)
+  store i64 1, i64* %numOutputRows
+  br label %destructors
+}
+
+; Function Attrs: inlinehint norecurse
+define internal i64 @fill_in_delays(%struct.tuple.0* %outRow, %struct.tuple* byval(%struct.tuple) %inRow) #0 {
+body:
+  %0 = alloca %struct.tuple.0
+  %1 = alloca %struct.tuple.2
+  %2 = alloca %struct.tuple.0
+  %3 = alloca %struct.tuple.4
+  %carrier_delay_size45 = alloca i64
+  %carrier_delay44 = alloca double
+  %4 = alloca %struct.tuple.0
+  %5 = alloca %struct.tuple.3
+  %6 = alloca %struct.tuple.0
+  %7 = alloca %struct.tuple.2
+  %8 = alloca %struct.tuple.0
+  %9 = alloca %struct.tuple.1
+  %year_size = alloca i64
+  %year = alloca i64
+  %year_defined = alloca i1
+  %weather_delay_size = alloca i64
+  %weather_delay = alloca double
+  %weather_delay_defined = alloca i1
+  %security_delay_size = alloca i64
+  %security_delay = alloca double
+  %security_delay_defined = alloca i1
+  %nas_delay_size = alloca i64
+  %nas_delay = alloca double
+  %nas_delay_defined = alloca i1
+  %month_size = alloca i64
+  %month = alloca i64
+  %month_defined = alloca i1
+  %late_aircraft_delay_size = alloca i64
+  %late_aircraft_delay = alloca double
+  %late_aircraft_delay_defined = alloca i1
+  %crs_elapsed_time_size = alloca i64
+  %crs_elapsed_time = alloca double
+  %crs_elapsed_time_defined = alloca i1
+  %crs_dep_time_size = alloca i64
+  %crs_dep_time = alloca double
+  %crs_dep_time_defined = alloca i1
+  %crs_arr_time_size = alloca i64
+  %crs_arr_time = alloca double
+  %crs_arr_time_defined = alloca i1
+  %10 = alloca i1
+  %carrier_delay_size = alloca i64
+  %carrier_delay = alloca double
+  %carrier_delay_defined = alloca i1
+  %11 = alloca i1
+  %arr_delay_size = alloca i64
+  %arr_delay = alloca double
+  %arr_delay_defined = alloca i1
+  %row_size = alloca i64
+  %row = alloca %struct.tuple
+  %row_defined = alloca i1
+  %12 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 1
+  %13 = load i64, i64* %12
+  %14 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 2
+  %15 = load i64, i64* %14
+  %16 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 3
+  %17 = load i64, i64* %16
+  %18 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 4
+  %19 = load i8*, i8** %18
+  %20 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 14
+  %21 = load i64, i64* %20
+  %22 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 5
+  %23 = load i64, i64* %22
+  %24 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 6
+  %25 = load i64, i64* %24
+  %26 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 7
+  %27 = load i64, i64* %26
+  %28 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 8
+  %29 = load i64, i64* %28
+  %30 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 0
+  %31 = getelementptr inbounds [2 x i1], [2 x i1]* %30, i64 0, i64 0
+  %32 = load i1, i1* %31
+  %33 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 9
+  %34 = load double, double* %33
+  %35 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 10
+  %36 = load i64, i64* %35
+  %37 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 0
+  %38 = getelementptr inbounds [2 x i1], [2 x i1]* %37, i64 0, i64 1
+  %39 = load i1, i1* %38
+  %40 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 11
+  %41 = load double, double* %40
+  %42 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 12
+  %43 = load double, double* %42
+  %44 = getelementptr inbounds %struct.tuple, %struct.tuple* %inRow, i32 0, i32 13
+  %45 = load double, double* %44
+  store i1 true, i1* %row_defined
+  %46 = load %struct.tuple, %struct.tuple* %inRow
+  store %struct.tuple %46, %struct.tuple* %row
+  store i1 false, i1* %arr_delay_defined
+  store i1 false, i1* %carrier_delay_defined
+  store i1 false, i1* %crs_arr_time_defined
+  store i1 false, i1* %crs_dep_time_defined
+  store i1 false, i1* %crs_elapsed_time_defined
+  store i1 false, i1* %late_aircraft_delay_defined
+  store i1 false, i1* %month_defined
+  store i1 false, i1* %nas_delay_defined
+  store i1 false, i1* %security_delay_defined
+  store i1 false, i1* %weather_delay_defined
+  store i1 false, i1* %year_defined
+  %47 = load i64, i64* %row_size
+  %48 = load %struct.tuple, %struct.tuple* %row
+  %49 = extractvalue %struct.tuple %48, 1
+  %50 = extractvalue %struct.tuple %48, 2
+  %51 = extractvalue %struct.tuple %48, 3
+  %52 = extractvalue %struct.tuple %48, 4
+  %53 = extractvalue %struct.tuple %48, 14
+  %54 = extractvalue %struct.tuple %48, 5
+  %55 = extractvalue %struct.tuple %48, 6
+  %56 = extractvalue %struct.tuple %48, 7
+  %57 = extractvalue %struct.tuple %48, 8
+  %58 = extractvalue %struct.tuple %48, 0
+  %59 = extractvalue [2 x i1] %58, 0
+  %60 = extractvalue %struct.tuple %48, 9
+  %61 = extractvalue %struct.tuple %48, 10
+  %62 = extractvalue %struct.tuple %48, 0
+  %63 = extractvalue [2 x i1] %62, 1
+  %64 = extractvalue %struct.tuple %48, 11
+  %65 = extractvalue %struct.tuple %48, 12
+  %66 = extractvalue %struct.tuple %48, 13
+  store i1 true, i1* %year_defined
+  store i64 %49, i64* %year
+  store i64 8, i64* %year_size
+  %67 = load i64, i64* %row_size
+  %68 = load %struct.tuple, %struct.tuple* %row
+  %69 = extractvalue %struct.tuple %68, 1
+  %70 = extractvalue %struct.tuple %68, 2
+  %71 = extractvalue %struct.tuple %68, 3
+  %72 = extractvalue %struct.tuple %68, 4
+  %73 = extractvalue %struct.tuple %68, 14
+  %74 = extractvalue %struct.tuple %68, 5
+  %75 = extractvalue %struct.tuple %68, 6
+  %76 = extractvalue %struct.tuple %68, 7
+  %77 = extractvalue %struct.tuple %68, 8
+  %78 = extractvalue %struct.tuple %68, 0
+  %79 = extractvalue [2 x i1] %78, 0
+  %80 = extractvalue %struct.tuple %68, 9
+  %81 = extractvalue %struct.tuple %68, 10
+  %82 = extractvalue %struct.tuple %68, 0
+  %83 = extractvalue [2 x i1] %82, 1
+  %84 = extractvalue %struct.tuple %68, 11
+  %85 = extractvalue %struct.tuple %68, 12
+  %86 = extractvalue %struct.tuple %68, 13
+  store i1 true, i1* %month_defined
+  store i64 %70, i64* %month
+  store i64 8, i64* %month_size
+  %87 = load i64, i64* %row_size
+  %88 = load %struct.tuple, %struct.tuple* %row
+  %89 = extractvalue %struct.tuple %88, 1
+  %90 = extractvalue %struct.tuple %88, 2
+  %91 = extractvalue %struct.tuple %88, 3
+  %92 = extractvalue %struct.tuple %88, 4
+  %93 = extractvalue %struct.tuple %88, 14
+  %94 = extractvalue %struct.tuple %88, 5
+  %95 = extractvalue %struct.tuple %88, 6
+  %96 = extractvalue %struct.tuple %88, 7
+  %97 = extractvalue %struct.tuple %88, 8
+  %98 = extractvalue %struct.tuple %88, 0
+  %99 = extractvalue [2 x i1] %98, 0
+  %100 = extractvalue %struct.tuple %88, 9
+  %101 = extractvalue %struct.tuple %88, 10
+  %102 = extractvalue %struct.tuple %88, 0
+  %103 = extractvalue [2 x i1] %102, 1
+  %104 = extractvalue %struct.tuple %88, 11
+  %105 = extractvalue %struct.tuple %88, 12
+  %106 = extractvalue %struct.tuple %88, 13
+  store i1 true, i1* %arr_delay_defined
+  store double %104, double* %arr_delay
+  store i64 8, i64* %arr_delay_size
+  store i1 %103, i1* %11
+  %107 = load i1, i1* %year_defined
+  %108 = sub i1 true, %107
+  br i1 %108, label %except, label %next
+
+next:                                             ; preds = %body
+  %109 = load i64, i64* %year_size
+  %110 = load i64, i64* %year
+  %111 = icmp eq i64 %110, 2003
+  %112 = zext i1 %111 to i8
+  %113 = trunc i8 %112 to i1
+  %114 = alloca i8
+  %115 = alloca i64
+  %116 = alloca i1
+  store i1 false, i1* %116
+  store i64 0, i64* %115
+  br i1 %113, label %if, label %else
+
+except:                                           ; preds = %body
+  ret i64 130
+
+if:                                               ; preds = %next
+  %117 = load i1, i1* %month_defined
+  %118 = sub i1 true, %117
+  br i1 %118, label %except2, label %next1
+
+else:                                             ; preds = %next
+  store i8 0, i8* %114
+  store i1 false, i1* %116
+  br label %ifelse_exit
+
+ifelse_exit:                                      ; preds = %next1, %else
+  %119 = load i1, i1* %116
+  %120 = load i64, i64* %115
+  %121 = load i8, i8* %114
+  %122 = trunc i8 %121 to i1
+  %123 = alloca i8
+  %124 = alloca i64
+  %125 = alloca i1
+  store i1 false, i1* %125
+  store i64 0, i64* %124
+  br i1 %122, label %if3, label %else4
+
+next1:                                            ; preds = %if
+  %126 = load i64, i64* %month_size
+  %127 = load i64, i64* %month
+  %128 = icmp slt i64 %127, 6
+  %129 = zext i1 %128 to i8
+  %130 = trunc i8 %129 to i1
+  %131 = zext i1 %130 to i8
+  store i8 %131, i8* %114
+  store i1 false, i1* %116
+  br label %ifelse_exit
+
+except2:                                          ; preds = %if
+  ret i64 130
+
+if3:                                              ; preds = %ifelse_exit
+  store i8 1, i8* %123
+  store i1 false, i1* %125
+  br label %ifelse_exit5
+
+else4:                                            ; preds = %ifelse_exit
+  %132 = load i1, i1* %year_defined
+  %133 = sub i1 true, %132
+  br i1 %133, label %except7, label %next6
+
+ifelse_exit5:                                     ; preds = %next6, %if3
+  %134 = load i1, i1* %125
+  %135 = load i64, i64* %124
+  %136 = load i8, i8* %123
+  %137 = load i1, i1* %year_defined
+  %138 = load i64, i64* %year_size
+  %139 = load i64, i64* %year
+  %140 = load i1, i1* %security_delay_defined
+  %141 = load i64, i64* %security_delay_size
+  %142 = load double, double* %security_delay
+  %143 = load i1, i1* %nas_delay_defined
+  %144 = load i64, i64* %nas_delay_size
+  %145 = load double, double* %nas_delay
+  %146 = load i1, i1* %arr_delay_defined
+  %147 = load i1, i1* %11
+  %148 = load i64, i64* %arr_delay_size
+  %149 = load double, double* %arr_delay
+  %150 = load i64, i64* %row_size
+  %151 = load %struct.tuple, %struct.tuple* %row
+  %152 = load i1, i1* %carrier_delay_defined
+  %153 = load i1, i1* %10
+  %154 = load i64, i64* %carrier_delay_size
+  %155 = load double, double* %carrier_delay
+  %156 = load i1, i1* %crs_dep_time_defined
+  %157 = load i64, i64* %crs_dep_time_size
+  %158 = load double, double* %crs_dep_time
+  %159 = load i1, i1* %crs_arr_time_defined
+  %160 = load i64, i64* %crs_arr_time_size
+  %161 = load double, double* %crs_arr_time
+  %162 = load i1, i1* %weather_delay_defined
+  %163 = load i64, i64* %weather_delay_size
+  %164 = load double, double* %weather_delay
+  %165 = load i1, i1* %month_defined
+  %166 = load i64, i64* %month_size
+  %167 = load i64, i64* %month
+  %168 = load i1, i1* %late_aircraft_delay_defined
+  %169 = load i64, i64* %late_aircraft_delay_size
+  %170 = load double, double* %late_aircraft_delay
+  %171 = load i1, i1* %crs_elapsed_time_defined
+  %172 = load i64, i64* %crs_elapsed_time_size
+  %173 = load double, double* %crs_elapsed_time
+  %174 = trunc i8 %136 to i1
+  br i1 %174, label %If, label %Else
+
+next6:                                            ; preds = %else4
+  %175 = load i64, i64* %year_size
+  %176 = load i64, i64* %year
+  %177 = icmp slt i64 %176, 2003
+  %178 = zext i1 %177 to i8
+  %179 = trunc i8 %178 to i1
+  %180 = zext i1 %179 to i8
+  store i8 %180, i8* %123
+  store i1 false, i1* %125
+  br label %ifelse_exit5
+
+except7:                                          ; preds = %else4
+  ret i64 130
+
+If:                                               ; preds = %ifelse_exit5
+  %181 = load i1, i1* %arr_delay_defined
+  %182 = sub i1 true, %181
+  br i1 %182, label %except9, label %next8
+
+Else:                                             ; preds = %ifelse_exit5
+  store double %173, double* %crs_elapsed_time
+  store i64 %172, i64* %crs_elapsed_time_size
+  store double %170, double* %late_aircraft_delay
+  store i64 %169, i64* %late_aircraft_delay_size
+  store i64 %167, i64* %month
+  store i64 %166, i64* %month_size
+  store double %164, double* %weather_delay
+  store i64 %163, i64* %weather_delay_size
+  store double %161, double* %crs_arr_time
+  store i64 %160, i64* %crs_arr_time_size
+  store double %158, double* %crs_dep_time
+  store i64 %157, i64* %crs_dep_time_size
+  store double %142, double* %security_delay
+  store i64 %141, i64* %security_delay_size
+  store i64 %139, i64* %year
+  store i64 %138, i64* %year_size
+  store double %145, double* %nas_delay
+  store i64 %144, i64* %nas_delay_size
+  store double %149, double* %arr_delay
+  store i64 %148, i64* %arr_delay_size
+  store i1 %147, i1* %11
+  store %struct.tuple %151, %struct.tuple* %row
+  store i64 %150, i64* %row_size
+  store double %155, double* %carrier_delay
+  store i64 %154, i64* %carrier_delay_size
+  store i1 %153, i1* %10
+  %183 = load i1, i1* %year_defined
+  %184 = sub i1 true, %183
+  br i1 %184, label %except79, label %next78
+
+next8:                                            ; preds = %If
+  %185 = load i1, i1* %11
+  %186 = load i64, i64* %arr_delay_size
+  %187 = load double, double* %arr_delay
+  %188 = zext i1 %185 to i8
+  %189 = load i1, i1* %year_defined
+  %190 = load i64, i64* %year_size
+  %191 = load i64, i64* %year
+  %192 = load i1, i1* %security_delay_defined
+  %193 = load i64, i64* %security_delay_size
+  %194 = load double, double* %security_delay
+  %195 = load i1, i1* %nas_delay_defined
+  %196 = load i64, i64* %nas_delay_size
+  %197 = load double, double* %nas_delay
+  %198 = load i1, i1* %arr_delay_defined
+  %199 = load i1, i1* %11
+  %200 = load i64, i64* %arr_delay_size
+  %201 = load double, double* %arr_delay
+  %202 = load i64, i64* %row_size
+  %203 = load %struct.tuple, %struct.tuple* %row
+  %204 = load i1, i1* %carrier_delay_defined
+  %205 = load i1, i1* %10
+  %206 = load i64, i64* %carrier_delay_size
+  %207 = load double, double* %carrier_delay
+  %208 = load i1, i1* %crs_dep_time_defined
+  %209 = load i64, i64* %crs_dep_time_size
+  %210 = load double, double* %crs_dep_time
+  %211 = load i1, i1* %crs_arr_time_defined
+  %212 = load i64, i64* %crs_arr_time_size
+  %213 = load double, double* %crs_arr_time
+  %214 = load i1, i1* %weather_delay_defined
+  %215 = load i64, i64* %weather_delay_size
+  %216 = load double, double* %weather_delay
+  %217 = load i1, i1* %month_defined
+  %218 = load i64, i64* %month_size
+  %219 = load i64, i64* %month
+  %220 = load i1, i1* %late_aircraft_delay_defined
+  %221 = load i64, i64* %late_aircraft_delay_size
+  %222 = load double, double* %late_aircraft_delay
+  %223 = load i1, i1* %crs_elapsed_time_defined
+  %224 = load i64, i64* %crs_elapsed_time_size
+  %225 = load double, double* %crs_elapsed_time
+  %226 = trunc i8 %188 to i1
+  br i1 %226, label %If10, label %Else11
+
+except9:                                          ; preds = %If
+  ret i64 130
+
+If10:                                             ; preds = %next8
+  %227 = load i1, i1* %year_defined
+  %228 = sub i1 true, %227
+  br i1 %228, label %except13, label %next12
+
+Else11:                                           ; preds = %next8
+  store double %225, double* %crs_elapsed_time
+  store i64 %224, i64* %crs_elapsed_time_size
+  store double %222, double* %late_aircraft_delay
+  store i64 %221, i64* %late_aircraft_delay_size
+  store i64 %219, i64* %month
+  store i64 %218, i64* %month_size
+  store double %216, double* %weather_delay
+  store i64 %215, i64* %weather_delay_size
+  store double %213, double* %crs_arr_time
+  store i64 %212, i64* %crs_arr_time_size
+  store double %210, double* %crs_dep_time
+  store i64 %209, i64* %crs_dep_time_size
+  store double %194, double* %security_delay
+  store i64 %193, i64* %security_delay_size
+  store i64 %191, i64* %year
+  store i64 %190, i64* %year_size
+  store double %197, double* %nas_delay
+  store i64 %196, i64* %nas_delay_size
+  store double %201, double* %arr_delay
+  store i64 %200, i64* %arr_delay_size
+  store i1 %199, i1* %11
+  store %struct.tuple %203, %struct.tuple* %row
+  store i64 %202, i64* %row_size
+  store double %207, double* %carrier_delay
+  store i64 %206, i64* %carrier_delay_size
+  store i1 %205, i1* %10
+  %229 = load i1, i1* %arr_delay_defined
+  %230 = sub i1 true, %229
+  br i1 %230, label %except17, label %next16
+
+next12:                                           ; preds = %If10
+  %231 = load i64, i64* %year_size
+  %232 = load i64, i64* %year
+  %233 = load i1, i1* %month_defined
+  %234 = sub i1 true, %233
+  br i1 %234, label %except15, label %next14
+
+except13:                                         ; preds = %If10
+  ret i64 130
+
+next14:                                           ; preds = %next12
+  %235 = load i64, i64* %month_size
+  %236 = load i64, i64* %month
+  %237 = load i64, i64* %row_size
+  %238 = load %struct.tuple, %struct.tuple* %row
+  %239 = extractvalue %struct.tuple %238, 1
+  %240 = extractvalue %struct.tuple %238, 2
+  %241 = extractvalue %struct.tuple %238, 3
+  %242 = extractvalue %struct.tuple %238, 4
+  %243 = extractvalue %struct.tuple %238, 14
+  %244 = extractvalue %struct.tuple %238, 5
+  %245 = extractvalue %struct.tuple %238, 6
+  %246 = extractvalue %struct.tuple %238, 7
+  %247 = extractvalue %struct.tuple %238, 8
+  %248 = extractvalue %struct.tuple %238, 0
+  %249 = extractvalue [2 x i1] %248, 0
+  %250 = extractvalue %struct.tuple %238, 9
+  %251 = extractvalue %struct.tuple %238, 10
+  %252 = extractvalue %struct.tuple %238, 0
+  %253 = extractvalue [2 x i1] %252, 1
+  %254 = extractvalue %struct.tuple %238, 11
+  %255 = extractvalue %struct.tuple %238, 12
+  %256 = extractvalue %struct.tuple %238, 13
+  %257 = load i64, i64* %row_size
+  %258 = load %struct.tuple, %struct.tuple* %row
+  %259 = extractvalue %struct.tuple %258, 1
+  %260 = extractvalue %struct.tuple %258, 2
+  %261 = extractvalue %struct.tuple %258, 3
+  %262 = extractvalue %struct.tuple %258, 4
+  %263 = extractvalue %struct.tuple %258, 14
+  %264 = extractvalue %struct.tuple %258, 5
+  %265 = extractvalue %struct.tuple %258, 6
+  %266 = extractvalue %struct.tuple %258, 7
+  %267 = extractvalue %struct.tuple %258, 8
+  %268 = extractvalue %struct.tuple %258, 0
+  %269 = extractvalue [2 x i1] %268, 0
+  %270 = extractvalue %struct.tuple %258, 9
+  %271 = extractvalue %struct.tuple %258, 10
+  %272 = extractvalue %struct.tuple %258, 0
+  %273 = extractvalue [2 x i1] %272, 1
+  %274 = extractvalue %struct.tuple %258, 11
+  %275 = extractvalue %struct.tuple %258, 12
+  %276 = extractvalue %struct.tuple %258, 13
+  %277 = load i64, i64* %row_size
+  %278 = load %struct.tuple, %struct.tuple* %row
+  %279 = extractvalue %struct.tuple %278, 1
+  %280 = extractvalue %struct.tuple %278, 2
+  %281 = extractvalue %struct.tuple %278, 3
+  %282 = extractvalue %struct.tuple %278, 4
+  %283 = extractvalue %struct.tuple %278, 14
+  %284 = extractvalue %struct.tuple %278, 5
+  %285 = extractvalue %struct.tuple %278, 6
+  %286 = extractvalue %struct.tuple %278, 7
+  %287 = extractvalue %struct.tuple %278, 8
+  %288 = extractvalue %struct.tuple %278, 0
+  %289 = extractvalue [2 x i1] %288, 0
+  %290 = extractvalue %struct.tuple %278, 9
+  %291 = extractvalue %struct.tuple %278, 10
+  %292 = extractvalue %struct.tuple %278, 0
+  %293 = extractvalue [2 x i1] %292, 1
+  %294 = extractvalue %struct.tuple %278, 11
+  %295 = extractvalue %struct.tuple %278, 12
+  %296 = extractvalue %struct.tuple %278, 13
+  %297 = load i64, i64* %row_size
+  %298 = load %struct.tuple, %struct.tuple* %row
+  %299 = extractvalue %struct.tuple %298, 1
+  %300 = extractvalue %struct.tuple %298, 2
+  %301 = extractvalue %struct.tuple %298, 3
+  %302 = extractvalue %struct.tuple %298, 4
+  %303 = extractvalue %struct.tuple %298, 14
+  %304 = extractvalue %struct.tuple %298, 5
+  %305 = extractvalue %struct.tuple %298, 6
+  %306 = extractvalue %struct.tuple %298, 7
+  %307 = extractvalue %struct.tuple %298, 8
+  %308 = extractvalue %struct.tuple %298, 0
+  %309 = extractvalue [2 x i1] %308, 0
+  %310 = extractvalue %struct.tuple %298, 9
+  %311 = extractvalue %struct.tuple %298, 10
+  %312 = extractvalue %struct.tuple %298, 0
+  %313 = extractvalue [2 x i1] %312, 1
+  %314 = extractvalue %struct.tuple %298, 11
+  %315 = extractvalue %struct.tuple %298, 12
+  %316 = extractvalue %struct.tuple %298, 13
+  %317 = load i64, i64* %row_size
+  %318 = load %struct.tuple, %struct.tuple* %row
+  %319 = extractvalue %struct.tuple %318, 1
+  %320 = extractvalue %struct.tuple %318, 2
+  %321 = extractvalue %struct.tuple %318, 3
+  %322 = extractvalue %struct.tuple %318, 4
+  %323 = extractvalue %struct.tuple %318, 14
+  %324 = extractvalue %struct.tuple %318, 5
+  %325 = extractvalue %struct.tuple %318, 6
+  %326 = extractvalue %struct.tuple %318, 7
+  %327 = extractvalue %struct.tuple %318, 8
+  %328 = extractvalue %struct.tuple %318, 0
+  %329 = extractvalue [2 x i1] %328, 0
+  %330 = extractvalue %struct.tuple %318, 9
+  %331 = extractvalue %struct.tuple %318, 10
+  %332 = extractvalue %struct.tuple %318, 0
+  %333 = extractvalue [2 x i1] %332, 1
+  %334 = extractvalue %struct.tuple %318, 11
+  %335 = extractvalue %struct.tuple %318, 12
+  %336 = extractvalue %struct.tuple %318, 13
+  %337 = load i64, i64* %row_size
+  %338 = load %struct.tuple, %struct.tuple* %row
+  %339 = extractvalue %struct.tuple %338, 1
+  %340 = extractvalue %struct.tuple %338, 2
+  %341 = extractvalue %struct.tuple %338, 3
+  %342 = extractvalue %struct.tuple %338, 4
+  %343 = extractvalue %struct.tuple %338, 14
+  %344 = extractvalue %struct.tuple %338, 5
+  %345 = extractvalue %struct.tuple %338, 6
+  %346 = extractvalue %struct.tuple %338, 7
+  %347 = extractvalue %struct.tuple %338, 8
+  %348 = extractvalue %struct.tuple %338, 0
+  %349 = extractvalue [2 x i1] %348, 0
+  %350 = extractvalue %struct.tuple %338, 9
+  %351 = extractvalue %struct.tuple %338, 10
+  %352 = extractvalue %struct.tuple %338, 0
+  %353 = extractvalue [2 x i1] %352, 1
+  %354 = extractvalue %struct.tuple %338, 11
+  %355 = extractvalue %struct.tuple %338, 12
+  %356 = extractvalue %struct.tuple %338, 13
+  %357 = load i64, i64* %row_size
+  %358 = load %struct.tuple, %struct.tuple* %row
+  %359 = extractvalue %struct.tuple %358, 1
+  %360 = extractvalue %struct.tuple %358, 2
+  %361 = extractvalue %struct.tuple %358, 3
+  %362 = extractvalue %struct.tuple %358, 4
+  %363 = extractvalue %struct.tuple %358, 14
+  %364 = extractvalue %struct.tuple %358, 5
+  %365 = extractvalue %struct.tuple %358, 6
+  %366 = extractvalue %struct.tuple %358, 7
+  %367 = extractvalue %struct.tuple %358, 8
+  %368 = extractvalue %struct.tuple %358, 0
+  %369 = extractvalue [2 x i1] %368, 0
+  %370 = extractvalue %struct.tuple %358, 9
+  %371 = extractvalue %struct.tuple %358, 10
+  %372 = extractvalue %struct.tuple %358, 0
+  %373 = extractvalue [2 x i1] %372, 1
+  %374 = extractvalue %struct.tuple %358, 11
+  %375 = extractvalue %struct.tuple %358, 12
+  %376 = extractvalue %struct.tuple %358, 13
+  %377 = getelementptr inbounds %struct.tuple.1, %struct.tuple.1* %9, i32 0, i32 1
+  store i64 %232, i64* %377
+  %378 = getelementptr inbounds %struct.tuple.1, %struct.tuple.1* %9, i32 0, i32 2
+  store i64 %236, i64* %378
+  %379 = getelementptr inbounds %struct.tuple.1, %struct.tuple.1* %9, i32 0, i32 3
+  store i64 %241, i64* %379
+  %380 = getelementptr inbounds %struct.tuple.1, %struct.tuple.1* %9, i32 0, i32 4
+  store i8* %262, i8** %380
+  %381 = getelementptr inbounds %struct.tuple.1, %struct.tuple.1* %9, i32 0, i32 10
+  store i64 %263, i64* %381
+  %382 = getelementptr inbounds %struct.tuple.1, %struct.tuple.1* %9, i32 0, i32 5
+  store i64 %284, i64* %382
+  %383 = getelementptr inbounds %struct.tuple.1, %struct.tuple.1* %9, i32 0, i32 6
+  store i64 %305, i64* %383
+  %384 = getelementptr inbounds %struct.tuple.1, %struct.tuple.1* %9, i32 0, i32 7
+  store i64 %326, i64* %384
+  %385 = getelementptr inbounds %struct.tuple.1, %struct.tuple.1* %9, i32 0, i32 8
+  store double %356, double* %385
+  %386 = getelementptr inbounds %struct.tuple.1, %struct.tuple.1* %9, i32 0, i32 0
+  %387 = getelementptr inbounds [1 x i1], [1 x i1]* %386, i64 0, i64 0
+  store i1 %369, i1* %387
+  %388 = getelementptr inbounds %struct.tuple.1, %struct.tuple.1* %9, i32 0, i32 9
+  store double %370, double* %388
+  %389 = load %struct.tuple.1, %struct.tuple.1* %9
+  %390 = add i64 72, %263
+  %391 = add i64 %390, 8
+  %392 = add i64 %391, 8
+  %393 = extractvalue %struct.tuple.1 %389, 1
+  %394 = extractvalue %struct.tuple.1 %389, 2
+  %395 = extractvalue %struct.tuple.1 %389, 3
+  %396 = extractvalue %struct.tuple.1 %389, 4
+  %397 = extractvalue %struct.tuple.1 %389, 10
+  %398 = extractvalue %struct.tuple.1 %389, 5
+  %399 = extractvalue %struct.tuple.1 %389, 6
+  %400 = extractvalue %struct.tuple.1 %389, 7
+  %401 = extractvalue %struct.tuple.1 %389, 8
+  %402 = extractvalue %struct.tuple.1 %389, 0
+  %403 = extractvalue [1 x i1] %402, 0
+  %404 = extractvalue %struct.tuple.1 %389, 9
+  %405 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 1
+  store i64 %393, i64* %405
+  %406 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 2
+  store i64 %394, i64* %406
+  %407 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 3
+  store i64 %395, i64* %407
+  %408 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 4
+  store i8* %396, i8** %408
+  %409 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 16
+  store i64 %397, i64* %409
+  %410 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 5
+  store i64 %398, i64* %410
+  %411 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 6
+  store i64 %399, i64* %411
+  %412 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 7
+  store i64 %400, i64* %412
+  %413 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 8
+  store double %401, double* %413
+  %414 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 0
+  %415 = getelementptr inbounds [7 x i1], [7 x i1]* %414, i64 0, i64 0
+  store i1 %403, i1* %415
+  %416 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 9
+  store double %404, double* %416
+  %417 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 0
+  %418 = getelementptr inbounds [7 x i1], [7 x i1]* %417, i64 0, i64 1
+  store i1 true, i1* %418
+  %419 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 10
+  store double 0.000000e+00, double* %419
+  %420 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 0
+  %421 = getelementptr inbounds [7 x i1], [7 x i1]* %420, i64 0, i64 2
+  store i1 true, i1* %421
+  %422 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 11
+  store double 0.000000e+00, double* %422
+  %423 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 0
+  %424 = getelementptr inbounds [7 x i1], [7 x i1]* %423, i64 0, i64 3
+  store i1 true, i1* %424
+  %425 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 12
+  store double 0.000000e+00, double* %425
+  %426 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 0
+  %427 = getelementptr inbounds [7 x i1], [7 x i1]* %426, i64 0, i64 4
+  store i1 true, i1* %427
+  %428 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 13
+  store double 0.000000e+00, double* %428
+  %429 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 0
+  %430 = getelementptr inbounds [7 x i1], [7 x i1]* %429, i64 0, i64 5
+  store i1 true, i1* %430
+  %431 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 14
+  store double 0.000000e+00, double* %431
+  %432 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 0
+  %433 = getelementptr inbounds [7 x i1], [7 x i1]* %432, i64 0, i64 6
+  store i1 true, i1* %433
+  %434 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %8, i32 0, i32 15
+  store double 0.000000e+00, double* %434
+  %435 = load %struct.tuple.0, %struct.tuple.0* %8
+  %436 = add i64 120, %397
+  %437 = add i64 %436, 8
+  %438 = add i64 %437, 8
+  store %struct.tuple.0 %435, %struct.tuple.0* %outRow
+  ret i64 0
+
+except15:                                         ; preds = %next12
+  ret i64 130
+
+next16:                                           ; preds = %Else11
+  %439 = load i1, i1* %11
+  %440 = load i64, i64* %arr_delay_size
+  %441 = load double, double* %arr_delay
+  br i1 %439, label %except19, label %next18
+
+except17:                                         ; preds = %Else11
+  ret i64 130
+
+next18:                                           ; preds = %next16
+  %442 = fcmp olt double %441, 0.000000e+00
+  %443 = zext i1 %442 to i8
+  %444 = load i1, i1* %year_defined
+  %445 = load i64, i64* %year_size
+  %446 = load i64, i64* %year
+  %447 = load i1, i1* %security_delay_defined
+  %448 = load i64, i64* %security_delay_size
+  %449 = load double, double* %security_delay
+  %450 = load i1, i1* %nas_delay_defined
+  %451 = load i64, i64* %nas_delay_size
+  %452 = load double, double* %nas_delay
+  %453 = load i1, i1* %arr_delay_defined
+  %454 = load i1, i1* %11
+  %455 = load i64, i64* %arr_delay_size
+  %456 = load double, double* %arr_delay
+  %457 = load i64, i64* %row_size
+  %458 = load %struct.tuple, %struct.tuple* %row
+  %459 = load i1, i1* %carrier_delay_defined
+  %460 = load i1, i1* %10
+  %461 = load i64, i64* %carrier_delay_size
+  %462 = load double, double* %carrier_delay
+  %463 = load i1, i1* %crs_dep_time_defined
+  %464 = load i64, i64* %crs_dep_time_size
+  %465 = load double, double* %crs_dep_time
+  %466 = load i1, i1* %crs_arr_time_defined
+  %467 = load i64, i64* %crs_arr_time_size
+  %468 = load double, double* %crs_arr_time
+  %469 = load i1, i1* %weather_delay_defined
+  %470 = load i64, i64* %weather_delay_size
+  %471 = load double, double* %weather_delay
+  %472 = load i1, i1* %month_defined
+  %473 = load i64, i64* %month_size
+  %474 = load i64, i64* %month
+  %475 = load i1, i1* %late_aircraft_delay_defined
+  %476 = load i64, i64* %late_aircraft_delay_size
+  %477 = load double, double* %late_aircraft_delay
+  %478 = load i1, i1* %crs_elapsed_time_defined
+  %479 = load i64, i64* %crs_elapsed_time_size
+  %480 = load double, double* %crs_elapsed_time
+  %481 = trunc i8 %443 to i1
+  br i1 %481, label %If20, label %Else21
+
+except19:                                         ; preds = %next16
+  ret i64 129
+
+If20:                                             ; preds = %next18
+  %482 = load i1, i1* %year_defined
+  %483 = sub i1 true, %482
+  br i1 %483, label %except23, label %next22
+
+Else21:                                           ; preds = %next18
+  store double %480, double* %crs_elapsed_time
+  store i64 %479, i64* %crs_elapsed_time_size
+  store double %477, double* %late_aircraft_delay
+  store i64 %476, i64* %late_aircraft_delay_size
+  store i64 %474, i64* %month
+  store i64 %473, i64* %month_size
+  store double %471, double* %weather_delay
+  store i64 %470, i64* %weather_delay_size
+  store double %468, double* %crs_arr_time
+  store i64 %467, i64* %crs_arr_time_size
+  store double %465, double* %crs_dep_time
+  store i64 %464, i64* %crs_dep_time_size
+  store double %449, double* %security_delay
+  store i64 %448, i64* %security_delay_size
+  store i64 %446, i64* %year
+  store i64 %445, i64* %year_size
+  store double %452, double* %nas_delay
+  store i64 %451, i64* %nas_delay_size
+  store double %456, double* %arr_delay
+  store i64 %455, i64* %arr_delay_size
+  store i1 %454, i1* %11
+  store %struct.tuple %458, %struct.tuple* %row
+  store i64 %457, i64* %row_size
+  store double %462, double* %carrier_delay
+  store i64 %461, i64* %carrier_delay_size
+  store i1 %460, i1* %10
+  %484 = load i1, i1* %arr_delay_defined
+  %485 = sub i1 true, %484
+  br i1 %485, label %except27, label %next26
+
+next22:                                           ; preds = %If20
+  %486 = load i64, i64* %year_size
+  %487 = load i64, i64* %year
+  %488 = load i1, i1* %month_defined
+  %489 = sub i1 true, %488
+  br i1 %489, label %except25, label %next24
+
+except23:                                         ; preds = %If20
+  ret i64 130
+
+next24:                                           ; preds = %next22
+  %490 = load i64, i64* %month_size
+  %491 = load i64, i64* %month
+  %492 = load i64, i64* %row_size
+  %493 = load %struct.tuple, %struct.tuple* %row
+  %494 = extractvalue %struct.tuple %493, 1
+  %495 = extractvalue %struct.tuple %493, 2
+  %496 = extractvalue %struct.tuple %493, 3
+  %497 = extractvalue %struct.tuple %493, 4
+  %498 = extractvalue %struct.tuple %493, 14
+  %499 = extractvalue %struct.tuple %493, 5
+  %500 = extractvalue %struct.tuple %493, 6
+  %501 = extractvalue %struct.tuple %493, 7
+  %502 = extractvalue %struct.tuple %493, 8
+  %503 = extractvalue %struct.tuple %493, 0
+  %504 = extractvalue [2 x i1] %503, 0
+  %505 = extractvalue %struct.tuple %493, 9
+  %506 = extractvalue %struct.tuple %493, 10
+  %507 = extractvalue %struct.tuple %493, 0
+  %508 = extractvalue [2 x i1] %507, 1
+  %509 = extractvalue %struct.tuple %493, 11
+  %510 = extractvalue %struct.tuple %493, 12
+  %511 = extractvalue %struct.tuple %493, 13
+  %512 = load i64, i64* %row_size
+  %513 = load %struct.tuple, %struct.tuple* %row
+  %514 = extractvalue %struct.tuple %513, 1
+  %515 = extractvalue %struct.tuple %513, 2
+  %516 = extractvalue %struct.tuple %513, 3
+  %517 = extractvalue %struct.tuple %513, 4
+  %518 = extractvalue %struct.tuple %513, 14
+  %519 = extractvalue %struct.tuple %513, 5
+  %520 = extractvalue %struct.tuple %513, 6
+  %521 = extractvalue %struct.tuple %513, 7
+  %522 = extractvalue %struct.tuple %513, 8
+  %523 = extractvalue %struct.tuple %513, 0
+  %524 = extractvalue [2 x i1] %523, 0
+  %525 = extractvalue %struct.tuple %513, 9
+  %526 = extractvalue %struct.tuple %513, 10
+  %527 = extractvalue %struct.tuple %513, 0
+  %528 = extractvalue [2 x i1] %527, 1
+  %529 = extractvalue %struct.tuple %513, 11
+  %530 = extractvalue %struct.tuple %513, 12
+  %531 = extractvalue %struct.tuple %513, 13
+  %532 = load i64, i64* %row_size
+  %533 = load %struct.tuple, %struct.tuple* %row
+  %534 = extractvalue %struct.tuple %533, 1
+  %535 = extractvalue %struct.tuple %533, 2
+  %536 = extractvalue %struct.tuple %533, 3
+  %537 = extractvalue %struct.tuple %533, 4
+  %538 = extractvalue %struct.tuple %533, 14
+  %539 = extractvalue %struct.tuple %533, 5
+  %540 = extractvalue %struct.tuple %533, 6
+  %541 = extractvalue %struct.tuple %533, 7
+  %542 = extractvalue %struct.tuple %533, 8
+  %543 = extractvalue %struct.tuple %533, 0
+  %544 = extractvalue [2 x i1] %543, 0
+  %545 = extractvalue %struct.tuple %533, 9
+  %546 = extractvalue %struct.tuple %533, 10
+  %547 = extractvalue %struct.tuple %533, 0
+  %548 = extractvalue [2 x i1] %547, 1
+  %549 = extractvalue %struct.tuple %533, 11
+  %550 = extractvalue %struct.tuple %533, 12
+  %551 = extractvalue %struct.tuple %533, 13
+  %552 = load i64, i64* %row_size
+  %553 = load %struct.tuple, %struct.tuple* %row
+  %554 = extractvalue %struct.tuple %553, 1
+  %555 = extractvalue %struct.tuple %553, 2
+  %556 = extractvalue %struct.tuple %553, 3
+  %557 = extractvalue %struct.tuple %553, 4
+  %558 = extractvalue %struct.tuple %553, 14
+  %559 = extractvalue %struct.tuple %553, 5
+  %560 = extractvalue %struct.tuple %553, 6
+  %561 = extractvalue %struct.tuple %553, 7
+  %562 = extractvalue %struct.tuple %553, 8
+  %563 = extractvalue %struct.tuple %553, 0
+  %564 = extractvalue [2 x i1] %563, 0
+  %565 = extractvalue %struct.tuple %553, 9
+  %566 = extractvalue %struct.tuple %553, 10
+  %567 = extractvalue %struct.tuple %553, 0
+  %568 = extractvalue [2 x i1] %567, 1
+  %569 = extractvalue %struct.tuple %553, 11
+  %570 = extractvalue %struct.tuple %553, 12
+  %571 = extractvalue %struct.tuple %553, 13
+  %572 = load i64, i64* %row_size
+  %573 = load %struct.tuple, %struct.tuple* %row
+  %574 = extractvalue %struct.tuple %573, 1
+  %575 = extractvalue %struct.tuple %573, 2
+  %576 = extractvalue %struct.tuple %573, 3
+  %577 = extractvalue %struct.tuple %573, 4
+  %578 = extractvalue %struct.tuple %573, 14
+  %579 = extractvalue %struct.tuple %573, 5
+  %580 = extractvalue %struct.tuple %573, 6
+  %581 = extractvalue %struct.tuple %573, 7
+  %582 = extractvalue %struct.tuple %573, 8
+  %583 = extractvalue %struct.tuple %573, 0
+  %584 = extractvalue [2 x i1] %583, 0
+  %585 = extractvalue %struct.tuple %573, 9
+  %586 = extractvalue %struct.tuple %573, 10
+  %587 = extractvalue %struct.tuple %573, 0
+  %588 = extractvalue [2 x i1] %587, 1
+  %589 = extractvalue %struct.tuple %573, 11
+  %590 = extractvalue %struct.tuple %573, 12
+  %591 = extractvalue %struct.tuple %573, 13
+  %592 = load i64, i64* %row_size
+  %593 = load %struct.tuple, %struct.tuple* %row
+  %594 = extractvalue %struct.tuple %593, 1
+  %595 = extractvalue %struct.tuple %593, 2
+  %596 = extractvalue %struct.tuple %593, 3
+  %597 = extractvalue %struct.tuple %593, 4
+  %598 = extractvalue %struct.tuple %593, 14
+  %599 = extractvalue %struct.tuple %593, 5
+  %600 = extractvalue %struct.tuple %593, 6
+  %601 = extractvalue %struct.tuple %593, 7
+  %602 = extractvalue %struct.tuple %593, 8
+  %603 = extractvalue %struct.tuple %593, 0
+  %604 = extractvalue [2 x i1] %603, 0
+  %605 = extractvalue %struct.tuple %593, 9
+  %606 = extractvalue %struct.tuple %593, 10
+  %607 = extractvalue %struct.tuple %593, 0
+  %608 = extractvalue [2 x i1] %607, 1
+  %609 = extractvalue %struct.tuple %593, 11
+  %610 = extractvalue %struct.tuple %593, 12
+  %611 = extractvalue %struct.tuple %593, 13
+  %612 = load i64, i64* %row_size
+  %613 = load %struct.tuple, %struct.tuple* %row
+  %614 = extractvalue %struct.tuple %613, 1
+  %615 = extractvalue %struct.tuple %613, 2
+  %616 = extractvalue %struct.tuple %613, 3
+  %617 = extractvalue %struct.tuple %613, 4
+  %618 = extractvalue %struct.tuple %613, 14
+  %619 = extractvalue %struct.tuple %613, 5
+  %620 = extractvalue %struct.tuple %613, 6
+  %621 = extractvalue %struct.tuple %613, 7
+  %622 = extractvalue %struct.tuple %613, 8
+  %623 = extractvalue %struct.tuple %613, 0
+  %624 = extractvalue [2 x i1] %623, 0
+  %625 = extractvalue %struct.tuple %613, 9
+  %626 = extractvalue %struct.tuple %613, 10
+  %627 = extractvalue %struct.tuple %613, 0
+  %628 = extractvalue [2 x i1] %627, 1
+  %629 = extractvalue %struct.tuple %613, 11
+  %630 = extractvalue %struct.tuple %613, 12
+  %631 = extractvalue %struct.tuple %613, 13
+  %632 = load i64, i64* %row_size
+  %633 = load %struct.tuple, %struct.tuple* %row
+  %634 = extractvalue %struct.tuple %633, 1
+  %635 = extractvalue %struct.tuple %633, 2
+  %636 = extractvalue %struct.tuple %633, 3
+  %637 = extractvalue %struct.tuple %633, 4
+  %638 = extractvalue %struct.tuple %633, 14
+  %639 = extractvalue %struct.tuple %633, 5
+  %640 = extractvalue %struct.tuple %633, 6
+  %641 = extractvalue %struct.tuple %633, 7
+  %642 = extractvalue %struct.tuple %633, 8
+  %643 = extractvalue %struct.tuple %633, 0
+  %644 = extractvalue [2 x i1] %643, 0
+  %645 = extractvalue %struct.tuple %633, 9
+  %646 = extractvalue %struct.tuple %633, 10
+  %647 = extractvalue %struct.tuple %633, 0
+  %648 = extractvalue [2 x i1] %647, 1
+  %649 = extractvalue %struct.tuple %633, 11
+  %650 = extractvalue %struct.tuple %633, 12
+  %651 = extractvalue %struct.tuple %633, 13
+  %652 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 1
+  store i64 %487, i64* %652
+  %653 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 2
+  store i64 %491, i64* %653
+  %654 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 3
+  store i64 %496, i64* %654
+  %655 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 4
+  store i8* %517, i8** %655
+  %656 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 11
+  store i64 %518, i64* %656
+  %657 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 5
+  store i64 %539, i64* %657
+  %658 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 6
+  store i64 %560, i64* %658
+  %659 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 7
+  store i64 %581, i64* %659
+  %660 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 8
+  store double %611, double* %660
+  %661 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 0
+  %662 = getelementptr inbounds [2 x i1], [2 x i1]* %661, i64 0, i64 0
+  store i1 %624, i1* %662
+  %663 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 9
+  store double %625, double* %663
+  %664 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 0
+  %665 = getelementptr inbounds [2 x i1], [2 x i1]* %664, i64 0, i64 1
+  store i1 %648, i1* %665
+  %666 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %7, i32 0, i32 10
+  store double %649, double* %666
+  %667 = load %struct.tuple.2, %struct.tuple.2* %7
+  %668 = add i64 80, %518
+  %669 = add i64 %668, 8
+  %670 = add i64 %669, 8
+  %671 = extractvalue %struct.tuple.2 %667, 1
+  %672 = extractvalue %struct.tuple.2 %667, 2
+  %673 = extractvalue %struct.tuple.2 %667, 3
+  %674 = extractvalue %struct.tuple.2 %667, 4
+  %675 = extractvalue %struct.tuple.2 %667, 11
+  %676 = extractvalue %struct.tuple.2 %667, 5
+  %677 = extractvalue %struct.tuple.2 %667, 6
+  %678 = extractvalue %struct.tuple.2 %667, 7
+  %679 = extractvalue %struct.tuple.2 %667, 8
+  %680 = extractvalue %struct.tuple.2 %667, 0
+  %681 = extractvalue [2 x i1] %680, 0
+  %682 = extractvalue %struct.tuple.2 %667, 9
+  %683 = extractvalue %struct.tuple.2 %667, 0
+  %684 = extractvalue [2 x i1] %683, 1
+  %685 = extractvalue %struct.tuple.2 %667, 10
+  %686 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 1
+  store i64 %671, i64* %686
+  %687 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 2
+  store i64 %672, i64* %687
+  %688 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 3
+  store i64 %673, i64* %688
+  %689 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 4
+  store i8* %674, i8** %689
+  %690 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 16
+  store i64 %675, i64* %690
+  %691 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 5
+  store i64 %676, i64* %691
+  %692 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 6
+  store i64 %677, i64* %692
+  %693 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 7
+  store i64 %678, i64* %693
+  %694 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 8
+  store double %679, double* %694
+  %695 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 0
+  %696 = getelementptr inbounds [7 x i1], [7 x i1]* %695, i64 0, i64 0
+  store i1 %681, i1* %696
+  %697 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 9
+  store double %682, double* %697
+  %698 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 0
+  %699 = getelementptr inbounds [7 x i1], [7 x i1]* %698, i64 0, i64 1
+  store i1 %684, i1* %699
+  %700 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 10
+  store double %685, double* %700
+  %701 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 0
+  %702 = getelementptr inbounds [7 x i1], [7 x i1]* %701, i64 0, i64 2
+  store i1 true, i1* %702
+  %703 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 11
+  store double 0.000000e+00, double* %703
+  %704 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 0
+  %705 = getelementptr inbounds [7 x i1], [7 x i1]* %704, i64 0, i64 3
+  store i1 true, i1* %705
+  %706 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 12
+  store double 0.000000e+00, double* %706
+  %707 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 0
+  %708 = getelementptr inbounds [7 x i1], [7 x i1]* %707, i64 0, i64 4
+  store i1 true, i1* %708
+  %709 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 13
+  store double 0.000000e+00, double* %709
+  %710 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 0
+  %711 = getelementptr inbounds [7 x i1], [7 x i1]* %710, i64 0, i64 5
+  store i1 true, i1* %711
+  %712 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 14
+  store double 0.000000e+00, double* %712
+  %713 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 0
+  %714 = getelementptr inbounds [7 x i1], [7 x i1]* %713, i64 0, i64 6
+  store i1 true, i1* %714
+  %715 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %6, i32 0, i32 15
+  store double 0.000000e+00, double* %715
+  %716 = load %struct.tuple.0, %struct.tuple.0* %6
+  %717 = add i64 120, %675
+  %718 = add i64 %717, 8
+  %719 = add i64 %718, 8
+  store %struct.tuple.0 %716, %struct.tuple.0* %outRow
+  ret i64 0
+
+except25:                                         ; preds = %next22
+  ret i64 130
+
+next26:                                           ; preds = %Else21
+  %720 = load i1, i1* %11
+  %721 = load i64, i64* %arr_delay_size
+  %722 = load double, double* %arr_delay
+  br i1 %720, label %except29, label %next28
+
+except27:                                         ; preds = %Else21
+  ret i64 130
+
+next28:                                           ; preds = %next26
+  %723 = fcmp olt double %722, 5.000000e+00
+  %724 = zext i1 %723 to i8
+  %725 = load i1, i1* %year_defined
+  %726 = load i64, i64* %year_size
+  %727 = load i64, i64* %year
+  %728 = load i1, i1* %security_delay_defined
+  %729 = load i64, i64* %security_delay_size
+  %730 = load double, double* %security_delay
+  %731 = load i1, i1* %nas_delay_defined
+  %732 = load i64, i64* %nas_delay_size
+  %733 = load double, double* %nas_delay
+  %734 = load i1, i1* %arr_delay_defined
+  %735 = load i1, i1* %11
+  %736 = load i64, i64* %arr_delay_size
+  %737 = load double, double* %arr_delay
+  %738 = load i64, i64* %row_size
+  %739 = load %struct.tuple, %struct.tuple* %row
+  %740 = load i1, i1* %carrier_delay_defined
+  %741 = load i1, i1* %10
+  %742 = load i64, i64* %carrier_delay_size
+  %743 = load double, double* %carrier_delay
+  %744 = load i1, i1* %crs_dep_time_defined
+  %745 = load i64, i64* %crs_dep_time_size
+  %746 = load double, double* %crs_dep_time
+  %747 = load i1, i1* %crs_arr_time_defined
+  %748 = load i64, i64* %crs_arr_time_size
+  %749 = load double, double* %crs_arr_time
+  %750 = load i1, i1* %weather_delay_defined
+  %751 = load i64, i64* %weather_delay_size
+  %752 = load double, double* %weather_delay
+  %753 = load i1, i1* %month_defined
+  %754 = load i64, i64* %month_size
+  %755 = load i64, i64* %month
+  %756 = load i1, i1* %late_aircraft_delay_defined
+  %757 = load i64, i64* %late_aircraft_delay_size
+  %758 = load double, double* %late_aircraft_delay
+  %759 = load i1, i1* %crs_elapsed_time_defined
+  %760 = load i64, i64* %crs_elapsed_time_size
+  %761 = load double, double* %crs_elapsed_time
+  %762 = trunc i8 %724 to i1
+  br i1 %762, label %If30, label %Else31
+
+except29:                                         ; preds = %next26
+  ret i64 129
+
+If30:                                             ; preds = %next28
+  %763 = load i1, i1* %arr_delay_defined
+  %764 = sub i1 true, %763
+  br i1 %764, label %except33, label %next32
+
+Else31:                                           ; preds = %next28
+  store double %761, double* %crs_elapsed_time
+  store i64 %760, i64* %crs_elapsed_time_size
+  store double %758, double* %late_aircraft_delay
+  store i64 %757, i64* %late_aircraft_delay_size
+  store i64 %755, i64* %month
+  store i64 %754, i64* %month_size
+  store double %752, double* %weather_delay
+  store i64 %751, i64* %weather_delay_size
+  store double %749, double* %crs_arr_time
+  store i64 %748, i64* %crs_arr_time_size
+  store double %746, double* %crs_dep_time
+  store i64 %745, i64* %crs_dep_time_size
+  store double %730, double* %security_delay
+  store i64 %729, i64* %security_delay_size
+  store i64 %727, i64* %year
+  store i64 %726, i64* %year_size
+  store double %733, double* %nas_delay
+  store i64 %732, i64* %nas_delay_size
+  store double %737, double* %arr_delay
+  store i64 %736, i64* %arr_delay_size
+  store i1 %735, i1* %11
+  store %struct.tuple %739, %struct.tuple* %row
+  store i64 %738, i64* %row_size
+  store double %743, double* %carrier_delay
+  store i64 %742, i64* %carrier_delay_size
+  store i1 %741, i1* %10
+  %765 = load i64, i64* %row_size
+  %766 = load %struct.tuple, %struct.tuple* %row
+  %767 = extractvalue %struct.tuple %766, 1
+  %768 = extractvalue %struct.tuple %766, 2
+  %769 = extractvalue %struct.tuple %766, 3
+  %770 = extractvalue %struct.tuple %766, 4
+  %771 = extractvalue %struct.tuple %766, 14
+  %772 = extractvalue %struct.tuple %766, 5
+  %773 = extractvalue %struct.tuple %766, 6
+  %774 = extractvalue %struct.tuple %766, 7
+  %775 = extractvalue %struct.tuple %766, 8
+  %776 = extractvalue %struct.tuple %766, 0
+  %777 = extractvalue [2 x i1] %776, 0
+  %778 = extractvalue %struct.tuple %766, 9
+  %779 = extractvalue %struct.tuple %766, 10
+  %780 = extractvalue %struct.tuple %766, 0
+  %781 = extractvalue [2 x i1] %780, 1
+  %782 = extractvalue %struct.tuple %766, 11
+  %783 = extractvalue %struct.tuple %766, 12
+  %784 = extractvalue %struct.tuple %766, 13
+  %785 = sitofp i64 %775 to double
+  store i1 true, i1* %crs_dep_time_defined
+  store double %785, double* %crs_dep_time
+  store i64 8, i64* %crs_dep_time_size
+  %786 = load i64, i64* %row_size
+  %787 = load %struct.tuple, %struct.tuple* %row
+  %788 = extractvalue %struct.tuple %787, 1
+  %789 = extractvalue %struct.tuple %787, 2
+  %790 = extractvalue %struct.tuple %787, 3
+  %791 = extractvalue %struct.tuple %787, 4
+  %792 = extractvalue %struct.tuple %787, 14
+  %793 = extractvalue %struct.tuple %787, 5
+  %794 = extractvalue %struct.tuple %787, 6
+  %795 = extractvalue %struct.tuple %787, 7
+  %796 = extractvalue %struct.tuple %787, 8
+  %797 = extractvalue %struct.tuple %787, 0
+  %798 = extractvalue [2 x i1] %797, 0
+  %799 = extractvalue %struct.tuple %787, 9
+  %800 = extractvalue %struct.tuple %787, 10
+  %801 = extractvalue %struct.tuple %787, 0
+  %802 = extractvalue [2 x i1] %801, 1
+  %803 = extractvalue %struct.tuple %787, 11
+  %804 = extractvalue %struct.tuple %787, 12
+  %805 = extractvalue %struct.tuple %787, 13
+  %806 = sitofp i64 %800 to double
+  store i1 true, i1* %crs_arr_time_defined
+  store double %806, double* %crs_arr_time
+  store i64 8, i64* %crs_arr_time_size
+  %807 = load i64, i64* %row_size
+  %808 = load %struct.tuple, %struct.tuple* %row
+  %809 = extractvalue %struct.tuple %808, 1
+  %810 = extractvalue %struct.tuple %808, 2
+  %811 = extractvalue %struct.tuple %808, 3
+  %812 = extractvalue %struct.tuple %808, 4
+  %813 = extractvalue %struct.tuple %808, 14
+  %814 = extractvalue %struct.tuple %808, 5
+  %815 = extractvalue %struct.tuple %808, 6
+  %816 = extractvalue %struct.tuple %808, 7
+  %817 = extractvalue %struct.tuple %808, 8
+  %818 = extractvalue %struct.tuple %808, 0
+  %819 = extractvalue [2 x i1] %818, 0
+  %820 = extractvalue %struct.tuple %808, 9
+  %821 = extractvalue %struct.tuple %808, 10
+  %822 = extractvalue %struct.tuple %808, 0
+  %823 = extractvalue [2 x i1] %822, 1
+  %824 = extractvalue %struct.tuple %808, 11
+  %825 = extractvalue %struct.tuple %808, 12
+  %826 = extractvalue %struct.tuple %808, 13
+  store i1 true, i1* %crs_elapsed_time_defined
+  store double %825, double* %crs_elapsed_time
+  store i64 8, i64* %crs_elapsed_time_size
+  %827 = load i1, i1* %crs_dep_time_defined
+  %828 = sub i1 true, %827
+  br i1 %828, label %except41, label %next40
+
+next32:                                           ; preds = %If30
+  %829 = load i1, i1* %11
+  %830 = load i64, i64* %arr_delay_size
+  %831 = load double, double* %arr_delay
+  store i1 true, i1* %carrier_delay_defined
+  store double %831, double* %carrier_delay
+  store i64 %830, i64* %carrier_delay_size
+  store i1 %829, i1* %10
+  %832 = load i1, i1* %year_defined
+  %833 = sub i1 true, %832
+  br i1 %833, label %except35, label %next34
+
+except33:                                         ; preds = %If30
+  ret i64 130
+
+next34:                                           ; preds = %next32
+  %834 = load i64, i64* %year_size
+  %835 = load i64, i64* %year
+  %836 = load i1, i1* %month_defined
+  %837 = sub i1 true, %836
+  br i1 %837, label %except37, label %next36
+
+except35:                                         ; preds = %next32
+  ret i64 130
+
+next36:                                           ; preds = %next34
+  %838 = load i64, i64* %month_size
+  %839 = load i64, i64* %month
+  %840 = load i64, i64* %row_size
+  %841 = load %struct.tuple, %struct.tuple* %row
+  %842 = extractvalue %struct.tuple %841, 1
+  %843 = extractvalue %struct.tuple %841, 2
+  %844 = extractvalue %struct.tuple %841, 3
+  %845 = extractvalue %struct.tuple %841, 4
+  %846 = extractvalue %struct.tuple %841, 14
+  %847 = extractvalue %struct.tuple %841, 5
+  %848 = extractvalue %struct.tuple %841, 6
+  %849 = extractvalue %struct.tuple %841, 7
+  %850 = extractvalue %struct.tuple %841, 8
+  %851 = extractvalue %struct.tuple %841, 0
+  %852 = extractvalue [2 x i1] %851, 0
+  %853 = extractvalue %struct.tuple %841, 9
+  %854 = extractvalue %struct.tuple %841, 10
+  %855 = extractvalue %struct.tuple %841, 0
+  %856 = extractvalue [2 x i1] %855, 1
+  %857 = extractvalue %struct.tuple %841, 11
+  %858 = extractvalue %struct.tuple %841, 12
+  %859 = extractvalue %struct.tuple %841, 13
+  %860 = load i64, i64* %row_size
+  %861 = load %struct.tuple, %struct.tuple* %row
+  %862 = extractvalue %struct.tuple %861, 1
+  %863 = extractvalue %struct.tuple %861, 2
+  %864 = extractvalue %struct.tuple %861, 3
+  %865 = extractvalue %struct.tuple %861, 4
+  %866 = extractvalue %struct.tuple %861, 14
+  %867 = extractvalue %struct.tuple %861, 5
+  %868 = extractvalue %struct.tuple %861, 6
+  %869 = extractvalue %struct.tuple %861, 7
+  %870 = extractvalue %struct.tuple %861, 8
+  %871 = extractvalue %struct.tuple %861, 0
+  %872 = extractvalue [2 x i1] %871, 0
+  %873 = extractvalue %struct.tuple %861, 9
+  %874 = extractvalue %struct.tuple %861, 10
+  %875 = extractvalue %struct.tuple %861, 0
+  %876 = extractvalue [2 x i1] %875, 1
+  %877 = extractvalue %struct.tuple %861, 11
+  %878 = extractvalue %struct.tuple %861, 12
+  %879 = extractvalue %struct.tuple %861, 13
+  %880 = load i64, i64* %row_size
+  %881 = load %struct.tuple, %struct.tuple* %row
+  %882 = extractvalue %struct.tuple %881, 1
+  %883 = extractvalue %struct.tuple %881, 2
+  %884 = extractvalue %struct.tuple %881, 3
+  %885 = extractvalue %struct.tuple %881, 4
+  %886 = extractvalue %struct.tuple %881, 14
+  %887 = extractvalue %struct.tuple %881, 5
+  %888 = extractvalue %struct.tuple %881, 6
+  %889 = extractvalue %struct.tuple %881, 7
+  %890 = extractvalue %struct.tuple %881, 8
+  %891 = extractvalue %struct.tuple %881, 0
+  %892 = extractvalue [2 x i1] %891, 0
+  %893 = extractvalue %struct.tuple %881, 9
+  %894 = extractvalue %struct.tuple %881, 10
+  %895 = extractvalue %struct.tuple %881, 0
+  %896 = extractvalue [2 x i1] %895, 1
+  %897 = extractvalue %struct.tuple %881, 11
+  %898 = extractvalue %struct.tuple %881, 12
+  %899 = extractvalue %struct.tuple %881, 13
+  %900 = load i64, i64* %row_size
+  %901 = load %struct.tuple, %struct.tuple* %row
+  %902 = extractvalue %struct.tuple %901, 1
+  %903 = extractvalue %struct.tuple %901, 2
+  %904 = extractvalue %struct.tuple %901, 3
+  %905 = extractvalue %struct.tuple %901, 4
+  %906 = extractvalue %struct.tuple %901, 14
+  %907 = extractvalue %struct.tuple %901, 5
+  %908 = extractvalue %struct.tuple %901, 6
+  %909 = extractvalue %struct.tuple %901, 7
+  %910 = extractvalue %struct.tuple %901, 8
+  %911 = extractvalue %struct.tuple %901, 0
+  %912 = extractvalue [2 x i1] %911, 0
+  %913 = extractvalue %struct.tuple %901, 9
+  %914 = extractvalue %struct.tuple %901, 10
+  %915 = extractvalue %struct.tuple %901, 0
+  %916 = extractvalue [2 x i1] %915, 1
+  %917 = extractvalue %struct.tuple %901, 11
+  %918 = extractvalue %struct.tuple %901, 12
+  %919 = extractvalue %struct.tuple %901, 13
+  %920 = load i64, i64* %row_size
+  %921 = load %struct.tuple, %struct.tuple* %row
+  %922 = extractvalue %struct.tuple %921, 1
+  %923 = extractvalue %struct.tuple %921, 2
+  %924 = extractvalue %struct.tuple %921, 3
+  %925 = extractvalue %struct.tuple %921, 4
+  %926 = extractvalue %struct.tuple %921, 14
+  %927 = extractvalue %struct.tuple %921, 5
+  %928 = extractvalue %struct.tuple %921, 6
+  %929 = extractvalue %struct.tuple %921, 7
+  %930 = extractvalue %struct.tuple %921, 8
+  %931 = extractvalue %struct.tuple %921, 0
+  %932 = extractvalue [2 x i1] %931, 0
+  %933 = extractvalue %struct.tuple %921, 9
+  %934 = extractvalue %struct.tuple %921, 10
+  %935 = extractvalue %struct.tuple %921, 0
+  %936 = extractvalue [2 x i1] %935, 1
+  %937 = extractvalue %struct.tuple %921, 11
+  %938 = extractvalue %struct.tuple %921, 12
+  %939 = extractvalue %struct.tuple %921, 13
+  %940 = load i64, i64* %row_size
+  %941 = load %struct.tuple, %struct.tuple* %row
+  %942 = extractvalue %struct.tuple %941, 1
+  %943 = extractvalue %struct.tuple %941, 2
+  %944 = extractvalue %struct.tuple %941, 3
+  %945 = extractvalue %struct.tuple %941, 4
+  %946 = extractvalue %struct.tuple %941, 14
+  %947 = extractvalue %struct.tuple %941, 5
+  %948 = extractvalue %struct.tuple %941, 6
+  %949 = extractvalue %struct.tuple %941, 7
+  %950 = extractvalue %struct.tuple %941, 8
+  %951 = extractvalue %struct.tuple %941, 0
+  %952 = extractvalue [2 x i1] %951, 0
+  %953 = extractvalue %struct.tuple %941, 9
+  %954 = extractvalue %struct.tuple %941, 10
+  %955 = extractvalue %struct.tuple %941, 0
+  %956 = extractvalue [2 x i1] %955, 1
+  %957 = extractvalue %struct.tuple %941, 11
+  %958 = extractvalue %struct.tuple %941, 12
+  %959 = extractvalue %struct.tuple %941, 13
+  %960 = load i64, i64* %row_size
+  %961 = load %struct.tuple, %struct.tuple* %row
+  %962 = extractvalue %struct.tuple %961, 1
+  %963 = extractvalue %struct.tuple %961, 2
+  %964 = extractvalue %struct.tuple %961, 3
+  %965 = extractvalue %struct.tuple %961, 4
+  %966 = extractvalue %struct.tuple %961, 14
+  %967 = extractvalue %struct.tuple %961, 5
+  %968 = extractvalue %struct.tuple %961, 6
+  %969 = extractvalue %struct.tuple %961, 7
+  %970 = extractvalue %struct.tuple %961, 8
+  %971 = extractvalue %struct.tuple %961, 0
+  %972 = extractvalue [2 x i1] %971, 0
+  %973 = extractvalue %struct.tuple %961, 9
+  %974 = extractvalue %struct.tuple %961, 10
+  %975 = extractvalue %struct.tuple %961, 0
+  %976 = extractvalue [2 x i1] %975, 1
+  %977 = extractvalue %struct.tuple %961, 11
+  %978 = extractvalue %struct.tuple %961, 12
+  %979 = extractvalue %struct.tuple %961, 13
+  %980 = load i64, i64* %row_size
+  %981 = load %struct.tuple, %struct.tuple* %row
+  %982 = extractvalue %struct.tuple %981, 1
+  %983 = extractvalue %struct.tuple %981, 2
+  %984 = extractvalue %struct.tuple %981, 3
+  %985 = extractvalue %struct.tuple %981, 4
+  %986 = extractvalue %struct.tuple %981, 14
+  %987 = extractvalue %struct.tuple %981, 5
+  %988 = extractvalue %struct.tuple %981, 6
+  %989 = extractvalue %struct.tuple %981, 7
+  %990 = extractvalue %struct.tuple %981, 8
+  %991 = extractvalue %struct.tuple %981, 0
+  %992 = extractvalue [2 x i1] %991, 0
+  %993 = extractvalue %struct.tuple %981, 9
+  %994 = extractvalue %struct.tuple %981, 10
+  %995 = extractvalue %struct.tuple %981, 0
+  %996 = extractvalue [2 x i1] %995, 1
+  %997 = extractvalue %struct.tuple %981, 11
+  %998 = extractvalue %struct.tuple %981, 12
+  %999 = extractvalue %struct.tuple %981, 13
+  %1000 = load i1, i1* %carrier_delay_defined
+  %1001 = sub i1 true, %1000
+  br i1 %1001, label %except39, label %next38
+
+except37:                                         ; preds = %next34
+  ret i64 130
+
+next38:                                           ; preds = %next36
+  %1002 = load i1, i1* %10
+  %1003 = load i64, i64* %carrier_delay_size
+  %1004 = load double, double* %carrier_delay
+  %1005 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 1
+  store i64 %835, i64* %1005
+  %1006 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 2
+  store i64 %839, i64* %1006
+  %1007 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 3
+  store i64 %844, i64* %1007
+  %1008 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 4
+  store i8* %865, i8** %1008
+  %1009 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 12
+  store i64 %866, i64* %1009
+  %1010 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 5
+  store i64 %887, i64* %1010
+  %1011 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 6
+  store i64 %908, i64* %1011
+  %1012 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 7
+  store i64 %929, i64* %1012
+  %1013 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 8
+  store double %959, double* %1013
+  %1014 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 0
+  %1015 = getelementptr inbounds [3 x i1], [3 x i1]* %1014, i64 0, i64 0
+  store i1 %972, i1* %1015
+  %1016 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 9
+  store double %973, double* %1016
+  %1017 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 0
+  %1018 = getelementptr inbounds [3 x i1], [3 x i1]* %1017, i64 0, i64 1
+  store i1 %996, i1* %1018
+  %1019 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 10
+  store double %997, double* %1019
+  %1020 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 0
+  %1021 = getelementptr inbounds [3 x i1], [3 x i1]* %1020, i64 0, i64 2
+  store i1 %1002, i1* %1021
+  %1022 = getelementptr inbounds %struct.tuple.3, %struct.tuple.3* %5, i32 0, i32 11
+  store double %1004, double* %1022
+  %1023 = load %struct.tuple.3, %struct.tuple.3* %5
+  %1024 = add i64 88, %866
+  %1025 = add i64 %1024, 8
+  %1026 = add i64 %1025, 8
+  %1027 = extractvalue %struct.tuple.3 %1023, 1
+  %1028 = extractvalue %struct.tuple.3 %1023, 2
+  %1029 = extractvalue %struct.tuple.3 %1023, 3
+  %1030 = extractvalue %struct.tuple.3 %1023, 4
+  %1031 = extractvalue %struct.tuple.3 %1023, 12
+  %1032 = extractvalue %struct.tuple.3 %1023, 5
+  %1033 = extractvalue %struct.tuple.3 %1023, 6
+  %1034 = extractvalue %struct.tuple.3 %1023, 7
+  %1035 = extractvalue %struct.tuple.3 %1023, 8
+  %1036 = extractvalue %struct.tuple.3 %1023, 0
+  %1037 = extractvalue [3 x i1] %1036, 0
+  %1038 = extractvalue %struct.tuple.3 %1023, 9
+  %1039 = extractvalue %struct.tuple.3 %1023, 0
+  %1040 = extractvalue [3 x i1] %1039, 1
+  %1041 = extractvalue %struct.tuple.3 %1023, 10
+  %1042 = extractvalue %struct.tuple.3 %1023, 0
+  %1043 = extractvalue [3 x i1] %1042, 2
+  %1044 = extractvalue %struct.tuple.3 %1023, 11
+  %1045 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 1
+  store i64 %1027, i64* %1045
+  %1046 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 2
+  store i64 %1028, i64* %1046
+  %1047 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 3
+  store i64 %1029, i64* %1047
+  %1048 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 4
+  store i8* %1030, i8** %1048
+  %1049 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 16
+  store i64 %1031, i64* %1049
+  %1050 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 5
+  store i64 %1032, i64* %1050
+  %1051 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 6
+  store i64 %1033, i64* %1051
+  %1052 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 7
+  store i64 %1034, i64* %1052
+  %1053 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 8
+  store double %1035, double* %1053
+  %1054 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 0
+  %1055 = getelementptr inbounds [7 x i1], [7 x i1]* %1054, i64 0, i64 0
+  store i1 %1037, i1* %1055
+  %1056 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 9
+  store double %1038, double* %1056
+  %1057 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 0
+  %1058 = getelementptr inbounds [7 x i1], [7 x i1]* %1057, i64 0, i64 1
+  store i1 %1040, i1* %1058
+  %1059 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 10
+  store double %1041, double* %1059
+  %1060 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 0
+  %1061 = getelementptr inbounds [7 x i1], [7 x i1]* %1060, i64 0, i64 2
+  store i1 %1043, i1* %1061
+  %1062 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 11
+  store double %1044, double* %1062
+  %1063 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 0
+  %1064 = getelementptr inbounds [7 x i1], [7 x i1]* %1063, i64 0, i64 3
+  store i1 true, i1* %1064
+  %1065 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 12
+  store double 0.000000e+00, double* %1065
+  %1066 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 0
+  %1067 = getelementptr inbounds [7 x i1], [7 x i1]* %1066, i64 0, i64 4
+  store i1 true, i1* %1067
+  %1068 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 13
+  store double 0.000000e+00, double* %1068
+  %1069 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 0
+  %1070 = getelementptr inbounds [7 x i1], [7 x i1]* %1069, i64 0, i64 5
+  store i1 true, i1* %1070
+  %1071 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 14
+  store double 0.000000e+00, double* %1071
+  %1072 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 0
+  %1073 = getelementptr inbounds [7 x i1], [7 x i1]* %1072, i64 0, i64 6
+  store i1 true, i1* %1073
+  %1074 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %4, i32 0, i32 15
+  store double 0.000000e+00, double* %1074
+  %1075 = load %struct.tuple.0, %struct.tuple.0* %4
+  %1076 = add i64 120, %1031
+  %1077 = add i64 %1076, 8
+  %1078 = add i64 %1077, 8
+  store %struct.tuple.0 %1075, %struct.tuple.0* %outRow
+  ret i64 0
+
+except39:                                         ; preds = %next36
+  ret i64 130
+
+next40:                                           ; preds = %Else31
+  %1079 = load i64, i64* %crs_dep_time_size
+  %1080 = load double, double* %crs_dep_time
+  %1081 = fmul double 2.700000e+00, %1080
+  %1082 = fadd double 1.024000e+03, %1081
+  %1083 = load i1, i1* %crs_elapsed_time_defined
+  %1084 = sub i1 true, %1083
+  br i1 %1084, label %except43, label %next42
+
+except41:                                         ; preds = %Else31
+  ret i64 130
+
+next42:                                           ; preds = %next40
+  %1085 = load i64, i64* %crs_elapsed_time_size
+  %1086 = load double, double* %crs_elapsed_time
+  %1087 = fmul double 2.000000e-01, %1086
+  %1088 = fsub double %1082, %1087
+  store i1 true, i1* %carrier_delay_defined
+  store double %1088, double* %carrier_delay44
+  store i64 8, i64* %carrier_delay_size45
+  %1089 = load i1, i1* %carrier_delay_defined
+  %1090 = sub i1 true, %1089
+  br i1 %1090, label %except47, label %next46
+
+except43:                                         ; preds = %next40
+  ret i64 130
+
+next46:                                           ; preds = %next42
+  %1091 = load i64, i64* %carrier_delay_size45
+  %1092 = load double, double* %carrier_delay44
+  %1093 = fmul double 0x3FB70A3D70A3D70A, %1092
+  %1094 = load i1, i1* %carrier_delay_defined
+  %1095 = sub i1 true, %1094
+  br i1 %1095, label %except49, label %next48
+
+except47:                                         ; preds = %next42
+  ret i64 130
+
+next48:                                           ; preds = %next46
+  %1096 = load i64, i64* %carrier_delay_size45
+  %1097 = load double, double* %carrier_delay44
+  %1098 = fsub double %1097, 1.000000e+01
+  %1099 = fmul double %1093, %1098
+  %1100 = fadd double 2.000000e+03, %1099
+  store i1 true, i1* %weather_delay_defined
+  store double %1100, double* %weather_delay
+  store i64 8, i64* %weather_delay_size
+  %1101 = load i1, i1* %crs_dep_time_defined
+  %1102 = sub i1 true, %1101
+  br i1 %1102, label %except51, label %next50
+
+except49:                                         ; preds = %next46
+  ret i64 130
+
+next50:                                           ; preds = %next48
+  %1103 = load i64, i64* %crs_dep_time_size
+  %1104 = load double, double* %crs_dep_time
+  %1105 = fmul double 3.600000e+03, %1104
+  br i1 false, label %except53, label %next52
+
+except51:                                         ; preds = %next48
+  ret i64 130
+
+next52:                                           ; preds = %next50
+  %1106 = fdiv double %1105, 1.000000e+01
+  store i1 true, i1* %nas_delay_defined
+  store double %1106, double* %nas_delay
+  store i64 8, i64* %nas_delay_size
+  %1107 = load i1, i1* %crs_dep_time_defined
+  %1108 = sub i1 true, %1107
+  br i1 %1108, label %except55, label %next54
+
+except53:                                         ; preds = %next50
+  ret i64 136
+
+next54:                                           ; preds = %next52
+  %1109 = load i64, i64* %crs_dep_time_size
+  %1110 = load double, double* %crs_dep_time
+  %1111 = fcmp oeq double %1110, 0.000000e+00
+  br i1 %1111, label %except57, label %next56
+
+except55:                                         ; preds = %next52
+  ret i64 130
+
+next56:                                           ; preds = %next54
+  %1112 = fdiv double 7.200000e+03, %1110
+  store i1 true, i1* %security_delay_defined
+  store double %1112, double* %security_delay
+  store i64 8, i64* %security_delay_size
+  %1113 = load i1, i1* %crs_arr_time_defined
+  %1114 = sub i1 true, %1113
+  br i1 %1114, label %except59, label %next58
+
+except57:                                         ; preds = %next54
+  ret i64 136
+
+next58:                                           ; preds = %next56
+  %1115 = load i64, i64* %crs_arr_time_size
+  %1116 = load double, double* %crs_arr_time
+  %1117 = fadd double 2.000000e+01, %1116
+  %1118 = load i1, i1* %crs_dep_time_defined
+  %1119 = sub i1 true, %1118
+  br i1 %1119, label %except61, label %next60
+
+except59:                                         ; preds = %next56
+  ret i64 130
+
+next60:                                           ; preds = %next58
+  %1120 = load i64, i64* %crs_dep_time_size
+  %1121 = load double, double* %crs_dep_time
+  %1122 = fadd double 1.000000e+00, %1121
+  %1123 = fcmp oeq double %1122, 0.000000e+00
+  br i1 %1123, label %except63, label %next62
+
+except61:                                         ; preds = %next58
+  ret i64 130
+
+next62:                                           ; preds = %next60
+  %1124 = fdiv double %1117, %1122
+  store i1 true, i1* %late_aircraft_delay_defined
+  store double %1124, double* %late_aircraft_delay
+  store i64 8, i64* %late_aircraft_delay_size
+  %1125 = load i1, i1* %year_defined
+  %1126 = sub i1 true, %1125
+  br i1 %1126, label %except65, label %next64
+
+except63:                                         ; preds = %next60
+  ret i64 136
+
+next64:                                           ; preds = %next62
+  %1127 = load i64, i64* %year_size
+  %1128 = load i64, i64* %year
+  %1129 = load i1, i1* %month_defined
+  %1130 = sub i1 true, %1129
+  br i1 %1130, label %except67, label %next66
+
+except65:                                         ; preds = %next62
+  ret i64 130
+
+next66:                                           ; preds = %next64
+  %1131 = load i64, i64* %month_size
+  %1132 = load i64, i64* %month
+  %1133 = load i64, i64* %row_size
+  %1134 = load %struct.tuple, %struct.tuple* %row
+  %1135 = extractvalue %struct.tuple %1134, 1
+  %1136 = extractvalue %struct.tuple %1134, 2
+  %1137 = extractvalue %struct.tuple %1134, 3
+  %1138 = extractvalue %struct.tuple %1134, 4
+  %1139 = extractvalue %struct.tuple %1134, 14
+  %1140 = extractvalue %struct.tuple %1134, 5
+  %1141 = extractvalue %struct.tuple %1134, 6
+  %1142 = extractvalue %struct.tuple %1134, 7
+  %1143 = extractvalue %struct.tuple %1134, 8
+  %1144 = extractvalue %struct.tuple %1134, 0
+  %1145 = extractvalue [2 x i1] %1144, 0
+  %1146 = extractvalue %struct.tuple %1134, 9
+  %1147 = extractvalue %struct.tuple %1134, 10
+  %1148 = extractvalue %struct.tuple %1134, 0
+  %1149 = extractvalue [2 x i1] %1148, 1
+  %1150 = extractvalue %struct.tuple %1134, 11
+  %1151 = extractvalue %struct.tuple %1134, 12
+  %1152 = extractvalue %struct.tuple %1134, 13
+  %1153 = load i64, i64* %row_size
+  %1154 = load %struct.tuple, %struct.tuple* %row
+  %1155 = extractvalue %struct.tuple %1154, 1
+  %1156 = extractvalue %struct.tuple %1154, 2
+  %1157 = extractvalue %struct.tuple %1154, 3
+  %1158 = extractvalue %struct.tuple %1154, 4
+  %1159 = extractvalue %struct.tuple %1154, 14
+  %1160 = extractvalue %struct.tuple %1154, 5
+  %1161 = extractvalue %struct.tuple %1154, 6
+  %1162 = extractvalue %struct.tuple %1154, 7
+  %1163 = extractvalue %struct.tuple %1154, 8
+  %1164 = extractvalue %struct.tuple %1154, 0
+  %1165 = extractvalue [2 x i1] %1164, 0
+  %1166 = extractvalue %struct.tuple %1154, 9
+  %1167 = extractvalue %struct.tuple %1154, 10
+  %1168 = extractvalue %struct.tuple %1154, 0
+  %1169 = extractvalue [2 x i1] %1168, 1
+  %1170 = extractvalue %struct.tuple %1154, 11
+  %1171 = extractvalue %struct.tuple %1154, 12
+  %1172 = extractvalue %struct.tuple %1154, 13
+  %1173 = load i64, i64* %row_size
+  %1174 = load %struct.tuple, %struct.tuple* %row
+  %1175 = extractvalue %struct.tuple %1174, 1
+  %1176 = extractvalue %struct.tuple %1174, 2
+  %1177 = extractvalue %struct.tuple %1174, 3
+  %1178 = extractvalue %struct.tuple %1174, 4
+  %1179 = extractvalue %struct.tuple %1174, 14
+  %1180 = extractvalue %struct.tuple %1174, 5
+  %1181 = extractvalue %struct.tuple %1174, 6
+  %1182 = extractvalue %struct.tuple %1174, 7
+  %1183 = extractvalue %struct.tuple %1174, 8
+  %1184 = extractvalue %struct.tuple %1174, 0
+  %1185 = extractvalue [2 x i1] %1184, 0
+  %1186 = extractvalue %struct.tuple %1174, 9
+  %1187 = extractvalue %struct.tuple %1174, 10
+  %1188 = extractvalue %struct.tuple %1174, 0
+  %1189 = extractvalue [2 x i1] %1188, 1
+  %1190 = extractvalue %struct.tuple %1174, 11
+  %1191 = extractvalue %struct.tuple %1174, 12
+  %1192 = extractvalue %struct.tuple %1174, 13
+  %1193 = load i64, i64* %row_size
+  %1194 = load %struct.tuple, %struct.tuple* %row
+  %1195 = extractvalue %struct.tuple %1194, 1
+  %1196 = extractvalue %struct.tuple %1194, 2
+  %1197 = extractvalue %struct.tuple %1194, 3
+  %1198 = extractvalue %struct.tuple %1194, 4
+  %1199 = extractvalue %struct.tuple %1194, 14
+  %1200 = extractvalue %struct.tuple %1194, 5
+  %1201 = extractvalue %struct.tuple %1194, 6
+  %1202 = extractvalue %struct.tuple %1194, 7
+  %1203 = extractvalue %struct.tuple %1194, 8
+  %1204 = extractvalue %struct.tuple %1194, 0
+  %1205 = extractvalue [2 x i1] %1204, 0
+  %1206 = extractvalue %struct.tuple %1194, 9
+  %1207 = extractvalue %struct.tuple %1194, 10
+  %1208 = extractvalue %struct.tuple %1194, 0
+  %1209 = extractvalue [2 x i1] %1208, 1
+  %1210 = extractvalue %struct.tuple %1194, 11
+  %1211 = extractvalue %struct.tuple %1194, 12
+  %1212 = extractvalue %struct.tuple %1194, 13
+  %1213 = load i64, i64* %row_size
+  %1214 = load %struct.tuple, %struct.tuple* %row
+  %1215 = extractvalue %struct.tuple %1214, 1
+  %1216 = extractvalue %struct.tuple %1214, 2
+  %1217 = extractvalue %struct.tuple %1214, 3
+  %1218 = extractvalue %struct.tuple %1214, 4
+  %1219 = extractvalue %struct.tuple %1214, 14
+  %1220 = extractvalue %struct.tuple %1214, 5
+  %1221 = extractvalue %struct.tuple %1214, 6
+  %1222 = extractvalue %struct.tuple %1214, 7
+  %1223 = extractvalue %struct.tuple %1214, 8
+  %1224 = extractvalue %struct.tuple %1214, 0
+  %1225 = extractvalue [2 x i1] %1224, 0
+  %1226 = extractvalue %struct.tuple %1214, 9
+  %1227 = extractvalue %struct.tuple %1214, 10
+  %1228 = extractvalue %struct.tuple %1214, 0
+  %1229 = extractvalue [2 x i1] %1228, 1
+  %1230 = extractvalue %struct.tuple %1214, 11
+  %1231 = extractvalue %struct.tuple %1214, 12
+  %1232 = extractvalue %struct.tuple %1214, 13
+  %1233 = load i64, i64* %row_size
+  %1234 = load %struct.tuple, %struct.tuple* %row
+  %1235 = extractvalue %struct.tuple %1234, 1
+  %1236 = extractvalue %struct.tuple %1234, 2
+  %1237 = extractvalue %struct.tuple %1234, 3
+  %1238 = extractvalue %struct.tuple %1234, 4
+  %1239 = extractvalue %struct.tuple %1234, 14
+  %1240 = extractvalue %struct.tuple %1234, 5
+  %1241 = extractvalue %struct.tuple %1234, 6
+  %1242 = extractvalue %struct.tuple %1234, 7
+  %1243 = extractvalue %struct.tuple %1234, 8
+  %1244 = extractvalue %struct.tuple %1234, 0
+  %1245 = extractvalue [2 x i1] %1244, 0
+  %1246 = extractvalue %struct.tuple %1234, 9
+  %1247 = extractvalue %struct.tuple %1234, 10
+  %1248 = extractvalue %struct.tuple %1234, 0
+  %1249 = extractvalue [2 x i1] %1248, 1
+  %1250 = extractvalue %struct.tuple %1234, 11
+  %1251 = extractvalue %struct.tuple %1234, 12
+  %1252 = extractvalue %struct.tuple %1234, 13
+  %1253 = load i64, i64* %row_size
+  %1254 = load %struct.tuple, %struct.tuple* %row
+  %1255 = extractvalue %struct.tuple %1254, 1
+  %1256 = extractvalue %struct.tuple %1254, 2
+  %1257 = extractvalue %struct.tuple %1254, 3
+  %1258 = extractvalue %struct.tuple %1254, 4
+  %1259 = extractvalue %struct.tuple %1254, 14
+  %1260 = extractvalue %struct.tuple %1254, 5
+  %1261 = extractvalue %struct.tuple %1254, 6
+  %1262 = extractvalue %struct.tuple %1254, 7
+  %1263 = extractvalue %struct.tuple %1254, 8
+  %1264 = extractvalue %struct.tuple %1254, 0
+  %1265 = extractvalue [2 x i1] %1264, 0
+  %1266 = extractvalue %struct.tuple %1254, 9
+  %1267 = extractvalue %struct.tuple %1254, 10
+  %1268 = extractvalue %struct.tuple %1254, 0
+  %1269 = extractvalue [2 x i1] %1268, 1
+  %1270 = extractvalue %struct.tuple %1254, 11
+  %1271 = extractvalue %struct.tuple %1254, 12
+  %1272 = extractvalue %struct.tuple %1254, 13
+  %1273 = load i64, i64* %row_size
+  %1274 = load %struct.tuple, %struct.tuple* %row
+  %1275 = extractvalue %struct.tuple %1274, 1
+  %1276 = extractvalue %struct.tuple %1274, 2
+  %1277 = extractvalue %struct.tuple %1274, 3
+  %1278 = extractvalue %struct.tuple %1274, 4
+  %1279 = extractvalue %struct.tuple %1274, 14
+  %1280 = extractvalue %struct.tuple %1274, 5
+  %1281 = extractvalue %struct.tuple %1274, 6
+  %1282 = extractvalue %struct.tuple %1274, 7
+  %1283 = extractvalue %struct.tuple %1274, 8
+  %1284 = extractvalue %struct.tuple %1274, 0
+  %1285 = extractvalue [2 x i1] %1284, 0
+  %1286 = extractvalue %struct.tuple %1274, 9
+  %1287 = extractvalue %struct.tuple %1274, 10
+  %1288 = extractvalue %struct.tuple %1274, 0
+  %1289 = extractvalue [2 x i1] %1288, 1
+  %1290 = extractvalue %struct.tuple %1274, 11
+  %1291 = extractvalue %struct.tuple %1274, 12
+  %1292 = extractvalue %struct.tuple %1274, 13
+  %1293 = load i1, i1* %carrier_delay_defined
+  %1294 = sub i1 true, %1293
+  br i1 %1294, label %except69, label %next68
+
+except67:                                         ; preds = %next64
+  ret i64 130
+
+next68:                                           ; preds = %next66
+  %1295 = load i64, i64* %carrier_delay_size45
+  %1296 = load double, double* %carrier_delay44
+  %1297 = load i1, i1* %weather_delay_defined
+  %1298 = sub i1 true, %1297
+  br i1 %1298, label %except71, label %next70
+
+except69:                                         ; preds = %next66
+  ret i64 130
+
+next70:                                           ; preds = %next68
+  %1299 = load i64, i64* %weather_delay_size
+  %1300 = load double, double* %weather_delay
+  %1301 = load i1, i1* %nas_delay_defined
+  %1302 = sub i1 true, %1301
+  br i1 %1302, label %except73, label %next72
+
+except71:                                         ; preds = %next68
+  ret i64 130
+
+next72:                                           ; preds = %next70
+  %1303 = load i64, i64* %nas_delay_size
+  %1304 = load double, double* %nas_delay
+  %1305 = load i1, i1* %security_delay_defined
+  %1306 = sub i1 true, %1305
+  br i1 %1306, label %except75, label %next74
+
+except73:                                         ; preds = %next70
+  ret i64 130
+
+next74:                                           ; preds = %next72
+  %1307 = load i64, i64* %security_delay_size
+  %1308 = load double, double* %security_delay
+  %1309 = load i1, i1* %late_aircraft_delay_defined
+  %1310 = sub i1 true, %1309
+  br i1 %1310, label %except77, label %next76
+
+except75:                                         ; preds = %next72
+  ret i64 130
+
+next76:                                           ; preds = %next74
+  %1311 = load i64, i64* %late_aircraft_delay_size
+  %1312 = load double, double* %late_aircraft_delay
+  %1313 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 1
+  store i64 %1128, i64* %1313
+  %1314 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 2
+  store i64 %1132, i64* %1314
+  %1315 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 3
+  store i64 %1137, i64* %1315
+  %1316 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 4
+  store i8* %1158, i8** %1316
+  %1317 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 16
+  store i64 %1159, i64* %1317
+  %1318 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 5
+  store i64 %1180, i64* %1318
+  %1319 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 6
+  store i64 %1201, i64* %1319
+  %1320 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 7
+  store i64 %1222, i64* %1320
+  %1321 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 8
+  store double %1252, double* %1321
+  %1322 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 0
+  %1323 = getelementptr inbounds [2 x i1], [2 x i1]* %1322, i64 0, i64 0
+  store i1 %1265, i1* %1323
+  %1324 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 9
+  store double %1266, double* %1324
+  %1325 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 0
+  %1326 = getelementptr inbounds [2 x i1], [2 x i1]* %1325, i64 0, i64 1
+  store i1 %1289, i1* %1326
+  %1327 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 10
+  store double %1290, double* %1327
+  %1328 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 11
+  store double %1296, double* %1328
+  %1329 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 12
+  store double %1300, double* %1329
+  %1330 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 13
+  store double %1304, double* %1330
+  %1331 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 14
+  store double %1308, double* %1331
+  %1332 = getelementptr inbounds %struct.tuple.4, %struct.tuple.4* %3, i32 0, i32 15
+  store double %1312, double* %1332
+  %1333 = load %struct.tuple.4, %struct.tuple.4* %3
+  %1334 = add i64 120, %1159
+  %1335 = add i64 %1334, 8
+  %1336 = add i64 %1335, 8
+  %1337 = extractvalue %struct.tuple.4 %1333, 1
+  %1338 = extractvalue %struct.tuple.4 %1333, 2
+  %1339 = extractvalue %struct.tuple.4 %1333, 3
+  %1340 = extractvalue %struct.tuple.4 %1333, 4
+  %1341 = extractvalue %struct.tuple.4 %1333, 16
+  %1342 = extractvalue %struct.tuple.4 %1333, 5
+  %1343 = extractvalue %struct.tuple.4 %1333, 6
+  %1344 = extractvalue %struct.tuple.4 %1333, 7
+  %1345 = extractvalue %struct.tuple.4 %1333, 8
+  %1346 = extractvalue %struct.tuple.4 %1333, 0
+  %1347 = extractvalue [2 x i1] %1346, 0
+  %1348 = extractvalue %struct.tuple.4 %1333, 9
+  %1349 = extractvalue %struct.tuple.4 %1333, 0
+  %1350 = extractvalue [2 x i1] %1349, 1
+  %1351 = extractvalue %struct.tuple.4 %1333, 10
+  %1352 = extractvalue %struct.tuple.4 %1333, 11
+  %1353 = extractvalue %struct.tuple.4 %1333, 12
+  %1354 = extractvalue %struct.tuple.4 %1333, 13
+  %1355 = extractvalue %struct.tuple.4 %1333, 14
+  %1356 = extractvalue %struct.tuple.4 %1333, 15
+  %1357 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 1
+  store i64 %1337, i64* %1357
+  %1358 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 2
+  store i64 %1338, i64* %1358
+  %1359 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 3
+  store i64 %1339, i64* %1359
+  %1360 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 4
+  store i8* %1340, i8** %1360
+  %1361 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 16
+  store i64 %1341, i64* %1361
+  %1362 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 5
+  store i64 %1342, i64* %1362
+  %1363 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 6
+  store i64 %1343, i64* %1363
+  %1364 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 7
+  store i64 %1344, i64* %1364
+  %1365 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 8
+  store double %1345, double* %1365
+  %1366 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 0
+  %1367 = getelementptr inbounds [7 x i1], [7 x i1]* %1366, i64 0, i64 0
+  store i1 %1347, i1* %1367
+  %1368 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 9
+  store double %1348, double* %1368
+  %1369 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 0
+  %1370 = getelementptr inbounds [7 x i1], [7 x i1]* %1369, i64 0, i64 1
+  store i1 %1350, i1* %1370
+  %1371 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 10
+  store double %1351, double* %1371
+  %1372 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 0
+  %1373 = getelementptr inbounds [7 x i1], [7 x i1]* %1372, i64 0, i64 2
+  store i1 false, i1* %1373
+  %1374 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 11
+  store double %1352, double* %1374
+  %1375 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 0
+  %1376 = getelementptr inbounds [7 x i1], [7 x i1]* %1375, i64 0, i64 3
+  store i1 false, i1* %1376
+  %1377 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 12
+  store double %1353, double* %1377
+  %1378 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 0
+  %1379 = getelementptr inbounds [7 x i1], [7 x i1]* %1378, i64 0, i64 4
+  store i1 false, i1* %1379
+  %1380 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 13
+  store double %1354, double* %1380
+  %1381 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 0
+  %1382 = getelementptr inbounds [7 x i1], [7 x i1]* %1381, i64 0, i64 5
+  store i1 false, i1* %1382
+  %1383 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 14
+  store double %1355, double* %1383
+  %1384 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 0
+  %1385 = getelementptr inbounds [7 x i1], [7 x i1]* %1384, i64 0, i64 6
+  store i1 false, i1* %1385
+  %1386 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %2, i32 0, i32 15
+  store double %1356, double* %1386
+  %1387 = load %struct.tuple.0, %struct.tuple.0* %2
+  %1388 = add i64 120, %1341
+  %1389 = add i64 %1388, 8
+  %1390 = add i64 %1389, 8
+  store %struct.tuple.0 %1387, %struct.tuple.0* %outRow
+  ret i64 0
+
+except77:                                         ; preds = %next74
+  ret i64 130
+
+next78:                                           ; preds = %Else
+  %1391 = load i64, i64* %year_size
+  %1392 = load i64, i64* %year
+  %1393 = load i1, i1* %month_defined
+  %1394 = sub i1 true, %1393
+  br i1 %1394, label %except81, label %next80
+
+except79:                                         ; preds = %Else
+  ret i64 130
+
+next80:                                           ; preds = %next78
+  %1395 = load i64, i64* %month_size
+  %1396 = load i64, i64* %month
+  %1397 = load i64, i64* %row_size
+  %1398 = load %struct.tuple, %struct.tuple* %row
+  %1399 = extractvalue %struct.tuple %1398, 1
+  %1400 = extractvalue %struct.tuple %1398, 2
+  %1401 = extractvalue %struct.tuple %1398, 3
+  %1402 = extractvalue %struct.tuple %1398, 4
+  %1403 = extractvalue %struct.tuple %1398, 14
+  %1404 = extractvalue %struct.tuple %1398, 5
+  %1405 = extractvalue %struct.tuple %1398, 6
+  %1406 = extractvalue %struct.tuple %1398, 7
+  %1407 = extractvalue %struct.tuple %1398, 8
+  %1408 = extractvalue %struct.tuple %1398, 0
+  %1409 = extractvalue [2 x i1] %1408, 0
+  %1410 = extractvalue %struct.tuple %1398, 9
+  %1411 = extractvalue %struct.tuple %1398, 10
+  %1412 = extractvalue %struct.tuple %1398, 0
+  %1413 = extractvalue [2 x i1] %1412, 1
+  %1414 = extractvalue %struct.tuple %1398, 11
+  %1415 = extractvalue %struct.tuple %1398, 12
+  %1416 = extractvalue %struct.tuple %1398, 13
+  %1417 = load i64, i64* %row_size
+  %1418 = load %struct.tuple, %struct.tuple* %row
+  %1419 = extractvalue %struct.tuple %1418, 1
+  %1420 = extractvalue %struct.tuple %1418, 2
+  %1421 = extractvalue %struct.tuple %1418, 3
+  %1422 = extractvalue %struct.tuple %1418, 4
+  %1423 = extractvalue %struct.tuple %1418, 14
+  %1424 = extractvalue %struct.tuple %1418, 5
+  %1425 = extractvalue %struct.tuple %1418, 6
+  %1426 = extractvalue %struct.tuple %1418, 7
+  %1427 = extractvalue %struct.tuple %1418, 8
+  %1428 = extractvalue %struct.tuple %1418, 0
+  %1429 = extractvalue [2 x i1] %1428, 0
+  %1430 = extractvalue %struct.tuple %1418, 9
+  %1431 = extractvalue %struct.tuple %1418, 10
+  %1432 = extractvalue %struct.tuple %1418, 0
+  %1433 = extractvalue [2 x i1] %1432, 1
+  %1434 = extractvalue %struct.tuple %1418, 11
+  %1435 = extractvalue %struct.tuple %1418, 12
+  %1436 = extractvalue %struct.tuple %1418, 13
+  %1437 = load i64, i64* %row_size
+  %1438 = load %struct.tuple, %struct.tuple* %row
+  %1439 = extractvalue %struct.tuple %1438, 1
+  %1440 = extractvalue %struct.tuple %1438, 2
+  %1441 = extractvalue %struct.tuple %1438, 3
+  %1442 = extractvalue %struct.tuple %1438, 4
+  %1443 = extractvalue %struct.tuple %1438, 14
+  %1444 = extractvalue %struct.tuple %1438, 5
+  %1445 = extractvalue %struct.tuple %1438, 6
+  %1446 = extractvalue %struct.tuple %1438, 7
+  %1447 = extractvalue %struct.tuple %1438, 8
+  %1448 = extractvalue %struct.tuple %1438, 0
+  %1449 = extractvalue [2 x i1] %1448, 0
+  %1450 = extractvalue %struct.tuple %1438, 9
+  %1451 = extractvalue %struct.tuple %1438, 10
+  %1452 = extractvalue %struct.tuple %1438, 0
+  %1453 = extractvalue [2 x i1] %1452, 1
+  %1454 = extractvalue %struct.tuple %1438, 11
+  %1455 = extractvalue %struct.tuple %1438, 12
+  %1456 = extractvalue %struct.tuple %1438, 13
+  %1457 = load i64, i64* %row_size
+  %1458 = load %struct.tuple, %struct.tuple* %row
+  %1459 = extractvalue %struct.tuple %1458, 1
+  %1460 = extractvalue %struct.tuple %1458, 2
+  %1461 = extractvalue %struct.tuple %1458, 3
+  %1462 = extractvalue %struct.tuple %1458, 4
+  %1463 = extractvalue %struct.tuple %1458, 14
+  %1464 = extractvalue %struct.tuple %1458, 5
+  %1465 = extractvalue %struct.tuple %1458, 6
+  %1466 = extractvalue %struct.tuple %1458, 7
+  %1467 = extractvalue %struct.tuple %1458, 8
+  %1468 = extractvalue %struct.tuple %1458, 0
+  %1469 = extractvalue [2 x i1] %1468, 0
+  %1470 = extractvalue %struct.tuple %1458, 9
+  %1471 = extractvalue %struct.tuple %1458, 10
+  %1472 = extractvalue %struct.tuple %1458, 0
+  %1473 = extractvalue [2 x i1] %1472, 1
+  %1474 = extractvalue %struct.tuple %1458, 11
+  %1475 = extractvalue %struct.tuple %1458, 12
+  %1476 = extractvalue %struct.tuple %1458, 13
+  %1477 = load i64, i64* %row_size
+  %1478 = load %struct.tuple, %struct.tuple* %row
+  %1479 = extractvalue %struct.tuple %1478, 1
+  %1480 = extractvalue %struct.tuple %1478, 2
+  %1481 = extractvalue %struct.tuple %1478, 3
+  %1482 = extractvalue %struct.tuple %1478, 4
+  %1483 = extractvalue %struct.tuple %1478, 14
+  %1484 = extractvalue %struct.tuple %1478, 5
+  %1485 = extractvalue %struct.tuple %1478, 6
+  %1486 = extractvalue %struct.tuple %1478, 7
+  %1487 = extractvalue %struct.tuple %1478, 8
+  %1488 = extractvalue %struct.tuple %1478, 0
+  %1489 = extractvalue [2 x i1] %1488, 0
+  %1490 = extractvalue %struct.tuple %1478, 9
+  %1491 = extractvalue %struct.tuple %1478, 10
+  %1492 = extractvalue %struct.tuple %1478, 0
+  %1493 = extractvalue [2 x i1] %1492, 1
+  %1494 = extractvalue %struct.tuple %1478, 11
+  %1495 = extractvalue %struct.tuple %1478, 12
+  %1496 = extractvalue %struct.tuple %1478, 13
+  %1497 = load i64, i64* %row_size
+  %1498 = load %struct.tuple, %struct.tuple* %row
+  %1499 = extractvalue %struct.tuple %1498, 1
+  %1500 = extractvalue %struct.tuple %1498, 2
+  %1501 = extractvalue %struct.tuple %1498, 3
+  %1502 = extractvalue %struct.tuple %1498, 4
+  %1503 = extractvalue %struct.tuple %1498, 14
+  %1504 = extractvalue %struct.tuple %1498, 5
+  %1505 = extractvalue %struct.tuple %1498, 6
+  %1506 = extractvalue %struct.tuple %1498, 7
+  %1507 = extractvalue %struct.tuple %1498, 8
+  %1508 = extractvalue %struct.tuple %1498, 0
+  %1509 = extractvalue [2 x i1] %1508, 0
+  %1510 = extractvalue %struct.tuple %1498, 9
+  %1511 = extractvalue %struct.tuple %1498, 10
+  %1512 = extractvalue %struct.tuple %1498, 0
+  %1513 = extractvalue [2 x i1] %1512, 1
+  %1514 = extractvalue %struct.tuple %1498, 11
+  %1515 = extractvalue %struct.tuple %1498, 12
+  %1516 = extractvalue %struct.tuple %1498, 13
+  %1517 = load i64, i64* %row_size
+  %1518 = load %struct.tuple, %struct.tuple* %row
+  %1519 = extractvalue %struct.tuple %1518, 1
+  %1520 = extractvalue %struct.tuple %1518, 2
+  %1521 = extractvalue %struct.tuple %1518, 3
+  %1522 = extractvalue %struct.tuple %1518, 4
+  %1523 = extractvalue %struct.tuple %1518, 14
+  %1524 = extractvalue %struct.tuple %1518, 5
+  %1525 = extractvalue %struct.tuple %1518, 6
+  %1526 = extractvalue %struct.tuple %1518, 7
+  %1527 = extractvalue %struct.tuple %1518, 8
+  %1528 = extractvalue %struct.tuple %1518, 0
+  %1529 = extractvalue [2 x i1] %1528, 0
+  %1530 = extractvalue %struct.tuple %1518, 9
+  %1531 = extractvalue %struct.tuple %1518, 10
+  %1532 = extractvalue %struct.tuple %1518, 0
+  %1533 = extractvalue [2 x i1] %1532, 1
+  %1534 = extractvalue %struct.tuple %1518, 11
+  %1535 = extractvalue %struct.tuple %1518, 12
+  %1536 = extractvalue %struct.tuple %1518, 13
+  %1537 = load i64, i64* %row_size
+  %1538 = load %struct.tuple, %struct.tuple* %row
+  %1539 = extractvalue %struct.tuple %1538, 1
+  %1540 = extractvalue %struct.tuple %1538, 2
+  %1541 = extractvalue %struct.tuple %1538, 3
+  %1542 = extractvalue %struct.tuple %1538, 4
+  %1543 = extractvalue %struct.tuple %1538, 14
+  %1544 = extractvalue %struct.tuple %1538, 5
+  %1545 = extractvalue %struct.tuple %1538, 6
+  %1546 = extractvalue %struct.tuple %1538, 7
+  %1547 = extractvalue %struct.tuple %1538, 8
+  %1548 = extractvalue %struct.tuple %1538, 0
+  %1549 = extractvalue [2 x i1] %1548, 0
+  %1550 = extractvalue %struct.tuple %1538, 9
+  %1551 = extractvalue %struct.tuple %1538, 10
+  %1552 = extractvalue %struct.tuple %1538, 0
+  %1553 = extractvalue [2 x i1] %1552, 1
+  %1554 = extractvalue %struct.tuple %1538, 11
+  %1555 = extractvalue %struct.tuple %1538, 12
+  %1556 = extractvalue %struct.tuple %1538, 13
+  %1557 = load i64, i64* %row_size
+  %1558 = load %struct.tuple, %struct.tuple* %row
+  %1559 = extractvalue %struct.tuple %1558, 1
+  %1560 = extractvalue %struct.tuple %1558, 2
+  %1561 = extractvalue %struct.tuple %1558, 3
+  %1562 = extractvalue %struct.tuple %1558, 4
+  %1563 = extractvalue %struct.tuple %1558, 14
+  %1564 = extractvalue %struct.tuple %1558, 5
+  %1565 = extractvalue %struct.tuple %1558, 6
+  %1566 = extractvalue %struct.tuple %1558, 7
+  %1567 = extractvalue %struct.tuple %1558, 8
+  %1568 = extractvalue %struct.tuple %1558, 0
+  %1569 = extractvalue [2 x i1] %1568, 0
+  %1570 = extractvalue %struct.tuple %1558, 9
+  %1571 = extractvalue %struct.tuple %1558, 10
+  %1572 = extractvalue %struct.tuple %1558, 0
+  %1573 = extractvalue [2 x i1] %1572, 1
+  %1574 = extractvalue %struct.tuple %1558, 11
+  %1575 = extractvalue %struct.tuple %1558, 12
+  %1576 = extractvalue %struct.tuple %1558, 13
+  %1577 = load i64, i64* %row_size
+  %1578 = load %struct.tuple, %struct.tuple* %row
+  %1579 = extractvalue %struct.tuple %1578, 1
+  %1580 = extractvalue %struct.tuple %1578, 2
+  %1581 = extractvalue %struct.tuple %1578, 3
+  %1582 = extractvalue %struct.tuple %1578, 4
+  %1583 = extractvalue %struct.tuple %1578, 14
+  %1584 = extractvalue %struct.tuple %1578, 5
+  %1585 = extractvalue %struct.tuple %1578, 6
+  %1586 = extractvalue %struct.tuple %1578, 7
+  %1587 = extractvalue %struct.tuple %1578, 8
+  %1588 = extractvalue %struct.tuple %1578, 0
+  %1589 = extractvalue [2 x i1] %1588, 0
+  %1590 = extractvalue %struct.tuple %1578, 9
+  %1591 = extractvalue %struct.tuple %1578, 10
+  %1592 = extractvalue %struct.tuple %1578, 0
+  %1593 = extractvalue [2 x i1] %1592, 1
+  %1594 = extractvalue %struct.tuple %1578, 11
+  %1595 = extractvalue %struct.tuple %1578, 12
+  %1596 = extractvalue %struct.tuple %1578, 13
+  %1597 = load i64, i64* %row_size
+  %1598 = load %struct.tuple, %struct.tuple* %row
+  %1599 = extractvalue %struct.tuple %1598, 1
+  %1600 = extractvalue %struct.tuple %1598, 2
+  %1601 = extractvalue %struct.tuple %1598, 3
+  %1602 = extractvalue %struct.tuple %1598, 4
+  %1603 = extractvalue %struct.tuple %1598, 14
+  %1604 = extractvalue %struct.tuple %1598, 5
+  %1605 = extractvalue %struct.tuple %1598, 6
+  %1606 = extractvalue %struct.tuple %1598, 7
+  %1607 = extractvalue %struct.tuple %1598, 8
+  %1608 = extractvalue %struct.tuple %1598, 0
+  %1609 = extractvalue [2 x i1] %1608, 0
+  %1610 = extractvalue %struct.tuple %1598, 9
+  %1611 = extractvalue %struct.tuple %1598, 10
+  %1612 = extractvalue %struct.tuple %1598, 0
+  %1613 = extractvalue [2 x i1] %1612, 1
+  %1614 = extractvalue %struct.tuple %1598, 11
+  %1615 = extractvalue %struct.tuple %1598, 12
+  %1616 = extractvalue %struct.tuple %1598, 13
+  %1617 = load i64, i64* %row_size
+  %1618 = load %struct.tuple, %struct.tuple* %row
+  %1619 = extractvalue %struct.tuple %1618, 1
+  %1620 = extractvalue %struct.tuple %1618, 2
+  %1621 = extractvalue %struct.tuple %1618, 3
+  %1622 = extractvalue %struct.tuple %1618, 4
+  %1623 = extractvalue %struct.tuple %1618, 14
+  %1624 = extractvalue %struct.tuple %1618, 5
+  %1625 = extractvalue %struct.tuple %1618, 6
+  %1626 = extractvalue %struct.tuple %1618, 7
+  %1627 = extractvalue %struct.tuple %1618, 8
+  %1628 = extractvalue %struct.tuple %1618, 0
+  %1629 = extractvalue [2 x i1] %1628, 0
+  %1630 = extractvalue %struct.tuple %1618, 9
+  %1631 = extractvalue %struct.tuple %1618, 10
+  %1632 = extractvalue %struct.tuple %1618, 0
+  %1633 = extractvalue [2 x i1] %1632, 1
+  %1634 = extractvalue %struct.tuple %1618, 11
+  %1635 = extractvalue %struct.tuple %1618, 12
+  %1636 = extractvalue %struct.tuple %1618, 13
+  %1637 = load i64, i64* %row_size
+  %1638 = load %struct.tuple, %struct.tuple* %row
+  %1639 = extractvalue %struct.tuple %1638, 1
+  %1640 = extractvalue %struct.tuple %1638, 2
+  %1641 = extractvalue %struct.tuple %1638, 3
+  %1642 = extractvalue %struct.tuple %1638, 4
+  %1643 = extractvalue %struct.tuple %1638, 14
+  %1644 = extractvalue %struct.tuple %1638, 5
+  %1645 = extractvalue %struct.tuple %1638, 6
+  %1646 = extractvalue %struct.tuple %1638, 7
+  %1647 = extractvalue %struct.tuple %1638, 8
+  %1648 = extractvalue %struct.tuple %1638, 0
+  %1649 = extractvalue [2 x i1] %1648, 0
+  %1650 = extractvalue %struct.tuple %1638, 9
+  %1651 = extractvalue %struct.tuple %1638, 10
+  %1652 = extractvalue %struct.tuple %1638, 0
+  %1653 = extractvalue [2 x i1] %1652, 1
+  %1654 = extractvalue %struct.tuple %1638, 11
+  %1655 = extractvalue %struct.tuple %1638, 12
+  %1656 = extractvalue %struct.tuple %1638, 13
+  %1657 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 1
+  store i64 %1392, i64* %1657
+  %1658 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 2
+  store i64 %1396, i64* %1658
+  %1659 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 3
+  store i64 %1401, i64* %1659
+  %1660 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 4
+  store i8* %1422, i8** %1660
+  %1661 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 11
+  store i64 %1423, i64* %1661
+  %1662 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 5
+  store i64 %1444, i64* %1662
+  %1663 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 6
+  store i64 %1465, i64* %1663
+  %1664 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 7
+  store i64 %1486, i64* %1664
+  %1665 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 8
+  store double %1516, double* %1665
+  %1666 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 0
+  %1667 = getelementptr inbounds [2 x i1], [2 x i1]* %1666, i64 0, i64 0
+  store i1 %1529, i1* %1667
+  %1668 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 9
+  store double %1530, double* %1668
+  %1669 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 0
+  %1670 = getelementptr inbounds [2 x i1], [2 x i1]* %1669, i64 0, i64 1
+  store i1 %1553, i1* %1670
+  %1671 = getelementptr inbounds %struct.tuple.2, %struct.tuple.2* %1, i32 0, i32 10
+  store double %1554, double* %1671
+  %1672 = load %struct.tuple.2, %struct.tuple.2* %1
+  %1673 = add i64 80, %1423
+  %1674 = add i64 %1673, 8
+  %1675 = add i64 %1674, 8
+  %1676 = extractvalue %struct.tuple.2 %1672, 1
+  %1677 = extractvalue %struct.tuple.2 %1672, 2
+  %1678 = extractvalue %struct.tuple.2 %1672, 3
+  %1679 = extractvalue %struct.tuple.2 %1672, 4
+  %1680 = extractvalue %struct.tuple.2 %1672, 11
+  %1681 = extractvalue %struct.tuple.2 %1672, 5
+  %1682 = extractvalue %struct.tuple.2 %1672, 6
+  %1683 = extractvalue %struct.tuple.2 %1672, 7
+  %1684 = extractvalue %struct.tuple.2 %1672, 8
+  %1685 = extractvalue %struct.tuple.2 %1672, 0
+  %1686 = extractvalue [2 x i1] %1685, 0
+  %1687 = extractvalue %struct.tuple.2 %1672, 9
+  %1688 = extractvalue %struct.tuple.2 %1672, 0
+  %1689 = extractvalue [2 x i1] %1688, 1
+  %1690 = extractvalue %struct.tuple.2 %1672, 10
+  %1691 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 1
+  store i64 %1676, i64* %1691
+  %1692 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 2
+  store i64 %1677, i64* %1692
+  %1693 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 3
+  store i64 %1678, i64* %1693
+  %1694 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 4
+  store i8* %1679, i8** %1694
+  %1695 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 16
+  store i64 %1680, i64* %1695
+  %1696 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 5
+  store i64 %1681, i64* %1696
+  %1697 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 6
+  store i64 %1682, i64* %1697
+  %1698 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 7
+  store i64 %1683, i64* %1698
+  %1699 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 8
+  store double %1684, double* %1699
+  %1700 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 0
+  %1701 = getelementptr inbounds [7 x i1], [7 x i1]* %1700, i64 0, i64 0
+  store i1 %1686, i1* %1701
+  %1702 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 9
+  store double %1687, double* %1702
+  %1703 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 0
+  %1704 = getelementptr inbounds [7 x i1], [7 x i1]* %1703, i64 0, i64 1
+  store i1 %1689, i1* %1704
+  %1705 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 10
+  store double %1690, double* %1705
+  %1706 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 0
+  %1707 = getelementptr inbounds [7 x i1], [7 x i1]* %1706, i64 0, i64 2
+  store i1 true, i1* %1707
+  %1708 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 11
+  store double 0.000000e+00, double* %1708
+  %1709 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 0
+  %1710 = getelementptr inbounds [7 x i1], [7 x i1]* %1709, i64 0, i64 3
+  store i1 true, i1* %1710
+  %1711 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 12
+  store double 0.000000e+00, double* %1711
+  %1712 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 0
+  %1713 = getelementptr inbounds [7 x i1], [7 x i1]* %1712, i64 0, i64 4
+  store i1 true, i1* %1713
+  %1714 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 13
+  store double 0.000000e+00, double* %1714
+  %1715 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 0
+  %1716 = getelementptr inbounds [7 x i1], [7 x i1]* %1715, i64 0, i64 5
+  store i1 true, i1* %1716
+  %1717 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 14
+  store double 0.000000e+00, double* %1717
+  %1718 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 0
+  %1719 = getelementptr inbounds [7 x i1], [7 x i1]* %1718, i64 0, i64 6
+  store i1 true, i1* %1719
+  %1720 = getelementptr inbounds %struct.tuple.0, %struct.tuple.0* %0, i32 0, i32 15
+  store double 0.000000e+00, double* %1720
+  %1721 = load %struct.tuple.0, %struct.tuple.0* %0
+  %1722 = add i64 120, %1680
+  %1723 = add i64 %1722, 8
+  %1724 = add i64 %1723, 8
+  store %struct.tuple.0 %1721, %struct.tuple.0* %outRow
+  ret i64 0
+
+except81:                                         ; preds = %next78
+  ret i64 130
+}
+
+declare i8* @rtmalloc(i64)
+
+declare i32 @i64toa_sse2(i64, i8*)
+
+declare i8* @quoteForCSV(i8*, i64, i64*, i8, i8)
+
+; Function Attrs: argmemonly nounwind
+declare void @llvm.memcpy.p0i8.p0i8.i64(i8* nocapture writeonly, i8* nocapture readonly, i64, i1 immarg) #1
+
+declare i32 @d2fixed_buffered_n(double, i32, i8*)
+
+declare i64 @fast_memOut_Stage_0(i8*, i8*, i64)
+
+define i64 @fast_Stage_0(i8*, i64, i8**, i64*) {
+entry:
+  %pipeline_result = alloca { i32, i32, i32 }
+  %4 = alloca %struct.tuple
+  %5 = alloca double
+  %6 = alloca double
+  %7 = alloca double
+  %8 = alloca i64
+  %9 = alloca double
+  %10 = alloca i64
+  %11 = alloca i64
+  %12 = alloca i64
+  %13 = alloca i64
+  %14 = alloca i64
+  %15 = alloca i64
+  %16 = alloca i64
+  %outputRowNumberVar = alloca i64
+  store i64 %1, i64* %outputRowNumberVar
+  %17 = load i64, i64* %outputRowNumberVar
+  %18 = getelementptr i8*, i8** %2, i64 0
+  %x0 = load i8*, i8** %18
+  %19 = getelementptr i64, i64* %3, i64 0
+  %s0 = load i64, i64* %19
+  %20 = getelementptr i8*, i8** %2, i64 0
+  %x01 = load i8*, i8** %20
+  %21 = getelementptr i8, i8* %x01, i32 0
+  %22 = load i8, i8* %21
+  %23 = icmp eq i8 %22, 0
+  %24 = and i1 true, %23
+  br i1 %24, label %null_error, label %col0_null_check_passed
+
+col0_null_check_passed:                           ; preds = %entry
+  store i64 0, i64* %16
+  br label %parse_i64_value
+
+null_error:                                       ; preds = %parse_f64_done32, %parse_f64_done29, %parse_f64_done, %parse_i64_done19, %parse_i64_done16, %parse_i64_done13, %col6_null_check_passed, %parse_i64_done7, %parse_i64_done4, %parse_i64_done, %entry
+  ret i64 70
+
+value_error:                                      ; preds = %col59_value_check_passed, %col58_value_check_passed, %col57_value_check_passed, %col56_value_check_passed, %parse_f64_done35, %parse_f64_value34, %parse_f64_value31, %parse_f64_value28, %parse_i64_value25, %parse_f64_value, %parse_i64_value21, %parse_i64_value18, %parse_i64_value15, %parse_i64_value12, %parse_i64_value6, %parse_i64_value3, %parse_i64_value
+  ret i64 70
+
+parse_i64_value:                                  ; preds = %col0_null_check_passed
+  %25 = sub i64 %s0, 1
+  %26 = getelementptr i8, i8* %x0, i64 %25
+  %27 = call i32 @fast_atoi64(i8* %x0, i8* %26, i64* %16)
+  %28 = icmp eq i32 %27, 0
+  br i1 %28, label %parse_i64_done, label %value_error
+
+parse_i64_done:                                   ; preds = %parse_i64_value
+  %29 = load i64, i64* %16
+  %30 = getelementptr i8*, i8** %2, i64 2
+  %x2 = load i8*, i8** %30
+  %31 = getelementptr i64, i64* %3, i64 2
+  %s2 = load i64, i64* %31
+  %32 = getelementptr i8*, i8** %2, i64 2
+  %x22 = load i8*, i8** %32
+  %33 = getelementptr i8, i8* %x22, i32 0
+  %34 = load i8, i8* %33
+  %35 = icmp eq i8 %34, 0
+  %36 = and i1 true, %35
+  br i1 %36, label %null_error, label %col2_null_check_passed
+
+col2_null_check_passed:                           ; preds = %parse_i64_done
+  store i64 0, i64* %15
+  br label %parse_i64_value3
+
+parse_i64_value3:                                 ; preds = %col2_null_check_passed
+  %37 = sub i64 %s2, 1
+  %38 = getelementptr i8, i8* %x2, i64 %37
+  %39 = call i32 @fast_atoi64(i8* %x2, i8* %38, i64* %15)
+  %40 = icmp eq i32 %39, 0
+  br i1 %40, label %parse_i64_done4, label %value_error
+
+parse_i64_done4:                                  ; preds = %parse_i64_value3
+  %41 = load i64, i64* %15
+  %42 = getelementptr i8*, i8** %2, i64 3
+  %x3 = load i8*, i8** %42
+  %43 = getelementptr i64, i64* %3, i64 3
+  %s3 = load i64, i64* %43
+  %44 = getelementptr i8*, i8** %2, i64 3
+  %x35 = load i8*, i8** %44
+  %45 = getelementptr i8, i8* %x35, i32 0
+  %46 = load i8, i8* %45
+  %47 = icmp eq i8 %46, 0
+  %48 = and i1 true, %47
+  br i1 %48, label %null_error, label %col3_null_check_passed
+
+col3_null_check_passed:                           ; preds = %parse_i64_done4
+  store i64 0, i64* %14
+  br label %parse_i64_value6
+
+parse_i64_value6:                                 ; preds = %col3_null_check_passed
+  %49 = sub i64 %s3, 1
+  %50 = getelementptr i8, i8* %x3, i64 %49
+  %51 = call i32 @fast_atoi64(i8* %x3, i8* %50, i64* %14)
+  %52 = icmp eq i32 %51, 0
+  br i1 %52, label %parse_i64_done7, label %value_error
+
+parse_i64_done7:                                  ; preds = %parse_i64_value6
+  %53 = load i64, i64* %14
+  %54 = getelementptr i8*, i8** %2, i64 6
+  %x6 = load i8*, i8** %54
+  %55 = getelementptr i64, i64* %3, i64 6
+  %s6 = load i64, i64* %55
+  %56 = getelementptr i8*, i8** %2, i64 6
+  %x68 = load i8*, i8** %56
+  %57 = getelementptr i8, i8* %x68, i32 0
+  %58 = load i8, i8* %57
+  %59 = icmp eq i8 %58, 0
+  %60 = and i1 true, %59
+  br i1 %60, label %null_error, label %col6_null_check_passed
+
+col6_null_check_passed:                           ; preds = %parse_i64_done7
+  %61 = getelementptr i8*, i8** %2, i64 6
+  %x69 = load i8*, i8** %61
+  %62 = getelementptr i64, i64* %3, i64 6
+  %s610 = load i64, i64* %62
+  %63 = getelementptr i8*, i8** %2, i64 10
+  %x10 = load i8*, i8** %63
+  %64 = getelementptr i64, i64* %3, i64 10
+  %s10 = load i64, i64* %64
+  %65 = getelementptr i8*, i8** %2, i64 10
+  %x1011 = load i8*, i8** %65
+  %66 = getelementptr i8, i8* %x1011, i32 0
+  %67 = load i8, i8* %66
+  %68 = icmp eq i8 %67, 0
+  %69 = and i1 true, %68
+  br i1 %69, label %null_error, label %col10_null_check_passed
+
+col10_null_check_passed:                          ; preds = %col6_null_check_passed
+  store i64 0, i64* %13
+  br label %parse_i64_value12
+
+parse_i64_value12:                                ; preds = %col10_null_check_passed
+  %70 = sub i64 %s10, 1
+  %71 = getelementptr i8, i8* %x10, i64 %70
+  %72 = call i32 @fast_atoi64(i8* %x10, i8* %71, i64* %13)
+  %73 = icmp eq i32 %72, 0
+  br i1 %73, label %parse_i64_done13, label %value_error
+
+parse_i64_done13:                                 ; preds = %parse_i64_value12
+  %74 = load i64, i64* %13
+  %75 = getelementptr i8*, i8** %2, i64 11
+  %x11 = load i8*, i8** %75
+  %76 = getelementptr i64, i64* %3, i64 11
+  %s11 = load i64, i64* %76
+  %77 = getelementptr i8*, i8** %2, i64 11
+  %x1114 = load i8*, i8** %77
+  %78 = getelementptr i8, i8* %x1114, i32 0
+  %79 = load i8, i8* %78
+  %80 = icmp eq i8 %79, 0
+  %81 = and i1 true, %80
+  br i1 %81, label %null_error, label %col11_null_check_passed
+
+col11_null_check_passed:                          ; preds = %parse_i64_done13
+  store i64 0, i64* %12
+  br label %parse_i64_value15
+
+parse_i64_value15:                                ; preds = %col11_null_check_passed
+  %82 = sub i64 %s11, 1
+  %83 = getelementptr i8, i8* %x11, i64 %82
+  %84 = call i32 @fast_atoi64(i8* %x11, i8* %83, i64* %12)
+  %85 = icmp eq i32 %84, 0
+  br i1 %85, label %parse_i64_done16, label %value_error
+
+parse_i64_done16:                                 ; preds = %parse_i64_value15
+  %86 = load i64, i64* %12
+  %87 = getelementptr i8*, i8** %2, i64 20
+  %x20 = load i8*, i8** %87
+  %88 = getelementptr i64, i64* %3, i64 20
+  %s20 = load i64, i64* %88
+  %89 = getelementptr i8*, i8** %2, i64 20
+  %x2017 = load i8*, i8** %89
+  %90 = getelementptr i8, i8* %x2017, i32 0
+  %91 = load i8, i8* %90
+  %92 = icmp eq i8 %91, 0
+  %93 = and i1 true, %92
+  br i1 %93, label %null_error, label %col20_null_check_passed
+
+col20_null_check_passed:                          ; preds = %parse_i64_done16
+  store i64 0, i64* %11
+  br label %parse_i64_value18
+
+parse_i64_value18:                                ; preds = %col20_null_check_passed
+  %94 = sub i64 %s20, 1
+  %95 = getelementptr i8, i8* %x20, i64 %94
+  %96 = call i32 @fast_atoi64(i8* %x20, i8* %95, i64* %11)
+  %97 = icmp eq i32 %96, 0
+  br i1 %97, label %parse_i64_done19, label %value_error
+
+parse_i64_done19:                                 ; preds = %parse_i64_value18
+  %98 = load i64, i64* %11
+  %99 = getelementptr i8*, i8** %2, i64 29
+  %x29 = load i8*, i8** %99
+  %100 = getelementptr i64, i64* %3, i64 29
+  %s29 = load i64, i64* %100
+  %101 = getelementptr i8*, i8** %2, i64 29
+  %x2920 = load i8*, i8** %101
+  %102 = getelementptr i8, i8* %x2920, i32 0
+  %103 = load i8, i8* %102
+  %104 = icmp eq i8 %103, 0
+  %105 = and i1 true, %104
+  br i1 %105, label %null_error, label %col29_null_check_passed
+
+col29_null_check_passed:                          ; preds = %parse_i64_done19
+  store i64 0, i64* %10
+  br label %parse_i64_value21
+
+parse_i64_value21:                                ; preds = %col29_null_check_passed
+  %106 = sub i64 %s29, 1
+  %107 = getelementptr i8, i8* %x29, i64 %106
+  %108 = call i32 @fast_atoi64(i8* %x29, i8* %107, i64* %10)
+  %109 = icmp eq i32 %108, 0
+  br i1 %109, label %parse_i64_done22, label %value_error
+
+parse_i64_done22:                                 ; preds = %parse_i64_value21
+  %110 = load i64, i64* %10
+  %111 = getelementptr i8*, i8** %2, i64 31
+  %x31 = load i8*, i8** %111
+  %112 = getelementptr i64, i64* %3, i64 31
+  %s31 = load i64, i64* %112
+  %113 = getelementptr i8*, i8** %2, i64 31
+  %x3123 = load i8*, i8** %113
+  %114 = getelementptr i8, i8* %x3123, i32 0
+  %115 = load i8, i8* %114
+  %116 = icmp eq i8 %115, 0
+  %117 = and i1 true, %116
+  store double 0.000000e+00, double* %9
+  br i1 %117, label %parse_f64_done, label %parse_f64_value
+
+parse_f64_value:                                  ; preds = %parse_i64_done22
+  %118 = sub i64 %s31, 1
+  %119 = getelementptr i8, i8* %x31, i64 %118
+  %120 = call i32 @fast_atod(i8* %x31, i8* %119, double* %9)
+  %121 = icmp eq i32 %120, 0
+  br i1 %121, label %parse_f64_done, label %value_error
+
+parse_f64_done:                                   ; preds = %parse_f64_value, %parse_i64_done22
+  %122 = load double, double* %9
+  %123 = getelementptr i8*, i8** %2, i64 40
+  %x40 = load i8*, i8** %123
+  %124 = getelementptr i64, i64* %3, i64 40
+  %s40 = load i64, i64* %124
+  %125 = getelementptr i8*, i8** %2, i64 40
+  %x4024 = load i8*, i8** %125
+  %126 = getelementptr i8, i8* %x4024, i32 0
+  %127 = load i8, i8* %126
+  %128 = icmp eq i8 %127, 0
+  %129 = and i1 true, %128
+  br i1 %129, label %null_error, label %col40_null_check_passed
+
+col40_null_check_passed:                          ; preds = %parse_f64_done
+  store i64 0, i64* %8
+  br label %parse_i64_value25
+
+parse_i64_value25:                                ; preds = %col40_null_check_passed
+  %130 = sub i64 %s40, 1
+  %131 = getelementptr i8, i8* %x40, i64 %130
+  %132 = call i32 @fast_atoi64(i8* %x40, i8* %131, i64* %8)
+  %133 = icmp eq i32 %132, 0
+  br i1 %133, label %parse_i64_done26, label %value_error
+
+parse_i64_done26:                                 ; preds = %parse_i64_value25
+  %134 = load i64, i64* %8
+  %135 = getelementptr i8*, i8** %2, i64 42
+  %x42 = load i8*, i8** %135
+  %136 = getelementptr i64, i64* %3, i64 42
+  %s42 = load i64, i64* %136
+  %137 = getelementptr i8*, i8** %2, i64 42
+  %x4227 = load i8*, i8** %137
+  %138 = getelementptr i8, i8* %x4227, i32 0
+  %139 = load i8, i8* %138
+  %140 = icmp eq i8 %139, 0
+  %141 = and i1 true, %140
+  store double 0.000000e+00, double* %7
+  br i1 %141, label %parse_f64_done29, label %parse_f64_value28
+
+parse_f64_value28:                                ; preds = %parse_i64_done26
+  %142 = sub i64 %s42, 1
+  %143 = getelementptr i8, i8* %x42, i64 %142
+  %144 = call i32 @fast_atod(i8* %x42, i8* %143, double* %7)
+  %145 = icmp eq i32 %144, 0
+  br i1 %145, label %parse_f64_done29, label %value_error
+
+parse_f64_done29:                                 ; preds = %parse_f64_value28, %parse_i64_done26
+  %146 = load double, double* %7
+  %147 = getelementptr i8*, i8** %2, i64 50
+  %x50 = load i8*, i8** %147
+  %148 = getelementptr i64, i64* %3, i64 50
+  %s50 = load i64, i64* %148
+  %149 = getelementptr i8*, i8** %2, i64 50
+  %x5030 = load i8*, i8** %149
+  %150 = getelementptr i8, i8* %x5030, i32 0
+  %151 = load i8, i8* %150
+  %152 = icmp eq i8 %151, 0
+  %153 = and i1 true, %152
+  br i1 %153, label %null_error, label %col50_null_check_passed
+
+col50_null_check_passed:                          ; preds = %parse_f64_done29
+  store double 0.000000e+00, double* %6
+  br label %parse_f64_value31
+
+parse_f64_value31:                                ; preds = %col50_null_check_passed
+  %154 = sub i64 %s50, 1
+  %155 = getelementptr i8, i8* %x50, i64 %154
+  %156 = call i32 @fast_atod(i8* %x50, i8* %155, double* %6)
+  %157 = icmp eq i32 %156, 0
+  br i1 %157, label %parse_f64_done32, label %value_error
+
+parse_f64_done32:                                 ; preds = %parse_f64_value31
+  %158 = load double, double* %6
+  %159 = getelementptr i8*, i8** %2, i64 54
+  %x54 = load i8*, i8** %159
+  %160 = getelementptr i64, i64* %3, i64 54
+  %s54 = load i64, i64* %160
+  %161 = getelementptr i8*, i8** %2, i64 54
+  %x5433 = load i8*, i8** %161
+  %162 = getelementptr i8, i8* %x5433, i32 0
+  %163 = load i8, i8* %162
+  %164 = icmp eq i8 %163, 0
+  %165 = and i1 true, %164
+  br i1 %165, label %null_error, label %col54_null_check_passed
+
+col54_null_check_passed:                          ; preds = %parse_f64_done32
+  store double 0.000000e+00, double* %5
+  br label %parse_f64_value34
+
+parse_f64_value34:                                ; preds = %col54_null_check_passed
+  %166 = sub i64 %s54, 1
+  %167 = getelementptr i8, i8* %x54, i64 %166
+  %168 = call i32 @fast_atod(i8* %x54, i8* %167, double* %5)
+  %169 = icmp eq i32 %168, 0
+  br i1 %169, label %parse_f64_done35, label %value_error
+
+parse_f64_done35:                                 ; preds = %parse_f64_value34
+  %170 = load double, double* %5
+  %171 = getelementptr i8*, i8** %2, i64 56
+  %x56 = load i8*, i8** %171
+  %172 = getelementptr i64, i64* %3, i64 56
+  %s56 = load i64, i64* %172
+  %173 = getelementptr i8*, i8** %2, i64 56
+  %x5636 = load i8*, i8** %173
+  %174 = getelementptr i8, i8* %x5636, i32 0
+  %175 = load i8, i8* %174
+  %176 = icmp eq i8 %175, 0
+  %177 = and i1 true, %176
+  br i1 %177, label %col56_value_check_passed, label %value_error
+
+col56_value_check_passed:                         ; preds = %parse_f64_done35
+  %178 = getelementptr i8*, i8** %2, i64 57
+  %x57 = load i8*, i8** %178
+  %179 = getelementptr i64, i64* %3, i64 57
+  %s57 = load i64, i64* %179
+  %180 = getelementptr i8*, i8** %2, i64 57
+  %x5737 = load i8*, i8** %180
+  %181 = getelementptr i8, i8* %x5737, i32 0
+  %182 = load i8, i8* %181
+  %183 = icmp eq i8 %182, 0
+  %184 = and i1 true, %183
+  br i1 %184, label %col57_value_check_passed, label %value_error
+
+col57_value_check_passed:                         ; preds = %col56_value_check_passed
+  %185 = getelementptr i8*, i8** %2, i64 58
+  %x58 = load i8*, i8** %185
+  %186 = getelementptr i64, i64* %3, i64 58
+  %s58 = load i64, i64* %186
+  %187 = getelementptr i8*, i8** %2, i64 58
+  %x5838 = load i8*, i8** %187
+  %188 = getelementptr i8, i8* %x5838, i32 0
+  %189 = load i8, i8* %188
+  %190 = icmp eq i8 %189, 0
+  %191 = and i1 true, %190
+  br i1 %191, label %col58_value_check_passed, label %value_error
+
+col58_value_check_passed:                         ; preds = %col57_value_check_passed
+  %192 = getelementptr i8*, i8** %2, i64 59
+  %x59 = load i8*, i8** %192
+  %193 = getelementptr i64, i64* %3, i64 59
+  %s59 = load i64, i64* %193
+  %194 = getelementptr i8*, i8** %2, i64 59
+  %x5939 = load i8*, i8** %194
+  %195 = getelementptr i8, i8* %x5939, i32 0
+  %196 = load i8, i8* %195
+  %197 = icmp eq i8 %196, 0
+  %198 = and i1 true, %197
+  br i1 %198, label %col59_value_check_passed, label %value_error
+
+col59_value_check_passed:                         ; preds = %col58_value_check_passed
+  %199 = getelementptr i8*, i8** %2, i64 60
+  %x60 = load i8*, i8** %199
+  %200 = getelementptr i64, i64* %3, i64 60
+  %s60 = load i64, i64* %200
+  %201 = getelementptr i8*, i8** %2, i64 60
+  %x6040 = load i8*, i8** %201
+  %202 = getelementptr i8, i8* %x6040, i32 0
+  %203 = load i8, i8* %202
+  %204 = icmp eq i8 %203, 0
+  %205 = and i1 true, %204
+  br i1 %205, label %col60_value_check_passed, label %value_error
+
+col60_value_check_passed:                         ; preds = %col59_value_check_passed
+  %206 = load i64, i64* %outputRowNumberVar
+  %207 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 1
+  store i64 %29, i64* %207
+  %208 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 2
+  store i64 %41, i64* %208
+  %209 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 3
+  store i64 %53, i64* %209
+  %210 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 4
+  store i8* %x69, i8** %210
+  %211 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 14
+  store i64 %s610, i64* %211
+  %212 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 5
+  store i64 %74, i64* %212
+  %213 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 6
+  store i64 %86, i64* %213
+  %214 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 7
+  store i64 %98, i64* %214
+  %215 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 8
+  store i64 %110, i64* %215
+  %216 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 0
+  %217 = getelementptr inbounds [2 x i1], [2 x i1]* %216, i64 0, i64 0
+  store i1 %117, i1* %217
+  %218 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 9
+  store double %122, double* %218
+  %219 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 10
+  store i64 %134, i64* %219
+  %220 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 0
+  %221 = getelementptr inbounds [2 x i1], [2 x i1]* %220, i64 0, i64 1
+  store i1 %141, i1* %221
+  %222 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 11
+  store double %146, double* %222
+  %223 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 12
+  store double %158, double* %223
+  %224 = getelementptr inbounds %struct.tuple, %struct.tuple* %4, i32 0, i32 13
+  store double %170, double* %224
+  call void @fast_processRow_Stage_0({ i32, i32, i32 }* %pipeline_result, i8* %0, %struct.tuple* %4, i64 %206)
+  %225 = getelementptr inbounds { i32, i32, i32 }, { i32, i32, i32 }* %pipeline_result, i32 0, i32 0
+  %226 = load i32, i32* %225
+  %227 = getelementptr inbounds { i32, i32, i32 }, { i32, i32, i32 }* %pipeline_result, i32 0, i32 1
+  %228 = load i32, i32* %227
+  %229 = getelementptr inbounds { i32, i32, i32 }, { i32, i32, i32 }* %pipeline_result, i32 0, i32 2
+  %230 = load i32, i32* %229
+  %231 = zext i32 %226 to i64
+  %232 = zext i32 %228 to i64
+  %233 = zext i32 %230 to i64
+  %234 = icmp ne i64 %231, 0
+  %235 = add i64 144, %s610
+  %236 = add i64 %235, 8
+  %237 = add i64 %236, 8
+  %238 = call i8* @rtmalloc(i64 %237)
+  %varbaseptr = getelementptr i8, i8* %238, i32 152
+  %239 = zext i1 %117 to i64
+  %240 = shl i64 %239, 8
+  %241 = or i64 0, %240
+  %242 = zext i1 %141 to i64
+  %243 = shl i64 %242, 10
+  %244 = or i64 %241, %243
+  %245 = or i64 %244, 8192
+  %246 = or i64 %245, 16384
+  %247 = or i64 %246, 32768
+  %248 = or i64 %247, 65536
+  %249 = or i64 %248, 131072
+  %250 = bitcast i8* %238 to i64*
+  store i64 %249, i64* %250
+  %outptr = getelementptr i8, i8* %238, i32 8
+  %varlenbaseptr = getelementptr i8, i8* %varbaseptr, i32 8
+  %251 = bitcast i8* %outptr to i64*
+  store i64 %29, i64* %251
+  %outptr41 = getelementptr i8, i8* %outptr, i32 8
+  %252 = bitcast i8* %outptr41 to i64*
+  store i64 %41, i64* %252
+  %outptr42 = getelementptr i8, i8* %outptr41, i32 8
+  %253 = bitcast i8* %outptr42 to i64*
+  store i64 %53, i64* %253
+  %outptr43 = getelementptr i8, i8* %outptr42, i32 8
+  %254 = shl i64 %s610, 32
+  %255 = or i64 128, %254
+  %256 = bitcast i8* %outptr43 to i64*
+  store i64 %255, i64* %256
+  %varoff = getelementptr i8, i8* %outptr43, i64 128
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %varoff, i8* %x69, i64 %s610, i1 true)
+  %257 = add i64 0, %s610
+  %outptr44 = getelementptr i8, i8* %outptr43, i32 8
+  %258 = bitcast i8* %outptr44 to i64*
+  store i64 %74, i64* %258
+  %outptr45 = getelementptr i8, i8* %outptr44, i32 8
+  %259 = bitcast i8* %outptr45 to i64*
+  store i64 %86, i64* %259
+  %outptr46 = getelementptr i8, i8* %outptr45, i32 8
+  %260 = bitcast i8* %outptr46 to i64*
+  store i64 %98, i64* %260
+  %outptr47 = getelementptr i8, i8* %outptr46, i32 8
+  %261 = bitcast i8* %outptr47 to i64*
+  store i64 %110, i64* %261
+  %outptr48 = getelementptr i8, i8* %outptr47, i32 8
+  %262 = bitcast i8* %outptr48 to double*
+  store double %122, double* %262
+  %outptr49 = getelementptr i8, i8* %outptr48, i32 8
+  %263 = bitcast i8* %outptr49 to i64*
+  store i64 %134, i64* %263
+  %outptr50 = getelementptr i8, i8* %outptr49, i32 8
+  %264 = bitcast i8* %outptr50 to double*
+  store double %146, double* %264
+  %outptr51 = getelementptr i8, i8* %outptr50, i32 8
+  %265 = bitcast i8* %outptr51 to double*
+  store double %158, double* %265
+  %outptr52 = getelementptr i8, i8* %outptr51, i32 8
+  %266 = bitcast i8* %outptr52 to double*
+  store double %170, double* %266
+  %outptr53 = getelementptr i8, i8* %outptr52, i32 8
+  %267 = add i64 48, %257
+  %268 = bitcast i8* %outptr53 to i64*
+  store i64 %267, i64* %268
+  %varoff54 = getelementptr i8, i8* %outptr53, i64 %267
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %varoff54, i8* getelementptr inbounds ([1 x i8], [1 x i8]* @3, i32 0, i32 0), i64 0, i1 true)
+  %269 = add i64 %257, 0
+  %outptr55 = getelementptr i8, i8* %outptr53, i32 8
+  %270 = add i64 40, %269
+  %271 = bitcast i8* %outptr55 to i64*
+  store i64 %270, i64* %271
+  %varoff56 = getelementptr i8, i8* %outptr55, i64 %270
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %varoff56, i8* getelementptr inbounds ([1 x i8], [1 x i8]* @4, i32 0, i32 0), i64 0, i1 true)
+  %272 = add i64 %269, 0
+  %outptr57 = getelementptr i8, i8* %outptr55, i32 8
+  %273 = add i64 32, %272
+  %274 = bitcast i8* %outptr57 to i64*
+  store i64 %273, i64* %274
+  %varoff58 = getelementptr i8, i8* %outptr57, i64 %273
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %varoff58, i8* getelementptr inbounds ([1 x i8], [1 x i8]* @5, i32 0, i32 0), i64 0, i1 true)
+  %275 = add i64 %272, 0
+  %outptr59 = getelementptr i8, i8* %outptr57, i32 8
+  %276 = add i64 24, %275
+  %277 = bitcast i8* %outptr59 to i64*
+  store i64 %276, i64* %277
+  %varoff60 = getelementptr i8, i8* %outptr59, i64 %276
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %varoff60, i8* getelementptr inbounds ([1 x i8], [1 x i8]* @6, i32 0, i32 0), i64 0, i1 true)
+  %278 = add i64 %275, 0
+  %outptr61 = getelementptr i8, i8* %outptr59, i32 8
+  %279 = add i64 16, %278
+  %280 = bitcast i8* %outptr61 to i64*
+  store i64 %279, i64* %280
+  %varoff62 = getelementptr i8, i8* %outptr61, i64 %279
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %varoff62, i8* getelementptr inbounds ([1 x i8], [1 x i8]* @7, i32 0, i32 0), i64 0, i1 true)
+  %281 = add i64 %278, 0
+  %outptr63 = getelementptr i8, i8* %outptr61, i32 8
+  %282 = bitcast i8* %outptr63 to i64*
+  store i64 %281, i64* %282
+  %283 = load i64, i64* %outputRowNumberVar
+  br i1 %234, label %except, label %pipeline_ok
+
+pipeline_ok:                                      ; preds = %except, %col60_value_check_passed
+  ret i64 0
+
+except:                                           ; preds = %col60_value_check_passed
+  %284 = trunc i64 %231 to i32
+  %285 = zext i32 %284 to i64
+  %286 = or i64 8589934592, %285
+  call void @fast_except_Stage_0(i8* %0, i64 %286, i64 %232, i64 %283, i8* %238, i64 %237)
+  br label %pipeline_ok
+}
+
+declare i32 @fast_atoi64(i8*, i8*, i64*)
+
+declare i32 @fast_atod(i8*, i8*, double*)
+
+declare void @fast_except_Stage_0(i8*, i64, i64, i64, i8*, i64)
+
+attributes #0 = { inlinehint norecurse }
+attributes #1 = { argmemonly nounwind }

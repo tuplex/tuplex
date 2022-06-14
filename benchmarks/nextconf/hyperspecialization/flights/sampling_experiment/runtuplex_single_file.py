@@ -195,7 +195,7 @@ if __name__ == '__main__':
     rows = []
     # (c) is first rows/all files -> -2
     # (d) is first rows, first file -> 0
-    for sm in [combos[-2]]:
+    for sm in [combos[0]]:
         print('--> Running with Sampling mode {}'.format(sm))
         tstart = time.time()
         ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).tocsv(s3_output_path)

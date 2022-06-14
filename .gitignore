@@ -94,3 +94,5 @@ wheelhouse/
 *.zip
 tuplex/other/tplxlam.zip
 fixed_wheels/
+
+tuplex/.vscode/

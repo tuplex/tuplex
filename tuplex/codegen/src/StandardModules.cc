@@ -69,6 +69,12 @@ namespace tuplex {
             isinfSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::BOOLEAN), python::Type::BOOLEAN));
             m->addAttribute(isinfSym);
 
+            // math.isclose
+            auto iscloseSym = make_shared<Symbol>("isclose", "isclose", python::Type::makeFunctionType(python::Type::makeTupleType({python::Type::F64, python::Type::F64, python::Type::F64, python::Type::F64}), python::Type::BOOLEAN), SymbolType::FUNCTION);
+            iscloseSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::I64), python::Type::BOOLEAN));
+            iscloseSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::BOOLEAN), python::Type::BOOLEAN));
+            m->addAttribute(iscloseSym);
+
             // math.ceil/math.floor
             for(const auto& name : vector<string>{"ceil", "floor"}) {
                 // types here are:

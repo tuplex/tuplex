@@ -1305,6 +1305,9 @@ namespace tuplex {
             
             if (symbol == "math.isinf")
                 return createMathIsInfCall(builder, argsType, retType, args);
+                
+            if (symbol == "math.isclose")
+                return createMathIsCloseCall(builder, argsType, retType, args);
 
 
             // re module

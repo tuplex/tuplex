@@ -1021,7 +1021,7 @@ namespace tuplex {
             // auto orRes = builder.CreateOr(negCmp, posCmp);
             auto i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
             auto andRes = builder.CreateAnd(i64Val, 0x7FFFFFFFFFFFFFFF);
-            auto cmpRes = builder.CreateICmpEQ(andRes, 0x7FF0000000000000);
+            auto cmpRes = builder.CreateICmpEQ(andRes, _env.i64Const(0x7FF0000000000000));
 
             auto resVal = _env.upcastToBoolean(builder, cmpRes);
             auto resSize = _env.i64Const(sizeof(int64_t));

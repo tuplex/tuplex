@@ -627,6 +627,7 @@ TEST_F(MathFunctionsTest, MathAsin) {
     python::closeInterpreter();
 }
 
+
 TEST_F(MathFunctionsTest, MathPow) {
     using namespace std;
     using namespace tuplex;
@@ -696,6 +697,7 @@ TEST_F(MathFunctionsTest, MathPow) {
     python::closeInterpreter();
 }
 
+
 TEST_F(MathFunctionsTest, MathIsInf) {
     using namespace std;
     using namespace tuplex;
@@ -735,6 +737,7 @@ TEST_F(MathFunctionsTest, MathIsInf) {
     python::lockGIL();
     python::closeInterpreter();
 }
+
 
 TEST_F(MathFunctionsTest, MathIsNan) {
     using namespace std;
@@ -778,53 +781,55 @@ TEST_F(MathFunctionsTest, MathIsNan) {
     python::closeInterpreter();
 }
 
-// TEST_F(MathFunctionsTest, MathIsClose) {
-//     using namespace std;
-//     using namespace tuplex;
 
-//     python::initInterpreter();
-//     python::unlockGIL();
+TEST_F(MathFunctionsTest, MathIsClose) {
+    using namespace std;
+    using namespace tuplex;
 
-//     Context c(microTestOptions());
-//     ClosureEnvironment ce;
-//     ce.importModuleAs("math", "math");
+    python::initInterpreter();
+    python::unlockGIL();
+
+    Context c(microTestOptions());
+    ClosureEnvironment ce;
+    ce.importModuleAs("math", "math");
     
-//     auto v1 = c.parallelize({
-//         Row(0.0, 0.0), Row(1.0, 2.0), Row(1.0, 1.000000001)
-//     }).map(UDF("lambda x, y: math.isclose(x, y)", "", ce)).collectAsVector();
+    auto v1 = c.parallelize({
+        Row(0.0, 0.0), Row(1.0, 2.0), Row(1.0, 1.000000001)
+    }).map(UDF("lambda x, y: math.isclose(x, y)", "", ce)).collectAsVector();
 
-//     EXPECT_EQ(v1.size(), 3);
-//     EXPECT_EQ(v1[0].getBoolean(0), true);
-//     EXPECT_EQ(v1[1].getBoolean(0), false);
-//     EXPECT_EQ(v1[2].getBoolean(0), false);
+    EXPECT_EQ(v1.size(), 3);
+    EXPECT_EQ(v1[0].getBoolean(0), true);
+    EXPECT_EQ(v1[1].getBoolean(0), false);
+    EXPECT_EQ(v1[2].getBoolean(0), false);
 
-//     auto v2 = c.parallelize({
-//         Row(0.0, 0.0, 0.4), Row(1.5, 1.6, 0.0001), Row(3.0, 3.000000001, 1e-07)
-//     }).map(UDF("lambda x, y, z: math.isclose(x, y, abs_tol=z)", "", ce)).collectAsVector();
+    auto v2 = c.parallelize({
+        Row(0.0, 0.0, 0.4), Row(1.5, 1.6, 0.0001), Row(3.0, 3.000000001, 1e-07)
+    }).map(UDF("lambda x, y, z: math.isclose(x, y, abs_tol=z)", "", ce)).collectAsVector();
 
-//     EXPECT_EQ(v2.size(), 3);
-//     EXPECT_EQ(v2[0].getBoolean(0), true);
-//     EXPECT_EQ(v2[1].getBoolean(0), false);
-//     EXPECT_EQ(v2[2].getBoolean(0), true);
+    EXPECT_EQ(v2.size(), 3);
+    EXPECT_EQ(v2[0].getBoolean(0), true);
+    EXPECT_EQ(v2[1].getBoolean(0), false);
+    EXPECT_EQ(v2[2].getBoolean(0), true);
 
-//     auto v3 = c.parallelize({
-//         Row(0.0, 0.0, 1e-08), Row(1.0, 2.0, 0.1), Row(1.0, 1.000000001, 1e-07)
-//     }).map(UDF("lambda x, y, z: math.isclose(x, y, rel_tol=z)", "", ce)).collectAsVector();
+    auto v3 = c.parallelize({
+        Row(0.0, 0.0, 1e-08), Row(1.0, 2.0, 0.1), Row(1.0, 1.000000001, 1e-07)
+    }).map(UDF("lambda x, y, z: math.isclose(x, y, rel_tol=z)", "", ce)).collectAsVector();
 
-//     EXPECT_EQ(v3.size(), 3);
-//     EXPECT_EQ(v3[0].getBoolean(0), true);
-//     EXPECT_EQ(v3[1].getBoolean(0), false);
-//     EXPECT_EQ(v3[2].getBoolean(0), true);
+    EXPECT_EQ(v3.size(), 3);
+    EXPECT_EQ(v3[0].getBoolean(0), true);
+    EXPECT_EQ(v3[1].getBoolean(0), false);
+    EXPECT_EQ(v3[2].getBoolean(0), true);
 
-//     auto v4 = c.parallelize({
-//         Row(0.0, 0.0, 1e-08, 0.4), Row(1.0, 2.0, 0.1, 0.0001), Row(1.0, 1.000000001, 1e-07, 0.000005)
-//     }).map(UDF("lambda w, x, y, z: math.isclose(w, x, rel_tol=y, abs_tol=z)", "", ce)).collectAsVector();
+    auto v4 = c.parallelize({
+        Row(0.0, 0.0, 1e-08, 0.4), Row(1.0, 2.0, 0.1, 0.0001), Row(1.0, 1.000000001, 1e-07, 0.000005)
+    }).map(UDF("lambda w, x, y, z: math.isclose(w, x, rel_tol=y, abs_tol=z)", "", ce)).collectAsVector();
 
-//     EXPECT_EQ(v4.size(), 3);
-//     EXPECT_EQ(v4[0].getBoolean(0), true);
-//     EXPECT_EQ(v4[1].getBoolean(0), false);
-//     EXPECT_EQ(v4[2].getBoolean(0), true);
+    EXPECT_EQ(v4.size(), 3);
+    EXPECT_EQ(v4[0].getBoolean(0), true);
+    EXPECT_EQ(v4[1].getBoolean(0), false);
+    EXPECT_EQ(v4[2].getBoolean(0), true);
 
-//     python::lockGIL();
-//     python::closeInterpreter();
-// }
+    python::lockGIL();
+    python::closeInterpreter();
+}
+

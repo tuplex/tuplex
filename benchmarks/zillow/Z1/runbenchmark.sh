@@ -121,13 +121,13 @@ done
 echo "benchmarking dask"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/dask_pypy3-run-$r.txt"
-  timeout $TIMEOUT ${PYPY} rundask.py --mode dask --output-path ${OUTPUT_DIR}/dask_output --path $INPUT_FILE >$LOG 2>$LOG.stderr
+  ${PYPY} rundask.py --mode dask --output-path ${OUTPUT_DIR}/dask_output --path $INPUT_FILE >$LOG 2>$LOG.stderr
 done
 
 echo "benchmarking pandas"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/pandas_pypy3-run-$r.txt"
-  timeout $TIMEOUT ${PYPY} rundask.py --mode pandas --output-path ${OUTPUT_DIR}/pandas_output --path $INPUT_FILE >$LOG 2>$LOG.stderr
+  ${PYPY} rundask.py --mode pandas --output-path ${OUTPUT_DIR}/pandas_output --path $INPUT_FILE >$LOG 2>$LOG.stderr
 done
 
 echo "benchmarking python with cython"

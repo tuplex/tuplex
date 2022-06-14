@@ -34,7 +34,7 @@ done
 echo "Tuplex (Cached)"
 for ((r = 1; r <= NUM_RUNS; r++)); do
   LOG="${RESDIR}/tuplex-st-cached-run-$r.txt"
-  timeout $TIMEOUT ${PYTHON} runtuplex.py ---lineitem_path $L_INPUT_PATH --part_path $P_INPUT_PATH --preprocessed --cache --weld >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT ${PYTHON} runtuplex.py --lineitem_path $L_INPUT_PATH --part_path $P_INPUT_PATH --preprocessed --cache --weld >$LOG 2>$LOG.stderr
 done
 
 echo "Weld"

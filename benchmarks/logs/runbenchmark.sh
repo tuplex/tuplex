@@ -16,10 +16,14 @@ if [ $# -eq 1 ]; then # check if hwloc
   HWLOC="hwloc-bind --cpubind node:1 --membind node:1 --cpubind node:2 --membind node:2"
 fi
 
-DATA_PATH=/data/logs
+
+# invoke preprocess script
+python3 process_data.py --input-path /data/logs --output-path /data/logs_clean
+
+DATA_PATH=/data/logs_clean
 IP_PATH=/data/logs/ip_blacklist.csv
-RESDIR=/results/weblogs
-OUTPUT_DIR=/results/output/weblogs
+RESDIR=/results/logs
+OUTPUT_DIR=/results/output/logs
 NUM_RUNS="${NUM_RUNS:-11}"
 REDUCED_NUM_RUNS=4
 TIMEOUT=14400

@@ -199,9 +199,11 @@ namespace tuplex {
                 auto t = ops.front()->type();
                 assert(t == LogicalOperatorType::PARALLELIZE || t == LogicalOperatorType::CACHE);
                 if (t == LogicalOperatorType::PARALLELIZE)
-                    hasInputExceptions = !((ParallelizeOperator *)ops.front())->getPythonObjects().empty();
-                if (t == LogicalOperatorType::CACHE)
-                    hasInputExceptions = !((CacheOperator *)ops.front())->cachedExceptions().empty();
+                    hasInputExceptions = !((ParallelizeOperator *) ops.front())->getFallbackPartitions().empty();
+                if (t == LogicalOperatorType::CACHE) {
+                    auto cop = (CacheOperator *) ops.front();
+                    hasInputExceptions = !cop->cachedGeneralPartitions().empty() || !cop->cachedFallbackPartitions().empty();
+                }
             }
         }
 
@@ -401,14 +403,15 @@ namespace tuplex {
         // fill in data to start processing from operators.
         if (inputNode->type() == LogicalOperatorType::PARALLELIZE) {
             auto pop = dynamic_cast<ParallelizeOperator *>(inputNode); assert(inputNode);
-            stage->setInputPartitions(pop->getPartitions());
-            stage->setInputExceptions(pop->getPythonObjects());
-            stage->setPartitionToExceptionsMap(pop->getInputPartitionToPythonObjectsMap());
+            stage->setInputPartitions(pop->getNormalPartitions());
+            stage->setFallbackPartitions(pop->getFallbackPartitions());
+            stage->setPartitionGroups(pop->getPartitionGroups());
         } else if(inputNode->type() == LogicalOperatorType::CACHE) {
             auto cop = dynamic_cast<CacheOperator*>(inputNode);  assert(inputNode);
-            stage->setInputPartitions(cop->cachedPartitions());
-            stage->setInputExceptions(cop->cachedExceptions());
-            stage->setPartitionToExceptionsMap(cop->partitionToExceptionsMap());
+            stage->setInputPartitions(cop->cachedNormalPartitions());
+            stage->setGeneralPartitions(cop->cachedGeneralPartitions());
+            stage->setFallbackPartitions(cop->cachedFallbackPartitions());
+            stage->setPartitionGroups(cop->partitionGroups());
         } else if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
             auto csvop = dynamic_cast<FileInputOperator*>(inputNode);
             stage->setInputFiles(csvop->getURIs(), csvop->getURISizes());

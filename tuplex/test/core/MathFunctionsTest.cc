@@ -768,7 +768,7 @@ TEST_F(MathFunctionsTest, MathIsNan) {
     ce.importModuleAs("math", "math");
 
     auto v1 = c.parallelize({
-        Row(0.0), Row(NAN), Row(INFINITY), Row(-INFINITY), Row(INFINITY * INFINITY)
+        Row(0.0), Row(NAN), Row(INFINITY), Row(-INFINITY), Row(INFINITY * 0)
     }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
 
     EXPECT_EQ(v1.size(), 5);

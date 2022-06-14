@@ -987,7 +987,7 @@ namespace tuplex {
                 auto addCmp = builder.CreateICmpUGT(added, ConstantInt::get(i32Val->getType(), 2146435072));
 
                 auto resVal = _env.upcastToBoolean(builder, addCmp);
-                auto resSize = _env.i64Const(sizeof(int32_t));
+                auto resSize = _env.i64Const(sizeof(int64_t));
 
                 return SerializableValue(resVal, resSize);
             } else {
@@ -995,7 +995,7 @@ namespace tuplex {
                 assert(python::Type::BOOLEAN == type || python::Type::I64 == type);
                 _env.printValue(builder, val.val, "not double value\n");
                 
-                return SerializableValue(ConstantInt::get(llvm::Type::getInt32Ty(context), 0), _env.i64Const(sizeof(int32_t)));
+                return SerializableValue(ConstantInt::get(llvm::Type::getInt64Ty(context), 0), _env.i64Const(sizeof(int64_t)));
             }
         }
 
@@ -1007,12 +1007,12 @@ namespace tuplex {
             auto val = args.front();
             _env.printValue(builder, val.val, "isinf value\n");
 
-            auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7FF0000000000000));
-            auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xFFF0000000000000));
+            auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7ff0000000000000ULL));
+            auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xFFF0000000000000ULL));
             auto orRes = builder.CreateOr(negCmp, posCmp);
             
             auto resVal = _env.upcastToBoolean(builder, orRes);
-            auto resSize = _env.i64Const(sizeof(int32_t));
+            auto resSize = _env.i64Const(sizeof(int64_t));
 
             return SerializableValue(resVal, resSize);
         }
@@ -1067,7 +1067,7 @@ namespace tuplex {
             auto res_cmp = builder.CreateFCmpOLE(LHS, RHS);
 
             auto resVal = _env.upcastToBoolean(builder, res_cmp);
-            auto resSize = _env.i64Const(sizeof(int32_t));
+            auto resSize = _env.i64Const(sizeof(int64_t));
 
             return SerializableValue(resVal, resSize);
         }

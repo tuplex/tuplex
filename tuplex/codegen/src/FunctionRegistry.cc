@@ -1031,52 +1031,59 @@ namespace tuplex {
             }
         }
 
-        codegen::SerializableValue FunctionRegistry::createMathIsCloseCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+        codegen::SerializableValue FunctionRegistry::createMathIsCloseCall(llvm::IRBuilder<>& builder, const std::vector<python::Type> &argsTypes,
                                                      const python::Type &retType,
                                                      const std::vector<tuplex::codegen::SerializableValue> &args) {
+            assert(args.size() == argsTypes.size());
+            assert(args.size() >= 2);
+
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
             Module *M = builder.GetInsertBlock()->getModule();
 
             auto x = args[0];
             auto y = args[1];
-            auto rel_tol = args[2];
-            auto abs_tol = args[3];
+            auto rel_tol;
+            auto abs_tol;
+            auto x_ty = argsTypes[0];
+            auto y_ty = argsTypes[1];
+            auto rel_tol_ty;
+            auto abs_tol_ty;
+
+            if (args.size() == 2) {
+                // rel_tol and abs_tol not specified
+                rel_tol = _env.f64Const(1e-09);
+                abs_tol = _env.f64Const(0);
+                rel_tol_ty = _env.getDoubleTy();
+                abs_tol_ty = _env.getDoubleTy();
+                
+            } else if (args.size() == 3) {
+                // assume that the third argument is rel_tol
+            } else {
+                assert(args.size() == 4);
+                // assume that the third argument is rel_tol and the fourth argument is abs_tol
+                // Q: this means that I'm not handling the case where abs_tol is specified but rel_tol is not
+                // so would it be better to assert 4 inputs, where the third/fourth could be null if user doesn't specify it?
+            }
 
             // %5 = fsub double %0, %1, !dbg !1279
             auto diff = builder.CreateFSub(x.val, y.val);
-
             // %6 = tail call double @llvm.fabs.f64(double %5) #8, !dbg !1285
-            // call standard C abs function
-            FunctionType *abs_type = FunctionType::get(ctypeToLLVM<double>(context), {ctypeToLLVM<double>(context)}, false);
-#if LLVM_VERSION_MAJOR < 9
-            Function *abs_func = cast<Function>(M->getOrInsertFunction("abs", abs_type));
-#else
-            Function *abs_func = cast<Function>(M->getOrInsertFunction("abs", abs_type).getCallee());
-#endif
-            auto LHS = builder.CreateCall(abs_func, {codegen::upCast(builder, diff, Type::getDoubleTy(context))});
-            
+            auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
             // %7 = tail call double @llvm.fabs.f64(double %0) #8, !dbg !1288
-            auto x_abs = builder.CreateCall(abs_func, {codegen::upCast(builder, x.val, Type::getDoubleTy(context))});
-
+            auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, {codegen::upCast(builder, x.val, Type::getDoubleTy(context))});
             // %8 = tail call double @llvm.fabs.f64(double %1) #8, !dbg !1291
-            auto y_abs = builder.CreateCall(abs_func, {codegen::upCast(builder, y.val, Type::getDoubleTy(context))});
-
+            auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, {codegen::upCast(builder, y.val, Type::getDoubleTy(context))});
             // %9 = fcmp olt double %7, %8, !dbg !1305
             auto ab_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
-
             // %10 = select i1 %9, double %8, double %7, !dbg !1307
             auto ab_select = builder.CreateSelect(ab_cmp, y_abs, x_abs);
-
             // %11 = fmul double %10, %2, !dbg !1308
             auto rel_tol_mult = builder.CreateFMul(ab_select, rel_tol.val);
-
             // %12 = fcmp olt double %11, %3, !dbg !1311
             auto abs_tol_cmp = builder.CreateFCmpOLT(rel_tol_mult, abs_tol.val);
-
             // %13 = select i1 %12, double %3, double %11, !dbg !1312
             auto RHS = builder.CreateSelect(abs_tol_cmp, abs_tol.val, rel_tol_mult);
-
             // %14 = fcmp ole double %6, %13, !dbg !1313
             auto res_cmp = builder.CreateFCmpOLE(LHS, RHS);
 

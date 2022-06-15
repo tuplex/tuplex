@@ -774,7 +774,7 @@ TEST_F(MathFunctionsTest, MathIsInf) {
     EXPECT_EQ(v1[3].getBoolean(0), true);
 
     auto v2 = c.parallelize({
-        Row(0), Row(-1), Row(5), Row(-97), Row(D_NINFINITY)
+        Row(0), Row(-1), Row(5), Row(-97), Row((double)D_NINFINITY)
     }).map(UDF("lambda x: math.isinf(x)", "", ce)).collectAsVector();
     EXPECT_EQ(v2.size(), 5);
     EXPECT_EQ(v2[0].getBoolean(0), false);

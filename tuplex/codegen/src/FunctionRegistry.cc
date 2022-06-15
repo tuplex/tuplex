@@ -1047,23 +1047,30 @@ namespace tuplex {
             llvm::Value* abs_tol;
             auto x_ty = argsTypes[0];
             auto y_ty = argsTypes[1];
-            llvm::Type* rel_tol_ty;
-            llvm::Type* abs_tol_ty;
+            python::Type rel_tol_ty;
+            python::Type abs_tol_ty;
 
             if (args.size() == 2) {
                 // rel_tol and abs_tol not specified
                 rel_tol = _env.f64Const(1e-09);
                 abs_tol = _env.f64Const(0);
-                rel_tol_ty = _env.doubleType();
-                abs_tol_ty = _env.doubleType();
-                
+                rel_tol_ty = python::Type::F64;
+                abs_tol_ty = python::Type::F64;
             } else if (args.size() == 3) {
                 // assume that the third argument is rel_tol
+                rel_tol = args[2].val;
+                abs_tol = _env.f64Const(0);
+                rel_tol_ty = argsTypes[2];
+                abs_tol_ty = python::Type::F64;
             } else {
                 assert(args.size() == 4);
                 // assume that the third argument is rel_tol and the fourth argument is abs_tol
                 // Q: this means that I'm not handling the case where abs_tol is specified but rel_tol is not
                 // so would it be better to assert 4 inputs, where the third/fourth could be null if user doesn't specify it?
+                rel_tol = args[2].val;
+                abs_tol = args[3].val;
+                rel_tol_ty = argsTypes[2];
+                abs_tol_ty = argsTypes[3];
             }
 
             // %5 = fsub double %0, %1, !dbg !1279
@@ -1079,11 +1086,11 @@ namespace tuplex {
             // %10 = select i1 %9, double %8, double %7, !dbg !1307
             auto ab_select = builder.CreateSelect(ab_cmp, y_abs, x_abs);
             // %11 = fmul double %10, %2, !dbg !1308
-            auto rel_tol_mult = builder.CreateFMul(ab_select, rel_tol.val);
+            auto rel_tol_mult = builder.CreateFMul(ab_select, rel_tol);
             // %12 = fcmp olt double %11, %3, !dbg !1311
-            auto abs_tol_cmp = builder.CreateFCmpOLT(rel_tol_mult, abs_tol.val);
+            auto abs_tol_cmp = builder.CreateFCmpOLT(rel_tol_mult, abs_tol);
             // %13 = select i1 %12, double %3, double %11, !dbg !1312
-            auto RHS = builder.CreateSelect(abs_tol_cmp, abs_tol.val, rel_tol_mult);
+            auto RHS = builder.CreateSelect(abs_tol_cmp, abs_tol, rel_tol_mult);
             // %14 = fcmp ole double %6, %13, !dbg !1313
             auto res_cmp = builder.CreateFCmpOLE(LHS, RHS);
 

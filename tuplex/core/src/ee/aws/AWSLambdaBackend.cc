@@ -1263,6 +1263,7 @@ namespace tuplex {
         {
             std::lock_guard<std::mutex> lock(_mutex);
 
+            int task_counter = 0;
             for (const auto &task : _tasks) {
                 ContainerInfo info = task.container();
                 ss<<"{\"container\":"<<info.asJSON()<<",\"invoked_containers\":[";
@@ -1283,9 +1284,10 @@ namespace tuplex {
                         ss<<",";
                 }
                 ss<<"]";
-
-
                 ss<<"}";
+                if(task_counter != _tasks.size() - 1)
+                    ss<<",";
+                task_counter++;
             }
         }
         ss<<"]";

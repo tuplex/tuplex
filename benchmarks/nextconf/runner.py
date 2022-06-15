@@ -4326,7 +4326,7 @@ def build():
     BUILD_SCRIPT_PATH = '/code/benchmarks/nextconf/build_scripts/build_tuplex.sh'
     cmd = ['docker', 'exec', 'sigmod21', 'bash', BUILD_SCRIPT_PATH]
 
-    cmd = ['docker', 'exec', 'sigmod21', 'ls', '/code/benchmarks/nextconf']
+    #cmd = ['docker', 'exec', 'sigmod21', 'ls', '/code/benchmarks/nextconf']
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)
     for line in iter(p.stdout.readline, b''):
         logging.info(line.decode().strip())

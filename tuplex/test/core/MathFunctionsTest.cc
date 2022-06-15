@@ -720,12 +720,12 @@ TEST_F(MathFunctionsTest, MathIsNan) {
     EXPECT_EQ(v1[3].getBoolean(0), false);
 
     auto v2 = c.parallelize({
-        Row(0), Row(-1), Row(5), Row(-97), Row(D_NAN)
+        Row(0), Row(-1), Row(5), Row(-97), Row((double)D_NAN)
     }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
     EXPECT_EQ(v2.size(), 5);
     EXPECT_EQ(v2[0].getBoolean(0), false);
     EXPECT_EQ(v2[1].getBoolean(0), false);
-    EXPECT_EQ(v2[2].getBoolean(0), false); //
+    EXPECT_EQ(v2[2].getBoolean(0), false);
     EXPECT_EQ(v2[3].getBoolean(0), false);
     EXPECT_EQ(v2[4].getBoolean(0), true);
 

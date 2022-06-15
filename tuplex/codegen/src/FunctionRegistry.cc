@@ -1007,6 +1007,7 @@ namespace tuplex {
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
             auto val = args.front();
+            auto type = argsType.parameters().front();
 
             if (python::Type::F64 == type) {
                 _env.printValue(builder, val.val, "double/python float value\n");

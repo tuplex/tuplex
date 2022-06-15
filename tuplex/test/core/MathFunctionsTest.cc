@@ -721,7 +721,7 @@ TEST_F(MathFunctionsTest, MathIsNan) {
 
     auto var = Row((double)D_NAN);
     EXPECT_EQ(var.toPythonString(), "(nan)");
-    std::cout << var.fieldType(0).desc() << std::endl;
+    std::cout << var.getType(0).desc() << std::endl;
     auto v2 = c.parallelize({
         Row(0), Row(-1), Row(5), Row(-97), Row((double)D_NAN)
     }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();

@@ -1031,22 +1031,24 @@ namespace tuplex {
             }
         }
 
-        codegen::SerializableValue FunctionRegistry::createMathIsCloseCall(llvm::IRBuilder<>& builder, const std::vector<python::Type> &argsTypes,
+        codegen::SerializableValue FunctionRegistry::createMathIsCloseCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
                                                      const python::Type &retType,
                                                      const std::vector<tuplex::codegen::SerializableValue> &args) {
-            assert(args.size() == argsTypes.size());
+            assert(argsType.isTupleType());
+            assert(args.size() == argsType.parameters().size());
             assert(args.size() >= 2);
 
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
             Module *M = builder.GetInsertBlock()->getModule();
+            std::vector<python::Type> input_types = argsType.parameters();
 
-            auto x = args[0];
-            auto y = args[1];
+            auto x_val = args[0];
+            auto y_val = args[1];
             llvm::Value* rel_tol;
             llvm::Value* abs_tol;
-            auto x_ty = argsTypes[0];
-            auto y_ty = argsTypes[1];
+            auto x_ty = input_types[0];
+            auto y_ty = input_types[1];
             python::Type rel_tol_ty;
             python::Type abs_tol_ty;
 
@@ -1060,44 +1062,59 @@ namespace tuplex {
                 // assume that the third argument is rel_tol
                 rel_tol = args[2].val;
                 abs_tol = _env.f64Const(0);
-                rel_tol_ty = argsTypes[2];
+                rel_tol_ty = input_types[2];
                 abs_tol_ty = python::Type::F64;
             } else {
                 assert(args.size() == 4);
                 // assume that the third argument is rel_tol and the fourth argument is abs_tol
                 // Q: this means that I'm not handling the case where abs_tol is specified but rel_tol is not
-                // so would it be better to assert 4 inputs, where the third/fourth could be null if user doesn't specify it?
                 rel_tol = args[2].val;
                 abs_tol = args[3].val;
-                rel_tol_ty = argsTypes[2];
-                abs_tol_ty = argsTypes[3];
+                rel_tol_ty = input_types[2];
+                abs_tol_ty = input_types[3];
             }
 
-            // %5 = fsub double %0, %1, !dbg !1279
-            auto diff = builder.CreateFSub(x.val, y.val);
-            // %6 = tail call double @llvm.fabs.f64(double %5) #8, !dbg !1285
-            auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
-            // %7 = tail call double @llvm.fabs.f64(double %0) #8, !dbg !1288
-            auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, {codegen::upCast(builder, x.val, Type::getDoubleTy(context))});
-            // %8 = tail call double @llvm.fabs.f64(double %1) #8, !dbg !1291
-            auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, {codegen::upCast(builder, y.val, Type::getDoubleTy(context))});
-            // %9 = fcmp olt double %7, %8, !dbg !1305
-            auto ab_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
-            // %10 = select i1 %9, double %8, double %7, !dbg !1307
-            auto ab_select = builder.CreateSelect(ab_cmp, y_abs, x_abs);
-            // %11 = fmul double %10, %2, !dbg !1308
-            auto rel_tol_mult = builder.CreateFMul(ab_select, rel_tol);
-            // %12 = fcmp olt double %11, %3, !dbg !1311
-            auto abs_tol_cmp = builder.CreateFCmpOLT(rel_tol_mult, abs_tol);
-            // %13 = select i1 %12, double %3, double %11, !dbg !1312
-            auto RHS = builder.CreateSelect(abs_tol_cmp, abs_tol, rel_tol_mult);
-            // %14 = fcmp ole double %6, %13, !dbg !1313
-            auto res_cmp = builder.CreateFCmpOLE(LHS, RHS);
+            auto x = _env.upCast(builder, x_val.val, _env.doubleType());
+            auto y = _env.upCast(builder, y_val.val, _env.doubleType());
 
-            auto resVal = _env.upcastToBoolean(builder, res_cmp);
-            auto resSize = _env.i64Const(sizeof(int64_t));
+            // check x and y types - bools and ints can be optimized!
+            if (x_ty != python::Type::F64 && y_ty != python::Type::F64) {
+                // case where both x and y are not floats; they are ints/bools
+                /** pseudocode:
+                 *  if x == y:
+                 *      return true
+                 *  else if 
+                 * **/
+            } else {
+                // case where x or y is a float
+                // if either is a float, can't optimize since floats can be arbitrarily close to any other value
+                
+                // %5 = fsub double %0, %1, !dbg !1279
+                auto diff = builder.CreateFSub(x.val, y.val);
+                // %6 = tail call double @llvm.fabs.f64(double %5) #8, !dbg !1285
+                auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
+                // %7 = tail call double @llvm.fabs.f64(double %0) #8, !dbg !1288
+                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, {codegen::upCast(builder, x.val, Type::getDoubleTy(context))});
+                // %8 = tail call double @llvm.fabs.f64(double %1) #8, !dbg !1291
+                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, {codegen::upCast(builder, y.val, Type::getDoubleTy(context))});
+                // %9 = fcmp olt double %7, %8, !dbg !1305
+                auto ab_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
+                // %10 = select i1 %9, double %8, double %7, !dbg !1307
+                auto ab_select = builder.CreateSelect(ab_cmp, y_abs, x_abs);
+                // %11 = fmul double %10, %2, !dbg !1308
+                auto rel_tol_mult = builder.CreateFMul(ab_select, rel_tol);
+                // %12 = fcmp olt double %11, %3, !dbg !1311
+                auto abs_tol_cmp = builder.CreateFCmpOLT(rel_tol_mult, abs_tol);
+                // %13 = select i1 %12, double %3, double %11, !dbg !1312
+                auto RHS = builder.CreateSelect(abs_tol_cmp, abs_tol, rel_tol_mult);
+                // %14 = fcmp ole double %6, %13, !dbg !1313
+                auto res_cmp = builder.CreateFCmpOLE(LHS, RHS);
 
-            return SerializableValue(resVal, resSize);
+                auto resVal = _env.upcastToBoolean(builder, res_cmp);
+                auto resSize = _env.i64Const(sizeof(int64_t));
+
+                return SerializableValue(resVal, resSize);
+            }
         }
 
         codegen::SerializableValue createMathCosCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
@@ -1334,9 +1351,23 @@ namespace tuplex {
             if (symbol == "math.isinf")
                 return createMathIsInfCall(builder, argsType, retType, args);
                 
-            // if (symbol == "math.isclose")
-            //     return createMathIsCloseCall(builder, argsType, retType, args);
+            if (symbol == "math.isclose") {
+                if (args.size() != 2 || args.size() != 3 || args.size() != 4 || !argsType.isTupleType()) {
+                    throw std::runtime_error("math.isclose either takes 2, 3, or 4 (numerical) arguments");
+                }
 
+                assert(args.size() == argsType.parameters().size());
+
+                // check all argument types
+                std::vector<python::Type> input_types = argsType.parameters();
+                for(const auto& type : input_types) {
+                    if (type != python::Type::BOOLEAN || type != python::Type::I64 || type != python::Type::F64) {
+                        throw std::runtime_error("math.isclose arguments must be a float, integer, or boolean");
+                    }
+                }
+
+                return createMathIsCloseCall(builder, argsType, retType, args);
+            }
 
             // re module
             if (symbol == "re.search")

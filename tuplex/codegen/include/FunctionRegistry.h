@@ -197,9 +197,10 @@ namespace tuplex {
                                                   const python::Type &retType,
                                                   const std::vector<tuplex::codegen::SerializableValue> &args);
                                                   
-            SerializableValue createMathIsCloseCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
-                                                  const python::Type &retType,
-                                                  const std::vector<tuplex::codegen::SerializableValue> &args);
+            SerializableValue createMathIsCloseCall(llvm::IRBuilder<>& builder,
+                                                    const std::vector<python::Type> &argsTypes,
+                                                    const python::Type &retType,
+                                                    const std::vector<tuplex::codegen::SerializableValue> &args);
 
             // math module functions
             SerializableValue createMathCeilFloorCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const std::string& qual_name, const SerializableValue& arg);

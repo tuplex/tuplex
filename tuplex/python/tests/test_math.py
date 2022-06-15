@@ -362,19 +362,20 @@ class TestMath(unittest.TestCase):
     def testIsInf(self):
         c = tuplex.Context(self.conf)
 
-        test = [math.inf, -math.inf, math.inf + math.inf, math.nan, math.pi, 0.0, 1.0, -1.0, -128.0, True]
+        test = [math.inf, -math.inf, math.inf + math.inf, math.inf * math.inf, math.nan, math.pi, 0.0, 1.0, -1.0, -128.0, True]
         L = c.parallelize(test).map(lambda x: math.isinf(x)).collect()
-        assert len(L) == 10, 'wrong length'
+        assert len(L) == 11, 'wrong length'
         self.assertEqual(L[0], True)
         self.assertEqual(L[1], True)
         self.assertEqual(L[2], True)
-        self.assertEqual(L[3], False)
+        self.assertEqual(L[3], True)
         self.assertEqual(L[4], False)
         self.assertEqual(L[5], False)
         self.assertEqual(L[6], False)
         self.assertEqual(L[7], False)
         self.assertEqual(L[8], False)
         self.assertEqual(L[9], False)
+        self.assertEqual(L[10], False)
 
         # int_test = [1, -math.inf, -1, 0, math.inf]
         # L2 = c.parallelize(int_test).map(lambda x: math.isinf(x)).collect()

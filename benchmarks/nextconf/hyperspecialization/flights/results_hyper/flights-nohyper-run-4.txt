@@ -1,18 +1,18 @@
-[2022-06-14 08:39:39.129] [memory] [info] allocated bitmap managed memory region (2.00 GB, 32.00 MB block size)
-[2022-06-14 08:39:39.129] [aws-lambda] [info] Execution over lambda with 10000MB
-[2022-06-14 08:39:39.129] [aws-lambda] [info] Adjusted lambda size to 10000MB
-[2022-06-14 08:39:39.282] [aws-lambda] [info] Found AWS Lambda function tuplex-lambda-runner (10000MB)
-[2022-06-14 08:39:39.282] [aws-lambda] [info] Using Lambda running on x86_64
-[2022-06-14 08:39:39.282] [aws-lambda] [info] Lambda client uses JSON AST serialization format.
-[2022-06-14 08:39:39.551] [fileinputoperator] [info] found 410 files (83.51 GB) to process.
-[2022-06-14 08:39:39.663] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv on 256.00 KB
-[2022-06-14 08:39:39.663] [fileinputoperator] [info] Parallel sample fetch done.
-[2022-06-14 08:39:39.663] [fileinputoperator] [info] Filling sample cache for csv operator took 0.111952s (1 entries, 0 rows)
-[2022-06-14 08:39:39.741] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv on 256.00 KB
-[2022-06-14 08:39:39.889] [fileinputoperator] [info] Auto-detected presence of a header line in CSV files.
-[2022-06-14 08:39:40.134] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv on 256.00 KB
-[2022-06-14 08:39:40.389] [fileinputoperator] [info] Parallel sample parse done.
-[2022-06-14 08:39:40.389] [fileinputoperator] [info] Extracting row sample took 0.500188s
+[2022-06-15 14:23:37.169] [memory] [info] allocated bitmap managed memory region (2.00 GB, 32.00 MB block size)
+[2022-06-15 14:23:37.170] [aws-lambda] [info] Execution over lambda with 10000MB
+[2022-06-15 14:23:37.170] [aws-lambda] [info] Adjusted lambda size to 10000MB
+[2022-06-15 14:23:37.356] [aws-lambda] [info] Found AWS Lambda function tuplex-lambda-runner (10000MB)
+[2022-06-15 14:23:37.356] [aws-lambda] [info] Using Lambda running on x86_64
+[2022-06-15 14:23:37.356] [aws-lambda] [info] Lambda client uses JSON AST serialization format.
+[2022-06-15 14:23:37.641] [fileinputoperator] [info] found 410 files (83.51 GB) to process.
+[2022-06-15 14:23:37.728] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv on 256.00 KB
+[2022-06-15 14:23:37.728] [fileinputoperator] [info] Parallel sample fetch done.
+[2022-06-15 14:23:37.728] [fileinputoperator] [info] Filling sample cache for csv operator took 0.086794s (1 entries, 0 rows)
+[2022-06-15 14:23:37.797] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv on 256.00 KB
+[2022-06-15 14:23:37.967] [fileinputoperator] [info] Auto-detected presence of a header line in CSV files.
+[2022-06-15 14:23:38.213] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv on 256.00 KB
+[2022-06-15 14:23:38.613] [fileinputoperator] [info] Parallel sample parse done.
+[2022-06-15 14:23:38.613] [fileinputoperator] [info] Extracting row sample took 0.646216s
 col 0: i64 (1258), null (1), 
 col 1: i64 (1259), 
 col 2: i64 (1258), str (1), 
@@ -124,8 +124,8 @@ col 107: null (1257),
 col 108: null (1257), 
 col 109: null (1257), 
 
-[2022-06-14 08:39:41.056] [logical planner] [info] logical optimization took 0.023660ms
-[2022-06-14 08:39:41.057] [global] [warning] requested 2000 rows for sampling, but only 1259 stored. Consider decreasing sample size. Returning all available rows.
+[2022-06-15 14:23:39.632] [logical planner] [info] logical optimization took 0.043696ms
+[2022-06-15 14:23:39.633] [global] [warning] requested 2000 rows for sampling, but only 1259 stored. Consider decreasing sample size. Returning all available rows.
 0: YEAR
 1: MONTH
 2: DAY_OF_MONTH
@@ -265,529 +265,532 @@ col 108: null (1257),
 col 109: null (1257), 
 
 Majority detected row type is: (Option[i64],i64,i64,Option[str],i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,Option[f64],null,null,null,null,null)
-[2022-06-14 08:39:41.208] [specializing stage optimizer] [info] performing Retyping
-[2022-06-14 08:39:41.208] [specializing stage optimizer] [info] Row type before retype: (Option[i64],i64,i64,Option[str],i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,Option[f64],null,null,null,null,null)
-[2022-06-14 08:39:41.208] [specializing stage optimizer] [info] Row type after retype: (Option[i64],i64,i64,i64,i64,str,Option[str],i64,str,null,i64,i64,i64,i64,str,str,Option[str],Option[i64],Option[str],i64,i64,i64,i64,str,str,Option[str],Option[i64],Option[str],i64,i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],null,null,null,null,i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,f64,null,Option[f64],f64,Option[f64],null,Option[f64],Option[f64],Option[i64],null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+[2022-06-15 14:23:39.812] [specializing stage optimizer] [info] performing Retyping
+[2022-06-15 14:23:39.812] [specializing stage optimizer] [info] Row type before retype: (Option[i64],i64,i64,Option[str],i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,Option[f64],null,null,null,null,null)
+[2022-06-15 14:23:39.812] [specializing stage optimizer] [info] Row type after retype: (Option[i64],i64,i64,i64,i64,str,Option[str],i64,str,null,i64,i64,i64,i64,str,str,Option[str],Option[i64],Option[str],i64,i64,i64,i64,str,str,Option[str],Option[i64],Option[str],i64,i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],null,null,null,null,i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,f64,null,Option[f64],f64,Option[f64],null,Option[f64],Option[f64],Option[i64],null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 (unoptimized) output schema of input op: (Option[i64],i64,i64,Option[str],i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,Option[f64],null,null,null,null,null)
 (optimized) output schema of input op: (Option[i64],i64,i64,Option[str],i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,Option[f64],null,null,null,null,null)
-[2022-06-14 08:39:41.263] [specializing stage optimizer] [info] performing Constant-Folding specialization
-[2022-06-14 08:39:41.263] [specializing stage optimizer] [info] Performing constant folding optimization
-[2022-06-14 08:39:41.263] [specializing stage optimizer] [info] accessed columns before folding: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
-[2022-06-14 08:39:41.334] [codegen] [error] Provided incompatible rowtype to retype csv, provided type has 18 columns but optimized schema in operator has 110 columns
-[2022-06-14 08:39:41.398] [physical planner] [info] specialized to input:  (Option[i64],i64,i64,Option[str],i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,Option[f64],null,null,null,null,null)
-[2022-06-14 08:39:41.398] [physical planner] [info] specialized to output: (Option[i64],i64,i64,Option[str],i64,i64,i64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
-[2022-06-14 08:39:41.398] [physical planner] [info] specialized code reads: 18 columns
-[2022-06-14 08:39:41.398] [physical planner] [info] Specialized stage in 341.309555ms
-[2022-06-14 08:39:41.399] [codegen] [info] generating pipeline for (Option[i64],i64,i64,Option[str],i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,Option[f64],null,null,null,null,null) -> (Option[i64],i64,i64,Option[str],i64,i64,i64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
-[2022-06-14 08:39:41.403] [codegen] [info] generating function fill_in_delays for ((Option[i64],i64,i64,Option[str],i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,Option[f64],null,null,null,null,null)) -> (Option[i64],i64,i64,Option[str],i64,i64,i64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
-[2022-06-14 08:39:41.404] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
-[2022-06-14 08:39:41.421] [codegen] [warning] hack, need to fix stuff here...
-[2022-06-14 08:39:41.421] [codegen] [info] emitting constant check == 1987 for column 0
-[2022-06-14 08:39:41.421] [codegen] [warning] CellSourceTaskBuilder received check for col=1, but column is eliminated in pushdown!
-[2022-06-14 08:39:41.421] [codegen] [info] emitting constant check == 4 for column 1
-[2022-06-14 08:39:41.421] [codegen] [info] emitting constant check == 10 for column 2
+[2022-06-15 14:23:39.911] [specializing stage optimizer] [info] performing Constant-Folding specialization
+[2022-06-15 14:23:39.911] [specializing stage optimizer] [info] Performing constant folding optimization
+[2022-06-15 14:23:39.912] [specializing stage optimizer] [info] accessed columns before folding: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
+[2022-06-15 14:23:40.001] [codegen] [error] Provided incompatible rowtype to retype csv, provided type has 18 columns but optimized schema in operator has 110 columns
+[2022-06-15 14:23:40.118] [physical planner] [info] specialized to input:  (Option[i64],i64,i64,Option[str],i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,Option[f64],null,null,null,null,null)
+[2022-06-15 14:23:40.118] [physical planner] [info] specialized to output: (Option[i64],i64,i64,Option[str],i64,i64,i64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-15 14:23:40.118] [physical planner] [info] specialized code reads: 18 columns
+[2022-06-15 14:23:40.118] [physical planner] [info] Specialized stage in 485.568690ms
+[2022-06-15 14:23:40.119] [codegen] [info] generating pipeline for (Option[i64],i64,i64,Option[str],i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,Option[f64],null,null,null,null,null) -> (Option[i64],i64,i64,Option[str],i64,i64,i64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+[2022-06-15 14:23:40.123] [codegen] [info] generating function fill_in_delays for ((Option[i64],i64,i64,Option[str],i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,Option[f64],null,null,null,null,null)) -> (Option[i64],i64,i64,Option[str],i64,i64,i64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-15 14:23:40.124] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-15 14:23:40.144] [codegen] [warning] hack, need to fix stuff here...
+[2022-06-15 14:23:40.144] [codegen] [info] emitting constant check == 1987 for column 0
+[2022-06-15 14:23:40.144] [codegen] [warning] CellSourceTaskBuilder received check for col=1, but column is eliminated in pushdown!
+[2022-06-15 14:23:40.144] [codegen] [info] emitting constant check == 4 for column 1
+[2022-06-15 14:23:40.144] [codegen] [info] emitting constant check == 10 for column 2
 HACK: need to fix resolver throwing exception case here.
-[2022-06-14 08:39:41.661] [aws-lambda] [info] client-side LLVM IR optimization of took 0.167597s
-[2022-06-14 08:39:41.661] [aws-lambda] [info] Setting buffer size for each thread to 125.00 MB
-[2022-06-14 08:39:41.720] [aws-lambda] [info] Created 410 LAMBDA requests.
-[2022-06-14 08:39:41.720] [aws-lambda] [info] Invoking 410 requests ...
-[2022-06-14 08:39:43.548] [aws-lambda] [info] LAMBDA requesting took 1.887423s
-[2022-06-14 08:39:46.349] [aws-lambda] [info] LAMBDA task done in 4.37427s [200, 448620 rows, 0 exceptions, reused, id: e3cf0d6e-434a-4efe-975f-125a9e1754de] Cost so far: $0.0008
-[2022-06-14 08:39:46.379] [aws-lambda] [info] LAMBDA task done in 4.32619s [200, 412579 rows, 0 exceptions, reused, id: 34b6cde4-cfed-4e0e-af92-c479b765bd3a] Cost so far: $0.0016
-[2022-06-14 08:39:46.456] [aws-lambda] [info] LAMBDA task done in 4.26798s [200, 405604 rows, 0 exceptions, reused, id: 96b1d024-58b6-406b-b532-7b966baa0e44] Cost so far: $0.0023
-[2022-06-14 08:39:46.460] [aws-lambda] [info] LAMBDA task done in 4.3649s [200, 427325 rows, 0 exceptions, reused, id: 7bdada65-212a-4746-945b-f6d9fa5fdddf] Cost so far: $0.0031
-[2022-06-14 08:39:46.476] [aws-lambda] [info] LAMBDA task done in 4.32887s [200, 420861 rows, 0 exceptions, reused, id: 25dd8a71-a5fb-4ee6-9064-e872d3cefbe9] Cost so far: $0.0038
-[2022-06-14 08:39:46.500] [aws-lambda] [info] LAMBDA task done in 4.33948s [200, 395176 rows, 0 exceptions, reused, id: a2ff65fb-b10f-4525-9a9f-3328171b4191] Cost so far: $0.0046
-[2022-06-14 08:39:46.522] [aws-lambda] [info] LAMBDA task done in 4.27391s [200, 396926 rows, 0 exceptions, reused, id: 198eb581-095d-424a-b85f-78cb3d08ac43] Cost so far: $0.0053
-[2022-06-14 08:39:46.555] [aws-lambda] [info] LAMBDA task done in 4.20829s [200, 387120 rows, 0 exceptions, reused, id: 17d23b25-06d2-442a-83b9-9383a40b08c0] Cost so far: $0.0060
-[2022-06-14 08:39:46.576] [aws-lambda] [info] LAMBDA task done in 4.38627s [200, 435181 rows, 0 exceptions, reused, id: 33975ef3-2883-4500-a65e-2ba5c9dfd0fb] Cost so far: $0.0068
-[2022-06-14 08:39:46.592] [aws-lambda] [info] LAMBDA task done in 4.42402s [200, 438454 rows, 0 exceptions, reused, id: 7544f925-d2b1-4fc1-a9d6-56a8b824124a] Cost so far: $0.0075
-[2022-06-14 08:39:46.618] [aws-lambda] [info] LAMBDA task done in 4.4725s [200, 424075 rows, 0 exceptions, reused, id: 4d7c9f6b-c395-4f4f-9970-eaa183e396b9] Cost so far: $0.0083
-[2022-06-14 08:39:46.620] [aws-lambda] [info] LAMBDA task done in 4.49176s [200, 431299 rows, 0 exceptions, reused, id: a05a5c91-da04-4ca9-b0f3-cf6a06f255ad] Cost so far: $0.0091
-[2022-06-14 08:39:46.623] [aws-lambda] [info] LAMBDA task done in 4.50739s [200, 435916 rows, 0 exceptions, reused, id: 473bbb6f-54a8-4a3e-9d4f-f06536fd5d15] Cost so far: $0.0099
-[2022-06-14 08:39:46.623] [aws-lambda] [info] LAMBDA task done in 4.59806s [200, 422803 rows, 0 exceptions, reused, id: 936366f7-c861-4b82-b41b-23fe8976254b] Cost so far: $0.010656
-[2022-06-14 08:39:46.626] [aws-lambda] [info] LAMBDA task done in 4.47907s [200, 441670 rows, 0 exceptions, reused, id: 44df8b9e-aad4-48a1-96f4-47309a7b36ca] Cost so far: $0.011427
-[2022-06-14 08:39:46.633] [aws-lambda] [info] LAMBDA task done in 4.51118s [200, 441118 rows, 0 exceptions, reused, id: 23387010-a048-4e24-ac5b-15e2e457a8ed] Cost so far: $0.012203
-[2022-06-14 08:39:46.641] [aws-lambda] [info] LAMBDA task done in 4.59688s [200, 436950 rows, 0 exceptions, reused, id: 051aac63-91c8-4d93-96f7-d557c1eff092] Cost so far: $0.012994
-[2022-06-14 08:39:46.642] [aws-lambda] [info] LAMBDA task done in 4.42497s [200, 429490 rows, 0 exceptions, reused, id: f433ecfb-78d2-42d5-bf63-ddc2437bae9d] Cost so far: $0.013756
-[2022-06-14 08:39:46.649] [aws-lambda] [info] LAMBDA task done in 4.41855s [200, 444320 rows, 0 exceptions, reused, id: 0fcfe256-6542-4e32-bcc1-0ce42cef5a2b] Cost so far: $0.014517
-[2022-06-14 08:39:46.661] [aws-lambda] [info] LAMBDA task done in 4.31076s [200, 422196 rows, 0 exceptions, reused, id: e0f9a919-c28c-4c82-a65c-8cd00d447f94] Cost so far: $0.015259
-[2022-06-14 08:39:46.668] [aws-lambda] [info] LAMBDA task done in 4.45754s [200, 417166 rows, 0 exceptions, reused, id: 49c8a727-7018-46c2-858a-b034b1c5949a] Cost so far: $0.016027
-[2022-06-14 08:39:46.685] [aws-lambda] [info] LAMBDA task done in 4.43406s [200, 437395 rows, 0 exceptions, reused, id: 9dcd5d39-67d1-4cd9-b35b-9232bcafd528] Cost so far: $0.016791
-[2022-06-14 08:39:46.687] [aws-lambda] [info] LAMBDA task done in 4.5172s [200, 440022 rows, 0 exceptions, reused, id: b26e6763-bb09-4907-80dc-315bb123d25f] Cost so far: $0.017568
-[2022-06-14 08:39:46.691] [aws-lambda] [info] LAMBDA task done in 4.36501s [200, 428781 rows, 0 exceptions, reused, id: def263c6-cb80-4ade-a273-0c524292417d] Cost so far: $0.018321
-[2022-06-14 08:39:46.702] [aws-lambda] [info] LAMBDA task done in 4.50371s [200, 426085 rows, 0 exceptions, reused, id: 1a30a89f-4f6e-415d-999d-69c7bf7130bb] Cost so far: $0.019096
-[2022-06-14 08:39:46.713] [aws-lambda] [info] LAMBDA task done in 4.37394s [200, 427264 rows, 0 exceptions, reused, id: 60642084-d6c6-4c51-8970-82ef26bebc8f] Cost so far: $0.019849
-[2022-06-14 08:39:46.756] [aws-lambda] [info] LAMBDA task done in 4.5394s [200, 417821 rows, 0 exceptions, reused, id: bdd6f4eb-66f1-4b89-b44a-71afdf51ac0a] Cost so far: $0.020630
-[2022-06-14 08:39:46.770] [aws-lambda] [info] LAMBDA task done in 4.41147s [200, 429314 rows, 0 exceptions, reused, id: e487577c-25cf-4b85-beac-ccaadd2c6d14] Cost so far: $0.021389
-[2022-06-14 08:39:46.776] [aws-lambda] [info] LAMBDA task done in 4.59247s [200, 406293 rows, 0 exceptions, reused, id: 04fe6903-f174-48f0-abb4-8d1464f0274f] Cost so far: $0.022179
-[2022-06-14 08:39:46.780] [aws-lambda] [info] LAMBDA task done in 4.54756s [200, 442700 rows, 0 exceptions, reused, id: d9649e7d-9ac0-4e5c-9f48-9a85797c7f3f] Cost so far: $0.022962
-[2022-06-14 08:39:46.783] [aws-lambda] [info] LAMBDA task done in 4.34503s [200, 396469 rows, 0 exceptions, reused, id: 7e37c5ca-f356-4b32-9e21-13cfaac8d443] Cost so far: $0.023711
-[2022-06-14 08:39:46.786] [aws-lambda] [info] LAMBDA task done in 4.22985s [200, 409266 rows, 0 exceptions, reused, id: e7d4a6a6-9eb0-4da4-9568-cb79f173c068] Cost so far: $0.024440
-[2022-06-14 08:39:46.806] [aws-lambda] [info] LAMBDA task done in 4.52981s [200, 457886 rows, 0 exceptions, reused, id: 6c047365-77c6-4659-86f5-9bfbe65be116] Cost so far: $0.025219
-[2022-06-14 08:39:46.811] [aws-lambda] [info] LAMBDA task done in 4.52366s [200, 435638 rows, 0 exceptions, reused, id: aeb8bc9b-95e7-46d0-a257-710ff4dddcac] Cost so far: $0.025996
-[2022-06-14 08:39:46.812] [aws-lambda] [info] LAMBDA task done in 4.32394s [200, 416271 rows, 0 exceptions, reused, id: 7c2d99e6-9abc-4410-a5b8-a0271594ca33] Cost so far: $0.026741
-[2022-06-14 08:39:46.814] [aws-lambda] [info] LAMBDA task done in 4.74588s [200, 445080 rows, 0 exceptions, reused, id: 8908801e-f4f9-4c9a-8539-a31cc284b4f1] Cost so far: $0.027556
-[2022-06-14 08:39:46.818] [aws-lambda] [info] LAMBDA task done in 4.44713s [200, 430116 rows, 0 exceptions, reused, id: bcddeb10-83ce-4a4e-b896-66b1bbc06a58] Cost so far: $0.028322
-[2022-06-14 08:39:46.825] [aws-lambda] [info] LAMBDA task done in 4.60853s [200, 437134 rows, 0 exceptions, reused, id: d6f73105-76a3-44b5-adda-b1c7746fb72c] Cost so far: $0.029114
-[2022-06-14 08:39:46.827] [aws-lambda] [info] LAMBDA task done in 4.40719s [200, 402937 rows, 0 exceptions, reused, id: 8cc54a9b-f5bf-426a-95b8-b3fa2b212916] Cost so far: $0.029872
-[2022-06-14 08:39:46.832] [aws-lambda] [info] LAMBDA task done in 4.24984s [200, 383950 rows, 0 exceptions, reused, id: 30f0543f-f6c4-4db5-9076-4506752d8407] Cost so far: $0.030604
-[2022-06-14 08:39:46.834] [aws-lambda] [info] LAMBDA task done in 4.40846s [200, 433382 rows, 0 exceptions, reused, id: ab61ac7f-cba3-43d5-ab02-67d2831978f2] Cost so far: $0.031363
-[2022-06-14 08:39:46.855] [aws-lambda] [info] LAMBDA task done in 4.71989s [200, 446769 rows, 0 exceptions, reused, id: 519622e9-dc4b-4972-9875-14aabd554cd7] Cost so far: $0.032175
-[2022-06-14 08:39:46.878] [aws-lambda] [info] LAMBDA task done in 4.36457s [200, 442131 rows, 0 exceptions, reused, id: 83b4b79c-7867-4c11-a75d-ad092b0f00b2] Cost so far: $0.032926
-[2022-06-14 08:39:46.879] [aws-lambda] [info] LAMBDA task done in 4.23416s [200, 416357 rows, 0 exceptions, reused, id: 5d5f0938-2d76-4ab9-8eb5-699c59231e6a] Cost so far: $0.033656
-[2022-06-14 08:39:46.897] [aws-lambda] [info] LAMBDA task done in 4.47231s [200, 425458 rows, 0 exceptions, reused, id: 9eb468d9-a918-416e-b5ad-3ee48d0ec28c] Cost so far: $0.034426
-[2022-06-14 08:39:46.908] [aws-lambda] [info] LAMBDA task done in 4.65568s [200, 447371 rows, 0 exceptions, reused, id: 2d901b8b-4238-43f3-8f46-f2d6ab03b473] Cost so far: $0.035226
-[2022-06-14 08:39:46.916] [aws-lambda] [info] LAMBDA task done in 4.74433s [200, 416160 rows, 0 exceptions, reused, id: 7c5778b9-4ba7-447d-98e2-81ae04227a81] Cost so far: $0.036042
-[2022-06-14 08:39:46.916] [aws-lambda] [info] LAMBDA task done in 4.46662s [200, 425558 rows, 0 exceptions, reused, id: 39bebef0-30ab-4a1f-a098-c084ea13e1e8] Cost so far: $0.036811
-[2022-06-14 08:39:46.935] [aws-lambda] [info] LAMBDA task done in 4.59848s [200, 436352 rows, 0 exceptions, reused, id: 4455025a-5dbf-448a-ac28-39301da98377] Cost so far: $0.037603
-[2022-06-14 08:39:46.945] [aws-lambda] [info] LAMBDA task done in 4.28471s [200, 425234 rows, 0 exceptions, reused, id: d625824c-3507-4327-b3b3-1f8725892ee9] Cost so far: $0.038341
-[2022-06-14 08:39:46.949] [aws-lambda] [info] LAMBDA task done in 4.25515s [200, 454636 rows, 6867 exceptions, reused, id: 1857c678-d83b-4995-a679-3a00ef0abbc1] Cost so far: $0.039071
-[2022-06-14 08:39:46.949] [aws-lambda] [info] LAMBDA task done in 4.42838s [200, 422574 rows, 0 exceptions, reused, id: 80c15e7c-66d8-4aa0-8b0a-04e2c52a301e] Cost so far: $0.039834
-[2022-06-14 08:39:46.949] [aws-lambda] [info] LAMBDA task done in 4.74272s [200, 415068 rows, 0 exceptions, reused, id: ad4a1f53-173c-4116-8794-42b202675d96] Cost so far: $0.040649
-[2022-06-14 08:39:46.956] [aws-lambda] [info] LAMBDA task done in 4.56873s [200, 424589 rows, 0 exceptions, reused, id: 33f93520-5e83-47ce-958b-8840eea392a7] Cost so far: $0.041436
-[2022-06-14 08:39:46.961] [aws-lambda] [info] LAMBDA task done in 4.48514s [200, 440210 rows, 0 exceptions, reused, id: 3609f90a-a2ca-4158-8124-172c47217653] Cost so far: $0.042207
-[2022-06-14 08:39:46.962] [aws-lambda] [info] LAMBDA task done in 4.25047s [200, 416893 rows, 10198 exceptions, reused, id: 4356e9da-174e-4699-bd7c-1bf229277940] Cost so far: $0.042935
-[2022-06-14 08:39:46.972] [aws-lambda] [info] LAMBDA task done in 4.3421s [200, 424599 rows, 0 exceptions, reused, id: 351ba841-9bcd-45c0-9a81-80f716c4bc11] Cost so far: $0.043683
-[2022-06-14 08:39:46.992] [aws-lambda] [info] LAMBDA task done in 4.58864s [200, 441583 rows, 0 exceptions, reused, id: e6397e9c-20ab-479e-a9ca-ea985d4a1e1d] Cost so far: $0.044472
-[2022-06-14 08:39:47.000] [aws-lambda] [info] LAMBDA task done in 4.42765s [200, 422755 rows, 0 exceptions, reused, id: 42703d2a-eaef-4c98-a324-b408cfcc027f] Cost so far: $0.045234
-[2022-06-14 08:39:47.016] [aws-lambda] [info] LAMBDA task done in 4.49202s [200, 435690 rows, 0 exceptions, reused, id: 1c1f8d75-df90-4fb5-89f3-0522cbc9d95d] Cost so far: $0.046007
-[2022-06-14 08:39:47.018] [aws-lambda] [info] LAMBDA task done in 4.361s [200, 443736 rows, 0 exceptions, reused, id: 3c0ef1c8-7e42-4f41-8ac9-030057582663] Cost so far: $0.046756
-[2022-06-14 08:39:47.032] [aws-lambda] [info] LAMBDA task done in 4.43318s [200, 420051 rows, 0 exceptions, reused, id: 683b9707-3992-4fd8-874a-282159b38986] Cost so far: $0.047519
-[2022-06-14 08:39:47.048] [aws-lambda] [info] LAMBDA task done in 4.34496s [200, 428227 rows, 0 exceptions, reused, id: 171008fe-dcfc-4f70-88a2-240615deced4] Cost so far: $0.048269
-[2022-06-14 08:39:47.052] [aws-lambda] [info] LAMBDA task done in 4.65427s [200, 441122 rows, 0 exceptions, reused, id: d74ba533-8557-45fc-895d-3e20668d7d56] Cost so far: $0.049069
-[2022-06-14 08:39:47.062] [aws-lambda] [info] LAMBDA task done in 4.42103s [200, 428476 rows, 0 exceptions, reused, id: aed3d4d9-7a64-4be8-8428-72204bb83f8d] Cost so far: $0.049829
-[2022-06-14 08:39:47.071] [aws-lambda] [info] LAMBDA task done in 4.82846s [200, 433420 rows, 0 exceptions, reused, id: 9407429f-21d4-4b4a-850e-1ae05032f042] Cost so far: $0.050658
-[2022-06-14 08:39:47.073] [aws-lambda] [info] LAMBDA task done in 4.40386s [200, 407900 rows, 0 exceptions, reused, id: 67411737-14c1-4167-9a25-f6cfc0079fce] Cost so far: $0.051416
-[2022-06-14 08:39:47.081] [aws-lambda] [info] LAMBDA task done in 4.40843s [200, 430861 rows, 0 exceptions, reused, id: 94bf0182-8926-4f20-b94f-0450cef8129d] Cost so far: $0.052175
-[2022-06-14 08:39:47.087] [aws-lambda] [info] LAMBDA task done in 4.45626s [200, 436269 rows, 0 exceptions, reused, id: 0790f1f5-e9c2-4baa-868a-2630488c50c5] Cost so far: $0.052942
-[2022-06-14 08:39:47.090] [aws-lambda] [info] LAMBDA task done in 4.4826s [200, 430185 rows, 0 exceptions, reused, id: cd4d48fc-5790-42ae-aa31-cd97fed6eb3d] Cost so far: $0.053713
-[2022-06-14 08:39:47.100] [aws-lambda] [info] LAMBDA task done in 4.64262s [200, 425510 rows, 0 exceptions, reused, id: 760948c0-468c-4009-b1a5-08374299114e] Cost so far: $0.054511
-[2022-06-14 08:39:47.106] [aws-lambda] [info] LAMBDA task done in 4.79977s [200, 455047 rows, 0 exceptions, reused, id: d7267c7a-fa1f-46ac-adc6-0fc8d397102b] Cost so far: $0.055335
-[2022-06-14 08:39:47.129] [aws-lambda] [info] LAMBDA task done in 4.46207s [200, 420995 rows, 0 exceptions, reused, id: e7910e1f-39c0-49d8-9a74-66193b653637] Cost so far: $0.056104
-[2022-06-14 08:39:47.134] [aws-lambda] [info] LAMBDA task done in 4.86729s [200, 455057 rows, 0 exceptions, reused, id: 7e3e6ef4-7825-4ffc-b5bc-be12a09313c8] Cost so far: $0.056940
-[2022-06-14 08:39:47.140] [aws-lambda] [info] LAMBDA task done in 4.57549s [200, 426169 rows, 0 exceptions, reused, id: 8f3c4428-f5e7-4a23-9dda-c84fa7735bf3] Cost so far: $0.057728
-[2022-06-14 08:39:47.148] [aws-lambda] [info] LAMBDA task done in 5.10189s [200, 440403 rows, 0 exceptions, reused, id: a82e7c25-fe57-46e5-9574-8eb3b4bb32cf] Cost so far: $0.058603
-[2022-06-14 08:39:47.153] [aws-lambda] [info] LAMBDA task done in 4.70771s [200, 426851 rows, 0 exceptions, reused, id: 4d29497d-0d11-4647-aef1-2ca0a5a70ba4] Cost so far: $0.059412
-[2022-06-14 08:39:47.168] [aws-lambda] [info] LAMBDA task done in 4.51681s [200, 423861 rows, 0 exceptions, reused, id: 8d16f860-2a69-4ed2-a232-f171cde8fa8c] Cost so far: $0.060189
-[2022-06-14 08:39:47.184] [aws-lambda] [info] LAMBDA task done in 4.52896s [200, 386954 rows, 0 exceptions, reused, id: 1598c31e-61d5-42d2-b0aa-779274e6bbd3] Cost so far: $0.060968
-[2022-06-14 08:39:47.225] [aws-lambda] [info] LAMBDA task done in 4.51192s [200, 418287 rows, 25 exceptions, reused, id: c4ac84cc-b611-46eb-b861-0e9af803be07] Cost so far: $0.061745
-[2022-06-14 08:39:47.229] [aws-lambda] [info] LAMBDA task done in 4.52961s [200, 446521 rows, 0 exceptions, reused, id: aba450ec-a018-4122-a323-bddf691ee915] Cost so far: $0.062524
-[2022-06-14 08:39:47.235] [aws-lambda] [info] LAMBDA task done in 4.48666s [200, 420012 rows, 253 exceptions, reused, id: 1055a0e6-1b59-4364-b5c1-e217ec97afba] Cost so far: $0.063296
-[2022-06-14 08:39:47.237] [aws-lambda] [info] LAMBDA task done in 4.62675s [200, 432980 rows, 0 exceptions, reused, id: adfaee59-00d8-49dc-8ada-8fac7bf7d6d5] Cost so far: $0.064092
-[2022-06-14 08:39:47.269] [aws-lambda] [info] LAMBDA task done in 4.62887s [200, 441745 rows, 0 exceptions, reused, id: 786534d1-5773-40ae-b193-12b47fca80e2] Cost so far: $0.064889
-[2022-06-14 08:39:47.285] [aws-lambda] [info] LAMBDA task done in 4.60991s [200, 451086 rows, 0 exceptions, reused, id: bdec3f79-0519-41fb-a0e0-24e7be99ea4a] Cost so far: $0.065681
-[2022-06-14 08:39:47.288] [aws-lambda] [info] LAMBDA task done in 4.87823s [200, 417757 rows, 0 exceptions, reused, id: 0a2d9369-656f-47e9-b869-cb7f36301cf4] Cost so far: $0.066518
-[2022-06-14 08:39:47.316] [aws-lambda] [info] LAMBDA task done in 4.6009s [200, 448292 rows, 49 exceptions, reused, id: b135ee92-c9e9-4b74-8f72-77aad563bceb] Cost so far: $0.067309
-[2022-06-14 08:39:47.321] [aws-lambda] [info] LAMBDA task done in 4.57863s [200, 421099 rows, 26125 exceptions, reused, id: 325277fa-5566-4e24-b614-a3ccb259b418] Cost so far: $0.068096
-[2022-06-14 08:39:47.333] [aws-lambda] [info] LAMBDA task done in 4.53437s [200, 415650 rows, 6 exceptions, reused, id: 39034f2b-f9bc-4324-8ef8-f017c839f15f] Cost so far: $0.068875
-[2022-06-14 08:39:47.341] [aws-lambda] [info] LAMBDA task done in 4.45735s [200, 412076 rows, 756 exceptions, reused, id: 94b2794d-978c-471d-bc95-1e0e3374bc27] Cost so far: $0.069643
-[2022-06-14 08:39:47.365] [aws-lambda] [info] LAMBDA task done in 4.69609s [200, 435516 rows, 0 exceptions, reused, id: cf73af81-f176-4111-9d9f-88d6f171fd0d] Cost so far: $0.070449
-[2022-06-14 08:39:47.370] [aws-lambda] [info] LAMBDA task done in 4.62754s [200, 423401 rows, 18287 exceptions, reused, id: e15b1a40-449e-403b-929f-ce74f82da0b5] Cost so far: $0.071245
-[2022-06-14 08:39:47.379] [aws-lambda] [info] LAMBDA task done in 4.51743s [200, 432708 rows, 17 exceptions, reused, id: d5583da0-9e47-4e38-98f9-bae1d849b6b1] Cost so far: $0.072023
-[2022-06-14 08:39:47.383] [aws-lambda] [info] LAMBDA task done in 4.50898s [200, 434884 rows, 17117 exceptions, reused, id: 70c3a2d5-b785-486f-8bd4-8afc9f7012a2] Cost so far: $0.072799
-[2022-06-14 08:39:47.387] [aws-lambda] [info] LAMBDA task done in 4.66301s [200, 449842 rows, 14 exceptions, reused, id: 263464cd-8b4d-47fe-b33d-b64815571553] Cost so far: $0.073600
-[2022-06-14 08:39:47.393] [aws-lambda] [info] LAMBDA task done in 4.66567s [200, 439420 rows, 3 exceptions, reused, id: 79fbebe5-330e-43c2-9352-431814fa1e97] Cost so far: $0.074401
-[2022-06-14 08:39:47.427] [aws-lambda] [info] LAMBDA task done in 4.68207s [200, 448017 rows, 0 exceptions, reused, id: 1169d376-209c-41cd-972f-5af4494d6e4a] Cost so far: $0.075207
-[2022-06-14 08:39:47.453] [aws-lambda] [info] LAMBDA task done in 4.66916s [200, 435081 rows, 7 exceptions, reused, id: 457f7075-af28-4287-a4fb-ad0573b9673e] Cost so far: $0.076009
-[2022-06-14 08:39:47.456] [aws-lambda] [info] LAMBDA task done in 4.79506s [200, 436432 rows, 0 exceptions, reused, id: df4824c5-3a8a-496f-af1f-48346e6f3948] Cost so far: $0.076832
-[2022-06-14 08:39:47.456] [aws-lambda] [info] LAMBDA task done in 4.74591s [200, 464863 rows, 70 exceptions, reused, id: 12b031c1-58fc-40e6-b140-10a93b5a3847] Cost so far: $0.077648
-[2022-06-14 08:39:47.464] [aws-lambda] [info] LAMBDA task done in 4.70919s [200, 435987 rows, 20 exceptions, reused, id: dec48f77-6901-4ffd-bf3e-f85b1d3b6507] Cost so far: $0.078457
-[2022-06-14 08:39:47.467] [aws-lambda] [info] LAMBDA task done in 4.67337s [200, 443284 rows, 27 exceptions, reused, id: e224b349-c06f-4194-95b8-fe3c045bafbc] Cost so far: $0.079260
-[2022-06-14 08:39:47.479] [aws-lambda] [info] LAMBDA task done in 4.6697s [200, 449476 rows, 1261 exceptions, reused, id: eac9d719-bb0d-46b5-a4d7-13c2c58f6133] Cost so far: $0.080063
-[2022-06-14 08:39:47.485] [aws-lambda] [info] LAMBDA task done in 4.75543s [200, 445692 rows, 11731 exceptions, reused, id: ecb234b6-9aa2-4940-9044-c314f4902ce0] Cost so far: $0.080879
-[2022-06-14 08:39:47.520] [aws-lambda] [info] LAMBDA task done in 4.74499s [200, 456567 rows, 10 exceptions, reused, id: b0a98d21-06b1-4eb6-9be3-b13f3093f264] Cost so far: $0.081694
-[2022-06-14 08:39:47.522] [aws-lambda] [info] LAMBDA task done in 4.65854s [200, 459240 rows, 7 exceptions, reused, id: 4d15ff03-4b8d-4ce9-837e-0f7fb46ecdfe] Cost so far: $0.082495
-[2022-06-14 08:39:47.538] [aws-lambda] [info] LAMBDA task done in 4.65928s [200, 444429 rows, 2 exceptions, reused, id: 2eeec329-babe-4820-8fe2-a98b98d81c8e] Cost so far: $0.083296
-[2022-06-14 08:39:47.546] [aws-lambda] [info] LAMBDA task done in 4.80554s [200, 429772 rows, 2 exceptions, reused, id: f0278231-ccbc-4697-bd6c-7f1f9002b0a3] Cost so far: $0.084122
-[2022-06-14 08:39:47.576] [aws-lambda] [info] LAMBDA task done in 4.79842s [200, 448916 rows, 7 exceptions, reused, id: 0353e7c8-3a1c-4325-9b51-51309e641fcc] Cost so far: $0.084946
-[2022-06-14 08:39:47.608] [aws-lambda] [info] LAMBDA task done in 4.82193s [200, 437293 rows, 1059 exceptions, reused, id: a880b769-66cb-4470-add6-e767ff917666] Cost so far: $0.085774
-[2022-06-14 08:39:47.611] [aws-lambda] [info] LAMBDA task done in 4.83422s [200, 462294 rows, 0 exceptions, reused, id: 1089eaca-12f0-4c87-91f9-e702368df959] Cost so far: $0.086604
-[2022-06-14 08:39:47.628] [aws-lambda] [info] LAMBDA task done in 4.87301s [200, 449540 rows, 29 exceptions, reused, id: f6685e3e-6574-48ea-8730-2013b3eb1fd4] Cost so far: $0.087441
-[2022-06-14 08:39:47.631] [aws-lambda] [info] LAMBDA task done in 4.75617s [200, 449287 rows, 6 exceptions, reused, id: 0aa56934-772f-44dd-b817-af9d7f80b84b] Cost so far: $0.088258
-[2022-06-14 08:39:47.642] [aws-lambda] [info] LAMBDA task done in 4.85869s [200, 458369 rows, 7 exceptions, reused, id: 703635de-995b-4841-8b7e-ce7c158d8315] Cost so far: $0.089092
-[2022-06-14 08:39:47.660] [aws-lambda] [info] LAMBDA task done in 4.83066s [200, 466605 rows, 3 exceptions, reused, id: 0a987571-b492-41d7-a36b-c1e5d6bc1c1c] Cost so far: $0.089922
-[2022-06-14 08:39:47.662] [aws-lambda] [info] LAMBDA task done in 4.77659s [200, 430210 rows, 20694 exceptions, reused, id: 69c99c1c-b898-452f-bcd9-5d2d23bfeca2] Cost so far: $0.090744
-[2022-06-14 08:39:47.708] [aws-lambda] [info] LAMBDA task done in 4.84028s [200, 447281 rows, 13 exceptions, reused, id: fcbbe6bc-5ff2-46a6-bd92-247a63c3d66f] Cost so far: $0.091575
-[2022-06-14 08:39:47.782] [aws-lambda] [info] LAMBDA task done in 4.90212s [200, 466754 rows, 17 exceptions, reused, id: 41a19b20-ccba-429a-90f6-517fb7a5f26d] Cost so far: $0.092417
-[2022-06-14 08:39:47.794] [aws-lambda] [info] LAMBDA task done in 4.91585s [200, 459690 rows, 13 exceptions, reused, id: 636250d0-1f3a-4520-8f29-4f53859a4e37] Cost so far: $0.093261
-[2022-06-14 08:39:47.810] [aws-lambda] [info] LAMBDA task done in 5.12936s [200, 449369 rows, 0 exceptions, reused, id: 17efc36b-8fb1-4d4b-9b04-c56c8fe6b946] Cost so far: $0.094139
-[2022-06-14 08:39:47.853] [aws-lambda] [info] LAMBDA task done in 4.96996s [200, 457358 rows, 3 exceptions, reused, id: 9eac5af5-c619-499f-b035-d1a82fab2c24] Cost so far: $0.094992
-[2022-06-14 08:39:47.876] [aws-lambda] [info] LAMBDA task done in 5.07697s [200, 460981 rows, 5 exceptions, reused, id: 308ee2f4-1339-4113-93cf-e8520d52a9c1] Cost so far: $0.095862
-[2022-06-14 08:39:47.915] [aws-lambda] [info] LAMBDA task done in 5.51014s [200, 419545 rows, 0 exceptions, reused, id: 7b77b32c-e6ba-4079-a0ad-dbcba8094538] Cost so far: $0.096801
-[2022-06-14 08:39:47.988] [aws-lambda] [info] LAMBDA task done in 5.19584s [200, 443965 rows, 12032 exceptions, reused, id: e2b95906-0803-4869-a567-08255af3e394] Cost so far: $0.097693
-[2022-06-14 08:39:48.125] [aws-lambda] [info] LAMBDA task done in 5.31618s [200, 435665 rows, 23458 exceptions, reused, id: 684474d5-1095-4d2e-aa8d-513e3190c94c] Cost so far: $0.098603
-[2022-06-14 08:39:49.514] [aws-lambda] [info] LAMBDA task done in 6.79709s [200, 441056 rows, 18 exceptions, reused, id: 6d058f4f-ae85-47db-88a3-eddaa1c265ae] Cost so far: $0.099760
-[2022-06-14 08:39:49.623] [aws-lambda] [info] LAMBDA task done in 6.95655s [200, 426490 rows, 0 exceptions, reused, id: e0855cec-47db-4f59-8cb3-cf1fda76bc69] Cost so far: $0.100944
-[2022-06-14 08:39:51.025] [aws-lambda] [info] LAMBDA task done in 4.46151s [200, 445985 rows, 442 exceptions, reused, id: 34b6cde4-cfed-4e0e-af92-c479b765bd3a] Cost so far: $0.101711
-[2022-06-14 08:39:51.121] [aws-lambda] [info] LAMBDA task done in 4.32469s [200, 417349 rows, 278 exceptions, reused, id: f433ecfb-78d2-42d5-bf63-ddc2437bae9d] Cost so far: $0.102456
-[2022-06-14 08:39:51.171] [aws-lambda] [info] LAMBDA task done in 4.49341s [200, 443853 rows, 48 exceptions, reused, id: a2ff65fb-b10f-4525-9a9f-3328171b4191] Cost so far: $0.103229
-[2022-06-14 08:39:51.175] [aws-lambda] [info] LAMBDA task done in 4.09241s [200, 429869 rows, 0 exceptions, reused, id: 1857c678-d83b-4995-a679-3a00ef0abbc1] Cost so far: $0.103932
-[2022-06-14 08:39:51.263] [aws-lambda] [info] LAMBDA task done in 4.58445s [200, 465899 rows, 11 exceptions, reused, id: 198eb581-095d-424a-b85f-78cb3d08ac43] Cost so far: $0.104720
-[2022-06-14 08:39:51.282] [aws-lambda] [info] LAMBDA task done in 4.04365s [200, 415024 rows, 0 exceptions, reused, id: 3c0ef1c8-7e42-4f41-8ac9-030057582663] Cost so far: $0.105429
-[2022-06-14 08:39:51.351] [aws-lambda] [info] LAMBDA task done in 4.63301s [200, 435351 rows, 1177 exceptions, reused, id: 17d23b25-06d2-442a-83b9-9383a40b08c0] Cost so far: $0.106226
-[2022-06-14 08:39:51.360] [aws-lambda] [info] LAMBDA task done in 4.51187s [200, 462041 rows, 13 exceptions, reused, id: def263c6-cb80-4ade-a273-0c524292417d] Cost so far: $0.107002
-[2022-06-14 08:39:51.397] [aws-lambda] [info] LAMBDA task done in 4.5061s [200, 444378 rows, 121 exceptions, reused, id: a05a5c91-da04-4ca9-b0f3-cf6a06f255ad] Cost so far: $0.107777
-[2022-06-14 08:39:51.399] [aws-lambda] [info] LAMBDA task done in 4.62498s [200, 453689 rows, 125 exceptions, reused, id: 473bbb6f-54a8-4a3e-9d4f-f06536fd5d15] Cost so far: $0.108572
-[2022-06-14 08:39:51.426] [aws-lambda] [info] LAMBDA task done in 4.68415s [200, 447758 rows, 7341 exceptions, reused, id: 33975ef3-2883-4500-a65e-2ba5c9dfd0fb] Cost so far: $0.109377
-[2022-06-14 08:39:51.441] [aws-lambda] [info] LAMBDA task done in 4.27419s [200, 429996 rows, 0 exceptions, reused, id: d625824c-3507-4327-b3b3-1f8725892ee9] Cost so far: $0.110112
-[2022-06-14 08:39:51.442] [aws-lambda] [info] LAMBDA task done in 4.62717s [200, 444270 rows, 21997 exceptions, reused, id: e0f9a919-c28c-4c82-a65c-8cd00d447f94] Cost so far: $0.110908
-[2022-06-14 08:39:51.479] [aws-lambda] [info] LAMBDA task done in 4.62233s [200, 438483 rows, 16467 exceptions, reused, id: 23387010-a048-4e24-ac5b-15e2e457a8ed] Cost so far: $0.111702
-[2022-06-14 08:39:51.496] [aws-lambda] [info] LAMBDA task done in 4.39121s [200, 447896 rows, 0 exceptions, reused, id: 4356e9da-174e-4699-bd7c-1bf229277940] Cost so far: $0.112454
-[2022-06-14 08:39:51.506] [aws-lambda] [info] LAMBDA task done in 4.3634s [200, 399535 rows, 0 exceptions, reused, id: 351ba841-9bcd-45c0-9a81-80f716c4bc11] Cost so far: $0.113208
-[2022-06-14 08:39:51.538] [aws-lambda] [info] LAMBDA task done in 4.685s [200, 450567 rows, 53 exceptions, reused, id: 49c8a727-7018-46c2-858a-b034b1c5949a] Cost so far: $0.114014
-[2022-06-14 08:39:51.549] [aws-lambda] [info] LAMBDA task done in 4.68495s [200, 469939 rows, 5 exceptions, reused, id: 60642084-d6c6-4c51-8970-82ef26bebc8f] Cost so far: $0.114819
-[2022-06-14 08:39:51.550] [aws-lambda] [info] LAMBDA task done in 4.70779s [200, 439461 rows, 21006 exceptions, reused, id: b26e6763-bb09-4907-80dc-315bb123d25f] Cost so far: $0.115628
-[2022-06-14 08:39:51.551] [aws-lambda] [info] LAMBDA task done in 4.67026s [200, 470391 rows, 86 exceptions, reused, id: 936366f7-c861-4b82-b41b-23fe8976254b] Cost so far: $0.116431
-[2022-06-14 08:39:51.566] [aws-lambda] [info] LAMBDA task done in 4.70691s [200, 450801 rows, 9450 exceptions, reused, id: 051aac63-91c8-4d93-96f7-d557c1eff092] Cost so far: $0.117241
-[2022-06-14 08:39:51.592] [aws-lambda] [info] LAMBDA task done in 4.52189s [200, 417386 rows, 0 exceptions, reused, id: 39bebef0-30ab-4a1f-a098-c084ea13e1e8] Cost so far: $0.118018
-[2022-06-14 08:39:51.601] [aws-lambda] [info] LAMBDA task done in 4.46857s [200, 438141 rows, 0 exceptions, reused, id: 3609f90a-a2ca-4158-8124-172c47217653] Cost so far: $0.118787
-[2022-06-14 08:39:51.606] [aws-lambda] [info] LAMBDA task done in 4.70256s [200, 463247 rows, 16 exceptions, reused, id: 4d7c9f6b-c395-4f4f-9970-eaa183e396b9] Cost so far: $0.119595
-[2022-06-14 08:39:51.618] [aws-lambda] [info] LAMBDA task done in 4.76719s [200, 479440 rows, 109 exceptions, reused, id: 0fcfe256-6542-4e32-bcc1-0ce42cef5a2b] Cost so far: $0.120413
-[2022-06-14 08:39:51.632] [aws-lambda] [info] LAMBDA task done in 4.78162s [200, 473610 rows, 437 exceptions, reused, id: 9dcd5d39-67d1-4cd9-b35b-9232bcafd528] Cost so far: $0.121236
-[2022-06-14 08:39:51.634] [aws-lambda] [info] LAMBDA task done in 4.58383s [200, 443796 rows, 0 exceptions, reused, id: 9eb468d9-a918-416e-b5ad-3ee48d0ec28c] Cost so far: $0.122024
-[2022-06-14 08:39:51.701] [aws-lambda] [info] LAMBDA task done in 4.5422s [200, 448333 rows, 0 exceptions, reused, id: e6397e9c-20ab-479e-a9ca-ea985d4a1e1d] Cost so far: $0.122805
-[2022-06-14 08:39:51.701] [aws-lambda] [info] LAMBDA task done in 4.59946s [200, 436336 rows, 0 exceptions, reused, id: ad4a1f53-173c-4116-8794-42b202675d96] Cost so far: $0.123596
-[2022-06-14 08:39:51.728] [aws-lambda] [info] LAMBDA task done in 4.55765s [200, 446590 rows, 0 exceptions, reused, id: 4455025a-5dbf-448a-ac28-39301da98377] Cost so far: $0.124380
-[2022-06-14 08:39:51.743] [aws-lambda] [info] LAMBDA task done in 4.82987s [200, 482934 rows, 10 exceptions, reused, id: bdd6f4eb-66f1-4b89-b44a-71afdf51ac0a] Cost so far: $0.125210
-[2022-06-14 08:39:51.766] [aws-lambda] [info] LAMBDA task done in 4.59113s [200, 465573 rows, 0 exceptions, reused, id: 42703d2a-eaef-4c98-a324-b408cfcc027f] Cost so far: $0.126001
-[2022-06-14 08:39:51.800] [aws-lambda] [info] LAMBDA task done in 5.21259s [200, 462401 rows, 28 exceptions, reused, id: e3cf0d6e-434a-4efe-975f-125a9e1754de] Cost so far: $0.126893
-[2022-06-14 08:39:51.837] [aws-lambda] [info] LAMBDA task done in 4.90249s [200, 482799 rows, 543 exceptions, reused, id: 7e37c5ca-f356-4b32-9e21-13cfaac8d443] Cost so far: $0.127733
-[2022-06-14 08:39:51.838] [aws-lambda] [info] LAMBDA task done in 4.84856s [200, 462310 rows, 787 exceptions, reused, id: ab61ac7f-cba3-43d5-ab02-67d2831978f2] Cost so far: $0.128565
-[2022-06-14 08:39:51.853] [aws-lambda] [info] LAMBDA task done in 4.99494s [200, 471094 rows, 7200 exceptions, reused, id: 1a30a89f-4f6e-415d-999d-69c7bf7130bb] Cost so far: $0.129422
-[2022-06-14 08:39:51.866] [aws-lambda] [info] LAMBDA task done in 4.94213s [200, 470765 rows, 335 exceptions, reused, id: e487577c-25cf-4b85-beac-ccaadd2c6d14] Cost so far: $0.130269
-[2022-06-14 08:39:51.878] [aws-lambda] [info] LAMBDA task done in 4.88563s [200, 467222 rows, 29 exceptions, reused, id: 30f0543f-f6c4-4db5-9076-4506752d8407] Cost so far: $0.131107
-[2022-06-14 08:39:51.884] [aws-lambda] [info] LAMBDA task done in 4.81602s [200, 490698 rows, 0 exceptions, reused, id: d9649e7d-9ac0-4e5c-9f48-9a85797c7f3f] Cost so far: $0.131935
-[2022-06-14 08:39:51.890] [aws-lambda] [info] LAMBDA task done in 4.8619s [200, 477824 rows, 0 exceptions, reused, id: 5d5f0938-2d76-4ab9-8eb5-699c59231e6a] Cost so far: $0.132769
-[2022-06-14 08:39:51.901] [aws-lambda] [info] LAMBDA task done in 4.90053s [200, 485752 rows, 9 exceptions, reused, id: bcddeb10-83ce-4a4e-b896-66b1bbc06a58] Cost so far: $0.133609
-[2022-06-14 08:39:51.919] [aws-lambda] [info] LAMBDA task done in 4.71864s [200, 427125 rows, 0 exceptions, reused, id: 1c1f8d75-df90-4fb5-89f3-0522cbc9d95d] Cost so far: $0.134422
-[2022-06-14 08:39:51.924] [aws-lambda] [info] LAMBDA task done in 4.94176s [200, 491215 rows, 151 exceptions, reused, id: 8cc54a9b-f5bf-426a-95b8-b3fa2b212916] Cost so far: $0.135269
-[2022-06-14 08:39:51.934] [aws-lambda] [info] LAMBDA task done in 5.00987s [200, 478894 rows, 15 exceptions, reused, id: 7544f925-d2b1-4fc1-a9d6-56a8b824124a] Cost so far: $0.136128
-[2022-06-14 08:39:51.937] [aws-lambda] [info] LAMBDA task done in 4.77s [200, 466764 rows, 0 exceptions, reused, id: 80c15e7c-66d8-4aa0-8b0a-04e2c52a301e] Cost so far: $0.136948
-[2022-06-14 08:39:51.985] [aws-lambda] [info] LAMBDA task done in 4.98549s [200, 480967 rows, 71 exceptions, reused, id: d6f73105-76a3-44b5-adda-b1c7746fb72c] Cost so far: $0.137803
-[2022-06-14 08:39:52.050] [aws-lambda] [info] LAMBDA task done in 4.84757s [200, 500206 rows, 0 exceptions, reused, id: 171008fe-dcfc-4f70-88a2-240615deced4] Cost so far: $0.138635
-[2022-06-14 08:39:52.073] [aws-lambda] [info] LAMBDA task done in 5.03004s [200, 520230 rows, 0 exceptions, reused, id: 6c047365-77c6-4659-86f5-9bfbe65be116] Cost so far: $0.139497
-[2022-06-14 08:39:52.090] [aws-lambda] [info] LAMBDA task done in 5.05883s [200, 514187 rows, 0 exceptions, reused, id: 83b4b79c-7867-4c11-a75d-ad092b0f00b2] Cost so far: $0.140365
-[2022-06-14 08:39:52.135] [aws-lambda] [info] LAMBDA task done in 4.99159s [200, 450046 rows, 0 exceptions, reused, id: 33f93520-5e83-47ce-958b-8840eea392a7] Cost so far: $0.141221
-[2022-06-14 08:39:52.155] [aws-lambda] [info] LAMBDA task done in 5.08057s [200, 531119 rows, 0 exceptions, reused, id: 7c2d99e6-9abc-4410-a5b8-a0271594ca33] Cost so far: $0.142098
-[2022-06-14 08:39:52.206] [aws-lambda] [info] LAMBDA task done in 5.16153s [200, 544351 rows, 0 exceptions, reused, id: e7d4a6a6-9eb0-4da4-9568-cb79f173c068] Cost so far: $0.142982
-[2022-06-14 08:39:52.349] [aws-lambda] [info] LAMBDA task done in 9.4663s [200, 442637 rows, 7 exceptions, reused, id: 8fc1b801-5bde-4f0e-82c6-ee7360c391d1] Cost so far: $0.144584
-[2022-06-14 08:39:52.377] [aws-lambda] [info] LAMBDA task done in 5.67763s [200, 457949 rows, 5 exceptions, reused, id: 25dd8a71-a5fb-4ee6-9064-e872d3cefbe9] Cost so far: $0.145554
-[2022-06-14 08:39:52.411] [aws-lambda] [info] LAMBDA task done in 5.37398s [200, 529940 rows, 0 exceptions, reused, id: 8908801e-f4f9-4c9a-8539-a31cc284b4f1] Cost so far: $0.146473
-[2022-06-14 08:39:52.511] [aws-lambda] [info] LAMBDA task done in 5.50323s [200, 529940 rows, 0 exceptions, reused, id: 519622e9-dc4b-4972-9875-14aabd554cd7] Cost so far: $0.147415
-[2022-06-14 08:39:52.513] [aws-lambda] [info] LAMBDA task done in 5.47508s [200, 538440 rows, 0 exceptions, reused, id: aeb8bc9b-95e7-46d0-a257-710ff4dddcac] Cost so far: $0.148350
-[2022-06-14 08:39:52.547] [aws-lambda] [info] LAMBDA task done in 5.35503s [200, 552109 rows, 0 exceptions, reused, id: 683b9707-3992-4fd8-874a-282159b38986] Cost so far: $0.149267
-[2022-06-14 08:39:52.715] [aws-lambda] [info] LAMBDA task done in 5.50372s [200, 559342 rows, 0 exceptions, reused, id: d74ba533-8557-45fc-895d-3e20668d7d56] Cost so far: $0.150209
-[2022-06-14 08:39:52.950] [aws-lambda] [info] LAMBDA task done in 5.73497s [200, 527303 rows, 0 exceptions, reused, id: aed3d4d9-7a64-4be8-8428-72204bb83f8d] Cost so far: $0.151189
-[2022-06-14 08:39:55.434] [aws-lambda] [info] LAMBDA task done in 8.20273s [200, 533782 rows, 0 exceptions, reused, id: 9407429f-21d4-4b4a-850e-1ae05032f042] Cost so far: $0.152580
-[2022-06-14 08:40:02.545] [aws-lambda] [info] LAMBDA task done in 15.2714s [200, 527714 rows, 0 exceptions, reused, id: 760948c0-468c-4009-b1a5-08374299114e] Cost so far: $0.155149
-[2022-06-14 08:40:03.074] [aws-lambda] [info] LAMBDA task done in 15.7827s [200, 552370 rows, 0 exceptions, reused, id: 7e3e6ef4-7825-4ffc-b5bc-be12a09313c8] Cost so far: $0.157804
-[2022-06-14 08:40:03.834] [aws-lambda] [info] LAMBDA task done in 16.4611s [200, 585125 rows, 0 exceptions, reused, id: c4ac84cc-b611-46eb-b861-0e9af803be07] Cost so far: $0.160571
-[2022-06-14 08:40:03.938] [aws-lambda] [info] LAMBDA task done in 15.7336s [200, 540908 rows, 0 exceptions, reused, id: e2b95906-0803-4869-a567-08255af3e394] Cost so far: $0.163218
-[2022-06-14 08:40:04.604] [aws-lambda] [info] LAMBDA task done in 16.2612s [200, 556205 rows, 0 exceptions, reused, id: 684474d5-1095-4d2e-aa8d-513e3190c94c] Cost so far: $0.165952
-[2022-06-14 08:40:05.367] [aws-lambda] [info] LAMBDA task done in 14.034s [200, 488410 rows, 0 exceptions, reused, id: 1857c678-d83b-4995-a679-3a00ef0abbc1] Cost so far: $0.168312
-[2022-06-14 08:40:05.958] [aws-lambda] [info] LAMBDA task done in 18.7207s [200, 536496 rows, 0 exceptions, reused, id: cd4d48fc-5790-42ae-aa31-cd97fed6eb3d] Cost so far: $0.171455
-[2022-06-14 08:40:06.167] [aws-lambda] [info] LAMBDA task done in 14.506s [200, 509540 rows, 0 exceptions, reused, id: 23387010-a048-4e24-ac5b-15e2e457a8ed] Cost so far: $0.173900
-[2022-06-14 08:40:06.174] [aws-lambda] [info] LAMBDA task done in 18.7122s [200, 594492 rows, 0 exceptions, reused, id: aba450ec-a018-4122-a323-bddf691ee915] Cost so far: $0.177042
-[2022-06-14 08:40:06.174] [aws-lambda] [info] LAMBDA task done in 14.5592s [200, 510852 rows, 0 exceptions, reused, id: e0f9a919-c28c-4c82-a65c-8cd00d447f94] Cost so far: $0.179492
-[2022-06-14 08:40:06.403] [aws-lambda] [info] LAMBDA task done in 14.3471s [200, 478040 rows, 0 exceptions, reused, id: 5d5f0938-2d76-4ab9-8eb5-699c59231e6a] Cost so far: $0.181907
-[2022-06-14 08:40:06.486] [aws-lambda] [info] LAMBDA task done in 14.3806s [200, 505218 rows, 0 exceptions, reused, id: 7544f925-d2b1-4fc1-a9d6-56a8b824124a] Cost so far: $0.184328
-[2022-06-14 08:40:06.705] [aws-lambda] [info] LAMBDA task done in 14.4267s [200, 488006 rows, 0 exceptions, reused, id: 83b4b79c-7867-4c11-a75d-ad092b0f00b2] Cost so far: $0.186757
-[2022-06-14 08:40:06.861] [aws-lambda] [info] LAMBDA task done in 14.7522s [200, 464826 rows, 0 exceptions, reused, id: d9649e7d-9ac0-4e5c-9f48-9a85797c7f3f] Cost so far: $0.189240
-[2022-06-14 08:40:07.104] [aws-lambda] [info] LAMBDA task done in 19.5681s [200, 574253 rows, 0 exceptions, reused, id: 263464cd-8b4d-47fe-b33d-b64815571553] Cost so far: $0.192525
-[2022-06-14 08:40:07.192] [aws-lambda] [info] LAMBDA task done in 19.8906s [200, 528171 rows, 0 exceptions, reused, id: 8f3c4428-f5e7-4a23-9dda-c84fa7735bf3] Cost so far: $0.195864
-[2022-06-14 08:40:07.309] [aws-lambda] [info] LAMBDA task done in 15.2503s [200, 504397 rows, 0 exceptions, reused, id: bcddeb10-83ce-4a4e-b896-66b1bbc06a58] Cost so far: $0.198430
-[2022-06-14 08:40:07.448] [aws-lambda] [info] LAMBDA task done in 15.3627s [200, 486133 rows, 0 exceptions, reused, id: 1c1f8d75-df90-4fb5-89f3-0522cbc9d95d] Cost so far: $0.201015
-[2022-06-14 08:40:07.653] [aws-lambda] [info] LAMBDA task done in 20.3793s [200, 558568 rows, 0 exceptions, reused, id: 0790f1f5-e9c2-4baa-868a-2630488c50c5] Cost so far: $0.204440
-[2022-06-14 08:40:07.683] [aws-lambda] [info] LAMBDA task done in 15.6691s [200, 487468 rows, 0 exceptions, reused, id: 1a30a89f-4f6e-415d-999d-69c7bf7130bb] Cost so far: $0.207075
-[2022-06-14 08:40:07.815] [aws-lambda] [info] LAMBDA task done in 20.5026s [200, 582970 rows, 0 exceptions, reused, id: 67411737-14c1-4167-9a25-f6cfc0079fce] Cost so far: $0.210515
-[2022-06-14 08:40:07.863] [aws-lambda] [info] LAMBDA task done in 20.3139s [200, 592712 rows, 0 exceptions, reused, id: 70c3a2d5-b785-486f-8bd4-8afc9f7012a2] Cost so far: $0.213925
-[2022-06-14 08:40:07.963] [aws-lambda] [info] LAMBDA task done in 16.2373s [200, 529330 rows, 0 exceptions, reused, id: 051aac63-91c8-4d93-96f7-d557c1eff092] Cost so far: $0.216656
-[2022-06-14 08:40:08.226] [aws-lambda] [info] LAMBDA task done in 16.4348s [200, 526107 rows, 0 exceptions, reused, id: b26e6763-bb09-4907-80dc-315bb123d25f] Cost so far: $0.219421
-[2022-06-14 08:40:08.407] [aws-lambda] [info] LAMBDA task done in 18.6407s [200, 523272 rows, 0 exceptions, reused, id: 6d058f4f-ae85-47db-88a3-eddaa1c265ae] Cost so far: $0.222557
-[2022-06-14 08:40:08.419] [aws-lambda] [info] LAMBDA task done in 16.2636s [200, 490199 rows, 0 exceptions, reused, id: 7e37c5ca-f356-4b32-9e21-13cfaac8d443] Cost so far: $0.225292
-[2022-06-14 08:40:08.551] [aws-lambda] [info] LAMBDA task done in 16.4747s [200, 493888 rows, 0 exceptions, reused, id: 8cc54a9b-f5bf-426a-95b8-b3fa2b212916] Cost so far: $0.228062
-[2022-06-14 08:40:08.758] [aws-lambda] [info] LAMBDA task done in 21.1932s [200, 566138 rows, 0 exceptions, reused, id: d5583da0-9e47-4e38-98f9-bae1d849b6b1] Cost so far: $0.231618
-[2022-06-14 08:40:08.846] [aws-lambda] [info] LAMBDA task done in 21.5066s [200, 601412 rows, 0 exceptions, reused, id: 94bf0182-8926-4f20-b94f-0450cef8129d] Cost so far: $0.235230
-[2022-06-14 08:40:08.924] [aws-lambda] [info] LAMBDA task done in 17.1106s [200, 545519 rows, 0 exceptions, reused, id: 9eb468d9-a918-416e-b5ad-3ee48d0ec28c] Cost so far: $0.238106
-[2022-06-14 08:40:09.083] [aws-lambda] [info] LAMBDA task done in 16.7331s [200, 469746 rows, 0 exceptions, reused, id: 6c047365-77c6-4659-86f5-9bfbe65be116] Cost so far: $0.240918
-[2022-06-14 08:40:09.159] [aws-lambda] [info] LAMBDA task done in 21.3032s [200, 600187 rows, 0 exceptions, reused, id: 0aa56934-772f-44dd-b817-af9d7f80b84b] Cost so far: $0.244495
-[2022-06-14 08:40:09.197] [aws-lambda] [info] LAMBDA task done in 17.7308s [200, 546832 rows, 0 exceptions, reused, id: 3c0ef1c8-7e42-4f41-8ac9-030057582663] Cost so far: $0.247471
-[2022-06-14 08:40:09.390] [aws-lambda] [info] LAMBDA task done in 21.9017s [200, 614802 rows, 0 exceptions, reused, id: 39034f2b-f9bc-4324-8ef8-f017c839f15f] Cost so far: $0.251146
-[2022-06-14 08:40:09.569] [aws-lambda] [info] LAMBDA task done in 22.3022s [200, 556984 rows, 0 exceptions, reused, id: d7267c7a-fa1f-46ac-adc6-0fc8d397102b] Cost so far: $0.254887
-[2022-06-14 08:40:09.589] [aws-lambda] [info] LAMBDA task done in 22.1835s [200, 610037 rows, 0 exceptions, reused, id: 04fe6903-f174-48f0-abb4-8d1464f0274f] Cost so far: $0.258614
-[2022-06-14 08:40:09.663] [aws-lambda] [info] LAMBDA task done in 16.9282s [200, 510806 rows, 0 exceptions, reused, id: aeb8bc9b-95e7-46d0-a257-710ff4dddcac] Cost so far: $0.261459
-[2022-06-14 08:40:09.843] [aws-lambda] [info] LAMBDA task done in 17.5341s [200, 509519 rows, 0 exceptions, reused, id: 7c2d99e6-9abc-4410-a5b8-a0271594ca33] Cost so far: $0.264405
-[2022-06-14 08:40:09.919] [aws-lambda] [info] LAMBDA task done in 22.6033s [200, 553876 rows, 0 exceptions, reused, id: a82e7c25-fe57-46e5-9574-8eb3b4bb32cf] Cost so far: $0.268197
-[2022-06-14 08:40:10.072] [aws-lambda] [info] LAMBDA task done in 17.8719s [200, 515254 rows, 0 exceptions, reused, id: 198eb581-095d-424a-b85f-78cb3d08ac43] Cost so far: $0.271200
-[2022-06-14 08:40:10.108] [aws-lambda] [info] LAMBDA task done in 18.2912s [200, 520999 rows, 0 exceptions, reused, id: 9dcd5d39-67d1-4cd9-b35b-9232bcafd528] Cost so far: $0.274272
-[2022-06-14 08:40:10.129] [aws-lambda] [info] LAMBDA task done in 22.5261s [200, 531247 rows, 0 exceptions, reused, id: 457f7075-af28-4287-a4fb-ad0573b9673e] Cost so far: $0.278050
-[2022-06-14 08:40:10.157] [aws-lambda] [info] LAMBDA task done in 18.0552s [200, 521628 rows, 0 exceptions, reused, id: 80c15e7c-66d8-4aa0-8b0a-04e2c52a301e] Cost so far: $0.281084
-[2022-06-14 08:40:10.181] [aws-lambda] [info] LAMBDA task done in 18.0662s [200, 518423 rows, 0 exceptions, reused, id: 30f0543f-f6c4-4db5-9076-4506752d8407] Cost so far: $0.284118
-[2022-06-14 08:40:10.315] [aws-lambda] [info] LAMBDA task done in 22.8966s [200, 584610 rows, 0 exceptions, reused, id: adfaee59-00d8-49dc-8ada-8fac7bf7d6d5] Cost so far: $0.287962
-[2022-06-14 08:40:10.428] [aws-lambda] [info] LAMBDA task done in 18.5714s [200, 455516 rows, 0 exceptions, reused, id: ad4a1f53-173c-4116-8794-42b202675d96] Cost so far: $0.291082
-[2022-06-14 08:40:10.632] [aws-lambda] [info] LAMBDA task done in 23.0348s [200, 585351 rows, 0 exceptions, reused, id: cf73af81-f176-4111-9d9f-88d6f171fd0d] Cost so far: $0.294945
-[2022-06-14 08:40:10.681] [aws-lambda] [info] LAMBDA task done in 19.0241s [200, 521809 rows, 0 exceptions, reused, id: 351ba841-9bcd-45c0-9a81-80f716c4bc11] Cost so far: $0.298139
-[2022-06-14 08:40:10.687] [aws-lambda] [info] LAMBDA task done in 23.3764s [200, 555495 rows, 0 exceptions, reused, id: e7910e1f-39c0-49d8-9a74-66193b653637] Cost so far: $0.302061
-[2022-06-14 08:40:10.713] [aws-lambda] [info] LAMBDA task done in 17.7827s [200, 503296 rows, 0 exceptions, reused, id: d74ba533-8557-45fc-895d-3e20668d7d56] Cost so far: $0.305049
-[2022-06-14 08:40:10.722] [aws-lambda] [info] LAMBDA task done in 19.0242s [200, 483270 rows, 0 exceptions, reused, id: 49c8a727-7018-46c2-858a-b034b1c5949a] Cost so far: $0.308244
-[2022-06-14 08:40:10.794] [aws-lambda] [info] LAMBDA task done in 18.9519s [200, 494400 rows, 0 exceptions, reused, id: 473bbb6f-54a8-4a3e-9d4f-f06536fd5d15] Cost so far: $0.311427
-[2022-06-14 08:40:10.956] [aws-lambda] [info] LAMBDA task done in 23.353s [200, 581287 rows, 0 exceptions, reused, id: e15b1a40-449e-403b-929f-ce74f82da0b5] Cost so far: $0.315344
-[2022-06-14 08:40:11.177] [aws-lambda] [info] LAMBDA task done in 19.0355s [200, 526933 rows, 0 exceptions, reused, id: d6f73105-76a3-44b5-adda-b1c7746fb72c] Cost so far: $0.318540
-[2022-06-14 08:40:11.434] [aws-lambda] [info] LAMBDA task done in 19.6455s [200, 569217 rows, 0 exceptions, reused, id: 0fcfe256-6542-4e32-bcc1-0ce42cef5a2b] Cost so far: $0.321842
-[2022-06-14 08:40:11.520] [aws-lambda] [info] LAMBDA task done in 19.5385s [200, 541442 rows, 0 exceptions, reused, id: 17d23b25-06d2-442a-83b9-9383a40b08c0] Cost so far: $0.325123
-[2022-06-14 08:40:11.563] [aws-lambda] [info] LAMBDA task done in 20.1608s [200, 537793 rows, 0 exceptions, reused, id: f433ecfb-78d2-42d5-bf63-ddc2437bae9d] Cost so far: $0.328506
-[2022-06-14 08:40:11.629] [aws-lambda] [info] LAMBDA task done in 24.1822s [200, 545332 rows, 0 exceptions, reused, id: bdec3f79-0519-41fb-a0e0-24e7be99ea4a] Cost so far: $0.332561
-[2022-06-14 08:40:11.757] [aws-lambda] [info] LAMBDA task done in 20.0051s [200, 542747 rows, 0 exceptions, reused, id: 3609f90a-a2ca-4158-8124-172c47217653] Cost so far: $0.335919
-[2022-06-14 08:40:11.916] [aws-lambda] [info] LAMBDA task done in 19.1348s [200, 535344 rows, 0 exceptions, reused, id: 519622e9-dc4b-4972-9875-14aabd554cd7] Cost so far: $0.339135
-[2022-06-14 08:40:12.176] [aws-lambda] [info] LAMBDA task done in 20.9394s [200, 532339 rows, 0 exceptions, reused, id: 34b6cde4-cfed-4e0e-af92-c479b765bd3a] Cost so far: $0.342648
-[2022-06-14 08:40:12.180] [aws-lambda] [info] LAMBDA task done in 24.5097s [200, 584937 rows, 0 exceptions, reused, id: b0a98d21-06b1-4eb6-9be3-b13f3093f264] Cost so far: $0.346757
-[2022-06-14 08:40:12.332] [aws-lambda] [info] LAMBDA task done in 19.9504s [200, 552312 rows, 0 exceptions, reused, id: e7d4a6a6-9eb0-4da4-9568-cb79f173c068] Cost so far: $0.350107
-[2022-06-14 08:40:12.352] [aws-lambda] [info] LAMBDA task done in 25.0296s [200, 594457 rows, 0 exceptions, reused, id: 8d16f860-2a69-4ed2-a232-f171cde8fa8c] Cost so far: $0.354302
-[2022-06-14 08:40:12.474] [aws-lambda] [info] LAMBDA task done in 24.4584s [200, 598126 rows, 0 exceptions, reused, id: 17efc36b-8fb1-4d4b-9b04-c56c8fe6b946] Cost so far: $0.358402
-[2022-06-14 08:40:12.924] [aws-lambda] [info] LAMBDA task done in 25.0541s [200, 605149 rows, 0 exceptions, reused, id: fcbbe6bc-5ff2-46a6-bd92-247a63c3d66f] Cost so far: $0.362602
-[2022-06-14 08:40:12.932] [aws-lambda] [info] LAMBDA task done in 25.623s [200, 583987 rows, 0 exceptions, reused, id: 4d29497d-0d11-4647-aef1-2ca0a5a70ba4] Cost so far: $0.366896
-[2022-06-14 08:40:13.001] [aws-lambda] [info] LAMBDA task done in 21.1406s [200, 526687 rows, 0 exceptions, reused, id: e6397e9c-20ab-479e-a9ca-ea985d4a1e1d] Cost so far: $0.370444
-[2022-06-14 08:40:13.160] [aws-lambda] [info] LAMBDA task done in 20.5787s [200, 548642 rows, 0 exceptions, reused, id: 8908801e-f4f9-4c9a-8539-a31cc284b4f1] Cost so far: $0.373898
-[2022-06-14 08:40:13.312] [aws-lambda] [info] LAMBDA task done in 25.618s [200, 586197 rows, 0 exceptions, reused, id: 12b031c1-58fc-40e6-b140-10a93b5a3847] Cost so far: $0.378191
-[2022-06-14 08:40:13.354] [aws-lambda] [info] LAMBDA task done in 25.2236s [200, 612279 rows, 0 exceptions, reused, id: 41a19b20-ccba-429a-90f6-517fb7a5f26d] Cost so far: $0.382419
-[2022-06-14 08:40:13.423] [aws-lambda] [info] LAMBDA task done in 25.8122s [200, 602919 rows, 0 exceptions, reused, id: b135ee92-c9e9-4b74-8f72-77aad563bceb] Cost so far: $0.386745
-[2022-06-14 08:40:13.556] [aws-lambda] [info] LAMBDA task done in 21.8406s [200, 549262 rows, 0 exceptions, reused, id: 936366f7-c861-4b82-b41b-23fe8976254b] Cost so far: $0.390410
-[2022-06-14 08:40:13.561] [aws-lambda] [info] LAMBDA task done in 25.5365s [200, 606293 rows, 0 exceptions, reused, id: 308ee2f4-1339-4113-93cf-e8520d52a9c1] Cost so far: $0.394689
-[2022-06-14 08:40:13.722] [aws-lambda] [info] LAMBDA task done in 21.2987s [200, 536393 rows, 0 exceptions, reused, id: 171008fe-dcfc-4f70-88a2-240615deced4] Cost so far: $0.398263
-[2022-06-14 08:40:13.724] [aws-lambda] [info] LAMBDA task done in 26.3653s [200, 623107 rows, 0 exceptions, reused, id: 7c5778b9-4ba7-447d-98e2-81ae04227a81] Cost so far: $0.402682
-[2022-06-14 08:40:13.733] [aws-lambda] [info] LAMBDA task done in 25.9716s [200, 631609 rows, 0 exceptions, reused, id: 1089eaca-12f0-4c87-91f9-e702368df959] Cost so far: $0.407034
-[2022-06-14 08:40:13.830] [aws-lambda] [info] LAMBDA task done in 22.4361s [200, 557422 rows, 0 exceptions, reused, id: a2ff65fb-b10f-4525-9a9f-3328171b4191] Cost so far: $0.410797
-[2022-06-14 08:40:14.098] [aws-lambda] [info] LAMBDA task done in 21.9504s [200, 540793 rows, 0 exceptions, reused, id: e487577c-25cf-4b85-beac-ccaadd2c6d14] Cost so far: $0.414480
-[2022-06-14 08:40:14.276] [aws-lambda] [info] LAMBDA task done in 22.6955s [200, 568301 rows, 0 exceptions, reused, id: 33975ef3-2883-4500-a65e-2ba5c9dfd0fb] Cost so far: $0.418286
-[2022-06-14 08:40:14.288] [aws-lambda] [info] LAMBDA task done in 26.7789s [200, 609195 rows, 0 exceptions, reused, id: 325277fa-5566-4e24-b614-a3ccb259b418] Cost so far: $0.422773
-[2022-06-14 08:40:14.395] [aws-lambda] [info] LAMBDA task done in 22.7797s [200, 531799 rows, 0 exceptions, reused, id: d625824c-3507-4327-b3b3-1f8725892ee9] Cost so far: $0.426594
-[2022-06-14 08:40:14.434] [aws-lambda] [info] LAMBDA task done in 22.7887s [200, 529269 rows, 0 exceptions, reused, id: 4356e9da-174e-4699-bd7c-1bf229277940] Cost so far: $0.430412
-[2022-06-14 08:40:14.519] [aws-lambda] [info] LAMBDA task done in 27.0621s [200, 617540 rows, 0 exceptions, reused, id: 786534d1-5773-40ae-b193-12b47fca80e2] Cost so far: $0.434946
-[2022-06-14 08:40:14.607] [aws-lambda] [info] LAMBDA task done in 22.6626s [200, 528588 rows, 0 exceptions, reused, id: bdd6f4eb-66f1-4b89-b44a-71afdf51ac0a] Cost so far: $0.438747
-[2022-06-14 08:40:14.649] [aws-lambda] [info] LAMBDA task done in 26.5955s [200, 608665 rows, 0 exceptions, reused, id: 7b77b32c-e6ba-4079-a0ad-dbcba8094538] Cost so far: $0.443200
-[2022-06-14 08:40:14.716] [aws-lambda] [info] LAMBDA task done in 22.7649s [200, 520612 rows, 0 exceptions, reused, id: e3cf0d6e-434a-4efe-975f-125a9e1754de] Cost so far: $0.447018
-[2022-06-14 08:40:14.730] [aws-lambda] [info] LAMBDA task done in 27.0518s [200, 628732 rows, 0 exceptions, reused, id: 4d15ff03-4b8d-4ce9-837e-0f7fb46ecdfe] Cost so far: $0.451551
-[2022-06-14 08:40:14.907] [aws-lambda] [info] LAMBDA task done in 23.3928s [200, 557594 rows, 0 exceptions, reused, id: def263c6-cb80-4ade-a273-0c524292417d] Cost so far: $0.455474
-[2022-06-14 08:40:14.941] [aws-lambda] [info] LAMBDA task done in 22.646s [200, 494218 rows, 0 exceptions, reused, id: 33f93520-5e83-47ce-958b-8840eea392a7] Cost so far: $0.459273
-[2022-06-14 08:40:14.963] [aws-lambda] [info] LAMBDA task done in 27.1172s [200, 629992 rows, 0 exceptions, reused, id: f6685e3e-6574-48ea-8730-2013b3eb1fd4] Cost so far: $0.463816
-[2022-06-14 08:40:15.008] [aws-lambda] [info] LAMBDA task done in 22.2538s [200, 562921 rows, 0 exceptions, reused, id: 683b9707-3992-4fd8-874a-282159b38986] Cost so far: $0.467554
-[2022-06-14 08:40:15.098] [aws-lambda] [info] LAMBDA task done in 23.1689s [200, 507024 rows, 0 exceptions, reused, id: 42703d2a-eaef-4c98-a324-b408cfcc027f] Cost so far: $0.471441
-[2022-06-14 08:40:15.613] [aws-lambda] [info] LAMBDA task done in 27.5186s [200, 627931 rows, 0 exceptions, reused, id: 636250d0-1f3a-4520-8f29-4f53859a4e37] Cost so far: $0.476051
-[2022-06-14 08:40:15.622] [aws-lambda] [info] LAMBDA task done in 23.6309s [200, 547219 rows, 0 exceptions, reused, id: 4455025a-5dbf-448a-ac28-39301da98377] Cost so far: $0.480016
-[2022-06-14 08:40:15.780] [aws-lambda] [info] LAMBDA task done in 28.1718s [200, 605217 rows, 0 exceptions, reused, id: df4824c5-3a8a-496f-af1f-48346e6f3948] Cost so far: $0.484736
-[2022-06-14 08:40:15.888] [aws-lambda] [info] LAMBDA task done in 28.5213s [200, 614166 rows, 0 exceptions, reused, id: 2d901b8b-4238-43f3-8f46-f2d6ab03b473] Cost so far: $0.489514
-[2022-06-14 08:40:15.967] [aws-lambda] [info] LAMBDA task done in 28.4238s [200, 630904 rows, 0 exceptions, reused, id: 79fbebe5-330e-43c2-9352-431814fa1e97] Cost so far: $0.494275
-[2022-06-14 08:40:15.986] [aws-lambda] [info] LAMBDA task done in 24.1559s [200, 539382 rows, 0 exceptions, reused, id: 60642084-d6c6-4c51-8970-82ef26bebc8f] Cost so far: $0.498325
-[2022-06-14 08:40:16.041] [aws-lambda] [info] LAMBDA task done in 28.2732s [200, 614648 rows, 0 exceptions, reused, id: a880b769-66cb-4470-add6-e767ff917666] Cost so far: $0.503062
-[2022-06-14 08:40:16.192] [aws-lambda] [info] LAMBDA task done in 24.4219s [200, 551687 rows, 0 exceptions, reused, id: 4d7c9f6b-c395-4f4f-9970-eaa183e396b9] Cost so far: $0.507157
-[2022-06-14 08:40:16.226] [aws-lambda] [info] LAMBDA task done in 28.781s [200, 594924 rows, 0 exceptions, reused, id: 0a2d9369-656f-47e9-b869-cb7f36301cf4] Cost so far: $0.511978
-[2022-06-14 08:40:16.239] [aws-lambda] [info] LAMBDA task done in 28.5007s [200, 639209 rows, 0 exceptions, reused, id: dec48f77-6901-4ffd-bf3e-f85b1d3b6507] Cost so far: $0.516752
-[2022-06-14 08:40:16.304] [aws-lambda] [info] LAMBDA task done in 28.425s [200, 605765 rows, 0 exceptions, reused, id: 96b1d024-58b6-406b-b532-7b966baa0e44] Cost so far: $0.521514
-[2022-06-14 08:40:16.402] [aws-lambda] [info] LAMBDA task done in 28.9939s [200, 606731 rows, 0 exceptions, reused, id: 1055a0e6-1b59-4364-b5c1-e217ec97afba] Cost so far: $0.526371
-[2022-06-14 08:40:16.584] [aws-lambda] [info] LAMBDA task done in 25.0157s [200, 580134 rows, 0 exceptions, reused, id: a05a5c91-da04-4ca9-b0f3-cf6a06f255ad] Cost so far: $0.530564
-[2022-06-14 08:40:16.622] [aws-lambda] [info] LAMBDA task done in 24.845s [200, 570788 rows, 0 exceptions, reused, id: 39bebef0-30ab-4a1f-a098-c084ea13e1e8] Cost so far: $0.534729
-[2022-06-14 08:40:16.714] [aws-lambda] [info] LAMBDA task done in 24.5633s [200, 545131 rows, 0 exceptions, reused, id: ab61ac7f-cba3-43d5-ab02-67d2831978f2] Cost so far: $0.538847
-[2022-06-14 08:40:16.745] [aws-lambda] [info] LAMBDA task done in 29.4017s [200, 588792 rows, 0 exceptions, reused, id: 1598c31e-61d5-42d2-b0aa-779274e6bbd3] Cost so far: $0.543771
-[2022-06-14 08:40:17.225] [aws-lambda] [info] LAMBDA task done in 3.28592s [200, 180617 rows, 0 exceptions, reused, id: 1089eaca-12f0-4c87-91f9-e702368df959] Cost so far: $0.544343
-[2022-06-14 08:40:17.228] [aws-lambda] [info] LAMBDA task done in 29.4736s [200, 565604 rows, 0 exceptions, reused, id: 0353e7c8-3a1c-4325-9b51-51309e641fcc] Cost so far: $0.549280
-[2022-06-14 08:40:17.474] [aws-lambda] [info] LAMBDA task done in 29.7792s [200, 611718 rows, 0 exceptions, reused, id: 2eeec329-babe-4820-8fe2-a98b98d81c8e] Cost so far: $0.554268
-[2022-06-14 08:40:17.569] [aws-lambda] [info] LAMBDA task done in 29.3896s [200, 569236 rows, 0 exceptions, new, id: dd876c87-5f1b-4c6c-8b90-bcd110dba6a8] Cost so far: $0.559314
-[2022-06-14 08:40:17.795] [aws-lambda] [info] LAMBDA task done in 30.1446s [200, 598315 rows, 0 exceptions, reused, id: ecb234b6-9aa2-4940-9044-c314f4902ce0] Cost so far: $0.564362
-[2022-06-14 08:40:17.825] [aws-lambda] [info] LAMBDA task done in 30.1026s [200, 604758 rows, 0 exceptions, reused, id: e224b349-c06f-4194-95b8-fe3c045bafbc] Cost so far: $0.569408
-[2022-06-14 08:40:17.949] [aws-lambda] [info] LAMBDA task done in 30.367s [200, 572343 rows, 0 exceptions, reused, id: 1169d376-209c-41cd-972f-5af4494d6e4a] Cost so far: $0.574493
-[2022-06-14 08:40:17.978] [aws-lambda] [info] LAMBDA task done in 30.2797s [200, 621559 rows, 0 exceptions, reused, id: f0278231-ccbc-4697-bd6c-7f1f9002b0a3] Cost so far: $0.579564
-[2022-06-14 08:40:18.294] [aws-lambda] [info] LAMBDA task done in 30.6259s [200, 621244 rows, 0 exceptions, reused, id: eac9d719-bb0d-46b5-a4d7-13c2c58f6133] Cost so far: $0.584692
-[2022-06-14 08:40:18.444] [aws-lambda] [info] LAMBDA task done in 4.49786s [200, 313382 rows, 0 exceptions, reused, id: 7c5778b9-4ba7-447d-98e2-81ae04227a81] Cost so far: $0.585467
-[2022-06-14 08:40:18.498] [aws-lambda] [info] LAMBDA task done in 4.5457s [200, 223732 rows, 0 exceptions, reused, id: 171008fe-dcfc-4f70-88a2-240615deced4] Cost so far: $0.586249
-[2022-06-14 08:40:18.860] [aws-lambda] [info] LAMBDA task done in 26.2666s [200, 552141 rows, 0 exceptions, reused, id: 25dd8a71-a5fb-4ee6-9064-e872d3cefbe9] Cost so far: $0.590651
-[2022-06-14 08:40:18.874] [aws-lambda] [info] LAMBDA task done in 30.8622s [200, 616090 rows, 0 exceptions, reused, id: 9eac5af5-c619-499f-b035-d1a82fab2c24] Cost so far: $0.595818
-[2022-06-14 08:40:19.378] [aws-lambda] [info] LAMBDA task done in 26.195s [200, 516739 rows, 0 exceptions, reused, id: aed3d4d9-7a64-4be8-8428-72204bb83f8d] Cost so far: $0.600208
-[2022-06-14 08:40:19.591] [aws-lambda] [info] LAMBDA task done in 23.9391s [200, 471949 rows, 0 exceptions, reused, id: 9407429f-21d4-4b4a-850e-1ae05032f042] Cost so far: $0.604222
-[2022-06-14 08:40:20.293] [aws-lambda] [info] LAMBDA task done in 32.7878s [200, 627961 rows, 0 exceptions, reused, id: 94b2794d-978c-471d-bc95-1e0e3374bc27] Cost so far: $0.609711
-[2022-06-14 08:40:20.508] [aws-lambda] [info] LAMBDA task done in 27.8741s [200, 571623 rows, 0 exceptions, reused, id: 8fc1b801-5bde-4f0e-82c6-ee7360c391d1] Cost so far: $0.614381
-[2022-06-14 08:40:20.974] [aws-lambda] [info] LAMBDA task done in 33.1434s [200, 653279 rows, 0 exceptions, reused, id: 0a987571-b492-41d7-a36b-c1e5d6bc1c1c] Cost so far: $0.619929
-[2022-06-14 08:40:21.236] [aws-lambda] [info] LAMBDA task done in 31.3999s [200, 544956 rows, 0 exceptions, reused, id: e0855cec-47db-4f59-8cb3-cf1fda76bc69] Cost so far: $0.625186
-[2022-06-14 08:40:21.453] [aws-lambda] [info] LAMBDA task done in 6.94609s [200, 323347 rows, 0 exceptions, reused, id: 325277fa-5566-4e24-b614-a3ccb259b418] Cost so far: $0.626368
-[2022-06-14 08:40:21.770] [aws-lambda] [info] LAMBDA task done in 12.4034s [200, 454878 rows, 0 exceptions, reused, id: 3c0ef1c8-7e42-4f41-8ac9-030057582663] Cost so far: $0.628456
-[2022-06-14 08:40:21.931] [aws-lambda] [info] LAMBDA task done in 34.132s [200, 629280 rows, 0 exceptions, reused, id: 703635de-995b-4841-8b7e-ce7c158d8315] Cost so far: $0.634169
-[2022-06-14 08:40:21.945] [aws-lambda] [info] LAMBDA task done in 7.35003s [200, 364367 rows, 0 exceptions, reused, id: 4356e9da-174e-4699-bd7c-1bf229277940] Cost so far: $0.635416
-[2022-06-14 08:40:22.171] [aws-lambda] [info] LAMBDA task done in 13.5147s [200, 423889 rows, 0 exceptions, reused, id: 7e37c5ca-f356-4b32-9e21-13cfaac8d443] Cost so far: $0.637696
-[2022-06-14 08:40:22.454] [aws-lambda] [info] LAMBDA task done in 34.6253s [200, 648560 rows, 0 exceptions, reused, id: 69c99c1c-b898-452f-bcd9-5d2d23bfeca2] Cost so far: $0.643492
-[2022-06-14 08:40:22.517] [aws-lambda] [info] LAMBDA task done in 14.6161s [200, 464946 rows, 0 exceptions, reused, id: 0790f1f5-e9c2-4baa-868a-2630488c50c5] Cost so far: $0.645952
-[2022-06-14 08:40:22.631] [aws-lambda] [info] LAMBDA task done in 19.8586s [200, 430602 rows, 0 exceptions, reused, id: 760948c0-468c-4009-b1a5-08374299114e] Cost so far: $0.649286
-[2022-06-14 08:40:22.705] [aws-lambda] [info] LAMBDA task done in 8.64591s [200, 352888 rows, 0 exceptions, reused, id: a2ff65fb-b10f-4525-9a9f-3328171b4191] Cost so far: $0.650751
-[2022-06-14 08:40:22.782] [aws-lambda] [info] LAMBDA task done in 16.3951s [200, 469489 rows, 0 exceptions, reused, id: e0f9a919-c28c-4c82-a65c-8cd00d447f94] Cost so far: $0.653508
-[2022-06-14 08:40:22.826] [aws-lambda] [info] LAMBDA task done in 8.50291s [200, 376715 rows, 0 exceptions, reused, id: e487577c-25cf-4b85-beac-ccaadd2c6d14] Cost so far: $0.654950
-[2022-06-14 08:40:23.022] [aws-lambda] [info] LAMBDA task done in 14.9355s [200, 467972 rows, 0 exceptions, reused, id: 67411737-14c1-4167-9a25-f6cfc0079fce] Cost so far: $0.657464
-[2022-06-14 08:40:23.029] [aws-lambda] [info] LAMBDA task done in 13.4113s [200, 450938 rows, 0 exceptions, reused, id: 39034f2b-f9bc-4324-8ef8-f017c839f15f] Cost so far: $0.659723
-[2022-06-14 08:40:23.200] [aws-lambda] [info] LAMBDA task done in 16.8043s [200, 462054 rows, 0 exceptions, reused, id: 23387010-a048-4e24-ac5b-15e2e457a8ed] Cost so far: $0.662549
-[2022-06-14 08:40:23.211] [aws-lambda] [info] LAMBDA task done in 13.3325s [200, 410517 rows, 0 exceptions, reused, id: aeb8bc9b-95e7-46d0-a257-710ff4dddcac] Cost so far: $0.664794
-[2022-06-14 08:40:23.313] [aws-lambda] [info] LAMBDA task done in 14.5382s [200, 461630 rows, 0 exceptions, reused, id: 8cc54a9b-f5bf-426a-95b8-b3fa2b212916] Cost so far: $0.667242
-[2022-06-14 08:40:23.384] [aws-lambda] [info] LAMBDA task done in 19.3302s [200, 483499 rows, 0 exceptions, reused, id: c4ac84cc-b611-46eb-b861-0e9af803be07] Cost so far: $0.670488
-[2022-06-14 08:40:23.587] [aws-lambda] [info] LAMBDA task done in 14.1586s [200, 472626 rows, 0 exceptions, reused, id: 0aa56934-772f-44dd-b817-af9d7f80b84b] Cost so far: $0.672872
-[2022-06-14 08:40:23.640] [aws-lambda] [info] LAMBDA task done in 20.3315s [200, 503758 rows, 0 exceptions, reused, id: 7e3e6ef4-7825-4ffc-b5bc-be12a09313c8] Cost so far: $0.676286
-[2022-06-14 08:40:23.894] [aws-lambda] [info] LAMBDA task done in 15.8602s [200, 486165 rows, 0 exceptions, reused, id: 70c3a2d5-b785-486f-8bd4-8afc9f7012a2] Cost so far: $0.678954
-[2022-06-14 08:40:23.932] [aws-lambda] [info] LAMBDA task done in 9.19427s [200, 361428 rows, 0 exceptions, reused, id: 786534d1-5773-40ae-b193-12b47fca80e2] Cost so far: $0.680510
-[2022-06-14 08:40:24.072] [aws-lambda] [info] LAMBDA task done in 16.7433s [200, 485151 rows, 0 exceptions, reused, id: 263464cd-8b4d-47fe-b33d-b64815571553] Cost so far: $0.683326
-[2022-06-14 08:40:24.237] [aws-lambda] [info] LAMBDA task done in 9.42834s [200, 332468 rows, 0 exceptions, reused, id: 7b77b32c-e6ba-4079-a0ad-dbcba8094538] Cost so far: $0.684918
-[2022-06-14 08:40:24.340] [aws-lambda] [info] LAMBDA task done in 9.8301s [200, 352106 rows, 0 exceptions, reused, id: 33975ef3-2883-4500-a65e-2ba5c9dfd0fb] Cost so far: $0.686581
-[2022-06-14 08:40:24.514] [aws-lambda] [info] LAMBDA task done in 13.864s [200, 454162 rows, 0 exceptions, reused, id: ad4a1f53-173c-4116-8794-42b202675d96] Cost so far: $0.688917
-[2022-06-14 08:40:24.746] [aws-lambda] [info] LAMBDA task done in 15.7648s [200, 479358 rows, 0 exceptions, reused, id: d5583da0-9e47-4e38-98f9-bae1d849b6b1] Cost so far: $0.691569
-[2022-06-14 08:40:24.792] [aws-lambda] [info] LAMBDA task done in 20.6334s [200, 499278 rows, 0 exceptions, reused, id: e2b95906-0803-4869-a567-08255af3e394] Cost so far: $0.695032
-[2022-06-14 08:40:25.145] [aws-lambda] [info] LAMBDA task done in 37.2694s [200, 616382 rows, 0 exceptions, reused, id: 7bdada65-212a-4746-945b-f6d9fa5fdddf] Cost so far: $0.701267
-[2022-06-14 08:40:25.226] [aws-lambda] [info] LAMBDA task done in 16.7749s [200, 445827 rows, 0 exceptions, reused, id: b26e6763-bb09-4907-80dc-315bb123d25f] Cost so far: $0.704089
-[2022-06-14 08:40:25.424] [aws-lambda] [info] LAMBDA task done in 18.496s [200, 429191 rows, 0 exceptions, reused, id: 83b4b79c-7867-4c11-a75d-ad092b0f00b2] Cost so far: $0.707196
-[2022-06-14 08:40:25.637] [aws-lambda] [info] LAMBDA task done in 15.2323s [200, 458727 rows, 0 exceptions, reused, id: 198eb581-095d-424a-b85f-78cb3d08ac43] Cost so far: $0.709759
-[2022-06-14 08:40:25.774] [aws-lambda] [info] LAMBDA task done in 19.3769s [200, 491011 rows, 0 exceptions, reused, id: aba450ec-a018-4122-a323-bddf691ee915] Cost so far: $0.713014
-[2022-06-14 08:40:25.835] [aws-lambda] [info] LAMBDA task done in 17.1956s [200, 479122 rows, 0 exceptions, reused, id: 6d058f4f-ae85-47db-88a3-eddaa1c265ae] Cost so far: $0.715904
-[2022-06-14 08:40:26.023] [aws-lambda] [info] LAMBDA task done in 20.4512s [200, 520880 rows, 0 exceptions, reused, id: 1857c678-d83b-4995-a679-3a00ef0abbc1] Cost so far: $0.719334
-[2022-06-14 08:40:26.258] [aws-lambda] [info] LAMBDA task done in 15.7214s [200, 479797 rows, 0 exceptions, reused, id: adfaee59-00d8-49dc-8ada-8fac7bf7d6d5] Cost so far: $0.721979
-[2022-06-14 08:40:26.286] [aws-lambda] [info] LAMBDA task done in 11.4119s [200, 444476 rows, 0 exceptions, reused, id: e3cf0d6e-434a-4efe-975f-125a9e1754de] Cost so far: $0.723905
-[2022-06-14 08:40:26.329] [aws-lambda] [info] LAMBDA task done in 19.2508s [200, 504312 rows, 0 exceptions, reused, id: d9649e7d-9ac0-4e5c-9f48-9a85797c7f3f] Cost so far: $0.727137
-[2022-06-14 08:40:26.594] [aws-lambda] [info] LAMBDA task done in 19.8865s [200, 469968 rows, 0 exceptions, reused, id: 7544f925-d2b1-4fc1-a9d6-56a8b824124a] Cost so far: $0.730475
-[2022-06-14 08:40:27.509] [aws-lambda] [info] LAMBDA task done in 20.8751s [200, 477183 rows, 0 exceptions, reused, id: 5d5f0938-2d76-4ab9-8eb5-699c59231e6a] Cost so far: $0.733980
-[2022-06-14 08:40:27.585] [aws-lambda] [info] LAMBDA task done in 17.5029s [200, 488597 rows, 0 exceptions, reused, id: 7c2d99e6-9abc-4410-a5b8-a0271594ca33] Cost so far: $0.736923
-[2022-06-14 08:40:27.666] [aws-lambda] [info] LAMBDA task done in 12.7312s [200, 450637 rows, 0 exceptions, reused, id: 4d15ff03-4b8d-4ce9-837e-0f7fb46ecdfe] Cost so far: $0.739070
-[2022-06-14 08:40:27.895] [aws-lambda] [info] LAMBDA task done in 21.7096s [200, 507491 rows, 0 exceptions, reused, id: cd4d48fc-5790-42ae-aa31-cd97fed6eb3d] Cost so far: $0.742712
-[2022-06-14 08:40:28.130] [aws-lambda] [info] LAMBDA task done in 20.7124s [200, 496993 rows, 0 exceptions, reused, id: 8f3c4428-f5e7-4a23-9dda-c84fa7735bf3] Cost so far: $0.746189
-[2022-06-14 08:40:28.303] [aws-lambda] [info] LAMBDA task done in 20.4284s [200, 510536 rows, 0 exceptions, reused, id: 1a30a89f-4f6e-415d-999d-69c7bf7130bb] Cost so far: $0.749618
-[2022-06-14 08:40:28.567] [aws-lambda] [info] LAMBDA task done in 19.4895s [200, 487637 rows, 0 exceptions, reused, id: 94bf0182-8926-4f20-b94f-0450cef8129d] Cost so far: $0.752892
-[2022-06-14 08:40:28.891] [aws-lambda] [info] LAMBDA task done in 15.1081s [200, 648229 rows, 0 exceptions, reused, id: 308ee2f4-1339-4113-93cf-e8520d52a9c1] Cost so far: $0.755434
-[2022-06-14 08:40:28.933] [aws-lambda] [info] LAMBDA task done in 20.7497s [200, 479230 rows, 0 exceptions, reused, id: 051aac63-91c8-4d93-96f7-d557c1eff092] Cost so far: $0.758917
-[2022-06-14 08:40:29.048] [aws-lambda] [info] LAMBDA task done in 19.2421s [200, 450017 rows, 0 exceptions, reused, id: d7267c7a-fa1f-46ac-adc6-0fc8d397102b] Cost so far: $0.762148
-[2022-06-14 08:40:29.099] [aws-lambda] [info] LAMBDA task done in 14.447s [200, 371357 rows, 0 exceptions, reused, id: d625824c-3507-4327-b3b3-1f8725892ee9] Cost so far: $0.764580
-[2022-06-14 08:40:29.189] [aws-lambda] [info] LAMBDA task done in 18.897s [200, 486483 rows, 0 exceptions, reused, id: 457f7075-af28-4287-a4fb-ad0573b9673e] Cost so far: $0.767754
-[2022-06-14 08:40:29.367] [aws-lambda] [info] LAMBDA task done in 18.5087s [200, 464205 rows, 0 exceptions, reused, id: e7910e1f-39c0-49d8-9a74-66193b653637] Cost so far: $0.770863
-[2022-06-14 08:40:29.499] [aws-lambda] [info] LAMBDA task done in 14.5531s [200, 495544 rows, 0 exceptions, reused, id: bdd6f4eb-66f1-4b89-b44a-71afdf51ac0a] Cost so far: $0.773313
-[2022-06-14 08:40:29.626] [aws-lambda] [info] LAMBDA task done in 22.0934s [200, 503897 rows, 0 exceptions, reused, id: bcddeb10-83ce-4a4e-b896-66b1bbc06a58] Cost so far: $0.777021
-[2022-06-14 08:40:30.003] [aws-lambda] [info] LAMBDA task done in 22.3437s [200, 520718 rows, 0 exceptions, reused, id: 1c1f8d75-df90-4fb5-89f3-0522cbc9d95d] Cost so far: $0.780768
-[2022-06-14 08:40:30.390] [aws-lambda] [info] LAMBDA task done in 20.242s [200, 468329 rows, 0 exceptions, reused, id: a82e7c25-fe57-46e5-9574-8eb3b4bb32cf] Cost so far: $0.784166
-[2022-06-14 08:40:30.467] [aws-lambda] [info] LAMBDA task done in 19.5602s [200, 520731 rows, 0 exceptions, reused, id: d74ba533-8557-45fc-895d-3e20668d7d56] Cost so far: $0.787451
-[2022-06-14 08:40:30.520] [aws-lambda] [info] LAMBDA task done in 21.3758s [200, 502457 rows, 0 exceptions, reused, id: 9eb468d9-a918-416e-b5ad-3ee48d0ec28c] Cost so far: $0.791038
-[2022-06-14 08:40:30.693] [aws-lambda] [info] LAMBDA task done in 21.3925s [200, 498347 rows, 0 exceptions, reused, id: 6c047365-77c6-4659-86f5-9bfbe65be116] Cost so far: $0.794627
-[2022-06-14 08:40:30.700] [aws-lambda] [info] LAMBDA task done in 25.8748s [200, 502617 rows, 0 exceptions, reused, id: 684474d5-1095-4d2e-aa8d-513e3190c94c] Cost so far: $0.798964
-[2022-06-14 08:40:30.855] [aws-lambda] [info] LAMBDA task done in 20.464s [200, 510451 rows, 0 exceptions, reused, id: 9dcd5d39-67d1-4cd9-b35b-9232bcafd528] Cost so far: $0.802400
-[2022-06-14 08:40:31.046] [aws-lambda] [info] LAMBDA task done in 21.2538s [200, 460949 rows, 0 exceptions, reused, id: 04fe6903-f174-48f0-abb4-8d1464f0274f] Cost so far: $0.805967
-[2022-06-14 08:40:31.126] [aws-lambda] [info] LAMBDA task done in 20.2172s [200, 570118 rows, 0 exceptions, reused, id: 49c8a727-7018-46c2-858a-b034b1c5949a] Cost so far: $0.809362
-[2022-06-14 08:40:31.262] [aws-lambda] [info] LAMBDA task done in 19.5224s [200, 585749 rows, 0 exceptions, reused, id: f433ecfb-78d2-42d5-bf63-ddc2437bae9d] Cost so far: $0.812641
-[2022-06-14 08:40:31.433] [aws-lambda] [info] LAMBDA task done in 21.0789s [200, 509070 rows, 0 exceptions, reused, id: 30f0543f-f6c4-4db5-9076-4506752d8407] Cost so far: $0.816179
-[2022-06-14 08:40:31.475] [aws-lambda] [info] LAMBDA task done in 17.6876s [200, 574268 rows, 0 exceptions, reused, id: 936366f7-c861-4b82-b41b-23fe8976254b] Cost so far: $0.819151
-[2022-06-14 08:40:31.666] [aws-lambda] [info] LAMBDA task done in 21.3359s [200, 494266 rows, 0 exceptions, reused, id: 80c15e7c-66d8-4aa0-8b0a-04e2c52a301e] Cost so far: $0.822732
-[2022-06-14 08:40:31.715] [aws-lambda] [info] LAMBDA task done in 18.4866s [200, 605979 rows, 0 exceptions, reused, id: e6397e9c-20ab-479e-a9ca-ea985d4a1e1d] Cost so far: $0.825838
-[2022-06-14 08:40:31.864] [aws-lambda] [info] LAMBDA task done in 18.2204s [200, 607346 rows, 0 exceptions, reused, id: 12b031c1-58fc-40e6-b140-10a93b5a3847] Cost so far: $0.828899
-[2022-06-14 08:40:31.906] [aws-lambda] [info] LAMBDA task done in 20.9749s [200, 611987 rows, 0 exceptions, reused, id: 351ba841-9bcd-45c0-9a81-80f716c4bc11] Cost so far: $0.832419
-[2022-06-14 08:40:32.452] [aws-lambda] [info] LAMBDA task done in 18.9114s [200, 602453 rows, 0 exceptions, reused, id: 41a19b20-ccba-429a-90f6-517fb7a5f26d] Cost so far: $0.835596
-[2022-06-14 08:40:32.680] [aws-lambda] [info] LAMBDA task done in 17.4477s [200, 538051 rows, 0 exceptions, reused, id: def263c6-cb80-4ade-a273-0c524292417d] Cost so far: $0.838528
-[2022-06-14 08:40:33.406] [aws-lambda] [info] LAMBDA task done in 17.5674s [200, 547559 rows, 0 exceptions, reused, id: 4455025a-5dbf-448a-ac28-39301da98377] Cost so far: $0.841481
-[2022-06-14 08:40:33.854] [aws-lambda] [info] LAMBDA task done in 22.0691s [200, 616101 rows, 0 exceptions, reused, id: 17d23b25-06d2-442a-83b9-9383a40b08c0] Cost so far: $0.845184
-[2022-06-14 08:40:33.936] [aws-lambda] [info] LAMBDA task done in 21.7974s [200, 583985 rows, 0 exceptions, reused, id: 519622e9-dc4b-4972-9875-14aabd554cd7] Cost so far: $0.848842
-[2022-06-14 08:40:34.052] [aws-lambda] [info] LAMBDA task done in 23.1143s [200, 596046 rows, 0 exceptions, reused, id: cf73af81-f176-4111-9d9f-88d6f171fd0d] Cost so far: $0.852718
-[2022-06-14 08:40:34.232] [aws-lambda] [info] LAMBDA task done in 22.3817s [200, 586178 rows, 0 exceptions, reused, id: bdec3f79-0519-41fb-a0e0-24e7be99ea4a] Cost so far: $0.856473
-[2022-06-14 08:40:34.247] [aws-lambda] [info] LAMBDA task done in 21.8471s [200, 632074 rows, 0 exceptions, reused, id: 34b6cde4-cfed-4e0e-af92-c479b765bd3a] Cost so far: $0.860139
-[2022-06-14 08:40:34.952] [aws-lambda] [info] LAMBDA task done in 22.3932s [200, 612023 rows, 0 exceptions, reused, id: 8d16f860-2a69-4ed2-a232-f171cde8fa8c] Cost so far: $0.863895
-[2022-06-14 08:40:35.590] [aws-lambda] [info] LAMBDA task done in 20.274s [200, 564788 rows, 0 exceptions, reused, id: 42703d2a-eaef-4c98-a324-b408cfcc027f] Cost so far: $0.867298
-[2022-06-14 08:40:35.777] [aws-lambda] [info] LAMBDA task done in 23.8003s [200, 593842 rows, 0 exceptions, reused, id: 3609f90a-a2ca-4158-8124-172c47217653] Cost so far: $0.871290
-[2022-06-14 08:40:36.397] [aws-lambda] [info] LAMBDA task done in 25.3844s [200, 616529 rows, 0 exceptions, reused, id: 473bbb6f-54a8-4a3e-9d4f-f06536fd5d15] Cost so far: $0.875544
-[2022-06-14 08:40:36.674] [aws-lambda] [info] LAMBDA task done in 24.2719s [200, 533175 rows, 0 exceptions, reused, id: b0a98d21-06b1-4eb6-9be3-b13f3093f264] Cost so far: $0.879616
-[2022-06-14 08:40:36.714] [aws-lambda] [info] LAMBDA task done in 23.3277s [200, 636014 rows, 0 exceptions, reused, id: 8908801e-f4f9-4c9a-8539-a31cc284b4f1] Cost so far: $0.883528
-[2022-06-14 08:40:37.812] [aws-lambda] [info] LAMBDA task done in 26.6342s [200, 626193 rows, 0 exceptions, reused, id: e15b1a40-449e-403b-929f-ce74f82da0b5] Cost so far: $0.887992
-[2022-06-14 08:40:38.733] [aws-lambda] [info] LAMBDA task done in 25.1525s [200, 625763 rows, 0 exceptions, reused, id: b135ee92-c9e9-4b74-8f72-77aad563bceb] Cost so far: $0.892208
-[2022-06-14 08:40:38.808] [aws-lambda] [info] LAMBDA task done in 26.2364s [200, 636390 rows, 0 exceptions, reused, id: e7d4a6a6-9eb0-4da4-9568-cb79f173c068] Cost so far: $0.896605
-[2022-06-14 08:40:39.795] [aws-lambda] [info] LAMBDA task done in 26.6416s [200, 658461 rows, 0 exceptions, reused, id: fcbbe6bc-5ff2-46a6-bd92-247a63c3d66f] Cost so far: $0.901070
-[2022-06-14 08:40:40.239] [aws-lambda] [info] LAMBDA task done in 25.0542s [200, 579179 rows, 0 exceptions, reused, id: 33f93520-5e83-47ce-958b-8840eea392a7] Cost so far: $0.905270
-[2022-06-14 08:40:40.697] [aws-lambda] [info] LAMBDA task done in 29.3043s [200, 645299 rows, 0 exceptions, reused, id: d6f73105-76a3-44b5-adda-b1c7746fb72c] Cost so far: $0.910178
-[2022-06-14 08:40:40.740] [aws-lambda] [info] LAMBDA task done in 25.615s [200, 546124 rows, 0 exceptions, reused, id: f6685e3e-6574-48ea-8730-2013b3eb1fd4] Cost so far: $0.914471
-[2022-06-14 08:40:41.404] [aws-lambda] [info] LAMBDA task done in 29.7514s [200, 644673 rows, 0 exceptions, reused, id: 0fcfe256-6542-4e32-bcc1-0ce42cef5a2b] Cost so far: $0.919454
-[2022-06-14 08:40:41.707] [aws-lambda] [info] LAMBDA task done in 28.5593s [200, 659029 rows, 0 exceptions, reused, id: 4d29497d-0d11-4647-aef1-2ca0a5a70ba4] Cost so far: $0.924239
-[2022-06-14 08:40:43.196] [aws-lambda] [info] LAMBDA task done in 28.0291s [200, 583258 rows, 0 exceptions, reused, id: 683b9707-3992-4fd8-874a-282159b38986] Cost so far: $0.928935
-[2022-06-14 08:40:43.903] [aws-lambda] [info] LAMBDA task done in 31.2112s [200, 636691 rows, 0 exceptions, reused, id: 17efc36b-8fb1-4d4b-9b04-c56c8fe6b946] Cost so far: $0.934161
-[2022-06-14 08:40:43.969] [aws-lambda] [info] LAMBDA Stage: 202449065 rows, 238590 exceptions
-[2022-06-14 08:40:43.969] [aws-lambda] [info] LAMBDA paths rows took: normal: 448620 general: 179364496 interpreter: 22635949 unresolved: 238590
-[2022-06-14 08:40:43.969] [aws-lambda] [info] LAMBDA statistics: 
-Lambda #containers used: 129 reused: 409 newly initialized: 1
+[2022-06-15 14:23:40.162] [codegen] [info] creating slow path based on
+	normalcase:  (Option[i64],i64,i64,Option[str],i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,Option[f64],null,null,null,null,null)
+	generalcase: (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])
+[2022-06-15 14:23:40.440] [aws-lambda] [info] client-side LLVM IR optimization of took 0.184118s
+[2022-06-15 14:23:40.441] [aws-lambda] [info] Setting buffer size for each thread to 125.00 MB
+[2022-06-15 14:23:40.504] [aws-lambda] [info] Created 410 LAMBDA requests.
+[2022-06-15 14:23:40.504] [aws-lambda] [info] Invoking 410 requests ...
+[2022-06-15 14:23:44.283] [aws-lambda] [info] LAMBDA requesting took 3.841502s
+[2022-06-15 14:23:45.204] [aws-lambda] [info] LAMBDA task done in 4.15427s [200, 396926 rows, 0 exceptions, reused, id: c53d00fc-2828-4458-b7d3-ee00ef39a619] Cost so far: $0.0008
+[2022-06-15 14:23:45.363] [aws-lambda] [info] LAMBDA task done in 4.50747s [200, 412579 rows, 0 exceptions, reused, id: 4251b663-25e2-47c1-a7a4-3e2305d77ada] Cost so far: $0.0016
+[2022-06-15 14:23:45.375] [aws-lambda] [info] LAMBDA task done in 4.38047s [200, 395176 rows, 0 exceptions, reused, id: 8f6f3835-0c12-4b09-84bc-a0fb9b48ca8c] Cost so far: $0.0023
+[2022-06-15 14:23:45.380] [aws-lambda] [info] LAMBDA task done in 4.34443s [200, 405604 rows, 0 exceptions, reused, id: 33d09074-25a4-4c49-aec6-c60e9b4d61bb] Cost so far: $0.0031
+[2022-06-15 14:23:45.382] [aws-lambda] [info] LAMBDA task done in 4.55174s [200, 440403 rows, 0 exceptions, reused, id: 086cc9a6-841b-412a-882f-7f422de38778] Cost so far: $0.0039
+[2022-06-15 14:23:45.391] [aws-lambda] [info] LAMBDA task done in 4.54081s [200, 422803 rows, 0 exceptions, reused, id: bdcf8aef-7a7c-46f5-b482-fcf2add2bd67] Cost so far: $0.0046
+[2022-06-15 14:23:45.417] [aws-lambda] [info] LAMBDA task done in 4.57467s [200, 436950 rows, 0 exceptions, reused, id: 2d8a4de1-8acb-4468-99a6-fc567a063972] Cost so far: $0.0054
+[2022-06-15 14:23:45.430] [aws-lambda] [info] LAMBDA task done in 4.08463s [200, 419545 rows, 0 exceptions, reused, id: c451e717-d7bf-406d-b055-1b339b0e3afe] Cost so far: $0.0061
+[2022-06-15 14:23:45.461] [aws-lambda] [info] LAMBDA task done in 4.60525s [200, 445080 rows, 0 exceptions, reused, id: ef0b3c20-4031-4ddf-8634-f68b8a316204] Cost so far: $0.0069
+[2022-06-15 14:23:45.463] [aws-lambda] [info] LAMBDA task done in 4.50941s [200, 424075 rows, 0 exceptions, reused, id: 8d48c190-d025-4988-ae7b-d9f15bcf5086] Cost so far: $0.0077
+[2022-06-15 14:23:45.531] [aws-lambda] [info] LAMBDA task done in 4.48205s [200, 415068 rows, 0 exceptions, reused, id: 5b940c15-5480-48d7-bf7a-b309776e88ed] Cost so far: $0.0085
+[2022-06-15 14:23:45.548] [aws-lambda] [info] LAMBDA task done in 4.51399s [200, 417166 rows, 0 exceptions, reused, id: 64950af3-374a-4c22-a4de-20f1b07a5fe5] Cost so far: $0.0092
+[2022-06-15 14:23:45.672] [aws-lambda] [info] LAMBDA task done in 4.36707s [200, 417757 rows, 0 exceptions, reused, id: 10ee6973-9016-483a-ab7b-515a61de87d9] Cost so far: $0.0100
+[2022-06-15 14:23:45.676] [aws-lambda] [info] LAMBDA task done in 4.61966s [200, 426085 rows, 0 exceptions, reused, id: d20e8cef-3251-4f23-814c-cf944d8f8329] Cost so far: $0.010788
+[2022-06-15 14:23:45.692] [aws-lambda] [info] LAMBDA task done in 4.66334s [200, 406293 rows, 0 exceptions, reused, id: 694a11b9-c83e-49aa-944b-a6950bd0ae64] Cost so far: $0.011589
+[2022-06-15 14:23:45.704] [aws-lambda] [info] LAMBDA task done in 4.8166s [200, 427325 rows, 0 exceptions, reused, id: 64bb6773-2c73-4d11-8030-262a2bd7f006] Cost so far: $0.012416
+[2022-06-15 14:23:45.704] [aws-lambda] [info] LAMBDA task done in 4.52072s [200, 455047 rows, 0 exceptions, reused, id: f452af93-715c-41a0-9ec8-d6d1ef182db8] Cost so far: $0.013190
+[2022-06-15 14:23:45.716] [aws-lambda] [info] LAMBDA task done in 4.72387s [200, 435181 rows, 0 exceptions, reused, id: e071bfd4-1f73-4076-a309-4bb3030a3bb4] Cost so far: $0.014002
+[2022-06-15 14:23:45.718] [aws-lambda] [info] LAMBDA task done in 4.65087s [200, 442700 rows, 0 exceptions, reused, id: f5304e51-1836-42b7-a802-a974bf9f7130] Cost so far: $0.014802
+[2022-06-15 14:23:45.726] [aws-lambda] [info] LAMBDA task done in 4.76756s [200, 420861 rows, 0 exceptions, reused, id: f45fc30e-5242-4ec1-b58c-ba04dd6255ef] Cost so far: $0.015620
+[2022-06-15 14:23:45.742] [aws-lambda] [info] LAMBDA task done in 4.81467s [200, 431299 rows, 0 exceptions, reused, id: cfeb8def-5a70-46a5-aee6-fbbb957e4a36] Cost so far: $0.016447
+[2022-06-15 14:23:45.778] [aws-lambda] [info] LAMBDA task done in 4.24489s [200, 426169 rows, 0 exceptions, reused, id: cf3b75ae-5c35-4e0b-96d8-df392e35814e] Cost so far: $0.017175
+[2022-06-15 14:23:45.792] [aws-lambda] [info] LAMBDA task done in 4.73389s [200, 429490 rows, 0 exceptions, reused, id: 0e855442-edab-4688-a337-b3986f8012a3] Cost so far: $0.017988
+[2022-06-15 14:23:45.805] [aws-lambda] [info] LAMBDA task done in 4.49742s [200, 441583 rows, 0 exceptions, reused, id: c9d9ff52-6a46-4ab4-a3f0-65266b2d1a27] Cost so far: $0.018762
+[2022-06-15 14:23:45.809] [aws-lambda] [info] LAMBDA task done in 4.82562s [200, 438454 rows, 0 exceptions, reused, id: 83202858-a0f6-4bfb-afdf-30d0060f03c5] Cost so far: $0.019591
+[2022-06-15 14:23:45.810] [aws-lambda] [info] LAMBDA task done in 4.42402s [200, 396469 rows, 0 exceptions, reused, id: 1920c173-5cd3-4401-b6c0-7fe5bca223d3] Cost so far: $0.020352
+[2022-06-15 14:23:45.812] [aws-lambda] [info] LAMBDA task done in 4.70685s [200, 437134 rows, 0 exceptions, reused, id: 66fbd48b-59ae-476a-8ae0-6c6a9c35ea52] Cost so far: $0.021161
+[2022-06-15 14:23:45.824] [aws-lambda] [info] LAMBDA task done in 4.62617s [200, 435638 rows, 0 exceptions, reused, id: afcf8c3f-89aa-406b-9357-27f9cb4ab51e] Cost so far: $0.021957
+[2022-06-15 14:23:45.852] [aws-lambda] [info] LAMBDA task done in 4.91038s [200, 441118 rows, 0 exceptions, reused, id: f93f1f07-d0b7-4d35-8e22-cb42d0b1c6da] Cost so far: $0.022800
+[2022-06-15 14:23:45.856] [aws-lambda] [info] LAMBDA task done in 4.63692s [200, 428781 rows, 0 exceptions, reused, id: 5b3fa54e-ac59-4161-b594-c5a55830e6fe] Cost so far: $0.023599
+[2022-06-15 14:23:45.919] [aws-lambda] [info] LAMBDA task done in 4.90017s [200, 416160 rows, 0 exceptions, reused, id: de26e597-b31c-4308-92ed-96b6626578a7] Cost so far: $0.024440
+[2022-06-15 14:23:45.951] [aws-lambda] [info] LAMBDA task done in 4.71986s [200, 429314 rows, 0 exceptions, reused, id: e0ba2682-e0af-42e7-b8bb-1937a306bf15] Cost so far: $0.025250
+[2022-06-15 14:23:45.957] [aws-lambda] [info] LAMBDA task done in 4.57277s [200, 425458 rows, 0 exceptions, reused, id: 247bf289-a94b-4fea-9131-f706189fd6f0] Cost so far: $0.026036
+[2022-06-15 14:23:45.965] [aws-lambda] [info] LAMBDA task done in 4.73751s [200, 387120 rows, 0 exceptions, reused, id: ba0468e8-0a46-4667-91be-41ec2efadd02] Cost so far: $0.026850
+[2022-06-15 14:23:45.974] [aws-lambda] [info] LAMBDA task done in 4.7413s [200, 427264 rows, 0 exceptions, reused, id: 8039d75b-6b47-40bb-a69f-28f7aaf55442] Cost so far: $0.027663
+[2022-06-15 14:23:45.984] [aws-lambda] [info] LAMBDA task done in 4.58177s [200, 426851 rows, 0 exceptions, reused, id: aa4f79f1-33ee-4178-a38e-2e99734797d9] Cost so far: $0.028451
+[2022-06-15 14:23:45.987] [aws-lambda] [info] LAMBDA task done in 5.01806s [200, 446769 rows, 0 exceptions, reused, id: 4fb501c9-f47e-4967-b071-9140dd55aa19] Cost so far: $0.029313
+[2022-06-15 14:23:45.989] [aws-lambda] [info] LAMBDA task done in 5.22385s [200, 448620 rows, 0 exceptions, reused, id: f21485a4-a443-437f-ade4-ad8d3e9b8478] Cost so far: $0.030209
+[2022-06-15 14:23:46.005] [aws-lambda] [info] LAMBDA task done in 4.6349s [200, 402937 rows, 0 exceptions, reused, id: e30689f4-e71e-42d6-a70e-73162b33f32c] Cost so far: $0.031006
+[2022-06-15 14:23:46.017] [aws-lambda] [info] LAMBDA task done in 4.53418s [200, 422574 rows, 0 exceptions, reused, id: 754e0427-b8b0-4d94-8304-d49c751a6369] Cost so far: $0.031785
+[2022-06-15 14:23:46.021] [aws-lambda] [info] LAMBDA task done in 4.89377s [200, 447371 rows, 0 exceptions, reused, id: a8f15049-5f69-4ee2-a667-82f8b63b26f4] Cost so far: $0.032626
+[2022-06-15 14:23:46.024] [aws-lambda] [info] LAMBDA task done in 4.6193s [200, 425558 rows, 0 exceptions, reused, id: b09920a6-7715-4fab-9525-e17aa8579569] Cost so far: $0.033421
+[2022-06-15 14:23:46.046] [aws-lambda] [info] LAMBDA task done in 4.43889s [200, 430185 rows, 0 exceptions, reused, id: fd9a7080-bfc3-4f95-9fa5-baf176ebb189] Cost so far: $0.034185
+[2022-06-15 14:23:46.051] [aws-lambda] [info] LAMBDA task done in 4.25864s [200, 420995 rows, 0 exceptions, reused, id: 22939568-28db-4e54-ae59-36382022e725] Cost so far: $0.034915
+[2022-06-15 14:23:46.058] [aws-lambda] [info] LAMBDA task done in 4.80188s [200, 422196 rows, 0 exceptions, reused, id: 28215ecc-4d96-41e3-9530-e468521d0758] Cost so far: $0.035739
+[2022-06-15 14:23:46.069] [aws-lambda] [info] LAMBDA task done in 4.60973s [200, 442131 rows, 0 exceptions, reused, id: bd9c3de4-259e-4837-9281-56ac0dcc7abd] Cost so far: $0.036531
+[2022-06-15 14:23:46.089] [aws-lambda] [info] LAMBDA task done in 4.98013s [200, 433420 rows, 0 exceptions, reused, id: 54fc6567-bea3-418a-af54-cda772eda42c] Cost so far: $0.037385
+[2022-06-15 14:23:46.089] [aws-lambda] [info] LAMBDA task done in 5.10776s [200, 440022 rows, 0 exceptions, reused, id: 278aea3e-2698-4e7d-84e4-9357d76d3578] Cost so far: $0.038261
+[2022-06-15 14:23:46.113] [aws-lambda] [info] LAMBDA task done in 4.84398s [200, 430116 rows, 0 exceptions, reused, id: 592f83c6-200c-4280-a93c-76d22a7bdc4f] Cost so far: $0.039093
+[2022-06-15 14:23:46.136] [aws-lambda] [info] LAMBDA task done in 4.56728s [200, 422755 rows, 0 exceptions, reused, id: 21da4462-7863-44b9-a3e7-92502117b2cf] Cost so far: $0.039882
+[2022-06-15 14:23:46.144] [aws-lambda] [info] LAMBDA task done in 4.80723s [200, 424589 rows, 0 exceptions, reused, id: be7ce453-2322-44ac-abb4-cc2d7754102a] Cost so far: $0.040707
+[2022-06-15 14:23:46.155] [aws-lambda] [info] LAMBDA task done in 5.10319s [200, 417821 rows, 0 exceptions, reused, id: d09c11b6-64dc-4354-b383-de4308aea83d] Cost so far: $0.041581
+[2022-06-15 14:23:46.163] [aws-lambda] [info] LAMBDA task done in 4.87369s [200, 441122 rows, 0 exceptions, reused, id: 1bc39984-7672-45b7-a6a6-eb1ca7b0b70b] Cost so far: $0.042418
+[2022-06-15 14:23:46.181] [aws-lambda] [info] LAMBDA task done in 4.5964s [200, 424599 rows, 0 exceptions, reused, id: 548137e5-ae59-4e98-bde8-49aa5fe3c221] Cost so far: $0.043209
+[2022-06-15 14:23:46.216] [aws-lambda] [info] LAMBDA task done in 4.88798s [200, 433382 rows, 0 exceptions, reused, id: 8c9cd155-30e1-46fb-a72f-64570b10a3f8] Cost so far: $0.044047
+[2022-06-15 14:23:46.216] [aws-lambda] [info] LAMBDA task done in 4.60416s [200, 416357 rows, 0 exceptions, reused, id: 90f79891-1d95-49af-b23a-77a8d7b1c4e2] Cost so far: $0.044836
+[2022-06-15 14:23:46.239] [aws-lambda] [info] LAMBDA task done in 5.02403s [200, 436352 rows, 0 exceptions, reused, id: 1ce86b68-557b-4481-afd4-22ab1d8cb3cc] Cost so far: $0.045698
+[2022-06-15 14:23:46.245] [aws-lambda] [info] LAMBDA task done in 5.06797s [200, 457886 rows, 0 exceptions, reused, id: 1b5df836-acff-46cf-8ff6-79e60e360b0e] Cost so far: $0.046566
+[2022-06-15 14:23:46.250] [aws-lambda] [info] LAMBDA task done in 4.50332s [200, 386954 rows, 0 exceptions, reused, id: ace91ff7-9046-45ca-bde1-fa18de865ff4] Cost so far: $0.047341
+[2022-06-15 14:23:46.267] [aws-lambda] [info] LAMBDA task done in 4.82795s [200, 440210 rows, 0 exceptions, reused, id: f9eb4a11-670f-4806-a5cf-304b4249524b] Cost so far: $0.048169
+[2022-06-15 14:23:46.284] [aws-lambda] [info] LAMBDA task done in 4.71502s [200, 420051 rows, 0 exceptions, reused, id: f3db9568-10f1-46fe-b8d8-4c639ac53e77] Cost so far: $0.048978
+[2022-06-15 14:23:46.290] [aws-lambda] [info] LAMBDA task done in 4.43869s [200, 451086 rows, 0 exceptions, reused, id: 99a72836-34a4-4cf4-a67c-54795f912c1b] Cost so far: $0.049738
+[2022-06-15 14:23:46.297] [aws-lambda] [info] LAMBDA task done in 4.74243s [200, 416271 rows, 0 exceptions, reused, id: 4bd28d80-07df-47ca-8672-1c6c82bad778] Cost so far: $0.050552
+[2022-06-15 14:23:46.298] [aws-lambda] [info] LAMBDA task done in 4.78092s [200, 435690 rows, 0 exceptions, reused, id: 24caee53-0976-4b11-bcf5-a550af1aecd5] Cost so far: $0.051374
+[2022-06-15 14:23:46.308] [aws-lambda] [info] LAMBDA task done in 4.59681s [200, 407900 rows, 0 exceptions, reused, id: bbe53aaf-abb3-46fa-8db0-a940217bad89] Cost so far: $0.052164
+[2022-06-15 14:23:46.310] [aws-lambda] [info] LAMBDA task done in 4.77139s [200, 409266 rows, 0 exceptions, reused, id: fc511bb3-f2d5-4ac9-ad91-49b28b4b771e] Cost so far: $0.052983
+[2022-06-15 14:23:46.340] [aws-lambda] [info] LAMBDA task done in 4.77187s [200, 383950 rows, 0 exceptions, reused, id: c11341e3-459e-47dd-a165-93605c1570da] Cost so far: $0.053802
+[2022-06-15 14:23:46.344] [aws-lambda] [info] LAMBDA task done in 4.71131s [200, 441745 rows, 0 exceptions, reused, id: 18eb629a-01dd-4911-b856-b3a6455b9eb0] Cost so far: $0.054610
+[2022-06-15 14:23:46.358] [aws-lambda] [info] LAMBDA task done in 5.44791s [200, 435916 rows, 0 exceptions, reused, id: a519f686-b8a8-4642-92e2-bcb8714f94e6] Cost so far: $0.055543
+[2022-06-15 14:23:46.363] [aws-lambda] [info] LAMBDA task done in 5.28126s [200, 444320 rows, 0 exceptions, reused, id: eacf6ea0-0233-42c1-916a-178ccb8e8d2b] Cost so far: $0.056448
+[2022-06-15 14:23:46.409] [aws-lambda] [info] LAMBDA task done in 4.9748s [200, 425510 rows, 0 exceptions, reused, id: 99f7ea56-6907-4287-bccd-279d1dda7e3e] Cost so far: $0.057300
+[2022-06-15 14:23:46.411] [aws-lambda] [info] LAMBDA task done in 4.46342s [200, 464863 rows, 70 exceptions, reused, id: e5e2bad5-6888-4379-b89b-184b7a5d07a9] Cost so far: $0.058065
+[2022-06-15 14:23:46.426] [aws-lambda] [info] LAMBDA task done in 4.69973s [200, 425234 rows, 0 exceptions, reused, id: a5c0cb7b-b0ec-4e9e-994c-c819102bad27] Cost so far: $0.058872
+[2022-06-15 14:23:46.433] [aws-lambda] [info] LAMBDA task done in 5.22863s [200, 455057 rows, 0 exceptions, reused, id: ff48936b-c715-4f1f-a177-308c977db3f1] Cost so far: $0.059767
+[2022-06-15 14:23:46.503] [aws-lambda] [info] LAMBDA task done in 4.67076s [200, 426490 rows, 0 exceptions, reused, id: 18c09799-ffaa-4d5f-9c3e-671f86b872ea] Cost so far: $0.060570
+[2022-06-15 14:23:46.513] [aws-lambda] [info] LAMBDA task done in 4.74309s [200, 435516 rows, 0 exceptions, reused, id: c8e008f5-401a-491e-8713-b6f243b95208] Cost so far: $0.061384
+[2022-06-15 14:23:46.523] [aws-lambda] [info] LAMBDA task done in 4.80935s [200, 423861 rows, 0 exceptions, reused, id: 425ec353-9af6-4d15-8de0-d7b38f9a9689] Cost so far: $0.062209
+[2022-06-15 14:23:46.531] [aws-lambda] [info] LAMBDA task done in 4.92285s [200, 436269 rows, 0 exceptions, reused, id: 235727a9-9986-46e8-a143-4a563aecca04] Cost so far: $0.063055
+[2022-06-15 14:23:46.589] [aws-lambda] [info] LAMBDA task done in 5.4377s [200, 437395 rows, 0 exceptions, reused, id: a42aa36a-4e89-44b5-93be-108ff8ac93ec] Cost so far: $0.063986
+[2022-06-15 14:23:46.613] [aws-lambda] [info] LAMBDA task done in 4.71574s [200, 430861 rows, 0 exceptions, reused, id: 699158ef-ea99-4c05-a3e7-8ffe267dc823] Cost so far: $0.064796
+[2022-06-15 14:23:46.655] [aws-lambda] [info] LAMBDA task done in 4.99482s [200, 428476 rows, 0 exceptions, reused, id: eecbab3b-df2b-467e-81fc-9a81f3ef104d] Cost so far: $0.065653
+[2022-06-15 14:23:46.673] [aws-lambda] [info] LAMBDA task done in 4.82212s [200, 436432 rows, 0 exceptions, reused, id: ef8b4407-bfc1-44c5-821f-b5bffb173ee6] Cost so far: $0.066480
+[2022-06-15 14:23:46.679] [aws-lambda] [info] LAMBDA task done in 4.76337s [200, 449369 rows, 0 exceptions, reused, id: 53ce57f7-1485-4a94-9365-77406aac8833] Cost so far: $0.067298
+[2022-06-15 14:23:46.733] [aws-lambda] [info] LAMBDA task done in 4.67161s [200, 445692 rows, 11731 exceptions, reused, id: 6263dc35-8355-4d4b-86f6-4ae492280063] Cost so far: $0.068097
+[2022-06-15 14:23:46.807] [aws-lambda] [info] LAMBDA task done in 4.83919s [200, 418287 rows, 25 exceptions, reused, id: 34d957a7-b96d-4652-a2f9-5ad211a467d4] Cost so far: $0.068924
+[2022-06-15 14:23:46.807] [aws-lambda] [info] LAMBDA task done in 4.91477s [200, 428227 rows, 0 exceptions, reused, id: fc0e42d2-59d7-47ac-ad38-cee48c0ec801] Cost so far: $0.069767
+[2022-06-15 14:23:46.940] [aws-lambda] [info] LAMBDA task done in 5.11037s [200, 443736 rows, 0 exceptions, reused, id: d7a04356-1f0a-4d02-b6bf-96226c105ade] Cost so far: $0.070644
+[2022-06-15 14:23:46.943] [aws-lambda] [info] LAMBDA task done in 4.802s [200, 420012 rows, 253 exceptions, reused, id: e87af699-62b5-40a0-aff8-65eb64154b37] Cost so far: $0.071468
+[2022-06-15 14:23:46.944] [aws-lambda] [info] LAMBDA task done in 4.8606s [200, 439420 rows, 3 exceptions, reused, id: 609ab1e2-9c37-4511-84f2-c593d496e75b] Cost so far: $0.072303
+[2022-06-15 14:23:46.969] [aws-lambda] [info] LAMBDA task done in 5.99958s [200, 441670 rows, 0 exceptions, reused, id: bd01732c-eeb9-4e61-8970-369ed841f5d1] Cost so far: $0.073327
+[2022-06-15 14:23:46.969] [aws-lambda] [info] LAMBDA task done in 4.91029s [200, 448292 rows, 49 exceptions, reused, id: a9850b65-5aa0-4451-b9c0-363fa23de2ce] Cost so far: $0.074169
+[2022-06-15 14:23:47.026] [aws-lambda] [info] LAMBDA task done in 4.87722s [200, 429772 rows, 2 exceptions, reused, id: c9335253-3e26-49ec-8cc9-c5170ce70426] Cost so far: $0.075006
+[2022-06-15 14:23:47.108] [aws-lambda] [info] LAMBDA task done in 5.0031s [200, 416893 rows, 10198 exceptions, reused, id: 73f89107-adf5-4967-ad54-5460b7807815] Cost so far: $0.075864
+[2022-06-15 14:23:47.125] [aws-lambda] [info] LAMBDA task done in 5.04149s [200, 449842 rows, 14 exceptions, reused, id: 1a8b3b44-3eae-4e9e-9474-250c2d7c852e] Cost so far: $0.076729
+[2022-06-15 14:23:47.136] [aws-lambda] [info] LAMBDA task done in 5.17965s [200, 446521 rows, 0 exceptions, reused, id: b50b8b36-243d-46ef-a509-61d2bcc10613] Cost so far: $0.077616
+[2022-06-15 14:23:47.152] [aws-lambda] [info] LAMBDA task done in 4.74822s [200, 437293 rows, 1059 exceptions, reused, id: e5f64c3e-786c-4a96-ac2e-7e273495c169] Cost so far: $0.078432
+[2022-06-15 14:23:47.154] [aws-lambda] [info] LAMBDA task done in 4.99024s [200, 449540 rows, 29 exceptions, reused, id: 62cf5118-c4ab-4d88-9f96-a6eaf61714ed] Cost so far: $0.079288
+[2022-06-15 14:23:47.165] [aws-lambda] [info] LAMBDA task done in 5.05052s [200, 423401 rows, 18287 exceptions, reused, id: fa7eb3a8-ba71-4403-9ca8-918dcba20837] Cost so far: $0.080154
+[2022-06-15 14:23:47.174] [aws-lambda] [info] LAMBDA task done in 5.20704s [200, 454636 rows, 6867 exceptions, reused, id: 280051c0-3aa3-45f0-b574-b85170f0e423] Cost so far: $0.081042
+[2022-06-15 14:23:47.198] [aws-lambda] [info] LAMBDA task done in 4.95927s [200, 443284 rows, 27 exceptions, reused, id: c0162bf3-1a74-47a3-b973-5dff4218d176] Cost so far: $0.081893
+[2022-06-15 14:23:47.284] [aws-lambda] [info] LAMBDA task done in 5.26443s [200, 441056 rows, 18 exceptions, reused, id: d539b19e-f4fa-45a9-85e5-b002b819f0ed] Cost so far: $0.082795
+[2022-06-15 14:23:47.287] [aws-lambda] [info] LAMBDA task done in 5.03698s [200, 458369 rows, 7 exceptions, reused, id: 164c02b0-154c-4470-92a9-c1d8e86d81b2] Cost so far: $0.083659
+[2022-06-15 14:23:47.290] [aws-lambda] [info] LAMBDA task done in 5.06017s [200, 448916 rows, 7 exceptions, reused, id: 522866a0-2443-4977-aacd-2a0116ba0091] Cost so far: $0.084526
+[2022-06-15 14:23:47.307] [aws-lambda] [info] LAMBDA task done in 4.67278s [200, 412076 rows, 756 exceptions, reused, id: c323f770-05c4-4c22-b2cc-8f81589e1ff7] Cost so far: $0.085330
+[2022-06-15 14:23:47.422] [aws-lambda] [info] LAMBDA task done in 5.34137s [200, 448017 rows, 0 exceptions, reused, id: ce7cac14-ef0a-48ac-bbd0-a90b74ad1ff7] Cost so far: $0.086243
+[2022-06-15 14:23:47.435] [aws-lambda] [info] LAMBDA task done in 4.7565s [200, 442637 rows, 7 exceptions, reused, id: ad439836-e1b6-4a73-b0da-2c1bcfc3d266] Cost so far: $0.087060
+[2022-06-15 14:23:47.439] [aws-lambda] [info] LAMBDA task done in 4.9548s [200, 449476 rows, 1261 exceptions, reused, id: a63c60a7-135e-4f17-81d9-b70aae5f4d19] Cost so far: $0.087909
+[2022-06-15 14:23:47.461] [aws-lambda] [info] LAMBDA task done in 4.85345s [200, 434884 rows, 17117 exceptions, reused, id: 194fe637-2b69-4804-8721-63168d2b2315] Cost so far: $0.088742
+[2022-06-15 14:23:47.486] [aws-lambda] [info] LAMBDA task done in 5.34922s [200, 421099 rows, 26125 exceptions, reused, id: 1e831548-9f1f-4009-b8ee-9182a3c67aae] Cost so far: $0.089658
+[2022-06-15 14:23:47.524] [aws-lambda] [info] LAMBDA task done in 4.87799s [200, 459690 rows, 13 exceptions, reused, id: 98afd042-c858-4812-b306-f4bf15180b54] Cost so far: $0.090494
+[2022-06-15 14:23:47.530] [aws-lambda] [info] LAMBDA task done in 4.94178s [200, 430210 rows, 20694 exceptions, reused, id: 252f52b5-d6b6-495d-87a9-aa7dc7cc32f1] Cost so far: $0.091342
+[2022-06-15 14:23:47.533] [aws-lambda] [info] LAMBDA task done in 5.09797s [200, 435665 rows, 23458 exceptions, reused, id: 36417287-d2ac-43da-b193-8b7b78aa557c] Cost so far: $0.092215
+[2022-06-15 14:23:47.564] [aws-lambda] [info] LAMBDA task done in 5.01551s [200, 460981 rows, 5 exceptions, reused, id: f1cb9fe2-fe35-4608-86b0-fecdfb9d90ab] Cost so far: $0.093076
+[2022-06-15 14:23:47.594] [aws-lambda] [info] LAMBDA task done in 5.12296s [200, 456567 rows, 10 exceptions, reused, id: f6d12dbd-c9c3-4c8a-a754-22a52695f298] Cost so far: $0.093956
+[2022-06-15 14:23:47.603] [aws-lambda] [info] LAMBDA task done in 5.06559s [200, 457358 rows, 3 exceptions, reused, id: cce84d19-3542-4372-8c6d-f916a2611ad5] Cost so far: $0.094825
+[2022-06-15 14:23:47.612] [aws-lambda] [info] LAMBDA task done in 5.26514s [200, 462294 rows, 0 exceptions, reused, id: 303b472a-312a-422c-81e1-57708216cf09] Cost so far: $0.095728
+[2022-06-15 14:23:47.620] [aws-lambda] [info] LAMBDA task done in 5.07667s [200, 444429 rows, 2 exceptions, reused, id: 1c0548e7-3163-425e-b421-81727a1b27af] Cost so far: $0.096599
+[2022-06-15 14:23:47.640] [aws-lambda] [info] LAMBDA task done in 5.01548s [200, 432708 rows, 17 exceptions, reused, id: 2c7d1482-f59b-4591-b681-decefdfcc3a8] Cost so far: $0.097459
+[2022-06-15 14:23:47.658] [aws-lambda] [info] LAMBDA task done in 5.20851s [200, 415650 rows, 6 exceptions, reused, id: 3105d03a-64eb-4952-8138-89f1c0fcb0ff] Cost so far: $0.098351
+[2022-06-15 14:23:47.753] [aws-lambda] [info] LAMBDA task done in 5.22869s [200, 466605 rows, 3 exceptions, reused, id: 3c8570c4-ad8d-4a96-b7b9-a34095456e72] Cost so far: $0.099246
+[2022-06-15 14:23:47.824] [aws-lambda] [info] LAMBDA task done in 5.41172s [200, 443965 rows, 12032 exceptions, reused, id: 93add07a-a505-4ba4-9816-ccd438225343] Cost so far: $0.100171
+[2022-06-15 14:23:47.833] [aws-lambda] [info] LAMBDA task done in 5.14018s [200, 449287 rows, 6 exceptions, reused, id: 30fec9dd-8437-4e02-9e83-d1b1f03ded83] Cost so far: $0.101052
+[2022-06-15 14:23:47.848] [aws-lambda] [info] LAMBDA task done in 5.59107s [200, 435987 rows, 20 exceptions, reused, id: 0477a13e-ad8d-4b7d-81f4-49c3a264c7be] Cost so far: $0.102008
+[2022-06-15 14:23:47.880] [aws-lambda] [info] LAMBDA task done in 5.33582s [200, 459240 rows, 7 exceptions, reused, id: 5e56a53c-807b-4e96-823f-b43afd3d0e3f] Cost so far: $0.102921
+[2022-06-15 14:23:48.093] [aws-lambda] [info] LAMBDA task done in 5.57765s [200, 466754 rows, 17 exceptions, reused, id: d3d55161-ab87-4a89-8745-35ce582a7a3e] Cost so far: $0.103875
+[2022-06-15 14:23:48.099] [aws-lambda] [info] LAMBDA task done in 5.63915s [200, 435081 rows, 7 exceptions, reused, id: e79a8dd1-c2c3-4690-915f-c87d79f80667] Cost so far: $0.104840
+[2022-06-15 14:23:48.521] [aws-lambda] [info] LAMBDA task done in 6.0391s [200, 447281 rows, 13 exceptions, reused, id: 5ee3d14f-8d45-49c2-9632-4469c4a421cf] Cost so far: $0.105872
+[2022-06-15 14:23:50.007] [aws-lambda] [info] LAMBDA task done in 4.60357s [200, 445985 rows, 442 exceptions, reused, id: c53d00fc-2828-4458-b7d3-ee00ef39a619] Cost so far: $0.106659
+[2022-06-15 14:23:50.152] [aws-lambda] [info] LAMBDA task done in 4.57081s [200, 465899 rows, 11 exceptions, reused, id: c451e717-d7bf-406d-b055-1b339b0e3afe] Cost so far: $0.107442
+[2022-06-15 14:23:50.381] [aws-lambda] [info] LAMBDA task done in 4.75575s [200, 443853 rows, 48 exceptions, reused, id: 8d48c190-d025-4988-ae7b-d9f15bcf5086] Cost so far: $0.108260
+[2022-06-15 14:23:50.385] [aws-lambda] [info] LAMBDA task done in 4.73617s [200, 447758 rows, 7341 exceptions, reused, id: 086cc9a6-841b-412a-882f-7f422de38778] Cost so far: $0.109074
+[2022-06-15 14:23:50.516] [aws-lambda] [info] LAMBDA task done in 4.89573s [200, 457949 rows, 5 exceptions, reused, id: bdcf8aef-7a7c-46f5-b482-fcf2add2bd67] Cost so far: $0.109915
+[2022-06-15 14:23:50.536] [aws-lambda] [info] LAMBDA task done in 4.85437s [200, 453689 rows, 125 exceptions, reused, id: 33d09074-25a4-4c49-aec6-c60e9b4d61bb] Cost so far: $0.110748
+[2022-06-15 14:23:50.555] [aws-lambda] [info] LAMBDA task done in 4.87283s [200, 417349 rows, 278 exceptions, reused, id: 8f6f3835-0c12-4b09-84bc-a0fb9b48ca8c] Cost so far: $0.111584
+[2022-06-15 14:23:50.558] [aws-lambda] [info] LAMBDA task done in 4.64427s [200, 450801 rows, 9450 exceptions, reused, id: cf3b75ae-5c35-4e0b-96d8-df392e35814e] Cost so far: $0.112379
+[2022-06-15 14:23:50.603] [aws-lambda] [info] LAMBDA task done in 4.9753s [200, 435351 rows, 1177 exceptions, reused, id: ef0b3c20-4031-4ddf-8634-f68b8a316204] Cost so far: $0.113233
+[2022-06-15 14:23:50.654] [aws-lambda] [info] LAMBDA task done in 4.84389s [200, 462041 rows, 13 exceptions, reused, id: 4251b663-25e2-47c1-a7a4-3e2305d77ada] Cost so far: $0.114069
+[2022-06-15 14:23:50.669] [aws-lambda] [info] LAMBDA task done in 4.72676s [200, 470391 rows, 86 exceptions, reused, id: f452af93-715c-41a0-9ec8-d6d1ef182db8] Cost so far: $0.114878
+[2022-06-15 14:23:50.719] [aws-lambda] [info] LAMBDA task done in 4.77619s [200, 438483 rows, 16467 exceptions, reused, id: 64bb6773-2c73-4d11-8030-262a2bd7f006] Cost so far: $0.115698
+[2022-06-15 14:23:50.801] [aws-lambda] [info] LAMBDA task done in 4.48518s [200, 438141 rows, 0 exceptions, reused, id: 21da4462-7863-44b9-a3e7-92502117b2cf] Cost so far: $0.116469
+[2022-06-15 14:23:50.844] [aws-lambda] [info] LAMBDA task done in 4.55952s [200, 399535 rows, 0 exceptions, reused, id: 8039d75b-6b47-40bb-a69f-28f7aaf55442] Cost so far: $0.117253
+[2022-06-15 14:23:50.889] [aws-lambda] [info] LAMBDA task done in 4.5053s [200, 429996 rows, 0 exceptions, reused, id: 1bc39984-7672-45b7-a6a6-eb1ca7b0b70b] Cost so far: $0.118028
+[2022-06-15 14:23:50.907] [aws-lambda] [info] LAMBDA task done in 4.96247s [200, 469939 rows, 5 exceptions, reused, id: 0e855442-edab-4688-a337-b3986f8012a3] Cost so far: $0.118879
+[2022-06-15 14:23:50.952] [aws-lambda] [info] LAMBDA task done in 5.02568s [200, 479440 rows, 109 exceptions, reused, id: f5304e51-1836-42b7-a802-a974bf9f7130] Cost so far: $0.119742
+[2022-06-15 14:23:50.971] [aws-lambda] [info] LAMBDA task done in 4.72402s [200, 443796 rows, 0 exceptions, reused, id: 4fb501c9-f47e-4967-b071-9140dd55aa19] Cost so far: $0.120554
+[2022-06-15 14:23:50.975] [aws-lambda] [info] LAMBDA task done in 4.99719s [200, 444378 rows, 121 exceptions, reused, id: 66fbd48b-59ae-476a-8ae0-6c6a9c35ea52] Cost so far: $0.121412
+[2022-06-15 14:23:51.034] [aws-lambda] [info] LAMBDA task done in 5.4503s [200, 462401 rows, 28 exceptions, reused, id: 2d8a4de1-8acb-4468-99a6-fc567a063972] Cost so far: $0.122345
+[2022-06-15 14:23:51.082] [aws-lambda] [info] LAMBDA task done in 4.83986s [200, 417386 rows, 0 exceptions, reused, id: 278aea3e-2698-4e7d-84e4-9357d76d3578] Cost so far: $0.123175
+[2022-06-15 14:23:51.087] [aws-lambda] [info] LAMBDA task done in 4.77356s [200, 450046 rows, 0 exceptions, reused, id: d09c11b6-64dc-4354-b383-de4308aea83d] Cost so far: $0.123995
+[2022-06-15 14:23:51.088] [aws-lambda] [info] LAMBDA task done in 5.17654s [200, 473610 rows, 437 exceptions, reused, id: cfeb8def-5a70-46a5-aee6-fbbb957e4a36] Cost so far: $0.124882
+[2022-06-15 14:23:51.092] [aws-lambda] [info] LAMBDA task done in 5.05487s [200, 478894 rows, 15 exceptions, reused, id: 1920c173-5cd3-4401-b6c0-7fe5bca223d3] Cost so far: $0.125750
+[2022-06-15 14:23:51.105] [aws-lambda] [info] LAMBDA task done in 5.17267s [200, 471094 rows, 7200 exceptions, reused, id: e071bfd4-1f73-4076-a309-4bb3030a3bb4] Cost so far: $0.126636
+[2022-06-15 14:23:51.131] [aws-lambda] [info] LAMBDA task done in 4.72534s [200, 415024 rows, 0 exceptions, reused, id: ace91ff7-9046-45ca-bde1-fa18de865ff4] Cost so far: $0.127447
+[2022-06-15 14:23:51.144] [aws-lambda] [info] LAMBDA task done in 4.86296s [200, 436336 rows, 0 exceptions, reused, id: 592f83c6-200c-4280-a93c-76d22a7bdc4f] Cost so far: $0.128281
+[2022-06-15 14:23:51.165] [aws-lambda] [info] LAMBDA task done in 4.72212s [200, 427125 rows, 0 exceptions, reused, id: f3db9568-10f1-46fe-b8d8-4c639ac53e77] Cost so far: $0.129092
+[2022-06-15 14:23:51.165] [aws-lambda] [info] LAMBDA task done in 5.13109s [200, 491215 rows, 151 exceptions, reused, id: f93f1f07-d0b7-4d35-8e22-cb42d0b1c6da] Cost so far: $0.129972
+[2022-06-15 14:23:51.188] [aws-lambda] [info] LAMBDA task done in 5.4888s [200, 444270 rows, 21997 exceptions, reused, id: 5b940c15-5480-48d7-bf7a-b309776e88ed] Cost so far: $0.130910
+[2022-06-15 14:23:51.191] [aws-lambda] [info] LAMBDA task done in 5.09312s [200, 467222 rows, 29 exceptions, reused, id: de26e597-b31c-4308-92ed-96b6626578a7] Cost so far: $0.131785
+[2022-06-15 14:23:51.191] [aws-lambda] [info] LAMBDA task done in 5.14897s [200, 462310 rows, 787 exceptions, reused, id: 694a11b9-c83e-49aa-944b-a6950bd0ae64] Cost so far: $0.132667
+[2022-06-15 14:23:51.221] [aws-lambda] [info] LAMBDA task done in 5.18387s [200, 470765 rows, 335 exceptions, reused, id: 83202858-a0f6-4bfb-afdf-30d0060f03c5] Cost so far: $0.133555
+[2022-06-15 14:23:51.226] [aws-lambda] [info] LAMBDA task done in 4.85997s [200, 465573 rows, 0 exceptions, reused, id: 8c9cd155-30e1-46fb-a72f-64570b10a3f8] Cost so far: $0.134389
+[2022-06-15 14:23:51.227] [aws-lambda] [info] LAMBDA task done in 5.23014s [200, 482934 rows, 10 exceptions, reused, id: afcf8c3f-89aa-406b-9357-27f9cb4ab51e] Cost so far: $0.135284
+[2022-06-15 14:23:51.250] [aws-lambda] [info] LAMBDA task done in 5.20835s [200, 463247 rows, 16 exceptions, reused, id: 5b3fa54e-ac59-4161-b594-c5a55830e6fe] Cost so far: $0.136179
+[2022-06-15 14:23:51.263] [aws-lambda] [info] LAMBDA task done in 5.1922s [200, 485752 rows, 9 exceptions, reused, id: d20e8cef-3251-4f23-814c-cf944d8f8329] Cost so far: $0.137068
+[2022-06-15 14:23:51.286] [aws-lambda] [info] LAMBDA task done in 5.24677s [200, 482799 rows, 543 exceptions, reused, id: c9d9ff52-6a46-4ab4-a3f0-65266b2d1a27] Cost so far: $0.137967
+[2022-06-15 14:23:51.290] [aws-lambda] [info] LAMBDA task done in 5.38463s [200, 439461 rows, 21006 exceptions, reused, id: f45fc30e-5242-4ec1-b58c-ba04dd6255ef] Cost so far: $0.138888
+[2022-06-15 14:23:51.309] [aws-lambda] [info] LAMBDA task done in 5.11801s [200, 477824 rows, 0 exceptions, reused, id: a8f15049-5f69-4ee2-a667-82f8b63b26f4] Cost so far: $0.139766
+[2022-06-15 14:23:51.320] [aws-lambda] [info] LAMBDA task done in 5.02501s [200, 447896 rows, 0 exceptions, reused, id: be7ce453-2322-44ac-abb4-cc2d7754102a] Cost so far: $0.140627
+[2022-06-15 14:23:51.341] [aws-lambda] [info] LAMBDA task done in 4.99986s [200, 448333 rows, 0 exceptions, reused, id: 548137e5-ae59-4e98-bde8-49aa5fe3c221] Cost so far: $0.141485
+[2022-06-15 14:23:51.355] [aws-lambda] [info] LAMBDA task done in 5.10999s [200, 490698 rows, 0 exceptions, reused, id: 54fc6567-bea3-418a-af54-cda772eda42c] Cost so far: $0.142361
+[2022-06-15 14:23:51.458] [aws-lambda] [info] LAMBDA task done in 5.20051s [200, 429869 rows, 0 exceptions, reused, id: f21485a4-a443-437f-ade4-ad8d3e9b8478] Cost so far: $0.143251
+[2022-06-15 14:23:51.519] [aws-lambda] [info] LAMBDA task done in 5.12253s [200, 446590 rows, 0 exceptions, reused, id: 1ce86b68-557b-4481-afd4-22ab1d8cb3cc] Cost so far: $0.144129
+[2022-06-15 14:23:51.532] [aws-lambda] [info] LAMBDA task done in 5.39514s [200, 480967 rows, 71 exceptions, reused, id: aa4f79f1-33ee-4178-a38e-2e99734797d9] Cost so far: $0.145052
+[2022-06-15 14:23:51.565] [aws-lambda] [info] LAMBDA task done in 5.38415s [200, 529940 rows, 0 exceptions, reused, id: b09920a6-7715-4fab-9525-e17aa8579569] Cost so far: $0.145974
+[2022-06-15 14:23:51.598] [aws-lambda] [info] LAMBDA task done in 5.386s [200, 520230 rows, 0 exceptions, reused, id: 28215ecc-4d96-41e3-9530-e468521d0758] Cost so far: $0.146896
+[2022-06-15 14:23:51.697] [aws-lambda] [info] LAMBDA task done in 5.34656s [200, 466764 rows, 0 exceptions, reused, id: 90f79891-1d95-49af-b23a-77a8d7b1c4e2] Cost so far: $0.147807
+[2022-06-15 14:23:51.744] [aws-lambda] [info] LAMBDA task done in 5.5077s [200, 544351 rows, 0 exceptions, reused, id: e30689f4-e71e-42d6-a70e-73162b33f32c] Cost so far: $0.148749
+[2022-06-15 14:23:51.792] [aws-lambda] [info] LAMBDA task done in 5.59623s [200, 531119 rows, 0 exceptions, reused, id: 754e0427-b8b0-4d94-8304-d49c751a6369] Cost so far: $0.149705
+[2022-06-15 14:23:51.793] [aws-lambda] [info] LAMBDA task done in 5.60162s [200, 538440 rows, 0 exceptions, reused, id: 22939568-28db-4e54-ae59-36382022e725] Cost so far: $0.150659
+[2022-06-15 14:23:51.813] [aws-lambda] [info] LAMBDA task done in 5.61753s [200, 514187 rows, 0 exceptions, reused, id: fd9a7080-bfc3-4f95-9fa5-baf176ebb189] Cost so far: $0.151619
+[2022-06-15 14:23:51.855] [aws-lambda] [info] LAMBDA task done in 5.37007s [200, 527303 rows, 0 exceptions, reused, id: 24caee53-0976-4b11-bcf5-a550af1aecd5] Cost so far: $0.152538
+[2022-06-15 14:23:51.876] [aws-lambda] [info] LAMBDA task done in 5.41665s [200, 500206 rows, 0 exceptions, reused, id: fc511bb3-f2d5-4ac9-ad91-49b28b4b771e] Cost so far: $0.153464
+[2022-06-15 14:23:51.927] [aws-lambda] [info] LAMBDA task done in 5.70398s [200, 529940 rows, 0 exceptions, reused, id: bd9c3de4-259e-4837-9281-56ac0dcc7abd] Cost so far: $0.154439
+[2022-06-15 14:23:51.928] [aws-lambda] [info] LAMBDA task done in 6.16665s [200, 450567 rows, 53 exceptions, reused, id: 64950af3-374a-4c22-a4de-20f1b07a5fe5] Cost so far: $0.155491
+[2022-06-15 14:23:51.930] [aws-lambda] [info] LAMBDA task done in 5.4587s [200, 559342 rows, 0 exceptions, reused, id: bbe53aaf-abb3-46fa-8db0-a940217bad89] Cost so far: $0.156425
+[2022-06-15 14:23:52.130] [aws-lambda] [info] LAMBDA task done in 5.68743s [200, 552109 rows, 0 exceptions, reused, id: f9eb4a11-670f-4806-a5cf-304b4249524b] Cost so far: $0.157396
+[2022-06-15 14:23:52.603] [aws-lambda] [info] LAMBDA task done in 6.11897s [200, 533782 rows, 0 exceptions, reused, id: 4bd28d80-07df-47ca-8672-1c6c82bad778] Cost so far: $0.158440
+[2022-06-15 14:23:58.741] [aws-lambda] [info] LAMBDA task done in 17.2052s [200, 432980 rows, 0 exceptions, reused, id: 637c65c6-e343-4fc7-8cf2-ef4f532a4162] Cost so far: $0.161328
+[2022-06-15 14:24:00.100] [aws-lambda] [info] LAMBDA task done in 13.5907s [200, 527714 rows, 0 exceptions, reused, id: 99a72836-34a4-4cf4-a67c-54795f912c1b] Cost so far: $0.163614
+[2022-06-15 14:24:02.565] [aws-lambda] [info] LAMBDA task done in 16.0301s [200, 552370 rows, 0 exceptions, reused, id: 1b5df836-acff-46cf-8ff6-79e60e360b0e] Cost so far: $0.166310
+[2022-06-15 14:24:03.828] [aws-lambda] [info] LAMBDA task done in 17.3311s [200, 536496 rows, 0 exceptions, reused, id: 18eb629a-01dd-4911-b856-b3a6455b9eb0] Cost so far: $0.169219
+[2022-06-15 14:24:04.187] [aws-lambda] [info] LAMBDA task done in 16.0852s [200, 540908 rows, 0 exceptions, reused, id: 3c8570c4-ad8d-4a96-b7b9-a34095456e72] Cost so far: $0.171924
+[2022-06-15 14:24:04.306] [aws-lambda] [info] LAMBDA task done in 13.4858s [200, 510852 rows, 0 exceptions, reused, id: f452af93-715c-41a0-9ec8-d6d1ef182db8] Cost so far: $0.174194
+[2022-06-15 14:24:05.019] [aws-lambda] [info] LAMBDA task done in 14.1125s [200, 509540 rows, 0 exceptions, reused, id: 4251b663-25e2-47c1-a7a4-3e2305d77ada] Cost so far: $0.176570
+[2022-06-15 14:24:05.085] [aws-lambda] [info] LAMBDA task done in 18.3309s [200, 585125 rows, 0 exceptions, reused, id: a42aa36a-4e89-44b5-93be-108ff8ac93ec] Cost so far: $0.179649
+[2022-06-15 14:24:05.394] [aws-lambda] [info] LAMBDA task done in 13.8669s [200, 464826 rows, 0 exceptions, reused, id: 54fc6567-bea3-418a-af54-cda772eda42c] Cost so far: $0.181986
+[2022-06-15 14:24:05.661] [aws-lambda] [info] LAMBDA task done in 15.2918s [200, 488410 rows, 0 exceptions, reused, id: c451e717-d7bf-406d-b055-1b339b0e3afe] Cost so far: $0.184556
+[2022-06-15 14:24:06.039] [aws-lambda] [info] LAMBDA task done in 14.5865s [200, 478040 rows, 0 exceptions, reused, id: e071bfd4-1f73-4076-a309-4bb3030a3bb4] Cost so far: $0.187011
+[2022-06-15 14:24:06.158] [aws-lambda] [info] LAMBDA task done in 14.6283s [200, 505218 rows, 0 exceptions, reused, id: d09c11b6-64dc-4354-b383-de4308aea83d] Cost so far: $0.189473
+[2022-06-15 14:24:06.330] [aws-lambda] [info] LAMBDA task done in 18.0151s [200, 556205 rows, 0 exceptions, reused, id: e79a8dd1-c2c3-4690-915f-c87d79f80667] Cost so far: $0.192500
+[2022-06-15 14:24:06.616] [aws-lambda] [info] LAMBDA task done in 19.7142s [200, 594492 rows, 0 exceptions, reused, id: 699158ef-ea99-4c05-a3e7-8ffe267dc823] Cost so far: $0.195809
+[2022-06-15 14:24:06.628] [aws-lambda] [info] LAMBDA task done in 19.9895s [200, 582970 rows, 0 exceptions, reused, id: ba0468e8-0a46-4667-91be-41ec2efadd02] Cost so far: $0.199165
+[2022-06-15 14:24:06.632] [aws-lambda] [info] LAMBDA task done in 15.1772s [200, 504397 rows, 0 exceptions, reused, id: c9d9ff52-6a46-4ab4-a3f0-65266b2d1a27] Cost so far: $0.201719
+[2022-06-15 14:24:06.831] [aws-lambda] [info] LAMBDA task done in 19.6655s [200, 574253 rows, 0 exceptions, reused, id: bd01732c-eeb9-4e61-8970-369ed841f5d1] Cost so far: $0.205021
+[2022-06-15 14:24:06.921] [aws-lambda] [info] LAMBDA task done in 15.4329s [200, 486133 rows, 0 exceptions, reused, id: a8f15049-5f69-4ee2-a667-82f8b63b26f4] Cost so far: $0.207618
+[2022-06-15 14:24:06.927] [aws-lambda] [info] LAMBDA task done in 18.5785s [200, 523272 rows, 0 exceptions, reused, id: d3d55161-ab87-4a89-8745-35ce582a7a3e] Cost so far: $0.210739
+[2022-06-15 14:24:06.975] [aws-lambda] [info] LAMBDA task done in 20.4501s [200, 528171 rows, 0 exceptions, reused, id: a519f686-b8a8-4642-92e2-bcb8714f94e6] Cost so far: $0.214171
+[2022-06-15 14:24:07.118] [aws-lambda] [info] LAMBDA task done in 14.9828s [200, 510806 rows, 0 exceptions, reused, id: 90f79891-1d95-49af-b23a-77a8d7b1c4e2] Cost so far: $0.216689
+[2022-06-15 14:24:07.649] [aws-lambda] [info] LAMBDA task done in 15.8463s [200, 488006 rows, 0 exceptions, reused, id: 1ce86b68-557b-4481-afd4-22ab1d8cb3cc] Cost so far: $0.219354
+[2022-06-15 14:24:07.731] [aws-lambda] [info] LAMBDA task done in 20.4156s [200, 531247 rows, 0 exceptions, reused, id: 280051c0-3aa3-45f0-b574-b85170f0e423] Cost so far: $0.222778
+[2022-06-15 14:24:07.743] [aws-lambda] [info] LAMBDA task done in 16.6052s [200, 529330 rows, 0 exceptions, reused, id: 66fbd48b-59ae-476a-8ae0-6c6a9c35ea52] Cost so far: $0.225569
+[2022-06-15 14:24:08.095] [aws-lambda] [info] LAMBDA task done in 16.5672s [200, 493888 rows, 0 exceptions, reused, id: be7ce453-2322-44ac-abb4-cc2d7754102a] Cost so far: $0.228362
+[2022-06-15 14:24:08.178] [aws-lambda] [info] LAMBDA task done in 21.6598s [200, 558568 rows, 0 exceptions, reused, id: eacf6ea0-0233-42c1-916a-178ccb8e8d2b] Cost so far: $0.231996
+[2022-06-15 14:24:08.362] [aws-lambda] [info] LAMBDA task done in 16.9115s [200, 487468 rows, 0 exceptions, reused, id: f45fc30e-5242-4ec1-b58c-ba04dd6255ef] Cost so far: $0.234839
+[2022-06-15 14:24:08.364] [aws-lambda] [info] LAMBDA task done in 21.1943s [200, 592712 rows, 0 exceptions, reused, id: a9850b65-5aa0-4451-b9c0-363fa23de2ce] Cost so far: $0.238396
+[2022-06-15 14:24:08.555] [aws-lambda] [info] LAMBDA task done in 17.2427s [200, 526107 rows, 0 exceptions, reused, id: 592f83c6-200c-4280-a93c-76d22a7bdc4f] Cost so far: $0.241293
+[2022-06-15 14:24:08.572] [aws-lambda] [info] LAMBDA task done in 21.9748s [200, 601412 rows, 0 exceptions, reused, id: ff48936b-c715-4f1f-a177-308c977db3f1] Cost so far: $0.244980
+[2022-06-15 14:24:08.692] [aws-lambda] [info] LAMBDA task done in 22.1647s [200, 556984 rows, 0 exceptions, reused, id: c11341e3-459e-47dd-a165-93605c1570da] Cost so far: $0.248698
+[2022-06-15 14:24:08.705] [aws-lambda] [info] LAMBDA task done in 21.5097s [200, 566138 rows, 0 exceptions, reused, id: e87af699-62b5-40a0-aff8-65eb64154b37] Cost so far: $0.252307
+[2022-06-15 14:24:08.772] [aws-lambda] [info] LAMBDA task done in 22.2238s [200, 583987 rows, 0 exceptions, reused, id: e5e2bad5-6888-4379-b89b-184b7a5d07a9] Cost so far: $0.256031
+[2022-06-15 14:24:08.804] [aws-lambda] [info] LAMBDA task done in 21.8392s [200, 614802 rows, 0 exceptions, reused, id: fc0e42d2-59d7-47ac-ad38-cee48c0ec801] Cost so far: $0.259696
+[2022-06-15 14:24:08.895] [aws-lambda] [info] LAMBDA task done in 22.0113s [200, 545332 rows, 0 exceptions, reused, id: ef8b4407-bfc1-44c5-821f-b5bffb173ee6] Cost so far: $0.263389
+[2022-06-15 14:24:09.120] [aws-lambda] [info] LAMBDA task done in 17.3559s [200, 490199 rows, 0 exceptions, reused, id: b09920a6-7715-4fab-9525-e17aa8579569] Cost so far: $0.266309
+[2022-06-15 14:24:09.153] [aws-lambda] [info] LAMBDA task done in 18.9153s [200, 532339 rows, 0 exceptions, reused, id: c53d00fc-2828-4458-b7d3-ee00ef39a619] Cost so far: $0.269482
+[2022-06-15 14:24:09.354] [aws-lambda] [info] LAMBDA task done in 22.7608s [200, 553876 rows, 0 exceptions, reused, id: a5c0cb7b-b0ec-4e9e-994c-c819102bad27] Cost so far: $0.273299
+[2022-06-15 14:24:09.391] [aws-lambda] [info] LAMBDA task done in 17.0335s [200, 503296 rows, 0 exceptions, reused, id: f9eb4a11-670f-4806-a5cf-304b4249524b] Cost so far: $0.276162
+[2022-06-15 14:24:09.476] [aws-lambda] [info] LAMBDA task done in 18.1136s [200, 455516 rows, 0 exceptions, reused, id: 694a11b9-c83e-49aa-944b-a6950bd0ae64] Cost so far: $0.279205
+[2022-06-15 14:24:09.601] [aws-lambda] [info] LAMBDA task done in 17.6331s [200, 469746 rows, 0 exceptions, reused, id: fd9a7080-bfc3-4f95-9fa5-baf176ebb189] Cost so far: $0.282167
+[2022-06-15 14:24:09.736] [aws-lambda] [info] LAMBDA task done in 18.4195s [200, 520999 rows, 0 exceptions, reused, id: ace91ff7-9046-45ca-bde1-fa18de865ff4] Cost so far: $0.285261
+[2022-06-15 14:24:09.802] [aws-lambda] [info] LAMBDA task done in 23.0637s [200, 610037 rows, 0 exceptions, reused, id: 425ec353-9af6-4d15-8de0-d7b38f9a9689] Cost so far: $0.289129
+[2022-06-15 14:24:10.045] [aws-lambda] [info] LAMBDA task done in 18.5055s [200, 518423 rows, 0 exceptions, reused, id: cfeb8def-5a70-46a5-aee6-fbbb957e4a36] Cost so far: $0.292238
+[2022-06-15 14:24:10.180] [aws-lambda] [info] LAMBDA task done in 23.5386s [200, 594457 rows, 0 exceptions, reused, id: 247bf289-a94b-4fea-9131-f706189fd6f0] Cost so far: $0.296185
+[2022-06-15 14:24:10.239] [aws-lambda] [info] LAMBDA task done in 18.9147s [200, 545519 rows, 0 exceptions, reused, id: f93f1f07-d0b7-4d35-8e22-cb42d0b1c6da] Cost so far: $0.299362
+[2022-06-15 14:24:10.354] [aws-lambda] [info] LAMBDA task done in 23.0894s [200, 581287 rows, 0 exceptions, reused, id: 73f89107-adf5-4967-ad54-5460b7807815] Cost so far: $0.303234
+[2022-06-15 14:24:10.567] [aws-lambda] [info] LAMBDA task done in 23.7986s [200, 584610 rows, 0 exceptions, reused, id: c8e008f5-401a-491e-8713-b6f243b95208] Cost so far: $0.307225
+[2022-06-15 14:24:10.582] [aws-lambda] [info] LAMBDA task done in 19.5087s [200, 483270 rows, 0 exceptions, reused, id: 0e855442-edab-4688-a337-b3986f8012a3] Cost so far: $0.310500
+[2022-06-15 14:24:10.693] [aws-lambda] [info] LAMBDA task done in 18.6861s [200, 552312 rows, 0 exceptions, reused, id: 22939568-28db-4e54-ae59-36382022e725] Cost so far: $0.313635
+[2022-06-15 14:24:10.705] [aws-lambda] [info] LAMBDA task done in 18.5581s [200, 535344 rows, 0 exceptions, reused, id: 64950af3-374a-4c22-a4de-20f1b07a5fe5] Cost so far: $0.316752
+[2022-06-15 14:24:10.825] [aws-lambda] [info] LAMBDA task done in 23.0453s [200, 600187 rows, 0 exceptions, reused, id: 303b472a-312a-422c-81e1-57708216cf09] Cost so far: $0.320618
+[2022-06-15 14:24:10.886] [aws-lambda] [info] LAMBDA task done in 24.3158s [200, 555495 rows, 0 exceptions, reused, id: 99f7ea56-6907-4287-bccd-279d1dda7e3e] Cost so far: $0.324695
+[2022-06-15 14:24:10.952] [aws-lambda] [info] LAMBDA task done in 19.027s [200, 509519 rows, 0 exceptions, reused, id: e30689f4-e71e-42d6-a70e-73162b33f32c] Cost so far: $0.327891
+[2022-06-15 14:24:11.026] [aws-lambda] [info] LAMBDA task done in 24.1345s [200, 617540 rows, 0 exceptions, reused, id: 6263dc35-8355-4d4b-86f6-4ae492280063] Cost so far: $0.331934
+[2022-06-15 14:24:11.095] [aws-lambda] [info] LAMBDA task done in 19.566s [200, 521628 rows, 0 exceptions, reused, id: 548137e5-ae59-4e98-bde8-49aa5fe3c221] Cost so far: $0.335221
+[2022-06-15 14:24:11.141] [aws-lambda] [info] LAMBDA task done in 20.1093s [200, 521809 rows, 0 exceptions, reused, id: 8039d75b-6b47-40bb-a69f-28f7aaf55442] Cost so far: $0.338596
+[2022-06-15 14:24:11.159] [aws-lambda] [info] LAMBDA task done in 20.5397s [200, 537793 rows, 0 exceptions, reused, id: 8d48c190-d025-4988-ae7b-d9f15bcf5086] Cost so far: $0.342043
+[2022-06-15 14:24:11.459] [aws-lambda] [info] LAMBDA task done in 20.3389s [200, 549262 rows, 0 exceptions, reused, id: f5304e51-1836-42b7-a802-a974bf9f7130] Cost so far: $0.345458
+[2022-06-15 14:24:11.644] [aws-lambda] [info] LAMBDA task done in 20.8936s [200, 546832 rows, 0 exceptions, reused, id: ef0b3c20-4031-4ddf-8634-f68b8a316204] Cost so far: $0.348964
+[2022-06-15 14:24:11.736] [aws-lambda] [info] LAMBDA task done in 20.167s [200, 526933 rows, 0 exceptions, reused, id: 278aea3e-2698-4e7d-84e4-9357d76d3578] Cost so far: $0.352349
+[2022-06-15 14:24:11.855] [aws-lambda] [info] LAMBDA task done in 20.5986s [200, 569217 rows, 0 exceptions, reused, id: 1920c173-5cd3-4401-b6c0-7fe5bca223d3] Cost so far: $0.355806
+[2022-06-15 14:24:11.957] [aws-lambda] [info] LAMBDA task done in 24.1443s [200, 605149 rows, 0 exceptions, reused, id: 3105d03a-64eb-4952-8138-89f1c0fcb0ff] Cost so far: $0.359854
+[2022-06-15 14:24:12.155] [aws-lambda] [info] LAMBDA task done in 24.7835s [200, 585351 rows, 0 exceptions, reused, id: fa7eb3a8-ba71-4403-9ca8-918dcba20837] Cost so far: $0.364009
+[2022-06-15 14:24:12.165] [aws-lambda] [info] LAMBDA task done in 20.3964s [200, 515254 rows, 0 exceptions, reused, id: 28215ecc-4d96-41e3-9530-e468521d0758] Cost so far: $0.367434
+[2022-06-15 14:24:12.295] [aws-lambda] [info] LAMBDA task done in 21.5322s [200, 580134 rows, 0 exceptions, reused, id: cf3b75ae-5c35-4e0b-96d8-df392e35814e] Cost so far: $0.371044
+[2022-06-15 14:24:12.346] [aws-lambda] [info] LAMBDA task done in 25.3198s [200, 609195 rows, 0 exceptions, reused, id: 10ee6973-9016-483a-ab7b-515a61de87d9] Cost so far: $0.375284
+[2022-06-15 14:24:12.389] [aws-lambda] [info] LAMBDA task done in 21.0295s [200, 526687 rows, 0 exceptions, reused, id: 5b940c15-5480-48d7-bf7a-b309776e88ed] Cost so far: $0.378813
+[2022-06-15 14:24:12.563] [aws-lambda] [info] LAMBDA task done in 21.3812s [200, 542747 rows, 0 exceptions, reused, id: 4fb501c9-f47e-4967-b071-9140dd55aa19] Cost so far: $0.382401
+[2022-06-15 14:24:12.614] [aws-lambda] [info] LAMBDA task done in 21.1904s [200, 541442 rows, 0 exceptions, reused, id: 83202858-a0f6-4bfb-afdf-30d0060f03c5] Cost so far: $0.385957
+[2022-06-15 14:24:12.674] [aws-lambda] [info] LAMBDA task done in 24.6106s [200, 612279 rows, 0 exceptions, reused, id: 93add07a-a505-4ba4-9816-ccd438225343] Cost so far: $0.390082
+[2022-06-15 14:24:12.780] [aws-lambda] [info] LAMBDA task done in 24.9001s [200, 598126 rows, 0 exceptions, reused, id: ce7cac14-ef0a-48ac-bbd0-a90b74ad1ff7] Cost so far: $0.394256
+[2022-06-15 14:24:12.907] [aws-lambda] [info] LAMBDA task done in 21.569s [200, 494400 rows, 0 exceptions, reused, id: de26e597-b31c-4308-92ed-96b6626578a7] Cost so far: $0.397874
+[2022-06-15 14:24:12.946] [aws-lambda] [info] LAMBDA task done in 22.1646s [200, 568301 rows, 0 exceptions, reused, id: 8f6f3835-0c12-4b09-84bc-a0fb9b48ca8c] Cost so far: $0.401592
+[2022-06-15 14:24:13.236] [aws-lambda] [info] LAMBDA task done in 25.8403s [200, 602919 rows, 0 exceptions, reused, id: e5f64c3e-786c-4a96-ac2e-7e273495c169] Cost so far: $0.405924
+[2022-06-15 14:24:13.379] [aws-lambda] [info] LAMBDA task done in 26.6452s [200, 623107 rows, 0 exceptions, reused, id: 235727a9-9986-46e8-a143-4a563aecca04] Cost so far: $0.410390
+[2022-06-15 14:24:13.419] [aws-lambda] [info] LAMBDA task done in 25.9841s [200, 584937 rows, 0 exceptions, reused, id: d539b19e-f4fa-45a9-85e5-b002b819f0ed] Cost so far: $0.414745
+[2022-06-15 14:24:13.435] [aws-lambda] [info] LAMBDA task done in 21.7552s [200, 540793 rows, 0 exceptions, reused, id: aa4f79f1-33ee-4178-a38e-2e99734797d9] Cost so far: $0.418395
+[2022-06-15 14:24:13.589] [aws-lambda] [info] LAMBDA task done in 25.5993s [200, 606293 rows, 0 exceptions, reused, id: 30fec9dd-8437-4e02-9e83-d1b1f03ded83] Cost so far: $0.422685
+[2022-06-15 14:24:13.612] [aws-lambda] [info] LAMBDA task done in 26.091s [200, 586197 rows, 0 exceptions, reused, id: 164c02b0-154c-4470-92a9-c1d8e86d81b2] Cost so far: $0.427058
+[2022-06-15 14:24:13.693] [aws-lambda] [info] LAMBDA task done in 23.0847s [200, 557422 rows, 0 exceptions, reused, id: 086cc9a6-841b-412a-882f-7f422de38778] Cost so far: $0.430930
+[2022-06-15 14:24:13.781] [aws-lambda] [info] LAMBDA task done in 21.718s [200, 548642 rows, 0 exceptions, reused, id: fc511bb3-f2d5-4ac9-ad91-49b28b4b771e] Cost so far: $0.434574
+[2022-06-15 14:24:13.854] [aws-lambda] [info] LAMBDA task done in 22.9828s [200, 531799 rows, 0 exceptions, reused, id: 64bb6773-2c73-4d11-8030-262a2bd7f006] Cost so far: $0.438429
+[2022-06-15 14:24:14.009] [aws-lambda] [info] LAMBDA task done in 22.6107s [200, 520612 rows, 0 exceptions, reused, id: afcf8c3f-89aa-406b-9357-27f9cb4ab51e] Cost so far: $0.442222
+[2022-06-15 14:24:14.291] [aws-lambda] [info] LAMBDA task done in 22.4591s [200, 494218 rows, 0 exceptions, reused, id: f21485a4-a443-437f-ade4-ad8d3e9b8478] Cost so far: $0.445990
+[2022-06-15 14:24:14.383] [aws-lambda] [info] LAMBDA task done in 27.72s [200, 614166 rows, 0 exceptions, reused, id: 18c09799-ffaa-4d5f-9c3e-671f86b872ea] Cost so far: $0.450634
+[2022-06-15 14:24:14.423] [aws-lambda] [info] LAMBDA task done in 23.0064s [200, 528588 rows, 0 exceptions, reused, id: d20e8cef-3251-4f23-814c-cf944d8f8329] Cost so far: $0.454492
+[2022-06-15 14:24:14.462] [aws-lambda] [info] LAMBDA task done in 23.6625s [200, 557594 rows, 0 exceptions, reused, id: 33d09074-25a4-4c49-aec6-c60e9b4d61bb] Cost so far: $0.458460
+[2022-06-15 14:24:14.671] [aws-lambda] [info] LAMBDA task done in 27.8373s [200, 594924 rows, 0 exceptions, reused, id: 53ce57f7-1485-4a94-9365-77406aac8833] Cost so far: $0.463123
+[2022-06-15 14:24:14.926] [aws-lambda] [info] LAMBDA task done in 27.5618s [200, 605217 rows, 0 exceptions, reused, id: c0162bf3-1a74-47a3-b973-5dff4218d176] Cost so far: $0.467742
+[2022-06-15 14:24:15.115] [aws-lambda] [info] LAMBDA task done in 23.6971s [200, 547219 rows, 0 exceptions, reused, id: 5b3fa54e-ac59-4161-b594-c5a55830e6fe] Cost so far: $0.471716
+[2022-06-15 14:24:15.175] [aws-lambda] [info] LAMBDA task done in 27.5037s [200, 614648 rows, 0 exceptions, reused, id: a63c60a7-135e-4f17-81d9-b70aae5f4d19] Cost so far: $0.476323
+[2022-06-15 14:24:15.249] [aws-lambda] [info] LAMBDA task done in 27.5682s [200, 631609 rows, 0 exceptions, reused, id: 252f52b5-d6b6-495d-87a9-aa7dc7cc32f1] Cost so far: $0.480942
+[2022-06-15 14:24:15.321] [aws-lambda] [info] LAMBDA task done in 23.9219s [200, 507024 rows, 0 exceptions, reused, id: 8c9cd155-30e1-46fb-a72f-64570b10a3f8] Cost so far: $0.484953
+[2022-06-15 14:24:15.475] [aws-lambda] [info] LAMBDA task done in 27.6733s [200, 629992 rows, 0 exceptions, reused, id: 2c7d1482-f59b-4591-b681-decefdfcc3a8] Cost so far: $0.489589
+[2022-06-15 14:24:15.515] [aws-lambda] [info] LAMBDA task done in 23.5022s [200, 536393 rows, 0 exceptions, reused, id: 24caee53-0976-4b11-bcf5-a550af1aecd5] Cost so far: $0.493531
+[2022-06-15 14:24:15.679] [aws-lambda] [info] LAMBDA task done in 29.0236s [200, 588792 rows, 0 exceptions, reused, id: e0ba2682-e0af-42e7-b8bb-1937a306bf15] Cost so far: $0.498393
+[2022-06-15 14:24:15.757] [aws-lambda] [info] LAMBDA task done in 23.599s [200, 562921 rows, 0 exceptions, reused, id: bd9c3de4-259e-4837-9281-56ac0dcc7abd] Cost so far: $0.502350
+[2022-06-15 14:24:15.765] [aws-lambda] [info] LAMBDA task done in 28.3609s [200, 628732 rows, 0 exceptions, reused, id: b50b8b36-243d-46ef-a509-61d2bcc10613] Cost so far: $0.507100
+[2022-06-15 14:24:15.814] [aws-lambda] [info] LAMBDA task done in 28.6405s [200, 630904 rows, 0 exceptions, reused, id: c9335253-3e26-49ec-8cc9-c5170ce70426] Cost so far: $0.511898
+[2022-06-15 14:24:15.987] [aws-lambda] [info] LAMBDA task done in 24.7933s [200, 551687 rows, 0 exceptions, reused, id: 2d8a4de1-8acb-4468-99a6-fc567a063972] Cost so far: $0.516055
+[2022-06-15 14:24:16.300] [aws-lambda] [info] LAMBDA task done in 29.2954s [200, 627961 rows, 0 exceptions, reused, id: 34d957a7-b96d-4652-a2f9-5ad211a467d4] Cost so far: $0.520957
+[2022-06-15 14:24:16.516] [aws-lambda] [info] LAMBDA task done in 25.3133s [200, 570788 rows, 0 exceptions, reused, id: 1bc39984-7672-45b7-a6a6-eb1ca7b0b70b] Cost so far: $0.525200
+[2022-06-15 14:24:16.581] [aws-lambda] [info] LAMBDA task done in 28.7241s [200, 605765 rows, 0 exceptions, reused, id: 98afd042-c858-4812-b306-f4bf15180b54] Cost so far: $0.530011
+[2022-06-15 14:24:16.688] [aws-lambda] [info] LAMBDA task done in 25.0981s [200, 545131 rows, 0 exceptions, reused, id: 21da4462-7863-44b9-a3e7-92502117b2cf] Cost so far: $0.534219
+[2022-06-15 14:24:16.796] [aws-lambda] [info] LAMBDA task done in 25.4772s [200, 539382 rows, 0 exceptions, reused, id: f3db9568-10f1-46fe-b8d8-4c639ac53e77] Cost so far: $0.538489
+[2022-06-15 14:24:16.932] [aws-lambda] [info] LAMBDA task done in 29.7195s [200, 572343 rows, 0 exceptions, reused, id: 609ab1e2-9c37-4511-84f2-c593d496e75b] Cost so far: $0.543468
+[2022-06-15 14:24:16.996] [aws-lambda] [info] LAMBDA task done in 3.31795s [200, 180617 rows, 0 exceptions, reused, id: 235727a9-9986-46e8-a143-4a563aecca04] Cost so far: $0.544045
+[2022-06-15 14:24:17.009] [aws-lambda] [info] LAMBDA task done in 26.0738s [200, 529269 rows, 0 exceptions, reused, id: bdcf8aef-7a7c-46f5-b482-fcf2add2bd67] Cost so far: $0.548415
+[2022-06-15 14:24:17.294] [aws-lambda] [info] LAMBDA task done in 29.2309s [200, 627931 rows, 0 exceptions, reused, id: 0477a13e-ad8d-4b7d-81f4-49c3a264c7be] Cost so far: $0.553312
+[2022-06-15 14:24:17.544] [aws-lambda] [info] LAMBDA task done in 30.1397s [200, 621244 rows, 0 exceptions, reused, id: 1a8b3b44-3eae-4e9e-9474-250c2d7c852e] Cost so far: $0.558359
+[2022-06-15 14:24:17.785] [aws-lambda] [info] LAMBDA task done in 30.1432s [200, 565604 rows, 0 exceptions, reused, id: 1e831548-9f1f-4009-b8ee-9182a3c67aae] Cost so far: $0.563407
+[2022-06-15 14:24:18.200] [aws-lambda] [info] LAMBDA task done in 17.8346s [200, 430602 rows, 0 exceptions, reused, id: 99a72836-34a4-4cf4-a67c-54795f912c1b] Cost so far: $0.566407
+[2022-06-15 14:24:18.277] [aws-lambda] [info] LAMBDA task done in 30.6039s [200, 639209 rows, 0 exceptions, reused, id: 194fe637-2b69-4804-8721-63168d2b2315] Cost so far: $0.571532
+[2022-06-15 14:24:18.414] [aws-lambda] [info] LAMBDA task done in 31.0153s [200, 598315 rows, 0 exceptions, reused, id: 62cf5118-c4ab-4d88-9f96-a6eaf61714ed] Cost so far: $0.576725
+[2022-06-15 14:24:18.417] [aws-lambda] [info] LAMBDA task done in 30.8894s [200, 611718 rows, 0 exceptions, reused, id: c323f770-05c4-4c22-b2cc-8f81589e1ff7] Cost so far: $0.581898
+[2022-06-15 14:24:18.444] [aws-lambda] [info] LAMBDA task done in 4.81878s [200, 313382 rows, 0 exceptions, reused, id: aa4f79f1-33ee-4178-a38e-2e99734797d9] Cost so far: $0.582726
+[2022-06-15 14:24:18.482] [aws-lambda] [info] LAMBDA task done in 4.79915s [200, 223732 rows, 0 exceptions, reused, id: d539b19e-f4fa-45a9-85e5-b002b819f0ed] Cost so far: $0.583550
+[2022-06-15 14:24:18.773] [aws-lambda] [info] LAMBDA task done in 30.9231s [200, 569236 rows, 0 exceptions, reused, id: 36417287-d2ac-43da-b193-8b7b78aa557c] Cost so far: $0.588729
+[2022-06-15 14:24:18.881] [aws-lambda] [info] LAMBDA task done in 31.0035s [200, 616090 rows, 0 exceptions, reused, id: ad439836-e1b6-4a73-b0da-2c1bcfc3d266] Cost so far: $0.593920
+[2022-06-15 14:24:18.984] [aws-lambda] [info] LAMBDA task done in 32.1585s [200, 606731 rows, 0 exceptions, reused, id: eecbab3b-df2b-467e-81fc-9a81f3ef104d] Cost so far: $0.599304
+[2022-06-15 14:24:19.046] [aws-lambda] [info] LAMBDA task done in 31.5167s [200, 604758 rows, 0 exceptions, reused, id: 522866a0-2443-4977-aacd-2a0116ba0091] Cost so far: $0.604581
+[2022-06-15 14:24:19.784] [aws-lambda] [info] LAMBDA task done in 27.7059s [200, 552141 rows, 0 exceptions, reused, id: 754e0427-b8b0-4d94-8304-d49c751a6369] Cost so far: $0.609223
+[2022-06-15 14:24:20.174] [aws-lambda] [info] LAMBDA task done in 31.4064s [200, 544956 rows, 0 exceptions, reused, id: 5ee3d14f-8d45-49c2-9632-4469c4a421cf] Cost so far: $0.614482
+[2022-06-15 14:24:20.565] [aws-lambda] [info] LAMBDA task done in 13.232s [200, 464946 rows, 0 exceptions, reused, id: 90f79891-1d95-49af-b23a-77a8d7b1c4e2] Cost so far: $0.616708
+[2022-06-15 14:24:20.669] [aws-lambda] [info] LAMBDA task done in 28.5577s [200, 571623 rows, 0 exceptions, reused, id: bbe53aaf-abb3-46fa-8db0-a940217bad89] Cost so far: $0.621492
+[2022-06-15 14:24:20.930] [aws-lambda] [info] LAMBDA task done in 32.8792s [200, 608665 rows, 0 exceptions, reused, id: 5e56a53c-807b-4e96-823f-b43afd3d0e3f] Cost so far: $0.626995
+[2022-06-15 14:24:21.191] [aws-lambda] [info] LAMBDA task done in 28.3672s [200, 516739 rows, 0 exceptions, reused, id: 4bd28d80-07df-47ca-8672-1c6c82bad778] Cost so far: $0.631747
+[2022-06-15 14:24:21.523] [aws-lambda] [info] LAMBDA task done in 33.7683s [200, 653279 rows, 0 exceptions, reused, id: cce84d19-3542-4372-8c6d-f916a2611ad5] Cost so far: $0.637399
+[2022-06-15 14:24:22.000] [aws-lambda] [info] LAMBDA task done in 8.08803s [200, 323347 rows, 0 exceptions, reused, id: 086cc9a6-841b-412a-882f-7f422de38778] Cost so far: $0.638771
+[2022-06-15 14:24:22.477] [aws-lambda] [info] LAMBDA task done in 14.0619s [200, 423889 rows, 0 exceptions, reused, id: be7ce453-2322-44ac-abb4-cc2d7754102a] Cost so far: $0.641139
+[2022-06-15 14:24:22.526] [aws-lambda] [info] LAMBDA task done in 8.44502s [200, 364367 rows, 0 exceptions, reused, id: fc511bb3-f2d5-4ac9-ad91-49b28b4b771e] Cost so far: $0.642571
+[2022-06-15 14:24:22.562] [aws-lambda] [info] LAMBDA task done in 18.5218s [200, 483499 rows, 0 exceptions, reused, id: 18eb629a-01dd-4911-b856-b3a6455b9eb0] Cost so far: $0.645679
+[2022-06-15 14:24:22.595] [aws-lambda] [info] LAMBDA task done in 8.57702s [200, 352106 rows, 0 exceptions, reused, id: 64bb6773-2c73-4d11-8030-262a2bd7f006] Cost so far: $0.647133
+[2022-06-15 14:24:22.702] [aws-lambda] [info] LAMBDA task done in 34.9301s [200, 648560 rows, 0 exceptions, reused, id: f6d12dbd-c9c3-4c8a-a754-22a52695f298] Cost so far: $0.652982
+[2022-06-15 14:24:22.728] [aws-lambda] [info] LAMBDA task done in 8.88898s [200, 376715 rows, 0 exceptions, reused, id: 30fec9dd-8437-4e02-9e83-d1b1f03ded83] Cost so far: $0.654487
+[2022-06-15 14:24:22.808] [aws-lambda] [info] LAMBDA task done in 8.99171s [200, 352888 rows, 0 exceptions, reused, id: 164c02b0-154c-4470-92a9-c1d8e86d81b2] Cost so far: $0.656010
+[2022-06-15 14:24:22.845] [aws-lambda] [info] LAMBDA task done in 35.3117s [200, 621559 rows, 0 exceptions, reused, id: d7a04356-1f0a-4d02-b6bf-96226c105ade] Cost so far: $0.661920
+[2022-06-15 14:24:22.854] [aws-lambda] [info] LAMBDA task done in 12.2715s [200, 454162 rows, 0 exceptions, reused, id: 73f89107-adf5-4967-ad54-5460b7807815] Cost so far: $0.663989
+[2022-06-15 14:24:22.976] [aws-lambda] [info] LAMBDA task done in 15.0846s [200, 486165 rows, 0 exceptions, reused, id: 1ce86b68-557b-4481-afd4-22ab1d8cb3cc] Cost so far: $0.666530
+[2022-06-15 14:24:23.184] [aws-lambda] [info] LAMBDA task done in 17.3104s [200, 491011 rows, 0 exceptions, reused, id: c451e717-d7bf-406d-b055-1b339b0e3afe] Cost so far: $0.669436
+[2022-06-15 14:24:23.201] [aws-lambda] [info] LAMBDA task done in 35.4746s [200, 629280 rows, 0 exceptions, reused, id: f1cb9fe2-fe35-4608-86b0-fecdfb9d90ab] Cost so far: $0.675373
+[2022-06-15 14:24:23.748] [aws-lambda] [info] LAMBDA task done in 18.1184s [200, 469489 rows, 0 exceptions, reused, id: 54fc6567-bea3-418a-af54-cda772eda42c] Cost so far: $0.678418
+[2022-06-15 14:24:23.862] [aws-lambda] [info] LAMBDA task done in 14.2916s [200, 410517 rows, 0 exceptions, reused, id: f9eb4a11-670f-4806-a5cf-304b4249524b] Cost so far: $0.680824
+[2022-06-15 14:24:23.875] [aws-lambda] [info] LAMBDA task done in 14.7467s [200, 450938 rows, 0 exceptions, reused, id: ef8b4407-bfc1-44c5-821f-b5bffb173ee6] Cost so far: $0.683305
+[2022-06-15 14:24:23.894] [aws-lambda] [info] LAMBDA task done in 13.4825s [200, 458727 rows, 0 exceptions, reused, id: f93f1f07-d0b7-4d35-8e22-cb42d0b1c6da] Cost so far: $0.685577
+[2022-06-15 14:24:24.007] [aws-lambda] [info] LAMBDA task done in 14.9687s [200, 472626 rows, 0 exceptions, reused, id: c11341e3-459e-47dd-a165-93605c1570da] Cost so far: $0.688096
+[2022-06-15 14:24:24.017] [aws-lambda] [info] LAMBDA task done in 15.4242s [200, 461630 rows, 0 exceptions, reused, id: a9850b65-5aa0-4451-b9c0-363fa23de2ce] Cost so far: $0.690691
+[2022-06-15 14:24:24.403] [aws-lambda] [info] LAMBDA task done in 15.3805s [200, 454878 rows, 0 exceptions, reused, id: fc0e42d2-59d7-47ac-ad38-cee48c0ec801] Cost so far: $0.693281
+[2022-06-15 14:24:24.497] [aws-lambda] [info] LAMBDA task done in 21.6781s [200, 503758 rows, 0 exceptions, reused, id: 1b5df836-acff-46cf-8ff6-79e60e360b0e] Cost so far: $0.696923
+[2022-06-15 14:24:24.610] [aws-lambda] [info] LAMBDA task done in 16.5877s [200, 467972 rows, 0 exceptions, reused, id: 66fbd48b-59ae-476a-8ae0-6c6a9c35ea52] Cost so far: $0.699719
+[2022-06-15 14:24:24.669] [aws-lambda] [info] LAMBDA task done in 36.8363s [200, 616382 rows, 0 exceptions, reused, id: 1c0548e7-3163-425e-b421-81727a1b27af] Cost so far: $0.705882
+[2022-06-15 14:24:24.776] [aws-lambda] [info] LAMBDA task done in 17.9227s [200, 485151 rows, 0 exceptions, reused, id: 699158ef-ea99-4c05-a3e7-8ffe267dc823] Cost so far: $0.708894
+[2022-06-15 14:24:24.785] [aws-lambda] [info] LAMBDA task done in 18.5015s [200, 462054 rows, 0 exceptions, reused, id: e071bfd4-1f73-4076-a309-4bb3030a3bb4] Cost so far: $0.712001
+[2022-06-15 14:24:24.796] [aws-lambda] [info] LAMBDA task done in 16.4626s [200, 445827 rows, 0 exceptions, reused, id: eacf6ea0-0233-42c1-916a-178ccb8e8d2b] Cost so far: $0.714769
+[2022-06-15 14:24:24.867] [aws-lambda] [info] LAMBDA task done in 10.3503s [200, 361428 rows, 0 exceptions, reused, id: f21485a4-a443-437f-ade4-ad8d3e9b8478] Cost so far: $0.716519
+[2022-06-15 14:24:25.213] [aws-lambda] [info] LAMBDA task done in 26.2571s [200, 471949 rows, 0 exceptions, reused, id: 637c65c6-e343-4fc7-8cf2-ef4f532a4162] Cost so far: $0.720916
+[2022-06-15 14:24:25.279] [aws-lambda] [info] LAMBDA task done in 20.8655s [200, 499278 rows, 0 exceptions, reused, id: 3c8570c4-ad8d-4a96-b7b9-a34095456e72] Cost so far: $0.724417
+[2022-06-15 14:24:25.438] [aws-lambda] [info] LAMBDA task done in 11.1959s [200, 371357 rows, 0 exceptions, reused, id: afcf8c3f-89aa-406b-9357-27f9cb4ab51e] Cost so far: $0.726308
+[2022-06-15 14:24:25.808] [aws-lambda] [info] LAMBDA task done in 17.2107s [200, 479122 rows, 0 exceptions, reused, id: f45fc30e-5242-4ec1-b58c-ba04dd6255ef] Cost so far: $0.729201
+[2022-06-15 14:24:26.079] [aws-lambda] [info] LAMBDA task done in 17.2865s [200, 479358 rows, 0 exceptions, reused, id: ff48936b-c715-4f1f-a177-308c977db3f1] Cost so far: $0.732106
+[2022-06-15 14:24:26.457] [aws-lambda] [info] LAMBDA task done in 11.8434s [200, 332468 rows, 0 exceptions, reused, id: 33d09074-25a4-4c49-aec6-c60e9b4d61bb] Cost so far: $0.734104
+[2022-06-15 14:24:26.458] [aws-lambda] [info] LAMBDA task done in 19.6174s [200, 429191 rows, 0 exceptions, reused, id: c9d9ff52-6a46-4ab4-a3f0-65266b2d1a27] Cost so far: $0.737398
+[2022-06-15 14:24:26.460] [aws-lambda] [info] LAMBDA task done in 15.9767s [200, 479797 rows, 0 exceptions, reused, id: 247bf289-a94b-4fea-9131-f706189fd6f0] Cost so far: $0.740087
+[2022-06-15 14:24:26.491] [aws-lambda] [info] LAMBDA task done in 19.4118s [200, 496993 rows, 0 exceptions, reused, id: a8f15049-5f69-4ee2-a667-82f8b63b26f4] Cost so far: $0.743346
+[2022-06-15 14:24:26.632] [aws-lambda] [info] LAMBDA task done in 17.7281s [200, 498347 rows, 0 exceptions, reused, id: e5e2bad5-6888-4379-b89b-184b7a5d07a9] Cost so far: $0.746322
+[2022-06-15 14:24:26.776] [aws-lambda] [info] LAMBDA task done in 20.1815s [200, 469968 rows, 0 exceptions, reused, id: e79a8dd1-c2c3-4690-915f-c87d79f80667] Cost so far: $0.749716
+[2022-06-15 14:24:27.164] [aws-lambda] [info] LAMBDA task done in 19.1759s [200, 479230 rows, 0 exceptions, reused, id: 280051c0-3aa3-45f0-b574-b85170f0e423] Cost so far: $0.752938
+[2022-06-15 14:24:27.299] [aws-lambda] [info] LAMBDA task done in 22.7909s [200, 502617 rows, 0 exceptions, reused, id: f452af93-715c-41a0-9ec8-d6d1ef182db8] Cost so far: $0.756757
+[2022-06-15 14:24:27.333] [aws-lambda] [info] LAMBDA task done in 12.6544s [200, 450637 rows, 0 exceptions, reused, id: 18c09799-ffaa-4d5f-9c3e-671f86b872ea] Cost so far: $0.758890
+[2022-06-15 14:24:27.362] [aws-lambda] [info] LAMBDA task done in 12.7099s [200, 444476 rows, 0 exceptions, reused, id: d20e8cef-3251-4f23-814c-cf944d8f8329] Cost so far: $0.761033
+[2022-06-15 14:24:27.396] [aws-lambda] [info] LAMBDA task done in 20.5386s [200, 504312 rows, 0 exceptions, reused, id: ba0468e8-0a46-4667-91be-41ec2efadd02] Cost so far: $0.764480
+[2022-06-15 14:24:27.621] [aws-lambda] [info] LAMBDA task done in 20.4235s [200, 510536 rows, 0 exceptions, reused, id: bd01732c-eeb9-4e61-8970-369ed841f5d1] Cost so far: $0.767909
+[2022-06-15 14:24:27.927] [aws-lambda] [info] LAMBDA task done in 18.5975s [200, 460949 rows, 0 exceptions, reused, id: c53d00fc-2828-4458-b7d3-ee00ef39a619] Cost so far: $0.771030
+[2022-06-15 14:24:28.179] [aws-lambda] [info] LAMBDA task done in 17.3745s [200, 464205 rows, 0 exceptions, reused, id: 0e855442-edab-4688-a337-b3986f8012a3] Cost so far: $0.773949
+[2022-06-15 14:24:28.452] [aws-lambda] [info] LAMBDA task done in 18.8303s [200, 488597 rows, 0 exceptions, reused, id: a5c0cb7b-b0ec-4e9e-994c-c819102bad27] Cost so far: $0.777112
+[2022-06-15 14:24:28.492] [aws-lambda] [info] LAMBDA task done in 22.1125s [200, 477183 rows, 0 exceptions, reused, id: d09c11b6-64dc-4354-b383-de4308aea83d] Cost so far: $0.780822
+[2022-06-15 14:24:28.538] [aws-lambda] [info] LAMBDA task done in 15.0765s [200, 648229 rows, 0 exceptions, reused, id: e5f64c3e-786c-4a96-ac2e-7e273495c169] Cost so far: $0.783360
+[2022-06-15 14:24:28.756] [aws-lambda] [info] LAMBDA task done in 19.3689s [200, 450017 rows, 0 exceptions, reused, id: b09920a6-7715-4fab-9525-e17aa8579569] Cost so far: $0.786613
+[2022-06-15 14:24:28.909] [aws-lambda] [info] LAMBDA task done in 19.2133s [200, 468329 rows, 0 exceptions, reused, id: 694a11b9-c83e-49aa-944b-a6950bd0ae64] Cost so far: $0.789839
+[2022-06-15 14:24:29.320] [aws-lambda] [info] LAMBDA task done in 20.5156s [200, 487637 rows, 0 exceptions, reused, id: 592f83c6-200c-4280-a93c-76d22a7bdc4f] Cost so far: $0.793282
+[2022-06-15 14:24:29.500] [aws-lambda] [info] LAMBDA task done in 14.6048s [200, 495544 rows, 0 exceptions, reused, id: 53ce57f7-1485-4a94-9365-77406aac8833] Cost so far: $0.795741
+[2022-06-15 14:24:29.664] [aws-lambda] [info] LAMBDA task done in 24.4054s [200, 520880 rows, 0 exceptions, reused, id: a42aa36a-4e89-44b5-93be-108ff8ac93ec] Cost so far: $0.799833
+[2022-06-15 14:24:30.012] [aws-lambda] [info] LAMBDA task done in 20.1645s [200, 486483 rows, 0 exceptions, reused, id: fd9a7080-bfc3-4f95-9fa5-baf176ebb189] Cost so far: $0.803217
+[2022-06-15 14:24:30.314] [aws-lambda] [info] LAMBDA task done in 24.9965s [200, 507491 rows, 0 exceptions, reused, id: 4251b663-25e2-47c1-a7a4-3e2305d77ada] Cost so far: $0.807408
+[2022-06-15 14:24:30.407] [aws-lambda] [info] LAMBDA task done in 19.4949s [200, 611987 rows, 0 exceptions, reused, id: 22939568-28db-4e54-ae59-36382022e725] Cost so far: $0.810678
+[2022-06-15 14:24:30.816] [aws-lambda] [info] LAMBDA task done in 23.6603s [200, 503897 rows, 0 exceptions, reused, id: a519f686-b8a8-4642-92e2-bcb8714f94e6] Cost so far: $0.814646
+[2022-06-15 14:24:30.997] [aws-lambda] [info] LAMBDA task done in 20.0617s [200, 520731 rows, 0 exceptions, reused, id: 64950af3-374a-4c22-a4de-20f1b07a5fe5] Cost so far: $0.818015
+[2022-06-15 14:24:31.262] [aws-lambda] [info] LAMBDA task done in 24.0897s [200, 520718 rows, 0 exceptions, reused, id: d3d55161-ab87-4a89-8745-35ce582a7a3e] Cost so far: $0.822057
+[2022-06-15 14:24:31.707] [aws-lambda] [info] LAMBDA task done in 22.7917s [200, 502457 rows, 0 exceptions, reused, id: e87af699-62b5-40a0-aff8-65eb64154b37] Cost so far: $0.825879
+[2022-06-15 14:24:31.798] [aws-lambda] [info] LAMBDA task done in 20.4138s [200, 585749 rows, 0 exceptions, reused, id: 8039d75b-6b47-40bb-a69f-28f7aaf55442] Cost so far: $0.829305
+[2022-06-15 14:24:32.011] [aws-lambda] [info] LAMBDA task done in 16.5381s [200, 538051 rows, 0 exceptions, reused, id: 252f52b5-d6b6-495d-87a9-aa7dc7cc32f1] Cost so far: $0.832086
+[2022-06-15 14:24:32.042] [aws-lambda] [info] LAMBDA task done in 21.2302s [200, 570118 rows, 0 exceptions, reused, id: c8e008f5-401a-491e-8713-b6f243b95208] Cost so far: $0.835649
+[2022-06-15 14:24:32.151] [aws-lambda] [info] LAMBDA task done in 22.1936s [200, 494266 rows, 0 exceptions, reused, id: 425ec353-9af6-4d15-8de0-d7b38f9a9689] Cost so far: $0.839373
+[2022-06-15 14:24:32.170] [aws-lambda] [info] LAMBDA task done in 19.2784s [200, 602453 rows, 0 exceptions, reused, id: 4fb501c9-f47e-4967-b071-9140dd55aa19] Cost so far: $0.842610
+[2022-06-15 14:24:32.406] [aws-lambda] [info] LAMBDA task done in 22.1275s [200, 510451 rows, 0 exceptions, reused, id: cfeb8def-5a70-46a5-aee6-fbbb957e4a36] Cost so far: $0.846322
+[2022-06-15 14:24:32.613] [aws-lambda] [info] LAMBDA task done in 19.802s [200, 605979 rows, 0 exceptions, reused, id: 83202858-a0f6-4bfb-afdf-30d0060f03c5] Cost so far: $0.849647
+[2022-06-15 14:24:32.615] [aws-lambda] [info] LAMBDA task done in 19.4159s [200, 574268 rows, 0 exceptions, reused, id: de26e597-b31c-4308-92ed-96b6626578a7] Cost so far: $0.852908
+[2022-06-15 14:24:32.641] [aws-lambda] [info] LAMBDA task done in 19.5001s [200, 607346 rows, 0 exceptions, reused, id: 8f6f3835-0c12-4b09-84bc-a0fb9b48ca8c] Cost so far: $0.856183
+[2022-06-15 14:24:32.645] [aws-lambda] [info] LAMBDA task done in 22.6097s [200, 509070 rows, 0 exceptions, reused, id: ace91ff7-9046-45ca-bde1-fa18de865ff4] Cost so far: $0.859976
+[2022-06-15 14:24:33.500] [aws-lambda] [info] LAMBDA task done in 22.0883s [200, 616101 rows, 0 exceptions, reused, id: 303b472a-312a-422c-81e1-57708216cf09] Cost so far: $0.863682
+[2022-06-15 14:24:33.950] [aws-lambda] [info] LAMBDA task done in 22.8896s [200, 596046 rows, 0 exceptions, reused, id: 99f7ea56-6907-4287-bccd-279d1dda7e3e] Cost so far: $0.867521
+[2022-06-15 14:24:34.173] [aws-lambda] [info] LAMBDA task done in 22.206s [200, 583985 rows, 0 exceptions, reused, id: 278aea3e-2698-4e7d-84e4-9357d76d3578] Cost so far: $0.871246
+[2022-06-15 14:24:34.493] [aws-lambda] [info] LAMBDA task done in 23.3035s [200, 626193 rows, 0 exceptions, reused, id: 6263dc35-8355-4d4b-86f6-4ae492280063] Cost so far: $0.875151
+[2022-06-15 14:24:35.136] [aws-lambda] [info] LAMBDA task done in 23.4434s [200, 586178 rows, 0 exceptions, reused, id: f5304e51-1836-42b7-a802-a974bf9f7130] Cost so far: $0.879082
+[2022-06-15 14:24:35.636] [aws-lambda] [info] LAMBDA task done in 23.7554s [200, 593842 rows, 0 exceptions, reused, id: ef0b3c20-4031-4ddf-8634-f68b8a316204] Cost so far: $0.883066
+[2022-06-15 14:24:35.670] [aws-lambda] [info] LAMBDA task done in 23.4883s [200, 632074 rows, 0 exceptions, reused, id: 3105d03a-64eb-4952-8138-89f1c0fcb0ff] Cost so far: $0.887005
+[2022-06-15 14:24:36.001] [aws-lambda] [info] LAMBDA task done in 23.9137s [200, 533175 rows, 0 exceptions, reused, id: 1920c173-5cd3-4401-b6c0-7fe5bca223d3] Cost so far: $0.891015
+[2022-06-15 14:24:36.076] [aws-lambda] [info] LAMBDA task done in 20.3692s [200, 547559 rows, 0 exceptions, reused, id: 24caee53-0976-4b11-bcf5-a550af1aecd5] Cost so far: $0.894434
+[2022-06-15 14:24:36.167] [aws-lambda] [info] LAMBDA task done in 23.3138s [200, 636014 rows, 0 exceptions, reused, id: 93add07a-a505-4ba4-9816-ccd438225343] Cost so far: $0.898344
+[2022-06-15 14:24:36.336] [aws-lambda] [info] LAMBDA task done in 23.9584s [200, 612023 rows, 0 exceptions, reused, id: 28215ecc-4d96-41e3-9530-e468521d0758] Cost so far: $0.902362
+[2022-06-15 14:24:36.946] [aws-lambda] [info] LAMBDA task done in 21.3856s [200, 564788 rows, 0 exceptions, reused, id: 8c9cd155-30e1-46fb-a72f-64570b10a3f8] Cost so far: $0.905950
+[2022-06-15 14:24:37.175] [aws-lambda] [info] LAMBDA task done in 26.0518s [200, 616529 rows, 0 exceptions, reused, id: e30689f4-e71e-42d6-a70e-73162b33f32c] Cost so far: $0.910316
+[2022-06-15 14:24:37.530] [aws-lambda] [info] LAMBDA task done in 24.9246s [200, 658461 rows, 0 exceptions, reused, id: cf3b75ae-5c35-4e0b-96d8-df392e35814e] Cost so far: $0.914492
+[2022-06-15 14:24:39.201] [aws-lambda] [info] LAMBDA task done in 26.8124s [200, 636390 rows, 0 exceptions, reused, id: fa7eb3a8-ba71-4403-9ca8-918dcba20837] Cost so far: $0.918986
+[2022-06-15 14:24:39.379] [aws-lambda] [info] LAMBDA task done in 26.3709s [200, 625763 rows, 0 exceptions, reused, id: ce7cac14-ef0a-48ac-bbd0-a90b74ad1ff7] Cost so far: $0.923404
+[2022-06-15 14:24:39.466] [aws-lambda] [info] LAMBDA task done in 26.9439s [200, 636691 rows, 0 exceptions, reused, id: 10ee6973-9016-483a-ab7b-515a61de87d9] Cost so far: $0.927918
+[2022-06-15 14:24:39.886] [aws-lambda] [info] LAMBDA task done in 27.3075s [200, 659029 rows, 0 exceptions, reused, id: 5b940c15-5480-48d7-bf7a-b309776e88ed] Cost so far: $0.932493
+[2022-06-15 14:24:40.177] [aws-lambda] [info] LAMBDA task done in 28.8371s [200, 644673 rows, 0 exceptions, reused, id: 8d48c190-d025-4988-ae7b-d9f15bcf5086] Cost so far: $0.937323
+[2022-06-15 14:24:41.531] [aws-lambda] [info] LAMBDA task done in 26.3729s [200, 546124 rows, 0 exceptions, reused, id: c0162bf3-1a74-47a3-b973-5dff4218d176] Cost so far: $0.941743
+[2022-06-15 14:24:41.762] [aws-lambda] [info] LAMBDA task done in 30.4006s [200, 645299 rows, 0 exceptions, reused, id: 548137e5-ae59-4e98-bde8-49aa5fe3c221] Cost so far: $0.946849
+[2022-06-15 14:24:42.437] [aws-lambda] [info] LAMBDA task done in 27.0375s [200, 579179 rows, 0 exceptions, reused, id: 5b3fa54e-ac59-4161-b594-c5a55830e6fe] Cost so far: $0.951380
+[2022-06-15 14:24:43.354] [aws-lambda] [info] LAMBDA task done in 28.0144s [200, 583258 rows, 0 exceptions, reused, id: a63c60a7-135e-4f17-81d9-b70aae5f4d19] Cost so far: $0.956073
+[2022-06-15 14:24:43.394] [aws-lambda] [info] LAMBDA Stage: 202449065 rows, 238590 exceptions
+[2022-06-15 14:24:43.394] [aws-lambda] [info] LAMBDA paths rows took: normal: 448620 general: 179364496 interpreter: 22635949 unresolved: 238590
+[2022-06-15 14:24:43.395] [aws-lambda] [info] LAMBDA statistics: 
+Lambda #containers used: 128 reused: 410 newly initialized: 0
 Lambda init time: 0 +- 0 min: 0 max: 2.22507e-308
-Lambda execution time: 13.5215 +- 9.15728 min: 3.28592 max: 37.2694
+Lambda execution time: 13.8457 +- 9.22835 min: 3.31795 max: 36.8363
 
 ----- BREAKDOWN TIMINGS -----
 {}
-Lambda cost: $0.934161
-opID=100004 ecCode=70 #: 6867
-opID=100004 ecCode=70 #: 10198
+Lambda cost: $0.956073
+opID=100004 ecCode=70 #: 70
+opID=100004 ecCode=70 #: 11731
 opID=100004 ecCode=70 #: 25
 opID=100004 ecCode=70 #: 253
-opID=100004 ecCode=70 #: 49
-opID=100004 ecCode=70 #: 26125
-opID=100004 ecCode=70 #: 6
-opID=100004 ecCode=70 #: 756
-opID=100004 ecCode=70 #: 18287
-opID=100004 ecCode=70 #: 17
-opID=100004 ecCode=70 #: 17117
-opID=100004 ecCode=70 #: 14
 opID=100004 ecCode=70 #: 3
-opID=100004 ecCode=70 #: 7
-opID=100004 ecCode=70 #: 70
-opID=100004 ecCode=70 #: 20
-opID=100004 ecCode=70 #: 27
-opID=100004 ecCode=70 #: 1261
-opID=100004 ecCode=70 #: 11731
-opID=100004 ecCode=70 #: 10
-opID=100004 ecCode=70 #: 7
+opID=100004 ecCode=70 #: 49
 opID=100004 ecCode=70 #: 2
-opID=100004 ecCode=70 #: 2
-opID=100004 ecCode=70 #: 7
+opID=100004 ecCode=70 #: 10198
+opID=100004 ecCode=70 #: 14
 opID=100004 ecCode=70 #: 1059
 opID=100004 ecCode=70 #: 29
-opID=100004 ecCode=70 #: 6
-opID=100004 ecCode=70 #: 7
-opID=100004 ecCode=70 #: 3
-opID=100004 ecCode=70 #: 20694
-opID=100004 ecCode=70 #: 13
-opID=100004 ecCode=70 #: 17
-opID=100004 ecCode=70 #: 13
-opID=100004 ecCode=70 #: 3
-opID=100004 ecCode=70 #: 5
-opID=100004 ecCode=70 #: 12032
-opID=100004 ecCode=70 #: 23458
+opID=100004 ecCode=70 #: 18287
+opID=100004 ecCode=70 #: 6867
+opID=100004 ecCode=70 #: 27
 opID=100004 ecCode=70 #: 18
+opID=100004 ecCode=70 #: 7
+opID=100004 ecCode=70 #: 7
+opID=100004 ecCode=70 #: 756
+opID=100004 ecCode=70 #: 7
+opID=100004 ecCode=70 #: 1261
+opID=100004 ecCode=70 #: 17117
+opID=100004 ecCode=70 #: 26125
+opID=100004 ecCode=70 #: 13
+opID=100004 ecCode=70 #: 20694
+opID=100004 ecCode=70 #: 23458
+opID=100004 ecCode=70 #: 5
+opID=100004 ecCode=70 #: 10
+opID=100004 ecCode=70 #: 3
+opID=100004 ecCode=70 #: 2
+opID=100004 ecCode=70 #: 17
+opID=100004 ecCode=70 #: 6
+opID=100004 ecCode=70 #: 3
+opID=100004 ecCode=70 #: 12032
+opID=100004 ecCode=70 #: 6
+opID=100004 ecCode=70 #: 20
+opID=100004 ecCode=70 #: 7
+opID=100004 ecCode=70 #: 17
+opID=100004 ecCode=70 #: 7
+opID=100004 ecCode=70 #: 13
 opID=100004 ecCode=70 #: 442
-opID=100004 ecCode=70 #: 278
-opID=100004 ecCode=70 #: 48
 opID=100004 ecCode=70 #: 11
+opID=100004 ecCode=70 #: 48
+opID=100004 ecCode=70 #: 7341
+opID=100004 ecCode=70 #: 5
+opID=100004 ecCode=70 #: 125
+opID=100004 ecCode=70 #: 278
+opID=100004 ecCode=70 #: 9450
 opID=100004 ecCode=70 #: 1177
 opID=100004 ecCode=70 #: 13
-opID=100004 ecCode=70 #: 121
-opID=100004 ecCode=70 #: 125
-opID=100004 ecCode=70 #: 7341
-opID=100004 ecCode=70 #: 21997
-opID=100004 ecCode=70 #: 16467
-opID=100004 ecCode=70 #: 53
-opID=100004 ecCode=70 #: 5
-opID=100004 ecCode=70 #: 21006
 opID=100004 ecCode=70 #: 86
-opID=100004 ecCode=70 #: 9450
-opID=100004 ecCode=70 #: 16
-opID=100004 ecCode=70 #: 109
-opID=100004 ecCode=70 #: 437
-opID=100004 ecCode=70 #: 10
-opID=100004 ecCode=70 #: 28
-opID=100004 ecCode=70 #: 543
-opID=100004 ecCode=70 #: 787
-opID=100004 ecCode=70 #: 7200
-opID=100004 ecCode=70 #: 335
-opID=100004 ecCode=70 #: 29
-opID=100004 ecCode=70 #: 9
-opID=100004 ecCode=70 #: 151
-opID=100004 ecCode=70 #: 15
-opID=100004 ecCode=70 #: 71
-opID=100004 ecCode=70 #: 7
+opID=100004 ecCode=70 #: 16467
 opID=100004 ecCode=70 #: 5
-[2022-06-14 08:40:43.972] [aws-lambda] [info] LAMBDA compute took 62.3108s, cost $0.93
-[2022-06-14 08:40:43.978] [global] [info] During execution 238590 exceptions occurred:
+opID=100004 ecCode=70 #: 109
+opID=100004 ecCode=70 #: 121
+opID=100004 ecCode=70 #: 28
+opID=100004 ecCode=70 #: 437
+opID=100004 ecCode=70 #: 15
+opID=100004 ecCode=70 #: 7200
+opID=100004 ecCode=70 #: 151
+opID=100004 ecCode=70 #: 21997
+opID=100004 ecCode=70 #: 29
+opID=100004 ecCode=70 #: 787
+opID=100004 ecCode=70 #: 335
+opID=100004 ecCode=70 #: 10
+opID=100004 ecCode=70 #: 16
+opID=100004 ecCode=70 #: 9
+opID=100004 ecCode=70 #: 543
+opID=100004 ecCode=70 #: 21006
+opID=100004 ecCode=70 #: 71
+opID=100004 ecCode=70 #: 53
+[2022-06-15 14:24:43.411] [aws-lambda] [info] LAMBDA compute took 62.9688s, cost $0.96
+[2022-06-15 14:24:43.428] [global] [info] During execution 238590 exceptions occurred:
 +- csv
 |- map
 +- csv
-[2022-06-14 08:40:43.978] [global] [info] Query Execution took 62.966s. (planning: 0.471775s, execution: 62.4943s)
+[2022-06-15 14:24:43.428] [global] [info] Query Execution took 63.8813s. (planning: 0.696857s, execution: 63.1845s)
 Welcome to
 
   _____            _
@@ -802,8 +805,8 @@ using Python 3.9.8 (main, Jun  7 2022, 15:03:50)
 >>> running tuplex on s3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv -> s3://tuplex-leonhard/experiments/flights_hyper/general
     hyperspecialization: False
     null-value optimization: True
-Tuplex startup time: 0.22429990768432617
-Tuplex job time: 64.67883038520813 s
+Tuplex startup time: 0.2697422504425049
+Tuplex job time: 66.06193923950195 s
 {'tuplex.useLLVMOptimizer': True, 'tuplex.autoUpcast': False, 'tuplex.allowUndefinedBehavior': False, 'tuplex.optimizer.codeStats': False, 'tuplex.optimizer.generateParser': False, 'tuplex.optimizer.retypeUsingOptimizedInputSchema': True, 'tuplex.optimizer.filterPushdown': True, 'tuplex.optimizer.sharedObjectPropagation': True, 'tuplex.optimizer.mergeExceptionsInOrder': True, 'tuplex.optimizer.operatorReordering': False, 'tuplex.interleaveIO': True, 'tuplex.resolveWithInterpreterOnly': False, 'tuplex.network.verifySSL': False, 'tuplex.redirectToPythonLogging': False, 'tuplex.useInterpreterOnly': False, 'tuplex.aws.lambdaInvokeOthers': True, 'tuplex.csv.selectionPushdown': True, 'tuplex.webui.enable': False, 'tuplex.executorCount': 0, 'tuplex.csv.maxDetectionRows': 10000, 'tuplex.webui.port': 5000, 'tuplex.webui.mongodb.port': 27017, 'tuplex.webui.exceptionDisplayLimit': 5, 'tuplex.aws.requestTimeout': 600, 'tuplex.aws.connectTimeout': 1, 'tuplex.aws.maxConcurrency': 410, 'tuplex.aws.httpThreadCount': 128, 'tuplex.aws.lambdaMemory': 10000, 'tuplex.aws.lambdaTimeout': 600, 'tuplex.aws.requesterPay': False, 'tuplex.normalcaseThreshold': 0.9, 'tuplex.optionalThreshold': 0.7, 'tuplex.aws.lambdaInvocationStrategy': 'direct', 'tuplex.aws.lambdaThreads': '2', 'tuplex.aws.region': 'us-east-1', 'tuplex.aws.scratchDir': 's3://tuplex-leonhard/scratch/flights-exp', 'tuplex.backend': 'lambda', 'tuplex.csv.comments': ['#', '~'], 'tuplex.csv.maxDetectionMemory': '256KB', 'tuplex.csv.quotechar': '"', 'tuplex.csv.separators': [',', ';', '|', '\t'], 'tuplex.driverMemory': '2G', 'tuplex.env.hostname': 'bbsn00', 'tuplex.env.mode': 'file', 'tuplex.env.user': 'lspiegel', 'tuplex.executorMemory': '2G', 'tuplex.experimental.hyperspecialization': 'false', 'tuplex.inputSplitSize': '64MB', 'tuplex.logDir': '.', 'tuplex.network.caFile': '', 'tuplex.network.caPath': '', 'tuplex.optimizer.constantFoldingOptimization': 'true', 'tuplex.optimizer.nullValueOptimization': 'true', 'tuplex.partitionSize': '32MB', 'tuplex.readBufferSize': '128KB', 'tuplex.runTimeLibrary': '/home/lspiegel/tuplex-remote/tuplex/build/dist/python/tuplex/libexec/tuplex_runtime.so', 'tuplex.runTimeMemory': '128MB', 'tuplex.runTimeMemoryBlockSize': '4MB', 'tuplex.scratchDir': '/tmp/tuplex-cache-lspiegel', 'tuplex.webui.mongodb.path': '/tmp/tuplex-cache-lspiegel/mongodb', 'tuplex.webui.mongodb.url': 'localhost', 'tuplex.webui.url': 'localhost'}
-{"logical_optimization_time_s":0.0236601,"llvm_optimization_time_s":0,"llvm_compilation_time_s":0,"total_compilation_time_s":0,"sampling_time_s":1.15771,"generate_llvm_time_s":0.391377,"stages":[]}
-{"startupTime": 0.22429990768432617, "jobTime": 64.67883038520813}
+{"logical_optimization_time_s":0.0436961,"llvm_optimization_time_s":0,"llvm_compilation_time_s":0,"total_compilation_time_s":0,"sampling_time_s":1.30936,"generate_llvm_time_s":0.560295,"stages":[]}
+{"startupTime": 0.2697422504425049, "jobTime": 66.06193923950195}

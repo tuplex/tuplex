@@ -1284,10 +1284,37 @@ namespace tuplex {
                         ss<<",";
                 }
                 ss<<"]";
+
+                // invoked input uris
+                ss<<",[";
+                for(unsigned i = 0; i < task.inputuris_size(); ++i) {
+                    ss<<"\""<<task.inputuris(i)<<"\"";
+                    if(i != task.inputuris_size() - 1)
+                        ss<<",";
+                }
+
+                ss<<"]";
+
+                // end container.
                 ss<<"}";
                 if(task_counter != _tasks.size() - 1)
                     ss<<",";
                 task_counter++;
+            }
+        }
+        ss<<"],";
+
+
+        // 2. requests & responses?
+        // 1. tasks
+        ss<<"\"requests\":[";
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+            for(unsigned i = 0; i < _infos.size(); ++i) {
+                auto& info = _infos[i];
+                ss<<info.asJSON();
+                if(i != _infos.size() - 1)
+                    ss<<",";
             }
         }
         ss<<"]";

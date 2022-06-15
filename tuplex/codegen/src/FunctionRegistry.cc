@@ -1043,19 +1043,19 @@ namespace tuplex {
 
             auto x = args[0];
             auto y = args[1];
-            auto rel_tol;
-            auto abs_tol;
+            llvm::Value* rel_tol;
+            llvm::Value* abs_tol;
             auto x_ty = argsTypes[0];
             auto y_ty = argsTypes[1];
-            auto rel_tol_ty;
-            auto abs_tol_ty;
+            llvm::Type* rel_tol_ty;
+            llvm::Type* abs_tol_ty;
 
             if (args.size() == 2) {
                 // rel_tol and abs_tol not specified
                 rel_tol = _env.f64Const(1e-09);
                 abs_tol = _env.f64Const(0);
-                rel_tol_ty = _env.getDoubleTy();
-                abs_tol_ty = _env.getDoubleTy();
+                rel_tol_ty = _env.doubleType();
+                abs_tol_ty = _env.doubleType();
                 
             } else if (args.size() == 3) {
                 // assume that the third argument is rel_tol

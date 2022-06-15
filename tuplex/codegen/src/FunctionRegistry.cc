@@ -974,16 +974,9 @@ namespace tuplex {
             auto val = args.front();
             auto type = argsType.parameters().front();
             
-            if (python::Type::F64 == type || python::Type::I64 == type) {
-                llvm::Value* i64Val;
-                if (python::Type::F64 == type) {
-                    _env.printValue(builder, val.val, "double/python float value\n");
-                    i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
-                } else {
-                    assert(python::Type::I64 == type);
-                    _env.printValue(builder, val.val, "int value\n");
-                    i64Val = val.val;
-                }
+            if (python::Type::F64 == type) {
+                llvm::Value* i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
+                _env.printValue(builder, val.val, "double/python float value\n");
                 
                 auto shiftedVal = builder.CreateLShr(i64Val, 32);
                 auto i32Shift = builder.CreateTrunc(shiftedVal, llvm::Type::getInt32Ty(context));
@@ -1000,8 +993,8 @@ namespace tuplex {
                 return SerializableValue(resVal, resSize);
             } else {
                 // only other valid input types are integer and boolean
-                assert(python::Type::BOOLEAN == type);
-                _env.printValue(builder, val.val, "boolean value\n");
+                assert(python::Type::BOOLEAN == type || python::Type::I64 == type);
+                _env.printValue(builder, val.val, "boolean or integer value\n");
                 
                 // return SerializableValue(ConstantInt::get(llvm::Type::getInt64Ty(context), 0), _env.i64Const(sizeof(int64_t)));
                 return SerializableValue(_env.boolConst(false), _env.i64Const(sizeof(int64_t)));

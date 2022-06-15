@@ -4246,17 +4246,10 @@ def start_container():
             logging.info('Starting up docker container')
             # docker run -v /disk/data:/data -v /disk/benchmark_results:/results -v /disk/tuplex-public:/code --name sigmod21 --rm -dit tuplex/benchmark
             # check directory layout!
-            if not os.path.isdir('/disk'):
-                raise Exception('Could not find /disk directory, is machine properly setup?')
-            # create dirs
-            os.makedirs('/disk/data', exist_ok=True)
-            os.makedirs('/disk/benchmark_results', exist_ok=True)
-            if not os.path.isdir('/disk/tuplex-public'):
-                raise Exception('Could not find tuplex repo at directory /disk/tuplex-public. Please check out first!')
 
-            volumes = {'/disk/data/': {'bind': '/data', 'mode': 'rw'},
-                       '/disk/benchmark_results': {'bind': '/results', 'mode': 'rw'},
-                       '/disk/tuplex-public': {'bind': '/code', 'mode': 'rw'}}
+            REPO_PATH=os.path.join(os.getcwd(), 'tuplex')
+            logging.info('Mounting source code from {}'.format(REPO_PATH))
+            volumes = {REPO_PATH: {'bind': '/code', 'mode': 'rw'}}
 
             dc.containers.run(DOCKER_IMAGE_TAG + ':latest', name=DOCKER_CONTAINER_NAME,
                               tty=True, stdin_open=True, detach=True, volumes=volumes, remove=True)
@@ -4332,6 +4325,8 @@ def build():
     # i.e. build command is: docker exec sigmod21 bash /code/benchmarks/sigmod21-reproducibility/build_scripts/build_tuplex.sh
     BUILD_SCRIPT_PATH = '/code/benchmarks/nextconf/build_scripts/build_tuplex.sh'
     cmd = ['docker', 'exec', 'sigmod21', 'bash', BUILD_SCRIPT_PATH]
+
+    cmd = ['docker', 'exec', 'sigmod21', 'ls', '/code/benchmarks/nextconf']
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)
     for line in iter(p.stdout.readline, b''):
         logging.info(line.decode().strip())

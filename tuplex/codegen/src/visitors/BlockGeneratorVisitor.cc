@@ -4179,7 +4179,7 @@ namespace tuplex {
             } else {
 
                 if(canAchieveAtLeastNullCompatibility(deopt_func_return_type, deopt_target_type)) {
-                    _logger.debug("types are not identical, but null-compatible. Adding speculative null return extration.");
+                    _logger.debug("types are not identical, but null-compatible. Adding speculative null return extraction.");
                     // attempt null-extraction, else return with normal-case violation.
                     generateReturnWithNullExtraction(builder,
                                                      retVal,

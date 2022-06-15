@@ -384,7 +384,7 @@ namespace tuplex {
 
         std::cout<<"initTrafoStage done"<<std::endl;
 
-        std::atomic<size_t> numInputRowsProcessed(0);
+        size_t numInputRowsProcessed = 0;
         auto numCodes = std::max(1ul, _numThreads);
         auto processCodes = new int[numCodes];
         memset(processCodes, WORKER_OK, sizeof(int) * numCodes);
@@ -435,8 +435,11 @@ namespace tuplex {
             // launch threads & process in each assigned parts
             std::vector<std::thread> threads;
             threads.reserve(_numThreads);
+
+            std::vector<size_t> v_inputRowCount(_numThreads, 0);
+
             for(int i = 1; i < _numThreads; ++i) {
-                threads.emplace_back([this, tstage, &syms, &processCodes, &numInputRowsProcessed](int threadNo, const std::vector<FilePart>& parts) {
+                threads.emplace_back([this, tstage, &syms, &processCodes, &v_inputRowCount](int threadNo, const std::vector<FilePart>& parts) {
                     logger().debug("thread (" + std::to_string(threadNo) + ") started.");
 
                     runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
@@ -448,7 +451,7 @@ namespace tuplex {
                             processCodes[threadNo] = processSource(threadNo, tstage->fileInputOperatorID(), part, tstage, syms, &inputRowCount);
                             if(processCodes[threadNo] != WORKER_OK)
                                 break;
-                            numInputRowsProcessed += inputRowCount;
+                            v_inputRowCount[threadNo] += inputRowCount;
                         }
                     } catch(const std::exception& e) {
                         logger().error(std::string("exception recorded: ") + e.what());
@@ -471,13 +474,13 @@ namespace tuplex {
             runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
 
             try {
-                for(auto part : parts[0]) {
+                for(const auto& part : parts[0]) {
                     logger().debug("thread (main) processing part");
                     size_t inputRowCount = 0;
                     processCodes[0] = processSource(0, tstage->fileInputOperatorID(), part, tstage, syms, &inputRowCount);
                     if(processCodes[0] != WORKER_OK)
                         break;
-                    numInputRowsProcessed += inputRowCount;
+                    v_inputRowCount[0] += inputRowCount;
                 }
             } catch(const std::exception& e) {
                 logger().error(std::string("exception recorded: ") + e.what());
@@ -499,6 +502,11 @@ namespace tuplex {
                 logger().debug("Thread joined");
             }
 
+            // calc total count
+            numInputRowsProcessed = 0;
+            for(auto el : v_inputRowCount)
+                numInputRowsProcessed += el;
+
             logger().debug("All threads joined, processing done.");
         }
 
@@ -519,6 +527,10 @@ namespace tuplex {
         // update paths
         // compute number of successful normal-case rows -> rest is unresolved
         auto exception_row_count = get_exception_row_count();
+
+
+        // limiting, fix later.
+        exception_row_count = std::min(exception_row_count, numInputRowsProcessed);
         assert(numInputRowsProcessed >= exception_row_count);
         _codePathStats.rowsOnNormalPathCount += numInputRowsProcessed - exception_row_count;
         _codePathStats.unresolvedRowsCount += exception_row_count;
@@ -1645,11 +1657,11 @@ namespace tuplex {
         if(out_buf.size() + bufSize <= out_buf.capacity()) {
             memcpy(out_buf.ptr(), buf, bufSize);
             out_buf.movePtr(bufSize);
-            env->numExceptionRows++;
 
             // update type (TODO, first traceback sample??)
             auto key = std::make_tuple(exceptionOperatorID, exceptionCode);
             env->exceptionCounts[key]++;
+            env->numExceptionRows++;
         } else {
 
             // check if bufSize exceeds limit, if so resize and call again!

@@ -1393,14 +1393,14 @@ TEST(BasicInvocation, TestAllFlightFiles) {
         // !!! use compatible files for inference when issuing queries, else there'll be errors.
 
 //    paths = {URI(flights_root + "flights_on_time_performance_2000_01.csv"), URI(flights_root + "flights_on_time_performance_2021_11.csv")};
-    paths = {URI(flights_root + "flights_on_time_performance_1987_10.csv"), URI(flights_root + "flights_on_time_performance_2021_11.csv")};
+    paths = {URI(flights_root + "flights_on_time_performance_2002_01.csv"), URI(flights_root + "flights_on_time_performance_2004_12.csv")};
 
     input_pattern = paths.front().toString() + "," + paths.back().toString();
     auto test_output_path = "./general_processing/";
     int num_threads = 1;
     auto spillURI = std::string("spill_folder");
-    auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
-    auto tstage_general = nullptr; // create_flights_pipeline(input_pattern, "./general_processing/", false);
+    auto tstage_hyper = nullptr;//create_flights_pipeline(input_pattern, "./hyper_processing/", true);
+    auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false, SamplingMode::FIRST_ROWS | SamplingMode::FIRST_FILE);
 
     // // test: 2013_03 fails -> fixed
     // 2010_01 fails
@@ -1422,6 +1422,8 @@ TEST(BasicInvocation, TestAllFlightFiles) {
 
     // this fails with hyper and 32KB sampling memory
     paths = {URI(flights_root + "flights_on_time_performance_2000_10.csv")}; // this seems to fail in python mode??
+
+    paths = {URI(flights_root + "flights_on_time_performance_2004_12.csv")};
 
     std::reverse(paths.begin(), paths.end());
 
@@ -1585,4 +1587,140 @@ TEST(BasicInvocation, FlightsSampling) {
     }
 
     cout<<"Test done."<<endl;
+}
+
+/*!
+ * this here is the local machine experiment for the workshop paper. Note that this is done via C++ and not properly as
+ * python file.
+ */
+TEST(BasicInvocation, WorkshopPaperLocalExperiment) {
+    using namespace std;
+    using namespace tuplex;
+
+    // get runtime lib path
+    auto rtlib_path = ContextOptions::defaults().RUNTIME_LIBRARY().toString();
+
+    auto worker_path = find_worker();
+
+    auto testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+    auto scratchDir = "/tmp/" + testName;
+
+    // change cwd & create dir to avoid conflicts!
+    auto cwd_path = boost::filesystem::current_path();
+    auto desired_cwd = cwd_path.string() + "/tests/" + testName;
+    // create dir if it doesn't exist
+    auto vfs = VirtualFileSystem::fromURI("file://");
+    vfs.create_dir(desired_cwd);
+    boost::filesystem::current_path(desired_cwd);
+
+    char buf[4096];
+    auto cur_dir = getcwd(buf, 4096);
+
+    EXPECT_NE(std::string(cur_dir).find(testName), std::string::npos);
+
+    cout<<"Starting worksgop Flights hyperspecializaiton test:\n======="<<endl;
+    cout<<"current working dir: "<<buf<<endl;
+
+    // check worker exists
+    ASSERT_TRUE(tuplex::fileExists(worker_path));
+
+    // for testing purposes, store here the root path to the flights data (simple ifdef)
+#ifdef __APPLE__
+    // leonhards macbook
+    string flights_root = "/Users/leonhards/Downloads/flights/";
+    //string flights_root = "/Users/leonhards/Downloads/flights_small/";
+    string driver_memory = "2G";
+#else
+    // BBSN00
+    string flights_root = "/hot/data/flights_all/";
+    string driver_memory = "32G";
+    string executor_memory = "10G";
+    string num_executors = "0";
+    //num_executors = "16";
+#endif
+
+    cout<<"flight data root is: "<<flights_root<<endl;
+
+    // --- use this for final PR ---
+    // For testing purposes: resources/hyperspecialization/2003/*.csv holds two mini samples where wrong sampling triggers too many exceptions in general case mode
+    string input_pattern = cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv," + cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
+    // --- end use this for final PR ---
+
+    // find all flight files in root
+    vfs = VirtualFileSystem::fromURI(URI(flights_root));
+    auto paths = vfs.globAll(flights_root + "/flights_on_time*.csv");
+    std::sort(paths.begin(), paths.end(), [](const URI& a, const URI& b) {
+        auto a_str = a.toString();
+        auto b_str = b.toString();
+        return lexicographical_compare(a_str.begin(), a_str.end(), b_str.begin(), b_str.end());
+    });
+    cout<<"Found "<<paths.size()<<" CSV files.";
+    cout<<basename(paths.front().toString())<<" ... "<<basename(paths.back().toString())<<endl;
+
+    std::reverse(paths.begin(), paths.end());
+
+    // experiment settings
+    int num_threads = 1;
+
+    // 1. starting general processing experiment (using worker!)
+    {
+        cout<<">>> Starting general processing experiment"<<endl;
+        cout<<"  input pattern: "<<input_pattern<<endl;
+        cout<<"  "<<pluralize(paths.size(), "path")<<endl;
+
+        Timer timer;
+
+        auto test_output_path = "./general_processing/";
+
+        auto spillURI = URI(std::string("general_spill_folder"));
+        auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false);
+
+        auto app = make_unique<WorkerApp>(WorkerSettings());
+
+        paths = {URI(flights_root + "/flights_on_time_performance_2013_03.csv")};
+
+        // local WorkerApp
+        // start worker within same process to easier debug...
+
+        std::cout<<" --- General processing --- "<<std::endl;
+        for(const auto& input_uri : paths) {
+            vfs = VirtualFileSystem::fromURI(input_uri);
+            uint64_t input_file_size = 0;
+            vfs.file_size(input_uri, input_file_size);
+
+            auto output_uri = URI(tstage_general->outputURI().toString() + "/" + basename(input_uri.toString()));
+            auto json_message_general = transformStageToReqMessage(tstage_general, input_uri.toPath(),
+                                                                   input_file_size, output_uri.toString(),
+                                                                   false,
+                                                                   num_threads,
+                                                                   spillURI.toString());
+            app->processJSONMessage(json_message_general);
+        }
+
+        app->shutdown();
+
+        cout<<"general took: "<<timer.time()<<"s"<<endl;
+    }
+
+//    // 2. starting hyper-specialized processing experiment (using worker!)
+//
+//    auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
+//
+//
+//
+//
+//
+//
+//    for(const auto& path : paths) {
+//        Timer timer;
+//        cout<<"Testing "<<basename(path.toString())<<"...";
+//        cout.flush();
+//        int rc = checkHyperSpecialization(path, tstage_hyper, tstage_general, num_threads, spillURI);
+//        std::string hyper_ok = rc & 0x1 ? "OK" : "FAILED";
+//        std::string general_ok = rc & 0x2 ? "OK" : "FAILED";
+//        std::string validation_ok = rc & 0x4 ? "OK" : "FAILED";
+//        cout<<"  hyper: "<<hyper_ok<<" general: "<<general_ok<<" validation: "<<validation_ok<<" took: "<<timer.time()<<"s"<<endl;
+//    }
+
+    cout<<"Experiment done."<<endl;
 }

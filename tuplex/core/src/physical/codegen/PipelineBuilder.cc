@@ -2334,10 +2334,10 @@ namespace tuplex {
 
             {
                 std::stringstream ss;
-                ss<<"creating slow path single-row wrapper\n";
+                ss<<"creating slow path based on\n";
                 ss<<"\tnormalcase:  "<<normalCaseType.desc()<<"\n";
                 ss<<"\tgeneralcase: "<<generalCaseType.desc()<<"\n";
-                logger.debug(ss.str());
+                logger.info(ss.str());
             }
 
             if(!normalCaseAndGeneralCaseCompatible) {

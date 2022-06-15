@@ -1006,6 +1006,8 @@ namespace tuplex {
         path_ctx.operators = planner.optimized_operators();
         path_ctx.checks = planner.checks();
 
+        assert(inputNode->getID() == path_ctx.inputNode->getID());
+
         // output schema: the schema this stage yields ultimately after processing
         // input schema: the (optimized/projected, normal case) input schema this stage reads from (CSV, Tuplex, ...)
         // read schema: the schema to read from (specialized) but unprojected.

@@ -12,10 +12,10 @@ while :; do
 done
 
 # build benchmark docker image
-docker build -t tuplex/benchmarkII . || exit 1
+docker build -t tuplex/benchmarkii . || exit 1
 
 # is upload set?
 if [[ "${UPLOAD}" == 'SET' ]]; then
   docker login
-  docker push tuplex/benchmarkII
+  docker push tuplex/benchmarkii
 fi

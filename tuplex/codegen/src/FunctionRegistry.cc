@@ -1045,62 +1045,102 @@ namespace tuplex {
 
             auto x_val = args[0];
             auto y_val = args[1];
-            llvm::Value* rel_tol;
-            llvm::Value* abs_tol;
+            tuplex::codegen::SerializableValue rel_tol_val;
+            tuplex::codegen::SerializableValue abs_tol_val;
             auto x_ty = input_types[0];
             auto y_ty = input_types[1];
-            python::Type rel_tol_ty;
-            python::Type abs_tol_ty;
 
             if (args.size() == 2) {
                 // rel_tol and abs_tol not specified
-                rel_tol = _env.f64Const(1e-09);
-                abs_tol = _env.f64Const(0);
-                rel_tol_ty = python::Type::F64;
-                abs_tol_ty = python::Type::F64;
+                rel_tol_val = _env.f64Const(1e-09);
+                abs_tol_val = _env.f64Const(0);
             } else if (args.size() == 3) {
                 // assume that the third argument is rel_tol
-                rel_tol = args[2].val;
-                abs_tol = _env.f64Const(0);
-                rel_tol_ty = input_types[2];
-                abs_tol_ty = python::Type::F64;
+                rel_tol_val = args[2].val;
+                abs_tol_val = _env.f64Const(0);
             } else {
                 assert(args.size() == 4);
                 // assume that the third argument is rel_tol and the fourth argument is abs_tol
                 // this means we don't handle the case where abs_tol is specified but rel_tol is not
-                rel_tol = args[2].val;
-                abs_tol = args[3].val;
-                rel_tol_ty = input_types[2];
-                abs_tol_ty = input_types[3];
+                rel_tol_val = args[2].val;
+                abs_tol_val = args[3].val;
             }
+
+            auto rel_tol = _env.upCast(builder, rel_tol_val.val, _env.doubleType());
+            auto abs_tol = _env.upCast(builder, abs_tol_val.val, _env.doubleType());
 
             // max_val = max(|a|, |b|)
             // return abs(x-y) <= max(rel_tol * max_val, abs_tol)
 
             // check x and y types - bools and ints can be optimized!
             // TODO: error check both rel_tol > 0 and abs_tol >= 0
-            // first case should be bool, bool
-            // second case should be not float, not float
-            // Q: how many different cases are worth considering for optimization?
-            // Does having too many different cases result in diminishing returns at some point?
             if (x_ty == python::Type::BOOLEAN && y_ty == python::Type::BOOLEAN) {
-                /** if x == y return true else **/
+                auto xor_xy = builder.CreateXor(x_val.val, y_val.val);
+                auto rel_cmp = builder.CreateFCmpOGE(rel_tol, _env.f64Const(1));
+                auto abs_cmp = builder.CreateFCmpOGE(abs_tol, _env.f64Const(1));
+                auto rel_or_abs = builder.CreateOr(rel_cmp, abs_cmp);
+                auto eq_check = builder.CreateXor(xor_xy, _env.boolConst(true));
+                auto or_res = builder.CreateOr(rel_or_abs, eq_check);
+
+                auto resVal = _env.upcastToBoolean(builder, or_res);
+                auto resSize = _env.i64Const(sizeof(int64_t));
+
+                return SerializableValue(resVal, resSize);
             } else if (x_ty != python::Type::F64 && y_ty != python::Type::F64) {
-                // case where both x and y are not floats; they are ints/bools
-                // thought: some of these optimizations technically work for floats too
-                /** possible optimizations (in no particular order after the first):
-                 *  if x == y:
-                 *      return true
-                 *  
-                 *  max_val = max(|x|,|y|)
-                 * 
-                 *  if abs_tol == 0:
-                 *      return |x-y| <= rel_tol * max_val // works for floats
-                 *      return rel_tol * max_val < 1 // works for non-floats
-                 *
-                 *  if rel_tol * max_val < 1 && abs_tol < 1:
-                 *      return false // works for non-floats
-                 * **/
+                // TODO: cast x/y to integers
+                auto cur_block = builder.GetInsertBlock();
+                assert(cur_block);
+
+                // create new blocks for each case
+                BasicBlock *bb_abs0 = BasicBlock::Create(builder.getContext(), "opt_abs0", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_l1 = BasicBlock::Create(builder.getContext(), "opt_<_1", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_standard = BasicBlock::Create(builder.getContext(), "opt_standard", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_NEQres = BasicBlock::Create(builder.getContext(), "NEQ_done", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_done = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
+
+                auto eq_res = builder.CreateICmpEQ(x_val.val, y_val.val);
+                builder.CreateCondBr(eq_res, bb_done, bb_abs0);
+
+                // case where values are not equal; first check whether abs_tol is 0
+                builder.SetInsertPoint(bb_abs0);
+                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::abs, x_val.val, _env.boolConst(true));
+                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::abs, y_val.val, _env.boolConst(true));
+                auto xy_cmp = builder.CreateICmpULT(x_abs, y_abs);
+                auto max_val = builder.CreateSelect(xy_cmp, y_abs, x_abs);
+                auto abs_cmp = builder.CreateFCmpOEQ(abs_tol, _env.f64Const(0));
+                auto dbl_max = builder.CreateSIToFP(max_val, _env.doubleType());
+                auto relxmax = builder.CreateFMul(dbl_max, rel_tol);
+                auto abs0_cmp = builder.CreateFCmpOLT(relxmax, _env.f64Const(1));
+                builder.CreateCondBr(abs_cmp, bb_NEQres, bb_l1);
+
+                // ; bbl1
+                // 15:    ; preds = %6
+                // %16 = fcmp olt double %3, 1.000000e+00
+                // %17 = and i1 %16, %14
+                // br i1 %17, label %25, label %18
+                builder.SetInsertPoint(bb_l1);
+                auto 
+
+                // ; bbstandard
+                // 18:    ; preds = %15
+                // %19 = sub nsw i32 %0, %1
+                // %20 = tail call i32 @llvm.abs.i32(i32 %19, i1 true)
+                // %21 = sitofp i32 %20 to double
+                // %22 = fcmp olt double %13, %3
+                // %23 = select i1 %22, double %3, double %13
+                // %24 = fcmp oge double %23, %21
+                // br label %25
+
+                // ; bbNEQres
+                // 25:    ; preds = %6, %15, %18
+                // %26 = phi i1 [ %24, %18 ], [ false, %15 ], [ %14, %6 ]
+                // %27 = zext i1 %26 to i32
+                // br label %28
+
+                // ; bbDone
+                // 28:    ; preds = %4, %25
+                // %29 = phi i32 [ %27, %25 ], [ 1, %4 ]
+                // ret i32 %29
             } else {
                 // case where x or y is a float
                 // if either is a float, can't optimize since floats can be arbitrarily close to any other value
@@ -1114,9 +1154,9 @@ namespace tuplex {
                 // %6 = tail call double @llvm.fabs.f64(double %5) #8, !dbg !1285
                 auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
                 // %7 = tail call double @llvm.fabs.f64(double %0) #8, !dbg !1288
-                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, {codegen::upCast(builder, x.val, Type::getDoubleTy(context))});
+                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x);
                 // %8 = tail call double @llvm.fabs.f64(double %1) #8, !dbg !1291
-                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, {codegen::upCast(builder, y.val, Type::getDoubleTy(context))});
+                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, y);
                 // %9 = fcmp olt double %7, %8, !dbg !1305
                 auto ab_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
                 // %10 = select i1 %9, double %8, double %7, !dbg !1307
@@ -1382,7 +1422,7 @@ namespace tuplex {
                 std::vector<python::Type> input_types = argsType.parameters();
                 for(const auto& type : input_types) {
                     if (type != python::Type::BOOLEAN || type != python::Type::I64 || type != python::Type::F64) {
-                        throw std::runtime_error("math.isclose arguments must be a float, integer, or boolean");
+                        throw std::runtime_error("math.isclose argument must be a float, integer, or boolean");
                     }
                 }
 

@@ -146,7 +146,7 @@ pip3 install cloudpickle numpy
 
 # protobuf (need at least > 3.19)
 cd /tmp &&
-curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.21.1/protobuf-cpp-3.21.1.tar.gz &&
+curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v21.1/protobuf-cpp-3.21.1.tar.gz &&
 tar xf protobuf-cpp-3.21.1.tar.gz &&
 pushd protobuf-3.21.1 &&
 ./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" &&

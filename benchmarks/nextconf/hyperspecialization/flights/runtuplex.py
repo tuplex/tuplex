@@ -167,6 +167,7 @@ if __name__ == '__main__':
             "backend": "lambda",
             "aws.lambdaMemory": lambda_size,
             "aws.lambdaThreads": lambda_threads,
+            "aws.httpThreadCount": 410,
             "aws.maxConcurrency": 410,
             'tuplex.csv.maxDetectionMemory': '256KB',
             "aws.scratchDir": s3_scratch_dir,

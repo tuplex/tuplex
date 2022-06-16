@@ -1078,11 +1078,14 @@ namespace tuplex {
             // return abs(x-y) <= max(rel_tol * max_val, abs_tol)
 
             // check x and y types - bools and ints can be optimized!
+            // TODO: error check both rel_tol > 0 and abs_tol >= 0
             // first case should be bool, bool
             // second case should be not float, not float
             // Q: how many different cases are worth considering for optimization?
             // Does having too many different cases result in diminishing returns at some point?
-            if (x_ty != python::Type::F64 && y_ty != python::Type::F64) {
+            if (x_ty == python::Type::BOOLEAN && y_ty == python::Type::BOOLEAN) {
+                /** if x == y return true else **/
+            } else if (x_ty != python::Type::F64 && y_ty != python::Type::F64) {
                 // case where both x and y are not floats; they are ints/bools
                 // thought: some of these optimizations technically work for floats too
                 /** possible optimizations (in no particular order after the first):

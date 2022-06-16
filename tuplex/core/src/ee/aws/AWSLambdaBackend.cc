@@ -1286,7 +1286,7 @@ namespace tuplex {
                 ss<<"]";
 
                 // invoked input uris
-                ss<<",[";
+                ss<<",\"input_uris\":[";
                 for(unsigned i = 0; i < task.inputuris_size(); ++i) {
                     ss<<"\""<<task.inputuris(i)<<"\"";
                     if(i != task.inputuris_size() - 1)

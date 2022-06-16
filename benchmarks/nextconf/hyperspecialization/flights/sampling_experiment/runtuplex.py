@@ -149,6 +149,7 @@ if __name__ == '__main__':
     conf = {"webui.enable" : False,
             "backend": "lambda",
             "aws.lambdaMemory": lambda_size,
+            "aws.httpThreadCount": 36,
             "aws.lambdaThreads": lambda_threads,
             "aws.scratchDir": s3_scratch_dir,
             "experimental.hyperspecialization": use_hyper_specialization,

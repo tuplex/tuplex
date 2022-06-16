@@ -1067,30 +1067,47 @@ namespace tuplex {
             } else {
                 assert(args.size() == 4);
                 // assume that the third argument is rel_tol and the fourth argument is abs_tol
-                // Q: this means that I'm not handling the case where abs_tol is specified but rel_tol is not
+                // this means we don't handle the case where abs_tol is specified but rel_tol is not
                 rel_tol = args[2].val;
                 abs_tol = args[3].val;
                 rel_tol_ty = input_types[2];
                 abs_tol_ty = input_types[3];
             }
 
-            auto x = _env.upCast(builder, x_val.val, _env.doubleType());
-            auto y = _env.upCast(builder, y_val.val, _env.doubleType());
+            // max_val = max(|a|, |b|)
+            // return abs(x-y) <= max(rel_tol * max_val, abs_tol)
 
             // check x and y types - bools and ints can be optimized!
+            // first case should be bool, bool
+            // second case should be not float, not float
+            // Q: how many different cases are worth considering for optimization?
+            // Does having too many different cases result in diminishing returns at some point?
             if (x_ty != python::Type::F64 && y_ty != python::Type::F64) {
                 // case where both x and y are not floats; they are ints/bools
-                /** pseudocode:
+                // thought: some of these optimizations technically work for floats too
+                /** possible optimizations (in no particular order after the first):
                  *  if x == y:
                  *      return true
-                 *  else if 
+                 *  
+                 *  max_val = max(|x|,|y|)
+                 * 
+                 *  if abs_tol == 0:
+                 *      return |x-y| <= rel_tol * max_val // works for floats
+                 *      return rel_tol * max_val < 1 // works for non-floats
+                 *
+                 *  if rel_tol * max_val < 1 && abs_tol < 1:
+                 *      return false // works for non-floats
                  * **/
             } else {
                 // case where x or y is a float
                 // if either is a float, can't optimize since floats can be arbitrarily close to any other value
                 
+                // cast both x and y to floats for comparison
+                auto x = _env.upCast(builder, x_val.val, _env.doubleType());
+                auto y = _env.upCast(builder, y_val.val, _env.doubleType());
+
                 // %5 = fsub double %0, %1, !dbg !1279
-                auto diff = builder.CreateFSub(x.val, y.val);
+                auto diff = builder.CreateFSub(x, y);
                 // %6 = tail call double @llvm.fabs.f64(double %5) #8, !dbg !1285
                 auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
                 // %7 = tail call double @llvm.fabs.f64(double %0) #8, !dbg !1288

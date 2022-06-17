@@ -358,44 +358,6 @@ class TestMath(unittest.TestCase):
         assert L_bool[2] == math.pow(False, True)
         assert L_bool[3] == math.pow(False, False)
 
-    
-    def testIsInf(self):
-        c = tuplex.Context(self.conf)
-
-        test = [math.inf, -math.inf, math.inf + math.inf, math.inf * math.inf, math.nan, math.pi, 0.0, 1.0, -1.0, -128.0, True]
-        L = c.parallelize(test).map(lambda x: math.isinf(x)).collect()
-        assert len(L) == 11, 'wrong length'
-        self.assertEqual(L[0], True)
-        self.assertEqual(L[1], True)
-        self.assertEqual(L[2], True)
-        self.assertEqual(L[3], True)
-        self.assertEqual(L[4], False)
-        self.assertEqual(L[5], False)
-        self.assertEqual(L[6], False)
-        self.assertEqual(L[7], False)
-        self.assertEqual(L[8], False)
-        self.assertEqual(L[9], False)
-        self.assertEqual(L[10], False)
-
-        # int_test = [1, -math.inf, -1, 0, math.inf]
-        # L2 = c.parallelize(int_test).map(lambda x: math.isinf(x)).collect()
-        # assert len(L2) == 5, 'wrong length'
-        # self.assertEqual(L2[0], False)
-        # self.assertEqual(L2[1], True)
-        # self.assertEqual(L2[2], False)
-        # self.assertEqual(L2[3], False)
-        # self.assertEqual(L2[4], True)
-
-        # mix_test = [-1.0, math.inf, 1.5, math.nan, -math.inf, 0.0]
-        # L3 = c.parallelize(mix_test).map(lambda x, y: math.pow(x, y)).collect()
-        # assert len(L3) == 6
-        # self.assertEqual(L3[0], False)
-        # self.assertEqual(L3[1], True)
-        # self.assertEqual(L3[2], False)
-        # self.assertEqual(L3[3], False)
-        # self.assertEqual(L3[4], True)
-        # self.assertEqual(L3[5], False)
-
 
     def testIsNan(self):
         c = tuplex.Context(self.conf)
@@ -435,54 +397,44 @@ class TestMath(unittest.TestCase):
         # self.assertEqual(L2[4], False)
     
 
+    def testIsInf(self):
+        c = tuplex.Context(self.conf)
+
+        test = [math.inf, -math.inf, math.inf + math.inf, math.inf * math.inf, math.nan, math.pi, 0.0, 1.0, -1.0, -128.0, True]
+        L = c.parallelize(test).map(lambda x: math.isinf(x)).collect()
+        assert len(L) == 11, 'wrong length'
+        self.assertEqual(L[0], True)
+        self.assertEqual(L[1], True)
+        self.assertEqual(L[2], True)
+        self.assertEqual(L[3], True)
+        self.assertEqual(L[4], False)
+        self.assertEqual(L[5], False)
+        self.assertEqual(L[6], False)
+        self.assertEqual(L[7], False)
+        self.assertEqual(L[8], False)
+        self.assertEqual(L[9], False)
+        self.assertEqual(L[10], False)
+
+        # int_test = [1, -math.inf, -1, 0, math.inf]
+        # L2 = c.parallelize(int_test).map(lambda x: math.isinf(x)).collect()
+        # assert len(L2) == 5, 'wrong length'
+        # self.assertEqual(L2[0], False)
+        # self.assertEqual(L2[1], True)
+        # self.assertEqual(L2[2], False)
+        # self.assertEqual(L2[3], False)
+        # self.assertEqual(L2[4], True)
+
+        # mix_test = [-1.0, math.inf, 1.5, math.nan, -math.inf, 0.0]
+        # L3 = c.parallelize(mix_test).map(lambda x, y: math.pow(x, y)).collect()
+        # assert len(L3) == 6
+        # self.assertEqual(L3[0], False)
+        # self.assertEqual(L3[1], True)
+        # self.assertEqual(L3[2], False)
+        # self.assertEqual(L3[3], False)
+        # self.assertEqual(L3[4], True)
+        # self.assertEqual(L3[5], False)
+
+
     def testIsClose(self):
         c = tuplex.Context(self.conf)
 
-        test0 = [(0, 0), (1, 2), (1.0, 1.000000001)]
-        L0 = c.parallelize(test0).map(lambda x, y: math.isclose(x, y)).collect()
-        assert len(L0) == 3, 'wrong length'
-        self.assertEqual(L0[0], True)
-        self.assertEqual(L0[1], False)
-        self.assertEqual(L0[2], False)
-
-        # abs_tol
-        test1 = [(0.0, 0.0, 0.4), (1.5, 1.6, 0.0001), (3.0, 3.000000001, 1e-07)]
-        L1 = c.parallelize(test1).map(lambda x, y, z: math.isclose(x, y, abs_tol=z)).collect()
-        assert len(L1) == 3, 'wrong length'
-        self.assertEqual(L1[0], True)
-        self.assertEqual(L1[1], False)
-        self.assertEqual(L1[2], True)
-
-        # rel_tol
-        test2 = [(0, 0, 1e-08), (1.0, 2.0, 0.1), (1.0, 1.000000001, 1e-07)]
-        L2 = c.parallelize(test2).map(lambda x, y, z: math.isclose(x, y, rel_tol=z)).collect()
-        assert len(L2) == 3, 'wrong length'
-        self.assertEqual(L2[0], True)
-        self.assertEqual(L2[1], False)
-        self.assertEqual(L2[2], True)
-
-        # both
-        test3 = [(0.0, 0.0, 1e-08, 0.4), (1.0, 2.0, 0.1, 0.0001), (1.0, 1.000000001, 1e-07, 0.000005)]
-        L3 = c.parallelize(test3).map(lambda w, x, y, z: math.isclose(w, x, rel_tol=y, abs_tol=z)).collect()
-        assert len(L3) == 3, 'wrong length'
-        self.assertEqual(L3[0], True)
-        self.assertEqual(L3[1], False)
-        self.assertEqual(L3[2], True)
-
-
-# Return True if the values a and b are close to each other and False otherwise.
-
-# Whether or not two values are considered close is determined according to given absolute and relative tolerances.
-
-# rel_tol is the relative tolerance – it is the maximum allowed difference between a and b, 
-# relative to the larger absolute value of a or b. For example, to set a tolerance of 5%, pass rel_tol=0.05. 
-# The default tolerance is 1e-09, which assures that the two values are the same within about 9 decimal digits. 
-# rel_tol must be greater than zero.
-
-# abs_tol is the minimum absolute tolerance – useful for comparisons near zero. abs_tol must be at least zero.
-
-# If no errors occur, the result will be: abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol).
-
-# The IEEE 754 special values of NaN, inf, and -inf will be handled according to IEEE rules. 
-# Specifically, NaN is not considered close to any other value, including NaN. 
-# inf and -inf are only considered close to themselves.

@@ -1042,8 +1042,8 @@ namespace tuplex {
 
             auto x_val = args[0];
             auto y_val = args[1];
-            tuplex::codegen::SerializableValue rel_tol_val;
-            tuplex::codegen::SerializableValue abs_tol_val;
+            llvm::Value* rel_tol_val;
+            llvm::Value* abs_tol_val;
             auto x_ty = input_types[0];
             auto y_ty = input_types[1];
 
@@ -1063,8 +1063,8 @@ namespace tuplex {
                 abs_tol_val = args[3].val;
             }
 
-            auto rel_tol = _env.upCast(builder, rel_tol_val.val, _env.doubleType());
-            auto abs_tol = _env.upCast(builder, abs_tol_val.val, _env.doubleType());
+            auto rel_tol = _env.upCast(builder, rel_tol_val, _env.doubleType());
+            auto abs_tol = _env.upCast(builder, abs_tol_val, _env.doubleType());
 
             // check x and y types - bools and ints can be optimized!
             // TODO: error check both rel_tol > 0 and abs_tol >= 0
@@ -1093,39 +1093,44 @@ namespace tuplex {
                 BasicBlock *bb_standard = BasicBlock::Create(builder.getContext(), "opt_standard", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_done = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
 
-                // allocate space for return value / size ?
+                // allocate space for return value
+                auto val = _env.CreateFirstBlockAlloca(builder, _env.i1Type());
 
+                // first block comparison (x ?== y)
                 auto eq_res = builder.CreateICmpEQ(x, y);
+                builder.CreateStore(eq_res, val);
                 builder.CreateCondBr(eq_res, bb_done, bb_l1);
 
                 // check if rel_tol * max_val < 0 and abs_tol < 0 (should return false)
                 builder.SetInsertPoint(bb_l1);
-                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::abs, x, _env.boolConst(true));
-                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::abs, y, _env.boolConst(true));
-                auto xy_cmp = builder.CreateICmpULT(x_abs, y_abs);
+                auto x_d = builder.CreateSIToFP(x, _env.doubleType());
+                auto y_d = builder.CreateSIToFP(y, _env.doubleType());
+                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x_d);
+                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, y_d);
+                auto xy_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
                 auto max_val = builder.CreateSelect(xy_cmp, y_abs, x_abs);
-                auto dbl_max = builder.CreateSIToFP(max_val, _env.doubleType());
-                auto relxmax = builder.CreateFMul(dbl_max, rel_tol);
+                auto relxmax = builder.CreateFMul(max_val, rel_tol);
                 auto relxmax_cmp = builder.CreateFCmpOLT(relxmax, _env.f64Const(1));
                 auto abs_cmp = builder.CreateFCmpOLT(abs_tol, _env.f64Const(1));
                 auto l1_res = builder.CreateAnd(abs_cmp, relxmax_cmp);
+                builder.CreateStore(l1_res, val); // should overwrite value from first block
                 builder.CreateCondBr(l1_res, bb_done, bb_standard);
 
                 // standard check for isclose
                 builder.SetInsertPoint(bb_standard);
-                auto diff = builder.CreateFSub(x_val.val, y_val.val);
-                auto diff_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::abs, diff, _env.boolConst(true));
-                auto LHS = builder.CreateSIToFP(diff_abs, _env.doubleType());
+                auto diff = builder.CreateFSub(x_d, y_d);
+                auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
                 auto RHS_cmp = builder.CreateFCmpOLT(relxmax, abs_tol);
                 auto RHS = builder.CreateSelect(RHS_cmp, abs_tol, relxmax);
-                auto standard_cmp = builder.CreateFCmpOGE(RHS, LHS);
-
+                auto standard_cmp = builder.CreateFCmpOLE(LHS, RHS);
+                builder.CreateStore(standard_cmp, val); // should overwrite value from bb_l1
                 builder.CreateBr(bb_done);
 
-                // bbdone
-                // 24:    ; preds = %16, %6, %4
-                // %25 = phi i32 [ 1, %4 ], [ %23, %16 ], [ 0, %6 ]
-                // ret i32 %25
+                // return value stored in val
+                builder.SetInsertPoint(bb_done);
+                auto resVal = _env.upcastToBoolean(builder, builder.CreateLoad(val));
+                auto resSize = _env.i64Const(sizeof(int64_t));
+                return SerializableValue(resVal, resSize);
             } else {
                 // case where x or y is a float
                 // if either is a float, can't optimize since floats can be arbitrarily close to any other value
@@ -1134,29 +1139,48 @@ namespace tuplex {
                 auto x = _env.upCast(builder, x_val.val, _env.doubleType());
                 auto y = _env.upCast(builder, y_val.val, _env.doubleType());
 
-                // %5 = fsub double %0, %1, !dbg !1279
-                auto diff = builder.CreateFSub(x, y);
-                // %6 = tail call double @llvm.fabs.f64(double %5) #8, !dbg !1285
-                auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
-                // %7 = tail call double @llvm.fabs.f64(double %0) #8, !dbg !1288
-                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x);
-                // %8 = tail call double @llvm.fabs.f64(double %1) #8, !dbg !1291
-                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, y);
-                // %9 = fcmp olt double %7, %8, !dbg !1305
-                auto ab_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
-                // %10 = select i1 %9, double %8, double %7, !dbg !1307
-                auto ab_select = builder.CreateSelect(ab_cmp, y_abs, x_abs);
-                // %11 = fmul double %10, %2, !dbg !1308
-                auto rel_tol_mult = builder.CreateFMul(ab_select, rel_tol);
-                // %12 = fcmp olt double %11, %3, !dbg !1311
-                auto abs_tol_cmp = builder.CreateFCmpOLT(rel_tol_mult, abs_tol);
-                // %13 = select i1 %12, double %3, double %11, !dbg !1312
-                auto RHS = builder.CreateSelect(abs_tol_cmp, abs_tol, rel_tol_mult);
-                // %14 = fcmp ole double %6, %13, !dbg !1313
-                auto res_cmp = builder.CreateFCmpOLE(LHS, RHS);
+                auto cur_block = builder.GetInsertBlock();
+                assert(cur_block);
 
-                auto resVal = _env.upcastToBoolean(builder, res_cmp);
-                auto resSize = _env.i64Const(sizeof(int64_t));
+                // create new blocks for each case
+                BasicBlock *bb_l1 = BasicBlock::Create(builder.getContext(), "opt_<_1", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_standard = BasicBlock::Create(builder.getContext(), "opt_standard", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_done = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
+
+                // allocate space for return value
+                auto val = _env.CreateFirstBlockAlloca(builder, _env.i1Type());
+
+                // %5 = fcmp oeq double %0, 0x7FF0000000000000
+                // %6 = fcmp oeq double %1, 0x7FF0000000000000
+                // %7 = or i1 %5, %6
+                // %8 = fcmp oeq double %0, 0xFFF0000000000000
+                // %9 = or i1 %8, %7
+                // %10 = fcmp oeq double %1, 0xFFF0000000000000
+                // %11 = or i1 %10, %9
+                // br i1 %11, label %12, label %14
+
+                // 12:    ; preds = %4
+                // %13 = fcmp oeq double %0, %1
+                // br label %27
+
+                // 14:    ; preds = %4
+                // %15 = tail call double @llvm.fabs.f64(double %0) #7
+                // %16 = tail call double @llvm.fabs.f64(double %1) #7
+                // %17 = fcmp olt double %15, %16
+                // %18 = select i1 %17, double %16, double %15
+                // %19 = fptosi double %18 to i32
+                // %20 = fsub double %0, %1
+                // %21 = tail call double @llvm.fabs.f64(double %20) #7
+                // %22 = sitofp i32 %19 to double
+                // %23 = fmul double %22, %2
+                // %24 = fcmp olt double %23, %3
+                // %25 = select i1 %24, double %3, double %23
+                // %26 = fcmp ole double %21, %25
+                // br label %27
+
+                // 27:    ; preds = %14, %12
+                // %28 = phi i1 [ %13, %12 ], [ %26, %14 ]
+                // ret i1 %28
 
                 return SerializableValue(resVal, resSize);
             }

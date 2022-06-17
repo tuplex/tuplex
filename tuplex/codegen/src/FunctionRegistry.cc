@@ -1092,17 +1092,26 @@ namespace tuplex {
                 assert(cur_block);
 
                 // create new blocks for each case
-                BasicBlock *bb_abs0 = BasicBlock::Create(builder.getContext(), "opt_abs0", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_l1 = BasicBlock::Create(builder.getContext(), "opt_<_1", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_standard = BasicBlock::Create(builder.getContext(), "opt_standard", builder.GetInsertBlock()->getParent());
-                BasicBlock *bb_NEQres = BasicBlock::Create(builder.getContext(), "NEQ_done", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_done = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
 
                 auto eq_res = builder.CreateICmpEQ(x_val.val, y_val.val);
-                builder.CreateCondBr(eq_res, bb_done, bb_abs0);
+                builder.CreateCondBr(eq_res, bb_done, bb_l1);
 
-                // case where values are not equal; first check whether abs_tol is 0
-                builder.SetInsertPoint(bb_abs0);
+                // ; bbl1
+                // 6:    ; preds = %4
+                // %7 = tail call i32 @llvm.abs.i32(i32 %0, i1 true)
+                // %8 = tail call i32 @llvm.abs.i32(i32 %1, i1 true)
+                // %9 = icmp ult i32 %7, %8
+                // %10 = select i1 %9, i32 %8, i32 %7
+                // %11 = sitofp i32 %10 to double
+                // %12 = fmul double %11, %2
+                // %13 = fcmp olt double %12, 1.000000e+00
+                // %14 = fcmp olt double %3, 1.000000e+00
+                // %15 = and i1 %14, %13
+                // br i1 %15, label %24, label %16
+                builder.SetInsertPoint(bb_l1);
                 auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::abs, x_val.val, _env.boolConst(true));
                 auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::abs, y_val.val, _env.boolConst(true));
                 auto xy_cmp = builder.CreateICmpULT(x_abs, y_abs);
@@ -1111,36 +1120,23 @@ namespace tuplex {
                 auto dbl_max = builder.CreateSIToFP(max_val, _env.doubleType());
                 auto relxmax = builder.CreateFMul(dbl_max, rel_tol);
                 auto abs0_cmp = builder.CreateFCmpOLT(relxmax, _env.f64Const(1));
-                builder.CreateCondBr(abs_cmp, bb_NEQres, bb_l1);
-
-                // ; bbl1
-                // 15:    ; preds = %6
-                // %16 = fcmp olt double %3, 1.000000e+00
-                // %17 = and i1 %16, %14
-                // br i1 %17, label %25, label %18
-                builder.SetInsertPoint(bb_l1);
-                auto 
+                builder.CreateCondBr(abs_cmp, bb_done, bb_standard);
 
                 // ; bbstandard
-                // 18:    ; preds = %15
-                // %19 = sub nsw i32 %0, %1
-                // %20 = tail call i32 @llvm.abs.i32(i32 %19, i1 true)
-                // %21 = sitofp i32 %20 to double
-                // %22 = fcmp olt double %13, %3
-                // %23 = select i1 %22, double %3, double %13
-                // %24 = fcmp oge double %23, %21
-                // br label %25
+                // 16:    ; preds = %6
+                // %17 = sub nsw i32 %0, %1
+                // %18 = tail call i32 @llvm.abs.i32(i32 %17, i1 true)
+                // %19 = sitofp i32 %18 to double
+                // %20 = fcmp olt double %12, %3
+                // %21 = select i1 %20, double %3, double %12
+                // %22 = fcmp oge double %21, %19
+                // %23 = zext i1 %22 to i32
+                // br label %24
 
-                // ; bbNEQres
-                // 25:    ; preds = %6, %15, %18
-                // %26 = phi i1 [ %24, %18 ], [ false, %15 ], [ %14, %6 ]
-                // %27 = zext i1 %26 to i32
-                // br label %28
-
-                // ; bbDone
-                // 28:    ; preds = %4, %25
-                // %29 = phi i32 [ %27, %25 ], [ 1, %4 ]
-                // ret i32 %29
+                // bbdone
+                // 24:    ; preds = %16, %6, %4
+                // %25 = phi i32 [ 1, %4 ], [ %23, %16 ], [ 0, %6 ]
+                // ret i32 %25
             } else {
                 // case where x or y is a float
                 // if either is a float, can't optimize since floats can be arbitrarily close to any other value

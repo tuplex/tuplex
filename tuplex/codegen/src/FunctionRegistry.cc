@@ -1014,9 +1014,6 @@ namespace tuplex {
                 auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7ff0000000000000ULL));
                 auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xFFF0000000000000ULL));
                 auto orRes = builder.CreateOr(negCmp, posCmp);
-                // auto i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
-                // auto andRes = builder.CreateAnd(i64Val, 0x7FFFFFFFFFFFFFFF);
-                // auto cmpRes = builder.CreateICmpEQ(andRes, _env.i64Const(0x7FF0000000000000));
 
                 auto resVal = _env.upcastToBoolean(builder, orRes);
                 auto resSize = _env.i64Const(sizeof(int64_t));
@@ -1069,9 +1066,6 @@ namespace tuplex {
             auto rel_tol = _env.upCast(builder, rel_tol_val.val, _env.doubleType());
             auto abs_tol = _env.upCast(builder, abs_tol_val.val, _env.doubleType());
 
-            // max_val = max(|a|, |b|)
-            // return abs(x-y) <= max(rel_tol * max_val, abs_tol)
-
             // check x and y types - bools and ints can be optimized!
             // TODO: error check both rel_tol > 0 and abs_tol >= 0
             if (x_ty == python::Type::BOOLEAN && y_ty == python::Type::BOOLEAN) {
@@ -1087,7 +1081,10 @@ namespace tuplex {
 
                 return SerializableValue(resVal, resSize);
             } else if (x_ty != python::Type::F64 && y_ty != python::Type::F64) {
-                // TODO: cast x/y to integers
+                // cast x/y to integers
+                auto x = _env.upCast(builder, x_val.val, _env.i32Type());
+                auto y = _env.upCast(builder, y_val.val, _env.i32Type());
+
                 auto cur_block = builder.GetInsertBlock();
                 assert(cur_block);
 
@@ -1096,42 +1093,34 @@ namespace tuplex {
                 BasicBlock *bb_standard = BasicBlock::Create(builder.getContext(), "opt_standard", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_done = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
 
-                auto eq_res = builder.CreateICmpEQ(x_val.val, y_val.val);
+                // allocate space for return value / size ?
+
+                auto eq_res = builder.CreateICmpEQ(x, y);
                 builder.CreateCondBr(eq_res, bb_done, bb_l1);
 
-                // ; bbl1
-                // 6:    ; preds = %4
-                // %7 = tail call i32 @llvm.abs.i32(i32 %0, i1 true)
-                // %8 = tail call i32 @llvm.abs.i32(i32 %1, i1 true)
-                // %9 = icmp ult i32 %7, %8
-                // %10 = select i1 %9, i32 %8, i32 %7
-                // %11 = sitofp i32 %10 to double
-                // %12 = fmul double %11, %2
-                // %13 = fcmp olt double %12, 1.000000e+00
-                // %14 = fcmp olt double %3, 1.000000e+00
-                // %15 = and i1 %14, %13
-                // br i1 %15, label %24, label %16
+                // check if rel_tol * max_val < 0 and abs_tol < 0 (should return false)
                 builder.SetInsertPoint(bb_l1);
-                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::abs, x_val.val, _env.boolConst(true));
-                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::abs, y_val.val, _env.boolConst(true));
+                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::abs, x, _env.boolConst(true));
+                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::abs, y, _env.boolConst(true));
                 auto xy_cmp = builder.CreateICmpULT(x_abs, y_abs);
                 auto max_val = builder.CreateSelect(xy_cmp, y_abs, x_abs);
-                auto abs_cmp = builder.CreateFCmpOEQ(abs_tol, _env.f64Const(0));
                 auto dbl_max = builder.CreateSIToFP(max_val, _env.doubleType());
                 auto relxmax = builder.CreateFMul(dbl_max, rel_tol);
-                auto abs0_cmp = builder.CreateFCmpOLT(relxmax, _env.f64Const(1));
-                builder.CreateCondBr(abs_cmp, bb_done, bb_standard);
+                auto relxmax_cmp = builder.CreateFCmpOLT(relxmax, _env.f64Const(1));
+                auto abs_cmp = builder.CreateFCmpOLT(abs_tol, _env.f64Const(1));
+                auto l1_res = builder.CreateAnd(abs_cmp, relxmax_cmp);
+                builder.CreateCondBr(l1_res, bb_done, bb_standard);
 
-                // ; bbstandard
-                // 16:    ; preds = %6
-                // %17 = sub nsw i32 %0, %1
-                // %18 = tail call i32 @llvm.abs.i32(i32 %17, i1 true)
-                // %19 = sitofp i32 %18 to double
-                // %20 = fcmp olt double %12, %3
-                // %21 = select i1 %20, double %3, double %12
-                // %22 = fcmp oge double %21, %19
-                // %23 = zext i1 %22 to i32
-                // br label %24
+                // standard check for isclose
+                builder.SetInsertPoint(bb_standard);
+                auto diff = builder.CreateFSub(x_val.val, y_val.val);
+                auto diff_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::abs, diff, _env.boolConst(true));
+                auto LHS = builder.CreateSIToFP(diff_abs, _env.doubleType());
+                auto RHS_cmp = builder.CreateFCmpOLT(relxmax, abs_tol);
+                auto RHS = builder.CreateSelect(RHS_cmp, abs_tol, relxmax);
+                auto standard_cmp = builder.CreateFCmpOGE(RHS, LHS);
+
+                builder.CreateBr(bb_done);
 
                 // bbdone
                 // 24:    ; preds = %16, %6, %4

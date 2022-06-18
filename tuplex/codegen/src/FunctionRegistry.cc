@@ -1143,44 +1143,88 @@ namespace tuplex {
                 assert(cur_block);
 
                 // create new blocks for each case
-                BasicBlock *bb_l1 = BasicBlock::Create(builder.getContext(), "opt_<_1", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_nany = BasicBlock::Create(builder.getContext(), "opt_<_1", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_infx = BasicBlock::Create(builder.getContext(), "opt_standard", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_infy = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_infret = BasicBlock::Create(builder.getContext(), "opt_<_1", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_standard = BasicBlock::Create(builder.getContext(), "opt_standard", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_done = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
 
                 // allocate space for return value
                 auto val = _env.CreateFirstBlockAlloca(builder, _env.i1Type());
 
-                // %5 = fcmp oeq double %0, 0x7FF0000000000000
-                // %6 = fcmp oeq double %1, 0x7FF0000000000000
-                // %7 = or i1 %5, %6
-                // %8 = fcmp oeq double %0, 0xFFF0000000000000
-                // %9 = or i1 %8, %7
-                // %10 = fcmp oeq double %1, 0xFFF0000000000000
-                // %11 = or i1 %10, %9
-                // br i1 %11, label %12, label %14
+                // ; first block
+                //     ; isnan start
+                //     %5 = bitcast double %0 to i64
+                //     %6 = lshr i64 %5, 32
+                //     %7 = trunc i64 %6 to i32
+                //     %8 = and i32 %7, 2147483647
+                //     %9 = trunc i64 %5 to i32
+                //     %10 = icmp ne i32 %9, 0
+                //     %11 = zext i1 %10 to i32
+                //     %12 = add nuw i32 %8, %11
+                //     %13 = icmp ult i32 %12, 2146435073
+                //     ; isnan end
+                //     br i1 %13, label %14, label %47
 
-                // 12:    ; preds = %4
-                // %13 = fcmp oeq double %0, %1
-                // br label %27
-
+                // ; bb_nany
                 // 14:    ; preds = %4
-                // %15 = tail call double @llvm.fabs.f64(double %0) #7
-                // %16 = tail call double @llvm.fabs.f64(double %1) #7
-                // %17 = fcmp olt double %15, %16
-                // %18 = select i1 %17, double %16, double %15
-                // %19 = fptosi double %18 to i32
-                // %20 = fsub double %0, %1
-                // %21 = tail call double @llvm.fabs.f64(double %20) #7
-                // %22 = sitofp i32 %19 to double
-                // %23 = fmul double %22, %2
-                // %24 = fcmp olt double %23, %3
-                // %25 = select i1 %24, double %3, double %23
-                // %26 = fcmp ole double %21, %25
-                // br label %27
+                //     ; isnan start
+                //     %15 = bitcast double %1 to i64
+                //     %16 = lshr i64 %15, 32
+                //     %17 = trunc i64 %16 to i32
+                //     %18 = and i32 %17, 2147483647
+                //     %19 = trunc i64 %15 to i32
+                //     %20 = icmp ne i32 %19, 0
+                //     %21 = zext i1 %20 to i32
+                //     %22 = add nuw i32 %18, %21
+                //     %23 = icmp ult i32 %22, 2146435073
+                //     ; isnan end
+                //     br i1 %23, label %24, label %47
 
-                // 27:    ; preds = %14, %12
-                // %28 = phi i1 [ %13, %12 ], [ %26, %14 ]
-                // ret i1 %28
+                // ; bb_infx
+                // 24:    ; preds = %14
+                //     ; isinf start
+                //     %25 = fcmp une double %0, 0x7FF0000000000000
+                //     %26 = fcmp une double %0, 0xFFF0000000000000
+                //     %27 = and i1 %25, %26
+                //     ; isinf end
+                //     br i1 %27, label %28, label %32
+
+                // ; bb_infy
+                // 28:    ; preds = %24
+                //     ; isinf start
+                //     %29 = fcmp une double %1, 0x7FF0000000000000
+                //     %30 = fcmp une double %1, 0xFFF0000000000000
+                //     %31 = and i1 %29, %30
+                //     ; isinf end
+                //     br i1 %31, label %34, label %32
+
+                // ; bb_infret
+                // 32:    ; preds = %28, %24
+                //     %33 = fcmp oeq double %0, %1
+                //     br label %47
+
+                // ; bb_standard
+                // 34:    ; preds = %28
+                //     %35 = tail call double @llvm.fabs.f64(double %0) #8
+                //     %36 = tail call double @llvm.fabs.f64(double %1) #8
+                //     %37 = fcmp olt double %35, %36
+                //     %38 = select i1 %37, double %36, double %35
+                //     %39 = fptosi double %38 to i32
+                //     %40 = fsub double %0, %1
+                //     %41 = tail call double @llvm.fabs.f64(double %40) #8
+                //     %42 = sitofp i32 %39 to double
+                //     %43 = fmul double %42, %2
+                //     %44 = fcmp olt double %43, %3
+                //     %45 = select i1 %44, double %3, double %43
+                //     %46 = fcmp ole double %41, %45
+                //     br label %47
+
+                // ; bb_done
+                // 47:    ; preds = %4, %14, %34, %32
+                //     %48 = phi i1 [ %33, %32 ], [ %46, %34 ], [ false, %14 ], [ false, %4 ]
+                //     ret i1 %48
 
                 return SerializableValue(resVal, resSize);
             }

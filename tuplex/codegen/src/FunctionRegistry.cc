@@ -1113,7 +1113,7 @@ namespace tuplex {
                 auto relxmax_cmp = builder.CreateFCmpOLT(relxmax, _env.f64Const(1));
                 auto abs_cmp = builder.CreateFCmpOLT(abs_tol, _env.f64Const(1));
                 auto l1_res = builder.CreateAnd(abs_cmp, relxmax_cmp);
-                builder.CreateStore(l1_res, val); // should overwrite value from first block
+                builder.CreateStore(_env.boolConst(false), val); // should overwrite value from first block
                 builder.CreateCondBr(l1_res, bb_done, bb_standard);
 
                 // standard check for isclose
@@ -1143,10 +1143,9 @@ namespace tuplex {
                 assert(cur_block);
 
                 // create new blocks for each case
-                BasicBlock *bb_nany = BasicBlock::Create(builder.getContext(), "opt_<_1", builder.GetInsertBlock()->getParent());
-                BasicBlock *bb_infx = BasicBlock::Create(builder.getContext(), "opt_standard", builder.GetInsertBlock()->getParent());
-                BasicBlock *bb_infy = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
-                BasicBlock *bb_infret = BasicBlock::Create(builder.getContext(), "opt_<_1", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_nany = BasicBlock::Create(builder.getContext(), "cmp_y_nan", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_isinf = BasicBlock::Create(builder.getContext(), "cmp_inf", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_infres = BasicBlock::Create(builder.getContext(), "opt_isinf", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_standard = BasicBlock::Create(builder.getContext(), "opt_standard", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_done = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
 
@@ -1154,78 +1153,110 @@ namespace tuplex {
                 auto val = _env.CreateFirstBlockAlloca(builder, _env.i1Type());
 
                 // ; first block
-                //     ; isnan start
-                //     %5 = bitcast double %0 to i64
-                //     %6 = lshr i64 %5, 32
-                //     %7 = trunc i64 %6 to i32
-                //     %8 = and i32 %7, 2147483647
-                //     %9 = trunc i64 %5 to i32
-                //     %10 = icmp ne i32 %9, 0
-                //     %11 = zext i1 %10 to i32
-                //     %12 = add nuw i32 %8, %11
-                //     %13 = icmp ult i32 %12, 2146435073
-                //     ; isnan end
-                //     br i1 %13, label %14, label %47
+                // ; isnan start
+                // %5 = bitcast double %0 to i64
+                // %6 = lshr i64 %5, 32
+                // %7 = trunc i64 %6 to i32
+                // %8 = and i32 %7, 2147483647
+                // %9 = trunc i64 %5 to i32
+                // %10 = icmp ne i32 %9, 0
+                // %11 = zext i1 %10 to i32
+                // %12 = add nuw i32 %8, %11
+                // %13 = icmp ugt i32 %12, 2146435072
+                // ; isnan end
+                const std::vector<tuplex::codegen::SerializableValue> isnan_argx{SerializableValue(x, _env.i64Const(sizeof(int64_t)))};
+                auto is_x_nan = createMathIsNanCall(builder, _env.doubleType(), _env.getBooleanType(), isnan_argx);
+                // br i1 %13, label %47, label %14
+                builder.CreateStore(_env.boolConst(false), val);
+                builder.CreateCondBr(is_x_nan, bb_done, bb_nany);
 
                 // ; bb_nany
                 // 14:    ; preds = %4
-                //     ; isnan start
-                //     %15 = bitcast double %1 to i64
-                //     %16 = lshr i64 %15, 32
-                //     %17 = trunc i64 %16 to i32
-                //     %18 = and i32 %17, 2147483647
-                //     %19 = trunc i64 %15 to i32
-                //     %20 = icmp ne i32 %19, 0
-                //     %21 = zext i1 %20 to i32
-                //     %22 = add nuw i32 %18, %21
-                //     %23 = icmp ult i32 %22, 2146435073
-                //     ; isnan end
-                //     br i1 %23, label %24, label %47
+                // ; isnan start
+                // %15 = bitcast double %1 to i64
+                // %16 = lshr i64 %15, 32
+                // %17 = trunc i64 %16 to i32
+                // %18 = and i32 %17, 2147483647
+                // %19 = trunc i64 %15 to i32
+                // %20 = icmp ne i32 %19, 0
+                // %21 = zext i1 %20 to i32
+                // %22 = add nuw i32 %18, %21
+                // %23 = icmp ugt i32 %22, 2146435072
+                // ; isnan end
+                builder.SetInsertPoint(bb_nany);
+                const std::vector<tuplex::codegen::SerializableValue> isnan_argy{SerializableValue(y, _env.i64Const(sizeof(int64_t)))};
+                auto is_y_nan = createMathIsNanCall(builder, _env.doubleType(), _env.getBooleanType(), isnan_argy);
+                // br i1 %23, label %47, label %24
+                builder.CreateStore(_env.boolConst(false), val); // should overwrite value from first block
+                builder.CreateCondBr(is_y_nan, bb_done, bb_isinf);
 
-                // ; bb_infx
+                // ; bb_isinf
                 // 24:    ; preds = %14
-                //     ; isinf start
-                //     %25 = fcmp une double %0, 0x7FF0000000000000
-                //     %26 = fcmp une double %0, 0xFFF0000000000000
-                //     %27 = and i1 %25, %26
-                //     ; isinf end
-                //     br i1 %27, label %28, label %32
+                builder.SetInsertPoint(bb_isinf);
+                // %25 = fcmp oeq double %0, 0x7FF0000000000000
+                auto x_pinf = builder.CreateFCmpOEQ(x, D_PINFINITY);
+                // %26 = fcmp oeq double %1, 0x7FF0000000000000
+                auto y_pinf = builder.CreateFCmpOEQ(y, D_PINFINITY);
+                // %27 = or i1 %25, %26
+                auto either_pinf = builder.CreateOr(x_pinf, y_pinf);
+                // %28 = fcmp oeq double %0, 0xFFF0000000000000
+                auto x_ninf = builder.CreatFCmpOEQ(x, D_NINFINITY);
+                // %29 = or i1 %28, %27
+                auto check_xninf = builder.CreateOr(x_ninf, either_pinf);
+                // %30 = fcmp oeq double %1, 0xFFF0000000000000
+                auto y_ninf = builder.CreatFCmpOEQ(y, D_NINFINITY);
+                // %31 = or i1 %30, %29
+                auto check_yninf = builder.CreateOr(y_ninf, check_xninf);
+                // br i1 %31, label %32, label %34
+                builder.CreateCondBr(check_yninf, bb_infres, bb_standard);
 
-                // ; bb_infy
-                // 28:    ; preds = %24
-                //     ; isinf start
-                //     %29 = fcmp une double %1, 0x7FF0000000000000
-                //     %30 = fcmp une double %1, 0xFFF0000000000000
-                //     %31 = and i1 %29, %30
-                //     ; isinf end
-                //     br i1 %31, label %34, label %32
-
-                // ; bb_infret
-                // 32:    ; preds = %28, %24
-                //     %33 = fcmp oeq double %0, %1
-                //     br label %47
+                // ; bb_infres
+                // 32:    ; preds = %24
+                builder.SetInsertPoint(bb_infres);
+                // %33 = fcmp oeq double %0, %1
+                auto infres = builder.CreateFCmpOEQ(x, y);
+                // br label %47
+                builder.CreateStore(infres, val); // should overwrite value from bb_nany
+                builder.CreateBr(bb_done);
 
                 // ; bb_standard
-                // 34:    ; preds = %28
-                //     %35 = tail call double @llvm.fabs.f64(double %0) #8
-                //     %36 = tail call double @llvm.fabs.f64(double %1) #8
-                //     %37 = fcmp olt double %35, %36
-                //     %38 = select i1 %37, double %36, double %35
-                //     %39 = fptosi double %38 to i32
-                //     %40 = fsub double %0, %1
-                //     %41 = tail call double @llvm.fabs.f64(double %40) #8
-                //     %42 = sitofp i32 %39 to double
-                //     %43 = fmul double %42, %2
-                //     %44 = fcmp olt double %43, %3
-                //     %45 = select i1 %44, double %3, double %43
-                //     %46 = fcmp ole double %41, %45
-                //     br label %47
+                // 34:    ; preds = %24
+                builder.SetInsertPoint(bb_standard);
+                // %35 = tail call double @llvm.fabs.f64(double %0) #8
+                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x);
+                // %36 = tail call double @llvm.fabs.f64(double %1) #8
+                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, y);
+                // %37 = fcmp olt double %35, %36
+                auto xy_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
+                // %38 = select i1 %37, double %36, double %35
+                auto xy_max = builder.CreateSelect(xy_cmp, y_abs, x_abs);
+                // %39 = fptosi double %38 to i32
+                auto max_val = builder.CreateFPToSI(xy_max, _env.i32Type());
+                // %40 = fsub double %0, %1
+                auto diff = builder.CreateFSub(x, y);
+                // %41 = tail call double @llvm.fabs.f64(double %40) #8
+                auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
+                // %42 = sitofp i32 %39 to double
+                auto max_val_too = builder.CreateSIToFP(max_val, _env.doubleType());
+                // %43 = fmul double %42, %2
+                auto relxmax = builder.CreateFMul(max_val_too, rel_tol);
+                // %44 = fcmp olt double %43, %3
+                auto RHS_cmp = builder.CreateFCmpOLT(relxmax, abs_tol);
+                // %45 = select i1 %44, double %3, double %43
+                auto RHS = builder.CreateSelect(RHS_cmp, abs_tol, relxmax);
+                // %46 = fcmp ole double %41, %45
+                auto standard_cmp = builder.CreateFCmpOLE(LHS, RHS);
+                // br label %47
+                builder.CreateStore(standard_cmp, val); // should overwrite value from bb_l1
+                builder.CreateBr(bb_done);
 
                 // ; bb_done
                 // 47:    ; preds = %4, %14, %34, %32
-                //     %48 = phi i1 [ %33, %32 ], [ %46, %34 ], [ false, %14 ], [ false, %4 ]
-                //     ret i1 %48
-
+                builder.SetInsertPoint(bb_done);
+                // %48 = phi i1 [ %33, %32 ], [ %46, %34 ], [ false, %14 ], [ false, %4 ]
+                // ret i1 %48
+                auto resVal = _env.upcastToBoolean(builder, builder.CreateLoad(val));
+                auto resSize = _env.i64Const(sizeof(int64_t));
                 return SerializableValue(resVal, resSize);
             }
         }

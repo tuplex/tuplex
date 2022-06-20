@@ -71,12 +71,25 @@ namespace tuplex {
 
             // math.isclose
             // typing is:
-            // ({f64, i64, bool}, {f64, i64, bool}, rel_tol={f64, i64, bool}, abs_tol={f64, i64, bool}) -> bool
-            // vector<python::Type> isclose_types{python::Type::BOOLEAN, python::Type::I64, python::Type::F64};
-            // auto iscloseSym = make_shared<Symbol>("isclose", "isclose", python::Type::makeFunctionType(python::Type::makeTupleType({python::Type::F64, python::Type::F64, python::Type::F64, python::Type::F64}), python::Type::BOOLEAN), SymbolType::FUNCTION);
-            // iscloseSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::I64), python::Type::BOOLEAN));
-            // iscloseSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::BOOLEAN), python::Type::BOOLEAN));
-            // m->addAttribute(iscloseSym);
+            // ({f64, i64, bool}, {f64, i64, bool}[, rel_tol={f64, i64, bool}, abs_tol={f64, i64, bool}]) -> bool
+            vector<python::Type> isclose_types{python::Type::BOOLEAN, python::Type::I64, python::Type::F64};
+            for(const auto& type : isclose_types) {
+                // 2-input case
+                for(const auto& second_type : isclose_types) {
+                    m->addAttribute(make_shared<Symbol>("isclose", "isclose", python::Type::makeFunctionType(python::Type::makeTupleType({type, second_type}), python::Type::BOOLEAN), SymbolType::FUNCTION));
+
+                    // 3-input case
+                    for(const auto& third_type : isclose_types) {
+
+                        // 4-input
+                    }
+                }
+            }
+            
+            auto iscloseSym = make_shared<Symbol>("isclose", "isclose", python::Type::makeFunctionType(python::Type::makeTupleType({python::Type::F64, python::Type::F64, python::Type::F64, python::Type::F64}), python::Type::BOOLEAN), SymbolType::FUNCTION);
+            iscloseSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::I64), python::Type::BOOLEAN));
+            iscloseSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::BOOLEAN), python::Type::BOOLEAN));
+            m->addAttribute(iscloseSym);
 
             // math.ceil/math.floor
             for(const auto& name : vector<string>{"ceil", "floor"}) {

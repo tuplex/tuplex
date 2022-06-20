@@ -27,5 +27,27 @@ for ((r = 1; r <= NUM_RUNS; r++)); do
   # copy temp aws_job.json result for analysis
   cp aws_job.json ${RESDIR}/"flights-hyper-run-$r.json"
 done
+
+echo "no constant folding now..."
+
+echo "benchmarking nohyper (hot)"
+for ((r = 1; r <= NUM_RUNS; r++)); do
+  LOG="${RESDIR}/flights-nohyper-nocf-run-$r.txt"
+  echo "running $r/${NUM_RUNS}"
+  timeout $TIMEOUT $PYTHON runtuplex.py --no-cf --no-hyper >$LOG 2>$LOG.stderr
+  # copy temp aws_job.json result for analysis
+  cp aws_job.json ${RESDIR}/"flights-nohyper-nocf-run-$r.json"
+done
+# hyper-specialized
+echo "benchmarking hyper (hot)"
+for ((r = 1; r <= NUM_RUNS; r++)); do
+  LOG="${RESDIR}/flights-hyper-nocf-run-$r.txt"
+  echo "running $r/${NUM_RUNS}"
+  timeout $TIMEOUT $PYTHON runtuplex.py --no-cf >$LOG 2>$LOG.stderr
+  # copy temp aws_job.json result for analysis
+  cp aws_job.json ${RESDIR}/"flights-hyper-nocf-run-$r.json"
+done
+
+
 echo "done!"
 

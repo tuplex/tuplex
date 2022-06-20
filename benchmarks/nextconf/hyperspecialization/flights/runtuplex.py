@@ -128,6 +128,8 @@ if __name__ == '__main__':
     #                     help="whether to add a cache statement after the csv operator to separate IO costs out.")
     parser.add_argument('--no-hyper', dest='no_hyper', action="store_true",
                         help="deactivate hyperspecialization optimization explicitly.")
+    parser.add_argument('--no-cf', dest='no_cf', action="store_true",
+                        help="deactivate constant-folding optimization explicitly.")
     parser.add_argument('--no-nvo', dest='no_nvo', action="store_true",
                         help="deactivate null value optimization explicitly.")
     args = parser.parse_args()
@@ -139,6 +141,7 @@ if __name__ == '__main__':
     lambda_threads = 2
     s3_scratch_dir = "s3://tuplex-leonhard/scratch/flights-exp"
     use_hyper_specialization = not args.no_hyper
+    use_constant_folding = not args.no_cf
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv'
     s3_output_path = 's3://tuplex-leonhard/experiments/flights_hyper'
 
@@ -156,6 +159,7 @@ if __name__ == '__main__':
     print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, s3_output_path))
 
     print('    hyperspecialization: {}'.format(use_hyper_specialization))
+    print('    constant-folding: {}'.format(use_constant_folding))
     print('    null-value optimization: {}'.format(not args.no_nvo))
 
     # load data
@@ -180,7 +184,7 @@ if __name__ == '__main__':
             "useLLVMOptimizer": True,
             "optimizer.nullValueOptimization": True,
             "resolveWithInterpreterOnly": False,
-            "optimizer.constantFoldingOptimization": True,
+            "optimizer.constantFoldingOptimization": use_constant_folding,
             "csv.selectionPushdown" : True}
 
     if os.path.exists('tuplex_config.json'):

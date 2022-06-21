@@ -1022,9 +1022,9 @@ namespace tuplex {
             }
         }
 
-        codegen::SerializableValue FunctionRegistry::createMathIsCloseCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
-                                                     const python::Type &retType,
-                                                     const std::vector<tuplex::codegen::SerializableValue> &args) {
+        codegen::SerializableValue FunctionRegistry::createMathIsCloseCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
+                                                                            llvm::IRBuilder<>& builder, const python::Type &argsType,
+                                                                            const std::vector<tuplex::codegen::SerializableValue> &args) {
             assert(argsType.isTupleType());
             assert(args.size() == argsType.parameters().size());
             assert(args.size() >= 2);
@@ -1127,13 +1127,14 @@ namespace tuplex {
 
                 // return value stored in val
                 builder.SetInsertPoint(bb_done);
+                lfb.setLastBlock(bb_done);
                 auto resVal = _env.upcastToBoolean(builder, builder.CreateLoad(val));
                 auto resSize = _env.i64Const(sizeof(int64_t));
+
                 return SerializableValue(resVal, resSize);
             } else {
                 // case where x or y is a float
                 // if either is a float, can't optimize since floats can be arbitrarily close to any other value
-                
                 // cast both x and y to doubles for comparison
                 auto x = _env.upCast(builder, x_val.val, _env.doubleType());
                 auto y = _env.upCast(builder, y_val.val, _env.doubleType());
@@ -1152,22 +1153,22 @@ namespace tuplex {
                 BasicBlock *bb_done = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
 
                 // allocate space for return value
-                auto val = _env.CreateFirstBlockAlloca(builder, _env.i1Type());
+                auto val = _env.CreateFirstBlockAlloca(builder, _env.getBooleanType());
 
                 // first block
                 const std::vector<tuplex::codegen::SerializableValue> isnan_argx{SerializableValue(x, _env.i64Const(sizeof(int64_t)))};
-                auto is_x_nan = FunctionRegistry::createMathIsNanCall(builder, python::Type::F64, python::Type::BOOLEAN, isnan_argx);
-                // br i1 %13, label %47, label %14
+                auto is_x_nan = FunctionRegistry::createMathIsNanCall(builder, python::Type::propagateToTupleType(python::Type::F64), python::Type::BOOLEAN, isnan_argx);
+                auto x_nan = builder.CreateZExtOrTrunc(is_x_nan.val, _env.i1Type());
                 builder.CreateStore(_env.boolConst(false), val);
-                builder.CreateCondBr(is_x_nan.val, bb_done, bb_nany);
+                builder.CreateCondBr(x_nan, bb_done, bb_nany);
 
                 // bb_nany
                 builder.SetInsertPoint(bb_nany);
                 const std::vector<tuplex::codegen::SerializableValue> isnan_argy{SerializableValue(y, _env.i64Const(sizeof(int64_t)))};
-                auto is_y_nan = FunctionRegistry::createMathIsNanCall(builder, python::Type::F64, python::Type::BOOLEAN, isnan_argy);
-                // br i1 %23, label %47, label %24
+                auto is_y_nan = FunctionRegistry::createMathIsNanCall(builder, python::Type::propagateToTupleType(python::Type::F64), python::Type::BOOLEAN, isnan_argy);
+                auto y_nan = builder.CreateZExtOrTrunc(is_y_nan.val, _env.i1Type());
                 builder.CreateStore(_env.boolConst(false), val); // should overwrite value from first block
-                builder.CreateCondBr(is_y_nan.val, bb_done, bb_isinf);
+                builder.CreateCondBr(y_nan, bb_done, bb_isinf);
 
                 // bb_isinf
                 builder.SetInsertPoint(bb_isinf);
@@ -1178,14 +1179,13 @@ namespace tuplex {
                 auto check_xninf = builder.CreateOr(x_ninf, either_pinf);
                 auto y_ninf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_NINFINITY));
                 auto check_yninf = builder.CreateOr(y_ninf, check_xninf);
-                // br i1 %31, label %32, label %34
                 builder.CreateCondBr(check_yninf, bb_infres, bb_standard);
 
                 // bb_infres
                 builder.SetInsertPoint(bb_infres);
                 auto infres = builder.CreateFCmpOEQ(x, y);
-                // br label %47
-                builder.CreateStore(infres, val); // should overwrite value from bb_nany
+                auto bool_res = _env.upcastToBoolean(builder, infres);
+                builder.CreateStore(bool_res, val); // should overwrite value from bb_nany
                 builder.CreateBr(bb_done);
 
                 // bb_standard
@@ -1194,7 +1194,7 @@ namespace tuplex {
                 auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, y);
                 auto xy_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
                 auto xy_max = builder.CreateSelect(xy_cmp, y_abs, x_abs);
-                auto max_val = builder.CreateFPToSI(xy_max, _env.i32Type());
+                auto max_val = builder.CreateFPToSI(xy_max, _env.i32Type()); // not sure why this has to happen ?
                 auto diff = builder.CreateFSub(x, y);
                 auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
                 auto max_val_too = builder.CreateSIToFP(max_val, _env.doubleType());
@@ -1202,14 +1202,16 @@ namespace tuplex {
                 auto RHS_cmp = builder.CreateFCmpOLT(relxmax, abs_tol);
                 auto RHS = builder.CreateSelect(RHS_cmp, abs_tol, relxmax);
                 auto standard_cmp = builder.CreateFCmpOLE(LHS, RHS);
-                // br label %47
-                builder.CreateStore(standard_cmp, val); // should overwrite value from bb_l1
+                auto standard_res = _env.upcastToBoolean(builder, standard_cmp);
+                builder.CreateStore(standard_res, val); // should overwrite value from bb_l1
                 builder.CreateBr(bb_done);
 
                 // bb_done
                 builder.SetInsertPoint(bb_done);
-                auto resVal = _env.upcastToBoolean(builder, builder.CreateLoad(val));
+                lfb.setLastBlock(bb_done);
+                auto resVal = _env.upcastToBoolean(builder, builder.CreateLoad(val)); // may not need to upcast to boolean here
                 auto resSize = _env.i64Const(sizeof(int64_t));
+
                 return SerializableValue(resVal, resSize);
             }
         }
@@ -1449,11 +1451,12 @@ namespace tuplex {
                 return createMathIsInfCall(builder, argsType, retType, args);
                 
             if (symbol == "math.isclose") {
-                if (args.size() != 2 && args.size() != 3 && args.size() != 4 /*|| !argsType.isTupleType()*/) {
+                if (args.size() != 2 && args.size() != 3 && args.size() != 4) {
                     std::string err = "math.isclose needs 2, 3, or 4 args; got " + std::to_string(args.size()) + " args\n";
                     throw std::runtime_error(err);
                 }
 
+                assert(argsType.isTupleType());
                 assert(args.size() == argsType.parameters().size());
 
                 // check all argument types
@@ -1464,7 +1467,7 @@ namespace tuplex {
                     }
                 }
 
-                return createMathIsCloseCall(builder, argsType, retType, args);
+                return createMathIsCloseCall(lfb, builder, argsType, args);
             }
 
             // re module

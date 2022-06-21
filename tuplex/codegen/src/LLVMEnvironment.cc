@@ -1123,7 +1123,7 @@ namespace tuplex {
             } else if (val->getType() == Type::getInt64Ty(_context)) {
                 sconst = builder.CreateGlobalStringPtr(msg + " [i64] : %lu\n");
             } else if (val->getType() == Type::getDoubleTy(_context)) {
-                sconst = builder.CreateGlobalStringPtr(msg + " [f64] : %f\n");
+                sconst = builder.CreateGlobalStringPtr(msg + " [f64] : %Lf\n");
             } else if (val->getType() == Type::getInt8PtrTy(_context, 0)) {
                 sconst = builder.CreateGlobalStringPtr(msg + " [i8*] : [%p] %s\n");
             }

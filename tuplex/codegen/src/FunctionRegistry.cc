@@ -976,8 +976,6 @@ namespace tuplex {
             
             if (python::Type::F64 == type) {
                 llvm::Value* i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
-                _env.printValue(builder, val.val, "double/python float value\n");
-                
                 auto shiftedVal = builder.CreateLShr(i64Val, 32);
                 auto i32Shift = builder.CreateTrunc(shiftedVal, llvm::Type::getInt32Ty(context));
                 auto andRes = builder.CreateAnd(i32Shift, 2147483647);
@@ -994,9 +992,7 @@ namespace tuplex {
             } else {
                 // only other valid input types are integer and boolean
                 assert(python::Type::BOOLEAN == type || python::Type::I64 == type);
-                _env.printValue(builder, val.val, "boolean or integer value\n");
                 
-                // return SerializableValue(ConstantInt::get(llvm::Type::getInt64Ty(context), 0), _env.i64Const(sizeof(int64_t)));
                 return SerializableValue(_env.boolConst(false), _env.i64Const(sizeof(int64_t)));
             }
         }
@@ -1010,9 +1006,8 @@ namespace tuplex {
             auto type = argsType.parameters().front();
 
             if (python::Type::F64 == type) {
-                _env.printValue(builder, val.val, "double/python float value\n");
-                auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7ff0000000000000ULL));
-                auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xFFF0000000000000ULL));
+                auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), D_PINFINITY));
+                auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), D_NINFINITY));
                 auto orRes = builder.CreateOr(negCmp, posCmp);
 
                 auto resVal = _env.upcastToBoolean(builder, orRes);
@@ -1022,7 +1017,6 @@ namespace tuplex {
             } else {
                 // only other valid input types are integer and boolean
                 assert(python::Type::BOOLEAN == type || python::Type::I64 == type);
-                _env.printValue(builder, val.val, "boolean or integer value\n");
 
                 return SerializableValue(_env.boolConst(false), _env.i64Const(sizeof(int64_t)));
             }
@@ -1069,6 +1063,8 @@ namespace tuplex {
             // check x and y types - bools and ints can be optimized!
             // TODO: error check both rel_tol > 0 and abs_tol >= 0
             if (x_ty == python::Type::BOOLEAN && y_ty == python::Type::BOOLEAN) {
+                _env.printValue(builder, x_val.val, "boolean value\n");
+                _env.printValue(builder, y_val.val, "boolean value\n");
                 auto xor_xy = builder.CreateXor(x_val.val, y_val.val);
                 auto rel_cmp = builder.CreateFCmpOGE(rel_tol, _env.f64Const(1));
                 auto abs_cmp = builder.CreateFCmpOGE(abs_tol, _env.f64Const(1));
@@ -1084,6 +1080,9 @@ namespace tuplex {
                 // cast x/y to integers
                 auto x = _env.upCast(builder, x_val.val, _env.i32Type());
                 auto y = _env.upCast(builder, y_val.val, _env.i32Type());
+
+                _env.printValue(builder, x, "integer value\n");
+                _env.printValue(builder, y, "integer value\n");
 
                 auto cur_block = builder.GetInsertBlock();
                 assert(cur_block);
@@ -1135,9 +1134,12 @@ namespace tuplex {
                 // case where x or y is a float
                 // if either is a float, can't optimize since floats can be arbitrarily close to any other value
                 
-                // cast both x and y to floats for comparison
+                // cast both x and y to doubles for comparison
                 auto x = _env.upCast(builder, x_val.val, _env.doubleType());
                 auto y = _env.upCast(builder, y_val.val, _env.doubleType());
+
+                _env.printValue(builder, x, "double value\n");
+                _env.printValue(builder, y, "double value\n");
 
                 auto cur_block = builder.GetInsertBlock();
                 assert(cur_block);
@@ -1152,109 +1154,60 @@ namespace tuplex {
                 // allocate space for return value
                 auto val = _env.CreateFirstBlockAlloca(builder, _env.i1Type());
 
-                // ; first block
-                // ; isnan start
-                // %5 = bitcast double %0 to i64
-                // %6 = lshr i64 %5, 32
-                // %7 = trunc i64 %6 to i32
-                // %8 = and i32 %7, 2147483647
-                // %9 = trunc i64 %5 to i32
-                // %10 = icmp ne i32 %9, 0
-                // %11 = zext i1 %10 to i32
-                // %12 = add nuw i32 %8, %11
-                // %13 = icmp ugt i32 %12, 2146435072
-                // ; isnan end
+                // first block
                 const std::vector<tuplex::codegen::SerializableValue> isnan_argx{SerializableValue(x, _env.i64Const(sizeof(int64_t)))};
-                auto is_x_nan = createMathIsNanCall(builder, _env.doubleType(), _env.getBooleanType(), isnan_argx);
+                auto is_x_nan = FunctionRegistry::createMathIsNanCall(builder, python::Type::F64, python::Type::BOOLEAN, isnan_argx);
                 // br i1 %13, label %47, label %14
                 builder.CreateStore(_env.boolConst(false), val);
-                builder.CreateCondBr(is_x_nan, bb_done, bb_nany);
+                builder.CreateCondBr(is_x_nan.val, bb_done, bb_nany);
 
-                // ; bb_nany
-                // 14:    ; preds = %4
-                // ; isnan start
-                // %15 = bitcast double %1 to i64
-                // %16 = lshr i64 %15, 32
-                // %17 = trunc i64 %16 to i32
-                // %18 = and i32 %17, 2147483647
-                // %19 = trunc i64 %15 to i32
-                // %20 = icmp ne i32 %19, 0
-                // %21 = zext i1 %20 to i32
-                // %22 = add nuw i32 %18, %21
-                // %23 = icmp ugt i32 %22, 2146435072
-                // ; isnan end
+                // bb_nany
                 builder.SetInsertPoint(bb_nany);
                 const std::vector<tuplex::codegen::SerializableValue> isnan_argy{SerializableValue(y, _env.i64Const(sizeof(int64_t)))};
-                auto is_y_nan = createMathIsNanCall(builder, _env.doubleType(), _env.getBooleanType(), isnan_argy);
+                auto is_y_nan = FunctionRegistry::createMathIsNanCall(builder, python::Type::F64, python::Type::BOOLEAN, isnan_argy);
                 // br i1 %23, label %47, label %24
                 builder.CreateStore(_env.boolConst(false), val); // should overwrite value from first block
-                builder.CreateCondBr(is_y_nan, bb_done, bb_isinf);
+                builder.CreateCondBr(is_y_nan.val, bb_done, bb_isinf);
 
-                // ; bb_isinf
-                // 24:    ; preds = %14
+                // bb_isinf
                 builder.SetInsertPoint(bb_isinf);
-                // %25 = fcmp oeq double %0, 0x7FF0000000000000
-                auto x_pinf = builder.CreateFCmpOEQ(x, D_PINFINITY);
-                // %26 = fcmp oeq double %1, 0x7FF0000000000000
-                auto y_pinf = builder.CreateFCmpOEQ(y, D_PINFINITY);
-                // %27 = or i1 %25, %26
+                auto x_pinf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), D_PINFINITY));
+                auto y_pinf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_PINFINITY));
                 auto either_pinf = builder.CreateOr(x_pinf, y_pinf);
-                // %28 = fcmp oeq double %0, 0xFFF0000000000000
-                auto x_ninf = builder.CreatFCmpOEQ(x, D_NINFINITY);
-                // %29 = or i1 %28, %27
+                auto x_ninf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), D_NINFINITY));
                 auto check_xninf = builder.CreateOr(x_ninf, either_pinf);
-                // %30 = fcmp oeq double %1, 0xFFF0000000000000
-                auto y_ninf = builder.CreatFCmpOEQ(y, D_NINFINITY);
-                // %31 = or i1 %30, %29
+                auto y_ninf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_NINFINITY));
                 auto check_yninf = builder.CreateOr(y_ninf, check_xninf);
                 // br i1 %31, label %32, label %34
                 builder.CreateCondBr(check_yninf, bb_infres, bb_standard);
 
-                // ; bb_infres
-                // 32:    ; preds = %24
+                // bb_infres
                 builder.SetInsertPoint(bb_infres);
-                // %33 = fcmp oeq double %0, %1
                 auto infres = builder.CreateFCmpOEQ(x, y);
                 // br label %47
                 builder.CreateStore(infres, val); // should overwrite value from bb_nany
                 builder.CreateBr(bb_done);
 
-                // ; bb_standard
-                // 34:    ; preds = %24
+                // bb_standard
                 builder.SetInsertPoint(bb_standard);
-                // %35 = tail call double @llvm.fabs.f64(double %0) #8
                 auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x);
-                // %36 = tail call double @llvm.fabs.f64(double %1) #8
                 auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, y);
-                // %37 = fcmp olt double %35, %36
                 auto xy_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
-                // %38 = select i1 %37, double %36, double %35
                 auto xy_max = builder.CreateSelect(xy_cmp, y_abs, x_abs);
-                // %39 = fptosi double %38 to i32
                 auto max_val = builder.CreateFPToSI(xy_max, _env.i32Type());
-                // %40 = fsub double %0, %1
                 auto diff = builder.CreateFSub(x, y);
-                // %41 = tail call double @llvm.fabs.f64(double %40) #8
                 auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
-                // %42 = sitofp i32 %39 to double
                 auto max_val_too = builder.CreateSIToFP(max_val, _env.doubleType());
-                // %43 = fmul double %42, %2
                 auto relxmax = builder.CreateFMul(max_val_too, rel_tol);
-                // %44 = fcmp olt double %43, %3
                 auto RHS_cmp = builder.CreateFCmpOLT(relxmax, abs_tol);
-                // %45 = select i1 %44, double %3, double %43
                 auto RHS = builder.CreateSelect(RHS_cmp, abs_tol, relxmax);
-                // %46 = fcmp ole double %41, %45
                 auto standard_cmp = builder.CreateFCmpOLE(LHS, RHS);
                 // br label %47
                 builder.CreateStore(standard_cmp, val); // should overwrite value from bb_l1
                 builder.CreateBr(bb_done);
 
-                // ; bb_done
-                // 47:    ; preds = %4, %14, %34, %32
+                // bb_done
                 builder.SetInsertPoint(bb_done);
-                // %48 = phi i1 [ %33, %32 ], [ %46, %34 ], [ false, %14 ], [ false, %4 ]
-                // ret i1 %48
                 auto resVal = _env.upcastToBoolean(builder, builder.CreateLoad(val));
                 auto resSize = _env.i64Const(sizeof(int64_t));
                 return SerializableValue(resVal, resSize);
@@ -1496,8 +1449,9 @@ namespace tuplex {
                 return createMathIsInfCall(builder, argsType, retType, args);
                 
             if (symbol == "math.isclose") {
-                if (args.size() != 2 || args.size() != 3 || args.size() != 4 || !argsType.isTupleType()) {
-                    throw std::runtime_error("math.isclose either takes 2, 3, or 4 (numerical) arguments");
+                if (args.size() != 2 && args.size() != 3 && args.size() != 4 /*|| !argsType.isTupleType()*/) {
+                    std::string err = "math.isclose needs 2, 3, or 4 args; got " + std::to_string(args.size()) + " args\n";
+                    throw std::runtime_error(err);
                 }
 
                 assert(args.size() == argsType.parameters().size());
@@ -1505,7 +1459,7 @@ namespace tuplex {
                 // check all argument types
                 std::vector<python::Type> input_types = argsType.parameters();
                 for(const auto& type : input_types) {
-                    if (type != python::Type::BOOLEAN || type != python::Type::I64 || type != python::Type::F64) {
+                    if (type != python::Type::BOOLEAN && type != python::Type::I64 && type != python::Type::F64) {
                         throw std::runtime_error("math.isclose argument must be a float, integer, or boolean");
                     }
                 }

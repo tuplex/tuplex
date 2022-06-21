@@ -971,10 +971,12 @@ namespace tuplex {
                                                      const std::vector<tuplex::codegen::SerializableValue> &args) {
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
+            assert(args.size() >= 1);
             auto val = args.front();
             auto type = argsType.parameters().front();
             
             if (python::Type::F64 == type) {
+                /** TODO: explain how these instructions work **/
                 llvm::Value* i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
                 auto shiftedVal = builder.CreateLShr(i64Val, 32);
                 auto i32Shift = builder.CreateTrunc(shiftedVal, llvm::Type::getInt32Ty(context));
@@ -1002,12 +1004,17 @@ namespace tuplex {
                                                      const std::vector<tuplex::codegen::SerializableValue> &args) {
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
+            assert(args.size() >= 1);
             auto val = args.front();
             auto type = argsType.parameters().front();
 
             if (python::Type::F64 == type) {
-                auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), D_PINFINITY));
-                auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), D_NINFINITY));
+                // idea is to compare input with the constants for positive and negative infinity
+                // 0x7ff0000000000000ULL --> constant for positive infinity
+                // 0xfff0000000000000ULL --> constant for negative infinity
+                auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7ff0000000000000ULL));
+                auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xfff0000000000000ULL));
+                // if the input is equal to either positive or negative infinity, this 'or' instruction should return 1
                 auto orRes = builder.CreateOr(negCmp, posCmp);
 
                 auto resVal = _env.upcastToBoolean(builder, orRes);
@@ -1041,6 +1048,7 @@ namespace tuplex {
             auto x_ty = input_types[0];
             auto y_ty = input_types[1];
 
+            /** TODO: convert below code to switch case **/
             if (args.size() == 2) {
                 // rel_tol and abs_tol not specified
                 rel_tol_val = _env.f64Const(1e-09);
@@ -1061,8 +1069,9 @@ namespace tuplex {
             auto abs_tol = _env.upCast(builder, abs_tol_val, _env.doubleType());
 
             // check x and y types - bools and ints can be optimized!
-            // TODO: error check both rel_tol > 0 and abs_tol >= 0
+            /** TODO: error check both rel_tol > 0 and abs_tol >= 0 **/
             if (x_ty == python::Type::BOOLEAN && y_ty == python::Type::BOOLEAN) {
+                /** TODO: see if you can optimize this further **/
                 _env.printValue(builder, x_val.val, "boolean value\n");
                 _env.printValue(builder, y_val.val, "boolean value\n");
                 auto xor_xy = builder.CreateXor(x_val.val, y_val.val);
@@ -1081,6 +1090,8 @@ namespace tuplex {
                 auto x = _env.upCast(builder, x_val.val, _env.i32Type());
                 auto y = _env.upCast(builder, y_val.val, _env.i32Type());
 
+                /** TODO: ask Leonhard what he meant by using only integer comparisons **/
+
                 _env.printValue(builder, x, "integer value\n");
                 _env.printValue(builder, y, "integer value\n");
 
@@ -1088,7 +1099,7 @@ namespace tuplex {
                 assert(cur_block);
 
                 // create new blocks for each case
-                BasicBlock *bb_l1 = BasicBlock::Create(builder.getContext(), "opt_<_1", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_below_one = BasicBlock::Create(builder.getContext(), "opt_<_1", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_standard = BasicBlock::Create(builder.getContext(), "opt_standard", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_done = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
 
@@ -1098,10 +1109,10 @@ namespace tuplex {
                 // first block comparison (x ?== y)
                 auto eq_res = builder.CreateICmpEQ(x, y);
                 builder.CreateStore(eq_res, val);
-                builder.CreateCondBr(eq_res, bb_done, bb_l1);
+                builder.CreateCondBr(eq_res, bb_done, bb_below_one);
 
                 // check if rel_tol * max_val < 0 and abs_tol < 0 (should return false)
-                builder.SetInsertPoint(bb_l1);
+                builder.SetInsertPoint(bb_below_one);
                 auto x_d = builder.CreateSIToFP(x, _env.doubleType());
                 auto y_d = builder.CreateSIToFP(y, _env.doubleType());
                 auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x_d);
@@ -1122,7 +1133,7 @@ namespace tuplex {
                 auto RHS_cmp = builder.CreateFCmpOLT(relxmax, abs_tol);
                 auto RHS = builder.CreateSelect(RHS_cmp, abs_tol, relxmax);
                 auto standard_cmp = builder.CreateFCmpOLE(LHS, RHS);
-                builder.CreateStore(standard_cmp, val); // should overwrite value from bb_l1
+                builder.CreateStore(standard_cmp, val); // should overwrite value from bb_below_one
                 builder.CreateBr(bb_done);
 
                 // return value stored in val
@@ -1144,6 +1155,8 @@ namespace tuplex {
 
                 auto cur_block = builder.GetInsertBlock();
                 assert(cur_block);
+
+                /** TODO: provide more explanation for what these llvm instructions are doing **/
 
                 // create new blocks for each case
                 BasicBlock *bb_nany = BasicBlock::Create(builder.getContext(), "cmp_y_nan", builder.GetInsertBlock()->getParent());
@@ -1174,12 +1187,12 @@ namespace tuplex {
 
                 // bb_isinf
                 builder.SetInsertPoint(bb_isinf);
-                auto x_pinf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), D_PINFINITY));
-                auto y_pinf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_PINFINITY));
+                auto x_pinf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), D_POSITIVE_INFINITY));
+                auto y_pinf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_POSITIVE_INFINITY));
                 auto either_pinf = builder.CreateOr(x_pinf, y_pinf);
-                auto x_ninf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), D_NINFINITY));
+                auto x_ninf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), D_NEGATIVE_INFINITY));
                 auto check_xninf = builder.CreateOr(x_ninf, either_pinf);
-                auto y_ninf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_NINFINITY));
+                auto y_ninf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_NEGATIVE_INFINITY));
                 auto check_yninf = builder.CreateOr(y_ninf, check_xninf);
                 _env.printValue(builder, check_yninf, "x or y is inf: ");
                 builder.CreateCondBr(check_yninf, bb_infres, bb_standard);
@@ -1208,7 +1221,7 @@ namespace tuplex {
                 auto standard_cmp = builder.CreateFCmpOLE(LHS, RHS);
                 auto standard_res = _env.upcastToBoolean(builder, standard_cmp);
                 _env.printValue(builder, standard_res, "standard: ");
-                builder.CreateStore(standard_res, val); // should overwrite value from bb_l1
+                builder.CreateStore(standard_res, val); // should overwrite value from bb_infres
                 builder.CreateBr(bb_done);
 
                 // bb_done

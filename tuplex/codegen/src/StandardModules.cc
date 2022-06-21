@@ -80,16 +80,15 @@ namespace tuplex {
 
                     // 3-input case
                     for(const auto& third_type : isclose_types) {
+                        m->addAttribute(make_shared<Symbol>("isclose", "isclose", python::Type::makeFunctionType(python::Type::makeTupleType({type, second_type, third_type}), python::Type::BOOLEAN), SymbolType::FUNCTION));
 
                         // 4-input
+                        for(const auto& fourth_type : isclose_types) {
+                            m->addAttribute(make_shared<Symbol>("isclose", "isclose", python::Type::makeFunctionType(python::Type::makeTupleType({type, second_type, third_type, fourth_type}), python::Type::BOOLEAN), SymbolType::FUNCTION));
+                        }
                     }
                 }
             }
-            
-            auto iscloseSym = make_shared<Symbol>("isclose", "isclose", python::Type::makeFunctionType(python::Type::makeTupleType({python::Type::F64, python::Type::F64, python::Type::F64, python::Type::F64}), python::Type::BOOLEAN), SymbolType::FUNCTION);
-            iscloseSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::I64), python::Type::BOOLEAN));
-            iscloseSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::BOOLEAN), python::Type::BOOLEAN));
-            m->addAttribute(iscloseSym);
 
             // math.ceil/math.floor
             for(const auto& name : vector<string>{"ceil", "floor"}) {

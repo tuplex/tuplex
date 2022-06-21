@@ -814,14 +814,14 @@ TEST_F(MathFunctionsTest, MathIsClose) {
     ce.importModuleAs("math", "math");
 
     auto v1 = c.parallelize({
-        Row(-0.5, 0.0)//, Row(0.5, 0.50001), Row(0.5, 0.500000005), Row(-0.5, -0.5000000001), Row(0.5, 0.50000000005)
+        Row(-0.5, 0.0), Row(0.5, 0.50001), Row(0.5, 0.500000005), Row(-0.5, -0.5000000001)//, Row(0.5, 0.50000000005)
     }).map(UDF("lambda x, y: math.isclose(x, y)", "", ce)).collectAsVector();
     
     // EXPECT_EQ(v1.size(), 5);
     EXPECT_EQ(v1[0].getBoolean(0), false);
-    // EXPECT_EQ(v1[1].getBoolean(0), false);
-    // EXPECT_EQ(v1[2].getBoolean(0), false);
-    // EXPECT_EQ(v1[3].getBoolean(0), true);
+    EXPECT_EQ(v1[1].getBoolean(0), false);
+    EXPECT_EQ(v1[2].getBoolean(0), false);
+    EXPECT_EQ(v1[3].getBoolean(0), true);
     // EXPECT_EQ(v1[4].getBoolean(0), true);
 
     // auto v2 = c.parallelize({

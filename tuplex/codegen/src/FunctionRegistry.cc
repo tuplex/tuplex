@@ -977,6 +977,13 @@ namespace tuplex {
             
             if (python::Type::F64 == type) {
                 /** TODO: explain how these instructions work **/
+                /* note that there is no constant value for NAN; it can be represented as different constants
+                   
+                   a NAN is a float/double, where the sign bit is 0 or 1, all exponent bits are set to 1,
+                   and the mantissa is anything except all 0 bits
+
+                   
+                */
                 llvm::Value* i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
                 auto shiftedVal = builder.CreateLShr(i64Val, 32);
                 auto i32Shift = builder.CreateTrunc(shiftedVal, llvm::Type::getInt32Ty(context));

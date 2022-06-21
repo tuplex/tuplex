@@ -1159,6 +1159,7 @@ namespace tuplex {
                 const std::vector<tuplex::codegen::SerializableValue> isnan_argx{SerializableValue(x, _env.i64Const(sizeof(int64_t)))};
                 auto is_x_nan = FunctionRegistry::createMathIsNanCall(builder, python::Type::propagateToTupleType(python::Type::F64), python::Type::BOOLEAN, isnan_argx);
                 auto x_nan = builder.CreateZExtOrTrunc(is_x_nan.val, _env.i1Type());
+                _env.printValue(builder, x_nan, "x is nan: ");
                 builder.CreateStore(_env.boolConst(false), val);
                 builder.CreateCondBr(x_nan, bb_done, bb_nany);
 
@@ -1167,6 +1168,7 @@ namespace tuplex {
                 const std::vector<tuplex::codegen::SerializableValue> isnan_argy{SerializableValue(y, _env.i64Const(sizeof(int64_t)))};
                 auto is_y_nan = FunctionRegistry::createMathIsNanCall(builder, python::Type::propagateToTupleType(python::Type::F64), python::Type::BOOLEAN, isnan_argy);
                 auto y_nan = builder.CreateZExtOrTrunc(is_y_nan.val, _env.i1Type());
+                _env.printValue(builder, y_nan, "y is nan: ");
                 builder.CreateStore(_env.boolConst(false), val); // should overwrite value from first block
                 builder.CreateCondBr(y_nan, bb_done, bb_isinf);
 
@@ -1179,12 +1181,14 @@ namespace tuplex {
                 auto check_xninf = builder.CreateOr(x_ninf, either_pinf);
                 auto y_ninf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_NINFINITY));
                 auto check_yninf = builder.CreateOr(y_ninf, check_xninf);
+                _env.printValue(builder, check_yninf, "x or y is inf: ");
                 builder.CreateCondBr(check_yninf, bb_infres, bb_standard);
 
                 // bb_infres
                 builder.SetInsertPoint(bb_infres);
                 auto infres = builder.CreateFCmpOEQ(x, y);
                 auto bool_res = _env.upcastToBoolean(builder, infres);
+                _env.printValue(builder, bool_res, "(inf) x ?= y: ");
                 builder.CreateStore(bool_res, val); // should overwrite value from bb_nany
                 builder.CreateBr(bb_done);
 
@@ -1203,6 +1207,7 @@ namespace tuplex {
                 auto RHS = builder.CreateSelect(RHS_cmp, abs_tol, relxmax);
                 auto standard_cmp = builder.CreateFCmpOLE(LHS, RHS);
                 auto standard_res = _env.upcastToBoolean(builder, standard_cmp);
+                _env.printValue(builder, standard_res, "standard: ");
                 builder.CreateStore(standard_res, val); // should overwrite value from bb_l1
                 builder.CreateBr(bb_done);
 

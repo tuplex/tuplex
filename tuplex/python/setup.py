@@ -36,8 +36,9 @@ setup(
     license="Apache 2.0",
     keywords="ETL BigData Python LLVM UDF",
     install_requires=[
-        'jupyter',
-        'nbformat',
+        'jupyter<7.0',
+        'nbconvert<7.0',
+        'nbformat<7.0',
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
         'pluggy>=0.6.0, <1.0.0',

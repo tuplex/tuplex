@@ -9,6 +9,8 @@
 #include <vector>
 #include "TypeSystem.h"
 
+#include <simdjson.h>
+
 namespace tuplex {
 
     //@March implement: finding Json Offset

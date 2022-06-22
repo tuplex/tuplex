@@ -12,6 +12,14 @@
 #include <StringUtils.h>
 #include <JSONUtils.h>
 #include <JsonStatistic.h>
+#include <fstream>
+
+static std::string fileToString(const std::string& path) {
+    std::ifstream t(path);
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+    return buffer.str();
+}
 
 TEST(JSONUtils, Chunker) {
     using namespace std;
@@ -32,9 +40,79 @@ TEST(JSONUtils, Chunker) {
     EXPECT_EQ(findNLJsonStart(test_str.c_str(), test_str.size()), -1);
 }
 
+TEST(JSONUtils, SIMDJSONFieldParse) {
+    using namespace tuplex;
+
+    // super slow parse into tuplex structure using SIMDJSON
+    std::string test_path = "../resources/ndjson/github.json";
+    std::string data = fileToString(test_path);
+
+    simdjson::padded_string ps(data);
+
+    // https://simdjson.org/api/2.0.0/md_doc_iterate_many.html
+    simdjson::ondemand::parser parser;
+    simdjson::ondemand::document_stream stream;
+    auto error = parser.iterate_many(data).get(stream);
+    // dom parser allows more??
+    // auto error = parser.parse_many(data).get(stream);
+
+    if(error) {
+        std::cerr << error << std::endl; return;
+    }
+
+    // break up into Rows and detect things along the way.
+    std::vector<Row> rows;
+
+    // first: detect column names (ordered? as they are?)
+    std::vector<std::string> column_names;
+    std::set<std::string> column_names_set;
+
+    // anonymous row? I.e., simple value?
+    for(auto it = stream.begin(); it != stream.end(); ++it) {
+        auto doc = (*it);
+        // type of doc
+        switch(doc.type().value()) {
+            case simdjson::ondemand::json_type::object: {
+                auto obj = doc.get_object();
+                // objects per line
+                for(auto field : obj) {
+                    //std::cout<<field.unescaped_key().value()<<" ";
+
+                    // add to names
+                    auto sv_key = field.unescaped_key().value();
+                    std::string key = {sv_key.begin(), sv_key.end()};
+                    auto jt = column_names_set.find(key);
+                    if(jt == column_names_set.end()) {
+                        column_names.push_back(key);
+                        column_names_set.insert(key);
+                    }
+
+                }
+                std::cout<<std::endl;
+                break;
+            }
+            case simdjson::ondemand::json_type::array: {
+                // array per line
+                doc.count_elements();
+                break;
+            }
+            default: {
+                // unknown, i.e. error line.
+                break;
+            }
+        }
+
+//        std::cout << it.source() << std::endl;
+    }
+    std::cout << stream.truncated_bytes() << " bytes "<< std::endl; // returns 39 bytes
+
+    std::cout<<"Found columns: "<<column_names<<std::endl;
+
+    // how can everything be represented? I.e., nested struct? -> dict?
+
+}
 
 // files to test: some with empty lines, etc.
-
 TEST(JSONUtils, arrayConv) {
 
     using namespace std;

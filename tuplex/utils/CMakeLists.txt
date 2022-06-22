@@ -64,6 +64,17 @@ else()
     # Note: alternative is to use CJSON_HIDE_SYMBOLS IWTH AWS SDK.
 endif()
 
+# include simdjson, tutorial here https://github.com/simdjson/cmake_demo_single_file/blob/master/CMakeLists.txt
+include(FetchContent)
+FetchContent_Declare(
+        simdjson
+        GIT_REPOSITORY https://github.com/simdjson/simdjson.git
+        GIT_SHALLOW TRUE
+        GIT_TAG tags/v2.0.4
+)
+
+FetchContent_MakeAvailable(simdjson)
+
 # AWS SDK defines cjson since v1.5, yet if using BUILD_WITH_AWS=OFF make sure to add cJSON symbols...
 if(NOT BUILD_WITH_AWS)
     list(APPEND SOURCES ${cjson_SOURCE_DIR}/cJSON.c)
@@ -106,4 +117,4 @@ target_include_directories(libutils PUBLIC
         ${AWSSDK_INCLUDE_DIR})
 
 # Specify here the libraries this program depends on
-target_link_libraries(libutils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${AWSSDK_LINK_LIBRARIES})
+target_link_libraries(libutils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${AWSSDK_LINK_LIBRARIES} simdjson)

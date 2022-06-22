@@ -72,7 +72,7 @@ namespace tuplex {
             // math.isclose
             // typing is:
             // ({f64, i64, bool}, {f64, i64, bool}[, rel_tol={f64, i64, bool}, abs_tol={f64, i64, bool}]) -> bool
-            /** TODO: ask Leonhard what he means by typer function for the below code **/
+            /** TODO: update to use dynamic typing based on input (reference SymbolTable.cc:417) **/
             vector<python::Type> isclose_types{python::Type::BOOLEAN, python::Type::I64, python::Type::F64};
             for(const auto& type : isclose_types) {
                 // 2-input case

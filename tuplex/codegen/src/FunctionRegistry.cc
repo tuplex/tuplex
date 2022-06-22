@@ -1082,8 +1082,11 @@ namespace tuplex {
                 _env.printValue(builder, x_val.val, "boolean value\n");
                 _env.printValue(builder, y_val.val, "boolean value\n");
                 auto xor_xy = builder.CreateXor(x_val.val, y_val.val);
+
+                /** TODO: add integer check for rel_tol and abs_tol */
                 auto rel_cmp = builder.CreateFCmpOGE(rel_tol, _env.f64Const(1));
-                auto abs_cmp = builder.CreateFCmpOGE(abs_tol, _env.f64Const(1));
+                auto abs_cmp = builder.CreateFCmpOGE(abs_tol, _env.f64Const(1));                
+                
                 auto rel_or_abs = builder.CreateOr(rel_cmp, abs_cmp);
                 auto eq_check = builder.CreateXor(xor_xy, _env.boolConst(true));
                 auto or_res = builder.CreateOr(rel_or_abs, eq_check);
@@ -1096,8 +1099,6 @@ namespace tuplex {
                 // cast x/y to integers
                 auto x = _env.upCast(builder, x_val.val, _env.i64Type());
                 auto y = _env.upCast(builder, y_val.val, _env.i64Type());
-
-                /** TODO: ask Leonhard what he meant by using only integer comparisons **/
 
                 _env.printValue(builder, x, "integer value\n");
                 _env.printValue(builder, y, "integer value\n");
@@ -1118,6 +1119,8 @@ namespace tuplex {
                 auto eq_res = _env.upcastToBoolean(builder, xy_eq);
                 builder.CreateStore(eq_res, val);
                 builder.CreateCondBr(eq_res, bb_done, bb_below_one);
+
+                /** TODO: add integer check for rel_tol and abs_tol */
 
                 // check if rel_tol * max_val < 0 and abs_tol < 0 (should return false)
                 builder.SetInsertPoint(bb_below_one);

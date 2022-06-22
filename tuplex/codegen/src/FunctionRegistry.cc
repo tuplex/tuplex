@@ -1157,8 +1157,8 @@ namespace tuplex {
                 auto x = _env.upCast(builder, x_val.val, _env.doubleType());
                 auto y = _env.upCast(builder, y_val.val, _env.doubleType());
 
-                _env.printValue(builder, x, "double value\n");
-                _env.printValue(builder, y, "double value\n");
+                _env.printValue(builder, x, "\ndouble value");
+                _env.printValue(builder, y, "\ndouble value");
 
                 auto cur_block = builder.GetInsertBlock();
                 assert(cur_block);
@@ -1215,19 +1215,31 @@ namespace tuplex {
                 // bb_standard
                 builder.SetInsertPoint(bb_standard);
                 auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x);
+                _env.printValue(builder, x_abs, "x_abs: ");
                 auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, y);
+                _env.printValue(builder, y_abs, "y_abs: ");
                 auto xy_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
+                _env.printValue(builder, xy_cmp, "xy_cmp: ");
                 auto xy_max = builder.CreateSelect(xy_cmp, y_abs, x_abs);
+                _env.printValue(builder, xy_max, "xy_max: ");
                 auto max_val = builder.CreateFPToSI(xy_max, _env.i32Type()); // not sure why this has to happen ?
+                _env.printValue(builder, max_val, "max_val: ");
                 auto diff = builder.CreateFSub(x, y);
+                _env.printValue(builder, diff, "diff: ");
                 auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
+                _env.printValue(builder, LHS, "LHS: ");
                 auto max_val_too = builder.CreateSIToFP(max_val, _env.doubleType());
+                _env.printValue(builder, max_val_too, "max_val_too: ");
                 auto relxmax = builder.CreateFMul(max_val_too, rel_tol);
+                _env.printValue(builder, relxmax, "relxmax: ");
                 auto RHS_cmp = builder.CreateFCmpOLT(relxmax, abs_tol);
+                _env.printValue(builder, RHS_cmp, "RHS_cmp: ");
                 auto RHS = builder.CreateSelect(RHS_cmp, abs_tol, relxmax);
+                _env.printValue(builder, RHS, "RHS: ");
                 auto standard_cmp = builder.CreateFCmpOLE(LHS, RHS);
+                _env.printValue(builder, standard_cmp, "standard_cmp: ");
                 auto standard_res = _env.upcastToBoolean(builder, standard_cmp);
-                _env.printValue(builder, standard_res, "standard: ");
+                _env.printValue(builder, standard_res, "standard res: ");
                 builder.CreateStore(standard_res, val); // should overwrite value from bb_infres
                 builder.CreateBr(bb_done);
 

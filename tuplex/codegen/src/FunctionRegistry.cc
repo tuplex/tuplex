@@ -1222,14 +1222,10 @@ namespace tuplex {
                 _env.printValue(builder, xy_cmp, "xy_cmp: ");
                 auto xy_max = builder.CreateSelect(xy_cmp, y_abs, x_abs);
                 _env.printValue(builder, xy_max, "xy_max: ");
-                // auto max_val = builder.CreateFPToSI(xy_max, _env.i32Type()); // not sure why this has to happen ?
-                // _env.printValue(builder, max_val, "max_val: ");
                 auto diff = builder.CreateFSub(x, y);
                 _env.printValue(builder, diff, "diff: ");
                 auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
                 _env.printValue(builder, LHS, "LHS: ");
-                // auto max_val_too = builder.CreateSIToFP(max_val, _env.doubleType());
-                // _env.printValue(builder, max_val_too, "max_val_too: ");
                 auto relxmax = builder.CreateFMul(xy_max, rel_tol);
                 _env.printValue(builder, relxmax, "relxmax: ");
                 auto RHS_cmp = builder.CreateFCmpOLT(relxmax, abs_tol);

@@ -1114,7 +1114,8 @@ namespace tuplex {
                 auto val = _env.CreateFirstBlockAlloca(builder, _env.getBooleanType());
 
                 // first block comparison (x ?== y)
-                auto eq_res = builder.CreateICmpEQ(x, y);
+                auto xy_eq = builder.CreateICmpEQ(x, y);
+                auto eq_res = _env.upcastToBoolean(builder, xy_eq);
                 builder.CreateStore(eq_res, val);
                 builder.CreateCondBr(eq_res, bb_done, bb_below_one);
 

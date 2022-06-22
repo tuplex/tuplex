@@ -1111,7 +1111,7 @@ namespace tuplex {
                 BasicBlock *bb_done = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
 
                 // allocate space for return value
-                auto val = _env.CreateFirstBlockAlloca(builder, _env.i1Type());
+                auto val = _env.CreateFirstBlockAlloca(builder, _env.getBooleanType());
 
                 // first block comparison (x ?== y)
                 auto eq_res = builder.CreateICmpEQ(x, y);
@@ -1140,7 +1140,8 @@ namespace tuplex {
                 auto RHS_cmp = builder.CreateFCmpOLT(relxmax, abs_tol);
                 auto RHS = builder.CreateSelect(RHS_cmp, abs_tol, relxmax);
                 auto standard_cmp = builder.CreateFCmpOLE(LHS, RHS);
-                builder.CreateStore(standard_cmp, val); // should overwrite value from bb_below_one
+                auto standard_res = _env.upcastToBoolean(builder, standard_cmp);
+                builder.CreateStore(standard_res, val); // should overwrite value from bb_below_one
                 builder.CreateBr(bb_done);
 
                 // return value stored in val

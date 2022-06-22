@@ -1094,8 +1094,8 @@ namespace tuplex {
                 return SerializableValue(resVal, resSize);
             } else if (x_ty != python::Type::F64 && y_ty != python::Type::F64) {
                 // cast x/y to integers
-                auto x = _env.upCast(builder, x_val.val, _env.i32Type());
-                auto y = _env.upCast(builder, y_val.val, _env.i32Type());
+                auto x = _env.upCast(builder, x_val.val, _env.i64Type());
+                auto y = _env.upCast(builder, y_val.val, _env.i64Type());
 
                 /** TODO: ask Leonhard what he meant by using only integer comparisons **/
 

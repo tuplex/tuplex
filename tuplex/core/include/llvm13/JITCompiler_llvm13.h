@@ -18,6 +18,8 @@
 // common interface
 #include "IJITCompiler.h"
 
+#include <llvm/ExecutionEngine/Orc/LLJIT.h>
+
 namespace tuplex {
 
     // JIT compiler based on LLVM's ORCv2 JIT classes
@@ -61,14 +63,14 @@ namespace tuplex {
 
     private:
 
-//        // @TODO: reimplement JIT using own threadpool for better access on stuff.
-//        std::unique_ptr<llvm::orc::LLJIT> _lljit;
-//
-//        // @TODO: add function to remove llvm lib here! Else indefinite grow with queries!
-//        std::vector<llvm::orc::JITDylib*> _dylibs; // for name lookup search
-//
-//        // custom symbols
-//        std::unordered_map<std::string, llvm::JITEvaluatedSymbol> _customSymbols;
+        // @TODO: reimplement JIT using own threadpool for better access on stuff.
+        std::unique_ptr<llvm::orc::LLJIT> _lljit;
+
+        // @TODO: add function to remove llvm lib here! Else indefinite grow with queries!
+        std::vector<llvm::orc::JITDylib*> _dylibs; // for name lookup search
+
+        // custom symbols
+        std::unordered_map<std::string, llvm::JITEvaluatedSymbol> _customSymbols;
 
     };
 }

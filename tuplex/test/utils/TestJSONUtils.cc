@@ -220,6 +220,12 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
         std::cout<<std::endl;
     }
 
+    // @TODO: when number of objects doesn't add up, fill in null values if that behavior is desired!
+    // @TODO: run majority detect function from lambda-exp over the result, after ordering types per column.
+    // @TODO: add header detection mode. (ignored in object setting)
+
+    // @TODO: add structtype to type system with string keys typed explicitly (keytype), (value_type).
+
     // how can everything be represented? I.e., nested struct? -> dict?
 }
 

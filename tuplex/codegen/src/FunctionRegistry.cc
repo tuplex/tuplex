@@ -1061,14 +1061,14 @@ namespace tuplex {
                 case 2:
                     // rel_tol and abs_tol not specified
                     rel_tol_val = _env.f64Const(1e-09);
-                    abs_tol_val = _env.f64Const(0);
+                    abs_tol_val = _env.i64Const(0);
                     rel_ty = python::Type::F64;
                     abs_ty = python::Type::I64;
                     break; 
                 case 3:
                     // assume that the third argument is rel_tol
                     rel_tol_val = args[2].val;
-                    abs_tol_val = _env.f64Const(0);
+                    abs_tol_val = _env.i64Const(0);
                     rel_ty = input_types[2];
                     abs_ty = python::Type::I64;
                     break;
@@ -1120,6 +1120,7 @@ namespace tuplex {
                 // cast x/y to integers
                 auto x = _env.upCast(builder, x_val, _env.i64Type());
                 auto y = _env.upCast(builder, y_val, _env.i64Type());
+                auto rel_tol = _env.upCast(builder, rel_tol_val, _env.doubleType());
 
                 _env.printValue(builder, x, "\ninteger value");
                 _env.printValue(builder, y, "integer value");
@@ -1137,40 +1138,46 @@ namespace tuplex {
 
                 // first block comparison (x ?== y)
                 auto xy_eq = builder.CreateICmpEQ(x, y);
+                _env.printValue(builder, xy_eq, "xy_eq: ");
                 auto eq_res = _env.upcastToBoolean(builder, xy_eq);
+                _env.printValue(builder, eq_res, "eq_res: ");
                 builder.CreateStore(eq_res, val);
-                builder.CreateCondBr(eq_res, bb_done, bb_below_one);
+                builder.CreateCondBr(xy_eq, bb_done, bb_below_one);
 
                 // check if rel_tol * max_val < 0 and abs_tol < 0 (should return false)
                 builder.SetInsertPoint(bb_below_one);
-                // auto x_d = builder.CreateSIToFP(x, _env.doubleType());
-                // auto y_d = builder.CreateSIToFP(y, _env.doubleType());
-                auto x_abs = llvm::createBinaryIntrinsic(builder, llvm::Intrinsic::ID::abs, x, _env.i1Const(1));
-                auto y_abs = llvm::createBinaryIntrinsic(builder, llvm::Intrinsic::ID::abs, y, _env.i1Const(1));
-                auto xy_cmp = builder.CreateICmpULT(x_abs, y_abs);
+                auto x_d = builder.CreateSIToFP(x, _env.doubleType());
+                _env.printValue(builder, x_d, "x_d: ");
+                auto y_d = builder.CreateSIToFP(y, _env.doubleType());
+                _env.printValue(builder, y_d, "y_d: ");
+                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x_d);
+                _env.printValue(builder, x_abs, "x_abs: ");
+                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, y_d);
+                _env.printValue(builder, y_abs, "y_abs: ");
+                auto xy_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
+                _env.printValue(builder, xy_cmp, "xy_cmp: ");
                 auto max_val = builder.CreateSelect(xy_cmp, y_abs, x_abs);
-
-                // if rel_tol is a bool or int, use int instructions
-                llvm::Value* relxmax;
-                llvm::Value* relxmax_cmp;
-                if (rel_ty == python::Type::BOOLEAN || rel_ty == python::Type::I64) {
-                    auto rel_tol = _env.upCast(builder, rel_tol_val, _env.i64Type());
-                    relxmax = builder.CreateNUWMul(max_val, rel_tol);
-                    relxmax_cmp = builder.CreateICmpULT(relxmax, _env.i64Const(1));
-                } else {
-                    assert(rel_ty == python::Type::F64);
-                    relxmax = builder.CreateFMul(max_val, rel_tol_val);
-                    relxmax_cmp = builder.CreateFCmpOLT(relxmax, _env.f64Const(1));
-                }
+                _env.printValue(builder, max_val, "max_val: ");
+                auto relxmax = builder.CreateFMul(max_val, rel_tol_val);
+                _env.printValue(builder, relxmax, "relxmax: ");
+                auto relxmax_cmp = builder.CreateFCmpOLT(relxmax, _env.f64Const(1));
+                _env.printValue(builder, relxmax_cmp, "relxmax_cmp: ");
 
                 // if abs_tol is a bool or int, use int instructions
+                llvm::Value* abs_tol;
                 llvm::Value* abs_cmp;
                 if (abs_ty == python::Type::BOOLEAN || abs_ty == python::Type::I64) {
-                    auto abs_tol = _env.upCast(builder, abs_tol_val, _env.i64Type());
+                    abs_tol = _env.upCast(builder, abs_tol_val, _env.i64Type());
+                    _env.printValue(builder, abs_tol, "int abs_tol: ");
                     abs_cmp = builder.CreateICmpULT(abs_tol, _env.i64Const(1));
+                    _env.printValue(builder, abs_cmp, "int abs_cmp: ");
                 } else {
                     assert(abs_ty == python::Type::F64);
-                    abs_cmp = builder.CreateFCmpOLT(abs_tol_val, _env.f64Const(1));
+                    // so we don't leave abs_tol uninitialized
+                    abs_tol = abs_tol_val;
+                    _env.printValue(builder, abs_tol, "int abs_tol: ");
+                    abs_cmp = builder.CreateFCmpOLT(abs_tol, _env.f64Const(1));
+                    _env.printValue(builder, abs_cmp, "double abs_cmp: ");
                 }
 
                 auto l1_res = builder.CreateAnd(abs_cmp, relxmax_cmp);
@@ -1179,30 +1186,26 @@ namespace tuplex {
 
                 // standard check for isclose
                 builder.SetInsertPoint(bb_standard);
-                // TODO: FACTOR!!!
-                // if both rel_tol and abs_tol are bools/ints, then can use integer optimization
-                if ((rel_ty == python::Type::BOOLEAN || rel_ty == python::Type::F64) &&
-                    (abs_ty == python::Type::BOOLEAN || abs_ty == python::Type::F64)) {
-                    auto diff = builder.CreateNUWSub(x, y);
-                    auto LHS = llvm::createBinaryIntrinsic(builder, llvm::Intrinsic::ID::abs, diff, _env.i1Const(1));
-                    auto RHS_cmp = builder.CreateICmpULT(relxmax, abs_tol);
-                    auto RHS = builder.CreateSelect(RHS_cmp, abs_tol, relxmax);
-                    auto standard_cmp = builder.CreateICmpULE(LHS, RHS);
-                    auto standard_res = _env.upcastToBoolean(builder, standard_cmp);
-                    builder.CreateStore(standard_res, val); // should overwrite value from bb_below_one
-                    builder.CreateBr(bb_done);
+                auto diff = builder.CreateFSub(x_d, y_d);
+                auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
+                
+                llvm::Value* d_abs_tol;
+                if (abs_ty == python::Type::BOOLEAN || abs_ty == python::Type::I64) {
+                    d_abs_tol = _env.upCast(builder, abs_tol, _env.doubleType());
+                    _env.printValue(builder, abs_tol, "int d_abs_tol: ");
                 } else {
-                    auto x_d = builder.CreateSIToFP(x, _env.doubleType());
-                    auto y_d = builder.CreateSIToFP(y, _env.doubleType());
-                    auto diff = builder.CreateFSub(x_d, y_d);
-                    auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
-                    auto RHS_cmp = builder.CreateFCmpOLT(relxmax, abs_tol);
-                    auto RHS = builder.CreateSelect(RHS_cmp, abs_tol, relxmax);
-                    auto standard_cmp = builder.CreateFCmpOLE(LHS, RHS);
-                    auto standard_res = _env.upcastToBoolean(builder, standard_cmp);
-                    builder.CreateStore(standard_res, val); // should overwrite value from bb_below_one
-                    builder.CreateBr(bb_done);
+                    assert(abs_ty == python::Type::F64);
+                    // so we don't leave abs_tol uninitialized
+                    d_abs_tol = abs_tol;
+                    _env.printValue(builder, d_abs_tol, "int d_abs_tol: ");
                 }
+                
+                auto RHS_cmp = builder.CreateFCmpOLT(relxmax, d_abs_tol);
+                auto RHS = builder.CreateSelect(RHS_cmp, d_abs_tol, relxmax);
+                auto standard_cmp = builder.CreateFCmpOLE(LHS, RHS);
+                auto standard_res = _env.upcastToBoolean(builder, standard_cmp);
+                builder.CreateStore(standard_res, val); // should overwrite value from bb_below_one
+                builder.CreateBr(bb_done);
                 
                 // return value stored in val
                 builder.SetInsertPoint(bb_done);

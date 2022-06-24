@@ -18,10 +18,10 @@
 #include <TypeSystem.h>
 #include <Field.h>
 
-#if LLVM_VERSION_MAJOR == 9
+//#if LLVM_VERSION_MAJOR == 9
 // LLVM9 fix
 #include <llvm/Target/TargetMachine.h>
-#endif
+//#endif
 
 
 // builder and codegen funcs

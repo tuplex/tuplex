@@ -1728,7 +1728,7 @@ namespace tuplex {
                                                              {i8ptrType(), i8ptrType(), i64Type(),
                                                               i8ptrType()->getPointerTo(0)}, false);
 #if LLVM_VERSION_MAJOR < 9
-            auto hmap_get_func = env->getModule()->getOrInsertFunction("hashmap_get", hmap_func_type);
+            auto hmap_get_func = getModule()->getOrInsertFunction("hashmap_get", hmap_func_type);
 #else
             auto hmap_get_func = getModule()->getOrInsertFunction("hashmap_get", hmap_func_type).getCallee();
 #endif
@@ -1752,7 +1752,7 @@ namespace tuplex {
                                                              {i8ptrType(), i64Type(),
                                                               i8ptrType()->getPointerTo(0)}, false);
 #if LLVM_VERSION_MAJOR < 9
-            auto hmap_get_func = env->getModule()->getOrInsertFunction("int64_hashmap_get", hmap_func_type);
+            auto hmap_get_func = getModule()->getOrInsertFunction("int64_hashmap_get", hmap_func_type);
 #else
             auto hmap_get_func = getModule()->getOrInsertFunction("int64_hashmap_get", hmap_func_type).getCallee();
 #endif

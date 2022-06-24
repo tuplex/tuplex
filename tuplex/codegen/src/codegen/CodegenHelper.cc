@@ -192,7 +192,13 @@ namespace tuplex {
                 auto err = res.takeError();
                 std::string err_msg;
                 raw_string_ostream os(err_msg);
-                os<<err; os.flush();
+#if LLVM_VERSION_MAJOR >= 9
+		os<<err; 
+#else
+		err_msg = toString(err);
+#endif
+		
+		os.flush();
                 Logger::instance().logger("LLVM Backend").error("could not parse module from bitcode");
                 Logger::instance().logger("LLVM Backend").error(err_msg);
                 return nullptr;

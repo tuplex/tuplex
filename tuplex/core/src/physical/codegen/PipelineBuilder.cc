@@ -1732,9 +1732,9 @@ namespace tuplex {
             // load via StructGEP
             PipelineResult pr;
 
-            pr.resultCode = builder.CreateLoad(LLVMEnvironment::CreateStructGEP(builder, result_ptr, 0));
-            pr.exceptionOperatorID = builder.CreateLoad(LLVMEnvironment::CreateStructGEP(builder, result_ptr, 1));
-            pr.numProducedRows = builder.CreateLoad(LLVMEnvironment::CreateStructGEP(builder, result_ptr, 2));
+            pr.resultCode = builder.CreateLoad(llvm::CreateStructGEP(builder, result_ptr, 0));
+            pr.exceptionOperatorID = builder.CreateLoad(llvm::CreateStructGEP(builder, result_ptr, 1));
+            pr.numProducedRows = builder.CreateLoad(llvm::CreateStructGEP(builder, result_ptr, 2));
             return pr;
         }
 

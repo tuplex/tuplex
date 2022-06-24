@@ -485,9 +485,15 @@ namespace tuplex {
                 Buffer.insert(Buffer.begin(), BWH_HeaderSize, 0);
 
             BitcodeWriter Writer(Buffer);
+#if LLVM_VERSION_MAJOR < 9
+            Writer.writeModule(&module, ShouldPreserveUseListOrder, Index,
+                    GenerateHash,
+                               ModHash);
+#else
             Writer.writeModule(module, ShouldPreserveUseListOrder, Index,
                     GenerateHash,
                                ModHash);
+#endif
             Writer.writeSymtab();
             Writer.writeStrtab();
 

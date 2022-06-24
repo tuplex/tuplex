@@ -864,7 +864,7 @@ TEST_F(MathFunctionsTest, MathIsClose) {
     EXPECT_EQ(v5[0].getBoolean(0), false);
 
     auto v6 = c.parallelize({
-        Row(true, true, 1e-09, 1e-09), Row(true, false, true, 1)
+        Row(true, true, false, false), Row(true, false, true, 1)
     }).map(UDF("lambda x, y, r, a: math.isclose(x, y, r, a)", "", ce)).collectAsVector();
 
     EXPECT_EQ(v6.size(), 2);
@@ -872,11 +872,13 @@ TEST_F(MathFunctionsTest, MathIsClose) {
     EXPECT_EQ(v6[1].getBoolean(0), true);
 
     auto v7 = c.parallelize({
-        Row(false, true, 5e-09)
+        Row(false, true, 5e-09), Row(false, true, 1.0), Row(false, true, 0.999999)
     }).map(UDF("lambda x, y, r: math.isclose(x, y, r)", "", ce)).collectAsVector();
 
-    EXPECT_EQ(v7.size(), 1);
+    EXPECT_EQ(v7.size(), 3);
     EXPECT_EQ(v7[0].getBoolean(0), false);
+    EXPECT_EQ(v7[1].getBoolean(0), true);
+    EXPECT_EQ(v7[2].getBoolean(0), false);
 
     auto v8 = c.parallelize({
         Row(0.5, 1, 1e-09, 1e-09), Row(2.0000000009, 2, 5e-09, 0)

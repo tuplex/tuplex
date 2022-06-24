@@ -976,24 +976,46 @@ namespace tuplex {
             auto type = argsType.parameters().front();
             
             if (python::Type::F64 == type) {
-                /** TODO: explain how these instructions work **/
-                /* note that there is no constant value for NAN; it can be represented as different constants
+                /* Note that there are multiple possible ways to represent NAN
                    
-                   a NAN is a float/double, where the sign bit is 0 or 1, all exponent bits are set to 1,
+                   A NAN must be a float/double, where the sign bit is 0 or 1, all exponent bits are set to 1,
                    and the mantissa is anything except all 0 bits (because that's how infinity is defined)
 
-                   
+                   According to this: https://www.geeksforgeeks.org/floating-point-representation-basics/
+                   a quiet NAN (QNAN) is represented with only the most significant bit of the mantissa set to 1.
+                   a signaling NAN (SNAN) has only the two most significant bits of the mantissa set to 1.
+                   (all other bits are set to 0)
+
+                   QNAN = 0x7FF8000000000000
+                   SNAN = 0x7FFC000000000000
                 */
+                
                 llvm::Value* i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
+
+                /* The below instructions shift the bits of the input value right by 32 bits,
+                   and then compute the result & (bitwise AND) 0x7fffffff = 2147483647. 
+                   Effectively: (x >> 32) & 0x7fffffff
+                   
+                   Note that 0x7fffffff has the 31 least significant bits set to 1, and the
+                   most significant bit set to 0.
+                   If the input value was QNAN, the result would be 0x7FF80000.
+                   If the input value was SNAN, the result would be 0x7FFC0000.
+                */
                 auto shiftedVal = builder.CreateLShr(i64Val, 32);
                 auto i32Shift = builder.CreateTrunc(shiftedVal, llvm::Type::getInt32Ty(context));
                 auto andRes = builder.CreateAnd(i32Shift, 2147483647);
                 auto i32Val = builder.CreateTrunc(i64Val, llvm::Type::getInt32Ty(context));
+                
+                /* The next instructions check if the input value is not equal to 0.
+                   Then, the result of this is added to the result of (x >> 32) & 0x7fffffff.
+                   Finally, this sum is compared to 0x7ff00000; if the sum is greater than
+                   0x7ff00000, isnan returns true, otherwise, false.
+                */    
                 auto cmpRes = builder.CreateICmpNE(i32Val, ConstantInt::get(i32Val->getType(), 0));
                 auto i32cmp = builder.CreateZExt(cmpRes, llvm::Type::getInt32Ty(context));
                 auto added = builder.CreateNUWAdd(andRes, i32cmp);
                 auto addCmp = builder.CreateICmpUGT(added, ConstantInt::get(i32Val->getType(), 2146435072));
-
+            
                 auto resVal = _env.upcastToBoolean(builder, addCmp);
                 auto resSize = _env.i64Const(sizeof(int64_t));
 
@@ -1077,7 +1099,9 @@ namespace tuplex {
                     // assume that the third argument is rel_tol and the fourth argument is abs_tol
                     // so we don't support the case where abs_tol is specified but rel_tol is not
                     rel_tol_val = args[2].val;
+                    _env.printValue(builder, rel_tol_val, "rel_tol_val");
                     abs_tol_val = args[3].val;
+                    _env.printValue(builder, abs_tol_val, "abs_tol_val");
                     rel_ty = input_types[2];
                     abs_ty = input_types[3];
             }
@@ -1088,29 +1112,38 @@ namespace tuplex {
                 _env.printValue(builder, x_val, "\nboolean value");
                 _env.printValue(builder, y_val, "boolean value");
                 auto xor_xy = builder.CreateXor(x_val, y_val);
-
+                _env.printValue(builder, xor_xy, "xor_xy");
                 // if rel_tol or abs_tol is a bool or int, use ICmp instead of FCmp
                 llvm::Value* rel_cmp;
                 if (rel_ty == python::Type::BOOLEAN || rel_ty == python::Type::I64) {
                     auto rel_tol = _env.upCast(builder, rel_tol_val, _env.i64Type());
+                    _env.printValue(builder, rel_tol, "rel_tol");
                     rel_cmp = builder.CreateICmpUGE(rel_tol, _env.i64Const(1));
                 } else {
                     assert(rel_ty == python::Type::F64);
                     rel_cmp = builder.CreateFCmpOGE(rel_tol_val, _env.f64Const(1));
                 }
+                _env.printValue(builder, rel_cmp, "rel_cmp");
 
                 llvm::Value* abs_cmp;
                 if (abs_ty == python::Type::BOOLEAN || abs_ty == python::Type::I64) {
                     auto abs_tol = _env.upCast(builder, abs_tol_val, _env.i64Type());
+                    _env.printValue(builder, abs_tol, "abs_tol");
                     abs_cmp = builder.CreateICmpUGE(abs_tol, _env.i64Const(1));
                 } else {
                     assert(abs_ty == python::Type::F64);
                     abs_cmp = builder.CreateFCmpOGE(abs_tol_val, _env.f64Const(1));
                 }
+                _env.printValue(builder, abs_cmp, "abs_cmp");
                 
                 auto rel_or_abs = builder.CreateOr(rel_cmp, abs_cmp);
+                _env.printValue(builder, rel_or_abs, "rel_or_abs");
                 auto eq_check = builder.CreateXor(xor_xy, _env.boolConst(true));
-                auto or_res = builder.CreateOr(rel_or_abs, eq_check);
+                _env.printValue(builder, eq_check, "eq_check");
+                auto bool_val = _env.upcastToBoolean(builder, rel_or_abs);
+                _env.printValue(builder, bool_val, "bool_val");
+                auto or_res = builder.CreateOr(bool_val, eq_check);
+                _env.printValue(builder, or_res, "or_res");
 
                 auto resVal = _env.upcastToBoolean(builder, or_res);
                 auto resSize = _env.i64Const(sizeof(int64_t));
@@ -1229,8 +1262,6 @@ namespace tuplex {
                 auto cur_block = builder.GetInsertBlock();
                 assert(cur_block);
 
-                /** TODO: provide more explanation for what these llvm instructions are doing **/
-
                 // create new blocks for each case
                 BasicBlock *bb_nany = BasicBlock::Create(builder.getContext(), "cmp_y_nan", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_isinf = BasicBlock::Create(builder.getContext(), "cmp_inf", builder.GetInsertBlock()->getParent());
@@ -1242,6 +1273,7 @@ namespace tuplex {
                 auto val = _env.CreateFirstBlockAlloca(builder, _env.getBooleanType());
 
                 // first block
+                // this block checks if x is NAN - in which case isclose returns 0 (jump to bb_done)
                 const std::vector<tuplex::codegen::SerializableValue> isnan_argx{SerializableValue(x, _env.i64Const(sizeof(int64_t)))};
                 auto is_x_nan = FunctionRegistry::createMathIsNanCall(builder, python::Type::propagateToTupleType(python::Type::F64), python::Type::BOOLEAN, isnan_argx);
                 auto x_nan = builder.CreateZExtOrTrunc(is_x_nan.val, _env.i1Type());
@@ -1250,15 +1282,17 @@ namespace tuplex {
                 builder.CreateCondBr(x_nan, bb_done, bb_nany);
 
                 // bb_nany
+                // this block checks if y is NAN - in which case isclose returns 0 (jump to bb_done)
                 builder.SetInsertPoint(bb_nany);
                 const std::vector<tuplex::codegen::SerializableValue> isnan_argy{SerializableValue(y, _env.i64Const(sizeof(int64_t)))};
                 auto is_y_nan = FunctionRegistry::createMathIsNanCall(builder, python::Type::propagateToTupleType(python::Type::F64), python::Type::BOOLEAN, isnan_argy);
                 auto y_nan = builder.CreateZExtOrTrunc(is_y_nan.val, _env.i1Type());
                 _env.printValue(builder, y_nan, "y is nan: ");
-                builder.CreateStore(_env.boolConst(false), val); // should overwrite value from first block
+                builder.CreateStore(_env.boolConst(false), val); // overwrite value from first block
                 builder.CreateCondBr(y_nan, bb_done, bb_isinf);
 
                 // bb_isinf
+                // this block checks if x or y is positive infinity or negative infinity
                 builder.SetInsertPoint(bb_isinf);
                 auto x_pinf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), D_POSITIVE_INFINITY));
                 auto y_pinf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_POSITIVE_INFINITY));
@@ -1271,14 +1305,18 @@ namespace tuplex {
                 builder.CreateCondBr(check_yninf, bb_infres, bb_standard);
 
                 // bb_infres
+                // if either x or y is +/- infinity, need to check that x == y
+                // so if x == y is true, isclose returns true, otherwise false
                 builder.SetInsertPoint(bb_infres);
                 auto infres = builder.CreateFCmpOEQ(x, y);
                 auto bool_res = _env.upcastToBoolean(builder, infres);
                 _env.printValue(builder, bool_res, "(inf) x ?= y: ");
-                builder.CreateStore(bool_res, val); // should overwrite value from bb_nany
+                builder.CreateStore(bool_res, val); // overwrite value from bb_nany
                 builder.CreateBr(bb_done);
 
                 // bb_standard
+                // this block computes the result of the standard inequality that isclose uses:
+                // |x - y| <= max([rel_tol * max(|x|, |y|)], abs_tol)
                 builder.SetInsertPoint(bb_standard);
                 auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x);
                 _env.printValue(builder, x_abs, "x_abs: ");
@@ -1302,13 +1340,14 @@ namespace tuplex {
                 _env.printValue(builder, standard_cmp, "standard_cmp: ");
                 auto standard_res = _env.upcastToBoolean(builder, standard_cmp);
                 _env.printValue(builder, standard_res, "standard res: ");
-                builder.CreateStore(standard_res, val); // should overwrite value from bb_infres
+                builder.CreateStore(standard_res, val); // overwrite value from bb_infres
                 builder.CreateBr(bb_done);
 
                 // bb_done
                 builder.SetInsertPoint(bb_done);
                 lfb.setLastBlock(bb_done);
-                auto resVal = _env.upcastToBoolean(builder, builder.CreateLoad(val)); // may not need to upcast to boolean here
+                // return the value that was stored in val
+                auto resVal = builder.CreateLoad(val);
                 auto resSize = _env.i64Const(sizeof(int64_t));
 
                 return SerializableValue(resVal, resSize);

@@ -90,6 +90,15 @@ namespace tuplex {
                     }
                 }
             }
+            // auto iscloseSym = make_shared<Symbol>("isclose", "isclose", [](const python::Type &params) {
+            //     assert(params.isTupleType());
+            //     if (params.parameters().size() != 2 && params.parameters().size() != 3 && params.parameters().size() != 4) {
+            //         throw std::runtime_error("isclose needs 2, 3, or 4 arguments");
+            //         return python::Type::UNKNOWN;
+            //     }
+            //     return python::Type::makeFunctionType(params, python::Type::BOOLEAN);
+            // }, SymbolType::FUNCTION);
+            // m->addAttribute(iscloseSym);
 
             // math.ceil/math.floor
             for(const auto& name : vector<string>{"ceil", "floor"}) {

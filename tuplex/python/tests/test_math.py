@@ -463,7 +463,8 @@ class TestMath(unittest.TestCase):
         self.assertEqual(L3[6], False)
         self.assertEqual(L3[7], False)
 
-
+# python3.6 setup.py develop --user
+# py.test tests/test_math.py -k 'testIsClose'
     def testIsClose(self):
         c = tuplex.Context(self.conf)
 
@@ -495,9 +496,9 @@ class TestMath(unittest.TestCase):
         test3 = [(0.5, 1), (2.0000000009, 2), (1.999999, 2)]
         L3 = c.parallelize(test3).map(lambda x, y: math.isclose(x, y)).collect()
         assert len(L3) == 3, 'wrong length'
-        self.assertAlmostEqual(L3[0], )
-        self.assertAlmostEqual(L3[1], )
-        self.assertAlmostEqual(L3[2], )
+        self.assertAlmostEqual(L3[0], False)
+        self.assertAlmostEqual(L3[1], True)
+        self.assertAlmostEqual(L3[2], False)
 
         test4 = [(1, True), (1, False), (0, False), (0, True)]
         L4 = c.parallelize(test4).map(lambda x, y: math.isclose(x, y)).collect()

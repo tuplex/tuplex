@@ -16,6 +16,8 @@
 #include <TSet.h>
 #include <Utils.h>
 
+
+#include <Field.h>
 // types should be like form mypy https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html
 
 
@@ -171,6 +173,50 @@ namespace python {
             name += ")";
 
         return registerOrGetType(name, AbstractType::TUPLE, args);
+    }
+
+    Type TypeFactory::createOrGetStructuredDictType(const std::vector<std::pair<boost::any, python::Type>> &kv_pairs) {
+
+        std::string name = "Struct[";
+
+        // for each pair, construct tuple (val_type, value) -> type
+        for(auto pair : kv_pairs) {
+            std::string pair_str = "(";
+
+            // field?
+            tuplex::Field f = tuplex::Field::null();
+
+            // upcast a couple of basic C++ types
+            if(pair.first.type() == typeid(std::string)) {
+                f = tuplex::Field(boost::any_cast<std::string>(pair.first));
+            } else if(pair.first.type() == typeid(const char*)) {
+                f = tuplex::Field(std::string(boost::any_cast<const char*>(pair.first)));
+            } else {
+                try {
+                    f = boost::any_cast<tuplex::Field>(pair.first);
+                } catch (const boost::bad_any_cast& b) {
+#ifndef NDEBUG
+                    std::cerr<<"bad cast, expecting Field here but got instead "<<pair.first.type().name()<<std::endl;
+                    assert(false);
+#endif
+                }
+            }
+
+            // @TODO: we basically need a mechanism to serialize/deserialize field values to string and back.
+            // add mapping
+            pair_str += f.getType().desc() + "," + f.toPythonString() + "->" + pair.second.desc();
+
+            pair_str += ")";
+            name += pair_str + ",";
+        }
+        if(name.back() == ',')
+            name.back() = ']';
+        else
+            name += "]";
+
+        // store as new type in type factory (@TODO)
+
+        return python::Type::UNKNOWN;
     }
 
     Type TypeFactory::createOrGetTupleType(const std::initializer_list<Type> args) {
@@ -528,6 +574,10 @@ namespace python {
     Type Type::makeListType(const python::Type &elementType){
 #warning "Nested lists are not yet supported!"
         return python::TypeFactory::instance().createOrGetListType(elementType);
+    }
+
+    Type Type::makeStructuredDictType(const std::vector <std::pair<boost::any, python::Type>> &kv_pairs) {
+        return python::TypeFactory::instance().createOrGetStructuredDictType(kv_pairs);
     }
 
     Type Type::makeOptionType(const python::Type &type) {

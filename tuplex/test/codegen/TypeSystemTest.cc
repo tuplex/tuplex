@@ -11,6 +11,47 @@
 #include "gtest/gtest.h"
 #include "TypeSystem.h"
 #include <TupleTree.h>
+#include <vector>
+
+/*!
+ * returns a core vector of types to support
+ * @return vector of types
+ */
+std::vector<python::Type> primitiveTypes(bool return_options_as_well=false) {
+    std::vector<python::Type> v{python::Type::BOOLEAN, python::Type::I64, python::Type::F64,
+                                python::Type::STRING, python::Type::NULLVALUE, python::Type::EMPTYTUPLE,
+                                python::Type::EMPTYLIST, python::Type::EMPTYDICT};
+                                //python::Type::PYOBJECT};
+
+    if(return_options_as_well) {
+        // make everything optional
+        auto num = v.size();
+        for(unsigned i = 0; i < num; ++i) {
+            v.push_back(python::Type::makeOptionType(v[i]));
+        }
+    }
+
+    // create set to remove duplicates
+    std::set<python::Type> S{v.begin(), v.end()};
+    v = std::vector<python::Type>{S.begin(), S.end()};
+    // sort
+    std::sort(v.begin(), v.end());
+    return v;
+}
+
+boost::any get_representative_value(const python::Type& type) {
+    using namespace tuplex;
+    std::unordered_map<python::Type, Field> m{{python::Type::BOOLEAN, Field(false)},
+                                                   {python::Type::I64, Field((int64_t)42)},
+                                                   {python::Type::F64, Field(5.3)},
+                                                   {python::Type::STRING, Field("hello world!")},
+                                                   {python::Type::NULLVALUE, Field::null()},
+                                                   {python::Type::EMPTYTUPLE, Field::empty_tuple()},
+                                                   {python::Type::EMPTYLIST, Field::empty_list()},
+                                                   {python::Type::EMPTYDICT, Field::empty_dict()}};
+    return m.at(type);
+}
+
 
 TEST(TypeSys, tupleTypes) {
     using namespace python;
@@ -176,4 +217,25 @@ TEST(TypeSys, compatibleType) {
     auto b2_type = python::Type::makeListType(python::Type::makeTupleType({python::Type::STRING, python::Type::makeOptionType(python::Type::makeListType(python::Type::F64))}));
     auto ab2_compatible_type = unifyTypes(a2_type, b2_type, true);
     EXPECT_EQ(ab2_compatible_type, python::Type::makeOptionType(python::Type::makeListType(python::Type::makeOptionType(python::Type::makeTupleType({python::Type::makeOptionType(python::Type::STRING), python::Type::makeOptionType(python::Type::makeListType(python::Type::makeOptionType(python::Type::F64)))})))));
+}
+
+TEST(TypeSys, structuredDictType) {
+    using namespace tuplex;
+    using namespace std;
+
+    // all primitive types
+    // -> create structured types
+
+    // test 1: string keys (this is probably the most common scenario)
+    vector<pair<boost::any, python::Type>> pairs;
+    for(auto p : primitiveTypes(true)) {
+        pairs.push_back(make_pair(p.desc(), p));
+    }
+    auto t = python::Type::makeStructuredDictType(pairs);
+    auto encoded = t.desc();
+    auto decoded_t = python::decodeType(encoded);
+    EXPECT_EQ(decoded_t.desc(), t.desc());
+
+    // test 2: full type test
+
 }

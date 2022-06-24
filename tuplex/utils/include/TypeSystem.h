@@ -18,6 +18,9 @@
 #include <algorithm>
 #include <TTuple.h>
 
+// change to std any later, should anyways change codebase to use C++20.
+#include <boost/any.hpp>
+
 namespace python {
 
     class Type {
@@ -217,6 +220,13 @@ namespace python {
         static Type makeListType(const python::Type &elementType);
 
         /*!
+         * creates a (structured) dictionary with known keys.
+         * @param kv_pairs
+         * @return type created
+         */
+        static Type makeStructuredDictType(const std::vector<std::pair<boost::any, python::Type>>& kv_pairs);
+
+        /*!
          * create iterator type from yieldType.
          * @param yieldType
          * @return
@@ -278,6 +288,7 @@ namespace python {
             FUNCTION,
             TUPLE,
             DICTIONARY,
+            STRUCTURED_DICTIONARY,
             LIST,
             CLASS,
             OPTION, // for nullable
@@ -345,6 +356,8 @@ namespace python {
         Type createOrGetFunctionType(const Type& param, const Type& ret=Type::EMPTYTUPLE);
         Type createOrGetDictionaryType(const Type& key, const Type& val);
         Type createOrGetListType(const Type& val);
+
+        Type createOrGetStructuredDictType(const std::vector<std::pair<boost::any, python::Type>>& kv_pairs);
 
         Type createOrGetTupleType(const std::initializer_list<Type> args);
         Type createOrGetTupleType(const TTuple<Type>& args);

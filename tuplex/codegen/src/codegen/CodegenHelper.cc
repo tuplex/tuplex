@@ -195,7 +195,7 @@ namespace tuplex {
 #if LLVM_VERSION_MAJOR >= 9
 		os<<err; 
 #else
-		err_msg = toString(err);
+		err_msg = toString(std::move(err));
 #endif
 		
 		os.flush();

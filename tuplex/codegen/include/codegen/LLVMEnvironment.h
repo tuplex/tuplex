@@ -93,6 +93,27 @@ namespace llvm {
         return builder.CreateStructGEP(ptr, idx);
 #endif
     }
+
+    inline Function* getOrInsertFunction(Module& mod, const std::string& name, FunctionType* FT) {
+#if LLVM_VERSION_MAJOR < 9
+        Function* func = cast<Function>(mod.getOrInsertFunction(name, FT));
+#else
+        Function *func = cast<Function>(mod.getOrInsertFunction(name, FT).getCallee());
+#endif
+        return func;
+    }
+
+    inline Function* getOrInsertFunction(Module* mod, const std::string& name, FunctionType* FT) {
+        if(!mod)
+            return nullptr;
+
+#if LLVM_VERSION_MAJOR < 9
+        Function* func = cast<Function>(mod->getOrInsertFunction(name, FT));
+#else
+        Function *func = cast<Function>(mod->getOrInsertFunction(name, FT).getCallee());
+#endif
+        return func;
+    }
 }
 
 namespace tuplex {

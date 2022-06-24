@@ -566,7 +566,7 @@ namespace tuplex {
         /*!
          * get features of CPU as llvm feature string
          */
-        extern std::string getLLVMFeatureStr();
+        extern ATTRIBUTE_NO_SANITIZE_ADDRESS std::string getLLVMFeatureStr();
 
         /*!
          * helper function to initialize LLVM targets for this platform

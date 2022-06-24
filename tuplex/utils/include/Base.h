@@ -24,6 +24,13 @@
 #include <set>
 #include <vector>
 
+// use this to not sanitize a function, cf. https://github.com/google/sanitizers/wiki/AddressSanitizer#turning-off-instrumentation
+#if defined(__clang__) || defined (__GNUC__)
+# define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
+#else
+# define ATTRIBUTE_NO_SANITIZE_ADDRESS
+#endif
+
 
 // to detect platform, use here boost predef
 #include <boost/predef.h>

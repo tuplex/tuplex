@@ -356,6 +356,8 @@ set(CMAKE_CXX_FLAGS_ASAN
         CACHE STRING "Flags used by the C++ compiler during AddressSanitizer builds."
         FORCE)
 
+ucm_set_flags(-fsanitize=address -fsanitize-recover=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1 CONFIG asan)
+
 # LeakSanitizer
 set(CMAKE_C_FLAGS_LSAN
         "-fsanitize=leak -fno-omit-frame-pointer -g -O1"

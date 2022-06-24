@@ -135,7 +135,7 @@ namespace tuplex {
         }
 
         // Clang doesn't work well with ASAN, disable here container overflow.
-        __attribute__((no_sanitize_address)) std::string getLLVMFeatureStr() {
+        ATTRIBUTE_NO_SANITIZE_ADDRESS std::string getLLVMFeatureStr() {
             using namespace llvm;
             SubtargetFeatures Features;
 

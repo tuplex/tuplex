@@ -20,12 +20,17 @@
 
 #include <llvm/ExecutionEngine/Orc/LLJIT.h>
 
+inline const char *__asan_default_options() {
+    return "halt_on_error=0";
+}
+
+
 namespace tuplex {
 
     // JIT compiler based on LLVM's ORCv2 JIT classes
     class JITCompiler : public IJITCompiler {
     public:
-        JITCompiler();
+        ATTRIBUTE_NO_SANITIZE_ADDRESS JITCompiler();
         ~JITCompiler();
 
         /*!

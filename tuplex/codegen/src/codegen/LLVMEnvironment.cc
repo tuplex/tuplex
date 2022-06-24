@@ -1082,8 +1082,8 @@ namespace tuplex {
             assert(size->getType() == llvm::Type::getInt64Ty(_context));
 
             // create external call to rtmalloc function
-            Function* func = cast<Function>(_module.get()->getOrInsertFunction("malloc", llvm::Type::getInt8PtrTy(_context, 0),
-                                                           llvm::Type::getInt64Ty(_context)).getCallee());
+            Function* func = getOrInsertFunction(_module.get(), "malloc", llvm::Type::getInt8PtrTy(_context, 0),
+                                                           llvm::Type::getInt64Ty(_context));
 
             func->addFnAttr(Attribute::NoUnwind); // like in godbolt
             return builder.CreateCall(func, size);
@@ -1095,8 +1095,8 @@ namespace tuplex {
             assert(ptr);
 
             // create external call to rtmalloc function
-            Function* func = cast<Function>(_module.get()->getOrInsertFunction("free",
-                    llvm::Type::getVoidTy(_context), llvm::Type::getInt8PtrTy(_context, 0)).getCallee());
+            Function* func = getOrInsertFunction(_module.get(), "free",
+                    llvm::Type::getVoidTy(_context), llvm::Type::getInt8PtrTy(_context, 0));
 
             func->addFnAttr(Attribute::NoUnwind); // like in godbolt
             return builder.CreateCall(func, ptr);

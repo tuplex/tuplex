@@ -324,9 +324,9 @@ namespace tuplex {
                         builder.CreateStore(builder.CreateAdd(builder.CreateMul(numElements, _env->i64Const(8)), _env->i64Const(8)), listSize); // start list size as 8 * numElements + 8 ==> have to add string lengths for string case
 
                         // load the list with its initial size
-                        auto list_capacity_ptr = _env->CreateStructGEP(builder, listAlloc,  0);
+                        auto list_capacity_ptr = llvm::CreateStructGEP(builder, listAlloc,  0);
                         builder.CreateStore(numElements, list_capacity_ptr);
-                        auto list_len_ptr = _env->CreateStructGEP(builder, listAlloc,  1);
+                        auto list_len_ptr = llvm::CreateStructGEP(builder, listAlloc,  1);
                         builder.CreateStore(numElements, list_len_ptr);
 
                         auto elementType = type.elementType();
@@ -394,9 +394,9 @@ namespace tuplex {
 
                             builder.SetInsertPoint(after);
                             // store the malloc'd and populated array to the struct
-                            auto list_arr = _env->CreateStructGEP(builder, listAlloc, 2);
+                            auto list_arr = llvm::CreateStructGEP(builder, listAlloc, 2);
                             builder.CreateStore(list_arr_malloc, list_arr);
-                            auto list_sizearr = _env->CreateStructGEP(builder, listAlloc, 3);
+                            auto list_sizearr = llvm::CreateStructGEP(builder, listAlloc, 3);
                             builder.CreateStore(list_sizearr_malloc, list_sizearr);
                         }
                         else if(elementType == python::Type::BOOLEAN) {
@@ -433,12 +433,12 @@ namespace tuplex {
 
                             builder.SetInsertPoint(after);
                             // store the malloc'd and populated array to the struct
-                            auto list_arr = _env->CreateStructGEP(builder, listAlloc, 2);
+                            auto list_arr = llvm::CreateStructGEP(builder, listAlloc, 2);
                             builder.CreateStore(list_arr_malloc, list_arr);
                         }
                         else if(elementType == python::Type::I64 || elementType == python::Type::F64) {
                             // can just directly point to the serialized data
-                            auto list_arr = _env->CreateStructGEP(builder, listAlloc, 2);
+                            auto list_arr = llvm::CreateStructGEP(builder, listAlloc, 2);
                             builder.CreateStore(builder.CreateBitCast(builder.CreateGEP(ptr, _env->i64Const(sizeof(int64_t))),
                                     llvmType->getStructElementType(2)), list_arr);
                         } else {

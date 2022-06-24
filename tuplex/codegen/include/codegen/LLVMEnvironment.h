@@ -114,6 +114,16 @@ namespace llvm {
 #endif
         return func;
     }
+
+    template <typename... ArgsTy>
+    Function* getOrInsertFunction(llvm::Module* mod, const std::string& Name, Type *RetTy,
+                                       ArgsTy... Args) {
+        if(!mod)
+            return nullptr;
+        SmallVector<Type*, sizeof...(ArgsTy)> ArgTys{Args...};
+        return getOrInsertFunction(mod, Name, FunctionType::get(RetTy, ArgTys, false));
+    }
+
 }
 
 namespace tuplex {

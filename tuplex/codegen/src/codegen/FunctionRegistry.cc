@@ -1973,10 +1973,10 @@ namespace tuplex {
                                                  strArray, lenArray, listLen});
 
             auto res = _env.CreateFirstBlockAlloca(builder, _env.getListType(python::Type::makeListType(python::Type::STRING)));
-            builder.CreateStore(builder.CreateLoad(listLen), builder.CreateStructGEP(res, 0));
-            builder.CreateStore(builder.CreateLoad(listLen), builder.CreateStructGEP(res, 1));
-            builder.CreateStore(builder.CreateLoad(strArray), builder.CreateStructGEP(res, 2));
-            builder.CreateStore(builder.CreateLoad(lenArray), builder.CreateStructGEP(res, 3));
+            builder.CreateStore(builder.CreateLoad(listLen), llvm::CreateStructGEP(builder, res, 0));
+            builder.CreateStore(builder.CreateLoad(listLen), llvm::CreateStructGEP(builder, res, 1));
+            builder.CreateStore(builder.CreateLoad(strArray), llvm::CreateStructGEP(builder, res, 2));
+            builder.CreateStore(builder.CreateLoad(lenArray), llvm::CreateStructGEP(builder, res, 3));
             return {builder.CreateLoad(res), listSerializedSize};
         }
 

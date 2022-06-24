@@ -84,6 +84,15 @@ namespace llvm {
         Function *Fn = Intrinsic::getDeclaration(M, ID, {V->getType()});
         return createCallHelper(Fn, {V}, builder, Name, FMFSource);
     }
+
+    inline Value* CreateStructGEP(IRBuilder<>& builder, Value* ptr, unsigned int idx, const Twine& Name="") {
+#if LLVM_VERSION_MAJOR < 9
+        // compatibility
+        return builder.CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
+#else
+        return builder.CreateStructGEP(ptr, idx);
+#endif
+    }
 }
 
 namespace tuplex {
@@ -868,15 +877,6 @@ namespace tuplex {
              * @return runtime allocated string together with size
              */
             SerializableValue i64ToString(llvm::IRBuilder<>& builder, llvm::Value* value);
-
-            static inline llvm::Value* CreateStructGEP(llvm::IRBuilder<>& builder, llvm::Value* ptr, unsigned int idx, const llvm::Twine& Name="") {
-#if LLVM_VERSION_MAJOR < 9
-                // compatibility
-                return builder.CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
-#else
-                return builder.CreateStructGEP(ptr, idx);
-#endif
-            }
 
             /*!
              * creates logic for cond ? <trueblock> : <elseblock>

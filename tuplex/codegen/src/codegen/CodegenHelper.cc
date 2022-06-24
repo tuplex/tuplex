@@ -535,7 +535,11 @@ namespace tuplex {
             // simple conversion using LLVM builtins...
             std::string out_str;
             llvm::raw_string_ostream os(out_str);
+#if LLVM_VERSION_MAJOR < 9
+            WriteBitcodeToFile(&module, os);
+#else
             WriteBitcodeToFile(module, os);
+#endif
             os.flush();
             return out_str;
 

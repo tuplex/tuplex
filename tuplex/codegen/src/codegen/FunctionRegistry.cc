@@ -17,34 +17,6 @@
 #include <pcre2.h>
 #include <cmath>
 
-namespace llvm {
-    // helper functions
-
-    static CallInst *createCallHelper(Function *Callee, ArrayRef<Value*> Ops,
-                                      IRBuilder<>& builder,
-                                      const Twine &Name = "",
-                                      Instruction *FMFSource = nullptr) {
-        CallInst *CI = CallInst::Create(Callee, Ops, Name);
-        if (FMFSource)
-            CI->copyFastMathFlags(FMFSource);
-        builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
-        builder.SetInstDebugLocation(CI);
-        return CI;
-    }
-
-    CallInst* createBinaryIntrinsic(IRBuilder<>& builder,
-                                    Intrinsic::ID ID,
-                                    Value *LHS, Value* RHS,
-                                    const Twine& Name="",
-                                    Instruction *FMFSource = nullptr) {
-        Module *M = builder.GetInsertBlock()->getModule();
-        assert(M);
-        Function *Fn = Intrinsic::getDeclaration(M, ID, {LHS->getType()});
-        assert(Fn);
-        return createCallHelper(Fn, {LHS, RHS}, builder, Name, FMFSource);
-    }
-}
-
 namespace tuplex {
     namespace codegen {
 

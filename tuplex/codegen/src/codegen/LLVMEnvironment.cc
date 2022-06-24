@@ -1983,8 +1983,8 @@ namespace tuplex {
             //{
             //    return fabs(ceilf(value) - value) < EPSILON;
             //}
-            auto cf = builder.CreateUnaryIntrinsic(llvm::Intrinsic::ID::ceil, value);
-            auto fabs_value = builder.CreateUnaryIntrinsic(llvm::Intrinsic::ID::fabs, builder.CreateFSub(cf, value));
+            auto cf = llvm::CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::ceil, value);
+            auto fabs_value = llvm::CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, builder.CreateFSub(cf, value));
 
             return builder.CreateFCmpOLT(fabs_value, eps);
         }

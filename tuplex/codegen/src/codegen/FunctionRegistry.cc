@@ -32,16 +32,6 @@ namespace llvm {
         return CI;
     }
 
-    CallInst* createUnaryIntrinsic(IRBuilder<>& builder,
-                                   Intrinsic::ID ID,
-                                   Value *V,
-                                   const Twine& Name="",
-                                   Instruction *FMFSource = nullptr) {
-        Module *M = builder.GetInsertBlock()->getModule();
-        Function *Fn = Intrinsic::getDeclaration(M, ID, {V->getType()});
-        return createCallHelper(Fn, {V}, builder, Name, FMFSource);
-    }
-
     CallInst* createBinaryIntrinsic(IRBuilder<>& builder,
                                     Intrinsic::ID ID,
                                     Value *LHS, Value* RHS,

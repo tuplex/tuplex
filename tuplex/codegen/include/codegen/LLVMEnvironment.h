@@ -48,6 +48,20 @@
 
 #include "InstructionCountPass.h"
 
+
+// helper to enable llvm6 and llvm9 comaptibility
+namespace llvm {
+    inline CallInst* createUnaryIntrinsic(IRBuilder<>& builder,
+                                   Intrinsic::ID ID,
+                                   Value *V,
+                                   const Twine& Name="",
+                                   Instruction *FMFSource = nullptr) {
+        Module *M = builder.GetInsertBlock()->getModule();
+        Function *Fn = Intrinsic::getDeclaration(M, ID, {V->getType()});
+        return createCallHelper(Fn, {V}, builder, Name, FMFSource);
+    }
+}
+
 namespace tuplex {
     namespace codegen {
         /*!
@@ -732,7 +746,8 @@ namespace tuplex {
 
                 if(!eps)
                     eps = defaultEpsilon();
-                return builder.CreateFCmpOLT(builder.CreateUnaryIntrinsic(llvm::Intrinsic::ID::fabs, value), eps);
+                auto ans = llvm::CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, value);
+                return builder.CreateFCmpOLT(ans, eps);
             }
 
             /*!

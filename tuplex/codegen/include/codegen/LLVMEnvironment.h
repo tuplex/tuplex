@@ -49,7 +49,7 @@
 #include "InstructionCountPass.h"
 
 
-// helper to enable llvm6 and llvm9 comaptibility
+// helper to enable llvm6 and llvm9 comaptibility // --> force onto llvm9+ for now.
 namespace llvm {
     inline CallInst *createCallHelper(Function *Callee, ArrayRef<Value*> Ops,
                                       IRBuilder<>& builder,

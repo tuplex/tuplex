@@ -32,7 +32,11 @@
 #include <codegen/InstructionCountPass.h>
 #include <llvm/Analysis/ValueTracking.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
+#if LLVM_VERSION_MAJOR >= 9
 #include <llvm/Bitstream/BitCodes.h>
+#else
+#include <llvm/Bitcode/BitCodes.h>
+#endif
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/IR/Constant.h>
 

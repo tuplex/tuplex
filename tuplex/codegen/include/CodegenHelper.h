@@ -24,6 +24,16 @@
 #endif
 
 
+#if LLVM_VERSION_MAJOR > 8
+// for parsing string to threadsafemodule (llvm9+ ORC APIs)
+#include <llvm/ExecutionEngine/Orc/ExecutionUtils.h>
+#include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
+#include <llvm/Support/SourceMgr.h>
+#include <llvm/IRReader/IRReader.h>
+#include <llvm/IR/Verifier.h>
+#endif
+
+
 // builder and codegen funcs
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Value.h>
@@ -740,6 +750,50 @@ namespace tuplex {
             }
             return 0; // strings are strings and anything besides int is just serialized to string right now
         }
+
+#if LLVM_VERSION_MAJOR > 8
+        inline llvm::Expected<llvm::orc::ThreadSafeModule> parseToModule(const std::string& llvmIR) {
+            using namespace llvm;
+            using namespace llvm::orc;
+
+            // first parse IR. It would be also an alternative to directly the LLVM Module from the ModuleBuilder class,
+            // however if something went wrong there, memory errors would occur. Better is to first transform to a string
+            // and then parse it because LLVM will validate the IR on the way.
+
+            SMDiagnostic err; // create an SMDiagnostic instance
+            std::unique_ptr<MemoryBuffer> buff = MemoryBuffer::getMemBuffer(llvmIR);
+
+            auto ctx = std::make_unique<LLVMContext>();
+            assert(ctx);
+            std::unique_ptr<Module> mod = llvm::parseIR(buff->getMemBufferRef(), err, *ctx); // use err directly
+
+            // check if any errors occured during module parsing
+            if(nullptr == mod) {
+                // print errors
+                std::stringstream errStream;
+                errStream<<"could not compile module:\n>>>>>>>>>>>>>>>>>\n"
+                         <<core::withLineNumbers(llvmIR)<<"\n<<<<<<<<<<<<<<<<<\n";
+                errStream<<"line " + std::to_string(err.getLineNo()) + ": " + err.getMessage().str();
+
+                return make_error<StringError>(errStream.str(), inconvertibleErrorCode());
+            }
+
+
+            // run verify pass on module and print out any errors, before attempting to compile it
+            std::string moduleErrors = "";
+            llvm::raw_string_ostream os(moduleErrors);
+            if(llvm::verifyModule(*mod, &os)) {
+                std::stringstream errStream;
+                os.flush();
+                errStream<<"could not verify module:\n>>>>>>>>>>>>>>>>>\n"<<core::withLineNumbers(llvmIR)<<"\n<<<<<<<<<<<<<<<<<\n";
+                errStream<<moduleErrors;
+
+                return make_error<StringError>(errStream.str(), inconvertibleErrorCode());
+            }
+            return ThreadSafeModule(std::move(mod), std::move(ctx));
+        }
+#endif
+
     }
 }
 

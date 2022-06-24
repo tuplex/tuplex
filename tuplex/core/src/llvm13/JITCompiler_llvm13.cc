@@ -194,20 +194,158 @@ namespace tuplex {
     }
 
     void *JITCompiler::getAddrOfSymbol(const std::string &Name) {
+        if(Name.empty())
+            return nullptr;
+
+        // search for symbol in all dylibs
+        for(auto it = _dylibs.rbegin(); it != _dylibs.rend(); ++it) {
+            auto sym = _lljit->lookup(**it, Name);
+            if(sym)
+                return reinterpret_cast<void*>(sym.get().getAddress());
+        }
+
+        Logger::instance().logger("LLVM").error("could not find symbol " + Name + ". ");
         return nullptr;
     }
 
     bool JITCompiler::compile(const std::string &llvmIR) {
-        return false;
+        using namespace llvm;
+        using namespace llvm::orc;
+
+        assert(_lljit);
+
+        // parse module, make new threadsafe module
+        auto tsm = codegen::parseToModule(llvmIR);
+        if(!tsm)
+            throw std::runtime_error(errToString(tsm.takeError()));
+
+        auto mIdentifier = tsm->withModuleDo([this](llvm::Module& mod) {
+            // change module target triple, data layout etc. to target machine
+            mod.setDataLayout(_lljit->getDataLayout());
+
+            return mod.getModuleIdentifier(); // this should not be an empty string...
+        });
+
+        auto module_name = tsm->withModuleDo([](llvm::Module& mod) {
+            return mod.getName();
+        }).str();
+
+        // look into https://github.com/llvm/llvm-project/blob/master/llvm/examples/ModuleMaker/ModuleMaker.cpp on how to ouput bitcode
+
+        // create for this module own jitlib
+        auto& ES = _lljit->getExecutionSession();
+        auto& jitlib = ES.createJITDylib(module_name).get();
+        const auto& DL = _lljit->getDataLayout();
+        MangleAndInterner Mangle(ES, DL);
+
+        // link with host process symbols....
+        auto ProcessSymbolsGenerator =
+                DynamicLibrarySearchGenerator::GetForCurrentProcess(
+                        DL.getGlobalPrefix());
+
+        // check whether successful
+        if(!ProcessSymbolsGenerator)
+            throw std::runtime_error("failed to create linker to host process " + errToString(ProcessSymbolsGenerator.takeError()));
+        jitlib.addGenerator(std::move(*ProcessSymbolsGenerator));
+
+        // define symbols from custom symbols for this jitlib
+        for(auto keyval: _customSymbols)
+            auto rc = jitlib.define(absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
+
+        _dylibs.push_back(&jitlib); // save reference for search
+        auto err = _lljit->addIRModule(jitlib, std::move(tsm.get()));
+        if(err)
+            throw std::runtime_error("compilation failed, " + errToString(err));
+
+        // other option: modify module with unique prefix!
+        // // one option to do this, is to iterate over functions and prefix them with a query number...
+        // // ==> later, make this more sophisticated...
+        // // llvm::Function* function;
+        // // function->setName("query1_" + function->getName())
+        // // ==> this is stupid though... but well, seems to be required.
+        // // ==> smarter way is to do lookup!
+        // // i.e. iterate over all functions in the module to change them...
+        // auto err =_lljit->addIRModule(std::move(tsm.get()));
+        // if(err)
+        //     throw std::runtime_error("compilation failed, " + errToString(err));
+
+        // // another reference: https://doxygen.postgresql.org/llvmjit_8c_source.html
+
+        return true;
     }
 
     bool JITCompiler::compile(std::unique_ptr<llvm::Module> mod) {
-        using namespace llvm;
-        //Expected<orc::ThreadSafeModule> tsm = orc::ThreadSafeModule(std::move(mod),  std::make_unique<llvm::LLVMContext>());
+        llvm::Expected<llvm::orc::ThreadSafeModule> tsm = llvm::orc::ThreadSafeModule(std::move(mod), std::make_unique<llvm::LLVMContext>());
+        if(!tsm) {
+            auto err_msg = errToString(tsm.takeError());
+            std::cerr<<__FILE__<<":"<<__LINE__<<" thread-safe mod not ok, error: "<<err_msg<<std::endl;
+            throw std::runtime_error(err_msg);
+            return false;
+        }
 
+        auto mIdentifier = tsm->withModuleDo([this](llvm::Module& mod) {
+            // change module target triple, data layout etc. to target machine
+            mod.setDataLayout(_lljit->getDataLayout());
 
+            return mod.getModuleIdentifier(); // this should not be an empty string...
+        });
 
-        return false;
+        auto module_name = tsm->withModuleDo([](llvm::Module& mod) {
+            return mod.getName();
+        });
+
+        // look into https://github.com/llvm/llvm-project/blob/master/llvm/examples/ModuleMaker/ModuleMaker.cpp on how to ouput bitcode
+
+        // create for this module own jitlib
+        auto& ES = _lljit->getExecutionSession();
+        auto& jitlib = ES.createJITDylib(module_name.str()).get();
+        const auto& DL = _lljit->getDataLayout();
+        llvm::orc::MangleAndInterner Mangle(ES, DL);
+
+        // link with host process symbols....
+        auto ProcessSymbolsGenerator =
+                llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(
+                        DL.getGlobalPrefix());
+
+        // check whether successful
+        if(!ProcessSymbolsGenerator) {
+            auto err_msg = "failed to create linker to host process " + errToString(ProcessSymbolsGenerator.takeError());
+            std::cerr<<__FILE__<<":"<<__LINE__<<" error: "<<err_msg<<std::endl;
+            throw std::runtime_error(err_msg);
+        }
+
+        jitlib.addGenerator(std::move(*ProcessSymbolsGenerator));
+
+        // define symbols from custom symbols for this jitlib
+        for(auto keyval: _customSymbols)
+            auto rc = jitlib.define(llvm::orc::absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
+
+        _dylibs.push_back(&jitlib); // save reference for search
+
+        assert(tsm);
+        auto err = _lljit->addIRModule(jitlib, std::move(tsm.get()));
+        if(err) {
+            std::stringstream err_stream;
+            err_stream<<"compilation failed, "<<errToString(err);
+            std::cerr<<err_stream.str()<<std::endl;
+            throw std::runtime_error(err_stream.str());
+        }
+
+        // other option: modify module with unique prefix!
+        // // one option to do this, is to iterate over functions and prefix them with a query number...
+        // // ==> later, make this more sophisticated...
+        // // llvm::Function* function;
+        // // function->setName("query1_" + function->getName())
+        // // ==> this is stupid though... but well, seems to be required.
+        // // ==> smarter way is to do lookup!
+        // // i.e. iterate over all functions in the module to change them...
+        // auto err =_lljit->addIRModule(std::move(tsm.get()));
+        // if(err)
+        //     throw std::runtime_error("compilation failed, " + errToString(err));
+
+        // // another reference: https://doxygen.postgresql.org/llvmjit_8c_source.html
+
+        return true;
     }
 
 

@@ -51,14 +51,14 @@ namespace tuplex {
          */
         template<typename Function> void registerSymbol(const std::string& Name, Function f) {
             using namespace llvm;
-            //using namespace llvm::orc;
+            using namespace llvm::orc;
 
-//            auto addr = reinterpret_cast<llvm::JITTargetAddress>(f);
-//            assert(addr);
-//
-//            // with addressof a C++ function can be hacked into this.
-//            // however may lead to hard to debug bugs!
-//            _customSymbols[Name] = JITEvaluatedSymbol(addr, JITSymbolFlags::Exported);
+            auto addr = reinterpret_cast<llvm::JITTargetAddress>(f);
+            assert(addr);
+
+            // with addressof a C++ function can be hacked into this.
+            // however may lead to hard to debug bugs!
+            _customSymbols[Name] = JITEvaluatedSymbol(addr, JITSymbolFlags::Exported);
         }
 
     private:

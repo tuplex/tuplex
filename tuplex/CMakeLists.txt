@@ -352,7 +352,7 @@ if (NOT LLVM_ENABLE_RTTI)
     message(WARNING
             "This build configuration is not supported and will likely not work."
             "You should recompile LLVM with RTTI enabled.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti") # disable?
 endif()
 
 #LLVM_LINK_LLVM_DYLIB

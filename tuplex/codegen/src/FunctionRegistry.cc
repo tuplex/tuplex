@@ -1035,18 +1035,27 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
             assert(args.size() >= 1);
             auto val = args.front();
+            _env.printValue(builder, val.val, "FunctionRegistry.cc:1038");
             auto type = argsType.parameters().front();
 
             if (python::Type::F64 == type) {
                 // idea is to compare input with the constants for positive and negative infinity
                 // 0x7ff0000000000000ULL --> constant for positive infinity
                 // 0xfff0000000000000ULL --> constant for negative infinity
-                auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7ff0000000000000ULL));
-                auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xfff0000000000000ULL));
+                // auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7ff0000000000000ULL));
+                // _env.printValue(builder, posCmp, "posCmp");
+                // auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xfff0000000000000ULL));
+                // _env.printValue(builder, negCmp, "negCmp");
+                auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), INFINITY));
+                _env.printValue(builder, posCmp, "posCmp");
+                auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), -INFINITY));
+                _env.printValue(builder, negCmp, "negCmp");
                 // if the input is equal to either positive or negative infinity, this 'or' instruction should return 1
                 auto orRes = builder.CreateOr(negCmp, posCmp);
+                _env.printValue(builder, orRes, "orRes");
 
                 auto resVal = _env.upcastToBoolean(builder, orRes);
+                _env.printValue(builder, resVal, "resVal");
                 auto resSize = _env.i64Const(sizeof(int64_t));
 
                 return SerializableValue(resVal, resSize);
@@ -1054,6 +1063,7 @@ namespace tuplex {
                 // only other valid input types are integer and boolean
                 assert(python::Type::BOOLEAN == type || python::Type::I64 == type);
 
+                _env.printValue(builder, val.val, "wrong branch");
                 return SerializableValue(_env.boolConst(false), _env.i64Const(sizeof(int64_t)));
             }
         }

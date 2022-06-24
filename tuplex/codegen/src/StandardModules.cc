@@ -72,33 +72,17 @@ namespace tuplex {
             // math.isclose
             // typing is:
             // ({f64, i64, bool}, {f64, i64, bool}[, rel_tol={f64, i64, bool}, abs_tol={f64, i64, bool}]) -> bool
-            /** TODO: update to use dynamic typing based on input (reference SymbolTable.cc:417) **/
-            vector<python::Type> isclose_types{python::Type::BOOLEAN, python::Type::I64, python::Type::F64};
-            for(const auto& type : isclose_types) {
-                // 2-input case
-                for(const auto& second_type : isclose_types) {
-                    m->addAttribute(make_shared<Symbol>("isclose", "isclose", python::Type::makeFunctionType(python::Type::makeTupleType({type, second_type}), python::Type::BOOLEAN), SymbolType::FUNCTION));
-
-                    // 3-input case
-                    for(const auto& third_type : isclose_types) {
-                        m->addAttribute(make_shared<Symbol>("isclose", "isclose", python::Type::makeFunctionType(python::Type::makeTupleType({type, second_type, third_type}), python::Type::BOOLEAN), SymbolType::FUNCTION));
-
-                        // 4-input
-                        for(const auto& fourth_type : isclose_types) {
-                            m->addAttribute(make_shared<Symbol>("isclose", "isclose", python::Type::makeFunctionType(python::Type::makeTupleType({type, second_type, third_type, fourth_type}), python::Type::BOOLEAN), SymbolType::FUNCTION));
-                        }
-                    }
+            auto iscloseSym = make_shared<Symbol>("isclose", [](const python::Type &params) {
+                assert(params.isTupleType());
+                if (params.parameters().size() != 2 && params.parameters().size() != 3 && params.parameters().size() != 4) {
+                    throw std::runtime_error("isclose needs 2, 3, or 4 arguments");
+                    return python::Type::UNKNOWN;
                 }
-            }
-            // auto iscloseSym = make_shared<Symbol>("isclose", "isclose", [](const python::Type &params) {
-            //     assert(params.isTupleType());
-            //     if (params.parameters().size() != 2 && params.parameters().size() != 3 && params.parameters().size() != 4) {
-            //         throw std::runtime_error("isclose needs 2, 3, or 4 arguments");
-            //         return python::Type::UNKNOWN;
-            //     }
-            //     return python::Type::makeFunctionType(params, python::Type::BOOLEAN);
-            // }, SymbolType::FUNCTION);
-            // m->addAttribute(iscloseSym);
+                return python::Type::makeFunctionType(params, python::Type::BOOLEAN);
+            });
+            // check that iscloseSym is function symbol
+            assert(iscloseSym->symbolType == SymbolType::FUNCTION);
+            m->addAttribute(iscloseSym);
 
             // math.ceil/math.floor
             for(const auto& name : vector<string>{"ceil", "floor"}) {

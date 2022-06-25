@@ -645,8 +645,8 @@ namespace tuplex {
 
             // store nullptr, 0 in error buf
             auto num_struct_elements = resultType()->getStructNumElements();
-            auto idx_buf_length = _env->CreateStructGEP(builder, _resultPtr, num_struct_elements -2);
-            auto idx_buf = _env->CreateStructGEP(builder, _resultPtr, num_struct_elements - 1);
+            auto idx_buf_length = llvm::CreateStructGEP(builder, _resultPtr, num_struct_elements -2);
+            auto idx_buf = llvm::CreateStructGEP(builder, _resultPtr, num_struct_elements - 1);
             assert(idx_buf_length->getType() == _env->i64ptrType());
             assert(idx_buf->getType() == _env->i8ptrType()->getPointerTo());
             _env->storeNULL(builder, idx_buf_length);
@@ -1066,8 +1066,8 @@ namespace tuplex {
 
             // store buf + buf_size into ret struct
             auto num_struct_elements = resultType()->getStructNumElements();
-            auto idx_buf_length = _env->CreateStructGEP(builder, _resultPtr, num_struct_elements -2);
-            auto idx_buf = _env->CreateStructGEP(builder, _resultPtr, num_struct_elements - 1);
+            auto idx_buf_length = llvm::CreateStructGEP(builder, _resultPtr, num_struct_elements -2);
+            auto idx_buf = llvm::CreateStructGEP(builder, _resultPtr, num_struct_elements - 1);
             assert(idx_buf_length->getType() == _env->i64ptrType());
             assert(idx_buf->getType() == _env->i8ptrType()->getPointerTo());
             builder.CreateStore(buf, idx_buf);
@@ -1082,8 +1082,8 @@ namespace tuplex {
                 throw std::runtime_error("result is not pointer of resulttype in " __FILE__);
 
             auto num_struct_elements = resultType()->getStructNumElements();
-            auto idx_buf_length = _env->CreateStructGEP(builder, result, num_struct_elements -2);
-            auto idx_buf = _env->CreateStructGEP(builder, result, num_struct_elements - 1);
+            auto idx_buf_length = llvm::CreateStructGEP(builder, result, num_struct_elements -2);
+            auto idx_buf = llvm::CreateStructGEP(builder, result, num_struct_elements - 1);
             assert(idx_buf_length->getType() == _env->i64ptrType());
             assert(idx_buf->getType() == _env->i8ptrType()->getPointerTo());
             return SerializableValue(builder.CreateLoad(idx_buf), builder.CreateLoad(idx_buf_length));

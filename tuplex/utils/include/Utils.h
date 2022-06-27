@@ -72,8 +72,6 @@ constexpr const char* base_file_name(const char* path) {
 }
 
 constexpr double D_NAN = nan("");
-constexpr double D_POSITIVE_INFINITY = 0x7ff0000000000000ULL;
-constexpr double D_NEGATIVE_INFINITY = 0xfff0000000000000ULL;
 
 // macros to print out filename + line
 #define FLINESTR (std::string(base_file_name(__FILE__)) + "+" + std::to_string(__LINE__))

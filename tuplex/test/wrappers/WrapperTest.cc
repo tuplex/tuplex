@@ -118,6 +118,49 @@ TEST_F(WrapperTest, BasicMergeInOrder) {
     }
 }
 
+TEST_F(WrapperTest, MathCheckInf) {
+    using namespace tuplex;
+    using namespace std;
+
+    std::string udfCode = "import math\n"
+                          "def why(x):\n"
+                          "    y = math.inf\n"
+                          "    return x";
+
+    // create Python context (pass options as JSON)
+    PythonContext c("c", "", microTestOptions().asJSON());
+
+    // list object contains all rows in test (in this test, only one row)
+    PyObject *listObj = PyList_New(1);
+    
+    // initialize listObj
+    listObj = python::runAndGet(
+        "import math; x = [1, 2, 3, 4]",
+        "x");
+
+    Py_XINCREF(listObj);
+    PyObject_Print(listObj, stdout, 0);
+    std::cout << std::endl;
+
+    {
+        auto list = py::reinterpret_borrow<py::list>(listObj);
+        auto ba_closure = PyDict_New();
+        auto math_mod = PyImport_ImportModule("math");
+        assert(math_mod);
+        PyDict_SetItemString(ba_closure, "math", math_mod);
+
+        PythonContext c("python", "", testOptions().asJSON());
+
+        auto res = c.parallelize(list).map(udfCode.c_str(), "", py::reinterpret_steal<py::dict>(ba_closure)).collect();
+        auto resObj = res.ptr();
+
+        ASSERT_TRUE(PyList_Check(resObj));
+
+        PyObject_Print(resObj, stdout, 0);
+        std::cout << std::endl;
+    }
+}
+
 TEST_F(WrapperTest, MathIsInf) {
     using namespace tuplex;
 
@@ -137,6 +180,7 @@ TEST_F(WrapperTest, MathIsInf) {
     Py_XINCREF(listObj);
     PyObject_Print(listObj, stdout, 0);
     std::cout << std::endl;
+
     {
         auto list = py::reinterpret_borrow<py::list>(listObj);
 

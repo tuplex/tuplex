@@ -415,67 +415,55 @@ class TestMath(unittest.TestCase):
     def testIsInf(self):
         c = tuplex.Context(self.conf)
 
-        # res = c.parallelize([0]).map(lambda x: (pi, math.e, math.tau, math.inf, math.nan, -math.inf)) \
-        #     .map(lambda a,b,c,d,e,f: (str(a), str(b), str(c), str(d), str(e), str(f))).collect()
-
-        # self.assertEqual(res, [('3.14159', '2.71828', '6.28319', 'inf', 'nan', '-inf')])
-
         # floats
+        test = [math.inf, -math.inf, math.inf + math.inf, math.inf * math.inf, math.nan, math.pi, 0.0, 5.0, -128.0]
+        L = c.parallelize(test).map(lambda x: math.isinf(x)).collect()
+        assert len(L) == 9, 'wrong length'
+        self.assertEqual(L[0], True)
+        self.assertEqual(L[1], True)
+        self.assertEqual(L[2], True)
+        self.assertEqual(L[3], True)
+        self.assertEqual(L[4], False)
+        self.assertEqual(L[5], False)
+        self.assertEqual(L[6], False)
+        self.assertEqual(L[7], False)
+        self.assertEqual(L[8], False)
         
-        # test = [math.inf, -math.inf, math.inf + math.inf, math.inf * math.inf, math.nan, math.pi, 0.0, 5.0, -128.0]
-        # L = c.parallelize(test).map(lambda x: math.isinf(x)).collect()
-        # assert len(L) == 9, 'wrong length'
-        # self.assertEqual(L[0], True)
-        # self.assertEqual(L[1], True)
-        # self.assertEqual(L[2], True)
-        # self.assertEqual(L[3], True)
-        # self.assertEqual(L[4], False)
-        # self.assertEqual(L[5], False)
-        # self.assertEqual(L[6], False)
-        # self.assertEqual(L[7], False)
-        # self.assertEqual(L[8], False)
-
-        L = c.parallelize([0]).map(lambda x: (math.inf, -math.inf, math.inf + math.inf, math.inf * math.inf, math.nan, math.pi, 0.0, 5.0, -128.0)) \
-            .map(lambda a,b,c,d,e,f,g,h,i: (math.isinf(a), math.isinf(b), math.isinf(c), math.isinf(d), math.isinf(e), math.isinf(f), math.isinf(g), math.isinf(h), math.isinf(i))).collect()
-        
-        self.assertEqual(L, [(True, True, True, True, False, False, False, False, False)])
-        
-        # # integers
-        # test1 = [0, -1, 5, math.inf * 0, math.inf, 97]
-        # L1 = c.parallelize(test1).map(lambda x: math.isnan(x)).collect()
-        # assert len(L1) == 6, 'wrong length'
-        # self.assertEqual(L1[0], False)
-        # self.assertEqual(L1[1], False)
-        # self.assertEqual(L1[2], False)
-        # self.assertEqual(L1[3], False)
-        # self.assertEqual(L1[4], True)
-        # self.assertEqual(L1[5], False)
+        # integers
+        test1 = [0, -1, 5, math.inf * 0, math.inf, 97]
+        L1 = c.parallelize(test1).map(lambda x: math.isinf(x)).collect()
+        assert len(L1) == 6, 'wrong length'
+        self.assertEqual(L1[0], False)
+        self.assertEqual(L1[1], False)
+        self.assertEqual(L1[2], False)
+        self.assertEqual(L1[3], False)
+        self.assertEqual(L1[4], True)
+        self.assertEqual(L1[5], False)
     
-        # # booleans
-        # test2 = [math.inf, True, False, False, -math.inf]
-        # L2 = c.parallelize(test2).map(lambda x: math.isnan(x)).collect()
-        # assert len(L2) == 5, 'wrong length'
-        # self.assertEqual(L2[0], True)
-        # self.assertEqual(L2[1], False)
-        # self.assertEqual(L2[2], False)
-        # self.assertEqual(L2[3], False)
-        # self.assertEqual(L2[4], True)
+        # booleans
+        test2 = [math.inf, True, False, False, -math.inf]
+        L2 = c.parallelize(test2).map(lambda x: math.isinf(x)).collect()
+        assert len(L2) == 5, 'wrong length'
+        self.assertEqual(L2[0], True)
+        self.assertEqual(L2[1], False)
+        self.assertEqual(L2[2], False)
+        self.assertEqual(L2[3], False)
+        self.assertEqual(L2[4], True)
 
-        # # mix
-        # test3 = [True, 128, -50.0, 0, -math.inf, math.nan, False, 7]
-        # L3 = c.parallelize(test3).map(lambda x: math.isnan(x)).collect()
-        # assert len(L3) == 8, 'wrong length'
-        # self.assertEqual(L3[0], False)
-        # self.assertEqual(L3[1], False)
-        # self.assertEqual(L3[2], False)
-        # self.assertEqual(L3[3], False)
-        # self.assertEqual(L3[4], True)
-        # self.assertEqual(L3[5], False)
-        # self.assertEqual(L3[6], False)
-        # self.assertEqual(L3[7], False)
+        # mix
+        test3 = [True, 128, -50.0, 0, -math.inf, math.nan, False, 7]
+        L3 = c.parallelize(test3).map(lambda x: math.isinf(x)).collect()
+        assert len(L3) == 8, 'wrong length'
+        self.assertEqual(L3[0], False)
+        self.assertEqual(L3[1], False)
+        self.assertEqual(L3[2], False)
+        self.assertEqual(L3[3], False)
+        self.assertEqual(L3[4], True)
+        self.assertEqual(L3[5], False)
+        self.assertEqual(L3[6], False)
+        self.assertEqual(L3[7], False)
 
-# python3.6 setup.py develop --user
-# py.test tests/test_math.py -k 'testIsClose'
+
     def testIsClose(self):
         c = tuplex.Context(self.conf)
 

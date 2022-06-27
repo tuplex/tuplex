@@ -51,6 +51,7 @@ TEST_F(WrapperTest, LambdaBackend) {
 
 // Important detail: RAII of boost python requires call to all boost::python destructors before closing the interpreter.
 
+/** below is a template for a wrapper test function **/
 // TEST_F(WrapperTest, WrapperTestTemplate) {
 //     using namespace tuplex;
 
@@ -69,12 +70,12 @@ TEST_F(WrapperTest, LambdaBackend) {
     
 //     { // need to keep curly braces (for weird memory errors)
 //         auto list = py::reinterpret_borrow<py::list>(listObj);
-//         // write parallelize function
+//         // add parallelize-map-collect
 //         auto res = c.parallelize(list).map("lambda x: x", "").collect();
 //         auto resObj = res.ptr();
 
 //         ASSERT_TRUE(PyList_Check(resObj));
-//         // Change to 4 when parallelize changes are merged
+//         // check size of resulting list
 //         ASSERT_EQ(PyList_GET_SIZE(resObj), 4);
 
 //         PyObject_Print(resObj, stdout, 0);
@@ -125,23 +126,17 @@ TEST_F(WrapperTest, MathIsInf) {
 
     // list object contains all rows in test (in this test, only one row)
     PyObject *listObj = PyList_New(1);
-
+    
     // initialize listObj
     // note that using runAndGet on each individual value, and then setting
     // them as an element of the list is buggy (doesn't always return the right value)
     listObj = python::runAndGet(
-        "import math; x = [math.inf, -math.inf, math.inf + math.inf, math.inf * math.inf, math.nan, math.pi, 0.0, 5.0, -128.0]",
+        "import math; x = [0, -1, 5, math.inf * 0, math.inf, 97]",
         "x");
 
     Py_XINCREF(listObj);
     PyObject_Print(listObj, stdout, 0);
     std::cout << std::endl;
-
-    // PyObject* infObj = python::runAndGet("import math; x = math.inf", "x");
-    // Py_XINCREF(infObj);
-    // PyObject_Print(infObj, stdout, 0);
-    // std::cout << std::endl;
-    
     {
         auto list = py::reinterpret_borrow<py::list>(listObj);
 
@@ -154,21 +149,19 @@ TEST_F(WrapperTest, MathIsInf) {
         auto parallelize_res = c.parallelize(list);
 
         python::unlockGIL();
-        parallelize_res.getDS()->show(9, std::cout);
+        parallelize_res.getDS()->show(6, std::cout);
         python::lockGIL();
 
         auto map_res = parallelize_res.map("lambda x: math.isinf(x)", "", py::reinterpret_steal<py::dict>(ba_closure));
         
         python::unlockGIL();
-        map_res.getDS()->show(9, std::cout);
+        map_res.getDS()->show(6, std::cout);
         python::lockGIL();
         
         auto collect_res = map_res.collect();
         auto resObj = collect_res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
-        // Change to 4 when parallelize changes are merged
-        // ASSERT_EQ(PyList_GET_SIZE(resObj), 1);
 
         PyObject_Print(resObj, stdout, 0);
         std::cout << std::endl;

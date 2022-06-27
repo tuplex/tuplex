@@ -762,9 +762,8 @@ TEST_F(MathFunctionsTest, MathIsInf) {
     ce.importModuleAs("math", "math");
 
     auto v1 = c.parallelize({
-        Row(M_PI), Row(D_NAN), Row(D_POSITIVE_INFINITY), Row(D_NEGATIVE_INFINITY)
+        Row(M_PI), Row(D_NAN), Row(INFINITY), Row(-INFINITY)
     }).map(UDF("lambda x: math.isinf(x)", "", ce)).collectAsVector();
-
     EXPECT_EQ(v1.size(), 4);
     EXPECT_EQ(v1[0].getBoolean(0), false);
     EXPECT_EQ(v1[1].getBoolean(0), false);
@@ -781,7 +780,7 @@ TEST_F(MathFunctionsTest, MathIsInf) {
     EXPECT_EQ(v2[3].getBoolean(0), false);
 
     auto v3 = c.parallelize({
-        Row(1.5), Row(-0.89), Row(10.23), Row(-97.484), Row(D_NEGATIVE_INFINITY)
+        Row(1.5), Row(-0.89), Row(10.23), Row(-97.484), Row(-INFINITY)
     }).map(UDF("lambda x: math.isinf(x)", "", ce)).collectAsVector();
     EXPECT_EQ(v3.size(), 5);
     EXPECT_EQ(v3[0].getBoolean(0), false);
@@ -903,12 +902,12 @@ TEST_F(MathFunctionsTest, MathIsClose) {
     EXPECT_EQ(v10.size(), 2);
     EXPECT_EQ(v10[0].getBoolean(0), true);
     EXPECT_EQ(v10[1].getBoolean(0), false);
-
+    
     auto v11 = c.parallelize({
-        Row(D_POSITIVE_INFINITY, D_POSITIVE_INFINITY),
-        Row(D_POSITIVE_INFINITY, D_NEGATIVE_INFINITY),
-        Row(D_NEGATIVE_INFINITY, D_NEGATIVE_INFINITY),
-        Row(D_POSITIVE_INFINITY, 5),
+        Row(INFINITY, INFINITY),
+        Row(INFINITY, -INFINITY),
+        Row(-INFINITY, -INFINITY),
+        Row(INFINITY, 5),
         Row(D_NAN, D_NAN),
         Row(M_PI, M_PI),
         Row(M_PI, 3.14159265)

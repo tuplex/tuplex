@@ -1039,23 +1039,12 @@ namespace tuplex {
             auto type = argsType.parameters().front();
 
             if (python::Type::F64 == type) {
-                // idea is to compare input with the constants for positive and negative infinity
-                // 0x7ff0000000000000ULL --> constant for positive infinity
-                // 0xfff0000000000000ULL --> constant for negative infinity
-                // auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0x7ff0000000000000ULL));
-                // _env.printValue(builder, posCmp, "posCmp");
-                // auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), 0xfff0000000000000ULL));
-                // _env.printValue(builder, negCmp, "negCmp");
                 auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), INFINITY));
-                _env.printValue(builder, posCmp, "posCmp");
                 auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), -INFINITY));
-                _env.printValue(builder, negCmp, "negCmp");
                 // if the input is equal to either positive or negative infinity, this 'or' instruction should return 1
                 auto orRes = builder.CreateOr(negCmp, posCmp);
-                _env.printValue(builder, orRes, "orRes");
 
                 auto resVal = _env.upcastToBoolean(builder, orRes);
-                _env.printValue(builder, resVal, "resVal");
                 auto resSize = _env.i64Const(sizeof(int64_t));
 
                 return SerializableValue(resVal, resSize);
@@ -1063,7 +1052,6 @@ namespace tuplex {
                 // only other valid input types are integer and boolean
                 assert(python::Type::BOOLEAN == type || python::Type::I64 == type);
 
-                _env.printValue(builder, val.val, "wrong branch");
                 return SerializableValue(_env.boolConst(false), _env.i64Const(sizeof(int64_t)));
             }
         }
@@ -1291,12 +1279,14 @@ namespace tuplex {
                 // bb_isinf
                 // this block checks if x or y is positive infinity or negative infinity
                 builder.SetInsertPoint(bb_isinf);
-                auto x_pinf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), D_POSITIVE_INFINITY));
-                auto y_pinf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_POSITIVE_INFINITY));
+                // auto x_pinf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), D_POSITIVE_INFINITY));
+                // auto y_pinf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_POSITIVE_INFINITY));
+                auto x_pinf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), INFINITY));
+                auto y_pinf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), INFINITY));
                 auto either_pinf = builder.CreateOr(x_pinf, y_pinf);
-                auto x_ninf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), D_NEGATIVE_INFINITY));
+                auto x_ninf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), -INFINITY));
                 auto check_xninf = builder.CreateOr(x_ninf, either_pinf);
-                auto y_ninf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_NEGATIVE_INFINITY));
+                auto y_ninf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), -INFINITY));
                 auto check_yninf = builder.CreateOr(y_ninf, check_xninf);
                 builder.CreateCondBr(check_yninf, bb_infres, bb_standard);
 

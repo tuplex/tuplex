@@ -1035,16 +1035,22 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
             assert(args.size() >= 1);
             auto val = args.front();
-            _env.printValue(builder, val.val, "FunctionRegistry.cc:1038");
+            _env.printValue(builder, val.val, "val");
+            _env.printHexValue(builder, val.val, "val (hex)");
             auto type = argsType.parameters().front();
 
             if (python::Type::F64 == type) {
-                auto posCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), INFINITY));
-                auto negCmp = builder.CreateFCmpOEQ(val.val, ConstantFP::get(llvm::Type::getDoubleTy(context), -INFINITY));
+                // compare input to positive and negative infinity (check if equal)
+                auto posCmp = builder.CreateFCmpOEQ(val.val, _env.f64Const(INFINITY));
+                _env.printValue(builder, posCmp, "posCmp");
+                auto negCmp = builder.CreateFCmpOEQ(val.val, _env.f64Const(-INFINITY));
+                _env.printValue(builder, negCmp, "negCmp");
                 // if the input is equal to either positive or negative infinity, this 'or' instruction should return 1
                 auto orRes = builder.CreateOr(negCmp, posCmp);
+                _env.printValue(builder, orRes, "orRes");
 
                 auto resVal = _env.upcastToBoolean(builder, orRes);
+                _env.printValue(builder, resVal, "resVal");
                 auto resSize = _env.i64Const(sizeof(int64_t));
 
                 return SerializableValue(resVal, resSize);
@@ -1052,6 +1058,7 @@ namespace tuplex {
                 // only other valid input types are integer and boolean
                 assert(python::Type::BOOLEAN == type || python::Type::I64 == type);
 
+                _env.printValue(builder, val.val, "int/bool");
                 return SerializableValue(_env.boolConst(false), _env.i64Const(sizeof(int64_t)));
             }
         }

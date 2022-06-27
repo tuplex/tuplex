@@ -1134,6 +1134,41 @@ namespace tuplex {
                 builder.CreateCall(printf_F, {fmt, casted_val, casted_val});
         }
 
+        void LLVMEnvironment::printHexValue(llvm::IRBuilder<> &builder, llvm::Value *val, std::string msg) {
+            using namespace llvm;
+
+            auto printf_F = printf_prototype(_context, _module.get());
+            llvm::Value *sconst = builder.CreateGlobalStringPtr("unknown type: ??");
+
+            llvm::Value *casted_val = val;
+            // check type of value
+            if (val->getType() == Type::getInt1Ty(_context)) {
+                sconst = builder.CreateGlobalStringPtr(msg + " [i1] : %s\n");
+                casted_val = builder.CreateSelect(val, builder.CreateGlobalStringPtr("true"),
+                                                  builder.CreateGlobalStringPtr("false"));
+            } else if (val->getType() == Type::getInt8Ty(_context)) {
+                sconst = builder.CreateGlobalStringPtr(msg + " [i8] : %d\n");
+                casted_val = builder.CreateSExt(val, i64Type()); // also extent to i64 (avoid weird printing errors).
+            } else if (val->getType() == Type::getInt32Ty(_context)) {
+                sconst = builder.CreateGlobalStringPtr(msg + " [i32] : %d\n");
+            } else if (val->getType() == Type::getInt64Ty(_context)) {
+                // sconst = builder.CreateGlobalStringPtr(msg + " [i64] : %lu\n");
+                sconst = builder.CreateGlobalStringPtr(msg + " [i64] : %ld\n");
+            } else if (val->getType() == Type::getDoubleTy(_context)) {
+                sconst = builder.CreateGlobalStringPtr(msg + " [f64] : 0x%" PRIx64 "\n");
+                casted_val = builder.CreateBitCast(val, i64Type());
+                // auto space = CreateFirstblockAlloca(builder, i64Type());
+                // builder.CreateMemcpy(val, space);
+            } else if (val->getType() == Type::getInt8PtrTy(_context, 0)) {
+                sconst = builder.CreateGlobalStringPtr(msg + " [i8*] : [%p] %s\n");
+            }
+            auto fmt = builder.CreatePointerCast(sconst, llvm::Type::getInt8PtrTy(_context, 0));
+            if (val->getType() != Type::getInt8PtrTy(_context, 0))
+                builder.CreateCall(printf_F, {fmt, casted_val});
+            else
+                builder.CreateCall(printf_F, {fmt, casted_val, casted_val});
+        }
+
         llvm::Type *LLVMEnvironment::pythonToLLVMType(const python::Type &t) {
             if (t == python::Type::BOOLEAN)
                 return getBooleanType(); // i64 maybe in the future?

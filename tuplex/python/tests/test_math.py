@@ -10,8 +10,6 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 import unittest
-
-from numpy import False_
 import tuplex
 from helper import test_options
 

@@ -1143,22 +1143,17 @@ namespace tuplex {
             llvm::Value *casted_val = val;
             // check type of value
             if (val->getType() == Type::getInt1Ty(_context)) {
-                sconst = builder.CreateGlobalStringPtr(msg + " [i1] : %s\n");
-                casted_val = builder.CreateSelect(val, builder.CreateGlobalStringPtr("true"),
-                                                  builder.CreateGlobalStringPtr("false"));
+                sconst = builder.CreateGlobalStringPtr(msg + " [i1] : 0x%" PRIx8 "\n");
+                casted_val = builder.CreateSExt(val, i8Type());
             } else if (val->getType() == Type::getInt8Ty(_context)) {
-                sconst = builder.CreateGlobalStringPtr(msg + " [i8] : %d\n");
-                casted_val = builder.CreateSExt(val, i64Type()); // also extent to i64 (avoid weird printing errors).
+                sconst = builder.CreateGlobalStringPtr(msg + " [i8] : 0x%" PRIx8 "\n");
             } else if (val->getType() == Type::getInt32Ty(_context)) {
-                sconst = builder.CreateGlobalStringPtr(msg + " [i32] : %d\n");
+                sconst = builder.CreateGlobalStringPtr(msg + " [i32] : 0x%" PRIx32 "\n");
             } else if (val->getType() == Type::getInt64Ty(_context)) {
-                // sconst = builder.CreateGlobalStringPtr(msg + " [i64] : %lu\n");
-                sconst = builder.CreateGlobalStringPtr(msg + " [i64] : %ld\n");
+                sconst = builder.CreateGlobalStringPtr(msg + " [i64] : 0x%" PRIx64 "\n");
             } else if (val->getType() == Type::getDoubleTy(_context)) {
                 sconst = builder.CreateGlobalStringPtr(msg + " [f64] : 0x%" PRIx64 "\n");
                 casted_val = builder.CreateBitCast(val, i64Type());
-                // auto space = CreateFirstblockAlloca(builder, i64Type());
-                // builder.CreateMemcpy(val, space);
             } else if (val->getType() == Type::getInt8PtrTy(_context, 0)) {
                 sconst = builder.CreateGlobalStringPtr(msg + " [i8*] : [%p] %s\n");
             }

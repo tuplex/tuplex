@@ -974,7 +974,7 @@ namespace tuplex {
             assert(args.size() >= 1);
             auto val = args.front();
             auto type = argsType.parameters().front();
-            
+
             if (python::Type::F64 == type) {
                 /* Note that there are multiple possible ways to represent NAN
                    
@@ -989,9 +989,7 @@ namespace tuplex {
                    QNAN = 0x7FF8000000000000
                    SNAN = 0x7FFC000000000000
                 */
-                
                 llvm::Value* i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
-
                 /* The below instructions shift the bits of the input value right by 32 bits,
                    and then compute the result & (bitwise AND) 0x7fffffff = 2147483647. 
                    Effectively: (x >> 32) & 0x7fffffff
@@ -1004,13 +1002,12 @@ namespace tuplex {
                 auto shiftedVal = builder.CreateLShr(i64Val, 32);
                 auto i32Shift = builder.CreateTrunc(shiftedVal, llvm::Type::getInt32Ty(context));
                 auto andRes = builder.CreateAnd(i32Shift, 2147483647);
-                auto i32Val = builder.CreateTrunc(i64Val, llvm::Type::getInt32Ty(context));
-                
                 /* The next instructions check if the input value is not equal to 0.
                    Then, the result of this is added to the result of (x >> 32) & 0x7fffffff.
-                   Finally, this sum is compared to 0x7ff00000; if the sum is greater than
+                   Finally, this sum is compared to 0x7ff00000 = 2146435072; if the sum is greater than
                    0x7ff00000, isnan returns true, otherwise, false.
-                */    
+                */
+                auto i32Val = builder.CreateTrunc(i64Val, llvm::Type::getInt32Ty(context));   
                 auto cmpRes = builder.CreateICmpNE(i32Val, ConstantInt::get(i32Val->getType(), 0));
                 auto i32cmp = builder.CreateZExt(cmpRes, llvm::Type::getInt32Ty(context));
                 auto added = builder.CreateNUWAdd(andRes, i32cmp);
@@ -1035,22 +1032,17 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
             assert(args.size() >= 1);
             auto val = args.front();
-            _env.printValue(builder, val.val, "val");
-            _env.printHexValue(builder, val.val, "val (hex)");
             auto type = argsType.parameters().front();
 
             if (python::Type::F64 == type) {
                 // compare input to positive and negative infinity (check if equal)
                 auto posCmp = builder.CreateFCmpOEQ(val.val, _env.f64Const(INFINITY));
-                _env.printValue(builder, posCmp, "posCmp");
                 auto negCmp = builder.CreateFCmpOEQ(val.val, _env.f64Const(-INFINITY));
-                _env.printValue(builder, negCmp, "negCmp");
+
                 // if the input is equal to either positive or negative infinity, this 'or' instruction should return 1
                 auto orRes = builder.CreateOr(negCmp, posCmp);
-                _env.printValue(builder, orRes, "orRes");
 
                 auto resVal = _env.upcastToBoolean(builder, orRes);
-                _env.printValue(builder, resVal, "resVal");
                 auto resSize = _env.i64Const(sizeof(int64_t));
 
                 return SerializableValue(resVal, resSize);
@@ -1058,7 +1050,6 @@ namespace tuplex {
                 // only other valid input types are integer and boolean
                 assert(python::Type::BOOLEAN == type || python::Type::I64 == type);
 
-                _env.printValue(builder, val.val, "int/bool");
                 return SerializableValue(_env.boolConst(false), _env.i64Const(sizeof(int64_t)));
             }
         }
@@ -1077,45 +1068,37 @@ namespace tuplex {
 
             auto x_val = args[0].val;
             auto y_val = args[1].val;
-            llvm::Value* rel_tol_val;
-            llvm::Value* abs_tol_val;
+            llvm::Value* rel_tol_val = _env.f64Const(1e-09);
+            llvm::Value* abs_tol_val = _env.i64Const(0);
             auto x_ty = input_types[0];
             auto y_ty = input_types[1];
-            python::Type rel_ty;
-            python::Type abs_ty;
+            python::Type rel_ty = python::Type::F64;
+            python::Type abs_ty = python::Type::I64;
 
             switch(args.size()) {
                 case 2:
-                    // rel_tol and abs_tol not specified
-                    rel_tol_val = _env.f64Const(1e-09);
-                    abs_tol_val = _env.i64Const(0);
-                    rel_ty = python::Type::F64;
-                    abs_ty = python::Type::I64;
-                    break; 
+                    // rel_tol and abs_tol not specified; stick with default values
+                    break;
                 case 3:
                     // assume that the third argument is rel_tol
                     rel_tol_val = args[2].val;
-                    abs_tol_val = _env.i64Const(0);
                     rel_ty = input_types[2];
-                    abs_ty = python::Type::I64;
                     break;
                 default:
                     assert(args.size() == 4);
                     // assume that the third argument is rel_tol and the fourth argument is abs_tol
-                    // so we don't support the case where abs_tol is specified but rel_tol is not
+                    // note: this doesn't support the case where abs_tol is specified but rel_tol isn't
                     rel_tol_val = args[2].val;
-                    _env.printValue(builder, rel_tol_val, "rel_tol_val");
                     abs_tol_val = args[3].val;
-                    _env.printValue(builder, abs_tol_val, "abs_tol_val");
                     rel_ty = input_types[2];
                     abs_ty = input_types[3];
             }
 
-            // error check rel_tol and abs_tol
+            // error check rel_tol and abs_tol (both must be at least 0)
             llvm::Value* rel_tol_check;
             if (rel_ty == python::Type::BOOLEAN || rel_ty == python::Type::I64) {
-                auto rel_tol = _env.upCast(builder, rel_tol_val, _env.i64Type());
-                rel_tol_check = builder.CreateICmpSLT(rel_tol, _env.i64Const(0));
+                auto upcast_rel = _env.upCast(builder, rel_tol_val, _env.i64Type());
+                rel_tol_check = builder.CreateICmpSLT(upcast_rel, _env.i64Const(0));
             } else {
                 assert(rel_ty == python::Type::F64);
                 rel_tol_check = builder.CreateFCmpOLT(rel_tol_val, _env.f64Const(0));
@@ -1123,8 +1106,8 @@ namespace tuplex {
 
             llvm::Value* abs_tol_check;
             if (abs_ty == python::Type::BOOLEAN || abs_ty == python::Type::I64) {
-                auto abs_tol = _env.upCast(builder, abs_tol_val, _env.i64Type());
-                abs_tol_check = builder.CreateICmpSLT(abs_tol, _env.i64Const(0));
+                auto upcast_abs = _env.upCast(builder, abs_tol_val, _env.i64Type());
+                abs_tol_check = builder.CreateICmpSLT(upcast_abs, _env.i64Const(0));
             } else {
                 assert(abs_ty == python::Type::F64);
                 abs_tol_check = builder.CreateFCmpOLT(abs_tol_val, _env.f64Const(0));
@@ -1200,7 +1183,7 @@ namespace tuplex {
                 auto relxmax_cmp = builder.CreateFCmpOLT(relxmax, _env.f64Const(1));
 
                 // if abs_tol is a bool or int, use int instructions
-                llvm::Value* abs_tol;
+                llvm::Value* abs_tol = abs_tol_val;
                 llvm::Value* abs_cmp;
                 if (abs_ty == python::Type::BOOLEAN || abs_ty == python::Type::I64) {
                     abs_tol = _env.upCast(builder, abs_tol_val, _env.i64Type());
@@ -1208,7 +1191,6 @@ namespace tuplex {
                 } else {
                     assert(abs_ty == python::Type::F64);
                     // so we don't leave abs_tol uninitialized
-                    abs_tol = abs_tol_val;
                     abs_cmp = builder.CreateFCmpOLT(abs_tol, _env.f64Const(1));
                 }
 
@@ -1221,13 +1203,11 @@ namespace tuplex {
                 auto diff = builder.CreateFSub(x_d, y_d);
                 auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
                 
-                llvm::Value* d_abs_tol;
+                llvm::Value* d_abs_tol = abs_tol;
                 if (abs_ty == python::Type::BOOLEAN || abs_ty == python::Type::I64) {
                     d_abs_tol = _env.upCast(builder, abs_tol, _env.doubleType());
                 } else {
                     assert(abs_ty == python::Type::F64);
-                    // so we don't leave abs_tol uninitialized
-                    d_abs_tol = abs_tol;
                 }
                 
                 auto RHS_cmp = builder.CreateFCmpOLT(relxmax, d_abs_tol);
@@ -1286,8 +1266,6 @@ namespace tuplex {
                 // bb_isinf
                 // this block checks if x or y is positive infinity or negative infinity
                 builder.SetInsertPoint(bb_isinf);
-                // auto x_pinf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), D_POSITIVE_INFINITY));
-                // auto y_pinf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), D_POSITIVE_INFINITY));
                 auto x_pinf = builder.CreateFCmpOEQ(x, ConstantFP::get(llvm::Type::getDoubleTy(context), INFINITY));
                 auto y_pinf = builder.CreateFCmpOEQ(y, ConstantFP::get(llvm::Type::getDoubleTy(context), INFINITY));
                 auto either_pinf = builder.CreateOr(x_pinf, y_pinf);

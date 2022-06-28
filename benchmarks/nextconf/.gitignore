@@ -1,3 +1,4 @@
 tuplex/
 experiment.log
 build_cache/
+.config.json

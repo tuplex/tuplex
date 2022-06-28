@@ -32,6 +32,9 @@ DEFAULT_OUTPUT_PATH = 'plots'
 DOCKER_IMAGE_TAG = 'tuplex/benchmarkii'
 DOCKER_CONTAINER_NAME = 'vldb22'
 
+# hidden config file to check compatibility of settings
+CONFIG_FILE='.config.json'
+
 BUILD_CACHE='build_cache'
 def build_cache():
    os.makedirs(BUILD_CACHE, exist_ok=True)
@@ -251,7 +254,9 @@ def plot(target, output_path, input_path):
 
 
 @click.command()
-def build():
+@click.option('--cereal/--no-cereal', is_flag=True, default=False,
+              help='whether to build tuplex and lambda using cereal as serialization library.')
+def build(cereal):
     """Downloads tuplex repo to tuplex, switches to correct branch and builds it using the sigmod21 experiment container."""
 
     GIT_REPO_URI = 'https://github.com/LeonhardFS/tuplex-public'
@@ -286,10 +291,14 @@ def build():
 
     start_container()
 
+    CEREAL_FLAG='BUILD_WITH_CEREAL={}'.format('ON' if cereal else 'OFF')
+    if cereal:
+        logging.info('Building with Cereal as serialization format')
+
     # build tuplex within docker container & install it there as well!
     # i.e. build command is: docker exec sigmod21 bash /code/benchmarks/sigmod21-reproducibility/build_scripts/build_tuplex.sh
     BUILD_SCRIPT_PATH = '/code/benchmarks/nextconf/build_scripts/build_tuplex.sh'
-    cmd = ['docker', 'exec', DOCKER_CONTAINER_NAME, 'bash', BUILD_SCRIPT_PATH]
+    cmd = ['docker', 'exec', DOCKER_CONTAINER_NAME, '-e', CEREAL_FLAG, 'bash', BUILD_SCRIPT_PATH]
 
     #cmd = ['docker', 'exec', 'vldb22', 'ls', '/code/benchmarks/nextconf']
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)

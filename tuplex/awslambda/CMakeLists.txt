@@ -69,10 +69,4 @@ else()
     aws_lambda_package_target(${LAMBDA_NAME})
 endif()
 
-# Add all the python dependencies to the zip file
-set(PYTHON_RESOURCES_LOC ${CMAKE_CURRENT_SOURCE_DIR}/python38_resources)
-set(PYTHON_RESOURCES_ZIP ${PYTHON_RESOURCES_LOC}.zip)
-message("PYTHON_RESOURCES_ZIP = ${PYTHON_RESOURCES_ZIP}")
-message("PYTHON_RESOURCES_LOC = ${PYTHON_RESOURCES_LOC}")
-
 # To build Lambda runner deployment package, use ./scripts/create_lambda.zip.sh

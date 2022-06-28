@@ -298,9 +298,8 @@ def build(cereal):
     # build tuplex within docker container & install it there as well!
     # i.e. build command is: docker exec sigmod21 bash /code/benchmarks/sigmod21-reproducibility/build_scripts/build_tuplex.sh
     BUILD_SCRIPT_PATH = '/code/benchmarks/nextconf/build_scripts/build_tuplex.sh'
-    cmd = ['docker', 'exec', DOCKER_CONTAINER_NAME, '-e', CEREAL_FLAG, 'bash', BUILD_SCRIPT_PATH]
+    cmd = ['docker', 'exec', '-e', CEREAL_FLAG, DOCKER_CONTAINER_NAME, 'bash', BUILD_SCRIPT_PATH]
 
-    #cmd = ['docker', 'exec', 'vldb22', 'ls', '/code/benchmarks/nextconf']
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)
     for line in iter(p.stdout.readline, b''):
         logging.info(line.decode().strip())

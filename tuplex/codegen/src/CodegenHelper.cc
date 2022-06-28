@@ -17,7 +17,11 @@
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/TargetSelect.h>
+#if LLVM_VERSION_MAJOR < 14
 #include <llvm/Support/TargetRegistry.h>
+#else
+#include <llvm/MC/TargetRegistry.h>
+#endif
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/IR/LegacyPassManager.h>
@@ -132,6 +136,10 @@ namespace tuplex {
 
         IRBuilder::IRBuilder(llvm::BasicBlock::iterator it) {
             initFromIterator(it);
+        }
+
+        llvm::Value *IRBuilder::CreateGlobalStringPtr(const std::string &basicString) {
+            return get_or_throw().CreateGlobalStringPtr(basicString);
         }
 
         // Clang doesn't work well with ASAN, disable here container overflow.
@@ -316,7 +324,7 @@ namespace tuplex {
         }
 
         llvm::Value *
-        dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, llvm::IRBuilder<> &builder, llvm::Value *val,
+        dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, codegen::IRBuilder &builder, llvm::Value *val,
                       python::Type keyType, python::Type valType) {
             // get key to string
             auto strFormat_func = strFormat_prototype(ctx, mod);
@@ -365,7 +373,7 @@ namespace tuplex {
         // TODO: Do we need to use lfb to add checks?
         SerializableValue
         dictionaryKeyCast(llvm::LLVMContext &ctx, llvm::Module* mod,
-                          llvm::IRBuilder<> &builder, llvm::Value *val, python::Type keyType) {
+                          codegen::IRBuilder& builder, llvm::Value *val, python::Type keyType) {
             // type chars
             auto s_char = llvm::Constant::getIntegerValue(llvm::Type::getInt8Ty(ctx), llvm::APInt(8, 's'));
             auto b_char = llvm::Constant::getIntegerValue(llvm::Type::getInt8Ty(ctx), llvm::APInt(8, 'b'));

@@ -28,13 +28,13 @@ namespace tuplex {
             }
 
             llvm::Type *iteratorContextType = _env->createOrGetIterIteratorType(iterableType);
-            auto initBBAddr = _env->createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder.get(), iterableType,
+            auto initBBAddr = _env->createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder, iterableType,
                                                                                               false);
-            auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder.get(), iteratorContextType, "iter_iterator_alloc");
+            auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder, iteratorContextType, "iter_iterator_alloc");
             llvm::Value *iterableStruct = nullptr;
             if(iterableType.isListType() || iterableType.isTupleType()) {
                 // TODO: need to change this when codegen for lists gets updated
-                iterableStruct = _env->CreateFirstBlockAlloca(builder.get(), iterable.val->getType(), "iter_arg_alloc");
+                iterableStruct = _env->CreateFirstBlockAlloca(builder, iterable.val->getType(), "iter_arg_alloc");
             } else {
                 iterableStruct = iterable.val;
             }
@@ -93,14 +93,14 @@ namespace tuplex {
             }
 
             llvm::Type *iteratorContextType = _env->createOrGetReversedIteratorType(argType);
-            auto initBBAddr = _env->createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder.get(), argType,true);
-            auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder.get(), iteratorContextType, "reversed_iterator_alloc");
+            auto initBBAddr = _env->createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder, argType,true);
+            auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder, iteratorContextType, "reversed_iterator_alloc");
             llvm::Value *seqStruct = nullptr;
             if(argType.isListType() || argType.isTupleType()) {
                 // TODO: need to change this when codegen for lists gets updated
-                seqStruct = _env->CreateFirstBlockAlloca(builder.get(), arg.val->getType(), "reversed_arg_alloc");
+                seqStruct = _env->CreateFirstBlockAlloca(builder, arg.val->getType(), "reversed_arg_alloc");
             } else if(argType == python::Type::RANGE) {
-                seqStruct = _env->CreateFirstBlockAlloca(builder.get(), _env->getRangeObjectType(), "reversed_arg_alloc");
+                seqStruct = _env->CreateFirstBlockAlloca(builder, _env->getRangeObjectType(), "reversed_arg_alloc");
             } else {
                 seqStruct = arg.val;
             }
@@ -129,7 +129,7 @@ namespace tuplex {
                 auto end = builder.CreateLoad(builder.CreateGEP(_env->getRangeObjectType(), arg.val, {_env->i32Const(0), _env->i32Const(1)}));
                 auto step = builder.CreateLoad(builder.CreateGEP(_env->getRangeObjectType(), arg.val, {_env->i32Const(0), _env->i32Const(2)}));
                 auto stepSign = builder.CreateOr(builder.CreateAShr(step, _env->i64Const(63)), _env->i64Const(1));
-                auto rangeLength = builder.CreateAdd(builder.get().CreateSDiv(builder.CreateSub(builder.CreateSub(end, start), stepSign), step), _env->i64Const(1));
+                auto rangeLength = builder.CreateAdd(builder.CreateSDiv(builder.CreateSub(builder.CreateSub(end, start), stepSign), step), _env->i64Const(1));
                 rangeLength = builder.CreateAnd(rangeLength, builder.CreateNot(builder.CreateAShr(rangeLength, _env->i64Const(63))));
                 auto newEnd = builder.CreateSub(start, step);
                 auto newStep = builder.CreateNeg(step);
@@ -174,7 +174,7 @@ namespace tuplex {
                 // empty iterator
                 return SerializableValue(_env->i64Const(0), _env->i64Const(8));
             }
-            auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder.get(), iteratorContextType, "zip_iterator_alloc");
+            auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder, iteratorContextType, "zip_iterator_alloc");
             // store pointers to iterator structs
             for (size_t i = 0; i < iterablesType.parameters().size(); ++i) {
                 auto currType = iterablesType.parameters()[i];
@@ -213,7 +213,7 @@ namespace tuplex {
             }
             auto argIteratorInfo = iteratorInfo->argsIteratorInfo.front();
             llvm::Type *iteratorContextType = _env->createOrGetEnumerateIteratorType(iterableType, argIteratorInfo);
-            auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder.get(), iteratorContextType, "enumerate_iterator_alloc");
+            auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder, iteratorContextType, "enumerate_iterator_alloc");
             auto startValPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(0)});
             builder.CreateStore(startVal, startValPtr);
             auto iterablePtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(1)});
@@ -247,7 +247,7 @@ namespace tuplex {
             if(defaultArg.val) {
                 builder.CreateCondBr(exhausted, defaultArgBB, notExhaustedBB);
             } else {
-                lfb.addException(builder.get(), ExceptionCode::STOPITERATION, exhausted);
+                lfb.addException(builder, ExceptionCode::STOPITERATION, exhausted);
                 builder.CreateBr(notExhaustedBB);
             }
 
@@ -381,14 +381,14 @@ namespace tuplex {
                         // retVal is a pointer to tuple struct
                         retVal = builder.CreateLoad(retVal);
                     }
-                    auto ft = FlattenedTuple::fromLLVMStructVal(_env, builder.get(), retVal, yieldType);
-                    retSize = ft.getSize(builder.get());
+                    auto ft = FlattenedTuple::fromLLVMStructVal(_env, builder, retVal, yieldType);
+                    retSize = ft.getSize(builder);
                 }
             } else if(iterablesType == python::Type::STRING) {
                 auto currCharPtr = builder.CreateGEP(_env->i8Type(), iterableAlloc, index);
                 // allocate new string (1-byte character with a 1-byte null terminator)
                 retSize = _env->i64Const(2);
-                retVal = builder.CreatePointerCast(_env->malloc(builder.get(), retSize), _env->i8ptrType());
+                retVal = builder.CreatePointerCast(_env->malloc(builder, retSize), _env->i8ptrType());
                 builder.CreateStore(builder.CreateLoad(currCharPtr), retVal);
                 auto nullCharPtr = builder.CreateGEP(_env->i8Type(), retVal, _env->i32Const(1));
                 builder.CreateStore(_env->i8Const(0), nullCharPtr);
@@ -400,17 +400,17 @@ namespace tuplex {
                 auto tupleLength = iterablesType.parameters().size();
 
                 // create array & index
-                auto array = builder.get().CreateAlloca(_env->pythonToLLVMType(yieldType), _env->i64Const(tupleLength));
-                auto sizes = builder.get().CreateAlloca(_env->i64Type(), _env->i64Const(tupleLength));
+                auto array = builder.CreateAlloca(_env->pythonToLLVMType(yieldType), 0, _env->i64Const(tupleLength));
+                auto sizes = builder.CreateAlloca(_env->i64Type(), 0, _env->i64Const(tupleLength));
 
                 // store the elements into the array
                 std::vector<python::Type> tupleType(tupleLength, yieldType);
-                FlattenedTuple flattenedTuple = FlattenedTuple::fromLLVMStructVal(_env, builder.get(), iterableAlloc, python::Type::makeTupleType(tupleType));
+                FlattenedTuple flattenedTuple = FlattenedTuple::fromLLVMStructVal(_env, builder, iterableAlloc, python::Type::makeTupleType(tupleType));
 
                 std::vector<SerializableValue> elements;
                 std::vector<llvm::Type *> elementTypes;
                 for (int i = 0; i < tupleLength; ++i) {
-                    auto load = flattenedTuple.getLoad(builder.get(), {i});
+                    auto load = flattenedTuple.getLoad(builder, {i});
                     elements.push_back(load);
                     elementTypes.push_back(load.val->getType());
                 }
@@ -508,10 +508,10 @@ namespace tuplex {
                 // update current arg iterator index before fetching value
                 incrementIteratorIndex(builder, currIterator, currIteratorInfo, 1);
                 auto currIteratorNextVal = getIteratorNextElement(builder, yieldType.parameters()[i], currIterator, currIteratorInfo);
-                ft.setElement(builder.get(), i, currIteratorNextVal.val, currIteratorNextVal.size, currIteratorNextVal.is_null);
+                ft.setElement(builder, i, currIteratorNextVal.val, currIteratorNextVal.size, currIteratorNextVal.is_null);
             }
-            auto retVal = ft.getLoad(builder.get());
-            auto retSize = ft.getSize(builder.get());
+            auto retVal = ft.getLoad(builder);
+            auto retSize = ft.getSize(builder);
             return SerializableValue(retVal, retSize);
         }
 
@@ -544,10 +544,10 @@ namespace tuplex {
             auto argIteratorPtr = builder.CreateGEP(iterator, {_env->i32Const(0), _env->i32Const(1)});
             auto argIterator = builder.CreateLoad(argIteratorPtr);
             auto val = getIteratorNextElement(builder, yieldType.parameters()[1], argIterator, argIteratorInfo);
-            ft.setElement(builder.get(), 0, start.val, start.size, start.is_null);
-            ft.setElement(builder.get(), 1, val.val, val.size, val.is_null);
-            auto retVal = ft.getLoad(builder.get());
-            auto retSize = ft.getSize(builder.get());
+            ft.setElement(builder, 0, start.val, start.size, start.is_null);
+            ft.setElement(builder, 1, val.val, val.size, val.is_null);
+            auto retVal = ft.getLoad(builder);
+            auto retSize = ft.getSize(builder);
             // increment start index value
             auto newStartVal = builder.CreateAdd(startVal, _env->i64Const(1));
             builder.CreateStore(newStartVal, startValPtr);

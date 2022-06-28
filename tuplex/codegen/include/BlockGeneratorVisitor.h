@@ -81,11 +81,11 @@ namespace codegen {
 
             Variable(LLVMEnvironment& env, const codegen::IRBuilder& builder, const python::Type& t, const std::string& name);
 
-            static Variable asGlobal(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+            static Variable asGlobal(LLVMEnvironment& env, codegen::IRBuilder&builder,
                             const python::Type& t,
                             const std::string& name, const SerializableValue& value);
 
-            inline void endLife(llvm::IRBuilder<>& builder) {
+            inline void endLife(codegen::IRBuilder&builder) {
                 if(ptr)
                     builder.CreateLifetimeEnd(ptr);
                 if(sizePtr)
@@ -98,7 +98,7 @@ namespace codegen {
             }
 
             // simplify interfaces a bit
-            inline codegen::SerializableValue load(llvm::IRBuilder<>& builder) const {
+            inline codegen::SerializableValue load(codegen::IRBuilder& builder) const {
                 assert(ptr && sizePtr);
 
                 // GlobalValue is a constant...
@@ -115,7 +115,7 @@ namespace codegen {
                         nullPtr ? builder.CreateLoad(nullPtr) : nullptr);
             }
 
-            inline void store(llvm::IRBuilder<>& builder, const codegen::SerializableValue& val) {
+            inline void store(codegen::IRBuilder& builder, const codegen::SerializableValue& val) {
                 assert(ptr && sizePtr);
 
                 if(val.val) {
@@ -183,7 +183,7 @@ namespace codegen {
 
             VariableSlot():type(python::Type::UNKNOWN), definedPtr(nullptr) {}
 
-            void generateUnboundLocalCheck(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder) {
+            void generateUnboundLocalCheck(LambdaFunctionBuilder& lfb, codegen::IRBuilder& builder) {
                 assert(definedPtr);
                 auto val = builder.CreateLoad(definedPtr);
                 auto c_val = llvm::dyn_cast<llvm::ConstantInt>(val);
@@ -200,7 +200,7 @@ namespace codegen {
                 }
             }
 
-            bool isDefined(llvm::IRBuilder<>& builder) const {
+            bool isDefined(codegen::IRBuilder& builder) const {
                 // unknown type?
                 if(type == python::Type::UNKNOWN)
                     return false;
@@ -233,7 +233,7 @@ namespace codegen {
             llvm::Value* defined;
             llvm::Value* original_defined_ptr;
 
-            static VariableRealization fromSlot(llvm::IRBuilder<>& builder, const std::string& name, const VariableSlot& slot) {
+            static VariableRealization fromSlot(codegen::IRBuilder&builder, const std::string& name, const VariableSlot& slot) {
                 VariableRealization r;
                 r.name = name;
                 r.type = slot.type;
@@ -246,7 +246,7 @@ namespace codegen {
             }
         };
 
-        inline std::unordered_map<std::string, VariableRealization> snapshotVariableValues(llvm::IRBuilder<>& builder) {
+        inline std::unordered_map<std::string, VariableRealization> snapshotVariableValues(codegen::IRBuilder&builder) {
             std::unordered_map<std::string, VariableRealization> var_realizations;
             for(auto p : _variableSlots) {
                 auto r = VariableRealization::fromSlot(builder, p.first, p.second);
@@ -418,10 +418,10 @@ namespace codegen {
         }
 
         // upcast return type
-        SerializableValue upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue& val, const python::Type& type, const python::Type& targetType);
+        SerializableValue upCastReturnType(codegen::IRBuilder&builder, const SerializableValue& val, const python::Type& type, const python::Type& targetType);
 
-        SerializableValue CreateDummyValue(llvm::IRBuilder<>& builder, const python::Type& type);
-        SerializableValue popWithNullCheck(llvm::IRBuilder<>& builder, ExceptionCode ec, const std::string& message="");
+        SerializableValue CreateDummyValue(codegen::IRBuilder& builder, const python::Type& type);
+        SerializableValue popWithNullCheck(codegen::IRBuilder& builder, ExceptionCode ec, const std::string& message="");
 
         SerializableValue additionInst(const SerializableValue &L, NBinaryOp *op, const SerializableValue &R);
 
@@ -440,9 +440,9 @@ namespace codegen {
 
         llvm::Value* powerInst(llvm::Value *L, NBinaryOp *op, llvm::Value *R);
 
-        llvm::Value* oneSidedNullComparison(llvm::IRBuilder<>& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull);
+        llvm::Value* oneSidedNullComparison(codegen::IRBuilder& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull);
 
-        llvm::Value *compareInst(llvm::IRBuilder<>& builder,
+        llvm::Value *compareInst(codegen::IRBuilder& builder,
                                 llvm::Value *L,
                                  llvm::Value *L_isnull,
                                  const python::Type &leftType,
@@ -451,7 +451,7 @@ namespace codegen {
                                  llvm::Value *R_isnull,
                                  const python::Type &rightType);
 
-        llvm::Value *compareInst(llvm::IRBuilder<>& builder,
+        llvm::Value *compareInst(codegen::IRBuilder& builder,
                                  llvm::Value *L,
                                  const python::Type &leftType,
                                  const TokenType &tt,
@@ -461,13 +461,13 @@ namespace codegen {
         llvm::Value* listInclusionCheck(llvm::IRBuilder<> &builder, llvm::Value *L, const python::Type &leftType,
                                 llvm::Value *R, const python::Type &rightType);
 
-        llvm::Value *numericCompareInst(llvm::IRBuilder<>& builder, llvm::Value *L,
+        llvm::Value *numericCompareInst(codegen::IRBuilder& builder, llvm::Value *L,
                                  const python::Type &leftType,
                                  const TokenType &tt,
                                  llvm::Value *R,
                                  const python::Type &rightType);
 
-        llvm::Value *stringCompareInst(llvm::IRBuilder<>& builder, llvm::Value *L,
+        llvm::Value *stringCompareInst(codegen::IRBuilder& builder, llvm::Value *L,
                                        const python::Type &leftType,
                                        const TokenType &tt,
                                        llvm::Value *R,

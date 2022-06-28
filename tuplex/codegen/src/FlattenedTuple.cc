@@ -19,7 +19,7 @@ namespace tuplex {
         }
 
         FlattenedTuple
-        FlattenedTuple::fromLLVMStructVal(LLVMEnvironment *env, llvm::IRBuilder<> &builder, llvm::Value *ptr,
+        FlattenedTuple::fromLLVMStructVal(LLVMEnvironment *env, codegen::IRBuilder& builder, llvm::Value *ptr,
                                           const python::Type &type) {
             assert(env);
             assert(ptr);
@@ -79,7 +79,7 @@ namespace tuplex {
             return _tree.fieldType(index);
         }
 
-        void FlattenedTuple::set(llvm::IRBuilder<> &builder, const std::vector<int>& index, llvm::Value *value, llvm::Value *size, llvm::Value *is_null) {
+        void FlattenedTuple::set(codegen::IRBuilder& builder, const std::vector<int>& index, llvm::Value *value, llvm::Value *size, llvm::Value *is_null) {
 
             // is it a single value or a compound/tuple type?
             auto field_type = _tree.fieldType(index);
@@ -100,7 +100,7 @@ namespace tuplex {
             }
         }
 
-        void FlattenedTuple::set(llvm::IRBuilder<> &builder, const std::vector<int> &index, const FlattenedTuple &t) {
+        void FlattenedTuple::set(codegen::IRBuilder& builder, const std::vector<int> &index, const FlattenedTuple &t) {
             auto subtree = _tree.subTree(index);
             auto subtree_type = subtree.tupleType();
             assert(subtree_type == t.tupleType());
@@ -158,7 +158,7 @@ namespace tuplex {
             return types;
         }
 
-        void FlattenedTuple::deserializationCode(llvm::IRBuilder<>& builder, llvm::Value *input) {
+        void FlattenedTuple::deserializationCode(codegen::IRBuilder& builder, llvm::Value *input) {
 
             using namespace llvm;
             using namespace std;
@@ -446,7 +446,7 @@ namespace tuplex {
             }
         }
 
-        llvm::Value* FlattenedTuple::serializationCode(llvm::IRBuilder<>& builder, llvm::Value *output,
+        llvm::Value* FlattenedTuple::serializationCode(codegen::IRBuilder& builder, llvm::Value *output,
                                                        llvm::Value *capacity, llvm::BasicBlock* insufficientCapacityHandler) const {
             using namespace llvm;
             assert(_env);
@@ -479,14 +479,14 @@ namespace tuplex {
             // then block...
             // -------
             codegen::IRBuilder bThen(enoughCapacity);
-            serialize(bThen.get(), output);
+            serialize(bThen, output);
 
             // set builder to insert on then block
             builder.SetInsertPoint(enoughCapacity);
             return serializationSize;
         }
 
-        void FlattenedTuple::serialize(llvm::IRBuilder<>& builder, llvm::Value *ptr) const {
+        void FlattenedTuple::serialize(codegen::IRBuilder& builder, llvm::Value *ptr) const {
             using namespace llvm;
             using namespace std;
 
@@ -777,7 +777,7 @@ namespace tuplex {
             }
         }
 
-        void FlattenedTuple::setElement(llvm::IRBuilder<>& builder,
+        void FlattenedTuple::setElement(codegen::IRBuilder& builder,
                                         const int iElement,
                                         llvm::Value *val,
                                         llvm::Value *size,
@@ -830,7 +830,7 @@ namespace tuplex {
             return !tupleType().isFixedSizeType();
         }
 
-        llvm::Value* FlattenedTuple::getSize(llvm::IRBuilder<>& builder) const {
+        llvm::Value* FlattenedTuple::getSize(codegen::IRBuilder& builder) const {
             // @TODO: make this more performant by NOT serializing anymore NULL, EMPTYDICT, EMPTYTUPLE, ...
 
             llvm::Value* s = _env->i64Const(0);
@@ -912,13 +912,13 @@ namespace tuplex {
             return _env->getOrCreateTupleType(_flattenedTupleType);
         }
 
-        llvm::Value* FlattenedTuple::alloc(llvm::IRBuilder<> &builder, const std::string& twine) const {
+        llvm::Value* FlattenedTuple::alloc(codegen::IRBuilder& builder, const std::string& twine) const {
             // copy structure llvm like out
             auto llvmType = getLLVMType();
             return _env->CreateFirstBlockAlloca(builder, llvmType, twine);
         }
 
-        void FlattenedTuple::storeTo(llvm::IRBuilder<> &builder, llvm::Value *ptr) const {
+        void FlattenedTuple::storeTo(codegen::IRBuilder& builder, llvm::Value *ptr) const {
             // check that type corresponds
             auto llvmType = getLLVMType();
 
@@ -940,7 +940,7 @@ namespace tuplex {
                 _env->setTupleElement(builder, _flattenedTupleType, ptr, i, _tree.get(i));
         }
 
-        llvm::Value* FlattenedTuple::getLoad(llvm::IRBuilder<> &builder) const {
+        llvm::Value* FlattenedTuple::getLoad(codegen::IRBuilder& builder) const {
             auto alloc = this->alloc(builder);
             storeTo(builder, alloc);
             return builder.CreateLoad(alloc);
@@ -1008,7 +1008,7 @@ namespace tuplex {
             _tree.set(i, codegen::SerializableValue(val, size, isnull));
         }
 
-        codegen::SerializableValue FlattenedTuple::getLoad(llvm::IRBuilder<> &builder, const std::vector<int> &index) {
+        codegen::SerializableValue FlattenedTuple::getLoad(codegen::IRBuilder& builder, const std::vector<int> &index) {
             auto subtree = _tree.subTree(index);
             FlattenedTuple dummy(_env);
             dummy._tree = subtree;
@@ -1026,7 +1026,7 @@ namespace tuplex {
             return codegen::SerializableValue(dummy.getLoad(builder), dummy.getSize(builder));
         }
 
-        codegen::SerializableValue FlattenedTuple::serializeToMemory(llvm::IRBuilder<> &builder) const {
+        codegen::SerializableValue FlattenedTuple::serializeToMemory(codegen::IRBuilder& builder) const {
 
             auto buf_size = getSize(builder);
 
@@ -1041,7 +1041,7 @@ namespace tuplex {
             return codegen::SerializableValue(buf, buf_size);
         }
 
-        std::vector<llvm::Value*> FlattenedTuple::getBitmap(llvm::IRBuilder<> &builder) const {
+        std::vector<llvm::Value*> FlattenedTuple::getBitmap(codegen::IRBuilder& builder) const {
             using namespace std;
 
             auto types = getFieldTypes();
@@ -1087,7 +1087,7 @@ namespace tuplex {
 
 
 #ifndef NDEBUG
-        void FlattenedTuple::print(llvm::IRBuilder<> &builder) {
+        void FlattenedTuple::print(codegen::IRBuilder& builder) {
             // print tuple out for debug purposes
             using namespace  std;
 
@@ -1107,7 +1107,7 @@ namespace tuplex {
         }
 #endif
 
-        FlattenedTuple FlattenedTuple::fromRow(LLVMEnvironment *env, llvm::IRBuilder<>& builder, const Row &row) {
+        FlattenedTuple FlattenedTuple::fromRow(LLVMEnvironment *env, codegen::IRBuilder& builder, const Row &row) {
             FlattenedTuple ft(env);
             ft.init(row.getRowType());
 

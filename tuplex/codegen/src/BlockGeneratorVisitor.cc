@@ -772,7 +772,7 @@ namespace tuplex {
             return SerializableValue(builder.CreateLoad(bufVar), sizeWritten);
         }
 
-        llvm::Value *BlockGeneratorVisitor::numericCompareInst(llvm::IRBuilder<>& builder, llvm::Value *L, const python::Type &leftType,
+        llvm::Value *BlockGeneratorVisitor::numericCompareInst(codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
                                                                const TokenType &tt, llvm::Value *R,
                                                                const python::Type &rightType) {
             assert(L);
@@ -834,7 +834,7 @@ namespace tuplex {
         }
 
 
-        llvm::Value *BlockGeneratorVisitor::stringCompareInst(llvm::IRBuilder<>& builder, llvm::Value *L, const python::Type &leftType,
+        llvm::Value *BlockGeneratorVisitor::stringCompareInst(codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
                                                               const TokenType &tt, llvm::Value *R,
                                                               const python::Type &rightType) {
             assert(L);
@@ -888,7 +888,7 @@ namespace tuplex {
             }
         }
 
-        llvm::Value* BlockGeneratorVisitor::listInclusionCheck(llvm::IRBuilder<>& builder, llvm::Value *L, const python::Type &leftType,
+        llvm::Value* BlockGeneratorVisitor::listInclusionCheck(codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
                                                        llvm::Value *R, const python::Type &rightType) {
             assert(R); assert(_lfb);
             assert(!leftType.isOptionType());
@@ -948,7 +948,7 @@ namespace tuplex {
         }
 
         llvm::Value *
-        BlockGeneratorVisitor::compareInst(llvm::IRBuilder<>& builder, llvm::Value *L, const python::Type &leftType, const TokenType &tt,
+        BlockGeneratorVisitor::compareInst(codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType, const TokenType &tt,
                                            llvm::Value *R, const python::Type &rightType) {
             assert(!leftType.isOptional());
             assert(!rightType.isOptional());
@@ -1020,7 +1020,7 @@ namespace tuplex {
         }
 
 
-        llvm::Value* BlockGeneratorVisitor::oneSidedNullComparison(llvm::IRBuilder<>& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull) {
+        llvm::Value* BlockGeneratorVisitor::oneSidedNullComparison(codegen::IRBuilder& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull) {
             assert(tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL || tt == TokenType::IS || tt == TokenType::ISNOT); // only for == or != or IS or ISNOT!
 
             // we're comparing null to null, should only return true if operators are EQEQUAL or IS. 

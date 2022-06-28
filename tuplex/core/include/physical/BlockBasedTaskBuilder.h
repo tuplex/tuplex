@@ -74,7 +74,7 @@ namespace tuplex {
 
             bool hasExceptionHandler() const { return !_exceptionHandlerName.empty(); }
 
-            void generateTerminateEarlyOnCode(llvm::IRBuilder<>& builder,
+            void generateTerminateEarlyOnCode(codegen::IRBuilder& builder,
                                               llvm::Value* ecCode,
                                               ExceptionCode code = ExceptionCode::OUTPUT_LIMIT_REACHED);
 

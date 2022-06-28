@@ -106,7 +106,7 @@ namespace tuplex {
             _body = BasicBlock::Create(_context, "body", _func._func);
             IRBuilder builder(_body);
 
-            unflattenParameters(builder.get(), parameters, isFirstArgTuple);
+            unflattenParameters(builder, parameters, isFirstArgTuple);
         }
 
         LambdaFunctionBuilder &LambdaFunctionBuilder::create(NLambda *lambda,

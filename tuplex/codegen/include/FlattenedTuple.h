@@ -66,7 +66,7 @@ namespace tuplex {
             bool containsVarLenField() const;
 
             // encode i1 arrays as 64bit bitmaps to easily store!
-            std::vector<llvm::Value*> getBitmap(llvm::IRBuilder<> &builder) const;
+            std::vector<llvm::Value*> getBitmap(codegen::IRBuilder& builder) const;
         public:
             FlattenedTuple(LLVMEnvironment *env) : _env(env), _forceZeroTerminatedStrings(false) {}
 
@@ -137,7 +137,7 @@ namespace tuplex {
             inline python::Type fieldType(int index) { return getFieldTypes()[index]; }
 
 #ifndef NDEBUG
-            void print(llvm::IRBuilder<>& builder);
+            void print(codegen::IRBuilder& builder);
 #endif
 
             /*!
@@ -148,7 +148,7 @@ namespace tuplex {
              * @param isnull nullptr or i1 element
              * @return
              */
-            void set(llvm::IRBuilder<> &builder, const std::vector<int>& index, llvm::Value *value, llvm::Value *size, llvm::Value *is_null);
+            void set(codegen::IRBuilder& builder, const std::vector<int>& index, llvm::Value *value, llvm::Value *size, llvm::Value *is_null);
 
 
             /*!
@@ -157,14 +157,14 @@ namespace tuplex {
              * @param index
              * @param t
              */
-            void set(llvm::IRBuilder<>& builder, const std::vector<int>& index, const FlattenedTuple& t);
+            void set(codegen::IRBuilder& builder, const std::vector<int>& index, const FlattenedTuple& t);
 
             /*!
              * deserializes i8* pointer
              * @param builder
              * @param input memory addr from where to start deserialization
              */
-            void deserializationCode(llvm::IRBuilder<> &builder, llvm::Value *input);
+            void deserializationCode(codegen::IRBuilder& builder, llvm::Value *input);
 
 
             /*!
@@ -175,7 +175,7 @@ namespace tuplex {
              * @param insufficientCapacityHandler basicblock where to jump to when there are not enough bytes left to store the data.
              * @return serialization size (how many bytes where written)
              */
-            llvm::Value *serializationCode(llvm::IRBuilder<> &builder, llvm::Value *output,
+            llvm::Value *serializationCode(codegen::IRBuilder& builder, llvm::Value *output,
                                            llvm::Value *capacity, llvm::BasicBlock *insufficientCapacityHandler) const;
 
             /*!
@@ -183,14 +183,14 @@ namespace tuplex {
              * @param builder
              * @param ptr
              */
-            void serialize(llvm::IRBuilder<> &builder, llvm::Value *ptr) const;
+            void serialize(codegen::IRBuilder& builder, llvm::Value *ptr) const;
 
             /*!
              * allocates via internal enviornment new memory block and fits tuple in
              * @param builder
              * @return memory pointer and size of serialized tuple
              */
-            codegen::SerializableValue serializeToMemory(llvm::IRBuilder<> &builder) const;
+            codegen::SerializableValue serializeToMemory(codegen::IRBuilder& builder) const;
 
 
             std::vector<llvm::Type *> getTypes();
@@ -205,7 +205,7 @@ namespace tuplex {
               * @return
               */
             static FlattenedTuple fromLLVMStructVal(LLVMEnvironment *env,
-                                                    llvm::IRBuilder<> &builder,
+                                                    codegen::IRBuilder& builder,
                                                     llvm::Value *ptr,
                                                     const python::Type &type);
 
@@ -215,7 +215,7 @@ namespace tuplex {
              * @param row
              * @return
              */
-            static FlattenedTuple fromRow(LLVMEnvironment* env,  llvm::IRBuilder<>& builder, const Row& row);
+            static FlattenedTuple fromRow(LLVMEnvironment* env,  codegen::IRBuilder& builder, const Row& row);
 
             /*!
              * returns the nesting level for the flattened elements according to internal nesting algorithm
@@ -229,7 +229,7 @@ namespace tuplex {
              * variable length (serialized) type, 8 bytes for the varlen field is added.
              * @return llvm::Value representing the total size of the tuple
              */
-            llvm::Value *getSize(llvm::IRBuilder<> &builder) const;
+            llvm::Value *getSize(codegen::IRBuilder& builder) const;
 
             /*!
              * sets ith element to be value/size. Automatically decodes tuples, ...
@@ -239,7 +239,7 @@ namespace tuplex {
              * @param val
              * @param size
              */
-            void setElement(llvm::IRBuilder<> &builder,
+            void setElement(codegen::IRBuilder& builder,
                             const int iElement,
                             llvm::Value *val,
                             llvm::Value *size,
@@ -259,7 +259,7 @@ namespace tuplex {
              * returns the (flattened) tuple as value after alloc and filling in everything
              * @return
              */
-            llvm::Value *getLoad(llvm::IRBuilder<> &builder) const;
+            llvm::Value *getLoad(codegen::IRBuilder& builder) const;
 
 
             /*!
@@ -267,7 +267,7 @@ namespace tuplex {
              * @param builder
              * @return ptr to getLLVMType() filled with data elements
              */
-            llvm::Value* loadToPtr(llvm::IRBuilder<>& builder, const std::string& twine="") const {
+            llvm::Value* loadToPtr(codegen::IRBuilder& builder, const std::string& twine="") const {
                 auto ptr = alloc(builder, twine);
                 storeTo(builder, ptr);
                 return ptr;
@@ -278,7 +278,7 @@ namespace tuplex {
              * @param builder
              * @return alloc tuple
              */
-            llvm::Value *alloc(llvm::IRBuilder<> &builder, const std::string& twine="") const;
+            llvm::Value *alloc(codegen::IRBuilder& builder, const std::string& twine="") const;
 
             /*!
              * stores contents to llvm struct val ptr.
@@ -286,7 +286,7 @@ namespace tuplex {
              * @param ptr
              * @return
              */
-            void storeTo(llvm::IRBuilder<> &builder, llvm::Value *ptr) const;
+            void storeTo(codegen::IRBuilder& builder, llvm::Value *ptr) const;
 
             /*!
              * returns the value at the given index. May be a tuple
@@ -294,7 +294,7 @@ namespace tuplex {
              * @param index
              * @return
              */
-            codegen::SerializableValue getLoad(llvm::IRBuilder<> &builder, const std::vector<int> &index);
+            codegen::SerializableValue getLoad(codegen::IRBuilder& builder, const std::vector<int> &index);
 
             /*!
              * returns internal LLVM type to represent this flattened tuple structure

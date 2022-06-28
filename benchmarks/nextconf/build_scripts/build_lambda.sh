@@ -10,7 +10,8 @@ PYTHON3_MAJMIN=${PYTHON3_VERSION%.*}
 
 # this script creates a deployable AWS Lambda zip package within the benchmarkII docker image
 
-LOCAL_BUILD_FOLDER=build-lambda
+TUPLEX_DIR=/code
+LOCAL_BUILD_FOLDER=$TUPLEX_DIR/tuplex/build-lambda
 SRC_FOLDER=tuplex
 
 # convert to absolute paths

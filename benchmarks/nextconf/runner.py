@@ -41,6 +41,26 @@ def build_cache():
    return BUILD_CACHE
 
 
+def get_container():
+    # docker client
+    dc = docker.from_env()
+
+    # check if it's already running, if not start!
+    containers = [c for c in dc.containers.list() if c.name == DOCKER_CONTAINER_NAME]
+    container = None
+    if len(containers) >= 1:
+        logging.info('Docker container {} already running.'.format(DOCKER_CONTAINER_NAME))
+        container = containers[0]
+    else:
+        logging.info('Docker container not running yet, starting...')
+        start_container()
+        containers = [c for c in dc.containers.list() if c.name == DOCKER_CONTAINER_NAME]
+        assert len(containers) >= 1, 'Failed to start docker container...'
+        container = containers[0]
+        logging.info('Docker container started.')
+
+    return container
+
 @click.command()
 @click.argument('target', type=click.Choice(experiment_targets, case_sensitive=False))
 @click.option('--num-runs', type=int, default=11,
@@ -306,7 +326,44 @@ def build(cereal):
     p.stdout.close()
     p.wait()
 
-    logging.info('Build and installed Tuplex in docker container.')
+    logging.info('Built in docker container.')
+    logging.info('Building compatible Lambda runner now...')
+    BUILD_SCRIPT_PATH = '/code/benchmarks/nextconf/build_scripts/build_lambda.sh'
+    cmd = ['docker', 'exec', '-e', CEREAL_FLAG, DOCKER_CONTAINER_NAME, 'bash', BUILD_SCRIPT_PATH]
+
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)
+    for line in iter(p.stdout.readline, b''):
+        logging.info(line.decode().strip())
+    p.stdout.close()
+    p.wait()
+
+    logging.info('Lambda runner built.')
+    logging.info('Copying results to host machine...')
+
+    storage_path = os.path.join(build_cache(), 'cereal' if cereal else 'nocereal')
+    os.makedirs(storage_path, exists_ok=True)
+
+    container = get_container()
+    assert container, 'Container should have been started'
+
+    # use container API (get_archive/put_archive)
+    # cf. docker-py.readthedocs.io
+    # fetch both lambda and package
+    package_container_path = '/code/tuplex/tuplex/build/dist/python'
+    lambda_container_path = '/code/tuplex/tuplex/build-lambda/tplxlam.zip'
+    package_path = os.path.join(storage_path, 'tuplex.tar')
+    lambda_path = os.path.join(storage_path, 'lambda-runner.tar')
+    bits, stat = container.get_archive(package_container_path)
+    with open(package_path, 'wb') as fp:
+        for chunk in bits:
+            fp.write(chunk)
+    logging.info('Transferred python package from docker to {} ({} bytes)'.format(package_path, stat['size']))
+    bits, stat = container.get_archive(lambda_container_path)
+    with open(lambda_path, 'wb') as fp:
+        for chunk in bits:
+            fp.write(chunk)
+    logging.info('Transferred lambda runner from docker to {} ({} bytes)'.format(lambda_path, stat['size']))
+    logging.info('Done, built all required artifacts.')
 
 def add_aws_info(f):
     """

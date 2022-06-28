@@ -199,6 +199,10 @@ RUN /bin/bash /usr/src/install_tuplex_reqs.sh
 ADD install_sbt.sh /usr/src/install_sbt.sh
 RUN /bin/bash /usr/src/install_sbt.sh
 
+# install lambda-python
+ADD install_lambda_python.sh /usr/src/install_lambda_python.sh
+RUN /bin/bash /usr/src/install_lambda_python.sh
+
 # clean
 RUN rm -rf /usr/src
 RUN rm -rf /tmp/*

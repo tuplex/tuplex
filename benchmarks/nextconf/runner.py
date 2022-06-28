@@ -349,8 +349,8 @@ def build(cereal):
     # use container API (get_archive/put_archive)
     # cf. docker-py.readthedocs.io
     # fetch both lambda and package
-    package_container_path = '/code/tuplex/tuplex/build/dist/python'
-    lambda_container_path = '/code/tuplex/tuplex/build-lambda/tplxlam.zip'
+    package_container_path = '/code/tuplex/build/dist/python'
+    lambda_container_path = '/code/tuplex/build-lambda/tplxlam.zip'
     package_path = os.path.join(storage_path, 'tuplex.tar')
     lambda_path = os.path.join(storage_path, 'lambda-runner.tar')
     bits, stat = container.get_archive(package_container_path)

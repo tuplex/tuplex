@@ -37,17 +37,14 @@ def build_cache():
    os.makedirs(BUILD_CACHE, exist_ok=True)
    return BUILD_CACHE
 
-@click.group()
-def commands():
-    pass
-
 
 @click.command()
 @click.argument('target', type=click.Choice(experiment_targets, case_sensitive=False))
 @click.option('--num-runs', type=int, default=11,
               help='How many runs to run experiment with (default=11 for 10 runs + 1 warmup run')
 @click.option('--detach/--no-detach', default=False, help='whether to launch command in detached mode (non-blocking)')
-def run(target, num_runs, detach):
+@click.pass_context
+def run(ctx, target, num_runs, detach):
     """ run benchmarks for specific dataset. THIS MIGHT TAKE A WHILE! """
 
     logging.info("Retrieving AWS credentials")
@@ -178,104 +175,6 @@ def run(target, num_runs, detach):
         logging.info('Done.')
 
 
-# plot helpers
-def plot_table3(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
-    logging.info('Plotting Figure3 (Zillow experiment)')
-    logging.info('Benchmark result folder specified as {}'.format(zillow_path))
-    from plot_scripts.zillow_plots import table3, load_data
-
-    logging.info('Loading data...')
-    df_Z1, df_Z2 = load_data(zillow_path)
-    table3(df_Z1)
-    logging.info('Table shown.')
-
-
-def plot_figure3(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
-    logging.info('Plotting Figure3 (Zillow experiment)')
-    logging.info('Benchmark result folder specified as {}'.format(zillow_path))
-    from plot_scripts.zillow_plots import figure3, load_data
-
-    logging.info('Loading data...')
-    df_Z1, df_Z2 = load_data(zillow_path)
-    logging.info('Plotting Z1/Z2 (Figure3)')
-    figure3(df_Z1, df_Z2, output_folder)
-    logging.info('Plots saved in {}'.format(output_folder))
-
-
-def plot_figure4(flights_path='r5d.8xlarge/flights', output_folder='plots'):
-    logging.info('Plotting Figure4 (Flights experiment)')
-    logging.info('Benchmark result folder specified as {}'.format(flights_path))
-    from plot_scripts.figure4 import figure4
-
-    logging.info('Loading data...')
-    figure4(flights_path, output_folder)
-    logging.info('Plots saved in {}'.format(output_folder))
-
-
-def plot_figure5(logs_path='r5d.8xlarge/logs', output_folder='plots'):
-    logging.info('Plotting Figure5 (logs experiment)')
-    logging.warning('DO NOT SHARE DATA')
-    logging.info('Benchmark result folder specified as {}'.format(logs_path))
-    from plot_scripts.figure5 import figure5
-
-    logging.info('Loading data...')
-    figure5(logs_path, output_folder)
-    logging.info('Plots saved in {}'.format(output_folder))
-
-
-def plot_figure6(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
-    logging.info('Plotting Figure6 (Tuplex exceptions)')
-    logging.info('Benchmark result folder specified as {}'.format(zillow_path))
-    from plot_scripts.figure6 import figure6
-    figure6(zillow_path, output_folder)
-    logging.info('Plots saved in {}'.format(output_folder))
-
-
-def plot_figure7(zillow_path='r5d.8xlarge/zillow', output_folder='plots'):
-    logging.info('Plotting Figure7 (Tuplex vs. other JITs experiment)')
-    logging.info('Benchmark result folder specified as {}'.format(zillow_path))
-    from plot_scripts.zillow_plots import figure7, load_data
-
-    logging.info('Loading data...')
-    df_Z1, df_Z2 = load_data(zillow_path)
-    logging.info('Plotting Z1 (Figure7)')
-    figure7(df_Z1, output_folder)
-    logging.info('Plots saved in {}'.format(output_folder))
-
-
-def plot_figure8(service_path='r5d.8xlarge/311', output_folder='plots'):
-    logging.info('Plotting Figure8 (311 experiment/agrgegates)')
-    logging.info('Benchmark result folder specified as {}'.format(service_path))
-    from plot_scripts.figure8 import figure8
-
-    logging.info('Loading data...')
-    figure8(service_path, output_folder)
-    logging.info('Plots saved in {}'.format(output_folder))
-
-
-def plot_figure9(tpch_path='r5d.8xlarge/tpch', output_folder='plots'):
-    logging.info('Plotting Figure9 (TPCH Q6/Q19)')
-    logging.info('Benchmark result folder specified as {}'.format(tpch_path))
-    from plot_scripts.figure9 import figure9
-
-    logging.info('Loading data...')
-    figure9(tpch_path, output_folder)
-    logging.info('Plots saved in {}'.format(output_folder))
-
-
-def plot_figure10(flights_path='r5d.8xlarge/flights', output_folder='plots'):
-    logging.info('Plotting Figure10 (Flights breakdown)')
-    logging.info('Benchmark result folder specified as {}'.format(flights_path))
-    from plot_scripts.figure10 import figure10
-
-    logging.info('Loading data...')
-    figure10(flights_path, output_folder)
-    logging.info('Plots saved in {}'.format(output_folder))
-
-
-# end plot helpers
-
-
 def start_container():
     # docker client
     dc = docker.from_env()
@@ -401,12 +300,56 @@ def build():
 
     logging.info('Build and installed Tuplex in docker container.')
 
+def add_aws_info(f):
+    """
+    Add the version of the tool to the help heading.
+    :param f: function to decorate
+    :return: decorated function
+    """
+
+    # fetch some info about aws and display it in runner script
+    session = boto3.Session()
+    credentials = session.get_credentials()
+    credentials = credentials.get_frozen_credentials()
+    access_key = credentials.access_key
+    secret_key = credentials.secret_key
+    token = credentials.token
+    region = session.region_name
+    info = 'AWS credentials found: access key [{}] secret key [{}] token [{}]'.format('x' if access_key else ' ',
+                                                                'x' if secret_key else ' ',
+                                                                'x' if token else ' ',)
+    info += '\n\nAWS region={}, '.format(region)
+    sts = boto3.client('sts')
+    identity = sts.get_caller_identity()
+    account_id = identity['Account']
+    user_name = identity['Arn'][identity['Arn'].rfind('user/') + len('user/'):]
+    info += 'IAM user: {} (id={})'.format(user_name, account_id)
+
+    doc = f.__doc__
+
+    f.__doc__ = doc.strip() + '\n\n' + info
+
+    return f
+
+# customize help
+@click.group()
+@click.pass_context
+@add_aws_info
+def commands(ctx):
+    """
+    Welcome to the runner tool to invoke various Viton benchmarks.
+    """
+    pass
+
 
 commands.add_command(run)
 commands.add_command(plot)
 commands.add_command(build)
 commands.add_command(start)
 commands.add_command(stop)
+
+
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,

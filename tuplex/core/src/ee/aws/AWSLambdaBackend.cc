@@ -133,7 +133,7 @@ namespace tuplex {
         auto outcome = client->ListFunctions(list_req);
         if(!outcome.IsSuccess()) {
             std::stringstream ss;
-            ss << outcome.GetError().GetExceptionName().c_str()
+            ss << outcome.GetError().GetExceptionName().c_str() << ", "
                << outcome.GetError().GetMessage().c_str();
 
             throw std::runtime_error("LAMBDA failed to list functions, details: " + ss.str());

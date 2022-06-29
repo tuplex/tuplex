@@ -81,7 +81,7 @@ namespace codegen {
 
             Variable(LLVMEnvironment& env, const codegen::IRBuilder& builder, const python::Type& t, const std::string& name);
 
-            static Variable asGlobal(LLVMEnvironment& env, codegen::IRBuilder&builder,
+            static Variable asGlobal(LLVMEnvironment& env, const codegen::IRBuilder& builder,
                             const python::Type& t,
                             const std::string& name, const SerializableValue& value);
 

@@ -4782,7 +4782,7 @@ namespace tuplex {
             return SerializableValue();
         }
 
-        SerializableValue BlockGeneratorVisitor::popWithNullCheck(llvm::IRBuilder<> &builder, tuplex::ExceptionCode ec,
+        SerializableValue BlockGeneratorVisitor::popWithNullCheck(const codegen::IRBuilder& builder, tuplex::ExceptionCode ec,
                                                                   const std::string &message) {
             using namespace llvm;
 
@@ -5113,7 +5113,7 @@ namespace tuplex {
             }
         }
 
-        BlockGeneratorVisitor::Variable BlockGeneratorVisitor::Variable::asGlobal(LLVMEnvironment &env, llvm::IRBuilder<> &builder,
+        BlockGeneratorVisitor::Variable BlockGeneratorVisitor::Variable::asGlobal(LLVMEnvironment &env, const codegen::IRBuilder& builder,
                                                            const python::Type &t, const std::string &name,
                                                            const SerializableValue &value) {
             assert(value.size && value.val);

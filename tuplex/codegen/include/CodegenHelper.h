@@ -58,6 +58,8 @@ namespace tuplex {
              IRBuilder(const llvm::IRBuilder<>& llvm_builder);
              IRBuilder(llvm::BasicBlock* bb);
 
+             IRBuilder(llvm::LLVMContext& ctx);
+
              // copy
              IRBuilder(const IRBuilder& other);
 
@@ -131,34 +133,32 @@ namespace tuplex {
             }
 
             inline llvm::Value *CreateBitCast(llvm::Value *V, llvm::Type *DestTy,
-                                 const std::string &Name = "") {
+                                 const std::string &Name = "") const  {
                 return get_or_throw().CreateCast(llvm::Instruction::BitCast, V, DestTy, Name);
             }
 
             inline llvm::Value *CreateLShr(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
-                              bool isExact = false) {
+                              bool isExact = false) const {
                return get_or_throw().CreateLShr(LHS, RHS, Name);
             }
 
             inline llvm::Value *CreateLShr(llvm::Value *LHS, const llvm::APInt &RHS, const std::string &Name = "",
-                              bool isExact = false) {
+                              bool isExact = false) const {
                 return get_or_throw().CreateLShr(LHS, llvm::ConstantInt::get(LHS->getType(), RHS), Name, isExact);
             }
 
             inline llvm::Value *CreateLShr(llvm::Value *LHS, uint64_t RHS, const std::string &Name = "",
-                              bool isExact = false) {
+                              bool isExact = false) const {
                 return get_or_throw().CreateLShr(LHS, llvm::ConstantInt::get(LHS->getType(), RHS), Name, isExact);
             }
 
-
-            inline llvm::Value *CreateLifetimeStart(llvm::Value *Ptr, llvm::ConstantInt *Size = nullptr) {
+            inline llvm::Value *CreateLifetimeStart(llvm::Value *Ptr, llvm::ConstantInt *Size = nullptr) const {
                  return get_or_throw().CreateLifetimeStart(Ptr, Size);
              }
 
-            inline llvm::Value *CreateLifetimeEnd(llvm::Value *Ptr, llvm::ConstantInt *Size = nullptr) {
+            inline llvm::Value *CreateLifetimeEnd(llvm::Value *Ptr, llvm::ConstantInt *Size = nullptr) const {
                  return get_or_throw().CreateLifetimeEnd(Ptr, Size);
              }
-
 
             inline llvm::Value *CreateExtractValue(llvm::Value *Agg,
                                        llvm::ArrayRef<unsigned> Idxs,
@@ -428,9 +428,11 @@ namespace tuplex {
                 return get_or_throw().CreateZExt(V, DestTy, Name);
             }
 
-            inline llvm::Value *CreateSExt(llvm::Value *V, llvm::Type *DestTy, const std::string &Name = "") {
+            inline llvm::Value *CreateSExt(llvm::Value *V, llvm::Type *DestTy, const std::string &Name = "") const {
                 return get_or_throw().CreateSExt(V, DestTy, Name);
             }
+
+            inline llvm::Value *CreateFPExt(llvm::Value *V, llvm::Type *DestTy, const std::string &Name = "") const { return get_or_throw().CreateFPExt(V, DestTy, Name); }
 
              inline llvm::Value *CreateTrunc(llvm::Value *V, llvm::Type *DestTy, const std::string &Name = "") const {
                  return get_or_throw().CreateTrunc(V, DestTy, Name);
@@ -475,6 +477,15 @@ namespace tuplex {
                  return get_or_throw().CreatePtrDiff(LHS, RHS, Name);
 #endif
              }
+
+
+            llvm::Value *CreateRetVoid() const {
+                return get_or_throw().CreateRetVoid();
+            }
+
+            llvm::Value *CreateRet(llvm::Value *V) const {
+                return get_or_throw().CreateRet(V);
+            }
 
             /*!
              * create runtime malloc (calling rtmalloc function)
@@ -719,15 +730,15 @@ namespace tuplex {
          * @param destType
          * @return casted llvm Value
          */
-        extern llvm::Value* upCast(llvm::IRBuilder<> &builder, llvm::Value *val, llvm::Type *destType);
+        extern llvm::Value* upCast(const codegen::IRBuilder& builder, llvm::Value *val, llvm::Type *destType);
 
         extern llvm::Value *
-        dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, codegen::IRBuilder &builder, llvm::Value *val,
+        dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, const codegen::IRBuilder &builder, llvm::Value *val,
                       python::Type keyType, python::Type valType);
 
         extern SerializableValue
         dictionaryKeyCast(llvm::LLVMContext &ctx, llvm::Module* mod,
-                          codegen::IRBuilder &builder, llvm::Value *val, python::Type keyType);
+                          const codegen::IRBuilder &builder, llvm::Value *val, python::Type keyType);
         /*!
          * for debug purposes convert llvm type to string
          * @param type llvm type, if nullptr "null" is returned

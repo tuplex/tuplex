@@ -279,7 +279,7 @@ namespace tuplex {
              */
             SerializableValue extractTupleElement(const codegen::IRBuilder& builder, const python::Type& tupleType, llvm::Value* tupleVal, unsigned int index);
 
-            void setTupleElement(codegen::IRBuilder &builder, const python::Type &tupleType, llvm::Value *tuplePtr,
+            void setTupleElement(const codegen::IRBuilder &builder, const python::Type &tupleType, llvm::Value *tuplePtr,
                                  unsigned int index, const SerializableValue &value);
 
             llvm::Value* CreateMaximum(const codegen::IRBuilder& builder, llvm::Value* rhs, llvm::Value* lhs);

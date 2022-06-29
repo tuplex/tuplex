@@ -335,7 +335,7 @@ namespace tuplex {
             return lf;
         }
 
-        void LambdaFunction::callWithExceptionHandler(llvm::IRBuilder<> &builder, llvm::Value* const resVal, llvm::BasicBlock* const handler,
+        void LambdaFunction::callWithExceptionHandler(codegen::IRBuilder& builder, llvm::Value* const resVal, llvm::BasicBlock* const handler,
                                                               llvm::Value* const exceptionCode,
                                                               const std::vector<llvm::Value *>&  args) {
 

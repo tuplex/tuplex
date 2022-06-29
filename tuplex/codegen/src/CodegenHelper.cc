@@ -82,6 +82,10 @@ namespace tuplex {
             }
         }
 
+        IRBuilder::IRBuilder(llvm::LLVMContext& ctx) {
+            _llvm_builder = std::make_unique<llvm::IRBuilder<>>(ctx);
+        }
+
         IRBuilder IRBuilder::firstBlockBuilder(bool insertAtEnd) const {
             // create new IRBuilder for first block
 
@@ -295,7 +299,7 @@ namespace tuplex {
             return mod;
         }
 
-        llvm::Value* upCast(llvm::IRBuilder<> &builder, llvm::Value *val, llvm::Type *destType) {
+        llvm::Value* upCast(const codegen::IRBuilder& builder, llvm::Value *val, llvm::Type *destType) {
             // check if types are the same, then just return val
             if (val->getType() == destType)
                 return val;
@@ -320,7 +324,7 @@ namespace tuplex {
         }
 
         llvm::Value *
-        dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, codegen::IRBuilder &builder, llvm::Value *val,
+        dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, const codegen::IRBuilder &builder, llvm::Value *val,
                       python::Type keyType, python::Type valType) {
             // get key to string
             auto strFormat_func = strFormat_prototype(ctx, mod);
@@ -369,7 +373,7 @@ namespace tuplex {
         // TODO: Do we need to use lfb to add checks?
         SerializableValue
         dictionaryKeyCast(llvm::LLVMContext &ctx, llvm::Module* mod,
-                          codegen::IRBuilder& builder, llvm::Value *val, python::Type keyType) {
+                          const codegen::IRBuilder& builder, llvm::Value *val, python::Type keyType) {
             // type chars
             auto s_char = llvm::Constant::getIntegerValue(llvm::Type::getInt8Ty(ctx), llvm::APInt(8, 's'));
             auto b_char = llvm::Constant::getIntegerValue(llvm::Type::getInt8Ty(ctx), llvm::APInt(8, 'b'));

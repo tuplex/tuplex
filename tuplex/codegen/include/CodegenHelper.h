@@ -274,6 +274,11 @@ namespace tuplex {
                 return get_or_throw().CreateShl(LHS, RHS, Name, HasNUW, HasNSW);
             }
 
+            inline llvm::Value *CreateShl(llvm::Value *LHS, uint64_t RHS, const std::string &Name = "",
+                                          bool HasNUW = false, bool HasNSW = false) const {
+                return get_or_throw().CreateShl(LHS, RHS, Name, HasNUW, HasNSW);
+            }
+
              inline llvm::Value *CreateAShr(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
                                bool isExact = false) {
                 return get_or_throw().CreateAShr(LHS, RHS, Name, isExact);
@@ -411,6 +416,12 @@ namespace tuplex {
                 return get_or_throw().CreateSIToFP(V, DestTy, Name);
             }
 
+            // casts
+            inline llvm::Value *CreateCast(llvm::Instruction::CastOps Op, llvm::Value *V, llvm::Type *DestTy,
+                              const std::string &Name = "") const {
+                return get_or_throw().CreateCast(Op, V, DestTy, Name);
+             }
+
             //  Shl, AShr, ZExt
             inline llvm::Value *CreateZExt(llvm::Value *V, llvm::Type *DestTy, const std::string &Name = "") const {
                 return get_or_throw().CreateZExt(V, DestTy, Name);
@@ -448,6 +459,15 @@ namespace tuplex {
             inline llvm::PHINode* CreatePHI(llvm::Type* type, unsigned NumReservedValues, const std::string& twine="") const {
                  return get_or_throw().CreatePHI(type, NumReservedValues, twine);
              }
+
+             // helpers
+             inline llvm::Value *CreateIsNull(llvm::Value *Arg, const std::string &Name = "") const { return get_or_throw().CreateIsNull(Arg, Name); }
+
+            inline llvm::Value *CreateIsNotNull(llvm::Value *Arg, const std::string &Name = "") const { return get_or_throw().CreateIsNotNull(Arg, Name); }
+
+            inline llvm::Value *CreatePtrDiff(llvm::Type *ElemTy, llvm::Value *LHS, llvm::Value *RHS,
+                                 const std::string &Name = "") const { return get_or_throw().CreatePtrDiff(ElemTy, LHS, RHS, Name); }
+
 
             /*!
              * create runtime malloc (calling rtmalloc function)

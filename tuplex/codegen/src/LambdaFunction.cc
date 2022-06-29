@@ -138,7 +138,7 @@ namespace tuplex {
         }
 
 
-        void LambdaFunctionBuilder::unflattenParameters(llvm::IRBuilder<> &builder, NParameterList *params,
+        void LambdaFunctionBuilder::unflattenParameters(codegen::IRBuilder &builder, NParameterList *params,
                                                         bool isFirstArgTuple) {
             assert(_func._pyArgType != python::Type::UNKNOWN);
             assert(_func._func);
@@ -223,8 +223,8 @@ namespace tuplex {
 
             // retValue might be also a pointer to a tuple type
             if(res && res->getType()->isPointerTy() && res->getType()->getPointerElementType()->isStructTy()) {
-                _fto = FlattenedTuple::fromLLVMStructVal(_env, builder.get(), res, output_type);
-                res = _fto.getLoad(builder.get());
+                _fto = FlattenedTuple::fromLLVMStructVal(_env, builder, res, output_type);
+                res = _fto.getLoad(builder);
             }
 
             // in the case of a single expression, there may be not a tuple on the stack.
@@ -237,13 +237,13 @@ namespace tuplex {
                 //assert(retValue.val);
                 //assert(retValue.size);
                 _fto.assign(0, retValue.val, retValue.size, retValue.is_null);
-                res = _fto.getLoad(builder.get());
+                res = _fto.getLoad(builder);
             }
 
             // the same applies for emptytuple (special case)
             if (res->getType() == _env->getEmptyTupleType()) {
                 _fto.assign(0, retValue.val, retValue.size, retValue.is_null);
-                res = _fto.getLoad(builder.get());
+                res = _fto.getLoad(builder);
             }
 
             assert(res->getType()->isStructTy()); // needs to be tuple type!

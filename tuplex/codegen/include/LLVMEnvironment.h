@@ -364,14 +364,14 @@ namespace tuplex {
              * @param val
              * @return upcasted val
              */
-            inline llvm::Value *upcastToBoolean(llvm::IRBuilder<> &builder, llvm::Value *val) {
+            inline llvm::Value *upcastToBoolean(const codegen::IRBuilder &builder, llvm::Value *val) {
                 if (val->getType()->getIntegerBitWidth() != getBooleanType()->getIntegerBitWidth())
                     return builder.CreateZExt(val, getBooleanType());
                 else
                     return val;
             }
 
-            inline llvm::Value *upCast(llvm::IRBuilder<> &builder, llvm::Value *val, llvm::Type *type) {
+            inline llvm::Value *upCast(const codegen::IRBuilder &builder, llvm::Value *val, llvm::Type *type) {
                 // check if types are the same, then just return val
                 if (val->getType() == type)
                     return val;

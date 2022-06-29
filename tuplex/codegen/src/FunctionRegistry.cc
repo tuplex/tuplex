@@ -306,7 +306,7 @@ namespace tuplex {
             auto retBlock = llvm::BasicBlock::Create(_env.getContext(), "retblock", builder.GetInsertBlock()->getParent());
             // local variables
             auto retsize = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
-            llvm::AllocaInst* retval;
+            llvm::Value* retval = nullptr;
             // allocate retval properly
             if(retType == python::Type::BOOLEAN) retval = builder.CreateAlloca(_env.getBooleanType(), 0, nullptr);
             else if(retType == python::Type::STRING) retval = builder.CreateAlloca(_env.i8ptrType(), 0, nullptr);

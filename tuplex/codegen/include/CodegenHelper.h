@@ -202,29 +202,29 @@ namespace tuplex {
             }
 
 
-             inline llvm::Value *CreateICmpSGT(llvm::Value *LHS, llvm::Value *RHS, const std::string& Name = "") {
+             inline llvm::Value *CreateICmpSGT(llvm::Value *LHS, llvm::Value *RHS, const std::string& Name = "") const {
                  return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_SGT, LHS, RHS, Name);
              }
-             inline llvm::Value *CreateICmpSGE(llvm::Value *LHS, llvm::Value *RHS, const std::string& Name = "") {
+             inline llvm::Value *CreateICmpSGE(llvm::Value *LHS, llvm::Value *RHS, const std::string& Name = "") const {
                  return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_SGE, LHS, RHS, Name);
              }
 
-             inline llvm::Value *CreateICmpSLT(llvm::Value *LHS, llvm::Value *RHS, const std::string&Name = "") {
+             inline llvm::Value *CreateICmpSLT(llvm::Value *LHS, llvm::Value *RHS, const std::string&Name = "") const {
                  return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_SLT, LHS, RHS, Name);
              }
              inline llvm::Value *CreateFNeg(llvm::Value *V, const std::string& Name = "",
-                                            llvm::MDNode *FPMathTag = nullptr) {
+                                            llvm::MDNode *FPMathTag = nullptr) const {
                  return get_or_throw().CreateFNeg(V, Name, FPMathTag);
             }
             inline llvm::Value *CreateNeg(llvm::Value *V, const std::string& Name = "",
-                                  bool HasNUW = false, bool HasNSW = false) {
+                                  bool HasNUW = false, bool HasNSW = false) const {
                 return get_or_throw().CreateNeg(V, Name, HasNUW, HasNSW);
             }
-             inline llvm::Value *CreateXor(llvm::Value *LHS, llvm::Value *RHS, const std::string& Name = "") {
+             inline llvm::Value *CreateXor(llvm::Value *LHS, llvm::Value *RHS, const std::string& Name = "") const {
                  return get_or_throw().CreateXor(LHS, RHS, Name);
              }
 
-             inline llvm::Value *CreateNot(llvm::Value *V, const std::string &Name = "") {
+             inline llvm::Value *CreateNot(llvm::Value *V, const std::string &Name = "") const {
                  return get_or_throw().CreateNot(V, Name);
             }
 
@@ -465,9 +465,15 @@ namespace tuplex {
 
             inline llvm::Value *CreateIsNotNull(llvm::Value *Arg, const std::string &Name = "") const { return get_or_throw().CreateIsNotNull(Arg, Name); }
 
-            inline llvm::Value *CreatePtrDiff(llvm::Type *ElemTy, llvm::Value *LHS, llvm::Value *RHS,
-                                 const std::string &Name = "") const { return get_or_throw().CreatePtrDiff(ElemTy, LHS, RHS, Name); }
-
+            inline llvm::Value *CreatePtrDiff(llvm::Value *LHS, llvm::Value *RHS,
+                                 const std::string &Name = "") const {
+#if LLVM_VERSION_MAJOR > 13
+                 llvm::Type* ElemTy = nullptr;
+                return get_or_throw().CreatePtrDiff(ElemTy, LHS, RHS, Name);
+#else
+                 return get_or_throw().CreatePtrDiff(LHS, RHS, Name);
+#endif
+             }
 
             /*!
              * create runtime malloc (calling rtmalloc function)

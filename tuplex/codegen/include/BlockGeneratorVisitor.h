@@ -15,22 +15,22 @@
 #include "IVisitor.h"
 #include <IFailable.h>
 
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Target/TargetMachine.h"
-#include "llvm/Transforms/Scalar.h"
-#include "llvm/Transforms/Scalar/GVN.h"
+#include <llvm/ADT/APFloat.h>
+#include <llvm/ADT/STLExtras.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar/GVN.h>
 #include "ClosureEnvironment.h"
 
 #include <deque>
@@ -458,7 +458,7 @@ namespace codegen {
                                  llvm::Value *R,
                                  const python::Type &rightType);
 
-        llvm::Value* listInclusionCheck(llvm::IRBuilder<> &builder, llvm::Value *L, const python::Type &leftType,
+        llvm::Value* listInclusionCheck(const codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
                                 llvm::Value *R, const python::Type &rightType);
 
         llvm::Value *numericCompareInst(codegen::IRBuilder& builder, llvm::Value *L,
@@ -479,7 +479,7 @@ namespace codegen {
 
         SerializableValue stringSliceInst(const SerializableValue& value, llvm::Value *start, llvm::Value *end, llvm::Value *stride);
 
-        llvm::Value *processSliceIndex(llvm::IRBuilder<> &builder, llvm::Value *index, llvm::Value *len, llvm::Value *stride);
+        llvm::Value *processSliceIndex(const codegen::IRBuilder& builder, llvm::Value *index, llvm::Value *len, llvm::Value *stride);
 
         SerializableValue tupleStaticSliceInst(ASTNode *tuple_node, ASTNode *start_node, ASTNode *end_node,
                 ASTNode *stride_node, const SerializableValue& tuple, llvm::Value *start, llvm::Value *end,

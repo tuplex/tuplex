@@ -888,7 +888,7 @@ namespace tuplex {
             }
         }
 
-        llvm::Value* BlockGeneratorVisitor::listInclusionCheck(codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
+        llvm::Value* BlockGeneratorVisitor::listInclusionCheck(const codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
                                                        llvm::Value *R, const python::Type &rightType) {
             assert(R); assert(_lfb);
             assert(!leftType.isOptionType());
@@ -4592,7 +4592,7 @@ namespace tuplex {
         }
 
         llvm::Value *
-        BlockGeneratorVisitor::processSliceIndex(llvm::IRBuilder<> &builder, llvm::Value *index, llvm::Value *len,
+        BlockGeneratorVisitor::processSliceIndex(const codegen::IRBuilder& builder, llvm::Value *index, llvm::Value *len,
                                                  llvm::Value *stride) {
             // case 1: (-inf, -stringLen) => 0 // for negative stride, goes to -1
             // case 2: [-stringLen, -1] => +stringLen

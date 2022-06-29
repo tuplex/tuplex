@@ -1220,7 +1220,7 @@ namespace tuplex {
         }
 
         SerializableValue FunctionRegistry::createCenterCall(LambdaFunctionBuilder& lfb,
-                                                            codegen::IRBuilder& builder,
+                                                            const codegen::IRBuilder& builder,
                                                             const tuplex::codegen::SerializableValue &caller,
                                                             const tuplex::codegen::SerializableValue &width,
                                                             const tuplex::codegen::SerializableValue *fillchar){
@@ -1265,7 +1265,7 @@ namespace tuplex {
         }
 
         SerializableValue FunctionRegistry::createMathCeilFloorCall(LambdaFunctionBuilder &lfb,
-                                                                    codegen::IRBuilder& builder,
+                                                                    const codegen::IRBuilder& builder,
                                                                     const std::string &qual_name,
                                                                     const SerializableValue &arg) {
             assert(qual_name == "math.ceil" || qual_name == "math.floor");
@@ -1628,7 +1628,7 @@ namespace tuplex {
         }
 
         SerializableValue FunctionRegistry::createIteratorRelatedSymbolCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                                            codegen::IRBuilder &builder,
+                                                                            const codegen::IRBuilder &builder,
                                                                             const std::string &symbol,
                                                                             const python::Type &argsType,
                                                                             const python::Type &retType,
@@ -1658,7 +1658,7 @@ namespace tuplex {
             return SerializableValue(nullptr, nullptr);
         }
 
-        SerializableValue FunctionRegistry::createIterCall(LambdaFunctionBuilder &lfb, codegen::IRBuilder &builder,
+        SerializableValue FunctionRegistry::createIterCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder &builder,
                                                            const python::Type &argsType, const python::Type &retType,
                                                            const std::vector<tuplex::codegen::SerializableValue> &args) {
             if(argsType.parameters().size() != 1) {
@@ -1674,7 +1674,7 @@ namespace tuplex {
             return _iteratorContextProxy->initIterContext(lfb, builder, argType, args.front());
         }
 
-        SerializableValue FunctionRegistry::createReversedCall(LambdaFunctionBuilder &lfb, codegen::IRBuilder &builder,
+        SerializableValue FunctionRegistry::createReversedCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder &builder,
                                                            const python::Type &argsType, const python::Type &retType,
                                                            const std::vector<tuplex::codegen::SerializableValue> &args) {
             if(argsType.parameters().size() != 1) {
@@ -1686,7 +1686,7 @@ namespace tuplex {
             return _iteratorContextProxy->initReversedContext(lfb, builder, argType, args.front());
         }
 
-        SerializableValue FunctionRegistry::createZipCall(LambdaFunctionBuilder &lfb, codegen::IRBuilder &builder,
+        SerializableValue FunctionRegistry::createZipCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder &builder,
                                                            const python::Type &argsType, const python::Type &retType,
                                                            const std::vector<tuplex::codegen::SerializableValue> &args,
                                                            const std::shared_ptr<IteratorInfo> &iteratorInfo) {
@@ -1694,7 +1694,7 @@ namespace tuplex {
             return _iteratorContextProxy->initZipContext(lfb, builder, args, iteratorInfo);
         }
 
-        SerializableValue FunctionRegistry::createEnumerateCall(LambdaFunctionBuilder &lfb, codegen::IRBuilder &builder,
+        SerializableValue FunctionRegistry::createEnumerateCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder &builder,
                                                           const python::Type &argsType, const python::Type &retType,
                                                           const std::vector<tuplex::codegen::SerializableValue> &args,
                                                           const std::shared_ptr<IteratorInfo> &iteratorInfo) {
@@ -1713,7 +1713,7 @@ namespace tuplex {
             return SerializableValue(nullptr, nullptr);
         }
 
-        SerializableValue FunctionRegistry::createNextCall(LambdaFunctionBuilder &lfb, codegen::IRBuilder &builder,
+        SerializableValue FunctionRegistry::createNextCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder &builder,
                                                            const python::Type &argsType, const python::Type &retType,
                                                            const std::vector<tuplex::codegen::SerializableValue> &args,
                                                            const std::shared_ptr<IteratorInfo> &iteratorInfo) {

@@ -321,6 +321,12 @@ namespace tuplex {
 #endif
              }
 
+            inline llvm::Value *CreateFCmpONE(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
+                                              llvm::MDNode *FPMathTag = nullptr) const {return get_or_throw().CreateFCmpONE(LHS, RHS, Name, FPMathTag); }
+
+            inline llvm::Value *CreateConstInBoundsGEP2_64(llvm::Value *Ptr, uint64_t Idx0,
+                                              uint64_t Idx1, const std::string &Name = "") const { return get_or_throw().CreateConstGEP2_64(nullptr, Ptr, Idx0, Idx1, Name); }
+
             inline llvm::CallInst *CreateCall(llvm::FunctionType *FTy, llvm::Value *Callee,
                                         llvm::ArrayRef<llvm::Value *> Args = llvm::None, const std::string &Name = "",
                                         llvm::MDNode *FPMathTag = nullptr) const {

@@ -764,9 +764,9 @@ namespace tuplex {
              */
             llvm::Value* CreateTernaryLogic(const codegen::IRBuilder &builder, llvm::Value *condition,
                                                              std::function<llvm::Value *(
-                                                                     llvm::IRBuilder<> &)> ifBlock,
+                                                                     const codegen::IRBuilder&)> ifBlock,
                                                              std::function<llvm::Value *(
-                                                                     llvm::IRBuilder<> &)> elseBlock);
+                                                                     const codegen::IRBuilder&)> elseBlock);
 
             /*!
              * return the length/size of a list.

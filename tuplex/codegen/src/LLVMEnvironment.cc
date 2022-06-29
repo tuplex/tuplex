@@ -950,9 +950,9 @@ namespace tuplex {
 
         llvm::Value *LLVMEnvironment::CreateTernaryLogic(const codegen::IRBuilder& builder, llvm::Value *condition,
                                                          std::function<llvm::Value *(
-                                                                 codegen::IRBuilder&)> ifBlock,
+                                                                 const codegen::IRBuilder&)> ifBlock,
                                                          std::function<llvm::Value *(
-                                                                 codegen::IRBuilder&)> elseBlock) {
+                                                                 const codegen::IRBuilder&)> elseBlock) {
 
             using namespace llvm;
             assert(condition);

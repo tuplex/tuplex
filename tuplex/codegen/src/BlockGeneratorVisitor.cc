@@ -1092,8 +1092,8 @@ namespace tuplex {
                         assert(L);
                         assert(R);
 
-                        auto resVal = _env->CreateTernaryLogic(builder, L_isnull, [&] (llvm::IRBuilder<>& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT); },
-                                                               [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType.withoutOptions(), tt, R, rightType); });
+                        auto resVal = _env->CreateTernaryLogic(builder, L_isnull, [&] (const codegen::IRBuilder& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT); },
+                                                               [&] (const codegen::IRBuilder& builder) { return compareInst(builder, L, leftType.withoutOptions(), tt, R, rightType); });
                         _lfb->setLastBlock(builder.GetInsertBlock());
                         return resVal;
                     }
@@ -1108,8 +1108,8 @@ namespace tuplex {
                         assert(L);
                         assert(R);
 
-                        auto resVal = _env->CreateTernaryLogic(builder, R_isnull, [&] (llvm::IRBuilder<>& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT); },
-                                                               [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType, tt, R, rightType.withoutOptions()); });
+                        auto resVal = _env->CreateTernaryLogic(builder, R_isnull, [&] (const codegen::IRBuilder& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT); },
+                                                               [&] (const codegen::IRBuilder& builder) { return compareInst(builder, L, leftType, tt, R, rightType.withoutOptions()); });
                         _lfb->setLastBlock(builder.GetInsertBlock());
                         return resVal;
                     }
@@ -1128,8 +1128,9 @@ namespace tuplex {
                         if (tt == TokenType::EQEQUAL || tt == TokenType::IS)
                             xorResult = builder.CreateNot(xorResult);
 
-                        auto resVal = _env->CreateTernaryLogic(builder, bothValid, [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType.withoutOptions(), tt, R,
-                                                                                                                                         rightType.withoutOptions()); }, [&] (llvm::IRBuilder<>& builder) { return xorResult; });
+                        auto resVal = _env->CreateTernaryLogic(builder, bothValid, [&] (const codegen::IRBuilder& builder) { return compareInst(builder, L, leftType.withoutOptions(), tt, R,
+                                                                                                                                         rightType.withoutOptions()); },
+                                                               [&] (const codegen::IRBuilder& builder) { return xorResult; });
                         _lfb->setLastBlock(builder.GetInsertBlock());
                         return resVal;
                     }
@@ -1155,12 +1156,12 @@ namespace tuplex {
                 if(leftType.isOptionType()) {
                     assert(L_isnull);
                     auto res = _env->CreateTernaryLogic(builder, L_isnull,
-                                                           [&](llvm::IRBuilder<> &builder) {
+                                                           [&](const codegen::IRBuilder& builder) {
                                                                return listInclusionCheck(builder, L,
                                                                                          python::Type::NULLVALUE, R,
                                                                                          rightType.withoutOptions());
                                                            },
-                                                           [&](llvm::IRBuilder<> &builder) {
+                                                           [&](const codegen::IRBuilder& builder) {
                                                                return listInclusionCheck(builder, L,
                                                                                          leftType.withoutOptions(),
                                                                                          R,

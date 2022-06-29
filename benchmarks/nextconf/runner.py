@@ -341,7 +341,7 @@ def build(cereal):
     logging.info('Copying results to host machine...')
 
     storage_path = os.path.join(build_cache(), 'cereal' if cereal else 'nocereal')
-    os.makedirs(storage_path, exists_ok=True)
+    os.makedirs(storage_path, exist_ok=True)
 
     container = get_container()
     assert container, 'Container should have been started'

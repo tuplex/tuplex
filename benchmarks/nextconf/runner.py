@@ -13,6 +13,7 @@ try:
     import boto3
     import tarfile
     import io
+    import time
 except ModuleNotFoundError as e:
     logging.error("Module not found: {}".format(e))
     logging.info("Install missing modules via {} -m pip install -r requirements.txt".format(sys.executable))
@@ -309,7 +310,8 @@ def create_package_tar(dest_path, src_path, lambda_src_path=None):
 @click.command()
 @click.option('--cereal/--no-cereal', is_flag=True, default=False,
               help='whether to build tuplex and lambda using cereal as serialization library.')
-def build(cereal):
+@click.pass_context
+def build(ctx, cereal):
     """Downloads tuplex repo to tuplex, switches to correct branch and builds it using the sigmod21 experiment container."""
 
     GIT_REPO_URI = 'https://github.com/LeonhardFS/tuplex-public'
@@ -398,11 +400,80 @@ def build(cereal):
     logging.info('Transferred lambda runner from docker to {} ({} bytes)'.format(lambda_path, stat['size']))
 
     # create combined archive & store it as package.tar.gz
-    dest_path = os.path.join(storage_path, 'tuplex-package.tar')
+    dest_path = os.path.join(storage_path, 'tuplex-package.tar.gz')
     create_package_tar(dest_path, package_path, lambda_path)
     os.remove(package_path)
     os.remove(lambda_path)
     logging.info('Done, built all required artifacts and created combined archive {}.'.format(dest_path))
+
+def copy_to_container(container: 'Container', src: str, dst_dir: str):
+    """ src shall be an absolute path """
+    # stream = io.BytesIO()
+    # with tarfile.open(fileobj=stream, mode='w|') as tar, open(src, 'rb') as f:
+    #     info = tar.gettarinfo(fileobj=f)
+    #     info.name = os.path.basename(src)
+    #     tar.addfile(info, f)
+    #
+    # container.put_archive(dst_dir, stream.getvalue())
+
+    tstart = time.time()
+    cmd = ['docker', 'cp', os.path.abspath(src), '{}:{}'.format(container.name, dst_dir)]
+    logging.info('Running {}'.format(' '.join(cmd)))
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # set a timeout of 2 seconds to keep everything interactive
+    p_stdout, p_stderr = process.communicate(timeout=300)
+    logging.info('Copied to container {} in {}s'.format(container.name, time.time() - tstart))
+
+@click.command()
+@click.option('--cereal/--no-cereal', is_flag=True, default=False,
+              help='whether to build tuplex and lambda using cereal as serialization library.')
+@click.pass_context
+def deploy(ctx, cereal):
+    """ deploy Lambda runner to AWS and install compatible version in docker container. If build cache has no package, build first (may take a while) """
+    logging.info("Deploying Lambda runner & installing package in docker container")
+
+    storage_path = os.path.join(build_cache(), 'cereal' if cereal else 'nocereal')
+    package_path = os.path.join(storage_path, 'tuplex-package.tar.gz')
+
+    if not os.path.isfile(package_path):
+        logging.warning('Could not find artifacts under {}, building first (may take a while)'.format(storage_path))
+
+        result = ctx.invoke(build, cereal=cereal)
+        sys.stdout.writelines(result)
+
+    assert os.path.isfile(package_path), 'internal corruption?'
+
+    logging.info('Installing into container')
+
+    container = get_container()
+    # container.put_archive('/tmp/tuplex', open(package_path, 'rb').read())
+    copy_to_container(container, package_path, '/tmp/tuplex/package.tar.gz')
+
+    # run extract cmd tar xf /tmp/tuplex/package.tar.gz -C /tmp/tuplex
+    cmd = ['tar', 'xf', '/tmp/tuplex/package.tar.gz', '-C', '/tmp/tuplex']
+    exit_code, output = container.exec_run(cmd)
+    if exit_code != 0:
+        logging.error(output.decode())
+        sys.exit(exit_code)
+    cmd = ['python3.9', '/tmp/tuplex/setup.py', 'install']
+    exit_code, output = container.exec_run(cmd)
+    if exit_code != 0:
+        logging.error(output.decode())
+        sys.exit(exit_code)
+    logging.info('Installed Tuplex')
+    # python3.9 -m pip install boto3
+    cmd = ['python3.9', '-m', 'pip', 'install', 'boto3']
+    exit_code, output = container.exec_run(cmd)
+    if exit_code != 0:
+        logging.error(output.decode())
+        sys.exit(exit_code)
+    logging.info('Installed Boto3')
+
+    logging.info('Deploying runner to AWS Lambda...')
+    # python3.9 -c 'import tuplex.distributed; tuplex.distributed.setup_aws()'
+    logging.info('Done.')
+    logging.info('copied file to container')
+
 
 def add_aws_info(f):
     """
@@ -449,11 +520,9 @@ def commands(ctx):
 commands.add_command(run)
 commands.add_command(plot)
 commands.add_command(build)
+commands.add_command(deploy)
 commands.add_command(start)
 commands.add_command(stop)
-
-
-
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,

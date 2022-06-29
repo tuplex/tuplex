@@ -829,7 +829,7 @@ namespace tuplex {
              * @param reverse should only be used for reverseiterator
              * @return llvm::BlockAddress* to be stored in an iterator struct later
              */
-            llvm::BlockAddress *createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(codegen::IRBuilder &builder,
+            llvm::BlockAddress *createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(const codegen::IRBuilder &builder,
                                                                                           const python::Type &iterableType,
                                                                                           bool reverse=false);
         };

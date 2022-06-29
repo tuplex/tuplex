@@ -38,7 +38,7 @@ namespace tuplex {
              * @return SerializableValue with val being a pointer to llvm struct representing the list/string/tuple iterator context
              */
             SerializableValue initIterContext(LambdaFunctionBuilder &lfb,
-                                              codegen::IRBuilder &builder,
+                                              const codegen::IRBuilder &builder,
                                               const python::Type &iterableType,
                                               const SerializableValue &iterable);
 
@@ -52,7 +52,7 @@ namespace tuplex {
              * @return SerializableValue with val being a pointer to llvm struct representing the list/string/tuple iterator context
              */
             SerializableValue initReversedContext(LambdaFunctionBuilder &lfb,
-                                              codegen::IRBuilder& builder,
+                                              const codegen::IRBuilder& builder,
                                               const python::Type &argType,
                                               const SerializableValue &arg);
 
@@ -65,7 +65,7 @@ namespace tuplex {
              * @return val: pointer to llvm struct representing the zip iterator context
              */
             SerializableValue initZipContext(LambdaFunctionBuilder& lfb,
-                                             codegen::IRBuilder& builder,
+                                             const codegen::IRBuilder& builder,
                                              const std::vector<SerializableValue> &iterables,
                                              const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
@@ -79,7 +79,7 @@ namespace tuplex {
              * @return val: pointer to llvm struct representing the enumerate iterator context
              */
             SerializableValue initEnumerateContext(LambdaFunctionBuilder& lfb,
-                                                   codegen::IRBuilder& builder,
+                                                   const codegen::IRBuilder& builder,
                                                    const SerializableValue &iterable,
                                                    llvm::Value *startVal,
                                                    const std::shared_ptr<IteratorInfo> &iteratorInfo);
@@ -96,7 +96,7 @@ namespace tuplex {
              * @return next element generated from the iterator, or default value if iterator is exhausted and a default value is provided
              */
             SerializableValue createIteratorNextCall(LambdaFunctionBuilder &lfb,
-                                                     codegen::IRBuilder& builder,
+                                                     const codegen::IRBuilder& builder,
                                                      const python::Type &yieldType,
                                                      llvm::Value *iterator,
                                                      const SerializableValue &defaultArg,
@@ -109,7 +109,7 @@ namespace tuplex {
              * @param iteratorInfo
              * @return true if iterator is exhausted (getIteratorNextElement should not get called later), otherwise false
              */
-            llvm::Value *updateIteratorIndex(codegen::IRBuilder& builder,
+            llvm::Value *updateIteratorIndex(const codegen::IRBuilder& builder,
                                              llvm::Value *iterator,
                                              const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
@@ -122,7 +122,7 @@ namespace tuplex {
              * @param iteratorInfo
              * @return element of yieldType
              */
-            SerializableValue getIteratorNextElement(codegen::IRBuilder& builder,
+            SerializableValue getIteratorNextElement(const codegen::IRBuilder& builder,
                                                      const python::Type &yieldType,
                                                      llvm::Value *iterator,
                                                      const std::shared_ptr<IteratorInfo> &iteratorInfo);
@@ -136,7 +136,7 @@ namespace tuplex {
              * @param iteratorInfo
              * @return true if iterator is exhausted (getIteratorNextElement should not get called later), otherwise false
              */
-            llvm::Value *updateZipIndex(codegen::IRBuilder& builder,
+            llvm::Value *updateZipIndex(const codegen::IRBuilder& builder,
                                         llvm::Value *iterator,
                                         const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
@@ -149,7 +149,7 @@ namespace tuplex {
              * @param iteratorInfo
              * @return tuple element of yieldType
              */
-            SerializableValue getZipNextElement(codegen::IRBuilder& builder,
+            SerializableValue getZipNextElement(const codegen::IRBuilder& builder,
                                                 const python::Type &yieldType,
                                                 llvm::Value *iterator,
                                                 const std::shared_ptr<IteratorInfo> &iteratorInfo);
@@ -162,7 +162,7 @@ namespace tuplex {
              * @param iteratorInfo
              * @return true if iterator is exhausted (getIteratorNextElement should not get called later), otherwise false
              */
-            llvm::Value *updateEnumerateIndex(codegen::IRBuilder& builder,
+            llvm::Value *updateEnumerateIndex(const codegen::IRBuilder& builder,
                                               llvm::Value *iterator,
                                               const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
@@ -175,7 +175,7 @@ namespace tuplex {
              * @param iteratorInfo
              * @return tuple element of yieldType
              */
-            SerializableValue getEnumerateNextElement(codegen::IRBuilder& builder,
+            SerializableValue getEnumerateNextElement(const codegen::IRBuilder& builder,
                                                       const python::Type &yieldType,
                                                       llvm::Value *iterator,
                                                       const std::shared_ptr<IteratorInfo> &iteratorInfo);
@@ -190,7 +190,7 @@ namespace tuplex {
              * @param iteratorInfo
              * @param offset can be negative
              */
-            void incrementIteratorIndex(codegen::IRBuilder& builder, llvm::Value *iterator, const std::shared_ptr<IteratorInfo> &iteratorInfo, int offset);
+            void incrementIteratorIndex(const codegen::IRBuilder& builder, llvm::Value *iterator, const std::shared_ptr<IteratorInfo> &iteratorInfo, int offset);
         };
     }
 }

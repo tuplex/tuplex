@@ -1962,7 +1962,7 @@ namespace tuplex {
             return builder.CreateFCmpOLT(fabs_value, eps);
         }
 
-        llvm::BlockAddress * LLVMEnvironment::createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(IRBuilder& builder,
+        llvm::BlockAddress * LLVMEnvironment::createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(const IRBuilder& builder,
                                                                                                         const python::Type &iterableType,
                                                                                                         bool reverse) {
             using namespace llvm;

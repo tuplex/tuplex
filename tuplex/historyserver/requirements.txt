@@ -4,6 +4,7 @@ jedi
 astor==0.7.1
 pandas>=0.23.4
 cloudpickle
+Werkzeug==2.0.1
 flask>=2.0.1
 flask_socketio==4.3.1
 python-socketio==4.6.0
@@ -15,3 +16,4 @@ greenlet>=0.4.15
 eventlet>=0.24.1
 gunicorn>=19.9.0
 pygments>=2.3.1
+

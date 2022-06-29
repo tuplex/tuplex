@@ -772,7 +772,7 @@ namespace tuplex {
             return SerializableValue(builder.CreateLoad(bufVar), sizeWritten);
         }
 
-        llvm::Value *BlockGeneratorVisitor::numericCompareInst(codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
+        llvm::Value *BlockGeneratorVisitor::numericCompareInst(const codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
                                                                const TokenType &tt, llvm::Value *R,
                                                                const python::Type &rightType) {
             assert(L);
@@ -834,7 +834,7 @@ namespace tuplex {
         }
 
 
-        llvm::Value *BlockGeneratorVisitor::stringCompareInst(codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
+        llvm::Value *BlockGeneratorVisitor::stringCompareInst(const codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
                                                               const TokenType &tt, llvm::Value *R,
                                                               const python::Type &rightType) {
             assert(L);
@@ -948,7 +948,7 @@ namespace tuplex {
         }
 
         llvm::Value *
-        BlockGeneratorVisitor::compareInst(codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType, const TokenType &tt,
+        BlockGeneratorVisitor::compareInst(const codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType, const TokenType &tt,
                                            llvm::Value *R, const python::Type &rightType) {
             assert(!leftType.isOptional());
             assert(!rightType.isOptional());
@@ -1020,7 +1020,7 @@ namespace tuplex {
         }
 
 
-        llvm::Value* BlockGeneratorVisitor::oneSidedNullComparison(codegen::IRBuilder& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull) {
+        llvm::Value* BlockGeneratorVisitor::oneSidedNullComparison(const codegen::IRBuilder& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull) {
             assert(tt == TokenType::EQEQUAL || tt == TokenType::NOTEQUAL || tt == TokenType::IS || tt == TokenType::ISNOT); // only for == or != or IS or ISNOT!
 
             // we're comparing null to null, should only return true if operators are EQEQUAL or IS.
@@ -1057,7 +1057,7 @@ namespace tuplex {
         }
 
         llvm::Value *
-        BlockGeneratorVisitor::compareInst(llvm::IRBuilder<>& builder, llvm::Value *L, llvm::Value *L_isnull, const python::Type &leftType,
+        BlockGeneratorVisitor::compareInst(const codegen::IRBuilder& builder, llvm::Value *L, llvm::Value *L_isnull, const python::Type &leftType,
                                            const TokenType &tt, llvm::Value *R, llvm::Value *R_isnull,
                                            const python::Type &rightType) {
 
@@ -3986,7 +3986,7 @@ namespace tuplex {
 
 
         SerializableValue
-        BlockGeneratorVisitor::CreateDummyValue(llvm::IRBuilder<> &builder, const python::Type &type) {
+        BlockGeneratorVisitor::CreateDummyValue(const codegen::IRBuilder& builder, const python::Type &type) {
             // dummy value needs to be created for llvm to combine stuff.
             SerializableValue retVal;
             if (python::Type::BOOLEAN == type || python::Type::I64 == type) {
@@ -4026,7 +4026,8 @@ namespace tuplex {
             return retVal;
         }
 
-        SerializableValue BlockGeneratorVisitor::upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue &val,
+        SerializableValue BlockGeneratorVisitor::upCastReturnType(const codegen::IRBuilder &builder,
+                                                                  const SerializableValue &val,
                                                                   const python::Type &type,
                                                                   const python::Type &targetType) {
             if(!canUpcastType(type, targetType))
@@ -5874,7 +5875,7 @@ namespace tuplex {
             return phi;
         }
 
-        void BlockGeneratorVisitor::updateIteratorVariableSlot(llvm::IRBuilder<> &builder, VariableSlot *slot,
+        void BlockGeneratorVisitor::updateIteratorVariableSlot(const codegen::IRBuilder &builder, VariableSlot *slot,
                                                                const SerializableValue &val,
                                                                const python::Type &targetType,
                                                                const std::shared_ptr<IteratorInfo> &iteratorInfo) {

@@ -138,10 +138,6 @@ namespace tuplex {
             initFromIterator(it);
         }
 
-        llvm::Value *IRBuilder::CreateGlobalStringPtr(const std::string &basicString) {
-            return get_or_throw().CreateGlobalStringPtr(basicString);
-        }
-
         // Clang doesn't work well with ASAN, disable here container overflow.
         ATTRIBUTE_NO_SANITIZE_ADDRESS std::string getLLVMFeatureStr() {
             using namespace llvm;

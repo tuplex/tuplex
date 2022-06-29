@@ -106,8 +106,8 @@ namespace tuplex {
 
             codegen::IRBuilder getIRBuilder() { assert(_body); return codegen::IRBuilder(_body); }
 
-            codegen::IRBuilder addException(codegen::IRBuilder& builder, ExceptionCode ec, llvm::Value *condition);
-            codegen::IRBuilder addException(codegen::IRBuilder& builder, llvm::Value* ecCode, llvm::Value *condition);
+            codegen::IRBuilder addException(const codegen::IRBuilder& builder, ExceptionCode ec, llvm::Value *condition);
+            codegen::IRBuilder addException(const codegen::IRBuilder& builder, llvm::Value* ecCode, llvm::Value *condition);
 
             /*!
              * the original python return type of the function.

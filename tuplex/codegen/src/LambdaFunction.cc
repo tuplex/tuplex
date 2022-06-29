@@ -271,7 +271,7 @@ namespace tuplex {
         }
 
 
-        codegen::IRBuilder LambdaFunctionBuilder::addException(llvm::IRBuilder<> &builder, llvm::Value *ecCode,
+        codegen::IRBuilder LambdaFunctionBuilder::addException(const codegen::IRBuilder &builder, llvm::Value *ecCode,
                                                               llvm::Value *condition) {
 
             // convert ecCode to i32 if possible
@@ -310,7 +310,7 @@ namespace tuplex {
             return codegen::IRBuilder(builder);
         }
 
-        IRBuilder LambdaFunctionBuilder::addException(llvm::IRBuilder<> &builder, ExceptionCode ec,
+        IRBuilder LambdaFunctionBuilder::addException(const codegen::IRBuilder &builder, ExceptionCode ec,
                                                               llvm::Value *condition) {
             return addException(builder, _env->i32Const(ecToI32(ec)), condition);
         }

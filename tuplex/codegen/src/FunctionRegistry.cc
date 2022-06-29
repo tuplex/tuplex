@@ -673,7 +673,7 @@ namespace tuplex {
             return SerializableValue(builder.CreateLoad(bufVar), sizeWritten);
         }
 
-        codegen::SerializableValue createMathSinCall(codegen::IRBuilder&, const python::Type &argsType,
+        codegen::SerializableValue createMathSinCall(const codegen::IRBuilder& builder, const python::Type &argsType,
                                                      const python::Type &retType,
                                                      const std::vector<tuplex::codegen::SerializableValue> &args) {
             // call llvm intrinsic
@@ -686,7 +686,7 @@ namespace tuplex {
             return SerializableValue(resVal, resSize);
         }
 
-        codegen::SerializableValue createMathArcSinCall(codegen::IRBuilder&, const python::Type &argsType,
+        codegen::SerializableValue createMathArcSinCall(const codegen::IRBuilder& builder, const python::Type &argsType,
                                                      const python::Type &retType,
                                                      const std::vector<tuplex::codegen::SerializableValue> &args) {
             using namespace llvm;
@@ -709,7 +709,7 @@ namespace tuplex {
             return SerializableValue(resVal, resSize);
         }
 
-        codegen::SerializableValue createMathTanCall(codegen::IRBuilder&, const python::Type &argsType,
+        codegen::SerializableValue createMathTanCall(const codegen::IRBuilder& builder, const python::Type &argsType,
                                                      const python::Type &retType,
                                                      const std::vector<tuplex::codegen::SerializableValue> &args) {
             using namespace llvm;

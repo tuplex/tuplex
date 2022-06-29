@@ -162,42 +162,34 @@ namespace tuplex {
 
             inline llvm::Value *CreateExtractValue(llvm::Value *Agg,
                                        llvm::ArrayRef<unsigned> Idxs,
-                                       const std::string &Name = "") {
+                                       const std::string &Name = "") const {
                 return get_or_throw().CreateExtractValue(Agg, Idxs, Name);
             }
 
-            inline llvm::Value *CreateSRem(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") {
+            inline llvm::Value *CreateSRem(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") const {
                 return get_or_throw().CreateSRem(LHS, RHS, Name);
             }
 
 
             inline llvm::Value *CreateInsertValue(llvm::Value *Agg, llvm::Value *Val,
                                           llvm::ArrayRef<unsigned> Idxs,
-                                          const std::string &Name = "") {
+                                          const std::string &Name = "") const {
                 return get_or_throw().CreateInsertValue(Agg, Val, Idxs, Name);
             }
 
-            inline llvm::Value *CreateICmpEQ(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") {
-                return CreateICmp(llvm::ICmpInst::ICMP_EQ, LHS, RHS, Name);
-            }
-
-            inline llvm::Value *CreateICmpNE(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") {
-                return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_NE, LHS, RHS, Name);
-            }
-
-            inline llvm::Value *CreateICmpUGT(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") {
+            inline llvm::Value *CreateICmpUGT(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") const {
                 return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_UGT, LHS, RHS, Name);
             }
 
-            inline llvm::Value *CreateICmpUGE(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") {
+            inline llvm::Value *CreateICmpUGE(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") const {
                 return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_UGE, LHS, RHS, Name);
             }
 
-            inline llvm::Value *CreateICmpULT(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") {
+            inline llvm::Value *CreateICmpULT(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") const {
                 return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_ULT, LHS, RHS, Name);
             }
 
-            inline llvm::Value *CreateICmpULE(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") {
+            inline llvm::Value *CreateICmpULE(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") const {
                 return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_ULE, LHS, RHS, Name);
             }
 
@@ -209,9 +201,13 @@ namespace tuplex {
                  return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_SGE, LHS, RHS, Name);
              }
 
-             inline llvm::Value *CreateICmpSLT(llvm::Value *LHS, llvm::Value *RHS, const std::string&Name = "") const {
-                 return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_SLT, LHS, RHS, Name);
-             }
+            inline llvm::Value *CreateICmpSLT(llvm::Value *LHS, llvm::Value *RHS, const std::string& Name = "") const {
+                return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_SLT, LHS, RHS, Name);
+            }
+            inline llvm::Value *CreateICmpSLE(llvm::Value *LHS, llvm::Value *RHS, const std::string& Name = "") const {
+                return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_SLE, LHS, RHS, Name);
+            }
+
              inline llvm::Value *CreateFNeg(llvm::Value *V, const std::string& Name = "",
                                             llvm::MDNode *FPMathTag = nullptr) const {
                  return get_or_throw().CreateFNeg(V, Name, FPMathTag);
@@ -315,7 +311,7 @@ namespace tuplex {
             }
 
             inline llvm::Value *CreateStructGEP(llvm::Value *Ptr, unsigned Idx,
-                                   const std::string &Name = "") {
+                                   const std::string &Name = "") const {
 #if LLVM_VERSION_MAJOR < 9
                 // compatibility
                 return get_or_throw().CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
@@ -327,7 +323,7 @@ namespace tuplex {
 
             inline llvm::CallInst *CreateCall(llvm::FunctionType *FTy, llvm::Value *Callee,
                                         llvm::ArrayRef<llvm::Value *> Args = llvm::None, const std::string &Name = "",
-                                        llvm::MDNode *FPMathTag = nullptr) {
+                                        llvm::MDNode *FPMathTag = nullptr) const {
                 return get_or_throw().CreateCall(FTy, Callee, Args, Name, FPMathTag);
             }
 
@@ -338,7 +334,7 @@ namespace tuplex {
             //#endif
 
             inline llvm::CallInst* CreateCall(llvm::Value* func_value, llvm::ArrayRef<llvm::Value *> Args = llvm::None,
-                                              const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) {
+                                              const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
                  if(!llvm::isa<llvm::Function>(func_value))
                      throw std::runtime_error("trying to call a non-function llvm value");
                  auto func = llvm::cast<llvm::Function>(func_value);
@@ -347,13 +343,13 @@ namespace tuplex {
             }
 
             inline llvm::CallInst* CreateCall(llvm::Function* func, llvm::ArrayRef<llvm::Value *> Args = llvm::None,
-                                              const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) {
+                                              const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
                 return CreateCall(func->getFunctionType(), func, Args, Name,
                                   FPMathTag);
             }
 
             inline llvm::CallInst *CreateCall(llvm::FunctionCallee Callee, llvm::ArrayRef<llvm::Value *> Args = llvm::None,
-                                        const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) {
+                                        const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
                 return CreateCall(Callee.getFunctionType(), Callee.getCallee(), Args, Name,
                                   FPMathTag);
             }
@@ -379,7 +375,7 @@ namespace tuplex {
 
             inline llvm::Value *CreateUnaryIntrinsic(llvm::Intrinsic::ID ID, llvm::Value *V,
                                                                          llvm::Instruction *FMFSource = nullptr,
-                                                                         const std::string &Name = "") {
+                                                                         const std::string &Name = "") const {
                  return get_or_throw().CreateUnaryIntrinsic(ID, V, FMFSource, Name);
              }
 
@@ -387,6 +383,11 @@ namespace tuplex {
             inline llvm::Value* CreateFCmp(llvm::CmpInst::Predicate P, llvm::Value *LHS, llvm::Value *RHS,
                                const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
                 return get_or_throw().CreateFCmp(P, LHS, RHS, Name, FPMathTag);
+            }
+
+            inline llvm::Value* CreateFCmpOEQ(llvm::Value *LHS, llvm::Value *RHS,
+                                              const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
+                return get_or_throw().CreateFCmpOEQ(LHS, RHS, Name, FPMathTag);
             }
 
             inline llvm::Value* CreateFCmpOLT(llvm::Value *LHS, llvm::Value *RHS,
@@ -509,8 +510,9 @@ namespace tuplex {
                 return get_or_throw();
         }
 
-            //inline llvm::Value* CreateLoad()
-            llvm::Value *CreateGlobalStringPtr(const std::string &basicString);
+            inline llvm::Value *CreateGlobalStringPtr(const std::string &basicString) const {
+                return get_or_throw().CreateGlobalStringPtr(basicString);
+            }
 
         private:
             // original LLVM builder

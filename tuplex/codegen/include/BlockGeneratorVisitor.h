@@ -418,10 +418,10 @@ namespace codegen {
         }
 
         // upcast return type
-        SerializableValue upCastReturnType(codegen::IRBuilder&builder, const SerializableValue& val, const python::Type& type, const python::Type& targetType);
+        SerializableValue upCastReturnType(const codegen::IRBuilder& builder, const SerializableValue& val, const python::Type& type, const python::Type& targetType);
 
-        SerializableValue CreateDummyValue(codegen::IRBuilder& builder, const python::Type& type);
-        SerializableValue popWithNullCheck(codegen::IRBuilder& builder, ExceptionCode ec, const std::string& message="");
+        SerializableValue CreateDummyValue(const codegen::IRBuilder& builder, const python::Type& type);
+        SerializableValue popWithNullCheck(const codegen::IRBuilder& builder, ExceptionCode ec, const std::string& message="");
 
         SerializableValue additionInst(const SerializableValue &L, NBinaryOp *op, const SerializableValue &R);
 
@@ -440,9 +440,9 @@ namespace codegen {
 
         llvm::Value* powerInst(llvm::Value *L, NBinaryOp *op, llvm::Value *R);
 
-        llvm::Value* oneSidedNullComparison(codegen::IRBuilder& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull);
+        llvm::Value* oneSidedNullComparison(const codegen::IRBuilder& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull);
 
-        llvm::Value *compareInst(codegen::IRBuilder& builder,
+        llvm::Value *compareInst(const codegen::IRBuilder& builder,
                                 llvm::Value *L,
                                  llvm::Value *L_isnull,
                                  const python::Type &leftType,
@@ -451,7 +451,7 @@ namespace codegen {
                                  llvm::Value *R_isnull,
                                  const python::Type &rightType);
 
-        llvm::Value *compareInst(codegen::IRBuilder& builder,
+        llvm::Value *compareInst(const codegen::IRBuilder& builder,
                                  llvm::Value *L,
                                  const python::Type &leftType,
                                  const TokenType &tt,
@@ -461,13 +461,13 @@ namespace codegen {
         llvm::Value* listInclusionCheck(const codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
                                 llvm::Value *R, const python::Type &rightType);
 
-        llvm::Value *numericCompareInst(codegen::IRBuilder& builder, llvm::Value *L,
+        llvm::Value *numericCompareInst(const codegen::IRBuilder& builder, llvm::Value *L,
                                  const python::Type &leftType,
                                  const TokenType &tt,
                                  llvm::Value *R,
                                  const python::Type &rightType);
 
-        llvm::Value *stringCompareInst(codegen::IRBuilder& builder, llvm::Value *L,
+        llvm::Value *stringCompareInst(const codegen::IRBuilder& builder, llvm::Value *L,
                                        const python::Type &leftType,
                                        const TokenType &tt,
                                        llvm::Value *R,
@@ -669,7 +669,7 @@ namespace codegen {
          * @param targetType
          * @param iteratorInfo
          */
-        void updateIteratorVariableSlot(llvm::IRBuilder<> &builder,
+        void updateIteratorVariableSlot(const codegen::IRBuilder &builder,
                                         VariableSlot *slot,
                                         const SerializableValue &val,
                                         const python::Type &targetType,

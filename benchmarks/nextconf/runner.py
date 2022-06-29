@@ -11,6 +11,8 @@ try:
     import sys
     import os
     import boto3
+    import tarfile
+    import io
 except ModuleNotFoundError as e:
     logging.error("Module not found: {}".format(e))
     logging.info("Install missing modules via {} -m pip install -r requirements.txt".format(sys.executable))
@@ -273,6 +275,37 @@ def plot(target, output_path, input_path):
     logging.info('Plotting not yet implemented.')
 
 
+def create_package_tar(dest_path, src_path, lambda_src_path=None):
+    """ helper function to create combined package for build_cache """
+    allowed_prefixes = ['python/tuplex', 'python/setup.py', 'python/MANIFEST.in']
+    dest_root = ''
+
+    with tarfile.open(src_path, 'r') as tf:
+
+        mems = tf.getmembers()
+
+        with tarfile.open(dest_path, 'w:gz') as target:
+            for obj in mems:
+
+                if len(list(filter(lambda prefix: obj.name.startswith(prefix), allowed_prefixes))) > 0:
+                    if obj.name.endswith('tar.gz'):
+                        continue
+
+                    if os.path.splitext(obj.name)[1][1:] not in {'in', 'py', 'so', 'dylib'}:
+                        continue
+                    fileobj = tf.extractfile(obj)
+                    obj.name = obj.name.replace('python/', dest_root)
+                    target.addfile(obj, fileobj)
+                    logging.debug('adding {}'.format(obj.name))
+            if lambda_src_path is not None:
+                with tarfile.open(lambda_src_path, 'r') as tf_lam:
+                    obj = list(filter(lambda x: x.name.endswith('tplxlam.zip'), tf_lam.getmembers()))[0]
+                    fileobj = tf_lam.extractfile(obj)
+                    obj.name = os.path.join(dest_root, 'tuplex/other/tplxlam.zip')
+                    target.addfile(obj, fileobj)
+                    logging.debug('adding {}'.format(obj.name))
+
+
 @click.command()
 @click.option('--cereal/--no-cereal', is_flag=True, default=False,
               help='whether to build tuplex and lambda using cereal as serialization library.')
@@ -363,7 +396,13 @@ def build(cereal):
         for chunk in bits:
             fp.write(chunk)
     logging.info('Transferred lambda runner from docker to {} ({} bytes)'.format(lambda_path, stat['size']))
-    logging.info('Done, built all required artifacts.')
+
+    # create combined archive & store it as package.tar.gz
+    dest_path = os.path.join(storage_path, 'tuplex-package.tar')
+    create_package_tar(dest_path, package_path, lambda_path)
+    os.remove(package_path)
+    os.remove(lambda_path)
+    logging.info('Done, built all required artifacts and created combined archive {}.'.format(dest_path))
 
 def add_aws_info(f):
     """

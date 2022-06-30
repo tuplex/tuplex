@@ -474,11 +474,90 @@ if(PYTHON3_EXECUTABLE)
     message(STATUS "Detected Python3 Root dir to be: ${Python3_ROOT_DIR}")
 endif()
 
+
+# Computes the realtionship between two version strings.  A version
+# string is a number delineated by '.'s such as 1.3.2 and 0.99.9.1.
+# You can feed version strings with different number of dot versions,
+# and the shorter version number will be padded with zeros: 9.2 <
+# 9.2.1 will actually compare 9.2.0 < 9.2.1.
+#
+# Input: a_in - value, not variable
+#        b_in - value, not variable
+#        result_out - variable with value:
+#                         -1 : a_in <  b_in
+#                          0 : a_in == b_in
+#                          1 : a_in >  b_in
+#
+# Written by James Bigler.
+MACRO(COMPARE_VERSION_STRINGS a_in b_in result_out)
+  # Since SEPARATE_ARGUMENTS using ' ' as the separation token,
+  # replace '.' with ' ' to allow easy tokenization of the string.
+  STRING(REPLACE "." " " a ${a_in})
+  STRING(REPLACE "." " " b ${b_in})
+  SEPARATE_ARGUMENTS(a)
+  SEPARATE_ARGUMENTS(b)
+
+  # Check the size of each list to see if they are equal.
+  LIST(LENGTH a a_length)
+  LIST(LENGTH b b_length)
+
+  # Note that range needs to be one less than the length as the for
+  # loop is inclusive (silly CMake).
+  IF(a_length LESS b_length)
+    # a is shorter
+    MATH(EXPR range "${a_length} - 1")
+  ELSE(a_length LESS b_length)
+    # b is shorter
+    MATH(EXPR range "${b_length} - 1")
+  ENDIF(a_length LESS b_length)
+
+  SET(result 0)
+  FOREACH(index RANGE ${range})
+    IF(result EQUAL 0)
+      # Only continue to compare things as long as they are equal
+      LIST(GET a ${index} a_version)
+      LIST(GET b ${index} b_version)
+      # LESS
+      IF(a_version LESS b_version)
+        SET(result -1)
+      ENDIF(a_version LESS b_version)
+      # GREATER
+      IF(a_version GREATER b_version)
+        SET(result 1)
+      ENDIF(a_version GREATER b_version)
+    ENDIF(result EQUAL 0)
+  ENDFOREACH(index)
+
+  # Copy out the return result
+  SET(${result_out} ${result})
+ENDMACRO(COMPARE_VERSION_STRINGS)
+
+
+
 # this is a macro to find python3 depending on version etc.
 function(FindPython3Exe NAMES VERSION EXECUTABLE)
 	message(STATUS "func called")
 	message(STATUS "Names: ${NAMES}")
 	message(STATUS "Looking for version: ${VERSION}")
+
+	# first check if appropriate program can be found by general path search
+	set(NAMES_TO_SEARCH ${NAMES})
+	separate_arguments(NAMES_TO_SEARCH)
+	message(STATUS "names to search to find python: ${NAMES_TO_SEARCH}")
+	find_program(TEMP_EXE NAMES ${NAMES_TO_SEARCH})
+	message(STATUS "exe: ${TEMP_EXE}")
+	if(TEMP_EXE)
+            # check version (must match VERSION)
+	    execute_process(COMMAND "${TEMP_EXE}" -c "import platform;print(platform.python_version())" RESULT_VARIABLE _result OUTPUT_VARIABLE TEMP_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+            # check if version matches
+
+	    compare_version_strings(${VERSION} ${TEMP_VERSION} _result)
+	    if(result EQUAL 0)
+	        message(STATUS "Found ${TEMP_EXE} with version ${TEMP_VERSION} matching desired version ${VERSION}")
+		set(${EXECUTABLE} ${TEMP_EXE} PARENT_SCOPE) # write out
+	    endif()
+	endif()
+
 endfunction()
 
 # is a python3 version set?
@@ -504,10 +583,14 @@ else()
         string(REGEX MATCH "^([0-9]+)\\.([0-9]+)(\\.([0-9]+))?$" VERSION_STRING "${PYTHON3_VERSION}")
         message(STATUS "Forcing python3 version to ${VERSION_STRING}")
 
+       # get python3 maj.min
+       string(REPLACE "." ";" VERSION_LIST ${VERSION_STRING})
+       list(GET VERSION_LIST 0 PYTHON3_VERSION_MAJOR)
+       list(GET VERSION_LIST 1 PYTHON3_VERSION_MINOR)
 
        #if no executable is specified, try to search for python3 executable
        message(STATUS "add here search")
-       FindPython3Exe("python3 python3.6" "${PYTHON3_VERSION}" Python3_EXECUTABLE)
+       FindPython3Exe("python${PYTHON3_VERSION_MAJOR}.${PYTHON3_VERSION_MINOR} python${PYTHON3_VERSION_MAJOR}" "${PYTHON3_VERSION}" Python3_EXECUTABLE)
 	    # include/lib folders might not adhere to schema, therefore if manually given give that precedence
         # try first to find full Python3, if it fails find only Interpreter & Module
         find_package(Python3 ${VERSION_STRING} EXACT COMPONENTS Interpreter Development QUIET)

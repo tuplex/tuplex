@@ -464,14 +464,15 @@ def docker_exec(container: 'Container', cmd):
     for k, v in aws.items():
         env_flags += ['-e', '{}={}'.format(k, v)]
 
-    cmd = ['docker', 'exec'] + env_flags + [container.name] + cmd
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # ['bash', '-c', 'python3.9 -c "print(\'test\')"'] # <-- this allows to correctly capture output.
+    cmd = ['docker', 'exec'] + env_flags + [container.name] + ['bash', '-c', ' '.join(cmd)]
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, universal_newlines=True)
     # set a timeout of 2 seconds to keep everything interactive
     p_stdout, p_stderr = process.communicate(timeout=300)
 
     if process.returncode != 0:
-        logging.error(p_stdout.decode())
-        logging.error(p_stderr.decode())
+        logging.error(p_stdout)
+        logging.error(p_stderr)
         sys.exit(process.returncode)
     logging.info('Completed command in {:.2f}s'.format(time.time() - tstart))
 

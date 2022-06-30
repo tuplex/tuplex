@@ -475,6 +475,11 @@ if(PYTHON3_EXECUTABLE)
 endif()
 
 # this is a macro to find python3 depending on version etc.
+function(FindPython3Exe NAMES VERSION EXECUTABLE)
+	message(STATUS "func called")
+	message(STATUS "Names: ${NAMES}")
+	message(STATUS "Looking for version: ${VERSION}")
+endfunction()
 
 # is a python3 version set?
 if(PYTHON3_VERSION STREQUAL "")
@@ -498,6 +503,11 @@ else()
     if(PYTHON3_VERSION MATCHES "^([0-9]+)\\.([0-9]+)(\\.([0-9]+))?$")
         string(REGEX MATCH "^([0-9]+)\\.([0-9]+)(\\.([0-9]+))?$" VERSION_STRING "${PYTHON3_VERSION}")
         message(STATUS "Forcing python3 version to ${VERSION_STRING}")
+
+
+       #if no executable is specified, try to search for python3 executable
+       message(STATUS "add here search")
+       FindPython3Exe("python3 python3.6" "${PYTHON3_VERSION}" Python3_EXECUTABLE)
 	    # include/lib folders might not adhere to schema, therefore if manually given give that precedence
         # try first to find full Python3, if it fails find only Interpreter & Module
         find_package(Python3 ${VERSION_STRING} EXACT COMPONENTS Interpreter Development QUIET)
@@ -505,7 +515,6 @@ else()
             message(STATUS "Found full python3-dev installation")
             set(Python3_Embed_FOUND TRUE)
         else()
-
             set(Python3_FIND_STRATEGY LOCATION)
             # use more modern approach using findpython3
             set(Python3_EXECUTABLE "${PYTHON3_EXECUTABLE}")

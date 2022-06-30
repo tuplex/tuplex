@@ -453,6 +453,27 @@ def get_aws_env():
 
     return {'AWS_ACCESS_KEY_ID': access_key, 'AWS_SECRET_ACCESS_KEY': secret_key, 'AWS_DEFAULT_REGION': region}
 
+
+# the container.exec_run is buggy, therefore invoke appropriate command directly with AWS credentials
+def docker_exec(container: 'Container', cmd):
+    tstart = time.time()
+
+    aws = get_aws_env()
+    env_flags = []
+    for k, v in aws.items():
+        env_flags += ['-e', '{}={}'.format(k, v)]
+
+    cmd = ['docker', 'exec'] + env_flags + [container.name] + cmd
+    logging.info('Running {}'.format(' '.join(cmd)))
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # set a timeout of 2 seconds to keep everything interactive
+    p_stdout, p_stderr = process.communicate(timeout=300)
+
+    if process.returncode != 0:
+        logging.error(p_stderr.decode())
+        sys.exit(process.returncode)
+    logging.info('Completed command in {:.2f}s'.format(time.time() - tstart))
+
 @click.command()
 @click.option('--cereal/--no-cereal', is_flag=True, default=False,
               help='whether to build tuplex and lambda using cereal as serialization library.')
@@ -501,10 +522,7 @@ def deploy(ctx, cereal):
     logging.info('Deploying runner to AWS Lambda...')
 
     cmd = ["python3.9", "-c", "'import tuplex.distributed; tuplex.distributed.setup_aws()'"]
-    exit_code, output = container.exec_run(cmd, environment=get_aws_env())
-    if exit_code != 0:
-        logging.error(output.decode())
-        sys.exit(exit_code)
+    docker_exec(container, cmd)
 
     logging.info('Done.')
     logging.info('copied file to container')

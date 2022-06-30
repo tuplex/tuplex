@@ -358,3 +358,99 @@ class TestMath(unittest.TestCase):
         assert L_bool[2] == math.pow(False, True)
         assert L_bool[3] == math.pow(False, False)
 
+
+    def testTEST(self):
+        c = tuplex.Context(self.conf)
+
+        pow_test = [(25, 0.5), (3, -2), (-4.0, 3.0), (-5, -4)]
+        c.parallelize(pow_test).map(lambda x, y: math.pow(x, y)).collect()
+        assert len(pow_test) == 4, 'wrong length'
+        self.assertAlmostEqual(pow_test[0], 5.0)
+        self.assertAlmostEqual(pow_test[1], -1.0 / 9.0)
+        self.assertAlmostEqual(pow_test[2], -64.0)
+        self.assertAlmostEqual(pow_test[3], 1.0 / 625.0)
+
+        sqrt_test = [0, 1.0, 4.0, 16]
+        c.parallelize(sqrt_test).map(lambda x: math.sqrt(x)).collect()
+        assert len(sqrt_test) == 4, 'wrong length'
+        self.assertAlmostEqual(sqrt_test[0], 0.0)
+        self.assertAlmostEqual(sqrt_test[1], 1.0)
+        self.assertAlmostEqual(sqrt_test[2], 2.0)
+        self.assertAlmostEqual(sqrt_test[3], 4.0)
+
+    
+    # def testIsInf(self):
+    #     c = tuplex.Context(self.conf)
+
+    #     float_test = [0.0, 1.0, -1.0, -math.inf, 3.0, math.inf]
+    #     L0 = c.parallelize(float_test).map(lambda x: math.isinf(x)).collect()
+    #     assert len(L0) == 6, 'wrong length'
+    #     self.assertEqual(L0[0], False)
+    #     self.assertEqual(L0[1], False)
+    #     self.assertEqual(L0[2], False)
+    #     self.assertEqual(L0[3], True)
+    #     self.assertEqual(L0[4], False)
+    #     self.assertEqual(L0[5], True)
+
+    #     tuple_test = [(1.0, math.inf), (-math.inf, 0.0), (-math.inf, math.inf), (-2.0, 0.0)]
+    #     L1 = c.parallelize(tuple_test).map(lambda x, y: (math.isinf(x), math.isinf(y))).collect()
+    #     assert len(L1) == 4, 'wrong length'
+    #     self.assertEqual(L1[0], (False, True))
+    #     self.assertEqual(L1[1], (True, False))
+    #     self.assertEqual(L1[2], (True, True))
+    #     self.assertEqual(L1[3], (False, False))
+
+    #     int_test = [1, -math.inf, -1, 0, math.inf]
+    #     L2 = c.parallelize(int_test).map(lambda x: math.isinf(x)).collect()
+    #     assert len(L2) == 5, 'wrong length'
+    #     self.assertEqual(L2[0], False)
+    #     self.assertEqual(L2[1], True)
+    #     self.assertEqual(L2[2], False)
+    #     self.assertEqual(L2[3], False)
+    #     self.assertEqual(L2[4], True)
+
+    #     mix_test = [-1, math.inf, 1.5, math.nan, -math.inf, 0.0]
+    #     L3 = c.parallelize(mix_test).map(lambda x, y: math.pow(x, y)).collect()
+    #     assert len(L3) == 6
+    #     self.assertEqual(L3[0], False)
+    #     self.assertEqual(L3[1], True)
+    #     self.assertEqual(L3[2], False)
+    #     self.assertEqual(L3[3], False)
+    #     self.assertEqual(L3[4], True)
+    #     self.assertEqual(L3[5], False)
+    
+
+    # def testIsNan(self):
+    #     c = tuplex.Context(self.conf)
+
+    #     test0 = [0.0, math.nan, -3.5, -math.inf]
+    #     L0 = c.parallelize(test0).map(lambda x: math.isnan(x)).collect()
+    #     assert len(L0) == 4, 'wrong length'
+    #     self.assertEqual(L0[0], False)
+    #     self.assertEqual(L0[1], True)
+    #     self.assertEqual(L0[2], False)
+    #     self.assertEqual(L0[3], False)
+
+    #     test1 = [0, -1, math.nan, math.inf, 97]
+    #     L1 = c.parallelize(test1).map(lambda x: math.isnan(x)).collect()
+    #     assert len(L1) == 5, 'wrong length'
+    #     self.assertEqual(L1[0], False)
+    #     self.assertEqual(L1[1], False)
+    #     self.assertEqual(L1[2], True)
+    #     self.assertEqual(L1[3], False)
+    #     self.assertEqual(L1[4], False)
+        
+    #     test2 = [math.nan, 0, -math.inf, -1.5, math.nan, 97]
+    #     L2 = c.parallelize(test2).map(lambda x: math.isnan(x)).collect()
+    #     assert len(L2) == 6, 'wrong length'
+    #     self.assertEqual(L2[0], True)
+    #     self.assertEqual(L2[1], False)
+    #     self.assertEqual(L2[2], False)
+    #     self.assertEqual(L2[3], False)
+    #     self.assertEqual(L2[4], True)
+    #     self.assertEqual(L2[4], False)
+    
+
+    # def testIsClose(self):
+    #     c = tuplex.Context(self.conf)
+

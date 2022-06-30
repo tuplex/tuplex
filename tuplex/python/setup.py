@@ -39,7 +39,7 @@ def tplx_package_data():
     # package lambda as well?
     if os.path.isdir('tuplex/other'):
         logging.debug('Packaging Lambda runner')
-        package_data['tuplex.other'] = ['*.zip']
+        package_data['tuplex.other'] = ['tuplex/other/*.zip']
     return package_data
 
 setup(
@@ -47,6 +47,7 @@ setup(
     version="0.3.3rc0",
     packages=find_packages(),
     package_data=tplx_package_data(),
+    include_package_data=True,
     # metadata for upload to PyPI
     author="Leonhard F. Spiegelberg",
     author_email="leonhard_spiegelberg@brown.edu",

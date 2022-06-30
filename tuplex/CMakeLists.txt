@@ -536,10 +536,6 @@ ENDMACRO(COMPARE_VERSION_STRINGS)
 
 # this is a macro to find python3 depending on version etc.
 function(FindPython3Exe NAMES VERSION EXECUTABLE)
-	message(STATUS "func called")
-	message(STATUS "Names: ${NAMES}")
-	message(STATUS "Looking for version: ${VERSION}")
-
 	# first check if appropriate program can be found by general path search
 	set(NAMES_TO_SEARCH ${NAMES})
 	separate_arguments(NAMES_TO_SEARCH)

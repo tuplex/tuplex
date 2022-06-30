@@ -15,11 +15,12 @@ from setuptools import setup, find_packages
 # i.e. runtime + the .so module need to be copied...
 
 import os
-# files to copy for install
-files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser("tuplex")) for f in fn]
+import logging
 
-# remove __pycache__ files
-files = list(filter(lambda x: '__pycache__' not in x and not x.endswith('.pyc'), files))
+# change into this setup.py's dir
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
 
 setup(
     name="Tuplex",

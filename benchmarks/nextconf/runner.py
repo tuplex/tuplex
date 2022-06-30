@@ -14,6 +14,7 @@ try:
     import tarfile
     import io
     import time
+    import pathlib
 except ModuleNotFoundError as e:
     logging.error("Module not found: {}".format(e))
     logging.info("Install missing modules via {} -m pip install -r requirements.txt".format(sys.executable))
@@ -292,7 +293,7 @@ def create_package_tar(dest_path, src_path, lambda_src_path=None):
                     if obj.name.endswith('tar.gz'):
                         continue
 
-                    if os.path.splitext(obj.name)[1][1:] not in {'in', 'py', 'so', 'dylib'}:
+                    if os.path.splitext(obj.name)[1][1:] not in {'in', 'py', 'so', 'dylib', 'toml'}:
                         continue
                     fileobj = tf.extractfile(obj)
                     obj.name = obj.name.replace('python/', dest_root)
@@ -417,12 +418,40 @@ def copy_to_container(container: 'Container', src: str, dst_dir: str):
     # container.put_archive(dst_dir, stream.getvalue())
 
     tstart = time.time()
+
+    # create dir if not exists in container
+    parent_dir = str(pathlib.Path(dst_dir).parent)
+    cmd = ['mkdir', '-p', parent_dir]
+    exit_code, output = container.exec_run(cmd)
+    if exit_code != 0:
+        logging.error(output.decode())
+        sys.exit(exit_code)
+
+    # is src file? append to dst dir if necessary!
+    if os.path.isfile(src) and parent_dir == dst_dir:
+        dst_dir = os.path.join(dst_dir, os.path.basename(src))
+
     cmd = ['docker', 'cp', os.path.abspath(src), '{}:{}'.format(container.name, dst_dir)]
     logging.info('Running {}'.format(' '.join(cmd)))
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # set a timeout of 2 seconds to keep everything interactive
     p_stdout, p_stderr = process.communicate(timeout=300)
-    logging.info('Copied to container {} in {}s'.format(container.name, time.time() - tstart))
+
+    if process.returncode != 0:
+        logging.error(p_stderr.decode())
+        sys.exit(process.returncode)
+    logging.info('Copied to container {} in {:.2f}s'.format(container.name, time.time() - tstart))
+
+def get_aws_env():
+    session = boto3.Session()
+    credentials = session.get_credentials()
+    credentials = credentials.get_frozen_credentials()
+    access_key = credentials.access_key
+    secret_key = credentials.secret_key
+    token = credentials.token
+    region = session.region_name
+
+    return {'AWS_ACCESS_KEY_ID': access_key, 'AWS_SECRET_ACCESS_KEY': secret_key, 'AWS_DEFAULT_REGION': region}
 
 @click.command()
 @click.option('--cereal/--no-cereal', is_flag=True, default=False,
@@ -470,7 +499,13 @@ def deploy(ctx, cereal):
     logging.info('Installed Boto3')
 
     logging.info('Deploying runner to AWS Lambda...')
-    # python3.9 -c 'import tuplex.distributed; tuplex.distributed.setup_aws()'
+
+    cmd = ["python3.9", "-c", "'import tuplex.distributed; tuplex.distributed.setup_aws()'"]
+    exit_code, output = container.exec_run(cmd, environment=get_aws_env())
+    if exit_code != 0:
+        logging.error(output.decode())
+        sys.exit(exit_code)
+
     logging.info('Done.')
     logging.info('copied file to container')
 

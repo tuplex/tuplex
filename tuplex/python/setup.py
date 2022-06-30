@@ -22,14 +22,31 @@ abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
 
+def tplx_package_data():
+
+    package_data = {
+      # include libs in libexec
+    'tuplex.libexec' : ['*.so', '*.dylib'],
+    }
+
+    # check if thserver exists
+    if os.path.isdir('tuplex/thserver'):
+        logging.debug('Packaging historyserver')
+        package_data['tuplex.historyserver'] = ['thserver/templates/*.html', 'thserver/static/css/*.css', 'thserver/static/css/styles/*.css',
+                                 'thserver/static/img/*.*', 'thserver/static/js/*.js', 'thserver/static/js/modules/*.js',
+                                 'thserver/static/js/styles/*.css']
+
+    # package lambda as well?
+    if os.path.isdir('tuplex/other'):
+        logging.debug('Packaging Lambda runner')
+        package_data['tuplex.other'] = ['*.zip']
+    return package_data
+
 setup(
     name="Tuplex",
     version="0.3.3rc0",
     packages=find_packages(),
-    package_data={
-      # include libs in libexec
-    'tuplex.libexec' : ['*.so', '*.dylib']
-    },
+    package_data=tplx_package_data(),
     # metadata for upload to PyPI
     author="Leonhard F. Spiegelberg",
     author_email="leonhard_spiegelberg@brown.edu",

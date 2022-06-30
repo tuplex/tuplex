@@ -51,6 +51,7 @@ message(STATUS "Using language versions C++${CMAKE_CXX_STANDARD} and C${CMAKE_C_
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
 include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate compiler flags
+include("${CMAKE_SOURCE_DIR}/cmake/CPM.cmake") # package manager from https://github.com/cpm-cmake/CPM.cmake
 # for debug mode export all symbols
 set(CMAKE_ENABLE_EXPORTS true)
 include(targetLinkLibrariesWithDynamicLookup)
@@ -624,6 +625,8 @@ if(Python3_FOUND)
     if(Python3_VERSION_MAJOR LESS 3 OR Python3_VERSION_MINOR LESS 5)
         message(FATAL_ERROR "Tuplex requires python3.5 at least, found incompatible python ${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
     endif()
+
+
     if(UNIX AND NOT APPLE)
         set(Boost_USE_STATIC_LIBS ON)
     endif()
@@ -655,9 +658,20 @@ else()
     message(FATAL_ERROR "Python not found, required to compile Tuplex.")
 endif()
 
+# retrieve Root dir if empty
+if(NOT "${Python3_ROOT_DIR}" OR "${Python3_ROOT_DIR}" STREQUAL "")
+	# python3 -c 'import sys,pathlib; print(pathlib.Path(sys.executable).parent.parent)'
+       execute_process (COMMAND "${Python3_EXECUTABLE}" -c "import sys,pathlib; print(pathlib.Path(sys.executable).parent.parent)"
+                RESULT_VARIABLE _result
+		OUTPUT_VARIABLE Python3_ROOT_DIR
+                ERROR_QUIET
+                OUTPUT_STRIP_TRAILING_WHITESPACE)	
+endif()
+
 message(STATUS "Using Python3 executable ${Python3_EXECUTABLE}")
 message(STATUS "Found Python3 headers in ${Python3_INCLUDE_DIRS}")
 message(STATUS "Found Python3 libs in ${Python3_LIBRARIES}")
+message(STATUS "Python3 Root dir is ${Python3_ROOT_DIR}")
 
 find_package(pcre2 REQUIRED)
 if(pcre2_FOUND)

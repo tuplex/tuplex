@@ -37,6 +37,7 @@ endif()
 # check whether googletest is locally installed, if not download and fetch
 find_package(GTest CONFIG)
 if(NOT GTest_FOUND)
+    
     # new way of including googletest
     # Download and unpack googletest at configure time
     configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
@@ -59,9 +60,11 @@ if(NOT GTest_FOUND)
 
     # Add googletest directly to our build. This defines
     # the gtest and gtest_main targets.
+    # this here picks up potentially a different python version, but not used in build.
     add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
             ${CMAKE_BINARY_DIR}/googletest-build
             EXCLUDE_FROM_ALL)
+    message(STATUS "gtest done (may display different python version before)")
     set(GTest_LIBRARIES "gtest")
 else()
     message(STATUS "Using locally installed GoogleTest")
@@ -70,16 +73,16 @@ else()
 endif()
 
 
-add_subdirectory(codegen)
-add_subdirectory(io)
-add_subdirectory(runtime)
-add_subdirectory(adapters)
-add_subdirectory(utils)
+#add_subdirectory(codegen)
+#add_subdirectory(io)
+#add_subdirectory(runtime)
+#add_subdirectory(adapters)
+#add_subdirectory(utils)
 
 # these require python, so only if embed is active!
 if(Python3_Embed_FOUND)
-    add_subdirectory(core)
-    add_subdirectory(wrappers)
+    #add_subdirectory(core)
+    #add_subdirectory(wrappers)
 else()
     message(WARNING "deactivating C++ tests for core/wrappers because no full Python dev installation found.")
 endif()

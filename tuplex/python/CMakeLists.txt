@@ -11,10 +11,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # how should the module be named?
 SET(MODULE_NAME tuplex)
 
-# fetch pybind11 (external project)
+# deprecated
 include(FetchContent)
+#set(PYBIND11_NOPYTHON ON CACHE INTERNAL "") 
+message(STATUS "Pybind11 uses python version ${Python3_VERSION}")
+set(PYBIND11_FINDPYTHON OFF CACHE INTERNAL "") 
+set(PYBIND11_PYTHON_VERSION "${Python3_VERSION}" CACHE INTERNAL "")
 FetchContent_Declare(pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11
-                              GIT_TAG        v2.9.1)
+                             GIT_TAG        v2.9.1 )
 FetchContent_GetProperties(pybind11)
 if(NOT pybind11_POPULATED)
     FetchContent_Populate(pybind11)
@@ -28,6 +32,28 @@ file(GLOB_RECURSE SOURCES src/*.cc)
 #PYTHON_ADD_MODULE(${MODULE_NAME} ${SOURCES})
 message(STATUS "libs: ${Python3_LIBRARIES}")
 message(STATUS "includes: ${Python3_INCLUDE_DIRS}")
+
+
+## use e.g. cpm https://github.com/cpm-cmake/CPM.cmake
+## fetch pybind11 (external project)
+#CPMAddPackage(
+#    NAME pybind11
+#    VERSION 2.9.1
+#    GITHUB_REPOSITORY pybind/pybind11
+#    OPTIONS
+#        "PYBIND11_NOPYTHON ON"
+#        "PYBIND11_FINDPYTHON OFF"
+#)
+###add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
+#if(pybind11_ADDED)
+#	message(STATUS "cpm added pybin11 ${pybind11_SOURCE_DIR}")
+#else()
+#	message(STATUS "not added ${pybind11_SOURCE_DIR}")
+#endif()
+#include(${pybind11_SOURCE_DIR}/tools/pybind11Common.cmake)
+#include(${pybind11_SOURCE_DIR}/tools/pybind11Tools.cmake)
+#include(${pybind11_SOURCE_DIR}/tools/pybind11NewTools.cmake)
+
 
 # cf. https://pybind11.readthedocs.io/en/stable/cmake/index.html
 pybind11_add_module(${MODULE_NAME} ${SOURCES})

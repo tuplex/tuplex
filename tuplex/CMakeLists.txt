@@ -586,7 +586,6 @@ else()
        list(GET VERSION_LIST 1 PYTHON3_VERSION_MINOR)
 
        #if no executable is specified, try to search for python3 executable
-       message(STATUS "add here search")
        FindPython3Exe("python${PYTHON3_VERSION_MAJOR}.${PYTHON3_VERSION_MINOR} python${PYTHON3_VERSION_MAJOR}" "${PYTHON3_VERSION}" Python3_EXECUTABLE)
 	    # include/lib folders might not adhere to schema, therefore if manually given give that precedence
         # try first to find full Python3, if it fails find only Interpreter & Module

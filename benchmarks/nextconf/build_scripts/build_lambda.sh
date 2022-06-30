@@ -42,7 +42,7 @@ BUILD_TYPE=Release
 export LD_LIBRARY_PATH=/opt/lambda-python/lib:\$LD_LIBRARY_PATH && \
 /opt/lambda-python/bin/python${PYTHON3_MAJMIN} -m pip install cloudpickle numpy && \
 cd $LOCAL_BUILD_FOLDER && \\
-cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DBUILD_WITH_CEREAL=${BUILD_WITH_CEREAL} -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DPYTHON3_EXECUTABLE=/opt/lambda-python/bin/python${PYTHON3_MAJMIN} -DBOOST_ROOT=/opt/boost/python${PYTHON3_MAJMIN}/ -GNinja /code/tuplex && \\
+cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DBUILD_WITH_CEREAL=${BUILD_WITH_CEREAL} -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DPYTHON3_EXECUTABLE=/opt/lambda-python/bin/python${PYTHON3_MAJMIN} -DBOOST_ROOT=/opt/boost/python${PYTHON3_MAJMIN}/ -GNinja /code/tuplex && \
 cmake --build . --target tplxlam && \
 python${PYTHON3_MAJMIN} /code/tuplex/python/zip_cc_runtime.py --input $LOCAL_BUILD_FOLDER/dist/bin/tplxlam --runtime $LOCAL_BUILD_FOLDER/dist/bin/tuplex_runtime.so --python /opt/lambda-python/bin/python${PYTHON3_MAJMIN} --output $LOCAL_BUILD_FOLDER/tplxlam.zip
 

@@ -1,19 +1,19 @@
 find_package(Threads REQUIRED)
 
-# some tests require the cloudpickle package to be installed, hence check for it here
-# try first to find full dev version of python, if that fails - interpreter only.
-find_package(Python3 COMPONENTS Interpreter Development QUIET)
-if (Python3_FOUND)
-    message(STATUS "Found full python3-dev installation")
-    set(Python3_Embed_FOUND TRUE)
-else()
-    find_package(Python3 COMPONENTS Interpreter REQUIRED)
-    # python3 -c 'import distutils.sysconfig; print(distutils.sysconfig.get_python_lib(plat_specific=False,standard_lib=True))'
-    # try to get get module libs at least
-
-    # mark embed lib as not found
-    unset(Python3_Embed_FOUND)
-endif()
+## some tests require the cloudpickle package to be installed, hence check for it here
+## try first to find full dev version of python, if that fails - interpreter only.
+#find_package(Python3 COMPONENTS Interpreter Development QUIET)
+#if (Python3_FOUND)
+#    message(STATUS "Found full python3-dev installation")
+#    set(Python3_Embed_FOUND TRUE)
+#else()
+#    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+#    # python3 -c 'import distutils.sysconfig; print(distutils.sysconfig.get_python_lib(plat_specific=False,standard_lib=True))'
+#    # try to get get module libs at least
+#
+#    # mark embed lib as not found
+#    unset(Python3_Embed_FOUND)
+#endif()
 
 if (Python3_FOUND)
     # check that cloudpickle is installed via import

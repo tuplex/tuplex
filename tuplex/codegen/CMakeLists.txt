@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.12 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.19 FATAL_ERROR)
 
 # enable c++14
 set(CMAKE_CXX_STANDARD 14)
@@ -81,9 +81,15 @@ ENDIF()
 IF(LLVM_ROOT_DIR)
     # make cmake find in config mode the right LLVMConfig.cmake file which is located here
     set(LLVM_DIR "${LLVM_ROOT_DIR}/lib/cmake/llvm")
+    find_package(LLVM CONFIG REQUIRED) # find with whatever llvm version has been specified
+ELSE()
+    # try to search for LLVM9, then LLVM6
+    find_package(LLVM 9 CONFIG)
+    if(NOT LLVM_FOUND)
+	    find_package(LLVM 6 CONFIG REQUIRED)
+    endif()
 ENDIF()
 
-FIND_PACKAGE(LLVM REQUIRED CONFIG)
 MESSAGE(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 MESSAGE(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 MESSAGE(STATUS "Found llvm include dirs at: " ${LLVM_INCLUDE_DIRS})

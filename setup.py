@@ -76,7 +76,7 @@ webui_dependencies = [
 ]
 
 # dependencies for AWS Lambda backend...
-aws_lambda_dependencies = ['botocore', 'boto3']
+aws_lambda_dependencies = ['botocore==1.24.21', 'boto3==1.24.21']
 
 
 # manual fix for google colab
@@ -101,8 +101,8 @@ if in_google_colab():
         'PyYAML>=3.13',
         'psutil',
         'pymongo',
-        'botocore',
-        'boto3',
+        'botocore==1.24.21',
+        'boto3==1.24.21',
         'iso8601'
     ]
 else:

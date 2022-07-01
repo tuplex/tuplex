@@ -248,6 +248,12 @@ namespace tuplex {
                  return get_or_throw().CreateIndirectBr(Addr, NumDests);
              }
 
+            inline llvm::SwitchInst *CreateSwitch(llvm::Value *V, llvm::BasicBlock *Dest, unsigned NumCases = 10,
+                                                  llvm::MDNode *BranchWeights = nullptr,
+                                                  llvm::MDNode *Unpredictable = nullptr) {
+                return get_or_throw().CreateSwitch(V, Dest, NumCases, BranchWeights, Unpredictable);
+            }
+
             inline void SetInsertPoint(llvm::BasicBlock *TheBB) const {
                 assert(TheBB);
                 get_or_throw().SetInsertPoint(TheBB);
@@ -337,6 +343,13 @@ namespace tuplex {
 
             inline llvm::Value *CreateConstInBoundsGEP2_64(llvm::Value *Ptr, uint64_t Idx0,
                                               uint64_t Idx1, const std::string &Name = "") const { return get_or_throw().CreateConstGEP2_64(nullptr, Ptr, Idx0, Idx1, Name); }
+
+            inline llvm::Value *CreatePtrToInt(llvm::Value *V, llvm::Type *DestTy,
+                                  const std::string &Name = "") { return get_or_throw().CreatePtrToInt(V, DestTy, Name); }
+
+            inline llvm::Value *CreateIntToPtr(llvm::Value *V, llvm::Type *DestTy,
+                                  const std::string &Name = "") { return get_or_throw().CreateIntToPtr(V, DestTy, Name); }
+
 
             inline llvm::CallInst *CreateCall(llvm::FunctionType *FTy, llvm::Value *Callee,
                                         llvm::ArrayRef<llvm::Value *> Args = llvm::None, const std::string &Name = "",

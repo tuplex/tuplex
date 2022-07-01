@@ -14,26 +14,9 @@
 #include <unistd.h>
 #include <vector>
 #include <string>
+#include <Utils.h>
 
 namespace tuplex {
-
-    std::string getUserName() {
-        // UNIX specific function for username
-        // check env variables 'LOGNAME', 'USER', 'LNAME', 'USERNAME'
-        using namespace std;
-
-        std::vector<std::string> vars = {"LOGNAME", "USER", "LNAME", "USERNAME"};
-
-        for(auto var : vars) {
-            auto name = getenv(var.c_str());
-            if(name)
-                return std::string(name);
-        }
-
-        // no user found above, return ""
-        // more advanced methods possible...
-        return "";
-    }
 
 // cf. https://stackoverflow.com/questions/27914311/get-computer-name-and-logged-user-name
     std::string getHostName() {

@@ -13,6 +13,8 @@ from __future__ import unicode_literals
 
 import os
 import sys
+import re
+import logging
 from code import InteractiveConsole
 from prompt_toolkit.history import InMemoryHistory
 # old version: 1.0
@@ -29,7 +31,7 @@ from pygments.lexers import Python3Lexer
 from pygments.styles import get_style_by_name
 from tuplex.utils.jedi_completer import JediCompleter
 from tuplex.utils.source_vault import SourceVault
-from types import LambdaType
+from types import LambdaType, FunctionType
 from tuplex.utils.globs import get_globals
 
 
@@ -124,6 +126,35 @@ class TuplexShell(InteractiveConsole):
 
         vault.extractAndPutAllLambdas(src_info, f_filename, f_lineno, f_colno, f_globs)
         return vault.get(f, f_filename, f_lineno, f_colno, f_globs)
+
+    def get_function_source(self, f):
+
+        assert self.initialized, 'must call init on TuplexShell object first'
+
+        assert isinstance(f,
+                          FunctionType) and f.__code__.co_name != '<lambda>', 'object needs to be a function (non-lambda) object'
+
+        # fetch all data
+        f_globs = get_globals(f)
+        f_filename = f.__code__.co_filename
+        f_lineno = f.__code__.co_firstlineno
+        f_colno = f.__code__.co_firstcolno if hasattr(f.__code__, 'co_firstcolno') else None
+
+        # retrieve func source from historyDict
+        lines = self.historyDict[f_filename]
+
+        # check whether def <name> is found in here
+        source = '\n'.join(lines).strip()
+
+        function_name = f.__code__.co_name
+        regex = r"def\s*{}\(.*\)\s*:[\t ]*\n".format(function_name)
+        prog = re.compile(regex)
+
+        if not prog.search(source):
+            logging.error('Could not find function "{}" in source'.format(function_name))
+            return None
+
+        return source
 
     # taken from Lib/code.py
     # overwritten to customize behaviour

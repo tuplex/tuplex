@@ -334,7 +334,9 @@ namespace tuplex {
                 return get_or_throw().CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
 #else
                 //  return builder.CreateStructGEP(ptr, idx);
-                return get_or_throw().CreateStructGEP(nullptr, Ptr, Idx, Name);
+                assert(Ptr->getType()->isPointerTy());
+                auto pointeetype = Ptr->getType()->getPointerElementType();
+                return get_or_throw().CreateStructGEP(pointeetype, Ptr, Idx, Name);
 #endif
              }
 

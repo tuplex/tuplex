@@ -99,29 +99,30 @@ namespace tuplex {
             // function shouldn't be empty when this function here is called!
             assert(!_llvm_builder->GetInsertBlock()->getParent()->empty());
 
-            // special case: no instructions yet present?
-            auto func = _llvm_builder->GetInsertBlock()->getParent();
-            auto is_empty = _llvm_builder->GetInsertBlock()->getParent()->empty();
-            auto num_blocks = func->size();
-            //size_t num_blocks = _llvm_builder->GetInsertBlock()->getParent()->size();
-            auto& firstBlock = _llvm_builder->GetInsertBlock()->getParent()->getEntryBlock();
+            // create new builder to avoid memory issues
+            auto b = std::make_unique<llvm::IRBuilder<>>(_llvm_builder->GetInsertBlock());
 
-            if(firstBlock.empty())
-                return IRBuilder(&firstBlock);
+            // special case: no instructions yet present?
+            auto func = b->GetInsertBlock()->getParent();
+            auto is_empty = b->GetInsertBlock()->getParent()->empty();
+            //auto num_blocks = func->getBasicBlockList().size();
+            auto firstBlock = &func->getEntryBlock();
+
+            if(firstBlock->empty())
+                return IRBuilder(firstBlock);
 
             if(!insertAtEnd)
-                return IRBuilder(firstBlock.getFirstInsertionPt());
+                return IRBuilder(firstBlock->getFirstInsertionPt());
             else {
                 // create inserter unless it's a branch instruction
-                auto it = firstBlock.getFirstInsertionPt();
+                auto it = firstBlock->getFirstInsertionPt();
                 auto lastit = it;
-                while(it != firstBlock.end() && !llvm::isa<llvm::BranchInst>(*it)) {
+                while(it != firstBlock->end() && !llvm::isa<llvm::BranchInst>(*it)) {
                     lastit = it;
                     ++it;
                 }
                 return IRBuilder(lastit);
             }
-
         }
 
         void IRBuilder::initFromIterator(llvm::BasicBlock::iterator &it) {

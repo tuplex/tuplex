@@ -71,9 +71,9 @@ IF(LLVM_ROOT_DIR)
     find_package(LLVM CONFIG REQUIRED) # find with whatever llvm version has been specified
 ELSE()
     # try to search for LLVM9, then LLVM6
-    find_package(LLVM 9 CONFIG)
+    find_package(LLVM CONFIG)
     if(NOT LLVM_FOUND)
-	    find_package(LLVM 6 CONFIG REQUIRED)
+	    find_package(LLVM 9 CONFIG REQUIRED)
     endif()
 ENDIF()
 

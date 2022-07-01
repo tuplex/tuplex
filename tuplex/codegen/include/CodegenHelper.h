@@ -264,6 +264,14 @@ namespace tuplex {
                  get_or_throw().SetInsertPoint(inst);
              }
 
+            llvm::BasicBlock::iterator GetInsertPoint() const {
+                 return get_or_throw().GetInsertPoint();
+             }
+
+            void SetInstDebugLocation(llvm::Instruction *I) const {
+                 return get_or_throw().SetInstDebugLocation(I);
+             }
+
              inline llvm::Value* CreateAdd(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
                                            bool HasNUW = false, bool HasNSW = false) const {
                  return get_or_throw().CreateAdd(LHS, RHS, Name, HasNUW, HasNSW);

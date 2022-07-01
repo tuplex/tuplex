@@ -2606,7 +2606,7 @@ TEST_F(WrapperTest, TracingVisitorError) {
         auto res = ctx.parallelize(list).map(udf_code, "").collect();
         auto resObj = res.ptr();
         ASSERT_TRUE(PyList_Check(resObj));
-        EXPECT_LT(PyList_Size(resObj), 1);
+        EXPECT_GE(PyList_Size(resObj), 1);
     }
 }
 

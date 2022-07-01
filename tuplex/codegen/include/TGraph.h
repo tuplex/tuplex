@@ -20,6 +20,8 @@
 #include <TSet.h>
 #include <stack>
 
+namespace tuplex {
+
 /*!
  * template class to model a graph. Internally, a graph is represented via adjacency lists
  * might be a slow implementation for now.
@@ -265,4 +267,5 @@ public:
     }
 };
 
+}
 #endif //TUPLEX_TGRAPH_H

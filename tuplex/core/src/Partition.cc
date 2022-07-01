@@ -53,9 +53,12 @@ namespace tuplex {
         _locked = false;
     }
 
-    uint8_t* Partition::lockWriteRaw() {
+    uint8_t* Partition::lockWriteRaw(bool allowForeignOwnerAccess) {
         // must be the thread who allocated this
-        assert(_owner->getThreadID() == std::this_thread::get_id());
+        if(!allowForeignOwnerAccess) {
+            _owner->error("non-owner thread accessing partition");
+            assert(_owner->getThreadID() == std::this_thread::get_id());
+        }
 
         TRACE_LOCK("partition " + uuidToString(_uuid));
         std::this_thread::yield();

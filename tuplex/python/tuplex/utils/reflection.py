@@ -153,7 +153,20 @@ def get_function_code(f):
     if in_jupyter_notebook() or in_google_colab():
         return extract_function_code(function_name, get_jupyter_raw_code(function_name))
     else:
-        return extract_function_code(function_name, dill.source.getsource(f))
+        if is_in_interactive_mode():
+            # need to extract lines from shell
+            # import here, avoids also trouble with jupyter notebooks
+            from tuplex.utils.interactive_shell import TuplexShell
+
+            # for this to work, a dummy shell has to be instantiated
+            # through which all typing occurs. Thus, the history can
+            # be properly captured for source code lookup.
+            # shell is a borg object, i.e. singleton alike behaviour
+            shell = TuplexShell()
+            return shell.get_function_source(f)
+        else:
+            # extract using dill from file
+            return extract_function_code(function_name, dill.source.getsource(f))
 
 
 vault = SourceVault()

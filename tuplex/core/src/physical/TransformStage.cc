@@ -118,29 +118,28 @@ namespace tuplex {
         _rs = emptyResultSet();
     }
 
-    void TransformStage::setMemoryResult(const std::vector<Partition *> &partitions,
-                                         const std::vector<Partition*>& generalCase,
-                                         const std::unordered_map<std::string, ExceptionInfo>& partitionToExceptionsMap,
-                                         const std::vector<std::tuple<size_t, PyObject*>>& interpreterRows,
-                                         const std::vector<Partition*>& remainingExceptions,
-                                         const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> &ecounts) {
-        setExceptionCounts(ecounts);
+    void TransformStage::setMemoryResult(const std::vector<Partition*>& normalPartitions,
+                                         const std::vector<Partition*>& generalPartitions,
+                                         const std::vector<Partition*>& fallbackPartitions,
+                                         const std::vector<PartitionGroup>& partitionGroups,
+                                         const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>& exceptionCounts) {
+        setExceptionCounts(exceptionCounts);
 
-        if (partitions.empty() && interpreterRows.empty() && generalCase.empty())
+        if (normalPartitions.empty() && generalPartitions.empty() && fallbackPartitions.empty())
             _rs = emptyResultSet();
         else {
             std::vector<Partition *> limitedPartitions;
             auto schema = Schema::UNKNOWN;
 
-            if(!partitions.empty()) {
-                schema = partitions.front()->schema();
-                for (auto partition : partitions) {
+            if(!normalPartitions.empty()) {
+                schema = normalPartitions.front()->schema();
+                for (auto partition : normalPartitions) {
                     assert(schema == partition->schema());
                 }
 
                 // check output limit, adjust partitions if necessary
                 size_t numOutputRows = 0;
-                for (auto partition : partitions) {
+                for (auto partition : normalPartitions) {
                     numOutputRows += partition->getNumRows();
                     if (numOutputRows >= outputLimit()) {
                         // clip last partition & leave loop
@@ -157,10 +156,7 @@ namespace tuplex {
                 }
             }
 
-            // put ALL partitions to result set
-            _rs = std::make_shared<ResultSet>(schema, limitedPartitions,
-                                              generalCase, partitionToExceptionsMap, interpreterRows,
-                                              outputLimit());
+            _rs = std::make_shared<ResultSet>(schema, limitedPartitions, generalPartitions, fallbackPartitions, partitionGroups, outputLimit());
         }
     }
 
@@ -654,7 +650,7 @@ namespace tuplex {
                     }
                     case EndPointMode::MEMORY:
                     case EndPointMode::FILE: {
-                        auto p = stage->resultSet()->partitions();
+                        auto p = stage->resultSet()->normalPartitions();
                         std::copy(std::begin(p), std::end(p), std::back_inserter(partitions));
                         break;
                     }

@@ -63,12 +63,7 @@ namespace tuplex {
                     return root;
                 } else {
                     if(rtype.isTupleType()) {
-                        // recursively call children & append as children!
-                        int num_params = rtype.parameters().size();
-                        for(int i = 0; i < num_params; ++i) {
-                            TupleTreeNode<T> *child = new TupleTreeNode<T>();
-                            root->children.push_back(createTupleTreeR(child, python::Type::makeOptionType(type.parameters()[i])));
-                        }
+                        // treat as primitive
                         root->type = type;
                         return root;
                     } else {
@@ -306,7 +301,8 @@ namespace tuplex {
                 assert(ret->type.getReturnType().isPrimitiveType() ||
                 ret->type.getReturnType() == python::Type::EMPTYTUPLE ||
                 ret->type.getReturnType().isDictionaryType() ||
-                ret->type.getReturnType().isListType());
+                ret->type.getReturnType().isListType() ||
+                ret->type.getReturnType().isTupleType());
             else
                 assert(ret->type.isPrimitiveType() || ret->type == python::Type::EMPTYTUPLE ||
                 ret->type.isDictionaryType() || ret->type.isListType() || ret->type == python::Type::PYOBJECT);

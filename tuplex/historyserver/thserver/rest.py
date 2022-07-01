@@ -407,8 +407,22 @@ def update_exception():
 
 @app.route('/api/version', methods=['GET'])
 def get_info():
+    client = mongo.cx
+    # there's a bug in the ubuntu version, if no session has been started then
+    # the address field is None. Therefore, start by retrieving server info a session
+    info = client.server_info()
+    nodes = client.nodes
+    addr = mongo.cx.address
+    if addr is None:
+        if nodes is not None and len(nodes) > 0:
+            nodes = list(nodes)
+            addr = nodes[0]
+            if not isinstance(addr, tuple) and len(addr) == 2:
+                addr = (None, None)
+        else:
+            addr = (None, None)
 
-    mongo_info = dict(zip(('host', 'port'), mongo.cx.address))
+    mongo_info = dict(zip(('host', 'port'), addr))
     mongo_info['uri'] = MONGO_URI
 
     return jsonify({'version': __version__,

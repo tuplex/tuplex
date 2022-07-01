@@ -634,7 +634,7 @@ namespace tuplex {
             static inline llvm::Value* CreateFirstBlockAlloca(const codegen::IRBuilder& builder,
                                                               llvm::Type* llvmType,
                                                               const std::string& name="") {
-                auto ctor_builder = IRBuilder(builder).firstBlockBuilder(false); // insert at beginning.
+                auto ctor_builder = builder.firstBlockBuilder(false); // insert at beginning.
                 auto res = ctor_builder.CreateAlloca(llvmType, 0, nullptr, name); assert(res);
                 return res;
             }

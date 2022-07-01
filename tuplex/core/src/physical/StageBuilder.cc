@@ -1051,7 +1051,7 @@ namespace tuplex {
             bool requireSlowPath = _nullValueOptimization; // per default, slow path is always required when null-value opt is enabled.
 
             // special case: input source is cached and no exceptions happened => no resolve path necessary if there are no resolvers!
-            if(_inputNode->type() == LogicalOperatorType::CACHE && dynamic_cast<CacheOperator*>(_inputNode)->cachedExceptions().empty())
+            if(_inputNode->type() == LogicalOperatorType::CACHE && dynamic_cast<CacheOperator *>(_inputNode)->cachedGeneralPartitions().empty() && dynamic_cast<CacheOperator *>(_inputNode)->cachedFallbackPartitions().empty())
                 requireSlowPath = false;
 
             if (numResolveOperators > 0 || requireSlowPath) {

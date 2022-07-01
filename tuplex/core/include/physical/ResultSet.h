@@ -13,7 +13,7 @@
 
 #include <Row.h>
 #include <Partition.h>
-#include <ExceptionInfo.h>
+#include <PartitionGroup.h>
 #include <deque>
 #include <limits>
 #include <ExceptionCodes.h>
@@ -25,23 +25,61 @@ namespace tuplex {
 
     class ResultSet {
     private:
-        std::list<Partition*> _partitions;
-        std::vector<Partition*> _exceptions; // unresolved exceptions
-        std::unordered_map<std::string, ExceptionInfo> _partitionToExceptionsMap;
-        // @TODO: use here rows instead? would make it potentially cleaner...
-        std::deque<std::tuple<size_t, PyObject*>> _pyobjects; // python objects remaining whose type
-        // did not confirm to the one of partitions. Maybe use Row here instead?
-        size_t _curRowCounter; //! row counter for the current partition
-        size_t _byteCounter;   //! byte offset for the current partition
-        size_t _rowsRetrieved;
-        size_t _totalRowCounter; // used for merging in rows!
-        size_t _maxRows;
-        Schema _schema;
+        std::list<Partition*> _currentNormalPartitions; //! normal partitions in current group
+        std::list<Partition*> _currentGeneralPartitions; //! general partitions in current group
+        std::list<Partition*> _currentFallbackPartitions; //! fallback partitions in current group
+        std::list<Partition*> _remainingNormalPartitions; //! remaining normal partitions in other groups
+        std::list<Partition*> _remainingGeneralPartitions; //! remaining general partitions in other groups
+        std::list<Partition*> _remainingFallbackPartitions; //! remaining fallback partitions in other groups
+        std::list<PartitionGroup> _partitionGroups; //! groups together normal, general, and fallback partitions for merging
 
-        void removeFirstPartition();
+        size_t _totalRowCounter; //! total rows emitted across all groups
+        size_t _maxRows; //! max number of rows to emit
+        Schema _schema; //! normal case schema
+
+        size_t _curNormalRowCounter;
+        size_t _curNormalByteCounter;
+        size_t _curGeneralRowCounter;
+        size_t _curGeneralByteCounter;
+        size_t _curFallbackRowCounter;
+        size_t _curFallbackByteCounter;
+        size_t _normalRowCounter;
+        size_t _generalRowCounter;
+        size_t _fallbackRowCounter;
+
+        int64_t currentGeneralRowInd();
+        int64_t currentFallbackRowInd();
+
+        Row getNextNormalRow();
+        bool hasNextNormalRow();
+        Row getNextFallbackRow();
+        bool hasNextFallbackRow();
+        Row getNextGeneralRow();
+        bool hasNextGeneralRow();
+
+        void removeFirstGeneralPartition();
+        void removeFirstFallbackPartition();
+        void removeFirstNormalPartition();
     public:
-        ResultSet() : _curRowCounter(0), _byteCounter(0), _rowsRetrieved(0),
-        _totalRowCounter(0), _maxRows(0), _schema(Schema::UNKNOWN)  {}
+        /*!
+         * Create new result set with normal, general, and fallback rows
+         * @param schema normal case schema
+         * @param normalPartitions normal case rows
+         * @param generalPartitions general case rows
+         * @param fallbackPartitions fallback case rows
+         * @param partitionGroups information to merge row numbers correctly
+         * @param maxRows limit on rows to emit
+         */
+        ResultSet(const Schema& schema,
+                  const std::vector<Partition*>& normalPartitions,
+                  const std::vector<Partition*>& generalPartitions=std::vector<Partition*>{},
+                  const std::vector<Partition*>& fallbackPartitions=std::vector<Partition*>{},
+                  const std::vector<PartitionGroup>& partitionGroups=std::vector<PartitionGroup>{},
+                  int64_t maxRows=std::numeric_limits<int64_t>::max());
+
+        ResultSet() : _curNormalRowCounter(0), _curNormalByteCounter(0), _curGeneralRowCounter(0), _curGeneralByteCounter(0),
+                      _curFallbackRowCounter(0), _curFallbackByteCounter(0), _totalRowCounter(0), _maxRows(0), _schema(Schema::UNKNOWN),
+                      _normalRowCounter(0), _generalRowCounter(0), _fallbackRowCounter(0) {}
         ~ResultSet() = default;
 
         // Non copyable
@@ -50,13 +88,6 @@ namespace tuplex {
         ResultSet(const ResultSet&&) = delete;
         ResultSet(const ResultSet&) = delete;
         ResultSet& operator = (const ResultSet&) = delete;
-
-        ResultSet(const Schema& _schema,
-                  const std::vector<Partition*>& partitions,
-                  const std::vector<Partition*>& exceptions=std::vector<Partition*>{},
-                  const std::unordered_map<std::string, ExceptionInfo>& partitionToExceptionsMap=std::unordered_map<std::string, ExceptionInfo>(),
-                  const std::vector<std::tuple<size_t, PyObject*>> pyobjects=std::vector<std::tuple<size_t, PyObject*>>{},
-                  int64_t maxRows=std::numeric_limits<int64_t>::max());
 
         /*!
          * check whether result contains one more row
@@ -75,52 +106,107 @@ namespace tuplex {
          */
         std::vector<Row> getRows(size_t limit);
 
-        bool hasNextPartition() const;
-
-        /*! user needs to invalidate then!
-         *
+        /*!
+         * check whether general partitions remain
          * @return
          */
-        Partition* getNextPartition();
+        bool hasNextGeneralPartition() const;
+
+        /*!
+         * get next general partition but does not invalidate it
+         * @return
+         */
+        Partition* getNextGeneralPartition();
+
+        /*!
+         * check whether fallback partitions remain
+         * @return
+         */
+        bool hasNextFallbackPartition() const;
+
+        /*!
+         * get next fallback partition but does not invalidate it
+         * @return
+         */
+        Partition* getNextFallbackPartition();
+
+        /*!
+         * check whether normal partitions remain
+         * @return
+         */
+        bool hasNextNormalPartition() const;
+
+        /*! user needs to invalidate then!
+         * @return
+         */
+        Partition* getNextNormalPartition();
+
+        /*!
+         * number of rows across all cases of partitions
+         * @return
+         */
         size_t rowCount() const;
 
+        /*!
+         * normal case schema
+         * @return
+         */
         Schema schema() const { return _schema; }
 
         /*!
-         * removes and invalidates all partitions!
+         * removes and invalidates all normalPartitions!
          */
         void clear();
+
+        /*!
+         * number of rows in fallback partitions
+         * @return
+         */
+        size_t fallbackRowCount() const;
 
         /*!
          * retrieve all good rows in bulk, removes them from this result set.
          * @return
          */
-        std::vector<Partition*> partitions() {
+        std::vector<Partition*> normalPartitions() {
             std::vector<Partition*> p;
-            while(hasNextPartition())
-                p.push_back(getNextPartition());
+            while(hasNextNormalPartition())
+                p.push_back(getNextNormalPartition());
             return p;
         }
 
         /*!
-         * retrieve all unresolved rows (should be only called internally). DOES NOT REMOVE THEM FROM result set.
+         * returns all general partitions, removes them from result set.
          * @return
          */
-        std::vector<Partition*> exceptions() const { return _exceptions; }
-
-        std::unordered_map<std::string, ExceptionInfo> partitionToExceptionsMap() const { return _partitionToExceptionsMap; }
-
-        /*!
-         * returns/removes all objects
-         * @return
-         */
-        std::deque<std::tuple<size_t, PyObject*>> pyobjects() {
-            return std::move(_pyobjects);
+        std::vector<Partition*> generalPartitions() {
+            std::vector<Partition*> p;
+            while(hasNextGeneralPartition())
+                p.push_back(getNextGeneralPartition());
+            return p;
         }
 
-        size_t pyobject_count() const { return _pyobjects.size(); }
+        /*!
+         * returns all fallback partitions, removes them from result set.
+         * @return
+         */
+        std::vector<Partition*> fallbackPartitions() {
+            std::vector<Partition*> p;
+            while(hasNextFallbackPartition())
+                p.push_back(getNextFallbackPartition());
+            return p;
+        }
 
-        size_t numPartitions() const { return _partitions.size(); }
+        /*!
+         * returns all partition groups, removes them from result set.
+         * @return
+         */
+        std::vector<PartitionGroup> partitionGroups() {
+            std::vector<PartitionGroup> g;
+            for (const auto& group : _partitionGroups)
+                g.push_back(group);
+            return g;
+        }
     };
 }
 #endif //TUPLEX_RESULTSET_H

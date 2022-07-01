@@ -40,23 +40,10 @@ IF(BREW_FOUND)
             # check if empty, if it is parse again using brew info json
             IF("${LLVM_VERSION}" STREQUAL "")
                 EXECUTE_PROCESS(COMMAND bash "-c" "brew info --json=v1 llvm | python3 -c 'import sys,json; x=json.load(sys.stdin); print(x[0][\"versions\"][\"stable\"])'" OUTPUT_VARIABLE LLVM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+                execute_process(COMMAND bash "-c" "brew info llvm | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
             ENDIF()
 
-            IF("${LLVM_VERSION}" STREQUAL "" OR "${LLVM_VERSION}" VERSION_LESS 5.0.0 OR "${LLVM_VERSION}" VERSION_GREATER_EQUAL 10.0.0)
-                # check if any other llvm version is installed...
-                MESSAGE(STATUS "LLVM version installed is ${LLVM_VERSION}, which is incompatible with Tuplex")
-
-                # check for llvm@9 (do not check other versions)
-                # note that we can't simply use brew --prefix due to different subversions in brew...
-                execute_process(COMMAND bash "-c" "brew info llvm@9 | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
-                if(BREW_RET EQUAL "1")
-                    message(FATAL_ERROR "checked whether in addition to ${LLVM_VERSION} LLVM 9.x is installed, but could not could find it. Please install via `brew install llvm@9`")
-                else()
-                    message(STATUS "Found another installed llvm version under ${LLVM_ROOT_DIR}, using this version for Tuplex.")
-                endif()
-            ELSE()
-                MESSAGE(STATUS "found brewed llvm under: " ${LLVM_ROOT_DIR})
-            ENDIF()
+            message(STATUS "Found llvm version: ${LLVM_VERSION}")
         ENDIF()
 
     ELSEIF(UNIX)
@@ -65,23 +52,23 @@ IF(BREW_FOUND)
 ENDIF()
 
 # for brewed llvm, add to cmakemodulepath
-IF(LLVM_ROOT_DIR)
+IF(NOT "${LLVM_ROOT_DIR}" STREQUAL "")
+    message(STATUS "Detected LLVM root dir: ${LLVM_ROOT_DIR}")
     # make cmake find in config mode the right LLVMConfig.cmake file which is located here
     set(LLVM_DIR "${LLVM_ROOT_DIR}/lib/cmake/llvm")
-    find_package(LLVM CONFIG REQUIRED) # find with whatever llvm version has been specified
+    FIND_PACKAGE(LLVM 6.0 REQUIRED COMPONENTS ${LLVM_REQUIRED_COMPONENTS})
 ELSE()
-    # try to search for LLVM9, then LLVM6
-    find_package(LLVM CONFIG)
-    if(NOT LLVM_FOUND)
-	    find_package(LLVM 9 CONFIG REQUIRED)
-    endif()
+    FIND_PACKAGE(LLVM 6.0 REQUIRED COMPONENTS ${LLVM_REQUIRED_COMPONENTS})
 ENDIF()
 
-MESSAGE(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-MESSAGE(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-MESSAGE(STATUS "Found LLVM include dirs at:  ${LLVM_INCLUDE_DIRS}")
-MESSAGE(STATUS "Found LLVM libraries:  ${LLVM_LIBRARIES}")
-message(STATUS "LLVM shared link mode: ${LLVM_IS_SHARED}")
+MESSAGE(STATUS "Found LLVM ${LLVM_VERSION_STRING}")
+if(LLVM_DIR)
+    message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+endif()
+MESSAGE(STATUS "Found llvm include dirs at: " ${LLVM_INCLUDE_DIRS})
+MESSAGE(STATUS "LLVM library dir: ${LLVM_LIBRARY_DIRS}")
+set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LLVM_LIBRARY_DIRS})
+
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 

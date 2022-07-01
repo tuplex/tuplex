@@ -309,7 +309,7 @@ namespace tuplex {
 
 
             // store in result ptr bad parse result
-            void storeBadParseInfo(IRBuilder& builder);
+            void storeBadParseInfo(const IRBuilder& builder);
 
 
             llvm::Function* getCSVNormalizeFunc();

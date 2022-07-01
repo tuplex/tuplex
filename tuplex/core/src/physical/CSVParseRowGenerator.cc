@@ -938,12 +938,13 @@ namespace tuplex {
                                            "parse_row",
                                            _env->getModule().get());
 
-            AttrBuilder ab;
 
-            // deactivate to lower compilation time?
-            // ab.addAttribute(Attribute::AlwaysInline);
-            _func->addAttributes(llvm::AttributeList::FunctionIndex, ab);
-
+//
+//            AttrBuilder ab;
+//
+//            // deactivate to lower compilation time?
+//            // ab.addAttribute(Attribute::AlwaysInline);
+//            _func->addAttributes(llvm::AttributeList::FunctionIndex, ab);
 
             vector<llvm::Value *> args;
             int counter = 0;
@@ -959,7 +960,7 @@ namespace tuplex {
             _endPtr = args[2];
         }
 
-        void CSVParseRowGenerator::storeBadParseInfo(IRBuilder& builder) {
+        void CSVParseRowGenerator::storeBadParseInfo(const IRBuilder& builder) {
             using namespace llvm;
             using namespace std;
 
@@ -991,7 +992,7 @@ namespace tuplex {
                                                             {_env->i8Const(_quotechar), cellBegin, cellEndIncl,
                                                              ret_size_ptr});
                     cells.push_back(normalizedStr);
-                    cell_sizes.push_back(builder.get().CreateLoad(ret_size_ptr, true));
+                    cell_sizes.push_back(builder.CreateLoad(ret_size_ptr));
                     pos++;
                 }
             }

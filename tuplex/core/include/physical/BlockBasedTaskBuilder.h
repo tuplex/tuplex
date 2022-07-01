@@ -43,9 +43,9 @@ namespace tuplex {
             Row _intermediateInitialValue;
             python::Type _intermediateType;
 
-            llvm::Value *initIntermediate(IRBuilder &builder);
+            llvm::Value *initIntermediate(const IRBuilder &builder);
 
-            void writeIntermediate(IRBuilder &builder,
+            void writeIntermediate(const IRBuilder &builder,
                                    llvm::Value* userData,
                                    const std::string &intermediateCallbackName);
 
@@ -64,7 +64,7 @@ namespace tuplex {
             /*!
              * creates a new exception block. Builder will be set to last block (i.e. where to conitnue logic)
              */
-            llvm::BasicBlock *exceptionBlock(IRBuilder &builder,
+            llvm::BasicBlock *exceptionBlock(const IRBuilder &builder,
                                              llvm::Value *userData,
                                              llvm::Value *exceptionCode,
                                              llvm::Value *exceptionOperatorID,
@@ -74,7 +74,7 @@ namespace tuplex {
 
             bool hasExceptionHandler() const { return !_exceptionHandlerName.empty(); }
 
-            void generateTerminateEarlyOnCode(codegen::IRBuilder& builder,
+            void generateTerminateEarlyOnCode(const codegen::IRBuilder& builder,
                                               llvm::Value* ecCode,
                                               ExceptionCode code = ExceptionCode::OUTPUT_LIMIT_REACHED);
 

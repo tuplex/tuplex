@@ -163,11 +163,11 @@ namespace tuplex {
             assignToVariable(builder, "numOutputRows", env().i64Const(0));
 
             // load the tuple1
-            _lastRowResult = _lastRowInput = FlattenedTuple::fromLLVMStructVal(&env(), builder.get(), argRow, ft.getTupleType());
+            _lastRowResult = _lastRowInput = FlattenedTuple::fromLLVMStructVal(&env(), builder, argRow, ft.getTupleType());
 
             // store in var
-            _lastTupleResultVar = _lastRowResult.alloc(builder.get());
-            _lastRowResult.storeTo(builder.get(), _lastTupleResultVar);
+            _lastTupleResultVar = _lastRowResult.alloc(builder);
+            _lastRowResult.storeTo(builder, _lastTupleResultVar);
 
             // assign argInput
             _argInputRow = _lastRowResult;
@@ -197,7 +197,7 @@ namespace tuplex {
             // compare last exception code
             Value* lastExceptionCode = getVariable(builder, "exceptionCode");
             Value* lastOperatorID = getVariable(builder, "exceptionOperatorID");
-            Value* ignoreCond = _env->matchExceptionHierarchy(builder.get(), lastExceptionCode, ec);
+            Value* ignoreCond = _env->matchExceptionHierarchy(builder, lastExceptionCode, ec);
 
             // use same approach as when adding a filter operation:
             // i.e. a keep block and then just exit (without writing the row)
@@ -239,7 +239,7 @@ namespace tuplex {
             // old:
             // Value* resolveCond = builder.CreateICmpEQ(lastExceptionCode, env().i64Const(ecToI32(ec)));
             // new:
-            Value* resolveCond = _env->matchExceptionHierarchy(builder.get(), lastExceptionCode, ec);
+            Value* resolveCond = _env->matchExceptionHierarchy(builder, lastExceptionCode, ec);
 
             // create two blocks:
             // 1) block where to resolve exception
@@ -279,14 +279,14 @@ namespace tuplex {
                     assignToVariable(builder, "exceptionOperatorID", env().i64Const(operatorID));
                     // simply call function
                     auto resVal = _lastTupleResultVar; // i.e. the output of the last tuple (just overwrite it)
-                    FlattenedTuple resultRow = cf.callWithExceptionHandler(builder.get(), _lastRowInput, resVal, bbException, getPointerToVariable(builder, "exceptionCode"));
+                    FlattenedTuple resultRow = cf.callWithExceptionHandler(builder, _lastRowInput, resVal, bbException, getPointerToVariable(builder, "exceptionCode"));
 
                     // check that the output type is the same as the expected one!
                     if(resultRow.getTupleType() != _lastRowResult.getTupleType())
                         throw std::runtime_error("result type " + resultRow.getTupleType().desc() + "of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
 
                     // store result into var
-                    resultRow.storeTo(builder.get(), _lastTupleResultVar);
+                    resultRow.storeTo(builder, _lastTupleResultVar);
 
                     // branch to continuation block
                     builder.CreateBr(bbNextBlock);
@@ -298,7 +298,7 @@ namespace tuplex {
                     assignToVariable(builder, "exceptionOperatorID", env().i64Const(operatorID));
                     // simply call function
                     auto resVal = variableBuilder.CreateAlloca(cf.getLLVMResultType(env()), 0, nullptr);// i.e. a single bool
-                    FlattenedTuple ft = cf.callWithExceptionHandler(builder.get(), _lastRowInput, resVal, bbException, getPointerToVariable(builder, "exceptionCode"));
+                    FlattenedTuple ft = cf.callWithExceptionHandler(builder, _lastRowInput, resVal, bbException, getPointerToVariable(builder, "exceptionCode"));
 
                     // check type is correct
                     auto expectedType = python::Type::BOOLEAN;
@@ -337,19 +337,19 @@ namespace tuplex {
                     // simply call function
                     auto resVal = variableBuilder.CreateAlloca(cf.getLLVMResultType(env()), 0, nullptr);
                     auto elementType = _lastInputSchemaType.parameters()[_lastOperatorColumnIndex]; // this might lead to an error...
-                    auto load = _lastRowInput.getLoad(builder.get(), {_lastOperatorColumnIndex});
+                    auto load = _lastRowInput.getLoad(builder, {_lastOperatorColumnIndex});
                     // check what type element loaded is (tuple? primitive?)
                     FlattenedTuple inVal(&env());
                     if(load.val && load.val->getType()->isStructTy()) {
                         EXCEPTION("struct type for map column not yet implemented...");
-                        inVal = FlattenedTuple::fromLLVMStructVal(&env(), builder.get(), load.val, elementType);
+                        inVal = FlattenedTuple::fromLLVMStructVal(&env(), builder, load.val, elementType);
                     } else {
                         inVal.init(elementType);
                         // simple element
                         inVal.assign(0, load.val, load.size, load.is_null);
                     }
 
-                    auto outVal = cf.callWithExceptionHandler(builder.get(), inVal, resVal, bbException, getPointerToVariable(builder, "exceptionCode"));
+                    auto outVal = cf.callWithExceptionHandler(builder, inVal, resVal, bbException, getPointerToVariable(builder, "exceptionCode"));
 
                     if(outVal.getTupleType().isTupleType())
                         EXCEPTION("tuples not yet supported...");
@@ -366,10 +366,10 @@ namespace tuplex {
                     ftOut.init(finalType);
 
                     for(int i = 0; i < finalType.parameters().size(); ++i) {
-                        auto elLoad = i != _lastOperatorColumnIndex ? _lastRowInput.getLoad(builder.get(), {i}) : resLoad;
+                        auto elLoad = i != _lastOperatorColumnIndex ? _lastRowInput.getLoad(builder, {i}) : resLoad;
 
                         // store in output
-                        ftOut.set(builder.get(), {i}, elLoad.val, elLoad.size, elLoad.is_null);
+                        ftOut.set(builder, {i}, elLoad.val, elLoad.size, elLoad.is_null);
                     }
 
                     auto resultRow = ftOut;
@@ -380,7 +380,7 @@ namespace tuplex {
                         throw std::runtime_error("result type " + resultRow.getTupleType().desc() + "of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
 
                     // store result into var
-                    resultRow.storeTo(builder.get(), _lastTupleResultVar);
+                    resultRow.storeTo(builder, _lastTupleResultVar);
 
                     builder.CreateBr(bbNextBlock);
                     break;
@@ -391,7 +391,7 @@ namespace tuplex {
                     assignToVariable(builder, "exceptionOperatorID", env().i64Const(operatorID));
                     // as stated in the map operation, the result type needs to be allocated within the entry block
                     auto resVal = variableBuilder.CreateAlloca(cf.getLLVMResultType(env()), 0, nullptr);
-                    auto outVal = cf.callWithExceptionHandler(builder.get(), _lastRowInput, resVal, bbException, getPointerToVariable(builder, "exceptionCode"));
+                    auto outVal = cf.callWithExceptionHandler(builder, _lastRowInput, resVal, bbException, getPointerToVariable(builder, "exceptionCode"));
                     if(outVal.getTupleType().isTupleType())
                         EXCEPTION("tuples not yet supported...");
                     // assign to input vals
@@ -414,9 +414,9 @@ namespace tuplex {
                     ftOut.init(finalType);
 
                     for(int i = 0; i < finalType.parameters().size(); ++i) {
-                        auto elLoad = i != _lastOperatorColumnIndex ? _lastRowInput.getLoad(builder.get(), {i}) : resLoad;
+                        auto elLoad = i != _lastOperatorColumnIndex ? _lastRowInput.getLoad(builder, {i}) : resLoad;
                         // store in output
-                        ftOut.set(builder.get(), {i}, elLoad.val, elLoad.size, elLoad.is_null);
+                        ftOut.set(builder, {i}, elLoad.val, elLoad.size, elLoad.is_null);
                     }
 
                     auto resultRow = ftOut;
@@ -427,7 +427,7 @@ namespace tuplex {
                         throw std::runtime_error("result type " + resultRow.getTupleType().desc() + "of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
 
                     // store result into var
-                    resultRow.storeTo(builder.get(), _lastTupleResultVar);
+                    resultRow.storeTo(builder, _lastTupleResultVar);
 
                     builder.CreateBr(bbNextBlock);
                     break;
@@ -447,7 +447,7 @@ namespace tuplex {
             // fetch last row in next block
             builder.SetInsertPoint(bbNextBlock);
             // update wrapper (through variable load)
-            _lastRowResult = FlattenedTuple::fromLLVMStructVal(&env(), builder.get(),
+            _lastRowResult = FlattenedTuple::fromLLVMStructVal(&env(), builder,
                                                                _lastTupleResultVar,
                                                                _lastRowResult.getTupleType());
 
@@ -487,7 +487,7 @@ namespace tuplex {
             _lastRowInput = _lastRowResult;
 
             auto exceptionBlock = createExceptionBlock();
-            _lastRowResult = cf.callWithExceptionHandler(builder.get(), _lastRowResult, _lastTupleResultVar, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
+            _lastRowResult = cf.callWithExceptionHandler(builder, _lastRowResult, _lastTupleResultVar, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
 
             if(_lastRowResult.getTupleType() != cf.output_type) {
                 logger.error("wrong output type. Expected " + cf.output_type.desc() + " got " + _lastRowResult.getTupleType().desc());
@@ -560,7 +560,7 @@ namespace tuplex {
             _lastRowInput = _lastRowResult;
 
             auto exceptionBlock = createExceptionBlock();
-            auto ft = cf.callWithExceptionHandler(builder.get(), _lastRowResult, resVal, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
+            auto ft = cf.callWithExceptionHandler(builder, _lastRowResult, resVal, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
             // check type is correct
             auto expectedType = python::Type::BOOLEAN;
             llvm::Value* filterCond = nullptr; // i1 filter condition
@@ -572,7 +572,7 @@ namespace tuplex {
                     filterCond = env().i1Const(true);
                 else{
                     auto ret_val = SerializableValue(ft.get(0), ft.getSize(0), ft.getIsNull(0)); // single value?
-                    filterCond = env().truthValueTest(builder.get(), ret_val, ft.getTupleType());
+                    filterCond = env().truthValueTest(builder, ret_val, ft.getTupleType());
                 }
             } else {
                 assert(ft.numElements() ==  1);
@@ -630,13 +630,13 @@ namespace tuplex {
             // convert to Flattened Tuple
 
             _lastRowInput = _lastRowResult;
-            auto load = _lastRowResult.getLoad(builder.get(), {columnToMapIndex});
+            auto load = _lastRowResult.getLoad(builder, {columnToMapIndex});
 
             // check what type element loaded is (tuple? primitive?)
             FlattenedTuple inVal(&env());
             if(load.val && load.val->getType()->isStructTy()) { // Null value goes to the other branch...
                 EXCEPTION("struct type for map column not yet implemented...");
-                inVal = FlattenedTuple::fromLLVMStructVal(&env(), builder.get(), load.val, elementType);
+                inVal = FlattenedTuple::fromLLVMStructVal(&env(), builder, load.val, elementType);
             } else {
                 inVal.init(elementType);
                 // simple element
@@ -644,7 +644,7 @@ namespace tuplex {
             }
 
             auto exceptionBlock = createExceptionBlock();
-            auto outVal = cf.callWithExceptionHandler(builder.get(), inVal, resVal, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
+            auto outVal = cf.callWithExceptionHandler(builder, inVal, resVal, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
 
             if(outVal.getTupleType().isTupleType())
                 EXCEPTION("tuples not yet supported...");
@@ -664,17 +664,17 @@ namespace tuplex {
             ftOut.init(finalType);
 
             for(int i = 0; i < finalType.parameters().size(); ++i) {
-                auto elLoad = i != columnToMapIndex ? _lastRowResult.getLoad(builder.get(), {i}) : resLoad;
+                auto elLoad = i != columnToMapIndex ? _lastRowResult.getLoad(builder, {i}) : resLoad;
 
                 // store in output
-                ftOut.set(builder.get(), {i}, elLoad.val, elLoad.size, elLoad.is_null);
+                ftOut.set(builder, {i}, elLoad.val, elLoad.size, elLoad.is_null);
             }
 
             _lastRowResult = ftOut;
 
             // store final output to variable
-            _lastTupleResultVar = ftOut.alloc(variableBuilder.get());
-            ftOut.storeTo(builder.get(), _lastTupleResultVar);
+            _lastTupleResultVar = ftOut.alloc(variableBuilder);
+            ftOut.storeTo(builder, _lastTupleResultVar);
 
             // check return type..
             if(_lastRowResult.getTupleType().isTupleType()) {
@@ -735,7 +735,7 @@ namespace tuplex {
             // }
 
             auto exceptionBlock = createExceptionBlock();
-            auto outVal = cf.callWithExceptionHandler(builder.get(), _lastRowResult, resVal, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
+            auto outVal = cf.callWithExceptionHandler(builder, _lastRowResult, resVal, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
 
             if(outVal.getTupleType().isTupleType())
                 EXCEPTION("tuples not yet supported...");
@@ -767,18 +767,18 @@ namespace tuplex {
             ftOut.init(finalType);
 
             for(int i = 0; i < finalType.parameters().size(); ++i) {
-                auto elLoad = i != columnToMapIndex ? _lastRowResult.getLoad(builder.get(), {i}) : resLoad;
+                auto elLoad = i != columnToMapIndex ? _lastRowResult.getLoad(builder, {i}) : resLoad;
 
                 // store in output
-                ftOut.set(builder.get(), {i}, elLoad.val, elLoad.size, elLoad.is_null);
+                ftOut.set(builder, {i}, elLoad.val, elLoad.size, elLoad.is_null);
             }
 
             // create in contructor block a new variable to store tuple result
             _lastRowInput = _lastRowResult;
             _lastRowResult = ftOut;
             // store final output to variable
-            _lastTupleResultVar = ftOut.alloc(variableBuilder.get());
-            ftOut.storeTo(builder.get(), _lastTupleResultVar);
+            _lastTupleResultVar = ftOut.alloc(variableBuilder);
+            ftOut.storeTo(builder, _lastTupleResultVar);
 
             // check return type..
             if(_lastRowResult.getTupleType().isTupleType()) {
@@ -852,7 +852,7 @@ namespace tuplex {
 
                     // output original input row
                     // => serialize to runtime memory!
-                    auto serialized_row = _argInputRow.serializeToMemory(builder.get());
+                    auto serialized_row = _argInputRow.serializeToMemory(builder);
 
                     // call handler
 #warning "for flat map, make sure correct row number is used..."
@@ -897,7 +897,7 @@ namespace tuplex {
             // }
 
 
-            auto serialized_row = row.serializeToMemory(builder.get());
+            auto serialized_row = row.serializeToMemory(builder);
 
             // call callback
             // typedef int64_t(*write_row_f)(void*, uint8_t*, int64_t);
@@ -963,7 +963,7 @@ namespace tuplex {
                     auto k = key.val;
                     if(persist) {
                         // cmalloc + copy
-                        k = _env->cmalloc(builder.get(), key.size);
+                        k = _env->cmalloc(builder, key.size);
                         builder.CreateMemCpy(k, 0, key.val, 0, key.size);
                     }
                     builder.CreateBr(bbKeyDone);
@@ -990,7 +990,7 @@ namespace tuplex {
                 if(persist) {
                     // simply copy key & return
                     // cmalloc + copy
-                    auto k = _env->cmalloc(builder.get(), key.size);
+                    auto k = _env->cmalloc(builder, key.size);
                     builder.CreateMemCpy(k, 0, key.val, 0, key.size);
 
                     return SerializableValue(k, key.size, _env->i1Const(false));
@@ -1090,14 +1090,14 @@ namespace tuplex {
 
             if(!keyCols.empty()) {
                 if(keyCols.size() == 1) {
-                    keyVal = _lastRowResult.getLoad(builder.get(), {static_cast<int>(keyCols.front())});
+                    keyVal = _lastRowResult.getLoad(builder, {static_cast<int>(keyCols.front())});
                 } else {
                     // get the values and types
                     std::vector<python::Type> keyTypes;
                     std::vector<SerializableValue> keyValues;
                     for (const auto col: keyCols) {
                         keyTypes.push_back(lastType.parameters()[col]);
-                        keyValues.push_back(_lastRowResult.getLoad(builder.get(), {static_cast<int>(col)}));
+                        keyValues.push_back(_lastRowResult.getLoad(builder, {static_cast<int>(col)}));
                     }
                     auto tt = python::Type::makeTupleType(keyTypes);
 
@@ -1105,16 +1105,16 @@ namespace tuplex {
                     FlattenedTuple ft(_env.get());
                     ft.init(tt);
                     for (int i = 0; i < keyValues.size(); i++) {
-                        ft.set(builder.get(), {i}, keyValues[i].val, keyValues[i].size, keyValues[i].is_null);
+                        ft.set(builder, {i}, keyValues[i].val, keyValues[i].size, keyValues[i].is_null);
                     }
 
-                    keyVal = ft.serializeToMemory(builder.get()); // serialize the value
+                    keyVal = ft.serializeToMemory(builder); // serialize the value
                 }
             } else { // get the whole row -> unique
                 if(keyType == python::Type::I64 || keyType == python::Type::STRING)
-                    keyVal = _lastRowResult.getLoad(builder.get(), vector<int>{(int) 0});
+                    keyVal = _lastRowResult.getLoad(builder, vector<int>{(int) 0});
                 else
-                    keyVal = _lastRowResult.serializeToMemory(builder.get());
+                    keyVal = _lastRowResult.serializeToMemory(builder);
             }
 
             if(bucketize) {
@@ -1139,15 +1139,15 @@ namespace tuplex {
                         }
                     }
 
-                    bucketSize = ft.getSize(builder.get());
-                    bucket = _env->cmalloc(builder.get(), bucketSize); // TODO: I think this memory is being leaked! (check TransformTask::writeRowToHashtable and similar functions - I don't think anyone frees the bucket)
-                    ft.serialize(builder.get(), bucket);
+                    bucketSize = ft.getSize(builder);
+                    bucket = _env->cmalloc(builder, bucketSize); // TODO: I think this memory is being leaked! (check TransformTask::writeRowToHashtable and similar functions - I don't think anyone frees the bucket)
+                    ft.serialize(builder, bucket);
                 }
             }
             if(isAggregateByKey) { // need to pass the entire row to the aggregate function
-                bucketSize = _lastRowResult.getSize(builder.get());
-                bucket = _env->cmalloc(builder.get(), bucketSize);
-                _lastRowResult.serialize(builder.get(), bucket);
+                bucketSize = _lastRowResult.getSize(builder);
+                bucket = _env->cmalloc(builder, bucketSize);
+                _lastRowResult.serialize(builder, bucket);
             }
 
             // convert key...
@@ -1239,9 +1239,9 @@ namespace tuplex {
                                    {_argUserData, key, keySize, _env->boolConst(bucketize), bucket, bucketSize});
                 // NEW: hashmap handles key dup
                 // call free on the key
-                _env->cfree(builder.get(), key); // should be NULL safe.
+                _env->cfree(builder, key); // should be NULL safe.
             }
-            _env->cfree(builder.get(), bucket); // should be NULL safe.
+            _env->cfree(builder, bucket); // should be NULL safe.
 
             // connect blocks
             _lastBlock = builder.GetInsertBlock();
@@ -1278,8 +1278,8 @@ namespace tuplex {
                     fmtString += "%s";
                     auto boolCond = builder.CreateICmpNE(env.boolConst(false), val);
                     // select
-                    val = builder.CreateSelect(boolCond, env.strConst(builder.get(), "True"),
-                                               env.strConst(builder.get(), "False"));
+                    val = builder.CreateSelect(boolCond, env.strConst(builder, "True"),
+                                               env.strConst(builder, "False"));
                     fmtSize = builder.CreateAdd(fmtSize, env.i64Const(5));
 
                 } else if(python::Type::I64 == type) {
@@ -1312,9 +1312,9 @@ namespace tuplex {
                         fmtString += "%s";
                         auto boolCond = builder.CreateICmpNE(env.boolConst(false), val);
                         // select
-                        val = builder.CreateSelect(is_null, env.strConst(builder.get(), null_value),
-                                                   builder.CreateSelect(boolCond, env.strConst(builder.get(), "True"),
-                                                                        env.strConst(builder.get(), "False")));
+                        val = builder.CreateSelect(is_null, env.strConst(builder, null_value),
+                                                   builder.CreateSelect(boolCond, env.strConst(builder, "True"),
+                                                                        env.strConst(builder, "False")));
                         fmtSize = builder.CreateAdd(fmtSize, env.i64Const(std::max(5ul, null_value.length() + 1)));
                     } else if(python::Type::I64 == elementType) {
                         // convert to string
@@ -1323,10 +1323,10 @@ namespace tuplex {
                             val = env.i64Const(0);
 
                         // call conversion function
-                        auto conv_val = env.i64ToString(builder.get(), val);
+                        auto conv_val = env.i64ToString(builder, val);
 
                         fmtString += "%s";
-                        val = builder.CreateSelect(is_null, env.strConst(builder.get(), null_value), conv_val.val);
+                        val = builder.CreateSelect(is_null, env.strConst(builder, null_value), conv_val.val);
                         fmtSize = builder.CreateAdd(fmtSize, conv_val.size);
                     } else if(python::Type::F64 == elementType) {
                         // convert to string
@@ -1335,29 +1335,29 @@ namespace tuplex {
                             val = env.f64Const(0.0);
 
                         // call conversion function
-                        auto conv_val = env.f64ToString(builder.get(), val);
+                        auto conv_val = env.f64ToString(builder, val);
 
                         fmtString += "%s";
-                        val = builder.CreateSelect(is_null, env.strConst(builder.get(), null_value), conv_val.val);
+                        val = builder.CreateSelect(is_null, env.strConst(builder, null_value), conv_val.val);
                         fmtSize = builder.CreateAdd(fmtSize, conv_val.size);
                     } else if(python::Type::STRING == elementType) {
                         // simple, just None check together with Max intrinsic for size
 
                         // if val is nullptr, append dummy
                         if(!val)
-                            val = env.strConst(builder.get(), "");
+                            val = env.strConst(builder, "");
 
                         if(!size)
                             size = env.i64Const(1);
 
                         fmtString += "%s";
-                        val = builder.CreateSelect(is_null, env.strConst(builder.get(), null_value), val);
+                        val = builder.CreateSelect(is_null, env.strConst(builder, null_value), val);
 
                         // need to quote
                         auto quotedSize = builder.CreateAlloca(env.i64Type(), 0, nullptr);
                         auto func = quoteForCSV_prototype(env.getContext(), env.getModule().get());
                         val = builder.CreateCall(func, {val, size, quotedSize, env.i8Const(delimiter), env.i8Const(quotechar)});
-                        fmtSize = builder.CreateAdd(fmtSize, env.CreateMaximum(builder.get(), size, env.i64Const(null_value.length() + 1)));
+                        fmtSize = builder.CreateAdd(fmtSize, env.CreateMaximum(builder, size, env.i64Const(null_value.length() + 1)));
                     } else throw std::runtime_error("Option type " + type.desc() + " not yet supported in csv output.");
 
                 } else {
@@ -1382,11 +1382,11 @@ namespace tuplex {
             BasicBlock *bbLargerBuf = BasicBlock::Create(env.getContext(), "strformat_realloc", builder.GetInsertBlock()->getParent());
 
             auto bufVar = builder.CreateAlloca(env.i8ptrType());
-            builder.CreateStore(env.malloc(builder.get(), fmtSize), bufVar);
+            builder.CreateStore(env.malloc(builder, fmtSize), bufVar);
             auto snprintf_func = snprintf_prototype(env.getContext(), env.getModule().get());
 
             //{csvRow, fmtSize, env().strConst(builder, fmtString), ...}
-            args[0] = builder.CreateLoad(bufVar); args[1] = fmtSize; args[2] = env.strConst(builder.get(), fmtString);
+            args[0] = builder.CreateLoad(bufVar); args[1] = fmtSize; args[2] = env.strConst(builder, fmtString);
             auto charsRequired = builder.CreateCall(snprintf_func, args);
             auto sizeWritten = builder.CreateAdd(builder.CreateZExt(charsRequired, env.i64Type()), env.i64Const(1));
 
@@ -1400,7 +1400,7 @@ namespace tuplex {
             builder.SetInsertPoint(bbLargerBuf);
             // realloc with sizeWritten
             // store new malloc in bufVar
-            builder.CreateStore(env.malloc(builder.get(), sizeWritten), bufVar);
+            builder.CreateStore(env.malloc(builder, sizeWritten), bufVar);
             args[0] = builder.CreateLoad(bufVar);
             args[1] = sizeWritten;
             builder.CreateCall(snprintf_func, args);
@@ -1475,16 +1475,16 @@ namespace tuplex {
             // min-max with option type
             space_needed = std::max(space_needed, num_columns * (1 + null_value.length()));
 
-            auto buf = env.malloc(builder.get(), builder.CreateAdd(varSizeRequired, env.i64Const(space_needed)));
+            auto buf = env.malloc(builder, builder.CreateAdd(varSizeRequired, env.i64Const(space_needed)));
             Value* buf_ptr = buf;
             auto& ctx = env.getContext();
             auto func = builder.GetInsertBlock()->getParent(); assert(func);
 
-            auto nullConst = env.strConst(builder.get(), null_value);
-            auto trueConst = env.strConst(builder.get(), trueValue);
-            auto falseConst = env.strConst(builder.get(), falseValue);
+            auto nullConst = env.strConst(builder, null_value);
+            auto trueConst = env.strConst(builder, trueValue);
+            auto falseConst = env.strConst(builder, falseValue);
 
-            auto quotedSize = env.CreateFirstBlockAlloca(builder.get(), env.i64Type(), "quoted_str_size");
+            auto quotedSize = env.CreateFirstBlockAlloca(builder, env.i64Type(), "quoted_str_size");
             // now go over buffer
             for(int i = 0; i < row.numElements(); ++i) {
                 auto val = row.get(i);
@@ -1590,8 +1590,8 @@ namespace tuplex {
             }
 
             // compute buf_length via ptr diff
-            auto buf_length = builder.CreateSub(builder.get().CreatePtrToInt(buf_ptr, env.i64Type()),
-                                                builder.get().CreatePtrToInt(buf, env.i64Type()));
+            auto buf_length = builder.CreateSub(builder.CreatePtrToInt(buf_ptr, env.i64Type()),
+                                                builder.CreatePtrToInt(buf, env.i64Type()));
 
             return SerializableValue(buf, buf_length);
         }
@@ -1656,7 +1656,7 @@ namespace tuplex {
                                                               llvm::Value *rowNumber,
                                                               llvm::Value* intermediate) {
             assert(func && userData && rowNumber);
-            auto tuplePtr = ft.loadToPtr(builder.get());
+            auto tuplePtr = ft.loadToPtr(builder);
 
             // TODO: get rid off unnecessary load/store instructions here...
 
@@ -1667,7 +1667,7 @@ namespace tuplex {
             // @TODO: get rid off first block alloca and use llvm::lifetime::begin and end...
 
             // alloc variable in first block
-            auto result_ptr = LLVMEnvironment::CreateFirstBlockAlloca(builder.get(),
+            auto result_ptr = LLVMEnvironment::CreateFirstBlockAlloca(builder,
                                                                       resultStructType(builder.getContext()),
                                                                       "pipeline_result");
 
@@ -1682,9 +1682,9 @@ namespace tuplex {
             // load via StructGEP
             PipelineResult pr;
 
-            pr.resultCode = builder.CreateLoad(LLVMEnvironment::CreateStructGEP(builder.get(), result_ptr, 0));
-            pr.exceptionOperatorID = builder.CreateLoad(LLVMEnvironment::CreateStructGEP(builder.get(), result_ptr, 1));
-            pr.numProducedRows = builder.CreateLoad(LLVMEnvironment::CreateStructGEP(builder.get(), result_ptr, 2));
+            pr.resultCode = builder.CreateLoad(LLVMEnvironment::CreateStructGEP(builder, result_ptr, 0));
+            pr.exceptionOperatorID = builder.CreateLoad(LLVMEnvironment::CreateStructGEP(builder, result_ptr, 1));
+            pr.numProducedRows = builder.CreateLoad(LLVMEnvironment::CreateStructGEP(builder, result_ptr, 2));
             return pr;
         }
 
@@ -1724,13 +1724,13 @@ namespace tuplex {
 
             FlattenedTuple tuple(&pip.env());
             tuple.init(pip.inputRowType());
-            tuple.deserializationCode(builder.get(), args["rowBuf"]);
-            Value* bytesRead = tuple.getSize(builder.get());
+            tuple.deserializationCode(builder, args["rowBuf"]);
+            Value* bytesRead = tuple.getSize(builder);
 
             // add potentially exception handler function
             PipelineBuilder::call(builder, pipFunc, tuple, args["userData"], args["rowNumber"]);
 
-            builder.get().CreateRet(bytesRead);
+            builder.CreateRet(bytesRead);
             return func;
         }
 
@@ -1790,11 +1790,11 @@ namespace tuplex {
                 // option type? do NULL value interpretation
                 if(t.isOptionType()) {
                     auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
-                    isnull = env.compareToNullValues(builder.get(), val, null_values, true);
+                    isnull = env.compareToNullValues(builder, val, null_values, true);
                 } else if(t != python::Type::NULLVALUE) {
                     // null check, i.e. raise NULL value exception!
                     auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
-                    auto null_check = env.compareToNullValues(builder.get(), val, null_values, true);
+                    auto null_check = env.compareToNullValues(builder, val, null_values, true);
 
                     // if positive, exception!
                     // else continue!
@@ -1834,7 +1834,7 @@ namespace tuplex {
                 } else if(python::Type::NULLVALUE == t) {
                     // perform null check only, & set null element depending on result
                     auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
-                    isnull = env.compareToNullValues(builder.get(), val, null_values, true);
+                    isnull = env.compareToNullValues(builder, val, null_values, true);
 
                     // if not null, exception! ==> i.e. ValueError!
                     BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(i) + "_value_check_passed", builder.GetInsertBlock()->getParent());
@@ -1902,7 +1902,7 @@ namespace tuplex {
             auto bbNormalCaseDecode = BasicBlock::Create(context, "decodeNormalCase", func);
             auto bbCommonCaseDecode = BasicBlock::Create(context, "decodeCommonCase", func);
 
-            auto switchInst = builder.get().CreateSwitch(ecCode, bbNormalCaseDecode, 2);
+            auto switchInst = builder.CreateSwitch(ecCode, bbNormalCaseDecode, 2);
             switchInst->addCase(cast<ConstantInt>(env.i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT))), bbStringFieldDecode);
             switchInst->addCase(cast<ConstantInt>(env.i64Const(ecToI64(ExceptionCode::NORMALCASEVIOLATION))), bbCommonCaseDecode);
 
@@ -1927,9 +1927,9 @@ namespace tuplex {
                 dataPtr = builder.CreateGEP(dataPtr, env.i32Const(sizeof(int64_t)));
                 // heap alloc arrays, could be done on stack as well but whatever
                 auto cellsPtr = builder.CreatePointerCast(
-                        env.malloc(builder.get(), env.i64Const(num_columns * sizeof(uint8_t*))),
+                        env.malloc(builder, env.i64Const(num_columns * sizeof(uint8_t*))),
                         env.i8ptrType()->getPointerTo());
-                auto sizesPtr = builder.CreatePointerCast(env.malloc(builder.get(), env.i64Const(num_columns * sizeof(int64_t))),
+                auto sizesPtr = builder.CreatePointerCast(env.malloc(builder, env.i64Const(num_columns * sizeof(int64_t))),
                                                           env.i64ptrType());
                 for (unsigned i = 0; i < num_columns; ++i) {
                     // decode size + offset & store accordingly!
@@ -1937,7 +1937,7 @@ namespace tuplex {
                     // truncation yields lower 32 bit (= offset)
                     Value *offset = builder.CreateTrunc(info, Type::getInt32Ty(context));
                     // right shift by 32 yields size
-                    Value *size = builder.get().CreateLShr(info, 32);
+                    Value *size = builder.CreateLShr(info, 32);
 
                     builder.CreateStore(size, builder.CreateGEP(sizesPtr, env.i32Const(i)));
                     builder.CreateStore(builder.CreateGEP(dataPtr, offset),
@@ -1964,15 +1964,15 @@ namespace tuplex {
 #ifndef NDEBUG
                 // env.debugPrint(builder, "calling pipeline yielded #rows: ", resultNumRowsCreated);
 #endif
-                env.freeAll(builder.get());
-                builder.get().CreateRet(resultCode);
+                env.freeAll(builder);
+                builder.CreateRet(resultCode);
 
                 builder.SetInsertPoint(bbStringDecodeFailed);
 #ifndef NDEBUG
                 // env.debugPrint(builder, "string decode failed");
 #endif
-                env.freeAll(builder.get());
-                builder.get().CreateRet(ecCode); // original exception code.
+                env.freeAll(builder);
+                builder.CreateRet(ecCode); // original exception code.
             }
             // 2.) decode normal case type & upgrade to exception case type, then apply all resolvers & Co
             {
@@ -1982,7 +1982,7 @@ namespace tuplex {
                 // i.e. same code as in pip upgradeType
                 FlattenedTuple ft(&env);
                 ft.init(normalCaseType);
-                ft.deserializationCode(builder.get(), args["rowBuf"]);
+                ft.deserializationCode(builder, args["rowBuf"]);
                 // upcast to general type!
                 // castRow(IRBuilder& builder, const FlattenedTuple& row, const python::Type& target_type)
                 auto tuple = castRow(builder, ft, pip.inputRowType());
@@ -1996,8 +1996,8 @@ namespace tuplex {
                 auto resultCode = builder.CreateZExtOrTrunc(res.resultCode, env.i64Type());
                 auto resultOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env.i64Type());
                 auto resultNumRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env.i64Type());
-                env.freeAll(builder.get());
-                 builder.get().CreateRet(resultCode);
+                env.freeAll(builder);
+                 builder.CreateRet(resultCode);
             }
 
 
@@ -2009,15 +2009,15 @@ namespace tuplex {
                 // easiest, no additional steps necessary...
                 FlattenedTuple tuple(&pip.env());
                 tuple.init(pip.inputRowType());
-                tuple.deserializationCode(builder.get(), args["rowBuf"]);
+                tuple.deserializationCode(builder, args["rowBuf"]);
 
                 // add potentially exception handler function
                 auto res = PipelineBuilder::call(builder, pipFunc, tuple, args["userData"], args["rowNumber"]);
                 auto resultCode = builder.CreateZExtOrTrunc(res.resultCode, env.i64Type());
                 auto resultOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env.i64Type());
                 auto resultNumRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env.i64Type());
-                env.freeAll(builder.get());
-                                                                         builder.get().CreateRet(resultCode);
+                env.freeAll(builder);
+                                                                         builder.CreateRet(resultCode);
             }
 
             return func;
@@ -2056,7 +2056,7 @@ namespace tuplex {
             assert(numIterations->getType() == _env->i32Type());
 
             // start loop here
-            auto loopVar = _env->CreateFirstBlockAlloca(builder.get(), _env->i32Type(), "loop_i");
+            auto loopVar = _env->CreateFirstBlockAlloca(builder, _env->i32Type(), "loop_i");
             builder.CreateStore(_env->i32Const(0), loopVar);
             BasicBlock* bbLoopCondition = BasicBlock::Create(context, "loop_cond", builder.GetInsertBlock()->getParent());
             BasicBlock* bbLoopBody = BasicBlock::Create(context, "loop_body", builder.GetInsertBlock()->getParent());
@@ -2108,7 +2108,7 @@ namespace tuplex {
             // only deserialize if there are cols in the bucket (special case: one column join)
             if(!buildBucketType.parameters().empty()) {
                 ftBuild.init(buildBucketType); //!!! important, b.c. key does not get saved to bucket...
-                ftBuild.deserializationCode(builder.get(), row_ptr);
+                ftBuild.deserializationCode(builder, row_ptr);
             }
 
             //_env->debugPrint(builder, "ftBuild is: ");
@@ -2225,7 +2225,7 @@ namespace tuplex {
 
             // only deserialize if there are cols in the bucket (special case: one column join)
             if(!buildBucketType.parameters().empty())
-                ftBuild.deserializationCode(builder.get(), row_ptr);
+                ftBuild.deserializationCode(builder, row_ptr);
             builder.CreateBr(bbResult);
 
             // replace everything in ftBuild with phi nodes (a bunch of them)
@@ -2325,7 +2325,7 @@ namespace tuplex {
             int probeKeyIndex = buildRight ? leftKeyIndex : rightKeyIndex;
 
             // extract key from lastRow result
-            auto key = _lastRowResult.getLoad(builder.get(), vector<int>{probeKeyIndex});
+            auto key = _lastRowResult.getLoad(builder, vector<int>{probeKeyIndex});
             auto probeKeyType = buildRight ? leftRowType.parameters()[leftKeyIndex]
                                            : rightRowType.parameters()[rightKeyIndex];
 
@@ -2365,7 +2365,7 @@ namespace tuplex {
             // }
 
 
-            auto bucket_value = _env->CreateFirstBlockAlloca(builder.get(), _env->i8ptrType(), "bucket_value");
+            auto bucket_value = _env->CreateFirstBlockAlloca(builder, _env->i8ptrType(), "bucket_value");
             builder.CreateStore(_env->i8nullptr(), bucket_value);
 
             // C++ code:
@@ -2386,10 +2386,10 @@ namespace tuplex {
                 builder.CreateCondBr(hash_map_key.is_null, bbNext, bbNotNull);
                 builder.SetInsertPoint(bbNotNull);
                 if (probeKeyType.withoutOptions() == python::Type::STRING || probeKeyType == python::Type::NULLVALUE) {
-                    auto found_val = _env->callBytesHashmapGet(builder.get(), hash_map, hash_map_key.val, hash_map_key.size,
+                    auto found_val = _env->callBytesHashmapGet(builder, hash_map, hash_map_key.val, hash_map_key.size,
                                                                bucket_value); // overwrite bucket_value...
                 } else {
-                    auto found_val = _env->callIntHashmapGet(builder.get(), hash_map, hash_map_key.val,
+                    auto found_val = _env->callIntHashmapGet(builder, hash_map, hash_map_key.val,
                                                              bucket_value); // overwrite bucket_value...
                 }
                 builder.CreateBr(bbNext);
@@ -2398,11 +2398,11 @@ namespace tuplex {
                 // probe step
                 if (probeKeyType.withoutOptions() == python::Type::STRING || probeKeyType == python::Type::NULLVALUE) {
                     // i8* hmap, i8* key, i64 key_size, i8** bucket
-                    auto found_val = _env->callBytesHashmapGet(builder.get(), hash_map, hash_map_key.val, hash_map_key.size,
+                    auto found_val = _env->callBytesHashmapGet(builder, hash_map, hash_map_key.val, hash_map_key.size,
                                                                bucket_value); // overwrite bucket_value...
                 } else {
                     // i8* hmap, i64 key, i8** bucket
-                    auto found_val = _env->callIntHashmapGet(builder.get(), hash_map, hash_map_key.val,
+                    auto found_val = _env->callIntHashmapGet(builder, hash_map, hash_map_key.val,
                                                              bucket_value); // overwrite bucket_value...
                 }
             } else {
@@ -2435,11 +2435,11 @@ namespace tuplex {
                 // truncation yields lower 32 bit (= bucket_size)
                 auto bucket_size = builder.CreateTrunc(info, _env->i32Type(), "bucket_size");
                 // right shift by 32 yields size (= num_rows)
-                auto num_rows_to_join = builder.get().CreateLShr(info, 32, "num_rows_to_join");
+                auto num_rows_to_join = builder.CreateLShr(info, 32, "num_rows_to_join");
                 num_rows_to_join = builder.CreateTrunc(num_rows_to_join, _env->i32Type());
 
                 // var for bucket ptr
-                auto bucketPtrVar = _env->CreateFirstBlockAlloca(builder.get(), _env->i8ptrType(), "bucket_ptr");
+                auto bucketPtrVar = _env->CreateFirstBlockAlloca(builder, _env->i8ptrType(), "bucket_ptr");
                 builder.CreateStore(builder.CreateGEP(bucket, _env->i32Const(sizeof(int64_t))), bucketPtrVar); // offset bucket by 8 bytes / 64 bit
 
                 createInnerJoinBucketLoop(builder, num_rows_to_join, bucketPtrVar, buildRight, buildBucketType,
@@ -2448,7 +2448,7 @@ namespace tuplex {
             } else if(jt == JoinType::LEFT) {
 
                 // var for bucket ptr
-                auto bucketPtrVar = _env->CreateFirstBlockAlloca(builder.get(), _env->i8ptrType(), "bucket_ptr");
+                auto bucketPtrVar = _env->CreateFirstBlockAlloca(builder, _env->i8ptrType(), "bucket_ptr");
 
                 // it's a left join, so there will be always at least one row as result.
                 // matchfound only dictates whether it's going to be with nulls or not
@@ -2467,7 +2467,7 @@ namespace tuplex {
                 // truncation yields lower 32 bit (= bucket_size)
                 auto bucket_size = builder.CreateTrunc(info, _env->i32Type(), "bucket_size");
                 // right shift by 32 yields size (= num_rows)
-                auto bucket_num_rows_to_join = builder.get().CreateLShr(info, 32, "num_rows_to_join");
+                auto bucket_num_rows_to_join = builder.CreateLShr(info, 32, "num_rows_to_join");
                 bucket_num_rows_to_join = builder.CreateTrunc(bucket_num_rows_to_join, _env->i32Type());
 
                 builder.CreateStore(builder.CreateGEP(bucket, _env->i32Const(sizeof(int64_t))), bucketPtrVar); // offset bucket by 8 bytes / 64 bit
@@ -2513,10 +2513,10 @@ namespace tuplex {
            auto& context = builder.getContext();
 
            // fetch aggregate value
-           FlattenedTuple ftAgg = FlattenedTuple::fromLLVMStructVal(_env.get(), builder.get(), intermediateOutputPtr(), aggType);
+           FlattenedTuple ftAgg = FlattenedTuple::fromLLVMStructVal(_env.get(), builder, intermediateOutputPtr(), aggType);
 
            // debug code
-           auto x0 = builder.get().CreateStructGEP(intermediateOutputPtr(), 0);
+           auto x0 = builder.CreateStructGEP(intermediateOutputPtr(), 0);
            auto x1 = builder.CreateLoad(x0);
 
            // // compile aggregation function and add it in.
@@ -2525,8 +2525,8 @@ namespace tuplex {
             auto combinedType = python::Type::makeTupleType({aggType, _lastRowResult.getTupleType()}); // this should be compatible to input type of aggUDF!
             FlattenedTuple ftin(_env.get());
             ftin.init(combinedType);
-            ftin.set(builder.get(), {0}, ftAgg);
-            ftin.set(builder.get(), {1}, _lastRowResult);
+            ftin.set(builder, {0}, ftAgg);
+            ftin.set(builder, {1}, _lastRowResult);
 
             // compile UDF
            if(aggUDF.empty())
@@ -2549,7 +2549,7 @@ namespace tuplex {
            _lastRowInput = _lastRowResult;
 
            auto exceptionBlock = createExceptionBlock();
-           auto ftout = cf.callWithExceptionHandler(builder.get(),
+           auto ftout = cf.callWithExceptionHandler(builder,
                                                     ftin,
                                                     _lastTupleResultVar,
                                                     exceptionBlock,
@@ -2562,8 +2562,8 @@ namespace tuplex {
            auto v = ftout.get(0);
 
            // store to global aggregate var result
-           ftout.storeTo(builder.get(), intermediateOutputPtr());
-           _lastRowResult = FlattenedTuple::fromLLVMStructVal(_env.get(), builder.get(), intermediateOutputPtr(), aggType);
+           ftout.storeTo(builder, intermediateOutputPtr());
+           _lastRowResult = FlattenedTuple::fromLLVMStructVal(_env.get(), builder, intermediateOutputPtr(), aggType);
 
            auto result_type = python::Type::propagateToTupleType(cf.output_type); // progagate b.c. this yields a row.
 

@@ -158,7 +158,7 @@ protected:
             vLineEndArgs.push_back(&arg);
 
 
-        IRBuilder<> builder(bNumBytes);
+        codegen::IRBuilder builder(bNumBytes);
         builder.CreateRet(builder.CreateLoad(builder.CreateGEP(vLineStartArgs[0], {env->i32Const(0),env->i32Const(0)})));
 
         builder.SetInsertPoint(bLineStart);

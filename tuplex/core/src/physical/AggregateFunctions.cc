@@ -116,7 +116,7 @@ namespace tuplex {
             IRBuilder eb(exceptionBlock);
             eb.get().CreateRet(eb.CreateLoad(exceptionVar));
 
-            auto ftOut = cf.callWithExceptionHandler(builder.get(), ftin, resultVar, exceptionBlock, exceptionVar);
+            auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);
 
             // if it's variably allocated, free out after combine and realloc...
             if(aggType.isFixedSizeType()) {
@@ -211,7 +211,7 @@ namespace tuplex {
             IRBuilder eb(exceptionBlock);
             eb.get().CreateRet(eb.CreateLoad(exceptionVar));
 
-            auto ftOut = cf.callWithExceptionHandler(builder.get(), ftin, resultVar, exceptionBlock, exceptionVar);
+            auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);
 
             // if it's variably allocated, free out after combine and realloc...
             if(aggType.isFixedSizeType()) {

@@ -26,7 +26,11 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Object/ObjectFile.h>
+#if LLVM_VERSION_MAJOR < 14
 #include <llvm/Support/TargetRegistry.h>
+#else
+#include <llvm/MC/TargetRegistry.h>
+#endif
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/Host.h>
 #include <llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h>

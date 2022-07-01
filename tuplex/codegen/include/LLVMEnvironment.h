@@ -795,16 +795,16 @@ namespace tuplex {
              */
             std::tuple<llvm::Value*, llvm::Value*, llvm::Value*> addGlobalPCRE2RuntimeContexts();
 
-            llvm::Value* callGlobalsInit(codegen::IRBuilder builder);
-            llvm::Value* callGlobalsRelease(codegen::IRBuilder builder);
+            llvm::Value* callGlobalsInit(const codegen::IRBuilder& builder);
+            llvm::Value* callGlobalsRelease(const codegen::IRBuilder& builder);
 
-            llvm::Value* callBytesHashmapGet(codegen::IRBuilder builder, llvm::Value* hashmap, llvm::Value* key, llvm::Value* key_size, llvm::Value* returned_bucket);
+            llvm::Value* callBytesHashmapGet(const codegen::IRBuilder& builder, llvm::Value* hashmap, llvm::Value* key, llvm::Value* key_size, llvm::Value* returned_bucket);
 
             /*!
              * Call get on an int64 hashmap (utils/int_hashmap.h) with an int64 key; load value into returned_bucket argument
              * @return i1 condition if the key was found or not
              */
-            llvm::Value *callIntHashmapGet(codegen::IRBuilder builder, llvm::Value *hashmap, llvm::Value *key, llvm::Value *returned_bucket);
+            llvm::Value *callIntHashmapGet(const codegen::IRBuilder& builder, llvm::Value *hashmap, llvm::Value *key, llvm::Value *returned_bucket);
             /*!
              * generate i1 condition for whether codeValue is of ExceptionCode ec incl. base classes etc.
              * @param builder
@@ -812,7 +812,7 @@ namespace tuplex {
              * @param ec
              * @return codegenerated i1 true/false
              */
-            llvm::Value* matchExceptionHierarchy(codegen::IRBuilder builder, llvm::Value* codeValue, const ExceptionCode& ec);
+            llvm::Value* matchExceptionHierarchy(const codegen::IRBuilder& builder, llvm::Value* codeValue, const ExceptionCode& ec);
 
             /*!
              * Create or get a llvm function with signature i1(struct.iterator) that does the following:

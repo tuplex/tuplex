@@ -1660,9 +1660,9 @@ namespace tuplex {
             initGlobalBuilder.CreateStore(match_context, matchContextVar);
             initGlobalBuilder.CreateStore(compile_context, compileContextVar);
 
-            auto generalContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.get().CreatePtrDiff(general_context, i8nullptr()), i64Const(0));
-            auto matchContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.get().CreatePtrDiff(match_context, i8nullptr()), i64Const(0));
-            auto compileContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.get().CreatePtrDiff(compile_context, i8nullptr()), i64Const(0));
+            auto generalContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.CreatePtrDiff(general_context, i8nullptr()), i64Const(0));
+            auto matchContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.CreatePtrDiff(match_context, i8nullptr()), i64Const(0));
+            auto compileContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.CreatePtrDiff(compile_context, i8nullptr()), i64Const(0));
             auto initFailed = initGlobalBuilder.CreateOr(generalContextFailed,
                                                          initGlobalBuilder.CreateOr(matchContextFailed,compileContextFailed));
             initGlobalBuilder.CreateStore(initGlobalBuilder.get().CreateIntCast(initFailed, i64Type(), false), _initGlobalRetValue);

@@ -1863,7 +1863,7 @@ namespace tuplex {
         }
 
         SerializableValue FunctionRegistry::createCountCall(
-            codegen::IRBuilder& builder,
+            const codegen::IRBuilder& builder,
             const tuplex::codegen::SerializableValue &caller,
             const tuplex::codegen::SerializableValue &needle) {
             using namespace llvm;
@@ -1877,7 +1877,7 @@ namespace tuplex {
         }
 
         SerializableValue FunctionRegistry::createStartswithCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                                 codegen::IRBuilder& builder,
+                                                                 const codegen::IRBuilder& builder,
                                                                  const tuplex::codegen::SerializableValue &caller,
                                                                  const tuplex::codegen::SerializableValue &prefix) {
             using namespace llvm;
@@ -1904,7 +1904,7 @@ namespace tuplex {
         }
 
         SerializableValue FunctionRegistry::createEndswithCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                                 codegen::IRBuilder& builder,
+                                                                 const codegen::IRBuilder& builder,
                                                                  const tuplex::codegen::SerializableValue &caller,
                                                                  const tuplex::codegen::SerializableValue &suffix) {
             using namespace llvm;
@@ -1933,7 +1933,7 @@ namespace tuplex {
         }
 
         SerializableValue FunctionRegistry::createReverseFindCall(
-            codegen::IRBuilder& builder,
+            const codegen::IRBuilder& builder,
             const tuplex::codegen::SerializableValue &caller,
             const tuplex::codegen::SerializableValue &needle) {
           // simple, use helper function
@@ -2016,7 +2016,7 @@ namespace tuplex {
 
 #warning "Doesn't support unicode strings"
         SerializableValue FunctionRegistry::createIsDecimalCall(LambdaFunctionBuilder &lfb,
-                                                                codegen::IRBuilder& builder,
+                                                                const codegen::IRBuilder& builder,
                                                                 const SerializableValue &caller) {
             using namespace llvm;
             assert(caller.val->getType() == _env.i8ptrType());
@@ -2038,7 +2038,7 @@ namespace tuplex {
 
 #warning "Doesn't support unicode strings"
         SerializableValue FunctionRegistry::createIsDigitCall(LambdaFunctionBuilder &lfb,
-                                                              codegen::IRBuilder& builder,
+                                                              const codegen::IRBuilder& builder,
                                                               const SerializableValue &caller) {
             using namespace llvm;
             assert(caller.val->getType() == _env.i8ptrType());
@@ -2060,7 +2060,7 @@ namespace tuplex {
 
 #warning "Doesn't support unicode strings"
         SerializableValue FunctionRegistry::createIsAlphaCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                              codegen::IRBuilder& builder,
+                                                              const codegen::IRBuilder& builder,
                                                               const tuplex::codegen::SerializableValue &caller) {
             using namespace llvm;
             assert(caller.val->getType() == _env.i8ptrType());
@@ -2082,7 +2082,7 @@ namespace tuplex {
 
 #warning "Doesn't support unicode strings"
         SerializableValue FunctionRegistry::createIsAlNumCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                              codegen::IRBuilder& builder,
+                                                              const codegen::IRBuilder& builder,
                                                               const tuplex::codegen::SerializableValue &caller) {
             auto res = builder.CreateAlloca(_env.getBooleanType(), 0, nullptr);
             auto isEmpty = builder.CreateICmpEQ(caller.size, _env.i64Const(1));
@@ -2170,7 +2170,7 @@ namespace tuplex {
                                                             std::function<llvm::Value*(void)> elseCase,
                                                             llvm::Value *res,
                                                             tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                            codegen::IRBuilder& builder) {
+                                                            const codegen::IRBuilder& builder) {
             using namespace llvm;
 
             BasicBlock *ifBB = BasicBlock::Create(_env.getContext(), "if", builder.GetInsertBlock()->getParent());
@@ -2195,7 +2195,7 @@ namespace tuplex {
         }
 
         codegen::SerializableValue FunctionRegistry::createAttributeCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                                         codegen::IRBuilder& builder,
+                                                                         const codegen::IRBuilder& builder,
                                                                          const std::string &symbol,
                                                                          const python::Type &callerType,
                                                                          const python::Type &argsType,

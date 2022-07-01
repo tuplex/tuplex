@@ -170,6 +170,10 @@ namespace tuplex {
                 return get_or_throw().CreateSRem(LHS, RHS, Name);
             }
 
+            inline llvm::Value *CreateFRem(llvm::Value *L, llvm::Value *R, const std::string &Name = "",
+                                           llvm::MDNode *FPMD = nullptr) const {
+                 return get_or_throw().CreateFRem(L, R, Name, FPMD);
+             }
 
             inline llvm::Value *CreateInsertValue(llvm::Value *Agg, llvm::Value *Val,
                                           llvm::ArrayRef<unsigned> Idxs,
@@ -240,6 +244,10 @@ namespace tuplex {
                 return get_or_throw().CreateBr(Dest);
             }
 
+            inline llvm::IndirectBrInst *CreateIndirectBr(llvm::Value *Addr, unsigned NumDests = 10) const {
+                 return get_or_throw().CreateIndirectBr(Addr, NumDests);
+             }
+
             inline void SetInsertPoint(llvm::BasicBlock *TheBB) const {
                 assert(TheBB);
                 get_or_throw().SetInsertPoint(TheBB);
@@ -276,7 +284,7 @@ namespace tuplex {
             }
 
              inline llvm::Value *CreateAShr(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
-                               bool isExact = false) {
+                               bool isExact = false) const {
                 return get_or_throw().CreateAShr(LHS, RHS, Name, isExact);
             }
 
@@ -301,9 +309,12 @@ namespace tuplex {
              }
 
             inline llvm::Value *CreateSDiv(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
-                              bool isExact = false) {
+                              bool isExact = false) const {
                  return get_or_throw().CreateSDiv(LHS, RHS, Name, isExact);
              }
+
+            inline llvm::Value *CreateUDiv(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
+                              bool isExact = false) const { return get_or_throw().CreateUDiv(LHS, RHS, Name, isExact); }
 
             inline llvm::Value *CreateGEP(llvm::Type *Ty, llvm::Value *Ptr, llvm::ArrayRef<llvm::Value *> IdxList,
                               const std::string &Name = "") const {

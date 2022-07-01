@@ -32,7 +32,7 @@ namespace tuplex {
 
         inline llvm::Type* v16qi_type(llvm::LLVMContext& ctx) {
 #if LLVM_VERSION_MAJOR < 10
-            return llvm::VectorType::get(llvm::Type::getInt8Ty(context), 16u);
+            return llvm::VectorType::get(llvm::Type::getInt8Ty(ctx), 16u);
 #else
             return llvm::VectorType::get(llvm::Type::getInt8Ty(ctx), 16u, false);
 #endif

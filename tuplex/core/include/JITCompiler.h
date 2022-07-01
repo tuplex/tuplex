@@ -16,7 +16,7 @@
 
 // depending on LLVM version, include specific implementation as ORC API is super unstable
 #if LLVM_VERSION_MAJOR <= 9
-#include "JITCompiler_llvm9.h"
+#include "llvm9/JITCompiler_llvm9.h"
 #else
 #include "llvm13/JITCompiler_llvm13.h"
 #endif

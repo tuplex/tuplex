@@ -387,11 +387,23 @@ namespace tuplex {
             }
 
              inline llvm::LoadInst *CreateLoad(llvm::Type *Ty, llvm::Value *Ptr, const char *Name) const {
+#if LLVM_VERSION_MAJOR == 9
+                 return get_or_throw().CreateLoad(Ty, Ptr, Name);
+#elif LLVM_VERSION_MAJOR > 9
                  return get_or_throw().CreateAlignedLoad(Ty, Ptr, llvm::MaybeAlign(), Name);
+#else
+                return get_or_throw().CreateLoad(Ty, Ptr, Name);
+#endif
              }
 
              inline llvm::LoadInst *CreateLoad(llvm::Type *Ty, llvm::Value *Ptr, const std::string &Name = "") const {
+#if LLVM_VERSION_MAJOR == 9
+                 return get_or_throw().CreateLoad(Ty, Ptr, Name);
+#elif LLVM_VERSION_MAJOR > 9
                  return get_or_throw().CreateAlignedLoad(Ty, Ptr, llvm::MaybeAlign(), Name);
+#else
+                return get_or_throw().CreateLoad(Ty, Ptr, Name);
+#endif
              }
 
              inline llvm::LoadInst *CreateLoad(llvm::Value *Ptr, const std::string& Name ="") const {
@@ -488,7 +500,14 @@ namespace tuplex {
                                             llvm::MDNode *TBAAStructTag = nullptr,
                                             llvm::MDNode *ScopeTag = nullptr,
                                             llvm::MDNode *NoAliasTag = nullptr) const {
+#if LLVM_VERSION_MAJOR == 9
+                return get_or_throw().CreateMemCpy(Dst, DstAlign, Src, SrcAlign, Size, isVolatile, TBAATag, TBAAStructTag, ScopeTag, NoAliasTag);
+#elif LLVM_VERSION_MAJOR > 9
                 return get_or_throw().CreateMemCpy(Dst, llvm::MaybeAlign(DstAlign), Src, llvm::MaybeAlign(SrcAlign), Size, isVolatile, TBAATag, TBAAStructTag, ScopeTag, NoAliasTag);
+#else
+                return get_or_throw().CreateMemCpy(Dst, Src, Size, SrcAlign);
+#endif
+
             }
 
             inline llvm::PHINode* CreatePHI(llvm::Type* type, unsigned NumReservedValues, const std::string& twine="") const {

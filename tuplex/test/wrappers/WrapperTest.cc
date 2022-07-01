@@ -2570,6 +2570,46 @@ TEST_F(WrapperTest, PartitionRelease) {
 
 }
 
+TEST_F(WrapperTest, TracingVisitorError) {
+    using namespace tuplex;
+
+    auto udf_code = "def count(L):\n"
+                    "    d = {}\n"
+                    "    for x in L:\n"
+                    "        if x not in d.keys():\n"
+                    "            d[x] = 0\n"
+                    "        d[x] += 1\n"
+                    "    return d";
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+        auto cols_to_select = PyList_New(1);
+        PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Unique Key"));
+
+
+        PyObject *listObj = PyList_New(1);
+        PyObject *sublistObj1 = PyList_New(2);
+        PyList_SET_ITEM(sublistObj1, 0, python::PyString_FromString("a"));
+        PyList_SET_ITEM(sublistObj1, 1, python::PyString_FromString("b"));
+
+        PyList_SetItem(listObj, 0, sublistObj1);
+
+        auto list = py::reinterpret_borrow<py::list>(listObj);
+
+        auto res = ctx.parallelize(list).map(udf_code, "").collect();
+        auto resObj = res.ptr();
+        ASSERT_TRUE(PyList_Check(resObj));
+        EXPECT_LT(PyList_Size(resObj), 1);
+    }
+}
+
 
 //// debug any python module...
 ///** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.

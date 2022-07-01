@@ -192,17 +192,16 @@ namespace tuplex {
 
             // initialize lazily
             if(!_intermediate) {
-                auto b = codegen::IRBuilder(getFirstBlockBuilder(builder));
+                auto b = builder.firstBlockBuilder();
 
                 // now store into var!
                 // @TODO: upcast?
-                auto ft = FlattenedTuple::fromRow(_env.get(), b.get(), _intermediateInitialValue);
+                auto ft = FlattenedTuple::fromRow(_env.get(), b, _intermediateInitialValue);
                 auto var = ft.loadToPtr(b.get(), "intermediate");
                 _intermediate = var;
             }
 
             assert(_intermediate);
-
             return _intermediate;
         }
 

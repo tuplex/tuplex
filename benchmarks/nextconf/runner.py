@@ -70,9 +70,12 @@ def get_container():
 @click.option('--num-runs', type=int, default=11,
               help='How many runs to run experiment with (default=11 for 10 runs + 1 warmup run')
 @click.option('--detach/--no-detach', default=False, help='whether to launch command in detached mode (non-blocking)')
+@click.option('--help', default=False, help='display help about target')
 @click.pass_context
-def run(ctx, target, num_runs, detach):
+def run(ctx, target, num_runs, detach, display_help):
     """ run benchmarks for specific dataset. THIS MIGHT TAKE A WHILE! """
+
+    experiment_targets = {'flights/sampling', 'flights/hyper'}
 
     logging.info("Retrieving AWS credentials")
     session = boto3.Session()
@@ -92,6 +95,10 @@ def run(ctx, target, num_runs, detach):
     logging.info('Running for AWS region={}.'.format(region))
     sys.exit(0)
     logging.info('Running experiments for target {}'.format(target))
+
+
+
+
 
     # experiment_targets = ['all', 'zillow', 'flights', 'logs', '311',
     #                       'tpch', 'zillow/Z1', 'zillow/Z2', 'zillow/exceptions',

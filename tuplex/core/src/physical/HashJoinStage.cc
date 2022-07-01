@@ -103,8 +103,8 @@ namespace tuplex {
         builder.SetInsertPoint(bbLoopExit);
 
         // rtfree all
-        env->freeAll(builder.get());
-        builder.get().CreateRetVoid();
+        env->freeAll(builder);
+        builder.CreateRetVoid();
 
         return env->getIR();
     }
@@ -138,7 +138,7 @@ namespace tuplex {
         ftIn.init(probeType);
         auto curPtr = builder.CreateLoad(ptrVar);
 
-        ftIn.deserializationCode(builder.get(), curPtr);
+        ftIn.deserializationCode(builder, curPtr);
 
         //// debug print first col
         //env->debugPrint(builder, "first column: ", ftIn.get(0));
@@ -170,7 +170,7 @@ namespace tuplex {
         // auto in_hash_map = builder.CreateCall(hmap_get_func, {hashMap, key, hashedValueVar});
         // auto found_val = builder.CreateICmpEQ(in_hash_map, env->i32Const(0));
 
-        auto found_val = env->callBytesHashmapGet(builder.get(), hashMap, key, nullptr, hashedValueVar);
+        auto found_val = env->callBytesHashmapGet(builder, hashMap, key, nullptr, hashedValueVar);
 
         // env->debugPrint(builder, "hmap_get result ", in_hash_map);
         // env->debugPrint(builder, "found value in hashmap", found_val);
@@ -205,7 +205,7 @@ namespace tuplex {
         builder.SetInsertPoint(bbNext);
 
         // advance ptr
-        auto serializedSize = ftIn.getSize(builder.get()); // should be 341 for the first row!
+        auto serializedSize = ftIn.getSize(builder); // should be 341 for the first row!
 
         //env->debugPrint(builder, "serialized size:", serializedSize);
         builder.CreateStore(builder.CreateGEP(curPtr, serializedSize), ptrVar);
@@ -229,8 +229,8 @@ namespace tuplex {
             // i.e. separate null bucket!
 
             // for now: "" is NULL "_" + val is for keys
-            auto skey_ptr = builder.CreateSelect(key.is_null, env->malloc(builder.get(), env->i64Const(1)),
-                                                 env->malloc(builder.get(), builder.CreateAdd(key.size, env->i64Const(1))));
+            auto skey_ptr = builder.CreateSelect(key.is_null, env->malloc(builder, env->i64Const(1)),
+                                                 env->malloc(builder, builder.CreateAdd(key.size, env->i64Const(1))));
 
             BasicBlock *bbNull = BasicBlock::Create(context, "key_is_null", builder.GetInsertBlock()->getParent());
             BasicBlock *bbNotNull = BasicBlock::Create(context, "key_not_null", builder.GetInsertBlock()->getParent());
@@ -278,13 +278,13 @@ namespace tuplex {
         bucketPtr = builder.CreateGEP(bucketPtr, env->i64Const(sizeof(int64_t)));
 
         // TODO: put bucketPtr Var in constructor
-        auto bucketPtrVar = env->CreateFirstBlockAlloca(builder.get(),
+        auto bucketPtrVar = env->CreateFirstBlockAlloca(builder,
                                                         env->i8ptrType()); //builder.CreateAlloca(env->i8ptrType(), 0, nullptr, "bucketPtrVar");
         builder.CreateStore(bucketPtr, bucketPtrVar);
 
         // loop over numRows
         // TODO: put counter var in constructor block!
-        auto loopVar = env->CreateFirstBlockAlloca(builder.get(),
+        auto loopVar = env->CreateFirstBlockAlloca(builder,
                                                    env->i64Type()); //builder.CreateAlloca(env->i64Type(), 0, nullptr, "iBucketRowVar");
         builder.CreateStore(env->i64Const(0), loopVar);
 
@@ -311,7 +311,7 @@ namespace tuplex {
         // Now: deserialize probe row and build row
         codegen::FlattenedTuple ftBuild(env.get());
         ftBuild.init(buildType);
-        ftBuild.deserializationCode(builder.get(), bucketPtr);
+        ftBuild.deserializationCode(builder, bucketPtr);
 
         // print out probe key
         // env->debugPrint(builder, "build key column: ", ftBuild.get(buildKeyIndex));
@@ -344,7 +344,7 @@ namespace tuplex {
             }
         }
 
-        auto buf = ftResult.serializeToMemory(builder.get());
+        auto buf = ftResult.serializeToMemory(builder);
 
         // call writeRow function
         FunctionType *writeCallback_type = FunctionType::get(codegen::ctypeToLLVM<int64_t>(context),
@@ -460,7 +460,7 @@ namespace tuplex {
             }
         }
 
-        auto buf = ftResult.serializeToMemory(builder.get());
+        auto buf = ftResult.serializeToMemory(builder);
 
         // call writeRow function
         FunctionType *writeCallback_type = FunctionType::get(codegen::ctypeToLLVM<int64_t>(context),

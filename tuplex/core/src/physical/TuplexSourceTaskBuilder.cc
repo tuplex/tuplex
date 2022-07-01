@@ -196,14 +196,14 @@ namespace tuplex {
                 writeIntermediate(builder, argUserData, _intermediateCallbackName);
             }
 
-            env().storeIfNotNull(builder.get(), builder.CreateLoad(normalRowCountVar), argOutNormalRowCount);
-            env().storeIfNotNull(builder.get(), builder.CreateLoad(badRowCountVar), argOutBadRowCount);
+            env().storeIfNotNull(builder, builder.CreateLoad(normalRowCountVar), argOutNormalRowCount);
+            env().storeIfNotNull(builder, builder.CreateLoad(badRowCountVar), argOutBadRowCount);
 
             // return bytes read
             Value* curPtr = builder.CreateLoad(currentInputPtrVar, "ptr");
-            Value* bytesRead = builder.CreateSub(builder.get().CreatePtrToInt(curPtr, env().i64Type()),
-                                                 builder.get().CreatePtrToInt(argInPtr, env().i64Type()));
-            builder.get().CreateRet(bytesRead);
+            Value* bytesRead = builder.CreateSub(builder.CreatePtrToInt(curPtr, env().i64Type()),
+                                                 builder.CreatePtrToInt(argInPtr, env().i64Type()));
+            builder.CreateRet(bytesRead);
         }
     }
 }

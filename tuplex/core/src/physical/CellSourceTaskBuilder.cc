@@ -57,7 +57,7 @@ namespace tuplex {
                 auto numRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env().i64Type());
 
                 if(terminateEarlyOnLimitCode)
-                    generateTerminateEarlyOnCode(builder.get(), ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
+                    generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
 
                 // // -- debug print row numbers
                 // env().debugPrint(builder, "numRowsCreatedByPipeline", numRowsCreated);
@@ -75,7 +75,7 @@ namespace tuplex {
                                                                                "pipeline_ok",
                                                                                builder.GetInsertBlock()->getParent());
                     // add here exception block for pipeline errors, serialize tuple etc...
-                    auto serialized_row = ft.serializeToMemory(builder.get());
+                    auto serialized_row = ft.serializeToMemory(builder);
                     auto outputRowNumber = builder.CreateLoad(outputRowNumberVar);
                     llvm::BasicBlock *curBlock = builder.GetInsertBlock();
                     auto bbException = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber,
@@ -93,7 +93,7 @@ namespace tuplex {
                         writeIntermediate(builder, userData, _intermediateCallbackName);
                     }
 
-                    builder.get().CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                    builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
                 } else {
 
                     // if intermediate callback desired, perform!
@@ -102,7 +102,7 @@ namespace tuplex {
                     }
 
                     // propagate result to callee, because can be used to update counters
-                    builder.get().CreateRet(builder.CreateZExtOrTrunc(ecCode, env().i64Type()));
+                    builder.CreateRet(builder.CreateZExtOrTrunc(ecCode, env().i64Type()));
                 }
             } else {
                 // if intermediate callback desired, perform!
@@ -111,7 +111,7 @@ namespace tuplex {
                 }
 
                 // create success ret
-                builder.get().CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
             }
             return func;
         }
@@ -162,25 +162,25 @@ namespace tuplex {
                         // fill in
                         auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
                         auto size = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
-                        ft.setElement(builder.get(), rowTypePos, val, size, isnull);
+                        ft.setElement(builder, rowTypePos, val, size, isnull);
                     } else if(python::Type::BOOLEAN == t) {
                         // conversion code here
                         auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
                         auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
                         auto val = parseBoolean(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
-                        ft.setElement(builder.get(), rowTypePos, val.val, val.size, isnull);
+                        ft.setElement(builder, rowTypePos, val.val, val.size, isnull);
                     } else if(python::Type::I64 == t) {
                         // conversion code here
                         auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
                         auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
                         auto val = parseI64(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
-                        ft.setElement(builder.get(), rowTypePos, val.val, val.size, isnull);
+                        ft.setElement(builder, rowTypePos, val.val, val.size, isnull);
                     } else if(python::Type::F64 == t) {
                         // conversion code here
                         auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
                         auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
                         auto val = parseF64(*_env, builder, valueErrorBlock(builder), cellStr, cellSize, isnull);
-                        ft.setElement(builder.get(), rowTypePos, val.val, val.size, isnull);
+                        ft.setElement(builder, rowTypePos, val.val, val.size, isnull);
                     } else if(python::Type::NULLVALUE == t) {
                         // perform null check only, & set null element depending on result
                         auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
@@ -190,7 +190,7 @@ namespace tuplex {
                         BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(i) + "_value_check_passed", builder.GetInsertBlock()->getParent());
                         builder.CreateCondBr(isnull, bbNullCheckPassed, valueErrorBlock(builder));
                         builder.SetInsertPoint(bbNullCheckPassed);
-                        ft.setElement(builder.get(), rowTypePos, nullptr, nullptr, env().i1Const(true)); // set NULL (should be ignored)
+                        ft.setElement(builder, rowTypePos, nullptr, nullptr, env().i1Const(true)); // set NULL (should be ignored)
                     } else {
                         throw std::runtime_error("unsupported type " + t.desc() + " in CSV Parser gen encountered (CellSourceTaskBuilder)");
                     }

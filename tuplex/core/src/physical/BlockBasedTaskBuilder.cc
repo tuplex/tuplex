@@ -192,7 +192,7 @@ namespace tuplex {
 
             // initialize lazily
             if(!_intermediate) {
-                auto b = codegen::IRBuilder(getFirstBlockBuilder(builder.get()));
+                auto b = codegen::IRBuilder(getFirstBlockBuilder(builder));
 
                 // now store into var!
                 // @TODO: upcast?
@@ -210,9 +210,9 @@ namespace tuplex {
                                                       const std::string &intermediateCallbackName) {
             using namespace llvm;
 
-            FlattenedTuple row = FlattenedTuple::fromLLVMStructVal(_env.get(), builder.get(), _intermediate, _intermediateType);
+            FlattenedTuple row = FlattenedTuple::fromLLVMStructVal(_env.get(), builder, _intermediate, _intermediateType);
 
-            auto serialized_row = row.serializeToMemory(builder.get());
+            auto serialized_row = row.serializeToMemory(builder);
 
             // call callback
             // typedef int64_t(*write_row_f)(void*, uint8_t*, int64_t);

@@ -74,7 +74,7 @@ namespace tuplex {
             auto numColumns = parseRowType.parameters().size();
             for(int col = 0; col < numColumns; ++col) {
                 auto val = _parseRowGen->getColumnResult(builder, col, parseResult);
-                ft.set(builder.get(), {col}, val.val, val.size, val.is_null);
+                ft.set(builder, {col}, val.val, val.size, val.is_null);
 
 #ifdef TRACE_PARSER
                 if(val.val)
@@ -162,10 +162,10 @@ namespace tuplex {
                 auto numRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env().i64Type()); // important!!! ==> add to outputRowVar!
 
                 if(terminateEarlyOnLimitCode)
-                    generateTerminateEarlyOnCode(builder.get(), ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
+                    generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
 
                 // call rtfree all after processing one row...
-                _env->freeAll(builder.get());
+                _env->freeAll(builder);
                 // env().debugPrint(builder, "ecCode of processRowFunc: ", ecCode);
 
                 auto exceptionRaised = builder.CreateICmpNE(ecCode, env().i64Const(ecToI32(ExceptionCode::SUCCESS)));
@@ -174,7 +174,7 @@ namespace tuplex {
 
                 // create exception block, serialize input row depending on result
                 // note: creating exception block automatically sets builder to this block
-                auto serialized_row = ft.serializeToMemory(builder.get());
+                auto serialized_row = ft.serializeToMemory(builder);
                 auto outputRowNumber = builder.CreateLoad(outputRowNumberVar);
                 llvm::BasicBlock* curBlock = builder.GetInsertBlock();
                 llvm::BasicBlock* bbException = exceptionBlock(builder, userData, ecCode, ecOpID,
@@ -272,7 +272,7 @@ namespace tuplex {
 
 
             // @TODO: row is processed, so free runtime memory allocated for processing this row...
-            env().freeAll(builder.get());
+            env().freeAll(builder);
         }
 
         void JITCSVSourceTaskBuilder::createMainLoop(llvm::Function* read_block_func, bool terminateEarlyOnLimitCode) {
@@ -396,8 +396,8 @@ namespace tuplex {
 
             // condition
             builder.SetInsertPoint(bLoopCond);
-            Value *cond = builder.get().CreateICmpULT(builder.get().CreatePtrToInt(builder.CreateLoad(currentPtrVar, "readPtr"), env().i64Type()),
-                                                builder.get().CreatePtrToInt(endPtr, env().i64Type()));
+            Value *cond = builder.CreateICmpULT(builder.CreatePtrToInt(builder.CreateLoad(currentPtrVar, "readPtr"), env().i64Type()),
+                                                builder.CreatePtrToInt(endPtr, env().i64Type()));
 #ifdef TRACE_PARSER
             env().debugPrint(builder, "readPtr", builder.CreatePtrToInt(builder.CreateLoad(currentPtrVar, "readPtr"), env().i64Type()));
             env().debugPrint(builder, "endPtr", builder.CreatePtrToInt(endPtr, env().i64Type()));
@@ -427,7 +427,7 @@ namespace tuplex {
             auto parseErrorInLastRow = builder.CreateICmpNE(builder.CreateLoad(parseCodeVar), env().i32Const(0));
             auto badLastRow = builder.CreateOr(endPtrNotEof, parseErrorInLastRow);
             auto ignoreLastParseError = builder.CreateAnd(badLastRow,
-                                                          env().booleanToCondition(builder.get(), argIgnoreLastRow));
+                                                          env().booleanToCondition(builder, argIgnoreLastRow));
 #ifdef TRACE_PARSER
             env().debugPrint(builder, "is last val different than eof? ", endPtrNotEof);
         env().debugPrint(builder, "badLastRow", badLastRow);
@@ -451,8 +451,8 @@ namespace tuplex {
 
             // load begin of faulty line if there was an error, else no problem
             auto lineStart = builder.CreateLoad(builder.CreateGEP(resStructVar, {env().i32Const(0), env().i32Const(1)}));
-            auto totalReadBytes = builder.CreateSub(builder.get().CreatePtrToInt(lineStart, env().i64Type()),
-                                                    builder.get().CreatePtrToInt(argInPtr, env().i64Type()));
+            auto totalReadBytes = builder.CreateSub(builder.CreatePtrToInt(lineStart, env().i64Type()),
+                                                    builder.CreatePtrToInt(argInPtr, env().i64Type()));
 
             auto retVal = builder.CreateSelect(badLastRow, totalReadBytes, argInSize);
 
@@ -462,7 +462,7 @@ namespace tuplex {
             if(!_intermediateCallbackName.empty())
                 writeIntermediate(builder, argUserData, _intermediateCallbackName);
 
-            builder.get().CreateRet(retVal);
+            builder.CreateRet(retVal);
             // --- block end ---
 
 
@@ -476,8 +476,8 @@ namespace tuplex {
             processRow(builder, argUserData, builder.CreateLoad(parseCodeVar), resStructVar, normalRowCountVar, badRowCountVar, outputRowNumberVar, nullptr, nullptr, terminateEarlyOnLimitCode, pipFunc);
             // end process row here -- EN
 
-            env().storeIfNotNull(builder.get(), builder.CreateLoad(normalRowCountVar), argOutNormalRowCount);
-            env().storeIfNotNull(builder.get(), builder.CreateLoad(badRowCountVar), argOutBadRowCount);
+            env().storeIfNotNull(builder, builder.CreateLoad(normalRowCountVar), argOutNormalRowCount);
+            env().storeIfNotNull(builder, builder.CreateLoad(badRowCountVar), argOutBadRowCount);
             // this here should be the same AS the inputSize.
             //    totalReadBytes = builder.CreateSub(builder.CreatePtrToInt(builder.CreateLoad(currentPtrVar), env->i64Type()),
             //            builder.CreatePtrToInt(argInPtr, env->i64Type()));
@@ -486,7 +486,7 @@ namespace tuplex {
             // last row may have changed intermediate again, so write now!
             if(!_intermediateCallbackName.empty())
                 writeIntermediate(builder, argUserData, _intermediateCallbackName);
-            builder.get().CreateRet(argInSize);
+            builder.CreateRet(argInSize);
             // -- block end --
         }
     }

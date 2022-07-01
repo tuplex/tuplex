@@ -41,7 +41,7 @@ namespace tuplex {
             inline llvm::Value* nullCheck(IRBuilder& builder, llvm::Value* ptr) {
                 assert(ptr);
                 // Note: maybe put this into separate function & emit call? ==> might be easier for llvm to optimize!
-                return env().compareToNullValues(builder.get(), ptr, _nullValues, true); // NOTE: ptr must be 0 terminated!
+                return env().compareToNullValues(builder, ptr, _nullValues, true); // NOTE: ptr must be 0 terminated!
             }
 
         public:

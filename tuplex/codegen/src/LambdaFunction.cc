@@ -187,7 +187,7 @@ namespace tuplex {
         LambdaFunction LambdaFunctionBuilder::exitWithException(const ExceptionCode &ec) {
             auto builder = getIRBuilder();
             auto ecCode = _env->i64Const(ecToI64(ec));
-            builder.get().CreateRet(ecCode);
+            builder.CreateRet(ecCode);
             _body = nullptr;
             return _func;
         }
@@ -212,7 +212,7 @@ namespace tuplex {
                 auto s = _env->getLLVMTypeName(_retValPtr->getType());
                 // there is nothing to store here, struct type is type {} anyways...
                 int64_t ec = (int64_t) ExceptionCode::SUCCESS;
-                builder.get().CreateRet(_env->i64Const(ec));
+                builder.CreateRet(_env->i64Const(ec));
 
                 _body = nullptr;
 
@@ -252,7 +252,7 @@ namespace tuplex {
             // store res
             builder.CreateStore(res, _retValPtr);
             int64_t ec = (int64_t) ExceptionCode::SUCCESS;
-            builder.get().CreateRet(_env->i64Const(ec));
+            builder.CreateRet(_env->i64Const(ec));
             _body = nullptr;
 
             // save info on this function to static global here (to retrieve later)

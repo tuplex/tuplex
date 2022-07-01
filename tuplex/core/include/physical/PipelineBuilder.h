@@ -170,14 +170,14 @@ namespace tuplex {
                 auto nrows = builder.CreateZExtOrTrunc(numRows, env().i32Type());
 
                 // store into ret!
-                auto idx_rc = env().CreateStructGEP(builder.get(), _args["result"], 0);
-                auto idx_id = env().CreateStructGEP(builder.get(), _args["result"], 1);
-                auto idx_nrows = env().CreateStructGEP(builder.get(), _args["result"], 2);
+                auto idx_rc = env().CreateStructGEP(builder, _args["result"], 0);
+                auto idx_id = env().CreateStructGEP(builder, _args["result"], 1);
+                auto idx_nrows = env().CreateStructGEP(builder, _args["result"], 2);
 
                 builder.CreateStore(rc, idx_rc);
                 builder.CreateStore(id, idx_id);
                 builder.CreateStore(nrows, idx_nrows);
-                builder.get().CreateRetVoid();
+                builder.CreateRetVoid();
             }
 
             // if/else constructs for better code generation => similar to the idea in https://github.com/cmu-db/peloton/blob/1de89798f271804f8be38a71219a20e761a1b4b6/src/include/codegen/lang/if.h

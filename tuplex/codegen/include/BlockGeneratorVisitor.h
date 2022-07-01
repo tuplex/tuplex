@@ -170,7 +170,7 @@ namespace codegen {
             }
 
             inline void store(const codegen::IRBuilder& builder, const codegen::SerializableValue& val) {
-                store(builder.get(), val);
+                store(builder, val);
             }
         };
 

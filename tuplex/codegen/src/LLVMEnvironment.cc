@@ -1588,7 +1588,7 @@ namespace tuplex {
 
             // create initializer code
             // create global pointer to regex pattern
-            auto global_pattern_str = initGlobalBuilder.get().CreateGlobalStringPtr(regexPattern);
+            auto global_pattern_str = initGlobalBuilder.CreateGlobalStringPtr(regexPattern);
             // allocate some error space
             auto errornumber = initGlobalBuilder.CreateAlloca(initGlobalBuilder.getInt32Ty());
             auto erroroffset = initGlobalBuilder.CreateAlloca(initGlobalBuilder.getInt64Ty());
@@ -1612,7 +1612,7 @@ namespace tuplex {
             // debugPrint(initGlobalBuilder, "jitFailed for regex " + regexPattern + ": ", jitFailed);
 #endif
             auto initFailed = initGlobalBuilder.CreateOr(compileFailed, jitFailed);
-            initGlobalBuilder.CreateStore(initGlobalBuilder.get().CreateIntCast(initFailed, i64Type(), false), _initGlobalRetValue);
+            initGlobalBuilder.CreateStore(initGlobalBuilder.CreateIntCast(initFailed, i64Type(), false), _initGlobalRetValue);
 
             // create release code
             releaseGlobalBuilder.CreateCall(pcre2CodeFree_prototype(_context, _module.get()),{releaseGlobalBuilder.CreateLoad(gvar)});
@@ -1665,7 +1665,7 @@ namespace tuplex {
             auto compileContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.CreatePtrDiff(compile_context, i8nullptr()), i64Const(0));
             auto initFailed = initGlobalBuilder.CreateOr(generalContextFailed,
                                                          initGlobalBuilder.CreateOr(matchContextFailed,compileContextFailed));
-            initGlobalBuilder.CreateStore(initGlobalBuilder.get().CreateIntCast(initFailed, i64Type(), false), _initGlobalRetValue);
+            initGlobalBuilder.CreateStore(initGlobalBuilder.CreateIntCast(initFailed, i64Type(), false), _initGlobalRetValue);
 
             // create release code
             releaseGlobalBuilder.CreateCall(pcre2ReleaseGlobalGeneralContext_prototype(_context, _module.get()), {releaseGlobalBuilder.CreateLoad(generalContextVar)});
@@ -1824,7 +1824,7 @@ namespace tuplex {
             auto& ctx = env.getContext();
             auto func = builder.GetInsertBlock()->getParent(); assert(func);
 
-            Value* bool_val = env.CreateFirstBlockAlloca(builder.get(), env.getBooleanType());
+            Value* bool_val = env.CreateFirstBlockAlloca(builder, env.getBooleanType());
             builder.CreateStore(env.boolConst(false), bool_val);
 
             // all the basicblocks
@@ -1868,7 +1868,7 @@ namespace tuplex {
             auto& ctx = env.getContext();
             auto func = builder.GetInsertBlock()->getParent(); assert(func);
 
-            Value* i64_val = env.CreateFirstBlockAlloca(builder.get(), env.i64Type());
+            Value* i64_val = env.CreateFirstBlockAlloca(builder, env.i64Type());
             builder.CreateStore(env.i64Const(0), i64_val);
 
             // all the basicblocks
@@ -1910,7 +1910,7 @@ namespace tuplex {
             auto& ctx = env.getContext();
             auto func = builder.GetInsertBlock()->getParent(); assert(func);
 
-            Value* f64_val = env.CreateFirstBlockAlloca(builder.get(), env.doubleType());
+            Value* f64_val = env.CreateFirstBlockAlloca(builder, env.doubleType());
             builder.CreateStore(env.f64Const(0), f64_val);
 
             // all the basicblocks

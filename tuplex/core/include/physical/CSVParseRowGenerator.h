@@ -117,7 +117,7 @@ namespace tuplex {
                 auto i8ptr_type = llvm::Type::getInt8PtrTy(_env->getContext(), 0);
                 assert(ptr->getType() == i8ptr_type);
                 assert(_endPtr->getType() == i8ptr_type);
-                return builder.CreateSelect(builder.get().CreateICmpUGE(ptr, _endPtr), _env->i8Const(_escapechar),
+                return builder.CreateSelect(builder.CreateICmpUGE(ptr, _endPtr), _env->i8Const(_escapechar),
                                             builder.CreateLoad(ptr));
             }
 
@@ -125,8 +125,8 @@ namespace tuplex {
                 assert(_inputPtr);
                 assert(_inputPtr->getType() == llvm::Type::getInt8PtrTy(_env->getContext(), 0));
                 assert(ptr->getType() == llvm::Type::getInt8PtrTy(_env->getContext(), 0));
-                auto cond = builder.get().CreateICmpULT(builder.get().CreatePtrToInt(ptr, _env->i64Type()),
-                                                  builder.get().CreatePtrToInt(_inputPtr, _env->i64Type()));
+                auto cond = builder.CreateICmpULT(builder.CreatePtrToInt(ptr, _env->i64Type()),
+                                                  builder.CreatePtrToInt(_inputPtr, _env->i64Type()));
                 auto endval = builder.CreateSelect(cond, _inputPtr, ptr);
                 return endval;
             }
@@ -135,8 +135,8 @@ namespace tuplex {
                 assert(_endPtr);
                 assert(_endPtr->getType() == llvm::Type::getInt8PtrTy(_env->getContext(), 0));
                 assert(ptr->getType() == llvm::Type::getInt8PtrTy(_env->getContext(), 0));
-                auto cond = builder.get().CreateICmpULT(builder.get().CreatePtrToInt(ptr, _env->i64Type()),
-                                                  builder.get().CreatePtrToInt(_endPtr, _env->i64Type()));
+                auto cond = builder.CreateICmpULT(builder.CreatePtrToInt(ptr, _env->i64Type()),
+                                                  builder.CreatePtrToInt(_endPtr, _env->i64Type()));
                 auto endval = builder.CreateSelect(cond, ptr, _endPtr);
                 return endval;
             }
@@ -174,7 +174,7 @@ namespace tuplex {
 
                 // also clamp with cell begin
                 auto cb = builder.CreateLoad(_cellBeginVar);
-                auto final_ptr = builder.CreateSelect(builder.get().CreateICmpULT(clamped_ptr, cb), cb, clamped_ptr);
+                auto final_ptr = builder.CreateSelect(builder.CreateICmpULT(clamped_ptr, cb), cb, clamped_ptr);
 
                 builder.CreateStore(final_ptr, _cellEndVar);
             }
@@ -193,8 +193,8 @@ namespace tuplex {
 
             inline llvm::Value *numParsedBytes(IRBuilder &builder) {
                 auto ptr = currentPtr(builder);
-                return builder.CreateSub(builder.get().CreatePtrToInt(ptr, _env->i64Type()),
-                                         builder.get().CreatePtrToInt(_inputPtr, _env->i64Type()));
+                return builder.CreateSub(builder.CreatePtrToInt(ptr, _env->i64Type()),
+                                         builder.CreatePtrToInt(_inputPtr, _env->i64Type()));
             }
 
 
@@ -253,15 +253,15 @@ namespace tuplex {
 
                 // @TODO: generate more complicated check logic!
 
-                auto cell_size =  builder.CreateSub(builder.get().CreatePtrToInt(cellEndIncl, _env->i64Type()),
-                                                    builder.get().CreatePtrToInt(cellBegin, _env->i64Type()));
+                auto cell_size =  builder.CreateSub(builder.CreatePtrToInt(cellEndIncl, _env->i64Type()),
+                                                    builder.CreatePtrToInt(cellBegin, _env->i64Type()));
 
                 // if cell_size == 0, then it's an empty cell!
                 auto isEmpty = builder.CreateICmpEQ(cell_size, _env->i64Const(0));
 
                 // empty quoted cell?
                 auto isEmptyQuoted = builder.CreateAnd(builder.CreateICmpEQ(cell_size, _env->i64Const(2)),
-                                                       _env->fixedSizeStringCompare(builder.get(), cellBegin, char2str(_quotechar) + char2str(_quotechar)));
+                                                       _env->fixedSizeStringCompare(builder, cellBegin, char2str(_quotechar) + char2str(_quotechar)));
 
                 return builder.CreateOr(isEmpty, isEmptyQuoted);
 

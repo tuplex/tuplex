@@ -31,26 +31,26 @@ namespace tuplex {
             auto body = BasicBlock::Create(env->getContext(), "body", func);
             IRBuilder builder(body);
 
-            auto ft = FlattenedTuple::fromRow(env, builder.get(), row);
+            auto ft = FlattenedTuple::fromRow(env, builder, row);
 
-            auto size = ft.getSize(builder.get()); assert(size->getType() == env->i64Type());
+            auto size = ft.getSize(builder); assert(size->getType() == env->i64Type());
             builder.CreateStore(size, args["agg_size"]);
 
             // allocate using the allocator a pointer, then serialize everything to it...
             Value* ptr = nullptr;
             if(allocator == malloc) {
                 // use C-malloc
-                ptr = env->cmalloc(builder.get(), size);
+                ptr = env->cmalloc(builder, size);
             } else {
                 // use rtmalloc
-                ptr = env->malloc(builder.get(), size);
+                ptr = env->malloc(builder, size);
             }
 
             // serialize tuple to it!
-            ft.serialize(builder.get(), ptr);
+            ft.serialize(builder, ptr);
 
             builder.CreateStore(ptr, args["agg"]);
-            builder.get().CreateRet(env->i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            builder.CreateRet(env->i64Const(ecToI64(ExceptionCode::SUCCESS)));
 
             return func;
         }
@@ -89,17 +89,17 @@ namespace tuplex {
 
             // deserialize using aggType
             FlattenedTuple ftAgg(env); ftAgg.init(aggType);
-            ftAgg.deserializationCode(builder.get(), args["agg"]);
+            ftAgg.deserializationCode(builder, args["agg"]);
 
             FlattenedTuple ftOther(env); ftOther.init(aggType);
-            ftOther.deserializationCode(builder.get(), builder.CreateLoad(args["out"]));
+            ftOther.deserializationCode(builder, builder.CreateLoad(args["out"]));
 
             // compile the UDF now and call it.
             auto combinedType = python::Type::makeTupleType({aggType, aggType}); // this should be compatible to input type of aggUDF!
             FlattenedTuple ftin(env);
             ftin.init(combinedType);
-            ftin.set(builder.get(), {0}, ftOther);
-            ftin.set(builder.get(), {1}, ftAgg);
+            ftin.set(builder, {0}, ftOther);
+            ftin.set(builder, {1}, ftAgg);
 
             // compile dependent on udf
             assert(udf.isCompiled());
@@ -108,8 +108,8 @@ namespace tuplex {
             if(!cf.good())
                 return nullptr;
 
-            auto resultVar = env->CreateFirstBlockAlloca(builder.get(), cf.getLLVMResultType(*env));
-            auto exceptionVar = env->CreateFirstBlockAlloca(builder.get(), env->i64Type());
+            auto resultVar = env->CreateFirstBlockAlloca(builder, cf.getLLVMResultType(*env));
+            auto exceptionVar = env->CreateFirstBlockAlloca(builder, env->i64Type());
             builder.CreateStore(env->i64Const(ecToI64(ExceptionCode::SUCCESS)), exceptionVar);
 
             auto exceptionBlock = BasicBlock::Create(env->getContext(), "except", func);
@@ -121,27 +121,27 @@ namespace tuplex {
             // if it's variably allocated, free out after combine and realloc...
             if(aggType.isFixedSizeType()) {
                 // simply overwrite output!
-                ftOut.serialize(builder.get(), builder.CreateLoad(args["out"]));
+                ftOut.serialize(builder, builder.CreateLoad(args["out"]));
             } else {
                 // free & alloc new output!
                 Value* ptr = builder.CreateLoad(args["out"]);
-                Value* size = ftOut.getSize(builder.get());
+                Value* size = ftOut.getSize(builder);
                 if(allocator == malloc) {
-                    env->cfree(builder.get(), ptr);
-                    ptr = env->cmalloc(builder.get(), size);
+                    env->cfree(builder, ptr);
+                    ptr = env->cmalloc(builder, size);
                 } else {
                     // rtmalloc?
                     // nothing to free
-                    ptr = env->malloc(builder.get(), size);
+                    ptr = env->malloc(builder, size);
                 }
 
                 // serialize to ptr
-                ftOut.serialize(builder.get(), ptr);
+                ftOut.serialize(builder, ptr);
                 builder.CreateStore(ptr, args["out"]);
                 builder.CreateStore(size, args["out_size"]);
             }
 
-            builder.get().CreateRet(builder.CreateLoad(exceptionVar));
+            builder.CreateRet(builder.CreateLoad(exceptionVar));
             return func;
         }
 
@@ -183,18 +183,18 @@ namespace tuplex {
 
             // deserialize using aggType
             FlattenedTuple ftAgg(env); ftAgg.init(aggType);
-            ftAgg.deserializationCode(builder.get(), out_row_buf);
+            ftAgg.deserializationCode(builder, out_row_buf);
 
             // deserialize using rowType
             FlattenedTuple ftRow(env); ftRow.init(rowType);
-            ftRow.deserializationCode(builder.get(), args["row"]);
+            ftRow.deserializationCode(builder, args["row"]);
 
             // compile the UDF now and call it.
             auto combinedType = python::Type::makeTupleType({aggType, rowType}); // this should be compatible to input type of aggUDF!
             FlattenedTuple ftin(env);
             ftin.init(combinedType);
-            ftin.set(builder.get(), {0}, ftAgg);
-            ftin.set(builder.get(), {1}, ftRow);
+            ftin.set(builder, {0}, ftAgg);
+            ftin.set(builder, {1}, ftRow);
 
             // compile dependent on udf
             assert(udf.isCompiled());
@@ -203,8 +203,8 @@ namespace tuplex {
             if(!cf.good())
                 return nullptr;
 
-            auto resultVar = tuplex::codegen::LLVMEnvironment::CreateFirstBlockAlloca(builder.get(), cf.getLLVMResultType(*env));
-            auto exceptionVar = tuplex::codegen::LLVMEnvironment::CreateFirstBlockAlloca(builder.get(), env->i64Type());
+            auto resultVar = tuplex::codegen::LLVMEnvironment::CreateFirstBlockAlloca(builder, cf.getLLVMResultType(*env));
+            auto exceptionVar = tuplex::codegen::LLVMEnvironment::CreateFirstBlockAlloca(builder, env->i64Type());
             builder.CreateStore(env->i64Const(ecToI64(ExceptionCode::SUCCESS)), exceptionVar);
 
             auto exceptionBlock = BasicBlock::Create(env->getContext(), "except", func);
@@ -216,29 +216,29 @@ namespace tuplex {
             // if it's variably allocated, free out after combine and realloc...
             if(aggType.isFixedSizeType()) {
                 // simply overwrite output!
-                ftOut.serialize(builder.get(), out_row_buf);
+                ftOut.serialize(builder, out_row_buf);
             } else {
                 // free & alloc new output!
                 Value* ptr = builder.CreateLoad(args["out"]);
-                Value* size = ftOut.getSize(builder.get());
+                Value* size = ftOut.getSize(builder);
                 if(allocator == malloc) {
-                    env->cfree(builder.get(), ptr);
-                    ptr = env->cmalloc(builder.get(), builder.CreateAdd(size, buf_offset));
+                    env->cfree(builder, ptr);
+                    ptr = env->cmalloc(builder, builder.CreateAdd(size, buf_offset));
                 } else {
                     // rtmalloc?
                     // nothing to free
-                    ptr = env->malloc(builder.get(), builder.CreateAdd(size, buf_offset));
+                    ptr = env->malloc(builder, builder.CreateAdd(size, buf_offset));
                 }
 
                 // serialize to ptr
                 auto buf_ptr = builder.CreateGEP(ptr, buf_offset);
                 auto size_ptr = builder.CreatePointerCast(ptr, env->i64ptrType());
                 builder.CreateStore(size, size_ptr);
-                ftOut.serialize(builder.get(), buf_ptr);
+                ftOut.serialize(builder, buf_ptr);
                 builder.CreateStore(ptr, args["out"]);
             }
 
-            builder.get().CreateRet(builder.CreateLoad(exceptionVar));
+            builder.CreateRet(builder.CreateLoad(exceptionVar));
             return func;
         }
     }

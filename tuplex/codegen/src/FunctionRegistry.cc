@@ -27,8 +27,8 @@ namespace llvm {
         CallInst *CI = CallInst::Create(Callee, Ops, Name);
         if (FMFSource)
             CI->copyFastMathFlags(FMFSource);
-        builder.GetInsertBlock()->getInstList().insert(builder.get().GetInsertPoint(), CI);
-        builder.get().SetInstDebugLocation(CI);
+        builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
+        builder.SetInstDebugLocation(CI);
         return CI;
     }
 
@@ -96,7 +96,7 @@ namespace tuplex {
 //
 //            // simple return: just size - 1
 //            llvm::Value* size = args[1];
-//            builder.get().CreateRet(builder.CreateSub(size, env.i64Const(1)));
+//            builder.CreateRet(builder.CreateSub(size, env.i64Const(1)));
 //
 //            return func;
 //        }
@@ -1720,7 +1720,7 @@ namespace tuplex {
             if(argsType.parameters().size() == 1) {
                 if(argsType.parameters().front() == python::Type::EMPTYITERATOR) {
                     // always raise exception when next is called on empty iterator
-                    lfb.addException(builder.get(), ExceptionCode::STOPITERATION, _env.i1Const(true));
+                    lfb.addException(builder, ExceptionCode::STOPITERATION, _env.i1Const(true));
                     return SerializableValue(_env.i64Const(0), _env.i64Const(8));
                 }
                 return _iteratorContextProxy->createIteratorNextCall(lfb, builder, argsType.parameters().front().yieldType(), args[0].val, SerializableValue(nullptr, nullptr), iteratorInfo);

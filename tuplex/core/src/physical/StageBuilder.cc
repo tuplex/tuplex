@@ -1063,8 +1063,8 @@ namespace tuplex {
 
             // close initStage/releaseStage functions
             // => call global init function of llvm env
-            isBuilder.get().CreateRet(env->callGlobalsInit(isBuilder.get()));
-            rsBuilder.get().CreateRet(env->callGlobalsRelease(rsBuilder.get()));
+            isBuilder.CreateRet(env->callGlobalsInit(isBuilder));
+            rsBuilder.CreateRet(env->callGlobalsRelease(rsBuilder));
 
             // // print module for debug/dev purposes
             // auto code = codegen::moduleToString(*env->getModule());

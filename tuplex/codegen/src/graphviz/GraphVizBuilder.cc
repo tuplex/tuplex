@@ -18,6 +18,7 @@
 #include <string>
 #include <array>
 #include <sstream>
+#include <Utils.h>
 
 const std::string GraphVizBuilder::nodePrefix = "n";
 
@@ -105,7 +106,8 @@ bool GraphVizBuilder::saveToPDF(const std::string &path) {
 
     // @TODO: Improve this later via direct streaming!
     // @TODO: This is bad design... However, I don't wanna spend time on handling temp files in C++...
-    std::string tempfile = "/tmp/graph.dot";
+
+    std::string tempfile = tempFileName();
 
     saveToDotFile(tempfile);
 

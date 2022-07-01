@@ -4,6 +4,7 @@ jedi
 astor==0.7.1
 pandas>=0.23.4
 cloudpickle
+Werkzeug==2.0.1
 flask>=2.0.1
 flask_socketio==4.3.1
 python-socketio==4.6.0

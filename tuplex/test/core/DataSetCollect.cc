@@ -661,5 +661,5 @@ TEST_F(DataSetTest, MapColumnTypingBug) {
     // c.csv("zillow_data.csv").mapColumn('title', lambda x: x + "-hi").filter(lambda a: False)
     auto v = c.csv("../resources/zillow_data.csv").mapColumn("title", UDF("lambda x: x + '-hi'")).unique().collectAsVector();//.filter(UDF("lambda a: False")).collectAsVector();
 
-    EXPECT_EQ(v.size(), 0);
+    EXPECT_GT(v.size(), 0);
 }

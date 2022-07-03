@@ -224,7 +224,7 @@ namespace tuplex {
         // -> if not, error and return empty vector!
 
         // hashKeyType is the type in which the key is stored. (NOT INCLUDING OPT!)
-        python::Type hashKeyType = result.keyType.withoutOptions(); // remove option b.c. of null-bucket design. @TODO: this is not 100% correct, because inner options will also get sacrificed by this...
+        python::Type hashKeyType = result.keyType; // remove option b.c. of null-bucket design. @TODO: this is not 100% correct, because inner options will also get sacrificed by this...
         python::Type keyRowType = python::Type::propagateToTupleType(hashKeyType);
 
         bool requiresUpcast = false;
@@ -338,8 +338,7 @@ namespace tuplex {
 
                         // decode Row from memory
                         auto row = Row::fromMemory(ds, key, keylen);
-
-                        throw std::runtime_error("decoding of other types not yet supported...");
+                        r = row.upcastedRow(out_row_type);
 
                         // // this is how it potentially should look like...
                         // // decode key into Row, upcast, serialize

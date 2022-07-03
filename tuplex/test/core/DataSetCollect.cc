@@ -467,7 +467,9 @@ TEST_F(DataSetTest, BuiltinPowerInt) {
     using namespace tuplex;
     using namespace std;
 
-    Context c(microTestOptions());
+    auto opt = microTestOptions();
+    opt.set("optimizer.mergeExceptionsInOrder", "true");
+    Context c(opt);
 
     // simple integer case, everything well defined...
     // --> majority positive

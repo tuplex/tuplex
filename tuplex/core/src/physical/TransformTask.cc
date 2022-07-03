@@ -536,6 +536,8 @@ namespace tuplex {
         assert(!_inputPartitions.empty());
         assert(_functor);
 
+#warning "there's a temp fix here, better to write partition/thread system and transfer ownership of partitions to write too upfront."
+
         _numInputRowsRead = 0;
         _numOutputRowsWritten = 0;
 
@@ -550,7 +552,7 @@ namespace tuplex {
 
         std::vector<uint8_t*> generalPartitions(_generalPartitions.size(), nullptr);
         for (int i = 0; i < _generalPartitions.size(); ++i)
-            generalPartitions[i] = _generalPartitions[i]->lockWriteRaw();
+            generalPartitions[i] = _generalPartitions[i]->lockWriteRaw(true);
         int64_t numGeneralPartitions = _generalPartitions.size();
         int64_t generalIndexOffset = 0;
         int64_t generalRowOffset = 0;
@@ -558,7 +560,7 @@ namespace tuplex {
 
         std::vector<uint8_t*> fallbackPartitions(_fallbackPartitions.size(), nullptr);
         for (int i = 0; i < _fallbackPartitions.size(); ++i)
-            fallbackPartitions[i] = _fallbackPartitions[i]->lockWriteRaw();
+            fallbackPartitions[i] = _fallbackPartitions[i]->lockWriteRaw(true);
         int64_t numFallbackPartitions = _fallbackPartitions.size();
         int64_t fallbackIndexOffset = 0;
         int64_t fallbackRowOffset = 0;

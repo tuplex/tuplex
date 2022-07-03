@@ -12,6 +12,8 @@
 #include <TGraph.h>
 #include <string>
 
+using namespace tuplex;
+
 TEST(Graph, BasicConnectivity) {
     TGraph<int> g;
     g.addNode(10);

@@ -677,7 +677,7 @@ TEST_F(MathFunctionsTest, MathPow) {
         Row(2), Row(1), Row(-1), Row(-2), Row(0)
     }).map(UDF("lambda y: math.pow(y, 5)", "", ce)).collectAsVector();
 
-    EXPECT_EQ(v2.size(), 5);
+    EXPECT_EQ(v4.size(), 5);
     EXPECT_DOUBLE_EQ(v4[0].getDouble(0), 32.0);
     EXPECT_DOUBLE_EQ(v4[1].getDouble(0), 1.0);
     EXPECT_DOUBLE_EQ(v4[2].getDouble(0), -1.0);

@@ -240,6 +240,7 @@ namespace tuplex {
         if(!result.hash_map && !result.null_bucket)
            return std::vector<Partition*>();
 
+        Deserializer ds(Schema(Schema::MemoryLayout::ROW, keyRowType));
         Partition* partition = nullptr;
         PartitionWriter pw(driver, outputSchema, outputDataSetID, context.id(), context.getOptions().PARTITION_SIZE());
 
@@ -334,6 +335,10 @@ namespace tuplex {
                         r = Row(s);
                         r = r.upcastedRow(out_row_type);
                     } else {
+
+                        // decode Row from memory
+                        auto row = Row::fromMemory(ds, key, keylen);
+
                         throw std::runtime_error("decoding of other types not yet supported...");
 
                         // // this is how it potentially should look like...

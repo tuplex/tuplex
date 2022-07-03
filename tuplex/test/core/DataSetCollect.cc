@@ -651,3 +651,15 @@ TEST_F(DataSetTest, OutputValidation) {
     EXPECT_THROW(c.parallelize({Row(Field::empty_list()), Row(Field::empty_list())}).map(UDF("lambda x: len(x)")).tocsv("."),
                  std::runtime_error);
 }
+
+
+TEST_F(DataSetTest, MapColumnTypingBug) {
+    // reported as https://github.com/tuplex/tuplex/issues/96
+    using namespace tuplex;
+
+    Context c(microTestOptions());
+    // c.csv("zillow_data.csv").mapColumn('title', lambda x: x + "-hi").filter(lambda a: False)
+    auto v = c.csv("../resources/zillow_data.csv").mapColumn("title", UDF("lambda x: x + '-hi'")).unique().collectAsVector();//.filter(UDF("lambda a: False")).collectAsVector();
+
+    EXPECT_EQ(v.size(), 0);
+}

@@ -1012,6 +1012,8 @@ namespace tuplex {
             using namespace llvm;
             using namespace std;
 
+#error "fix this here for hashing arbitrary types. I.e. serializing should do the trick"
+
             // check colKey and whether it works.
             auto lastType = _lastRowResult.getTupleType();
             python::Type keyType;

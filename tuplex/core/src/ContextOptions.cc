@@ -677,10 +677,30 @@ namespace tuplex {
         // check that key exists, else issue warning!
         auto it = _store.find(key);
 
+        auto lookup_key = key;
+
+        // if end, also check tuplex. version of it!
         if(it == _store.end())
-            Logger::instance().defaultLogger().error("could not find key '" + key + "'");
+            it = _store.find("tuplex." + key);
+
+        if(it != _store.end())
+            lookup_key = "tuplex." + key;
+
+        // still not found? check lowercase versions
+        if(it == _store.end()) {
+            for(it = _store.begin(); it != _store.end(); ++it) {
+                auto normalized_ref = tolower(it->first);
+                if(normalized_ref == tolower(key) || normalized_ref == tolower("tuplex." + key)) {
+                    lookup_key = it->first;
+                    break; // found valid iterator!
+                }
+            }
+        }
+
+        if(it == _store.end())
+            Logger::instance().defaultLogger().error("could not find key '" + key + "', ignoring set attempt.");
         else
-            _store[key] = value;
+            _store[lookup_key] = value;
     }
 
     size_t ContextOptions::DRIVER_MEMORY() const {

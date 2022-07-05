@@ -67,7 +67,7 @@ protected:
 
     void SetUp() override {
         testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
-        auto user = getUserName();
+        auto user = tuplex::getUserName();
         if(user.empty()) {
             std::cerr<<"could not retrieve user name, setting to user"<<std::endl;
             user = "user";

@@ -225,6 +225,12 @@ namespace tuplex {
 
         // hashKeyType is the type in which the key is stored. (NOT INCLUDING OPT!)
         python::Type hashKeyType = result.keyType; // remove option b.c. of null-bucket design. @TODO: this is not 100% correct, because inner options will also get sacrificed by this...
+
+        // special case: If keyRowType is option or tuple with single content -> nullbucket is used!
+        if(hashKeyType.isOptionType())
+            hashKeyType = hashKeyType.getReturnType();
+        if(hashKeyType.isTupleType() && hashKeyType.parameters().size() == 1 && hashKeyType.parameters().front().isOptionType())
+            hashKeyType = hashKeyType.parameters().front().getReturnType();
         python::Type keyRowType = python::Type::propagateToTupleType(hashKeyType);
 
         bool requiresUpcast = false;
@@ -329,7 +335,7 @@ namespace tuplex {
                 while((key = hashmap_get_next_key(hashtable, &iterator, &keylen)) != nullptr) {
                     Row r;
 
-                    if(hashKeyType == python::Type::propagateToTupleType(python::Type::STRING)) {
+                    if(hashKeyType == python::Type::STRING || hashKeyType == python::Type::propagateToTupleType(python::Type::STRING)) {
                         // use directly key as str...
                         std::string s(key);
                         r = Row(s);

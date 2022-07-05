@@ -1965,7 +1965,6 @@ namespace tuplex {
                                                    bool combine,
                                                    codegen::agg_init_f init_aggregate,
                                                    codegen::agg_combine_f combine_aggregate) {
-        assert(init_aggregate && combine_aggregate);
 
         // note: in order to preserve semantics on each group at least once the combine function has to be run.
         // this can be achieved by running combine with the initial value
@@ -1981,7 +1980,12 @@ namespace tuplex {
             // fetch hash table from task
             assert(tasks.front()->type() == TaskType::UDFTRAFOTASK || tasks.front()->type() == TaskType::RESOLVE);
             auto sink = getHashSink(tasks.front());
-            applyCombinePerGroup(sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
+
+            // aggByKey or aggregate?
+            if(init_aggregate && combine_aggregate) {
+                applyCombinePerGroup(sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
+            }
+
             return sink;
         } else {
 
@@ -2022,7 +2026,10 @@ namespace tuplex {
                     hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
             }
 
-            applyCombinePerGroup(sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
+            // aggByKey or aggregate?
+            if(init_aggregate && combine_aggregate) {
+                applyCombinePerGroup(sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
+            }
             return sink;
         }
     }

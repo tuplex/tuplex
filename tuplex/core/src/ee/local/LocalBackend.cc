@@ -1853,7 +1853,7 @@ namespace tuplex {
         // call combine over null-bucket
         // decode first bucket values!
         // --> for aggregate by key a single value is stored there
-        uint64_t  bucket_size =  *(uint64_t*)data;
+        int64_t  bucket_size =  *(int64_t*)data;
         uint8_t* bucket_val = data + 8;
         auto new_val = init_val;
         auto new_size = init_size;
@@ -1864,17 +1864,24 @@ namespace tuplex {
             std::cerr<<"combine function failed"<<std::endl;
         }
 
-        // free original aggregate
+        // create new combined pointer
+        uint8_t* new_data = static_cast<uint8_t *>(malloc(new_size + 8));
+        *(int64_t*)new_data = new_size;
+        memcpy(new_data + 8, new_val, new_size);
+
+        // free original aggregate (must come after data copy!)
         free(init_val);
         auto old_ptr = data;
-        // create new combined pointer
-        data = static_cast<uint8_t*>(malloc(new_size + 8));
-        *(int64_t*)data = new_size;
-        memcpy(data + 8, new_val, new_size);
+
         // assign to hashmap
-        entry->data = data;
+        entry->data = new_data;
         free(old_ptr);
         runtime::rtfree_all(); // combine aggregate allocates via runtime
+
+        // // check
+        // uint8_t* bucket = nullptr;
+        //hashmap_get(ctx->hm, key, keylen, (void **) (&bucket));
+
         return MAP_OK;
     }
 

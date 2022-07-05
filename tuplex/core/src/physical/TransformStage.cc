@@ -411,7 +411,12 @@ namespace tuplex {
         return final_length;
     }
 
-    static size_t appendBucketAsPartition(std::vector<std::pair<const char *, size_t>> &rows, const uint8_t *buffer, uint64_t keylen, const char *key, const python::Type &keyType, const python::Type &aggType) {
+    static size_t appendBucketAsPartition(std::vector<std::pair<const char *, size_t>> &rows,
+                                          const uint8_t *buffer,
+                                          uint64_t keylen,
+                                          const char *key,
+                                          const python::Type &keyType,
+                                          const python::Type &aggType) {
         Serializer s;
 
         // get the key

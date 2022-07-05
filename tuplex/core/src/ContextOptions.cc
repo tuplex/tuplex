@@ -680,11 +680,11 @@ namespace tuplex {
         auto lookup_key = key;
 
         // if end, also check tuplex. version of it!
-        if(it == _store.end())
+        if(it == _store.end()) {
             it = _store.find("tuplex." + key);
-
-        if(it != _store.end())
-            lookup_key = "tuplex." + key;
+            if(it != _store.end()) // success, so set key to tuplex. + key!
+                lookup_key = "tuplex." + key;
+        }
 
         // still not found? check lowercase versions
         if(it == _store.end()) {

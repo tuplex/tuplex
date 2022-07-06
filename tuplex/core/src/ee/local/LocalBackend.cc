@@ -1844,6 +1844,61 @@ namespace tuplex {
         auto keylen = entry->keylen;
         auto data = (uint8_t*)entry->data;
 
+        // if no data found, no need to apply func.
+        if(!data)
+            return MAP_OK;
+
+        // update data
+        // initialize
+        uint8_t* init_val = nullptr;
+        int64_t init_size = 0;
+        ctx->init_aggregate(&init_val, &init_size);
+
+        // call combine over null-bucket
+        // decode first bucket values!
+        // --> for aggregate by key a single value is stored there
+        int64_t  bucket_size =  *(int64_t*)data;
+        uint8_t* bucket_val = data + 8;
+        auto new_val = init_val;
+        auto new_size = init_size;
+        auto rc = ctx->combine_aggregate(&new_val, &new_size, bucket_val, bucket_size);
+
+        // rc no 0? -> resolve!
+        if(rc != 0) {
+            std::cerr<<"combine function failed"<<std::endl;
+        }
+
+        // create new combined pointer
+        uint8_t* new_data = static_cast<uint8_t *>(malloc(new_size + 8));
+        *(int64_t*)new_data = new_size;
+        memcpy(new_data + 8, new_val, new_size);
+
+        // free original aggregate (must come after data copy!)
+        free(init_val);
+        auto old_ptr = data;
+
+        // assign to hashmap
+        entry->data = new_data;
+        free(old_ptr);
+        runtime::rtfree_all(); // combine aggregate allocates via runtime
+
+        // // check
+        // uint8_t* bucket = nullptr;
+        //hashmap_get(ctx->hm, key, keylen, (void **) (&bucket));
+
+        return MAP_OK;
+    }
+
+    // why two versions??
+    static int apply_to_bucket_i64(const apply_context* ctx, int64_hashmap_element* entry) {
+        assert(ctx->hm);
+        auto key = entry->key;
+        auto data = (uint8_t*)entry->data;
+
+        // if no data found, no need to apply func.
+        if(!data)
+            return MAP_OK;
+
         // update data
         // initialize
         uint8_t* init_val = nullptr;
@@ -1945,7 +2000,7 @@ namespace tuplex {
             ctx.hm = sink.hm;
             ctx.init_aggregate = init_aggregate;
             ctx.combine_aggregate = combine_aggregate;
-            int64_hashmap_iterate(sink.hm, reinterpret_cast<PFintany>(apply_to_bucket), &ctx);
+            int64_hashmap_iterate(sink.hm, reinterpret_cast<PFintany>(apply_to_bucket_i64), &ctx);
         } else {
             // the regular, bytes based hashmap
             apply_context ctx;

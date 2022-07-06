@@ -2744,6 +2744,48 @@ TEST_F(WrapperTest, AllRows311) {
     }
 }
 
+// bug 94: https://github.com/tuplex/tuplex/issues/94
+TEST_F(WrapperTest, DoubleCollect) {
+    using namespace tuplex;
+
+    // ds = c.parallelize([(1, "A"),(2, "a"),(3, 2)]).filter(lambda a, b: a > 1)
+    // ds.collect()
+    // ds.collect()
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+        auto values_obj = python::runAndGet("L = [(1, \"A\"),(2, \"a\"),(3, 2)]", "L");
+
+        auto values = py::reinterpret_borrow<py::list>(values_obj);
+
+        auto ds = ctx.parallelize(values)
+                .filter("lambda a, b: a > 1","");
+
+        auto res = ds.collect();
+        auto resObj = res.ptr();
+        ASSERT_TRUE(PyList_Check(resObj));
+        EXPECT_EQ(PyList_Size(resObj), 2);
+
+        // print result out
+        PyObject_Print(resObj, stdout, 0);
+        std::cout<<std::endl;
+
+        // collect again, should NOT fail
+        res = ds.collect();
+        resObj = res.ptr();
+        ASSERT_TRUE(PyList_Check(resObj));
+        EXPECT_EQ(PyList_Size(resObj), 2);
+    }
+}
+
 //// debug any python module...
 ///** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.
 // * This does rather laborious C string concatenation so that it will work in

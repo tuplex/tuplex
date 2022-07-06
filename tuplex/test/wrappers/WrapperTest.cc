@@ -2610,6 +2610,16 @@ TEST_F(WrapperTest, TracingVisitorError) {
     }
 }
 
+// def test_sum_by_key(self):
+//        c = Context(self.conf)
+//
+//        data = [(0, 10.0), (1, 20.0), (0, -4.5)]
+//
+//        res = c.parallelize(data, columns=['id', 'volume']).aggregateByKey(lambda a, b: a + b,
+//                                                                            lambda a, x: a + x['volume'],
+//                                                                            0.0,
+//                                                                            ['id']).collect()
+
 
 //// debug any python module...
 ///** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.

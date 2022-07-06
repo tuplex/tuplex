@@ -553,10 +553,14 @@ class DataSet:
         except UDFCodeExtractionError as e:
             logging.warn('Could not extract code for aggregate UDF {}. Details:\n{}'.format(ftor, e))
 
+        g_comb = get_globals(combine)
+        g_agg = get_globals(aggregate)
+
         ds = DataSet()
         ds._dataSet = self._dataSet.aggregateByKey(comb_code, comb_code_pickled,
                                               agg_code, agg_code_pickled,
-                                              cloudpickle.dumps(initial_value), key_columns)
+                                              cloudpickle.dumps(initial_value), key_columns,
+                                              g_comb, g_agg)
         return ds
 
     @property

@@ -60,7 +60,6 @@ def gen_code_for_lambda(lam):
 
         return s.strip()[1:-1]
     except Exception as e:
-        print('gen_code_for_lambda failed with {}'.format(e))
         logging.debug('gen_code_for_lambda via astor failed with {}'.format(e))
 
         # python3.9+ has ast.unparse

@@ -1740,6 +1740,8 @@ namespace python {
 #warning "better python error formatting needed!"
         }
 
+        // important to incref!
+        Py_XINCREF(obj);
         return obj;
     }
 

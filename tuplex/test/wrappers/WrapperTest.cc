@@ -2610,16 +2610,57 @@ TEST_F(WrapperTest, TracingVisitorError) {
     }
 }
 
+TEST_F(WrapperTest, SumByKey) {
+    using namespace tuplex;
 
-// def test_sum_by_key(self):
-//        c = Context(self.conf)
-//
-//        data = [(0, 10.0), (1, 20.0), (0, -4.5)]
-//
-//        res = c.parallelize(data, columns=['id', 'volume']).aggregateByKey(lambda a, b: a + b,
-//                                                                            lambda a, x: a + x['volume'],
-//                                                                            0.0,
-//                                                                            ['id']).collect()
+    // def test_sum_by_key(self):
+    //        c = Context(self.conf)
+    //
+    //        data = [(0, 10.0), (1, 20.0), (0, -4.5)]
+    //
+    //        res = c.parallelize(data, columns=['id', 'volume']).aggregateByKey(lambda a, b: a + b,
+    //                                                                            lambda a, x: a + x['volume'],
+    //                                                                            0.0,
+    //                                                                            ['id']).collect()
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+        auto values_obj = PyList_New(3);
+        PyList_SetItem(values_obj, 0, python::runAndGet("L = (0, 10.0)", "L"));
+        PyList_SetItem(values_obj, 1, python::runAndGet("L = (1, 20.0)", "L"));
+        PyList_SetItem(values_obj, 2, python::runAndGet("L = (0, -4.0)", "L"));
+
+        auto columns_obj = python::runAndGet("L = ['id', 'volume']", "L");
+        auto key_columns_obj = python::runAndGet("['id']", "L");
+        auto pickled_val = python::pickleObject(python::getMainModule(), PyFloat_FromDouble(0.0));
+
+        auto values = py::reinterpret_borrow<py::list>(values_obj);
+        auto columns = py::reinterpret_borrow<py::list>(columns_obj);
+        auto key_columns = py::reinterpret_borrow<py::list>(key_columns_obj);
+
+        auto res = ctx.parallelize(values, columns)
+                      .aggregateByKey("lambda a, b: a + b", "",
+                                      "lambda a, x: a +x['volume']", "",
+                                      pickled_val,
+                                      key_columns)
+                      .collect();
+        auto resObj = res.ptr();
+        ASSERT_TRUE(PyList_Check(resObj));
+        EXPECT_GE(PyList_Size(resObj), 2);
+
+        // print result out
+        PyObject_Print(resObj, stdout, 0);
+        std::cout<<std::endl;
+    }
+}
 
 
 // as reported in https://github.com/tuplex/tuplex/issues/99

@@ -1360,7 +1360,7 @@ namespace tuplex {
 #if LLVM_VERSION_MAJOR < 9
                 builder.CreateMemCpy(new_ptr, str, size, 0, true);
 #else
-                codegen::IRBuilder(builder).CreateMemCpy(new_ptr, 0, str, 0, size, true);
+                builder.CreateMemCpy(new_ptr, 0, str, 0, size, true);
 #endif
                 builder.CreateStore(i8Const(0),
                                     builder.CreateGEP(new_ptr, builder.CreateSub(size, i64Const(1)))); // zero terminate

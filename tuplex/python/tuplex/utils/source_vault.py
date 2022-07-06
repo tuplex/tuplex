@@ -12,6 +12,7 @@
 import ast
 import astor
 import os
+import sys
 from types import LambdaType, CodeType
 import logging
 
@@ -59,7 +60,19 @@ def gen_code_for_lambda(lam):
 
         return s.strip()[1:-1]
     except Exception as e:
-        logging.debug('gen_code_for_lambda failed with {}'.format(e))
+        print('gen_code_for_lambda failed with {}'.format(e))
+        logging.debug('gen_code_for_lambda via astor failed with {}'.format(e))
+
+        # python3.9+ has ast.unparse
+        if sys.version_info.major >= 3 and sys.version_info.minor >= 9:
+            import ast
+
+            try:
+                s = ast.unparse(lam)
+                return s
+            except Exception as e:
+                logging.debug('gen_code_for_lambda via ast (python3.9+) failed with {}'.format(e))
+
         return ''
 
 
@@ -275,6 +288,8 @@ class SourceVault:
             else:
                 self.lambdaFileDict[key] = [entry]
         else:
+            print('there are {} Lambdas'.format(len(Lams)))
+
             # check that there are no globals when extracting function!
             if colno is None and len(globals) != 0:
                 raise Exception('Found more than one lambda expression on {}:+{}. Either use '

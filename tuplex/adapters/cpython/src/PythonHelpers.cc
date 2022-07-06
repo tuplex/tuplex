@@ -1703,8 +1703,16 @@ namespace python {
                                              ": only Optional unions are understood right now");
                 }
             } else {
-                throw std::runtime_error("Tuplex can't understand typing module annotation " + typeStr);
+
+                // typing.Optional[...] is a python3.9 feature (before equivalent to Union[None, T]
+                if(strStartsWith(typeStr, "typing.Optional")) {
+                    python::Type elementType = decodePythonSchema(PyList_GetItem(args, 0));
+                    return python::Type::makeOptionType(elementType);
+                }
             }
+
+            // unknown typing module annotation
+            throw std::runtime_error("Tuplex can't understand typing module annotation " + typeStr);
         }
 
         return python::Type::UNKNOWN;

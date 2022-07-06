@@ -463,13 +463,6 @@ TEST_F(PythonHelperTest, SchemaEncoding) {
 }
 
 
-TEST_F(PythonHelperTest, FindStdlib) {
-
+TEST_F(PythonHelperTest, VersionCheck) {
     EXPECT_NE(python::python_version(), "");
-
-    // deprecated, the function below is never really used and does not support
-    // a variety of common python interpreter installations (pyenv, virtualenv, conda, ...)...
-    // auto loc = python::find_stdlib_location();
-    // std::cout<<"Found python stdlib location to be in: "<<loc<<std::endl;
-    // EXPECT_NE(loc, "");
 }

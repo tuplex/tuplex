@@ -59,7 +59,7 @@ class TestAggregates(unittest.TestCase):
     def test_311(self):
         input_path = 'test_311_testfile.csv'
         output_path = 'test_311_testfile.out.csv'
-        with open(input_path) as fp:
+        with open(input_path, 'w') as fp:
             data = '''UniqueKey,CreatedDate,Agency,ComplaintType,Descriptor,IncidentZip,StreetName
 46688741,06/30/2020 07:24:41 PM,NYPD,Noise - Residential,Loud Music/Party,10037.0,MADISON AVENUE
 53493739,02/28/2022 07:30:31 PM,NYPD,Illegal Parking,Double Parked Blocking Traffic,11203.0,EAST   56 STREET
@@ -85,8 +85,7 @@ class TestAggregates(unittest.TestCase):
                 return s
 
         ctx = Context(self.conf)
-        df = ctx.csv(
-            ",".join(input_path),
+        df = ctx.csv(input_path,
             null_values=["Unspecified", "NO CLUE", "NA", "N/A", "0", ""],
             type_hints={0: typing.Optional[str],
                         1: typing.Optional[str],
@@ -100,6 +99,7 @@ class TestAggregates(unittest.TestCase):
         df = df.mapColumn("IncidentZip", fix_zip_codes).unique()
 
         # Output to csv
+        output_path_part0 = 'test_311_testfile.out.part0.csv'
         df.tocsv(output_path)
 
-        self.assertTrue(os.path.isfile(output_path))
+        self.assertTrue(os.path.isfile(output_path_part0))

@@ -681,7 +681,7 @@ namespace tuplex {
              * @param builder
              * @param ptr pointer variable
              */
-            inline void storeNULL(codegen::IRBuilder builder, llvm::Value* ptr) {
+            inline void storeNULL(const codegen::IRBuilder& builder, llvm::Value* ptr) {
                 assert(ptr->getType()->isPointerTy());
 
                 // set respective nullptr or null value

@@ -477,7 +477,7 @@ namespace tuplex {
                     PyErr_Print();
                     PyErr_Clear();
                     python::unlockGIL();
-                    throw std::runtime_error(ss.str()r);
+                    throw std::runtime_error(ss.str());
                 }
             }
             // then functions

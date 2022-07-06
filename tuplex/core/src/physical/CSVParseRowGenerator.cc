@@ -762,10 +762,10 @@ namespace tuplex {
             BasicBlock* bbNullError = BasicBlock::Create(context, "null_schema_mismatch", builder.GetInsertBlock()->getParent());
             IRBuilder errBuilder(bbValueError);
             storeBadParseInfo(errBuilder);
-            errbuilder.CreateRet(_env->i32Const(ecToI32(ExceptionCode::VALUEERROR))); // i.e. raised for bad number parse
+            errBuilder.CreateRet(_env->i32Const(ecToI32(ExceptionCode::VALUEERROR))); // i.e. raised for bad number parse
             errBuilder.SetInsertPoint(bbNullError);
             storeBadParseInfo(errBuilder);
-            errbuilder.CreateRet(_env->i32Const(ecToI32(ExceptionCode::NULLERROR))); // i.e. raised for null value
+            errBuilder.CreateRet(_env->i32Const(ecToI32(ExceptionCode::NULLERROR))); // i.e. raised for null value
 
             auto normalizeFunc = getCSVNormalizeFunc();
 

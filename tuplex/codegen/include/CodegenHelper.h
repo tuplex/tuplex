@@ -132,6 +132,11 @@ namespace tuplex {
                 return get_or_throw().CreatePointerCast(V, DestTy, Name);
             }
 
+            inline llvm::Value *CreateBitOrPointerCast(llvm::Value *V, llvm::Type *DestTy,
+                                          const std::string &Name = "") const {
+                 return get_or_throw().CreateBitOrPointerCast(V, DestTy, Name);
+             }
+
             inline llvm::Value *CreateBitCast(llvm::Value *V, llvm::Type *DestTy,
                                  const std::string &Name = "") const  {
                 return get_or_throw().CreateCast(llvm::Instruction::BitCast, V, DestTy, Name);
@@ -186,20 +191,25 @@ namespace tuplex {
                 return get_or_throw().CreateInsertValue(Agg, Val, Idxs, Name);
             }
 
-            inline llvm::Value *CreateInsertElement(llvm::Type *VecTy, llvm::Value *NewElt, llvm::Value *Idx,
-                                       const std::string &Name = "") const {
-                return get_or_throw().CreateInsertElement(VecTy, NewElt, Idx, Name);
-            }
-
-            inline llvm::Value *CreateInsertElement(llvm::Type *VecTy, llvm::Value *NewElt, uint64_t Idx,
-                                       const std::string &Name = "") {
-                return get_or_throw().CreateInsertElement(VecTy, NewElt, Idx, Name);
-            }
+//            inline llvm::Value *CreateInsertElement(llvm::Type *VecTy, llvm::Value *NewElt, llvm::Value *Idx,
+//                                       const std::string &Name = "") const {
+//                return get_or_throw().CreateInsertElement(VecTy, NewElt, Idx, Name);
+//            }
+//
+//            inline llvm::Value *CreateInsertElement(llvm::Type *VecTy, llvm::Value *NewElt, uint64_t Idx,
+//                                       const std::string &Name = "") {
+//                return get_or_throw().CreateInsertElement(VecTy, NewElt, Idx, Name);
+//            }
 
             inline llvm::Value *CreateInsertElement(llvm::Value *Vec, llvm::Value *NewElt, llvm::Value *Idx,
                                        const std::string &Name = "") const {
                 return get_or_throw().CreateInsertElement(Vec, NewElt, Idx, Name);
              }
+
+            inline llvm::Value *CreateInsertElement(llvm::Value *Vec, llvm::Value *NewElt, uint64_t Idx,
+                                                    const std::string &Name = "") const {
+                return get_or_throw().CreateInsertElement(Vec, NewElt, Idx, Name);
+            }
 
             inline llvm::Value *CreateICmpUGT(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") const {
                 return get_or_throw().CreateICmp(llvm::ICmpInst::ICMP_UGT, LHS, RHS, Name);

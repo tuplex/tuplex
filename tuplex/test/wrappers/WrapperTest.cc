@@ -2678,12 +2678,16 @@ TEST_F(WrapperTest, AllRows311) {
         auto type_hints = py::reinterpret_borrow<py::dict>(type_hints_obj);
 
         auto res = ctx.csv(input_path, py::none(), true, false, "", "\"", null_values, type_hints)
-                      .mapColumn("Incident Zip", udf_code, "")
+                      .mapColumn("IncidentZip", udf_code, "")
                       .unique()
                       .collect();
         auto resObj = res.ptr();
         ASSERT_TRUE(PyList_Check(resObj));
-        EXPECT_GE(PyList_Size(resObj), 1);
+        EXPECT_GE(PyList_Size(resObj), 2);
+
+        // print result out
+        PyObject_Print(resObj, stdout, 0);
+        std::cout<<std::endl;
     }
 }
 

@@ -468,7 +468,12 @@ namespace tuplex {
                 if(m.identifier != m.original_identifier)
                     ss<<" as "<<m.identifier;
                 auto sub_mod = PyImport_ImportModule(m.original_identifier.c_str());
+                auto nameList = PyTuple_New(0);
+                if(!sub_mod)
+                    sub_mod = PyImport_ImportModuleEx(m.original_identifier.c_str(), nullptr, nullptr, nameList);
+
                 if(!sub_mod) {
+                    python::unlockGIL();
                     throw std::runtime_error(ss.str());
                 }
                 // failure to set string?

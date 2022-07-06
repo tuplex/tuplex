@@ -63,6 +63,8 @@ namespace tuplex {
              // copy
              IRBuilder(const IRBuilder& other);
 
+             ~IRBuilder();
+
 
              llvm::LLVMContext& getContext() const {
                  return get().getContext();
@@ -624,7 +626,7 @@ namespace tuplex {
             }
 
             IRBuilder(llvm::BasicBlock::iterator it);
-            void initFromIterator(llvm::BasicBlock::iterator &it);
+            void initFromIterator(llvm::BasicBlock::iterator it);
         };
 
         // various switches to influence compiler behavior

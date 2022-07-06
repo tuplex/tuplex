@@ -307,7 +307,7 @@ namespace tuplex {
 
             builder.SetInsertPoint(normalBB);
             this->_body = normalBB;
-            return codegen::IRBuilder(builder);
+            return builder;
         }
 
         IRBuilder LambdaFunctionBuilder::addException(const codegen::IRBuilder &builder, ExceptionCode ec,

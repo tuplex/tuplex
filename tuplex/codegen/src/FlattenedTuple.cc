@@ -714,7 +714,7 @@ namespace tuplex {
 #else
                     // API update here, old API only allows single alignment.
                     // new API allows src and dest alignment separately
-                    codegen::IRBuilder(builder).CreateMemCpy(outptr, 0, field, 0, size, true);
+                    builder.CreateMemCpy(outptr, 0, field, 0, size, true);
 #endif
 
                     // string & forced zero termination?

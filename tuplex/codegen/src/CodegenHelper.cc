@@ -77,13 +77,17 @@ namespace tuplex {
 
         IRBuilder::IRBuilder(const IRBuilder &other) : _llvm_builder(nullptr) {
             if(other._llvm_builder) {
-                auto it = other._llvm_builder->GetInsertPoint();
+                const auto it = other._llvm_builder->GetInsertPoint();
                 initFromIterator(it);
             }
         }
 
         IRBuilder::IRBuilder(llvm::LLVMContext& ctx) {
             _llvm_builder = std::make_unique<llvm::IRBuilder<>>(ctx);
+        }
+
+        IRBuilder::~IRBuilder() {
+            std::cout<<"IRBuilder destructor called..."<<std::endl;
         }
 
         IRBuilder IRBuilder::firstBlockBuilder(bool insertAtEnd) const {
@@ -111,9 +115,11 @@ namespace tuplex {
             if(firstBlock->empty())
                 return IRBuilder(firstBlock);
 
-            if(!insertAtEnd)
-                return IRBuilder(firstBlock->getFirstInsertionPt());
-            else {
+            if(!insertAtEnd) {
+                auto it = firstBlock->getFirstInsertionPt();
+                auto inst_name = it->getName().str();
+                return IRBuilder(it);
+            } else {
                 // create inserter unless it's a branch instruction
                 auto it = firstBlock->getFirstInsertionPt();
                 auto lastit = it;
@@ -125,7 +131,7 @@ namespace tuplex {
             }
         }
 
-        void IRBuilder::initFromIterator(llvm::BasicBlock::iterator &it) {
+        void IRBuilder::initFromIterator(llvm::BasicBlock::iterator it) {
             if(it->getParent()->empty())
                 _llvm_builder = std::make_unique<llvm::IRBuilder<>>(it->getParent());
             else {
@@ -133,7 +139,29 @@ namespace tuplex {
                 //_llvm_builder = std::make_unique<llvm::IRBuilder<>>(it->getParent());
                 auto& ctx = it->getParent()->getContext();
                 _llvm_builder = std::make_unique<llvm::IRBuilder<>>(ctx);
-                _llvm_builder->SetInsertPoint(it->getParent(), it);
+
+                // instruction & basic block
+                auto bb = it->getParent();
+
+                auto pt = llvm::IRBuilderBase::InsertPoint(bb, it);
+                _llvm_builder->restoreIP(pt);
+
+                //auto inst = *it;
+                //_llvm_builder->SetInsertPoint(bb, it);
+
+//                // change iterator!
+//                auto firstBlock = _llvm_builder->GetInsertBlock();
+//
+//                if(!firstBlock->empty()) {
+//                    const auto jt = firstBlock->getInstList().begin();
+//                    // auto jt = firstBlock->getFirstInsertionPt();
+//                    auto lastit = jt;
+////                while(jt != firstBlock->end() && !llvm::isa<llvm::BranchInst>(*jt)) {
+////                    lastit = jt;
+////                    ++jt;
+////                }
+//                    _llvm_builder->SetInsertPoint(firstBlock, lastit);
+//                }
             }
         }
 

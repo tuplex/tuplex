@@ -156,21 +156,12 @@ namespace tuplex {
             // initialize variables
             IRBuilder builder(_constructorBlock);
 
-            // how many vars?
-            std::cout<<"how many blocks: "<<_func->size()<<" how many inst in first block: "<<_func->getEntryBlock().size()<<std::endl;
-
             addVariable(builder, "exceptionCode", env().i64Type(),env().i64Const(0));
-            std::cout<<"how many blocks: "<<_func->size()<<" how many inst in first block: "<<_func->getEntryBlock().size()<<std::endl;
-
             addVariable(builder, "exceptionOperatorID", env().i64Type());
-            std::cout<<"how many blocks: "<<_func->size()<<" how many inst in first block: "<<_func->getEntryBlock().size()<<std::endl;
-
             addVariable(builder, "numOutputRows", env().i64Type());
 
             // assign 0, writers have to explicitly call it
             assignToVariable(builder, "numOutputRows", env().i64Const(0));
-
-            std::cout<<"how many blocks: "<<_func->size()<<" how many inst in first block: "<<_func->getEntryBlock().size()<<std::endl;
 
 
             // load the tuple1

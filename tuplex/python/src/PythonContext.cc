@@ -1141,6 +1141,8 @@ namespace tuplex {
             return makeError("job aborted via signal");
 
         PythonDataSet pds;
+        DataSet *ds = nullptr;
+        std::string err_message = "";
 
         //#ifndef NDEBUG
         //        using namespace std;
@@ -1153,18 +1155,37 @@ namespace tuplex {
 
         assert(quotechar.size() == 1);
         assert(delimiter.size() <= 1);
-
         assert(PyGILState_Check()); // make sure this thread holds the GIL!
 
         // extract columns (if not none)
-        auto columns = extractFromListOfStrings(cols.ptr(), "columns ");
-        auto null_value_strs = extractFromListOfStrings(null_values.ptr(), "null_values ");
-        auto type_idx_hints_c = extractIndexBasedTypeHints(type_hints.ptr(), columns, "type_hints ");
-        auto type_col_hints_c = extractColumnBasedTypeHints(type_hints.ptr(), columns, "type_hints ");
+        std::vector<std::string> columns;
+        std::vector<std::string> null_value_strs;
+        std::unordered_map<size_t, python::Type> type_idx_hints_c;
+        std::unordered_map<std::string, python::Type> type_col_hints_c;
+        try {
+            columns = extractFromListOfStrings(cols.ptr(), "columns ");
+            null_value_strs = extractFromListOfStrings(null_values.ptr(), "null_values ");
+            type_idx_hints_c = extractIndexBasedTypeHints(type_hints.ptr(), columns, "type_hints ");
+            type_col_hints_c = extractColumnBasedTypeHints(type_hints.ptr(), columns, "type_hints ");
+        }  catch(const std::exception& e) {
+            err_message = e.what();
+            Logger::instance().defaultLogger().error(err_message);
+        } catch(...) {
+            err_message = "unknown C++ exception occurred, please change type.";
+            Logger::instance().defaultLogger().error(err_message);
+        }
 
+        if(!err_message.empty()) {
+            Logger::instance().flushAll();
+            assert(_context);
+            ds = &_context->makeError(err_message);
+            pds.wrap(ds);
+            Logger::instance().flushToPython();
+            return pds;
+        }
+
+        // internal Tuplex API
         python::unlockGIL();
-        DataSet *ds = nullptr;
-        std::string err_message = "";
         try {
             ds = &_context->csv(pattern, columns, autodetect_header ? option<bool>::none : option<bool>(header),
                                 delimiter.empty() ? option<char>::none : option<char>(delimiter[0]),

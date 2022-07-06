@@ -1679,7 +1679,7 @@ namespace python {
             } else if(strStartsWith(typeStr, "typing.List")) {
                 python::Type elementType = decodePythonSchema(PyList_GetItem(args, 0));
                 return python::Type::makeListType(elementType);
-            } else if(strStartsWith(typeStr, "typing.Union")) {
+            } else if(strStartsWith(typeStr, "typing.Union") || strStartsWith(typeStr, "typing.Optional")) {
                 if(PyTuple_Size(args) == 2) {
                     auto c1 = PyTuple_GetItem(args, 0);
                     auto c2 = PyTuple_GetItem(args, 1);
@@ -1703,8 +1703,14 @@ namespace python {
                                              ": only Optional unions are understood right now");
                 }
             } else {
-                throw std::runtime_error("Tuplex can't understand typing module annotation " + typeStr);
+
+                // whichever other typing annotations to decode...
+
+                // Add them here...
             }
+
+            // unknown typing module annotation
+            throw std::runtime_error("Tuplex can't understand typing module annotation " + typeStr);
         }
 
         return python::Type::UNKNOWN;

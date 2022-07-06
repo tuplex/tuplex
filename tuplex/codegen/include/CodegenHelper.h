@@ -65,7 +65,6 @@ namespace tuplex {
 
              ~IRBuilder();
 
-
              llvm::LLVMContext& getContext() const {
                  return get().getContext();
              }

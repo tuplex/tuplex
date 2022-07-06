@@ -77,8 +77,27 @@ namespace tuplex {
 
         IRBuilder::IRBuilder(const IRBuilder &other) : _llvm_builder(nullptr) {
             if(other._llvm_builder) {
-                const auto it = other._llvm_builder->GetInsertPoint();
-                initFromIterator(it);
+                // cf. https://reviews.llvm.org/D74693
+                auto& ctx = other._llvm_builder->getContext();
+                const llvm::DILocation *DL = nullptr; //llvm::DILocation::get(ctx, 0, 0, );
+                _llvm_builder.reset(new llvm::IRBuilder<>(ctx/*DL->getContext()*/));
+                //initIRBuilder(*_llvm_builder, DL, InsertBB, InsertBefore);
+                llvm::Instruction* InsertBefore = nullptr;
+                auto InsertBB = other._llvm_builder->GetInsertBlock();
+                if(InsertBB && !InsertBB->empty()) {
+                    auto& inst = *InsertBB->getFirstInsertionPt();
+                    InsertBefore = &inst;
+                }
+                if(InsertBefore)
+                    _llvm_builder->SetInsertPoint(InsertBefore);
+                else if(InsertBB)
+                    _llvm_builder->SetInsertPoint(InsertBB);
+                _llvm_builder->SetCurrentDebugLocation(DL);
+
+//                const auto it = other._llvm_builder->GetInsertPoint();
+//                initFromIterator(it);
+
+
             }
         }
 
@@ -87,6 +106,8 @@ namespace tuplex {
         }
 
         IRBuilder::~IRBuilder() {
+            if(_llvm_builder)
+                _llvm_builder->ClearInsertionPoint();
             std::cout<<"IRBuilder destructor called..."<<std::endl;
         }
 
@@ -144,6 +165,7 @@ namespace tuplex {
                 auto bb = it->getParent();
 
                 auto pt = llvm::IRBuilderBase::InsertPoint(bb, it);
+                //_llvm_builder->CollectMetadataToCopy()
                 _llvm_builder->restoreIP(pt);
 
                 //auto inst = *it;

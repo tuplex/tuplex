@@ -1141,6 +1141,8 @@ namespace tuplex {
             return makeError("job aborted via signal");
 
         PythonDataSet pds;
+        DataSet *ds = nullptr;
+        std::string err_message = "";
 
         //#ifndef NDEBUG
         //        using namespace std;
@@ -1153,7 +1155,6 @@ namespace tuplex {
 
         assert(quotechar.size() == 1);
         assert(delimiter.size() <= 1);
-
         assert(PyGILState_Check()); // make sure this thread holds the GIL!
 
         // extract columns (if not none)
@@ -1185,8 +1186,6 @@ namespace tuplex {
 
         // internal Tuplex API
         python::unlockGIL();
-        DataSet *ds = nullptr;
-        std::string err_message = "";
         try {
             ds = &_context->csv(pattern, columns, autodetect_header ? option<bool>::none : option<bool>(header),
                                 delimiter.empty() ? option<char>::none : option<char>(delimiter[0]),

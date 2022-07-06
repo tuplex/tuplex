@@ -108,7 +108,7 @@ namespace tuplex {
         IRBuilder::~IRBuilder() {
             if(_llvm_builder)
                 _llvm_builder->ClearInsertionPoint();
-            std::cout<<"IRBuilder destructor called..."<<std::endl;
+            // std::cout<<"IRBuilder destructor called..."<<std::endl;
         }
 
         IRBuilder IRBuilder::firstBlockBuilder(bool insertAtEnd) const {

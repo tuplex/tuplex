@@ -1175,7 +1175,7 @@ namespace tuplex {
             Logger::instance().defaultLogger().error(err_message);
         }
 
-        if!err_message.empty()) {
+        if(!err_message.empty()) {
             Logger::instance().flushAll();
             assert(_context);
             ds = &_context->makeError(err_message);

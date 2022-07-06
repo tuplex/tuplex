@@ -462,18 +462,26 @@ namespace tuplex {
             // for C-API ref check https://docs.python.org/3/library/functions.html#__import__
 
             // modules first
-            for(auto m : ce.modules()) {
+            for(const auto& m : ce.modules()) {
+                std::stringstream ss;
+                ss<<"failed to import module " + m.original_identifier;
+                if(m.identifier != m.original_identifier)
+                    ss<<" as "<<m.identifier;
                 auto sub_mod = PyImport_ImportModule(m.original_identifier.c_str());
+                if(!sub_mod) {
+                    throw std::runtime_error(ss.str());
+                }
+                // failure to set string?
                 PyDict_SetItemString(main_dict, m.identifier.c_str(), sub_mod);
                 if(PyErr_Occurred()) {
                     PyErr_Print();
                     PyErr_Clear();
                     python::unlockGIL();
-                    throw std::runtime_error("failed to import module " + m.original_identifier);
+                    throw std::runtime_error(ss.str()r);
                 }
             }
             // then functions
-            for(auto f : ce.functions()) {
+            for(const auto& f : ce.functions()) {
                 // need to fetch from imported module and add it
                 // basically this is encoded
                 // from ... import ...

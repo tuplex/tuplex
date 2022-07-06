@@ -171,8 +171,6 @@ class SourceVault:
                     for entry in entries:
                         if entry['code_hash'] == codeobj_hash:
                             return entry['code']
-                # # debug:
-                # print(self.lambdaFileDict)
                 raise KeyError('Multiple lambdas found, but failed to retrieve code for this lambda expression.')
         else:
             raise KeyError('could not find lambda function')
@@ -287,8 +285,6 @@ class SourceVault:
             else:
                 self.lambdaFileDict[key] = [entry]
         else:
-            print('there are {} Lambdas'.format(len(Lams)))
-
             # check that there are no globals when extracting function!
             if colno is None and len(globals) != 0:
                 raise Exception('Found more than one lambda expression on {}:+{}. Either use '

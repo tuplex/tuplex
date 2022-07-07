@@ -29,12 +29,12 @@ namespace tuplex {
 #endif
         // runtime library path
         auto runtime_path = ContextOptions::defaults().RUNTIME_LIBRARY().toPath();
-        std::string python_home_dir = python::find_stdlib_location();
 
-        if(python_home_dir.empty()) {
-            logger().error("Could not detect python stdlib location");
-            return WORKER_ERROR_NO_PYTHON_HOME;
-        }
+        // std::string python_home_dir = python::find_stdlib_location();
+        // if(python_home_dir.empty()) {
+        //     logger().error("Could not detect python stdlib location");
+        //     return WORKER_ERROR_NO_PYTHON_HOME;
+        // }
 
         NetworkSettings ns;
         ns.verifySSL = false;

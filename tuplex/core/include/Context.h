@@ -68,8 +68,12 @@ namespace tuplex {
          * @param ds dataset
          * @param fallbackPartitions fallback partitions from python parallelize
          * @param partitionGroups partition mapping information
+         * @param sm sampling mode to use for Parallelize operator.
          */
-        void addParallelizeNode(DataSet *ds, const std::vector<Partition*>& fallbackPartitions=std::vector<Partition*>{}, const std::vector<PartitionGroup>& partitionGroups=std::vector<PartitionGroup>{}); //! adds a paralellize node to the computation graph
+        void addParallelizeNode(DataSet *ds,
+                                const std::vector<Partition*>& fallbackPartitions=std::vector<Partition*>{},
+                                const std::vector<PartitionGroup>& partitionGroups=std::vector<PartitionGroup>{},
+                                const SamplingMode& sm=DEFAULT_SAMPLING_MODE); //! adds a paralellize node to the computation graph
 
         Partition* requestNewPartition(const Schema& schema, const int dataSetID, size_t minBytesRequired);
         uint8_t* partitionLockRaw(Partition *partition);
@@ -276,9 +280,15 @@ namespace tuplex {
          * @param fallbackPartitions fallback partitions to assign to dataset
          * @param partitionGroups mapping of partitions to fallback partitions
          * @param columns optional column names
+         * @param sampling_mode how to set sampling mode in parallelize operator
          * @return reference to newly created dataset.
          */
-        DataSet& fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<Partition*>& fallbackPartitions, const std::vector<PartitionGroup>& partitionGroups, const std::vector<std::string>& columns);
+        DataSet& fromPartitions(const Schema& schema,
+                                const std::vector<Partition*>& partitions,
+                                const std::vector<Partition*>& fallbackPartitions,
+                                const std::vector<PartitionGroup>& partitionGroups,
+                                const std::vector<std::string>& columns,
+                                const SamplingMode& sampling_mode);
     };
     // needed for template mechanism to work
 #include <DataSet.h>

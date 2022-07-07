@@ -1010,8 +1010,9 @@ namespace tuplex {
             bool requireSlowPath = ctx.nullValueOptimization; // per default, slow path is always required when null-value opt is enabled.
 
             // special case: input source is cached and no exceptions happened => no resolve path necessary if there are no resolvers!
-            if(pathContext.inputNode->type() == LogicalOperatorType::CACHE &&
-               std::dynamic_pointer_cast<CacheOperator>(pathContext.inputNode)->cachedExceptions().empty())
+            if(_inputNode->type() == LogicalOperatorType::CACHE &&
+               std::dynamic_pointer_cast<CacheOperator>(_inputNode)->cachedGeneralPartitions().empty() &&
+               std::dynamic_pointer_cast<CacheOperator>(_inputNode)->cachedFallbackPartitions().empty())
                 requireSlowPath = false;
 
             // nothing todo, return empty code-path - i.e., normal

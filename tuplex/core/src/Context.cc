@@ -353,7 +353,10 @@ namespace tuplex {
         return op;
     }
 
-    void Context::addParallelizeNode(DataSet *ds, const std::vector<Partition*>& fallbackPartitions, const std::vector<PartitionGroup>& partitionGroups) {
+    void Context::addParallelizeNode(DataSet *ds,
+                                     const std::vector<Partition*>& fallbackPartitions,
+                                     const std::vector<PartitionGroup>& partitionGroups,
+                                     const SamplingMode& sm) {
         assert(ds);
 
         // @TODO: make empty list as special case work. Also true for empty files.
@@ -362,7 +365,7 @@ namespace tuplex {
 
         assert(ds->_schema.getRowType() != python::Type::UNKNOWN);
 
-        auto op = new ParallelizeOperator(ds->_schema, ds->getPartitions(), ds->columns(), sampling_mode);
+        auto op = new ParallelizeOperator(ds->_schema, ds->getPartitions(), ds->columns(), sm);
         op->setFallbackPartitions(fallbackPartitions);
         if (partitionGroups.empty()) {
             std::vector<PartitionGroup> defaultPartitionGroups;

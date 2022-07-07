@@ -100,15 +100,6 @@ namespace python {
     }
 
     /*!
-     * find python standardlib location.
-     * @param version python version string. E.g., "3" or "3.7". Per default search for version build against.
-     * @param prefix_list list of paths where to search for <prefix>/lib/python<version> pattern.
-     * @return string for first match found, empty string else
-     */
-    std::string find_stdlib_location(const std::string& version=python_version(true, false),
-                                     const std::vector<std::string>& prefix_list=std::vector<std::string>{"/usr/local"});
-
-    /*!
      * retrieves main module and loads cloudpickle module. Exits program if cloudpickle is not found.
      * @return module object holding the main module
      */

@@ -462,11 +462,7 @@ TEST_F(PythonHelperTest, SchemaEncoding) {
     EXPECT_EQ(python::PyString_AsString(w0), "typing.Callable[[int], str]");
 }
 
-TEST_F(PythonHelperTest, FindStdlib) {
 
+TEST_F(PythonHelperTest, VersionCheck) {
     EXPECT_NE(python::python_version(), "");
-
-    auto loc = python::find_stdlib_location();
-    std::cout<<"Found python stdlib location to be in: "<<loc<<std::endl;
-    EXPECT_NE(loc, "");
 }

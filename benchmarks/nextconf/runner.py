@@ -20,15 +20,33 @@ except ModuleNotFoundError as e:
     logging.info("Install missing modules via {} -m pip install -r requirements.txt".format(sys.executable))
     sys.exit(1)
 
+# subtargets can be done via /
+experiment_targets = ['all', 'flights/sampling', 'flights/hyper']
+
+experiment_targets_description = {'all':'a meta target to run all experiments',
+                                  'flights/sampling': 'runs the flights query using different sampling schemes',
+                                  'flights/hyper': 'runs the flights query in general sampling mode and hyperspecialized sampling on the lambdas'}
+
+# make sure every target has a description!
+for target in experiment_targets:
+    assert target in experiment_targets_description.keys(), 'missing description for target {}'.format(target)
+
+def make_meta_targets(targets):
+    m = []
+
+    for name in targets:
+        parts = name.split('/')
+        n = len(parts)
+        for i in range(1, n):
+            m.append('/'.join(parts[:i]))
+
+    m.append('all')
+    return sorted(list(set(m)))
+
 #  meta targets, i.e. targets that are comprised of other targets
-meta_targets = ['all', 'zillow', 'tpch', 'flights']
+meta_targets = make_meta_targets(experiment_targets)
 
-experiment_targets = ['all', 'zillow', 'flights', 'logs', '311',
-                      'tpch', 'zillow/Z1', 'zillow/Z2', 'zillow/exceptions',
-                      'tpch/Q06', 'tpch/Q19', 'flights/breakdown', 'flights/flights']
-
-plot_targets = ['all', 'figure3', 'figure4', 'figure5',
-                'figure6', 'figure7', 'figure8', 'figure9', 'figure10', 'table3']
+plot_targets = []
 
 # default paths
 DEFAULT_RESULT_PATH = 'r5d.8xlarge'
@@ -65,17 +83,28 @@ def get_container():
 
     return container
 
+def retrieve_targets_to_run(name):
+    # decode meta targets
+    name = name.lower()
+    if name == 'all':
+        return experiment_targets
+
+    # prefix!
+    targets = []
+    for ename in experiment_targets:
+        if ename.lower() == name or ename.lower().startswith(name + '/'):
+            targets.append(ename)
+    return sorted(targets)
+
 @click.command()
-@click.argument('target', type=click.Choice(experiment_targets, case_sensitive=False))
+@click.argument('target', type=click.Choice(sorted(list(set(meta_targets + experiment_targets))), case_sensitive=False))
 @click.option('--num-runs', type=int, default=11,
               help='How many runs to run experiment with (default=11 for 10 runs + 1 warmup run')
 @click.option('--detach/--no-detach', default=False, help='whether to launch command in detached mode (non-blocking)')
-@click.option('--help', default=False, help='display help about target')
+@click.option('--help/--no-help', default=False, help='display help about target')
 @click.pass_context
-def run(ctx, target, num_runs, detach, display_help):
+def run(ctx, target, num_runs, detach, help):
     """ run benchmarks for specific dataset. THIS MIGHT TAKE A WHILE! """
-
-    experiment_targets = {'flights/sampling', 'flights/hyper'}
 
     logging.info("Retrieving AWS credentials")
     session = boto3.Session()
@@ -93,36 +122,23 @@ def run(ctx, target, num_runs, detach, display_help):
                                                                 'x' if secret_key else ' ',
                                                                 'x' if token else ' ',))
     logging.info('Running for AWS region={}.'.format(region))
-    sys.exit(0)
     logging.info('Running experiments for target {}'.format(target))
+    targets_to_run = retrieve_targets_to_run(target)
+    if len(targets_to_run) > 1:
+        logging.info('requires running targets {}'.format(targets_to_run))
 
+    if help:
+        print('Detailed descriptions of experimental targets:\n')
+        # display help and exit
+        for target in targets_to_run:
+            print('\t{}:\n\t{}'.format(target, '-' * ( 1+ len(target))))
+            desc = experiment_targets_description[target]
+            if not desc.endswith('.'):
+                desc += '.'
+            print('\t{}\n'.format(desc))
+        print('Running experiments requires docker daemon running.')
 
-
-
-
-    # experiment_targets = ['all', 'zillow', 'flights', 'logs', '311',
-    #                       'tpch', 'zillow/Z1', 'zillow/Z2', 'zillow/exceptions',
-    #                       'tpch/Q06', 'tpch/Q19', 'flights/breakdown', 'flights/flights']
-
-    targets = []
-    target = target.lower()
-
-    # decode compound targets...
-    if target == 'zillow':
-        targets += ['zillow/Z1', 'zillow/Z2', 'zillow/exceptions']
-    elif target == 'flights':
-        targets += ['flights/flights', 'flights/breakdown']
-    elif target == 'tpch':
-        targets += ['tpch/q06', 'tpch/q19']
-    elif target == 'all':
-        targets = [name.lower() for name in experiment_targets if name.lower() not in meta_targets]
-    else:
-        targets = [target]
-
-    targets = sorted(targets)
-
-    if len(targets) > 1:
-        logging.info('Target {} comprised of subtargets:\n\t- {}'.format(target, '\n\t- '.join(targets)))
+        sys.exit(0)
 
     # docker client
     dc = docker.from_env()

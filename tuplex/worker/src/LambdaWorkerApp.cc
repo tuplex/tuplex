@@ -1219,7 +1219,7 @@ namespace tuplex {
         if(var) {
             std::string value = var;
             for(auto& c : value)
-                c = tolower(c);
+                c = std::tolower(c);
             // compare to true, on, ...
             if(value == "true" || value == "on" || value == "yes")
                 return true;

@@ -29,12 +29,21 @@ endif()
 # Note: AWS SDK is only compatible with curl build against OpenSSL. Check this here!
 # on linux, use ldd -v $(which curl) | grep OPENSSL which should yield a result.
 find_package(CURL REQUIRED)
-if(LINUX)
-    message(STATUS "@TODO: check that curl was build against openssl")
-    # ldd -v /usr/lib64/libcurl.so.4 | grep '(NSS'
-
+if(UNIX AND NOT APPLE)
     message(STATUS "CURL libraries: ${CURL_LIBRARIES}")
     message(STATUS "CURL include dirs: ${CURL_INCLUDE_DIR}")
+    
+    execute_process(COMMAND bash "-c" "ldd -v ${CURL_LIBRARIES} | grep -o -E '\(OPENSSL.*\)'" OUTPUT_VARIABLE SSL_OUT RESULT_VARIABLE SSL_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(SSL_RET AND NOT SSL_RET EQUAL 0)
+	    message(FATAL_ERROR "failed to check that curl was built against openssl")
+    else()
+	    if(SSL_OUT AND SSL_OUT STREQUAL "")
+		    execute_process(COMMAND bash "-c" "ldd -v ${CURL_LIBRARIES} | grep -o -E '\(.*SSL.*\)' | head -n1" OUTPUT_VARIABLE SSL_OUT RESULT_VARIABLE SSL_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
+		    message(FATAL_ERROR "libcurl was not built against OpenSSL, but against ${SSL_OUT}")
+	    else()
+		message(STATUS "Verified that curl was built against OpenSSL")
+	    endif()
+    endif()
 
     # this here should NOT yield any lines...!
     # ldd -v /usr/lib64/libcurl.so.4 | grep '(NSS'

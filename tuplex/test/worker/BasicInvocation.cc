@@ -84,7 +84,7 @@ std::string runCommand(const std::string& cmd) {
 }
 namespace tuplex {
     std::string transformStageToReqMessage(const TransformStage* tstage, const std::string& inputURI, const size_t& inputSize, const std::string& output_uri, bool interpreterOnly,
-                                           size_t numThreads = 1, const std::string& spillURI="spill_folder") {
+                                           size_t numThreads = 1, const std::string& spillURI="spill_folder", bool verboseLogging=false) {
         messages::InvocationRequest req;
 
         size_t buf_spill_size = 512 * 1024; // for testing, set spill size to 512KB!
@@ -106,6 +106,8 @@ namespace tuplex {
 
         // output uri of job? => final one? parts?
         req.set_baseoutputuri(output_uri);
+
+        req.set_verboselogging(verboseLogging);
 
         auto ws = std::make_unique<messages::WorkerSettings>();
         ws->set_numthreads(numThreads);
@@ -1723,4 +1725,131 @@ TEST(BasicInvocation, WorkshopPaperLocalExperiment) {
 //    }
 
     cout<<"Experiment done."<<endl;
+}
+
+// an experiment to check that verbose logging is enabled
+TEST(BasicInvocation, VerboseLogging) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto worker_path = find_worker();
+
+    auto testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+    auto scratchDir = "/tmp/" + testName;
+
+    // change cwd & create dir to avoid conflicts!
+    auto cwd_path = boost::filesystem::current_path();
+    auto desired_cwd = cwd_path.string() + "/tests/" + testName;
+    // create dir if it doesn't exist
+    auto vfs = VirtualFileSystem::fromURI("file://");
+    vfs.create_dir(desired_cwd);
+    boost::filesystem::current_path(desired_cwd);
+
+    char buf[4096];
+    auto cur_dir = getcwd(buf, 4096);
+
+    EXPECT_NE(std::string(cur_dir).find(testName), std::string::npos);
+
+    cout<<"current working dir: "<<buf<<endl;
+
+    // check worker exists
+    ASSERT_TRUE(tuplex::fileExists(worker_path));
+
+    // test config here:
+    // local csv test file!
+    auto test_path = URI("file://../resources/flights_on_time_performance_2019_01.sample.csv");
+    auto test_output_path = URI("file://output.txt");
+    auto spillURI = std::string("spill_folder");
+
+    // local for quicker dev
+    test_path = URI("file:///Users/leonhards/data/flights/flights_on_time_performance_2009_01.csv");
+
+    size_t num_threads = 4;
+
+    // invoke helper with --help
+    std::string work_dir = cur_dir;
+
+//    // Step 1: create ref pipeline using direct Tuplex invocation
+//    auto test_ref_path = testName + "_ref.csv";
+//    createRefPipeline(test_path.toString(), test_ref_path, scratchDir);
+//
+//    // load ref file from parts!
+//    auto ref_files = glob(current_working_directory() + "/" + testName + "_ref*part*csv");
+//    std::sort(ref_files.begin(), ref_files.end());
+//
+//    // merge into single large string
+    std::string ref_content = "";
+//    for(unsigned i = 0; i < ref_files.size(); ++i) {
+//        if(i > 0) {
+//            auto file_content = fileToString(ref_files[i]);
+//            // skip header for these parts
+//            auto idx = file_content.find("\n");
+//            ref_content += file_content.substr(idx + 1);
+//        } else {
+//            ref_content = fileToString(ref_files[0]);
+//        }
+//    }
+//    stringToFile("ref_content.txt", ref_content);
+    ref_content = fileToString("ref_content.txt");
+
+    // create a simple TransformStage reading in a file & saving it. Then, execute via Worker!
+    // Note: This one is unoptimized, i.e. no projection pushdown, filter pushdown etc.
+    ASSERT_TRUE(test_path.exists());
+    python::initInterpreter();
+    python::unlockGIL();
+    ContextOptions co = ContextOptions::defaults();
+    auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
+    co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
+    co.set("tuplex.useInterpreterOnly", "true");
+    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+    auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
+                                                                               option<bool>(true),
+                                                                               option<char>(','), option<char>('"'),
+                                                                               {""}, {}, {}, {}, DEFAULT_SAMPLING_MODE));
+    auto mapop = std::make_shared<MapOperator>(csvop, UDF("lambda x: {'origin_airport_id': x['ORIGIN_AIRPORT_ID'], 'dest_airport_id':x['DEST_AIRPORT_ID']}"), csvop->columns());
+    auto fop = std::make_shared<FileOutputOperator>(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
+    builder.addFileInput(csvop);
+    builder.addOperator(mapop);
+    builder.addFileOutput(fop);
+
+    auto tstage = builder.build();
+
+    // transform to message
+    vfs = VirtualFileSystem::fromURI(test_path);
+    uint64_t input_file_size = 0;
+    vfs.file_size(test_path, input_file_size);
+    auto json_message = transformStageToReqMessage(tstage, URI(test_path).toPath(),
+                                                   input_file_size, test_output_path.toString(),
+                                                   true,
+                                                   num_threads,
+                                                   spillURI,
+                                                   true);
+
+    // save to file
+    auto msg_file = URI("test_message.json");
+    stringToFile(msg_file, json_message);
+
+    python::lockGIL();
+    python::closeInterpreter();
+
+
+    //  auto log_level = Aws::Utils::Logging::LogLevel::Trace;
+    //        log_level = Aws::Utils::Logging::LogLevel::Info;
+    //        auto log_system = Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>("tuplex", log_level);
+    //        Aws::Utils::Logging::InitializeAWSLogging(log_system);
+
+    // invoke worker with a message as separate process.
+
+    // invoke worker with that message
+    Timer timer;
+    auto cmd = worker_path + " -m " + msg_file.toPath();
+    auto res_stdout = runCommand(cmd);
+    auto worker_invocation_duration = timer.time();
+    cout<<res_stdout<<endl;
+    cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
+
+    // check result contents
+    cout<<"Checking worker results..."<<endl;
+    cout<<"Invoked worker check done."<<endl;
+    cout<<"Test done."<<endl;
 }

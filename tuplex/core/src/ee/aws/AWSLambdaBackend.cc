@@ -946,6 +946,8 @@ namespace tuplex {
             ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
             req.set_allocated_settings(ws.release());
 
+            req.set_verboselogging(_options.AWS_VERBOSE_LOGGING());
+
             // output uri of job? => final one? parts?
             // => create temporary if output is local! i.e. to memory etc.
             int taskNo = i;

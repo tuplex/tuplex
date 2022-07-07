@@ -7,12 +7,20 @@ MAINTAINER Leonhard Spiegelberg "leonhard_spiegelberg@brown.edu"
 # Use /tmp folder to build everything...
 ENV DEBIAN_FRONTEND=noninteractive
 
+
+
 # (1) general packages
+RUN mkdir -p /opt/sbin
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     apt-utils vim build-essential libssl-dev zlib1g-dev libncurses5-dev \
     libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
-     libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git curl libcurl4-openssl-dev
+     libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git
 
+# CentOS/RHEL does not use OpenSSL for the system curl, however AWSSDK must use OpenSSL backed curl.
+ADD install_curl.sh /opt/sbin/install_curl.sh
+RUN bash /opt/sbin/install_curl.sh
+
+# create dirs
 RUN /bin/bash -c "mkdir /opt; mkdir /code; mkdir /data; mkdir /results"
 
 # from https://github.com/infosiftr/python/blob/f82205cde8f0a5ffa276103a50d843edced67757/3.6/alpine3.10/Dockerfile
@@ -171,7 +179,7 @@ RUN set -ex; \
 		\) -exec rm -rf '{}' +; \
 	rm -f get-pip.py
 
-# install cmake 3.19.7
+# install recent cmake
 COPY install_cmake.sh /usr/src/install_cmake.sh
 RUN /bin/bash /usr/src/install_cmake.sh
 

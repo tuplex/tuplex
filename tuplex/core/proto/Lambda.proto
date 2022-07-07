@@ -129,6 +129,7 @@ message InvocationRequest {
 
     optional TransformStage stage = 8;
     optional WarmupMessage warmup = 9;
+    bool verboseLogging = 10;
 }
 
 

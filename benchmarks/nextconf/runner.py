@@ -159,7 +159,7 @@ def run(ctx, target, num_runs, detach, help):
 
     assert container is not None, 'container not valid?'
 
-    # check that tuplex exists python3.6 -c "import tuplex"
+    # check that tuplex exists python3.9 -c "import tuplex"
     cmd = 'python3.9 -c "import tuplex"'
     exit_code, output = container.exec_run(cmd, stderr=True, stdout=True, detach=detach)
     if 0 != exit_code:
@@ -184,29 +184,24 @@ def run(ctx, target, num_runs, detach, help):
         sys.exit(1)
 
 
-    for target in targets:
+    num_targets_run = 0
+    for target in targets_to_run:
         # run individual targets
         # for these, the runbenchmark.sh scripts are used!
         # e.g., docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z1/ && bash runbenchmark.sh'
-        path_dict = {'zillow/z1': '/code/benchmarks/zillow/Z1/',
-                     'zillow/z2': '/code/benchmarks/zillow/Z2/',
-                     'zillow/exceptions': '/code/benchmarks/dirty_zillow/',
-                     'logs': '/code/benchmarks/logs/',
-                     '311': '/code/benchmarks/311/',
-                     'tpch/q06': '/code/benchmarks/tpch/Q06/',
-                     'tpch/q19': '/code/benchmarks/tpch/Q19/',
-                     'flights/flights': '/code/benchmarks/flights/',
-                     'flights/breakdown': '/code/benchmarks/flights/'}
+        path_dict = {'flights/sampling': {'script': 'benchmark.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights/sampling_experiment'},
+                     'flights/hyper': {'script': 'benchmark.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights'}}
 
         # lowercase
         target = target.lower()
 
-        benchmark_path = path_dict[target]
-        benchmark_script = 'runbenchmark.sh'
+        if not target in path_dict.keys():
+            logging.error('target {} not found, skip.'.format(target))
+            continue
 
-        # only for flights/breakdown other script
-        if target == 'flights/breakdown':
-            benchmark_script = 'runbreakdown.sh'
+        # get script
+        benchmark_path = path_dict[target]['wd']
+        benchmark_script = path_dict[target]['script']
 
         cmd = 'bash -c "cd {} && bash {}"'.format(benchmark_path, benchmark_script)
         env = {'NUM_RUNS': num_runs,
@@ -222,7 +217,8 @@ def run(ctx, target, num_runs, detach, help):
         logging.info('Output:\n{}'.format(output.decode() if isinstance(output, bytes) else output))
         if detach:
             logging.info('Started command in detached mode, to stop container use "stop" command')
-        logging.info('Done.')
+        num_targets_run += 1
+    logging.info('Done ({}/{} targets).'.format(num_targets_run, len(targets_to_run)))
 
 
 def start_container():

@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.12 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.19 FATAL_ERROR)
 
 # enable c++14
 set(CMAKE_CXX_STANDARD 14)
@@ -39,9 +39,6 @@ set_target_properties(libcodegen PROPERTIES PREFIX "")
 # list to reduce size of shared object. Compared to linking against all LLVM components, this saves about ~10MB.
 #llvm_map_components_to_libnames(llvm_libs core orcjit nativecodegen native scalaropts objcarcopts passes)
 llvm_map_components_to_libnames(llvm_libs core native irreader target)
-#llvm_config(libcodegen USE_SHARED ${llvm_libs})
-#message(STATUS "${llvm_libs}")
-#message(STATUS "llvm lib dirs: ${LLVM_LIBRARY_DIRS}")
 link_directories(${LLVM_LIBRARY_DIRS})
 # for minimum JIT these components are recommended:
 #    core

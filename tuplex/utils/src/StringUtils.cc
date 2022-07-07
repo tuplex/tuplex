@@ -203,8 +203,8 @@ namespace tuplex {
                 return static_cast<int32_t>(ExceptionCode::BOOLPARSE_ERROR);
             case 2:
                 // convert char
-                buffer[0] = (char) tolower(*start);
-                buffer[1] = (char) tolower(*(start + 1));
+                buffer[0] = (char) std::tolower(*start);
+                buffer[1] = (char) std::tolower(*(start + 1));
                 buffer[2] = 0;
 
                 if (strcmp(buffer, "no") == 0) {
@@ -214,9 +214,9 @@ namespace tuplex {
                 return static_cast<int32_t>(ExceptionCode::BOOLPARSE_ERROR);
             case 3:
                 // convert char
-                buffer[0] = (char) tolower(*start);
-                buffer[1] = (char) tolower(*(start + 1));
-                buffer[2] = (char) tolower(*(start + 2));
+                buffer[0] = (char) std::tolower(*start);
+                buffer[1] = (char) std::tolower(*(start + 1));
+                buffer[2] = (char) std::tolower(*(start + 2));
                 buffer[3] = 0;
 
                 if (strcmp(buffer, "yes") == 0) {
@@ -226,10 +226,10 @@ namespace tuplex {
                 return static_cast<int32_t>(ExceptionCode::BOOLPARSE_ERROR);
             case 4:
                 // convert char
-                buffer[0] = (char) tolower(*start);
-                buffer[1] = (char) tolower(*(start + 1));
-                buffer[2] = (char) tolower(*(start + 2));
-                buffer[3] = (char) tolower(*(start + 3));
+                buffer[0] = (char) std::tolower(*start);
+                buffer[1] = (char) std::tolower(*(start + 1));
+                buffer[2] = (char) std::tolower(*(start + 2));
+                buffer[3] = (char) std::tolower(*(start + 3));
                 buffer[4] = 0;
 
                 if (strcmp(buffer, "true") == 0) {
@@ -239,11 +239,11 @@ namespace tuplex {
                 return static_cast<int32_t>(ExceptionCode::BOOLPARSE_ERROR);
             case 5:
                 // convert char
-                buffer[0] = (char) tolower(*start);
-                buffer[1] = (char) tolower(*(start + 1));
-                buffer[2] = (char) tolower(*(start + 2));
-                buffer[3] = (char) tolower(*(start + 3));
-                buffer[4] = (char) tolower(*(start + 4));
+                buffer[0] = (char) std::tolower(*start);
+                buffer[1] = (char) std::tolower(*(start + 1));
+                buffer[2] = (char) std::tolower(*(start + 2));
+                buffer[3] = (char) std::tolower(*(start + 3));
+                buffer[4] = (char) std::tolower(*(start + 4));
                 buffer[5] = 0;
 
                 if (strcmp(buffer, "false") == 0) {

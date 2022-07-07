@@ -13,6 +13,7 @@
 
 #include <Schema.h>
 #include <physical/memory/Partition.h>
+#include <physical/memory/PartitionGroup.h>
 #include <utils/ExceptionInfo.h>
 #include "physical/PhysicalStage.h"
 #include "jit/LLVMOptimizer.h"
@@ -109,16 +110,41 @@ namespace tuplex {
         }
 
         /*!
-         * set input exceptions, i.e. rows that could come from a parallelize or csv operator.
-         * @param pythonObjects
+         * set stage's general case normalPartitions
+         * @param generalPartitions
          */
-        void setInputExceptions(const std::vector<Partition *>& inputExceptions) { _inputExceptions = inputExceptions; }
+        void setGeneralPartitions(const std::vector<Partition*>& generalPartitions) { _generalPartitions = generalPartitions; }
 
-        std::vector<Partition *> inputExceptions() { return _inputExceptions; }
+        /*!
+         * get stage's general case normalPartitions
+         * @return
+         */
+        std::vector<Partition*> generalPartitions() const { return _generalPartitions; }
 
-        void setPartitionToExceptionsMap(const std::unordered_map<std::string, ExceptionInfo>& partitionToExceptionsMap) { _partitionToExceptionsMap = partitionToExceptionsMap; }
+        /*!
+         * set stage's fallback normalPartitions as serialized python objects
+         * @param fallbackPartitions
+         */
+        void setFallbackPartitions(const std::vector<Partition*>& fallbackPartitions) { _fallbackPartitions = fallbackPartitions; }
 
-        std::unordered_map<std::string, ExceptionInfo> partitionToExceptionsMap() { return _partitionToExceptionsMap; }
+        /*!
+         * get fallback normalPartitions as serialized python objects
+         * @return
+         */
+        std::vector<Partition*> fallbackPartitions() const { return _fallbackPartitions; }
+
+        /*!
+         * set merge information for each set of normal, fallback, and general partitions
+         * @param partitionGroups
+         */
+        void setPartitionGroups(const std::vector<PartitionGroup>& partitionGroups) {
+            _partitionGroups = partitionGroups;
+        }
+
+        /*!
+         * get partition groups for all sets of partitions
+         */
+         std::vector<PartitionGroup> partitionGroups() const { return _partitionGroups; }
 
         /*!
          * sets maximum number of rows this pipeline will produce
@@ -208,12 +234,12 @@ namespace tuplex {
          */
         std::shared_ptr<ResultSet> resultSet() const override { return _rs;}
 
-        void setMemoryResult(const std::vector<Partition*>& partitions,
-                             const std::vector<Partition*>& generalCase=std::vector<Partition*>{},
-                             const std::unordered_map<std::string, ExceptionInfo>& parttionToExceptionsMap=std::unordered_map<std::string, ExceptionInfo>(),
-                             const std::vector<std::tuple<size_t, PyObject*>>& interpreterRows=std::vector<std::tuple<size_t, PyObject*>>{},
-                             const std::vector<Partition*>& remainingExceptions=std::vector<Partition*>{},
-                             const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>& ecounts=std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>()); // creates local result set?
+        void setMemoryResult(const std::vector<Partition*>& normalPartitions=std::vector<Partition*>{},
+                             const std::vector<Partition*>& generalPartitions=std::vector<Partition*>{},
+                             const std::vector<Partition*>& fallbackPartitions=std::vector<Partition*>{},
+                             const std::vector<PartitionGroup>& partitionGroups=std::vector<PartitionGroup>{},
+                             const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>& exceptionCounts=std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>()); // creates local result set?
+
         void setFileResult(const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>& ecounts); // creates empty result set with exceptions
 
         void setEmptyResult() {
@@ -224,9 +250,8 @@ namespace tuplex {
                 setMemoryResult(
                         std::vector<Partition*>(),
                         std::vector<Partition*>(),
-                        std::unordered_map<std::string, ExceptionInfo>(),
-                        std::vector<std::tuple<size_t, PyObject*>>(),
                         std::vector<Partition*>(),
+                        std::vector<PartitionGroup>(),
                         ecounts);
         }
 
@@ -453,9 +478,6 @@ namespace tuplex {
             _hashResult.bucketType = _hashOutputBucketType;
         }
 
-//        std::vector<bool> columnsToKeep() const {
-//            return _inputColumnsToKeep;
-//        }
 
         /*!
          * whether to cache normal case/general case separately (true if .cache() is used)
@@ -644,6 +666,9 @@ namespace tuplex {
         std::vector<Partition*> _inputPartitions; //! memory input partitions for this task.
         size_t                  _inputLimit; //! limit number of input rows (inf per default)
         size_t                  _outputLimit; //! output limit, set e.g. by take, to_csv etc. (inf per default)
+        std::vector<Partition*> _generalPartitions; //! general case input partitions
+        std::vector<Partition*> _fallbackPartitions; //! fallback case input partitions
+        std::vector<PartitionGroup> _partitionGroups; //! groups partitions together for correct row indices
 
         std::shared_ptr<ResultSet> _rs; //! result set
 
@@ -661,11 +686,6 @@ namespace tuplex {
         HashResult _hashResult; // where to store hash result (i.e. write to hash table)
         // Todo: move this to physicalplan!!!
         //void pushDownOutputLimit(); //! enable optimizations for limited pipeline by restricting input read!
-
-        // unresolved exceptions. Important i.e. when no IO interleave is used...
-        std::vector<Partition*> _inputExceptions;
-        std::unordered_map<std::string, ExceptionInfo> _partitionToExceptionsMap;
-
 
         // for hash output, the key and bucket type
         python::Type _hashOutputKeyType;

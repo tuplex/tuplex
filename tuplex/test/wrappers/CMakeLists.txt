@@ -14,16 +14,25 @@ FILE(GLOB PYSRCS ../../python/src/*.cc)
 #list(REMOVE_ITEM PYSRCS "../../python/src/PythonBindings.cc")
 list(FILTER PYSRCS EXCLUDE REGEX ".*PythonBindings.cc$")
 
-# use pybind11
+## use pybind11
+#CPMAddPackage(
+#    NAME pybind11
+#    VERSION 2.9.1
+#    GITHUB_REPOSITORY pybind/pybind11
+#    OPTIONS
+#        "PYBIND11_NOPYTHON ON"
+#        "PYBIND11_FINDPYTHON OFF"
+#)
+
 # fetch pybind11 (external project)
-include(FetchContent)
-FetchContent_Declare(pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11
-        GIT_TAG        v2.9.1)
-FetchContent_GetProperties(pybind11)
-if(NOT pybind11_POPULATED)
-    FetchContent_Populate(pybind11)
-    add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
-endif()
+#iinclude(FetchContent)
+#FetchContent_Declare(pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11
+#        GIT_TAG        v2.9.1)
+#FetchContent_GetProperties(pybind11)
+#if(NOT pybind11_POPULATED)
+#    FetchContent_Populate(pybind11)
+#    add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
+#endif()
 
 include(GoogleTest)
 

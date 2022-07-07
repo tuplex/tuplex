@@ -15,6 +15,7 @@ from setuptools import setup, find_packages
 # i.e. runtime + the .so module need to be copied...
 
 import os
+import sys
 import logging
 
 # change into this setup.py's dir
@@ -22,11 +23,14 @@ abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
 
-def tplx_package_data():
+logging.basicConfig(level=logging.INFO)
+logging.info('installing for {} (python {}.{})'.format(sys.executable, sys.version_info[0], sys.version_info[1]))
 
+
+def tplx_package_data():
     package_data = {
-      # include libs in libexec
-    'tuplex.libexec' : ['*.so', '*.dylib'],
+        # include libs in libexec
+        'tuplex.libexec' : ['*.so', '*.dylib'],
     }
 
     # check if thserver exists

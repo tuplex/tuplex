@@ -58,12 +58,23 @@ namespace tuplex {
             FunctionType* read_block_type = FunctionType::get(env().i64Type(), {env().i8ptrType(),
                                                                                 env().i8ptrType(),
                                                                                 env().i64Type(),
-                                                                                env().i8ptrType()->getPointerTo(0),
                                                                                 env().i64Type()->getPointerTo(0),
+                                                                                env().i64Type()->getPointerTo(0),
+                                                                                env().getBooleanType(),
+                                                                                env().i64Type()->getPointerTo(0),
+                                                                                env().i64Type()->getPointerTo(0),
+                                                                                env().i64Type()->getPointerTo(0),
+                                                                                env().i64Type()->getPointerTo(0),
+                                                                                env().i8ptrType()->getPointerTo(0),
                                                                                 env().i64Type(),
                                                                                 env().i64Type()->getPointerTo(0),
                                                                                 env().i64Type()->getPointerTo(0),
-                                                                                env().getBooleanType()}, false);
+                                                                                env().i64Type()->getPointerTo(0),
+                                                                                env().i8ptrType()->getPointerTo(0),
+                                                                                env().i64Type(),
+                                                                                env().i64Type()->getPointerTo(0),
+                                                                                env().i64Type()->getPointerTo(0),
+                                                                                env().i64Type()->getPointerTo(0)}, false);
             // create function and set argNames
             Function* read_block_func = Function::Create(read_block_type, Function::ExternalLinkage, _desiredFuncName, env().getModule().get());
 
@@ -76,12 +87,24 @@ namespace tuplex {
             vector<string> argNames{"userData",
                                     "inPtr",
                                     "inSize",
-                                    "expPtrs",
-                                    "expPtrSizes",
-                                    "numExps",
                                     "outNormalRowCount",
                                     "outBadRowCount",
-                                    "ignoreLastRow"};
+                                    "ignoreLastRow",
+                                    "totalFilterCounter",
+                                    "totalNormalRowCounter",
+                                    "totalGeneralRowCounter",
+                                    "totalFallbackRowCounter",
+                                    "generalPartitions",
+                                    "numGeneralPartitions",
+                                    "generalIndexOffset",
+                                    "generalRowOffset",
+                                    "generalByteOffset",
+                                    "fallbackPartitions",
+                                    "numFallbackPartitions",
+                                    "fallbackIndexOffset",
+                                    "fallbackRowOffset",
+                                    "fallbackByteOffset"};
+
             for(int i = 0; i < argNames.size(); ++i) {
                 args[i]->setName(argNames[i]);
                 _args[argNames[i]] = args[i];

@@ -268,8 +268,8 @@ namespace tuplex {
         Timer timer;
         // BUILD phase
         // TODO: codegen build phase. I.e. a function should be code generated which hashes a partition to a hashmap.
-        while(rsRight->hasNextPartition()) {
-            Partition* p = rsRight->getNextPartition();
+        while(rsRight->hasNextNormalPartition()) {
+            Partition* p = rsRight->getNextNormalPartition();
 
             // lock partition!
             auto ptr = p->lockRaw();
@@ -437,7 +437,7 @@ namespace tuplex {
         auto combinedType = hstage->combinedType();
         Schema combinedSchema(Schema::MemoryLayout::ROW, combinedType);
         std::vector<IExecutorTask*> probeTasks;
-        for(auto partition : rsLeft->partitions()) {
+        for(auto partition : rsLeft->normalPartitions()) {
             probeTasks.emplace_back(new HashProbeTask(partition, hmap, probeFunction,
                                                       hstage->combinedType(),
                                                       hstage->outputDataSetID(),
@@ -653,9 +653,34 @@ namespace tuplex {
 
             // restrict after input limit
             size_t numInputRows = 0;
+
             auto inputPartitions = tstage->inputPartitions();
-            for(int i = 0; i < inputPartitions.size(); ++i) {
-                auto partition = inputPartitions[i];
+            auto generalPartitions = tstage->generalPartitions();
+            auto fallbackPartitions = tstage->fallbackPartitions();
+            auto partitionGroups = tstage->partitionGroups();
+            for (const auto &group : partitionGroups) {
+                std::vector<Partition*> taskNormalPartitions;
+                bool invalidateAfterUse = false;
+                for (int i = group.normalPartitionStartIndex; i < group.normalPartitionStartIndex + group.numNormalPartitions; ++i) {
+                    auto p = inputPartitions[i];
+                    numInputRows += p->getNumRows();
+                    if (!p->isImmortal())
+                        invalidateAfterUse = true;
+                    taskNormalPartitions.push_back(p);
+                }
+                std::vector<Partition*> taskGeneralPartitions;
+                for (int i = group.generalPartitionStartIndex; i < group.generalPartitionStartIndex + group.numGeneralPartitions; ++i) {
+                    auto p = generalPartitions[i];
+                    numInputRows += p->getNumRows();
+                    taskGeneralPartitions.push_back(p);
+                }
+                std::vector<Partition*> taskFallbackPartitions;
+                for (int i = group.fallbackPartitionStartIndex; i < group.fallbackPartitionStartIndex + group.numFallbackPartitions; ++i) {
+                    auto p = fallbackPartitions[i];
+                    numInputRows += p->getNumRows();
+                    taskFallbackPartitions.push_back(p);
+                }
+
                 auto task = new TransformTask();
                 if (tstage->updateInputExceptions()) {
                     task->setFunctor(syms->functorWithExp);
@@ -663,7 +688,9 @@ namespace tuplex {
                     task->setFunctor(syms->functor);
                 }
                 task->setUpdateInputExceptions(tstage->updateInputExceptions());
-                task->setInputMemorySource(partition, !partition->isImmortal());
+                task->setInputMemorySources(taskNormalPartitions, invalidateAfterUse);
+                task->setGeneralPartitions(taskGeneralPartitions);
+                task->setFallbackPartitions(taskFallbackPartitions);
                 // hash table or memory output?
                 if(tstage->outputMode() == EndPointMode::HASHTABLE) {
                     if (tstage->hashtableKeyByteWidth() == 8)
@@ -678,16 +705,10 @@ namespace tuplex {
                            tstage->outputMode() == EndPointMode::MEMORY);
                     task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID(), tstage->context().id());
                 }
-
-                auto partitionId = uuidToString(partition->uuid());
-                auto info = tstage->partitionToExceptionsMap()[partitionId];
-                task->setInputExceptionInfo(info);
-                task->setInputExceptions(tstage->inputExceptions());
-                task->sinkExceptionsToMemory(inputSchema);
+                task->sinkExceptionsToMemory(tstage->inputSchema());
                 task->setStageID(tstage->getID());
                 task->setOutputLimit(tstage->outputLimit());
                 tasks.emplace_back(std::move(task));
-                numInputRows += partition->getNumRows();
 
                 // input limit exhausted? break!
                 if(numInputRows >= tstage->inputLimit())
@@ -755,92 +776,6 @@ namespace tuplex {
         return pip_object;
     }
 
-    std::vector<std::tuple<size_t, PyObject*>> inputExceptionsToPythonObjects(const std::vector<Partition *>& partitions, Schema schema) {
-        using namespace tuplex;
-
-        std::vector<std::tuple<size_t, PyObject*>> pyObjects;
-        for (const auto &partition : partitions) {
-            auto numRows = partition->getNumRows();
-            const uint8_t* ptr = partition->lock();
-
-            python::lockGIL();
-            for (int i = 0; i < numRows; ++i) {
-                int64_t rowNum = *((int64_t*)ptr);
-                ptr += sizeof(int64_t);
-                int64_t ecCode = *((int64_t*)ptr);
-                ptr += 2 * sizeof(int64_t);
-                int64_t objSize = *((int64_t*)ptr);
-                ptr += sizeof(int64_t);
-
-                PyObject* pyObj = nullptr;
-                if (ecCode == ecToI64(ExceptionCode::PYTHON_PARALLELIZE)) {
-                    pyObj = python::deserializePickledObject(python::getMainModule(), (char *) ptr, objSize);
-                } else {
-                    pyObj = python::rowToPython(Row::fromMemory(schema, ptr, objSize), true);
-                }
-
-                ptr += objSize;
-                pyObjects.emplace_back(rowNum, pyObj);
-            }
-            python::unlockGIL();
-
-            partition->unlock();
-            partition->invalidate();
-        }
-
-        return pyObjects;
-    }
-
-    void setExceptionInfo(const std::vector<Partition*> &normalOutput, const std::vector<Partition*> &exceptions, std::unordered_map<std::string, ExceptionInfo> &partitionToExceptionsMap) {
-        if (exceptions.empty()) {
-            for (const auto &p : normalOutput) {
-                partitionToExceptionsMap[uuidToString(p->uuid())] = ExceptionInfo();
-            }
-            return;
-        }
-
-        auto expRowCount = 0;
-        auto expInd = 0;
-        auto expRowOff = 0;
-        auto expByteOff = 0;
-
-        auto expNumRows = exceptions[0]->getNumRows();
-        auto expPtr = exceptions[0]->lockWrite();
-        auto rowsProcessed = 0;
-        for (const auto &p : normalOutput) {
-            auto pNumRows = p->getNumRows();
-            auto curNumExps = 0;
-            auto curExpOff = expRowOff;
-            auto curExpInd = expInd;
-            auto curExpByteOff = expByteOff;
-
-            while (*((int64_t *) expPtr) - rowsProcessed <= pNumRows + curNumExps && expRowCount < expNumRows) {
-                *((int64_t *) expPtr) -= rowsProcessed;
-                curNumExps++;
-                expRowOff++;
-                auto eSize = ((int64_t *)expPtr)[3] + 4*sizeof(int64_t);
-                expPtr += eSize;
-                expByteOff += eSize;
-                expRowCount++;
-
-                if (expRowOff == expNumRows && expInd < exceptions.size() - 1) {
-                    exceptions[expInd]->unlockWrite();
-                    expInd++;
-                    expPtr = exceptions[expInd]->lockWrite();
-                    expNumRows = exceptions[expInd]->getNumRows();
-                    expRowOff = 0;
-                    expByteOff = 0;
-                    expRowCount = 0;
-                }
-            }
-
-            rowsProcessed += curNumExps + pNumRows;
-            partitionToExceptionsMap[uuidToString(p->uuid())] = ExceptionInfo(curNumExps, curExpInd, curExpOff, curExpByteOff);
-        }
-
-        exceptions[expInd]->unlockWrite();
-    }
-
     void LocalBackend::executeTransformStage(tuplex::TransformStage *tstage) {
 
         Timer stageTimer;
@@ -874,9 +809,8 @@ namespace tuplex {
 
         // special case: skip stage, i.e. empty code and mem2mem
         if(tstage->fastPathCode().empty() &&  !tstage->fileInputMode() && !tstage->fileOutputMode()) {
-            auto pyObjects = inputExceptionsToPythonObjects(tstage->inputExceptions(), tstage->normalCaseInputSchema());
-            tstage->setMemoryResult(tstage->inputPartitions(), std::vector<Partition*>{}, std::unordered_map<std::string, ExceptionInfo>(), pyObjects);
-            pyObjects.clear();
+            tstage->setMemoryResult(tstage->inputPartitions(), tstage->generalPartitions(), tstage->fallbackPartitions(),
+                                    tstage->partitionGroups());
             // skip stage
             Logger::instance().defaultLogger().info("[Transform Stage] skipped stage " + std::to_string(tstage->number()) + " because there is nothing todo here.");
             return;
@@ -1009,7 +943,7 @@ namespace tuplex {
 
         //TODO: implement pure python resolution here...
         // exceptions found or slowpath data given?
-        if(totalECountsBeforeResolution > 0 || !tstage->inputExceptions().empty()) {
+        if(totalECountsBeforeResolution > 0 || !tstage->generalPartitions().empty() || !tstage->fallbackPartitions().empty()) {
             stringstream ss;
             // log out what exists in a table
             ss<<"Exception details: "<<endl;
@@ -1033,11 +967,19 @@ namespace tuplex {
                 }
             }
 
-            if(!tstage->inputExceptions().empty()) {
+            if(!tstage->generalPartitions().empty()) {
                 size_t numExceptions = 0;
-                for (auto &p : tstage->inputExceptions())
+                for (auto &p : tstage->generalPartitions())
                     numExceptions += p->getNumRows();
-                lines.push_back(Row("(input)", exceptionCodeToPythonClass(ExceptionCode::NORMALCASEVIOLATION), (int64_t)numExceptions));
+                lines.push_back(Row("(cache)", exceptionCodeToPythonClass(ExceptionCode::NORMALCASEVIOLATION), (int64_t)numExceptions));
+                totalECountsBeforeResolution += numExceptions;
+            }
+
+            if(!tstage->fallbackPartitions().empty()) {
+                size_t numExceptions = 0;
+                for (auto &p : tstage->fallbackPartitions())
+                    numExceptions += p->getNumRows();
+                lines.push_back(Row("(parallelize)", exceptionCodeToPythonClass(ExceptionCode::NORMALCASEVIOLATION), (int64_t)numExceptions));
                 totalECountsBeforeResolution += numExceptions;
             }
 
@@ -1071,7 +1013,7 @@ namespace tuplex {
                 executeSlowPath = true;
 
             // input exceptions or py objects?
-            if(!tstage->inputExceptions().empty())
+            if(!tstage->generalPartitions().empty() || !tstage->fallbackPartitions().empty())
                 executeSlowPath = true;
 
             if(executeSlowPath) {
@@ -1093,7 +1035,13 @@ namespace tuplex {
                     }
 
                     // cout<<"*** num tasks before resolution: "<<completedTasks.size()<<" ***"<<endl;
-                    completedTasks = resolveViaSlowPath(completedTasks, merge_except_rows, resolveFunctor, tstage, combineOutputHashmaps);
+                    completedTasks = resolveViaSlowPath(completedTasks,
+                                                        merge_except_rows,
+                                                        resolveFunctor,
+                                                        tstage,
+                                                        combineOutputHashmaps,
+                                                        syms->aggInitFunctor,
+                                                        syms->aggCombineFunctor);
                     // cout<<"*** num tasks after resolution: "<<completedTasks.size()<<" ***";
                 }
 
@@ -1159,30 +1107,22 @@ namespace tuplex {
             }
             case EndPointMode::MEMORY: {
                 // memory output, fetch partitions & ecounts
-                vector<Partition *> output;
-                vector<Partition *> generalOutput;
-                unordered_map<string, ExceptionInfo> partitionToExceptionsMap;
-                vector<Partition*> remainingExceptions;
-                vector<tuple<size_t, PyObject*>> nonConformingRows; // rows where the output type does not fit,
-                                                                     // need to manually merged.
-                unordered_map<tuple<int64_t, ExceptionCode>, size_t> ecounts;
-                size_t rowDelta = 0;
+                vector<Partition*> normalPartitions;
+                vector<Partition*> generalPartitions;
+                vector<Partition*> fallbackPartitions;
+                vector<Partition*> exceptionPartitions;
+                vector<PartitionGroup> partitionGroups;
+                unordered_map<tuple<int64_t, ExceptionCode>, size_t> exceptionCounts;
+
                 for (const auto& task : completedTasks) {
-                    auto taskOutput = getOutputPartitions(task);
-                    auto taskRemainingExceptions = getRemainingExceptions(task);
-                    auto taskGeneralOutput = generalCasePartitions(task);
-                    auto taskNonConformingRows = getNonConformingRows(task);
+                    auto taskNormalPartitions = getNormalPartitions(task);
+                    auto taskGeneralPartitions = getGeneralPartitions(task);
+                    auto taskFallbackPartitions = getFallbackPartitions(task);
+                    auto taskExceptionPartitions = getExceptionPartitions(task);
                     auto taskExceptionCounts = getExceptionCounts(task);
 
                     // update exception counts
-                    ecounts = merge_ecounts(ecounts, taskExceptionCounts);
-
-                    // update nonConforming with delta
-                    for(int i = 0; i < taskNonConformingRows.size(); ++i) {
-                        auto t = taskNonConformingRows[i];
-                        t = std::make_tuple(std::get<0>(t) + rowDelta, std::get<1>(t));
-                        taskNonConformingRows[i] = t;
-                    }
+                    exceptionCounts = merge_ecounts(exceptionCounts, taskExceptionCounts);
 
                     // debug trace issues
                     using namespace std;
@@ -1192,21 +1132,17 @@ namespace tuplex {
                     if(task->type() == TaskType::RESOLVE)
                         task_name = "resolve";
 
-                    setExceptionInfo(taskOutput, taskGeneralOutput, partitionToExceptionsMap);
-                    std::copy(taskOutput.begin(), taskOutput.end(), std::back_inserter(output));
-                    std::copy(taskRemainingExceptions.begin(), taskRemainingExceptions.end(), std::back_inserter(remainingExceptions));
-                    std::copy(taskGeneralOutput.begin(), taskGeneralOutput.end(), std::back_inserter(generalOutput));
-                    std::copy(taskNonConformingRows.begin(), taskNonConformingRows.end(), std::back_inserter(nonConformingRows));
-
-                    // compute the delta used to offset records!
-                    for (const auto &p : taskOutput)
-                        rowDelta += p->getNumRows();
-                    for (const auto &p : taskGeneralOutput)
-                        rowDelta += p->getNumRows();
-                    rowDelta += taskNonConformingRows.size();
+                    partitionGroups.push_back(PartitionGroup(
+                            taskNormalPartitions.size(), normalPartitions.size(),
+                            taskGeneralPartitions.size(), generalPartitions.size(),
+                            taskFallbackPartitions.size(), fallbackPartitions.size()));
+                    std::copy(taskNormalPartitions.begin(), taskNormalPartitions.end(), std::back_inserter(normalPartitions));
+                    std::copy(taskGeneralPartitions.begin(), taskGeneralPartitions.end(), std::back_inserter(generalPartitions));
+                    std::copy(taskFallbackPartitions.begin(), taskFallbackPartitions.end(), std::back_inserter(fallbackPartitions));
+                    std::copy(taskExceptionPartitions.begin(), taskExceptionPartitions.end(), std::back_inserter(exceptionPartitions));
                 }
 
-                tstage->setMemoryResult(output, generalOutput, partitionToExceptionsMap, nonConformingRows, remainingExceptions, ecounts);
+                tstage->setMemoryResult(normalPartitions, generalPartitions, fallbackPartitions, partitionGroups, exceptionCounts);
                 break;
             }
             case EndPointMode::HASHTABLE: {
@@ -1216,7 +1152,11 @@ namespace tuplex {
                 if(completedTasks.empty()) {
                     tstage->setHashResult(nullptr, nullptr);
                 } else {
-                    auto hsink = createFinalHashmap({completedTasks.cbegin(), completedTasks.cend()}, tstage->hashtableKeyByteWidth(), combineOutputHashmaps);
+                    auto hsink = createFinalHashmap({completedTasks.cbegin(), completedTasks.cend()},
+                                                    tstage->hashtableKeyByteWidth(),
+                                                    combineOutputHashmaps,
+                                                    syms->aggInitFunctor,
+                                                    syms->aggCombineFunctor);
                     tstage->setHashResult(hsink.hm, hsink.null_bucket);
                 }
                 break;
@@ -1306,7 +1246,9 @@ namespace tuplex {
             bool merge_rows_in_order,
             codegen::resolve_f functor,
             tuplex::TransformStage *tstage,
-            bool combineHashmaps) {
+            bool combineHashmaps,
+            codegen::agg_init_f init_aggregate,
+            codegen::agg_combine_f combine_aggregate) {
 
         using namespace std;
         assert(tstage);
@@ -1342,7 +1284,11 @@ namespace tuplex {
 
             // special case: create a global hash output result and put it into the FIRST resolve task.
             Timer timer;
-            hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()}, tstage->hashtableKeyByteWidth(), combineHashmaps);
+            hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()},
+                                       tstage->hashtableKeyByteWidth(),
+                                       combineHashmaps,
+                                       init_aggregate,
+                                       combine_aggregate);
             logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
             hasNormalHashSink = true;
         }
@@ -1453,7 +1399,7 @@ namespace tuplex {
             else if(compareOrders(maxOrder, tt->getOrder()))
                 maxOrder = tt->getOrder();
 
-            if (tt->exceptionCounts().size() > 0 || tt->inputExceptionInfo().numExceptions > 0) {
+            if (tt->exceptionCounts().size() > 0 || !tt->generalPartitions().empty() || !tt->fallbackPartitions().empty()) {
                 // task found with exceptions in it => exception partitions need to be resolved using special functor
 
                 // hash-table output not yet supported
@@ -1468,8 +1414,8 @@ namespace tuplex {
                                              tstage->context().id(),
                                              tt->getOutputPartitions(),
                                              tt->getExceptionPartitions(),
-                                             tt->inputExceptions(),
-                                             tt->inputExceptionInfo(),
+                                             tt->generalPartitions(),
+                                             tt->fallbackPartitions(),
                                              opsToCheck,
                                              exceptionInputSchema,
                                              compiledSlowPathOutputSchema,
@@ -1560,11 +1506,6 @@ namespace tuplex {
         auto resolvedTasks = performTasks(resolveTasks);
         // cout<<"*** git "<<resolvedTasks.size()<<" resolve tasks ***"<<endl;
         std::copy(resolvedTasks.cbegin(), resolvedTasks.cend(), std::back_inserter(tasks_result));
-
-        // Invalidate partitions after all resolve tasks execute because shared among tasks
-        for (auto& p : tstage->inputExceptions()) {
-            p->invalidate();
-        }
 
         // cout<<"*** total number of tasks to return is "<<tasks_result.size()<<endl;
         return tasks_result;
@@ -1733,8 +1674,8 @@ namespace tuplex {
 
         // first a dummy implementation:
         // basically hash the complete row (can be done faster later) into a hashmap and then write back the result...
-        while(rs->hasNextPartition()) {
-            Partition* p = rs->getNextPartition();
+        while(rs->hasNextNormalPartition()) {
+            Partition* p = rs->getNextNormalPartition();
 
             // lock partition!
             auto ptr = p->lockRaw();
@@ -1955,7 +1896,197 @@ namespace tuplex {
         }
     }
 
-    HashTableSink LocalBackend::createFinalHashmap(const std::vector<const IExecutorTask*>& tasks, int hashtableKeyByteWidth, bool combine) {
+    struct apply_context {
+        map_t hm;
+        codegen::agg_init_f init_aggregate;
+        codegen::agg_combine_f combine_aggregate;
+    };
+    static int apply_to_bucket(const apply_context* ctx, hashmap_element* entry) {
+        assert(ctx->hm);
+        auto key = entry->key;
+        auto keylen = entry->keylen;
+        auto data = (uint8_t*)entry->data;
+
+        // if no data found, no need to apply func.
+        if(!data)
+            return MAP_OK;
+
+        // update data
+        // initialize
+        uint8_t* init_val = nullptr;
+        int64_t init_size = 0;
+        ctx->init_aggregate(&init_val, &init_size);
+
+        // call combine over null-bucket
+        // decode first bucket values!
+        // --> for aggregate by key a single value is stored there
+        int64_t  bucket_size =  *(int64_t*)data;
+        uint8_t* bucket_val = data + 8;
+        auto new_val = init_val;
+        auto new_size = init_size;
+        auto rc = ctx->combine_aggregate(&new_val, &new_size, bucket_val, bucket_size);
+
+        // rc no 0? -> resolve!
+        if(rc != 0) {
+            std::cerr<<"combine function failed"<<std::endl;
+        }
+
+        // create new combined pointer
+        uint8_t* new_data = static_cast<uint8_t *>(malloc(new_size + 8));
+        *(int64_t*)new_data = new_size;
+        memcpy(new_data + 8, new_val, new_size);
+
+        // free original aggregate (must come after data copy!)
+        free(init_val);
+        auto old_ptr = data;
+
+        // assign to hashmap
+        entry->data = new_data;
+        free(old_ptr);
+        runtime::rtfree_all(); // combine aggregate allocates via runtime
+
+        // // check
+        // uint8_t* bucket = nullptr;
+        //hashmap_get(ctx->hm, key, keylen, (void **) (&bucket));
+
+        return MAP_OK;
+    }
+
+    // why two versions??
+    static int apply_to_bucket_i64(const apply_context* ctx, int64_hashmap_element* entry) {
+        assert(ctx->hm);
+        auto key = entry->key;
+        auto data = (uint8_t*)entry->data;
+
+        // if no data found, no need to apply func.
+        if(!data)
+            return MAP_OK;
+
+        // update data
+        // initialize
+        uint8_t* init_val = nullptr;
+        int64_t init_size = 0;
+        ctx->init_aggregate(&init_val, &init_size);
+
+        // call combine over null-bucket
+        // decode first bucket values!
+        // --> for aggregate by key a single value is stored there
+        int64_t  bucket_size =  *(int64_t*)data;
+        uint8_t* bucket_val = data + 8;
+        auto new_val = init_val;
+        auto new_size = init_size;
+        auto rc = ctx->combine_aggregate(&new_val, &new_size, bucket_val, bucket_size);
+
+        // rc no 0? -> resolve!
+        if(rc != 0) {
+            std::cerr<<"combine function failed"<<std::endl;
+        }
+
+        // create new combined pointer
+        uint8_t* new_data = static_cast<uint8_t *>(malloc(new_size + 8));
+        *(int64_t*)new_data = new_size;
+        memcpy(new_data + 8, new_val, new_size);
+
+        // free original aggregate (must come after data copy!)
+        free(init_val);
+        auto old_ptr = data;
+
+        // assign to hashmap
+        entry->data = new_data;
+        free(old_ptr);
+        runtime::rtfree_all(); // combine aggregate allocates via runtime
+
+        // // check
+        // uint8_t* bucket = nullptr;
+        //hashmap_get(ctx->hm, key, keylen, (void **) (&bucket));
+
+        return MAP_OK;
+    }
+
+    void applyCombinePerGroup(HashTableSink& sink, int hashtableKeyByteWidth, codegen::agg_init_f init_aggregate,
+                              codegen::agg_combine_f combine_aggregate) {
+
+        // combineBuckets code:
+        //    auto sizeA = *(int64_t*)bucketA;
+        //        auto valA = static_cast<uint8_t*>(malloc(sizeA));
+        //        // TODO: when we convert everything to thread locals, we should change agg_combine_functor to match the size | value format of agg_aggregate_functor so that we can roll aggregate into aggregateByKey and just using the nullbucket
+        //        memcpy(valA, bucketA + 8, sizeA);
+        //
+        //        auto sizeB = *(uint64_t*)bucketB;
+        //        auto valB = bucketB + 8;
+        //
+        //        agg_combine_functor(&valA, &sizeA, valB, sizeB);
+        //
+        //        // allocate the output buffer (should be avoided by the above TODO eventually)
+        //        auto ret = static_cast<uint8_t*>(malloc(sizeA + 8));
+        //        *(int64_t*)ret = sizeA;
+        //        memcpy(ret + 8, valA, sizeA);
+        //        free(valA); free(bucketA);
+        //        return ret;
+
+        // apply to null bucket if it exists
+        if(sink.null_bucket) {
+            // initialize
+            uint8_t* init_val = nullptr;
+            int64_t init_size = 0;
+            init_aggregate(&init_val, &init_size);
+
+            // call combine over null-bucket
+            // decode first bucket values!
+            // --> for aggregate by key a single value is stored there
+            uint64_t  bucket_size =  *(uint64_t*)sink.null_bucket;
+            uint8_t* bucket_val = sink.null_bucket + 8;
+            auto new_val = init_val;
+            auto new_size = init_size;
+            auto rc = combine_aggregate(&new_val, &new_size, bucket_val, bucket_size);
+
+            // rc no 0? -> resolve!
+            if(rc != 0) {
+                std::cerr<<"combine function failed"<<std::endl;
+            }
+
+            // free original aggregate
+            free(init_val);
+            auto old_ptr = sink.null_bucket;
+            assert(new_size == init_size);
+            // create new combined pointer
+            sink.null_bucket = static_cast<uint8_t*>(malloc(new_size + 8));
+            *(int64_t*)sink.null_bucket = new_size;
+            memcpy(sink.null_bucket + 8, new_val, new_size);
+            free(new_val);
+            free(old_ptr);
+        }
+
+        if(hashtableKeyByteWidth == 8) {
+            // this dispatch is not great, should get refactored...
+            apply_context ctx;
+            ctx.hm = sink.hm;
+            ctx.init_aggregate = init_aggregate;
+            ctx.combine_aggregate = combine_aggregate;
+            int64_hashmap_iterate(sink.hm, reinterpret_cast<PFintany>(apply_to_bucket_i64), &ctx);
+        } else {
+            // the regular, bytes based hashmap
+            apply_context ctx;
+            ctx.hm = sink.hm;
+            ctx.init_aggregate = init_aggregate;
+            ctx.combine_aggregate = combine_aggregate;
+            hashmap_iterate(sink.hm, reinterpret_cast<PFany>(apply_to_bucket), &ctx);
+        }
+
+        // TODO: missing is, need to apply UDFs to hybrid hashmap as well in case...
+        // --> should be a trivial function (?)
+        // @TODO.
+    }
+
+    HashTableSink LocalBackend::createFinalHashmap(const std::vector<const IExecutorTask*>& tasks,
+                                                   int hashtableKeyByteWidth,
+                                                   bool combine,
+                                                   codegen::agg_init_f init_aggregate,
+                                                   codegen::agg_combine_f combine_aggregate) {
+
+        // note: in order to preserve semantics on each group at least once the combine function has to be run.
+        // this can be achieved by running combine with the initial value
+
         if(tasks.empty()) {
             HashTableSink sink;
             if(hashtableKeyByteWidth == 8) sink.hm = int64_hashmap_new();
@@ -1966,7 +2097,14 @@ namespace tuplex {
             // no merge necessary, just directly return result
             // fetch hash table from task
             assert(tasks.front()->type() == TaskType::UDFTRAFOTASK || tasks.front()->type() == TaskType::RESOLVE);
-            return getHashSink(tasks.front());
+            auto sink = getHashSink(tasks.front());
+
+            // aggByKey or aggregate?
+            if(init_aggregate && combine_aggregate) {
+                applyCombinePerGroup(sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
+            }
+
+            return sink;
         } else {
 
             // @TODO: getHashSink should be updated to also work with hybrids. Yet, the merging of normal hashtables
@@ -2004,6 +2142,11 @@ namespace tuplex {
                     int64_hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
                 else
                     hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
+            }
+
+            // aggByKey or aggregate?
+            if(init_aggregate && combine_aggregate) {
+                applyCombinePerGroup(sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
             }
             return sink;
         }

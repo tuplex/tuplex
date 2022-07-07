@@ -28,7 +28,7 @@ namespace tuplex {
 
         CacheOperator(const std::shared_ptr<LogicalOperator> &parent, bool storeSpecialized,
                       const Schema::MemoryLayout& memoryLayout=Schema::MemoryLayout::ROW) : LogicalOperator(parent), _storeSpecialized(storeSpecialized), _memoryLayout(memoryLayout), _cached(false),
-        _columns(parent->columns()) {
+        _columns(parent->columns()), _normalRowCount(0), _fallbackRowCount(0), _generalRowCount(0) {
             setSchema(this->parent()->getOutputSchema()); // inherit schema from parent
             _optimizedSchema = getOutputSchema();
             if(memoryLayout != Schema::MemoryLayout::ROW)
@@ -82,9 +82,10 @@ namespace tuplex {
          * @return
          */
         bool isCached() const { return _cached; }
-        std::vector<Partition*> cachedPartitions() const { return _normalCasePartitions; }
-        std::vector<Partition*> cachedExceptions() const { return _generalCasePartitions; }
-        std::unordered_map<std::string, ExceptionInfo> partitionToExceptionsMap() const { return _partitionToExceptionsMap; }
+        std::vector<Partition*> cachedNormalPartitions() const { return _normalPartitions; }
+        std::vector<Partition*> cachedGeneralPartitions() const { return _generalPartitions; }
+        std::vector<Partition*> cachedFallbackPartitions() const { return _fallbackPartitions; }
+        std::vector<PartitionGroup> partitionGroups() const { return _partitionGroups; }
 
         size_t getTotalCachedRows() const;
 
@@ -101,10 +102,10 @@ namespace tuplex {
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             // Do not serialize cached stuff.
-            ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalCaseRowCount, _generalCaseRowCount);
+            ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalCaseRowCount, _generalCaseRowCount, _fallbackRowCount);
         }
         template<class Archive> void load(Archive &ar) {
-            ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalCaseRowCount, _generalCaseRowCount);
+            ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalCaseRowCount, _generalCaseRowCount, _fallbackRowCount);
         }
 #endif
 
@@ -120,30 +121,19 @@ namespace tuplex {
         // or merge them.
         bool _cached;
         bool _storeSpecialized;
-
-        // TODO: how to do Partition*, PyObject*??
-        std::vector<Partition*> _normalCasePartitions;    //! holds all data conforming to the normal case schema
-        std::vector<Partition*> _generalCasePartitions;   //! holds all data which is considered to be a normal-case violation,
-                                                          //! i.e. which does not adhere to the normal case schema, but did not produce
-                                                          //! an exception while being processed through the pipeline before
-        std::unordered_map<std::string, ExceptionInfo> _partitionToExceptionsMap; //! maps normal case partitions to corresponding general case ones
-        std::vector<PyObject*>  _py_objects;              //! all python objects who do not adhere to the general case schema
+        std::vector<Partition*> _normalPartitions;    //! holds all data conforming to the normal case schema
+        std::vector<Partition*> _generalPartitions;   //! holds all data which is considered to be a normal-case violation,
+        std::vector<Partition*> _fallbackPartitions;  //! holds all data which is output as a python object from interpreter processing
+        std::vector<PartitionGroup> _partitionGroups; //! groups together partitions for correct row ordering
         std::vector<std::string> _columns;
 
         // internal sample of normal case rows, used for tracing & Co.
         std::vector<Row> _sample;
 
         // number of rows need to be stored for cost estimates
-        size_t _normalCaseRowCount;
-        size_t _generalCaseRowCount;
-
-        // @TODO: there should be 3 things stored
-        // 1.) common case => i.e.
-        // 2.) general case => i.e. what in general can be done (null-values & Co, wide integers, ...)
-        // 3.) python case => i.e. things that don't fit into either case (interpreter objects serialized via pickle)
-
-        // Note: the pickling could be parallelized by simply matching python types & Co...
-        //       ==> store python data as tuple of elements!
+        size_t _normalRowCount;
+        size_t _generalRowCount;
+        size_t _fallbackRowCount;
     };
 }
 

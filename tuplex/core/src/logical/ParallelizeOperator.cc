@@ -12,16 +12,17 @@
 
 namespace tuplex {
     ParallelizeOperator::ParallelizeOperator(const Schema& schema,
-            const std::vector<Partition*>& partitions,
+            const std::vector<Partition*>& normalPartitions,
             const std::vector<std::string>& columns,
-            const SamplingMode& sampling_mode) :  _partitions(partitions),
-            _columnNames(columns), _samplingMode(sampling_mode) {
+            const SamplingMode& sampling_mode) : _normalPartitions(normalPartitions),
+                                                 _columnNames(columns),
+                                                 _samplingMode(sampling_mode) {
 
         setSchema(schema);
 
         // parallelize operator holds data in memory for infinite lifetime.
         // => make partitions immortal
-        for(auto& partition : _partitions)
+        for(auto& partition : _normalPartitions)
             partition->makeImmortal();
 
         // get sample
@@ -32,15 +33,15 @@ namespace tuplex {
         _sample.clear();
 
         // todo: general python objects from parallelize...
-        if(!_partitions.empty()) {
+        if(!_normalPartitions.empty()) {
            auto maxRows = getDataSet() ? getDataSet()->getContext()->getOptions().CSV_MAX_DETECTION_ROWS() : MAX_TYPE_SAMPLING_ROWS; // @TODO: change this variable/config name
 
            // fetch up to maxRows from partitions!
-           auto schema = _partitions.front()->schema();
+           auto schema = _normalPartitions.front()->schema();
            Deserializer ds(schema);
            size_t rowCount = 0;
            size_t numBytesRead = 0;
-           for(auto p : _partitions) {
+           for(auto p : _normalPartitions) {
                const uint8_t* ptr = p->lockRaw();
                auto partitionRowCount = *(int64_t*)ptr;
                ptr += sizeof(int64_t);
@@ -60,8 +61,8 @@ namespace tuplex {
         }
     }
 
-    std::vector<tuplex::Partition*> ParallelizeOperator::getPartitions() {
-        return _partitions;
+    std::vector<tuplex::Partition*> ParallelizeOperator::getNormalPartitions() {
+        return _normalPartitions;
     }
 
     bool ParallelizeOperator::good() const {
@@ -70,7 +71,7 @@ namespace tuplex {
 
     std::vector<Row> ParallelizeOperator::getSample(const size_t num) const {
         // samples exist?
-        if(_partitions.empty() || 0 == num) {
+        if(_normalPartitions.empty() || 0 == num) {
             return std::vector<Row>();
         }
 
@@ -110,11 +111,11 @@ namespace tuplex {
     }
 
     std::shared_ptr<LogicalOperator> ParallelizeOperator::clone() {
-        auto copy = new ParallelizeOperator(getOutputSchema(), _partitions, columns(), _samplingMode);
+        auto copy = new ParallelizeOperator(getOutputSchema(), _normalPartitions, columns(), _samplingMode);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
-        copy->setPythonObjects(_pythonObjects);
-        copy->setInputPartitionToPythonObjectsMap(_inputPartitionToPythonObjectsMap);
+        copy->setFallbackPartitions(_fallbackPartitions);
+        copy->setPartitionGroups(_partitionGroups);
         assert(getID() == copy->getID());
         return std::shared_ptr<LogicalOperator>(copy);
     }
@@ -122,7 +123,9 @@ namespace tuplex {
     int64_t ParallelizeOperator::cost() const {
         // use #rows stored in partitions
         int64_t numRows = 0;
-        for(auto p : _partitions)
+        for(const auto& p : _normalPartitions)
+            numRows += p->getNumRows();
+        for(const auto& p : _fallbackPartitions)
             numRows += p->getNumRows();
         return numRows;
     }

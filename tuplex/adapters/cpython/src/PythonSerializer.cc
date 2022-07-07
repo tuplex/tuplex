@@ -77,7 +77,7 @@ namespace tuplex {
             return dictObj;
         }
 
-        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type, size_t capacity) {
+        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type, uintptr_t max_ptr) {
             int64_t current_buffer_index = 0;
 
             auto tree = tuplex::TupleTree<tuplex::Field>(row_type);
@@ -133,12 +133,12 @@ namespace tuplex {
                 if (current_type.isOptionType() && current_type.getReturnType().isTupleType()) {
                     // createPyTupleFromMemory requires a ptr to start of the actual tuple data, so need to decode and add offset here
                     uint64_t offset = *((uint64_t *)(ptr + current_buffer_index));
-                    assert((uintptr_t)(ptr + current_buffer_index + offset) < capacity);
+                    assert((uintptr_t)(ptr + current_buffer_index + offset) <= max_ptr);
                     elem_to_insert = createPyObjectFromMemory(ptr + current_buffer_index + offset, current_type,
-                                                              capacity, bitmap, bitmap_index);
+                                                              max_ptr, bitmap, bitmap_index);
                 } else {
                     // otherwise, simply pass ptr to the current field
-                    elem_to_insert = createPyObjectFromMemory(ptr + current_buffer_index, current_type, capacity,
+                    elem_to_insert = createPyObjectFromMemory(ptr + current_buffer_index, current_type, max_ptr,
                                                               bitmap, bitmap_index);
                 }
 
@@ -178,7 +178,7 @@ namespace tuplex {
             return test;
         }
 
-        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type, size_t capacity) {
+        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type, uintptr_t max_ptr) {
             assert(row_type.isListType() && row_type != python::Type::EMPTYLIST);
             auto elementType = row_type.elementType();
             if(elementType.isSingleValued()) {
@@ -207,7 +207,7 @@ namespace tuplex {
                 auto offset = (uint32_t) elem;
 
                 // move to varlen field
-                assert((uintptr_t)(ptr + offset) < capacity);
+                assert((uintptr_t)(ptr + offset) <= max_ptr);
                 ptr = &ptr[offset];
 
                 // get number of elements
@@ -233,17 +233,17 @@ namespace tuplex {
                         char *string_errors = nullptr;
                         // get offset for string
                         auto currOffset = *reinterpret_cast<const uint64_t *>(ptr);
-                        assert((uintptr_t)(ptr + currOffset) < capacity);
+                        assert((uintptr_t)(ptr + currOffset) <= max_ptr);
                         auto currStr = reinterpret_cast<const char*>(&ptr[currOffset]);
                         element = PyUnicode_DecodeUTF8(currStr, (long)(strlen(currStr)), string_errors);
                         ptr += sizeof(int64_t);
                     } else if(elementType.isTupleType()) {
                         auto currOffset = *(uint64_t *)ptr;
-                        assert((uintptr_t)(ptr + currOffset) < capacity);
-                        element = createPyTupleFromMemory(ptr + currOffset, elementType, capacity);
+                        assert((uintptr_t)(ptr + currOffset) <= max_ptr);
+                        element = createPyTupleFromMemory(ptr + currOffset, elementType, max_ptr);
                         ptr += sizeof(int64_t);
                     } else if(elementType.isListType()) {
-                        element = createPyListFromMemory(ptr, elementType, capacity);
+                        element = createPyListFromMemory(ptr, elementType, max_ptr);
                         ptr += sizeof(int64_t);
                     } else if(elementType.isDictionaryType()) {
                         element = createPyDictFromMemory(ptr);
@@ -282,7 +282,7 @@ namespace tuplex {
                                 char *string_errors = nullptr;
                                 // get offset for string
                                 auto currOffset = *reinterpret_cast<const uint64_t *>(ptr);
-                                assert((uintptr_t)(ptr + currOffset) < capacity);
+                                assert((uintptr_t)(ptr + currOffset) <= max_ptr);
                                 auto currStr = reinterpret_cast<const char*>(&ptr[currOffset]);
                                 element = PyUnicode_DecodeUTF8(currStr, (long)(strlen(currStr)), string_errors);
                                 ptr += sizeof(int64_t);
@@ -292,7 +292,7 @@ namespace tuplex {
                                 Py_XINCREF(Py_None);
                                 element = Py_None;
                             } else {
-                                element = createPyListFromMemory(ptr, underlyingType, capacity);
+                                element = createPyListFromMemory(ptr, underlyingType, max_ptr);
                                 ptr += sizeof(int64_t);
                             }
                         } else if(underlyingType.isTupleType()) {
@@ -301,8 +301,8 @@ namespace tuplex {
                                 element = Py_None;
                             } else {
                                 uint64_t currOffset = *((uint64_t *)(ptr));
-                                assert((uintptr_t)(ptr + currOffset) < capacity);
-                                element = createPyTupleFromMemory(ptr + currOffset, underlyingType, capacity);
+                                assert((uintptr_t)(ptr + currOffset) <= max_ptr);
+                                element = createPyTupleFromMemory(ptr + currOffset, underlyingType, max_ptr);
                                 ptr += sizeof(int64_t);
                             }
                         } else throw std::runtime_error("Invalid list type: " + row_type.desc());
@@ -314,7 +314,7 @@ namespace tuplex {
         }
 
         PyObject *
-        createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, size_t capacity,
+        createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, uintptr_t max_ptr,
                                  const uint8_t *bitmap, unsigned index) {
             if (row_type == python::Type::BOOLEAN) {
                 return PyBool_FromLong(ptr[0]);
@@ -326,14 +326,14 @@ namespace tuplex {
                 auto elem = *(uint64_t *) (ptr);
                 auto offset = (uint32_t) elem;
                 auto length = (uint32_t) (elem >> 32ul);
-                assert((uintptr_t)(ptr + offset + length) < capacity);
+                assert((uintptr_t)(ptr + offset + length) <= max_ptr);
                 auto str = reinterpret_cast<const char *>(&ptr[offset]);
                 char *string_errors = nullptr;
                 return PyUnicode_DecodeUTF8(str, length - 1, string_errors);
             } else if (row_type == python::Type::EMPTYTUPLE) {
                 return PyTuple_New(0);
             } else if (row_type.isTupleType()) {
-                return createPyTupleFromMemory(ptr, row_type, capacity);
+                return createPyTupleFromMemory(ptr, row_type, max_ptr);
             } else if (row_type == python::Type::EMPTYDICT) {
                 return PyDict_New();
             } else if (row_type.isDictionaryType() || row_type == python::Type::GENERICDICT) {
@@ -341,7 +341,7 @@ namespace tuplex {
             } else if(row_type == python::Type::EMPTYLIST) {
                 return PyList_New(0);
             } else if(row_type.isListType()) {
-                return createPyListFromMemory(ptr, row_type, capacity);
+                return createPyListFromMemory(ptr, row_type, max_ptr);
             } else if(row_type.isOptionType()) { // TODO: should this be [isOptional()]?
                 bool singleValue = false;
                 if(!bitmap) {
@@ -362,16 +362,16 @@ namespace tuplex {
                     // offset exists
                     uint64_t sizeOffset = *((uint64_t *)ptr);
                     uint64_t offset = sizeOffset & 0xFFFFFFFF;
-                    assert((uintptr_t)(ptr + offset) < capacity);
+                    assert((uintptr_t)(ptr + offset) <= max_ptr);
                     ptr += offset;
                 }
-                return createPyObjectFromMemory(ptr, t, capacity);
+                return createPyObjectFromMemory(ptr, t, max_ptr);
             } else if(row_type == python::Type::PYOBJECT) {
                 // cloudpickle, deserialize
                 auto elem = *(uint64_t *) (ptr);
                 auto offset = (uint32_t) elem;
                 auto buf_size = (uint32_t) (elem >> 32ul);
-                assert((uintptr_t)(ptr + offset + buf_size) < capacity);
+                assert((uintptr_t)(ptr + offset + buf_size) <= max_ptr);
                 auto buf = reinterpret_cast<const char *>(&ptr[offset]);
                 return python::deserializePickledObject(python::getMainModule(), buf, buf_size);
             } else {
@@ -478,7 +478,7 @@ namespace tuplex {
             //     return false;
             // }
 
-            *obj = createPyObjectFromMemory(ptr, row_type, capacity);
+            *obj = createPyObjectFromMemory(ptr, row_type, (uintptr_t)(ptr + capacity));
 
             if (nextptr) {
                 *nextptr = ptr + serializationSize(ptr, capacity, row_type);

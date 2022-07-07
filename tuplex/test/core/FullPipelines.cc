@@ -39,7 +39,7 @@ namespace tuplex {
         tuplex::splitString(col, '_', [&](const std::string &p) {
             s += tuplex::char2str(toupper(p[0]));
             for (int j = 1; j < p.length(); ++j)
-                s += tuplex::char2str(tolower(p[j]));
+                s += tuplex::char2str(std::tolower(p[j]));
         });
 
         return s;

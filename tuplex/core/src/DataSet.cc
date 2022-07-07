@@ -869,9 +869,10 @@ namespace tuplex {
               // what data source operators are there?
               if(_operator->type() == LogicalOperatorType::FILEINPUT)
                   return static_cast<FileInputOperator*>(_operator.get())->isEmpty();
-              else if(_operator->type() == LogicalOperatorType::PARALLELIZE)
-                  return static_cast<ParallelizeOperator*>(_operator.get())->getPartitions().empty();
-              else
+              else if(_operator->type() == LogicalOperatorType::PARALLELIZE) {
+                  auto pop = static_cast<ParallelizeOperator*>(_operator.get()); assert(pop);
+                  return pop->getNormalPartitions().empty() && pop->getFallbackPartitions().empty();
+              } else
                   throw std::runtime_error("unknown data source operator detected");
             } else
                 return false;

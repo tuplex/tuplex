@@ -16,11 +16,9 @@
 namespace tuplex {
     class ParallelizeOperator : public LogicalOperator {
 
-        // TODO: how to do partitions?
-        std::vector<Partition*> _partitions; // data, conforming to majority type
-        std::vector<Partition*> _pythonObjects; // schema violations stored for interpreter processing as python objects
-        // maps partitions to their corresponding python objects
-        std::unordered_map<std::string, ExceptionInfo> _inputPartitionToPythonObjectsMap;
+        std::vector<Partition*> _normalPartitions; // data, conforming to majority type
+        std::vector<Partition*> _fallbackPartitions; // schema violations stored for interpreter processing as python objects
+        std::vector<PartitionGroup> _partitionGroups; // maps normal partitions to their corresponding fallback partitions
         std::vector<std::string> _columnNames;
         SamplingMode _samplingMode;
         std::vector<Row> _sample; // sample, not necessary conforming to one type
@@ -34,7 +32,7 @@ namespace tuplex {
 
         // this a root node
         ParallelizeOperator(const Schema& schema,
-                            const std::vector<Partition*>& partitions,
+                            const std::vector<Partition*>& normalPartitions,
                             const std::vector<std::string>& columns,
                             const SamplingMode& sampling_mode);
 
@@ -51,13 +49,18 @@ namespace tuplex {
          * get the partitions where the parallelized data is stored.
          * @return vector of partitions.
          */
-        std::vector<tuplex::Partition*> getPartitions();
+        std::vector<tuplex::Partition*> getNormalPartitions();
 
-        void setPythonObjects(const std::vector<Partition*> &pythonObjects) { _pythonObjects = pythonObjects; }
-        std::vector<Partition *> getPythonObjects() { return _pythonObjects; }
+        void setFallbackPartitions(const std::vector<Partition*> &fallbackPartitions) {
+            _fallbackPartitions = fallbackPartitions;
+            // parallelize does not own the partitions, they must become immortal to allow for multiple calls involving this operator
+            for(auto p : _fallbackPartitions)
+                p->makeImmortal();
+        }
+        std::vector<Partition *> getFallbackPartitions() { return _fallbackPartitions; }
 
-        void setInputPartitionToPythonObjectsMap(const std::unordered_map<std::string, ExceptionInfo>& pythonObjectsMap) { _inputPartitionToPythonObjectsMap = pythonObjectsMap; }
-        std::unordered_map<std::string, ExceptionInfo> getInputPartitionToPythonObjectsMap() { return _inputPartitionToPythonObjectsMap; }
+        void setPartitionGroups(const std::vector<PartitionGroup>& partitionGroups) { _partitionGroups = partitionGroups; }
+        std::vector<PartitionGroup> getPartitionGroups() { return _partitionGroups; }
 
         Schema getInputSchema() const override { return getOutputSchema(); }
 
@@ -72,7 +75,7 @@ namespace tuplex {
 #ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
-            // DO NOT INCLUDE sample here.
+            // DO NOT INCLUDE sample nor DATA here.
             ar(::cereal::base_class<LogicalOperator>(this), _columnNames, _samplingMode);
         }
         template<class Archive> void load(Archive &ar) {

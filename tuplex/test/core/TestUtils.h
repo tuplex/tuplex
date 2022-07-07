@@ -75,7 +75,12 @@ protected:
 
     void SetUp() override {
         testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
-        scratchDir = "/tmp/" + testName;
+        auto user = tuplex::getUserName();
+        if(user.empty()) {
+            std::cerr<<"could not retrieve user name, setting to user"<<std::endl;
+            user = "user";
+        }
+        scratchDir = "/tmp/" + user + "/" + testName;
     }
 
     inline void remove_temp_files() {

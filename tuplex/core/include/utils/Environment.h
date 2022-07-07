@@ -21,12 +21,6 @@ namespace tuplex {
      * @return
      */
     extern std::map<std::string, std::string> getTuplexEnvironment();
-
-    /*!
-     * get user name who runs the program
-     * @return
-     */
-    extern std::string getUserName();
 }
 
 #endif //TUPLEX_ENVIRONMENT_H

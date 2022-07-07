@@ -22,19 +22,16 @@ namespace tuplex {
         LogicalOperator::copyMembers(other);
         auto cop = (CacheOperator*)other;
         setSchema(other->getOutputSchema());
-        _normalCasePartitions = cop->cachedPartitions();
-        _generalCasePartitions = cop->cachedExceptions();
-        _partitionToExceptionsMap = cop->partitionToExceptionsMap();
-        // copy python objects and incref for each!
-        _py_objects = cop->_py_objects;
-        python::lockGIL();
-        for(auto obj : _py_objects)
-            Py_XINCREF(obj);
-        python::unlockGIL();
+        _normalPartitions = cop->cachedNormalPartitions();
+        _generalPartitions = cop->cachedGeneralPartitions();
+        _fallbackPartitions = cop->cachedFallbackPartitions();
+        _partitionGroups = cop->partitionGroups();
+
         _optimizedSchema = cop->_optimizedSchema;
         _cached = cop->_cached;
-        _normalCaseRowCount = cop->_normalCaseRowCount;
-        _generalCaseRowCount = cop->_generalCaseRowCount;
+        _normalRowCount = cop->_normalRowCount;
+        _generalRowCount = cop->_generalRowCount;
+        _fallbackRowCount = cop->_fallbackRowCount;
         _columns = cop->_columns;
         _sample = cop->_sample;
         _storeSpecialized = cop->_storeSpecialized;
@@ -60,7 +57,7 @@ namespace tuplex {
         // is operator cached? => return combined cost!
         // @NOTE: could make exceptions more expensive than normal rows
         if(isCached()) {
-            return _generalCaseRowCount + _normalCaseRowCount;
+            return _generalRowCount + _fallbackRowCount + _normalRowCount;
         } else {
             // return parent cost
             return parent()->cost();
@@ -73,30 +70,29 @@ namespace tuplex {
         _cached = true;
 
         // fetch both partitions (consume) from resultset + any unresolved exceptions
-        _normalCasePartitions = rs->partitions();
-        for(auto p : _normalCasePartitions)
+        _normalPartitions = rs->normalPartitions();
+        for(auto &p : _normalPartitions)
             p->makeImmortal();
 
-        // @TODO: there are two sorts of exceptions here...
-        // i.e. separate normal-case violations out from the rest
-        // => these can be stored separately for faster processing!
-        // @TODO: right now, everything just gets cached...
-
-        _generalCasePartitions = rs->exceptions();
-        for(auto p : _generalCasePartitions)
+        _generalPartitions = rs->generalPartitions();
+        for(auto &p : _generalPartitions)
             p->makeImmortal();
 
-        _partitionToExceptionsMap = rs->partitionToExceptionsMap();
+        _fallbackPartitions = rs->fallbackPartitions();
+        for(auto &p : _fallbackPartitions)
+            p->makeImmortal();
+
+        _partitionGroups = rs->partitionGroups();
 
         // check whether partitions have different schema than the currently set one
         // => i.e. they have been specialized.
-        if(!_normalCasePartitions.empty()) {
-            _optimizedSchema = _normalCasePartitions.front()->schema();
+        if(!_normalPartitions.empty()) {
+            _optimizedSchema = _normalPartitions.front()->schema();
             assert(_optimizedSchema != Schema::UNKNOWN);
         }
 
         // if exceptions are empty, then force output schema to be the optimized one as well!
-        if(_generalCasePartitions.empty())
+        if(_generalPartitions.empty())
             setSchema(_optimizedSchema);
 
         // because the schema might have changed due to the result, need to update the dataset!
@@ -104,36 +100,46 @@ namespace tuplex {
             getDataSet()->setSchema(getOutputSchema());
 
         // print out some statistics about cached data
-        size_t cachedPartitionsMemory = 0;
-        size_t totalCachedPartitionsMemory = 0;
-        size_t totalCachedRows = 0;
-        size_t cachedExceptionsMemory = 0;
-        size_t totalCachedExceptionsMemory = 0;
-        size_t totalCachedExceptions = 0;
+        size_t normalBytesWritten = 0;
+        size_t normalCapacity = 0;
+        size_t normalRows = 0;
+        size_t generalBytesWritten = 0;
+        size_t generalCapacity = 0;
+        size_t generalRows = 0;
+        size_t fallbackBytesWritten = 0;
+        size_t fallbackCapacity = 0;
+        size_t fallbackRows = 0;
 
-        int pos = 0;
-        for(auto p : _normalCasePartitions) {
-            totalCachedRows += p->getNumRows();
-            cachedPartitionsMemory += p->bytesWritten();
-            totalCachedPartitionsMemory += p->size();
-            pos++;
+        for(const auto &p : _normalPartitions) {
+            normalRows += p->getNumRows();
+            normalBytesWritten += p->bytesWritten();
+            normalCapacity += p->size();
         }
-        for(auto p : _generalCasePartitions) {
-            totalCachedExceptions += p->getNumRows();
-            cachedExceptionsMemory += p->bytesWritten();
-            totalCachedExceptionsMemory += p->size();
+        for(const auto &p : _generalPartitions) {
+            generalRows += p->getNumRows();
+            generalBytesWritten += p->bytesWritten();
+            generalCapacity += p->size();
+        }
+        for(const auto &p : _fallbackPartitions) {
+            fallbackRows += p->getNumRows();
+            fallbackBytesWritten += p->bytesWritten();
+            fallbackCapacity += p->size();
         }
 
-        _normalCaseRowCount = totalCachedRows;
-        _generalCaseRowCount = totalCachedExceptions;
+
+        _normalRowCount = normalRows;
+        _generalRowCount = generalRows;
+        _fallbackRowCount = fallbackRows;
 
         stringstream ss;
-        ss<<"Cached "<<pluralize(totalCachedRows, "common row")
-          <<" ("<<pluralize(totalCachedExceptions, "general row")
-          <<"), memory usage: "<<sizeToMemString(cachedPartitionsMemory)
-          <<"/"<<sizeToMemString(totalCachedPartitionsMemory)<<" ("
-          <<sizeToMemString(cachedExceptionsMemory)
-          <<"/"<<sizeToMemString(totalCachedExceptionsMemory)<<")";
+        ss<<"Cached "<<pluralize(normalRows, "common row")
+          <<" ("<<pluralize(generalRows, "general row") << ")"
+          <<" ("<<pluralize(fallbackRows, "fallback row")
+          <<"), memory usage: "<<sizeToMemString(normalBytesWritten)
+          <<"/"<<sizeToMemString(normalCapacity)<<" ("
+          <<sizeToMemString(generalBytesWritten)
+          <<"/"<<sizeToMemString(generalCapacity)<<")"
+          <<" ("<<sizeToMemString(normalBytesWritten)<<"/"<<sizeToMemString(normalCapacity)<<")";
         Logger::instance().defaultLogger().info(ss.str());
 
 #ifndef NDEBUG
@@ -145,10 +151,13 @@ namespace tuplex {
 
     size_t CacheOperator::getTotalCachedRows() const {
         size_t totalCachedRows = 0;
-        for(auto p : _normalCasePartitions) {
+        for(const auto &p : _normalPartitions) {
             totalCachedRows += p->getNumRows();
         }
-        for(auto p : _generalCasePartitions) {
+        for(const auto &p : _generalPartitions) {
+            totalCachedRows += p->getNumRows();
+        }
+        for (const auto &p : _fallbackPartitions) {
             totalCachedRows += p->getNumRows();
         }
         return totalCachedRows;

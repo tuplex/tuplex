@@ -21,22 +21,22 @@ namespace tuplex {
          * Creates Python object from raw memory (deserialize)
          * @param ptr memory location to where serialized data is
          * @param row_type holding information on types of input memory
-         * @param capacity size of buffer
+         * @param max_ptr upper bound of ptr
          * @param bitmap pointer to bitmap (i.e. multiple 64bit blocks)
          * @param index of the element within the bitmap
          * @return Python object holding deserialized elements
          */
-        PyObject* createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, size_t capacity,
+        PyObject* createPyObjectFromMemory(const uint8_t *ptr, const python::Type &row_type, uintptr_t max_ptr,
                                  const uint8_t *bitmap = nullptr, unsigned index = 0);
 
         /*!
          * Creates Python tuple object from raw memory (deserialize)
          * @param ptr memory location to where serialized data is
          * @param row_type holding information on types of input memory
-         * @param capacity size of buffer
+         * @param max_ptr upper bound of ptr
          * @return Python object holding deserialized elements
          */
-        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type, size_t capacity);
+        PyObject *createPyTupleFromMemory(const uint8_t *ptr, const python::Type &row_type, uintptr_t max_ptr);
 
         PyObject *createPyDictFromMemory(const uint8_t *ptr);
 
@@ -44,10 +44,10 @@ namespace tuplex {
          * Creates Python list object from raw memory (deserialize)
          * @param ptr memory location to where serialized data is
          * @param row_type holding information on types of input memory
-         * @param capacity size of buffer
+         * @param max_ptr upper bound of ptr
          * @return Python object holding deserialized elements
          */
-        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type, size_t capacity);
+        PyObject *createPyListFromMemory(const uint8_t *ptr, const python::Type &row_type, uintptr_t max_ptr);
 
         /*!
          * Checks if capacity for buffer with schema is valid (if it is possible for buffer to hold such data given schema)

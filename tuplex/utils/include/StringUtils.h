@@ -443,6 +443,18 @@ namespace tuplex {
            return str;
         }
     }
+
+    /*!
+     * converts a string to lowercase (copy)
+     * @param s
+     * @return new version of string with lowercased characters
+     */
+    inline std::string tolower(const std::string& s) {
+        std::string copy = s;
+        for(auto& c : copy)
+            c = std::tolower(c);
+        return copy;
+    }
 }
 
 

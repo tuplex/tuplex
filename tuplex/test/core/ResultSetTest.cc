@@ -51,6 +51,57 @@ public:
         return pw.getOutputPartitions();
     }
 
+    std::vector<tuplex::Partition*> pyObjectsToPartitions(const std::vector<std::tuple<size_t, PyObject*>>& pyObjects) {
+        using namespace tuplex;
+
+        std::vector<Partition*> partitions;
+        if (pyObjects.empty()) {
+            return partitions;
+        }
+
+        Schema schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::STRING}));
+        Partition* partition = allocPartition(schema.getRowType(), -1);
+        auto rawPtr = (int64_t*)partition->lockWriteRaw();
+        *rawPtr = 0;
+        auto ptr = (uint8_t*)(rawPtr + 1);
+        size_t numBytesSerialized = 0;
+
+        python::lockGIL();
+        for (auto &row: pyObjects) {
+            auto rowNum = std::get<0>(row);
+            auto pyObj = std::get<1>(row);
+            auto ecCode = -1;
+            auto opID = -1;
+            auto pickledObject = python::pickleObject(python::getMainModule(), pyObj);
+            auto pickledObjectSize = pickledObject.size();
+            size_t requiredBytes = sizeof(int64_t) * 4 + pickledObjectSize;
+
+            if (partition->capacity() < numBytesSerialized + requiredBytes) {
+                partition->unlockWrite();
+                partitions.push_back(partition);
+                partition = allocPartition(schema.getRowType(), -1);
+                rawPtr = (int64_t *) partition->lockWriteRaw();
+                *rawPtr = 0;
+                ptr = (uint8_t*)(rawPtr + 1);
+                numBytesSerialized = 0;
+            }
+
+            *((int64_t*)ptr) = rowNum; ptr += sizeof(int64_t);
+            *((int64_t*)ptr) = ecCode; ptr += sizeof(int64_t);
+            *((int64_t*)ptr) = opID; ptr += sizeof(int64_t);
+            *((int64_t*)ptr) = pickledObjectSize; ptr += sizeof(int64_t);
+            memcpy(ptr, pickledObject.c_str(), pickledObjectSize); ptr += pickledObjectSize;
+
+            *rawPtr += 1;
+            numBytesSerialized += requiredBytes;
+        }
+        python::unlockGIL();
+
+        partition->unlockWrite();
+        partitions.push_back(partition);
+
+        return partitions;
+    }
 };
 
 TEST_F(ResultSetTest, NoPyObjects) {
@@ -68,10 +119,13 @@ TEST_F(ResultSetTest, NoPyObjects) {
         sample_rows.push_back(Row(rand() % 256, rand() % 256 * 0.1 - 1.0, strs[rand() % strs.size()]));
     }
     auto partitions = rowsToPartitions(sample_rows);
-    for(auto p : partitions)
-        p->makeImmortal();
+    std::vector<PartitionGroup> partitionGroups;
+    for(int i = 0; i < partitions.size(); ++i) {
+        partitions[i]->makeImmortal();
+        partitionGroups.push_back(PartitionGroup(1, i, 0, 0, 0, 0));
+    }
 
-    auto rsA = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, sample_rows.front().getRowType()), partitions);
+    auto rsA = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, sample_rows.front().getRowType()), partitions, std::vector<Partition*>{}, std::vector<Partition*>{}, partitionGroups);
     EXPECT_EQ(rsA->rowCount(), sample_rows.size());
 
     // check correct order returned
@@ -79,13 +133,14 @@ TEST_F(ResultSetTest, NoPyObjects) {
     while(rsA->hasNextRow()) {
         EXPECT_EQ(rsA->getNextRow().toPythonString(), sample_rows[pos++].toPythonString());
     }
+    EXPECT_EQ(pos, sample_rows.size());
 
     // now limit result set to 17 rows, check this works as well!
     int Nlimit = 17;
     auto rsB = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, sample_rows.front().getRowType()), partitions,
                                       std::vector<Partition*>{},
-                                      std::unordered_map<std::string, ExceptionInfo>(),
-                                      vector<tuple<size_t, PyObject*>>{},
+                                      std::vector<Partition*>{},
+                                      partitionGroups,
                                       Nlimit);
     pos = 0;
     while(rsB->hasNextRow()) {
@@ -137,13 +192,15 @@ TEST_F(ResultSetTest, WithPyObjects) {
     vector<Row> refC = {Row(10), Row(20), Row(30), Row(35), Row(37)};
     vector<Row> refD = {Row(-1), Row(0), Row(1)};
 
+    auto partitionGroups = std::vector<PartitionGroup>{PartitionGroup(1,0,0,0,1,0)};
+
     // TEST A:
     // -----------------
     auto rsA = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, rows.front().getRowType()),
                                       partitions,
                                       std::vector<Partition*>{},
-                                      std::unordered_map<std::string, ExceptionInfo>(),
-                                      objsA);
+                                      pyObjectsToPartitions(objsA),
+                                      partitionGroups);
     EXPECT_EQ(rsA->rowCount(), objsA.size() + rows.size());
     pos = 0;
     while(rsA->hasNextRow()) {
@@ -156,8 +213,8 @@ TEST_F(ResultSetTest, WithPyObjects) {
     auto rsB = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, rows.front().getRowType()),
                                       partitions,
                                       std::vector<Partition*>{},
-                                      std::unordered_map<std::string, ExceptionInfo>(),
-                                      objsB);
+                                      pyObjectsToPartitions(objsB),
+                                      partitionGroups);
     EXPECT_EQ(rsB->rowCount(), objsB.size() + rows.size());
     pos = 0;
     while(rsB->hasNextRow()) {
@@ -171,14 +228,16 @@ TEST_F(ResultSetTest, WithPyObjects) {
     auto rsC = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, rows.front().getRowType()),
                                       partitions,
                                       std::vector<Partition*>{},
-                                      std::unordered_map<std::string, ExceptionInfo>(),
-                                      objsC);
+                                      pyObjectsToPartitions(objsC),
+                                      partitionGroups);
     EXPECT_EQ(rsC->rowCount(), objsC.size() + rows.size());
     pos = 0;
     while(rsC->hasNextRow()) {
         ASSERT_LT(pos, refC.size());
         EXPECT_EQ(rsC->getNextRow().toPythonString(), refC[pos++].toPythonString());
     }
+
+    partitionGroups = std::vector<PartitionGroup>{PartitionGroup(0, 0, 0, 0, 1, 0)};
 
     // TEST D:
     // -------
@@ -188,8 +247,8 @@ TEST_F(ResultSetTest, WithPyObjects) {
     auto rsD = make_shared<ResultSet>(Schema(Schema::MemoryLayout::ROW, rows.front().getRowType()),
                                       std::vector<Partition*>{},
                                       std::vector<Partition*>{},
-                                      std::unordered_map<std::string, ExceptionInfo>(),
-                                      objsD);
+                                      pyObjectsToPartitions(objsD),
+                                      partitionGroups);
     EXPECT_EQ(rsD->rowCount(), objsD.size());
     pos = 0;
     while(rsD->hasNextRow()) {

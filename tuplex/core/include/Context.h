@@ -16,6 +16,7 @@
 #include <logical/LogicalOperator.h>
 #include <DataSet.h>
 #include "physical/memory/Partition.h"
+#include "physical/memory/PartitionGroup.h"
 #include "Row.h"
 #include "webui/HistoryServerClasses.h"
 #include <initializer_list>
@@ -39,6 +40,7 @@ namespace tuplex {
     class Partition;
     class IBackend;
     class ExceptionInfo;
+    class PartitionGroup;
 
     class Context {
     private:
@@ -60,27 +62,14 @@ namespace tuplex {
 
         // needed because of C++ template issues
         void addPartition(DataSet* ds, Partition *partition);
-        void addParallelizeNode(DataSet *ds,
-                                const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects=std::vector<std::tuple<size_t, PyObject*>>(),
-                                const std::vector<size_t> &numExceptionsInPartition=std::vector<size_t>(),
-                                const SamplingMode& sampling_mode=DEFAULT_SAMPLING_MODE); //! adds a paralellize node to the computation graph
 
         /*!
-         * serialize python objects as pickled objects into exception partitions. Set the python objects map to
-         * map all normalPartitions to the exceptions that occured within them.
-         * @param pythonObjects normal case schema violations and their initial row numbers
-         * @param numExceptionsInPartition number of exceptions in each normal partition
-         * @param normalPartitions normal partitions created
-         * @param opID parallelize operator ID
-         * @param serializedPythonObjects output vector for partitions
-         * @param pythonObjectsMap output for mapping
+         * Add parallelize logical operator to dataset
+         * @param ds dataset
+         * @param fallbackPartitions fallback partitions from python parallelize
+         * @param partitionGroups partition mapping information
          */
-        void serializePythonObjects(const std::vector<std::tuple<size_t, PyObject*>>& pythonObjects,
-                                    const std::vector<size_t> &numExceptionsInPartition,
-                                    const std::vector<Partition*> &normalPartitions,
-                                    const int64_t opID,
-                                    std::vector<Partition*> &serializedPythonObjects,
-                                    std::unordered_map<std::string, ExceptionInfo> &pythonObjectsMap);
+        void addParallelizeNode(DataSet *ds, const std::vector<Partition*>& fallbackPartitions=std::vector<Partition*>{}, const std::vector<PartitionGroup>& partitionGroups=std::vector<PartitionGroup>{}); //! adds a paralellize node to the computation graph
 
         Partition* requestNewPartition(const Schema& schema, const int dataSetID, size_t minBytesRequired);
         uint8_t* partitionLockRaw(Partition *partition);
@@ -284,13 +273,12 @@ namespace tuplex {
          * @param partitions partitions to assign to dataset. These should NOT be reused later.
          *        Also, partitions need to hold data in supplied schema. If empty vector is given,
          *        empty dataset will be created.
-         *
+         * @param fallbackPartitions fallback partitions to assign to dataset
+         * @param partitionGroups mapping of partitions to fallback partitions
          * @param columns optional column names
-         * @param badParallelizeObjects schema violations found during parallelization of partitions
-         * @param numExceptionsInPartition number of schema violations that occured in each of the partitions
          * @return reference to newly created dataset.
          */
-        DataSet& fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<std::string>& columns, const std::vector<std::tuple<size_t, PyObject*>> &badParallelizeObjects, const std::vector<size_t> &numExceptionsInPartition, const SamplingMode& sampling_mode);
+        DataSet& fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<Partition*>& fallbackPartitions, const std::vector<PartitionGroup>& partitionGroups, const std::vector<std::string>& columns);
     };
     // needed for template mechanism to work
 #include <DataSet.h>

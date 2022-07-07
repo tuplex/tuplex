@@ -344,6 +344,8 @@ TEST_F(AggregateTest, LargeAggregateByKey) {
     EXPECT_EQ(columns2[2], "");
 
     // have the combiner drop some data
+    // --> this will work when semantics guarantee that combiner is executed at least ONCE per group.
+
     auto combine3 = UDF("lambda a, b: (1112, a[1] + b[1])");
     auto agg3 = UDF("lambda a, x: (a[0] + x[0], a[1] + x[2])");
     auto& ds3 = c.csv("../resources/aggbykey_large_test.csv").aggregateByKey(combine3, agg3, Row(0, 0), {"col1"});

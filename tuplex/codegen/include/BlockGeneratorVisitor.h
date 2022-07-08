@@ -115,7 +115,7 @@ namespace codegen {
                         nullPtr ? builder.CreateLoad(nullPtr) : nullptr);
             }
 
-            inline void store(codegen::IRBuilder& builder, const codegen::SerializableValue& val) {
+            inline void store(const codegen::IRBuilder& builder, const codegen::SerializableValue& val) {
                 assert(ptr && sizePtr);
 
                 if(val.val) {
@@ -167,10 +167,6 @@ namespace codegen {
                     assert(nullPtr);
                     builder.CreateStore(val.is_null, nullPtr);
                 }
-            }
-
-            inline void store(const codegen::IRBuilder& builder, const codegen::SerializableValue& val) {
-                store(builder, val);
             }
         };
 

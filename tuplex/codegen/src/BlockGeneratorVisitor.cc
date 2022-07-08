@@ -2455,7 +2455,7 @@ namespace tuplex {
                 if (blockOpen(lastIfBB)) {
                     for(const auto& if_var : if_var_realizations) {
 
-                        llvm::IRBuilder<> bIf(lastIfBB);
+                        IRBuilder bIf(lastIfBB);
                         auto name = if_var.first;
 
                         // updated slot? then store!
@@ -2484,7 +2484,7 @@ namespace tuplex {
                 if (ifelse->_else && blockOpen(lastElseBB)) {
                     for(const auto& else_var : else_var_realizations) {
 
-                        llvm::IRBuilder<> bElse(lastElseBB);
+                        IRBuilder bElse(lastElseBB);
                         auto name = else_var.first;
 
                         // updated slot? then store!
@@ -2516,7 +2516,7 @@ namespace tuplex {
                     // go through the previous var realizations...
                     for(const auto& prev_var : var_realizations) {
 
-                        llvm::IRBuilder<> bBeforeIf(entryBB);
+                        IRBuilder bBeforeIf(entryBB);
                         auto name = prev_var.first;
 
                         // updated slot? then store!

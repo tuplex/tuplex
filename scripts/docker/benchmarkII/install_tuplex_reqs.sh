@@ -3,14 +3,11 @@
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt
 
-# Tuplex dependencies
-# compile dependencies yum style
+set -ex
 
-yum install -y libedit-devel libzip-devel \
-  pkgconfig openssl-devel libxml2-devel zlib-devel  \
-  uuid libuuid-devel libffi-devel graphviz-devel \
-  gflags-devel ncurses-devel \
-  awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip
+# Tuplex dependencies
+apt-get update
+apt-get install -y build-essential software-properties-common wget libedit-dev libz-dev python3-yaml python3-pip pkg-config libssl-dev libcurl4-openssl-dev curl uuid-dev git libffi-dev libmagic-dev doxygen doxygen-doc doxygen-latex doxygen-gui graphviz libgflags-dev libncurses-dev awscli openjdk-8-jdk libyaml-dev ninja-build gcc-10 g++-10 autoconf libtool m4 ssh unzip automake
 
 # LLVM9 is broken on Ubuntu 20.04, hence manually install...
 
@@ -58,7 +55,7 @@ cd /tmp &&
   rm antlr4-cpp-runtime-4.8-source.zip &&
   pushd antlr4-cpp-runtime &&
   mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt .. && make -j 32 && make install
-popd &&
+  cd .. &&
   rm -rf antlr4-cpp-runtime &&
   cd - || echo "ANTLR4 runtime failed"
 

@@ -15,6 +15,8 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     apt-utils vim build-essential libssl-dev zlib1g-dev libncurses5-dev \
     libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
      libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git
+# other packages
+RUN apt-get install -y build-essential software-properties-common wget libedit-dev libz-dev python3-yaml python3-pip pkg-config libssl-dev libcurl4-openssl-dev curl uuid-dev git libffi-dev libmagic-dev doxygen doxygen-doc doxygen-latex doxygen-gui graphviz libgflags-dev libncurses-dev awscli openjdk-8-jdk libyaml-dev ninja-build gcc-10 g++-10 autoconf libtool m4
 
 # CentOS/RHEL does not use OpenSSL for the system curl, however AWSSDK must use OpenSSL backed curl.
 ADD install_curl.sh /opt/sbin/install_curl.sh

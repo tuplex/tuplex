@@ -340,7 +340,7 @@ namespace tuplex {
         // if desired (i.e. environment variable TUPLEX_ENABLE_FULL_AWS_LOGGING is set), turn here logging on
         if(checkIfOptionIsSetInEnv("TUPLEX_ENABLE_FULL_AWS_LOGGING")) {
             auto log_level = Aws::Utils::Logging::LogLevel::Trace;
-            log_level = Aws::Utils::Logging::LogLevel::Info;
+            // log_level = Aws::Utils::Logging::LogLevel::Info;
             auto log_system = Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>("tuplex", log_level);
             Aws::Utils::Logging::InitializeAWSLogging(log_system);
         }

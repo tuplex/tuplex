@@ -383,7 +383,23 @@ namespace tuplex {
                                               llvm::MDNode *FPMathTag = nullptr) const {return get_or_throw().CreateFCmpONE(LHS, RHS, Name, FPMathTag); }
 
             inline llvm::Value *CreateConstInBoundsGEP2_64(llvm::Value *Ptr, uint64_t Idx0,
-                                              uint64_t Idx1, const std::string &Name = "") const { return get_or_throw().CreateConstGEP2_64(nullptr, Ptr, Idx0, Idx1, Name); }
+                                              uint64_t Idx1, const std::string &Name = "") const {
+                using namespace llvm;
+
+                 // cf. https://github.com/llvm/llvm-project/commit/544fa425c98d60042214bd78ee90abf0a46fa2ff
+                 assert(Ptr->getType());
+                llvm::Type *Ty = nullptr;
+
+                 // print types
+                 auto ptrType = cast<PointerType>(Ptr->getType()->getScalarType());
+                 Ty = ptrType->getPointerElementType();
+
+                 // match
+                 assert(cast<PointerType>(Ptr->getType()->getScalarType())->isOpaqueOrPointeeTypeMatches(Ty));
+
+                 assert(Ty); // can't be nullptr, will trigger an error else...
+                 return get_or_throw().CreateConstGEP2_64(Ty, Ptr, Idx0, Idx1, Name);
+             }
 
             inline llvm::Value *CreatePtrToInt(llvm::Value *V, llvm::Type *DestTy,
                                   const std::string &Name = "") { return get_or_throw().CreatePtrToInt(V, DestTy, Name); }

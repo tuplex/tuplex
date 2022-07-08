@@ -577,7 +577,8 @@ namespace tuplex {
             inline llvm::Value *CreatePtrDiff(llvm::Value *LHS, llvm::Value *RHS,
                                  const std::string &Name = "") const {
 #if LLVM_VERSION_MAJOR > 13
-                 llvm::Type* ElemTy = nullptr;
+                 assert(LHS->getType() == RHS->getType() && LHS->getType()->isPointerTy());
+                 llvm::Type* ElemTy = LHS->getType()->getPointerElementType();
                 return get_or_throw().CreatePtrDiff(ElemTy, LHS, RHS, Name);
 #else
                  return get_or_throw().CreatePtrDiff(LHS, RHS, Name);

@@ -381,18 +381,35 @@ def build(ctx, cereal):
     p.stdout.close()
     p.wait()
 
-    logging.info('Built in docker container.')
-    logging.info('Building compatible Lambda runner now...')
-    BUILD_SCRIPT_PATH = '/code/benchmarks/nextconf/build_scripts/build_lambda.sh'
-    cmd = ['docker', 'exec', '-e', CEREAL_FLAG, DOCKER_CONTAINER_NAME, 'bash', BUILD_SCRIPT_PATH]
 
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)
+    # note: building the lambda within the experimental docker container does not work yet/is buggy.
+    # isntead, build using the provided ./scripts/create_lambda_zip and copy contents!
+    # logging.info('Built in docker container.')
+    # logging.info('Building compatible Lambda runner now...')
+    # BUILD_SCRIPT_PATH = '/code/benchmarks/nextconf/build_scripts/build_lambda.sh'
+    # cmd = ['docker', 'exec', '-e', CEREAL_FLAG, DOCKER_CONTAINER_NAME, 'bash', BUILD_SCRIPT_PATH]
+    #
+    # p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)
+    # for line in iter(p.stdout.readline, b''):
+    #     logging.info(line.decode().strip())
+    # p.stdout.close()
+    # p.wait()
+    #
+    # logging.info('Lambda runner built.')
+
+    logging.info("Building lambda runner...")
+    BUILD_SCRIPT_PATH = './scripts/create_lambda_zip.sh'
+    cmd = ['bash', os.path.join('tuplex', BUILD_SCRIPT_PATH)]
+
+    env = os.environ.copy()
+    env['BUILD_WITH_CEREAL'] = 'ON' if cereal else 'OFF'
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, env=env)
     for line in iter(p.stdout.readline, b''):
         logging.info(line.decode().strip())
     p.stdout.close()
     p.wait()
+    logging.info("Lambda runner built.")
 
-    logging.info('Lambda runner built.')
     logging.info('Copying results to host machine...')
 
     storage_path = os.path.join(build_cache(), 'cereal' if cereal else 'nocereal')
@@ -405,7 +422,6 @@ def build(ctx, cereal):
     # cf. docker-py.readthedocs.io
     # fetch both lambda and package
     package_container_path = '/code/tuplex/build/dist/python'
-    lambda_container_path = '/code/tuplex/build-lambda/tplxlam.zip'
     package_path = os.path.join(storage_path, 'tuplex.tar')
     lambda_path = os.path.join(storage_path, 'lambda-runner.tar')
     bits, stat = container.get_archive(package_container_path)
@@ -413,11 +429,19 @@ def build(ctx, cereal):
         for chunk in bits:
             fp.write(chunk)
     logging.info('Transferred python package from docker to {} ({} bytes)'.format(package_path, stat['size']))
-    bits, stat = container.get_archive(lambda_container_path)
-    with open(lambda_path, 'wb') as fp:
-        for chunk in bits:
-            fp.write(chunk)
-    logging.info('Transferred lambda runner from docker to {} ({} bytes)'.format(lambda_path, stat['size']))
+
+    # # when building lambda from within
+    # lambda_container_path = '/code/tuplex/build-lambda/tplxlam.zip'
+    # bits, stat = container.get_archive(lambda_container_path)
+    # with open(lambda_path, 'wb') as fp:
+    #     for chunk in bits:
+    #         fp.write(chunk)
+    # logging.info('Transferred lambda runner from docker to {} ({} bytes)'.format(lambda_path, stat['size']))
+
+    # copy file from build-lambda/tplxlam.zip to storage path
+    lambda_local_path = './tuplex/build-lambda/tplxlam.zip'
+    with tarfile.open(lambda_path, 'w') as tf:
+        tf.add(lambda_local_path, 'tplxlam.zip')
 
     # create combined archive & store it as package.tar.gz
     dest_path = os.path.join(storage_path, 'tuplex-package.tar.gz')

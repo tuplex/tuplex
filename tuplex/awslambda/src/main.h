@@ -23,6 +23,7 @@
 #include <Python.h>
 
 #include <LambdaWorkerApp.h>
+#include "logsink.h"
 
 // lambda main function, i.e. get a json request and return a json object
 extern tuplex::messages::InvocationResponse lambda_main(aws::lambda_runtime::invocation_request const& lambda_req);

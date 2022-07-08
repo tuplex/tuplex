@@ -26,6 +26,10 @@ namespace tuplex {
             node->accept(*this);
         } catch(TraceException& exc) {
             // nothing todo...
+        } catch(const std::runtime_error& e) {
+            logger().error(e.what());
+        } catch(...) {
+            // important b.c. of GIL
         }
 
         // inc. counter

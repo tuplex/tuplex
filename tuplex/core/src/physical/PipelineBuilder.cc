@@ -1006,6 +1006,8 @@ namespace tuplex {
                                                                  const int hashtableWidth,
                                                                  bool bucketize,
                                                                  bool isAggregateByKey) {
+            auto& logger = Logger::instance().logger("codegen");
+
             assert(!bucketize || (bucketize && !keyCols.empty() && !isAggregateByKey));
             assert((isAggregateByKey && !bucketize) || !isAggregateByKey);
             assert(hashtableWidth == 8 || hashtableWidth == 0);
@@ -1048,6 +1050,8 @@ namespace tuplex {
                 else
                     keyType = python::Type::STRING; // otherwise, we need to serialize the full row and use a string hashmap
             }
+
+            logger.debug("generate hashing using keytype=" + keyType.desc());
 
             // perform type conversions: general types become strings (serialize to hash)
             if(keyType.isTupleType()) {

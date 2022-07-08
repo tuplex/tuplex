@@ -52,44 +52,6 @@ namespace python {
         Py_SetPythonHome(&vec[0]);
     }
 
-    std::string find_stdlib_location(const std::string& version,
-                                     const std::vector<std::string>& prefix_list) {
-        // check whether folder <prefix>/lib exists
-        for(const auto& prefix : prefix_list) {
-            if(tuplex::dirExists(prefix + "/lib")) {
-                // list all entries under dir with python
-                auto paths = tuplex::glob(prefix + "/lib/python*");
-                for(auto path : paths) {
-                    auto original_path = path;
-                    // only check for folders (glob appends /!)
-                    if(!path.empty() && path.back() == '/') {
-                        path = path.substr(0, path.length() - 1);
-                        // find / to get python name
-                        auto idx = path.rfind('/');
-                        if(idx < 0)
-                            continue;
-                        auto folder_name = path.substr(idx + 1);
-
-                        // starts with python? => should because of globbing!
-                        auto py_len = std::string("python").length();
-                        if(folder_name.substr(0, py_len) == "python") {
-                            // extract version
-                            auto this_version = folder_name.substr(py_len);
-                            // check if version starts with version string
-                            if(version.empty())
-                                return original_path;
-                            else if(this_version.substr(0, version.length()) == version) {
-                                return original_path;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return "";
-    }
-
     void handle_and_throw_py_error() {
         if(PyErr_Occurred()) {
             PyObject *ptype = NULL, *pvalue = NULL, *ptraceback = NULL;
@@ -1717,7 +1679,7 @@ namespace python {
             } else if(strStartsWith(typeStr, "typing.List")) {
                 python::Type elementType = decodePythonSchema(PyList_GetItem(args, 0));
                 return python::Type::makeListType(elementType);
-            } else if(strStartsWith(typeStr, "typing.Union")) {
+            } else if(strStartsWith(typeStr, "typing.Union") || strStartsWith(typeStr, "typing.Optional")) {
                 if(PyTuple_Size(args) == 2) {
                     auto c1 = PyTuple_GetItem(args, 0);
                     auto c2 = PyTuple_GetItem(args, 1);
@@ -1741,8 +1703,14 @@ namespace python {
                                              ": only Optional unions are understood right now");
                 }
             } else {
-                throw std::runtime_error("Tuplex can't understand typing module annotation " + typeStr);
+
+                // whichever other typing annotations to decode...
+
+                // Add them here...
             }
+
+            // unknown typing module annotation
+            throw std::runtime_error("Tuplex can't understand typing module annotation " + typeStr);
         }
 
         return python::Type::UNKNOWN;
@@ -1772,6 +1740,8 @@ namespace python {
 #warning "better python error formatting needed!"
         }
 
+        // important to incref!
+        Py_XINCREF(obj);
         return obj;
     }
 

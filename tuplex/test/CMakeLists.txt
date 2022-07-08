@@ -1,19 +1,19 @@
 find_package(Threads REQUIRED)
 
-# some tests require the cloudpickle package to be installed, hence check for it here
-# try first to find full dev version of python, if that fails - interpreter only.
-find_package(Python3 COMPONENTS Interpreter Development QUIET)
-if (Python3_FOUND)
-    message(STATUS "Found full python3-dev installation")
-    set(Python3_Embed_FOUND TRUE)
-else()
-    find_package(Python3 COMPONENTS Interpreter REQUIRED)
-    # python3 -c 'import distutils.sysconfig; print(distutils.sysconfig.get_python_lib(plat_specific=False,standard_lib=True))'
-    # try to get get module libs at least
-
-    # mark embed lib as not found
-    unset(Python3_Embed_FOUND)
-endif()
+## some tests require the cloudpickle package to be installed, hence check for it here
+## try first to find full dev version of python, if that fails - interpreter only.
+#find_package(Python3 COMPONENTS Interpreter Development QUIET)
+#if (Python3_FOUND)
+#    message(STATUS "Found full python3-dev installation")
+#    set(Python3_Embed_FOUND TRUE)
+#else()
+#    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+#    # python3 -c 'import distutils.sysconfig; print(distutils.sysconfig.get_python_lib(plat_specific=False,standard_lib=True))'
+#    # try to get get module libs at least
+#
+#    # mark embed lib as not found
+#    unset(Python3_Embed_FOUND)
+#endif()
 
 if (Python3_FOUND)
     # check that cloudpickle is installed via import
@@ -37,6 +37,7 @@ endif()
 # check whether googletest is locally installed, if not download and fetch
 find_package(GTest CONFIG)
 if(NOT GTest_FOUND)
+    
     # new way of including googletest
     # Download and unpack googletest at configure time
     configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
@@ -59,9 +60,11 @@ if(NOT GTest_FOUND)
 
     # Add googletest directly to our build. This defines
     # the gtest and gtest_main targets.
+    # this here picks up potentially a different python version, but not used in build.
     add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
             ${CMAKE_BINARY_DIR}/googletest-build
             EXCLUDE_FROM_ALL)
+    message(STATUS "gtest done (may display different python version before)")
     set(GTest_LIBRARIES "gtest")
 else()
     message(STATUS "Using locally installed GoogleTest")

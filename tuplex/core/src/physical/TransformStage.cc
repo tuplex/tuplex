@@ -224,7 +224,13 @@ namespace tuplex {
         // -> if not, error and return empty vector!
 
         // hashKeyType is the type in which the key is stored. (NOT INCLUDING OPT!)
-        python::Type hashKeyType = result.keyType.withoutOptions(); // remove option b.c. of null-bucket design. @TODO: this is not 100% correct, because inner options will also get sacrificed by this...
+        python::Type hashKeyType = result.keyType; // remove option b.c. of null-bucket design. @TODO: this is not 100% correct, because inner options will also get sacrificed by this...
+
+        // special case: If keyRowType is option or tuple with single content -> nullbucket is used!
+        if(hashKeyType.isOptionType())
+            hashKeyType = hashKeyType.getReturnType();
+        if(hashKeyType.isTupleType() && hashKeyType.parameters().size() == 1 && hashKeyType.parameters().front().isOptionType())
+            hashKeyType = hashKeyType.parameters().front().getReturnType();
         python::Type keyRowType = python::Type::propagateToTupleType(hashKeyType);
 
         bool requiresUpcast = false;
@@ -240,6 +246,7 @@ namespace tuplex {
         if(!result.hash_map && !result.null_bucket)
            return std::vector<Partition*>();
 
+        Deserializer ds(Schema(Schema::MemoryLayout::ROW, keyRowType));
         Partition* partition = nullptr;
         PartitionWriter pw(driver, outputSchema, outputDataSetID, context.id(), context.getOptions().PARTITION_SIZE());
 
@@ -328,13 +335,16 @@ namespace tuplex {
                 while((key = hashmap_get_next_key(hashtable, &iterator, &keylen)) != nullptr) {
                     Row r;
 
-                    if(hashKeyType == python::Type::propagateToTupleType(python::Type::STRING)) {
+                    if(hashKeyType == python::Type::STRING || hashKeyType == python::Type::propagateToTupleType(python::Type::STRING)) {
                         // use directly key as str...
                         std::string s(key);
                         r = Row(s);
                         r = r.upcastedRow(out_row_type);
                     } else {
-                        throw std::runtime_error("decoding of other types not yet supported...");
+
+                        // decode Row from memory
+                        auto row = Row::fromMemory(ds, key, keylen);
+                        r = row.upcastedRow(out_row_type);
 
                         // // this is how it potentially should look like...
                         // // decode key into Row, upcast, serialize
@@ -407,7 +417,12 @@ namespace tuplex {
         return final_length;
     }
 
-    static size_t appendBucketAsPartition(std::vector<std::pair<const char *, size_t>> &rows, const uint8_t *buffer, uint64_t keylen, const char *key, const python::Type &keyType, const python::Type &aggType) {
+    static size_t appendBucketAsPartition(std::vector<std::pair<const char *, size_t>> &rows,
+                                          const uint8_t *buffer,
+                                          uint64_t keylen,
+                                          const char *key,
+                                          const python::Type &keyType,
+                                          const python::Type &aggType) {
         Serializer s;
 
         // get the key

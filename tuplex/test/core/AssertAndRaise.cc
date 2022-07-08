@@ -18,7 +18,9 @@ using namespace std;
 
 // Note: only this test here fails...
 TEST_F(AssertAndRaiseTest, Assert) {
-    Context c(microTestOptions());
+    auto opt = microTestOptions();
+    opt.set("optimizer.mergeExceptionsInOrder", "true");
+    Context c(opt);
 
     auto code = "def f(x):\n"
                 "\tassert x % 2 == 1, 'only odd numbers'\n"
@@ -35,15 +37,17 @@ TEST_F(AssertAndRaiseTest, Assert) {
     // with resolver
     auto v1 = ds.resolve(ExceptionCode::ASSERTIONERROR, UDF("lambda x: (x-1) * (x-1)")).collectAsVector();
     ASSERT_EQ(v1.size(), 5);
-    EXPECT_EQ(v1[0].getInt(0), 1);
-    EXPECT_EQ(v1[1].getInt(0), 1);
-    EXPECT_EQ(v1[2].getInt(0), 9);
-    EXPECT_EQ(v1[3].getInt(0), 9);
-    EXPECT_EQ(v1[4].getInt(0), 25);
+    EXPECT_EQ(v1[0].getInt(0), 1); // -> 1 * 1 = 1
+    EXPECT_EQ(v1[1].getInt(0), 1); // -> (2-1) * (2-1) = 1
+    EXPECT_EQ(v1[2].getInt(0), 9); // -> 3 * 3 = 9
+    EXPECT_EQ(v1[3].getInt(0), 9); // -> (4 - 1) * (4 -1 ) = 9
+    EXPECT_EQ(v1[4].getInt(0), 25); // -> 5 * 5 = 25
 }
 
 TEST_F(AssertAndRaiseTest, Raise) {
-    Context c(microTestOptions());
+    auto opt = microTestOptions();
+    opt.set("optimizer.mergeExceptionsInOrder", "true");
+    Context c(opt);
 
     auto code = "def f(x):\n"
                 "\tif x % 2 == 1:\n"
@@ -73,7 +77,9 @@ TEST_F(AssertAndRaiseTest, Raise) {
 
 // ignore test for hierarchy?
 TEST_F(AssertAndRaiseTest, Ignore) {
-    Context c(microTestOptions());
+    auto opt = microTestOptions();
+    opt.set("optimizer.mergeExceptionsInOrder", "true");
+    Context c(opt);
 
     auto code = "def f(x):\n"
                 "\tif x % 2 == 0:\n"

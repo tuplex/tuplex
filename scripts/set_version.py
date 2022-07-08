@@ -20,20 +20,23 @@ version = '0.3.3'
 # https://pypi.org/simple/tuplex/
 # or https://test.pypi.org/simple/tuplex/
 def get_latest_pypi_version(url='https://pypi.org/simple/tuplex/'):
-    r = requests.get(url)
+    try:
+        r = requests.get(url)
+    
+        # parse all strings from page
+        links = re.findall(r'href=[\'"]?([^\'" >]+)', r.text)
 
-    # parse all strings from page
-    links = re.findall(r'href=[\'"]?([^\'" >]+)', r.text)
+        links = list(filter(lambda s: 'tuplex' in s, map(lambda s: s[s.find('tuplex'):s.rfind('.whl')], links)))
 
-    links = list(filter(lambda s: 'tuplex' in s, map(lambda s: s[s.find('tuplex'):s.rfind('.whl')], links)))
+        # extract version string & sort
+        links = {link[len('tuplex-'):link.find('-cp')] for link in links}
 
-    # extract version string & sort
-    links = {link[len('tuplex-'):link.find('-cp')] for link in links}
+        links = sorted(list(links), key=LooseVersion)
 
-    links = sorted(list(links), key=LooseVersion)
-
-    # what's the latest version?
-    return links[-1]
+        # what's the latest version?
+        return links[-1]
+    except:
+        return None
 
 if __name__ == '__main__':
     file_handler = logging.FileHandler(filename='version.log')
@@ -64,6 +67,9 @@ if __name__ == '__main__':
     version_test = get_latest_pypi_version(url='https://test.pypi.org/simple/tuplex/')
     logging.info('latest pypi.org version of tuplex is: {}'.format(version_pypi))
     logging.info('latest test.pypi.org version of tuplex is: {}'.format(version_test))
+
+    if version_test is None and version_pypi is not None:
+        version_test = version_pypi
 
     if args.dev:
         # get from testpypi (dynamic renaming basically)

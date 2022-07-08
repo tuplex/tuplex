@@ -85,7 +85,7 @@ int main() {
     g_start_timestamp = current_utc_timestamp();
 
     // init logger to only act with stdout sink (no file logging!)
-    auto log_sink = std::make_shared<memory_sink_mt>();
+    auto log_sink = std::make_shared<tuplex::memory_sink_mt>();
     auto log_id = uuidToString(container_id());
     Logger::init({std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>(), log_sink});
 
@@ -100,7 +100,7 @@ int main() {
     // initialize LambdaWorkerApp
     init_app();
     if(!get_app()) {
-        run_handler([&log_sink, &log_id](invocation_request const& req) {
+        run_handler([&,log_sink, log_id](invocation_request const& req) {
             auto proto_msg = make_exception("failed to initiailize worker application");
             log_sink->add_to_proto_message(proto_msg, log_id);
             log_sink->reset();
@@ -117,7 +117,7 @@ int main() {
     // signal(SIGSEGV, sigsev_handler);
     if(sigaction(SIGSEGV, &sigact, nullptr) != 0) {
 
-        run_handler([&log_sink, &log_id](invocation_request const& req) {
+        run_handler([log_sink, log_id](invocation_request const& req) {
             auto proto_msg = make_exception("could not add sigsev handler");
             log_sink->add_to_proto_message(proto_msg, log_id);
             log_sink->reset();
@@ -144,12 +144,12 @@ int main() {
 
         // also, don't forget to reset stats counters for each invocation
 
-        run_handler([&log_sink, &log_id](invocation_request const& req) {
-            auto response = lambda_handler(req);
+        run_handler([log_sink, log_id](invocation_request const& req) {
+            auto proto_msg = lambda_handler(req);
             log_sink->add_to_proto_message(proto_msg, log_id);
             log_sink->reset();
             // add to json (?)
-            return invocation_response::success(proto_to_json(response),
+            return invocation_response::success(proto_to_json(proto_msg),
                                          "application/json");
         });
     }

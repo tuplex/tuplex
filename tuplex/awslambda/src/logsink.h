@@ -61,8 +61,8 @@ namespace tuplex {
 
     #include "spdlog/details/null_mutex.h"
     #include <mutex>
-    using my_sink_mt = memory_sink<std::mutex>;
-    using my_sink_st = memory_sink<spdlog::details::null_mutex>;
+    using memory_sink_mt = memory_sink<std::mutex>;
+    using memory_sink_st = memory_sink<spdlog::details::null_mutex>;
 }
 
 #endif //TUPLEX_LOGSINK_H

@@ -98,7 +98,7 @@ def retrieve_targets_to_run(name):
 
 @click.command()
 @click.argument('target', type=click.Choice(sorted(list(set(meta_targets + experiment_targets))), case_sensitive=False))
-@click.option('--num-runs', type=int, default=11,
+@click.option('--num-runs', type=int, default=1, #11,
               help='How many runs to run experiment with (default=11 for 10 runs + 1 warmup run')
 @click.option('--detach/--no-detach', default=False, help='whether to launch command in detached mode (non-blocking)')
 @click.option('--help/--no-help', default=False, help='display help about target')
@@ -189,7 +189,7 @@ def run(ctx, target, num_runs, detach, help):
         # run individual targets
         # for these, the runbenchmark.sh scripts are used!
         # e.g., docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z1/ && bash runbenchmark.sh'
-        path_dict = {'flights/sampling': {'script': 'benchmark.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights/sampling_experiment'},
+        path_dict = {'flights/sampling': {'script': '-c \'python3.9 runtuplex.py\'', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights/sampling_experiment'},
                      'flights/hyper': {'script': 'benchmark.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights'}}
 
         # lowercase
@@ -208,7 +208,7 @@ def run(ctx, target, num_runs, detach, help):
                'PATH': '/opt/spark@2/bin:/bin:/opt/scala/bin:/root/.cargo/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
                'SPARK_HOME': '/opt/spark@2',
                'SCALA_HOME': '/opt/scala'}
-
+        env.update(get_aws_env())
         logging.info('Starting benchmark using command: docker exec -i{}t {} {}'.format('d' if detach else '', DOCKER_CONTAINER_NAME,
                                                                                         cmd))
         exit_code, output = container.exec_run(cmd, stderr=True, stdout=True, detach=detach, environment=env)

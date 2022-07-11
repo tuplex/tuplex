@@ -427,8 +427,9 @@ namespace tuplex {
 
             inline llvm::CallInst* CreateCall(llvm::Value* func_value, llvm::ArrayRef<llvm::Value *> Args = llvm::None,
                                               const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
-                 if(!llvm::isa<llvm::Function>(func_value))
-                     throw std::runtime_error("trying to call a non-function llvm value");
+                 // iterators violate below isa...
+                 // if(!llvm::isa<llvm::Function>(func_value))
+                 //    throw std::runtime_error("trying to call a non-function llvm value");
                  auto func = llvm::cast<llvm::Function>(func_value);
                 return CreateCall(func->getFunctionType(), func, Args, Name,
                                   FPMathTag);

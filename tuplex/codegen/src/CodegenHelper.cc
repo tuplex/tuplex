@@ -669,6 +669,9 @@ namespace tuplex {
             }
 
 
+            // cf. https://github.com/llvm-mirror/llvm/blob/master/tools/verify-uselistorder/verify-uselistorder.cpp#L179
+            // to check that everything is mappable?
+
             // simple conversion using LLVM builtins...
             std::string out_str;
             llvm::raw_string_ostream os(out_str);

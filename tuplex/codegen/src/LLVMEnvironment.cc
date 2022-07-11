@@ -2003,18 +2003,8 @@ namespace tuplex {
                 prefix = "reverse";
             } // else: empty string
 
-            if(iterableType.isListType()) {
-                funcName = "list_" + prefix + "iterator_update";
-            } else if(iterableType == python::Type::STRING) {
-                funcName = "str_" + prefix + "iterator_update";
-            } else if(iterableType == python::Type::RANGE) {
-                // range_iterator is always used
-                funcName = "range_iterator_update";
-            } else if(iterableType.isTupleType()) {
-                funcName = "tuple_" + prefix + "iterator_update";
-            } else {
-                throw std::runtime_error("Cannot generate LLVM UpdateIteratorIndex function for iterator generated from iterable type" + iterableType.desc());
-            }
+            auto iteratorName = iterator_name_from_type(iterableType);
+            funcName = iteratorName + "_iterator_update";
 
             auto it = _generatedIteratorUpdateIndexFunctions.find(funcName);
             if(_generatedIteratorUpdateIndexFunctions.end() != it) {

@@ -63,6 +63,7 @@ test_dependencies = [
 'nbformat<7.0',
 'prompt_toolkit>=2.0.7',
 'pytest>=5.3.2',
+'Werkzeug==2.1.2'
 ]
 
 # Also requires to install MongoDB

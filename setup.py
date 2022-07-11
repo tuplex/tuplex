@@ -58,8 +58,9 @@ colab_requirements = ['urllib3==1.26.7']
 
 # TODO: add option to install these
 test_dependencies = [
-'jupyter',
-'nbformat',
+'nbocnvert<7.0',
+'jupyter<7.0',
+'nbformat<7.0',
 'prompt_toolkit>=2.0.7',
 'pytest>=5.3.2',
 ]
@@ -75,7 +76,8 @@ webui_dependencies = [
 ]
 
 # dependencies for AWS Lambda backend...
-aws_lambda_dependencies = ['boto3']
+# boto is broken currently...
+aws_lambda_dependencies = []
 
 
 # manual fix for google colab
@@ -100,7 +102,6 @@ if in_google_colab():
         'PyYAML>=3.13',
         'psutil',
         'pymongo',
-        'boto3',
         'iso8601'
     ]
 else:

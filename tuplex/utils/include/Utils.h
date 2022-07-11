@@ -58,6 +58,8 @@ namespace std {
 #include <glob.h>
 #include <libgen.h>
 
+#include <boost/filesystem.hpp>
+
 static_assert(__cplusplus >= 201402L, "need at least C++ 14 to compile this file");
 // check https://blog.galowicz.de/2016/02/20/short_file_macro/
 // for another cool macro
@@ -200,6 +202,23 @@ namespace tuplex {
      * @return uuid
      */
     extern uniqueid_t getUniqueID();
+
+    /*!
+     * get user name who runs the program
+     * @return
+     */
+    extern std::string getUserName();
+
+    inline std::string tempFileName() {
+        // uses boost filesystem to safely crae a temp file. In Unix, creates the file.
+        boost::filesystem::path temp = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path(); // note: this could yield a race condition
+
+        auto user = getUserName();
+        if(!user.empty())
+            return temp.native() + "-" + user;
+        else
+            return temp.native();
+    }
 
     inline std::string uuidToString(const uniqueid_t& uuid) {
         std::stringstream ss;

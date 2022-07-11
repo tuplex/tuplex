@@ -2640,6 +2640,221 @@ TEST_F(WrapperTest, PartitionRelease) {
 
 }
 
+TEST_F(WrapperTest, TracingVisitorError) {
+    using namespace tuplex;
+
+    auto udf_code = "def count(L):\n"
+                    "    d = {}\n"
+                    "    for x in L:\n"
+                    "        if x not in d.keys():\n"
+                    "            d[x] = 0\n"
+                    "        d[x] += 1\n"
+                    "    return d";
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+        auto cols_to_select = PyList_New(1);
+        PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Unique Key"));
+
+
+        PyObject *listObj = PyList_New(1);
+        PyObject *sublistObj1 = PyList_New(2);
+        PyList_SET_ITEM(sublistObj1, 0, python::PyString_FromString("a"));
+        PyList_SET_ITEM(sublistObj1, 1, python::PyString_FromString("b"));
+
+        PyList_SetItem(listObj, 0, sublistObj1);
+
+        auto list = py::reinterpret_borrow<py::list>(listObj);
+
+        auto res = ctx.parallelize(list).map(udf_code, "").collect();
+        auto resObj = res.ptr();
+        ASSERT_TRUE(PyList_Check(resObj));
+        EXPECT_GE(PyList_Size(resObj), 1);
+    }
+}
+
+TEST_F(WrapperTest, SumByKey) {
+    using namespace tuplex;
+
+    // def test_sum_by_key(self):
+    //        c = Context(self.conf)
+    //
+    //        data = [(0, 10.0), (1, 20.0), (0, -4.5)]
+    //
+    //        res = c.parallelize(data, columns=['id', 'volume']).aggregateByKey(lambda a, b: a + b,
+    //                                                                            lambda a, x: a + x['volume'],
+    //                                                                            0.0,
+    //                                                                            ['id']).collect()
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+        auto values_obj = PyList_New(3);
+        PyList_SetItem(values_obj, 0, python::runAndGet("L = (0, 10.0)", "L"));
+        PyList_SetItem(values_obj, 1, python::runAndGet("L = (1, 20.0)", "L"));
+        PyList_SetItem(values_obj, 2, python::runAndGet("L = (0, -4.0)", "L"));
+
+        auto columns_obj = python::runAndGet("L = ['id', 'volume']", "L");
+        auto key_columns_obj = python::runAndGet("['id']", "L");
+        auto pickled_val = python::pickleObject(python::getMainModule(), PyFloat_FromDouble(0.0));
+
+        auto values = py::reinterpret_borrow<py::list>(values_obj);
+        auto columns = py::reinterpret_borrow<py::list>(columns_obj);
+        auto key_columns = py::reinterpret_borrow<py::list>(key_columns_obj);
+
+        auto res = ctx.parallelize(values, columns)
+                      .aggregateByKey("lambda a, b: a + b", "",
+                                      "lambda a, x: a +x['volume']", "",
+                                      pickled_val,
+                                      key_columns)
+                      .collect();
+        auto resObj = res.ptr();
+        ASSERT_TRUE(PyList_Check(resObj));
+        EXPECT_GE(PyList_Size(resObj), 2);
+
+        // print result out
+        PyObject_Print(resObj, stdout, 0);
+        std::cout<<std::endl;
+    }
+}
+
+
+// as reported in https://github.com/tuplex/tuplex/issues/99
+TEST_F(WrapperTest, AllRows311) {
+    using namespace tuplex;
+
+    std::string test_data = "UniqueKey,CreatedDate,Agency,ComplaintType,Descriptor,IncidentZip,StreetName\n"
+                            "46688741,06/30/2020 07:24:41 PM,NYPD,Noise - Residential,Loud Music/Party,10037.0,MADISON AVENUE\n"
+                            "53493739,02/28/2022 07:30:31 PM,NYPD,Illegal Parking,Double Parked Blocking Traffic,11203.0,EAST   56 STREET\n"
+                            "48262955,11/27/2020 12:00:00 PM,DSNY,Derelict Vehicles,Derelict Vehicles,11203.0,CLARKSON AVENUE\n"
+                            "48262956,11/27/2020 12:00:00 PM,DSNY,Derelict Vehicles,Derelict Vehicles,11208.0,SHEPHERD AVENUE\n"
+                            "48262957,11/27/2020 12:00:00 PM,DSNY,Derelict Vehicles,Derelict Vehicles,11238.0,BERGEN STREET\n"
+                            "46688747,06/30/2020 02:51:45 PM,NYPD,Noise - Vehicle,Engine Idling,10009.0,EAST   12 STREET\n"
+                            "46688748,06/30/2020 09:26:45 AM,NYPD,Non-Emergency Police Matter,Face Covering Violation,11204.0,20 AVENUE\n"
+                            "48262973,11/27/2020 03:46:00 PM,DEP,Water Quality,unknown odor/taste in drinking water (QA6),10021.0,EAST   70 STREET\n"
+                            "53493766,02/28/2022 05:28:38 AM,NYPD,Noise - Vehicle,Car/Truck Horn,11366.0,PARSONS BOULEVARD\n";
+
+    // write test data out to test path
+    std::string input_path = this->testName + "_test_311_testfile.csv";
+    std::string output_path = this->testName + "_test_311_output.csv";
+
+    stringToFile(input_path, test_data);
+
+    auto udf_code = "def fix_zip_codes(zips):\n"
+                    "            if not zips:\n"
+                    "                return None\n"
+                    "            # Truncate everything to length 5\n"
+                    "            s = zips[:5]\n"
+                    "\n"
+                    "            # Set 00000 zip codes to nan\n"
+                    "            if s == \"00000\":\n"
+                    "                return None\n"
+                    "            else:\n"
+                    "                return s";
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    //  null_values=["Unspecified", "NO CLUE", "NA", "N/A", "0", ""],
+    //            type_hints={0: typing.Optional[str],
+    //                        1: typing.Optional[str],
+    //                        2: typing.Optional[str],
+    //                        3: typing.Optional[str],
+    //                        4: typing.Optional[str],
+    //                        5: typing.Optional[str],
+    //                        }
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+        auto null_values_obj = PyList_New(6);
+        PyList_SetItem(null_values_obj, 0, python::PyString_FromString("Unspecified"));
+        PyList_SetItem(null_values_obj, 1, python::PyString_FromString("NO CLUE"));
+        PyList_SetItem(null_values_obj, 2, python::PyString_FromString("NA"));
+        PyList_SetItem(null_values_obj, 3, python::PyString_FromString("N/A"));
+        PyList_SetItem(null_values_obj, 4, python::PyString_FromString("0"));
+        PyList_SetItem(null_values_obj, 5, python::PyString_FromString(""));
+
+        auto type_hints_obj = PyDict_New();
+        for(unsigned i = 0; i <= 5; ++i)
+            PyDict_SetItem(type_hints_obj, PyLong_FromLong(i), python::runAndGet("import typing; x=typing.Optional[str]", "x"));
+
+
+        auto null_values = py::reinterpret_borrow<py::list>(null_values_obj);
+        auto type_hints = py::reinterpret_borrow<py::dict>(type_hints_obj);
+
+        auto res = ctx.csv(input_path, py::none(), true, false, "", "\"", null_values, type_hints)
+                      .mapColumn("IncidentZip", udf_code, "")
+                      .unique()
+                      .collect();
+        auto resObj = res.ptr();
+        ASSERT_TRUE(PyList_Check(resObj));
+        EXPECT_GE(PyList_Size(resObj), 2);
+
+        // print result out
+        PyObject_Print(resObj, stdout, 0);
+        std::cout<<std::endl;
+    }
+}
+
+// bug 94: https://github.com/tuplex/tuplex/issues/94
+TEST_F(WrapperTest, DoubleCollect) {
+    using namespace tuplex;
+
+    // ds = c.parallelize([(1, "A"),(2, "a"),(3, 2)]).filter(lambda a, b: a > 1)
+    // ds.collect()
+    // ds.collect()
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+        auto values_obj = python::runAndGet("L = [(1, \"A\"),(2, \"a\"),(3, 2)]", "L");
+
+        auto values = py::reinterpret_borrow<py::list>(values_obj);
+
+        auto ds = ctx.parallelize(values)
+                .filter("lambda a, b: a > 1","");
+
+        auto res = ds.collect();
+        auto resObj = res.ptr();
+        ASSERT_TRUE(PyList_Check(resObj));
+        EXPECT_EQ(PyList_Size(resObj), 2);
+
+        // print result out
+        PyObject_Print(resObj, stdout, 0);
+        std::cout<<std::endl;
+
+        // collect again, should NOT fail
+        res = ds.collect();
+        resObj = res.ptr();
+        ASSERT_TRUE(PyList_Check(resObj));
+        EXPECT_EQ(PyList_Size(resObj), 2);
+    }
+}
 
 //// debug any python module...
 ///** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.

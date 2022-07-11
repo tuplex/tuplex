@@ -116,9 +116,10 @@ namespace tuplex {
 
         /*!
          * lock memory belonging to partition for (exclusive) write ownership
+         * @param allowForeignOwnerAccess this is a dangeours flag, when set to true, no check is carried out when a non-owning thread accesses this partition.
          * @return memory pointer. Nullptr if there was a recovery error
          */
-        uint8_t* lockWriteRaw();
+        uint8_t* lockWriteRaw(bool allowForeignOwnerAccess=false);
 
         /*!
          * unlock write ownership

@@ -31,6 +31,24 @@ namespace tuplex {
     }
 
 
+    std::string getUserName() {
+        // UNIX specific function for username
+        // check env variables 'LOGNAME', 'USER', 'LNAME', 'USERNAME'
+        using namespace std;
+
+        std::vector<std::string> vars = {"LOGNAME", "USER", "LNAME", "USERNAME"};
+
+        for(auto var : vars) {
+            auto name = getenv(var.c_str());
+            if(name)
+                return std::string(name);
+        }
+
+        // no user found above, return ""
+        // more advanced methods possible...
+        return "";
+    }
+
     size_t memStringToSize(const std::string& str) {
         using namespace boost::algorithm;
 

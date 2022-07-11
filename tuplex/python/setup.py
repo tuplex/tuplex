@@ -15,6 +15,12 @@ from setuptools import setup, find_packages
 # i.e. runtime + the .so module need to be copied...
 
 import os
+import sys
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logging.info('installing for {} (python {}.{})'.format(sys.executable, sys.version_info[0], sys.version_info[1]))
+
 # files to copy for install
 files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser("tuplex")) for f in fn]
 
@@ -36,8 +42,9 @@ setup(
     license="Apache 2.0",
     keywords="ETL BigData Python LLVM UDF",
     install_requires=[
-        'jupyter',
-        'nbformat',
+        'nbconvert<7.0',
+        'jupyter<7.0',
+        'nbformat<7.0',
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
         'pluggy>=0.6.0, <1.0.0',

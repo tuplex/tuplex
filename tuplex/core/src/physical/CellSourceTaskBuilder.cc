@@ -213,7 +213,7 @@ namespace tuplex {
                 IRBuilder b(_valueErrorBlock);
 
                 // could use here value error as well. However, for internal resolve use badparse string input!
-                b.get().CreateRet(env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
+                b.CreateRet(env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
             }
 
             return _valueErrorBlock;
@@ -226,7 +226,7 @@ namespace tuplex {
                                                "null_error",
                                                      builder.GetInsertBlock()->getParent());
                 IRBuilder b(_nullErrorBlock);
-                b.get().CreateRet(env().i64Const(ecToI64(ExceptionCode::NULLERROR))); // internal error!
+                b.CreateRet(env().i64Const(ecToI64(ExceptionCode::NULLERROR))); // internal error!
             }
             return _nullErrorBlock;
         }

@@ -114,7 +114,7 @@ namespace tuplex {
 
             auto exceptionBlock = BasicBlock::Create(env->getContext(), "except", func);
             IRBuilder eb(exceptionBlock);
-            eb.get().CreateRet(eb.CreateLoad(exceptionVar));
+            eb.CreateRet(eb.CreateLoad(exceptionVar));
 
             auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);
 
@@ -209,7 +209,7 @@ namespace tuplex {
 
             auto exceptionBlock = BasicBlock::Create(env->getContext(), "except", func);
             IRBuilder eb(exceptionBlock);
-            eb.get().CreateRet(eb.CreateLoad(exceptionVar));
+            eb.CreateRet(eb.CreateLoad(exceptionVar));
 
             auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);
 

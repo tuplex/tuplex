@@ -66,7 +66,7 @@ namespace tuplex {
              ~IRBuilder();
 
              llvm::LLVMContext& getContext() const {
-                 return get().getContext();
+                 return get_or_throw().getContext();
              }
 
              /*!
@@ -82,10 +82,12 @@ namespace tuplex {
 //            }
 
              inline llvm::Value* CreateAlloca(llvm::Type *type, unsigned AddrSpace, llvm::Value* ArraySize=nullptr, const std::string& name="") const {
+                 assert(type);
                  return get_or_throw().CreateAlloca(type, AddrSpace, ArraySize, name);
              }
 
             inline llvm::Value* CreateAlloca(llvm::Type *type) const {
+                assert(type);
                 return get_or_throw().CreateAlloca(type);
             }
 
@@ -375,6 +377,7 @@ namespace tuplex {
                 //  return builder.CreateStructGEP(ptr, idx);
                 assert(Ptr->getType()->isPointerTy());
                 auto pointeetype = Ptr->getType()->getPointerElementType();
+                assert(pointeetype);
                 return get_or_throw().CreateStructGEP(pointeetype, Ptr, Idx, Name);
 #endif
              }
@@ -412,6 +415,7 @@ namespace tuplex {
             inline llvm::CallInst *CreateCall(llvm::FunctionType *FTy, llvm::Value *Callee,
                                         llvm::ArrayRef<llvm::Value *> Args = llvm::None, const std::string &Name = "",
                                         llvm::MDNode *FPMathTag = nullptr) const {
+                 assert(FTy);
                 return get_or_throw().CreateCall(FTy, Callee, Args, Name, FPMathTag);
             }
 
@@ -443,6 +447,7 @@ namespace tuplex {
             }
 
              inline llvm::LoadInst *CreateLoad(llvm::Type *Ty, llvm::Value *Ptr, const char *Name) const {
+                 assert(Ty);
 #if LLVM_VERSION_MAJOR == 9
                  return get_or_throw().CreateLoad(Ty, Ptr, Name);
 #elif LLVM_VERSION_MAJOR > 9
@@ -453,6 +458,7 @@ namespace tuplex {
              }
 
              inline llvm::LoadInst *CreateLoad(llvm::Type *Ty, llvm::Value *Ptr, const std::string &Name = "") const {
+                 assert(Ty);
 #if LLVM_VERSION_MAJOR == 9
                  return get_or_throw().CreateLoad(Ty, Ptr, Name);
 #elif LLVM_VERSION_MAJOR > 9
@@ -463,11 +469,13 @@ namespace tuplex {
              }
 
              inline llvm::LoadInst *CreateLoad(llvm::Value *Ptr, const std::string& Name ="") const {
+                 assert(Ptr->getType()->getPointerElementType());
                 return CreateLoad(Ptr->getType()->getPointerElementType(), Ptr, Name);
             }
 
             inline llvm::Value *CreateGEP(llvm::Value *Ptr, llvm::ArrayRef<llvm::Value *> IdxList,
                      const std::string &Name = "") const {
+                assert(Ptr->getType()->getScalarType()->getPointerElementType());
                 // this is deprecated
                 return CreateGEP(Ptr->getType()->getScalarType()->getPointerElementType(),
                                  Ptr, IdxList, Name);
@@ -567,6 +575,7 @@ namespace tuplex {
             }
 
             inline llvm::PHINode* CreatePHI(llvm::Type* type, unsigned NumReservedValues, const std::string& twine="") const {
+                 assert(type);
                  return get_or_throw().CreatePHI(type, NumReservedValues, twine);
              }
 
@@ -580,6 +589,7 @@ namespace tuplex {
 #if LLVM_VERSION_MAJOR > 13
                  assert(LHS->getType() == RHS->getType() && LHS->getType()->isPointerTy());
                  llvm::Type* ElemTy = LHS->getType()->getPointerElementType();
+                 assert(ElemTy);
                 return get_or_throw().CreatePtrDiff(ElemTy, LHS, RHS, Name);
 #else
                  return get_or_throw().CreatePtrDiff(LHS, RHS, Name);
@@ -625,9 +635,9 @@ namespace tuplex {
             }
           //  inline llvm::Value* CreateMemCpy(destPtr, 0, srcPtr, 0, srcSize, true);
 
-        llvm::IRBuilder<>& get() const {
-                return get_or_throw();
-        }
+//        llvm::IRBuilder<>& get() const {
+//                return get_or_throw();
+//        }
 
             inline llvm::Value *CreateGlobalStringPtr(const std::string &basicString) const {
                 return get_or_throw().CreateGlobalStringPtr(basicString);

@@ -1499,11 +1499,11 @@ namespace tuplex {
                 auto fmtSize = i64Const(20); // 20 bytes for i64 should be fine
                 string fmtString = "%lld";
 
-                b.CreateStore(malloc(b.get(), fmtSize), bufVar);
+                b.CreateStore(malloc(b, fmtSize), bufVar);
                 auto snprintf_func = snprintf_prototype(getContext(), getModule().get());
 
                 //{csvRow, fmtSize, env().strConst(b, fmtString), ...}
-                auto charsRequired = b.CreateCall(snprintf_func, {b.CreateLoad(bufVar), fmtSize, strConst(b.get(), fmtString),
+                auto charsRequired = b.CreateCall(snprintf_func, {b.CreateLoad(bufVar), fmtSize, strConst(b, fmtString),
                                                                   argMap["value"]});
                 auto sizeWritten = b.CreateAdd(b.CreateZExt(charsRequired, i64Type()), i64Const(1));
 
@@ -1517,15 +1517,15 @@ namespace tuplex {
                 b.SetInsertPoint(bbLargerBuf);
                 // realloc with sizeWritten
                 // store new malloc in bufVar
-                b.CreateStore(malloc(b.get(), sizeWritten), bufVar);
+                b.CreateStore(malloc(b, sizeWritten), bufVar);
                 b.CreateCall(snprintf_func,
-                             {b.CreateLoad(bufVar), sizeWritten, strConst(b.get(), fmtString), argMap["value"]});
+                             {b.CreateLoad(bufVar), sizeWritten, strConst(b, fmtString), argMap["value"]});
 
                 b.CreateBr(bbCastDone);
                 b.SetInsertPoint(bbCastDone);
 
                 b.CreateStore(sizeWritten, argMap["res_size_ptr"]);
-                b.get().CreateRet(b.CreateLoad(bufVar));
+                b.CreateRet(b.CreateLoad(bufVar));
             }
 
             auto func = _generatedFunctionCache[key];

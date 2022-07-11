@@ -29,6 +29,8 @@
 #include <aws/core/auth/AWSCredentials.h>
 #include <aws/core/utils/json/JsonSerializer.h>
 
+#include <JSONUtils.h>
+
 // only exists in newer SDKs...
 // #include <aws/lambda/model/Architecture.h>
 
@@ -1310,7 +1312,7 @@ namespace tuplex {
                 for(const auto& r : task.resources()) {
                     if(r.type() == ResourceType::LOG) {
                         auto log = decompress_string(r.payload());
-                        ss<<",\"log\""<<log<<",";
+                        ss<<",\"log\""<<escape_for_json(log)<<",";
                         break;
                     }
                 }

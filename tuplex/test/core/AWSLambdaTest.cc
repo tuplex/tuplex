@@ -191,7 +191,9 @@ TEST_F(AWSTest, SimpleLambdaInvoke) {
     using namespace std;
     using namespace tuplex;
 
-    Context c(microLambdaOptions());
+    auto opt = microLambdaOptions();
+    opt.set("tuplex.webui.enable", "true");
+    Context c(opt);
 
     // computes some simple function in the cloud
     vector<Row> data;

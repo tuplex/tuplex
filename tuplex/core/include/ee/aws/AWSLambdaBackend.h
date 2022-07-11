@@ -100,6 +100,10 @@ namespace tuplex {
         uint64_t _startTimestamp;
         uint64_t _endTimestamp;
 
+        // web ui
+        HistoryServerConnection _historyConn;
+        std::shared_ptr<HistoryServerConnector> _historyServer;
+
         void reset();
 
         void checkAndUpdateFunctionConcurrency(const std::shared_ptr<Aws::Lambda::LambdaClient>& client,

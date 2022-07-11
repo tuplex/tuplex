@@ -513,6 +513,17 @@ namespace tuplex {
 
         reset();
 
+        if(_options.USE_WEBUI()) {
+            // add job to WebUI
+            _historyServer.reset();
+            _historyServer = HistoryServerConnector::registerNewJob(_historyConn,
+                                                                    "AWS Lambda backend", stage->plan(), _options);
+            if(_historyServer) {
+                logger().info("track job under " + _historyServer->trackURL());
+                _historyServer->sendStatus(JobStatus::STARTED);
+            }
+        }
+
         // Notes:
         // ==> could use the warm up events for sampling & speed detection
         // ==> helps to plan the query more efficiently!
@@ -807,6 +818,11 @@ namespace tuplex {
                 throw std::runtime_error("other end points then memory/file via S3 not yet implemented");
             }
         }
+
+
+        // if webui, send job end (single stage right now only supported)
+        if(_historyServer)
+            _historyServer->sendStatus(JobStatus::FINISHED);
     }
 
 
@@ -1174,6 +1190,19 @@ namespace tuplex {
 
         // init lambda client (Note: must be called AFTER aws init!)
         _client = makeClient();
+
+        if(_options.USE_WEBUI()) {
+
+            TUPLEX_TRACE("initializing REST/Curl interface");
+            // init rest interface if required (check if already done by AWS!)
+            RESTInterface::init();
+            TUPLEX_TRACE("creating history server connector");
+            _historyConn = HistoryServerConnector::connect(_options.WEBUI_HOST(),
+                                                           _options.WEBUI_PORT(),
+                                                           _options.WEBUI_DATABASE_HOST(),
+                                                           _options.WEBUI_DATABASE_PORT());
+            TUPLEX_TRACE("connection established");
+        }
     }
 
     void AwsLambdaBackend::waitForRequests(size_t sleepInterval) {

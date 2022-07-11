@@ -17,44 +17,6 @@
 #include <pcre2.h>
 #include <cmath>
 
-namespace llvm {
-    // helper functions
-    // consider moving those to IRBuilder... @TODO
-    static CallInst *createCallHelper(Function *Callee, ArrayRef<Value*> Ops,
-                                      const tuplex::codegen::IRBuilder& builder,
-                                      const Twine &Name = "",
-                                      Instruction *FMFSource = nullptr) {
-        CallInst *CI = CallInst::Create(Callee, Ops, Name);
-        if (FMFSource)
-            CI->copyFastMathFlags(FMFSource);
-        builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
-        builder.SetInstDebugLocation(CI);
-        return CI;
-    }
-
-    CallInst* createUnaryIntrinsic(const tuplex::codegen::IRBuilder& builder,
-                                   Intrinsic::ID ID,
-                                   Value *V,
-                                   const Twine& Name="",
-                                   Instruction *FMFSource = nullptr) {
-        Module *M = builder.GetInsertBlock()->getModule();
-        Function *Fn = Intrinsic::getDeclaration(M, ID, {V->getType()});
-        return createCallHelper(Fn, {V}, builder, Name, FMFSource);
-    }
-
-    CallInst* createBinaryIntrinsic(const tuplex::codegen::IRBuilder& builder,
-                                    Intrinsic::ID ID,
-                                    Value *LHS, Value* RHS,
-                                    const Twine& Name="",
-                                    Instruction *FMFSource = nullptr) {
-        Module *M = builder.GetInsertBlock()->getModule();
-        assert(M);
-        Function *Fn = Intrinsic::getDeclaration(M, ID, {LHS->getType()});
-        assert(Fn);
-        return createCallHelper(Fn, {LHS, RHS}, builder, Name, FMFSource);
-    }
-}
-
 namespace tuplex {
     namespace codegen {
 

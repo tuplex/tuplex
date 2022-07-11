@@ -53,12 +53,90 @@
 
 #include "InstructionCountPass.h"
 
+
+// helper to enable llvm6 and llvm9 comaptibility // --> force onto llvm9+ for now.
+namespace llvm {
+    inline CallInst *createCallHelper(Function *Callee, ArrayRef<Value*> Ops,
+                                      const tuplex::codegen::IRBuilder& builder,
+                                      const Twine &Name = "",
+                                      Instruction *FMFSource = nullptr) {
+        CallInst *CI = CallInst::Create(Callee, Ops, Name);
+        if (FMFSource)
+            CI->copyFastMathFlags(FMFSource);
+        builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
+        builder.SetInstDebugLocation(CI);
+        return CI;
+    }
+
+    inline CallInst* createBinaryIntrinsic(const tuplex::codegen::IRBuilder& builder,
+                                           Intrinsic::ID ID,
+                                           Value *LHS, Value* RHS,
+                                           const Twine& Name="",
+                                           Instruction *FMFSource = nullptr) {
+        Module *M = builder.GetInsertBlock()->getModule();
+        assert(M);
+        Function *Fn = Intrinsic::getDeclaration(M, ID, {LHS->getType()});
+        assert(Fn);
+        return createCallHelper(Fn, {LHS, RHS}, builder, Name, FMFSource);
+    }
+
+    inline CallInst* createUnaryIntrinsic(const tuplex::codegen::IRBuilder& builder,
+                                          Intrinsic::ID ID,
+                                          Value *V,
+                                          const Twine& Name="",
+                                          Instruction *FMFSource = nullptr) {
+        Module *M = builder.GetInsertBlock()->getModule();
+        Function *Fn = Intrinsic::getDeclaration(M, ID, {V->getType()});
+        return createCallHelper(Fn, {V}, builder, Name, FMFSource);
+    }
+
+    inline Value* CreateStructGEP(const tuplex::codegen::IRBuilder& builder, Value* ptr, unsigned int idx, const Twine& Name="") {
+#if LLVM_VERSION_MAJOR < 9
+        // compatibility
+        return builder.CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
+#else
+        return builder.CreateStructGEP(ptr, idx);
+#endif
+    }
+
+    inline Function* getOrInsertFunction(Module& mod, const std::string& name, FunctionType* FT) {
+#if LLVM_VERSION_MAJOR < 9
+        Function* func = cast<Function>(mod.getOrInsertFunction(name, FT));
+#else
+        Function *func = cast<Function>(mod.getOrInsertFunction(name, FT).getCallee());
+#endif
+        return func;
+    }
+
+    inline Function* getOrInsertFunction(Module* mod, const std::string& name, FunctionType* FT) {
+        if(!mod)
+            return nullptr;
+
+#if LLVM_VERSION_MAJOR < 9
+        Function* func = cast<Function>(mod->getOrInsertFunction(name, FT));
+#else
+        Function *func = cast<Function>(mod->getOrInsertFunction(name, FT).getCallee());
+#endif
+        return func;
+    }
+
+    template <typename... ArgsTy>
+    Function* getOrInsertFunction(llvm::Module* mod, const std::string& Name, Type *RetTy,
+                                  ArgsTy... Args) {
+        if(!mod)
+            return nullptr;
+        SmallVector<Type*, sizeof...(ArgsTy)> ArgTys{Args...};
+        return getOrInsertFunction(mod, Name, FunctionType::get(RetTy, ArgTys, false));
+    }
+
+}
+
 namespace tuplex {
     namespace codegen {
         /*!
- * helper class to generate LLVM Code into one module. Captures all globals necessary for LLVM based
- * code generation. Also provides helper functions to create individual LLVM code pieces.
- */
+         * helper class to generate LLVM Code into one module. Captures all globals necessary for LLVM based
+         * code generation. Also provides helper functions to create individual LLVM code pieces.
+         */
 
         /*!
          * get index for value, size and bitmapPosition

@@ -167,9 +167,6 @@ namespace tuplex {
             // load the tuple1
             _lastRowResult = _lastRowInput = FlattenedTuple::fromLLVMStructVal(&env(), builder, argRow, ft.getTupleType());
 
-            std::cout<<"how many blocks: "<<_func->size()<<" how many inst in first block: "<<_func->getEntryBlock().size()<<std::endl;
-
-
             // store in var
             _lastTupleResultVar = _lastRowResult.alloc(builder);
             _lastRowResult.storeTo(builder, _lastTupleResultVar);

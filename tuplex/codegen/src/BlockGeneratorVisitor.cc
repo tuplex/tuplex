@@ -5041,7 +5041,7 @@ namespace tuplex {
                     // no, hence add the if type.
                     VariableSlot slot;
                     slot.type = var.second.type;
-                    slot.var = Variable(*_env, codegen::IRBuilder(builder), slot.type, name);
+                    slot.var = Variable(*_env, builder, slot.type, name);
                     // alloc pointer and assign false
                     // => later in ifbuilder assign true to this variable!
                     slot.definedPtr = _env->CreateFirstBlockVariable(builder, _env->i1Const(false));

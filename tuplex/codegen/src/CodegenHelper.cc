@@ -654,6 +654,21 @@ namespace tuplex {
 
 #endif
 
+            // iterate over functions
+            {
+                std::stringstream ss;
+                for(auto& func : module) {
+                    ss<<"function: "<<func.getName().str()<<std::endl;
+
+                    // type
+                    auto type = func.getType();
+                    ss<<"type: "<<type<<std::endl;
+                }
+
+                Logger::instance().logger("LLVM Backend").debug(ss.str());
+            }
+
+
             // simple conversion using LLVM builtins...
             std::string out_str;
             llvm::raw_string_ostream os(out_str);

@@ -575,18 +575,19 @@ namespace tuplex {
 
             // list details using columns:
             if(_inputNode) {
-                auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
-                auto columns = fop->inputColumns();
+                switch(_inputNode->type()) {
+                    case LogicalOperatorType::FILEINPUT: {
+                        auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
+                        auto columns = fop->inputColumns();
 
-                projectedMajType = fop->projectRowType(majType);
-
-                //majType = fop->projectRowType(majType);
-
-//                // @TODO: following assert may fail, need to restrict in this case or add NONE values!
-//                assert(columns.size() == majType.parameters().size());
-//                for(unsigned i = 0; i < columns.size(); ++i) {
-//                    std::cout<<"col ("<<i<<") "<<columns[i]<<": "<<majType.parameters()[i].desc()<<std::endl;
-//                }
+                        projectedMajType = fop->projectRowType(majType);
+                        break;
+                    }
+                    default: {
+                        // nothing, projectedMajType = majType.
+                        break;
+                    }
+                }
             }
 
             // the detected majority type here is BEFORE projection pushdown.
@@ -613,9 +614,18 @@ namespace tuplex {
 
             // check what output type of optimized input_node is!
             if(_inputNode) {
-                auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
-                std::cout<<"(unoptimized) output schema of input op: "<<fop->getOutputSchema().getRowType().desc()<<std::endl;
-                std::cout<<"(optimized) output schema of input op: "<<fop->getOptimizedOutputSchema().getRowType().desc()<<std::endl;
+                switch(_inputNode->type()) {
+                    case LogicalOperatorType::FILEINPUT: {
+                        auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
+                        std::cout << "(unoptimized) output schema of input op: "
+                                  << fop->getOutputSchema().getRowType().desc() << std::endl;
+                        std::cout << "(optimized) output schema of input op: "
+                                  << fop->getOptimizedOutputSchema().getRowType().desc() << std::endl;
+                        break;
+                    }
+                    default:
+                        break;
+                }
             }
 
             // perform sample based optimizations

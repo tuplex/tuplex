@@ -426,6 +426,7 @@ namespace tuplex {
                 memberTypes.push_back(llvm::Type::getInt32Ty(_context));
                 if(iterableType.isListType()) {
                     iteratorName = "list_";
+#error "same issue here..."
                     memberTypes.push_back(llvm::PointerType::get(getListType(iterableType), 0));
                 } else if(iterableType == python::Type::STRING) {
                     iteratorName = "str_";
@@ -433,6 +434,7 @@ namespace tuplex {
                     memberTypes.push_back(llvm::Type::getInt64Ty(_context));
                 } else if(iterableType.isTupleType()) {
                     iteratorName = "tuple_";
+#error "fix this here, either an i8* pointer that is then casted or create different update/iter functions for each tuple type..."
                     memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(iterableType)), 0));
                     memberTypes.push_back(llvm::Type::getInt64Ty(_context));
                 } else {

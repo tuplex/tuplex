@@ -328,6 +328,8 @@ namespace tuplex {
             logger.debug("ft type: " + _env->getLLVMTypeName(ft));
             logger.debug("iterator type: " + _env->getLLVMTypeName(iterator->getType()));
 
+            // ok, update is something crazy fancy here: mod.getOrInsertFunction(name, FT).getCallee()->getType()->getPointerElementType()->isFunctionTy()
+
             auto nextFunc = llvm::getOrInsertFunction(*_env->getModule(), funcName, ft);
             auto exhausted = builder.CreateCall(nextFunc, iterator);
             return exhausted;

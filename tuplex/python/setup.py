@@ -47,6 +47,7 @@ setup(
         'nbformat<7.0',
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
+        'Werkzeug==2.1.2',
         'pluggy>=0.6.0, <1.0.0',
         'py>=1.5.2',
         'pygments>=2.4.1',

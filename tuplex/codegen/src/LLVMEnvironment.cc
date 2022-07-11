@@ -1046,6 +1046,21 @@ namespace tuplex {
         std::string LLVMEnvironment::getLLVMTypeName(llvm::Type *t) {
             auto& ctx = t->getContext();
 
+            if(t->isFunctionTy()) {
+                // get param + ret type!
+                auto FT = llvm::cast<FunctionType>(t);
+                std::string args = "(";
+                for(unsigned i = 0; i < FT->getNumParams(); ++i) {
+                    args += getLLVMTypeName(FT->getParamType(i));
+                    if(i != FT->getNumParams() - 1)
+                        args += ", ";
+                }
+                if(FT->isFunctionVarArg())
+                    args += ", ...";
+                args += ")";
+                return args + " -> " + getLLVMTypeName(FT->getReturnType());
+            }
+
             if(t->isIntegerTy()) {
                 return "i" + std::to_string(t->getIntegerBitWidth());
             }

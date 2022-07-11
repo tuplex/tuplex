@@ -48,7 +48,12 @@ namespace tuplex {
          */
         std::vector<tuplex::Partition*> getNormalPartitions();
 
-        void setFallbackPartitions(const std::vector<Partition*> &fallbackPartitions) { _fallbackPartitions = fallbackPartitions; }
+        void setFallbackPartitions(const std::vector<Partition*> &fallbackPartitions) {
+            _fallbackPartitions = fallbackPartitions;
+            // parallelize does not own the partitions, they must become immortal to allow for multiple calls involving this operator
+            for(auto p : _fallbackPartitions)
+                p->makeImmortal();
+        }
         std::vector<Partition *> getFallbackPartitions() { return _fallbackPartitions; }
 
         void setPartitionGroups(const std::vector<PartitionGroup>& partitionGroups) { _partitionGroups = partitionGroups; }

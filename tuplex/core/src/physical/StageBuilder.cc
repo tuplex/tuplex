@@ -855,6 +855,12 @@ namespace tuplex {
                         } else if(aop->aggType() == AggregateType::AGG_UNIQUE) {
                             // nothing to do...
                             // => here aggregate is directly written to output table!
+                            // do not bucketize but simply use all hash keys!
+                            std::vector<size_t> v;
+                            auto num_columns = aop->getOutputSchema().getRowType().parameters().size();
+                            for(size_t i = 0; i < num_columns; ++i)
+                                v.push_back(i);
+                            _hashColKeys = v;
                         } else {
                             throw std::runtime_error("unsupported aggregate type");
                         }

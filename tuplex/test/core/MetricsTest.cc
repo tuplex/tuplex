@@ -19,7 +19,10 @@ TEST_F(MetricsTest, BasicTest) {
     using namespace tuplex;
     using namespace std;
 
-    Context c(testOptions());
+    auto co = microTestOptions();
+    co.set("tuplex.useLLVMOptimizer", "true");
+    EXPECT_TRUE(co.USE_LLVM_OPTIMIZER());
+    Context c(co);
     vector<Row> ref;
     vector<Row> data;
     size_t N = 1000;

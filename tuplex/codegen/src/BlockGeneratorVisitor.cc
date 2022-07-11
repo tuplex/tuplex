@@ -2595,7 +2595,8 @@ namespace tuplex {
                 // statement done.
                 // @TODO: optimize to only address variables where things get assigned to in order to generate
                 // less LLVM IR. => Ease burden on compiler.
-                builder.SetInsertPoint(_lfb->getLastBlock());
+                if(_lfb->getLastBlock()) // may be nullptr, so add if check.
+                    builder.SetInsertPoint(_lfb->getLastBlock());
 
                 // @TODO: also the exitBlock analysis!
             }

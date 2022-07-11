@@ -19,6 +19,8 @@
 #include <pcre2.h>
 #include <TupleTree.h>
 
+#include <regex>
+
 using namespace llvm;
 
 // helper functions for debugging.
@@ -391,12 +393,14 @@ namespace tuplex {
                 // create the list type and get its name
                 auto t = createOrGetListType(iterated_type);
                 auto name = getLLVMTypeName(t);
+                name = std::regex_replace(name, std::regex("struct\\."), "");
                 return name;
             } else if(iterated_type == python::Type::STRING) {
                 return "str";
             } else if(iterated_type.isTupleType()) {
                 auto t = getOrCreateTupleType(iterated_type);
                 auto name = getLLVMTypeName(t);
+                name = std::regex_replace(name, std::regex("struct\\."), "");
                 return name;
             } else {
                     throw std::runtime_error("unsupported iterable type" + iterated_type.desc());

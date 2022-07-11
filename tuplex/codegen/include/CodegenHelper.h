@@ -394,9 +394,10 @@ namespace tuplex {
                  auto ptrType = cast<PointerType>(Ptr->getType()->getScalarType());
                  Ty = ptrType->getPointerElementType();
 
+#if LLVM_VERSION_MAJOR >= 13
                  // match
                  assert(cast<PointerType>(Ptr->getType()->getScalarType())->isOpaqueOrPointeeTypeMatches(Ty));
-
+#endif
                  assert(Ty); // can't be nullptr, will trigger an error else...
                  return get_or_throw().CreateConstGEP2_64(Ty, Ptr, Idx0, Idx1, Name);
              }

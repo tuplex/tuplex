@@ -156,23 +156,20 @@ namespace tuplex {
 
     int64_t WorkerApp::initTransformStage(const TransformStage::InitData& initData,
                                           const std::shared_ptr<TransformStage::JITSymbols> &syms) {
-        std::cout<<"init trafo stage (only fast path)"<<std::endl;
         if(!syms->_fastCodePath.initStageFunctor) {
-            std::cout<<"skip init trafo stage, b.c. symbol not found"<<std::endl;
+            logger().info("skip init_trafo_stage, b.c. symbol not found");
             return 0;
         }
 
         // initialize stage
         int64_t init_rc = 0;
-        std::cout<<"calling initStageFunctor with "<<initData.numArgs<<" args"<<std::endl;
+        logger().info("calling initStageFunctor with " + std::to_string(initData.numArgs) + " args");
         if((init_rc = syms->_fastCodePath.initStageFunctor(initData.numArgs,
                                              reinterpret_cast<void**>(initData.hash_maps),
                                              reinterpret_cast<void**>(initData.null_buckets))) != 0) {
             logger().error("initStage() failed for stage with code " + std::to_string(init_rc));
             return WORKER_ERROR_STAGE_INITIALIZATION;
         }
-        std::cout<<"initStageFunctor called,"<<std::endl;
-
 
         // init aggregate by key
         if(syms->aggAggregateFunctor) {
@@ -187,9 +184,8 @@ namespace tuplex {
     }
 
     int64_t WorkerApp::releaseTransformStage(const std::shared_ptr<TransformStage::JITSymbols>& syms) {
-        std::cout<<"release transform stage (only fast path)"<<std::endl;
         if(!syms->_fastCodePath.initStageFunctor || !syms->_fastCodePath.releaseStageFunctor) {
-            std::cout<<"skip release trafo stage, b.c. symbols not found"<<std::endl;
+            logger().info("skip release trafo stage, b.c. symbols not found");
             return 0;
         }
 
@@ -373,11 +369,8 @@ namespace tuplex {
     int WorkerApp::processTransformStage(TransformStage *tstage,
                                          const std::shared_ptr<TransformStage::JITSymbols> &syms,
                                          const std::vector<FilePart> &input_parts, const URI &output_uri) {
-        std::cout<<"entering processTrafoStage"<<std::endl;
-
-        size_t minimumPartSize = 1024 * 1024; // 1MB.
-
         Timer timer;
+        size_t minimumPartSize = 1024 * 1024; // 1MB.
 
         // init stage, abort on error
         auto rc = initTransformStage(tstage->initData(), syms);
@@ -400,7 +393,6 @@ namespace tuplex {
                 // single-threaded
                 for(unsigned i = 0; i < input_parts.size(); ++i) {
                    auto fp = input_parts[i];
-                    std::cout<<"start process source"<<std::endl;
                     size_t inputRowCount = 0;
                     processCodes[0] = processSource(0, tstage->fileInputOperatorID(), fp, tstage, syms, &inputRowCount);
                     logger().info("processed file " + std::to_string(i + 1) + "/" + std::to_string(input_parts.size()));
@@ -732,7 +724,7 @@ namespace tuplex {
         if(fmt == FileFormat::OUTFMT_CSV || fmt == FileFormat::OUTFMT_TEXT)
             mode |= VirtualFileMode::VFS_TEXTMODE;
 
-        std::cout<<"outputURI is: "<<outputURI.toString()<<std::endl;
+        logger().info("Merging output parts together into " + outputURI.toString());
 
         auto file = tuplex::VirtualFileSystem::open_file(outputURI, mode);
         if(!file)
@@ -1486,8 +1478,6 @@ namespace tuplex {
 //            logger().info("module verified.");
 //        }
 //#endif
-            std::cout<<"symbols are all registered"<<std::endl;
-
 
             // perform actual compilation
             // -> do not compile slow path for now.

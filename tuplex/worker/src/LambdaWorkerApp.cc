@@ -403,8 +403,6 @@ namespace tuplex {
     int LambdaWorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
         using namespace std;
 
-        cout<<"enter LambdaWorkerApp::processMessage"<<endl;
-
         // reset results
         resetResult();
 
@@ -453,13 +451,8 @@ namespace tuplex {
 
             return WORKER_OK;
         } else if(req.type() == messages::MessageType::MT_TRANSFORM) {
-
-            cout<<"got transform message"<<endl;
-
             // extract settings from req & init multi-threading!
             _settings = settingsFromMessage(req);
-
-            cout<<"read settings"<<endl;
 
             bool purePythonMode = req.has_settings() && req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly();
             auto numThreads = purePythonMode ? 1 : _settings.numThreads;

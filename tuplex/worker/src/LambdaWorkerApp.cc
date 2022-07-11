@@ -763,7 +763,7 @@ namespace tuplex {
                     _input_uris.push_back(in_uri);
                 // output uris from worker app
                 for(const auto& uri : output_uris())
-                    _output_uris.push_back(uri);
+                    _output_uris.push_back(uri.toString());
             }
 
             return rc;

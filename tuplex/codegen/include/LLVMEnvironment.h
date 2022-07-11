@@ -201,6 +201,9 @@ namespace tuplex {
 
             std::unique_ptr<llvm::legacy::FunctionPassManager> _fpm; // lazy initialized function pass manager for quick optimization of function
 
+            // creates the iterator name based on what type is iterated on...
+            std::string iterator_name_from_type(const python::Type& iterated_type);
+
         public:
             LLVMEnvironment(const std::string& moduleName="tuplex") : _module(nullptr),
                                                                       _memoryRequested(false) {
@@ -294,7 +297,7 @@ namespace tuplex {
              * @param twine an identifier for the codegen
              * @return llvm Type to be used as the given listType
              */
-            llvm::Type *getListType(const python::Type &listType, const std::string &twine = "list");
+            llvm::Type *createOrGetListType(const python::Type &listType, const std::string &twine = "list");
 
             /*!
              * return LLVM type that is used to represent a iterator internally

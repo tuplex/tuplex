@@ -296,7 +296,7 @@ namespace tuplex {
                 } else if (t.isSingleValued()) {
                     // leave out. Not necessary to represent it in memory.
                 } else if(t.isListType()) {
-                    memberTypes.push_back(getListType(t));
+                    memberTypes.push_back(createOrGetListType(t));
                     if(!t.elementType().isSingleValued()) numVarlenFields++;
                 } else {
                     // nested tuple?
@@ -329,7 +329,7 @@ namespace tuplex {
             return structType;
         }
 
-        llvm::Type *LLVMEnvironment::getListType(const python::Type &listType, const std::string &twine) {
+        llvm::Type *LLVMEnvironment::createOrGetListType(const python::Type &listType, const std::string &twine) {
             if(listType == python::Type::EMPTYLIST) return i8ptrType(); // dummy type
             auto it = _generatedListTypes.find(listType);
             if(_generatedListTypes.end() != it) {
@@ -381,6 +381,29 @@ namespace tuplex {
             return retType;
         }
 
+        std::string LLVMEnvironment::iterator_name_from_type(const python::Type &iterated_type) {
+            // there are only a couple types yet supported for iteration
+
+
+            if(iterated_type== python::Type::RANGE) { // this is a unique type
+                return "range";
+            } else if(iterated_type.isListType()) {
+                // create the list type and get its name
+                auto t = createOrGetListType(iterated_type);
+                auto name = getLLVMTypeName(t);
+                return name;
+            } else if(iterated_type == python::Type::STRING) {
+                return "str";
+            } else if(iterated_type.isTupleType()) {
+                auto t = getOrCreateTupleType(iterated_type);
+                auto name = getLLVMTypeName(t);
+                return name;
+            } else {
+                    throw std::runtime_error("unsupported iterable type" + iterated_type.desc());
+            }
+        }
+
+
         llvm::Type *LLVMEnvironment::createOrGetIteratorType(const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
 
@@ -413,28 +436,22 @@ namespace tuplex {
                 return i64Type();
             }
 
-            std::string iteratorName;
+            std::string iteratorName = iterator_name_from_type(iterableType) + "_";
             std::vector<llvm::Type*> memberTypes;
             // iter iterator struct: { pointer to block address (i8*), current index (i64 for range otherwise i32), pointer to iterable struct type,
             // iterable length (for string and tuple)}
             memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
             if(iterableType == python::Type::RANGE) {
-                iteratorName = "range_";
                 memberTypes.push_back(llvm::Type::getInt64Ty(_context));
                 memberTypes.push_back(llvm::PointerType::get(getRangeObjectType(), 0));
             } else {
                 memberTypes.push_back(llvm::Type::getInt32Ty(_context));
                 if(iterableType.isListType()) {
-                    iteratorName = "list_";
-#error "same issue here..."
-                    memberTypes.push_back(llvm::PointerType::get(getListType(iterableType), 0));
+                    memberTypes.push_back(llvm::PointerType::get(createOrGetListType(iterableType), 0));
                 } else if(iterableType == python::Type::STRING) {
-                    iteratorName = "str_";
                     memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
                     memberTypes.push_back(llvm::Type::getInt64Ty(_context));
                 } else if(iterableType.isTupleType()) {
-                    iteratorName = "tuple_";
-#error "fix this here, either an i8* pointer that is then casted or create different update/iter functions for each tuple type..."
                     memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(iterableType)), 0));
                     memberTypes.push_back(llvm::Type::getInt64Ty(_context));
                 } else {
@@ -465,20 +482,17 @@ namespace tuplex {
                 return createOrGetIterIteratorType(argType);
             }
 
-            std::string iteratorName;
+            std::string iteratorName = iterator_name_from_type(argType) + "_";
             std::vector<llvm::Type*> memberTypes;
             // iter iterator struct: { pointer to block address (i8*), current index (i64 for range otherwise i32), pointer to arg object struct type,
             // iterable length (for string and tuple)}
             memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
             memberTypes.push_back(llvm::Type::getInt32Ty(_context));
             if(argType.isListType()) {
-                iteratorName = "list_";
-                memberTypes.push_back(llvm::PointerType::get(getListType(argType), 0));
+                memberTypes.push_back(llvm::PointerType::get(createOrGetListType(argType), 0));
             } else if(argType == python::Type::STRING) {
-                iteratorName = "str_";
                 memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
             } else if(argType.isTupleType()) {
-                iteratorName = "tuple_";
                 memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(argType)), 0));
             } else {
                 throw std::runtime_error("unsupported argument type for reversed()" + argType.desc());
@@ -1202,7 +1216,7 @@ namespace tuplex {
             }
 
             if(t.isListType())
-                return getListType(t);
+                return createOrGetListType(t);
 
             if(t.isIteratorType()) {
                 // python iteratorType to LLVM iterator type is a one-to-many mapping, so not able to return LLVM type given only python type t
@@ -1245,7 +1259,7 @@ namespace tuplex {
 
                 if (rt.isListType()) {
                     llvm::ArrayRef<llvm::Type *> members(
-                            std::vector<llvm::Type *>{getListType(rt), Type::getInt1Ty(_context)});
+                            std::vector<llvm::Type *>{createOrGetListType(rt), Type::getInt1Ty(_context)});
                     return llvm::StructType::create(_context, members, "list_opt", packed);
                 }
             }

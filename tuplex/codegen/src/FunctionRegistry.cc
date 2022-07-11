@@ -1944,7 +1944,7 @@ namespace tuplex {
 
         SerializableValue FunctionRegistry::createJoinCall(const codegen::IRBuilder& builder, const tuplex::codegen::SerializableValue &caller, const tuplex::codegen::SerializableValue &list) {
             assert(caller.val->getType() == _env.i8ptrType());
-            assert(list.val->getType() == _env.getListType(python::Type::makeListType(python::Type::STRING)));
+            assert(list.val->getType() == _env.createOrGetListType(python::Type::makeListType(python::Type::STRING)));
 
             auto sizeVar = builder.CreateAlloca(_env.i64Type(), 0, nullptr);
             auto joinedStr = builder.CreateCall(strJoin_prototype(_env.getContext(), _env.getModule().get()),
@@ -1968,7 +1968,8 @@ namespace tuplex {
                                                 {caller.val, caller.size, delimiter.val, delimiter.size,
                                                  strArray, lenArray, listLen});
 
-            auto res = _env.CreateFirstBlockAlloca(builder, _env.getListType(python::Type::makeListType(python::Type::STRING)));
+            auto res = _env.CreateFirstBlockAlloca(builder, _env.createOrGetListType(
+                    python::Type::makeListType(python::Type::STRING)));
             builder.CreateStore(builder.CreateLoad(listLen), builder.CreateStructGEP(res, 0));
             builder.CreateStore(builder.CreateLoad(listLen), builder.CreateStructGEP(res, 1));
             builder.CreateStore(builder.CreateLoad(strArray), builder.CreateStructGEP(res, 2));

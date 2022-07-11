@@ -3269,7 +3269,7 @@ namespace tuplex {
             auto iterType = listComprehension->generators[0]->iter->getInferredType();
             if(iterType == python::Type::RANGE || iterType == python::Type::STRING || (iterType.isListType() && iterType != python::Type::EMPTYLIST) || (iterType.isTupleType() && tupleElementsHaveSameType(iterType))) {
                 auto elementType = listComprehension->getInferredType().elementType();
-                auto listLLVMType = _env->getListType(listComprehension->getInferredType());
+                auto listLLVMType = _env->createOrGetListType(listComprehension->getInferredType());
 
                 auto target = _blockStack.back(); // from comprehension
                 _blockStack.pop_back();
@@ -4001,7 +4001,7 @@ namespace tuplex {
                 retVal.val = _env->i8ptrConst(nullptr);
                 retVal.size = _env->i64Const(0);
             } else if (type.isListType()) {
-                auto llvmType = _env->getListType(type);
+                auto llvmType = _env->createOrGetListType(type);
                 auto val = _env->CreateFirstBlockAlloca(builder, llvmType);
                 if (type == python::Type::EMPTYLIST) {
                     builder.CreateStore(_env->i8nullptr(), val);

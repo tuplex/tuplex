@@ -104,6 +104,8 @@ namespace tuplex {
         for(int i = 0; i < _numThreads; ++i) {
             _threadEnvs[i].reset();
         }
+
+        _output_uris.clear();
     }
 
     void WorkerApp::shutdown() {
@@ -816,6 +818,7 @@ namespace tuplex {
         }
 
         file->close();
+        _output_uris.push_back(outputURI.toString());
         logger().info("file output done.");
     }
 

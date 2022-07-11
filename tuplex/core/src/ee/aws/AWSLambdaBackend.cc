@@ -744,8 +744,8 @@ namespace tuplex {
                 // tstage->setMemoryResult()
                 Timer timer;
                 vector<URI> output_uris;
-                for(auto task : _tasks) {
-                    for(auto uri : task.outputuris())
+                for(const auto& task : _tasks) {
+                    for(const auto& uri : task.outputuris())
                         output_uris.push_back(uri);
                 }
                 // sort after part no @TODO
@@ -758,7 +758,7 @@ namespace tuplex {
                 int partNo = 0;
                 int num_digits = ilog10c(output_uris.size());
                 vector<URI> local_paths;
-                for(auto uri : output_uris) {
+                for(const auto& uri : output_uris) {
                     // download to local scratch dir
                     auto local_path = _options.SCRATCH_DIR().join_path("aws-part" + fixedLength(partNo, num_digits));
                     VirtualFileSystem::copy(uri.toString(), local_path);
@@ -1276,6 +1276,16 @@ namespace tuplex {
                         ss<<",";
                 }
                 ss<<"]";
+
+                // log
+                for(const auto& r : task.resources()) {
+                    if(r.type() == ResourceType::LOG) {
+                        auto log = decompress_string(r.payload());
+                        ss<<",\"log\""<<log<<",";
+                        break;
+                    }
+                }
+
 
                 ss<<",\"invoked_requests\":[";
                 RequestInfo r_info;

@@ -485,281 +485,281 @@ namespace tuplex {
             return WORKER_ERROR_INVALID_URI;
 #endif
 
-
-            // check whether self-invocation is used
-            if(req.has_stage() && req.stage().invocationcount_size() > 0) {
-
-                std::stringstream ss;
-                ss<<"Invoking ";
-                for(auto count : req.stage().invocationcount())
-                    ss<<count<<", ";
-                ss<<"Lambdas recursively.";
-                logger().info(ss.str());
-
-                // split into parts for all Lambdas to invoke!
-                size_t total_parts = 1;
-                size_t prod = 1;
-                size_t num_lambdas_to_invoke = 0;
-                std::vector<size_t> remaining_invocation_counts;
-                for(unsigned i = 0; i < req.stage().invocationcount_size(); ++i) {
-                    auto count = req.stage().invocationcount(i);
-                    if(count != 0) {
-                        total_parts += count * prod; // this is recursive, so try splitting into that many parts!
-                        prod *= count;
-
-                        if(i > 0)
-                            remaining_invocation_counts.push_back(count);
-
-                        // set how many lambdas to invoke
-                        if(num_lambdas_to_invoke == 0)
-                            num_lambdas_to_invoke = count;
-                    }
-                }
-
-                if(0 == num_lambdas_to_invoke) {
-                    logger().error("invalid invocation count, 0 lambdas to invoke here?");
-                    return WORKER_ERROR_INVALID_JSON_MESSAGE;
-                }
-
-                logger().info("Splitting submitted " + pluralize(req.inputsizes().size(), "file") + " into " + pluralize(total_parts, "part") + ".");
-
-                // min part size should be 1MB
-                auto num_files = req.inputuris_size();
-                if(req.inputsizes_size() != num_files) {
-                    logger().error("#input files does not equal submitted sizes");
-                    return WORKER_ERROR_INVALID_JSON_MESSAGE;
-                }
-
-                auto input_parts = partsFromMessage(req);
-
-                size_t minimumPartSize = 1024 * 1024; // 1MB.
-                auto parts = splitIntoEqualParts(total_parts, input_parts, minimumPartSize);
-
-                // issue requests & wait for them
-
-                // invoke other lambdas here...
-                // -----
-                // perform task on this Lambda...
-                auto parts_to_execute = parts[0];
-
-                std::vector<FilePart> other_lambda_parts;
-                for(unsigned i = 1; i < parts.size(); ++i)
-                    std::copy(parts[i].begin(), parts[i].end(), std::back_inserter(other_lambda_parts));
-                auto before_merge_count = other_lambda_parts.size();
-                other_lambda_parts = mergeParts(other_lambda_parts);
-                logger().info("Merged " + pluralize(before_merge_count, "part") + " to " + pluralize(other_lambda_parts.size(), "part"));
-                logger().info("Redistributing " + pluralize(other_lambda_parts.size(), "part")
-                + " to " + pluralize(num_lambdas_to_invoke, "other lambda") + ", executing "
-                + pluralize(parts_to_execute.size(), "part") + " on this lambda." );
-
-                // redistribute according to how many lambdas should be invoked now
-                auto lambda_parts = splitIntoEqualParts(num_lambdas_to_invoke, other_lambda_parts, minimumPartSize);
-
-                // get output uri for THIS lambda
-                std::string base_output_uri = req.baseoutputuri();
-                URI output_uri;
-                FileFormat out_format = proto_toFileFormat(req.stage().outputformat());
-                auto file_ext = defaultFileExtension(out_format);
-                uint32_t partno = 0;
-                if(req.has_partnooffset()) {
-                    partno = req.partnooffset();
-                    output_uri = URI(base_output_uri).join("part" + std::to_string(partno) + "." + file_ext);
-                } else {
-                    output_uri = base_output_uri + "." + file_ext;
-                }
-
-                logger().info("Output URI of this Lambda is: " + output_uri.toString());
-
-                // invoke
-                double timeout = 25.0; // timeout in seconds
-                auto max_retries = 3;
-
-                logger().info("creating Lambda client on LAMBDA");
-                _lambdaClient = createClient(timeout, lambda_parts.size());
-                logger().info("Invoking " + pluralize(lambda_parts.size(), "other LAMBDA"));
-
-                uint32_t defaultPartRange = std::max(1ul, lambdaCount(remaining_invocation_counts)); // at least one!
-                uint32_t numInvoked = 0;
-                // inc here because this lambda produces the part at partNo.
-                partno++;
-                for(auto lambda_part : lambda_parts) {
-                    // construct partURI out of partNo!
-                    URI part_uri = URI(base_output_uri).join("part" + std::to_string(partno) + "." + file_ext);
-                     // !!! important to inc before (skip the current part basically!)
-                    // this is not completely correct, need to perform better part naming!
-
-                    // logger().info("Invoking LAMBDA with base=" + base_output_uri + " partNoOffset=" + std::to_string(partno));
-
-                    invokeLambda(timeout, lambda_part, base_output_uri, partno,
-                                 req, max_retries, remaining_invocation_counts);
-                    // logger().info(std::to_string(_outstandingRequests) + " outstanding requests...");
-                    numInvoked++;
-                    partno += defaultPartRange; // inc using range...
-
-                    // invoke 45 requests per 100ms, i.e. sleep a bit to avoid 429 errors...
-                    if(numInvoked % 45 == 0)
-                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                }
-
-                logger().info("Requests to " + std::to_string(numInvoked) + " other LAMBDAs created.");
-
-                // ------
-                // prep local execution
-                logger().info("Executing " + pluralize(parts_to_execute.size(), "part") + " on this Lambda, spawning others");
-
-                // optimize which parts to execute
-                auto before_this_parts = parts_to_execute.size();
-                parts_to_execute = mergeParts(parts_to_execute);
-                if(parts_to_execute.size() != before_this_parts)
-                    logger().info("Optimized parts from " + std::to_string(before_this_parts) + " to " + pluralize(parts_to_execute.size(), "part"));
-
-                // print out parts (remove)
-                for(auto part : parts_to_execute) {
-                    logger().info("Processing on this Lambda " + encodeRangeURI(part.uri, part.rangeStart, part.rangeEnd));
-                }
-
-                // only transform stage yet supported, in the future support other stages as well!
-                auto tstage = TransformStage::from_protobuf(req.stage());
-
-                // HACK! Hyper-specialization
-                if(req.stage().has_serializedstage() && !req.stage().serializedstage().empty() && req.inputuris_size() > 0) {
-                    logger().info("HYPERSPECIALIZATION ACTIVE");
-                    Timer timer;
-                    // use first input file
-                    std::string uri = req.inputuris(0);
-                    size_t file_size = req.inputsizes(0);
-                    hyperspecialize(tstage, uri, file_size);
-                    logger().info("HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()));
-                    Timer opt_timer;
-                    // compile & optimize!
-                    logger().info("HYPERSPECIALIAITON LLVM OPT TOOK" + std::to_string(opt_timer.time()));
-                } else {
-                    logger().info("no HYPERSPECIALIZATION, old invoke model");
-                }
-
-                // pure Python Mode? ==> process in python only!
-                int64_t rc = WORKER_OK;
-                if(purePythonMode) {
-                    rc = processTransformStageInPythonMode(tstage, parts_to_execute, output_uri);
-                } else {
-                    // check what type of message it is & then start processing it.
-                    auto syms = compileTransformStage(*tstage);
-                    if(!syms)
-                        return WORKER_ERROR_COMPILATION_FAILED;
-
-                    // should parts get merged or not??
-                    // i.e. initiate multi-upload requests??
-                    rc = processTransformStage(tstage, syms, parts_to_execute, output_uri);
-                }
-
-                if(rc != WORKER_OK) {
-                    // this part didn't work, yet when lambdas are invoked they might have succeeded!
-                    logger().error("Parent LAMBDA did not succeed processing with code " + std::to_string(rc));
-                } else {
-                    // ok, add output_uri and parts to request success output
-                    for(const auto& part : parts_to_execute)
-                        _input_uris.push_back(encodeRangeURI(part.uri, part.rangeStart, part.rangeEnd));
-                    _output_uris.push_back(output_uri.toString());
-                }
-                logger().info("This Lambda done executing, waiting for requests...");
-
-                // wait for requests to finish unless this Lambda expires...
-
-                // wait for requests to finish
-                // check how much time is remaining
-                double timeRemainingOnLambda = getThisContainerInfo().msRemaining / 1000.0;
-                if(timeRemainingOnLambda < AWS_LAMBDA_SAFETY_DURATION_IN_MS / 1000.0) // add some safety time... 1s
-                    timeRemainingOnLambda = 0.0;
-                Timer timer;
-                double time_elapsed = timer.time();
-                int next_sec = 1;
-
-                // debug: make waiting < 10s
-                timeRemainingOnLambda = std::min(timeRemainingOnLambda, 30.0);
-
-                logger().info("time remaining on Lambda: " + std::to_string(timeRemainingOnLambda) + "s");
-                while(_outstandingRequests > 0 && time_elapsed < timeRemainingOnLambda) {
-                   std::this_thread::sleep_for(std::chrono::milliseconds(25));
-                   time_elapsed = timer.time();
-                   if(time_elapsed > next_sec) {
-                       logger().info("still waiting for " + std::to_string(_outstandingRequests)
-                       + " to finish (since " + std::to_string(time_elapsed) + "s).");
-                       next_sec++;
-                   }
-                }
-
-                // timeout occured?
-                if(_outstandingRequests > 0)
-                    logger().info("Timeout occurred, still " + std::to_string(_outstandingRequests) + " requests open...");
-
-                // disable processing for client
-                logger().info("disabling Lambda client processing...");
-                _lambdaClient->DisableRequestProcessing();
-                logger().info("lambda processing disabled");
-
-                // create answer
-                prepareResponseFromSelfInvocations();
-
-                // form message to return...
-                // i.e. which parts succeeded? which are missing?
-
-                return WORKER_OK;
-            }
-
-//            // @TODO: what about remaining time? Partial completion?
-//            cout<<"fallback would be called here, is there hyper specialization?"<<endl;
-//            // HACK! Hyper-specialization
-//            if(req.stage().has_serializedstage() && req.inputuris_size() > 0) {
-//                logger().info("HYPERSPECIALIZATION ACTIVE");
+// self invoke code...
+//            // check whether self-invocation is used
+//            if(req.has_stage() && req.stage().invocationcount_size() > 0) {
+//
+//                std::stringstream ss;
+//                ss<<"Invoking ";
+//                for(auto count : req.stage().invocationcount())
+//                    ss<<count<<", ";
+//                ss<<"Lambdas recursively.";
+//                logger().info(ss.str());
+//
+//                // split into parts for all Lambdas to invoke!
+//                size_t total_parts = 1;
+//                size_t prod = 1;
+//                size_t num_lambdas_to_invoke = 0;
+//                std::vector<size_t> remaining_invocation_counts;
+//                for(unsigned i = 0; i < req.stage().invocationcount_size(); ++i) {
+//                    auto count = req.stage().invocationcount(i);
+//                    if(count != 0) {
+//                        total_parts += count * prod; // this is recursive, so try splitting into that many parts!
+//                        prod *= count;
+//
+//                        if(i > 0)
+//                            remaining_invocation_counts.push_back(count);
+//
+//                        // set how many lambdas to invoke
+//                        if(num_lambdas_to_invoke == 0)
+//                            num_lambdas_to_invoke = count;
+//                    }
+//                }
+//
+//                if(0 == num_lambdas_to_invoke) {
+//                    logger().error("invalid invocation count, 0 lambdas to invoke here?");
+//                    return WORKER_ERROR_INVALID_JSON_MESSAGE;
+//                }
+//
+//                logger().info("Splitting submitted " + pluralize(req.inputsizes().size(), "file") + " into " + pluralize(total_parts, "part") + ".");
+//
+//                // min part size should be 1MB
+//                auto num_files = req.inputuris_size();
+//                if(req.inputsizes_size() != num_files) {
+//                    logger().error("#input files does not equal submitted sizes");
+//                    return WORKER_ERROR_INVALID_JSON_MESSAGE;
+//                }
+//
+//                auto input_parts = partsFromMessage(req);
+//
+//                size_t minimumPartSize = 1024 * 1024; // 1MB.
+//                auto parts = splitIntoEqualParts(total_parts, input_parts, minimumPartSize);
+//
+//                // issue requests & wait for them
+//
+//                // invoke other lambdas here...
+//                // -----
+//                // perform task on this Lambda...
+//                auto parts_to_execute = parts[0];
+//
+//                std::vector<FilePart> other_lambda_parts;
+//                for(unsigned i = 1; i < parts.size(); ++i)
+//                    std::copy(parts[i].begin(), parts[i].end(), std::back_inserter(other_lambda_parts));
+//                auto before_merge_count = other_lambda_parts.size();
+//                other_lambda_parts = mergeParts(other_lambda_parts);
+//                logger().info("Merged " + pluralize(before_merge_count, "part") + " to " + pluralize(other_lambda_parts.size(), "part"));
+//                logger().info("Redistributing " + pluralize(other_lambda_parts.size(), "part")
+//                + " to " + pluralize(num_lambdas_to_invoke, "other lambda") + ", executing "
+//                + pluralize(parts_to_execute.size(), "part") + " on this lambda." );
+//
+//                // redistribute according to how many lambdas should be invoked now
+//                auto lambda_parts = splitIntoEqualParts(num_lambdas_to_invoke, other_lambda_parts, minimumPartSize);
+//
+//                // get output uri for THIS lambda
+//                std::string base_output_uri = req.baseoutputuri();
+//                URI output_uri;
+//                FileFormat out_format = proto_toFileFormat(req.stage().outputformat());
+//                auto file_ext = defaultFileExtension(out_format);
+//                uint32_t partno = 0;
+//                if(req.has_partnooffset()) {
+//                    partno = req.partnooffset();
+//                    output_uri = URI(base_output_uri).join("part" + std::to_string(partno) + "." + file_ext);
+//                } else {
+//                    output_uri = base_output_uri + "." + file_ext;
+//                }
+//
+//                logger().info("Output URI of this Lambda is: " + output_uri.toString());
+//
+//                // invoke
+//                double timeout = 25.0; // timeout in seconds
+//                auto max_retries = 3;
+//
+//                logger().info("creating Lambda client on LAMBDA");
+//                _lambdaClient = createClient(timeout, lambda_parts.size());
+//                logger().info("Invoking " + pluralize(lambda_parts.size(), "other LAMBDA"));
+//
+//                uint32_t defaultPartRange = std::max(1ul, lambdaCount(remaining_invocation_counts)); // at least one!
+//                uint32_t numInvoked = 0;
+//                // inc here because this lambda produces the part at partNo.
+//                partno++;
+//                for(auto lambda_part : lambda_parts) {
+//                    // construct partURI out of partNo!
+//                    URI part_uri = URI(base_output_uri).join("part" + std::to_string(partno) + "." + file_ext);
+//                     // !!! important to inc before (skip the current part basically!)
+//                    // this is not completely correct, need to perform better part naming!
+//
+//                    // logger().info("Invoking LAMBDA with base=" + base_output_uri + " partNoOffset=" + std::to_string(partno));
+//
+//                    invokeLambda(timeout, lambda_part, base_output_uri, partno,
+//                                 req, max_retries, remaining_invocation_counts);
+//                    // logger().info(std::to_string(_outstandingRequests) + " outstanding requests...");
+//                    numInvoked++;
+//                    partno += defaultPartRange; // inc using range...
+//
+//                    // invoke 45 requests per 100ms, i.e. sleep a bit to avoid 429 errors...
+//                    if(numInvoked % 45 == 0)
+//                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//                }
+//
+//                logger().info("Requests to " + std::to_string(numInvoked) + " other LAMBDAs created.");
+//
+//                // ------
+//                // prep local execution
+//                logger().info("Executing " + pluralize(parts_to_execute.size(), "part") + " on this Lambda, spawning others");
+//
+//                // optimize which parts to execute
+//                auto before_this_parts = parts_to_execute.size();
+//                parts_to_execute = mergeParts(parts_to_execute);
+//                if(parts_to_execute.size() != before_this_parts)
+//                    logger().info("Optimized parts from " + std::to_string(before_this_parts) + " to " + pluralize(parts_to_execute.size(), "part"));
+//
+//                // print out parts (remove)
+//                for(auto part : parts_to_execute) {
+//                    logger().info("Processing on this Lambda " + encodeRangeURI(part.uri, part.rangeStart, part.rangeEnd));
+//                }
 //
 //                // only transform stage yet supported, in the future support other stages as well!
 //                auto tstage = TransformStage::from_protobuf(req.stage());
 //
-//                Timer timer;
-//                // use first input file
-//                std::string uri = req.inputuris(0);
-//                size_t file_size = req.inputsizes(0);
-//                logger().info("Specializing on input " + uri + " (" + sizeToMemString(file_size) + ")");
-//                hyperspecialize(tstage, uri, file_size);
-//                logger().info("HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()) + "s");
-//                Timer opt_timer;
-//                // compile & optimize!
-//                // i.e. invoke LLVM optimizers here...
-//                logger().info("HYPERSPECIALIAITON LLVM OPT TOOK " + std::to_string(opt_timer.time()) + "s");
-//
-//                URI outputURI = outputURIFromReq(req);
-//                auto parts = partsFromMessage(req);
-//
-//                // check settings, pure python mode?
-//                if(req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly()) {
-//                    logger().info("WorkerApp is processing everything in single-threaded python/fallback mode.");
-//                    return processTransformStageInPythonMode(tstage, parts, outputURI);
+//                // HACK! Hyper-specialization
+//                if(req.stage().has_serializedstage() && !req.stage().serializedstage().empty() && req.inputuris_size() > 0) {
+//                    logger().info("HYPERSPECIALIZATION ACTIVE");
+//                    Timer timer;
+//                    // use first input file
+//                    std::string uri = req.inputuris(0);
+//                    size_t file_size = req.inputsizes(0);
+//                    hyperspecialize(tstage, uri, file_size);
+//                    logger().info("HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()));
+//                    Timer opt_timer;
+//                    // compile & optimize!
+//                    logger().info("HYPERSPECIALIAITON LLVM OPT TOOK" + std::to_string(opt_timer.time()));
+//                } else {
+//                    logger().info("no HYPERSPECIALIZATION, old invoke model");
 //                }
-//                // if not, compile given code & process using both compile code & fallback
-//                // compile ONLY fast code path!
-//                if(tstage->fastPathBitCode().empty())
-//                    logger().warn("Weird, no fastPathBitCode??");
-//                logger().info("compiling fast path only (" + sizeToMemString(tstage->fastPathBitCode().size()) + ")");
 //
-//                // Note: this requires to register symbols!
-//                // JIT session error: Symbols not found: { fast_memOut_Stage_0, fast_except_Stage_0 }
-//                // tstage->compileFastPath(*_compiler, nullptr, false);
-//                // auto syms = tstage->jitsyms();
+//                // pure Python Mode? ==> process in python only!
+//                int64_t rc = WORKER_OK;
+//                if(purePythonMode) {
+//                    rc = processTransformStageInPythonMode(tstage, parts_to_execute, output_uri);
+//                } else {
+//                    // check what type of message it is & then start processing it.
+//                    auto syms = compileTransformStage(*tstage);
+//                    if(!syms)
+//                        return WORKER_ERROR_COMPILATION_FAILED;
 //
-//                auto syms = compileTransformStage(*tstage);
-//                logger().info("fast path compiled");
+//                    // should parts get merged or not??
+//                    // i.e. initiate multi-upload requests??
+//                    rc = processTransformStage(tstage, syms, parts_to_execute, output_uri);
+//                }
 //
-//                tstage->setInitData();
+//                if(rc != WORKER_OK) {
+//                    // this part didn't work, yet when lambdas are invoked they might have succeeded!
+//                    logger().error("Parent LAMBDA did not succeed processing with code " + std::to_string(rc));
+//                } else {
+//                    // ok, add output_uri and parts to request success output
+//                    for(const auto& part : parts_to_execute)
+//                        _input_uris.push_back(encodeRangeURI(part.uri, part.rangeStart, part.rangeEnd));
+//                    _output_uris.push_back(output_uri.toString());
+//                }
+//                logger().info("This Lambda done executing, waiting for requests...");
 //
-//                if(!syms)
-//                    return WORKER_ERROR_COMPILATION_FAILED;
-//                return processTransformStage(tstage, syms, parts, outputURI);
-//            } else {
-//                logger().info("no HYPERSPECIALIZATION, old invoke model");
+//                // wait for requests to finish unless this Lambda expires...
+//
+//                // wait for requests to finish
+//                // check how much time is remaining
+//                double timeRemainingOnLambda = getThisContainerInfo().msRemaining / 1000.0;
+//                if(timeRemainingOnLambda < AWS_LAMBDA_SAFETY_DURATION_IN_MS / 1000.0) // add some safety time... 1s
+//                    timeRemainingOnLambda = 0.0;
+//                Timer timer;
+//                double time_elapsed = timer.time();
+//                int next_sec = 1;
+//
+//                // debug: make waiting < 10s
+//                timeRemainingOnLambda = std::min(timeRemainingOnLambda, 30.0);
+//
+//                logger().info("time remaining on Lambda: " + std::to_string(timeRemainingOnLambda) + "s");
+//                while(_outstandingRequests > 0 && time_elapsed < timeRemainingOnLambda) {
+//                   std::this_thread::sleep_for(std::chrono::milliseconds(25));
+//                   time_elapsed = timer.time();
+//                   if(time_elapsed > next_sec) {
+//                       logger().info("still waiting for " + std::to_string(_outstandingRequests)
+//                       + " to finish (since " + std::to_string(time_elapsed) + "s).");
+//                       next_sec++;
+//                   }
+//                }
+//
+//                // timeout occured?
+//                if(_outstandingRequests > 0)
+//                    logger().info("Timeout occurred, still " + std::to_string(_outstandingRequests) + " requests open...");
+//
+//                // disable processing for client
+//                logger().info("disabling Lambda client processing...");
+//                _lambdaClient->DisableRequestProcessing();
+//                logger().info("lambda processing disabled");
+//
+//                // create answer
+//                prepareResponseFromSelfInvocations();
+//
+//                // form message to return...
+//                // i.e. which parts succeeded? which are missing?
+//
+//                return WORKER_OK;
 //            }
-
-            // OLD::::::
-            // @TODO
+//
+////            // @TODO: what about remaining time? Partial completion?
+////            cout<<"fallback would be called here, is there hyper specialization?"<<endl;
+////            // HACK! Hyper-specialization
+////            if(req.stage().has_serializedstage() && req.inputuris_size() > 0) {
+////                logger().info("HYPERSPECIALIZATION ACTIVE");
+////
+////                // only transform stage yet supported, in the future support other stages as well!
+////                auto tstage = TransformStage::from_protobuf(req.stage());
+////
+////                Timer timer;
+////                // use first input file
+////                std::string uri = req.inputuris(0);
+////                size_t file_size = req.inputsizes(0);
+////                logger().info("Specializing on input " + uri + " (" + sizeToMemString(file_size) + ")");
+////                hyperspecialize(tstage, uri, file_size);
+////                logger().info("HYPERSPECIALIZATION TOOK " + std::to_string(timer.time()) + "s");
+////                Timer opt_timer;
+////                // compile & optimize!
+////                // i.e. invoke LLVM optimizers here...
+////                logger().info("HYPERSPECIALIAITON LLVM OPT TOOK " + std::to_string(opt_timer.time()) + "s");
+////
+////                URI outputURI = outputURIFromReq(req);
+////                auto parts = partsFromMessage(req);
+////
+////                // check settings, pure python mode?
+////                if(req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly()) {
+////                    logger().info("WorkerApp is processing everything in single-threaded python/fallback mode.");
+////                    return processTransformStageInPythonMode(tstage, parts, outputURI);
+////                }
+////                // if not, compile given code & process using both compile code & fallback
+////                // compile ONLY fast code path!
+////                if(tstage->fastPathBitCode().empty())
+////                    logger().warn("Weird, no fastPathBitCode??");
+////                logger().info("compiling fast path only (" + sizeToMemString(tstage->fastPathBitCode().size()) + ")");
+////
+////                // Note: this requires to register symbols!
+////                // JIT session error: Symbols not found: { fast_memOut_Stage_0, fast_except_Stage_0 }
+////                // tstage->compileFastPath(*_compiler, nullptr, false);
+////                // auto syms = tstage->jitsyms();
+////
+////                auto syms = compileTransformStage(*tstage);
+////                logger().info("fast path compiled");
+////
+////                tstage->setInitData();
+////
+////                if(!syms)
+////                    return WORKER_ERROR_COMPILATION_FAILED;
+////                return processTransformStage(tstage, syms, parts, outputURI);
+////            } else {
+////                logger().info("no HYPERSPECIALIZATION, old invoke model");
+////            }
+//
+//            // OLD::::::
+//            // @TODO
             logger().info("Invoking WorkerApp fallback");
             // can reuse here infrastructure from WorkerApp!
             auto rc = WorkerApp::processMessage(req);
@@ -768,7 +768,9 @@ namespace tuplex {
                 // ok, add output_uri and parts to request success output
                 for(const auto& in_uri : req.inputuris())
                     _input_uris.push_back(in_uri);
-                _output_uris.push_back(req.baseoutputuri());
+                // output uris from worker app
+                for(const auto& uri : output_uris())
+                    _output_uris.push_back(uri);
             }
 
             return rc;

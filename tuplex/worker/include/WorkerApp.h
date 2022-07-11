@@ -228,6 +228,10 @@ namespace tuplex {
             return m;
         }
 
+        std::vector<URI> output_uris() const {
+            return _output_uris; // return where data has been written to (for response)
+        }
+
         // inherited variables
         WorkerSettings _settings;
         bool _globallyInitialized;
@@ -236,6 +240,7 @@ namespace tuplex {
 #ifdef BUILD_WITH_AWS
         Aws::SDKOptions _aws_options;
 #endif
+
 
         inline bool has_python_resolver() const { return _has_python_resolver; }
 
@@ -415,12 +420,12 @@ namespace tuplex {
         virtual void writeHashedRow(size_t threadNo, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         virtual void writeException(size_t threadNo, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
     private:
-
         bool _has_python_resolver;
         CodePathStatistics _codePathStats; // stats per message
         python::Type _normalCaseRowType; // given normal-case row type
         python::Type _hyperspecializedNormalCaseRowType; // this can be incompatible with the given normal case type which in this case requires a conversion.
         bool _ncAndHyperNCIncompatible;
+        std::vector<URI> _output_uris; // where data was actually written to.
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         static void exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);

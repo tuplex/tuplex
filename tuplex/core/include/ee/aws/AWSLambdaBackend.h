@@ -24,6 +24,8 @@
 #include <physical/execution/TransformTask.h>
 #include <physical/execution/ResolveTask.h>
 
+#include <utils/Messages.h>
+
 #include "AWSCommon.h"
 #include "ContainerInfo.h"
 #include "RequestInfo.h"

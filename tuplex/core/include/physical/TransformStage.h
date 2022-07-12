@@ -133,17 +133,20 @@ namespace tuplex {
 
         /*!
          * sets maximum number of rows this pipeline will produce
-         * @param outputLimit
+         * @param topLimit number of top rows to produce, 0 means none, and size_t::max means everything
+         * @param bottomLimit number of bottom rows to produce, 0 means none, and size_t::max means everything
          */
-        void setOutputLimit(size_t outputLimit) {
-            _outputLimit = outputLimit;
+        inline void  setOutputLimit(size_t topLimit, size_t bottomLimit) {
+            _outputTopLimit = topLimit;
+            _outputBottomLimit = bottomLimit;
 
             // @TODO: move this logic to physical plan!
             // pushdown limit
             //pushDownOutputLimit();
         }
 
-        size_t outputLimit() const { return _outputLimit; }
+        size_t outputTopLimit() const { return _outputTopLimit; }
+        size_t outputBottomLimit() const { return _outputBottomLimit; }
         size_t inputLimit() const { return _inputLimit; }
 
         /*!
@@ -414,6 +417,10 @@ namespace tuplex {
          */
         void setDataAggregationMode(const AggregateType& t) { _aggMode = t; }
 
+        // default case: both _outputTopLimit and _outputBottomLimit is zero = take everything
+        bool hasOutputLimit() const {
+            return _outputTopLimit != std::numeric_limits<size_t>::max() && _outputBottomLimit != std::numeric_limits<size_t>::max();
+        }
     private:
         /*!
          * creates a new TransformStage with generated code
@@ -466,10 +473,13 @@ namespace tuplex {
 
         std::vector<Partition*> _inputPartitions; //! memory input partitions for this task.
         size_t                  _inputLimit; //! limit number of input rows (inf per default)
-        size_t                  _outputLimit; //! output limit, set e.g. by take, to_csv etc. (inf per default)
+
+        size_t                  _outputTopLimit; //! output limit, set e.g. by take, to_csv etc. (inf per default)
+        size_t                  _outputBottomLimit; //! output limit, set e.g. by take, to_csv etc. (0 per default)
         std::vector<Partition*> _generalPartitions; //! general case input partitions
         std::vector<Partition*> _fallbackPartitions; //! fallback case input partitions
         std::vector<PartitionGroup> _partitionGroups; //! groups partitions together for correct row indices
+
 
         std::shared_ptr<ResultSet> _rs; //! result set
 
@@ -499,10 +509,6 @@ namespace tuplex {
         // for hash output, the key and bucket type
         python::Type _hashOutputKeyType;
         python::Type _hashOutputBucketType;
-
-        bool hasOutputLimit() const {
-            return _outputLimit < std::numeric_limits<size_t>::max();
-        }
     };
 }
 #endif //TUPLEX_TRANSFORMSTAGE_H

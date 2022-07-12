@@ -48,8 +48,9 @@ namespace tuplex {
         ExecutorTaskQueueType _queue;
         std::mutex _completedTasksMutex;
         std::vector<IExecutorTask*> _completedTasks;
-        std::atomic_int _numPendingTasks;
-        std::atomic_int _numCompletedTasks;
+        std::atomic_int _numPendingTasks{};
+        std::atomic_int _numCompletedTasks{};
+
     public:
 
         WorkQueue();

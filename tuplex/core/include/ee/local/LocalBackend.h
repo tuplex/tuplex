@@ -40,14 +40,15 @@ namespace tuplex {
          * constructor for convenience
          * @param context
          */
-        explicit LocalBackend(const Context& context);
+        explicit LocalBackend(const Context &context);
 
-        Executor* driver() override; // for local execution
+        Executor *driver() override; // for local execution
 
-        void execute(PhysicalStage* stage) override;
+        void execute(PhysicalStage *stage) override;
+
     private:
-        Executor *_driver; //! driver from local backend...
-        std::vector<Executor*> _executors; //! drivers to be used
+        std::shared_ptr<Executor> _driver; //! driver from local backend...
+        std::vector<Executor *> _executors; //! drivers to be used
         std::unique_ptr<JITCompiler> _compiler;
 
         HistoryServerConnection _historyConn;

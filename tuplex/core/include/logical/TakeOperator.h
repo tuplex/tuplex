@@ -17,15 +17,16 @@
 namespace tuplex {
     class TakeOperator : public LogicalOperator {
     private:
-        int64_t _limit;
+        size_t _topLimit;
+        size_t _bottomLimit;
     public:
         LogicalOperator *clone() override;
 
     public:
-        TakeOperator(LogicalOperator *parent, const int64_t numElements);
+        TakeOperator(LogicalOperator *parent, size_t topLimit, size_t bottomLimit);
 
         std::string name() override {
-            if(_limit < 0 || std::numeric_limits<int64_t>::max() == _limit)
+            if(_topLimit == std::numeric_limits<size_t>::max() || _bottomLimit == std::numeric_limits<size_t>::max())
                 return "collect";
             return "take";
         }
@@ -37,8 +38,9 @@ namespace tuplex {
 
         bool good() const override;
 
-        int64_t limit() { return _limit; }
+        size_t topLimit() const { return _topLimit; }
 
+        size_t bottomLimit() const { return _bottomLimit; }
 
         std::vector<Row> getSample(const size_t num) const override;
 

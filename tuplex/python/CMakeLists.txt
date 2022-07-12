@@ -130,6 +130,7 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/__init__.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/tracebacks.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/version.py
         ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/globs.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/tuplex/utils/table_format.py
         DESTINATION ${PYTHON_DIST_DIR}/tuplex/utils)
 
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_tuples.py

@@ -67,7 +67,7 @@ TEST_F(WrapperTest, LambdaBackend) {
 //     PyTuple_SET_ITEM(tupleObj1, 1, python::PyString_FromString("a"));
 
 //     PyList_SetItem(listObj, 0, tupleObj1);
-    
+
 //     { // need to keep curly braces (for weird memory errors)
 //         auto list = py::reinterpret_borrow<py::list>(listObj);
 //         // add parallelize-map-collect
@@ -126,7 +126,7 @@ TEST_F(WrapperTest, MathIsInf) {
 
     // list object contains all rows in test (in this test, only one row)
     PyObject *listObj = PyList_New(1);
-    
+
     // initialize listObj
     // note that using runAndGet on each individual value, and then setting
     // them as an element of the list is buggy (doesn't always return the right value)
@@ -2631,7 +2631,7 @@ TEST_F(WrapperTest, PartitionRelease) {
         cols_to_select = PyList_New(1);
         PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
 
-        ctx2.csv(service_path,py::none(), true, false, "", "\"",
+        ctx2.csv(service_path, py::none(), true, false, "", "\"",
                  py::none(), py::reinterpret_steal<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
                 .selectColumns(py::reinterpret_steal<py::dict>(cols_to_select))
@@ -2853,6 +2853,53 @@ TEST_F(WrapperTest, DoubleCollect) {
         resObj = res.ptr();
         ASSERT_TRUE(PyList_Check(resObj));
         EXPECT_EQ(PyList_Size(resObj), 2);
+    }
+}
+TEST_F(WrapperTest, ResultWithLimitMerge) {
+    using namespace tuplex;
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                    "\"resolveWithInterpreterOnly\": true}";
+
+    PythonContext c("c", "", ctx_opts);
+
+    PyObject *listObj = PyList_New(4);
+    PyObject *tupleObj1 = PyTuple_New(2);
+    PyTuple_SET_ITEM(tupleObj1, 0, PyLong_FromLong(1));
+    PyTuple_SET_ITEM(tupleObj1, 1, python::PyString_FromString("a"));
+
+    PyObject *tupleObj2 = PyTuple_New(2);
+    PyTuple_SET_ITEM(tupleObj2, 0, PyLong_FromLong(2));
+    PyTuple_SET_ITEM(tupleObj2, 1, python::PyString_FromString("b"));
+
+
+    PyObject *tupleObj3 = PyTuple_New(2);
+    PyTuple_SET_ITEM(tupleObj3, 0, PyLong_FromLong(3));
+    PyTuple_SET_ITEM(tupleObj3, 1, PyLong_FromLong(42));
+
+
+    PyObject *tupleObj4 = PyTuple_New(2);
+    PyTuple_SET_ITEM(tupleObj4, 0, PyLong_FromLong(4));
+    PyTuple_SET_ITEM(tupleObj4, 1, python::PyString_FromString("d"));
+
+    PyList_SetItem(listObj, 0, tupleObj1);
+    PyList_SetItem(listObj, 1, tupleObj2);
+    PyList_SetItem(listObj, 2, tupleObj3);
+    PyList_SetItem(listObj, 3, tupleObj4);
+
+    {
+        auto list = py::reinterpret_borrow<py::list>(listObj);
+        auto res = c.parallelize(list).filter("lambda a, b: a > 1", "").take(1, 0);
+        auto resObj = res.ptr();
+
+        ASSERT_TRUE(PyList_Check(resObj));
+        ASSERT_EQ(PyList_GET_SIZE(resObj), 1);
+
+        PyObject_Print(resObj, stdout, 0);
     }
 }
 

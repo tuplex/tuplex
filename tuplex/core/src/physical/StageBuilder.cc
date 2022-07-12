@@ -50,7 +50,7 @@ namespace tuplex {
                 : _stageNumber(stage_number), _isRootStage(rootStage), _allowUndefinedBehavior(allowUndefinedBehavior),
                   _generateParser(generateParser), _normalCaseThreshold(normalCaseThreshold), _sharedObjectPropagation(sharedObjectPropagation),
                   _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions),
-                  _inputNode(nullptr), _outputLimit(std::numeric_limits<size_t>::max()) {
+                  _inputNode(nullptr), _outputTopLimit(std::numeric_limits<size_t>::max()), _outputBottomLimit(0) {
         }
 
         void StageBuilder::generatePythonCode() {
@@ -457,7 +457,8 @@ namespace tuplex {
                         break;
                     }
                     case LogicalOperatorType::TAKE: {
-                        opt_ops.push_back(new TakeOperator(lastParent, dynamic_cast<TakeOperator*>(node)->limit()));
+                        auto takeOp = dynamic_cast<TakeOperator*>(node);
+                        opt_ops.push_back(new TakeOperator(lastParent, takeOp->topLimit(), takeOp->bottomLimit()));
                         opt_ops.back()->setID(node->getID());
                         break;
                     }
@@ -1431,7 +1432,8 @@ namespace tuplex {
             // no limit operator yet...
 
             // get limit
-            stage->_outputLimit = _outputLimit;
+            stage->_outputTopLimit = _outputTopLimit;
+            stage->_outputBottomLimit = _outputBottomLimit;
 
             // copy input/output configurations
             stage->_fileInputParameters = _fileInputParameters;

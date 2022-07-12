@@ -98,7 +98,8 @@ namespace tuplex {
             exec->processQueue(true);
 
             std::stringstream ss;
-            ss<<"started local executor "<<exec->name()<<" ("<<sizeToMemString(size)<<", "<<sizeToMemString(blockSize)<<" default partition size)";
+            ss << "started local executor " << exec->name() << " (" << sizeToMemString(size) << ", "
+               << sizeToMemString(blockSize) << " default partition size)";
             logger.info(ss.str());
         }
 
@@ -107,23 +108,42 @@ namespace tuplex {
         return execs;
     }
 
-    Executor* LocalEngine::getDriver(const size_t size, const size_t blockSize, const size_t runTimeMemory,
-                                     const size_t runTimeMemoryDefaultBlockSize, const tuplex::URI &cache_path) {
-        // lazy start driver
-        if(!_driver) {
+    std::shared_ptr<Executor>
+    LocalEngine::getDriver(const size_t size, const size_t blockSize, const size_t runTimeMemory,
+                           const size_t runTimeMemoryDefaultBlockSize, const tuplex::URI &cache_path) {
+        ExecutorConfig new_cfg = ExecutorConfig{
+                ._size = size,
+                ._blockSize = blockSize,
+                ._runTimeMemory = runTimeMemory,
+                ._runTimeMemoryDefaultBlockSize = runTimeMemoryDefaultBlockSize,
+                ._cache_path = cache_path
+        };
+
+        if (!_driver || _driver_cfg != new_cfg) {
+            if (_driver) {
+                Logger::instance().logger("local execution engine").info(
+                        "driver already exist, starting new driver with updated config");
+            }
+
+            // lazy start driver
             URI uri = URI(cache_path.toString() + "/" + "driver");
-            _driver = std::make_unique<Executor>(size, blockSize, runTimeMemory, runTimeMemoryDefaultBlockSize, uri, "driver");
+            _driver = std::make_shared<Executor>(size, blockSize, runTimeMemory, runTimeMemoryDefaultBlockSize, uri,
+                                                 "driver");
+            _driver_cfg = new_cfg;
 
             // driver always has thread number 0!
+            // Note: this could be a potential issue if the config change and the old driver is still running
+            // due to external reference. Then there could be two executors with the same number
             _driver->setThreadNumber(0);
 
             std::stringstream ss;
-            ss<<"started driver ("<<sizeToMemString(size)<<", "<<sizeToMemString(blockSize)<<" default partition size)";
+            ss << "started driver (" << sizeToMemString(size) << ", " << sizeToMemString(blockSize)
+               << " default partition size)";
             //  <<"overflow will be cached at "<<uri.toString();
             Logger::instance().logger("local execution engine").info(ss.str());
         }
 
-        return _driver.get();
+        return _driver;
     }
 
     void LocalEngine::freeExecutors(const std::vector<tuplex::Executor *> & executors, const Context* ctx) {

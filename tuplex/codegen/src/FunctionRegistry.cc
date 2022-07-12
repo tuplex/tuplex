@@ -1158,7 +1158,7 @@ namespace tuplex {
                 assert(cur_block);
 
                 // create new blocks for each case
-                BasicBlock *bb_below_one = BasicBlock::Create(builder.getContext(), "opt_<_1", builder.GetInsertBlock()->getParent());
+                BasicBlock *bb_below_one = BasicBlock::Create(builder.getContext(), "opt_lt_one", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_standard = BasicBlock::Create(builder.getContext(), "opt_standard", builder.GetInsertBlock()->getParent());
                 BasicBlock *bb_done = BasicBlock::Create(builder.getContext(), "cmp_done", builder.GetInsertBlock()->getParent());
 
@@ -1558,10 +1558,12 @@ namespace tuplex {
 
                 // check all argument types
                 std::vector<python::Type> input_types = argsType.parameters();
-                for(const auto& type : input_types) {
+                int i = 1;
+                for (const auto& type : input_types) {
                     if (type != python::Type::BOOLEAN && type != python::Type::I64 && type != python::Type::F64) {
-                        throw std::runtime_error("math.isclose argument must be a float, integer, or boolean");
+                        throw std::runtime_error("argument " + std::to_string(i) + " is of type " + type.desc() + " but math.isclose expected a float, integer, or boolean");
                     }
+                    i++;
                 }
 
                 return createMathIsCloseCall(lfb, builder, argsType, args);

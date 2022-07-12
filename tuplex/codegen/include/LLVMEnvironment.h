@@ -553,7 +553,12 @@ namespace tuplex {
              */
             void printValue(llvm::IRBuilder<>& builder, llvm::Value*, std::string msg="");
 
-            void printHexValue(llvm::IRBuilder<> &builder, llvm::Value *val, std::string msg="");
+            /*!
+             * debug print any llvm value as its corresponding hex value
+             * @param builder
+             * @param val
+             */
+            void printHexValue(llvm::IRBuilder<> &builder, llvm::Value* val, std::string msg="");
 
             llvm::Type* pythonToLLVMType(const python::Type &t);
 

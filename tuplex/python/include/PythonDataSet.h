@@ -46,10 +46,6 @@ namespace tuplex {
             _dataset = dataset;
         }
 
-        DataSet* getDS() {
-            return this->_dataset;
-        }
-
         PythonDataSet unique();
 
         /*!

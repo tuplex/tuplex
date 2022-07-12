@@ -216,7 +216,7 @@ TEST_F(WrapperTest, MixedSimpleTupleTuple) {
     PyTuple_SET_ITEM(tupleObj3, 1, PyLong_FromLong(3));
 
     PyObject *tupleObj4 = PyTuple_New(2);
-    PyTuple_SET_ITEM(tupleObj4, 0, Py_None);
+    PyTuple_SET_ITEM(tupleObj4, 0, Py_RETURN_NONE);
     PyTuple_SET_ITEM(tupleObj4, 1, PyLong_FromLong(4));
 
     PyList_SetItem(listObj, 0, tupleObj1);
@@ -309,7 +309,7 @@ TEST_F(WrapperTest, SimpleCSVParse) {
     fclose(f);
 
     PyObject * pyopt = PyDict_New();
-    PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
+    PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_RETURN_FALSE);
 
     // RAII, destruct python context!
     PythonContext c("c", "", microTestOptions().asJSON());
@@ -381,7 +381,7 @@ TEST_F(WrapperTest, Show) {
     fclose(f);
 
     PyObject * pyopt = PyDict_New();
-    PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
+    PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_RETURN_FALSE);
 
     // RAII, destruct python context!
     PythonContext c("python", "", microTestOptions().asJSON());
@@ -406,7 +406,7 @@ TEST_F(WrapperTest, GoogleTrace) {
     string sampleTraceFile = "../resources/gtrace-jobevents-sample.csv";
 
     PyObject * pyopt = PyDict_New();
-    PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
+    PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_RETURN_FALSE);
 
     // RAII, destruct python context!
     PythonContext c("python", "", testOptions().asJSON());
@@ -703,7 +703,7 @@ TEST_F(WrapperTest, UpcastParallelizeI) {
 
         PyList_SET_ITEM(listObj, 0, PyFloat_FromDouble(2.0));
         PyList_SET_ITEM(listObj, 1, PyFloat_FromDouble(3.0));
-        PyList_SET_ITEM(listObj, 2, Py_True); // auto upcast bool --> float
+        PyList_SET_ITEM(listObj, 2, Py_RETURN_TRUE); // auto upcast bool --> float
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(10)); // auto upcast int --> float
 
         auto list = py::reinterpret_borrow<py::list>(listObj);
@@ -734,8 +734,8 @@ TEST_F(WrapperTest, UpcastParallelizeII) {
         PyObject * listObj = PyList_New(4);
 
         PyList_SET_ITEM(listObj, 0, PyLong_FromLong(3));
-        PyList_SET_ITEM(listObj, 1, Py_False); // auto upcast bool --> int
-        PyList_SET_ITEM(listObj, 2, Py_True); // auto upcast bool --> int
+        PyList_SET_ITEM(listObj, 1, Py_RETURN_FALSE); // auto upcast bool --> int
+        PyList_SET_ITEM(listObj, 2, Py_RETURN_TRUE); // auto upcast bool --> int
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(2));
 
         auto list = py::reinterpret_borrow<py::list>(listObj);
@@ -781,8 +781,7 @@ TEST_F(WrapperTest, OptionListTest) {
         PyList_SET_ITEM(listObj4, 0, listObj1);
         PyList_SET_ITEM(listObj4, 1, listObj2);
         PyList_SET_ITEM(listObj5, 0, listObj3);
-        PyList_SET_ITEM(listObj5, 1, Py_None);
-        Py_XINCREF(Py_None);
+        PyList_SET_ITEM(listObj5, 1, Py_RETURN_NONE);
         PyTuple_SET_ITEM(tupleObj1, 0, listObj4);
         PyTuple_SET_ITEM(tupleObj2, 0, listObj5);
         PyList_SET_ITEM(listObj6, 0, tupleObj1);
@@ -895,8 +894,8 @@ TEST_F(WrapperTest, IntegerTuple) {
     using namespace tuplex;
 
     PyObject* pyopt = PyDict_New();
-    PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
-    PyDict_SetItemString(pyopt, "tuplex.autoUpcast", Py_True);
+    PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_RETURN_FALSE);
+    PyDict_SetItemString(pyopt, "tuplex.autoUpcast", Py_RETURN_TRUE);
 
     // RAII, destruct python context!
     auto opts = microTestOptions();
@@ -1293,7 +1292,7 @@ TEST_F(WrapperTest, OptionParallelizeI) {
     PyList_SET_ITEM(listObj, 1, Py_None);
     PyList_SET_ITEM(listObj, 2, PyLong_FromLong(213));
     PyList_SET_ITEM(listObj, 3, PyLong_FromLong(345));
-    PyList_SET_ITEM(listObj, 4, Py_None);
+    PyList_SET_ITEM(listObj, 4, Py_RETURN_NONE);
 
     // weird block syntax due to RAII problems.
     {
@@ -1306,10 +1305,10 @@ TEST_F(WrapperTest, OptionParallelizeI) {
 
         // check contents
         EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 0)), Row(112));
-        EXPECT_EQ(PyList_GetItem(resObj, 1), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 1), Py_RETURN_NONE);
         EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 2)), Row(213));
         EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 3)), Row(345));
-        EXPECT_EQ(PyList_GetItem(resObj, 4), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 4), Py_RETURN_NONE);
     }
 }
 
@@ -1333,10 +1332,10 @@ TEST_F(WrapperTest, OptionParallelizeII) {
     PyList_SET_ITEM(l3, 1, PyLong_FromLong(6));
 
     PyList_SET_ITEM(listObj, 0, l1);
-    PyList_SET_ITEM(listObj, 1, Py_None);
+    PyList_SET_ITEM(listObj, 1, Py_RETURN_NONE);
     PyList_SET_ITEM(listObj, 2, l2);
     PyList_SET_ITEM(listObj, 3, l3);
-    PyList_SET_ITEM(listObj, 4, Py_None);
+    PyList_SET_ITEM(listObj, 4, Py_RETURN_NONE);
 
     // weird block syntax due to RAII problems.
     {
@@ -1349,10 +1348,10 @@ TEST_F(WrapperTest, OptionParallelizeII) {
 
         // check contents
         EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 0)), Row(List(1, 2)));
-        EXPECT_EQ(PyList_GetItem(resObj, 1), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 1), Py_RETURN_NONE);
         EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 2)), Row(List(3, 4)));
         EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 3)), Row(List(5, 6)));
-        EXPECT_EQ(PyList_GetItem(resObj, 4), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 4), Py_RETURN_NONE);
     }
 }
 
@@ -1362,8 +1361,8 @@ TEST_F(WrapperTest, NoneParallelize) {
     PythonContext c("c", "", microTestOptions().asJSON());
 
     PyObject * listObj = PyList_New(2);
-    PyList_SET_ITEM(listObj, 0, Py_None);
-    PyList_SET_ITEM(listObj, 1, Py_None);
+    PyList_SET_ITEM(listObj, 0, Py_RETURN_NONE);
+    PyList_SET_ITEM(listObj, 1, Py_RETURN_NONE);
 
     // weird block syntax due to RAII problems.
     {
@@ -1375,8 +1374,8 @@ TEST_F(WrapperTest, NoneParallelize) {
         ASSERT_EQ(PyList_GET_SIZE(resObj), 2);
 
         // check contents
-        EXPECT_EQ(PyList_GetItem(resObj, 0), Py_None);
-        EXPECT_EQ(PyList_GetItem(resObj, 1), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 0), Py_RETURN_NONE);
+        EXPECT_EQ(PyList_GetItem(resObj, 1), Py_RETURN_NONE);
     }
 }
 
@@ -1401,10 +1400,10 @@ TEST_F(WrapperTest, EmptyMapI) {
         ASSERT_EQ(PyList_GET_SIZE(resObj), 4);
 
         // check contents
-        EXPECT_EQ(PyList_GetItem(resObj, 0), Py_None);
-        EXPECT_EQ(PyList_GetItem(resObj, 1), Py_None);
-        EXPECT_EQ(PyList_GetItem(resObj, 2), Py_None);
-        EXPECT_EQ(PyList_GetItem(resObj, 3), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 0), Py_RETURN_NONE);
+        EXPECT_EQ(PyList_GetItem(resObj, 1), Py_RETURN_NONE);
+        EXPECT_EQ(PyList_GetItem(resObj, 2), Py_RETURN_NONE);
+        EXPECT_EQ(PyList_GetItem(resObj, 3), Py_RETURN_NONE);
     }
 }
 
@@ -1497,8 +1496,8 @@ TEST_F(WrapperTest, EmptyOptionMapI) {
         EXPECT_EQ(PyTuple_GET_SIZE(PyList_GetItem(resObj, 0)), 0);
         EXPECT_TRUE(PyTuple_Check(PyList_GetItem(resObj, 1)));
         EXPECT_EQ(PyTuple_GET_SIZE(PyList_GetItem(resObj, 1)), 0);
-        EXPECT_EQ(PyList_GetItem(resObj, 2), Py_None);
-        EXPECT_EQ(PyList_GetItem(resObj, 3), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 2), Py_RETURN_NONE);
+        EXPECT_EQ(PyList_GetItem(resObj, 3), Py_RETURN_NONE);
     }
 }
 
@@ -1527,8 +1526,8 @@ TEST_F(WrapperTest, EmptyOptionMapII) {
         EXPECT_EQ(PyDict_Size(PyList_GetItem(resObj, 0)), 0);
         EXPECT_TRUE(PyDict_Check(PyList_GetItem(resObj, 1)));
         EXPECT_EQ(PyDict_Size(PyList_GetItem(resObj, 1)), 0);
-        EXPECT_EQ(PyList_GetItem(resObj, 2), Py_None);
-        EXPECT_EQ(PyList_GetItem(resObj, 3), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 2), Py_RETURN_NONE);
+        EXPECT_EQ(PyList_GetItem(resObj, 3), Py_RETURN_NONE);
     }
 }
 
@@ -1544,12 +1543,12 @@ TEST_F(WrapperTest, OptionTupleParallelizeI) {
     PyTuple_SET_ITEM(t1, 1, PyLong_FromLong(12));
 
     PyObject * t2 = PyTuple_New(2);
-    PyTuple_SET_ITEM(t2, 0, Py_None);
+    PyTuple_SET_ITEM(t2, 0, Py_RETURN_NONE);
     PyTuple_SET_ITEM(t2, 1, PyLong_FromLong(100));
 
     PyObject * t3 = PyTuple_New(2);
     PyTuple_SET_ITEM(t3, 0, PyLong_FromLong(200));
-    PyTuple_SET_ITEM(t3, 1, Py_None);
+    PyTuple_SET_ITEM(t3, 1, Py_RETURN_NONE);
 
     PyList_SET_ITEM(listObj, 0, t1);
     PyList_SET_ITEM(listObj, 1, t2);
@@ -1574,10 +1573,10 @@ TEST_F(WrapperTest, OptionTupleParallelizeI) {
 
         EXPECT_EQ(python::pythonToRow(PyTuple_GetItem(el1, 0)), Row(11));
         EXPECT_EQ(python::pythonToRow(PyTuple_GetItem(el1, 1)), Row(12));
-        EXPECT_EQ(PyTuple_GetItem(el2, 0), Py_None);
+        EXPECT_EQ(PyTuple_GetItem(el2, 0), Py_RETURN_NONE);
         EXPECT_EQ(python::pythonToRow(PyTuple_GetItem(el2, 1)), Row(100));
         EXPECT_EQ(python::pythonToRow(PyTuple_GetItem(el3, 0)), Row(200));
-        EXPECT_EQ(PyTuple_GetItem(el3, 1), Py_None);
+        EXPECT_EQ(PyTuple_GetItem(el3, 1), Py_RETURN_NONE);
     }
 }
 
@@ -2489,10 +2488,10 @@ TEST_F(WrapperTest, MixedTypesIsWithNone) {
     PythonContext c("python", "",  opts.asJSON());
 
     PyObject *listObj = PyList_New(8);
-    PyList_SetItem(listObj, 0, Py_None);
+    PyList_SetItem(listObj, 0, Py_RETURN_NONE);
     PyList_SetItem(listObj, 1, PyLong_FromLong(255));
     PyList_SetItem(listObj, 2, PyLong_FromLong(400));
-    PyList_SetItem(listObj, 3, Py_True);
+    PyList_SetItem(listObj, 3, Py_RETURN_TRUE);
     PyList_SetItem(listObj, 4, PyFloat_FromDouble(2.7));
     PyList_SetItem(listObj, 5, PyTuple_New(0)); // empty tuple
     PyList_SetItem(listObj, 6, PyList_New(0)); // empty list

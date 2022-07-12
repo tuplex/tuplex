@@ -956,8 +956,7 @@ namespace tuplex {
             if(check_and_forward_signals(true)) {
                 rs->clear();
                 Py_XDECREF(listObj);
-                Py_XINCREF(Py_None);
-                return Py_None;
+                return Py_RETURN_NONE;
             }
         }
 

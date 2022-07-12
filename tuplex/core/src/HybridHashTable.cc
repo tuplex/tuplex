@@ -366,7 +366,7 @@ namespace tuplex {
             ptr += row_size;
             auto obj = python::rowToPython(r);
             if(!obj)
-                PyList_SET_ITEM(L, i, Py_None);
+                PyList_SET_ITEM(L, i, Py_RETURN_NONE);
             else
                 PyList_SET_ITEM(L, i, obj);
         }

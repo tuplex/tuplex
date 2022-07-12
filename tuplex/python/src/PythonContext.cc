@@ -183,7 +183,7 @@ namespace tuplex {
             } else {
                 // auto upcast?
                 if(upcast && (obj == Py_True || obj == Py_False))
-                    val = obj == Py_True;
+                    val = (obj == Py_True);
                 else {
                     assert(i >= rowDelta);
                     fallbackRows.emplace_back(std::make_tuple(i - rowDelta, obj));
@@ -442,7 +442,7 @@ namespace tuplex {
             }
 
             if(PyBool_Check(obj)) {
-                *ptr = obj == Py_True ? 1 : 0;
+                *ptr = (obj == Py_True) ? 1 : 0;
                 ptr++;
                 *rawPtr = *rawPtr + 1;
                 numBytesSerialized += sizeof(int64_t);
@@ -727,8 +727,7 @@ namespace tuplex {
                     if (item) {
                         PyTuple_SET_ITEM(tupleObj, j, item);
                     } else {
-                        Py_XINCREF(Py_None);
-                        PyTuple_SET_ITEM(tupleObj, j, Py_None);
+                        PyTuple_SET_ITEM(tupleObj, j, Py_RETURN_NONE);
                     }
 
                     ++j;
@@ -1067,8 +1066,7 @@ namespace tuplex {
                 ++i;
             }
             while (i < numSample) {
-                Py_XINCREF(Py_None);
-                PyList_SET_ITEM(listColObj, i, Py_None);
+                PyList_SET_ITEM(listColObj, i, Py_RETURN_NONE);
                 ++i;
             }
 

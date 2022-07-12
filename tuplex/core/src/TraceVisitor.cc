@@ -89,8 +89,7 @@ namespace tuplex {
 
     // leaf nodes
     void TraceVisitor::visit(NNone *node) {
-        Py_INCREF(Py_None);
-        addTraceResult(node, TraceItem(Py_None));
+        addTraceResult(node, TraceItem(Py_RETURN_NONE));
     }
 
     void TraceVisitor::visit(NNumber *node) {
@@ -144,7 +143,7 @@ namespace tuplex {
     }
 
     void TraceVisitor::visit(NBoolean *node) {
-       addTraceResult(node, TraceItem(node->_value ? Py_True : Py_False));
+       addTraceResult(node, TraceItem(node->_value ? Py_RETURN_TRUE : Py_RETURN_FALSE));
     }
 
     void TraceVisitor::visit(NString *node) {
@@ -433,7 +432,7 @@ namespace tuplex {
                 bool finalResult = (ti_vals[i+1].value == res.value);
                 // invert result if op is ISNOT.
                 finalResult = (op == TokenType::IS) ? finalResult : !finalResult;
-                res.value = finalResult ? Py_True : Py_False;
+                res.value = finalResult ? Py_RETURN_TRUE : Py_RETURN_FALSE;
             } else {
                 auto it = cmpLookup.find(op);
                 if(it == cmpLookup.end())
@@ -862,7 +861,7 @@ namespace tuplex {
 
             // number?
             if(item.value == Py_True || item.value == Py_False) {
-                int64_t val = item.value == Py_True ? 1 : 0;
+                int64_t val = (item.value == Py_True) ? 1 : 0;
                 if(node->annotation().numTimesVisited == 0) { // init
                     node->annotation().iMin = std::numeric_limits<int64_t>::max();
                     node->annotation().iMax = std::numeric_limits<int64_t>::min();

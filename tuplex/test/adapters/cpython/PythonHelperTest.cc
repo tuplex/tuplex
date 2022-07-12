@@ -125,8 +125,8 @@ TEST_F(PythonHelperTest, pythonToTuplexNestedTupleII) {
 TEST_F(PythonHelperTest, typeMap) {
 
     // primitive types
-    EXPECT_EQ(python::Type::BOOLEAN, python::mapPythonClassToTuplexType(Py_True, false));
-    EXPECT_EQ(python::Type::BOOLEAN, python::mapPythonClassToTuplexType(Py_False, false));
+    EXPECT_EQ(python::Type::BOOLEAN, python::mapPythonClassToTuplexType(Py_RETURN_TRUE, false));
+    EXPECT_EQ(python::Type::BOOLEAN, python::mapPythonClassToTuplexType(Py_RETURN_FALSE, false));
 
     EXPECT_EQ(python::Type::I64, python::mapPythonClassToTuplexType(PyLong_FromLong(0), false));
     EXPECT_EQ(python::Type::I64, python::mapPythonClassToTuplexType(PyLong_FromLong(-42), false));
@@ -145,7 +145,7 @@ TEST_F(PythonHelperTest, typeMap) {
     EXPECT_EQ(python::Type::EMPTYTUPLE, python::mapPythonClassToTuplexType(c1, false));
 
     PyObject* c2 = PyTuple_New(5);
-    PyTuple_SetItem(c2, 0, Py_True);
+    PyTuple_SetItem(c2, 0, Py_RETURN_TRUE);
     PyTuple_SetItem(c2, 1, PyLong_FromLong(0));
     PyTuple_SetItem(c2, 2, PyFloat_FromDouble(-1.0));
     PyTuple_SetItem(c2, 3, c1);
@@ -155,21 +155,21 @@ TEST_F(PythonHelperTest, typeMap) {
 
     // dict (keytype, valuetype)
     PyObject* c3 = PyDict_New();
-    PyDict_SetItemString(c3, "x", Py_True);
-    PyDict_SetItemString(c3, "y", Py_False);
+    PyDict_SetItemString(c3, "x", Py_RETURN_TRUE);
+    PyDict_SetItemString(c3, "y", Py_RETURN_FALSE);
     auto t3 = python::Type::makeDictionaryType(python::Type::STRING, python::Type::BOOLEAN);
     EXPECT_EQ(t3, python::mapPythonClassToTuplexType(c3, false));
 
     // @TODO: to represent dicts as struct type, there should be also specific type -> generic type
     PyObject* c4 = PyDict_New();
-    PyDict_SetItemString(c3, "x", Py_True);
+    PyDict_SetItemString(c3, "x", Py_RETURN_TRUE);
     PyDict_SetItemString(c3, "y", PyFloat_FromDouble(3.141));
 
     // EXPECT_EQ(...) some struct type here...
 
     // dict => generic type, i.e. mixed key/val types.
     PyObject *c5 = PyDict_New();
-    PyDict_SetItem(c5, Py_True, Py_False);
+    PyDict_SetItem(c5, Py_RETURN_TRUE, Py_RETURN_FALSE);
     PyDict_SetItem(c5, PyLong_FromLong(42), python::PyString_FromString("hello world"));
     PyDict_SetItemString(c5, "test", PyLong_FromLong(42));
     EXPECT_EQ(python::Type::GENERICDICT, python::mapPythonClassToTuplexType(c5, false));

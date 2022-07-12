@@ -360,16 +360,16 @@ TEST(PythonPipeline, BasicJoin) {
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("f64"), PyFloat_FromDouble(41.5));
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("f64"), PyFloat_FromDouble(-3.141));
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("str"), python::PyString_FromString("hello world!"));
-    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("null"), Py_None);
+    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("null"), Py_RETURN_NONE);
 
     // now the test objects (multiple data)
     // => note: same key, different bucket needs combined result!
     // Note: if column names are intended, then create Row objects!
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("test"), PyLong_FromLong(42));
-    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("test"), Py_True);
+    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("test"), Py_RETURN_TRUE);
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("test"), PyFloat_FromDouble(3.141));
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("test"), python::PyString_FromString("hello"));
-    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("test"), Py_None);
+    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("test"), Py_RETURN_NONE);
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("test"), PyTuple_New(0)); // ()
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("test"), PyList_New(0));  // []
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("test"), PyDict_New());          // {}
@@ -466,16 +466,16 @@ TEST(PythonPipeline, BasicIntJoin) {
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(2), PyFloat_FromDouble(41.5));
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(2), PyFloat_FromDouble(-3.141));
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(3), python::PyString_FromString("hello world!"));
-    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(4), Py_None);
+    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(4), Py_RETURN_NONE);
 
     // now the test objects (key 10, multiple data)
     // => note: same key, different bucket needs combined result!
     // Note: if column names are intended, then create Row objects!
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(10), PyLong_FromLong(42));
-    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(10), Py_True);
+    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(10), Py_RETURN_TRUE);
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(10), PyFloat_FromDouble(3.141));
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(10), python::PyString_FromString("hello"));
-    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(10), Py_None);
+    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(10), Py_RETURN_NONE);
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(10), PyTuple_New(0)); // ()
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(10), PyList_New(0));  // []
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(10), PyDict_New());          // {}
@@ -707,7 +707,7 @@ TEST(PythonPipeline, MultiJoin) {
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrappedB), PyLong_FromLong(10), PyLong_FromLong(99)); // wrong key-type, right bucket-type
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrappedB), python::PyString_FromString("xyz"), python::PyString_FromString("bla"));  // right key, wrong bucket value
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrappedB), PyLong_FromLong(10), python::PyString_FromString("foo")); // wrong key-type, wrong bucket-type
-    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrappedB), python::PyString_FromString("xyz"), Py_False);  // another combo to spice it up
+    PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrappedB), python::PyString_FromString("xyz"), Py_RETURN_FALSE);  // another combo to spice it up
 
     vector<string> testData = {"abc,100,1000",
                                "10,110,1100",

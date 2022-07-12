@@ -16,6 +16,10 @@ fi
 TUPLEX_DIR=/code
 AWS_S3_TEST_BUCKET=tuplex-test
 
+# make sure cloudpickle 2.x is not installed
+python3.9 -m pip uninstall cloudpickle -y
+python3.9 -m pip install 'cloudpickle<2.0.0'
+
 cd $TUPLEX_DIR && cd tuplex && mkdir -p build && \
 cd build && rm -rf -- * && \
 cmake -DBUILD_WITH_CEREAL=${BUILD_WITH_CEREAL} -DBUILD_WITH_AWS=ON -DBUILD_NATIVE=ON -DPYTHON3_VERSION=3.9 -DSKIP_AWS_TESTS=OFF -DBUILD_WITH_ORC=ON -DAWS_S3_TEST_BUCKET=${AWS_S3_TEST_BUCKET} -DLLVM_ROOT_DIR=/opt/llvm-9.0 -DCMAKE_BUILD_TYPE=Release .. && \

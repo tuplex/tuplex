@@ -89,7 +89,7 @@ namespace tuplex {
 
     // leaf nodes
     void TraceVisitor::visit(NNone *node) {
-        addTraceResult(node, TraceItem(Py_RETURN_NONE));
+        addTraceResult(node, TraceItem(python::none()));
     }
 
     void TraceVisitor::visit(NNumber *node) {
@@ -143,7 +143,7 @@ namespace tuplex {
     }
 
     void TraceVisitor::visit(NBoolean *node) {
-       addTraceResult(node, TraceItem(node->_value ? Py_RETURN_TRUE : Py_RETURN_FALSE));
+       addTraceResult(node, TraceItem(python::boolToPython(node->_value)));
     }
 
     void TraceVisitor::visit(NString *node) {
@@ -432,7 +432,7 @@ namespace tuplex {
                 bool finalResult = (ti_vals[i+1].value == res.value);
                 // invert result if op is ISNOT.
                 finalResult = (op == TokenType::IS) ? finalResult : !finalResult;
-                res.value = finalResult ? Py_RETURN_TRUE : Py_RETURN_FALSE;
+                res.value = python::boolean(finalResult);
             } else {
                 auto it = cmpLookup.find(op);
                 if(it == cmpLookup.end())

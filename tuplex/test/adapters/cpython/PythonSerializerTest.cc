@@ -232,7 +232,7 @@ TEST(PythonSerializer, TestCreatePyObjectFromMemoryEmptyTuple) {
     checkCreatePyObjectFromMemoryTuple(buffer, capacity, Tuple(), wrapped_tuple, true);
 
     PyObject *non_empty_tuple = PyTuple_New(1);
-    PyTuple_SetItem(non_empty_tuple, 0, Py_RETURN_NONE);
+    PyTuple_SetItem(non_empty_tuple, 0, python::none());
     wrapped_tuple = PyTuple_New(1);
     PyTuple_SetItem(wrapped_tuple, 0, non_empty_tuple);
 
@@ -246,7 +246,7 @@ TEST(PythonSerializer, TestCreatePyObjectFromMemoryAllTypesTuple) {
     uint8_t buffer[capacity];
 
     PyObject *tuple = PyTuple_New(6);
-    PyTuple_SetItem(tuple, 0, Py_RETURN_TRUE);
+    PyTuple_SetItem(tuple, 0, python::boolean(true));
     PyTuple_SetItem(tuple, 1, PyLong_FromLong(42));
     PyTuple_SetItem(tuple, 2, PyFloat_FromDouble(3.141));
     std::string str = "Hello, World!";
@@ -254,7 +254,7 @@ TEST(PythonSerializer, TestCreatePyObjectFromMemoryAllTypesTuple) {
     PyTuple_SetItem(tuple, 3, PyUnicode_DecodeASCII(str.c_str(), str.length(), string_errors));
     PyTuple_SetItem(tuple, 4, PyTuple_New(0));
     PyObject *non_empty_tuple = PyTuple_New(1);
-    PyTuple_SetItem(non_empty_tuple, 0, Py_RETURN_FALSE);
+    PyTuple_SetItem(non_empty_tuple, 0, python::boolean(false));
     PyTuple_SetItem(tuple, 5, non_empty_tuple);
 
     PyObject *wrapped_tuple = PyTuple_New(1);
@@ -293,7 +293,7 @@ TEST(PythonSerializer, TestCreatePyObjectFromMemoryNestedTuple) {
 
     PyObject *inner_tuple_1 = PyTuple_New(3);
     PyObject *inner_inner_tuple_1 = PyTuple_New(2);
-    PyTuple_SetItem(inner_inner_tuple_1, 0, Py_RETURN_TRUE);
+    PyTuple_SetItem(inner_inner_tuple_1, 0, python::boolean(true));
     PyTuple_SetItem(inner_inner_tuple_1, 1, PyFloat_FromDouble(sample_float));
     PyObject *inner_inner_tuple_2 = PyTuple_New(0);
     PyObject *inner_inner_tuple_3 = PyTuple_New(1);
@@ -339,7 +339,7 @@ TEST(PythonSerializer, TestFromSerializedMemory) {
 
     EXPECT_TRUE(fromSerializedMemory(buffer, capacity, row.getSchema(), &pyobj));
     PyObject *bool_tuple = PyTuple_New(1);
-    PyTuple_SetItem(bool_tuple, 0, Py_RETURN_TRUE);
+    PyTuple_SetItem(bool_tuple, 0, python::boolean(true));
     PyObject *wrapped_tuple = PyTuple_New(1);
     PyTuple_SetItem(wrapped_tuple, 0, bool_tuple);
     EXPECT_EQ(1, PyObject_RichCompareBool(wrapped_tuple, pyobj, Py_EQ));

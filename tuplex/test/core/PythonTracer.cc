@@ -142,7 +142,7 @@ TEST_F(TracerTest, IsKeyword) {
     python::lockGIL();
 
     auto udf1 = "lambda x: x is None";
-    PyObject* arg1 = Py_RETURN_NONE;
+    PyObject* arg1 = python::none();
 
     traceAndValidateResult(udf1, arg1);
 
@@ -172,7 +172,7 @@ TEST_F(TracerTest, IsKeyword) {
     traceAndValidateResult(udf6, arg6);
 
     auto udf7 = "lambda x: x is 1";
-    PyObject* arg7 = Py_RETURN_NONE;
+    PyObject* arg7 = python::none();
 
     traceAndValidateResult(udf7, arg7);
 

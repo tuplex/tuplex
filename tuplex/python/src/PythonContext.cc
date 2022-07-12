@@ -727,7 +727,7 @@ namespace tuplex {
                     if (item) {
                         PyTuple_SET_ITEM(tupleObj, j, item);
                     } else {
-                        PyTuple_SET_ITEM(tupleObj, j, Py_RETURN_NONE);
+                        PyTuple_SET_ITEM(tupleObj, j, python::none());
                     }
 
                     ++j;
@@ -1066,7 +1066,7 @@ namespace tuplex {
                 ++i;
             }
             while (i < numSample) {
-                PyList_SET_ITEM(listColObj, i, Py_RETURN_NONE);
+                PyList_SET_ITEM(listColObj, i, python::none());
                 ++i;
             }
 

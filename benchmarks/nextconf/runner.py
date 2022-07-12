@@ -194,11 +194,17 @@ def run(ctx, target, num_runs, detach, help):
 
         # lowercase
         target = target.lower()
+        results_root_dir = 'results'
+        local_result_dir = os.path.join(results_root_dir, target)
+        log_run_path = os.path.join(local_result_dir, 'experiment-log.txt')
+
 
         if not target in path_dict.keys():
             logging.error('target {} not found, skip.'.format(target))
             continue
 
+        os.makedirs(local_result_dir, exist_ok=True)
+        
         # get script
         benchmark_path = path_dict[target]['wd']
         benchmark_script = path_dict[target]['script']
@@ -212,6 +218,12 @@ def run(ctx, target, num_runs, detach, help):
         logging.info('Starting benchmark using command: docker exec -i{}t {} {}'.format('d' if detach else '', DOCKER_CONTAINER_NAME,
                                                                                         cmd))
         exit_code, output = container.exec_run(cmd, stderr=True, stdout=True, detach=detach, environment=env)
+        
+        # save output to log path
+        with open(log_run_path, 'w') as fp:
+            fp.write(output.decode() if isinstance(output, bytes) else output)
+
+        # copy results from docker container over
 
         logging.info('Finished with code: {}'.format(exit_code))
         logging.info('Output:\n{}'.format(output.decode() if isinstance(output, bytes) else output))

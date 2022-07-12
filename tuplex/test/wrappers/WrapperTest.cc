@@ -147,7 +147,7 @@ TEST_F(WrapperTest, MathIsInf) {
         PyDict_SetItemString(ba_closure, "math", math_mod);
 
         // write parallelize function
-        auto res = c.parallelize(list).map("lambda x: math.isinf(x)", "", py::reinterpret_steal<py::dict>(ba_closure)).collect();
+        auto res = c.parallelize(list).map("lambda x: math.isinf(x)", "", py::reinterpret_borrow<py::dict>(ba_closure)).collect();
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -1278,7 +1278,7 @@ TEST_F(WrapperTest, Airport) {
         auto pds = c.csv(sampleFile, STL_to_Python(airport_cols), false, false, ":");
 
 
-        pds = pds.mapColumn("AirportName", "lambda x: string.capwords(x) if x else None", "", py::reinterpret_steal<py::dict>(closureObject));
+        pds = pds.mapColumn("AirportName", "lambda x: string.capwords(x) if x else None", "", py::reinterpret_borrow<py::dict>(closureObject));
         pds.tocsv("airport.csv");
     }
 }
@@ -1848,7 +1848,7 @@ TEST_F(WrapperTest, BuiltinModule) {
         // import re module
         auto re_mod = PyImport_ImportModule("re");
         PyDict_SetItemString(closureObject, "re", re_mod);
-        auto v = c.parallelize(list).map("lambda x: re.search('\\\\d+', x) != None", "", py::reinterpret_steal<py::dict>(closureObject)).collect();
+        auto v = c.parallelize(list).map("lambda x: re.search('\\\\d+', x) != None", "", py::reinterpret_borrow<py::dict>(closureObject)).collect();
 
         ASSERT_EQ(PyObject_Length(v.ptr()), 3);
         auto v_str = python::PyString_AsString(v.ptr());
@@ -2051,7 +2051,7 @@ namespace tuplex {
            .filter("lambda x: x['type'] == 'house'", "")
            .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
            .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-           .withColumn("bathrooms", extractBa_c, "", py::reinterpret_steal<py::dict>(ba_closure))
+           .withColumn("bathrooms", extractBa_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
            .withColumn("sqft", extractSqft_c, "")
            .withColumn("offer", extractOffer_c, "")
            .withColumn("price", extractPrice_c, "")
@@ -2082,7 +2082,7 @@ namespace tuplex {
                 .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
                 .ignore(ecToI64(ExceptionCode::TYPEERROR))
                 .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-                .withColumn("bathrooms", extractBa_c, "", py::reinterpret_steal<py::dict>(ba_closure))
+                .withColumn("bathrooms", extractBa_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                 .ignore(ecToI64(ExceptionCode::VALUEERROR))
                 .withColumn("sqft", extractSqft_c, "")
                 .ignore(ecToI64(ExceptionCode::VALUEERROR)) // why is this showing a single error???
@@ -2433,7 +2433,7 @@ TEST_F(WrapperTest, SingleCharCSVField) {
         // read from file incl. type hints
         auto ds = ctx.csv("testdata.part0.csv",py::none(), true, false, "", "\"",
                           py::none(),
-                          py::reinterpret_steal<py::dict>(typehints));
+                          py::reinterpret_borrow<py::dict>(typehints));
     }
 }
 
@@ -2471,7 +2471,7 @@ TEST_F(WrapperTest, NYC311) {
         // type hints:
         // vector<string>{"Unspecified", "NO CLUE", "NA", "N/A", "0", ""}
         ctx.csv(service_path,py::none(), true, false, "", "\"",
-                py::none(), py::reinterpret_steal<py::dict>(type_dict))
+                py::none(), py::reinterpret_borrow<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
                 .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select))
                 .unique().show();
@@ -2615,9 +2615,9 @@ TEST_F(WrapperTest, PartitionRelease) {
         // type hints:
         // vector<string>{"Unspecified", "NO CLUE", "NA", "N/A", "0", ""}
         ctx->csv(service_path,py::none(), true, false, "", "\"",
-                py::none(), py::reinterpret_steal<py::dict>(type_dict))
+                py::none(), py::reinterpret_borrow<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
-                .selectColumns(py::reinterpret_steal<py::dict>(cols_to_select))
+                .selectColumns(py::reinterpret_borrow<py::dict>(cols_to_select))
                 .unique().show();
 
         std::cout<<std::endl;
@@ -2632,9 +2632,9 @@ TEST_F(WrapperTest, PartitionRelease) {
         PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
 
         ctx2.csv(service_path,py::none(), true, false, "", "\"",
-                 py::none(), py::reinterpret_steal<py::dict>(type_dict))
+                 py::none(), py::reinterpret_borrow<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
-                .selectColumns(py::reinterpret_steal<py::dict>(cols_to_select))
+                .selectColumns(py::reinterpret_borrow<py::dict>(cols_to_select))
                 .unique().show();
     }
 

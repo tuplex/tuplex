@@ -29,7 +29,7 @@ files = list(filter(lambda x: '__pycache__' not in x and not x.endswith('.pyc'),
 
 setup(
     name="Tuplex",
-    version="0.3.3rc0",
+    version="0.3.3",
     packages=find_packages(),
     package_data={
       # include libs in libexec
@@ -45,9 +45,9 @@ setup(
         'nbconvert<7.0',
         'jupyter<7.0',
         'nbformat<7.0',
+        'Werkzeug<2.0.0',
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
-        'Werkzeug==2.1.2',
         'pluggy>=0.6.0, <1.0.0',
         'py>=1.5.2',
         'pygments>=2.4.1',
@@ -57,7 +57,7 @@ setup(
         'astor',
         'prompt_toolkit>=2.0.7',
         'jedi>=0.13.2',
-        'cloudpickle>=0.6.1',
+        'cloudpickle>=0.6.1,<2.0.0',
         'PyYAML>=3.13',
         'psutil',
         'pymongo',

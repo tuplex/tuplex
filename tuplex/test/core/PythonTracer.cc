@@ -246,7 +246,6 @@ TEST_F(TracerTest, BooleanOpTrace) {
     tv.recordTrace(ast, tuple);
     python::unlockGIL();
 
-
     // result should be 42
     EXPECT_EQ(tv.majorityOutputType().desc(), "(i64)");
 }

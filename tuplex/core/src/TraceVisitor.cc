@@ -178,6 +178,68 @@ namespace tuplex {
     }
 
     void TraceVisitor::visit(NBinaryOp *node) {
+        // special case: boolean operators and and or -> they have short-circuit evaluation
+        if(TokenType::AND == node->_op) {
+
+            // python reference:
+            // The expression x and y first evaluates x; if x is false, its value is returned; otherwise, y is evaluated and the resulting value is returned.
+
+            // evaluate left first
+            node->_left->accept(*this);
+            assert(_evalStack.size() >= 1);
+            auto left = _evalStack.back();
+            _evalStack.pop_back();
+
+            Py_XINCREF(left.value);
+            int rc = PyObject_IsTrue(left.value);
+            if(0 == rc) {
+                // object false -> simply return value, do not bother visiting right.
+                addTraceResult(node, TraceItem(left.value));
+            } else if(1 == rc) {
+                Py_XDECREF(left.value);
+                // object true -> visit right and return result!
+                node->_right->accept(*this);
+                assert(_evalStack.size() >= 1);
+                auto right = _evalStack.back();
+                _evalStack.pop_back();
+                addTraceResult(node, TraceItem(right.value));
+            } else {
+                Py_XDECREF(left.value);
+                // error!
+                error("PyObject_IsTrue failed");
+            }
+            return;
+        } else if(TokenType::OR == node->_op) {
+            // python reference:
+            // The expression x or y first evaluates x; if x is true, its value is returned; otherwise, y is evaluated and the resulting value is returned.
+            // evaluate left first
+            node->_left->accept(*this);
+            assert(_evalStack.size() >= 1);
+            auto left = _evalStack.back();
+            _evalStack.pop_back();
+
+            Py_XINCREF(left.value);
+            int rc = PyObject_IsTrue(left.value);
+            if(1 == rc) {
+                // object false -> simply return value, do not bother visiting right.
+                addTraceResult(node, TraceItem(left.value));
+            } else if(0 == rc) {
+                Py_XDECREF(left.value);
+                // object true -> visit right and return result!
+                node->_right->accept(*this);
+                assert(_evalStack.size() >= 1);
+                auto right = _evalStack.back();
+                _evalStack.pop_back();
+                addTraceResult(node, TraceItem(right.value));
+            } else {
+                Py_XDECREF(left.value);
+                // error!
+                error("PyObject_IsTrue failed");
+            }
+            return;
+        }
+
+
         ApatheticVisitor::visit(node);
 
         // @TODO: logical and and or operators.
@@ -217,21 +279,22 @@ namespace tuplex {
 
 
         auto it = opLookup.find(node->_op);
-        if(it == opLookup.end())
+        if(it == opLookup.end()) {
             throw std::runtime_error("Operator " + opToString(node->_op) + " not yet supported in TraceVisitor");
+        } else {
+            std::string op_name = it->second;
 
-        std::string op_name = it->second;
+            auto func = PyDict_GetItemString(opModDict, op_name.c_str());
+            assert(func);
+            auto args = PyTuple_Pack(2, left.value, right.value);
+            auto ret_obj = PyObject_Call(func, args, nullptr);
+            // perform python operation & check for errors
+            // confer https://docs.python.org/3/library/operator.html
+            errCheck();
 
-        auto func = PyDict_GetItemString(opModDict, op_name.c_str());
-        assert(func);
-        auto args = PyTuple_Pack(2, left.value, right.value);
-        auto ret_obj = PyObject_Call(func, args, nullptr);
-        // perform python operation & check for errors
-        // confer https://docs.python.org/3/library/operator.html
-        errCheck();
-
-        // only add trace result if no err happened.
-        addTraceResult(node, TraceItem(ret_obj));
+            // only add trace result if no err happened.
+            addTraceResult(node, TraceItem(ret_obj));
+        }
     }
 
     void TraceVisitor::visit(NUnaryOp *node) {

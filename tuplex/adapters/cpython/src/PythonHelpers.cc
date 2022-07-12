@@ -1462,7 +1462,8 @@ namespace python {
         if(python::Type::STRING == t)
             return reinterpret_cast<PyObject*>(&PyUnicode_Type);
         if(python::Type::NULLVALUE == t) {
-            auto none = Py_RETURN_NONE;
+            Py_XINCREF(Py_None);
+            auto none = Py_None;
             auto typeobj = reinterpret_cast<PyObject*>(Py_None->ob_type);
             Py_XDECREF(none);
             return typeobj;

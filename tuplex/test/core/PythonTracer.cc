@@ -322,6 +322,41 @@ TEST_F(TracerTest, BooleanAndOr) {
     }
 }
 
+TEST_F(TracerTest, InOperations) {
+    using namespace tuplex;
+    using namespace std;
+
+    // testing in
+    {
+        const std::string code = "lambda a, b: a in b";
+        auto ast = tuplex::parseToAST(code);
+        python::lockGIL();
+        TraceVisitor tv;
+        auto expect = "True";
+        auto obj = python::runAndGet("x = (20, [10, 20, 30, 40])", "x");
+        tv.recordTrace(ast, obj);
+        auto str = python::PyString_AsString(tv.lastResult());
+        EXPECT_EQ(str, expect);
+
+        python::unlockGIL();
+    }
+
+    // testing not in
+    {
+        const std::string code = "lambda a, b: a not in b";
+        auto ast = tuplex::parseToAST(code);
+        python::lockGIL();
+        TraceVisitor tv;
+        auto expect = "True";
+        auto obj = python::runAndGet("x = (42, [10, 20, 30, 40])", "x");
+        tv.recordTrace(ast, obj);
+        auto str = python::PyString_AsString(tv.lastResult());
+        EXPECT_EQ(str, expect);
+
+        python::unlockGIL();
+    }
+}
+
 // test here normal case/exception case compile for special null value opt case
 //   auto fillInTimes_C = "def fillInTimesUDF(row):\n"
 //                             "    ACTUAL_ELAPSED_TIME = row['ActualElapsedTime']\n"

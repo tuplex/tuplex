@@ -497,6 +497,19 @@ namespace tuplex {
                 // invert result if op is ISNOT.
                 finalResult = (op == TokenType::IS) ? finalResult : !finalResult;
                 res.value = finalResult ? Py_True : Py_False;
+            } else if(op == TokenType::IN || op == TokenType::NOTIN) {
+                // cf. https://github.com/python/cpython/blob/8a285df806816805484fed36dce5fd5b77a215a6/Python/ceval.c#L4013
+                PyObject* left = res.value, *right = ti_vals[i + 1].value;
+                assert(left && right);
+                int rc = PySequence_Contains(right, left);
+                if(rc < 0)
+                    error("internal error when checking sequence");
+
+                errCheck();
+                if(op == TokenType::IN)
+                    res.value = rc > 0 ? Py_True : Py_False;
+                else
+                    res.value = rc == 0 ? Py_True : Py_False;
             } else {
                 auto it = cmpLookup.find(op);
                 if(it == cmpLookup.end())

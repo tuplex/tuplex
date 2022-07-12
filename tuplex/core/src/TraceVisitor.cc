@@ -89,8 +89,7 @@ namespace tuplex {
 
     // leaf nodes
     void TraceVisitor::visit(NNone *node) {
-        Py_INCREF(Py_None);
-        addTraceResult(node, TraceItem(Py_None));
+        addTraceResult(node, TraceItem(python::none()));
     }
 
     void TraceVisitor::visit(NNumber *node) {
@@ -144,7 +143,7 @@ namespace tuplex {
     }
 
     void TraceVisitor::visit(NBoolean *node) {
-       addTraceResult(node, TraceItem(node->_value ? Py_True : Py_False));
+       addTraceResult(node, TraceItem(python::boolToPython(node->_value)));
     }
 
     void TraceVisitor::visit(NString *node) {
@@ -496,7 +495,7 @@ namespace tuplex {
                 bool finalResult = (ti_vals[i+1].value == res.value);
                 // invert result if op is ISNOT.
                 finalResult = (op == TokenType::IS) ? finalResult : !finalResult;
-                res.value = finalResult ? Py_True : Py_False;
+                res.value = python::boolean(finalResult);
             } else if(op == TokenType::IN || op == TokenType::NOTIN) {
                 // cf. https://github.com/python/cpython/blob/8a285df806816805484fed36dce5fd5b77a215a6/Python/ceval.c#L4013
                 PyObject* left = res.value, *right = ti_vals[i + 1].value;
@@ -507,9 +506,9 @@ namespace tuplex {
 
                 errCheck();
                 if(op == TokenType::IN)
-                    res.value = rc > 0 ? Py_True : Py_False;
+                    res.value = python::boolean(rc > 0);
                 else
-                    res.value = rc == 0 ? Py_True : Py_False;
+                    res.value = python::boolean(rc == 0);
             } else {
                 auto it = cmpLookup.find(op);
                 if(it == cmpLookup.end())
@@ -938,7 +937,7 @@ namespace tuplex {
 
             // number?
             if(item.value == Py_True || item.value == Py_False) {
-                int64_t val = item.value == Py_True ? 1 : 0;
+                int64_t val = (item.value == Py_True) ? 1 : 0;
                 if(node->annotation().numTimesVisited == 0) { // init
                     node->annotation().iMin = std::numeric_limits<int64_t>::max();
                     node->annotation().iMax = std::numeric_limits<int64_t>::min();

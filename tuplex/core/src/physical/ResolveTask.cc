@@ -540,7 +540,7 @@ default:
                 PyTuple_SET_ITEM(args, i + 1, _py_intermediates[i]);
             }
 
-            auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", parse_cells ? Py_True : Py_False);
+            auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", python::boolean(parse_cells));
             auto pcr = python::callFunctionEx(_interpreterFunctor, args, kwargs);
 
             if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
@@ -1325,7 +1325,7 @@ default:
 
                 assert(_htable.hybrid_hm);
                 int rc =((HybridLookupTable*)_htable.hybrid_hm)->putItem(rowObject, nullptr);
-                // could also invoke via PyObject_SetItem(_htable.hybrid_hm, rowObject, Py_None);
+                // could also invoke via PyObject_SetItem(_htable.hybrid_hm, rowObject, python::none());
                 if(PyErr_Occurred()) {
                     PyErr_Print();
                     cout<<endl;

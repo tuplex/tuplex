@@ -147,7 +147,7 @@ TEST_F(WrapperTest, MathIsInf) {
         PyDict_SetItemString(ba_closure, "math", math_mod);
 
         // write parallelize function
-        auto res = c.parallelize(list).map("lambda x: math.isinf(x)", "", py::reinterpret_steal<py::dict>(ba_closure)).collect();
+        auto res = c.parallelize(list).map("lambda x: math.isinf(x)", "", py::reinterpret_borrow<py::dict>(ba_closure)).collect();
         auto resObj = res.ptr();
 
         ASSERT_TRUE(PyList_Check(resObj));
@@ -216,7 +216,7 @@ TEST_F(WrapperTest, MixedSimpleTupleTuple) {
     PyTuple_SET_ITEM(tupleObj3, 1, PyLong_FromLong(3));
 
     PyObject *tupleObj4 = PyTuple_New(2);
-    PyTuple_SET_ITEM(tupleObj4, 0, Py_None);
+    PyTuple_SET_ITEM(tupleObj4, 0, python::none());
     PyTuple_SET_ITEM(tupleObj4, 1, PyLong_FromLong(4));
 
     PyList_SetItem(listObj, 0, tupleObj1);
@@ -309,7 +309,7 @@ TEST_F(WrapperTest, SimpleCSVParse) {
     fclose(f);
 
     PyObject * pyopt = PyDict_New();
-    PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
+    PyDict_SetItemString(pyopt, "tuplex.webui.enable", python::boolean(false));
 
     // RAII, destruct python context!
     PythonContext c("c", "", microTestOptions().asJSON());
@@ -381,7 +381,7 @@ TEST_F(WrapperTest, Show) {
     fclose(f);
 
     PyObject * pyopt = PyDict_New();
-    PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
+    PyDict_SetItemString(pyopt, "tuplex.webui.enable", python::boolean(false));
 
     // RAII, destruct python context!
     PythonContext c("python", "", microTestOptions().asJSON());
@@ -406,7 +406,7 @@ TEST_F(WrapperTest, GoogleTrace) {
     string sampleTraceFile = "../resources/gtrace-jobevents-sample.csv";
 
     PyObject * pyopt = PyDict_New();
-    PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
+    PyDict_SetItemString(pyopt, "tuplex.webui.enable", python::boolean(false));
 
     // RAII, destruct python context!
     PythonContext c("python", "", testOptions().asJSON());
@@ -703,7 +703,7 @@ TEST_F(WrapperTest, UpcastParallelizeI) {
 
         PyList_SET_ITEM(listObj, 0, PyFloat_FromDouble(2.0));
         PyList_SET_ITEM(listObj, 1, PyFloat_FromDouble(3.0));
-        PyList_SET_ITEM(listObj, 2, Py_True); // auto upcast bool --> float
+        PyList_SET_ITEM(listObj, 2, python::boolean(true)); // auto upcast bool --> float
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(10)); // auto upcast int --> float
 
         auto list = py::reinterpret_borrow<py::list>(listObj);
@@ -734,8 +734,8 @@ TEST_F(WrapperTest, UpcastParallelizeII) {
         PyObject * listObj = PyList_New(4);
 
         PyList_SET_ITEM(listObj, 0, PyLong_FromLong(3));
-        PyList_SET_ITEM(listObj, 1, Py_False); // auto upcast bool --> int
-        PyList_SET_ITEM(listObj, 2, Py_True); // auto upcast bool --> int
+        PyList_SET_ITEM(listObj, 1, python::boolean(false)); // auto upcast bool --> int
+        PyList_SET_ITEM(listObj, 2, python::boolean(true)); // auto upcast bool --> int
         PyList_SET_ITEM(listObj, 3, PyLong_FromLong(2));
 
         auto list = py::reinterpret_borrow<py::list>(listObj);
@@ -781,8 +781,7 @@ TEST_F(WrapperTest, OptionListTest) {
         PyList_SET_ITEM(listObj4, 0, listObj1);
         PyList_SET_ITEM(listObj4, 1, listObj2);
         PyList_SET_ITEM(listObj5, 0, listObj3);
-        PyList_SET_ITEM(listObj5, 1, Py_None);
-        Py_XINCREF(Py_None);
+        PyList_SET_ITEM(listObj5, 1, python::none());
         PyTuple_SET_ITEM(tupleObj1, 0, listObj4);
         PyTuple_SET_ITEM(tupleObj2, 0, listObj5);
         PyList_SET_ITEM(listObj6, 0, tupleObj1);
@@ -895,8 +894,8 @@ TEST_F(WrapperTest, IntegerTuple) {
     using namespace tuplex;
 
     PyObject* pyopt = PyDict_New();
-    PyDict_SetItemString(pyopt, "tuplex.webui.enable", Py_False);
-    PyDict_SetItemString(pyopt, "tuplex.autoUpcast", Py_True);
+    PyDict_SetItemString(pyopt, "tuplex.webui.enable", python::boolean(false));
+    PyDict_SetItemString(pyopt, "tuplex.autoUpcast", python::boolean(true));
 
     // RAII, destruct python context!
     auto opts = microTestOptions();
@@ -1278,7 +1277,7 @@ TEST_F(WrapperTest, Airport) {
         auto pds = c.csv(sampleFile, STL_to_Python(airport_cols), false, false, ":");
 
 
-        pds = pds.mapColumn("AirportName", "lambda x: string.capwords(x) if x else None", "", py::reinterpret_steal<py::dict>(closureObject));
+        pds = pds.mapColumn("AirportName", "lambda x: string.capwords(x) if x else None", "", py::reinterpret_borrow<py::dict>(closureObject));
         pds.tocsv("airport.csv");
     }
 }
@@ -1293,7 +1292,7 @@ TEST_F(WrapperTest, OptionParallelizeI) {
     PyList_SET_ITEM(listObj, 1, Py_None);
     PyList_SET_ITEM(listObj, 2, PyLong_FromLong(213));
     PyList_SET_ITEM(listObj, 3, PyLong_FromLong(345));
-    PyList_SET_ITEM(listObj, 4, Py_None);
+    PyList_SET_ITEM(listObj, 4, python::none());
 
     // weird block syntax due to RAII problems.
     {
@@ -1306,10 +1305,10 @@ TEST_F(WrapperTest, OptionParallelizeI) {
 
         // check contents
         EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 0)), Row(112));
-        EXPECT_EQ(PyList_GetItem(resObj, 1), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 1), python::none());
         EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 2)), Row(213));
         EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 3)), Row(345));
-        EXPECT_EQ(PyList_GetItem(resObj, 4), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 4), python::none());
     }
 }
 
@@ -1333,10 +1332,10 @@ TEST_F(WrapperTest, OptionParallelizeII) {
     PyList_SET_ITEM(l3, 1, PyLong_FromLong(6));
 
     PyList_SET_ITEM(listObj, 0, l1);
-    PyList_SET_ITEM(listObj, 1, Py_None);
+    PyList_SET_ITEM(listObj, 1, python::none());
     PyList_SET_ITEM(listObj, 2, l2);
     PyList_SET_ITEM(listObj, 3, l3);
-    PyList_SET_ITEM(listObj, 4, Py_None);
+    PyList_SET_ITEM(listObj, 4, python::none());
 
     // weird block syntax due to RAII problems.
     {
@@ -1349,10 +1348,10 @@ TEST_F(WrapperTest, OptionParallelizeII) {
 
         // check contents
         EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 0)), Row(List(1, 2)));
-        EXPECT_EQ(PyList_GetItem(resObj, 1), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 1), python::none());
         EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 2)), Row(List(3, 4)));
         EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, 3)), Row(List(5, 6)));
-        EXPECT_EQ(PyList_GetItem(resObj, 4), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 4), python::none());
     }
 }
 
@@ -1362,8 +1361,8 @@ TEST_F(WrapperTest, NoneParallelize) {
     PythonContext c("c", "", microTestOptions().asJSON());
 
     PyObject * listObj = PyList_New(2);
-    PyList_SET_ITEM(listObj, 0, Py_None);
-    PyList_SET_ITEM(listObj, 1, Py_None);
+    PyList_SET_ITEM(listObj, 0, python::none());
+    PyList_SET_ITEM(listObj, 1, python::none());
 
     // weird block syntax due to RAII problems.
     {
@@ -1375,8 +1374,8 @@ TEST_F(WrapperTest, NoneParallelize) {
         ASSERT_EQ(PyList_GET_SIZE(resObj), 2);
 
         // check contents
-        EXPECT_EQ(PyList_GetItem(resObj, 0), Py_None);
-        EXPECT_EQ(PyList_GetItem(resObj, 1), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 0), python::none());
+        EXPECT_EQ(PyList_GetItem(resObj, 1), python::none());
     }
 }
 
@@ -1401,10 +1400,10 @@ TEST_F(WrapperTest, EmptyMapI) {
         ASSERT_EQ(PyList_GET_SIZE(resObj), 4);
 
         // check contents
-        EXPECT_EQ(PyList_GetItem(resObj, 0), Py_None);
-        EXPECT_EQ(PyList_GetItem(resObj, 1), Py_None);
-        EXPECT_EQ(PyList_GetItem(resObj, 2), Py_None);
-        EXPECT_EQ(PyList_GetItem(resObj, 3), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 0), python::none());
+        EXPECT_EQ(PyList_GetItem(resObj, 1), python::none());
+        EXPECT_EQ(PyList_GetItem(resObj, 2), python::none());
+        EXPECT_EQ(PyList_GetItem(resObj, 3), python::none());
     }
 }
 
@@ -1497,8 +1496,8 @@ TEST_F(WrapperTest, EmptyOptionMapI) {
         EXPECT_EQ(PyTuple_GET_SIZE(PyList_GetItem(resObj, 0)), 0);
         EXPECT_TRUE(PyTuple_Check(PyList_GetItem(resObj, 1)));
         EXPECT_EQ(PyTuple_GET_SIZE(PyList_GetItem(resObj, 1)), 0);
-        EXPECT_EQ(PyList_GetItem(resObj, 2), Py_None);
-        EXPECT_EQ(PyList_GetItem(resObj, 3), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 2), python::none());
+        EXPECT_EQ(PyList_GetItem(resObj, 3), python::none());
     }
 }
 
@@ -1527,8 +1526,8 @@ TEST_F(WrapperTest, EmptyOptionMapII) {
         EXPECT_EQ(PyDict_Size(PyList_GetItem(resObj, 0)), 0);
         EXPECT_TRUE(PyDict_Check(PyList_GetItem(resObj, 1)));
         EXPECT_EQ(PyDict_Size(PyList_GetItem(resObj, 1)), 0);
-        EXPECT_EQ(PyList_GetItem(resObj, 2), Py_None);
-        EXPECT_EQ(PyList_GetItem(resObj, 3), Py_None);
+        EXPECT_EQ(PyList_GetItem(resObj, 2), python::none());
+        EXPECT_EQ(PyList_GetItem(resObj, 3), python::none());
     }
 }
 
@@ -1544,12 +1543,12 @@ TEST_F(WrapperTest, OptionTupleParallelizeI) {
     PyTuple_SET_ITEM(t1, 1, PyLong_FromLong(12));
 
     PyObject * t2 = PyTuple_New(2);
-    PyTuple_SET_ITEM(t2, 0, Py_None);
+    PyTuple_SET_ITEM(t2, 0, python::none());
     PyTuple_SET_ITEM(t2, 1, PyLong_FromLong(100));
 
     PyObject * t3 = PyTuple_New(2);
     PyTuple_SET_ITEM(t3, 0, PyLong_FromLong(200));
-    PyTuple_SET_ITEM(t3, 1, Py_None);
+    PyTuple_SET_ITEM(t3, 1, python::none());
 
     PyList_SET_ITEM(listObj, 0, t1);
     PyList_SET_ITEM(listObj, 1, t2);
@@ -1574,10 +1573,10 @@ TEST_F(WrapperTest, OptionTupleParallelizeI) {
 
         EXPECT_EQ(python::pythonToRow(PyTuple_GetItem(el1, 0)), Row(11));
         EXPECT_EQ(python::pythonToRow(PyTuple_GetItem(el1, 1)), Row(12));
-        EXPECT_EQ(PyTuple_GetItem(el2, 0), Py_None);
+        EXPECT_EQ(PyTuple_GetItem(el2, 0), python::none());
         EXPECT_EQ(python::pythonToRow(PyTuple_GetItem(el2, 1)), Row(100));
         EXPECT_EQ(python::pythonToRow(PyTuple_GetItem(el3, 0)), Row(200));
-        EXPECT_EQ(PyTuple_GetItem(el3, 1), Py_None);
+        EXPECT_EQ(PyTuple_GetItem(el3, 1), python::none());
     }
 }
 
@@ -1848,7 +1847,7 @@ TEST_F(WrapperTest, BuiltinModule) {
         // import re module
         auto re_mod = PyImport_ImportModule("re");
         PyDict_SetItemString(closureObject, "re", re_mod);
-        auto v = c.parallelize(list).map("lambda x: re.search('\\\\d+', x) != None", "", py::reinterpret_steal<py::dict>(closureObject)).collect();
+        auto v = c.parallelize(list).map("lambda x: re.search('\\\\d+', x) != None", "", py::reinterpret_borrow<py::dict>(closureObject)).collect();
 
         ASSERT_EQ(PyObject_Length(v.ptr()), 3);
         auto v_str = python::PyString_AsString(v.ptr());
@@ -2051,7 +2050,7 @@ namespace tuplex {
            .filter("lambda x: x['type'] == 'house'", "")
            .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
            .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-           .withColumn("bathrooms", extractBa_c, "", py::reinterpret_steal<py::dict>(ba_closure))
+           .withColumn("bathrooms", extractBa_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
            .withColumn("sqft", extractSqft_c, "")
            .withColumn("offer", extractOffer_c, "")
            .withColumn("price", extractPrice_c, "")
@@ -2082,7 +2081,7 @@ namespace tuplex {
                 .withColumn("zipcode", "lambda x: '%05d' % int(x['postal_code'])", "")
                 .ignore(ecToI64(ExceptionCode::TYPEERROR))
                 .mapColumn("city", "lambda x: x[0].upper() + x[1:].lower()", "")
-                .withColumn("bathrooms", extractBa_c, "", py::reinterpret_steal<py::dict>(ba_closure))
+                .withColumn("bathrooms", extractBa_c, "", py::reinterpret_borrow<py::dict>(ba_closure))
                 .ignore(ecToI64(ExceptionCode::VALUEERROR))
                 .withColumn("sqft", extractSqft_c, "")
                 .ignore(ecToI64(ExceptionCode::VALUEERROR)) // why is this showing a single error???
@@ -2433,7 +2432,7 @@ TEST_F(WrapperTest, SingleCharCSVField) {
         // read from file incl. type hints
         auto ds = ctx.csv("testdata.part0.csv",py::none(), true, false, "", "\"",
                           py::none(),
-                          py::reinterpret_steal<py::dict>(typehints));
+                          py::reinterpret_borrow<py::dict>(typehints));
     }
 }
 
@@ -2471,7 +2470,7 @@ TEST_F(WrapperTest, NYC311) {
         // type hints:
         // vector<string>{"Unspecified", "NO CLUE", "NA", "N/A", "0", ""}
         ctx.csv(service_path,py::none(), true, false, "", "\"",
-                py::none(), py::reinterpret_steal<py::dict>(type_dict))
+                py::none(), py::reinterpret_borrow<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
                 .selectColumns(py::reinterpret_borrow<py::list>(cols_to_select))
                 .unique().show();
@@ -2489,10 +2488,10 @@ TEST_F(WrapperTest, MixedTypesIsWithNone) {
     PythonContext c("python", "",  opts.asJSON());
 
     PyObject *listObj = PyList_New(8);
-    PyList_SetItem(listObj, 0, Py_None);
+    PyList_SetItem(listObj, 0, python::none());
     PyList_SetItem(listObj, 1, PyLong_FromLong(255));
     PyList_SetItem(listObj, 2, PyLong_FromLong(400));
-    PyList_SetItem(listObj, 3, Py_True);
+    PyList_SetItem(listObj, 3, python::boolean(true));
     PyList_SetItem(listObj, 4, PyFloat_FromDouble(2.7));
     PyList_SetItem(listObj, 5, PyTuple_New(0)); // empty tuple
     PyList_SetItem(listObj, 6, PyList_New(0)); // empty list
@@ -2615,9 +2614,9 @@ TEST_F(WrapperTest, PartitionRelease) {
         // type hints:
         // vector<string>{"Unspecified", "NO CLUE", "NA", "N/A", "0", ""}
         ctx->csv(service_path,py::none(), true, false, "", "\"",
-                py::none(), py::reinterpret_steal<py::dict>(type_dict))
+                py::none(), py::reinterpret_borrow<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
-                .selectColumns(py::reinterpret_steal<py::dict>(cols_to_select))
+                .selectColumns(py::reinterpret_borrow<py::dict>(cols_to_select))
                 .unique().show();
 
         std::cout<<std::endl;
@@ -2632,9 +2631,9 @@ TEST_F(WrapperTest, PartitionRelease) {
         PyList_SET_ITEM(cols_to_select, 0, python::PyString_FromString("Incident Zip"));
 
         ctx2.csv(service_path,py::none(), true, false, "", "\"",
-                 py::none(), py::reinterpret_steal<py::dict>(type_dict))
+                 py::none(), py::reinterpret_borrow<py::dict>(type_dict))
                 .mapColumn("Incident Zip", fix_zip_codes_c, "")
-                .selectColumns(py::reinterpret_steal<py::dict>(cols_to_select))
+                .selectColumns(py::reinterpret_borrow<py::dict>(cols_to_select))
                 .unique().show();
     }
 

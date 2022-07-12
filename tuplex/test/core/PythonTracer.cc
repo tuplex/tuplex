@@ -223,6 +223,33 @@ TEST_F(TracerTest, UseCaseFunctions) {
     python::unlockGIL();
 }
 
+TEST_F(TracerTest, BooleanOpTrace) {
+
+    using namespace tuplex;
+    using namespace std;
+
+    // @TODO: Need to test here all the functions in
+    // 1. Zillow workload ??
+    // 2. Flight workload ??
+    // 3. 311 workload ??
+    // 4. log workload ??
+
+    const std::string code = "lambda a, b: (not a) and b or (a and b)";
+
+    auto ast = tuplex::parseToAST(code);
+
+    python::lockGIL();
+    TraceVisitor tv;
+    PyObject* tuple = PyTuple_New(2);
+    PyTuple_SET_ITEM(tuple, 0, PyLong_FromLong(0));
+    PyTuple_SET_ITEM(tuple, 1, PyLong_FromLong(42));
+    tv.recordTrace(ast, tuple);
+    python::unlockGIL();
+
+
+    // result should be 42
+    EXPECT_EQ(tv.majorityOutputType().desc(), "(i64)");
+}
 
 // test here normal case/exception case compile for special null value opt case
 //   auto fillInTimes_C = "def fillInTimesUDF(row):\n"

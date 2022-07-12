@@ -56,6 +56,33 @@ namespace tuplex {
                     m->addAttribute(make_shared<Symbol>(name, name, python::Type::makeFunctionType(python::Type::propagateToTupleType(type), python::Type::F64), SymbolType::FUNCTION));
                 }
             }
+            
+            // math.isnan
+            auto isnanSym = make_shared<Symbol>("isnan", "isnan", python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::F64), python::Type::BOOLEAN), SymbolType::FUNCTION);
+            isnanSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::I64), python::Type::BOOLEAN));
+            isnanSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::BOOLEAN), python::Type::BOOLEAN));
+            m->addAttribute(isnanSym);
+
+            // math.isinf
+            auto isinfSym = make_shared<Symbol>("isinf", "isinf", python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::F64), python::Type::BOOLEAN), SymbolType::FUNCTION);
+            isinfSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::I64), python::Type::BOOLEAN));
+            isinfSym->addTypeIfNotExists(python::Type::makeFunctionType(python::Type::propagateToTupleType(python::Type::BOOLEAN), python::Type::BOOLEAN));
+            m->addAttribute(isinfSym);
+
+            // math.isclose
+            // typing is:
+            // ({f64, i64, bool}, {f64, i64, bool}[, rel_tol={f64, i64, bool}, abs_tol={f64, i64, bool}]) -> bool
+            auto iscloseSym = make_shared<Symbol>("isclose", [](const python::Type &params) {
+                assert(params.isTupleType());
+                if (params.parameters().size() != 2 && params.parameters().size() != 3 && params.parameters().size() != 4) {
+                    throw std::runtime_error("isclose needs 2, 3, or 4 arguments");
+                    return python::Type::UNKNOWN;
+                }
+                return python::Type::makeFunctionType(params, python::Type::BOOLEAN);
+            });
+            // check that iscloseSym is function symbol
+            assert(iscloseSym->symbolType == SymbolType::FUNCTION);
+            m->addAttribute(iscloseSym);
 
             // math.ceil/math.floor
             for(const auto& name : vector<string>{"ceil", "floor"}) {
@@ -74,7 +101,7 @@ namespace tuplex {
             // inf/nan since version 3.5
             // tau since version 3.6
             // use here C constants. Note, python might have depending on version different constants.
-            m->addAttribute(Symbol::makeConstant("nan", Field(NAN)));
+            m->addAttribute(Symbol::makeConstant("nan", Field(D_NAN)));
             m->addAttribute(Symbol::makeConstant("inf", Field(INFINITY)));
             m->addAttribute(Symbol::makeConstant("pi", Field(Py_MATH_PI))); // C constant M_PI
             m->addAttribute(Symbol::makeConstant("e", Field(Py_MATH_E))); // C constant M_E

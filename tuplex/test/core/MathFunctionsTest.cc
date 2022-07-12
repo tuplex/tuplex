@@ -710,7 +710,7 @@ TEST_F(MathFunctionsTest, MathIsNan) {
     ce.importModuleAs("math", "math");
 
     auto v1 = c.parallelize({
-        Row(0.0), Row(D_NAN), Row(INFINITY), Row(-INFINITY)
+                                    Row(0.0), Row(DOUBLE_QUIET_NAN), Row(INFINITY), Row(-INFINITY)
     }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
 
     EXPECT_EQ(v1.size(), 4);
@@ -737,7 +737,7 @@ TEST_F(MathFunctionsTest, MathIsNan) {
     EXPECT_EQ(v3[2].getBoolean(0), false);
 
     auto v4 = c.parallelize({
-        Row(-0.89), Row(10.23), Row(-97.484), Row(-D_NAN)
+        Row(-0.89), Row(10.23), Row(-97.484), Row(-DOUBLE_QUIET_NAN)
     }).map(UDF("lambda x: math.isnan(x)", "", ce)).collectAsVector();
     EXPECT_EQ(v4.size(), 4);
     EXPECT_EQ(v4[0].getBoolean(0), false);
@@ -762,7 +762,7 @@ TEST_F(MathFunctionsTest, MathIsInf) {
     ce.importModuleAs("math", "math");
 
     auto v1 = c.parallelize({
-        Row(M_PI), Row(D_NAN), Row(INFINITY), Row(-INFINITY)
+                                    Row(M_PI), Row(DOUBLE_QUIET_NAN), Row(INFINITY), Row(-INFINITY)
     }).map(UDF("lambda x: math.isinf(x)", "", ce)).collectAsVector();
     EXPECT_EQ(v1.size(), 4);
     EXPECT_EQ(v1[0].getBoolean(0), false);
@@ -908,7 +908,7 @@ TEST_F(MathFunctionsTest, MathIsClose) {
         Row(INFINITY, -INFINITY),
         Row(-INFINITY, -INFINITY),
         Row(INFINITY, 5),
-        Row(D_NAN, D_NAN),
+        Row(DOUBLE_QUIET_NAN, DOUBLE_QUIET_NAN),
         Row(M_PI, M_PI),
         Row(M_PI, 3.14159265)
     }).map(UDF("lambda x, y: math.isclose(x, y)", "", ce)).collectAsVector();

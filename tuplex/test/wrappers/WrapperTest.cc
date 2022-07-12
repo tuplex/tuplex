@@ -51,37 +51,6 @@ TEST_F(WrapperTest, LambdaBackend) {
 
 // Important detail: RAII of boost python requires call to all boost::python destructors before closing the interpreter.
 
-/** below is a template for a wrapper test function **/
-// TEST_F(WrapperTest, WrapperTestTemplate) {
-//     using namespace tuplex;
-
-//     // create Python context (pass options as JSON)
-//     PythonContext c("c", "", microTestOptions().asJSON());
-
-//     // list object contains all rows in test (in this test, only one row)
-//     PyObject *listObj = PyList_New(1);
-
-//     // initialize first row
-//     PyObject *tupleObj1 = PyTuple_New(2);
-//     PyTuple_SET_ITEM(tupleObj1, 0, python::PyString_FromString("a"));
-//     PyTuple_SET_ITEM(tupleObj1, 1, python::PyString_FromString("a"));
-
-//     PyList_SetItem(listObj, 0, tupleObj1);
-    
-//     { // need to keep curly braces (for weird memory errors)
-//         auto list = py::reinterpret_borrow<py::list>(listObj);
-//         // add parallelize-map-collect
-//         auto res = c.parallelize(list).map("lambda x: x", "").collect();
-//         auto resObj = res.ptr();
-
-//         ASSERT_TRUE(PyList_Check(resObj));
-//         // check size of resulting list
-//         ASSERT_EQ(PyList_GET_SIZE(resObj), 4);
-
-//         PyObject_Print(resObj, stdout, 0);
-//     }
-// }
-
 TEST_F(WrapperTest, BasicMergeInOrder) {
     using namespace tuplex;
 
@@ -115,45 +84,6 @@ TEST_F(WrapperTest, BasicMergeInOrder) {
             EXPECT_EQ(python::pythonToRow(PyList_GetItem(resObj, i)).toPythonString(), python::pythonToRow(
                     PyList_GetItem(expectedResult, i)).toPythonString());
         }
-    }
-}
-
-TEST_F(WrapperTest, MathIsInf) {
-    using namespace tuplex;
-
-    // create Python context (pass options as JSON)
-    PythonContext c("c", "", microTestOptions().asJSON());
-
-    // list object contains all rows in test (in this test, only one row)
-    PyObject *listObj = PyList_New(1);
-    
-    // initialize listObj
-    // note that using runAndGet on each individual value, and then setting
-    // them as an element of the list is buggy (doesn't always return the right value)
-    listObj = python::runAndGet(
-        "import math; x = [0, -1, 5, math.inf * 0, math.inf, 97]",
-        "x");
-
-    Py_XINCREF(listObj);
-    PyObject_Print(listObj, stdout, 0);
-    std::cout << std::endl;
-
-    {
-        auto list = py::reinterpret_borrow<py::list>(listObj);
-
-        auto ba_closure = PyDict_New();
-        auto math_mod = PyImport_ImportModule("math");
-        assert(math_mod);
-        PyDict_SetItemString(ba_closure, "math", math_mod);
-
-        // write parallelize function
-        auto res = c.parallelize(list).map("lambda x: math.isinf(x)", "", py::reinterpret_steal<py::dict>(ba_closure)).collect();
-        auto resObj = res.ptr();
-
-        ASSERT_TRUE(PyList_Check(resObj));
-
-        PyObject_Print(resObj, stdout, 0);
-        std::cout << std::endl;
     }
 }
 

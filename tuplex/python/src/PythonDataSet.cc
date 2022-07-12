@@ -1058,8 +1058,14 @@ namespace tuplex {
             size_t numRows = *((const int64_t *) ptr);
             ptr += sizeof(int64_t);
 
+            logger.info("found partition with " + std::to_string(numRows) + " rows ");
+
             int64_t *dataptr = (int64_t *) ptr;
             for (unsigned i = 0; i < numRows && pos < maxRowCount; ++i) {
+
+#ifndef NDEBUG
+                logger.info("value of row "+ std::to_string(pos) + " is: " + std::to_string(*dataptr));
+#endif
                 if (*dataptr > 0) {
                     Py_INCREF(Py_True); // list needs a ref, so inc ref count
                     PyList_SET_ITEM(listObj, pos++, Py_True);

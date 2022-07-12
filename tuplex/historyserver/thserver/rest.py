@@ -23,6 +23,7 @@ import os
 import uuid
 import sys
 import datetime
+import logging
 
 from bson.objectid import ObjectId
 # mongodb helpers

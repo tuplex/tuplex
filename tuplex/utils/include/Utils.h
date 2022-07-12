@@ -73,10 +73,6 @@ constexpr const char* base_file_name(const char* path) {
     return file;
 }
 
-// generates a QNAN
-// note: not used for direct comparison in isnan, as there are other representations of NAN (e.g. SNAN)
-constexpr double D_NAN = nan("");
-
 // macros to print out filename + line
 #define FLINESTR (std::string(base_file_name(__FILE__)) + "+" + std::to_string(__LINE__))
 

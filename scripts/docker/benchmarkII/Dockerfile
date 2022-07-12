@@ -211,6 +211,9 @@ RUN /bin/bash /usr/src/install_sbt.sh
 ADD install_lambda_python.sh /usr/src/install_lambda_python.sh
 RUN /bin/bash /usr/src/install_lambda_python.sh
 
+# remove the faulty cloudpickle 2.1.0 installation
+RUN python3.9 -m pip uninstall cloudpickle -y && python3.9 -m pip install 'cloudpickle<2.0.0'
+
 # clean
 RUN rm -rf /usr/src
 RUN rm -rf /tmp/*
